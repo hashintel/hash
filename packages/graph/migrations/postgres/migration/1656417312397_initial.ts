@@ -308,6 +308,64 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.addConstraint("entities", "entities_primary_key", {
     primaryKey: ["entity_id", "version"],
   });
+
+  pgm.createTable(
+    "links",
+    {
+      source_entity_id: {
+        type: "UUID",
+        notNull: true,
+        references: "entity_ids",
+      },
+      target_entity_id: {
+        type: "UUID",
+        notNull: true,
+        references: "entity_ids",
+      },
+      link_type_version_id: {
+        type: "UUID",
+        notNull: true,
+        references: "link_types",
+      },
+      multi: {
+        type: "boolean",
+        notNull: true,
+        default: "false",
+      },
+      multi_order: {
+        // TODO: this is where we could do fractional indexing
+        type: "integer",
+      },
+      created_by: {
+        type: "UUID",
+        notNull: true,
+        references: "accounts",
+      },
+      // TODO: Consider using timestamps for link duration like we've done for the HASH backend,
+      // see https://app.asana.com/0/1201095311341924/1201836485518642/f
+      active: {
+        type: "boolean",
+        notNull: true,
+        default: true,
+      },
+    },
+    {
+      ifNotExists: true,
+    },
+  );
+  // Currently links are between unversioned entities.
+  // Ideally we'd have links between versioned entities -> unversioned entities.
+  pgm.addConstraint("links", "links_pkey", {
+    primaryKey: [
+      "source_entity_id",
+      "target_entity_id",
+      "link_type_version_id",
+    ],
+  });
+  pgm.addConstraint("links", "links_single_or_multi", {
+    // multi_order is only appropriate to set if multi is true.
+    check: "(multi) or (multi_order IS NULL)",
+  });
 }
 
 // A down migration would cause data loss.
@@ -325,6 +383,7 @@ DROP TABLE IF EXISTS entity_type_entity_type_links CASCADE;
 DROP TABLE IF EXISTS link_types CASCADE;
 DROP TABLE IF EXISTS entity_ids CASCADE;
 DROP TABLE IF EXISTS entities CASCADE;
+DROP TABLE IF EXISTS links CASCADE;
 DROP TABLE IF EXISTS accounts CASCADE;
 DROP TABLE IF EXISTS ids CASCADE;
 */
