@@ -2,7 +2,6 @@
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
 
 mod common;
-
 use common::*;
 #[cfg(all(nightly, feature = "experimental"))]
 use error_stack::fmt::DebugDiagnostic;
@@ -13,6 +12,8 @@ use error_stack::Report;
 use insta::assert_snapshot;
 #[cfg(feature = "glyph")]
 use owo_colors::set_override;
+use rusty_fork::rusty_fork_test;
+use serial_test::serial;
 
 #[cfg(feature = "glyph")]
 fn force_color() {
@@ -167,9 +168,10 @@ fn location_edge_case() {
     assert_snapshot!(format!("{report:?}"));
 }
 
-#[test]
 #[cfg(feature = "hooks")]
-#[serial_test::serial]
+rusty_fork_test! {
+#[test]
+#[serial]
 fn hook() {
     set_snapshot_suffix!();
 
@@ -182,8 +184,7 @@ fn hook() {
 }
 
 #[test]
-#[cfg(feature = "hooks")]
-#[serial_test::serial]
+#[serial]
 fn hook_context() {
     set_snapshot_suffix!();
 
@@ -198,8 +199,7 @@ fn hook_context() {
 }
 
 #[test]
-#[cfg(feature = "hooks")]
-#[serial_test::serial]
+#[serial]
 fn hook_stack() {
     set_snapshot_suffix!();
 
@@ -216,8 +216,7 @@ fn hook_stack() {
 }
 
 #[test]
-#[cfg(feature = "hooks")]
-#[serial_test::serial]
+#[serial]
 fn hook_combine() {
     set_snapshot_suffix!();
 
@@ -242,8 +241,7 @@ fn hook_combine() {
 }
 
 #[test]
-#[cfg(feature = "hooks")]
-#[serial_test::serial]
+#[serial]
 fn hook_defer() {
     set_snapshot_suffix!();
 
@@ -264,8 +262,7 @@ fn hook_defer() {
 }
 
 #[test]
-#[cfg(feature = "hooks")]
-#[serial_test::serial]
+#[serial]
 fn hook_decr() {
     set_snapshot_suffix!();
 
@@ -284,8 +281,7 @@ fn hook_decr() {
 }
 
 #[test]
-#[cfg(feature = "hooks")]
-#[serial_test::serial]
+#[serial]
 fn hook_incr() {
     set_snapshot_suffix!();
 
@@ -301,4 +297,5 @@ fn hook_incr() {
     .unwrap();
 
     assert_snapshot!(format!("{report:?}"));
+}
 }
