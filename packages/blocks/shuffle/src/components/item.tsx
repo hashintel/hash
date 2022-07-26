@@ -68,9 +68,13 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
         ref={ref}
         onMouseOver={() => setIsHovered(true)}
         onMouseOut={() => setIsHovered(false)}
-        sx={{ marginBottom: 2 }}
         disablePadding
-        style={{ ...style, opacity: isDragging ? 0 : 1 }}
+        sx={{
+          ...style,
+          marginBottom: 2,
+          opacity: isDragging ? 0 : 1,
+          outlineColor: ({ palette }) => palette.primary.light,
+        }}
         {...attributes}
       >
         <Paper
@@ -100,26 +104,36 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <IconButton
               onClick={() => onDelete?.()}
-              sx={{
+              sx={({ palette }) => ({
                 paddingX: 0.5,
                 paddingY: 1,
                 borderRadius: 1,
                 maxHeight: 40,
                 opacity: dragOverlay || isHovered ? 1 : 0,
                 transition: ({ transitions }) => transitions.create("opacity"),
-              }}
+                "&:focus-visible, :hover": {
+                  opacity: 1,
+                  background: dragOverlay ? "none" : palette.action.hover,
+                },
+              })}
+              disableFocusRipple
             >
               <CloseIcon fontSize="small" />
             </IconButton>
 
             <IconButton
-              sx={{
+              sx={({ palette }) => ({
                 paddingX: 0.5,
                 paddingY: 1,
                 borderRadius: 1,
                 marginLeft: 1,
                 maxHeight: 40,
-              }}
+                background: dragOverlay ? palette.action.hover : "none",
+                "&:focus-visible": {
+                  background: palette.action.hover,
+                },
+              })}
+              disableFocusRipple
               {...listeners}
             >
               <DragIndicatorIcon fontSize="small" color="action" />
