@@ -7,14 +7,14 @@ mod property_type;
 
 use error_stack::Result;
 use graph::{
-    knowledge::{Entity, EntityId, Link, LinkId, Links},
+    knowledge::{Entity, EntityId, Link, Links, OutgoingLink},
     ontology::{
         types::{uri::VersionedUri, DataType, EntityType, LinkType, Persisted, PropertyType},
         AccountId, VersionId,
     },
     store::{
-        AsClient, DatabaseConnectionInfo, DatabaseType, InsertionError, PostgresStore,
-        PostgresStorePool, QueryError, Store, StorePool, UpdateError,
+        error::LinkActivationError, AsClient, DatabaseConnectionInfo, DatabaseType, InsertionError,
+        PostgresStore, PostgresStorePool, QueryError, Store, StorePool, UpdateError,
     },
 };
 use tokio_postgres::{NoTls, Transaction};
@@ -264,7 +264,7 @@ impl DatabaseApi<'_> {
         &self,
         source_entity_id: EntityId,
         link_type_uri: VersionedUri,
-    ) -> Result<Link, QueryError> {
+    ) -> Result<OutgoingLink, QueryError> {
         self.store
             .get_link_target(source_entity_id, link_type_uri)
             .await
@@ -275,10 +275,10 @@ impl DatabaseApi<'_> {
         source_entity: EntityId,
         target_entity: EntityId,
         link_type_uri: VersionedUri,
-    ) -> Result<LinkId, InsertionError> {
-        self.store
-            .create_link(source_entity, target_entity, link_type_uri, self.account_id)
-            .await
+    ) -> Result<Link, InsertionError> {
+        let link_id = Link::new(source_entity, target_entity, link_type_uri);
+
+        self.store.create_link(link_id, self.account_id).await
     }
 
     async fn remove_link(
@@ -286,10 +286,9 @@ impl DatabaseApi<'_> {
         source_entity: EntityId,
         target_entity: EntityId,
         link_type_uri: VersionedUri,
-    ) -> Result<(), InsertionError> {
-        self.store
-            .remove_link(source_entity, target_entity, link_type_uri)
-            .await
+    ) -> Result<(), LinkActivationError> {
+        let link_id = Link::new(source_entity, target_entity, link_type_uri);
+        self.store.remove_link(link_id).await
     }
 }
 

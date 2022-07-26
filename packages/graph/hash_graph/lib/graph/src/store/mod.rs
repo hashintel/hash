@@ -7,13 +7,14 @@ use std::fmt;
 use async_trait::async_trait;
 use error_stack::{Context, Result};
 
+use self::error::LinkActivationError;
 pub use self::{
     error::{BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError},
     pool::StorePool,
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    knowledge::{Entity, EntityId, Link, LinkId, Links},
+    knowledge::{Entity, EntityId, Link, Links, OutgoingLink},
     ontology::{
         types::{uri::VersionedUri, DataType, EntityType, LinkType, Persisted, PropertyType},
         AccountId, VersionId,
@@ -367,7 +368,7 @@ pub trait Store {
         &self,
         source_entity_id: EntityId,
         link_type_uri: VersionedUri,
-    ) -> Result<Link, QueryError>;
+    ) -> Result<OutgoingLink, QueryError>;
 
     /// Get [`Links`] of an [`Entity`] identified by an [`EntityId`].
     ///
@@ -381,15 +382,13 @@ pub trait Store {
     /// # Errors:
     ///
     /// - if the [`LinkType`] doesn't exist
-    /// - if the [`Link`] is not valid with respect to the specified [`LinkType`]
+    /// - if the [`Link`] already exists
     /// - if the account referred to by `created_by` does not exist
     async fn create_link(
         &mut self,
-        source_entity: EntityId,
-        target_entity: EntityId,
-        link_type_uri: VersionedUri,
+        link: Link,
         created_by: AccountId,
-    ) -> Result<LinkId, InsertionError>;
+    ) -> Result<Link, InsertionError>;
 
     /// Removes a [`Link`] between a source and target [`Entity`].
     ///
@@ -397,10 +396,5 @@ pub trait Store {
     ///
     /// - if the [`Link`] doesn't exist
     /// - if the account referred to by `created_by` does not exist
-    async fn remove_link(
-        &mut self,
-        source_entity: EntityId,
-        target_entity: EntityId,
-        link_type_uri: VersionedUri,
-    ) -> Result<(), InsertionError>;
+    async fn remove_link(&mut self, link: Link) -> Result<(), LinkActivationError>;
 }

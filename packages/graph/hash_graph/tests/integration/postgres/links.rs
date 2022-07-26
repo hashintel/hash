@@ -1,4 +1,4 @@
-use graph::{knowledge::Link, ontology::types::uri::VersionedUri};
+use graph::{knowledge::OutgoingLink, ontology::types::uri::VersionedUri};
 
 use crate::{
     postgres::DatabaseTestWrapper,
@@ -58,7 +58,7 @@ async fn insert() {
     assert_eq!(created_link.source_entity(), person_a_entity_id);
     assert_eq!(created_link.target_entity(), person_b_entity_id);
     assert_eq!(created_link.link_type_uri(), &link_type_uri);
-    assert_eq!(link_target, Link::Single(person_b_entity_id));
+    assert_eq!(link_target, OutgoingLink::Single(person_b_entity_id));
 }
 
 #[tokio::test]

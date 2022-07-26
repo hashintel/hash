@@ -8,8 +8,9 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 pub use self::pool::{AsClient, PostgresStorePool};
+use super::error::LinkActivationError;
 use crate::{
-    knowledge::{Entity, EntityId, Link, LinkId, Links},
+    knowledge::{Entity, EntityId, Link, Links, OutgoingLink},
     ontology::{
         types::{
             uri::{BaseUri, VersionedUri},
@@ -643,6 +644,30 @@ where
 
         Ok(entity_id)
     }
+
+    async fn update_link_active(
+        &self,
+        active: bool,
+        source_entity: EntityId,
+        target_entity: EntityId,
+        link_type_version_id: VersionId,
+    ) -> Result<(), LinkActivationError> {
+        self.as_client()
+            .query_one(
+                r#"
+                    UPDATE links 
+                    SET active = $1
+                    WHERE source_entity_id = $2 AND target_entity_id = $3 AND link_type_version_id = $4
+                    RETURNING source_entity_id, target_entity_id, link_type_version_id;
+                "#,
+                &[&active, &source_entity, &target_entity, &link_type_version_id],
+            )
+            .await
+            .report()
+            .change_context(LinkActivationError)?;
+
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -1045,7 +1070,7 @@ where
             .change_context(QueryError)
             .attach_printable(source_entity_id)?
             .into_iter()
-            .map(|row| (VersionedUri::new(row.get(0), row.get::<_, i64>(1) as u32), Link::Multiple(row.get(2))));
+            .map(|row| (VersionedUri::new(row.get(0), row.get::<_, i64>(1) as u32), OutgoingLink::Multiple(row.get(2))));
 
         let single_links = self
             .client
@@ -1067,7 +1092,7 @@ where
             .map(|row| {
                 (
                     VersionedUri::new(row.get(0), row.get::<_, i64>(1) as u32),
-                    Link::Single(row.get(2)),
+                    OutgoingLink::Single(row.get(2)),
                 )
             });
 
@@ -1078,7 +1103,7 @@ where
         &self,
         source_entity_id: EntityId,
         link_type_uri: VersionedUri,
-    ) -> Result<Link, QueryError> {
+    ) -> Result<OutgoingLink, QueryError> {
         let version = i64::from(link_type_uri.version());
         let links = self
             .client
@@ -1102,69 +1127,73 @@ where
                 .attach_printable(source_entity_id)
                 .attach_printable(link_type_uri.clone()));
         } else if links.len() == 1 {
-            return Ok(Link::Single(
+            return Ok(OutgoingLink::Single(
                 links.get(0).expect("Link array should have been 1").get(0),
             ));
         }
 
-        Ok(Link::Multiple(
+        Ok(OutgoingLink::Multiple(
             links.into_iter().map(|row| row.get(0)).collect(),
         ))
     }
 
     async fn create_link(
         &mut self,
-        source_entity: EntityId,
-        target_entity: EntityId,
-        link_type_uri: VersionedUri,
+        link: Link,
         created_by: AccountId,
-    ) -> Result<LinkId, InsertionError> {
-        let version_id = self
-            .version_id_by_uri(&link_type_uri)
+    ) -> Result<Link, InsertionError> {
+        let link_type_version_id = self
+            .version_id_by_uri(link.link_type_uri())
             .await
             .change_context(InsertionError)
-            .attach_printable(source_entity)?;
-        self.as_client()
+            .attach_printable(link.source_entity())?;
+        let inserted_link = self.as_client()
             .query_one(
                 r#"
                     INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, multi, multi_order, created_by)
                     VALUES ($1, $2, $3, false, null, $4)
                     RETURNING source_entity_id, target_entity_id, link_type_version_id;
                 "#,
-                &[&source_entity, &target_entity, &version_id, &created_by],
+                &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &created_by],
             )
             .await
             .report()
             .change_context(InsertionError)
-            .attach_printable(created_by)?;
+            .attach_printable(created_by);
 
-        Ok(LinkId::new(source_entity, target_entity, link_type_uri))
+        if let Err(_) = inserted_link {
+            // In the case of inserting a new link errors, we try to update an existing link that
+            // has previously been set to inactive
+            self.update_link_active(
+                true,
+                link.source_entity(),
+                link.target_entity(),
+                link_type_version_id,
+            )
+            .await
+            .attach_lazy(|| link.clone())
+            .change_context(InsertionError)?;
+        }
+
+        Ok(link)
     }
 
-    async fn remove_link(
-        &mut self,
-        source_entity: EntityId,
-        target_entity: EntityId,
-        link_type_uri: VersionedUri,
-    ) -> Result<(), InsertionError> {
-        let version_id = self
-            .version_id_by_uri(&link_type_uri)
+    async fn remove_link(&mut self, link: Link) -> Result<(), LinkActivationError> {
+        let link_type_version_id = self
+            .version_id_by_uri(link.link_type_uri())
             .await
             .change_context(InsertionError)
-            .attach_printable(source_entity)?;
-        self.as_client()
-            .query_one(
-                r#"
-                    UPDATE links 
-                    SET active = false
-                    WHERE source_entity_id = $1 AND target_entity_id = $2 AND link_type_version_id = $3
-                    RETURNING source_entity_id, target_entity_id, link_type_version_id;
-                "#,
-                &[&source_entity, &target_entity, &version_id],
-            )
-            .await
-            .report()
-            .change_context(InsertionError)?;
+            .attach_printable(link.source_entity())
+            .change_context(LinkActivationError)?;
+
+        self.update_link_active(
+            false,
+            link.source_entity(),
+            link.target_entity(),
+            link_type_version_id,
+        )
+        .await
+        .attach_printable_lazy(|| link.clone())?;
 
         Ok(())
     }

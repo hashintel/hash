@@ -7,13 +7,13 @@ use super::EntityId;
 use crate::ontology::types::uri::VersionedUri;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
-pub struct LinkId {
+pub struct Link {
     source_entity: EntityId,
     target_entity: EntityId,
     link_type_uri: VersionedUri,
 }
 
-impl LinkId {
+impl Link {
     #[must_use]
     pub const fn new(
         source_entity: EntityId,
@@ -43,7 +43,7 @@ impl LinkId {
     }
 }
 
-impl fmt::Display for LinkId {
+impl fmt::Display for Link {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(fmt, "{:?}", &self)
     }
@@ -51,7 +51,7 @@ impl fmt::Display for LinkId {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum Link {
+pub enum OutgoingLink {
     Single(EntityId),
     Multiple(Vec<EntityId>),
 }
@@ -59,17 +59,17 @@ pub enum Link {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Links {
     #[serde(flatten)]
-    links: HashMap<VersionedUri, Link>,
+    links: HashMap<VersionedUri, OutgoingLink>,
 }
 
 impl Links {
     #[must_use]
-    pub const fn new(links: HashMap<VersionedUri, Link>) -> Self {
+    pub const fn new(links: HashMap<VersionedUri, OutgoingLink>) -> Self {
         Self { links }
     }
 
     #[must_use]
-    pub const fn inner(&self) -> &HashMap<VersionedUri, Link> {
+    pub const fn inner(&self) -> &HashMap<VersionedUri, OutgoingLink> {
         &self.links
     }
 }
@@ -81,7 +81,7 @@ mod tests {
     fn test_link(json: &str) {
         let json_value: serde_json::Value = serde_json::from_str(json).expect("invalid JSON");
 
-        let link: Link = serde_json::from_value(json_value.clone()).expect("invalid link");
+        let link: OutgoingLink = serde_json::from_value(json_value.clone()).expect("invalid link");
 
         assert_eq!(
             serde_json::to_value(link.clone()).expect("could not serialize"),
