@@ -12,7 +12,9 @@ use error_stack::Report;
 use insta::assert_snapshot;
 #[cfg(feature = "glyph")]
 use owo_colors::set_override;
+#[cfg(feature = "hooks")]
 use rusty_fork::rusty_fork_test;
+#[cfg(feature = "hooks")]
 use serial_test::serial;
 
 #[cfg(feature = "glyph")]
@@ -180,7 +182,7 @@ fn hook() {
     Report::install_hook(Hooks::new().push(|_: &u32| Line::next("unsigned 32bit integer")))
         .unwrap();
 
-    assert_snapshot!(format!("{report:?}"));
+    assert_snapshot!("hook", format!("{report:?}"));
 }
 
 #[test]
@@ -195,7 +197,7 @@ fn hook_context() {
     }))
     .unwrap();
 
-    assert_snapshot!(format!("{report:?}"));
+    assert_snapshot!("hook_context", format!("{report:?}"));
 }
 
 #[test]
@@ -212,7 +214,7 @@ fn hook_stack() {
     )
     .unwrap();
 
-    assert_snapshot!(format!("{report:?}"));
+    assert_snapshot!("hook_stack", format!("{report:?}"));
 }
 
 #[test]
@@ -237,7 +239,7 @@ fn hook_combine() {
     )
     .unwrap();
 
-    assert_snapshot!(format!("{report:?}"));
+    assert_snapshot!("hook_combine", format!("{report:?}"));
 }
 
 #[test]
@@ -258,7 +260,7 @@ fn hook_defer() {
     )
     .unwrap();
 
-    assert_snapshot!(format!("{report:?}"));
+    assert_snapshot!("hook_defer", format!("{report:?}"));
 }
 
 #[test]
@@ -277,7 +279,7 @@ fn hook_decr() {
     )
     .unwrap();
 
-    assert_snapshot!(format!("{report:?}"));
+    assert_snapshot!("hook_decr", format!("{report:?}"));
 }
 
 #[test]
@@ -296,6 +298,6 @@ fn hook_incr() {
     )
     .unwrap();
 
-    assert_snapshot!(format!("{report:?}"));
+    assert_snapshot!("hook_incr", format!("{report:?}"));
 }
 }
