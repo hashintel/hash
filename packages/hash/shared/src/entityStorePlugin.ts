@@ -557,8 +557,10 @@ class ProsemirrorStateChangeHandler {
       throw new Error("invariant: draft entity missing from store");
     }
 
-    const draftTextEntity = isDraftTextContainingEntityProperties(draftEntity)
-      ? draftEntity.text.data
+    const draftTextEntity = isDraftTextContainingEntityProperties(
+      draftEntity.properties,
+    )
+      ? draftEntity.properties.text.data
       : draftEntity;
 
     if (
