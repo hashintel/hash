@@ -8,6 +8,7 @@ use common::*;
 use error_stack::Report;
 
 #[test]
+#[allow(deprecated)]
 fn debug() {
     Report::set_debug_hook(|_report, fmt| fmt.write_str("debug hook")).expect("Unable to set hook");
     assert_eq!(format!("{:?}", create_report()), "debug hook");
@@ -17,6 +18,7 @@ fn debug() {
 }
 
 #[test]
+#[allow(deprecated)]
 fn display() {
     Report::set_display_hook(|_report, fmt| fmt.write_str("display hook"))
         .expect("Unable to set hook");

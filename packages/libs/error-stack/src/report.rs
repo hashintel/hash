@@ -1,7 +1,7 @@
+use alloc::boxed::Box;
 #[cfg(not(feature = "small"))]
-use alloc::vec;
-use alloc::{boxed::Box, string::ToString, vec::Vec};
-use core::{fmt, fmt::Write, marker::PhantomData, panic::Location};
+use alloc::{vec, vec::Vec};
+use core::{fmt, marker::PhantomData, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(feature = "std")]
@@ -16,7 +16,7 @@ use crate::context::temporary_provider;
 use crate::iter::{RequestRef, RequestValue};
 use crate::{
     iter::{Frames, FramesMut},
-    AttachmentKind, Context, Frame, FrameKind,
+    Context, Frame,
 };
 
 /// Contains a [`Frame`] stack consisting of [`Context`]s and attachments.

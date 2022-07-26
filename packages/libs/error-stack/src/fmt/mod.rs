@@ -7,13 +7,20 @@ mod hook;
 #[cfg(all(nightly, feature = "experimental"))]
 mod nightly;
 
-use alloc::{borrow::ToOwned, collections::VecDeque, format, string::String, vec, vec::Vec};
+use alloc::{
+    borrow::ToOwned,
+    collections::VecDeque,
+    format,
+    string::{String, ToString},
+    vec,
+    vec::Vec,
+};
 use core::{
     fmt,
-    fmt::{Debug, Display, Formatter},
+    fmt::{Debug, Display, Formatter, Write as _},
+    iter::once,
     panic::Location,
 };
-use std::iter::once;
 
 #[cfg(feature = "hooks")]
 pub(crate) use hook::ErasedHooks;
@@ -24,9 +31,9 @@ pub use hook::{HookContext, Hooks};
 #[cfg(all(nightly, feature = "experimental"))]
 pub use nightly::DebugDiagnostic;
 #[cfg(feature = "glyph")]
-use owo_colors::{colored::Color, colors::Red, OwoColorize, Stream::Stdout};
+use owo_colors::{OwoColorize, Stream::Stdout};
 
-use crate::{AttachmentKind, Frame, FrameKind, Report, Result};
+use crate::{AttachmentKind, Frame, FrameKind, Report};
 
 /// Different types of `Line` that exist during rendering.
 ///
@@ -54,16 +61,16 @@ impl Line {
     /// Create a new [`Next`] line, which is emitted immediately in the tree.
     ///
     /// [`Next`]: Self::Next
-    pub fn next<T: ToOwned<Owned = String>>(line: T) -> Self {
-        Self::Next(line.to_owned())
+    pub fn next<T: Into<String>>(line: T) -> Self {
+        Self::Next(line.into())
     }
 
     /// Create a new [`Defer`] line, which is deferred until the end of the current chain of
     /// attachments and contexts.
     ///
     /// [`Defer`]: Self::Defer
-    pub fn defer<T: ToOwned<Owned = String>>(line: T) -> Self {
-        Self::Defer(line.to_owned())
+    pub fn defer<T: Into<String>>(line: T) -> Self {
+        Self::Defer(line.into())
     }
 }
 
@@ -92,66 +99,66 @@ enum Instruction {
 impl Instruction {
     fn plain(text: String) -> Instructions {
         let mut queue = VecDeque::new();
-        queue.push_back(Instruction::Content(text));
+        queue.push_back(Self::Content(text));
 
         queue
     }
 
     fn location(text: &'static Location) -> Instructions {
         let mut queue = VecDeque::new();
-        queue.push_back(Instruction::Glyph(Glyph::Location));
-        queue.push_back(Instruction::Gray(text.to_string()));
+        queue.push_back(Self::Glyph(Glyph::Location));
+        queue.push_back(Self::Gray(text.to_string()));
 
         queue
     }
 }
 
 impl Display for Instruction {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Instruction::Content(text) => fmt.write_str(&text),
+            Self::Content(text) => fmt.write_str(text),
             #[cfg(feature = "glyph")]
-            Instruction::Entry { end: true } => {
-                fmt::Display::fmt(&"╰─▶ ".if_supports_color(Stdout, |text| text.red()), fmt)
+            Self::Entry { end: true } => {
+                fmt::Display::fmt(&"╰─▶ ".if_supports_color(Stdout, OwoColorize::red), fmt)
             }
             #[cfg(not(feature = "glyph"))]
-            Instruction::Entry { end: true } => fmt.write_str(r#"\-> "#),
+            Self::Entry { end: true } => fmt.write_str(r#"\-> "#),
             #[cfg(feature = "glyph")]
-            Instruction::Entry { end: false } => {
-                fmt::Display::fmt(&"├─▶ ".if_supports_color(Stdout, |text| text.red()), fmt)
+            Self::Entry { end: false } => {
+                fmt::Display::fmt(&"├─▶ ".if_supports_color(Stdout, OwoColorize::red), fmt)
             }
             #[cfg(not(feature = "glyph"))]
-            Instruction::Entry { end: false } => fmt.write_str("|-> "),
+            Self::Entry { end: false } => fmt.write_str("|-> "),
             #[cfg(feature = "glyph")]
-            Instruction::Vertical => {
-                fmt::Display::fmt(&"│   ".if_supports_color(Stdout, |text| text.red()), fmt)
+            Self::Vertical => {
+                fmt::Display::fmt(&"│   ".if_supports_color(Stdout, OwoColorize::red), fmt)
             }
             #[cfg(not(feature = "glyph"))]
-            Instruction::Vertical => fmt.write_str("|   "),
-            Instruction::Indent => fmt.write_str("    "),
+            Self::Vertical => fmt.write_str("|   "),
+            Self::Indent => fmt.write_str("    "),
             #[cfg(feature = "glyph")]
-            Instruction::Gray(text) => fmt::Display::fmt(
-                &text.if_supports_color(Stdout, |text| text.bright_black()),
+            Self::Gray(text) => fmt::Display::fmt(
+                &text.if_supports_color(Stdout, OwoColorize::bright_black),
                 fmt,
             ),
             #[cfg(not(feature = "glyph"))]
-            Instruction::Gray(text) => fmt.write_str(text),
+            Self::Gray(text) => fmt.write_str(text),
             #[cfg(feature = "glyph")]
-            Instruction::Title { end: true } => {
-                fmt::Display::fmt(&"╰ ".if_supports_color(Stdout, |text| text.red()), fmt)
+            Self::Title { end: true } => {
+                fmt::Display::fmt(&"╰ ".if_supports_color(Stdout, OwoColorize::red), fmt)
             }
             #[cfg(not(feature = "glyph"))]
-            Instruction::Title { end: true } => fmt.write_str("\\-"),
+            Self::Title { end: true } => fmt.write_str("\\-"),
             #[cfg(feature = "glyph")]
-            Instruction::Title { end: false } => {
-                fmt::Display::fmt(&"│ ".if_supports_color(Stdout, |text| text.red()), fmt)
+            Self::Title { end: false } => {
+                fmt::Display::fmt(&"│ ".if_supports_color(Stdout, OwoColorize::red), fmt)
             }
             #[cfg(not(feature = "glyph"))]
-            Instruction::Title { end: false } => fmt.write_str("| "),
+            Self::Title { end: false } => fmt.write_str("| "),
             #[cfg(feature = "glyph")]
-            Instruction::Glyph(Glyph::Location) => fmt.write_str("📌 "),
+            Self::Glyph(Glyph::Location) => fmt.write_str("📌 "),
             #[cfg(not(feature = "glyph"))]
-            Instruction::Glyph(Glyph::Location) => fmt.write_str("@ "),
+            Self::Glyph(Glyph::Location) => fmt.write_str("@ "),
         }
     }
 }
@@ -169,7 +176,7 @@ fn debug_frame(
             #[cfg(all(nightly, feature = "experimental"))]
             if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
                 for text in debug.text() {
-                    ctx.cast::<()>().text(text.clone());
+                    ctx.cast::<()>().text(text);
                 }
 
                 return Some(debug.output().clone()).map(|line| (line, frame.location()));
@@ -190,7 +197,7 @@ fn debug_frame(
     Some((line, frame.location()))
 }
 
-fn push(groups: &mut Vec<Lines>, line: String, loc: &'static Location<'static>) {
+fn push(groups: &mut Vec<Lines>, line: &str, loc: &'static Location<'static>) {
     groups.push(
         line.lines()
             .map(ToOwned::to_owned)
@@ -242,7 +249,7 @@ fn debug_frame_root(root: &Frame, ctx: &mut HookContextImpl) -> Lines {
                 Line::Defer(line) => {
                     defer.push((line, loc));
                 }
-                Line::Next(line) => push(&mut groups, line, loc),
+                Line::Next(line) => push(&mut groups, &line, loc),
             }
         } else {
             opaque += 1;
@@ -250,7 +257,7 @@ fn debug_frame_root(root: &Frame, ctx: &mut HookContextImpl) -> Lines {
     }
 
     for (line, loc) in defer {
-        push(&mut groups, line, loc)
+        push(&mut groups, &line, loc);
     }
 
     match opaque {
@@ -291,6 +298,9 @@ fn debug_frame_root(root: &Frame, ctx: &mut HookContextImpl) -> Lines {
 
             content.into_iter().enumerate().map(move |(idx, mut line)| {
                 // in the title we need to change from |- to \- if there are no other values.
+                // there are places where first is last, but not the other way around,
+                // this is why we need to test both.
+                // They are not mutually exclusive.
                 if (!first || last) && idx == len - 1 {
                     if let Some(Instruction::Title { end }) = line.front_mut() {
                         *end = true;
@@ -337,7 +347,11 @@ impl<C> Debug for Report<C> {
         let mut lines = lines.into_iter().fold(String::new(), |mut acc, line| {
             acc.push('\n');
             for instruction in line {
-                acc.push_str(&format!("{instruction}"))
+                // "While using `write!` in the suggested way should never fail,
+                //  this isn’t necessarily clear to the programmer."
+                // excerpt from `format_push_string`
+                // https://rust-lang.github.io/rust-clippy/master/index.html#format_push_string
+                let _ = write!(acc, "{instruction}");
             }
             acc
         });

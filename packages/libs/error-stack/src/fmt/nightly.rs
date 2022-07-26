@@ -1,3 +1,5 @@
+use alloc::{string::String, vec, vec::Vec};
+
 use crate::fmt::Line;
 
 /// `nightly` experimental type, which is used during the formatting of [`Debug`] context via the
@@ -42,18 +44,18 @@ pub struct DebugDiagnostic {
 
 impl DebugDiagnostic {
     /// The diagnostic is going to be emitted immediately once encountered in the frame stack.
-    pub fn next<T: ToOwned<Owned = String>>(output: T) -> Self {
+    pub fn next<T: Into<String>>(output: T) -> Self {
         Self {
-            output: Line::Next(output.to_owned()),
+            output: Line::Next(output.into()),
             text: vec![],
         }
     }
 
     /// The diagnostic is going to be deferred until the end of the group of the current frame
     /// stack.
-    pub fn defer<T: ToOwned<Owned = String>>(output: T) -> Self {
+    pub fn defer<T: Into<String>>(output: T) -> Self {
         Self {
-            output: Line::Defer(output.to_owned()),
+            output: Line::Defer(output.into()),
             text: vec![],
         }
     }
@@ -62,12 +64,13 @@ impl DebugDiagnostic {
     /// this can be chained to create multiple texts entries.
     ///
     /// Text is only emitted at the end of extended [`Debug`] (`:#?`)
+    #[must_use]
     pub fn and_text(mut self, text: String) -> Self {
         self.text.push(text);
         self
     }
 
-    pub(crate) fn output(&self) -> &Line {
+    pub(crate) const fn output(&self) -> &Line {
         &self.output
     }
 

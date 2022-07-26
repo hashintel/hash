@@ -29,7 +29,7 @@ impl fmt::Display for HookAlreadySet {
 
 impl Error for HookAlreadySet {}
 
-pub(crate) mod sealed {
+mod sealed {
     pub trait Sealed {}
 }
 
@@ -39,14 +39,16 @@ pub trait Install: sealed::Sealed {
     fn install(self) -> Result<(), HookAlreadySet>;
 }
 
-impl<T, U> sealed::Sealed for Hooks<T> where T: Hook<Frame, U> {}
+impl<T> sealed::Sealed for Hooks<T> where T: Hook<Frame, ()> {}
 
-impl<T, U> Install for Hooks<T>
+impl<T> Install for Hooks<T>
 where
-    T: Hook<Frame, U>,
+    T: Hook<Frame, ()> + Send + Sync + 'static,
 {
     fn install(self) -> Result<(), HookAlreadySet> {
-        FMT_HOOK.set(self).map_err(|_| Report::new(HookAlreadySet))
+        FMT_HOOK
+            .set(self.erase())
+            .map_err(|_| Report::new(HookAlreadySet))
     }
 }
 
@@ -134,7 +136,7 @@ impl Report<()> {
     /// assert_eq!(format!("{report:?}"), "custom debug implementation");
     /// # Ok(()) }
     /// ```
-    #[deprecated("use Report::<()>::install_hook() instead")]
+    #[deprecated = "use Report::<()>::install_hook() instead"]
     #[cfg(feature = "hooks")]
     pub fn set_debug_hook<H>(hook: H) -> Result<(), HookAlreadySet>
     where
@@ -184,7 +186,7 @@ impl Report<()> {
     /// assert_eq!(report.to_string(), "custom display implementation");
     /// # Ok(()) }
     /// ```
-    #[deprecated("use Report::<()>::install_hook() instead")]
+    #[deprecated]
     #[cfg(feature = "hooks")]
     pub fn set_display_hook<H>(hook: H) -> Result<(), HookAlreadySet>
     where

@@ -1,28 +1,19 @@
-use alloc::collections::BTreeMap;
+use alloc::{borrow::ToOwned, boxed::Box, collections::BTreeMap, string::String, vec::Vec};
 use core::{
-    any::{Any, Demand, Provider, TypeId},
+    any::{Any, TypeId},
     marker::PhantomData,
 };
 
 pub use builtin::Builtin;
 
-use crate::{
-    fmt::{Instruction, Line, Lines},
-    Frame, Report,
-};
+use crate::fmt::Line;
+#[cfg(feature = "hooks")]
+use crate::Frame;
 
-pub(crate) struct HookContextImpl {
+#[derive(Default)]
+pub struct HookContextImpl {
     pub(crate) text: Vec<Vec<String>>,
     inner: BTreeMap<TypeId, Box<dyn Any>>,
-}
-
-impl Default for HookContextImpl {
-    fn default() -> Self {
-        Self {
-            text: vec![],
-            inner: BTreeMap::new(),
-        }
-    }
 }
 
 impl HookContextImpl {
@@ -49,7 +40,7 @@ impl<T> HookContext<'_, T> {
     /// message.
     /// This is especially useful for dense information like backtraces,
     /// which one might want to omit from the tree rendering or omit from the normal debug.  
-    pub fn text(&mut self, value: String) {
+    pub fn text(&mut self, value: &str) {
         self.text_lines(value.lines());
     }
 
@@ -58,7 +49,7 @@ impl<T> HookContext<'_, T> {
     pub fn text_lines(&mut self, lines: core::str::Lines) {
         self.parent
             .text
-            .push(lines.map(ToOwned::to_owned).collect())
+            .push(lines.map(ToOwned::to_owned).collect());
     }
 }
 
@@ -67,6 +58,7 @@ impl<'a, T> HookContext<'a, T> {
     ///
     /// This binds the parent context to a different value,
     /// which allows to access the data stored for the type this is casted to.
+    #[must_use]
     pub fn cast<U>(self) -> HookContext<'a, U> {
         HookContext {
             parent: self.parent,
@@ -84,6 +76,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// Returns a reference to the value corresponding to the currently bound type `T`.
     ///
     /// This will downcast the stored value to `U`, if not possible, it will return [`None`]
+    #[must_use]
     pub fn get<U: 'static>(&self) -> Option<&U> {
         let inner = self.parent.inner.get(&TypeId::of::<T>())?;
 
@@ -259,7 +252,9 @@ impl<L, T, R> Stack<L, T, R> {
     }
 }
 
+// clippy::mismatching_type_param_order is a false positive
 #[cfg(feature = "hooks")]
+#[allow(clippy::mismatching_type_param_order)]
 impl<L, T, U, R> Hook<Frame, UInt0> for Stack<L, (T, U), R>
 where
     L: Hook<T, U>,
@@ -311,7 +306,7 @@ pub struct Combine<L, R> {
 #[cfg(feature = "hooks")]
 impl<L, R> Combine<L, R> {
     /// Create a new combine
-    pub fn new(left: L, right: R) -> Self {
+    pub const fn new(left: L, right: R) -> Self {
         Self { left, right }
     }
 }
@@ -360,14 +355,22 @@ impl<T> Hook<T, UInt0> for () {
 /// The default implementation provides supports for [`Backtrace`] and [`SpanTrace`],
 /// if their necessary features have been enabled.
 #[cfg(feature = "hooks")]
+#[must_use]
 pub struct Hooks<T: Hook<Frame, UInt0>>(T);
 
 #[cfg(feature = "hooks")]
 impl Hooks<Builtin> {
     /// Create a new instance of `Hooks`, which is preloaded with [`Builtin`] hooks
     /// to display [`Backtrace`] and [`SpanTrace`] if those features have been enabled.
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self(Builtin)
+    }
+}
+
+#[cfg(feature = "hooks")]
+impl Default for Hooks<Builtin> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -377,14 +380,14 @@ impl Hooks<()> {
     /// pre-installed, use [`new()`] to get an instance with [`Builtin`] hook support.
     ///
     /// [`new()`]: Self::new
-    pub fn bare() -> Self {
+    pub const fn bare() -> Self {
         Self(())
     }
 }
 
 #[cfg(feature = "hooks")]
 impl<T: Hook<Frame, UInt0>> Hooks<T> {
-    fn new_with(hook: T) -> Self {
+    const fn new_with(hook: T) -> Self {
         Self(hook)
     }
 
@@ -422,16 +425,11 @@ impl<T: Hook<Frame, UInt0>> Hooks<T> {
     ///
     /// println!("{:?}", report);
     /// ```
-    // TODO: potentially rename to `add()` instead.
     pub fn push<H: Hook<F, U>, F: Send + Sync + 'static, U>(
         self,
         hook: H,
     ) -> Hooks<Stack<H, (F, U), T>> {
-        let stack = Stack {
-            left: hook,
-            right: self.0,
-            _marker: PhantomData::default(),
-        };
+        let stack = Stack::new(hook, self.0);
 
         Hooks::new_with(stack)
     }
@@ -473,11 +471,10 @@ impl<T: Hook<Frame, UInt0>> Hooks<T> {
     ///
     /// println!("{:?}", report);
     /// ```
+    // clippy::missing_const_for_fn is a false positive
+    #[allow(clippy::missing_const_for_fn)]
     pub fn combine<U: Hook<Frame, UInt0>>(self, other: Hooks<U>) -> Hooks<Combine<T, U>> {
-        let both = Combine {
-            left: self.0,
-            right: other.0,
-        };
+        let both = Combine::new(self.0, other.0);
 
         Hooks::new_with(both)
     }
@@ -485,13 +482,13 @@ impl<T: Hook<Frame, UInt0>> Hooks<T> {
 
 #[cfg(feature = "hooks")]
 impl<T: Hook<Frame, UInt0> + Send + Sync + 'static> Hooks<T> {
-    pub fn erase(self) -> ErasedHooks {
+    pub(crate) fn erase(self) -> ErasedHooks {
         Hooks::new_with(Box::new(self.0))
     }
 }
 
 #[cfg(feature = "hooks")]
-pub(crate) type ErasedHooks = Hooks<Box<dyn Hook<Frame, UInt0> + Send + Sync>>;
+pub type ErasedHooks = Hooks<Box<dyn Hook<Frame, UInt0> + Send + Sync>>;
 
 #[cfg(feature = "hooks")]
 impl ErasedHooks {
@@ -501,6 +498,8 @@ impl ErasedHooks {
 }
 
 mod builtin {
+    #[cfg(any(all(nightly, feature = "std"), feature = "spantrace"))]
+    use alloc::format;
     #[cfg(all(nightly, feature = "std"))]
     use std::backtrace::Backtrace;
 
@@ -519,7 +518,7 @@ mod builtin {
     fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Line {
         let idx = ctx.incr();
 
-        ctx.text(format!("Backtrace No. {}\n{}", idx + 1, backtrace));
+        ctx.text(&format!("Backtrace No. {}\n{}", idx + 1, backtrace));
         ctx.insert(idx + 1);
 
         Line::Defer(format!(
@@ -539,20 +538,21 @@ mod builtin {
             true
         });
 
-        ctx.text(format!("Span Trace No. {}\n{}", idx + 1, spantrace));
+        ctx.text(&format!("Span Trace No. {}\n{}", idx + 1, spantrace));
         ctx.insert(idx + 1);
 
         Line::Defer(format!("spantrace with {span} frames ({})", idx + 1))
     }
 
     /// Builtin hooks, which provide defaults for common attachments that are automatically created
-    /// by error_stack, this includes [`Backtrace`] and [`SpanTrace`]
+    /// by `error_stack`, this includes [`Backtrace`] and [`SpanTrace`]
     ///
     /// [`Backtrace`]: std::backtrace::Backtrace
     /// [`SpanTrace`]: tracing_error::SpanTrace
     pub struct Builtin;
 
     impl Hook<Frame, UInt0> for Builtin {
+        #[allow(unused_variables)]
         fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Line> {
             #[cfg(all(nightly, feature = "std"))]
             if let Some(bt) = frame.request_ref() {

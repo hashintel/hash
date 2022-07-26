@@ -3,18 +3,13 @@
 
 mod common;
 
-use core::any::{Provider, TypeId};
-use std::any::Demand;
-
 use common::*;
 #[cfg(all(nightly, feature = "experimental"))]
 use error_stack::fmt::DebugDiagnostic;
 #[cfg(feature = "hooks")]
-use error_stack::fmt::Hooks;
-use error_stack::{
-    fmt::{HookContext, Line},
-    Frame, Report,
-};
+use error_stack::fmt::{HookContext, Hooks, Line};
+#[cfg(feature = "hooks")]
+use error_stack::Report;
 use insta::assert_snapshot;
 #[cfg(feature = "glyph")]
 use owo_colors::set_override;
@@ -27,8 +22,9 @@ fn force_color() {
 #[cfg(not(feature = "glyph"))]
 fn force_color() {}
 
+#[allow(unused_mut)]
 fn snap_suffix() -> String {
-    let mut suffix = vec![];
+    let mut suffix: Vec<&'static str> = vec![];
 
     #[cfg(feature = "spantrace")]
     if supports_spantrace() {
@@ -163,6 +159,15 @@ fn complex() {
 }
 
 #[test]
+fn location_edge_case() {
+    set_snapshot_suffix!();
+
+    let report = create_report();
+
+    assert_snapshot!(format!("{report:?}"));
+}
+
+#[test]
 #[cfg(feature = "hooks")]
 fn hook() {
     set_snapshot_suffix!();
@@ -182,11 +187,9 @@ fn hook_context() {
 
     let report = create_report().attach(2u32);
 
-    Report::install_hook(
-        Hooks::new().push(|_: &u32, ctx| {
-            Line::next(format!("unsigned 32bit integer (No. {})", ctx.incr()))
-        }),
-    )
+    Report::install_hook(Hooks::new().push(|_: &u32, ctx: &mut HookContext<u32>| {
+        Line::next(format!("unsigned 32bit integer (No. {})", ctx.incr()))
+    }))
     .unwrap();
 
     assert_snapshot!(format!("{report:?}"));
@@ -265,8 +268,11 @@ fn hook_decr() {
         .attach(2u32)
         .attach(3u32);
 
-    Report::install_hook(Hooks::new().push(|_: &u32, ctx| Line::next(format!("{}", ctx.decr()))))
-        .unwrap();
+    Report::install_hook(
+        Hooks::new()
+            .push(|_: &u32, ctx: &mut HookContext<u32>| Line::next(format!("{}", ctx.decr()))),
+    )
+    .unwrap();
 
     assert_snapshot!(format!("{report:?}"));
 }
@@ -281,8 +287,11 @@ fn hook_incr() {
         .attach(2u32)
         .attach(3u32);
 
-    Report::install_hook(Hooks::new().push(|_: &u32, ctx| Line::next(format!("{}", ctx.incr()))))
-        .unwrap();
+    Report::install_hook(
+        Hooks::new()
+            .push(|_: &u32, ctx: &mut HookContext<u32>| Line::next(format!("{}", ctx.incr()))),
+    )
+    .unwrap();
 
     assert_snapshot!(format!("{report:?}"));
 }
