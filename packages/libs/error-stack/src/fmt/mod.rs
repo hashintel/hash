@@ -11,7 +11,9 @@ use alloc::{borrow::ToOwned, collections::VecDeque, format, string::String, vec,
 use core::{
     fmt,
     fmt::{Debug, Display, Formatter},
+    panic::Location,
 };
+use std::iter::once;
 
 #[cfg(feature = "hooks")]
 pub(crate) use hook::ErasedHooks;
@@ -73,6 +75,7 @@ impl Line {
 /// (if supported and enabled).
 enum Instruction {
     Content(String),
+    Gray(String),
     Entry { end: bool },
     Vertical,
     Indent,
@@ -82,6 +85,14 @@ impl Instruction {
     fn plain(text: String) -> Instructions {
         let mut queue = VecDeque::new();
         queue.push_back(Instruction::Content(text));
+
+        queue
+    }
+
+    fn location(text: &'static Location) -> Instructions {
+        let mut queue = VecDeque::new();
+        queue.push_back(Instruction::Indent);
+        queue.push_back(Instruction::Gray(text.to_string()));
 
         queue
     }
@@ -110,6 +121,12 @@ impl Display for Instruction {
             #[cfg(not(feature = "glyph"))]
             Instruction::Vertical => fmt.write_str("|   "),
             Instruction::Indent => fmt.write_str("    "),
+            #[cfg(feature = "glyph")]
+            Instruction::Gray(text) => {
+                fmt::Display::fmt(&text.if_supports_color(Stdout, |text| text.bright_black(), fmt))
+            }
+            #[cfg(not(feature = "glyph"))]
+            Instruction::Gray(text) => fmt.write_str(text),
         }
     }
 }
@@ -117,8 +134,8 @@ impl Display for Instruction {
 type Instructions = VecDeque<Instruction>;
 type Lines = Vec<Instructions>;
 
-fn debug_frame(frame: &Frame, ctx: &mut HookContextImpl) -> Option<Line> {
-    match frame.kind() {
+fn debug_frame(frame: &Frame, ctx: &mut HookContextImpl) -> Option<(Line, &'static Location)> {
+    let line = match frame.kind() {
         FrameKind::Context(context) => Some(context.to_string()).map(Line::Next),
         FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
             #[cfg(all(nightly, feature = "experimental"))]
@@ -127,12 +144,12 @@ fn debug_frame(frame: &Frame, ctx: &mut HookContextImpl) -> Option<Line> {
                     ctx.text(text.clone());
                 }
 
-                return Some(debug.output().clone());
+                return Some(debug.output().clone()).map(|line| (line, frame.location()));
             }
 
             #[cfg(feature = "hooks")]
             if let Some(hooks) = Report::format_hook() {
-                return hooks.call(frame, ctx);
+                return hooks.call(frame, ctx).map(|line| (line, frame.location()));
             }
 
             Builtin.call(frame, ctx.cast())
@@ -140,7 +157,9 @@ fn debug_frame(frame: &Frame, ctx: &mut HookContextImpl) -> Option<Line> {
         FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
             Some(attachment.to_string()).map(Line::Next)
         }
-    }
+    }?;
+
+    Some((line, frame.location()))
 }
 
 fn debug_frame_root(root: &Frame, ctx: &mut HookContextImpl) -> Lines {
@@ -172,15 +191,16 @@ fn debug_frame_root(root: &Frame, ctx: &mut HookContextImpl) -> Lines {
 
     let mut opaque = 0;
     for child in plain {
-        if let Some(line) = debug_frame(child, ctx) {
+        if let Some((line, loc)) = debug_frame(child, ctx) {
             match line {
                 Line::Defer(line) => {
-                    defer.push(line);
+                    defer.push((line, loc));
                 }
                 Line::Next(line) => groups.push(
                     line.lines()
                         .map(ToOwned::to_owned)
                         .map(Instruction::plain)
+                        .chain(once(Instruction::location(loc)))
                         .collect(),
                 ),
             }
@@ -189,11 +209,12 @@ fn debug_frame_root(root: &Frame, ctx: &mut HookContextImpl) -> Lines {
         }
     }
 
-    for line in defer {
+    for (line, loc) in defer {
         groups.push(
             line.lines()
                 .map(ToOwned::to_owned)
                 .map(Instruction::plain)
+                .chain(once(Instruction::location(loc)))
                 .collect(),
         )
     }
