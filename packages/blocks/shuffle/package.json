@@ -1,7 +1,7 @@
 {
   "name": "@hashintel/shuffle",
   "version": "0.0.0",
-  "description": "shuffle block",
+  "description": "Create a list and set it into a random order",
   "keywords": [
     "blockprotocol",
     "blocks"
@@ -55,21 +55,12 @@
     },
     "displayName": "shuffle",
     "examples": [
-      {
-        "id": "1",
-        "value": "Alice"
-      },
-      {
-        "id": "2",
-        "value": "Bob"
-      },
-      {
-        "id": "3",
-        "value": "Charlie"
-      }
+      "Alice",
+      "Bob",
+      "Charlie"
     ],
-    "icon": "public/omega.svg",
-    "image": "public/block-preview.svg",
+    "icon": "public/shuffle.svg",
+    "image": "public/preview.png",
     "protocol": "0.2"
   }
 }
