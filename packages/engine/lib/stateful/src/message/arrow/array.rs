@@ -27,7 +27,7 @@ pub const FROM_COLUMN_INDEX: usize = 0;
 /// The "message" column contains the actual data.
 pub const MESSAGE_COLUMN_INDEX: usize = 1;
 
-#[derive(Debug, PartialEq, ArrowField)]
+#[derive(Debug, Eq, PartialEq, ArrowField)]
 pub struct AgentMessage {
     to: Vec<String>,
     r#type: String,
