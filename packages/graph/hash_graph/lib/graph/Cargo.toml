@@ -24,7 +24,7 @@ uuid = { version = "1.1.2", features = ["v4", "serde"] }
 utoipa = { git = "https://github.com/juhaku/utoipa", rev = "031073f", features = ["uuid"] }
 
 [dev-dependencies]
-tokio = { version = "1.18.2", features = ["rt-multi-thread"] }
+tokio = { version = "1.18.2", features = ["rt-multi-thread", "macros"] }
 
 [build-dependencies]
 

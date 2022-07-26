@@ -4,17 +4,11 @@ mod entity_type;
 mod link_type;
 mod property_type;
 
-use std::thread;
-
-use bb8_postgres::{bb8::PooledConnection, PostgresConnectionManager};
 use error_stack::Result;
 use graph::{
     knowledge::{Entity, EntityId},
     ontology::{
-        types::{
-            uri::{BaseUri, VersionedUri},
-            DataType, EntityType, LinkType, Persisted, PropertyType,
-        },
+        types::{uri::VersionedUri, DataType, EntityType, LinkType, Persisted, PropertyType},
         AccountId, VersionId,
     },
     store::{
@@ -22,29 +16,23 @@ use graph::{
         PostgresStorePool, QueryError, Store, StorePool, UpdateError,
     },
 };
-use tokio::runtime::Runtime;
-use tokio_postgres::{GenericClient, NoTls};
+use tokio_postgres::{NoTls, Transaction};
 use uuid::Uuid;
 
-type PgConnection = PostgresStore<PooledConnection<'static, PostgresConnectionManager<NoTls>>>;
-
 pub struct DatabaseTestWrapper {
-    pool: PostgresStorePool<NoTls>,
-    created_base_uris: Vec<BaseUri>,
-    created_entity_ids: Vec<EntityId>,
+    _pool: PostgresStorePool<NoTls>,
+    connection: <PostgresStorePool<NoTls> as StorePool>::Store<'static>,
+}
+
+pub struct DatabaseApi<'pool> {
+    store: PostgresStore<Transaction<'pool>>,
     account_id: AccountId,
-    // `PostgresDatabase` does not expose functionality to remove entries, so a direct connection
-    // to the database is used.
-    connection: Option<PgConnection>,
-    // We need a runtime in the `Drop` implementation, so the test wrapper uses it's own runtime.
-    // This implies, tests must not be `async`, so the functions on this struct needs to be
-    // non-`async`.
-    rt: Runtime,
 }
 
 impl DatabaseTestWrapper {
-    pub fn new() -> Self {
+    pub async fn new() -> Self {
         const USER: &str = "postgres";
+
         const PASSWORD: &str = "postgres";
         const HOST: &str = "localhost";
         const PORT: u16 = 5432;
@@ -59,374 +47,216 @@ impl DatabaseTestWrapper {
             DATABASE.to_owned(),
         );
 
-        let rt = Runtime::new().expect("Could not create a test runtime");
-        let (postgres, connection, account_id) = rt.block_on(async {
-            let pool = PostgresStorePool::new(&connection_info, NoTls)
-                .await
-                .expect("could not connect to database");
+        let pool = PostgresStorePool::new(&connection_info, NoTls)
+            .await
+            .expect("could not connect to database");
 
-            let account_id = AccountId::new(Uuid::new_v4());
-            pool.acquire()
-                .await
-                .expect("could not acquire a database connection")
-                .insert_account_id(account_id)
-                .await
-                .expect("Could not insert account id");
-
-            let connection = pool
-                .acquire_owned()
-                .await
-                .expect("could not acquire a database connection");
-
-            (pool, connection, account_id)
-        });
+        let connection = pool
+            .acquire_owned()
+            .await
+            .expect("could not acquire a database connection");
 
         Self {
-            pool: postgres,
-            created_base_uris: Vec::new(),
-            created_entity_ids: Vec::new(),
-            account_id,
-            connection: Some(connection),
-            rt,
+            _pool: pool,
+            connection,
         }
     }
 
-    pub async fn database(&self) -> PgConnection {
-        self.pool
-            .acquire_owned()
-            .await
-            .expect("could not acquire a database connection")
-    }
-
-    pub fn seed<D, P, L, E>(
+    pub async fn seed<D, P, L, E>(
         &mut self,
         data_types: D,
         property_types: P,
         link_types: L,
         entity_types: E,
-    ) -> Result<(), InsertionError>
+    ) -> Result<DatabaseApi<'_>, InsertionError>
     where
         D: IntoIterator<Item = &'static str>,
         P: IntoIterator<Item = &'static str>,
         L: IntoIterator<Item = &'static str>,
         E: IntoIterator<Item = &'static str>,
     {
+        let mut store = PostgresStore::new(
+            self.connection
+                .as_mut_client()
+                .transaction()
+                .await
+                .expect("Could start test transaction"),
+        );
+
+        let account_id = AccountId::new(Uuid::new_v4());
+        store
+            .insert_account_id(account_id)
+            .await
+            .expect("could not insert account id");
+
         for data_type in data_types {
-            self.create_data_type(
-                serde_json::from_str(data_type).expect("could not parse data type"),
-            )?;
+            store
+                .create_data_type(
+                    serde_json::from_str(data_type).expect("could not parse data type"),
+                    account_id,
+                )
+                .await?;
         }
 
         for property_type in property_types {
-            self.create_property_type(
-                serde_json::from_str(property_type).expect("could not parse data type"),
-            )?;
+            store
+                .create_property_type(
+                    serde_json::from_str(property_type).expect("could not parse data type"),
+                    account_id,
+                )
+                .await?;
         }
 
         // Insert link types before entity types so entity types can refer to them
         for link_type in link_types {
-            self.create_link_type(
-                serde_json::from_str(link_type).expect("could not parse link type"),
-            )?;
+            store
+                .create_link_type(
+                    serde_json::from_str(link_type).expect("could not parse link type"),
+                    account_id,
+                )
+                .await?;
         }
 
         for entity_type in entity_types {
-            self.create_entity_type(
-                serde_json::from_str(entity_type).expect("could not parse entity type"),
-            )?;
+            store
+                .create_entity_type(
+                    serde_json::from_str(entity_type).expect("could not parse entity type"),
+                    account_id,
+                )
+                .await?;
         }
-        Ok(())
-    }
 
-    pub fn create_data_type(
+        Ok(DatabaseApi { store, account_id })
+    }
+}
+impl DatabaseApi<'_> {
+    pub async fn create_data_type(
         &mut self,
         data_type: DataType,
     ) -> Result<Persisted<DataType>, InsertionError> {
-        self.rt.block_on(async {
-            let data_type = self
-                .pool
-                .acquire()
-                .await
-                .expect("could not acquire a database connection")
-                .create_data_type(data_type, self.account_id)
-                .await?;
-            self.created_base_uris
-                .push(data_type.inner().id().base_uri().clone());
-            Ok(data_type)
-        })
+        self.store
+            .create_data_type(data_type, self.account_id)
+            .await
     }
 
-    pub fn get_data_type(
+    pub async fn get_data_type(
         &mut self,
         version_id: VersionId,
     ) -> Result<Persisted<DataType>, QueryError> {
-        self.rt
-            .block_on(async { self.database().await.get_data_type(version_id).await })
+        self.store.get_data_type(version_id).await
     }
 
-    pub fn update_data_type(
+    pub async fn update_data_type(
         &mut self,
         data_type: DataType,
     ) -> Result<Persisted<DataType>, UpdateError> {
-        self.rt.block_on(async {
-            self.database()
-                .await
-                .update_data_type(data_type, self.account_id)
-                .await
-        })
+        self.store
+            .update_data_type(data_type, self.account_id)
+            .await
     }
 
-    pub fn create_property_type(
+    pub async fn create_property_type(
         &mut self,
         property_type: PropertyType,
     ) -> Result<Persisted<PropertyType>, InsertionError> {
-        self.rt.block_on(async {
-            let property_type = self
-                .pool
-                .acquire()
-                .await
-                .expect("could not acquire a database connection")
-                .create_property_type(property_type, self.account_id)
-                .await?;
-            self.created_base_uris
-                .push(property_type.inner().id().base_uri().clone());
-            Ok(property_type)
-        })
+        self.store
+            .create_property_type(property_type, self.account_id)
+            .await
     }
 
-    pub fn get_property_type(
+    pub async fn get_property_type(
         &mut self,
         version_id: VersionId,
     ) -> Result<Persisted<PropertyType>, QueryError> {
-        self.rt
-            .block_on(async { self.database().await.get_property_type(version_id).await })
+        self.store.get_property_type(version_id).await
     }
 
-    pub fn update_property_type(
+    pub async fn update_property_type(
         &mut self,
         property_type: PropertyType,
     ) -> Result<Persisted<PropertyType>, UpdateError> {
-        self.rt.block_on(async {
-            self.pool
-                .acquire()
-                .await
-                .expect("could not acquire a database connection")
-                .update_property_type(property_type, self.account_id)
-                .await
-        })
+        self.store
+            .update_property_type(property_type, self.account_id)
+            .await
     }
 
-    pub fn create_entity_type(
+    pub async fn create_entity_type(
         &mut self,
         entity_type: EntityType,
     ) -> Result<Persisted<EntityType>, InsertionError> {
-        self.rt.block_on(async {
-            let entity_type = self
-                .pool
-                .acquire()
-                .await
-                .expect("could not acquire a database connection")
-                .create_entity_type(entity_type, self.account_id)
-                .await?;
-            self.created_base_uris
-                .push(entity_type.inner().id().base_uri().clone());
-            Ok(entity_type)
-        })
+        self.store
+            .create_entity_type(entity_type, self.account_id)
+            .await
     }
 
-    pub fn get_entity_type(
+    pub async fn get_entity_type(
         &mut self,
         version_id: VersionId,
     ) -> Result<Persisted<EntityType>, QueryError> {
-        self.rt
-            .block_on(async { self.database().await.get_entity_type(version_id).await })
+        self.store.get_entity_type(version_id).await
     }
 
-    pub fn update_entity_type(
+    pub async fn update_entity_type(
         &mut self,
         entity_type: EntityType,
     ) -> Result<Persisted<EntityType>, UpdateError> {
-        self.rt.block_on(async {
-            self.pool
-                .acquire()
-                .await
-                .expect("could not acquire a database connection")
-                .update_entity_type(entity_type, self.account_id)
-                .await
-        })
+        self.store
+            .update_entity_type(entity_type, self.account_id)
+            .await
     }
 
-    pub fn create_link_type(
+    pub async fn create_link_type(
         &mut self,
         link_type: LinkType,
     ) -> Result<Persisted<LinkType>, InsertionError> {
-        self.rt.block_on(async {
-            let link_type = self
-                .pool
-                .acquire()
-                .await
-                .expect("could not acquire a database connection")
-                .create_link_type(link_type, self.account_id)
-                .await?;
-            self.created_base_uris
-                .push(link_type.inner().id().base_uri().clone());
-            Ok(link_type)
-        })
+        self.store
+            .create_link_type(link_type, self.account_id)
+            .await
     }
 
-    pub fn get_link_type(
+    pub async fn get_link_type(
         &mut self,
         version_id: VersionId,
     ) -> Result<Persisted<LinkType>, QueryError> {
-        self.rt
-            .block_on(async { self.database().await.get_link_type(version_id).await })
+        self.store.get_link_type(version_id).await
     }
 
-    pub fn update_link_type(
+    pub async fn update_link_type(
         &mut self,
         link_type: LinkType,
     ) -> Result<Persisted<LinkType>, UpdateError> {
-        self.rt.block_on(async {
-            self.database()
-                .await
-                .update_link_type(link_type, self.account_id)
-                .await
-        })
+        self.store
+            .update_link_type(link_type, self.account_id)
+            .await
     }
 
-    pub fn create_entity(
+    pub async fn create_entity(
         &mut self,
         entity: &Entity,
         entity_type_uri: VersionedUri,
     ) -> Result<EntityId, InsertionError> {
-        self.rt.block_on(async {
-            let entity_id = self
-                .pool
-                .acquire()
-                .await
-                .expect("could not acquire a database connection")
-                .create_entity(entity, entity_type_uri, self.account_id)
-                .await?;
-            self.created_entity_ids.push(entity_id);
-            Ok(entity_id)
-        })
+        self.store
+            .create_entity(entity, entity_type_uri, self.account_id)
+            .await
     }
 
-    pub fn get_entity(&mut self, entity_id: EntityId) -> Result<Entity, QueryError> {
-        self.rt
-            .block_on(async { self.database().await.get_entity(entity_id).await })
+    pub async fn get_entity(&mut self, entity_id: EntityId) -> Result<Entity, QueryError> {
+        self.store.get_entity(entity_id).await
     }
 
-    pub fn update_entity(
+    pub async fn update_entity(
         &mut self,
         entity_id: EntityId,
         entity: &Entity,
         entity_type_uri: VersionedUri,
     ) -> Result<(), UpdateError> {
-        self.rt.block_on(async {
-            self.database()
-                .await
-                .update_entity(entity_id, entity, entity_type_uri, self.account_id)
-                .await
-        })
+        self.store
+            .update_entity(entity_id, entity, entity_type_uri, self.account_id)
+            .await
     }
 }
 
-impl Drop for DatabaseTestWrapper {
-    fn drop(&mut self) {
-        let mut connection = self.connection.take().unwrap();
-        let account_id = self.account_id;
-        let created_base_uris = self.created_base_uris.clone();
-        let created_entity_ids = self.created_entity_ids.clone();
-
-        self.rt.block_on(async move {
-            for base_uri in created_base_uris {
-                remove_by_base_uri(&mut connection, &base_uri).await;
-            }
-            for entity_id in created_entity_ids {
-                remove_by_entity_id(&mut connection, entity_id).await;
-            }
-            remove_account_id(&mut connection, account_id).await;
-        });
-    }
-}
-
-async fn remove_account_id(connection: &mut PgConnection, account_id: AccountId) {
-    connection
-        .as_client()
-        .query(
-            r#"
-                DELETE FROM accounts
-                WHERE account_id = $1;
-            "#,
-            &[&account_id],
-        )
-        .await
-        .expect("could not remove account id");
-}
-
-async fn remove_by_base_uri(connection: &impl AsClient, base_uri: &BaseUri) {
-    let result = connection
-        .as_client()
-        .execute(
-            r#"
-                DELETE FROM version_ids
-                USING ids
-                WHERE ids.version_id = version_ids.version_id AND base_uri = $1;
-            "#,
-            &[&base_uri],
-        )
-        .await;
-
-    if let Err(result) = result {
-        if thread::panicking() {
-            eprintln!("could not remove version_id for base uri: {result:?}")
-        } else {
-            panic!("could not remove version_id for base uri: {result:?}")
-        }
-    }
-    let result = connection
-        .as_client()
-        .execute(
-            r#"
-                DELETE FROM base_uris
-                WHERE base_uri = $1;
-            "#,
-            &[&base_uri],
-        )
-        .await;
-
-    if let Err(result) = result {
-        if thread::panicking() {
-            eprintln!("could not remove base_uri: {result:?}")
-        } else {
-            panic!("could not remove base_uri: {result:?}")
-        }
-    }
-}
-
-async fn remove_by_entity_id(connection: &mut PgConnection, entity_id: EntityId) {
-    let result = connection
-        .as_client()
-        .execute(
-            r#"
-                DELETE FROM entity_ids
-                WHERE entity_id = $1;
-            "#,
-            &[&entity_id],
-        )
-        .await;
-
-    if let Err(result) = result {
-        if thread::panicking() {
-            eprintln!("could not remove entity_id: {result:?}")
-        } else {
-            panic!("could not remove entity_id: {result:?}")
-        }
-    }
-}
-
-#[test]
-fn can_connect() {
-    DatabaseTestWrapper::new();
+#[tokio::test]
+async fn can_connect() {
+    DatabaseTestWrapper::new().await;
 }
