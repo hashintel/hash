@@ -4,7 +4,11 @@ import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
-import { BlockEntity, isDraftTextContainingEntityProperties } from "./entity";
+import {
+  BlockEntity,
+  isDraftTextContainingEntityProperties,
+  isTextEntity,
+} from "./entity";
 import {
   createEntityStore,
   DraftEntity,
@@ -566,8 +570,8 @@ class ProsemirrorStateChangeHandler {
     if (
       "properties" in draftTextEntity &&
       node.firstChild &&
-      // @todo is it a problem this is now always true for all component nodes
-      node.firstChild.isTextblock
+      // @todo how do new blocks *become* text blocks
+      isTextEntity(draftTextEntity)
     ) {
       const nextProps = textBlockNodeToEntityProperties(node.firstChild);
 
