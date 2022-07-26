@@ -403,27 +403,4 @@ pub trait Store {
         target_entity: EntityId,
         link_type_uri: VersionedUri,
     ) -> Result<(), InsertionError>;
-
-    // /// Get the a [`Link`] identified by [`LinkId`].
-    // ///
-    // /// # Errors
-    // ///
-    // /// - if the requested [`Link`] doesn't exist
-    // async fn get_link(&mut self, link_id: LinkId) -> Result<Link, QueryError>;
-
-    // /// Update an existing [`Link`].
-    // ///
-    // /// # Errors
-    // ///
-    // /// - if the [`Link`] doesn't exist
-    // /// - if the [`LinkType`] doesn't exist
-    // /// - if the [`Link`] is not valid with respect to its [`LinkType`]
-    // /// - if the account referred to by `updated_by` does not exist
-    // async fn update_link(
-    //     &mut self,
-    //     link_id: LinkId,
-    //     link: &Link,
-    //     link_type_uri: VersionedUri,
-    //     updated_by: AccountId,
-    // ) -> Result<(), UpdateError>;
 }
