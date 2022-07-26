@@ -86,7 +86,7 @@
     "@graphql-codegen/typescript-resolvers": "2.6.7",
     "@types/app-root-path": "1.2.4",
     "@types/connect-pg-simple": "4.2.4",
-    "@types/cron": "2.1.0",
+    "@types/cron": "2.0.0",
     "@types/dedent": "0.7.0",
     "@types/express-session": "1.17.4",
     "@types/html-to-text": "8.0.1",
