@@ -33,7 +33,7 @@ fn query() {
         .expect("could not create property type");
 
     let property_type = database
-        .get_property_type(*created_property_type.version_id())
+        .get_property_type(created_property_type.version_id())
         .expect("could not query property type");
 
     assert_eq!(property_type.inner(), created_property_type.inner());

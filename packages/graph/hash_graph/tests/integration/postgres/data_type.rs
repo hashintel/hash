@@ -23,7 +23,7 @@ fn query() {
         .expect("could not create data type");
 
     let data_type = database
-        .get_data_type(*created_data_type.version_id())
+        .get_data_type(created_data_type.version_id())
         .expect("could not query data type");
 
     assert_eq!(data_type.inner(), created_data_type.inner());

@@ -38,7 +38,7 @@ fn query() {
         .expect("could not create entity type");
 
     let entity_type = database
-        .get_entity_type(*created_entity_type.version_id())
+        .get_entity_type(created_entity_type.version_id())
         .expect("could not query entity type");
 
     assert_eq!(entity_type.inner(), created_entity_type.inner());

@@ -64,8 +64,8 @@ impl<T: OntologyType> Persisted<T> {
         }
     }
 
-    pub const fn version_id(&self) -> &VersionId {
-        &self.version_id
+    pub const fn version_id(&self) -> VersionId {
+        self.version_id
     }
 
     pub const fn inner(&self) -> &T {

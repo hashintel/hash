@@ -23,7 +23,7 @@ fn query() {
         .expect("could not create link type");
 
     let link_type = database
-        .get_link_type(*created_link_type.version_id())
+        .get_link_type(created_link_type.version_id())
         .expect("could not query link type");
 
     assert_eq!(link_type.inner(), created_link_type.inner());

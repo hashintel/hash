@@ -98,6 +98,7 @@ where
     ///
     /// - if checking for the [`VersionedUri`] failed.
     async fn contains_uri(&self, uri: &VersionedUri) -> Result<bool, QueryError> {
+        let version = i64::from(uri.version());
         Ok(self
             .client
             .as_client()
@@ -109,7 +110,7 @@ where
                         WHERE base_uri = $1 AND version = $2
                     );
                 "#,
-                &[uri.base_uri(), uri.version()],
+                &[uri.base_uri(), &version],
             )
             .await
             .report()
@@ -177,6 +178,7 @@ where
         uri: &VersionedUri,
         version_id: VersionId,
     ) -> Result<(), InsertionError> {
+        let version = i64::from(uri.version());
         self.as_client()
             .query_one(
                 r#"
@@ -184,7 +186,7 @@ where
                     VALUES ($1, $2, $3)
                     RETURNING version_id;
                 "#,
-                &[uri.base_uri(), uri.version(), &version_id],
+                &[uri.base_uri(), &version, &version_id],
             )
             .await
             .report()
@@ -428,13 +430,14 @@ where
             .attach_printable("Could not find referenced property types")?;
 
         for target_id in property_type_ids {
+            let version_id = property_type.version_id();
             self.as_client().query_one(
                     r#"
                         INSERT INTO property_type_property_type_references (source_property_type_version_id, target_property_type_version_id)
                         VALUES ($1, $2)
                         RETURNING source_property_type_version_id;
                     "#,
-                    &[property_type.version_id(), &target_id],
+                    &[&version_id, &target_id],
                 )
                 .await
                 .report()
@@ -448,13 +451,14 @@ where
             .attach_printable("Could not find referenced data types")?;
 
         for target_id in data_type_ids {
+            let version_id = property_type.version_id();
             self.as_client().query_one(
                     r#"
                         INSERT INTO property_type_data_type_references (source_property_type_version_id, target_data_type_version_id)
                         VALUES ($1, $2)
                         RETURNING source_property_type_version_id;
                     "#,
-                    &[property_type.version_id(), &target_id],
+                    &[&version_id, &target_id],
                 )
                 .await
                 .report()
@@ -475,13 +479,14 @@ where
             .attach_printable("Could not find referenced property types")?;
 
         for target_id in property_type_ids {
+            let version_id = entity_type.version_id();
             self.as_client().query_one(
                     r#"
                         INSERT INTO entity_type_property_type_references (source_entity_type_version_id, target_property_type_version_id)
                         VALUES ($1, $2)
                         RETURNING source_entity_type_version_id;
                     "#,
-                    &[entity_type.version_id(), &target_id],
+                    &[&version_id, &target_id],
                 )
                 .await
                 .report()
@@ -504,13 +509,14 @@ where
             .attach_printable("Could not find referenced link types")?;
 
         for target_id in link_type_ids {
+            let version_id = entity_type.version_id();
             self.as_client().query_one(
                     r#"
                         INSERT INTO entity_type_link_type_references (source_entity_type_version_id, target_link_type_version_id)
                         VALUES ($1, $2)
                         RETURNING source_entity_type_version_id;
                     "#,
-                    &[entity_type.version_id(), &target_id],
+                    &[&version_id, &target_id],
                 )
                 .await
                 .report()
@@ -524,13 +530,14 @@ where
             .attach_printable("Could not find referenced entity types")?;
 
         for target_id in entity_type_reference_ids {
+            let version_id = entity_type.version_id();
             self.as_client().query_one(
                     r#"
                         INSERT INTO entity_type_entity_type_links (source_entity_type_version_id, target_entity_type_version_id)
                         VALUES ($1, $2)
                         RETURNING source_entity_type_version_id;
                     "#,
-                    &[entity_type.version_id(), &target_id],
+                    &[&version_id, &target_id],
                 )
                 .await
                 .report()
@@ -644,6 +651,7 @@ where
     C: AsClient,
 {
     async fn version_id_by_uri(&self, uri: &VersionedUri) -> Result<VersionId, QueryError> {
+        let version = i64::from(uri.version());
         Ok(self
             .client
             .as_client()
@@ -653,7 +661,7 @@ where
                     FROM ids
                     WHERE base_uri = $1 AND version = $2;
                 "#,
-                &[uri.base_uri(), uri.version()],
+                &[uri.base_uri(), &version],
             )
             .await
             .report()

@@ -56,7 +56,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         onDelete: "CASCADE",
       },
       version: {
-        type: "INT",
+        type: "BIGINT",
         notNull: true,
       },
       version_id: {
