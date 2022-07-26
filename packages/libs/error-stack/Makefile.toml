@@ -4,6 +4,8 @@ extend = { path = "../../../.github/scripts/rust/Makefile.toml" }
 CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default --optional-deps eyre,anyhow"
 CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default --optional-deps eyre,anyhow"
 CARGO_MIRI_FLAGS = "--tests --lib"
+CARGO_INSTA_TEST_FLAGS = "--keep-pending -- --lib --tests"
+CARGO_INSTA_TEST_HACK_FLAGS = "--workspace --feature-powerset --keep-going"
 
 
 [tasks.test-task]
@@ -13,3 +15,15 @@ dependencies = ["install-rust-src"]
 [tasks.install-rust-src]
 private = true
 install_crate = { rustup_component_name = "rust-src" }
+
+# Snapshot tests
+[tasks.insta-test]
+category = "Test"
+description = "Test against insta to update snapshots"
+run_task = { name = ['insta-test-task'] }
+
+[tasks.insta-test-task]
+extend = "task"
+install_crate = "insta"
+args = ["hack", "@@split(CARGO_INSTA_TEST_HACK_FLAGS, )", "insta", "test", "@@split(CARGO_INSTA_TEST_FLAGS, )", "${@}"]
+

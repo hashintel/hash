@@ -169,6 +169,7 @@ fn location_edge_case() {
 
 #[test]
 #[cfg(feature = "hooks")]
+#[serial_test::serial]
 fn hook() {
     set_snapshot_suffix!();
 
@@ -182,6 +183,7 @@ fn hook() {
 
 #[test]
 #[cfg(feature = "hooks")]
+#[serial_test::serial]
 fn hook_context() {
     set_snapshot_suffix!();
 
@@ -197,6 +199,7 @@ fn hook_context() {
 
 #[test]
 #[cfg(feature = "hooks")]
+#[serial_test::serial]
 fn hook_stack() {
     set_snapshot_suffix!();
 
@@ -214,6 +217,7 @@ fn hook_stack() {
 
 #[test]
 #[cfg(feature = "hooks")]
+#[serial_test::serial]
 fn hook_combine() {
     set_snapshot_suffix!();
 
@@ -239,6 +243,7 @@ fn hook_combine() {
 
 #[test]
 #[cfg(feature = "hooks")]
+#[serial_test::serial]
 fn hook_defer() {
     set_snapshot_suffix!();
 
@@ -260,6 +265,7 @@ fn hook_defer() {
 
 #[test]
 #[cfg(feature = "hooks")]
+#[serial_test::serial]
 fn hook_decr() {
     set_snapshot_suffix!();
 
@@ -279,6 +285,7 @@ fn hook_decr() {
 
 #[test]
 #[cfg(feature = "hooks")]
+#[serial_test::serial]
 fn hook_incr() {
     set_snapshot_suffix!();
 

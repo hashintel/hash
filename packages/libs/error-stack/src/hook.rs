@@ -9,7 +9,15 @@ use crate::{
 
 type FormatterHook = Box<dyn Fn(&Report<()>, &mut fmt::Formatter<'_>) -> fmt::Result + Send + Sync>;
 
+// This is a bit special, while normally we wouldn't want to replace the hook.
+// During testing we only use serial tests and need to swap between multiple hooks, so that we're
+// able to test all scenarios.
+#[cfg(not(test))]
 static FMT_HOOK: OnceCell<ErasedHooks> = OnceCell::new();
+// This has a different name to make sure that both aren't used at the same time.
+#[cfg(test)]
+static mut FMT_HOOK_TEST: OnceCell<ErasedHooks> = OnceCell::new();
+
 static DEBUG_HOOK: OnceCell<FormatterHook> = OnceCell::new();
 static DISPLAY_HOOK: OnceCell<FormatterHook> = OnceCell::new();
 
@@ -45,10 +53,24 @@ impl<T> Install for Hooks<T>
 where
     T: Hook<Frame, ()> + Send + Sync + 'static,
 {
+    #[cfg(not(test))]
     fn install(self) -> Result<(), HookAlreadySet> {
         FMT_HOOK
             .set(self.erase())
             .map_err(|_| Report::new(HookAlreadySet))
+    }
+
+    #[cfg(test)]
+    fn install(self) -> Result<(), HookAlreadySet> {
+        match unsafe { FMT_HOOK_TEST.get_mut() } {
+            None => {
+                unsafe { FMT_HOOK_TEST.set(self.erase()) }.map_err(|_| Report::new(HookAlreadySet))
+            }
+            Some(inner) => {
+                *inner = self.erase();
+                Ok(())
+            }
+        }
     }
 }
 
@@ -97,10 +119,15 @@ impl Report<()> {
         hook.install()
     }
 
+    #[cfg(all(feature = "hooks", test))]
+    pub(crate) fn format_hook() -> Option<&'static ErasedHooks> {
+        unsafe { FMT_HOOK_TEST.get() }
+    }
+
     /// Returns the hook that was previously set by [`install_hook`], if any.
     ///
     /// [`install_hook`]: Self::install_hook
-    #[cfg(feature = "hooks")]
+    #[cfg(all(feature = "hooks", not(test)))]
     pub(crate) fn format_hook() -> Option<&'static ErasedHooks> {
         FMT_HOOK.get()
     }
