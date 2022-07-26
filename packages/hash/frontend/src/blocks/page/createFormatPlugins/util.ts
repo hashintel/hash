@@ -12,8 +12,7 @@ export const selectionContainsText = (state: EditorState<Schema>) => {
     if (containsText) {
       return false;
     }
-    // @todo is it a problem this is now always true for all component nodes
-    if (node.isTextblock) {
+    if (node.isInline) {
       containsText = true;
       return false;
     }
