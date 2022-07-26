@@ -28,17 +28,17 @@ impl LinkId {
     }
 
     #[must_use]
-    pub fn source_entity(&self) -> EntityId {
+    pub const fn source_entity(&self) -> EntityId {
         self.source_entity
     }
 
     #[must_use]
-    pub fn target_entity(&self) -> EntityId {
+    pub const fn target_entity(&self) -> EntityId {
         self.target_entity
     }
 
     #[must_use]
-    pub fn link_type_uri(&self) -> &VersionedUri {
+    pub const fn link_type_uri(&self) -> &VersionedUri {
         &self.link_type_uri
     }
 }
@@ -64,12 +64,12 @@ pub struct Links {
 
 impl Links {
     #[must_use]
-    pub fn new(links: HashMap<VersionedUri, Link>) -> Self {
+    pub const fn new(links: HashMap<VersionedUri, Link>) -> Self {
         Self { links }
     }
 
     #[must_use]
-    pub fn inner(&self) -> &HashMap<VersionedUri, Link> {
+    pub const fn inner(&self) -> &HashMap<VersionedUri, Link> {
         &self.links
     }
 }
