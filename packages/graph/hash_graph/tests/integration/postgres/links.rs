@@ -108,7 +108,7 @@ async fn get_entity_links() {
         .await
         .expect("could not create entity");
 
-    let created_a_b_link = api
+    let _a_b_link = api
         .create_link(
             person_a_entity_id,
             person_b_entity_id,
@@ -117,7 +117,7 @@ async fn get_entity_links() {
         .await
         .expect("coud not create link");
 
-    let created_a_c_link = api
+    let _a_c_link = api
         .create_link(
             person_a_entity_id,
             person_c_entity_id,
@@ -179,7 +179,7 @@ async fn remove_link() {
         .await
         .expect("could not create entity");
 
-    let created_a_b_link = api
+    let _a_b_link = api
         .create_link(
             person_a_entity_id,
             person_b_entity_id,
@@ -196,7 +196,8 @@ async fn remove_link() {
     .await
     .expect("could not remove link");
 
-    api.get_link_target(person_a_entity_id, link_type_uri.clone())
+    let _ = api
+        .get_link_target(person_a_entity_id, link_type_uri.clone())
         .await
         .expect_err("found link that should have been deleted");
 }

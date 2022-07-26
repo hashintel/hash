@@ -18,7 +18,7 @@ use graph::{
     },
 };
 use tokio_postgres::{NoTls, Transaction};
-use uuid::{uuid, Uuid};
+use uuid::Uuid;
 
 pub struct DatabaseTestWrapper {
     _pool: PostgresStorePool<NoTls>,
