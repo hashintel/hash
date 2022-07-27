@@ -81,7 +81,7 @@ mod tests {
     fn test_link(json: &str) {
         let json_value: serde_json::Value = serde_json::from_str(json).expect("invalid JSON");
 
-        let link: OutgoingLink = serde_json::from_value(json_value.clone()).expect("invalid link");
+        let link: Links = serde_json::from_value(json_value.clone()).expect("invalid link");
 
         assert_eq!(
             serde_json::to_value(link.clone()).expect("could not serialize"),
