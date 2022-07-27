@@ -69,7 +69,7 @@ mod tests {
 
     #[test]
     fn person() {
-        test_entity(crate::test_data::entity::PERSON_V1);
+        test_entity(crate::test_data::entity::PERSON_A_V1);
     }
 
     #[test]

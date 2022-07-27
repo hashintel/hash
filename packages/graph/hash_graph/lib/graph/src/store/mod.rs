@@ -8,13 +8,14 @@ use std::fmt;
 use async_trait::async_trait;
 use error_stack::{Context, Result};
 
+use self::error::LinkActivationError;
 pub use self::{
     error::{BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError},
     pool::StorePool,
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    knowledge::{Entity, EntityId},
+    knowledge::{Entity, EntityId, Link, Links, Outgoing},
     ontology::{
         types::{uri::VersionedUri, DataType, EntityType, LinkType, Persisted, PropertyType},
         AccountId, VersionId,
@@ -375,4 +376,43 @@ pub trait Store {
         entity_type_uri: VersionedUri,
         updated_by: AccountId,
     ) -> Result<(), UpdateError>;
+
+    /// Creates a new [`Link`].
+    ///
+    /// # Errors:
+    ///
+    /// - if the [`LinkType`] doesn't exist
+    /// - if the [`Link`] already exists
+    /// - if the account referred to by `created_by` does not exist
+    async fn create_link(
+        &mut self,
+        link: Link,
+        created_by: AccountId,
+    ) -> Result<Link, InsertionError>;
+
+    /// Get [`Links`] of an [`Entity`] identified by an [`EntityId`].
+    ///
+    /// # Errors
+    ///
+    /// - if the requested [`Entity`] doesn't exist
+    async fn get_entity_links(&self, source_entity_id: EntityId) -> Result<Links, QueryError>;
+
+    /// Get a [`Link`] target identified by an [`EntityId`] and a Link Type [`VersionedUri`].
+    ///
+    /// # Errors
+    ///
+    /// - if the requested [`Entity`] doesn't exist
+    async fn get_link_target(
+        &self,
+        source_entity_id: EntityId,
+        link_type_uri: VersionedUri,
+    ) -> Result<Outgoing, QueryError>;
+
+    /// Inactivates a [`Link`] between a source and target [`Entity`].
+    ///
+    /// # Errors:
+    ///
+    /// - if the [`Link`] doesn't exist
+    /// - if the account referred to by `created_by` does not exist
+    async fn inactivate_link(&mut self, link: Link) -> Result<(), LinkActivationError>;
 }

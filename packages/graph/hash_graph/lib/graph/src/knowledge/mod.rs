@@ -2,5 +2,9 @@
 //!  `ontology` module, i.e you have Ontologies and Knowledge-Graphs
 
 mod entity;
+mod link;
 
-pub use self::entity::{Entity, EntityId};
+pub use self::{
+    entity::{Entity, EntityId},
+    link::{Link, LinkStatus, Links, Outgoing},
+};

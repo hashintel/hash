@@ -9,8 +9,9 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 pub use self::pool::{AsClient, PostgresStorePool};
+use super::error::LinkActivationError;
 use crate::{
-    knowledge::{Entity, EntityId},
+    knowledge::{Entity, EntityId, Link, LinkStatus, Links, Outgoing},
     ontology::{
         types::{
             uri::{BaseUri, VersionedUri},
@@ -604,6 +605,30 @@ where
 
         Ok(entity_id)
     }
+
+    async fn update_link_status(
+        &self,
+        active: LinkStatus,
+        source_entity: EntityId,
+        target_entity: EntityId,
+        link_type_version_id: VersionId,
+    ) -> Result<(), LinkActivationError> {
+        self.as_client()
+            .query_one(
+                r#"
+                    UPDATE links 
+                    SET active = $1
+                    WHERE source_entity_id = $2 AND target_entity_id = $3 AND link_type_version_id = $4
+                    RETURNING source_entity_id, target_entity_id, link_type_version_id;
+                "#,
+                &[&active, &source_entity, &target_entity, &link_type_version_id],
+            )
+            .await
+            .report()
+            .change_context(LinkActivationError)?;
+
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -926,6 +951,166 @@ where
             .await
             .report()
             .change_context(UpdateError)?;
+
+        Ok(())
+    }
+
+    async fn create_link(
+        &mut self,
+        link: Link,
+        created_by: AccountId,
+    ) -> Result<Link, InsertionError> {
+        let link_type_version_id = self
+            .version_id_by_uri(link.link_type_uri())
+            .await
+            .change_context(InsertionError)
+            .attach_printable(link.source_entity())?;
+        let inserted_link = self.as_client()
+            .query_one(
+                r#"
+                    INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, multi, multi_order, created_by)
+                    VALUES ($1, $2, $3, false, null, $4)
+                    RETURNING source_entity_id, target_entity_id, link_type_version_id;
+                "#,
+                &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &created_by],
+            )
+            .await;
+
+        if let Err(error) = inserted_link {
+            // In the case of inserting a new link errors, we try to update an existing link that
+            // has previously been set to inactive
+            self.update_link_status(
+                LinkStatus::Active,
+                link.source_entity(),
+                link.target_entity(),
+                link_type_version_id,
+            )
+            .await
+            .change_context(InsertionError)
+            .attach_printable(created_by)
+            .attach_printable(error)
+            .attach_lazy(|| link.clone())?;
+        }
+
+        Ok(link)
+    }
+
+    async fn get_link_target(
+        &self,
+        source_entity_id: EntityId,
+        link_type_uri: VersionedUri,
+    ) -> Result<Outgoing, QueryError> {
+        let version = i64::from(link_type_uri.version());
+        let link = self
+            .client
+            .as_client()
+            .query_one(
+                r#"
+                -- Gather all single-links
+                WITH single_links AS (
+                    SELECT link_type_version_id, target_entity_id
+                    FROM links
+                    INNER JOIN ids ON ids.version_id = links.link_type_version_id
+                    WHERE active AND NOT multi AND source_entity_id = $1 AND base_uri = $2 AND "version" = $3
+                ),
+                -- Gather all multi-links
+                multi_links AS (
+                    SELECT link_type_version_id, ARRAY_AGG(target_entity_id ORDER BY multi_order ASC) AS target_entity_ids
+                    FROM links
+                    INNER JOIN ids ON ids.version_id = links.link_type_version_id
+                    WHERE active AND multi AND source_entity_id = $1 AND base_uri = $2 AND "version" = $3
+                    GROUP BY link_type_version_id
+                )
+                -- Combine single and multi links with null values in rows where the other doesn't exist
+                SELECT link_type_version_id, target_entity_id AS single_link, NULL AS multi_link FROM single_links 
+                UNION 
+                SELECT link_type_version_id, NULL AS single_link, target_entity_ids AS multi_link from multi_links
+                "#,
+                &[&source_entity_id, link_type_uri.base_uri(), &version],
+            )
+            .await
+            .report()
+            .change_context(QueryError)
+            .attach_printable(source_entity_id)
+            .attach_printable(link_type_uri.clone())?;
+
+        let val: (Option<EntityId>, Option<Vec<EntityId>>) = (link.get(1), link.get(2));
+        match val {
+            (Some(entity_id), None) => Ok(Outgoing::Single(entity_id)),
+            (None, Some(entity_ids)) => Ok(Outgoing::Multiple(entity_ids)),
+            _ => Err(Report::new(QueryError)
+                .attach_printable(source_entity_id)
+                .attach_printable(link_type_uri.clone())),
+        }
+    }
+
+    async fn get_entity_links(&self, source_entity_id: EntityId) -> Result<Links, QueryError> {
+        let multi_links = self
+            .client
+            .as_client()
+            .query(
+                r#"
+                WITH aggregated as (
+                    SELECT link_type_version_id, ARRAY_AGG(target_entity_id ORDER BY multi_order ASC) as links
+                    FROM links
+                    WHERE active AND multi and source_entity_id = $1
+                    GROUP BY link_type_version_id
+                )
+                SELECT base_uri, "version", links FROM aggregated
+                INNER JOIN ids ON ids.version_id = aggregated.link_type_version_id
+                "#,
+                &[&source_entity_id],
+            )
+            .await
+            .report()
+            .change_context(QueryError)
+            .attach_printable(source_entity_id)?
+            .into_iter()
+            .map(|row| (VersionedUri::new(row.get(0), row.get::<_, i64>(1) as u32), Outgoing::Multiple(row.get(2))));
+
+        let single_links = self
+            .client
+            .as_client()
+            .query(
+                r#"
+                SELECT base_uri, "version", target_entity_id
+                FROM links
+                INNER JOIN ids ON ids.version_id = links.link_type_version_id
+                WHERE active AND NOT multi and source_entity_id = $1
+                "#,
+                &[&source_entity_id],
+            )
+            .await
+            .report()
+            .change_context(QueryError)
+            .attach_printable(source_entity_id)?
+            .into_iter()
+            .map(|row| {
+                (
+                    VersionedUri::new(row.get(0), row.get::<_, i64>(1) as u32),
+                    Outgoing::Single(row.get(2)),
+                )
+            });
+
+        Ok(Links::new(multi_links.chain(single_links).collect()))
+    }
+
+    async fn inactivate_link(&mut self, link: Link) -> Result<(), LinkActivationError> {
+        let link_type_version_id = self
+            .version_id_by_uri(link.link_type_uri())
+            .await
+            .change_context(InsertionError)
+            .attach_printable(link.source_entity())
+            .change_context(LinkActivationError)?;
+
+        self.update_link_status(
+            LinkStatus::Inactive,
+            link.source_entity(),
+            link.target_entity(),
+            link_type_version_id,
+        )
+        .await
+        .attach_printable_lazy(|| link.clone())?;
 
         Ok(())
     }
