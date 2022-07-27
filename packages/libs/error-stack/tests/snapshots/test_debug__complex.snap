@@ -5,9 +5,7 @@ expression: "format!(\"{report:?}\")"
 
 Printable A
 | @ tests/test_debug.rs:194:38
-|-> Root error
-|   > @ tests/common.rs:140:5
-\-> backtrace with 12 frames (1)
+\-> Root error
     > @ tests/common.rs:140:5
 
 Test
@@ -15,15 +13,11 @@ Test
 |-> 1 additional attachment
 |-> Printable B
 |   | @ tests/test_debug.rs:196:42
-|   |-> Root error
-|   |   > @ tests/common.rs:140:5
-|   \-> backtrace with 12 frames (2)
+|   \-> Root error
 |       > @ tests/common.rs:140:5
 \-> Printable B
     | @ tests/test_debug.rs:202:18
     |-> Root error
-    |   > @ tests/common.rs:140:5
-    |-> backtrace with 12 frames (3)
     |   > @ tests/common.rs:140:5
     \-> 2 additional attachments
 

@@ -7,7 +7,7 @@ CARGO_MIRI_FLAGS = "--tests --lib"
 CARGO_INSTA_TEST_FLAGS = "--keep-pending -- --lib --tests"
 # The only features that are of relevance are: spantrace, glyph, std, hooks
 # all others do not change the output
-CARGO_INSTA_TEST_HACK_FLAGS = "--workspace --feature-powerset --keep-going --exclude-all-features --include-features spantrace,glyph,std,hooks"
+CARGO_INSTA_TEST_HACK_FLAGS = "--workspace --keep-going --feature-powerset --include-features spantrace,glyph,std,hooks,experimental"
 
 
 [tasks.test-task]

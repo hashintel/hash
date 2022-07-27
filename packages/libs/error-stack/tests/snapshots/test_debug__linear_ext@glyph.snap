@@ -4,15 +4,15 @@ expression: "format!(\"{report:#?}\")"
 ---
 
 Printable C
-│ 📌 tests/test_debug.rs:190:10
+│ 📌 tests/test_debug.rs:185:10
 ├─▶ Context B
-│   ╰ 📌 tests/test_debug.rs:189:10
+│   ╰ 📌 tests/test_debug.rs:184:10
 ├─▶ Printable B
-│   ╰ 📌 tests/test_debug.rs:187:10
+│   ╰ 📌 tests/test_debug.rs:182:10
 ├─▶ Context A
-│   ╰ 📌 tests/test_debug.rs:186:10
+│   ╰ 📌 tests/test_debug.rs:181:10
 ├─▶ Printable A
-│   ╰ 📌 tests/test_debug.rs:183:10
+│   ╰ 📌 tests/test_debug.rs:178:10
 ├─▶ Root error
 │   ╰ 📌 tests/common.rs:140:5
 ╰─▶ 3 additional attachments

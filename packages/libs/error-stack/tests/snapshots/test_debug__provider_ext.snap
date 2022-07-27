@@ -1,0 +1,25 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:#?}\")"
+---
+
+Printable A
+| @ tests/test_debug.rs:139:38
+\-> Root error
+    > @ tests/common.rs:140:5
+
+Test
+| @ tests/test_debug.rs:150:39
+|-> 1 additional attachment
+|-> Printable B
+|   | @ tests/test_debug.rs:141:42
+|   \-> Root error
+|       > @ tests/common.rs:140:5
+\-> Printable B
+    | @ tests/test_debug.rs:147:18
+    |-> ABC
+    |   > @ tests/test_debug.rs:145:18
+    |-> Root error
+    |   > @ tests/common.rs:140:5
+    \-> 1 additional attachment
+

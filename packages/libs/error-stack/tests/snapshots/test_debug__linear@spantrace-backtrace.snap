@@ -4,20 +4,20 @@ expression: "format!(\"{report:?}\")"
 ---
 
 Printable C
-| @ tests/test_debug.rs:172:10
+| @ tests/test_debug.rs:168:10
 |-> Context B
-|   \-@ tests/test_debug.rs:171:10
+|   > @ tests/test_debug.rs:167:10
 |-> Printable B
-|   \-@ tests/test_debug.rs:169:10
+|   > @ tests/test_debug.rs:165:10
 |-> Context A
-|   \-@ tests/test_debug.rs:168:10
+|   > @ tests/test_debug.rs:164:10
 |-> Printable A
-|   \-@ tests/test_debug.rs:165:10
+|   > @ tests/test_debug.rs:161:10
 |-> Root error
-|   \-@ tests/common.rs:140:5
+|   > @ tests/common.rs:140:5
 |-> spantrace with 2 frames (1)
-|   \-@ tests/common.rs:140:5
+|   > @ tests/common.rs:140:5
 |-> backtrace with 18 frames (1)
-|   \-@ tests/common.rs:140:5
+|   > @ tests/common.rs:140:5
 \-> 3 additional attachments
 

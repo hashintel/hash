@@ -16,7 +16,6 @@ use owo_colors::set_override;
 use rusty_fork::rusty_fork_test;
 #[cfg(feature = "hooks")]
 use serial_test::serial;
-use tracing::instrument;
 #[cfg(feature = "spantrace")]
 use tracing_error::ErrorLayer;
 #[cfg(feature = "spantrace")]

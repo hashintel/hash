@@ -4,11 +4,11 @@ expression: "format!(\"{report:?}\")"
 ---
 
 -1
-│ 📌 tests/test_debug.rs:341:10
+│ 📌 tests/test_debug.rs:328:10
 ├─▶ -2
-│   ╰ 📌 tests/test_debug.rs:340:10
+│   ╰ 📌 tests/test_debug.rs:327:10
 ├─▶ -3
-│   ╰ 📌 tests/test_debug.rs:339:10
+│   ╰ 📌 tests/test_debug.rs:326:10
 ├─▶ Root error
 │   ╰ 📌 tests/common.rs:140:5
 ├─▶ spantrace with 2 frames (1)

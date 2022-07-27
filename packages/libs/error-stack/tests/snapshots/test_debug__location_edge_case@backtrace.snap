@@ -6,5 +6,5 @@ expression: "format!(\"{report:?}\")"
 Root error
 | @ tests/common.rs:140:5
 \-> backtrace with 12 frames (1)
-    \-@ tests/common.rs:140:5
+    > @ tests/common.rs:140:5
 

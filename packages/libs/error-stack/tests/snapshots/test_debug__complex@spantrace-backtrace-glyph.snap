@@ -4,7 +4,7 @@ expression: "format!(\"{report:?}\")"
 ---
 
 Printable A
-│ 📌 tests/test_debug.rs:200:38
+│ 📌 tests/test_debug.rs:194:38
 ├─▶ Root error
 │   ╰ 📌 tests/common.rs:140:5
 ├─▶ spantrace with 2 frames (1)
@@ -13,23 +13,23 @@ Printable A
     ╰ 📌 tests/common.rs:140:5
 
 Test
-│ 📌 tests/test_debug.rs:211:39
+│ 📌 tests/test_debug.rs:205:39
 ├─▶ 1 additional attachment
 ├─▶ Printable B
-│   │ 📌 tests/test_debug.rs:202:42
+│   │ 📌 tests/test_debug.rs:196:42
 │   ├─▶ Root error
 │   │   ╰ 📌 tests/common.rs:140:5
-│   ├─▶ spantrace with 2 frames (3)
+│   ├─▶ spantrace with 2 frames (2)
 │   │   ╰ 📌 tests/common.rs:140:5
-│   ╰─▶ backtrace with 18 frames (3)
+│   ╰─▶ backtrace with 18 frames (2)
 │       ╰ 📌 tests/common.rs:140:5
 ╰─▶ Printable B
-    │ 📌 tests/test_debug.rs:208:18
+    │ 📌 tests/test_debug.rs:202:18
     ├─▶ Root error
     │   ╰ 📌 tests/common.rs:140:5
-    ├─▶ spantrace with 2 frames (5)
+    ├─▶ spantrace with 2 frames (3)
     │   ╰ 📌 tests/common.rs:140:5
-    ├─▶ backtrace with 18 frames (5)
+    ├─▶ backtrace with 18 frames (3)
     │   ╰ 📌 tests/common.rs:140:5
     ╰─▶ 2 additional attachments
 

@@ -15,15 +15,5 @@ Printable C
 |   > @ tests/test_debug.rs:178:10
 |-> Root error
 |   > @ tests/common.rs:140:5
-|-> spantrace with 2 frames (1)
-|   > @ tests/common.rs:140:5
 \-> 3 additional attachments
 
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Span Trace No. 1
-   0: test_debug::func_b
-             at tests/test_debug.rs:86
-   1: test_debug::func_a
-             at tests/test_debug.rs:91

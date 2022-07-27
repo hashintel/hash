@@ -4,7 +4,7 @@ expression: "format!(\"{report:?}\")"
 ---
 
 unsigned 32bit integer
-│ 📌 tests/test_debug.rs:242:34
+│ 📌 tests/test_debug.rs:234:34
 ├─▶ Root error
 │   ╰ 📌 tests/common.rs:140:5
 ╰─▶ backtrace with 35 frames (1)
