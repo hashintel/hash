@@ -1128,7 +1128,10 @@ where
                 .attach_printable(link_type_uri.clone()));
         } else if links.len() == 1 {
             return Ok(OutgoingLink::Single(
-                links.get(0).expect("Link array should have been 1").get(0),
+                links
+                    .get(0)
+                    .expect("Link array should have at least one element")
+                    .get(0),
             ));
         }
 
