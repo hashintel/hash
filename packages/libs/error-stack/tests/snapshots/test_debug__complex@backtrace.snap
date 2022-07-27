@@ -4,23 +4,23 @@ expression: "format!(\"{report:?}\")"
 ---
 
 Printable A
-| @ tests/test_debug.rs:190:38
+| @ tests/test_debug.rs:191:38
 |-> Root error
 |   > @ tests/common.rs:140:5
 \-> backtrace with 12 frames (1)
     > @ tests/common.rs:140:5
 
 Test
-| @ tests/test_debug.rs:201:39
+| @ tests/test_debug.rs:202:39
 |-> 1 additional attachment
 |-> Printable B
-|   | @ tests/test_debug.rs:192:42
+|   | @ tests/test_debug.rs:193:42
 |   |-> Root error
 |   |   > @ tests/common.rs:140:5
 |   \-> backtrace with 12 frames (2)
 |       > @ tests/common.rs:140:5
 \-> Printable B
-    | @ tests/test_debug.rs:198:18
+    | @ tests/test_debug.rs:199:18
     |-> Root error
     |   > @ tests/common.rs:140:5
     |-> backtrace with 12 frames (3)

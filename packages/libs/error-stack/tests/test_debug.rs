@@ -97,7 +97,8 @@ macro_rules! set_snapshot_suffix {
     () => {{
         let mut settings = insta::Settings::clone_current();
         settings.set_snapshot_suffix(snap_suffix());
-        settings.bind_to_scope();
+        #[allow(deprecated)]
+        settings.bind_to_thread();
     }};
 }
 

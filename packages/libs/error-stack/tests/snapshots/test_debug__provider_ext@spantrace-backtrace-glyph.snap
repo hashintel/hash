@@ -4,7 +4,7 @@ expression: "format!(\"{report:#?}\")"
 ---
 
 Printable A
-│ 📌 tests/test_debug.rs:135:38
+│ 📌 tests/test_debug.rs:136:38
 ├─▶ Root error
 │   ╰ 📌 tests/common.rs:140:5
 ├─▶ spantrace with 2 frames (1)
@@ -13,10 +13,10 @@ Printable A
     ╰ 📌 tests/common.rs:140:5
 
 Test
-│ 📌 tests/test_debug.rs:146:39
+│ 📌 tests/test_debug.rs:147:39
 ├─▶ 1 additional attachment
 ├─▶ Printable B
-│   │ 📌 tests/test_debug.rs:137:42
+│   │ 📌 tests/test_debug.rs:138:42
 │   ├─▶ Root error
 │   │   ╰ 📌 tests/common.rs:140:5
 │   ├─▶ spantrace with 2 frames (2)
@@ -24,9 +24,9 @@ Test
 │   ╰─▶ backtrace with 18 frames (2)
 │       ╰ 📌 tests/common.rs:140:5
 ╰─▶ Printable B
-    │ 📌 tests/test_debug.rs:143:18
+    │ 📌 tests/test_debug.rs:144:18
     ├─▶ ABC
-    │   ╰ 📌 tests/test_debug.rs:141:18
+    │   ╰ 📌 tests/test_debug.rs:142:18
     ├─▶ Root error
     │   ╰ 📌 tests/common.rs:140:5
     ├─▶ spantrace with 2 frames (3)
@@ -68,9 +68,9 @@ Backtrace No. 1
   10: test_debug::create_report
              at ./tests/test_debug.rs:92:5
   11: test_debug::provider_ext
-             at ./tests/test_debug.rs:135:22
+             at ./tests/test_debug.rs:136:22
   12: test_debug::provider_ext::{{closure}}
-             at ./tests/test_debug.rs:132:1
+             at ./tests/test_debug.rs:133:1
   13: core::ops::function::FnOnce::call_once
              at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ops/function.rs:248:5
   14: core::ops::function::FnOnce::call_once
@@ -147,9 +147,9 @@ Backtrace No. 2
   10: test_debug::create_report
              at ./tests/test_debug.rs:92:5
   11: test_debug::provider_ext
-             at ./tests/test_debug.rs:137:26
+             at ./tests/test_debug.rs:138:26
   12: test_debug::provider_ext::{{closure}}
-             at ./tests/test_debug.rs:132:1
+             at ./tests/test_debug.rs:133:1
   13: core::ops::function::FnOnce::call_once
              at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ops/function.rs:248:5
   14: core::ops::function::FnOnce::call_once
@@ -226,9 +226,9 @@ Backtrace No. 3
   10: test_debug::create_report
              at ./tests/test_debug.rs:92:5
   11: test_debug::provider_ext
-             at ./tests/test_debug.rs:140:13
+             at ./tests/test_debug.rs:141:13
   12: test_debug::provider_ext::{{closure}}
-             at ./tests/test_debug.rs:132:1
+             at ./tests/test_debug.rs:133:1
   13: core::ops::function::FnOnce::call_once
              at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ops/function.rs:248:5
   14: core::ops::function::FnOnce::call_once

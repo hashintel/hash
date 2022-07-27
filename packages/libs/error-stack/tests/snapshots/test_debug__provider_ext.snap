@@ -4,21 +4,21 @@ expression: "format!(\"{report:#?}\")"
 ---
 
 Printable A
-| @ tests/test_debug.rs:135:38
+| @ tests/test_debug.rs:136:38
 \-> Root error
     > @ tests/common.rs:140:5
 
 Test
-| @ tests/test_debug.rs:146:39
+| @ tests/test_debug.rs:147:39
 |-> 1 additional attachment
 |-> Printable B
-|   | @ tests/test_debug.rs:137:42
+|   | @ tests/test_debug.rs:138:42
 |   \-> Root error
 |       > @ tests/common.rs:140:5
 \-> Printable B
-    | @ tests/test_debug.rs:143:18
+    | @ tests/test_debug.rs:144:18
     |-> ABC
-    |   > @ tests/test_debug.rs:141:18
+    |   > @ tests/test_debug.rs:142:18
     |-> Root error
     |   > @ tests/common.rs:140:5
     \-> 1 additional attachment

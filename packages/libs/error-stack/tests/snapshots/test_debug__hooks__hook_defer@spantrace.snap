@@ -4,13 +4,13 @@ expression: "format!(\"{report:?}\")"
 ---
 
 u64
-| @ tests/test_debug.rs:296:14
+| @ tests/test_debug.rs:297:14
 |-> Root error
 |   > @ tests/common.rs:140:5
 |-> u16
-|   > @ tests/test_debug.rs:297:14
+|   > @ tests/test_debug.rs:298:14
 |-> u32
-|   > @ tests/test_debug.rs:295:14
+|   > @ tests/test_debug.rs:296:14
 \-> spantrace with 2 frames (1)
     > @ tests/common.rs:140:5
 

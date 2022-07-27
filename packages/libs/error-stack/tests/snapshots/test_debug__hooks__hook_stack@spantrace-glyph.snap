@@ -4,9 +4,9 @@ expression: "format!(\"{report:?}\")"
 ---
 
 unsigned 64-bit integer
-│ 📌 tests/test_debug.rs:254:51
+│ 📌 tests/test_debug.rs:255:51
 ├─▶ unsigned 32bit integer
-│   ╰ 📌 tests/test_debug.rs:254:38
+│   ╰ 📌 tests/test_debug.rs:255:38
 ├─▶ Root error
 │   ╰ 📌 tests/common.rs:140:5
 ╰─▶ spantrace with 2 frames (1)
