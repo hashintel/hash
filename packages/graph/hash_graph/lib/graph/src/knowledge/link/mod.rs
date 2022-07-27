@@ -7,6 +7,8 @@ use utoipa::Component;
 use super::EntityId;
 use crate::ontology::types::uri::VersionedUri;
 
+/// A Link between a source and a target entity identified by [`EntityId`]s.
+/// The link is described by a link type [`VersionedUri`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
 pub struct Link {
     source_entity: EntityId,
@@ -50,6 +52,8 @@ impl fmt::Display for Link {
     }
 }
 
+/// From a source entity, this is the outgoing link targeting one or more other entities given by
+/// [`EntityId`]s.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum OutgoingLink {
@@ -57,6 +61,7 @@ pub enum OutgoingLink {
     Multiple(Vec<EntityId>),
 }
 
+/// A collection of links that originate from the same source entity.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Links {
     #[serde(flatten)]
@@ -75,6 +80,7 @@ impl Links {
     }
 }
 
+/// Specifies whether or not a link is active.
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 pub enum LinkStatus {
@@ -83,7 +89,7 @@ pub enum LinkStatus {
 }
 
 impl LinkStatus {
-    fn to_bool(self) -> bool {
+    fn active(self) -> bool {
         match self {
             LinkStatus::Active => true,
             LinkStatus::Inactive => false,
@@ -100,7 +106,7 @@ impl ToSql for LinkStatus {
     where
         Self: Sized,
     {
-        self.to_bool().to_sql(ty, out)
+        self.active().to_sql(ty, out)
     }
 
     fn accepts(ty: &postgres_types::Type) -> bool
@@ -115,7 +121,7 @@ impl ToSql for LinkStatus {
         ty: &postgres_types::Type,
         out: &mut postgres_types::private::BytesMut,
     ) -> Result<postgres_types::IsNull, Box<dyn std::error::Error + Sync + Send>> {
-        self.to_bool().to_sql_checked(ty, out)
+        self.active().to_sql_checked(ty, out)
     }
 }
 
