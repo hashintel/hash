@@ -4,7 +4,7 @@ volumes:
     external: true
 services:
   postgres:
-    build: ./postgres
+    build: postgres:14-alpine
     deploy:
       restart_policy:
         condition: on-failure
@@ -18,6 +18,7 @@ services:
     volumes:
       - hash-graph-data:/var/lib/postgresql/data
       - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./postgres/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh
     tmpfs:
       - /tmp
       - /run/postgresql
