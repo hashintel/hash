@@ -4,15 +4,15 @@ expression: "format!(\"{report:#?}\")"
 ---
 
 Printable C
-| @ tests/test_debug.rs:185:10
+| @ tests/test_debug.rs:181:10
 |-> Context B
-|   > @ tests/test_debug.rs:184:10
+|   > @ tests/test_debug.rs:180:10
 |-> Printable B
-|   > @ tests/test_debug.rs:182:10
-|-> Context A
-|   > @ tests/test_debug.rs:181:10
-|-> Printable A
 |   > @ tests/test_debug.rs:178:10
+|-> Context A
+|   > @ tests/test_debug.rs:177:10
+|-> Printable A
+|   > @ tests/test_debug.rs:174:10
 |-> Root error
 |   > @ tests/common.rs:140:5
 |-> backtrace with 12 frames (1)
@@ -34,9 +34,9 @@ Backtrace No. 1
    4: test_debug::common::create_report
              at ./tests/common.rs:140:5
    5: test_debug::linear_ext
-             at ./tests/test_debug.rs:177:18
+             at ./tests/test_debug.rs:173:18
    6: test_debug::linear_ext::{{closure}}
-             at ./tests/test_debug.rs:174:1
+             at ./tests/test_debug.rs:170:1
    7: core::ops::function::FnOnce::call_once
              at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ops/function.rs:248:5
    8: core::ops::function::FnOnce::call_once

@@ -12,10 +12,6 @@ use error_stack::Report;
 use insta::assert_snapshot;
 #[cfg(feature = "glyph")]
 use owo_colors::set_override;
-#[cfg(feature = "hooks")]
-use rusty_fork::rusty_fork_test;
-#[cfg(feature = "hooks")]
-use serial_test::serial;
 #[cfg(feature = "spantrace")]
 use tracing_error::ErrorLayer;
 #[cfg(feature = "spantrace")]
@@ -217,141 +213,133 @@ fn location_edge_case() {
     assert_snapshot!(format!("{report:?}"));
 }
 
-// To be able to set `OnceCell` multiple times we need to run each of them in a separate fork,
-// while this works without fault in `nextest` you cannot guarantee that this is always the case.
-// As this is mostly undocumented behavior, `rust_forky` makes the tests fork explicitly and work
-// independent with the test framework.
-//
-// `#[serial]` is used due to a limitation of insta, where it would otherwise overwrite the pending
-// snapshots: https://github.com/mitsuhiko/insta/issues/242
 #[cfg(feature = "hooks")]
-rusty_fork_test! {
-#[test]
-#[serial]
-fn hook() {
-    set_snapshot_suffix!();
+mod hooks {
+    //! To be able to set `OnceCell` multiple times we need to run each of them in a separate fork,
+    //! this works without fault in `nextest` you cannot guarantee that this is always the case.
+    //! This is mostly undocumented behavior.
 
-    let report = create_report().attach(2u32);
+    use super::*;
 
-    Report::install_hook(Hooks::new().push(|_: &u32| Line::next("unsigned 32bit integer")))
+    #[test]
+    fn hook() {
+        set_snapshot_suffix!();
+
+        let report = create_report().attach(2u32);
+
+        Report::install_hook(Hooks::new().push(|_: &u32| Line::next("unsigned 32bit integer")))
+            .unwrap();
+
+        assert_snapshot!("hook", format!("{report:?}"));
+    }
+
+    #[test]
+    fn hook_context() {
+        set_snapshot_suffix!();
+
+        let report = create_report().attach(2u32);
+
+        Report::install_hook(Hooks::new().push(|_: &u32, ctx: &mut HookContext<u32>| {
+            Line::next(format!("unsigned 32bit integer (No. {})", ctx.incr()))
+        }))
         .unwrap();
 
-    assert_snapshot!("hook", format!("{report:?}"));
-}
+        assert_snapshot!("hook_context", format!("{report:?}"));
+    }
 
-#[test]
-#[serial]
-fn hook_context() {
-    set_snapshot_suffix!();
+    #[test]
+    fn hook_stack() {
+        set_snapshot_suffix!();
 
-    let report = create_report().attach(2u32);
+        let report = create_report().attach(1u32).attach(2u64);
 
-    Report::install_hook(Hooks::new().push(|_: &u32, ctx: &mut HookContext<u32>| {
-        Line::next(format!("unsigned 32bit integer (No. {})", ctx.incr()))
-    }))
-    .unwrap();
+        Report::install_hook(
+            Hooks::new()
+                .push(|_: &u32| Line::next("unsigned 32bit integer"))
+                .push(|_: &u64| Line::next("unsigned 64-bit integer")),
+        )
+        .unwrap();
 
-    assert_snapshot!("hook_context", format!("{report:?}"));
-}
+        assert_snapshot!("hook_stack", format!("{report:?}"));
+    }
 
-#[test]
-#[serial]
-fn hook_stack() {
-    set_snapshot_suffix!();
+    #[test]
+    fn hook_combine() {
+        set_snapshot_suffix!();
 
-    let report = create_report().attach(1u32).attach(2u64);
+        let report = create_report() //
+            .attach(1u32)
+            .attach(2u64)
+            .attach(3u16);
 
-    Report::install_hook(
-        Hooks::new()
-            .push(|_: &u32| Line::next("unsigned 32bit integer"))
-            .push(|_: &u64| Line::next("unsigned 64-bit integer")),
-    )
-    .unwrap();
+        let other = Hooks::new()
+            .push(|_: &u32| Line::next("u32 (other)"))
+            .push(|_: &u16| Line::next("u16 (other)"));
 
-    assert_snapshot!("hook_stack", format!("{report:?}"));
-}
+        Report::install_hook(
+            Hooks::new()
+                .push(|_: &u32| Line::next("u32"))
+                .push(|_: &u64| Line::next("u64"))
+                .combine(other),
+        )
+        .unwrap();
 
-#[test]
-#[serial]
-fn hook_combine() {
-    set_snapshot_suffix!();
+        assert_snapshot!("hook_combine", format!("{report:?}"));
+    }
 
-    let report = create_report() //
-        .attach(1u32)
-        .attach(2u64)
-        .attach(3u16);
+    #[test]
+    fn hook_defer() {
+        set_snapshot_suffix!();
 
-    let other = Hooks::new()
-        .push(|_: &u32| Line::next("u32 (other)"))
-        .push(|_: &u16| Line::next("u16 (other)"));
+        let report = create_report() //
+            .attach(1u32)
+            .attach(2u64)
+            .attach(3u16);
 
-    Report::install_hook(
-        Hooks::new()
-            .push(|_: &u32| Line::next("u32"))
-            .push(|_: &u64| Line::next("u64"))
-            .combine(other),
-    )
-    .unwrap();
+        Report::install_hook(
+            Hooks::new()
+                .push(|_: &u32| Line::defer("u32"))
+                .push(|_: &u64| Line::next("u64"))
+                .push(|_: &u16| Line::defer("u16")),
+        )
+        .unwrap();
 
-    assert_snapshot!("hook_combine", format!("{report:?}"));
-}
+        assert_snapshot!("hook_defer", format!("{report:?}"));
+    }
 
-#[test]
-#[serial]
-fn hook_defer() {
-    set_snapshot_suffix!();
+    #[test]
+    fn hook_decr() {
+        set_snapshot_suffix!();
 
-    let report = create_report() //
-        .attach(1u32)
-        .attach(2u64)
-        .attach(3u16);
+        let report = create_report() //
+            .attach(1u32)
+            .attach(2u32)
+            .attach(3u32);
 
-    Report::install_hook(
-        Hooks::new()
-            .push(|_: &u32| Line::defer("u32"))
-            .push(|_: &u64| Line::next("u64"))
-            .push(|_: &u16| Line::defer("u16")),
-    )
-    .unwrap();
+        Report::install_hook(
+            Hooks::new()
+                .push(|_: &u32, ctx: &mut HookContext<u32>| Line::next(format!("{}", ctx.decr()))),
+        )
+        .unwrap();
 
-    assert_snapshot!("hook_defer", format!("{report:?}"));
-}
+        assert_snapshot!("hook_decr", format!("{report:?}"));
+    }
 
-#[test]
-#[serial]
-fn hook_decr() {
-    set_snapshot_suffix!();
+    #[test]
+    fn hook_incr() {
+        set_snapshot_suffix!();
 
-    let report = create_report() //
-        .attach(1u32)
-        .attach(2u32)
-        .attach(3u32);
+        let report = create_report() //
+            .attach(1u32)
+            .attach(2u32)
+            .attach(3u32);
 
-    Report::install_hook(
-        Hooks::new()
-            .push(|_: &u32, ctx: &mut HookContext<u32>| Line::next(format!("{}", ctx.decr()))),
-    )
-    .unwrap();
+        Report::install_hook(
+            Hooks::new()
+                .push(|_: &u32, ctx: &mut HookContext<u32>| Line::next(format!("{}", ctx.incr()))),
+        )
+        .unwrap();
 
-    assert_snapshot!("hook_decr", format!("{report:?}"));
-}
-
-#[test]
-#[serial]
-fn hook_incr() {
-    set_snapshot_suffix!();
-
-    let report = create_report() //
-        .attach(1u32)
-        .attach(2u32)
-        .attach(3u32);
-
-    Report::install_hook(
-        Hooks::new()
-            .push(|_: &u32, ctx: &mut HookContext<u32>| Line::next(format!("{}", ctx.incr()))),
-    )
-    .unwrap();
-
-    assert_snapshot!("hook_incr", format!("{report:?}"));
-}
+        assert_snapshot!("hook_incr", format!("{report:?}"));
+    }
 }

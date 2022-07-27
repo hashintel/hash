@@ -4,15 +4,15 @@ expression: "format!(\"{report:#?}\")"
 ---
 
 Printable C
-| @ tests/test_debug.rs:185:10
+| @ tests/test_debug.rs:181:10
 |-> Context B
-|   > @ tests/test_debug.rs:184:10
+|   > @ tests/test_debug.rs:180:10
 |-> Printable B
-|   > @ tests/test_debug.rs:182:10
-|-> Context A
-|   > @ tests/test_debug.rs:181:10
-|-> Printable A
 |   > @ tests/test_debug.rs:178:10
+|-> Context A
+|   > @ tests/test_debug.rs:177:10
+|-> Printable A
+|   > @ tests/test_debug.rs:174:10
 |-> Root error
 |   > @ tests/common.rs:140:5
 |-> spantrace with 2 frames (1)
@@ -26,9 +26,9 @@ Printable C
 
 Span Trace No. 1
    0: test_debug::func_b
-             at tests/test_debug.rs:86
+             at tests/test_debug.rs:82
    1: test_debug::func_a
-             at tests/test_debug.rs:91
+             at tests/test_debug.rs:87
 
 Backtrace No. 1
    0: std::backtrace_rs::backtrace::libunwind::trace
@@ -44,19 +44,19 @@ Backtrace No. 1
    5: test_debug::common::create_error
              at ./tests/common.rs:144:9
    6: test_debug::create_report::func_b
-             at ./tests/test_debug.rs:88:9
+             at ./tests/test_debug.rs:84:9
    7: test_debug::create_report::func_a
-             at ./tests/test_debug.rs:93:9
+             at ./tests/test_debug.rs:89:9
    8: core::ops::function::FnOnce::call_once
              at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ops/function.rs:248:5
    9: test_debug::common::capture_error
              at ./tests/common.rs:166:5
   10: test_debug::create_report
-             at ./tests/test_debug.rs:96:5
+             at ./tests/test_debug.rs:92:5
   11: test_debug::linear_ext
-             at ./tests/test_debug.rs:177:18
+             at ./tests/test_debug.rs:173:18
   12: test_debug::linear_ext::{{closure}}
-             at ./tests/test_debug.rs:174:1
+             at ./tests/test_debug.rs:170:1
   13: core::ops::function::FnOnce::call_once
              at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ops/function.rs:248:5
   14: core::ops::function::FnOnce::call_once

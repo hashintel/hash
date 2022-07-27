@@ -4,25 +4,25 @@ expression: "format!(\"{report:#?}\")"
 ---
 
 Printable A
-│ 📌 tests/test_debug.rs:139:38
+│ 📌 tests/test_debug.rs:135:38
 ├─▶ Root error
 │   ╰ 📌 tests/common.rs:140:5
 ╰─▶ spantrace with 2 frames (1)
     ╰ 📌 tests/common.rs:140:5
 
 Test
-│ 📌 tests/test_debug.rs:150:39
+│ 📌 tests/test_debug.rs:146:39
 ├─▶ 1 additional attachment
 ├─▶ Printable B
-│   │ 📌 tests/test_debug.rs:141:42
+│   │ 📌 tests/test_debug.rs:137:42
 │   ├─▶ Root error
 │   │   ╰ 📌 tests/common.rs:140:5
 │   ╰─▶ spantrace with 2 frames (2)
 │       ╰ 📌 tests/common.rs:140:5
 ╰─▶ Printable B
-    │ 📌 tests/test_debug.rs:147:18
+    │ 📌 tests/test_debug.rs:143:18
     ├─▶ ABC
-    │   ╰ 📌 tests/test_debug.rs:145:18
+    │   ╰ 📌 tests/test_debug.rs:141:18
     ├─▶ Root error
     │   ╰ 📌 tests/common.rs:140:5
     ├─▶ spantrace with 2 frames (3)
@@ -34,18 +34,18 @@ Test
 
 Span Trace No. 1
    0: test_debug::func_b
-             at tests/test_debug.rs:86
+             at tests/test_debug.rs:82
    1: test_debug::func_a
-             at tests/test_debug.rs:91
+             at tests/test_debug.rs:87
 
 Span Trace No. 2
    0: test_debug::func_b
-             at tests/test_debug.rs:86
+             at tests/test_debug.rs:82
    1: test_debug::func_a
-             at tests/test_debug.rs:91
+             at tests/test_debug.rs:87
 
 Span Trace No. 3
    0: test_debug::func_b
-             at tests/test_debug.rs:86
+             at tests/test_debug.rs:82
    1: test_debug::func_a
-             at tests/test_debug.rs:91
+             at tests/test_debug.rs:87

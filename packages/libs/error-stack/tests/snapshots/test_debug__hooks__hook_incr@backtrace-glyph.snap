@@ -4,13 +4,13 @@ expression: "format!(\"{report:?}\")"
 ---
 
 0
-│ 📌 tests/test_debug.rs:347:10
+│ 📌 tests/test_debug.rs:335:14
 ├─▶ 1
-│   ╰ 📌 tests/test_debug.rs:346:10
+│   ╰ 📌 tests/test_debug.rs:334:14
 ├─▶ 2
-│   ╰ 📌 tests/test_debug.rs:345:10
+│   ╰ 📌 tests/test_debug.rs:333:14
 ├─▶ Root error
 │   ╰ 📌 tests/common.rs:140:5
-╰─▶ backtrace with 35 frames (1)
+╰─▶ backtrace with 12 frames (1)
     ╰ 📌 tests/common.rs:140:5
 
