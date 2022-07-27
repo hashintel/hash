@@ -1156,12 +1156,9 @@ where
                 "#,
                 &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &created_by],
             )
-            .await
-            .report()
-            .change_context(InsertionError)
-            .attach_printable(created_by);
+            .await;
 
-        if let Err(_) = inserted_link {
+        if let Err(error) = inserted_link {
             // In the case of inserting a new link errors, we try to update an existing link that
             // has previously been set to inactive
             self.update_link_active(
@@ -1171,8 +1168,10 @@ where
                 link_type_version_id,
             )
             .await
-            .attach_lazy(|| link.clone())
-            .change_context(InsertionError)?;
+            .change_context(InsertionError)
+            .attach_printable(created_by)
+            .attach_printable(error)
+            .attach_lazy(|| link.clone())?
         }
 
         Ok(link)
