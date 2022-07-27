@@ -721,7 +721,7 @@ where
     }
 
     async fn get_data_type(
-        &mut self,
+        &self,
         version_id: VersionId,
     ) -> Result<Persisted<DataType>, QueryError> {
         self.get_by_version(version_id).await
@@ -785,7 +785,7 @@ where
     }
 
     async fn get_property_type(
-        &mut self,
+        &self,
         version_id: VersionId,
     ) -> Result<Persisted<PropertyType>, QueryError> {
         self.get_by_version(version_id).await
@@ -856,7 +856,7 @@ where
     }
 
     async fn get_entity_type(
-        &mut self,
+        &self,
         version_id: VersionId,
     ) -> Result<Persisted<EntityType>, QueryError> {
         self.get_by_version(version_id).await
@@ -920,7 +920,7 @@ where
     }
 
     async fn get_link_type(
-        &mut self,
+        &self,
         version_id: VersionId,
     ) -> Result<Persisted<LinkType>, QueryError> {
         self.get_by_version(version_id).await
@@ -982,7 +982,7 @@ where
         Ok(entity_id)
     }
 
-    async fn get_entity(&mut self, entity_id: EntityId) -> Result<Entity, QueryError> {
+    async fn get_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError> {
         let row = self
             .client
             .as_client()
