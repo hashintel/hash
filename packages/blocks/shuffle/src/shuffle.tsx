@@ -47,8 +47,9 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
 
   const [prevItems, setPrevItems] = useState(items);
 
-  if (items && !isEqual(items, prevItems)) {
+  if (items && items !== prevItems) {
     setPrevItems(items);
+
     if (!isEqual(items, getItemValues(draftItems))) {
       setDraftItems(createItems(items));
     }
