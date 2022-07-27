@@ -39,15 +39,14 @@ pub struct DataTypeResource;
 /// Specifies the requirements to a [`Store`] for the [`DataType`] REST API.
 ///
 /// [`Store`]: crate::store::Store
-pub trait DataTypeBackend = crud::Read<VersionId, DataType, Output = Persisted<DataType>>;
+pub trait DataTypeBackend = StorePool + 'static
+where
+    for<'pool> <Self as StorePool>::Store<'pool>:
+        crud::Read<VersionId, DataType, Output = Persisted<DataType>>;
 
 impl RoutedResource for DataTypeResource {
     /// Create routes for interacting with data types.
-    fn routes<S>() -> Router
-    where
-        S: StorePool + 'static,
-        for<'pool> S::Store<'pool>: RestApiBackend,
-    {
+    fn routes<S: RestApiBackend>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/data-type",
@@ -79,14 +78,10 @@ struct CreateDataTypeRequest {
     ),
     request_body = CreateDataTypeRequest,
 )]
-async fn create_data_type<S>(
+async fn create_data_type<S: DataTypeBackend>(
     body: Json<CreateDataTypeRequest>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<DataType>>, StatusCode>
-where
-    S: StorePool + 'static,
-    for<'pool> S::Store<'pool>: DataTypeBackend,
-{
+) -> Result<Json<Persisted<DataType>>, StatusCode> {
     let Json(CreateDataTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -125,14 +120,10 @@ where
         ("uri" = String, Path, description = "The URI of data type"),
     )
 )]
-async fn get_data_type<S>(
+async fn get_data_type<S: DataTypeBackend>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<DataType>>, impl IntoResponse>
-where
-    S: StorePool + 'static,
-    for<'pool> S::Store<'pool>: DataTypeBackend,
-{
+) -> Result<Json<Persisted<DataType>>, impl IntoResponse> {
     let store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
@@ -185,14 +176,10 @@ struct UpdateDataTypeRequest {
     ),
     request_body = UpdateDataTypeRequest,
 )]
-async fn update_data_type<S>(
+async fn update_data_type<S: DataTypeBackend>(
     body: Json<UpdateDataTypeRequest>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<DataType>>, StatusCode>
-where
-    S: StorePool + 'static,
-    for<'pool> S::Store<'pool>: DataTypeBackend,
-{
+) -> Result<Json<Persisted<DataType>>, StatusCode> {
     let Json(UpdateDataTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {

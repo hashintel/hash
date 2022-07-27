@@ -42,15 +42,14 @@ pub struct EntityTypeResource;
 /// Specifies the requirements to a [`Store`] for the [`EntityType`] REST API.
 ///
 /// [`Store`]: crate::store::Store
-pub trait EntityTypeBackend = crud::Read<VersionId, EntityType, Output = Persisted<EntityType>>;
+pub trait EntityTypeBackend = StorePool + 'static
+where
+    for<'pool> <Self as StorePool>::Store<'pool>:
+        crud::Read<VersionId, EntityType, Output = Persisted<EntityType>>;
 
 impl RoutedResource for EntityTypeResource {
     /// Create routes for interacting with entity types.
-    fn routes<S>() -> Router
-    where
-        S: StorePool + 'static,
-        for<'pool> S::Store<'pool>: RestApiBackend,
-    {
+    fn routes<S: RestApiBackend>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/entity-type",
@@ -85,14 +84,10 @@ struct CreateEntityTypeRequest {
     ),
     request_body = CreateEntityTypeRequest,
 )]
-async fn create_entity_type<S>(
+async fn create_entity_type<S: EntityTypeBackend>(
     body: Json<CreateEntityTypeRequest>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<EntityType>>, StatusCode>
-where
-    S: StorePool + 'static,
-    for<'pool> S::Store<'pool>: EntityTypeBackend,
-{
+) -> Result<Json<Persisted<EntityType>>, StatusCode> {
     let Json(CreateEntityTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -131,14 +126,10 @@ where
         ("uri" = String, Path, description = "The URI of entity type"),
     )
 )]
-async fn get_entity_type<S>(
+async fn get_entity_type<S: EntityTypeBackend>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<EntityType>>, impl IntoResponse>
-where
-    S: StorePool + 'static,
-    for<'pool> S::Store<'pool>: EntityTypeBackend,
-{
+) -> Result<Json<Persisted<EntityType>>, impl IntoResponse> {
     let store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
@@ -191,14 +182,10 @@ struct UpdateEntityTypeRequest {
     ),
     request_body = UpdateEntityTypeRequest,
 )]
-async fn update_entity_type<S>(
+async fn update_entity_type<S: EntityTypeBackend>(
     body: Json<UpdateEntityTypeRequest>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<EntityType>>, StatusCode>
-where
-    S: StorePool + 'static,
-    for<'pool> S::Store<'pool>: EntityTypeBackend,
-{
+) -> Result<Json<Persisted<EntityType>>, StatusCode> {
     let Json(UpdateEntityTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {

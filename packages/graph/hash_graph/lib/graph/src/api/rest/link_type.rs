@@ -39,15 +39,14 @@ pub struct LinkTypeResource;
 /// Specifies the requirements to a [`Store`] for the link-type REST API.
 ///
 /// [`Store`]: crate::store::Store
-pub trait LinkTypeBackend = crud::Read<VersionId, LinkType, Output = Persisted<LinkType>>;
+pub trait LinkTypeBackend = StorePool + 'static
+where
+    for<'pool> <Self as StorePool>::Store<'pool>:
+        crud::Read<VersionId, LinkType, Output = Persisted<LinkType>>;
 
 impl RoutedResource for LinkTypeResource {
     /// Create routes for interacting with link types.
-    fn routes<S>() -> Router
-    where
-        S: StorePool + 'static,
-        for<'pool> S::Store<'pool>: RestApiBackend,
-    {
+    fn routes<S: RestApiBackend>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/link-type",
@@ -79,14 +78,10 @@ struct CreateLinkTypeRequest {
     ),
     request_body = CreateLinkTypeRequest,
 )]
-async fn create_link_type<S>(
+async fn create_link_type<S: LinkTypeBackend>(
     body: Json<CreateLinkTypeRequest>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<LinkType>>, StatusCode>
-where
-    S: StorePool + 'static,
-    for<'pool> S::Store<'pool>: LinkTypeBackend,
-{
+) -> Result<Json<Persisted<LinkType>>, StatusCode> {
     let Json(CreateLinkTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -125,14 +120,10 @@ where
         ("uri" = String, Path, description = "The URI of link type"),
     )
 )]
-async fn get_link_type<S>(
+async fn get_link_type<S: LinkTypeBackend>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<LinkType>>, impl IntoResponse>
-where
-    S: StorePool + 'static,
-    for<'pool> S::Store<'pool>: LinkTypeBackend,
-{
+) -> Result<Json<Persisted<LinkType>>, impl IntoResponse> {
     let store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
@@ -185,14 +176,10 @@ struct UpdateLinkTypeRequest {
     ),
     request_body = UpdateLinkTypeRequest,
 )]
-async fn update_link_type<S>(
+async fn update_link_type<S: LinkTypeBackend>(
     body: Json<UpdateLinkTypeRequest>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<LinkType>>, StatusCode>
-where
-    S: StorePool + 'static,
-    for<'pool> S::Store<'pool>: LinkTypeBackend,
-{
+) -> Result<Json<Persisted<LinkType>>, StatusCode> {
     let Json(UpdateLinkTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {

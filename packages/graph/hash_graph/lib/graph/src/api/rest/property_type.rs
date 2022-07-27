@@ -39,16 +39,14 @@ pub struct PropertyTypeResource;
 /// Specifies the requirements to a [`Store`] for the [`PropertyType`] REST API.
 ///
 /// [`Store`]: crate::store::Store
-pub trait PropertyTypeBackend =
-    crud::Read<VersionId, PropertyType, Output = Persisted<PropertyType>>;
+pub trait PropertyTypeBackend = StorePool + 'static
+where
+    for<'pool> <Self as StorePool>::Store<'pool>:
+        crud::Read<VersionId, PropertyType, Output = Persisted<PropertyType>>;
 
 impl RoutedResource for PropertyTypeResource {
     /// Create routes for interacting with property types.
-    fn routes<S>() -> Router
-    where
-        S: StorePool + 'static,
-        for<'pool> S::Store<'pool>: RestApiBackend,
-    {
+    fn routes<S: RestApiBackend>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/property-type",
@@ -83,14 +81,10 @@ struct CreatePropertyTypeRequest {
     ),
     request_body = CreatePropertyTypeRequest,
 )]
-async fn create_property_type<S>(
+async fn create_property_type<S: PropertyTypeBackend>(
     body: Json<CreatePropertyTypeRequest>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<PropertyType>>, StatusCode>
-where
-    S: StorePool + 'static,
-    for<'pool> S::Store<'pool>: PropertyTypeBackend,
-{
+) -> Result<Json<Persisted<PropertyType>>, StatusCode> {
     let Json(CreatePropertyTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -129,14 +123,10 @@ where
         ("uri" = String, Path, description = "The URI of property type"),
     )
 )]
-async fn get_property_type<S>(
+async fn get_property_type<S: PropertyTypeBackend>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<PropertyType>>, impl IntoResponse>
-where
-    S: StorePool + 'static,
-    for<'pool> S::Store<'pool>: PropertyTypeBackend,
-{
+) -> Result<Json<Persisted<PropertyType>>, impl IntoResponse> {
     let store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
@@ -189,14 +179,10 @@ struct UpdatePropertyTypeRequest {
     ),
     request_body = UpdatePropertyTypeRequest,
 )]
-async fn update_property_type<S>(
+async fn update_property_type<S: PropertyTypeBackend>(
     body: Json<UpdatePropertyTypeRequest>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<PropertyType>>, StatusCode>
-where
-    S: StorePool + 'static,
-    for<'pool> S::Store<'pool>: PropertyTypeBackend,
-{
+) -> Result<Json<Persisted<PropertyType>>, StatusCode> {
     let Json(UpdatePropertyTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {

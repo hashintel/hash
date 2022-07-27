@@ -46,15 +46,13 @@ pub struct EntityResource;
 /// Specifies the requirements to a [`Store`] for the [`Entity`] REST API.
 ///
 /// [`Store`]: crate::store::Store
-pub trait EntityBackend = crud::Read<EntityId, Entity, Output = Entity>;
+pub trait EntityBackend = StorePool + 'static
+where
+    for<'pool> <Self as StorePool>::Store<'pool>: crud::Read<EntityId, Entity, Output = Entity>;
 
 impl RoutedResource for EntityResource {
     /// Create routes for interacting with entities.
-    fn routes<S>() -> Router
-    where
-        S: StorePool + 'static,
-        for<'pool> S::Store<'pool>: RestApiBackend,
-    {
+    fn routes<S: RestApiBackend>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/entity",
@@ -87,14 +85,10 @@ struct CreateEntityRequest {
     ),
     request_body = CreateEntityRequest,
 )]
-async fn create_entity<S>(
+async fn create_entity<S: EntityBackend>(
     body: Json<CreateEntityRequest>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<QualifiedEntity>, StatusCode>
-where
-    S: StorePool + 'static,
-    for<'pool> S::Store<'pool>: EntityBackend,
-{
+) -> Result<Json<QualifiedEntity>, StatusCode> {
     let Json(CreateEntityRequest {
         entity,
         entity_type_uri,
@@ -133,14 +127,10 @@ where
         ("entity_id" = Uuid, Path, description = "The ID of the entity"),
     )
 )]
-async fn get_entity<S>(
+async fn get_entity<S: EntityBackend>(
     entity_id: Path<EntityId>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<QualifiedEntity>, impl IntoResponse>
-where
-    S: StorePool + 'static,
-    for<'pool> S::Store<'pool>: EntityBackend,
-{
+) -> Result<Json<QualifiedEntity>, impl IntoResponse> {
     let Path(entity_id) = entity_id;
 
     let store = pool.acquire().await.map_err(|report| {
@@ -186,14 +176,10 @@ struct UpdateEntityRequest {
     ),
     request_body = UpdateEntityRequest,
 )]
-async fn update_entity<S>(
+async fn update_entity<S: EntityBackend>(
     body: Json<UpdateEntityRequest>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<QualifiedEntity>, StatusCode>
-where
-    S: StorePool + 'static,
-    for<'pool> S::Store<'pool>: EntityBackend,
-{
+) -> Result<Json<QualifiedEntity>, StatusCode> {
     let Json(UpdateEntityRequest {
         entity,
         entity_id,
