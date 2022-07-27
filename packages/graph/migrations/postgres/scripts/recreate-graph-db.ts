@@ -1,5 +1,3 @@
-import { sleep } from "@hashintel/hash-shared/sleep";
-
 import { waitOnResource } from "@hashintel/hash-backend-utils/environment";
 
 import pg from "pg";
@@ -23,55 +21,22 @@ const main = async () => {
 
   await waitOnResource(`tcp:${host}:${port}`, console);
 
-  let serverClient;
-  while (!serverClient) {
-    try {
-      serverClient = new pg.Client({ host, user, port, password });
-      await serverClient.connect();
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message === "Connection terminated unexpectedly"
-      ) {
-        console.error(
-          `Error connecting to Postgres server (${host}:${port}). The instance might be warming up. Retrying...`,
-        );
-        await sleep(1000);
-        serverClient = undefined;
-      } else {
-        throw error;
-      }
-    }
-  }
+  const databaseClient = new pg.Client({
+    host,
+    user,
+    port,
+    password,
+    database,
+  });
+  await databaseClient.connect();
+  // Calling `drop database` would be easier, but would crash a locally running API server.
+  // Recreating schemas lets Postgres clients preserve their connection during DB recreation.
+  await databaseClient.query(`DROP SCHEMA IF EXISTS public CASCADE`);
+  await databaseClient.query(`CREATE SCHEMA public`);
 
-  const databaseAlreadyExists =
-    (
-      await serverClient.query(`select from pg_database where datname = $1`, [
-        database,
-      ])
-    ).rowCount > 0;
+  console.log(`Database ${database} was re-created`);
 
-  if (databaseAlreadyExists) {
-    const databaseClient = new pg.Client({
-      host,
-      user,
-      port,
-      password,
-      database,
-    });
-    await databaseClient.connect();
-    // Calling `drop database` would be easier, but would crash a locally running API server.
-    // Recreating schemas lets Postgres clients preserve their connection during DB recreation.
-    await databaseClient.query(`drop schema if exists public cascade`);
-    await databaseClient.query(`create schema public`);
-    console.log(`Database ${database} was recreated`);
-    await databaseClient.end();
-  } else {
-    await serverClient.query(`create database ${database}`);
-    console.log(`Database ${database} was created`);
-  }
-
-  await serverClient.end();
+  await databaseClient.end();
 };
 
 void (async () => {
