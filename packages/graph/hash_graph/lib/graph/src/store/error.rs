@@ -92,7 +92,7 @@ pub struct LinkActivationError;
 
 impl fmt::Display for LinkActivationError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Could not insert into store")
+        fmt.write_str("Could not update link active state")
     }
 }
 
