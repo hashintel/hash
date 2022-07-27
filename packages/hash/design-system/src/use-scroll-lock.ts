@@ -10,7 +10,7 @@ import { useLayoutEffect } from "react";
 export const useScrollLock = (active: boolean) =>
   useLayoutEffect(() => {
     document.documentElement.style.cssText = active
-      ? "position: fixed; overflow-y: hidden; width: 100%"
+      ? "position: fixed; overflow-y: scroll; width: 100%"
       : "";
     return () => {
       document.documentElement.style.cssText = "";
