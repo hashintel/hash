@@ -85,3 +85,15 @@ impl fmt::Display for VersionedUriAlreadyExists {
 }
 
 impl Context for VersionedUriAlreadyExists {}
+
+#[derive(Debug)]
+#[must_use]
+pub struct LinkActivationError;
+
+impl fmt::Display for LinkActivationError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("Could not update link active state")
+    }
+}
+
+impl Context for LinkActivationError {}
