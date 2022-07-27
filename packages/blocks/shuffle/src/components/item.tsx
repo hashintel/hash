@@ -22,7 +22,6 @@ export type ItemProps = {
   listeners?: Record<string, Function>;
   style?: CSSProperties;
   dragOverlay?: RefObject<HTMLDivElement>;
-  ref?: (node: HTMLElement | null) => void;
 };
 
 export const Item = forwardRef<HTMLLIElement, ItemProps>(
