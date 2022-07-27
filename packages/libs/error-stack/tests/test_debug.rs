@@ -7,7 +7,7 @@ use common::*;
 use error_stack::fmt::DebugDiagnostic;
 #[cfg(feature = "hooks")]
 use error_stack::fmt::{HookContext, Hooks, Line};
-#[cfg(feature = "hooks")]
+#[allow(unused_imports)]
 use error_stack::Report;
 use insta::assert_snapshot;
 #[cfg(feature = "glyph")]
@@ -16,6 +16,35 @@ use owo_colors::set_override;
 use rusty_fork::rusty_fork_test;
 #[cfg(feature = "hooks")]
 use serial_test::serial;
+use tracing::instrument;
+#[cfg(feature = "spantrace")]
+use tracing_error::ErrorLayer;
+#[cfg(feature = "spantrace")]
+use tracing_subscriber::layer::SubscriberExt;
+
+#[cfg(feature = "spantrace")]
+fn install_tracing_subscriber() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        tracing::subscriber::set_global_default(
+            tracing_subscriber::Registry::default().with(ErrorLayer::default()),
+        )
+        .expect("Could not set tracing subscriber");
+    })
+}
+
+#[cfg(not(feature = "spantrace"))]
+fn install_tracing_subscriber() {}
+
+#[cfg(not(all(nightly, feature = "std")))]
+fn install_backtrace() {
+    std::env::set_var("RUST_LIB_BACKTRACE", "0");
+}
+
+#[cfg(all(nightly, feature = "std"))]
+fn install_backtrace() {
+    std::env::set_var("RUST_LIB_BACKTRACE", "1");
+}
 
 #[cfg(feature = "glyph")]
 fn force_color() {
@@ -25,12 +54,15 @@ fn force_color() {
 #[cfg(not(feature = "glyph"))]
 fn force_color() {}
 
-#[allow(unused_mut)]
 fn snap_suffix() -> String {
+    install_tracing_subscriber();
+    install_backtrace();
+
+    #[allow(unused_mut)]
     let mut suffix: Vec<&'static str> = vec![];
 
     #[cfg(feature = "spantrace")]
-    if supports_spantrace() {
+    {
         suffix.push("spantrace");
     }
 
@@ -46,7 +78,23 @@ fn snap_suffix() -> String {
 
     force_color();
 
-    suffix.join(".")
+    suffix.join("-")
+}
+
+/// Overwrite to create spantraces when necessary.
+#[cfg(feature = "spantrace")]
+pub fn create_report() -> Report<RootError> {
+    #[tracing::instrument]
+    fn func_b() -> error_stack::Result<(), RootError> {
+        create_error()
+    }
+
+    #[tracing::instrument]
+    fn func_a() -> error_stack::Result<(), RootError> {
+        func_b()
+    }
+
+    capture_error(func_a)
 }
 
 /// This is taken from the rstest pattern https://insta.rs/docs/patterns/
@@ -170,6 +218,13 @@ fn location_edge_case() {
     assert_snapshot!(format!("{report:?}"));
 }
 
+// To be able to set `OnceCell` multiple times we need to run each of them in a separate fork,
+// while this works without fault in `nextest` you cannot guarantee that this is always the case.
+// As this is mostly undocumented behavior, `rust_forky` makes the tests fork explicitly and work
+// independent with the test framework.
+//
+// `#[serial]` is used due to a limitation of insta, where it would otherwise overwrite the pending
+// snapshots: https://github.com/mitsuhiko/insta/issues/242
 #[cfg(feature = "hooks")]
 rusty_fork_test! {
 #[test]

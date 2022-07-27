@@ -1,0 +1,104 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:#?}\")"
+---
+
+Printable C
+│ 📌 tests/test_debug.rs:190:10
+├─▶ Context B
+│   ╰ 📌 tests/test_debug.rs:189:10
+├─▶ Printable B
+│   ╰ 📌 tests/test_debug.rs:187:10
+├─▶ Context A
+│   ╰ 📌 tests/test_debug.rs:186:10
+├─▶ Printable A
+│   ╰ 📌 tests/test_debug.rs:183:10
+├─▶ Root error
+│   ╰ 📌 tests/common.rs:140:5
+├─▶ spantrace with 2 frames (1)
+│   ╰ 📌 tests/common.rs:140:5
+├─▶ backtrace with 18 frames (1)
+│   ╰ 📌 tests/common.rs:140:5
+╰─▶ 3 additional attachments
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Span Trace No. 1
+   0: test_debug::func_b
+             at tests/test_debug.rs:87
+   1: test_debug::func_a
+             at tests/test_debug.rs:92
+
+Backtrace No. 1
+   0: std::backtrace_rs::backtrace::libunwind::trace
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/../../backtrace/src/backtrace/mod.rs:66:5
+   1: std::backtrace_rs::backtrace::trace_unsynchronized
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/../../backtrace/src/backtrace/mod.rs:66:5
+   2: std::backtrace::Backtrace::create
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/backtrace.rs:328:13
+   3: error_stack::report::Report<C>::new
+             at ./src/report.rs:242:18
+   4: test_debug::common::create_report
+             at ./tests/common.rs:140:5
+   5: test_debug::common::create_error
+             at ./tests/common.rs:144:9
+   6: test_debug::create_report::func_b
+             at ./tests/test_debug.rs:89:9
+   7: test_debug::create_report::func_a
+             at ./tests/test_debug.rs:94:9
+   8: core::ops::function::FnOnce::call_once
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ops/function.rs:248:5
+   9: test_debug::common::capture_error
+             at ./tests/common.rs:166:5
+  10: test_debug::create_report
+             at ./tests/test_debug.rs:97:5
+  11: test_debug::linear_ext
+             at ./tests/test_debug.rs:182:18
+  12: test_debug::linear_ext::{{closure}}
+             at ./tests/test_debug.rs:179:1
+  13: core::ops::function::FnOnce::call_once
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ops/function.rs:248:5
+  14: core::ops::function::FnOnce::call_once
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ops/function.rs:248:5
+  15: test::__rust_begin_short_backtrace
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/test/src/lib.rs:572:5
+  16: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/alloc/src/boxed.rs:1934:9
+  17: <core::panic::unwind_safe::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/panic/unwind_safe.rs:271:9
+  18: std::panicking::try::do_call
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:492:40
+  19: std::panicking::try
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:456:19
+  20: std::panic::catch_unwind
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panic.rs:137:14
+  21: test::run_test_in_process
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/test/src/lib.rs:595:18
+  22: test::run_test::run_test_inner::{{closure}}
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/test/src/lib.rs:489:39
+  23: test::run_test::run_test_inner::{{closure}}
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/test/src/lib.rs:516:37
+  24: std::sys_common::backtrace::__rust_begin_short_backtrace
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/sys_common/backtrace.rs:122:18
+  25: std::thread::Builder::spawn_unchecked_::{{closure}}::{{closure}}
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/thread/mod.rs:505:17
+  26: <core::panic::unwind_safe::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/panic/unwind_safe.rs:271:9
+  27: std::panicking::try::do_call
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:492:40
+  28: std::panicking::try
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panicking.rs:456:19
+  29: std::panic::catch_unwind
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/panic.rs:137:14
+  30: std::thread::Builder::spawn_unchecked_::{{closure}}
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/thread/mod.rs:504:30
+  31: core::ops::function::FnOnce::call_once{{vtable.shim}}
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/core/src/ops/function.rs:248:5
+  32: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/alloc/src/boxed.rs:1934:9
+  33: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/alloc/src/boxed.rs:1934:9
+  34: std::sys::unix::thread::Thread::new::thread_start
+             at /rustc/c396bb3b8a16b1f2762b7c6078dc3e023f6a2493/library/std/src/sys/unix/thread.rs:108:17
+  35: __pthread_deallocate

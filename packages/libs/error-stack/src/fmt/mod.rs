@@ -148,7 +148,7 @@ impl Display for Instruction {
                 fmt::Display::fmt(&"╰ ".if_supports_color(Stdout, OwoColorize::red), fmt)
             }
             #[cfg(not(feature = "glyph"))]
-            Self::Title { end: true } => fmt.write_str("\\-"),
+            Self::Title { end: true } => fmt.write_str("> "),
             #[cfg(feature = "glyph")]
             Self::Title { end: false } => {
                 fmt::Display::fmt(&"│ ".if_supports_color(Stdout, OwoColorize::red), fmt)

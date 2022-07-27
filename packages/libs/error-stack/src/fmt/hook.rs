@@ -528,7 +528,6 @@ mod builtin {
         let idx = ctx.incr();
 
         ctx.text(&format!("Backtrace No. {}\n{}", idx + 1, backtrace));
-        ctx.insert(idx + 1);
 
         Line::Defer(format!(
             "backtrace with {} frames ({})",
@@ -548,7 +547,6 @@ mod builtin {
         });
 
         ctx.text(&format!("Span Trace No. {}\n{}", idx + 1, spantrace));
-        ctx.insert(idx + 1);
 
         Line::Defer(format!("spantrace with {span} frames ({})", idx + 1))
     }

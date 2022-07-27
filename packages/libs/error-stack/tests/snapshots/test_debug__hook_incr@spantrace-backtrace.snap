@@ -1,0 +1,18 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:?}\")"
+---
+
+0
+| @ tests/test_debug.rs:361:10
+|-> 1
+|   \-@ tests/test_debug.rs:360:10
+|-> 2
+|   \-@ tests/test_debug.rs:359:10
+|-> Root error
+|   \-@ tests/common.rs:140:5
+|-> spantrace with 2 frames (1)
+|   \-@ tests/common.rs:140:5
+\-> backtrace with 41 frames (1)
+    \-@ tests/common.rs:140:5
+

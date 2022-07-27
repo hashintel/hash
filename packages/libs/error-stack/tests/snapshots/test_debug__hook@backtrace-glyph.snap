@@ -1,0 +1,12 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:?}\")"
+---
+
+unsigned 32bit integer
+│ 📌 tests/test_debug.rs:242:34
+├─▶ Root error
+│   ╰ 📌 tests/common.rs:140:5
+╰─▶ backtrace with 35 frames (1)
+    ╰ 📌 tests/common.rs:140:5
+

@@ -1,0 +1,16 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:?}\")"
+---
+
+u64
+| @ tests/test_debug.rs:318:10
+|-> Root error
+|   \-@ tests/common.rs:140:5
+|-> u16
+|   \-@ tests/test_debug.rs:319:10
+|-> u32
+|   \-@ tests/test_debug.rs:317:10
+\-> backtrace with 35 frames (1)
+    \-@ tests/common.rs:140:5
+

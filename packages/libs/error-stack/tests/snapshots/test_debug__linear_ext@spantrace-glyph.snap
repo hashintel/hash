@@ -1,0 +1,29 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:#?}\")"
+---
+
+Printable C
+│ 📌 tests/test_debug.rs:190:10
+├─▶ Context B
+│   ╰ 📌 tests/test_debug.rs:189:10
+├─▶ Printable B
+│   ╰ 📌 tests/test_debug.rs:187:10
+├─▶ Context A
+│   ╰ 📌 tests/test_debug.rs:186:10
+├─▶ Printable A
+│   ╰ 📌 tests/test_debug.rs:183:10
+├─▶ Root error
+│   ╰ 📌 tests/common.rs:140:5
+├─▶ spantrace with 2 frames (1)
+│   ╰ 📌 tests/common.rs:140:5
+╰─▶ 3 additional attachments
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Span Trace No. 1
+   0: test_debug::func_b
+             at tests/test_debug.rs:87
+   1: test_debug::func_a
+             at tests/test_debug.rs:92

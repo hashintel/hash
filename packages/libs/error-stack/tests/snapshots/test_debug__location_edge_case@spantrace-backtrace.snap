@@ -1,0 +1,12 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:?}\")"
+---
+
+Root error
+| @ tests/common.rs:140:5
+|-> spantrace with 3 frames (1)
+|   \-@ tests/common.rs:140:5
+\-> backtrace with 18 frames (1)
+    \-@ tests/common.rs:140:5
+
