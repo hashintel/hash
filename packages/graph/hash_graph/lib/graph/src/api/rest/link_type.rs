@@ -14,11 +14,12 @@ use utoipa::{Component, OpenApi};
 
 use super::api_resource::RoutedResource;
 use crate::{
+    api::rest::api_resource::RestApiBackend,
     ontology::{
         types::{uri::VersionedUri, LinkType, Persisted, PersistedLinkType},
-        AccountId,
+        AccountId, VersionId,
     },
-    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, Store, StorePool},
+    store::{crud, BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, StorePool},
 };
 
 #[derive(OpenApi)]
@@ -35,9 +36,16 @@ use crate::{
 )]
 pub struct LinkTypeResource;
 
+/// Specifies the requirements to a [`Store`] for the link-type REST API.
+pub trait LinkTypeBackend = crud::Read<VersionId, LinkType, Output = Persisted<LinkType>>;
+
 impl RoutedResource for LinkTypeResource {
     /// Create routes for interacting with link types.
-    fn routes<S: StorePool + 'static>() -> Router {
+    fn routes<S>() -> Router
+    where
+        S: StorePool + 'static,
+        for<'pool> S::Store<'pool>: RestApiBackend,
+    {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/link-type",
@@ -69,10 +77,14 @@ struct CreateLinkTypeRequest {
     ),
     request_body = CreateLinkTypeRequest,
 )]
-async fn create_link_type<S: StorePool>(
+async fn create_link_type<S>(
     body: Json<CreateLinkTypeRequest>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<LinkType>>, StatusCode> {
+) -> Result<Json<Persisted<LinkType>>, StatusCode>
+where
+    S: StorePool + 'static,
+    for<'pool> S::Store<'pool>: LinkTypeBackend,
+{
     let Json(CreateLinkTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -111,10 +123,14 @@ async fn create_link_type<S: StorePool>(
         ("uri" = String, Path, description = "The URI of link type"),
     )
 )]
-async fn get_link_type<S: StorePool>(
+async fn get_link_type<S>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<LinkType>>, impl IntoResponse> {
+) -> Result<Json<Persisted<LinkType>>, impl IntoResponse>
+where
+    S: StorePool + 'static,
+    for<'pool> S::Store<'pool>: LinkTypeBackend,
+{
     let store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
@@ -132,7 +148,7 @@ async fn get_link_type<S: StorePool>(
     })?;
 
     store
-        .get_link_type(version_id)
+        .get_link_type(&version_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not query link type");
@@ -167,10 +183,14 @@ struct UpdateLinkTypeRequest {
     ),
     request_body = UpdateLinkTypeRequest,
 )]
-async fn update_link_type<S: StorePool>(
+async fn update_link_type<S>(
     body: Json<UpdateLinkTypeRequest>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<LinkType>>, StatusCode> {
+) -> Result<Json<Persisted<LinkType>>, StatusCode>
+where
+    S: StorePool + 'static,
+    for<'pool> S::Store<'pool>: LinkTypeBackend,
+{
     let Json(UpdateLinkTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {

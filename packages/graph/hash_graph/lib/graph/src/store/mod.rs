@@ -1,3 +1,4 @@
+pub mod crud;
 pub mod error;
 mod pool;
 mod postgres;
@@ -18,6 +19,7 @@ use crate::{
         types::{uri::VersionedUri, DataType, EntityType, LinkType, Persisted, PropertyType},
         AccountId, VersionId,
     },
+    store::crud::Read,
 };
 
 #[derive(Debug)]
@@ -179,6 +181,7 @@ pub trait Store {
     ///
     /// - if the entry referred to by `uri` does not exist.
     async fn version_id_by_uri(&self, uri: &VersionedUri) -> Result<VersionId, QueryError>;
+
     /// Creates a new [`DataType`].
     ///
     /// # Errors:
@@ -193,13 +196,17 @@ pub trait Store {
         created_by: AccountId,
     ) -> Result<Persisted<DataType>, InsertionError>;
 
-    /// Get an existing [`DataType`] by a [`VersionId`].
+    /// Get the [`DataType`] specified by `index`.
     ///
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    async fn get_data_type(&self, version_id: VersionId)
-    -> Result<Persisted<DataType>, QueryError>;
+    async fn get_data_type<I: Sync>(&self, index: &I) -> Result<Self::Output, QueryError>
+    where
+        Self: Read<I, DataType>,
+    {
+        self.get(index).await
+    }
 
     /// Update the definition of an existing [`DataType`].
     ///
@@ -226,15 +233,17 @@ pub trait Store {
         created_by: AccountId,
     ) -> Result<Persisted<PropertyType>, InsertionError>;
 
-    /// Get an existing [`PropertyType`] by a [`VersionId`].
+    /// Get the [`PropertyType`] specified by `index`.
     ///
     /// # Errors
     ///
     /// - if the requested [`PropertyType`] doesn't exist.
-    async fn get_property_type(
-        &self,
-        version_id: VersionId,
-    ) -> Result<Persisted<PropertyType>, QueryError>;
+    async fn get_property_type<I: Sync>(&self, index: &I) -> Result<Self::Output, QueryError>
+    where
+        Self: Read<I, PropertyType>,
+    {
+        self.get(index).await
+    }
 
     /// Update the definition of an existing [`PropertyType`].
     ///
@@ -261,15 +270,17 @@ pub trait Store {
         created_by: AccountId,
     ) -> Result<Persisted<EntityType>, InsertionError>;
 
-    /// Get an existing [`EntityType`] by a [`VersionId`].
+    /// Get the [`EntityType`] specified by `index`.
     ///
     /// # Errors
     ///
     /// - if the requested [`EntityType`] doesn't exist.
-    async fn get_entity_type(
-        &self,
-        version_id: VersionId,
-    ) -> Result<Persisted<EntityType>, QueryError>;
+    async fn get_entity_type<I: Sync>(&self, index: &I) -> Result<Self::Output, QueryError>
+    where
+        Self: Read<I, EntityType>,
+    {
+        self.get(index).await
+    }
 
     /// Update the definition of an existing [`EntityType`].
     ///
@@ -298,13 +309,17 @@ pub trait Store {
         created_by: AccountId,
     ) -> Result<Persisted<LinkType>, InsertionError>;
 
-    /// Get an existing [`LinkType`] by a [`VersionId`].
+    /// Get the [`LinkType`] specified by `index`.
     ///
     /// # Errors
     ///
     /// - if the requested [`LinkType`] doesn't exist.
-    async fn get_link_type(&self, version_id: VersionId)
-    -> Result<Persisted<LinkType>, QueryError>;
+    async fn get_link_type<I: Sync>(&self, index: &I) -> Result<Self::Output, QueryError>
+    where
+        Self: Read<I, LinkType>,
+    {
+        self.get(index).await
+    }
 
     /// Update the definition of an existing [`LinkType`].
     ///
@@ -331,12 +346,19 @@ pub trait Store {
         created_by: AccountId,
     ) -> Result<EntityId, InsertionError>;
 
-    /// Get the latest version of the [`Entity`] identified by [`EntityId`].
+    /// Get the [`Entity`] specified by `index`.
+    ///
+    /// Depending on the `index` the output is specified by [`Read::Output`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError>;
+    async fn get_entity<I: Sync>(&self, index: &I) -> Result<Self::Output, QueryError>
+    where
+        Self: Read<I, Entity>,
+    {
+        self.get(index).await
+    }
 
     /// Update an existing [`Entity`].
     ///

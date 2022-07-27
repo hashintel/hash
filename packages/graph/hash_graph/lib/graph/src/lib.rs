@@ -1,6 +1,13 @@
 //! The entity-graph query-layer for the HASH datastore
 
-#![feature(lint_reasons, once_cell, generic_associated_types)]
+// Not required, reason: code quality
+#![feature(lint_reasons)]
+// Not required, reason: Use `std` feature rather than external crate
+#![feature(once_cell)]
+// Not required, reason: Easier than having a separated trait with lifetime bounds
+#![feature(generic_associated_types)]
+// Not required, reason: Simpler than using blanket implementations
+#![feature(trait_alias)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
 #![warn(

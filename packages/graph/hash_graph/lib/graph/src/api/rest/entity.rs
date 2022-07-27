@@ -13,12 +13,13 @@ use serde::{Deserialize, Serialize};
 use utoipa::{Component, OpenApi};
 
 use crate::{
-    api::rest::api_resource::RoutedResource,
+    api::rest::api_resource::{RestApiBackend, RoutedResource},
     knowledge::{Entity, EntityId},
     ontology::{types::uri::VersionedUri, AccountId},
     store::{
+        crud,
         error::{EntityDoesNotExist, QueryError},
-        Store, StorePool,
+        StorePool,
     },
 };
 
@@ -42,9 +43,16 @@ struct QualifiedEntity {
 )]
 pub struct EntityResource;
 
+/// Specifies the requirements to a [`Store`] for the [`Entity`] REST API.
+pub trait EntityBackend = crud::Read<EntityId, Entity, Output = Entity>;
+
 impl RoutedResource for EntityResource {
     /// Create routes for interacting with entities.
-    fn routes<S: StorePool + 'static>() -> Router {
+    fn routes<S>() -> Router
+    where
+        S: StorePool + 'static,
+        for<'pool> S::Store<'pool>: RestApiBackend,
+    {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/entity",
@@ -77,10 +85,14 @@ struct CreateEntityRequest {
     ),
     request_body = CreateEntityRequest,
 )]
-async fn create_entity<S: StorePool>(
+async fn create_entity<S>(
     body: Json<CreateEntityRequest>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<QualifiedEntity>, StatusCode> {
+) -> Result<Json<QualifiedEntity>, StatusCode>
+where
+    S: StorePool + 'static,
+    for<'pool> S::Store<'pool>: EntityBackend,
+{
     let Json(CreateEntityRequest {
         entity,
         entity_type_uri,
@@ -119,10 +131,14 @@ async fn create_entity<S: StorePool>(
         ("entity_id" = Uuid, Path, description = "The ID of the entity"),
     )
 )]
-async fn get_entity<S: StorePool>(
+async fn get_entity<S>(
     entity_id: Path<EntityId>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<QualifiedEntity>, impl IntoResponse> {
+) -> Result<Json<QualifiedEntity>, impl IntoResponse>
+where
+    S: StorePool + 'static,
+    for<'pool> S::Store<'pool>: EntityBackend,
+{
     let Path(entity_id) = entity_id;
 
     let store = pool.acquire().await.map_err(|report| {
@@ -131,7 +147,7 @@ async fn get_entity<S: StorePool>(
     })?;
 
     store
-        .get_entity(entity_id)
+        .get_entity(&entity_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not query entity");
@@ -168,10 +184,14 @@ struct UpdateEntityRequest {
     ),
     request_body = UpdateEntityRequest,
 )]
-async fn update_entity<S: StorePool>(
+async fn update_entity<S>(
     body: Json<UpdateEntityRequest>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<QualifiedEntity>, StatusCode> {
+) -> Result<Json<QualifiedEntity>, StatusCode>
+where
+    S: StorePool + 'static,
+    for<'pool> S::Store<'pool>: EntityBackend,
+{
     let Json(UpdateEntityRequest {
         entity,
         entity_id,

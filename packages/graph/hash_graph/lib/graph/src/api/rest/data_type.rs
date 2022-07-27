@@ -14,11 +14,12 @@ use utoipa::{Component, OpenApi};
 
 use super::api_resource::RoutedResource;
 use crate::{
+    api::rest::api_resource::RestApiBackend,
     ontology::{
         types::{uri::VersionedUri, DataType, Persisted, PersistedDataType},
-        AccountId,
+        AccountId, VersionId,
     },
-    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, Store, StorePool},
+    store::{crud, BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, StorePool},
 };
 
 #[derive(OpenApi)]
@@ -35,9 +36,16 @@ use crate::{
 )]
 pub struct DataTypeResource;
 
+/// Specifies the requirements to a [`Store`] for the [`DataType`] REST API.
+pub trait DataTypeBackend = crud::Read<VersionId, DataType, Output = Persisted<DataType>>;
+
 impl RoutedResource for DataTypeResource {
     /// Create routes for interacting with data types.
-    fn routes<S: StorePool + 'static>() -> Router {
+    fn routes<S>() -> Router
+    where
+        S: StorePool + 'static,
+        for<'pool> S::Store<'pool>: RestApiBackend,
+    {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/data-type",
@@ -69,10 +77,14 @@ struct CreateDataTypeRequest {
     ),
     request_body = CreateDataTypeRequest,
 )]
-async fn create_data_type<S: StorePool>(
+async fn create_data_type<S>(
     body: Json<CreateDataTypeRequest>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<DataType>>, StatusCode> {
+) -> Result<Json<Persisted<DataType>>, StatusCode>
+where
+    S: StorePool + 'static,
+    for<'pool> S::Store<'pool>: DataTypeBackend,
+{
     let Json(CreateDataTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -111,10 +123,14 @@ async fn create_data_type<S: StorePool>(
         ("uri" = String, Path, description = "The URI of data type"),
     )
 )]
-async fn get_data_type<S: StorePool>(
+async fn get_data_type<S>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<DataType>>, impl IntoResponse> {
+) -> Result<Json<Persisted<DataType>>, impl IntoResponse>
+where
+    S: StorePool + 'static,
+    for<'pool> S::Store<'pool>: DataTypeBackend,
+{
     let store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
@@ -132,7 +148,7 @@ async fn get_data_type<S: StorePool>(
     })?;
 
     store
-        .get_data_type(version_id)
+        .get_data_type(&version_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not query data type");
@@ -167,10 +183,14 @@ struct UpdateDataTypeRequest {
     ),
     request_body = UpdateDataTypeRequest,
 )]
-async fn update_data_type<S: StorePool>(
+async fn update_data_type<S>(
     body: Json<UpdateDataTypeRequest>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<DataType>>, StatusCode> {
+) -> Result<Json<Persisted<DataType>>, StatusCode>
+where
+    S: StorePool + 'static,
+    for<'pool> S::Store<'pool>: DataTypeBackend,
+{
     let Json(UpdateDataTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {

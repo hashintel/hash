@@ -1,6 +1,16 @@
 use axum::Router;
 
-use crate::store::StorePool;
+use crate::{
+    api::rest::{
+        data_type::DataTypeBackend, entity::EntityBackend, entity_type::EntityTypeBackend,
+        link_type::LinkTypeBackend, property_type::PropertyTypeBackend,
+    },
+    store::StorePool,
+};
+
+/// Specifies the requirements to a [`Store`] for the REST API.
+pub trait RestApiBackend =
+    DataTypeBackend + PropertyTypeBackend + LinkTypeBackend + EntityTypeBackend + EntityBackend;
 
 /// With REST, we define resources that can be acted on. These resources are defined through
 /// routes and HTTP methods.
@@ -9,7 +19,10 @@ use crate::store::StorePool;
 /// through a `Router`, making it explicitly clear we want to provide `OpenApi` specification as
 /// documentation for the routes.
 pub(super) trait RoutedResource: utoipa::OpenApi {
-    fn routes<S: StorePool + 'static>() -> Router;
+    fn routes<S>() -> Router
+    where
+        S: StorePool + 'static,
+        for<'pool> S::Store<'pool>: RestApiBackend;
     fn documentation() -> utoipa::openapi::OpenApi {
         Self::openapi()
     }

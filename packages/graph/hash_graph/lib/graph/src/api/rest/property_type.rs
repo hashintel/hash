@@ -14,11 +14,12 @@ use utoipa::{Component, OpenApi};
 
 use super::api_resource::RoutedResource;
 use crate::{
+    api::rest::api_resource::RestApiBackend,
     ontology::{
         types::{uri::VersionedUri, Persisted, PersistedPropertyType, PropertyType},
-        AccountId,
+        AccountId, VersionId,
     },
-    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, Store, StorePool},
+    store::{crud, BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, StorePool},
 };
 
 #[derive(OpenApi)]
@@ -35,9 +36,17 @@ use crate::{
 )]
 pub struct PropertyTypeResource;
 
+/// Specifies the requirements to a [`Store`] for the [`PropertyType`] REST API.
+pub trait PropertyTypeBackend =
+    crud::Read<VersionId, PropertyType, Output = Persisted<PropertyType>>;
+
 impl RoutedResource for PropertyTypeResource {
     /// Create routes for interacting with property types.
-    fn routes<S: StorePool + 'static>() -> Router {
+    fn routes<S>() -> Router
+    where
+        S: StorePool + 'static,
+        for<'pool> S::Store<'pool>: RestApiBackend,
+    {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/property-type",
@@ -72,10 +81,14 @@ struct CreatePropertyTypeRequest {
     ),
     request_body = CreatePropertyTypeRequest,
 )]
-async fn create_property_type<S: StorePool>(
+async fn create_property_type<S>(
     body: Json<CreatePropertyTypeRequest>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<PropertyType>>, StatusCode> {
+) -> Result<Json<Persisted<PropertyType>>, StatusCode>
+where
+    S: StorePool + 'static,
+    for<'pool> S::Store<'pool>: PropertyTypeBackend,
+{
     let Json(CreatePropertyTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -114,10 +127,14 @@ async fn create_property_type<S: StorePool>(
         ("uri" = String, Path, description = "The URI of property type"),
     )
 )]
-async fn get_property_type<S: StorePool>(
+async fn get_property_type<S>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<PropertyType>>, impl IntoResponse> {
+) -> Result<Json<Persisted<PropertyType>>, impl IntoResponse>
+where
+    S: StorePool + 'static,
+    for<'pool> S::Store<'pool>: PropertyTypeBackend,
+{
     let store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
@@ -135,7 +152,7 @@ async fn get_property_type<S: StorePool>(
     })?;
 
     store
-        .get_property_type(version_id)
+        .get_property_type(&version_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not query property type");
@@ -170,10 +187,14 @@ struct UpdatePropertyTypeRequest {
     ),
     request_body = UpdatePropertyTypeRequest,
 )]
-async fn update_property_type<S: StorePool>(
+async fn update_property_type<S>(
     body: Json<UpdatePropertyTypeRequest>,
     pool: Extension<Arc<S>>,
-) -> Result<Json<Persisted<PropertyType>>, StatusCode> {
+) -> Result<Json<Persisted<PropertyType>>, StatusCode>
+where
+    S: StorePool + 'static,
+    for<'pool> S::Store<'pool>: PropertyTypeBackend,
+{
     let Json(UpdatePropertyTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {

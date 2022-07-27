@@ -1,9 +1,10 @@
 mod database_type;
 mod pool;
+mod read;
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::Serialize;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
@@ -379,46 +380,6 @@ where
         Ok(())
     }
 
-    /// Returns the specified [`DatabaseType`].
-    ///
-    /// # Errors
-    ///
-    /// - If the specified [`VersionId`] does not already exist.
-    // TODO: We can't distinguish between an DB error and a non-existing version currently
-    async fn get_by_version<T>(&self, version_id: VersionId) -> Result<Persisted<T>, QueryError>
-    where
-        T: DatabaseType + DeserializeOwned,
-    {
-        // SAFETY: We insert a table name here, but `T::table()` is only accessible from within this
-        //   module.
-        let row = self
-            .client
-            .as_client()
-            .query_one(
-                &format!(
-                    r#"
-                    SELECT "schema", created_by
-                    FROM {}
-                    WHERE version_id = $1;
-                    "#,
-                    T::table()
-                ),
-                &[&version_id],
-            )
-            .await
-            .report()
-            .change_context(QueryError)
-            .attach_printable(version_id)?;
-
-        Ok(Persisted::new(
-            version_id,
-            serde_json::from_value(row.get(0))
-                .report()
-                .change_context(QueryError)?,
-            row.get(1),
-        ))
-    }
-
     async fn insert_property_type_references(
         &self,
         property_type: &Persisted<PropertyType>,
@@ -695,13 +656,6 @@ where
         Ok(persisted)
     }
 
-    async fn get_data_type(
-        &self,
-        version_id: VersionId,
-    ) -> Result<Persisted<DataType>, QueryError> {
-        self.get_by_version(version_id).await
-    }
-
     async fn update_data_type(
         &mut self,
         data_type: DataType,
@@ -757,13 +711,6 @@ where
             .change_context(InsertionError)?;
 
         Ok(property_type)
-    }
-
-    async fn get_property_type(
-        &self,
-        version_id: VersionId,
-    ) -> Result<Persisted<PropertyType>, QueryError> {
-        self.get_by_version(version_id).await
     }
 
     async fn update_property_type(
@@ -830,13 +777,6 @@ where
         Ok(entity_type)
     }
 
-    async fn get_entity_type(
-        &self,
-        version_id: VersionId,
-    ) -> Result<Persisted<EntityType>, QueryError> {
-        self.get_by_version(version_id).await
-    }
-
     async fn update_entity_type(
         &mut self,
         entity_type: EntityType,
@@ -894,13 +834,6 @@ where
         Ok(persisted)
     }
 
-    async fn get_link_type(
-        &self,
-        version_id: VersionId,
-    ) -> Result<Persisted<LinkType>, QueryError> {
-        self.get_by_version(version_id).await
-    }
-
     async fn update_link_type(
         &mut self,
         link_type: LinkType,
@@ -955,32 +888,6 @@ where
             .change_context(InsertionError)?;
 
         Ok(entity_id)
-    }
-
-    async fn get_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError> {
-        let row = self
-            .client
-            .as_client()
-            .query_one(
-                r#"
-                    SELECT properties
-                    FROM entities
-                    WHERE entity_id = $1 AND version = (
-                        SELECT MAX("version")
-                        FROM entities
-                        WHERE entity_id = $1
-                    );
-                "#,
-                &[&entity_id],
-            )
-            .await
-            .report()
-            .change_context(QueryError)
-            .attach_printable(entity_id)?;
-
-        Ok(serde_json::from_value(row.get(0))
-            .report()
-            .change_context(QueryError)?)
     }
 
     async fn update_entity(
