@@ -355,24 +355,6 @@ pub trait Store {
         updated_by: AccountId,
     ) -> Result<(), UpdateError>;
 
-    /// Get a [`Link`] target identified by an [`EntityId`] and a Link Type [`VersionedUri`].
-    ///
-    /// # Errors
-    ///
-    /// - if the requested [`Entity`] doesn't exist
-    async fn get_link_target(
-        &self,
-        source_entity_id: EntityId,
-        link_type_uri: VersionedUri,
-    ) -> Result<Outgoing, QueryError>;
-
-    /// Get [`Links`] of an [`Entity`] identified by an [`EntityId`].
-    ///
-    /// # Errors
-    ///
-    /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity_links(&self, source_entity_id: EntityId) -> Result<Links, QueryError>;
-
     /// Creates a new [`Link`].
     ///
     /// # Errors:
@@ -386,11 +368,29 @@ pub trait Store {
         created_by: AccountId,
     ) -> Result<Link, InsertionError>;
 
-    /// Removes a [`Link`] between a source and target [`Entity`].
+    /// Get [`Links`] of an [`Entity`] identified by an [`EntityId`].
+    ///
+    /// # Errors
+    ///
+    /// - if the requested [`Entity`] doesn't exist
+    async fn get_entity_links(&self, source_entity_id: EntityId) -> Result<Links, QueryError>;
+
+    /// Get a [`Link`] target identified by an [`EntityId`] and a Link Type [`VersionedUri`].
+    ///
+    /// # Errors
+    ///
+    /// - if the requested [`Entity`] doesn't exist
+    async fn get_link_target(
+        &self,
+        source_entity_id: EntityId,
+        link_type_uri: VersionedUri,
+    ) -> Result<Outgoing, QueryError>;
+
+    /// Inactivates a [`Link`] between a source and target [`Entity`].
     ///
     /// # Errors:
     ///
     /// - if the [`Link`] doesn't exist
     /// - if the account referred to by `created_by` does not exist
-    async fn remove_link(&mut self, link: Link) -> Result<(), LinkActivationError>;
+    async fn inactivate_link(&mut self, link: Link) -> Result<(), LinkActivationError>;
 }

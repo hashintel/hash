@@ -256,8 +256,14 @@ impl DatabaseApi<'_> {
             .await
     }
 
-    pub async fn get_entity_links(&self, source_entity_id: EntityId) -> Result<Links, QueryError> {
-        self.store.get_entity_links(source_entity_id).await
+    async fn create_link(
+        &mut self,
+        source_entity: EntityId,
+        target_entity: EntityId,
+        link_type_uri: VersionedUri,
+    ) -> Result<Link, InsertionError> {
+        let link = Link::new(source_entity, target_entity, link_type_uri);
+        self.store.create_link(link, self.account_id).await
     }
 
     pub async fn get_link_target(
@@ -270,14 +276,8 @@ impl DatabaseApi<'_> {
             .await
     }
 
-    async fn create_link(
-        &mut self,
-        source_entity: EntityId,
-        target_entity: EntityId,
-        link_type_uri: VersionedUri,
-    ) -> Result<Link, InsertionError> {
-        let link = Link::new(source_entity, target_entity, link_type_uri);
-        self.store.create_link(link, self.account_id).await
+    pub async fn get_entity_links(&self, source_entity_id: EntityId) -> Result<Links, QueryError> {
+        self.store.get_entity_links(source_entity_id).await
     }
 
     async fn remove_link(
@@ -287,7 +287,7 @@ impl DatabaseApi<'_> {
         link_type_uri: VersionedUri,
     ) -> Result<(), LinkActivationError> {
         let link = Link::new(source_entity, target_entity, link_type_uri);
-        self.store.remove_link(link).await
+        self.store.inactivate_link(link).await
     }
 }
 

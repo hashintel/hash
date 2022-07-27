@@ -1048,6 +1048,87 @@ where
         Ok(())
     }
 
+    async fn create_link(
+        &mut self,
+        link: Link,
+        created_by: AccountId,
+    ) -> Result<Link, InsertionError> {
+        let link_type_version_id = self
+            .version_id_by_uri(link.link_type_uri())
+            .await
+            .change_context(InsertionError)
+            .attach_printable(link.source_entity())?;
+        let inserted_link = self.as_client()
+            .query_one(
+                r#"
+                    INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, multi, multi_order, created_by)
+                    VALUES ($1, $2, $3, false, null, $4)
+                    RETURNING source_entity_id, target_entity_id, link_type_version_id;
+                "#,
+                &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &created_by],
+            )
+            .await;
+
+        if let Err(error) = inserted_link {
+            // In the case of inserting a new link errors, we try to update an existing link that
+            // has previously been set to inactive
+            self.update_link_status(
+                LinkStatus::Active,
+                link.source_entity(),
+                link.target_entity(),
+                link_type_version_id,
+            )
+            .await
+            .change_context(InsertionError)
+            .attach_printable(created_by)
+            .attach_printable(error)
+            .attach_lazy(|| link.clone())?;
+        }
+
+        Ok(link)
+    }
+
+    async fn get_link_target(
+        &self,
+        source_entity_id: EntityId,
+        link_type_uri: VersionedUri,
+    ) -> Result<Outgoing, QueryError> {
+        let version = i64::from(link_type_uri.version());
+        let links = self
+            .client
+            .as_client()
+            .query(
+                r#"
+                SELECT target_entity_id
+                FROM links
+                INNER JOIN ids ON ids.version_id = links.link_type_version_id
+                WHERE active AND source_entity_id = $1 AND base_uri = $2 AND "version" = $3
+                "#,
+                &[&source_entity_id, link_type_uri.base_uri(), &version],
+            )
+            .await
+            .report()
+            .change_context(QueryError)
+            .attach_printable(source_entity_id)?;
+
+        if links.is_empty() {
+            return Err(Report::new(QueryError)
+                .attach_printable(source_entity_id)
+                .attach_printable(link_type_uri.clone()));
+        } else if links.len() == 1 {
+            return Ok(Outgoing::Single(
+                links
+                    .get(0)
+                    .expect("Link array should have at least one element")
+                    .get(0),
+            ));
+        }
+
+        Ok(Outgoing::Multiple(
+            links.into_iter().map(|row| row.get(0)).collect(),
+        ))
+    }
+
     async fn get_entity_links(&self, source_entity_id: EntityId) -> Result<Links, QueryError> {
         let multi_links = self
             .client
@@ -1099,88 +1180,7 @@ where
         Ok(Links::new(multi_links.chain(single_links).collect()))
     }
 
-    async fn get_link_target(
-        &self,
-        source_entity_id: EntityId,
-        link_type_uri: VersionedUri,
-    ) -> Result<Outgoing, QueryError> {
-        let version = i64::from(link_type_uri.version());
-        let links = self
-            .client
-            .as_client()
-            .query(
-                r#"
-                SELECT target_entity_id
-                FROM links
-                INNER JOIN ids ON ids.version_id = links.link_type_version_id
-                WHERE active AND source_entity_id = $1 AND base_uri = $2 AND "version" = $3
-                "#,
-                &[&source_entity_id, link_type_uri.base_uri(), &version],
-            )
-            .await
-            .report()
-            .change_context(QueryError)
-            .attach_printable(source_entity_id)?;
-
-        if links.is_empty() {
-            return Err(Report::new(QueryError)
-                .attach_printable(source_entity_id)
-                .attach_printable(link_type_uri.clone()));
-        } else if links.len() == 1 {
-            return Ok(Outgoing::Single(
-                links
-                    .get(0)
-                    .expect("Link array should have at least one element")
-                    .get(0),
-            ));
-        }
-
-        Ok(Outgoing::Multiple(
-            links.into_iter().map(|row| row.get(0)).collect(),
-        ))
-    }
-
-    async fn create_link(
-        &mut self,
-        link: Link,
-        created_by: AccountId,
-    ) -> Result<Link, InsertionError> {
-        let link_type_version_id = self
-            .version_id_by_uri(link.link_type_uri())
-            .await
-            .change_context(InsertionError)
-            .attach_printable(link.source_entity())?;
-        let inserted_link = self.as_client()
-            .query_one(
-                r#"
-                    INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, multi, multi_order, created_by)
-                    VALUES ($1, $2, $3, false, null, $4)
-                    RETURNING source_entity_id, target_entity_id, link_type_version_id;
-                "#,
-                &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &created_by],
-            )
-            .await;
-
-        if let Err(error) = inserted_link {
-            // In the case of inserting a new link errors, we try to update an existing link that
-            // has previously been set to inactive
-            self.update_link_status(
-                LinkStatus::Active,
-                link.source_entity(),
-                link.target_entity(),
-                link_type_version_id,
-            )
-            .await
-            .change_context(InsertionError)
-            .attach_printable(created_by)
-            .attach_printable(error)
-            .attach_lazy(|| link.clone())?;
-        }
-
-        Ok(link)
-    }
-
-    async fn remove_link(&mut self, link: Link) -> Result<(), LinkActivationError> {
+    async fn inactivate_link(&mut self, link: Link) -> Result<(), LinkActivationError> {
         let link_type_version_id = self
             .version_id_by_uri(link.link_type_uri())
             .await
