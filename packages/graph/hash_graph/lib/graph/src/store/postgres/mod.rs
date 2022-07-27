@@ -10,7 +10,7 @@ use uuid::Uuid;
 pub use self::pool::{AsClient, PostgresStorePool};
 use super::error::LinkActivationError;
 use crate::{
-    knowledge::{Entity, EntityId, Link, Links, OutgoingLink},
+    knowledge::{Entity, EntityId, Link, LinkStatus, Links, OutgoingLink},
     ontology::{
         types::{
             uri::{BaseUri, VersionedUri},
@@ -645,9 +645,9 @@ where
         Ok(entity_id)
     }
 
-    async fn update_link_active(
+    async fn update_link_status(
         &self,
-        active: bool,
+        active: LinkStatus,
         source_entity: EntityId,
         target_entity: EntityId,
         link_type_version_id: VersionId,
@@ -1164,8 +1164,8 @@ where
         if let Err(error) = inserted_link {
             // In the case of inserting a new link errors, we try to update an existing link that
             // has previously been set to inactive
-            self.update_link_active(
-                true,
+            self.update_link_status(
+                LinkStatus::Active,
                 link.source_entity(),
                 link.target_entity(),
                 link_type_version_id,
@@ -1188,8 +1188,8 @@ where
             .attach_printable(link.source_entity())
             .change_context(LinkActivationError)?;
 
-        self.update_link_active(
-            false,
+        self.update_link_status(
+            LinkStatus::Inactive,
             link.source_entity(),
             link.target_entity(),
             link_type_version_id,

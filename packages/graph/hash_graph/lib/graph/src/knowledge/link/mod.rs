@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fmt};
 
+use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 use utoipa::Component;
 
@@ -71,6 +72,50 @@ impl Links {
     #[must_use]
     pub const fn inner(&self) -> &HashMap<VersionedUri, OutgoingLink> {
         &self.links
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+#[non_exhaustive]
+pub enum LinkStatus {
+    Active,
+    Inactive,
+}
+
+impl LinkStatus {
+    fn to_bool(self) -> bool {
+        match self {
+            LinkStatus::Active => true,
+            LinkStatus::Inactive => false,
+        }
+    }
+}
+
+impl ToSql for LinkStatus {
+    fn to_sql(
+        &self,
+        ty: &postgres_types::Type,
+        out: &mut postgres_types::private::BytesMut,
+    ) -> Result<postgres_types::IsNull, Box<dyn std::error::Error + Sync + Send>>
+    where
+        Self: Sized,
+    {
+        self.to_bool().to_sql(ty, out)
+    }
+
+    fn accepts(ty: &postgres_types::Type) -> bool
+    where
+        Self: Sized,
+    {
+        bool::accepts(ty)
+    }
+
+    fn to_sql_checked(
+        &self,
+        ty: &postgres_types::Type,
+        out: &mut postgres_types::private::BytesMut,
+    ) -> Result<postgres_types::IsNull, Box<dyn std::error::Error + Sync + Send>> {
+        self.to_bool().to_sql_checked(ty, out)
     }
 }
 
