@@ -14,7 +14,7 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    knowledge::{Entity, EntityId, Link, Links, OutgoingLink},
+    knowledge::{Entity, EntityId, Link, Links, Outgoing},
     ontology::{
         types::{uri::VersionedUri, DataType, EntityType, LinkType, Persisted, PropertyType},
         AccountId, VersionId,
@@ -364,7 +364,7 @@ pub trait Store {
         &self,
         source_entity_id: EntityId,
         link_type_uri: VersionedUri,
-    ) -> Result<OutgoingLink, QueryError>;
+    ) -> Result<Outgoing, QueryError>;
 
     /// Get [`Links`] of an [`Entity`] identified by an [`EntityId`].
     ///

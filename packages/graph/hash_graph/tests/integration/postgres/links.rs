@@ -1,4 +1,4 @@
-use graph::{knowledge::OutgoingLink, ontology::types::uri::VersionedUri};
+use graph::{knowledge::Outgoing, ontology::types::uri::VersionedUri};
 
 use crate::{
     postgres::DatabaseTestWrapper,
@@ -58,7 +58,7 @@ async fn insert() {
     assert_eq!(created_link.source_entity(), person_a_entity_id);
     assert_eq!(created_link.target_entity(), person_b_entity_id);
     assert_eq!(created_link.link_type_uri(), &link_type_uri);
-    assert_eq!(link_target, OutgoingLink::Single(person_b_entity_id));
+    assert_eq!(link_target, Outgoing::Single(person_b_entity_id));
 }
 
 #[tokio::test]
@@ -133,12 +133,12 @@ async fn get_entity_links() {
 
     assert!(
         links_from_source
-            .inner()
+            .outgoing()
             .contains_key(&acquaintance_link_type_uri)
     );
     assert!(
         links_from_source
-            .inner()
+            .outgoing()
             .contains_key(&friend_link_type_uri)
     );
 }

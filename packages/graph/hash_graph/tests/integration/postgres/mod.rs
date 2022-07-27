@@ -7,7 +7,7 @@ mod property_type;
 
 use error_stack::Result;
 use graph::{
-    knowledge::{Entity, EntityId, Link, Links, OutgoingLink},
+    knowledge::{Entity, EntityId, Link, Links, Outgoing},
     ontology::{
         types::{uri::VersionedUri, DataType, EntityType, LinkType, Persisted, PropertyType},
         AccountId, VersionId,
@@ -264,7 +264,7 @@ impl DatabaseApi<'_> {
         &self,
         source_entity_id: EntityId,
         link_type_uri: VersionedUri,
-    ) -> Result<OutgoingLink, QueryError> {
+    ) -> Result<Outgoing, QueryError> {
         self.store
             .get_link_target(source_entity_id, link_type_uri)
             .await

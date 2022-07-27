@@ -10,7 +10,7 @@ use uuid::Uuid;
 pub use self::pool::{AsClient, PostgresStorePool};
 use super::error::LinkActivationError;
 use crate::{
-    knowledge::{Entity, EntityId, Link, LinkStatus, Links, OutgoingLink},
+    knowledge::{Entity, EntityId, Link, LinkStatus, Links, Outgoing},
     ontology::{
         types::{
             uri::{BaseUri, VersionedUri},
@@ -1070,7 +1070,7 @@ where
             .change_context(QueryError)
             .attach_printable(source_entity_id)?
             .into_iter()
-            .map(|row| (VersionedUri::new(row.get(0), row.get::<_, i64>(1) as u32), OutgoingLink::Multiple(row.get(2))));
+            .map(|row| (VersionedUri::new(row.get(0), row.get::<_, i64>(1) as u32), Outgoing::Multiple(row.get(2))));
 
         let single_links = self
             .client
@@ -1092,7 +1092,7 @@ where
             .map(|row| {
                 (
                     VersionedUri::new(row.get(0), row.get::<_, i64>(1) as u32),
-                    OutgoingLink::Single(row.get(2)),
+                    Outgoing::Single(row.get(2)),
                 )
             });
 
@@ -1103,7 +1103,7 @@ where
         &self,
         source_entity_id: EntityId,
         link_type_uri: VersionedUri,
-    ) -> Result<OutgoingLink, QueryError> {
+    ) -> Result<Outgoing, QueryError> {
         let version = i64::from(link_type_uri.version());
         let links = self
             .client
@@ -1127,7 +1127,7 @@ where
                 .attach_printable(source_entity_id)
                 .attach_printable(link_type_uri.clone()));
         } else if links.len() == 1 {
-            return Ok(OutgoingLink::Single(
+            return Ok(Outgoing::Single(
                 links
                     .get(0)
                     .expect("Link array should have at least one element")
@@ -1135,7 +1135,7 @@ where
             ));
         }
 
-        Ok(OutgoingLink::Multiple(
+        Ok(Outgoing::Multiple(
             links.into_iter().map(|row| row.get(0)).collect(),
         ))
     }

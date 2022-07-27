@@ -56,7 +56,7 @@ impl fmt::Display for Link {
 /// [`EntityId`]s.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum OutgoingLink {
+pub enum Outgoing {
     Single(EntityId),
     Multiple(Vec<EntityId>),
 }
@@ -65,18 +65,18 @@ pub enum OutgoingLink {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Links {
     #[serde(flatten)]
-    links: HashMap<VersionedUri, OutgoingLink>,
+    outgoing: HashMap<VersionedUri, Outgoing>,
 }
 
 impl Links {
     #[must_use]
-    pub const fn new(links: HashMap<VersionedUri, OutgoingLink>) -> Self {
-        Self { links }
+    pub const fn new(links: HashMap<VersionedUri, Outgoing>) -> Self {
+        Self { outgoing: links }
     }
 
     #[must_use]
-    pub const fn inner(&self) -> &HashMap<VersionedUri, OutgoingLink> {
-        &self.links
+    pub const fn outgoing(&self) -> &HashMap<VersionedUri, Outgoing> {
+        &self.outgoing
     }
 }
 
@@ -89,7 +89,7 @@ pub enum LinkStatus {
 }
 
 impl LinkStatus {
-    fn active(self) -> bool {
+    const fn active(self) -> bool {
         match self {
             LinkStatus::Active => true,
             LinkStatus::Inactive => false,
