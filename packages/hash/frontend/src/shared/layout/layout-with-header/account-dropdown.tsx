@@ -1,19 +1,11 @@
 import { useMemo, VoidFunctionComponent } from "react";
-import {
-  Box,
-  Typography,
-  Divider,
-  Tooltip,
-  Menu,
-  ListItemText,
-} from "@mui/material";
-
+import { Box, Typography, Divider, Tooltip, ListItemText } from "@mui/material";
 import {
   usePopupState,
   bindMenu,
   bindTrigger,
 } from "material-ui-popup-state/hooks";
-import { Avatar } from "@hashintel/hash-design-system";
+import { Avatar, Menu } from "@hashintel/hash-design-system";
 import { UserFieldsFragment } from "../../../graphql/apiTypes.gen";
 import { MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";

@@ -7,7 +7,7 @@ import React, {
 
 import { useKey } from "rooks";
 
-import { Box, Divider, Menu, Typography } from "@mui/material";
+import { Box, Divider, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";
 import { format } from "date-fns";
@@ -25,7 +25,7 @@ import {
 } from "@fortawesome/free-regular-svg-icons";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { getBlockDomId } from "../BlockView";
 import { BlockSuggesterProps } from "../createSuggester/BlockSuggester";
 
