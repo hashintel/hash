@@ -4,7 +4,7 @@ volumes:
     external: true
 services:
   postgres:
-    build: postgres:14-alpine
+    image: postgres:14-alpine
     deploy:
       restart_policy:
         condition: on-failure
