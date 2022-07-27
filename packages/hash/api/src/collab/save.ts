@@ -4,6 +4,7 @@ import {
   BlockEntity,
   isDraftTextContainingEntityProperties,
   isDraftTextEntity,
+  isTextContainingEntityProperties,
 } from "@hashintel/hash-shared/entity";
 import {
   DraftEntity,
@@ -126,7 +127,32 @@ const calculateSaveActions = async (
   const draftIdToPlaceholderId = new Map<string, string>();
   const draftIdToBlockEntities = new Map<string, DraftEntity<BlockEntity>>();
 
-  for (const draftEntity of Object.values(store.draft)) {
+  const draftEntities = Object.values(store.draft);
+  const refCount = new Map<string, number>();
+
+  for (const entity of draftEntities) {
+    if (isDraftTextContainingEntityProperties(entity.properties)) {
+      refCount.set(
+        entity.properties.text.data.draftId,
+        (refCount.get(entity.properties.text.data.draftId) ?? 0) + 1,
+      );
+    }
+
+    if (isDraftBlockEntity(entity)) {
+      refCount.set(
+        entity.properties.entity.draftId,
+        (refCount.get(entity.properties.entity.draftId) ?? 0) + 1,
+      );
+    }
+
+    refCount.set(entity.draftId, (refCount.get(entity.draftId) ?? 0) + 1);
+  }
+
+  draftEntities.sort((a, b) => {
+    return (refCount.get(b.draftId) ?? 0) - (refCount.get(a.draftId) ?? 0);
+  });
+
+  for (const draftEntity of draftEntities) {
     if (isDraftBlockEntity(draftEntity)) {
       draftIdToBlockEntities.set(draftEntity.draftId, draftEntity);
       continue;
