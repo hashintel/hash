@@ -51,6 +51,49 @@ where
 }
 
 #[async_trait]
+impl<'i, C: AsClient, T> crud::Read<'i, &'i VersionedUri, T> for PostgresStore<C>
+where
+    for<'de> T: DatabaseType + Deserialize<'de>,
+{
+    type Output = Persisted<T>;
+
+    async fn get(&self, uri: &'i VersionedUri) -> Result<Self::Output, QueryError> {
+        let version = i64::from(uri.version());
+        // SAFETY: We insert a table name here, but `T::table()` is only accessible from within this
+        //   module.
+        let row = self
+            .as_client()
+            .query_one(
+                &format!(
+                    r#"
+                    SELECT version_id, schema, created_by
+                    FROM {}
+                    WHERE version_id = (
+                        SELECT version_id
+                        FROM ids
+                        WHERE base_uri = $1 AND version = $2
+                    )
+                    "#,
+                    T::table()
+                ),
+                &[uri.base_uri(), &version],
+            )
+            .await
+            .report()
+            .change_context(QueryError)
+            .attach_printable_lazy(|| uri.clone())?;
+
+        Ok(Persisted::new(
+            row.get(0),
+            serde_json::from_value(row.get(1))
+                .report()
+                .change_context(QueryError)?,
+            row.get(2),
+        ))
+    }
+}
+
+#[async_trait]
 impl<C: AsClient> crud::Read<'_, EntityId, Entity> for PostgresStore<C> {
     type Output = Entity;
 
