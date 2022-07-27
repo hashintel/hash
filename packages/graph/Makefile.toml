@@ -10,6 +10,12 @@ private = true
 command = "touch"
 args = ["${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/.env.local"]
 
+
+[tasks.sleep-for-one-second]
+private = true
+command = "sleep"
+args = ["1"]
+
 [tasks.yarn]
 category = "Deploy"
 description = "Installs the required dependencies"
@@ -44,3 +50,4 @@ description = "Tears down the deployment environment"
 command = "docker-compose"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment"
 args = ["--env-file", "../.env", "down"]
+
