@@ -56,7 +56,7 @@ struct CreateLinkRequest {
 
 #[utoipa::path(
     post,
-    path = "/entity/{source_entity_id}",
+    path = "/entity/{entity_id}/link",
     request_body = CreateLinkRequest,
     tag = "Link",
     responses(
@@ -67,7 +67,7 @@ struct CreateLinkRequest {
       (status = 500, description = "Datastore error occurred"),
     ),
     params(
-        ("source_entity_id" = Uuid, Path, description = "The ID of the source entity"),
+        ("entity_id" = Uuid, Path, description = "The ID of the source entity"),
     )
 )]
 async fn create_link<S: StorePool>(
@@ -109,7 +109,7 @@ async fn create_link<S: StorePool>(
 
 #[utoipa::path(
     get,
-    path = "/entity/{source_entity_id}/link",
+    path = "/entity/{entity_id}/link",
     tag = "Link",
     responses(
         (status = 200, content_type = "application/json", description = "all active links from the source entity", body = QualifiedLink),
@@ -119,7 +119,7 @@ async fn create_link<S: StorePool>(
         (status = 500, description = "Datastore error occurred"),
     ),
     params(
-        ("source_entity_id" = Uuid, Path, description = "The ID of the source entity"),
+        ("entity_id" = Uuid, Path, description = "The ID of the source entity"),
     )
 )]
 async fn get_entity_links<S: StorePool>(
@@ -158,7 +158,7 @@ struct InactivateLinkRequest {
 
 #[utoipa::path(
     delete,
-    path = "/entity/{source_entity_id}/link",
+    path = "/entity/{entity_id}/link",
     tag = "Link",
     responses(
         (status = 204, content_type = "application/json", description = "link updated successfully"),
