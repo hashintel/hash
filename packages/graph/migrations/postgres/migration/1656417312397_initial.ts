@@ -342,7 +342,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         references: "accounts",
       },
       // TODO: Consider using timestamps for link duration like we've done for the HASH backend,
-      // see https://app.asana.com/0/1201095311341924/1201836485518642/f
+      //   see https://app.asana.com/0/1201095311341924/1201836485518642/f
       active: {
         type: "boolean",
         notNull: true,
