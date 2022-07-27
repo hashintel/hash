@@ -70,7 +70,7 @@ fn redact(value: &str) -> String {
             acc.push_str(&line);
             acc
         })
-        .trim_start_matches("\n")
+        .trim_start_matches('\n')
         .to_owned()
 }
 
