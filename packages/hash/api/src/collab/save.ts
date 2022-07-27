@@ -127,32 +127,7 @@ const calculateSaveActions = async (
   const draftIdToPlaceholderId = new Map<string, string>();
   const draftIdToBlockEntities = new Map<string, DraftEntity<BlockEntity>>();
 
-  const draftEntities = Object.values(store.draft);
-  const refCount = new Map<string, number>();
-
-  for (const entity of draftEntities) {
-    if (isDraftTextContainingEntityProperties(entity.properties)) {
-      refCount.set(
-        entity.properties.text.data.draftId,
-        (refCount.get(entity.properties.text.data.draftId) ?? 0) + 1,
-      );
-    }
-
-    if (isDraftBlockEntity(entity)) {
-      refCount.set(
-        entity.properties.entity.draftId,
-        (refCount.get(entity.properties.entity.draftId) ?? 0) + 1,
-      );
-    }
-
-    refCount.set(entity.draftId, (refCount.get(entity.draftId) ?? 0) + 1);
-  }
-
-  draftEntities.sort((a, b) => {
-    return (refCount.get(b.draftId) ?? 0) - (refCount.get(a.draftId) ?? 0);
-  });
-
-  for (const draftEntity of draftEntities) {
+  for (const draftEntity of Object.values(store.draft)) {
     if (isDraftBlockEntity(draftEntity)) {
       draftIdToBlockEntities.set(draftEntity.draftId, draftEntity);
       continue;
@@ -182,10 +157,36 @@ const calculateSaveActions = async (
           ? savedEntity.properties.text.__linkedData
           : null;
 
-        if (
-          !isEqual(savedWithoutText, draftWithoutText) ||
-          isEqual(savedTextLink, draftEntity.properties.text.__linkedData)
-        ) {
+        if (savedTextLink) {
+          if (
+            !isEqual(savedWithoutText, draftWithoutText) ||
+            isEqual(savedTextLink, draftEntity.properties.text.__linkedData)
+          ) {
+            actions.push({
+              updateEntity: {
+                entityId: draftEntity.entityId,
+                accountId: draftEntity.accountId,
+                properties: {
+                  ...draftWithoutText,
+                  text: {
+                    __linkedData: draftEntity.properties.text.__linkedData,
+                  },
+                },
+              },
+            });
+          }
+        } else {
+          // @todo reduce duplication here
+          const textEntity = draftEntity.properties.text.data;
+          let textEntityId =
+            draftIdToPlaceholderId.get(textEntity.draftId) ??
+            textEntity.entityId;
+
+          if (!textEntityId) {
+            textEntityId = generatePlaceholderId();
+            draftIdToPlaceholderId.set(textEntity.draftId, textEntityId);
+          }
+
           actions.push({
             updateEntity: {
               entityId: draftEntity.entityId,
@@ -193,7 +194,10 @@ const calculateSaveActions = async (
               properties: {
                 ...draftWithoutText,
                 text: {
-                  __linkedData: draftEntity.properties.text.__linkedData,
+                  __linkedData: {
+                    entityTypeId: textEntityTypeId,
+                    entityId: textEntityId,
+                  },
                 },
               },
             },
@@ -209,8 +213,14 @@ const calculateSaveActions = async (
         });
       }
     } else {
-      const placeholderId = generatePlaceholderId();
-      draftIdToPlaceholderId.set(draftEntity.draftId, placeholderId);
+      const dependedOn = draftIdToPlaceholderId.has(draftEntity.draftId);
+      const placeholderId = dependedOn
+        ? draftIdToPlaceholderId.get(draftEntity.draftId)!
+        : generatePlaceholderId();
+
+      if (!dependedOn) {
+        draftIdToPlaceholderId.set(draftEntity.draftId, placeholderId);
+      }
 
       let entityType: EntityTypeChoice | null = null;
       let properties = draftEntity.properties;
@@ -241,12 +251,13 @@ const calculateSaveActions = async (
 
         if (isDraftTextContainingEntityProperties(properties)) {
           const textEntity = properties.text.data;
-          const textEntityId =
+          let textEntityId =
             draftIdToPlaceholderId.get(textEntity.draftId) ??
             textEntity.entityId;
 
           if (!textEntityId) {
-            throw new Error("Entity for text not yet created");
+            textEntityId = generatePlaceholderId();
+            draftIdToPlaceholderId.set(textEntity.draftId, textEntityId);
           }
 
           properties = {
@@ -261,7 +272,7 @@ const calculateSaveActions = async (
         }
       }
 
-      actions.push({
+      const action: UpdatePageAction = {
         createEntity: {
           accountId,
           entityPlaceholderId: placeholderId,
@@ -271,7 +282,14 @@ const calculateSaveActions = async (
             entityProperties: properties,
           },
         },
-      });
+      };
+
+      if (dependedOn) {
+        const idx = actions.findIndex((item) => !item.createEntityType);
+        actions.splice(idx === -1 ? 0 : idx, 0, action);
+      } else {
+        actions.push(action);
+      }
     }
   }
 
