@@ -1,0 +1,14 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:?}\")"
+---
+
+-1
+| @ tests/test_debug.rs:317:14
+|-> -2
+|   > @ tests/test_debug.rs:316:14
+|-> -3
+|   > @ tests/test_debug.rs:315:14
+\-> Root error
+    > @ tests/common.rs:140:5
+

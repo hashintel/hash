@@ -1,0 +1,12 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:?}\")"
+---
+
+unsigned 64-bit integer
+| @ tests/test_debug.rs:254:51
+|-> unsigned 32bit integer
+|   > @ tests/test_debug.rs:254:38
+\-> Root error
+    > @ tests/common.rs:140:5
+

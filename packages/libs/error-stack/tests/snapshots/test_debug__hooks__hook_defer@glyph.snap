@@ -1,0 +1,14 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:?}\")"
+---
+
+u64
+│ 📌 tests/test_debug.rs:296:14
+├─▶ Root error
+│   ╰ 📌 tests/common.rs:140:5
+├─▶ u16
+│   ╰ 📌 tests/test_debug.rs:297:14
+╰─▶ u32
+    ╰ 📌 tests/test_debug.rs:295:14
+
