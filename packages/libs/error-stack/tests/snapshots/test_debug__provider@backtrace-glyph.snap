@@ -1,0 +1,31 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:?}\")"
+---
+
+Printable A
+│ 📌 tests/test_debug.rs:115:38
+├─▶ Root error
+│   ╰ 📌 tests/common.rs:140:5
+╰─▶ backtrace with 12 frames (1)
+    ╰ 📌 tests/common.rs:140:5
+
+Test
+│ 📌 tests/test_debug.rs:126:39
+├─▶ 1 additional attachment
+├─▶ Printable B
+│   │ 📌 tests/test_debug.rs:117:42
+│   ├─▶ Root error
+│   │   ╰ 📌 tests/common.rs:140:5
+│   ╰─▶ backtrace with 12 frames (2)
+│       ╰ 📌 tests/common.rs:140:5
+╰─▶ Printable B
+    │ 📌 tests/test_debug.rs:123:18
+    ├─▶ ABC
+    │   ╰ 📌 tests/test_debug.rs:121:18
+    ├─▶ Root error
+    │   ╰ 📌 tests/common.rs:140:5
+    ├─▶ backtrace with 12 frames (3)
+    │   ╰ 📌 tests/common.rs:140:5
+    ╰─▶ 1 additional attachment
+
