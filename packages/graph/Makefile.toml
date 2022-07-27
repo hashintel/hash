@@ -43,4 +43,4 @@ category = "Deploy"
 description = "Tears down the deployment environment"
 command = "docker-compose"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment"
-args = ["down"]
+args = ["--env-file", "../.env", "down"]
