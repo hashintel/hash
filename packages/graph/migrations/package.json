@@ -8,7 +8,7 @@
     "fix:eslint": "eslint --ext .ts --fix .",
     "graph:generate-ids": "ts-node postgres/scripts/generate-ids.ts",
     "graph:migrate": "ts-node node_modules/.bin/node-pg-migrate -d HASH_GRAPH_PG_MIGRATION_URL --envPath ../.env -f ./postgres/migration-config.json",
-    "graph:recreate-db": "ts-node postgres/scripts/recreate-db.ts",
+    "graph:recreate-db": "ts-node postgres/scripts/recreate-graph-db.ts",
     "lint:eslint": "eslint --ext .ts .",
     "lint:tsc": "tsc --noEmit"
   },
