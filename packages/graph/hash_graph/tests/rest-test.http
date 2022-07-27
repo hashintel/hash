@@ -134,6 +134,7 @@ Accept: application/json
         client.assert(response.status === 200, "Response status is not 200");
     });
     client.global.set("friend_of_link_type_uri", encodeURIComponent(response.body.inner["$id"]));
+    client.global.set("friend_of_link_type_uri_raw", response.body.inner["$id"]);
 %}
 
 ### Get FriendOf link type
@@ -258,11 +259,11 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_entity_id", encodeURIComponent(response.body.entity_id));
+    client.global.set("person_a_entity_id", encodeURIComponent(response.body.entity_id));
 %}
 
 ### Get Person entity
-GET http://127.0.0.1:3000/entity/{{person_entity_id}}
+GET http://127.0.0.1:3000/entity/{{person_a_entity_id}}
 
 > {%
     client.test("status", function() {
@@ -277,7 +278,7 @@ Accept: application/json
 
 {
   "account_id": "00000000-0000-0000-0000-000000000000",
-  "entity_id": "{{person_entity_id}}",
+  "entity_id": "{{person_a_entity_id}}",
   "entity_type_uri": "https://blockprotocol.org/@alice/types/entity-type/person/v/2",
   "entity": {
     "https://blockprotocol.org/@alice/types/property-type/name": "Alice Allison"
@@ -288,4 +289,83 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
+%}
+
+### Insert another Person entity
+POST http://127.0.0.1:3000/entity
+Content-Type: application/json
+Accept: application/json
+
+{
+  "account_id": "00000000-0000-0000-0000-000000000000",
+  "entity": {
+    "https://blockprotocol.org/@alice/types/property-type/name": "Bob"
+  },
+  "entity_type_uri": "https://blockprotocol.org/@alice/types/entity-type/person/v/1"
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("person_b_entity_id", encodeURIComponent(response.body.entity_id));
+%}
+
+### Insert another Person entity
+POST http://127.0.0.1:3000/entity/{{person_a_entity_id}}/link
+Content-Type: application/json
+Accept: application/json
+
+{
+  "account_id": "00000000-0000-0000-0000-000000000000",
+  "target_entity": "{{person_b_entity_id}}",
+  "link_type_uri": "{{friend_of_link_type_uri_raw}}"
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Get person "a" links
+GET http://127.0.0.1:3000/entity/{{person_a_entity_id}}/link
+Content-Type: application/json
+Accept: application/json
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    const expected = client.global.get("person_b_entity_id")
+    const actual = response.body[client.global.get("friend_of_link_type_uri_raw")];
+    client.assert(expected == actual, "Link has wrong target entity ID")
+%}
+
+### Inactivate person "a" to person "b" link
+DELETE http://127.0.0.1:3000/entity/{{person_a_entity_id}}/link
+Content-Type: application/json
+Accept: application/json
+
+{
+  "target_entity": "{{person_b_entity_id}}",
+  "link_type_uri": "{{friend_of_link_type_uri_raw}}"
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 204, "Response status is not 204");
+    });
+%}
+
+### Check inactivated person "a" to person "b" link
+GET http://127.0.0.1:3000/entity/{{person_a_entity_id}}/link
+Content-Type: application/json
+Accept: application/json
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.assert(Object.keys(response.body).length === 0, "Link has wrong target entity ID")
 %}

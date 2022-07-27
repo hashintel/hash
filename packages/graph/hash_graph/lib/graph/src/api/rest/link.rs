@@ -1,0 +1,203 @@
+//! Web routes for CRU operations on links.
+
+use std::sync::Arc;
+
+use axum::{
+    extract::Path, http::StatusCode, response::IntoResponse, routing::post, Extension, Json, Router,
+};
+use serde::{Deserialize, Serialize};
+use utoipa::{Component, OpenApi};
+
+use crate::{
+    api::rest::api_resource::RoutedResource,
+    knowledge::{EntityId, Link, Links},
+    ontology::{types::uri::VersionedUri, AccountId},
+    store::{error::QueryError, Store, StorePool},
+};
+
+#[derive(OpenApi)]
+#[openapi(
+    handlers(
+        create_link,
+        get_entity_links,
+        inactivate_link
+    ),
+    components(AccountId, Link, InactivateLinkRequest),
+    tags(
+        (name = "Link", description = "link management API")
+    )
+)]
+pub struct LinkResource;
+
+impl RoutedResource for LinkResource {
+    /// Create routes for interacting with links.
+    fn routes<S: StorePool + 'static>() -> Router {
+        // TODO: The URL format here is preliminary and will have to change.
+        //   for links specifically, we are stacking on top of the existing `/entity/` routes.
+        Router::new().nest(
+            "/entity/:entity_id/link",
+            Router::new().route(
+                "/",
+                post(create_link::<S>)
+                    .get(get_entity_links::<S>)
+                    .delete(inactivate_link::<S>),
+            ),
+        )
+    }
+}
+
+#[derive(Serialize, Deserialize, Component)]
+struct CreateLinkRequest {
+    target_entity: EntityId,
+    #[component(value_type = String)]
+    link_type_uri: VersionedUri,
+    account_id: AccountId,
+}
+
+#[utoipa::path(
+    post,
+    path = "/entity/{source_entity_id}",
+    request_body = CreateLinkRequest,
+    tag = "Link",
+    responses(
+      (status = 201, content_type = "application/json", description = "link created successfully", body = Link),
+      (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+      (status = 404, description = "Source entity, target entity or link type URI was not found"),
+      (status = 500, description = "Datastore error occurred"),
+    ),
+    params(
+        ("source_entity_id" = Uuid, Path, description = "The ID of the source entity"),
+    )
+)]
+async fn create_link<S: StorePool>(
+    source_entity: Path<EntityId>,
+    body: Json<CreateLinkRequest>,
+    pool: Extension<Arc<S>>,
+) -> Result<Json<Link>, StatusCode> {
+    let Path(source_entity) = source_entity;
+    let Json(CreateLinkRequest {
+        target_entity,
+        link_type_uri,
+        account_id,
+    }) = body;
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    store
+        .create_link(
+            Link::new(source_entity, target_entity, link_type_uri),
+            account_id,
+        )
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not create link");
+
+            // when parts of the requested link cannot be found
+            if report.contains::<QueryError>() {
+                return StatusCode::NOT_FOUND;
+            }
+
+            // Insertion/update errors are considered internal server errors.
+            StatusCode::INTERNAL_SERVER_ERROR
+        })
+        .map(Json)
+}
+
+#[utoipa::path(
+    get,
+    path = "/entity/{source_entity_id}/link",
+    tag = "Link",
+    responses(
+        (status = 200, content_type = "application/json", description = "all active links from the source entity", body = QualifiedLink),
+        (status = 422, content_type = "text/plain", description = "Provided source entity id is invalid"),
+
+        (status = 404, description = "No links were found"),
+        (status = 500, description = "Datastore error occurred"),
+    ),
+    params(
+        ("source_entity_id" = Uuid, Path, description = "The ID of the source entity"),
+    )
+)]
+async fn get_entity_links<S: StorePool>(
+    source_entity_id: Path<EntityId>,
+    pool: Extension<Arc<S>>,
+) -> Result<Json<Links>, impl IntoResponse> {
+    let Path(source_entity_id) = source_entity_id;
+
+    let store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    store
+        .get_entity_links(source_entity_id)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not query link");
+
+            if report.contains::<QueryError>() {
+                return StatusCode::NOT_FOUND;
+            }
+
+            // Datastore errors such as connection failure are considered internal server errors.
+            StatusCode::INTERNAL_SERVER_ERROR
+        })
+        .map(Json)
+}
+
+#[derive(Serialize, Deserialize, Component)]
+struct InactivateLinkRequest {
+    target_entity: EntityId,
+    #[component(value_type = String)]
+    link_type_uri: VersionedUri,
+}
+
+#[utoipa::path(
+    delete,
+    path = "/entity/{source_entity_id}/link",
+    tag = "Link",
+    responses(
+        (status = 204, content_type = "application/json", description = "link updated successfully"),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 404, description = "Source entity, target entity or link type URI was not found"),
+        (status = 500, description = "Datastore error occurred"),
+    ),
+    request_body = UpdateLinkRequest,
+)]
+async fn inactivate_link<S: StorePool>(
+    source_entity: Path<EntityId>,
+    body: Json<InactivateLinkRequest>,
+    pool: Extension<Arc<S>>,
+) -> Result<StatusCode, StatusCode> {
+    let Path(source_entity) = source_entity;
+    let Json(InactivateLinkRequest {
+        target_entity,
+        link_type_uri,
+    }) = body;
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    store
+        .inactivate_link(Link::new(source_entity, target_entity, link_type_uri))
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not inactivate link");
+
+            if report.contains::<QueryError>() {
+                return StatusCode::NOT_FOUND;
+            }
+
+            // Insertion/update errors are considered internal server errors.
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(StatusCode::NO_CONTENT)
+}

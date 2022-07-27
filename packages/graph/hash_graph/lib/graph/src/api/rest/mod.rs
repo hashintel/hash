@@ -6,6 +6,7 @@ mod api_resource;
 mod data_type;
 mod entity;
 mod entity_type;
+mod link;
 mod link_type;
 mod property_type;
 
@@ -27,6 +28,7 @@ where
         link_type::LinkTypeResource::routes::<S>(),
         entity_type::EntityTypeResource::routes::<S>(),
         entity::EntityResource::routes::<S>(),
+        link::LinkResource::routes::<S>(),
     ]
 }
 
@@ -37,6 +39,7 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
         link_type::LinkTypeResource::documentation(),
         entity_type::EntityTypeResource::documentation(),
         entity::EntityResource::documentation(),
+        link::LinkResource::documentation(),
     ]
 }
 
