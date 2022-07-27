@@ -39,6 +39,7 @@ run_task = { name = ["build", "lint", "test"] }
 [tasks.task]
 private = true
 command = "cargo"
+dependencies = ["install-cargo-hack"]
 
 ################################################################################
 ## Build                                                                      ##
@@ -135,7 +136,7 @@ run_task = { name = ["test-task-lib", "test-task-doc"]}
 [tasks.test-task-lib]
 extend = "task"
 args = ["hack", "@@split(CARGO_TEST_HACK_FLAGS, )", "nextest", "run", "--cargo-profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_TEST_FLAGS, )", "${@}"]
-dependencies = ["install-nextest"]
+dependencies = ["install-cargo-nextest"]
 
 [tasks.test-task-doc]
 extend = "task"
@@ -179,6 +180,10 @@ private = true
 condition = { channels = ["nightly"] }
 install_crate = { rustup_component_name = "miri" }
 
-[tasks.install-nextest]
+[tasks.install-hack]
 private = true
-install_crate = { crate_name = "cargo-nextest", binary = "cargo", test_arg = ["nextest", "--version"] }
+install_crate = { crate_name = "cargo-hack", version = "0.5.15", binary = "cargo", test_arg = ["hack", "--version"] }
+
+[tasks.install-cargo-nextest]
+private = true
+install_crate = { crate_name = "cargo-nextest", version = "0.9.28", binary = "cargo", test_arg = ["nextest", "--version"] }
