@@ -180,7 +180,7 @@ private = true
 condition = { channels = ["nightly"] }
 install_crate = { rustup_component_name = "miri" }
 
-[tasks.install-hack]
+[tasks.install-cargo-hack]
 private = true
 install_crate = { crate_name = "cargo-hack", version = "0.5.15", binary = "cargo", test_arg = ["hack", "--version"] }
 
