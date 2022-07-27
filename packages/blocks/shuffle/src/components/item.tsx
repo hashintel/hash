@@ -1,13 +1,14 @@
-import React, {
-  forwardRef,
-  useState,
-  useEffect,
-  CSSProperties,
-  RefObject,
-} from "react";
+import React, { forwardRef, useState, CSSProperties, RefObject } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
-import { Box, IconButton, ListItem, TextField, Paper } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  ListItem,
+  TextField,
+  Paper,
+  SxProps,
+} from "@mui/material";
 import { DraggableAttributes } from "@dnd-kit/core";
 
 export type ItemProps = {
@@ -17,7 +18,7 @@ export type ItemProps = {
   onValueChange?: (value: string) => void;
   onItemBlur?: () => void;
   onDelete?: () => void;
-  paperStyle?: CSSProperties;
+  paperStyle?: SxProps;
   attributes?: DraggableAttributes;
   listeners?: Record<string, Function>;
   style?: CSSProperties;
@@ -41,26 +42,6 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
     ref,
   ) => {
     const [isHovered, setIsHovered] = useState(false);
-
-    useEffect(() => {
-      if (dragOverlay?.current) {
-        dragOverlay.current.animate(
-          [
-            {
-              transform: "scale(1)",
-            },
-            {
-              transform: "scale(1.05)",
-            },
-          ],
-          {
-            duration: 250,
-            easing: "ease",
-            fill: "forwards",
-          },
-        );
-      }
-    }, [dragOverlay]);
 
     return (
       <ListItem

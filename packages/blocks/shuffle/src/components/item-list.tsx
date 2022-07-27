@@ -144,7 +144,19 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
               <Item
                 id={activeItem.id}
                 value={activeItem.value}
-                paperStyle={{ boxShadow: draggingBoxShadow }}
+                paperStyle={{
+                  boxShadow: draggingBoxShadow,
+                  transform: "scale(1.05)",
+                  "@keyframes pop": {
+                    from: {
+                      transform: "scale(1)",
+                    },
+                    to: {
+                      transform: "scale(1.05)",
+                    },
+                  },
+                  animation: `pop 250ms normal ease`,
+                }}
                 dragOverlay={dragOverlayRef}
               />
             ) : null}
