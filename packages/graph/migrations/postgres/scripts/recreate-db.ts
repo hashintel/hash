@@ -6,10 +6,12 @@ import pg from "pg";
 import { getRequiredEnv } from "./environment";
 
 const main = async () => {
-  const user = getRequiredEnv("HASH_GRAPH_PG_USER");
-  const password = getRequiredEnv("HASH_GRAPH_PG_PASSWORD");
-  const host = getRequiredEnv("HASH_GRAPH_PG_HOST");
-  const port = parseInt(getRequiredEnv("HASH_GRAPH_PG_PORT"), 10);
+  // Use the primary credentials when modifying the PG schema
+  const host = getRequiredEnv("POSTGRES_HOST");
+  const port = parseInt(getRequiredEnv("POSTGRES_PORT"), 10);
+  const user = getRequiredEnv("POSTGRES_USER");
+  const password = getRequiredEnv("POSTGRES_PASSWORD");
+
   const database = getRequiredEnv("HASH_GRAPH_PG_DATABASE");
 
   if (host !== "localhost") {

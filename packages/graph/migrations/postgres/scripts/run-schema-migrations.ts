@@ -44,8 +44,8 @@ const main = async () => {
     })
     .help("help").argv;
 
-  const host = argv.host || getRequiredEnv("HASH_PG_HOST");
-  const user = argv.user || getRequiredEnv("HASH_PG_USER");
+  const host = argv.host || getRequiredEnv("POSTGRES_HOST");
+  const user = argv.user || getRequiredEnv("POSTGRES_USER");
   const database = argv.database || getRequiredEnv("HASH_PG_DATABASE");
   const port = argv.port
     ? argv.port
