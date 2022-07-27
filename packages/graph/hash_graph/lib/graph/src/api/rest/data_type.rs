@@ -37,6 +37,8 @@ use crate::{
 pub struct DataTypeResource;
 
 /// Specifies the requirements to a [`Store`] for the [`DataType`] REST API.
+///
+/// [`Store`]: crate::store::Store
 pub trait DataTypeBackend = crud::Read<VersionId, DataType, Output = Persisted<DataType>>;
 
 impl RoutedResource for DataTypeResource {

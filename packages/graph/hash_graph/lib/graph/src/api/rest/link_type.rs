@@ -37,6 +37,8 @@ use crate::{
 pub struct LinkTypeResource;
 
 /// Specifies the requirements to a [`Store`] for the link-type REST API.
+///
+/// [`Store`]: crate::store::Store
 pub trait LinkTypeBackend = crud::Read<VersionId, LinkType, Output = Persisted<LinkType>>;
 
 impl RoutedResource for LinkTypeResource {

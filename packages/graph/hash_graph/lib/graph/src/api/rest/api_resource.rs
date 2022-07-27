@@ -9,6 +9,8 @@ use crate::{
 };
 
 /// Specifies the requirements to a [`Store`] for the REST API.
+///
+/// [`Store`]: crate::store::Store
 pub trait RestApiBackend =
     DataTypeBackend + PropertyTypeBackend + LinkTypeBackend + EntityTypeBackend + EntityBackend;
 

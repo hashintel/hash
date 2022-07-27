@@ -37,6 +37,8 @@ use crate::{
 pub struct PropertyTypeResource;
 
 /// Specifies the requirements to a [`Store`] for the [`PropertyType`] REST API.
+///
+/// [`Store`]: crate::store::Store
 pub trait PropertyTypeBackend =
     crud::Read<VersionId, PropertyType, Output = Persisted<PropertyType>>;
 

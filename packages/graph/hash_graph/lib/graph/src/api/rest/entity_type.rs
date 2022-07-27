@@ -40,6 +40,8 @@ use crate::{
 pub struct EntityTypeResource;
 
 /// Specifies the requirements to a [`Store`] for the [`EntityType`] REST API.
+///
+/// [`Store`]: crate::store::Store
 pub trait EntityTypeBackend = crud::Read<VersionId, EntityType, Output = Persisted<EntityType>>;
 
 impl RoutedResource for EntityTypeResource {

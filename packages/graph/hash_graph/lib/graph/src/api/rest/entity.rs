@@ -44,6 +44,8 @@ struct QualifiedEntity {
 pub struct EntityResource;
 
 /// Specifies the requirements to a [`Store`] for the [`Entity`] REST API.
+///
+/// [`Store`]: crate::store::Store
 pub trait EntityBackend = crud::Read<EntityId, Entity, Output = Entity>;
 
 impl RoutedResource for EntityResource {
