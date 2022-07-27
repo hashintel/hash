@@ -10,12 +10,69 @@ use error_stack::fmt::{HookContext, Hooks, Line};
 #[allow(unused_imports)]
 use error_stack::Report;
 use insta::assert_snapshot;
+use once_cell::sync::Lazy;
 #[cfg(feature = "glyph")]
 use owo_colors::set_override;
+use regex::Regex;
 #[cfg(feature = "spantrace")]
 use tracing_error::ErrorLayer;
 #[cfg(feature = "spantrace")]
 use tracing_subscriber::layer::SubscriberExt;
+
+static RE_BACKTRACE_FRAME: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"(backtrace with )\d+( frames \(\d+\))"#).unwrap());
+
+fn redact(value: &str) -> String {
+    let mut extra = false;
+    let mut redact = false;
+    let mut notify = false;
+
+    value
+        .lines()
+        .filter_map(|line| {
+            // backtraces can be of different lengths depending on the OS and machine and co.
+            // this replaces the amount with `[n]`.
+            if !extra && RE_BACKTRACE_FRAME.is_match(line) {
+                let line = RE_BACKTRACE_FRAME.replace_all(line, "$1[n]$2").into_owned();
+                return Some(line);
+            }
+
+            if line.starts_with(&"━".repeat(40)) {
+                extra = true;
+            }
+
+            if extra && (line.starts_with("Backtrace No.") | line.starts_with("Span Trace No.")) {
+                redact = true;
+                notify = true;
+
+                return Some(line.to_owned());
+            }
+
+            if redact {
+                // the line is redacted
+                if line.starts_with("  ") {
+                    if notify {
+                        notify = false;
+                        return Some("   [redacted]".to_owned());
+                    }
+
+                    return None;
+                } else {
+                    redact = false;
+                    notify = false;
+                }
+            }
+
+            Some(line.to_owned())
+        })
+        .fold(String::new(), |mut acc, line| {
+            acc.push('\n');
+            acc.push_str(&line);
+            acc
+        })
+        .trim_start_matches("\n")
+        .to_owned()
+}
 
 #[cfg(feature = "spantrace")]
 fn install_tracing_subscriber() {
@@ -123,7 +180,7 @@ fn provider() {
         report.attach(AttachmentA(2)).attach_printable("Test")
     });
 
-    assert_snapshot!(format!("{report:?}"));
+    assert_snapshot!(redact(&format!("{report:?}")));
 }
 
 /// The provider API extension via `DebugDiagnostic` is only available under experimental and
@@ -147,7 +204,7 @@ fn provider_ext() {
         report.attach(AttachmentA(2)).attach_printable("Test")
     });
 
-    assert_snapshot!(format!("{report:#?}"));
+    assert_snapshot!(redact(&format!("{report:#?}")));
 }
 
 #[test]
@@ -164,7 +221,7 @@ fn linear() {
         .change_context(ContextB(0))
         .attach_printable("Printable C");
 
-    assert_snapshot!(format!("{report:?}"));
+    assert_snapshot!(redact(&format!("{report:?}")));
 }
 
 #[test]
@@ -181,7 +238,7 @@ fn linear_ext() {
         .change_context(ContextB(0))
         .attach_printable("Printable C");
 
-    assert_snapshot!(format!("{report:#?}"));
+    assert_snapshot!(redact(&format!("{report:#?}")));
 }
 
 #[test]
@@ -202,7 +259,7 @@ fn complex() {
         report.attach(AttachmentA(2)).attach_printable("Test")
     });
 
-    assert_snapshot!(format!("{report:?}"));
+    assert_snapshot!(redact(&format!("{report:?}")));
 }
 
 #[test]
@@ -211,7 +268,7 @@ fn location_edge_case() {
 
     let report = create_report();
 
-    assert_snapshot!(format!("{report:?}"));
+    assert_snapshot!(redact(&format!("{report:?}")));
 }
 
 #[cfg(feature = "hooks")]
@@ -231,7 +288,7 @@ mod hooks {
         Report::install_hook(Hooks::new().push(|_: &u32| Line::next("unsigned 32bit integer")))
             .unwrap();
 
-        assert_snapshot!("hook", format!("{report:?}"));
+        assert_snapshot!(redact(&format!("{report:?}")));
     }
 
     #[test]
@@ -245,7 +302,7 @@ mod hooks {
         }))
         .unwrap();
 
-        assert_snapshot!("hook_context", format!("{report:?}"));
+        assert_snapshot!(redact(&format!("{report:?}")));
     }
 
     #[test]
@@ -261,7 +318,7 @@ mod hooks {
         )
         .unwrap();
 
-        assert_snapshot!("hook_stack", format!("{report:?}"));
+        assert_snapshot!(redact(&format!("{report:?}")));
     }
 
     #[test]
@@ -285,7 +342,7 @@ mod hooks {
         )
         .unwrap();
 
-        assert_snapshot!("hook_combine", format!("{report:?}"));
+        assert_snapshot!(redact(&format!("{report:?}")));
     }
 
     #[test]
@@ -305,7 +362,7 @@ mod hooks {
         )
         .unwrap();
 
-        assert_snapshot!("hook_defer", format!("{report:?}"));
+        assert_snapshot!(redact(&format!("{report:?}")));
     }
 
     #[test]
@@ -323,7 +380,7 @@ mod hooks {
         )
         .unwrap();
 
-        assert_snapshot!("hook_decr", format!("{report:?}"));
+        assert_snapshot!(redact(&format!("{report:?}")));
     }
 
     #[test]
@@ -341,6 +398,6 @@ mod hooks {
         )
         .unwrap();
 
-        assert_snapshot!("hook_incr", format!("{report:?}"));
+        assert_snapshot!(redact(&format!("{report:?}")));
     }
 }

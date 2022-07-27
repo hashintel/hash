@@ -1,19 +1,17 @@
 ---
 source: tests/test_debug.rs
-expression: "format!(\"{report:#?}\")"
+expression: "redact(&format!(\"{report:#?}\"))"
 ---
-
 Printable C
-| @ tests/test_debug.rs:182:10
+| @ tests/test_debug.rs:239:10
 |-> Context B
-|   > @ tests/test_debug.rs:181:10
+|   > @ tests/test_debug.rs:238:10
 |-> Printable B
-|   > @ tests/test_debug.rs:179:10
+|   > @ tests/test_debug.rs:236:10
 |-> Context A
-|   > @ tests/test_debug.rs:178:10
+|   > @ tests/test_debug.rs:235:10
 |-> Printable A
-|   > @ tests/test_debug.rs:175:10
+|   > @ tests/test_debug.rs:232:10
 |-> Root error
 |   > @ tests/common.rs:140:5
 \-> 3 additional attachments
-

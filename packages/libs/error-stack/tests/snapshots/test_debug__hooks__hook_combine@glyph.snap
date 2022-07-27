@@ -1,14 +1,12 @@
 ---
 source: tests/test_debug.rs
-expression: "format!(\"{report:?}\")"
+expression: "redact(&format!(\"{report:?}\"))"
 ---
-
 u16 (other)
-│ 📌 tests/test_debug.rs:274:14
+│ 📌 tests/test_debug.rs:331:14
 ├─▶ u64
-│   ╰ 📌 tests/test_debug.rs:273:14
+│   ╰ 📌 tests/test_debug.rs:330:14
 ├─▶ u32
-│   ╰ 📌 tests/test_debug.rs:272:14
+│   ╰ 📌 tests/test_debug.rs:329:14
 ╰─▶ Root error
     ╰ 📌 tests/common.rs:140:5
-

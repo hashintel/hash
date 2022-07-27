@@ -1,29 +1,27 @@
 ---
 source: tests/test_debug.rs
-expression: "format!(\"{report:?}\")"
+expression: "redact(&format!(\"{report:?}\"))"
 ---
-
 Printable A
-| @ tests/test_debug.rs:191:38
+| @ tests/test_debug.rs:248:38
 |-> Root error
 |   > @ tests/common.rs:140:5
 \-> spantrace with 2 frames (1)
     > @ tests/common.rs:140:5
 
 Test
-| @ tests/test_debug.rs:202:39
+| @ tests/test_debug.rs:259:39
 |-> 1 additional attachment
 |-> Printable B
-|   | @ tests/test_debug.rs:193:42
+|   | @ tests/test_debug.rs:250:42
 |   |-> Root error
 |   |   > @ tests/common.rs:140:5
 |   \-> spantrace with 2 frames (2)
 |       > @ tests/common.rs:140:5
 \-> Printable B
-    | @ tests/test_debug.rs:199:18
+    | @ tests/test_debug.rs:256:18
     |-> Root error
     |   > @ tests/common.rs:140:5
     |-> spantrace with 2 frames (3)
     |   > @ tests/common.rs:140:5
     \-> 2 additional attachments
-
