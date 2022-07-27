@@ -8,6 +8,7 @@ use super::EntityId;
 use crate::ontology::types::uri::VersionedUri;
 
 /// A Link between a source and a target entity identified by [`EntityId`]s.
+///
 /// The link is described by a link type [`VersionedUri`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
 pub struct Link {
@@ -89,6 +90,7 @@ pub enum LinkStatus {
 }
 
 impl LinkStatus {
+    #[must_use]
     const fn active(self) -> bool {
         match self {
             LinkStatus::Active => true,
