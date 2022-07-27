@@ -276,9 +276,8 @@ impl DatabaseApi<'_> {
         target_entity: EntityId,
         link_type_uri: VersionedUri,
     ) -> Result<Link, InsertionError> {
-        let link_id = Link::new(source_entity, target_entity, link_type_uri);
-
-        self.store.create_link(link_id, self.account_id).await
+        let link = Link::new(source_entity, target_entity, link_type_uri);
+        self.store.create_link(link, self.account_id).await
     }
 
     async fn remove_link(
@@ -287,8 +286,8 @@ impl DatabaseApi<'_> {
         target_entity: EntityId,
         link_type_uri: VersionedUri,
     ) -> Result<(), LinkActivationError> {
-        let link_id = Link::new(source_entity, target_entity, link_type_uri);
-        self.store.remove_link(link_id).await
+        let link = Link::new(source_entity, target_entity, link_type_uri);
+        self.store.remove_link(link).await
     }
 }
 
