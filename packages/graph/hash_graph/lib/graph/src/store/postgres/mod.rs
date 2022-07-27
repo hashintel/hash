@@ -1174,7 +1174,7 @@ where
             .change_context(InsertionError)
             .attach_printable(created_by)
             .attach_printable(error)
-            .attach_lazy(|| link.clone())?
+            .attach_lazy(|| link.clone())?;
         }
 
         Ok(link)
