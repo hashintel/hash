@@ -233,8 +233,8 @@ impl<C> Report<C> {
         let provider = temporary_provider(&context);
 
         #[cfg(all(nightly, feature = "std"))]
-        let backtrace = if core::any::request_ref::<Backtrace, _>(&provider)
-            .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
+        let backtrace = if core::any::request_ref(&provider)
+            .filter(|backtrace: &&Backtrace| backtrace.status() == BacktraceStatus::Captured)
             .is_some()
         {
             None
@@ -243,8 +243,8 @@ impl<C> Report<C> {
         };
 
         #[cfg(all(nightly, feature = "spantrace"))]
-        let span_trace = if core::any::request_ref::<SpanTrace, _>(&provider)
-            .filter(|span_trace| span_trace.status() == SpanTraceStatus::CAPTURED)
+        let span_trace = if core::any::request_ref(&provider)
+            .filter(|span_trace: &&SpanTrace| span_trace.status() == SpanTraceStatus::CAPTURED)
             .is_some()
         {
             None
