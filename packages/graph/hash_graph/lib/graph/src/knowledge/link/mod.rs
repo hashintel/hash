@@ -14,6 +14,7 @@ use crate::ontology::types::uri::VersionedUri;
 pub struct Link {
     source_entity: EntityId,
     target_entity: EntityId,
+    #[component(value_type = String)]
     link_type_uri: VersionedUri,
 }
 
