@@ -17,7 +17,7 @@ use alloc::{
 };
 use core::{
     fmt,
-    fmt::{Debug, Display, Formatter, Write as _},
+    fmt::{Debug, Display, Formatter},
     iter::once,
     panic::Location,
 };
@@ -344,17 +344,16 @@ impl<C> Debug for Report<C> {
             lines.push(Instruction::plain("".to_owned()));
         }
 
-        let mut lines = lines.into_iter().fold(String::new(), |mut acc, line| {
-            acc.push('\n');
-            for instruction in line {
-                // "While using `write!` in the suggested way should never fail,
-                //  this isn’t necessarily clear to the programmer."
-                // excerpt from `format_push_string`
-                // https://rust-lang.github.io/rust-clippy/master/index.html#format_push_string
-                let _ = write!(acc, "{instruction}");
-            }
-            acc
-        });
+        let mut lines = lines
+            .into_iter()
+            .map(|line| {
+                line.iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .concat()
+            })
+            .collect::<Vec<String>>()
+            .join("\n");
 
         // only output detailed information (like backtraces), if alternative mode has been enabled.
         if fmt.alternate() {

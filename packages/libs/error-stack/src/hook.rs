@@ -78,19 +78,21 @@ impl Report<()> {
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::{
-    ///     fmt::{self, HookContext, Line},
+    ///     fmt::{self, Line},
     ///     report, Report,
     /// };
     ///
     /// struct Suggestion(&'static str);
     ///
-    /// Report::install_hook(fmt::Hooks::new().push(
-    ///     |val: &Suggestion, ctx: HookContext<Suggestion>| {
-    ///         Line::Next(format!("Suggestion: {}", val.0))
-    ///     },
-    /// ))?;
+    /// # fn main() -> Result<(), Report<error_stack::HookAlreadySet>> {
+    /// Report::install_hook(
+    ///     fmt::Hooks::new().push(|val: &Suggestion| Line::Next(format!("Suggestion: {}", val.0))),
+    /// )?;
     ///
-    /// let report = report!(Error::from(ErrorKind::InvalidInput));
+    /// let report =
+    ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("O no, try again"));
+    /// assert!(format!("{report:?}").starts_with("Suggestion: O no, try again"));
+    /// # Ok(()) }
     /// ```
     #[cfg(feature = "hooks")]
     pub fn install_hook<T: Install>(hook: T) -> Result<(), HookAlreadySet> {
@@ -132,13 +134,14 @@ impl Report<()> {
     /// use error_stack::{report, Report};
     ///
     /// # fn main() -> Result<(), Report<error_stack::HookAlreadySet>> {
+    /// # #[allow(deprecated)]
     /// Report::set_debug_hook(|_, fmt| write!(fmt, "custom debug implementation"))?;
     ///
     /// let report = report!(Error::from(ErrorKind::InvalidInput));
     /// assert_eq!(format!("{report:?}"), "custom debug implementation");
     /// # Ok(()) }
     /// ```
-    #[deprecated = "use Report::<()>::install_hook() instead"]
+    #[deprecated = "use Report::install_hook() instead"]
     #[cfg(feature = "hooks")]
     pub fn set_debug_hook<H>(hook: H) -> Result<(), HookAlreadySet>
     where
@@ -182,6 +185,7 @@ impl Report<()> {
     /// use error_stack::{report, Report};
     ///
     /// # fn main() -> Result<(), Report<error_stack::HookAlreadySet>> {
+    /// # #[allow(deprecated)]
     /// Report::set_display_hook(|_, fmt| write!(fmt, "custom display implementation"))?;
     ///
     /// let report = report!(Error::from(ErrorKind::InvalidInput));

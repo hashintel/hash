@@ -3,27 +3,27 @@ source: tests/test_debug.rs
 expression: "redact(&format!(\"{report:?}\"))"
 ---
 Printable A
-│ 📌 tests/test_debug.rs:169:38
+│ tests/test_debug.rs:169:38
 ├─▶ Root error
-│   ╰ 📌 tests/common.rs:140:5
+│   ╰ tests/common.rs:140:5
 ╰─▶ backtrace with [n] frames (1)
-    ╰ 📌 tests/common.rs:140:5
+    ╰ tests/common.rs:140:5
 
 Test
-│ 📌 tests/test_debug.rs:180:39
+│ tests/test_debug.rs:180:39
 ├─▶ 1 additional attachment
 ├─▶ Printable B
-│   │ 📌 tests/test_debug.rs:171:42
+│   │ tests/test_debug.rs:171:42
 │   ├─▶ Root error
-│   │   ╰ 📌 tests/common.rs:140:5
+│   │   ╰ tests/common.rs:140:5
 │   ╰─▶ backtrace with [n] frames (2)
-│       ╰ 📌 tests/common.rs:140:5
+│       ╰ tests/common.rs:140:5
 ╰─▶ Printable B
-    │ 📌 tests/test_debug.rs:177:18
+    │ tests/test_debug.rs:177:18
     ├─▶ ABC
-    │   ╰ 📌 tests/test_debug.rs:175:18
+    │   ╰ tests/test_debug.rs:175:18
     ├─▶ Root error
-    │   ╰ 📌 tests/common.rs:140:5
+    │   ╰ tests/common.rs:140:5
     ├─▶ backtrace with [n] frames (3)
-    │   ╰ 📌 tests/common.rs:140:5
+    │   ╰ tests/common.rs:140:5
     ╰─▶ 1 additional attachment

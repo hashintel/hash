@@ -419,10 +419,8 @@ impl<T: Hook<Frame, UInt0>> Hooks<T> {
     /// };
     ///
     /// let hooks = Hooks::new() //
-    ///     .push(|val: &u32| Line::next("u32"))
-    ///     .push(|val: &u64, ctx: &mut HookContext<u64>| {
-    ///         Line::defer(format!("u64 No. {}", ctx.incr()))
-    ///     });
+    ///     .push(|val: &u32| Line::next(format!("{val}u32")))
+    ///     .push(|_: &u64, ctx: &mut HookContext<u64>| Line::defer(format!("u64 No. {}", ctx.incr())));
     ///
     /// Report::install_hook(hooks).unwrap();
     ///
@@ -432,7 +430,7 @@ impl<T: Hook<Frame, UInt0>> Hooks<T> {
     ///     .attach(3u64)
     ///     .attach(4u32);
     ///
-    /// println!("{:?}", report);
+    /// assert!(format!("{report:?}").starts_with("4u32"));
     /// ```
     pub fn push<H: Hook<F, U>, F: Send + Sync + 'static, U>(
         self,
@@ -459,14 +457,12 @@ impl<T: Hook<Frame, UInt0>> Hooks<T> {
     /// };
     ///
     /// let other = Hooks::new()
-    ///     .push(|val: &u32| Line::next("unsigned integer"))
-    ///     .push(|val: &&str| Line::next("You should have used `.attach_printable` ..."));
+    ///     .push(|val: &u32| Line::next(format!("unsigned integer: {val}")))
+    ///     .push(|_: &&str| Line::next("You should have used `.attach_printable` ..."));
     ///
     /// let hooks = Hooks::new() //
-    ///     .push(|val: &u32| Line::next("u32"))
-    ///     .push(|val: &u64, ctx: &mut HookContext<u64>| {
-    ///         Line::defer(format!("u64 No. {}", ctx.incr()))
-    ///     })
+    ///     .push(|val: &u32| Line::next(format!("{val}u32")))
+    ///     .push(|_: &u64, ctx: &mut HookContext<u64>| Line::defer(format!("u64 No. {}", ctx.incr())))
     ///     .combine(other);
     ///
     /// Report::install_hook(hooks).unwrap();
@@ -478,7 +474,7 @@ impl<T: Hook<Frame, UInt0>> Hooks<T> {
     ///     .attach(4u32)
     ///     .attach("5");
     ///
-    /// println!("{:?}", report);
+    /// assert!(format!("{report:?}").starts_with("You should have used `.attach_printable` ..."));
     /// ```
     // clippy::missing_const_for_fn is a false positive
     #[allow(clippy::missing_const_for_fn)]
