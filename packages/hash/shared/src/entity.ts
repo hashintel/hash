@@ -100,8 +100,7 @@ export const isDraftTextContainingEntityProperties = (
 };
 
 /**
- * @todo this can be used when a text entity could exist on any property
- * @deprecated
+ * @todo this will need to change when we remove legacy links
  */
 export const getChildDraftEntityFromTextBlock = (
   draftBlockId: string,

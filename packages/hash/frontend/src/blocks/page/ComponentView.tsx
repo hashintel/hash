@@ -23,7 +23,7 @@ import {
 import { textBlockNodeToEntityProperties } from "@hashintel/hash-shared/text";
 import * as Sentry from "@sentry/nextjs";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
-import { TextSelection } from "prosemirror-state";
+import { TextSelection, Transaction } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
 import { ErrorBlock } from "../../components/ErrorBlock/ErrorBlock";
@@ -81,11 +81,8 @@ export class ComponentView implements NodeView<Schema> {
 
   private readonly target = createComponentViewTarget();
 
-  private readonly sourceName: string;
-
   private readonly unsubscribe: Function;
 
-  private editable = false;
   private store: EntityStore;
 
   private wasSuggested = false;
@@ -97,12 +94,6 @@ export class ComponentView implements NodeView<Schema> {
     private readonly renderPortal: RenderPortal,
     private readonly config: BlockConfig,
   ) {
-    if (!config.source) {
-      throw new Error("Cannot create new block for component missing a source");
-    }
-
-    this.sourceName = config.source;
-
     this.dom.setAttribute("data-dom", "true");
     this.contentDOM.setAttribute("data-contentDOM", "true");
     this.contentDOM.style.display = "none";
@@ -215,7 +206,6 @@ export class ComponentView implements NodeView<Schema> {
 
   private getDraftBlockEntity() {
     const draftId = this.getBlockDraftId();
-
     const entity = this.store.draft[draftId];
 
     if (!entity || !isDraftBlockEntity(entity)) {
@@ -249,7 +239,6 @@ export class ComponentView implements NodeView<Schema> {
     }
   };
 
-  // @todo consider combining transactions
   private editableRef = (editableNode: HTMLElement | null) => {
     const childTextEntity = getChildDraftEntityFromTextBlock(
       this.getBlockDraftId(),
@@ -257,15 +246,16 @@ export class ComponentView implements NodeView<Schema> {
     );
 
     if (!childTextEntity) {
-      throw new Error("Cannot active editableRef");
+      throw new Error("Block not ready to become editable");
     }
 
+    const state = this.editorView.state;
+    let tr: Transaction<Schema> | null = null;
+
     if (!isTextEntity(childTextEntity)) {
-      const state = this.editorView.state;
-      const tr = state.tr;
+      tr ??= state.tr;
 
       const newTextDraftId = generateDraftIdForEntity(null);
-
       addEntityStoreAction(state, tr, {
         type: "newDraftEntity",
         payload: {
@@ -311,16 +301,11 @@ export class ComponentView implements NodeView<Schema> {
       }
 
       this.dom.removeAttribute("contentEditable");
-      this.editable = true;
 
       if (this.wasSuggested) {
-        this.editorView.dispatch(
-          this.editorView.state.tr.setSelection(
-            TextSelection.create<Schema>(
-              this.editorView.state.doc,
-              this.getPos() + 1,
-            ),
-          ),
+        tr ??= state.tr;
+        tr.setSelection(
+          TextSelection.create<Schema>(state.doc, this.getPos() + 1),
         );
 
         this.wasSuggested = false;
@@ -328,13 +313,16 @@ export class ComponentView implements NodeView<Schema> {
     } else {
       this.destroyEditableRef();
     }
+
+    if (tr) {
+      this.editorView.dispatch(tr);
+    }
   };
 
   private destroyEditableRef() {
     this.dom.contentEditable = "false";
     this.contentDOM.style.display = "none";
     this.dom.appendChild(this.contentDOM);
-    this.editable = false;
   }
 
   destroy() {
@@ -347,7 +335,7 @@ export class ComponentView implements NodeView<Schema> {
       event.preventDefault();
     }
 
-    return !this.editable;
+    return this.dom.contentEditable === "false";
   }
 
   // This condition is designed to check that the event isn’t coming from React-handled code.
