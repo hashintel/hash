@@ -29,7 +29,7 @@ export const UserBlocksProvider: FunctionComponent<{
 }> = ({ value: initialUserBlocks, children }) => {
   const [value, setValue] = useCachedDefaultState(
     initialUserBlocks,
-    "hash-workspace-user-blocks",
+    "hash-workspace-user-blocks-v2",
     (nextInitialItems, prevInitialItems) => {
       return { ...prevInitialItems, ...nextInitialItems };
     },
