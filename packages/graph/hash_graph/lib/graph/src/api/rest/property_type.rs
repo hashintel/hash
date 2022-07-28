@@ -5,7 +5,6 @@ use std::sync::Arc;
 use axum::{
     extract::Path,
     http::StatusCode,
-    response::IntoResponse,
     routing::{get, post},
     Extension, Json, Router,
 };
@@ -14,11 +13,12 @@ use utoipa::{Component, OpenApi};
 
 use super::api_resource::RoutedResource;
 use crate::{
+    api::rest::read_from_store,
     ontology::{
         types::{uri::VersionedUri, PropertyType},
         AccountId,
     },
-    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError},
+    store::{BaseUriAlreadyExists, BaseUriDoesNotExist},
     GraphPool,
 };
 
@@ -119,25 +119,9 @@ async fn create_property_type<P: GraphPool>(
 async fn get_property_type<P: GraphPool>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PropertyType>, impl IntoResponse> {
-    let store = pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    store
-        .get_property_type(&uri.0)
+) -> Result<Json<PropertyType>, StatusCode> {
+    read_from_store::<PropertyType, _, _, _>(pool.as_ref(), &uri.0)
         .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not query property type");
-
-            if report.contains::<QueryError>() {
-                return StatusCode::NOT_FOUND;
-            }
-
-            // Store errors such as connection failure are considered internal server errors.
-            StatusCode::INTERNAL_SERVER_ERROR
-        })
         .map(Json)
 }
 
