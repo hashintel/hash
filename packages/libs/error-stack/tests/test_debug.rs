@@ -1,5 +1,8 @@
 #![cfg_attr(nightly, feature(provide_any))]
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
+// can be considered safe, because we only check the output, which in itself does not use **any**
+// unsafe code.
+#![cfg(not(miri))]
 
 mod common;
 use common::*;
