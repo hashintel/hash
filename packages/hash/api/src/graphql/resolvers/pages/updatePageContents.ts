@@ -1,3 +1,4 @@
+import { JsonObject } from "@blockprotocol/core";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { produce } from "immer";
 import {
@@ -18,6 +19,7 @@ import {
   UpdatePageContentsResult,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
+import { properties } from "../entity/properties";
 
 const validateActionsInput = (actions: UpdatePageAction[]) => {
   for (const [i, action] of actions.entries()) {
@@ -292,6 +294,19 @@ export const updatePageContents: ResolverFn<
         .map(async (updateEntity) => {
           return Entity.updateProperties(client, {
             ...updateEntity,
+            // @todo remove this when legacy links are removed
+            properties: produce(
+              updateEntity.properties as JsonObject,
+              (draftProperties: any) => {
+                if (draftProperties?.text?.__linkedData?.entityId) {
+                  // eslint-disable-next-line no-param-reassign
+                  draftProperties.text.__linkedData.entityId =
+                    placeholderResults.get(
+                      draftProperties.text.__linkedData.entityId,
+                    );
+                }
+              },
+            ),
             updatedByAccountId: user.accountId,
           });
         }),

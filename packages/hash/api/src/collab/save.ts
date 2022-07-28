@@ -4,7 +4,6 @@ import {
   BlockEntity,
   isDraftTextContainingEntityProperties,
   isDraftTextEntity,
-  isTextContainingEntityProperties,
 } from "@hashintel/hash-shared/entity";
 import {
   DraftEntity,
