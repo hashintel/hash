@@ -6,6 +6,7 @@ import { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
 import {
   BlockEntity,
+  getEntityChildEntity,
   isDraftTextContainingEntityProperties,
   isTextEntity,
 } from "./entity";
@@ -175,12 +176,10 @@ const updateEntitiesByDraftId = (
 
 /**
  * The method does the following
- * 1. Fetches the targetEntity from draft store if it exists and adds it to
- * draft store if it's not present
+ * 1. Fetches the targetEntity from draft store if it exists and adds it to draft store if it's not present
  * 2. Sets targetEntity as the new block data
  * @param draftEntityStore draft entity store
- * @param blockEntityDraftId draft id of the Block Entity whose child entity
- *   should be changed
+ * @param blockEntityDraftId draft id of the Block Entity whose child entity should be changed
  * @param targetEntity entity to be changed to
  */
 const swapBlockData = (
@@ -401,10 +400,8 @@ export const subscribeToEntityStore = (
 };
 
 /**
- * Retrieves the draft entity for an entity, given its entityId and the draft
- * store.
- * @throws {Error} if entity not found - use getDraftEntityByEntityId if you
- *   don't want an error on missing entities.
+ * Retrieves the draft entity for an entity, given its entityId and the draft store.
+ * @throws {Error} if entity not found - use getDraftEntityForEntityId if you don't want an error on missing entities.
  */
 export const mustGetDraftEntityByEntityId = (
   draftStore: EntityStore["draft"],
@@ -551,32 +548,24 @@ class ProsemirrorStateChangeHandler {
 
   private handlePotentialTextContentChangesInEntityNode(node: EntityNode) {
     const draftEntityStore = this.getDraftEntityStoreFromTransaction();
-    const draftEntity =
-      draftEntityStore[getRequiredDraftIdFromEntityNode(node)];
-
-    if (!draftEntity) {
-      throw new Error("invariant: draft entity missing from store");
-    }
-
-    const draftTextEntity = isDraftTextContainingEntityProperties(
-      draftEntity.properties,
-    )
-      ? draftEntity.properties.text.data
-      : draftEntity;
+    const childEntity = getEntityChildEntity(
+      getRequiredDraftIdFromEntityNode(node),
+      draftEntityStore,
+    );
 
     if (
-      "properties" in draftTextEntity &&
+      isTextEntity(childEntity) &&
       node.firstChild &&
-      isTextEntity(draftTextEntity)
+      isComponentNode(node.firstChild)
     ) {
       const nextProps = textBlockNodeToEntityProperties(node.firstChild);
 
-      if (!isEqual(draftTextEntity.properties, nextProps)) {
+      if (!isEqual(childEntity.properties, nextProps)) {
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
           payload: {
             merge: false,
-            draftId: draftTextEntity.draftId,
+            draftId: childEntity.draftId,
             properties: nextProps,
           },
         });

@@ -102,6 +102,37 @@ export const isDraftTextContainingEntityProperties = (
 /**
  * @todo this will need to change when we remove legacy links
  */
+export const getEntityChildEntity = (
+  draftId: string,
+  draftEntityStore: EntityStore["draft"],
+) => {
+  const entity = draftEntityStore[draftId];
+  if (!entity) {
+    throw new Error("invariant: missing entity");
+  }
+
+  if (isTextContainingEntityProperties(entity.properties)) {
+    const linkEntity = entity.properties.text.data;
+
+    if (!isDraftEntity(linkEntity)) {
+      throw new Error("Expected linked entity to be draft");
+    }
+
+    const textEntity = draftEntityStore[linkEntity.draftId];
+
+    if (!textEntity) {
+      throw new Error("Missing text entity from draft store");
+    }
+
+    return textEntity;
+  }
+
+  return entity;
+};
+
+/**
+ * @todo this will need to change when we remove legacy links
+ */
 export const getBlockChildEntity = (
   draftBlockId: string,
   entityStore: EntityStore,
@@ -112,31 +143,10 @@ export const getBlockChildEntity = (
     throw new Error("Can only get text entity from block entity");
   }
 
-  const blockPropertiesEntityDraftId = blockEntity.properties.entity.draftId;
-  const blockPropertiesEntity = entityStore.draft[blockPropertiesEntityDraftId];
-
-  if (!blockPropertiesEntity) {
-    throw new Error("invariant: missing block entity");
-  }
-
-  if (isTextContainingEntityProperties(blockPropertiesEntity.properties)) {
-    // @todo look into why this was using entityId
-    const linkEntity = blockPropertiesEntity.properties.text.data;
-
-    if (!isDraftEntity(linkEntity)) {
-      throw new Error("Expected linked entity to be draft");
-    }
-
-    const textEntity = entityStore.draft[linkEntity.draftId];
-
-    if (!textEntity) {
-      throw new Error("Missing text entity from draft store");
-    }
-
-    return textEntity;
-  }
-
-  return blockPropertiesEntity;
+  return getEntityChildEntity(
+    blockEntity.properties.entity.draftId,
+    entityStore.draft,
+  );
 };
 
 /**

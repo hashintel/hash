@@ -1,12 +1,4 @@
-import {
-  getBlockChildEntity,
-  isTextEntity,
-} from "@hashintel/hash-shared/entity";
 import { entityStorePluginState } from "@hashintel/hash-shared/entityStorePlugin";
-import {
-  isComponentNode,
-  isEntityNode,
-} from "@hashintel/hash-shared/prosemirror";
 import { mapValues } from "lodash";
 import { Command } from "prosemirror-commands";
 import { keymap } from "prosemirror-keymap";
@@ -18,6 +10,8 @@ import {
   Transaction,
 } from "prosemirror-state";
 import { Mapping } from "prosemirror-transform";
+import { getBlockChildEntity, isTextEntity } from "./entity";
+import { isComponentNode, isEntityNode } from "./prosemirror";
 
 type WrapperNodes = [number, ProsemirrorNode<Schema>[]];
 type WrapperNodesList = WrapperNodes[];

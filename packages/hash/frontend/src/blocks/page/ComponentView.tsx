@@ -242,7 +242,7 @@ export class ComponentView implements NodeView<Schema> {
   private editableRef = (editableNode: HTMLElement | null) => {
     const childEntity = getBlockChildEntity(this.getBlockDraftId(), this.store);
 
-    if (!childEntity) {
+    if (!childEntity || !isComponentNode(this.node)) {
       throw new Error("Block not ready to become editable");
     }
 
