@@ -16,10 +16,8 @@ use crate::{
     api::rest::api_resource::RoutedResource,
     knowledge::{Entity, EntityId},
     ontology::{types::uri::VersionedUri, AccountId},
-    store::{
-        error::{EntityDoesNotExist, QueryError},
-        Store, StorePool,
-    },
+    store::error::{EntityDoesNotExist, QueryError},
+    GraphPool,
 };
 
 #[derive(Component, Serialize)]
@@ -44,13 +42,13 @@ pub struct EntityResource;
 
 impl RoutedResource for EntityResource {
     /// Create routes for interacting with entities.
-    fn routes<S: StorePool + 'static>() -> Router {
+    fn routes<P: GraphPool>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/entity",
             Router::new()
-                .route("/", post(create_entity::<S>).put(update_entity::<S>))
-                .route("/:entity_id", get(get_entity::<S>)),
+                .route("/", post(create_entity::<P>).put(update_entity::<P>))
+                .route("/:entity_id", get(get_entity::<P>)),
         )
     }
 }
@@ -77,9 +75,9 @@ struct CreateEntityRequest {
     ),
     request_body = CreateEntityRequest,
 )]
-async fn create_entity<S: StorePool>(
+async fn create_entity<P: GraphPool>(
     body: Json<CreateEntityRequest>,
-    pool: Extension<Arc<S>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<QualifiedEntity>, StatusCode> {
     let Json(CreateEntityRequest {
         entity,
@@ -119,9 +117,9 @@ async fn create_entity<S: StorePool>(
         ("entity_id" = Uuid, Path, description = "The ID of the entity"),
     )
 )]
-async fn get_entity<S: StorePool>(
+async fn get_entity<P: GraphPool>(
     entity_id: Path<EntityId>,
-    pool: Extension<Arc<S>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<QualifiedEntity>, impl IntoResponse> {
     let Path(entity_id) = entity_id;
 
@@ -168,9 +166,9 @@ struct UpdateEntityRequest {
     ),
     request_body = UpdateEntityRequest,
 )]
-async fn update_entity<S: StorePool>(
+async fn update_entity<P: GraphPool>(
     body: Json<UpdateEntityRequest>,
-    pool: Extension<Arc<S>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<QualifiedEntity>, StatusCode> {
     let Json(UpdateEntityRequest {
         entity,

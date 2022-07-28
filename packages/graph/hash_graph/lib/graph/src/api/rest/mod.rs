@@ -16,19 +16,16 @@ use axum::{routing::get, Extension, Json, Router};
 use utoipa::{openapi, Modify, OpenApi};
 
 use self::api_resource::RoutedResource;
-use crate::store::StorePool;
+use crate::GraphPool;
 
-fn api_resources<S>() -> Vec<Router>
-where
-    S: StorePool + 'static,
-{
+fn api_resources<P: GraphPool>() -> Vec<Router> {
     vec![
-        data_type::DataTypeResource::routes::<S>(),
-        property_type::PropertyTypeResource::routes::<S>(),
-        link_type::LinkTypeResource::routes::<S>(),
-        entity_type::EntityTypeResource::routes::<S>(),
-        entity::EntityResource::routes::<S>(),
-        link::LinkResource::routes::<S>(),
+        data_type::DataTypeResource::routes::<P>(),
+        property_type::PropertyTypeResource::routes::<P>(),
+        link_type::LinkTypeResource::routes::<P>(),
+        entity_type::EntityTypeResource::routes::<P>(),
+        entity::EntityResource::routes::<P>(),
+        link::LinkResource::routes::<P>(),
     ]
 }
 
@@ -43,12 +40,9 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
     ]
 }
 
-pub fn rest_api_router<S>(store: Arc<S>) -> Router
-where
-    S: StorePool + 'static,
-{
+pub fn rest_api_router<P: GraphPool>(store: Arc<P>) -> Router {
     // All api resources are merged together into a super-router.
-    let merged_routes = api_resources::<S>()
+    let merged_routes = api_resources::<P>()
         .into_iter()
         .fold(Router::new(), axum::Router::merge);
 

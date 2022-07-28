@@ -1,3 +1,4 @@
+pub mod crud;
 pub mod error;
 mod pool;
 mod postgres;
@@ -14,11 +15,12 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    knowledge::{Entity, EntityId, Link, Links, Outgoing},
+    knowledge::{Entity, EntityId, Link, Links},
     ontology::{
         types::{uri::VersionedUri, DataType, EntityType, LinkType, Persisted, PropertyType},
         AccountId, VersionId,
     },
+    store::crud::Read,
 };
 
 #[derive(Debug)]
@@ -180,6 +182,7 @@ pub trait Store {
     ///
     /// - if the entry referred to by `uri` does not exist.
     async fn version_id_by_uri(&self, uri: &VersionedUri) -> Result<VersionId, QueryError>;
+
     /// Creates a new [`DataType`].
     ///
     /// # Errors:
@@ -194,13 +197,17 @@ pub trait Store {
         created_by: AccountId,
     ) -> Result<Persisted<DataType>, InsertionError>;
 
-    /// Get an existing [`DataType`] by a [`VersionId`].
+    /// Get the [`DataType`] specified by `identifier`.
     ///
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    async fn get_data_type(&self, version_id: VersionId)
-    -> Result<Persisted<DataType>, QueryError>;
+    async fn get_data_type<'i, I: Send>(&self, identifier: I) -> Result<Self::Output, QueryError>
+    where
+        Self: Read<'i, I, DataType>,
+    {
+        self.get(identifier).await
+    }
 
     /// Update the definition of an existing [`DataType`].
     ///
@@ -227,15 +234,20 @@ pub trait Store {
         created_by: AccountId,
     ) -> Result<Persisted<PropertyType>, InsertionError>;
 
-    /// Get an existing [`PropertyType`] by a [`VersionId`].
+    /// Get the [`PropertyType`] specified by `identifier`.
     ///
     /// # Errors
     ///
     /// - if the requested [`PropertyType`] doesn't exist.
-    async fn get_property_type(
+    async fn get_property_type<'i, I: Send>(
         &self,
-        version_id: VersionId,
-    ) -> Result<Persisted<PropertyType>, QueryError>;
+        identifier: I,
+    ) -> Result<Self::Output, QueryError>
+    where
+        Self: Read<'i, I, PropertyType>,
+    {
+        self.get(identifier).await
+    }
 
     /// Update the definition of an existing [`PropertyType`].
     ///
@@ -262,15 +274,17 @@ pub trait Store {
         created_by: AccountId,
     ) -> Result<Persisted<EntityType>, InsertionError>;
 
-    /// Get an existing [`EntityType`] by a [`VersionId`].
+    /// Get the [`EntityType`] specified by `identifier`.
     ///
     /// # Errors
     ///
     /// - if the requested [`EntityType`] doesn't exist.
-    async fn get_entity_type(
-        &self,
-        version_id: VersionId,
-    ) -> Result<Persisted<EntityType>, QueryError>;
+    async fn get_entity_type<'i, I: Send>(&self, identifier: I) -> Result<Self::Output, QueryError>
+    where
+        Self: Read<'i, I, EntityType>,
+    {
+        self.get(identifier).await
+    }
 
     /// Update the definition of an existing [`EntityType`].
     ///
@@ -299,13 +313,17 @@ pub trait Store {
         created_by: AccountId,
     ) -> Result<Persisted<LinkType>, InsertionError>;
 
-    /// Get an existing [`LinkType`] by a [`VersionId`].
+    /// Get the [`LinkType`] specified by `identifier`.
     ///
     /// # Errors
     ///
     /// - if the requested [`LinkType`] doesn't exist.
-    async fn get_link_type(&self, version_id: VersionId)
-    -> Result<Persisted<LinkType>, QueryError>;
+    async fn get_link_type<'i, I: Send>(&self, identifier: I) -> Result<Self::Output, QueryError>
+    where
+        Self: Read<'i, I, LinkType>,
+    {
+        self.get(identifier).await
+    }
 
     /// Update the definition of an existing [`LinkType`].
     ///
@@ -332,12 +350,19 @@ pub trait Store {
         created_by: AccountId,
     ) -> Result<EntityId, InsertionError>;
 
-    /// Get the latest version of the [`Entity`] identified by [`EntityId`].
+    /// Get the [`Entity`] specified by `identifier`.
+    ///
+    /// Depending on the `identifier` the output is specified by [`Read::Output`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError>;
+    async fn get_entity<'i, I: Send>(&self, identifier: I) -> Result<Self::Output, QueryError>
+    where
+        Self: Read<'i, I, Entity>,
+    {
+        self.get(identifier).await
+    }
 
     /// Update an existing [`Entity`].
     ///
@@ -373,18 +398,28 @@ pub trait Store {
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity_links(&self, source_entity_id: EntityId) -> Result<Links, QueryError>;
+    async fn get_entity_links<'i, I: Send>(&self, identifier: I) -> Result<Self::Output, QueryError>
+    where
+        Self: Read<'i, I, Links>,
+    {
+        self.get(identifier).await
+    }
 
     /// Get a [`Link`] target identified by an [`EntityId`] and a Link Type [`VersionedUri`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_link_target(
+    async fn get_link_target<'i, E: Send, L: Send>(
         &self,
-        source_entity_id: EntityId,
-        link_type_uri: VersionedUri,
-    ) -> Result<Outgoing, QueryError>;
+        source_entity: E,
+        link_type: L,
+    ) -> Result<Self::Output, QueryError>
+    where
+        Self: Read<'i, (E, L), Links>,
+    {
+        self.get((source_entity, link_type)).await
+    }
 
     /// Inactivates a [`Link`] between a source and target [`Entity`].
     ///

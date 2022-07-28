@@ -18,7 +18,8 @@ use crate::{
         types::{uri::VersionedUri, DataType, Persisted, PersistedDataType},
         AccountId,
     },
-    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, Store, StorePool},
+    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError},
+    GraphPool,
 };
 
 #[derive(OpenApi)]
@@ -37,13 +38,13 @@ pub struct DataTypeResource;
 
 impl RoutedResource for DataTypeResource {
     /// Create routes for interacting with data types.
-    fn routes<S: StorePool + 'static>() -> Router {
+    fn routes<P: GraphPool>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/data-type",
             Router::new()
-                .route("/", post(create_data_type::<S>).put(update_data_type::<S>))
-                .route("/:version_id", get(get_data_type::<S>)),
+                .route("/", post(create_data_type::<P>).put(update_data_type::<P>))
+                .route("/:version_id", get(get_data_type::<P>)),
         )
     }
 }
@@ -69,9 +70,9 @@ struct CreateDataTypeRequest {
     ),
     request_body = CreateDataTypeRequest,
 )]
-async fn create_data_type<S: StorePool>(
+async fn create_data_type<P: GraphPool>(
     body: Json<CreateDataTypeRequest>,
-    pool: Extension<Arc<S>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<Persisted<DataType>>, StatusCode> {
     let Json(CreateDataTypeRequest { schema, account_id }) = body;
 
@@ -111,9 +112,9 @@ async fn create_data_type<S: StorePool>(
         ("uri" = String, Path, description = "The URI of data type"),
     )
 )]
-async fn get_data_type<S: StorePool>(
+async fn get_data_type<P: GraphPool>(
     uri: Path<VersionedUri>,
-    pool: Extension<Arc<S>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<Persisted<DataType>>, impl IntoResponse> {
     let store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
@@ -167,9 +168,9 @@ struct UpdateDataTypeRequest {
     ),
     request_body = UpdateDataTypeRequest,
 )]
-async fn update_data_type<S: StorePool>(
+async fn update_data_type<P: GraphPool>(
     body: Json<UpdateDataTypeRequest>,
-    pool: Extension<Arc<S>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<Persisted<DataType>>, StatusCode> {
     let Json(UpdateDataTypeRequest { schema, account_id }) = body;
 

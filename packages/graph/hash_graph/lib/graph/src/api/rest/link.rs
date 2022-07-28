@@ -12,7 +12,8 @@ use crate::{
     api::rest::api_resource::RoutedResource,
     knowledge::{EntityId, Link, Links},
     ontology::{types::uri::VersionedUri, AccountId},
-    store::{error::QueryError, Store, StorePool},
+    store::{error::QueryError, Store},
+    GraphPool,
 };
 
 #[derive(OpenApi)]
@@ -31,16 +32,16 @@ pub struct LinkResource;
 
 impl RoutedResource for LinkResource {
     /// Create routes for interacting with links.
-    fn routes<S: StorePool + 'static>() -> Router {
+    fn routes<P: GraphPool>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         //   for links specifically, we are stacking on top of the existing `/entity/` routes.
         Router::new().nest(
             "/entity/:entity_id/link",
             Router::new().route(
                 "/",
-                post(create_link::<S>)
-                    .get(get_entity_links::<S>)
-                    .delete(inactivate_link::<S>),
+                post(create_link::<P>)
+                    .get(get_entity_links::<P>)
+                    .delete(inactivate_link::<P>),
             ),
         )
     }
@@ -70,10 +71,10 @@ struct CreateLinkRequest {
         ("entity_id" = Uuid, Path, description = "The ID of the source entity"),
     )
 )]
-async fn create_link<S: StorePool>(
+async fn create_link<P: GraphPool>(
     source_entity: Path<EntityId>,
     body: Json<CreateLinkRequest>,
-    pool: Extension<Arc<S>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<Link>, StatusCode> {
     let Path(source_entity) = source_entity;
     let Json(CreateLinkRequest {
@@ -122,9 +123,9 @@ async fn create_link<S: StorePool>(
         ("entity_id" = Uuid, Path, description = "The ID of the source entity"),
     )
 )]
-async fn get_entity_links<S: StorePool>(
+async fn get_entity_links<P: GraphPool>(
     source_entity_id: Path<EntityId>,
-    pool: Extension<Arc<S>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<Links>, impl IntoResponse> {
     let Path(source_entity_id) = source_entity_id;
 
@@ -169,10 +170,10 @@ struct InactivateLinkRequest {
     ),
     request_body = UpdateLinkRequest,
 )]
-async fn inactivate_link<S: StorePool>(
+async fn inactivate_link<P: GraphPool>(
     source_entity: Path<EntityId>,
     body: Json<InactivateLinkRequest>,
-    pool: Extension<Arc<S>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<StatusCode, StatusCode> {
     let Path(source_entity) = source_entity;
     let Json(InactivateLinkRequest {

@@ -272,7 +272,7 @@ impl DatabaseApi<'_> {
         link_type_uri: VersionedUri,
     ) -> Result<Outgoing, QueryError> {
         self.store
-            .get_link_target(source_entity_id, link_type_uri)
+            .get_link_target(source_entity_id, &link_type_uri)
             .await
     }
 

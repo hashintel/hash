@@ -18,7 +18,8 @@ use crate::{
         types::{uri::VersionedUri, Persisted, PersistedPropertyType, PropertyType},
         AccountId,
     },
-    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, Store, StorePool},
+    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError},
+    GraphPool,
 };
 
 #[derive(OpenApi)]
@@ -37,16 +38,16 @@ pub struct PropertyTypeResource;
 
 impl RoutedResource for PropertyTypeResource {
     /// Create routes for interacting with property types.
-    fn routes<S: StorePool + 'static>() -> Router {
+    fn routes<P: GraphPool>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/property-type",
             Router::new()
                 .route(
                     "/",
-                    post(create_property_type::<S>).put(update_property_type::<S>),
+                    post(create_property_type::<P>).put(update_property_type::<P>),
                 )
-                .route("/:version_id", get(get_property_type::<S>)),
+                .route("/:version_id", get(get_property_type::<P>)),
         )
     }
 }
@@ -72,9 +73,9 @@ struct CreatePropertyTypeRequest {
     ),
     request_body = CreatePropertyTypeRequest,
 )]
-async fn create_property_type<S: StorePool>(
+async fn create_property_type<P: GraphPool>(
     body: Json<CreatePropertyTypeRequest>,
-    pool: Extension<Arc<S>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<Persisted<PropertyType>>, StatusCode> {
     let Json(CreatePropertyTypeRequest { schema, account_id }) = body;
 
@@ -114,9 +115,9 @@ async fn create_property_type<S: StorePool>(
         ("uri" = String, Path, description = "The URI of property type"),
     )
 )]
-async fn get_property_type<S: StorePool>(
+async fn get_property_type<P: GraphPool>(
     uri: Path<VersionedUri>,
-    pool: Extension<Arc<S>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<Persisted<PropertyType>>, impl IntoResponse> {
     let store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
@@ -170,9 +171,9 @@ struct UpdatePropertyTypeRequest {
     ),
     request_body = UpdatePropertyTypeRequest,
 )]
-async fn update_property_type<S: StorePool>(
+async fn update_property_type<P: GraphPool>(
     body: Json<UpdatePropertyTypeRequest>,
-    pool: Extension<Arc<S>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<Persisted<PropertyType>>, StatusCode> {
     let Json(UpdatePropertyTypeRequest { schema, account_id }) = body;
 
