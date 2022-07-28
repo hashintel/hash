@@ -1,13 +1,16 @@
 import "./app.scss";
 
-import React, {
+import {
   useState,
   useCallback,
   useMemo,
   useRef,
   MouseEventHandler,
 } from "react";
-import { BlockComponent, useGraphBlockService } from "@blockprotocol/graph";
+import {
+  BlockComponent,
+  useGraphBlockService,
+} from "@blockprotocol/graph/react";
 import { parseISO, isValid } from "date-fns";
 import * as duration from "duration-fns";
 import { useAutoRefresh } from "./app/use-auto-refresh";

@@ -1,4 +1,4 @@
-import { useState, FC, ReactNode } from "react";
+import { useState, FunctionComponent, ReactNode } from "react";
 import { faAdd, faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { Box, Typography, Collapse, Tooltip } from "@mui/material";
 import {
@@ -18,7 +18,7 @@ type NavLinkProps = {
   } & IconButtonProps;
 };
 
-export const NavLink: FC<NavLinkProps> = ({
+export const NavLink: FunctionComponent<NavLinkProps> = ({
   title,
   children,
   endAdornmentProps,

@@ -1,9 +1,10 @@
-import React, {
+import {
   useEffect,
   useLayoutEffect,
   useRef,
   useReducer,
   useCallback,
+  Reducer,
 } from "react";
 
 import { tw } from "twind";
@@ -103,7 +104,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
       errorString,
     },
     dispatch,
-  ] = useReducer<React.Reducer<AppState, Actions>>(
+  ] = useReducer<Reducer<AppState, Actions>>(
     reducer,
     getInitialState({
       html: initialHtml,

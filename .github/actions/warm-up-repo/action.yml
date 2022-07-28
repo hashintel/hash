@@ -1,13 +1,25 @@
 name: Warm-up repo
 description: Prepares Node and Yarn dependencies
 
+inputs:
+  playwright-deps:
+    default: ""
+    description: "List of browsers separated by space, e.g. 'chrome firefox'"
+    required: false
+
 runs:
   using: composite
   steps:
-    - uses: actions/setup-node@v2
+    - uses: actions/setup-node@v3
       with:
         node-version: 18
         cache: yarn
 
     - run: yarn install
+      shell: bash
+      env:
+        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: ${{ inputs.playwright-deps == '' }}
+
+    - run: yarn playwright install-deps ${{ inputs.playwright-deps }}
+      if: ${{ inputs.playwright-deps != '' }}
       shell: bash

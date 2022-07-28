@@ -2,6 +2,7 @@ import { Draft, produce } from "immer";
 import { createDraftIdForEntity } from "./entityStorePlugin";
 import { BlockEntity, isTextContainingEntityProperties } from "./entity";
 import { DistributiveOmit } from "./util";
+import { MinimalEntityTypeFieldsFragment } from "./graphql/apiTypes.gen";
 
 export type EntityStoreType = BlockEntity | BlockEntity["properties"]["entity"];
 
@@ -22,6 +23,7 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   entityId: string | null;
   entityTypeId?: string | null;
   entityVersionId?: string | null;
+  entityType?: MinimalEntityTypeFieldsFragment;
 
   // @todo thinking about removing this – as they're keyed by this anyway
   //  and it makes it complicated to deal with types – should probably just

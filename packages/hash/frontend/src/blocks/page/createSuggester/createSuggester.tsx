@@ -1,4 +1,4 @@
-import type { BlockVariant } from "blockprotocol";
+import type { BlockVariant } from "@blockprotocol/core";
 import {
   blockComponentRequiresText,
   BlockMeta,
@@ -11,7 +11,7 @@ import {
   PluginKey,
   TextSelection,
 } from "prosemirror-state";
-import React, { CSSProperties } from "react";
+import { CSSProperties, ReactElement } from "react";
 import { RenderPortal } from "../usePortals";
 import { ensureMounted } from "../../../lib/dom";
 import { BlockSuggester } from "./BlockSuggester";
@@ -182,13 +182,12 @@ export const createSuggester = (
             getManager()
               .createRemoteBlockTr(blockMeta.componentId, null, variant)
               .then(([tr, node, meta]) => {
-                const $end = view.state.doc.resolve(to);
-                const endPosition = $end.end(1);
+                const endPosition = view.state.doc.resolve(to).pos;
                 tr.insert(endPosition, node);
 
                 if (blockComponentRequiresText(meta.componentSchema)) {
                   tr.setSelection(
-                    TextSelection.create<Schema>(tr.doc, endPosition),
+                    TextSelection.create<Schema>(tr.doc, endPosition + 1),
                   );
                 }
                 tr.replaceWith(from, to, []);
@@ -214,7 +213,7 @@ export const createSuggester = (
             view.dispatch(tr);
           };
 
-          let jsx: JSX.Element | null = null;
+          let jsx: ReactElement | null = null;
 
           switch (triggerChar) {
             case "/":

@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CellProps,
   Renderer,
@@ -14,12 +8,14 @@ import {
 } from "react-table";
 
 import {
-  BlockComponent,
-  useGraphBlockService,
   LinkedAggregation,
   EntityType,
   UpdateEntityData,
 } from "@blockprotocol/graph";
+import {
+  BlockComponent,
+  useGraphBlockService,
+} from "@blockprotocol/graph/react";
 import { tw } from "twind";
 import { orderBy } from "lodash";
 

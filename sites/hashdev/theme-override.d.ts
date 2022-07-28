@@ -49,37 +49,37 @@ declare module "@mui/material/styles" {
   }
 
   interface TypographyVariants {
-    hashLargeTitle: React.CSSProperties;
-    hashHeading1: React.CSSProperties;
-    hashHeading2: React.CSSProperties;
-    hashHeading3: React.CSSProperties;
-    hashHeading4: React.CSSProperties;
-    hashHeading5: React.CSSProperties;
-    hashBodyCopy: React.CSSProperties;
-    hashLargeText: React.CSSProperties;
-    hashSmallText: React.CSSProperties;
-    hashSmallTextMedium: React.CSSProperties;
-    hashFooterHeading: React.CSSProperties;
-    hashSmallCaps: React.CSSProperties;
-    hashMediumCaps: React.CSSProperties;
-    hashSocialIconLink?: React.CSSProperties;
+    hashLargeTitle: CSSProperties;
+    hashHeading1: CSSProperties;
+    hashHeading2: CSSProperties;
+    hashHeading3: CSSProperties;
+    hashHeading4: CSSProperties;
+    hashHeading5: CSSProperties;
+    hashBodyCopy: CSSProperties;
+    hashLargeText: CSSProperties;
+    hashSmallText: CSSProperties;
+    hashSmallTextMedium: CSSProperties;
+    hashFooterHeading: CSSProperties;
+    hashSmallCaps: CSSProperties;
+    hashMediumCaps: CSSProperties;
+    hashSocialIconLink?: CSSProperties;
   }
 
   interface TypographyVariantsOptions {
-    hashLargeTitle?: React.CSSProperties;
-    hashHeading1?: React.CSSProperties;
-    hashHeading2?: React.CSSProperties;
-    hashHeading3?: React.CSSProperties;
-    hashHeading4?: React.CSSProperties;
-    hashHeading5?: React.CSSProperties;
-    hashBodyCopy?: React.CSSProperties;
-    hashLargeText?: React.CSSProperties;
-    hashSmallText?: React.CSSProperties;
-    hashSmallTextMedium?: React.CSSProperties;
-    hashFooterHeading?: React.CSSProperties;
-    hashSmallCaps?: React.CSSProperties;
-    hashMediumCaps?: React.CSSProperties;
-    hashSocialIconLink?: React.CSSProperties;
+    hashLargeTitle?: CSSProperties;
+    hashHeading1?: CSSProperties;
+    hashHeading2?: CSSProperties;
+    hashHeading3?: CSSProperties;
+    hashHeading4?: CSSProperties;
+    hashHeading5?: CSSProperties;
+    hashBodyCopy?: CSSProperties;
+    hashLargeText?: CSSProperties;
+    hashSmallText?: CSSProperties;
+    hashSmallTextMedium?: CSSProperties;
+    hashFooterHeading?: CSSProperties;
+    hashSmallCaps?: CSSProperties;
+    hashMediumCaps?: CSSProperties;
+    hashSocialIconLink?: CSSProperties;
   }
 }
 

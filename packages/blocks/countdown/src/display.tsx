@@ -1,4 +1,4 @@
-import React, { useEffect, useState, VFC } from "react";
+import { useEffect, useState, FunctionComponent } from "react";
 import { Duration, intervalToDuration, isPast } from "date-fns";
 
 type DisplayProps = {
@@ -22,7 +22,10 @@ export const defaultDuration = {
   minutes: 0,
 } as Duration;
 
-export const Display: VFC<DisplayProps> = ({ targetDate, displayTime }) => {
+export const Display: FunctionComponent<DisplayProps> = ({
+  targetDate,
+  displayTime,
+}) => {
   const [_, setClock] = useState(new Date());
 
   useEffect(() => {

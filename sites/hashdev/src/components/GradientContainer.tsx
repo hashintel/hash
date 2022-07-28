@@ -1,8 +1,8 @@
 import { Box } from "@mui/material";
 import { BoxProps } from "@mui/system";
-import { FC } from "react";
+import { FunctionComponent } from "react";
 
-export const GradientContainer: FC<BoxProps> = ({
+export const GradientContainer: FunctionComponent<BoxProps> = ({
   children,
   sx = [],
   ...props

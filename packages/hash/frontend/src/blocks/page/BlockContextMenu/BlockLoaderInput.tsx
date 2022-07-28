@@ -1,5 +1,5 @@
 import { Box, Collapse } from "@mui/material";
-import React, { useState, useRef, FormEvent } from "react";
+import { useState, useRef, FormEvent, FunctionComponent } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 
 import { TextField } from "@hashintel/hash-design-system";
@@ -10,7 +10,13 @@ import { Button } from "../../../shared/ui";
 /** trim whitespace and remove trailing slash */
 const createNormalizedBlockUrl = (url: string) => url.trim().replace(/\/$/, "");
 
-export const BlockLoaderInput: React.VFC = () => {
+type BlockLoaderInputProps = {
+  onLoad: () => void;
+};
+
+export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({
+  onLoad,
+}) => {
   const blockView = useBlockView();
   const { value: userBlocks, setValue: setUserBlocks } = useUserBlocks();
 
@@ -50,6 +56,7 @@ export const BlockLoaderInput: React.VFC = () => {
       .then((block) => {
         const { editorView } = blockView;
         editorView.dispatch(editorView.state.tr.insert(pos, block));
+        onLoad();
       })
       .catch((err) => {
         // eslint-disable-next-line no-console -- requires individual debugging
@@ -76,7 +83,7 @@ export const BlockLoaderInput: React.VFC = () => {
       <TextField
         size="xs"
         type="url"
-        placeholder="Load Block from URL..."
+        placeholder="Load block from URL..."
         required
         value={blockUrl}
         sx={{ flex: 1 }}

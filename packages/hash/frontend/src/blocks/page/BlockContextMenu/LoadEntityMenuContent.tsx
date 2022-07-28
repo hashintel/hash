@@ -9,7 +9,13 @@ import {
   MenuList,
 } from "@mui/material";
 import { PopupState } from "material-ui-popup-state/core";
-import { useCallback, useEffect, useMemo, useRef, VFC } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  FunctionComponent,
+} from "react";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { EntityFieldsFragment } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import {
@@ -27,10 +33,9 @@ type LoadEntityMenuContentProps = {
   popupState?: PopupState;
 };
 
-export const LoadEntityMenuContent: VFC<LoadEntityMenuContentProps> = ({
-  entityId,
-  popupState,
-}) => {
+export const LoadEntityMenuContent: FunctionComponent<
+  LoadEntityMenuContentProps
+> = ({ entityId, popupState }) => {
   const { accountId } = useRouteAccountInfo();
   const blockView = useBlockView();
   // This depends on state external to react without subscribing to it

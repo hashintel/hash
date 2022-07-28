@@ -1,5 +1,3 @@
-import * as React from "react";
-
 import * as echarts from "echarts/core";
 import {
   LineChart,
@@ -9,6 +7,7 @@ import {
 } from "echarts/charts";
 import { GridComponent } from "echarts/components";
 import { SVGRenderer } from "echarts/renderers";
+import { FunctionComponent, useEffect, useRef, useState } from "react";
 
 export type SeriesOption = LineSeriesOption | ScatterSeriesOption;
 
@@ -22,18 +21,18 @@ type GraphProps = {
   options: ECOption;
 };
 
-export const EChart: React.FC<GraphProps> = ({ options }) => {
-  const wrapperRef = React.useRef<HTMLDivElement>(null);
+export const EChart: FunctionComponent<GraphProps> = ({ options }) => {
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const [chart, setChart] = React.useState<echarts.ECharts>();
+  const [chart, setChart] = useState<echarts.ECharts>();
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (wrapperRef.current) {
       setChart(echarts.init(wrapperRef.current));
     }
   }, [wrapperRef]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (chart) {
       chart.setOption(options, { notMerge: true });
     }

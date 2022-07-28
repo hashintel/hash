@@ -1,42 +1,95 @@
-import { BlockProtocolFunctions, BlockProtocolProps } from "blockprotocol";
-import React from "react";
+import { BlockMetadata, UnknownRecord } from "@blockprotocol/core";
+import {
+  BlockGraphProperties,
+  EmbedderGraphMessageCallbacks,
+} from "@blockprotocol/graph";
+import { useGraphEmbedderService } from "@blockprotocol/graph/react";
+import { FunctionComponent, useEffect, useRef } from "react";
+import { BlockRenderer } from "./blockRenderer";
 
-import { HtmlBlock } from "../HtmlBlock/HtmlBlock";
 import { useRemoteBlock } from "./useRemoteBlock";
 
 type RemoteBlockProps = {
-  blockFunctions: BlockProtocolFunctions;
-  blockProperties: Omit<BlockProtocolProps, keyof BlockProtocolFunctions>;
+  graphCallbacks: Omit<
+    EmbedderGraphMessageCallbacks,
+    | "getEntity"
+    | "getEntityType"
+    | "getLink"
+    | "getLinkedAggregation"
+    | "deleteEntity"
+    | "deleteEntityType"
+  >;
+  graphProperties: Required<BlockGraphProperties<UnknownRecord>["graph"]>;
+  blockMetadata: BlockMetadata;
   crossFrame?: boolean;
   editableRef?: unknown;
   onBlockLoaded?: () => void;
   sourceUrl: string;
 };
 
-export const BlockLoadingIndicator: React.VFC = () => <div>Loading...</div>;
+export const BlockLoadingIndicator: FunctionComponent = () => (
+  <div>Loading...</div>
+);
 
 /**
- * @see https://github.com/Paciolan/remote-component/blob/2b2cfbb5b6006117c56f3aa7daa2292d3823bb83/src/createRemoteComponent.tsx
+ * Loads and renders a block from a URL, instantiates the graph service handler,
+ * and passes the block the provided graphProperties
+ *
+ * @see https://github.com/Paciolan/remote-component for the original inspiration
  */
-export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
-  blockFunctions,
-  blockProperties,
+export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
+  blockMetadata,
   crossFrame,
   editableRef,
-  sourceUrl,
+  graphCallbacks,
+  graphProperties,
   onBlockLoaded,
+  sourceUrl,
 }) => {
-  const [loading, err, Component] = useRemoteBlock(
+  const [loading, err, blockSource] = useRemoteBlock(
     sourceUrl,
     crossFrame,
     onBlockLoaded,
   );
 
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const { graphService } = useGraphEmbedderService(wrapperRef, {
+    callbacks: graphCallbacks,
+    ...graphProperties,
+  });
+
+  useEffect(() => {
+    if (graphService) {
+      graphService.blockEntity({ data: graphProperties.blockEntity });
+    }
+  }, [graphProperties.blockEntity, graphService]);
+
+  useEffect(() => {
+    if (graphService) {
+      graphService.blockGraph({ data: graphProperties.blockGraph });
+    }
+  }, [graphProperties.blockGraph, graphService]);
+
+  useEffect(() => {
+    if (graphService) {
+      graphService.entityTypes({ data: graphProperties.entityTypes });
+    }
+  }, [graphProperties.entityTypes, graphService]);
+
+  useEffect(() => {
+    if (graphService) {
+      graphService.linkedAggregations({
+        data: graphProperties.linkedAggregations,
+      });
+    }
+  }, [graphProperties.linkedAggregations, graphService]);
+
   if (loading) {
     return <BlockLoadingIndicator />;
   }
 
-  if (!Component) {
+  if (!blockSource) {
     throw new Error("Could not load and parse block from URL");
   }
 
@@ -44,26 +97,23 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
     throw err;
   }
 
-  if (typeof Component === "string") {
-    /**
-     * This HTML block has no props available to it, unless loaded via FramedBlock.
-     * @todo do something about this. throw if not in an iframe?
-     *    or check for iframe status and assign props to window here, not FramedBlock?
-     */
-    return (
-      <HtmlBlock
-        html={Component}
-        blockFunctions={blockFunctions}
-        blockProperties={blockProperties}
-      />
-    );
-  }
+  const propsToInject: BlockGraphProperties<Record<string, any>> & {
+    editableRef: any;
+  } = {
+    editableRef,
+    graph: graphProperties,
+  };
 
   return (
-    <Component
-      {...blockFunctions}
-      {...blockProperties}
-      editableRef={editableRef}
-    />
+    <div ref={wrapperRef}>
+      {graphService ? (
+        <BlockRenderer
+          blockSource={blockSource}
+          blockType={blockMetadata.blockType}
+          properties={propsToInject}
+          sourceUrl={sourceUrl}
+        />
+      ) : null}
+    </div>
   );
 };

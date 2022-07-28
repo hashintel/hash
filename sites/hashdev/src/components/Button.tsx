@@ -7,7 +7,7 @@ import {
 } from "@mui/material";
 // eslint-disable-next-line no-restricted-imports
 import Link from "next/link";
-import { FC, forwardRef, useMemo, VFC } from "react";
+import { FunctionComponent, forwardRef, useMemo } from "react";
 import { isHrefExternal } from "./Link";
 import { LoadingSpinner } from "./LoadingSpinner";
 
@@ -17,7 +17,7 @@ export type ButtonProps = {
   disabledTooltipText?: string;
 } & MuiButtonProps & { rel?: string; target?: string }; // MUI button renders <a /> when href is provided, but typings miss rel and target
 
-const LoadingContent: VFC<{
+const LoadingContent: FunctionComponent<{
   withText: boolean;
   variant: ButtonProps["variant"];
   size: ButtonProps["size"];
@@ -65,7 +65,7 @@ const LoadingContent: VFC<{
   );
 };
 
-export const Button: FC<ButtonProps> = forwardRef(
+export const Button: FunctionComponent<ButtonProps> = forwardRef(
   ({ children, loading, loadingWithoutText, href, ...props }, ref) => {
     const linkProps = useMemo(() => {
       if (href && isHrefExternal(href)) {

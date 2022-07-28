@@ -1,4 +1,4 @@
-import { VFC } from "react";
+import { FunctionComponent } from "react";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import {
   Box,
@@ -60,11 +60,9 @@ const menuItems: {
   // },
 ];
 
-export const SortActionsDropdown: VFC<SortActionsDropdownProps> = ({
-  setSortType,
-  activeSortType,
-  popupState,
-}) => {
+export const SortActionsDropdown: FunctionComponent<
+  SortActionsDropdownProps
+> = ({ setSortType, activeSortType, popupState }) => {
   return (
     <Menu {...bindMenu(popupState)}>
       <Box

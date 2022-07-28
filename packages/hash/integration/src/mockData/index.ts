@@ -16,7 +16,6 @@ import {
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createOrgs, createUsers } from "./accounts";
 import { SystemTypeName } from "../graphql/apiTypes.gen";
-import { createEntityTypes } from "./entityTypes";
 
 export {};
 
@@ -63,11 +62,6 @@ void (async () => {
   const [users, _orgs] = await Promise.all([
     createUsers(db)(systemOrg),
     createOrgs(db),
-  ]);
-
-  await createEntityTypes(db)([
-    systemOrg.accountId,
-    ...users.map((user) => user.accountId),
   ]);
 
   const results = new Map<string, Entity>();
@@ -375,7 +369,7 @@ void (async () => {
         "c1",
         {
           properties: {
-            name: "Example Org",
+            name: "Example Company",
             url: "https://example.com",
           },
           entityTypeId: newTypeIds.Company!,

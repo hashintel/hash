@@ -2,7 +2,7 @@
   "root": true,
   // this is the highest config lower ones will automatically extend
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint", "react-hooks", "jest"],
+  "plugins": ["@typescript-eslint", "react-hooks", "jest", "unicorn"],
   "extends": [
     "plugin:@typescript-eslint/recommended-requiring-type-checking",
     "airbnb",
@@ -12,8 +12,6 @@
   "ignorePatterns": ["**/*.gen.*"],
   "globals": {
     "NodeJS": true,
-    "React": true,
-    "JSX": true,
     "FixMeLater": "readonly",
     "globalThis": "readonly"
   },
@@ -21,6 +19,7 @@
     "browser": true,
     "node": true
   },
+  "reportUnusedDisableDirectives": true,
   "rules": {
     // overridden airbnb rules (if you wish to add to this list, please outline your reasoning here: https://www.notion.so/hashintel/HASH-dev-eslint-configuration-60c52c127d13478fbce6bb5579a6b7be)
     "no-undef-init": "off",
@@ -95,7 +94,8 @@
     "import/no-unresolved": [
       2,
       {
-        "ignore": ["^@hashintel"]
+        // graph uses 'exports' field in package.json https://github.com/import-js/eslint-plugin-import/issues/1810
+        "ignore": ["^@hashintel", "^@blockprotocol/graph"]
       }
     ],
     "react/prop-types": "off",
@@ -158,6 +158,11 @@
       "error",
       {
         "paths": [
+          {
+            "name": "react",
+            "importNames": ["FC", "VFC", "VoidFunctionComponent"],
+            "message": "Please use FunctionComponent instead"
+          },
           {
             "name": "@testing-library/react",
             "importNames": ["render"],
@@ -280,6 +285,15 @@
           "$scope",
           "staticContext"
         ]
+      }
+    ],
+    "unicorn/import-style": [
+      "error",
+      {
+        "styles": {
+          "react": { "named": true },
+          "react-dom": { "named": true }
+        }
       }
     ]
   },

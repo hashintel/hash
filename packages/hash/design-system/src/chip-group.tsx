@@ -1,8 +1,8 @@
-import * as React from "react";
+import { Children, forwardRef, FunctionComponent, ReactNode } from "react";
 import { Box, chipClasses, BoxProps } from "@mui/material";
 
 type ChipGroupProps = {
-  children: React.ReactNode;
+  children: ReactNode;
 } & BoxProps;
 
 // @todo consider adding size as a prop to ChipGroup
@@ -13,7 +13,7 @@ type ChipGroupProps = {
 // </ChipGroup>
 //
 
-export const ChipGroup: React.FC<ChipGroupProps> = React.forwardRef(
+export const ChipGroup: FunctionComponent<ChipGroupProps> = forwardRef(
   ({ children }, ref) => {
     return (
       <Box
@@ -26,7 +26,7 @@ export const ChipGroup: React.FC<ChipGroupProps> = React.forwardRef(
           // <ChipGroup>
           //   <Chip />
           // </ChipGroup>
-          ...(React.Children.count(children) > 0 && {
+          ...(Children.count(children) > 0 && {
             [` .${chipClasses.root}`]: {
               "&:not(:last-of-type)": {
                 borderTopRightRadius: 0,

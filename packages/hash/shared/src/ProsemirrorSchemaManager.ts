@@ -1,5 +1,4 @@
-import { BlockVariant, JSONObject } from "blockprotocol";
-import { isString } from "lodash";
+import { BlockVariant, JsonObject } from "@blockprotocol/core";
 import { NodeSpec, ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorProps, EditorView } from "prosemirror-view";
@@ -245,12 +244,11 @@ export class ProsemirrorSchemaManager {
    * used to ensure all blocks used by a given document are loaded before
    * PM tries to instantiate them.
    */
-  async ensureBlocksDefined(data: any) {
+  async ensureBlocksDefined(componentIds: string[] = []) {
     return Promise.all(
-      Object.values(data.store.saved)
-        .map((entity: any) => entity.properties?.componentId)
-        .filter(isString)
-        .map((componentId) => this.fetchAndDefineBlock(componentId), this),
+      componentIds.map((componentId) => {
+        return this.fetchAndDefineBlock(componentId);
+      }, this),
     );
   }
 
@@ -672,7 +670,7 @@ export class ProsemirrorSchemaManager {
    * @param entityId the id of the entity to update
    * @param propertiesToUpdate the properties to update
    */
-  updateEntityProperties(entityId: string, propertiesToUpdate: JSONObject) {
+  updateEntityProperties(entityId: string, propertiesToUpdate: JsonObject) {
     if (!this.view) {
       throw new Error("Cannot trigger updateEntityProperties without view");
     }

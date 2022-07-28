@@ -1,12 +1,14 @@
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
-import { EntityStore } from "@hashintel/hash-shared/entityStore";
+import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import {
   addEntityStoreAction,
   disableEntityStoreTransactionInterpretation,
   entityStorePluginState,
   TrackedAction,
+  EntityStorePluginAction,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { isString } from "lodash";
 import { collab, receiveTransaction, sendableSteps } from "prosemirror-collab";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
@@ -201,10 +203,22 @@ export class EditorConnection {
 
     this.run(GET(url))
       .then((responseText) => {
-        // @todo type this
-        const data = JSON.parse(responseText);
+        const data = JSON.parse(responseText) as {
+          doc: { [key: string]: any };
+          store: EntityStore;
+          version: number;
+        };
 
-        return this.manager.ensureBlocksDefined(data).then(() => data);
+        const componentIds = Object.values(data.store.saved)
+          .filter(isBlockEntity)
+          .map(
+            (entity) =>
+              "componentId" in entity.properties &&
+              entity.properties?.componentId,
+          )
+          .filter(isString);
+
+        return this.manager.ensureBlocksDefined(componentIds).then(() => data);
       })
       .then((data) => {
         const doc = this.schema.nodeFromJSON(data.doc);
@@ -238,9 +252,14 @@ export class EditorConnection {
     }
     const query = `version=${this.state.version}`;
     this.run(GET(`${this.url}/events?${query}`)).then(
-      (stringifiedData) => {
-        // @todo type this
-        const data = JSON.parse(stringifiedData);
+      async (stringifiedData) => {
+        const data = JSON.parse(stringifiedData) as {
+          actions: EntityStorePluginAction[];
+          clientIDs: number[];
+          steps: { [key: string]: any }[];
+          store: EntityStore | null;
+          version: number;
+        };
 
         if (this.state.edit) {
           const tr = this.state.edit.tr;
@@ -264,6 +283,20 @@ export class EditorConnection {
             }
             shouldDispatch = true;
           }
+
+          // pull out all componentIds and ensure they are defined
+          const componentIds = data.actions?.reduce((acc, curr) => {
+            if (
+              curr.type === "updateEntityProperties" &&
+              isString(curr.payload.properties.componentId) &&
+              !acc.includes(curr.payload.properties.componentId)
+            ) {
+              return acc.concat(curr.payload.properties.componentId);
+            }
+            return acc;
+          }, [] as string[]);
+
+          await this.manager.ensureBlocksDefined(componentIds);
 
           if (data.actions?.length) {
             for (const action of data.actions) {

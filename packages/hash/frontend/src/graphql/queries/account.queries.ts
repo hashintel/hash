@@ -65,13 +65,16 @@ export const getAccountPagesTree = gql`
 export const getAccountEntityTypes = gql`
   query getAccountEntityTypes(
     $accountId: ID!
+    $includeAllTypes: Boolean = false
     $includeOtherTypesInUse: Boolean = false
   ) {
     getAccountEntityTypes(
       accountId: $accountId
+      includeAllTypes: $includeAllTypes
       includeOtherTypesInUse: $includeOtherTypesInUse
     ) {
       entityId
+      entityTypeId
       entityVersionId
       properties
     }

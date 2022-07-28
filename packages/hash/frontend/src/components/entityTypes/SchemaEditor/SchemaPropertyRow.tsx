@@ -1,4 +1,4 @@
-import { VoidFunctionComponent } from "react";
+import { FunctionComponent } from "react";
 import { tw } from "twind";
 
 import { JsonSchema } from "@hashintel/hash-shared/json-utils";
@@ -18,9 +18,7 @@ type SchemaPropertyRowProps = {
   required: boolean;
 };
 
-export const SchemaPropertyRow: VoidFunctionComponent<
-  SchemaPropertyRowProps
-> = ({
+export const SchemaPropertyRow: FunctionComponent<SchemaPropertyRowProps> = ({
   dispatchSchemaUpdate,
   GoToSchemaElement,
   name,
@@ -130,7 +128,9 @@ export const SchemaPropertyRow: VoidFunctionComponent<
         {/* @todo constraints may appear on any in a list of types, need to display this multiple times */}
         {Object.entries(constraints).map(([typeName, value]) => (
           <div key={typeName}>
-            {typeName}: {value}
+            <pre>
+              {typeName}: {JSON.stringify(value, null, 1)}
+            </pre>
           </div>
         ))}
       </td>

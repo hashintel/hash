@@ -1,5 +1,4 @@
-import * as React from "react";
-
+import { FunctionComponent, useMemo, useState } from "react";
 import { Box, Typography } from "@mui/material";
 
 import { GithubPullRequestEntityType } from "../types";
@@ -11,14 +10,15 @@ export type PullRequestSelectorProps = {
   setSelectedPullRequestId: (x: any) => void;
 };
 
-export const PullRequestSelector: React.FunctionComponent<
+export const PullRequestSelector: FunctionComponent<
   PullRequestSelectorProps
 > = ({ allPrs, setSelectedPullRequestId }) => {
-  const [selectedRepository, setSelectedRepository] = React.useState<
-    string | null
+  const [selectedRepository, setSelectedRepository] = useState<string | null>(
+    null,
+  );
+  const [selectedPullRequestNumber, setSelectedPullRequestNumber] = useState<
+    number | null
   >(null);
-  const [selectedPullRequestNumber, setSelectedPullRequestNumber] =
-    React.useState<number | null>(null);
 
   const onClick = (pullRequest: number) => {
     setSelectedPullRequestId({
@@ -27,7 +27,7 @@ export const PullRequestSelector: React.FunctionComponent<
     });
   };
 
-  const reposToPrIds: { [k: string]: number[] } = React.useMemo(() => {
+  const reposToPrIds: { [k: string]: number[] } = useMemo(() => {
     const repoMap = {} as { [k: string]: number[] };
 
     Array.from(allPrs?.keys() ?? []).forEach((prId) => {

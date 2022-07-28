@@ -1,10 +1,10 @@
-import React, { FC } from "react";
+import { FunctionComponent, ReactNode } from "react";
 import { Popover, Transition } from "@headlessui/react";
 import { tw } from "twind";
 
 type MenuProps = {
   label: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
 };
 
 /**
@@ -15,7 +15,7 @@ type MenuProps = {
  * @see https://stackoverflow.com/a/6433475/6789071
  */
 
-export const Menu: FC<MenuProps> = ({ children, label }) => {
+export const Menu: FunctionComponent<MenuProps> = ({ children, label }) => {
   return (
     <Popover className={tw`relative z-10`}>
       <Popover.Button

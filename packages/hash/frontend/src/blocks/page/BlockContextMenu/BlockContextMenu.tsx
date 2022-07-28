@@ -1,9 +1,4 @@
-import React, {
-  useRef,
-  forwardRef,
-  useMemo,
-  ForwardRefRenderFunction,
-} from "react";
+import { useRef, forwardRef, useMemo, ForwardRefRenderFunction } from "react";
 
 import { useKey } from "rooks";
 
@@ -42,6 +37,7 @@ type BlockContextMenuProps = {
   entityId: string | null;
   openConfigMenu: () => void;
   popupState: PopupState;
+  swapType: boolean;
 };
 
 const LOAD_BLOCK_ENTITY_UI = "hash-load-entity-ui";
@@ -57,6 +53,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
     entityId,
     openConfigMenu,
     popupState,
+    swapType,
   },
   ref,
 ) => {
@@ -106,15 +103,21 @@ const BlockContextMenu: ForwardRefRenderFunction<
         icon: <FontAwesomeIcon icon={faTrashCan} />,
         onClick: deleteBlock,
       },
-      {
-        key: "swap-block",
-        title: "Swap block type",
-        icon: <FontAwesomeIcon icon={faRefresh} />,
-        subMenu: (
-          <BlockListMenuContent blockSuggesterProps={blockSuggesterProps} />
-        ),
-        subMenuWidth: 228,
-      },
+      ...(swapType
+        ? [
+            {
+              key: "swap-block",
+              title: "Swap block type",
+              icon: <FontAwesomeIcon icon={faRefresh} />,
+              subMenu: (
+                <BlockListMenuContent
+                  blockSuggesterProps={blockSuggesterProps}
+                />
+              ),
+              subMenuWidth: 228,
+            },
+          ]
+        : []),
       {
         key: "move-to-page",
         title: "Move to page",
@@ -143,6 +146,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
     deleteBlock,
     openConfigMenu,
     popupState,
+    swapType,
   ]);
 
   useKey(["Escape"], () => {
@@ -181,7 +185,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
       data-testid="block-context-menu"
     >
       <Box component="li" px={2} pt={1.5} mb={1}>
-        <BlockLoaderInput />
+        <BlockLoaderInput onLoad={() => popupState.close()} />
       </Box>
 
       {menuItems.map(

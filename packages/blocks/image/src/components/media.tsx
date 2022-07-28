@@ -6,15 +6,15 @@
  * @see https://app.asana.com/0/1200211978612931/1201906715110980/f
  * @todo Deduplicate this file
  */
+import { useGraphBlockService } from "@blockprotocol/graph/react";
 import {
   Entity,
   Link,
   LinkGroup,
   BlockGraphProperties,
-  useGraphBlockService,
   UpdateEntityData,
 } from "@blockprotocol/graph";
-import React, {
+import {
   Dispatch,
   SetStateAction,
   useCallback,
@@ -22,7 +22,7 @@ import React, {
   useMemo,
   useRef,
   useState,
-  VoidFunctionComponent,
+  FunctionComponent,
 } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { ErrorAlert } from "./error-alert";
@@ -124,7 +124,7 @@ const isSingleTargetLink = (link: Link): link is Link => "linkId" in link;
 /**
  * @todo Rewrite the state here to use a reducer, instead of batched updates
  */
-export const Media: VoidFunctionComponent<
+export const Media: FunctionComponent<
   BlockGraphProperties<MediaEntityProperties> & {
     mediaType: "image" | "video";
   }
