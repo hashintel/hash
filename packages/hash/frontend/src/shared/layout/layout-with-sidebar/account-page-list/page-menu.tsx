@@ -1,4 +1,4 @@
-import { VFC, useMemo, useState } from "react";
+import { FunctionComponent, useMemo, useState } from "react";
 import { ListItemIcon, ListItemText } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import { faArchive, faLink } from "@fortawesome/free-solid-svg-icons";
@@ -14,7 +14,10 @@ type PageMenuProps = {
   entityId: string;
 };
 
-export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
+export const PageMenu: FunctionComponent<PageMenuProps> = ({
+  popupState,
+  entityId,
+}) => {
   const [copied, setCopied] = useState(false);
   const { accountId } = useRouteAccountInfo();
   const { createSubPage } = useCreatePage(accountId);

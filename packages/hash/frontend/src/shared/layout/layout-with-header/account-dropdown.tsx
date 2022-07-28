@@ -1,5 +1,6 @@
-import { useMemo, VoidFunctionComponent } from "react";
+import { useMemo, FunctionComponent } from "react";
 import { Box, Typography, Divider, Tooltip, ListItemText } from "@mui/material";
+
 import {
   usePopupState,
   bindMenu,
@@ -16,7 +17,7 @@ type AccountDropdownProps = {
   user: UserFieldsFragment;
 };
 
-export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
+export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
   avatar,
   logout,
   user,

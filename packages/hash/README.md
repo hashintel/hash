@@ -248,16 +248,16 @@ The below `package.json` file outlines the minimum requirements a package has to
     "postinstall": "yarn build"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "5.17.0",
-    "@typescript-eslint/parser": "5.17.0",
-    "eslint": "^7.32.0",
-    "eslint-config-airbnb": "^19.0.4",
-    "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-import": "^2.25.4",
-    "eslint-plugin-jest": "^26.1.0",
-    "eslint-plugin-jsx-a11y": "^6.5.1",
-    "eslint-plugin-react": "^7.28.0",
-    "eslint-plugin-react-hooks": "^4.3.0",
+    "@typescript-eslint/eslint-plugin": "5.30.7",
+    "@typescript-eslint/parser": "5.30.7",
+    "eslint": "8.20.0",
+    "eslint-config-airbnb": "19.0.4",
+    "eslint-config-prettier": "8.5.0",
+    "eslint-plugin-import": "2.26.0",
+    "eslint-plugin-jest": "26.6.0",
+    "eslint-plugin-jsx-a11y": "6.6.1",
+    "eslint-plugin-react": "7.30.1",
+    "eslint-plugin-react-hooks": "4.6.0",
     "rimraf": "3.2.0",
     "typescript": "4.7.4"
   }
@@ -394,7 +394,7 @@ HASH's development is being led by various employees of _[HASH](https://hash.dev
 - Alfie Mountfield
 - Ben Werner
 - Ciaran Morinan
-- Maggie Appleton
+- Luís Bettencourt
 - Nate Higgins
 - Valentino Ugbala
 

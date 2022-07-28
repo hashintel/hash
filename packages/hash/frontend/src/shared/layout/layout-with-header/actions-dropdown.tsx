@@ -1,4 +1,4 @@
-import { useState, useCallback, VFC } from "react";
+import { useState, useCallback, FunctionComponent } from "react";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
@@ -21,7 +21,7 @@ import { HeaderIconButton } from "./shared/header-icon-button";
 import { useCreatePage } from "../../../components/hooks/useCreatePage";
 import { useRouteAccountInfo } from "../../routing";
 
-export const ActionsDropdownInner: VFC<{
+export const ActionsDropdownInner: FunctionComponent<{
   accountId: string;
 }> = ({ accountId }) => {
   const router = useRouter();
@@ -123,7 +123,7 @@ export const ActionsDropdownInner: VFC<{
   );
 };
 
-export const ActionsDropdown: VFC = () => {
+export const ActionsDropdown: FunctionComponent = () => {
   const { accountId } = useRouteAccountInfo({ allowUndefined: true }) ?? {};
 
   // Don’t render actions if account cannot be derived from URL

@@ -130,12 +130,23 @@ export const getSystemTypeLatestVersion = async (
 
 export const getAccountEntityTypes = async (
   conn: Connection,
-  params: { accountId: string; includeOtherTypesInUse?: boolean | null },
+  params: {
+    accountId: string;
+    /**
+     * 'includeAllTypes' doesn't make sense in a function called getAccountEntityTypes
+     * this will be replaced by aggregateEntityTypes in the new API
+     */
+    includeAllTypes?: boolean | null;
+    includeOtherTypesInUse?: boolean | null;
+  },
 ): Promise<EntityType[]> => {
   const query = sql`
     with all_matches as (
       ${selectEntityTypes}
-      where type.account_id = ${params.accountId}
+      ${
+        params.includeAllTypes
+          ? sql``
+          : sql`where type.account_id = ${params.accountId}
         ${
           params.includeOtherTypesInUse
             ? sql`or ver.entity_type_version_id in (
@@ -143,7 +154,8 @@ export const getAccountEntityTypes = async (
                     from entity_versions where account_id = ${params.accountId}
                   )`
             : sql``
-        }
+        }`
+      }
     ) 
     select distinct on (entity_type_id) * from all_matches
     order by entity_type_id, updated_at desc

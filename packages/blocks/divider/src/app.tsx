@@ -1,5 +1,3 @@
-import React from "react";
-
 import { BlockComponent } from "blockprotocol/react";
 
 type BlockEntityProperties = { color?: string; height?: string | number };

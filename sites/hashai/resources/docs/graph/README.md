@@ -6,7 +6,7 @@ description: An introduction to your graph
 
 Every account in [HASH](https://hash.ai/platform/hash) has its own _graph_. An account's graph acts as the canonical reference, or "single-source of truth" for an account's users.
 
-Graphs contain **entities** conforming to a **HASH schema** which defines their **properties**.
+Graphs contain [entities](https://hash.ai/glossary/entities) conforming to a set of [types](https://hash.ai/glossary/entity-types) which define their [properties](https://hash.ai/glossary/properties).
 
 Users can create or update entities in their graph directly through the HASH user interface, or by connecting external applications or sources via the **integrations** menu.
 

@@ -1,7 +1,7 @@
 import { Box } from "@mui/material";
-import { VoidFunctionComponent } from "react";
+import { FunctionComponent } from "react";
 
-export const MdxVideo: VoidFunctionComponent<{
+export const MdxVideo: FunctionComponent<{
   src: string;
   title: string;
 }> = ({ src, title }) => {

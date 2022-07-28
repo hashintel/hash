@@ -1,5 +1,11 @@
 import { uniqueId } from "lodash";
-import React, { forwardRef, ChangeEvent, useCallback, useState } from "react";
+import {
+  forwardRef,
+  ChangeEvent,
+  useCallback,
+  useState,
+  HTMLProps,
+} from "react";
 import { tw } from "twind";
 
 type SelectInputProps = {
@@ -8,7 +14,7 @@ type SelectInputProps = {
   onChangeValue?: (value: string) => void;
   value?: string;
   options: { disabled?: boolean; label: string; value: string }[];
-} & Omit<React.HTMLProps<HTMLSelectElement>, "value">;
+} & Omit<HTMLProps<HTMLSelectElement>, "value">;
 
 export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
   (

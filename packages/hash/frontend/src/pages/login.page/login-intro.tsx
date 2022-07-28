@@ -1,9 +1,10 @@
 import { useRouter } from "next/router";
-import React, {
+import {
   useEffect,
   useRef,
   useState,
-  VoidFunctionComponent,
+  FunctionComponent,
+  FormEvent,
 } from "react";
 import { tw } from "twind";
 
@@ -35,7 +36,7 @@ type LoginIntroProps = {
   defaultLoginIdentifier: string | undefined;
 };
 
-export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
+export const LoginIntro: FunctionComponent<LoginIntroProps> = ({
   requestLoginCode,
   errorMessage,
   loading,
@@ -50,7 +51,7 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
     inputRef.current?.select();
   }, []);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     requestLoginCode(emailOrShortname);
   };

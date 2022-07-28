@@ -18,14 +18,14 @@ import {
   Collapse,
 } from "@mui/material";
 import { startCase } from "lodash";
-import * as React from "react";
+import { Dispatch, FunctionComponent, SetStateAction, useState } from "react";
 import { ChevronDownIcon, CheckDoubleIcon, ClearIcon } from "../icons";
 import { getEventTypeColor } from "../utils";
 
 type ConfigPanelProps = {
   possibleEventTypes: string[];
   selectedEventTypes: string[];
-  setSelectedEventTypes: React.Dispatch<React.SetStateAction<string[]>>;
+  setSelectedEventTypes: Dispatch<SetStateAction<string[]>>;
 };
 
 const FilterBtn = styled(({ ...props }: BoxProps) => (
@@ -58,12 +58,12 @@ const FilterBtn = styled(({ ...props }: BoxProps) => (
   },
 }));
 
-export const ConfigPanel: React.FC<ConfigPanelProps> = ({
+export const ConfigPanel: FunctionComponent<ConfigPanelProps> = ({
   possibleEventTypes,
   selectedEventTypes,
   setSelectedEventTypes,
 }) => {
-  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 

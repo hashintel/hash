@@ -1,4 +1,4 @@
-import { VFC, useRef, useMemo } from "react";
+import { FunctionComponent, useRef, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -21,7 +21,9 @@ import { useRouteAccountInfo } from "../../routing";
 
 type WorkspaceSwitcherProps = {};
 
-export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
+export const WorkspaceSwitcher: FunctionComponent<
+  WorkspaceSwitcherProps
+> = () => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popupState = usePopupState({
     variant: "popover",

@@ -1,8 +1,10 @@
 import { Box } from "@mui/material";
-import { FC, ReactNode } from "react";
+import { FunctionComponent, ReactNode } from "react";
 import { mdxImageClasses } from "./MdxImage";
 
-export const ImageWithText: FC<{ children?: ReactNode }> = ({ children }) => (
+export const ImageWithText: FunctionComponent<{ children?: ReactNode }> = ({
+  children,
+}) => (
   <Box
     sx={{
       display: "flex",

@@ -1,4 +1,4 @@
-import { useMemo, VFC } from "react";
+import { useMemo, FunctionComponent } from "react";
 import { tw } from "twind";
 import ArticleIcon from "@mui/icons-material/Article";
 
@@ -12,7 +12,7 @@ interface MentionDisplayProps {
   accountId: string;
 }
 
-export const MentionDisplay: VFC<MentionDisplayProps> = ({
+export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   entityId,
   mentionType,
   accountId,

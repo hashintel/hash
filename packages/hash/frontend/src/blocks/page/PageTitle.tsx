@@ -1,10 +1,10 @@
-import React, {
+import {
   ChangeEventHandler,
   FocusEventHandler,
   KeyboardEventHandler,
   useEffect,
   useState,
-  VoidFunctionComponent,
+  FunctionComponent,
 } from "react";
 import { tw } from "twind";
 import { useBlockProtocolUpdateEntity } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
@@ -23,7 +23,7 @@ const cleanUpTitle = (value: string): string =>
   value.trim().replace(/\s+/g, " ");
 
 // TODO: Add read-only mode based on page permissions
-export const PageTitle: VoidFunctionComponent<PageTitleProps> = ({
+export const PageTitle: FunctionComponent<PageTitleProps> = ({
   accountId,
   entityId,
   value,

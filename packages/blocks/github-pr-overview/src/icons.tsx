@@ -1,5 +1,5 @@
 import { SvgIcon, SvgIconProps, SxProps, Theme } from "@mui/material";
-import React, { FC } from "react";
+import { FunctionComponent } from "react";
 
 const getBaseSx = (sx: SxProps<Theme>, fontSize: number = 16) => [
   {
@@ -10,7 +10,10 @@ const getBaseSx = (sx: SxProps<Theme>, fontSize: number = 16) => [
   ...(Array.isArray(sx) ? sx : [sx]),
 ];
 
-export const GithubIcon: FC<SvgIconProps> = ({ sx = [], ...props }) => {
+export const GithubIcon: FunctionComponent<SvgIconProps> = ({
+  sx = [],
+  ...props
+}) => {
   return (
     <SvgIcon sx={getBaseSx(sx, 20)} {...props} viewBox="0 0 20 20" fill="none">
       <path
@@ -21,7 +24,7 @@ export const GithubIcon: FC<SvgIconProps> = ({ sx = [], ...props }) => {
   );
 };
 
-export const PullRequestOpenIcon: FC<SvgIconProps> = ({
+export const PullRequestOpenIcon: FunctionComponent<SvgIconProps> = ({
   sx = [],
   ...props
 }) => {
@@ -36,7 +39,7 @@ export const PullRequestOpenIcon: FC<SvgIconProps> = ({
   );
 };
 
-export const PullRequestClosedIcon: FC<SvgIconProps> = ({
+export const PullRequestClosedIcon: FunctionComponent<SvgIconProps> = ({
   sx = [],
   ...props
 }) => {
@@ -51,7 +54,7 @@ export const PullRequestClosedIcon: FC<SvgIconProps> = ({
   );
 };
 
-export const PullRequestMergedIcon: FC<SvgIconProps> = ({
+export const PullRequestMergedIcon: FunctionComponent<SvgIconProps> = ({
   sx = [],
   ...props
 }) => {
@@ -66,7 +69,10 @@ export const PullRequestMergedIcon: FC<SvgIconProps> = ({
   );
 };
 
-export const LinkIcon: FC<SvgIconProps> = ({ sx = [], ...props }) => {
+export const LinkIcon: FunctionComponent<SvgIconProps> = ({
+  sx = [],
+  ...props
+}) => {
   return (
     <SvgIcon sx={getBaseSx(sx)} viewBox="0 0 20 17" fill="none" {...props}>
       <path
@@ -77,7 +83,10 @@ export const LinkIcon: FC<SvgIconProps> = ({ sx = [], ...props }) => {
   );
 };
 
-export const CommentIcon: FC<SvgIconProps> = ({ sx = [], ...props }) => {
+export const CommentIcon: FunctionComponent<SvgIconProps> = ({
+  sx = [],
+  ...props
+}) => {
   return (
     <SvgIcon sx={getBaseSx(sx)} viewBox="0 0 17 17" fill="none" {...props}>
       <path
@@ -88,7 +97,10 @@ export const CommentIcon: FC<SvgIconProps> = ({ sx = [], ...props }) => {
   );
 };
 
-export const ChevronDownIcon: FC<SvgIconProps> = ({ sx = [], ...props }) => {
+export const ChevronDownIcon: FunctionComponent<SvgIconProps> = ({
+  sx = [],
+  ...props
+}) => {
   return (
     <SvgIcon sx={getBaseSx(sx)} viewBox="0 0 12 12" fill="none" {...props}>
       <path
@@ -99,7 +111,10 @@ export const ChevronDownIcon: FC<SvgIconProps> = ({ sx = [], ...props }) => {
   );
 };
 
-export const CheckDoubleIcon: FC<SvgIconProps> = ({ sx = [], ...props }) => {
+export const CheckDoubleIcon: FunctionComponent<SvgIconProps> = ({
+  sx = [],
+  ...props
+}) => {
   return (
     <SvgIcon sx={getBaseSx(sx)} viewBox="0 0 16 16" fill="none" {...props}>
       <path
@@ -110,7 +125,10 @@ export const CheckDoubleIcon: FC<SvgIconProps> = ({ sx = [], ...props }) => {
   );
 };
 
-export const ClearIcon: FC<SvgIconProps> = ({ sx = [], ...props }) => {
+export const ClearIcon: FunctionComponent<SvgIconProps> = ({
+  sx = [],
+  ...props
+}) => {
   return (
     <SvgIcon sx={getBaseSx(sx)} viewBox="0 0 16 16" fill="none" {...props}>
       <path
@@ -121,7 +139,10 @@ export const ClearIcon: FC<SvgIconProps> = ({ sx = [], ...props }) => {
   );
 };
 
-export const CloseIcon: FC<SvgIconProps> = ({ sx = [], ...props }) => {
+export const CloseIcon: FunctionComponent<SvgIconProps> = ({
+  sx = [],
+  ...props
+}) => {
   return (
     <SvgIcon sx={getBaseSx(sx)} viewBox="0 0 16 17" fill="none" {...props}>
       <path

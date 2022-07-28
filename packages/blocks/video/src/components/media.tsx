@@ -14,7 +14,7 @@ import {
   UpdateEntityData,
 } from "@blockprotocol/graph";
 import { useGraphBlockService } from "@blockprotocol/graph/react";
-import React, {
+import {
   Dispatch,
   SetStateAction,
   useCallback,
@@ -22,7 +22,7 @@ import React, {
   useMemo,
   useRef,
   useState,
-  VoidFunctionComponent,
+  FunctionComponent,
 } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { ErrorAlert } from "./error-alert";
@@ -124,7 +124,7 @@ const isSingleTargetLink = (link: Link): link is Link => "linkId" in link;
 /**
  * @todo Rewrite the state here to use a reducer, instead of batched updates
  */
-export const Media: VoidFunctionComponent<
+export const Media: FunctionComponent<
   BlockGraphProperties<MediaEntityProperties> & {
     mediaType: "image" | "video";
   }

@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef } from "react";
+import { FunctionComponent, MouseEvent, useLayoutEffect, useRef } from "react";
 import { tw } from "twind";
 
 type ResizeBlockProps = {
@@ -13,7 +13,7 @@ const MIN_WIDTH = 96;
 
 // @todo set a max-width
 
-export const ResizeImageBlock: React.VFC<ResizeBlockProps> = ({
+export const ResizeImageBlock: FunctionComponent<ResizeBlockProps> = ({
   imageSrc,
   width,
   updateWidth,
@@ -42,11 +42,8 @@ export const ResizeImageBlock: React.VFC<ResizeBlockProps> = ({
     }
   }, [width, imageSrc, updateWidth]);
 
-  const handleResize = (
-    _evt: React.MouseEvent,
-    direction: "left" | "right",
-  ) => {
-    function onMouseMove(mouseMoveEvt: MouseEvent) {
+  const handleResize = (_evt: MouseEvent, direction: "left" | "right") => {
+    function onMouseMove(mouseMoveEvt: globalThis.MouseEvent) {
       if (!imageRef.current) return;
       let newWidth;
       const { left, right } = imageRef.current.getBoundingClientRect();

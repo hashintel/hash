@@ -1,4 +1,4 @@
-import React, { useMemo, VFC } from "react";
+import { useMemo, FunctionComponent } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { tw } from "twind";
 
@@ -25,7 +25,7 @@ type Inputs = {
   responsibility?: string;
 };
 
-export const AccountSetup: VFC<AccountSetupProps> = ({
+export const AccountSetup: FunctionComponent<AccountSetupProps> = ({
   onSubmit: setupAccount,
   loading,
   errorMessage,

@@ -1,4 +1,4 @@
-import { useMemo, useState, VFC } from "react";
+import { useMemo, useState, FunctionComponent } from "react";
 import {
   faLink,
   faAdd,
@@ -24,7 +24,7 @@ type MenuItemType = {
 } & ({ href: string; onClick?: null } | { href?: string; onClick: () => void });
 
 // @todo-mui get free icons that matches the design closely
-export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
+export const EntityTypeMenu: FunctionComponent<EntityTypeMenuProps> = ({
   popupState,
   accountId,
   entityId,

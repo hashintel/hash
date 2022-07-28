@@ -1,4 +1,4 @@
-import { ReactNode, VFC } from "react";
+import { ReactNode, FunctionComponent } from "react";
 import { Box, Fade, styled, Tooltip } from "@mui/material";
 import { IconButton } from "@hashintel/hash-design-system";
 import { HEADER_HEIGHT } from "./layout-with-header/page-header";
@@ -26,7 +26,7 @@ export type LayoutWithSidebarProps = {
   banner?: ReactNode;
 };
 
-export const LayoutWithSidebar: VFC<LayoutWithSidebarProps> = ({
+export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
   children,
   banner,
 }) => {

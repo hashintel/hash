@@ -1,6 +1,6 @@
 import "./app.scss";
 
-import React, {
+import {
   useState,
   useCallback,
   useMemo,

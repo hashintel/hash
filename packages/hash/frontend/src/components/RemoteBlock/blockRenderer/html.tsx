@@ -1,11 +1,13 @@
 import { HtmlBlockDefinition, renderHtmlBlock } from "@blockprotocol/core";
-import React, { useEffect, useRef, useState, VFC } from "react";
+import { useEffect, useRef, useState, FunctionComponent } from "react";
 
 type HtmlElementLoaderProps = {
   html: HtmlBlockDefinition;
 };
 
-export const HtmlLoader: VFC<HtmlElementLoaderProps> = ({ html }) => {
+export const HtmlLoader: FunctionComponent<HtmlElementLoaderProps> = ({
+  html,
+}) => {
   const ref = useRef<HTMLDivElement>(null);
   const [, setError] = useState<never>();
 

@@ -4,7 +4,7 @@ import {
   Link,
   LinkGroup,
 } from "@blockprotocol/graph";
-import { useMemo, VoidFunctionComponent } from "react";
+import { useMemo, FunctionComponent } from "react";
 import { tw } from "twind";
 
 import { CreateLinkFnWithFixedSource, EntityLinkDefinition } from "./types";
@@ -21,9 +21,7 @@ type EntityLinkEditorProps = {
 
 const pathToString = (pathAsArray: string[]) => pathAsArray.join(".");
 
-export const EntityLinksEditor: VoidFunctionComponent<
-  EntityLinkEditorProps
-> = ({
+export const EntityLinksEditor: FunctionComponent<EntityLinkEditorProps> = ({
   aggregateEntities,
   createLinkFromEntity,
   deleteLinkFromEntity,
