@@ -290,8 +290,6 @@ export class ComponentView implements NodeView<Schema> {
           merge: true,
         },
       });
-
-      this.editorView.dispatch(tr);
     }
 
     if (editableNode) {
