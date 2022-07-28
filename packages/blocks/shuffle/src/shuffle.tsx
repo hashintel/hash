@@ -3,7 +3,7 @@ import {
   BlockComponent,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
-import Button from "@mui/material/Button";
+import { Button } from "@hashintel/hash-design-system";
 import Box from "@mui/material/Box";
 import produce from "immer";
 import { v4 as uuid } from "uuid";
@@ -128,16 +128,28 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     >
       <Box sx={{ display: "flex", alignSelf: "end" }}>
         <Button
-          variant="outlined"
-          sx={{ marginRight: 1 }}
           onClick={() => onAdd()}
+          sx={({ palette }) => ({
+            marginRight: 1,
+            border: "1px solid",
+            borderColor: palette.primary.light,
+            "&:hover": {
+              borderColor: palette.primary.main,
+            },
+          })}
         >
           <AddIcon fontSize="small" />
         </Button>
         <Button
-          variant="outlined"
           disabled={draftItems.length <= 1}
           onClick={() => onShuffle()}
+          sx={({ palette }) => ({
+            border: "1px solid",
+            borderColor: palette.primary.light,
+            "&:hover": {
+              borderColor: palette.primary.main,
+            },
+          })}
         >
           <ShuffleIcon />
         </Button>
