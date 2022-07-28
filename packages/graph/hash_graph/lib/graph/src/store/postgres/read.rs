@@ -19,7 +19,7 @@ where
 {
     type Output = Persisted<T>;
 
-    async fn get(&self, index: VersionId) -> Result<Self::Output, QueryError> {
+    async fn get(&self, identifier: VersionId) -> Result<Self::Output, QueryError> {
         // SAFETY: We insert a table name here, but `T::table()` is only accessible from within this
         //   module.
         let row = self
@@ -33,12 +33,12 @@ where
                     "#,
                     T::table()
                 ),
-                &[&index],
+                &[&identifier],
             )
             .await
             .report()
             .change_context(QueryError)
-            .attach_printable(index)?;
+            .attach_printable(identifier)?;
 
         Ok(Persisted::new(
             row.get(0),
@@ -54,7 +54,7 @@ where
 impl<C: AsClient> crud::Read<'_, EntityId, Entity> for PostgresStore<C> {
     type Output = Entity;
 
-    async fn get(&self, index: EntityId) -> Result<Self::Output, QueryError> {
+    async fn get(&self, identifier: EntityId) -> Result<Self::Output, QueryError> {
         let row = self
             .as_client()
             .query_one(
@@ -67,12 +67,12 @@ impl<C: AsClient> crud::Read<'_, EntityId, Entity> for PostgresStore<C> {
                         WHERE entity_id = $1
                     );
                 "#,
-                &[&index],
+                &[&identifier],
             )
             .await
             .report()
             .change_context(QueryError)
-            .attach_printable(index)?;
+            .attach_printable(identifier)?;
 
         Ok(serde_json::from_value(row.get(0))
             .report()
@@ -84,7 +84,7 @@ impl<C: AsClient> crud::Read<'_, EntityId, Entity> for PostgresStore<C> {
 impl<C: AsClient> crud::Read<'_, EntityId, Links> for PostgresStore<C> {
     type Output = Links;
 
-    async fn get(&self, index: EntityId) -> Result<Self::Output, QueryError> {
+    async fn get(&self, identifier: EntityId) -> Result<Self::Output, QueryError> {
         let multi_links = self
             .client
             .as_client()
@@ -99,12 +99,12 @@ impl<C: AsClient> crud::Read<'_, EntityId, Links> for PostgresStore<C> {
                 SELECT base_uri, "version", links FROM aggregated
                 INNER JOIN ids ON ids.version_id = aggregated.link_type_version_id
                 "#,
-                &[&index],
+                &[&identifier],
             )
             .await
             .report()
             .change_context(QueryError)
-            .attach_printable(index)?
+            .attach_printable(identifier)?
             .into_iter()
             .map(|row| (VersionedUri::new(row.get(0), row.get::<_, i64>(1) as u32), Outgoing::Multiple(row.get(2))));
 
@@ -118,12 +118,12 @@ impl<C: AsClient> crud::Read<'_, EntityId, Links> for PostgresStore<C> {
                 INNER JOIN ids ON ids.version_id = links.link_type_version_id
                 WHERE active AND NOT multi and source_entity_id = $1
                 "#,
-                &[&index],
+                &[&identifier],
             )
             .await
             .report()
             .change_context(QueryError)
-            .attach_printable(index)?
+            .attach_printable(identifier)?
             .into_iter()
             .map(|row| {
                 (
@@ -140,8 +140,11 @@ impl<C: AsClient> crud::Read<'_, EntityId, Links> for PostgresStore<C> {
 impl<'i, C: AsClient> crud::Read<'i, (EntityId, &'i VersionedUri), Links> for PostgresStore<C> {
     type Output = Outgoing;
 
-    async fn get(&self, index: (EntityId, &'i VersionedUri)) -> Result<Self::Output, QueryError> {
-        let (source_entity_id, link_type_uri) = index;
+    async fn get(
+        &self,
+        identifier: (EntityId, &'i VersionedUri),
+    ) -> Result<Self::Output, QueryError> {
+        let (source_entity_id, link_type_uri) = identifier;
         let version = i64::from(link_type_uri.version());
         let link = self
         .client

@@ -197,16 +197,16 @@ pub trait Store {
         created_by: AccountId,
     ) -> Result<Persisted<DataType>, InsertionError>;
 
-    /// Get the [`DataType`] specified by `index`.
+    /// Get the [`DataType`] specified by `identifier`.
     ///
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    async fn get_data_type<'i, I: Send>(&self, index: I) -> Result<Self::Output, QueryError>
+    async fn get_data_type<'i, I: Send>(&self, identifier: I) -> Result<Self::Output, QueryError>
     where
         Self: Read<'i, I, DataType>,
     {
-        self.get(index).await
+        self.get(identifier).await
     }
 
     /// Update the definition of an existing [`DataType`].
@@ -234,16 +234,19 @@ pub trait Store {
         created_by: AccountId,
     ) -> Result<Persisted<PropertyType>, InsertionError>;
 
-    /// Get the [`PropertyType`] specified by `index`.
+    /// Get the [`PropertyType`] specified by `identifier`.
     ///
     /// # Errors
     ///
     /// - if the requested [`PropertyType`] doesn't exist.
-    async fn get_property_type<'i, I: Send>(&self, index: I) -> Result<Self::Output, QueryError>
+    async fn get_property_type<'i, I: Send>(
+        &self,
+        identifier: I,
+    ) -> Result<Self::Output, QueryError>
     where
         Self: Read<'i, I, PropertyType>,
     {
-        self.get(index).await
+        self.get(identifier).await
     }
 
     /// Update the definition of an existing [`PropertyType`].
@@ -271,16 +274,16 @@ pub trait Store {
         created_by: AccountId,
     ) -> Result<Persisted<EntityType>, InsertionError>;
 
-    /// Get the [`EntityType`] specified by `index`.
+    /// Get the [`EntityType`] specified by `identifier`.
     ///
     /// # Errors
     ///
     /// - if the requested [`EntityType`] doesn't exist.
-    async fn get_entity_type<'i, I: Send>(&self, index: I) -> Result<Self::Output, QueryError>
+    async fn get_entity_type<'i, I: Send>(&self, identifier: I) -> Result<Self::Output, QueryError>
     where
         Self: Read<'i, I, EntityType>,
     {
-        self.get(index).await
+        self.get(identifier).await
     }
 
     /// Update the definition of an existing [`EntityType`].
@@ -310,16 +313,16 @@ pub trait Store {
         created_by: AccountId,
     ) -> Result<Persisted<LinkType>, InsertionError>;
 
-    /// Get the [`LinkType`] specified by `index`.
+    /// Get the [`LinkType`] specified by `identifier`.
     ///
     /// # Errors
     ///
     /// - if the requested [`LinkType`] doesn't exist.
-    async fn get_link_type<'i, I: Send>(&self, index: I) -> Result<Self::Output, QueryError>
+    async fn get_link_type<'i, I: Send>(&self, identifier: I) -> Result<Self::Output, QueryError>
     where
         Self: Read<'i, I, LinkType>,
     {
-        self.get(index).await
+        self.get(identifier).await
     }
 
     /// Update the definition of an existing [`LinkType`].
@@ -347,18 +350,18 @@ pub trait Store {
         created_by: AccountId,
     ) -> Result<EntityId, InsertionError>;
 
-    /// Get the [`Entity`] specified by `index`.
+    /// Get the [`Entity`] specified by `identifier`.
     ///
-    /// Depending on the `index` the output is specified by [`Read::Output`].
+    /// Depending on the `identifier` the output is specified by [`Read::Output`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity<'i, I: Send>(&self, index: I) -> Result<Self::Output, QueryError>
+    async fn get_entity<'i, I: Send>(&self, identifier: I) -> Result<Self::Output, QueryError>
     where
         Self: Read<'i, I, Entity>,
     {
-        self.get(index).await
+        self.get(identifier).await
     }
 
     /// Update an existing [`Entity`].
@@ -395,11 +398,11 @@ pub trait Store {
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity_links<'i, I: Send>(&self, index: I) -> Result<Self::Output, QueryError>
+    async fn get_entity_links<'i, I: Send>(&self, identifier: I) -> Result<Self::Output, QueryError>
     where
         Self: Read<'i, I, Links>,
     {
-        self.get(index).await
+        self.get(identifier).await
     }
 
     /// Get a [`Link`] target identified by an [`EntityId`] and a Link Type [`VersionedUri`].
