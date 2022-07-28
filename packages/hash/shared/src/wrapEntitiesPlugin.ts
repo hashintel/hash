@@ -1,5 +1,5 @@
 import {
-  getChildDraftEntityFromTextBlock,
+  getBlockChildEntity,
   isTextEntity,
 } from "@hashintel/hash-shared/entity";
 import { entityStorePluginState } from "@hashintel/hash-shared/entityStorePlugin";
@@ -172,7 +172,7 @@ const prepareCommandForWrappedEntities =
         }
 
         if (blockEntityNode.attrs.draftId) {
-          const childEntity = getChildDraftEntityFromTextBlock(
+          const childEntity = getBlockChildEntity(
             blockEntityNode.attrs.draftId,
             store,
           );

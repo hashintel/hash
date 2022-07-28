@@ -51,7 +51,7 @@ const BlockHandle: ForwardRefRenderFunction<
     [onTypeChange, contextMenuPopupState],
   );
 
-  const { value: blocksMetaMap } = useUserBlocks();
+  const { value: blocksMap } = useUserBlocks();
 
   /**
    * The context and config menu use data from the draft store to subscribe to the latest local changes.
@@ -78,7 +78,7 @@ const BlockHandle: ForwardRefRenderFunction<
   };
 
   const blockSchema = blockEntity
-    ? blocksMetaMap[blockEntity.properties.componentId]?.schema
+    ? blocksMap[blockEntity.properties.componentId]?.schema
     : null;
 
   const blockContext = useBlockContext();

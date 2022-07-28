@@ -102,7 +102,7 @@ export const isDraftTextContainingEntityProperties = (
 /**
  * @todo this will need to change when we remove legacy links
  */
-export const getChildDraftEntityFromTextBlock = (
+export const getBlockChildEntity = (
   draftBlockId: string,
   entityStore: EntityStore,
 ): DraftEntity | null => {

@@ -1,7 +1,7 @@
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import {
   BlockEntity,
-  getChildDraftEntityFromTextBlock,
+  getBlockChildEntity,
   isTextEntity,
 } from "@hashintel/hash-shared/entity";
 import {
@@ -240,26 +240,23 @@ export class ComponentView implements NodeView<Schema> {
   };
 
   private editableRef = (editableNode: HTMLElement | null) => {
-    const childTextEntity = getChildDraftEntityFromTextBlock(
-      this.getBlockDraftId(),
-      this.store,
-    );
+    const childEntity = getBlockChildEntity(this.getBlockDraftId(), this.store);
 
-    if (!childTextEntity) {
+    if (!childEntity) {
       throw new Error("Block not ready to become editable");
     }
 
     const state = this.editorView.state;
     let tr: Transaction<Schema> | null = null;
 
-    if (!isTextEntity(childTextEntity)) {
+    if (!isTextEntity(childEntity)) {
       tr ??= state.tr;
 
       const newTextDraftId = generateDraftIdForEntity(null);
       addEntityStoreAction(state, tr, {
         type: "newDraftEntity",
         payload: {
-          accountId: childTextEntity.accountId,
+          accountId: childEntity.accountId,
           draftId: newTextDraftId,
           entityId: null,
         },
@@ -279,7 +276,7 @@ export class ComponentView implements NodeView<Schema> {
       addEntityStoreAction(state, tr, {
         type: "updateEntityProperties",
         payload: {
-          draftId: childTextEntity.draftId,
+          draftId: childEntity.draftId,
           properties: {
             text: {
               __linkedData: {},

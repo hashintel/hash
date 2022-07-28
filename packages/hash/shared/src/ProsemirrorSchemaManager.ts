@@ -12,7 +12,7 @@ import {
 } from "./blocks";
 import {
   BlockEntity,
-  getChildDraftEntityFromTextBlock,
+  getBlockChildEntity,
   isDraftTextContainingEntityProperties,
   isTextContainingEntityProperties,
   isTextEntity,
@@ -174,7 +174,7 @@ export class ProsemirrorSchemaManager {
 
     const blockData =
       draftBlockId && entityStore
-        ? getChildDraftEntityFromTextBlock(draftBlockId, entityStore)
+        ? getBlockChildEntity(draftBlockId, entityStore)
         : null;
 
     const content =
