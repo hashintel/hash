@@ -5,7 +5,7 @@ use tokio_postgres::GenericClient;
 
 use crate::{
     ontology::types::uri::VersionedUri,
-    store::{crud, postgres::onthology::OntologyDatabaseType, AsClient, PostgresStore, QueryError},
+    store::{crud, postgres::ontology::OntologyDatabaseType, AsClient, PostgresStore, QueryError},
 };
 
 #[async_trait]

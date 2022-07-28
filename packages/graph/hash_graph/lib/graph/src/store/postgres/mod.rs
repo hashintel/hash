@@ -1,7 +1,7 @@
 mod data_type;
 mod entity_type;
 mod link_type;
-mod onthology;
+mod ontology;
 mod property_type;
 
 mod entity;
@@ -29,7 +29,7 @@ use crate::{
     },
     store::{
         error::VersionedUriAlreadyExists,
-        postgres::{onthology::OntologyDatabaseType, version_id::VersionId},
+        postgres::{ontology::OntologyDatabaseType, version_id::VersionId},
         BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError,
     },
 };
