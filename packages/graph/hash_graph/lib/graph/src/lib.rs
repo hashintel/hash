@@ -78,6 +78,10 @@ pub trait GraphPool = StorePool + 'static where for<'pool> <Self as StorePool>::
 /// Interface for a [`Store`].
 pub trait Graph = where
     for<'i> Self: Store
+        + Read<'i, (), DataType, Output = Vec<DataType>>
+        + Read<'i, (), PropertyType, Output = Vec<PropertyType>>
+        + Read<'i, (), LinkType, Output = Vec<LinkType>>
+        + Read<'i, (), EntityType, Output = Vec<EntityType>>
         + Read<'i, &'i VersionedUri, DataType, Output = DataType>
         + Read<'i, &'i VersionedUri, PropertyType, Output = PropertyType>
         + Read<'i, &'i VersionedUri, LinkType, Output = LinkType>
