@@ -9,7 +9,7 @@ use crate::GraphPool;
 /// through a `Router`, making it explicitly clear we want to provide `OpenApi` specification as
 /// documentation for the routes.
 pub(super) trait RoutedResource: utoipa::OpenApi {
-    fn routes<S: GraphPool>() -> Router;
+    fn routes<P: GraphPool>() -> Router;
     fn documentation() -> utoipa::openapi::OpenApi {
         Self::openapi()
     }

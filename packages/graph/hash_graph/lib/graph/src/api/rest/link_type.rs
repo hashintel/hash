@@ -38,13 +38,13 @@ pub struct LinkTypeResource;
 
 impl RoutedResource for LinkTypeResource {
     /// Create routes for interacting with link types.
-    fn routes<S: GraphPool>() -> Router {
+    fn routes<P: GraphPool>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/link-type",
             Router::new()
-                .route("/", post(create_link_type::<S>).put(update_link_type::<S>))
-                .route("/:version_id", get(get_link_type::<S>)),
+                .route("/", post(create_link_type::<P>).put(update_link_type::<P>))
+                .route("/:version_id", get(get_link_type::<P>)),
         )
     }
 }
@@ -70,9 +70,9 @@ struct CreateLinkTypeRequest {
     ),
     request_body = CreateLinkTypeRequest,
 )]
-async fn create_link_type<S: GraphPool>(
+async fn create_link_type<P: GraphPool>(
     body: Json<CreateLinkTypeRequest>,
-    pool: Extension<Arc<S>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<Persisted<LinkType>>, StatusCode> {
     let Json(CreateLinkTypeRequest { schema, account_id }) = body;
 
@@ -112,9 +112,9 @@ async fn create_link_type<S: GraphPool>(
         ("uri" = String, Path, description = "The URI of link type"),
     )
 )]
-async fn get_link_type<S: GraphPool>(
+async fn get_link_type<P: GraphPool>(
     uri: Path<VersionedUri>,
-    pool: Extension<Arc<S>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<Persisted<LinkType>>, impl IntoResponse> {
     let store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
@@ -168,9 +168,9 @@ struct UpdateLinkTypeRequest {
     ),
     request_body = UpdateLinkTypeRequest,
 )]
-async fn update_link_type<S: GraphPool>(
+async fn update_link_type<P: GraphPool>(
     body: Json<UpdateLinkTypeRequest>,
-    pool: Extension<Arc<S>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<Persisted<LinkType>>, StatusCode> {
     let Json(UpdateLinkTypeRequest { schema, account_id }) = body;
 

@@ -170,10 +170,10 @@ struct InactivateLinkRequest {
     ),
     request_body = UpdateLinkRequest,
 )]
-async fn inactivate_link<S: GraphPool>(
+async fn inactivate_link<P: GraphPool>(
     source_entity: Path<EntityId>,
     body: Json<InactivateLinkRequest>,
-    pool: Extension<Arc<S>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<StatusCode, StatusCode> {
     let Path(source_entity) = source_entity;
     let Json(InactivateLinkRequest {
