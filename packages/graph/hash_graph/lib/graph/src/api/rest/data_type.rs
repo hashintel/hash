@@ -41,7 +41,7 @@ impl RoutedResource for DataTypeResource {
     fn routes<P: GraphPool>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
-            "/data-type",
+            "/data-types",
             Router::new()
                 .route("/", post(create_data_type::<P>).put(update_data_type::<P>))
                 .route("/:version_id", get(get_data_type::<P>)),
@@ -58,7 +58,7 @@ struct CreateDataTypeRequest {
 
 #[utoipa::path(
     post,
-    path = "/data-type",
+    path = "/data-types",
     request_body = CreateDataTypeRequest,
     tag = "DataType",
     responses(
@@ -100,7 +100,7 @@ async fn create_data_type<P: GraphPool>(
 
 #[utoipa::path(
     get,
-    path = "/data-type/{uri}",
+    path = "/data-types/{uri}",
     tag = "DataType",
     responses(
         (status = 200, content_type = "application/json", description = "Data type found", body = DataType),
@@ -147,7 +147,7 @@ struct UpdateDataTypeRequest {
 
 #[utoipa::path(
     put,
-    path = "/data-type",
+    path = "/data-types",
     tag = "DataType",
     responses(
         (status = 200, content_type = "application/json", description = "Data type updated successfully", body = DataType),
