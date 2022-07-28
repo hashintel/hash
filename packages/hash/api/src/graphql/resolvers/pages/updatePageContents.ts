@@ -19,7 +19,6 @@ import {
   UpdatePageContentsResult,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
-import { properties } from "../entity/properties";
 
 const validateActionsInput = (actions: UpdatePageAction[]) => {
   for (const [i, action] of actions.entries()) {
@@ -299,7 +298,6 @@ export const updatePageContents: ResolverFn<
               updateEntity.properties as JsonObject,
               (draftProperties: any) => {
                 if (draftProperties?.text?.__linkedData?.entityId) {
-                  // eslint-disable-next-line no-param-reassign
                   draftProperties.text.__linkedData.entityId =
                     placeholderResults.get(
                       draftProperties.text.__linkedData.entityId,
