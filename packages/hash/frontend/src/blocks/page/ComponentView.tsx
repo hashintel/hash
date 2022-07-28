@@ -20,6 +20,7 @@ import {
   componentNodeToId,
   isComponentNode,
 } from "@hashintel/hash-shared/prosemirror";
+import { textBlockNodeToEntityProperties } from "@hashintel/hash-shared/text";
 import * as Sentry from "@sentry/nextjs";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { TextSelection } from "prosemirror-state";
@@ -280,7 +281,7 @@ export class ComponentView implements NodeView<Schema> {
         payload: {
           draftId: newTextDraftId,
           // @todo indicate the entity type?
-          properties: { tokens: [] },
+          properties: textBlockNodeToEntityProperties(this.node),
           merge: false,
         },
       });
