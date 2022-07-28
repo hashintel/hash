@@ -11,10 +11,10 @@ command = "touch"
 args = ["${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/.env.local"]
 
 
-[tasks.sleep-for-one-second]
+[tasks.sleep-for-five-seconds]
 private = true
 command = "sleep"
-args = ["1"]
+args = ["5"]
 
 [tasks.yarn]
 category = "Deploy"
