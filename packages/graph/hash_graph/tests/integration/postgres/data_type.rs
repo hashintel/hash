@@ -1,3 +1,5 @@
+use graph::ontology::types::OntologyType;
+
 use crate::postgres::DatabaseTestWrapper;
 
 #[tokio::test]
@@ -11,7 +13,7 @@ async fn insert() {
         .await
         .expect("Could not seed database");
 
-    api.create_data_type(boolean_dt)
+    api.create_data_type(&boolean_dt)
         .await
         .expect("could not create data type");
 }
@@ -27,17 +29,16 @@ async fn query() {
         .await
         .expect("Could not seed database");
 
-    let created_data_type = api
-        .create_data_type(empty_list_dt)
+    api.create_data_type(&empty_list_dt)
         .await
         .expect("could not create data type");
 
     let data_type = api
-        .get_data_type(created_data_type.inner().id())
+        .get_data_type(empty_list_dt.id())
         .await
         .expect("could not query data type");
 
-    assert_eq!(data_type.inner(), created_data_type.inner());
+    assert_eq!(data_type, empty_list_dt);
 }
 
 #[tokio::test]
@@ -53,19 +54,14 @@ async fn update() {
         .await
         .expect("Could not seed database");
 
-    let created_data_type = api
-        .create_data_type(object_dt_v1)
+    api.create_data_type(&object_dt_v1)
         .await
         .expect("could not create data type");
 
-    let updated_data_type = api
-        .update_data_type(object_dt_v2)
+    api.update_data_type(&object_dt_v2)
         .await
         .expect("could not update data type");
 
-    assert_ne!(created_data_type.inner(), updated_data_type.inner());
-    assert_ne!(
-        created_data_type.version_id(),
-        updated_data_type.version_id()
-    );
+    assert_ne!(object_dt_v1, object_dt_v2);
+    assert_ne!(object_dt_v1.uri(), object_dt_v2.uri());
 }

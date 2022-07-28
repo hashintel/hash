@@ -5,7 +5,7 @@ use tokio_postgres::GenericClient;
 
 use crate::{
     knowledge::{Entity, EntityId, Links, Outgoing},
-    ontology::types::{uri::VersionedUri, Persisted},
+    ontology::types::uri::VersionedUri,
     store::{crud, postgres::database_type::DatabaseType, AsClient, PostgresStore, QueryError},
 };
 
@@ -14,7 +14,7 @@ impl<'i, C: AsClient, T> crud::Read<'i, &'i VersionedUri, T> for PostgresStore<C
 where
     for<'de> T: DatabaseType + Deserialize<'de>,
 {
-    type Output = Persisted<T>;
+    type Output = T;
 
     async fn get(&self, uri: &'i VersionedUri) -> Result<Self::Output, QueryError> {
         let version = i64::from(uri.version());
@@ -25,7 +25,7 @@ where
             .query_one(
                 &format!(
                     r#"
-                    SELECT version_id, schema, created_by
+                    SELECT schema
                     FROM {}
                     WHERE version_id = (
                         SELECT version_id
@@ -42,13 +42,9 @@ where
             .change_context(QueryError)
             .attach_printable_lazy(|| uri.clone())?;
 
-        Ok(Persisted::new(
-            row.get(0),
-            serde_json::from_value(row.get(1))
-                .report()
-                .change_context(QueryError)?,
-            row.get(2),
-        ))
+        serde_json::from_value(row.get(0))
+            .report()
+            .change_context(QueryError)
     }
 }
 

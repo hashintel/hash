@@ -4,6 +4,7 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::{ensure, Result};
 use serde::{Deserialize, Serialize};
+use utoipa::Component;
 
 use crate::ontology::types::{
     entity_type::links::{Links, ValueOrMaybeOrderedArray},
@@ -57,7 +58,7 @@ pub enum EntityTypeTag {
 }
 
 /// Intermediate representation used during deserialization.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityType {
     kind: EntityTypeTag,

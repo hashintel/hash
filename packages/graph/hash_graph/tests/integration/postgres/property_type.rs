@@ -14,7 +14,7 @@ async fn insert() {
         .await
         .expect("Could not seed database");
 
-    api.create_property_type(age_pt)
+    api.create_property_type(&age_pt)
         .await
         .expect("could not create property type");
 }
@@ -30,17 +30,16 @@ async fn query() {
         .await
         .expect("Could not seed database");
 
-    let created_property_type = api
-        .create_property_type(favorite_quote_pt)
+    api.create_property_type(&favorite_quote_pt)
         .await
         .expect("could not create property type");
 
     let property_type = api
-        .get_property_type(created_property_type.inner().id())
+        .get_property_type(favorite_quote_pt.id())
         .await
         .expect("could not query property type");
 
-    assert_eq!(property_type.inner(), created_property_type.inner());
+    assert_eq!(property_type, favorite_quote_pt);
 }
 
 #[tokio::test]
@@ -56,19 +55,14 @@ async fn update() {
         .await
         .expect("Could not seed database");
 
-    let created_property_type = api
-        .create_property_type(user_id_pt_v1)
+    api.create_property_type(&user_id_pt_v1)
         .await
         .expect("could not create property type");
 
-    let updated_property_type = api
-        .update_property_type(user_id_pt_v2)
+    api.update_property_type(&user_id_pt_v2)
         .await
         .expect("could not update property type");
 
-    assert_ne!(created_property_type.inner(), updated_property_type.inner());
-    assert_ne!(
-        created_property_type.version_id(),
-        updated_property_type.version_id()
-    );
+    assert_ne!(user_id_pt_v1, user_id_pt_v2);
+    assert_ne!(user_id_pt_v1.id(), user_id_pt_v2.id());
 }

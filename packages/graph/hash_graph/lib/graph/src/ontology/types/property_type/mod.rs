@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use error_stack::{ensure, Result};
 use serde::{Deserialize, Serialize};
+use utoipa::Component;
 
 use crate::ontology::types::{
     data_type::DataTypeReference,
@@ -119,7 +120,7 @@ enum PropertyTypeTag {
     PropertyType,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PropertyType {
     kind: PropertyTypeTag,

@@ -1,6 +1,7 @@
 mod database_type;
 mod pool;
 mod read;
+mod version_id;
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
@@ -15,14 +16,14 @@ use crate::{
     ontology::{
         types::{
             uri::{BaseUri, VersionedUri},
-            DataType, DataTypeReference, EntityType, EntityTypeReference, LinkType, Persisted,
-            PropertyType, PropertyTypeReference,
+            DataType, DataTypeReference, EntityType, EntityTypeReference, LinkType, PropertyType,
+            PropertyTypeReference,
         },
-        AccountId, VersionId,
+        AccountId,
     },
     store::{
         error::{EntityDoesNotExist, VersionedUriAlreadyExists},
-        postgres::database_type::DatabaseType,
+        postgres::{database_type::DatabaseType, version_id::VersionId},
         BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, Store, UpdateError,
     },
 };
@@ -259,9 +260,9 @@ where
     /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
     async fn create<T>(
         &self,
-        database_type: T,
+        database_type: &T,
         created_by: AccountId,
-    ) -> Result<Persisted<T>, InsertionError>
+    ) -> Result<VersionId, InsertionError>
     where
         T: DatabaseType + Serialize + Send + Sync,
     {
@@ -292,10 +293,10 @@ where
         let version_id = VersionId::new(Uuid::new_v4());
         self.insert_version_id(version_id).await?;
         self.insert_uri(uri, version_id).await?;
-        self.insert_with_id(version_id, &database_type, created_by)
+        self.insert_with_id(version_id, database_type, created_by)
             .await?;
 
-        Ok(Persisted::new(version_id, database_type, created_by))
+        Ok(version_id)
     }
 
     /// Updates the specified [`DatabaseType`].
@@ -310,9 +311,9 @@ where
     /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
     async fn update<T>(
         &self,
-        database_type: T,
+        database_type: &T,
         updated_by: AccountId,
-    ) -> Result<Persisted<T>, UpdateError>
+    ) -> Result<VersionId, UpdateError>
     where
         T: DatabaseType + Serialize + Send + Sync,
     {
@@ -335,11 +336,11 @@ where
         self.insert_uri(uri, version_id)
             .await
             .change_context(UpdateError)?;
-        self.insert_with_id(version_id, &database_type, updated_by)
+        self.insert_with_id(version_id, database_type, updated_by)
             .await
             .change_context(UpdateError)?;
 
-        Ok(Persisted::new(version_id, database_type, updated_by))
+        Ok(version_id)
     }
 
     /// Inserts a [`DatabaseType`] identified by [`VersionId`], and associated with an
@@ -383,16 +384,16 @@ where
 
     async fn insert_property_type_references(
         &self,
-        property_type: &Persisted<PropertyType>,
+        property_type: &PropertyType,
+        version_id: VersionId,
     ) -> Result<(), InsertionError> {
         let property_type_ids = self
-            .property_type_reference_ids(property_type.inner().property_type_references())
+            .property_type_reference_ids(property_type.property_type_references())
             .await
             .change_context(InsertionError)
             .attach_printable("Could not find referenced property types")?;
 
         for target_id in property_type_ids {
-            let version_id = property_type.version_id();
             self.as_client().query_one(
                     r#"
                         INSERT INTO property_type_property_type_references (source_property_type_version_id, target_property_type_version_id)
@@ -407,13 +408,12 @@ where
         }
 
         let data_type_ids = self
-            .data_type_reference_ids(property_type.inner().data_type_references())
+            .data_type_reference_ids(property_type.data_type_references())
             .await
             .change_context(InsertionError)
             .attach_printable("Could not find referenced data types")?;
 
         for target_id in data_type_ids {
-            let version_id = property_type.version_id();
             self.as_client().query_one(
                     r#"
                         INSERT INTO property_type_data_type_references (source_property_type_version_id, target_data_type_version_id)
@@ -432,16 +432,16 @@ where
 
     async fn insert_entity_type_references(
         &self,
-        entity_type: &Persisted<EntityType>,
+        entity_type: &EntityType,
+        version_id: VersionId,
     ) -> Result<(), InsertionError> {
         let property_type_ids = self
-            .property_type_reference_ids(entity_type.inner().property_type_references())
+            .property_type_reference_ids(entity_type.property_type_references())
             .await
             .change_context(InsertionError)
             .attach_printable("Could not find referenced property types")?;
 
         for target_id in property_type_ids {
-            let version_id = entity_type.version_id();
             self.as_client().query_one(
                     r#"
                         INSERT INTO entity_type_property_type_references (source_entity_type_version_id, target_property_type_version_id)
@@ -458,11 +458,7 @@ where
         let (link_type_uris, entity_type_references): (
             Vec<&VersionedUri>,
             Vec<&EntityTypeReference>,
-        ) = entity_type
-            .inner()
-            .link_type_references()
-            .into_iter()
-            .unzip();
+        ) = entity_type.link_type_references().into_iter().unzip();
 
         let link_type_ids = self
             .link_type_uris_to_version_ids(link_type_uris)
@@ -471,7 +467,6 @@ where
             .attach_printable("Could not find referenced link types")?;
 
         for target_id in link_type_ids {
-            let version_id = entity_type.version_id();
             self.as_client().query_one(
                     r#"
                         INSERT INTO entity_type_link_type_references (source_entity_type_version_id, target_link_type_version_id)
@@ -492,7 +487,6 @@ where
             .attach_printable("Could not find referenced entity types")?;
 
         for target_id in entity_type_reference_ids {
-            let version_id = entity_type.version_id();
             self.as_client().query_one(
                     r#"
                         INSERT INTO entity_type_entity_type_links (source_entity_type_version_id, target_entity_type_version_id)
@@ -629,13 +623,12 @@ where
 
         Ok(())
     }
-}
 
-#[async_trait]
-impl<C> Store for PostgresStore<C>
-where
-    C: AsClient,
-{
+    /// Fetches the [`VersionId`] of the specified [`VersionedUri`].
+    ///
+    /// # Errors:
+    ///
+    /// - if the entry referred to by `uri` does not exist.
     async fn version_id_by_uri(&self, uri: &VersionedUri) -> Result<VersionId, QueryError> {
         let version = i64::from(uri.version());
         Ok(self
@@ -655,12 +648,18 @@ where
             .attach_printable_lazy(|| uri.clone())?
             .get(0))
     }
+}
 
+#[async_trait]
+impl<C> Store for PostgresStore<C>
+where
+    C: AsClient,
+{
     async fn create_data_type(
         &mut self,
-        data_type: DataType,
+        data_type: &DataType,
         created_by: AccountId,
-    ) -> Result<Persisted<DataType>, InsertionError> {
+    ) -> Result<(), InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -669,7 +668,7 @@ where
                 .change_context(InsertionError)?,
         );
 
-        let persisted = transaction.create(data_type, created_by).await?;
+        transaction.create(data_type, created_by).await?;
 
         transaction
             .client
@@ -678,14 +677,14 @@ where
             .report()
             .change_context(InsertionError)?;
 
-        Ok(persisted)
+        Ok(())
     }
 
     async fn update_data_type(
         &mut self,
-        data_type: DataType,
+        data_type: &DataType,
         updated_by: AccountId,
-    ) -> Result<Persisted<DataType>, UpdateError> {
+    ) -> Result<(), UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -694,7 +693,7 @@ where
                 .change_context(UpdateError)?,
         );
 
-        let persisted = transaction.update(data_type, updated_by).await?;
+        transaction.update(data_type, updated_by).await?;
 
         transaction
             .client
@@ -703,14 +702,14 @@ where
             .report()
             .change_context(UpdateError)?;
 
-        Ok(persisted)
+        Ok(())
     }
 
     async fn create_property_type(
         &mut self,
-        property_type: PropertyType,
+        property_type: &PropertyType,
         created_by: AccountId,
-    ) -> Result<Persisted<PropertyType>, InsertionError> {
+    ) -> Result<(), InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -719,10 +718,10 @@ where
                 .change_context(InsertionError)?,
         );
 
-        let property_type = transaction.create(property_type, created_by).await?;
+        let version_id = transaction.create(property_type, created_by).await?;
 
         transaction
-            .insert_property_type_references(&property_type)
+            .insert_property_type_references(property_type, version_id)
             .await
             .change_context(InsertionError)
             .attach_printable("Could not insert references for property type")
@@ -735,14 +734,14 @@ where
             .report()
             .change_context(InsertionError)?;
 
-        Ok(property_type)
+        Ok(())
     }
 
     async fn update_property_type(
         &mut self,
-        property_type: PropertyType,
+        property_type: &PropertyType,
         updated_by: AccountId,
-    ) -> Result<Persisted<PropertyType>, UpdateError> {
+    ) -> Result<(), UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -751,10 +750,10 @@ where
                 .change_context(UpdateError)?,
         );
 
-        let property_type = transaction.update(property_type, updated_by).await?;
+        let version_id = transaction.update(property_type, updated_by).await?;
 
         transaction
-            .insert_property_type_references(&property_type)
+            .insert_property_type_references(property_type, version_id)
             .await
             .change_context(UpdateError)
             .attach_printable("Could not insert references for property type")
@@ -767,14 +766,14 @@ where
             .report()
             .change_context(UpdateError)?;
 
-        Ok(property_type)
+        Ok(())
     }
 
     async fn create_entity_type(
         &mut self,
-        entity_type: EntityType,
+        entity_type: &EntityType,
         created_by: AccountId,
-    ) -> Result<Persisted<EntityType>, InsertionError> {
+    ) -> Result<(), InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -783,10 +782,10 @@ where
                 .change_context(InsertionError)?,
         );
 
-        let entity_type = transaction.create(entity_type, created_by).await?;
+        let version_id = transaction.create(entity_type, created_by).await?;
 
         transaction
-            .insert_entity_type_references(&entity_type)
+            .insert_entity_type_references(entity_type, version_id)
             .await
             .change_context(InsertionError)
             .attach_printable("Could not insert references for entity type")
@@ -799,14 +798,14 @@ where
             .report()
             .change_context(InsertionError)?;
 
-        Ok(entity_type)
+        Ok(())
     }
 
     async fn update_entity_type(
         &mut self,
-        entity_type: EntityType,
+        entity_type: &EntityType,
         updated_by: AccountId,
-    ) -> Result<Persisted<EntityType>, UpdateError> {
+    ) -> Result<(), UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -815,10 +814,10 @@ where
                 .change_context(UpdateError)?,
         );
 
-        let entity_type = transaction.update(entity_type, updated_by).await?;
+        let version_id = transaction.update(entity_type, updated_by).await?;
 
         transaction
-            .insert_entity_type_references(&entity_type)
+            .insert_entity_type_references(entity_type, version_id)
             .await
             .change_context(UpdateError)
             .attach_printable("Could not insert references for entity type")
@@ -831,14 +830,14 @@ where
             .report()
             .change_context(UpdateError)?;
 
-        Ok(entity_type)
+        Ok(())
     }
 
     async fn create_link_type(
         &mut self,
-        link_type: LinkType,
+        link_type: &LinkType,
         created_by: AccountId,
-    ) -> Result<Persisted<LinkType>, InsertionError> {
+    ) -> Result<(), InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -847,7 +846,7 @@ where
                 .change_context(InsertionError)?,
         );
 
-        let persisted = transaction.create(link_type, created_by).await?;
+        transaction.create(link_type, created_by).await?;
 
         transaction
             .client
@@ -856,14 +855,14 @@ where
             .report()
             .change_context(InsertionError)?;
 
-        Ok(persisted)
+        Ok(())
     }
 
     async fn update_link_type(
         &mut self,
-        link_type: LinkType,
+        link_type: &LinkType,
         updated_by: AccountId,
-    ) -> Result<Persisted<LinkType>, UpdateError> {
+    ) -> Result<(), UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -872,7 +871,7 @@ where
                 .change_context(UpdateError)?,
         );
 
-        let persisted = transaction.update(link_type, updated_by).await?;
+        transaction.update(link_type, updated_by).await?;
 
         transaction
             .client
@@ -881,7 +880,7 @@ where
             .report()
             .change_context(UpdateError)?;
 
-        Ok(persisted)
+        Ok(())
     }
 
     async fn create_entity(

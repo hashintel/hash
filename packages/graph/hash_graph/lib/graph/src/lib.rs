@@ -55,7 +55,7 @@
 
 use crate::{
     knowledge::{Entity, EntityId, Links},
-    ontology::types::{uri::VersionedUri, DataType, EntityType, LinkType, Persisted, PropertyType},
+    ontology::types::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType},
     store::{crud::Read, Store, StorePool},
 };
 
@@ -78,9 +78,9 @@ pub trait GraphPool = StorePool + 'static where for<'pool> <Self as StorePool>::
 /// Interface for a [`Store`].
 pub trait Graph = Store
 where
-    for<'i> Self: Read<'i, &'i VersionedUri, DataType, Output = Persisted<DataType>>
-        + Read<'i, &'i VersionedUri, PropertyType, Output = Persisted<PropertyType>>
-        + Read<'i, &'i VersionedUri, LinkType, Output = Persisted<LinkType>>
-        + Read<'i, &'i VersionedUri, EntityType, Output = Persisted<EntityType>>
+    for<'i> Self: Read<'i, &'i VersionedUri, DataType, Output = DataType>
+        + Read<'i, &'i VersionedUri, PropertyType, Output = PropertyType>
+        + Read<'i, &'i VersionedUri, LinkType, Output = LinkType>
+        + Read<'i, &'i VersionedUri, EntityType, Output = EntityType>
         + Read<'i, EntityId, Entity, Output = Entity>
         + Read<'i, EntityId, Links, Output = Links>;

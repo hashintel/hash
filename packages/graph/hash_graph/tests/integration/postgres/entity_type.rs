@@ -19,7 +19,7 @@ async fn insert() {
         .await
         .expect("Could not seed database");
 
-    api.create_entity_type(person_et)
+    api.create_entity_type(&person_et)
         .await
         .expect("could not create entity type");
 }
@@ -35,17 +35,16 @@ async fn query() {
         .await
         .expect("Could not seed database");
 
-    let created_entity_type = api
-        .create_entity_type(organization_et)
+    api.create_entity_type(&organization_et)
         .await
         .expect("could not create entity type");
 
     let entity_type = api
-        .get_entity_type(created_entity_type.inner().id())
+        .get_entity_type(organization_et.id())
         .await
         .expect("could not query entity type");
 
-    assert_eq!(entity_type.inner(), created_entity_type.inner());
+    assert_eq!(entity_type, organization_et);
 }
 
 #[tokio::test]
@@ -70,19 +69,14 @@ async fn update() {
         .await
         .expect("Could not seed database:");
 
-    let created_entity_type = api
-        .create_entity_type(page_et_v1)
+    api.create_entity_type(&page_et_v1)
         .await
         .expect("could not create entity type");
 
-    let updated_entity_type = api
-        .update_entity_type(page_et_v2)
+    api.update_entity_type(&page_et_v2)
         .await
         .expect("could not update entity type");
 
-    assert_ne!(created_entity_type.inner(), updated_entity_type.inner());
-    assert_ne!(
-        created_entity_type.version_id(),
-        updated_entity_type.version_id()
-    );
+    assert_ne!(page_et_v1, page_et_v2);
+    assert_ne!(page_et_v1.id(), page_et_v2.id());
 }

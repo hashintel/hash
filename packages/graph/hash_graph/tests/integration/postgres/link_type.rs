@@ -11,7 +11,7 @@ async fn insert() {
         .await
         .expect("Could not seed database");
 
-    api.create_link_type(owns_lt)
+    api.create_link_type(&owns_lt)
         .await
         .expect("could not create link type");
 }
@@ -27,17 +27,16 @@ async fn query() {
         .await
         .expect("Could not seed database");
 
-    let created_link_type = api
-        .create_link_type(submitted_by_lt)
+    api.create_link_type(&submitted_by_lt)
         .await
         .expect("could not create link type");
 
     let link_type = api
-        .get_link_type(created_link_type.inner().id())
+        .get_link_type(submitted_by_lt.id())
         .await
         .expect("could not query link type");
 
-    assert_eq!(link_type.inner(), created_link_type.inner());
+    assert_eq!(link_type, submitted_by_lt);
 }
 
 #[tokio::test]
@@ -53,19 +52,14 @@ async fn update() {
         .await
         .expect("Could not seed database");
 
-    let created_link_type = api
-        .create_link_type(owns_lt_v1)
+    api.create_link_type(&owns_lt_v1)
         .await
         .expect("could not create link type");
 
-    let updated_link_type = api
-        .update_link_type(owns_lt_v2)
+    api.update_link_type(&owns_lt_v2)
         .await
         .expect("could not update link type");
 
-    assert_ne!(created_link_type.inner(), updated_link_type.inner());
-    assert_ne!(
-        created_link_type.version_id(),
-        updated_link_type.version_id()
-    );
+    assert_ne!(owns_lt_v1, owns_lt_v2);
+    assert_ne!(owns_lt_v1.id(), owns_lt_v2.id());
 }
