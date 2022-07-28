@@ -128,7 +128,7 @@ const calculateSaveActions = async (
   const draftIdToPlaceholderId = new Map<string, string>();
   const draftIdToBlockEntities = new Map<string, DraftEntity<BlockEntity>>();
 
-  const shouldSetTextProperties = <T extends any>(
+  const shouldSetTextProperties = <T extends {}>(
     properties: T,
     savedProperties?: DraftEntity["properties"],
   ): (T & { text: Omit<LegacyLink<DraftEntity<Text>>, "data"> }) | null => {
