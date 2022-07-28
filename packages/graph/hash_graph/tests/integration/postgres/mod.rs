@@ -144,7 +144,7 @@ impl DatabaseApi<'_> {
         &mut self,
         version_id: VersionId,
     ) -> Result<Persisted<DataType>, QueryError> {
-        self.store.get_data_type(&version_id).await
+        self.store.get_data_type(version_id).await
     }
 
     pub async fn update_data_type(
@@ -169,7 +169,7 @@ impl DatabaseApi<'_> {
         &mut self,
         version_id: VersionId,
     ) -> Result<Persisted<PropertyType>, QueryError> {
-        self.store.get_property_type(&version_id).await
+        self.store.get_property_type(version_id).await
     }
 
     pub async fn update_property_type(
@@ -194,7 +194,7 @@ impl DatabaseApi<'_> {
         &mut self,
         version_id: VersionId,
     ) -> Result<Persisted<EntityType>, QueryError> {
-        self.store.get_entity_type(&version_id).await
+        self.store.get_entity_type(version_id).await
     }
 
     pub async fn update_entity_type(
@@ -219,7 +219,7 @@ impl DatabaseApi<'_> {
         &mut self,
         version_id: VersionId,
     ) -> Result<Persisted<LinkType>, QueryError> {
-        self.store.get_link_type(&version_id).await
+        self.store.get_link_type(version_id).await
     }
 
     pub async fn update_link_type(
@@ -242,7 +242,7 @@ impl DatabaseApi<'_> {
     }
 
     pub async fn get_entity(&mut self, entity_id: EntityId) -> Result<Entity, QueryError> {
-        self.store.get_entity(&entity_id).await
+        self.store.get_entity(entity_id).await
     }
 
     pub async fn update_entity(
@@ -272,12 +272,12 @@ impl DatabaseApi<'_> {
         link_type_uri: VersionedUri,
     ) -> Result<Outgoing, QueryError> {
         self.store
-            .get_link_target(source_entity_id, link_type_uri)
+            .get_link_target(source_entity_id, &link_type_uri)
             .await
     }
 
     pub async fn get_entity_links(&self, source_entity_id: EntityId) -> Result<Links, QueryError> {
-        self.store.get_entity_links(&source_entity_id).await
+        self.store.get_entity_links(source_entity_id).await
     }
 
     async fn remove_link(

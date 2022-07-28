@@ -11,12 +11,14 @@ use crate::store::{QueryError, Store};
 
 /// Read access to a [`Store`].
 #[async_trait]
-pub trait Read<I: Sync, T>: Store {
+pub trait Read<'i, I: Send + 'i, T>: Store {
     /// Output returned when getting the value by the index `I`.
     type Output;
 
     /// Returns a value from the [`Store`] identified by `index`.
-    async fn get(&self, index: &I) -> Result<Self::Output, QueryError>;
+    async fn get(&self, index: I) -> Result<Self::Output, QueryError>
+    where
+        'i: 'async_trait;
 }
 
 // TODO: Add remaining CRUD traits (but probably don't implement the `D`-part)

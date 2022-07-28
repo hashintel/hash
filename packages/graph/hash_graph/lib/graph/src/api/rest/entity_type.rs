@@ -45,7 +45,7 @@ pub struct EntityTypeResource;
 pub trait EntityTypeBackend = StorePool + 'static
 where
     for<'pool> <Self as StorePool>::Store<'pool>:
-        crud::Read<VersionId, EntityType, Output = Persisted<EntityType>>;
+        crud::Read<'pool, VersionId, EntityType, Output = Persisted<EntityType>>;
 
 impl RoutedResource for EntityTypeResource {
     /// Create routes for interacting with entity types.
@@ -147,7 +147,7 @@ async fn get_entity_type<S: EntityTypeBackend>(
     })?;
 
     store
-        .get_entity_type(&version_id)
+        .get_entity_type(version_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not query entity type");

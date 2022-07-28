@@ -42,7 +42,7 @@ pub struct LinkTypeResource;
 pub trait LinkTypeBackend = StorePool + 'static
 where
     for<'pool> <Self as StorePool>::Store<'pool>:
-        crud::Read<VersionId, LinkType, Output = Persisted<LinkType>>;
+        crud::Read<'pool, VersionId, LinkType, Output = Persisted<LinkType>>;
 
 impl RoutedResource for LinkTypeResource {
     /// Create routes for interacting with link types.
@@ -141,7 +141,7 @@ async fn get_link_type<S: LinkTypeBackend>(
     })?;
 
     store
-        .get_link_type(&version_id)
+        .get_link_type(version_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not query link type");

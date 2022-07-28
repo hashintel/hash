@@ -48,7 +48,8 @@ pub struct EntityResource;
 /// [`Store`]: crate::store::Store
 pub trait EntityBackend = StorePool + 'static
 where
-    for<'pool> <Self as StorePool>::Store<'pool>: crud::Read<EntityId, Entity, Output = Entity>;
+    for<'pool> <Self as StorePool>::Store<'pool>:
+        crud::Read<'pool, EntityId, Entity, Output = Entity>;
 
 impl RoutedResource for EntityResource {
     /// Create routes for interacting with entities.
@@ -139,7 +140,7 @@ async fn get_entity<S: EntityBackend>(
     })?;
 
     store
-        .get_entity(&entity_id)
+        .get_entity(entity_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not query entity");

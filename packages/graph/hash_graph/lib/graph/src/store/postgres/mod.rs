@@ -11,7 +11,7 @@ use uuid::Uuid;
 pub use self::pool::{AsClient, PostgresStorePool};
 use super::error::LinkActivationError;
 use crate::{
-    knowledge::{Entity, EntityId, Link, LinkStatus, Outgoing},
+    knowledge::{Entity, EntityId, Link, LinkStatus},
     ontology::{
         types::{
             uri::{BaseUri, VersionedUri},
@@ -993,55 +993,6 @@ where
         }
 
         Ok(link)
-    }
-
-    async fn get_link_target(
-        &self,
-        source_entity_id: EntityId,
-        link_type_uri: VersionedUri,
-    ) -> Result<Outgoing, QueryError> {
-        let version = i64::from(link_type_uri.version());
-        let link = self
-            .client
-            .as_client()
-            .query_one(
-                r#"
-                -- Gather all single-links
-                WITH single_links AS (
-                    SELECT link_type_version_id, target_entity_id
-                    FROM links
-                    INNER JOIN ids ON ids.version_id = links.link_type_version_id
-                    WHERE active AND NOT multi AND source_entity_id = $1 AND base_uri = $2 AND "version" = $3
-                ),
-                -- Gather all multi-links
-                multi_links AS (
-                    SELECT link_type_version_id, ARRAY_AGG(target_entity_id ORDER BY multi_order ASC) AS target_entity_ids
-                    FROM links
-                    INNER JOIN ids ON ids.version_id = links.link_type_version_id
-                    WHERE active AND multi AND source_entity_id = $1 AND base_uri = $2 AND "version" = $3
-                    GROUP BY link_type_version_id
-                )
-                -- Combine single and multi links with null values in rows where the other doesn't exist
-                SELECT link_type_version_id, target_entity_id AS single_link, NULL AS multi_link FROM single_links 
-                UNION 
-                SELECT link_type_version_id, NULL AS single_link, target_entity_ids AS multi_link from multi_links
-                "#,
-                &[&source_entity_id, link_type_uri.base_uri(), &version],
-            )
-            .await
-            .report()
-            .change_context(QueryError)
-            .attach_printable(source_entity_id)
-            .attach_printable(link_type_uri.clone())?;
-
-        let val: (Option<EntityId>, Option<Vec<EntityId>>) = (link.get(1), link.get(2));
-        match val {
-            (Some(entity_id), None) => Ok(Outgoing::Single(entity_id)),
-            (None, Some(entity_ids)) => Ok(Outgoing::Multiple(entity_ids)),
-            _ => Err(Report::new(QueryError)
-                .attach_printable(source_entity_id)
-                .attach_printable(link_type_uri.clone())),
-        }
     }
 
     async fn inactivate_link(&mut self, link: Link) -> Result<(), LinkActivationError> {

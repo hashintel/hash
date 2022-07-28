@@ -42,7 +42,7 @@ pub struct PropertyTypeResource;
 pub trait PropertyTypeBackend = StorePool + 'static
 where
     for<'pool> <Self as StorePool>::Store<'pool>:
-        crud::Read<VersionId, PropertyType, Output = Persisted<PropertyType>>;
+        crud::Read<'pool, VersionId, PropertyType, Output = Persisted<PropertyType>>;
 
 impl RoutedResource for PropertyTypeResource {
     /// Create routes for interacting with property types.
@@ -144,7 +144,7 @@ async fn get_property_type<S: PropertyTypeBackend>(
     })?;
 
     store
-        .get_property_type(&version_id)
+        .get_property_type(version_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not query property type");

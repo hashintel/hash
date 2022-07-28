@@ -15,7 +15,7 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    knowledge::{Entity, EntityId, Link, Links, Outgoing},
+    knowledge::{Entity, EntityId, Link, Links},
     ontology::{
         types::{uri::VersionedUri, DataType, EntityType, LinkType, Persisted, PropertyType},
         AccountId, VersionId,
@@ -202,9 +202,9 @@ pub trait Store {
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    async fn get_data_type<I: Sync>(&self, index: &I) -> Result<Self::Output, QueryError>
+    async fn get_data_type<'i, I: Send>(&self, index: I) -> Result<Self::Output, QueryError>
     where
-        Self: Read<I, DataType>,
+        Self: Read<'i, I, DataType>,
     {
         self.get(index).await
     }
@@ -239,9 +239,9 @@ pub trait Store {
     /// # Errors
     ///
     /// - if the requested [`PropertyType`] doesn't exist.
-    async fn get_property_type<I: Sync>(&self, index: &I) -> Result<Self::Output, QueryError>
+    async fn get_property_type<'i, I: Send>(&self, index: I) -> Result<Self::Output, QueryError>
     where
-        Self: Read<I, PropertyType>,
+        Self: Read<'i, I, PropertyType>,
     {
         self.get(index).await
     }
@@ -276,9 +276,9 @@ pub trait Store {
     /// # Errors
     ///
     /// - if the requested [`EntityType`] doesn't exist.
-    async fn get_entity_type<I: Sync>(&self, index: &I) -> Result<Self::Output, QueryError>
+    async fn get_entity_type<'i, I: Send>(&self, index: I) -> Result<Self::Output, QueryError>
     where
-        Self: Read<I, EntityType>,
+        Self: Read<'i, I, EntityType>,
     {
         self.get(index).await
     }
@@ -315,9 +315,9 @@ pub trait Store {
     /// # Errors
     ///
     /// - if the requested [`LinkType`] doesn't exist.
-    async fn get_link_type<I: Sync>(&self, index: &I) -> Result<Self::Output, QueryError>
+    async fn get_link_type<'i, I: Send>(&self, index: I) -> Result<Self::Output, QueryError>
     where
-        Self: Read<I, LinkType>,
+        Self: Read<'i, I, LinkType>,
     {
         self.get(index).await
     }
@@ -354,9 +354,9 @@ pub trait Store {
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity<I: Sync>(&self, index: &I) -> Result<Self::Output, QueryError>
+    async fn get_entity<'i, I: Send>(&self, index: I) -> Result<Self::Output, QueryError>
     where
-        Self: Read<I, Entity>,
+        Self: Read<'i, I, Entity>,
     {
         self.get(index).await
     }
@@ -395,9 +395,9 @@ pub trait Store {
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity_links<I: Sync>(&self, index: &I) -> Result<Self::Output, QueryError>
+    async fn get_entity_links<'i, I: Send>(&self, index: I) -> Result<Self::Output, QueryError>
     where
-        Self: Read<I, Links>,
+        Self: Read<'i, I, Links>,
     {
         self.get(index).await
     }
@@ -407,11 +407,16 @@ pub trait Store {
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_link_target(
+    async fn get_link_target<'i, E: Send, L: Send>(
         &self,
-        source_entity_id: EntityId,
-        link_type_uri: VersionedUri,
-    ) -> Result<Outgoing, QueryError>;
+        source_entity: E,
+        link_type: L,
+    ) -> Result<Self::Output, QueryError>
+    where
+        Self: Read<'i, (E, L), Links>,
+    {
+        self.get((source_entity, link_type)).await
+    }
 
     /// Inactivates a [`Link`] between a source and target [`Entity`].
     ///

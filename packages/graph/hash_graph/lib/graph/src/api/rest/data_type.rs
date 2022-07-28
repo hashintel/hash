@@ -42,7 +42,7 @@ pub struct DataTypeResource;
 pub trait DataTypeBackend = StorePool + 'static
 where
     for<'pool> <Self as StorePool>::Store<'pool>:
-        crud::Read<VersionId, DataType, Output = Persisted<DataType>>;
+        crud::Read<'pool, VersionId, DataType, Output = Persisted<DataType>>;
 
 impl RoutedResource for DataTypeResource {
     /// Create routes for interacting with data types.
@@ -141,7 +141,7 @@ async fn get_data_type<S: DataTypeBackend>(
     })?;
 
     store
-        .get_data_type(&version_id)
+        .get_data_type(version_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not query data type");
