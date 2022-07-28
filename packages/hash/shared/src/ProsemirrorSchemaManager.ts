@@ -4,9 +4,9 @@ import { EditorState, Transaction } from "prosemirror-state";
 import { EditorProps, EditorView } from "prosemirror-view";
 
 import {
-  HashBlockMeta,
-  HashBlock,
   fetchBlock,
+  HashBlock,
+  HashBlockMeta,
   isTextBlock,
   prepareBlockCache,
 } from "./blocks";
@@ -14,7 +14,6 @@ import {
   BlockEntity,
   getBlockChildEntity,
   isDraftTextContainingEntityProperties,
-  isTextContainingEntityProperties,
   isTextEntity,
 } from "./entity";
 import {
@@ -292,76 +291,55 @@ export class ProsemirrorSchemaManager {
 
     const { tr } = this.view.state;
 
-    let blockIdForNode = draftBlockId;
     let entityProperties = targetVariant?.properties ?? {};
 
-    if (blockIdForNode) {
-      // we already have a block which we're swapping
-      const entityStoreState = entityStorePluginState(this.view.state);
-      const blockEntity = entityStoreState.store.draft[blockIdForNode];
+    const entityStoreState = entityStorePluginState(this.view.state);
+    const blockEntity = draftBlockId
+      ? entityStoreState.store.draft[draftBlockId]
+      : null;
 
-      if (!blockEntity || !isDraftBlockEntity(blockEntity)) {
-        throw new Error("draft id does not belong to a block");
-      }
+    if (
+      (draftBlockId && !blockEntity) ||
+      (blockEntity && !isDraftBlockEntity(blockEntity))
+    ) {
+      throw new Error("draft id does not belong to a block");
+    }
 
-      if (targetComponentId === blockEntity.properties.componentId) {
-        if (
-          !isTextBlock(targetComponentId) ||
-          isTextContainingEntityProperties(
-            blockEntity.properties.entity.properties,
-          )
-        ) {
-          /**
-           * In the event we're switching to another variant of the same
-           * component, and we are either not dealing with text components,
-           * or we are, and we've already got an "intermediary" entity –
-           * i.e, an entity on which to store non-text properties, we assume
-           * we can just update this entity with the properties of this
-           * variant. This prevents us dealing with components that have
-           * variants requiring different entity types, but we have no
-           * use case for that yet, and this simplifies things somewhat.
-           */
-          addEntityStoreAction(this.view.state, tr, {
-            type: "updateEntityProperties",
-            payload: {
-              draftId: blockEntity.properties.entity.draftId,
-              properties: entityProperties,
-              merge: true,
-            },
-          });
-        } else {
-          // we're swapping to the same text component - preserve text
-          entityProperties = {
-            ...entityProperties,
-            text: {
-              __linkedData: {},
-              data: isTextContainingEntityProperties(
-                blockEntity.properties.entity.properties,
-              )
-                ? blockEntity.properties.entity.properties.text.data
-                : blockEntity.properties.entity,
-            },
-          };
-        }
-      } else if (isTextBlock(targetComponentId)) {
-        const textEntityLink = isDraftTextContainingEntityProperties(
+    let targetBlockId: string | null;
+
+    if (targetComponentId === blockEntity?.properties.componentId) {
+      addEntityStoreAction(this.view.state, tr, {
+        type: "updateEntityProperties",
+        payload: {
+          draftId: blockEntity.properties.entity.draftId,
+          properties: entityProperties,
+          merge: true,
+        },
+      });
+      targetBlockId = blockEntity.draftId;
+    } else {
+      targetBlockId = null;
+
+      /**
+       * This is supporting swapping between text blocks and persisting the
+       * existing text
+       */
+      if (
+        blockEntity &&
+        isTextBlock(targetComponentId) &&
+        isDraftTextContainingEntityProperties(
           blockEntity.properties.entity.properties,
         )
-          ? blockEntity.properties.entity.properties.text
-          : {
-              __linkedData: {},
-              data: blockEntity.properties.entity,
-            };
-
+      ) {
         entityProperties = {
           ...entityProperties,
-          text: textEntityLink,
+          text: blockEntity.properties.entity.properties.text,
         };
       }
     }
 
-    if (!blockIdForNode) {
-      blockIdForNode = await this.createNewDraftBlock(
+    if (!targetBlockId) {
+      targetBlockId = await this.createNewDraftBlock(
         tr,
         entityProperties,
         targetComponentId,
@@ -372,7 +350,7 @@ export class ProsemirrorSchemaManager {
     const newNode = this.renderBlock(
       targetComponentId,
       updated.store,
-      blockIdForNode,
+      targetBlockId,
     );
 
     return [tr, newNode] as const;
