@@ -12,13 +12,13 @@ mod property_type;
 
 use std::sync::Arc;
 
-use api_resource::RestApiBackend;
 use axum::{routing::get, Extension, Json, Router};
 use utoipa::{openapi, Modify, OpenApi};
 
 use self::api_resource::RoutedResource;
+use crate::GraphPool;
 
-fn api_resources<S: RestApiBackend>() -> Vec<Router> {
+fn api_resources<S: GraphPool>() -> Vec<Router> {
     vec![
         data_type::DataTypeResource::routes::<S>(),
         property_type::PropertyTypeResource::routes::<S>(),
@@ -40,7 +40,7 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
     ]
 }
 
-pub fn rest_api_router<S: RestApiBackend>(store: Arc<S>) -> Router {
+pub fn rest_api_router<S: GraphPool>(store: Arc<S>) -> Router {
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<S>()
         .into_iter()

@@ -14,12 +14,12 @@ use utoipa::{Component, OpenApi};
 
 use super::api_resource::RoutedResource;
 use crate::{
-    api::rest::api_resource::RestApiBackend,
     ontology::{
         types::{uri::VersionedUri, Persisted, PersistedPropertyType, PropertyType},
-        AccountId, VersionId,
+        AccountId,
     },
-    store::{crud, BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, StorePool},
+    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError},
+    GraphPool,
 };
 
 #[derive(OpenApi)]
@@ -36,17 +36,9 @@ use crate::{
 )]
 pub struct PropertyTypeResource;
 
-/// Specifies the requirements to a [`Store`] for the [`PropertyType`] REST API.
-///
-/// [`Store`]: crate::store::Store
-pub trait PropertyTypeBackend = StorePool + 'static
-where
-    for<'pool> <Self as StorePool>::Store<'pool>:
-        crud::Read<'pool, VersionId, PropertyType, Output = Persisted<PropertyType>>;
-
 impl RoutedResource for PropertyTypeResource {
     /// Create routes for interacting with property types.
-    fn routes<S: RestApiBackend>() -> Router {
+    fn routes<S: GraphPool>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/property-type",
@@ -81,7 +73,7 @@ struct CreatePropertyTypeRequest {
     ),
     request_body = CreatePropertyTypeRequest,
 )]
-async fn create_property_type<S: PropertyTypeBackend>(
+async fn create_property_type<S: GraphPool>(
     body: Json<CreatePropertyTypeRequest>,
     pool: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<PropertyType>>, StatusCode> {
@@ -123,7 +115,7 @@ async fn create_property_type<S: PropertyTypeBackend>(
         ("uri" = String, Path, description = "The URI of property type"),
     )
 )]
-async fn get_property_type<S: PropertyTypeBackend>(
+async fn get_property_type<S: GraphPool>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<PropertyType>>, impl IntoResponse> {
@@ -179,7 +171,7 @@ struct UpdatePropertyTypeRequest {
     ),
     request_body = UpdatePropertyTypeRequest,
 )]
-async fn update_property_type<S: PropertyTypeBackend>(
+async fn update_property_type<S: GraphPool>(
     body: Json<UpdatePropertyTypeRequest>,
     pool: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<PropertyType>>, StatusCode> {

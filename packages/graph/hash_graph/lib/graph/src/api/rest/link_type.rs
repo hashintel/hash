@@ -14,12 +14,12 @@ use utoipa::{Component, OpenApi};
 
 use super::api_resource::RoutedResource;
 use crate::{
-    api::rest::api_resource::RestApiBackend,
     ontology::{
         types::{uri::VersionedUri, LinkType, Persisted, PersistedLinkType},
-        AccountId, VersionId,
+        AccountId,
     },
-    store::{crud, BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError, StorePool},
+    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError},
+    GraphPool,
 };
 
 #[derive(OpenApi)]
@@ -36,17 +36,9 @@ use crate::{
 )]
 pub struct LinkTypeResource;
 
-/// Specifies the requirements to a [`Store`] for the link-type REST API.
-///
-/// [`Store`]: crate::store::Store
-pub trait LinkTypeBackend = StorePool + 'static
-where
-    for<'pool> <Self as StorePool>::Store<'pool>:
-        crud::Read<'pool, VersionId, LinkType, Output = Persisted<LinkType>>;
-
 impl RoutedResource for LinkTypeResource {
     /// Create routes for interacting with link types.
-    fn routes<S: RestApiBackend>() -> Router {
+    fn routes<S: GraphPool>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/link-type",
@@ -78,7 +70,7 @@ struct CreateLinkTypeRequest {
     ),
     request_body = CreateLinkTypeRequest,
 )]
-async fn create_link_type<S: LinkTypeBackend>(
+async fn create_link_type<S: GraphPool>(
     body: Json<CreateLinkTypeRequest>,
     pool: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<LinkType>>, StatusCode> {
@@ -120,7 +112,7 @@ async fn create_link_type<S: LinkTypeBackend>(
         ("uri" = String, Path, description = "The URI of link type"),
     )
 )]
-async fn get_link_type<S: LinkTypeBackend>(
+async fn get_link_type<S: GraphPool>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<LinkType>>, impl IntoResponse> {
@@ -176,7 +168,7 @@ struct UpdateLinkTypeRequest {
     ),
     request_body = UpdateLinkTypeRequest,
 )]
-async fn update_link_type<S: LinkTypeBackend>(
+async fn update_link_type<S: GraphPool>(
     body: Json<UpdateLinkTypeRequest>,
     pool: Extension<Arc<S>>,
 ) -> Result<Json<Persisted<LinkType>>, StatusCode> {

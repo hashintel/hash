@@ -53,6 +53,15 @@
               the negative part, though"
 )]
 
+use crate::{
+    knowledge::{Entity, EntityId, Links},
+    ontology::{
+        types::{DataType, EntityType, LinkType, Persisted, PropertyType},
+        VersionId,
+    },
+    store::{crud::Read, Store, StorePool},
+};
+
 pub mod api;
 
 pub mod knowledge;
@@ -65,3 +74,16 @@ pub mod logging;
 #[cfg(test)]
 #[path = "../../../tests/test_data/lib.rs"]
 mod test_data;
+
+/// Abstraction over [`StorePool`] for [`Graph`]s.
+pub trait GraphPool = StorePool + 'static where for<'pool> <Self as StorePool>::Store<'pool>: Graph;
+
+/// Interface for a [`Store`].
+pub trait Graph = Store
+where
+    for<'i> Self: Read<'i, VersionId, DataType, Output = Persisted<DataType>>
+        + Read<'i, VersionId, PropertyType, Output = Persisted<PropertyType>>
+        + Read<'i, VersionId, LinkType, Output = Persisted<LinkType>>
+        + Read<'i, VersionId, EntityType, Output = Persisted<EntityType>>
+        + Read<'i, EntityId, Entity, Output = Entity>
+        + Read<'i, EntityId, Links, Output = Links>;

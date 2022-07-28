@@ -13,16 +13,13 @@ use serde::{Deserialize, Serialize};
 use utoipa::{Component, OpenApi};
 
 use crate::{
-    api::rest::api_resource::{RestApiBackend, RoutedResource},
+    api::rest::api_resource::RoutedResource,
     ontology::{
         types::{uri::VersionedUri, EntityType, Persisted, PersistedEntityType},
-        AccountId, VersionId,
+        AccountId,
     },
-    store::{
-        crud,
-        error::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError},
-        StorePool,
-    },
+    store::error::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError},
+    GraphPool,
 };
 
 #[derive(OpenApi)]
@@ -39,26 +36,18 @@ use crate::{
 )]
 pub struct EntityTypeResource;
 
-/// Specifies the requirements to a [`Store`] for the [`EntityType`] REST API.
-///
-/// [`Store`]: crate::store::Store
-pub trait EntityTypeBackend = StorePool + 'static
-where
-    for<'pool> <Self as StorePool>::Store<'pool>:
-        crud::Read<'pool, VersionId, EntityType, Output = Persisted<EntityType>>;
-
 impl RoutedResource for EntityTypeResource {
     /// Create routes for interacting with entity types.
-    fn routes<S: RestApiBackend>() -> Router {
+    fn routes<P: GraphPool>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/entity-type",
             Router::new()
                 .route(
                     "/",
-                    post(create_entity_type::<S>).put(update_entity_type::<S>),
+                    post(create_entity_type::<P>).put(update_entity_type::<P>),
                 )
-                .route("/:version_id", get(get_entity_type::<S>)),
+                .route("/:version_id", get(get_entity_type::<P>)),
         )
     }
 }
@@ -84,9 +73,9 @@ struct CreateEntityTypeRequest {
     ),
     request_body = CreateEntityTypeRequest,
 )]
-async fn create_entity_type<S: EntityTypeBackend>(
+async fn create_entity_type<P: GraphPool>(
     body: Json<CreateEntityTypeRequest>,
-    pool: Extension<Arc<S>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<Persisted<EntityType>>, StatusCode> {
     let Json(CreateEntityTypeRequest { schema, account_id }) = body;
 
@@ -126,9 +115,9 @@ async fn create_entity_type<S: EntityTypeBackend>(
         ("uri" = String, Path, description = "The URI of entity type"),
     )
 )]
-async fn get_entity_type<S: EntityTypeBackend>(
+async fn get_entity_type<P: GraphPool>(
     uri: Path<VersionedUri>,
-    pool: Extension<Arc<S>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<Persisted<EntityType>>, impl IntoResponse> {
     let store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
@@ -182,9 +171,9 @@ struct UpdateEntityTypeRequest {
     ),
     request_body = UpdateEntityTypeRequest,
 )]
-async fn update_entity_type<S: EntityTypeBackend>(
+async fn update_entity_type<P: GraphPool>(
     body: Json<UpdateEntityTypeRequest>,
-    pool: Extension<Arc<S>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<Persisted<EntityType>>, StatusCode> {
     let Json(UpdateEntityTypeRequest { schema, account_id }) = body;
 
