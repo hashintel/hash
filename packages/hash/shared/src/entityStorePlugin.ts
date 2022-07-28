@@ -127,16 +127,13 @@ export const entityStorePluginStateFromTransaction = (
 
 /**
  * Creates a draftId for an entity.
- * If the entityId is not yet available, a fake draft id is used for the
- * session. Pass 'null' if the entity is new and the entityId is not available.
- * Do NOT change the entity's draftId mid-session - leave it as fake. If you
- * need to recall the entity's draftId, use mustGetDraftEntityForEntityId
- *
- * @todo should maybe always be random to handle a block being present twice
- * @todo this is called when we ought to be using mustGetDraftEntityByEntityId
+ * If the entityId is not yet available, a fake draft id is used for the session.
+ * Pass 'null' if the entity is new and the entityId is not available.
+ * Do NOT change the entity's draftId mid-session - leave it as fake.
+ * If you need to recall the entity's draftId, use mustGetDraftEntityForEntityId
  */
 export const generateDraftIdForEntity = (entityId: string | null) =>
-  entityId ? `draft-${entityId}` : `fake-${uuid()}`;
+  entityId ? `draft-${entityId}-${uuid()}` : `fake-${uuid()}`;
 
 /**
  * As we're not yet working with a totally flat entity store, the same
