@@ -46,6 +46,31 @@ type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
 
 type ComponentNodeViewFactory = (meta: BlockConfig) => NodeViewFactory;
 
+const isBlockCompatible = (
+  targetComponentId: string,
+  draftBlockId: string | null | undefined,
+  entityStore: EntityStore | null,
+) => {
+  if (draftBlockId && entityStore?.draft[draftBlockId]) {
+    const blockEntity = entityStore.draft[draftBlockId];
+
+    if (!isBlockEntity(blockEntity)) {
+      throw new Error("Can only create remote block from block entity");
+    }
+
+    if (blockEntity.properties.componentId !== targetComponentId) {
+      if (
+        !isTextBlock(blockEntity.properties.componentId) ||
+        !isTextBlock(targetComponentId)
+      ) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+};
+
 /**
  * Manages the creation and editing of the ProseMirror schema.
  * Editing the ProseMirror schema on the fly involves unsupported hacks flagged below.
@@ -142,53 +167,22 @@ export class ProsemirrorSchemaManager {
   }
 
   /**
-   * Creating a new type of block in prosemirror, without necessarily having
-   * requested the block metadata yet.
-   *
-   * @todo rewrite for clarity
+   * @note targetComponentId must already be defined
+   * @see defineBlock
+   * @see defineBlockByComponentId
    */
-  async renderBlock(
+  renderBlock(
     targetComponentId: string,
-    entityStore?: EntityStore,
-    // @todo this needs to be mandatory otherwises properties may get lost
-    _draftBlockId?: string | null,
-  ) {
-    let draftBlockId = _draftBlockId;
-
-    if (draftBlockId && entityStore?.draft[draftBlockId]) {
-      const blockEntity = entityStore.draft[draftBlockId];
-
-      if (!isBlockEntity(blockEntity)) {
-        throw new Error("Can only create remote block from block entity");
-      }
-
-      if (blockEntity.properties.componentId !== targetComponentId) {
-        if (
-          !isTextBlock(blockEntity.properties.componentId) ||
-          !isTextBlock(targetComponentId)
-        ) {
-          draftBlockId = null;
-        }
-      }
-    }
-
-    await this.defineBlockByComponentId(targetComponentId);
-
-    return this.renderPredefinedBlock(
-      entityStore,
-      draftBlockId,
-      targetComponentId,
-    );
-  }
-
-  private renderPredefinedBlock(
-    entityStore: EntityStore | undefined,
-    draftBlockId: string | null | undefined,
-    targetComponentId: string,
+    entityStore: EntityStore | null = null,
+    draftBlockId?: string | null,
   ) {
     this.assertBlockDefined(targetComponentId);
 
-    const blockEntity = draftBlockId ? entityStore?.draft[draftBlockId] : null;
+    const blockEntity =
+      draftBlockId &&
+      isBlockCompatible(targetComponentId, draftBlockId, entityStore)
+        ? entityStore?.draft[draftBlockId]
+        : null;
 
     const childDraftId = isDraftBlockEntity(blockEntity)
       ? blockEntity.properties.entity.draftId
@@ -231,11 +225,13 @@ export class ProsemirrorSchemaManager {
     );
 
     const newNodes = await Promise.all(
-      entities.map((blockEntity) => {
+      entities.map(async (blockEntity) => {
         const draftEntity = mustGetDraftEntityByEntityId(
           store.draft,
           blockEntity.entityId,
         );
+
+        await this.defineBlockByComponentId(blockEntity.properties.componentId);
 
         return this.renderBlock(
           blockEntity.properties.componentId,
@@ -405,7 +401,7 @@ export class ProsemirrorSchemaManager {
     }
 
     const updated = entityStorePluginStateFromTransaction(tr, this.view.state);
-    const newNode = await this.renderBlock(
+    const newNode = this.renderBlock(
       targetComponentId,
       updated.store,
       blockIdForNode,
@@ -502,10 +498,10 @@ export class ProsemirrorSchemaManager {
       this.view.state,
     ).store;
 
-    const newBlockNode = this.renderPredefinedBlock(
+    const newBlockNode = this.renderBlock(
+      blockEntity.properties.componentId,
       updatedStore,
       blockEntityDraftId,
-      blockEntity.properties.componentId,
     );
 
     tr.replaceRangeWith(pos, pos + newBlockNode.nodeSize, newBlockNode);

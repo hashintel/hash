@@ -1,11 +1,10 @@
-import { Box, Collapse } from "@mui/material";
-import { useState, useRef, FormEvent, FunctionComponent } from "react";
-import { unstable_batchedUpdates } from "react-dom";
-
 import { TextField } from "@hashintel/hash-design-system";
-import { useBlockView } from "../BlockViewContext";
-import { useUserBlocks } from "../../userBlocks";
+import { Box, Collapse } from "@mui/material";
+import { FormEvent, FunctionComponent, useRef, useState } from "react";
+import { unstable_batchedUpdates } from "react-dom";
 import { Button } from "../../../shared/ui";
+import { useUserBlocks } from "../../userBlocks";
+import { useBlockView } from "../BlockViewContext";
 
 /** trim whitespace and remove trailing slash */
 const createNormalizedBlockUrl = (url: string) => url.trim().replace(/\/$/, "");
@@ -51,11 +50,10 @@ export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({
             [normalizedUrl]: blockMeta,
           }));
         });
-        return blockView.manager.renderBlock(normalizedUrl);
-      })
-      .then((block) => {
-        const { editorView } = blockView;
-        editorView.dispatch(editorView.state.tr.insert(pos, block));
+        const block = blockView.manager.renderBlock(normalizedUrl);
+        blockView.editorView.dispatch(
+          blockView.editorView.state.tr.insert(pos, block),
+        );
         onLoad();
       })
       .catch((err) => {
