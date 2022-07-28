@@ -76,9 +76,9 @@ mod test_data;
 pub trait GraphPool = StorePool + 'static where for<'pool> <Self as StorePool>::Store<'pool>: Graph;
 
 /// Interface for a [`Store`].
-pub trait Graph = Store
-where
-    for<'i> Self: Read<'i, &'i VersionedUri, DataType, Output = DataType>
+pub trait Graph = where
+    for<'i> Self: Store
+        + Read<'i, &'i VersionedUri, DataType, Output = DataType>
         + Read<'i, &'i VersionedUri, PropertyType, Output = PropertyType>
         + Read<'i, &'i VersionedUri, LinkType, Output = LinkType>
         + Read<'i, &'i VersionedUri, EntityType, Output = EntityType>

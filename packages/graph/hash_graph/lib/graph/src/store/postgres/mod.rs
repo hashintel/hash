@@ -1,9 +1,15 @@
-mod database_type;
+mod data_type;
+mod entity_type;
+mod link_type;
+mod onthology;
+mod property_type;
+
+mod entity;
+mod link;
+
 mod pool;
-mod read;
 mod version_id;
 
-use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use serde::Serialize;
 use tokio_postgres::GenericClient;
@@ -12,19 +18,19 @@ use uuid::Uuid;
 pub use self::pool::{AsClient, PostgresStorePool};
 use super::error::LinkActivationError;
 use crate::{
-    knowledge::{Entity, EntityId, Link, LinkStatus},
+    knowledge::{Entity, EntityId, LinkStatus},
     ontology::{
         types::{
             uri::{BaseUri, VersionedUri},
-            DataType, DataTypeReference, EntityType, EntityTypeReference, LinkType, PropertyType,
+            DataTypeReference, EntityType, EntityTypeReference, PropertyType,
             PropertyTypeReference,
         },
         AccountId,
     },
     store::{
-        error::{EntityDoesNotExist, VersionedUriAlreadyExists},
-        postgres::{database_type::DatabaseType, version_id::VersionId},
-        BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, Store, UpdateError,
+        error::VersionedUriAlreadyExists,
+        postgres::{onthology::OntologyDatabaseType, version_id::VersionId},
+        BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError,
     },
 };
 
@@ -264,7 +270,7 @@ where
         created_by: AccountId,
     ) -> Result<VersionId, InsertionError>
     where
-        T: DatabaseType + Serialize + Send + Sync,
+        T: OntologyDatabaseType + Serialize + Send + Sync,
     {
         let uri = database_type.uri();
 
@@ -315,7 +321,7 @@ where
         updated_by: AccountId,
     ) -> Result<VersionId, UpdateError>
     where
-        T: DatabaseType + Serialize + Send + Sync,
+        T: OntologyDatabaseType + Serialize + Send + Sync,
     {
         let uri = database_type.uri();
 
@@ -356,7 +362,7 @@ where
         created_by: AccountId,
     ) -> Result<(), InsertionError>
     where
-        T: DatabaseType + Serialize + Sync,
+        T: OntologyDatabaseType + Serialize + Sync,
     {
         let value = serde_json::to_value(database_type)
             .report()
@@ -647,370 +653,5 @@ where
             .change_context(QueryError)
             .attach_printable_lazy(|| uri.clone())?
             .get(0))
-    }
-}
-
-#[async_trait]
-impl<C> Store for PostgresStore<C>
-where
-    C: AsClient,
-{
-    async fn create_data_type(
-        &mut self,
-        data_type: &DataType,
-        created_by: AccountId,
-    ) -> Result<(), InsertionError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .report()
-                .change_context(InsertionError)?,
-        );
-
-        transaction.create(data_type, created_by).await?;
-
-        transaction
-            .client
-            .commit()
-            .await
-            .report()
-            .change_context(InsertionError)?;
-
-        Ok(())
-    }
-
-    async fn update_data_type(
-        &mut self,
-        data_type: &DataType,
-        updated_by: AccountId,
-    ) -> Result<(), UpdateError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .report()
-                .change_context(UpdateError)?,
-        );
-
-        transaction.update(data_type, updated_by).await?;
-
-        transaction
-            .client
-            .commit()
-            .await
-            .report()
-            .change_context(UpdateError)?;
-
-        Ok(())
-    }
-
-    async fn create_property_type(
-        &mut self,
-        property_type: &PropertyType,
-        created_by: AccountId,
-    ) -> Result<(), InsertionError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .report()
-                .change_context(InsertionError)?,
-        );
-
-        let version_id = transaction.create(property_type, created_by).await?;
-
-        transaction
-            .insert_property_type_references(property_type, version_id)
-            .await
-            .change_context(InsertionError)
-            .attach_printable("Could not insert references for property type")
-            .attach_lazy(|| property_type.clone())?;
-
-        transaction
-            .client
-            .commit()
-            .await
-            .report()
-            .change_context(InsertionError)?;
-
-        Ok(())
-    }
-
-    async fn update_property_type(
-        &mut self,
-        property_type: &PropertyType,
-        updated_by: AccountId,
-    ) -> Result<(), UpdateError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .report()
-                .change_context(UpdateError)?,
-        );
-
-        let version_id = transaction.update(property_type, updated_by).await?;
-
-        transaction
-            .insert_property_type_references(property_type, version_id)
-            .await
-            .change_context(UpdateError)
-            .attach_printable("Could not insert references for property type")
-            .attach_lazy(|| property_type.clone())?;
-
-        transaction
-            .client
-            .commit()
-            .await
-            .report()
-            .change_context(UpdateError)?;
-
-        Ok(())
-    }
-
-    async fn create_entity_type(
-        &mut self,
-        entity_type: &EntityType,
-        created_by: AccountId,
-    ) -> Result<(), InsertionError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .report()
-                .change_context(InsertionError)?,
-        );
-
-        let version_id = transaction.create(entity_type, created_by).await?;
-
-        transaction
-            .insert_entity_type_references(entity_type, version_id)
-            .await
-            .change_context(InsertionError)
-            .attach_printable("Could not insert references for entity type")
-            .attach_lazy(|| entity_type.clone())?;
-
-        transaction
-            .client
-            .commit()
-            .await
-            .report()
-            .change_context(InsertionError)?;
-
-        Ok(())
-    }
-
-    async fn update_entity_type(
-        &mut self,
-        entity_type: &EntityType,
-        updated_by: AccountId,
-    ) -> Result<(), UpdateError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .report()
-                .change_context(UpdateError)?,
-        );
-
-        let version_id = transaction.update(entity_type, updated_by).await?;
-
-        transaction
-            .insert_entity_type_references(entity_type, version_id)
-            .await
-            .change_context(UpdateError)
-            .attach_printable("Could not insert references for entity type")
-            .attach_lazy(|| entity_type.clone())?;
-
-        transaction
-            .client
-            .commit()
-            .await
-            .report()
-            .change_context(UpdateError)?;
-
-        Ok(())
-    }
-
-    async fn create_link_type(
-        &mut self,
-        link_type: &LinkType,
-        created_by: AccountId,
-    ) -> Result<(), InsertionError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .report()
-                .change_context(InsertionError)?,
-        );
-
-        transaction.create(link_type, created_by).await?;
-
-        transaction
-            .client
-            .commit()
-            .await
-            .report()
-            .change_context(InsertionError)?;
-
-        Ok(())
-    }
-
-    async fn update_link_type(
-        &mut self,
-        link_type: &LinkType,
-        updated_by: AccountId,
-    ) -> Result<(), UpdateError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .report()
-                .change_context(UpdateError)?,
-        );
-
-        transaction.update(link_type, updated_by).await?;
-
-        transaction
-            .client
-            .commit()
-            .await
-            .report()
-            .change_context(UpdateError)?;
-
-        Ok(())
-    }
-
-    async fn create_entity(
-        &mut self,
-        entity: &Entity,
-        entity_type_uri: VersionedUri,
-        created_by: AccountId,
-    ) -> Result<EntityId, InsertionError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .report()
-                .change_context(InsertionError)?,
-        );
-
-        let entity_id = EntityId::new(Uuid::new_v4());
-
-        transaction.insert_entity_id(entity_id).await?;
-        transaction
-            .insert_entity(entity_id, entity, entity_type_uri, created_by)
-            .await?;
-
-        transaction
-            .client
-            .commit()
-            .await
-            .report()
-            .change_context(InsertionError)?;
-
-        Ok(entity_id)
-    }
-
-    async fn update_entity(
-        &mut self,
-        entity_id: EntityId,
-        entity: &Entity,
-        entity_type_uri: VersionedUri,
-        updated_by: AccountId,
-    ) -> Result<(), UpdateError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .report()
-                .change_context(UpdateError)?,
-        );
-
-        if !transaction
-            .contains_entity(entity_id)
-            .await
-            .change_context(UpdateError)?
-        {
-            return Err(Report::new(EntityDoesNotExist)
-                .attach_printable(entity_id)
-                .change_context(UpdateError));
-        }
-
-        transaction
-            .insert_entity(entity_id, entity, entity_type_uri, updated_by)
-            .await
-            .change_context(UpdateError)?;
-
-        transaction
-            .client
-            .commit()
-            .await
-            .report()
-            .change_context(UpdateError)?;
-
-        Ok(())
-    }
-
-    async fn create_link(
-        &mut self,
-        link: &Link,
-        created_by: AccountId,
-    ) -> Result<(), InsertionError> {
-        let link_type_version_id = self
-            .version_id_by_uri(link.link_type_uri())
-            .await
-            .change_context(InsertionError)
-            .attach_printable(link.source_entity())?;
-        let inserted_link = self.as_client()
-            .query_one(
-                r#"
-                    INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, multi, multi_order, created_by)
-                    VALUES ($1, $2, $3, false, null, $4)
-                    RETURNING source_entity_id, target_entity_id, link_type_version_id;
-                "#,
-                &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &created_by],
-            )
-            .await;
-
-        if let Err(error) = inserted_link {
-            // In the case of inserting a new link errors, we try to update an existing link that
-            // has previously been set to inactive
-            self.update_link_status(
-                LinkStatus::Active,
-                link.source_entity(),
-                link.target_entity(),
-                link_type_version_id,
-            )
-            .await
-            .change_context(InsertionError)
-            .attach_printable(created_by)
-            .attach_printable(error)
-            .attach_lazy(|| link.clone())?;
-        }
-
-        Ok(())
-    }
-
-    async fn inactivate_link(&mut self, link: &Link) -> Result<(), LinkActivationError> {
-        let link_type_version_id = self
-            .version_id_by_uri(link.link_type_uri())
-            .await
-            .change_context(InsertionError)
-            .attach_printable(link.source_entity())
-            .change_context(LinkActivationError)?;
-
-        self.update_link_status(
-            LinkStatus::Inactive,
-            link.source_entity(),
-            link.target_entity(),
-            link_type_version_id,
-        )
-        .await
-        .attach_printable_lazy(|| link.clone())?;
-
-        Ok(())
     }
 }

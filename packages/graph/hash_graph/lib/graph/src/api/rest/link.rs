@@ -12,7 +12,7 @@ use crate::{
     api::rest::api_resource::RoutedResource,
     knowledge::{EntityId, Link, Links},
     ontology::{types::uri::VersionedUri, AccountId},
-    store::{error::QueryError, Store},
+    store::error::QueryError,
     GraphPool,
 };
 

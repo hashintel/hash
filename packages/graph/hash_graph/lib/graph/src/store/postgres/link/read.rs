@@ -1,82 +1,12 @@
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
-use serde::Deserialize;
 use tokio_postgres::GenericClient;
 
 use crate::{
-    knowledge::{Entity, EntityId, Links, Outgoing},
+    knowledge::{EntityId, Links, Outgoing},
     ontology::types::uri::VersionedUri,
-    store::{crud, postgres::database_type::DatabaseType, AsClient, PostgresStore, QueryError},
+    store::{crud, AsClient, PostgresStore, QueryError},
 };
-
-#[async_trait]
-impl<'i, C: AsClient, T> crud::Read<'i, &'i VersionedUri, T> for PostgresStore<C>
-where
-    for<'de> T: DatabaseType + Deserialize<'de>,
-{
-    type Output = T;
-
-    async fn get(&self, uri: &'i VersionedUri) -> Result<Self::Output, QueryError> {
-        let version = i64::from(uri.version());
-        // SAFETY: We insert a table name here, but `T::table()` is only accessible from within this
-        //   module.
-        let row = self
-            .as_client()
-            .query_one(
-                &format!(
-                    r#"
-                    SELECT schema
-                    FROM {}
-                    WHERE version_id = (
-                        SELECT version_id
-                        FROM ids
-                        WHERE base_uri = $1 AND version = $2
-                    )
-                    "#,
-                    T::table()
-                ),
-                &[uri.base_uri(), &version],
-            )
-            .await
-            .report()
-            .change_context(QueryError)
-            .attach_printable_lazy(|| uri.clone())?;
-
-        serde_json::from_value(row.get(0))
-            .report()
-            .change_context(QueryError)
-    }
-}
-
-#[async_trait]
-impl<C: AsClient> crud::Read<'_, EntityId, Entity> for PostgresStore<C> {
-    type Output = Entity;
-
-    async fn get(&self, identifier: EntityId) -> Result<Self::Output, QueryError> {
-        let row = self
-            .as_client()
-            .query_one(
-                r#"
-                    SELECT properties
-                    FROM entities
-                    WHERE entity_id = $1 AND version = (
-                        SELECT MAX("version")
-                        FROM entities
-                        WHERE entity_id = $1
-                    );
-                "#,
-                &[&identifier],
-            )
-            .await
-            .report()
-            .change_context(QueryError)
-            .attach_printable(identifier)?;
-
-        Ok(serde_json::from_value(row.get(0))
-            .report()
-            .change_context(QueryError)?)
-    }
-}
 
 #[async_trait]
 impl<C: AsClient> crud::Read<'_, EntityId, Links> for PostgresStore<C> {

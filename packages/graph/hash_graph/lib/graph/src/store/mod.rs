@@ -1,5 +1,6 @@
 pub mod crud;
 pub mod error;
+
 mod pool;
 mod postgres;
 
@@ -17,10 +18,11 @@ pub use self::{
 use crate::{
     knowledge::{Entity, EntityId, Link, Links},
     ontology::{
-        types::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType},
+        types::{uri::VersionedUri, EntityType, LinkType, PropertyType},
         AccountId,
     },
     store::crud::Read,
+    DataType,
 };
 
 #[derive(Debug)]
@@ -174,8 +176,12 @@ impl fmt::Display for DatabaseConnectionInfo {
 ///
 /// In addition to the errors described in the methods of this trait, further errors might also be
 /// raised depending on the implementation, e.g. connection issues.
+pub trait Store =
+    DataTypeStore + PropertyTypeStore + LinkTypeStore + EntityTypeStore + EntityStore + LinkStore;
+
+/// Describes the API of a store implementation for [`DataType`]s.
 #[async_trait]
-pub trait Store {
+pub trait DataTypeStore {
     /// Creates a new [`DataType`].
     ///
     /// # Errors:
@@ -212,7 +218,11 @@ pub trait Store {
         data_type: &DataType,
         updated_by: AccountId,
     ) -> Result<(), UpdateError>;
+}
 
+/// Describes the API of a store implementation for [`PropertyType`]s.
+#[async_trait]
+pub trait PropertyTypeStore {
     /// Creates a new [`PropertyType`].
     ///
     /// # Errors:
@@ -252,7 +262,11 @@ pub trait Store {
         property_type: &PropertyType,
         updated_by: AccountId,
     ) -> Result<(), UpdateError>;
+}
 
+/// Describes the API of a store implementation for [`EntityType`]s.
+#[async_trait]
+pub trait EntityTypeStore {
     /// Creates a new [`EntityType`].
     ///
     /// # Errors:
@@ -289,9 +303,11 @@ pub trait Store {
         entity_type: &EntityType,
         updated_by: AccountId,
     ) -> Result<(), UpdateError>;
+}
 
-    // TODO - perhaps we want to separate the store into the Type Graph and the Data Graph
-
+/// Describes the API of a store implementation for [`LinkType`]s.
+#[async_trait]
+pub trait LinkTypeStore {
     /// Creates a new [`LinkType`].
     ///
     /// # Errors:
@@ -328,7 +344,11 @@ pub trait Store {
         property_type: &LinkType,
         updated_by: AccountId,
     ) -> Result<(), UpdateError>;
+}
 
+/// Describes the API of a store implementation for Entities.
+#[async_trait]
+pub trait EntityStore {
     /// Creates a new [`Entity`].
     ///
     /// # Errors:
@@ -372,7 +392,11 @@ pub trait Store {
         entity_type_uri: VersionedUri,
         updated_by: AccountId,
     ) -> Result<(), UpdateError>;
+}
 
+/// Describes the API of a store implementation for [`Link`]s.
+#[async_trait]
+pub trait LinkStore {
     /// Creates a new [`Link`].
     ///
     /// # Errors:
