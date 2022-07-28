@@ -4,7 +4,9 @@
       "next/babel",
       {
         "preset-env": {
-          "targets": "last 2 versions and not dead and > 1%"
+          "targets": {
+            "chrome": "73"
+          }
         }
       }
     ]
