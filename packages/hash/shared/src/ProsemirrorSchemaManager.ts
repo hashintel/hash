@@ -275,9 +275,6 @@ export class ProsemirrorSchemaManager {
     view.dispatch(tr);
   }
 
-  /**
-   * @todo This probably creates entities where it could/should reuse existing entities
-   */
   async createBlock(
     targetComponentId: string,
     draftBlockId: string | null,
@@ -292,7 +289,6 @@ export class ProsemirrorSchemaManager {
     const { tr } = this.view.state;
 
     const entityProperties = targetVariant?.properties ?? {};
-
     const entityStoreState = entityStorePluginState(this.view.state);
     const blockEntity = draftBlockId
       ? entityStoreState.store.draft[draftBlockId]
