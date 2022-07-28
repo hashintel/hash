@@ -1,17 +1,17 @@
 import { JsonObject } from "@blockprotocol/core";
 import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
 import { isTextBlock } from "@hashintel/hash-shared/blocks";
 import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import { Box } from "@mui/material";
 import { bindTrigger } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
-import { forwardRef, ForwardRefRenderFunction, useMemo, useRef } from "react";
+import { ForwardRefRenderFunction, useRef, useMemo, forwardRef } from "react";
+import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { useUserBlocks } from "../userBlocks";
 import { BlockConfigMenu } from "./BlockConfigMenu/BlockConfigMenu";
-import { useBlockContext } from "./BlockContext";
 import { BlockContextMenu } from "./BlockContextMenu/BlockContextMenu";
 import { useBlockView } from "./BlockViewContext";
+import { useBlockContext } from "./BlockContext";
 import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
 
 type BlockHandleProps = {
