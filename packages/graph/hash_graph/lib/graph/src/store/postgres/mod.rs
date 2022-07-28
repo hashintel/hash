@@ -253,7 +253,7 @@ where
         Ok(())
     }
 
-    /// Inserts the specified [`DatabaseType`].
+    /// Inserts the specified [`OntologyDatabaseType`].
     ///
     /// This first extracts the [`BaseUri`] from the [`VersionedUri`] and attempts to insert it into
     /// the database. It will create a new [`VersionId`] for this [`VersionedUri`] and then finally
@@ -305,7 +305,7 @@ where
         Ok(version_id)
     }
 
-    /// Updates the specified [`DatabaseType`].
+    /// Updates the specified [`OntologyDatabaseType`].
     ///
     /// First this ensures the [`BaseUri`] of the type already exists. It then creates a
     /// new [`VersionId`] from the contained [`VersionedUri`] and inserts the type.
@@ -349,7 +349,7 @@ where
         Ok(version_id)
     }
 
-    /// Inserts a [`DatabaseType`] identified by [`VersionId`], and associated with an
+    /// Inserts an [`OntologyDatabaseType`] identified by [`VersionId`], and associated with an
     /// [`AccountId`], into the database.
     ///
     /// # Errors
