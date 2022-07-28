@@ -43,7 +43,12 @@ impl RoutedResource for DataTypeResource {
         Router::new().nest(
             "/data-types",
             Router::new()
-                .route("/", post(create_data_type::<P>).put(update_data_type::<P>))
+                .route(
+                    "/",
+                    post(create_data_type::<P>)
+                        .get(get_data_type_unfiltered::<P>)
+                        .put(update_data_type::<P>),
+                )
                 .route("/:version_id", get(get_data_type::<P>)),
         )
     }
@@ -96,6 +101,25 @@ async fn create_data_type<P: GraphPool>(
         })?;
 
     Ok(Json(schema))
+}
+
+#[utoipa::path(
+    get,
+    path = "/data-types",
+    tag = "DataType",
+    responses(
+        (status = 200, content_type = "application/json", description = "Data type found", body = [DataType]),
+        (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
+
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+async fn get_data_type_unfiltered<P: GraphPool>(
+    pool: Extension<Arc<P>>,
+) -> Result<Json<Vec<DataType>>, StatusCode> {
+    read_from_store::<DataType, _, _, _>(pool.as_ref(), ())
+        .await
+        .map(Json)
 }
 
 #[utoipa::path(

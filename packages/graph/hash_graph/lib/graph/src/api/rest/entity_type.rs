@@ -44,7 +44,9 @@ impl RoutedResource for EntityTypeResource {
             Router::new()
                 .route(
                     "/",
-                    post(create_entity_type::<P>).put(update_entity_type::<P>),
+                    post(create_entity_type::<P>)
+                        .get(get_entity_type_unfiltered::<P>)
+                        .put(update_entity_type::<P>),
                 )
                 .route("/:version_id", get(get_entity_type::<P>)),
         )
@@ -98,6 +100,25 @@ async fn create_entity_type<P: GraphPool>(
         })?;
 
     Ok(Json(schema))
+}
+
+#[utoipa::path(
+    get,
+    path = "/entity-types",
+    tag = "EntityType",
+    responses(
+        (status = 200, content_type = "application/json", description = "Entity type found", body = [EntityType]),
+        (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
+
+        (status = 500, description = "Datastore error occurred"),
+    )
+)]
+async fn get_entity_type_unfiltered<P: GraphPool>(
+    pool: Extension<Arc<P>>,
+) -> Result<Json<Vec<EntityType>>, StatusCode> {
+    read_from_store::<EntityType, _, _, _>(pool.as_ref(), ())
+        .await
+        .map(Json)
 }
 
 #[utoipa::path(

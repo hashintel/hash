@@ -43,7 +43,12 @@ impl RoutedResource for LinkTypeResource {
         Router::new().nest(
             "/link-types",
             Router::new()
-                .route("/", post(create_link_type::<P>).put(update_link_type::<P>))
+                .route(
+                    "/",
+                    post(create_link_type::<P>)
+                        .get(get_link_type_unfiltered::<P>)
+                        .put(update_link_type::<P>),
+                )
                 .route("/:version_id", get(get_link_type::<P>)),
         )
     }
@@ -96,6 +101,25 @@ async fn create_link_type<P: GraphPool>(
         })?;
 
     Ok(Json(schema))
+}
+
+#[utoipa::path(
+    get,
+    path = "/link-types",
+    tag = "LinkType",
+    responses(
+        (status = 200, content_type = "application/json", description = "Link type found", body = [LinkType]),
+        (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
+
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+async fn get_link_type_unfiltered<P: GraphPool>(
+    pool: Extension<Arc<P>>,
+) -> Result<Json<Vec<LinkType>>, StatusCode> {
+    read_from_store::<LinkType, _, _, _>(pool.as_ref(), ())
+        .await
+        .map(Json)
 }
 
 #[utoipa::path(

@@ -45,7 +45,9 @@ impl RoutedResource for PropertyTypeResource {
             Router::new()
                 .route(
                     "/",
-                    post(create_property_type::<P>).put(update_property_type::<P>),
+                    post(create_property_type::<P>)
+                        .get(get_property_type_unfiltered::<P>)
+                        .put(update_property_type::<P>),
                 )
                 .route("/:version_id", get(get_property_type::<P>)),
         )
@@ -99,6 +101,25 @@ async fn create_property_type<P: GraphPool>(
         })?;
 
     Ok(Json(schema))
+}
+
+#[utoipa::path(
+    get,
+    path = "/property-types",
+    tag = "PropertyType",
+    responses(
+        (status = 200, content_type = "application/json", description = "Property type found", body = [PropertyType]),
+        (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
+
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+async fn get_property_type_unfiltered<P: GraphPool>(
+    pool: Extension<Arc<P>>,
+) -> Result<Json<Vec<PropertyType>>, StatusCode> {
+    read_from_store::<PropertyType, _, _, _>(pool.as_ref(), ())
+        .await
+        .map(Json)
 }
 
 #[utoipa::path(
