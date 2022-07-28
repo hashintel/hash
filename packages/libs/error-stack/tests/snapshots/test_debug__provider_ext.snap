@@ -3,21 +3,21 @@ source: tests/test_debug.rs
 expression: "redact(&format!(\"{report:#?}\"))"
 ---
 Printable A
-| @ tests/test_debug.rs:193:38
+| @ tests/test_debug.rs:196:38
 \-> Root error
     > @ tests/common.rs:140:5
 
 Test
-| @ tests/test_debug.rs:204:39
+| @ tests/test_debug.rs:207:39
 |-> 1 additional attachment
 |-> Printable B
-|   | @ tests/test_debug.rs:195:42
+|   | @ tests/test_debug.rs:198:42
 |   \-> Root error
 |       > @ tests/common.rs:140:5
 \-> Printable B
-    | @ tests/test_debug.rs:201:18
+    | @ tests/test_debug.rs:204:18
     |-> ABC
-    |   > @ tests/test_debug.rs:199:18
+    |   > @ tests/test_debug.rs:202:18
     |-> Root error
     |   > @ tests/common.rs:140:5
     \-> 1 additional attachment

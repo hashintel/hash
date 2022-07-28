@@ -3,9 +3,9 @@ source: tests/test_debug.rs
 expression: "redact(&format!(\"{report:?}\"))"
 ---
 unsigned 64-bit integer
-│ tests/test_debug.rs:312:51
+│ tests/test_debug.rs:315:51
 ├─▶ unsigned 32bit integer
-│   ╰ tests/test_debug.rs:312:38
+│   ╰ tests/test_debug.rs:315:38
 ├─▶ Root error
 │   ╰ tests/common.rs:140:5
 ╰─▶ spantrace with 2 frames (1)

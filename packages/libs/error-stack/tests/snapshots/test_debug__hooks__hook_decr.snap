@@ -3,10 +3,10 @@ source: tests/test_debug.rs
 expression: "redact(&format!(\"{report:?}\"))"
 ---
 -1
-| @ tests/test_debug.rs:375:14
+| @ tests/test_debug.rs:378:14
 |-> -2
-|   > @ tests/test_debug.rs:374:14
+|   > @ tests/test_debug.rs:377:14
 |-> -3
-|   > @ tests/test_debug.rs:373:14
+|   > @ tests/test_debug.rs:376:14
 \-> Root error
     > @ tests/common.rs:140:5

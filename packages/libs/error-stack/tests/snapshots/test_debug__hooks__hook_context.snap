@@ -3,6 +3,6 @@ source: tests/test_debug.rs
 expression: "redact(&format!(\"{report:?}\"))"
 ---
 unsigned 32bit integer (No. 0)
-| @ tests/test_debug.rs:298:38
+| @ tests/test_debug.rs:301:38
 \-> Root error
     > @ tests/common.rs:140:5

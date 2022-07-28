@@ -3,15 +3,15 @@ source: tests/test_debug.rs
 expression: "redact(&format!(\"{report:?}\"))"
 ---
 Printable C
-│ tests/test_debug.rs:222:10
+│ tests/test_debug.rs:225:10
 ├─▶ Context B
-│   ╰ tests/test_debug.rs:221:10
+│   ╰ tests/test_debug.rs:224:10
 ├─▶ Printable B
-│   ╰ tests/test_debug.rs:219:10
+│   ╰ tests/test_debug.rs:222:10
 ├─▶ Context A
-│   ╰ tests/test_debug.rs:218:10
+│   ╰ tests/test_debug.rs:221:10
 ├─▶ Printable A
-│   ╰ tests/test_debug.rs:215:10
+│   ╰ tests/test_debug.rs:218:10
 ├─▶ Root error
 │   ╰ tests/common.rs:140:5
 ├─▶ spantrace with 2 frames (1)

@@ -3,10 +3,10 @@ source: tests/test_debug.rs
 expression: "redact(&format!(\"{report:?}\"))"
 ---
 u16 (other)
-| @ tests/test_debug.rs:331:14
+| @ tests/test_debug.rs:334:14
 |-> u64
-|   > @ tests/test_debug.rs:330:14
+|   > @ tests/test_debug.rs:333:14
 |-> u32
-|   > @ tests/test_debug.rs:329:14
+|   > @ tests/test_debug.rs:332:14
 \-> Root error
     > @ tests/common.rs:140:5
