@@ -36,7 +36,7 @@ impl RoutedResource for LinkResource {
         // TODO: The URL format here is preliminary and will have to change.
         //   for links specifically, we are stacking on top of the existing `/entity/` routes.
         Router::new().nest(
-            "/entity/:entity_id/link",
+            "/entities/:entity_id/links",
             Router::new().route(
                 "/",
                 post(create_link::<P>)
@@ -57,7 +57,7 @@ struct CreateLinkRequest {
 
 #[utoipa::path(
     post,
-    path = "/entity/{entity_id}/link",
+    path = "/entities/{entity_id}/links",
     request_body = CreateLinkRequest,
     tag = "Link",
     responses(
@@ -110,7 +110,7 @@ async fn create_link<P: GraphPool>(
 
 #[utoipa::path(
     get,
-    path = "/entity/{entity_id}/link",
+    path = "/entities/{entity_id}/links",
     tag = "Link",
     responses(
         (status = 200, content_type = "application/json", description = "all active links from the source entity", body = QualifiedLink),
@@ -159,7 +159,7 @@ struct InactivateLinkRequest {
 
 #[utoipa::path(
     delete,
-    path = "/entity/{entity_id}/link",
+    path = "/entities/{entity_id}/links",
     tag = "Link",
     responses(
         (status = 204, content_type = "application/json", description = "link updated successfully"),
