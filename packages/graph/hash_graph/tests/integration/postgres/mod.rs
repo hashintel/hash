@@ -2,18 +2,19 @@ mod data_type;
 mod entity;
 mod entity_type;
 mod link_type;
+mod links;
 mod property_type;
 
 use error_stack::Result;
 use graph::{
-    knowledge::{Entity, EntityId},
+    knowledge::{Entity, EntityId, Link, Links, Outgoing},
     ontology::{
         types::{uri::VersionedUri, DataType, EntityType, LinkType, Persisted, PropertyType},
         AccountId, VersionId,
     },
     store::{
-        AsClient, DatabaseConnectionInfo, DatabaseType, InsertionError, PostgresStore,
-        PostgresStorePool, QueryError, Store, StorePool, UpdateError,
+        error::LinkActivationError, AsClient, DatabaseConnectionInfo, DatabaseType, InsertionError,
+        PostgresStore, PostgresStorePool, QueryError, Store, StorePool, UpdateError,
     },
 };
 use tokio_postgres::{NoTls, Transaction};
@@ -253,6 +254,40 @@ impl DatabaseApi<'_> {
         self.store
             .update_entity(entity_id, entity, entity_type_uri, self.account_id)
             .await
+    }
+
+    async fn create_link(
+        &mut self,
+        source_entity: EntityId,
+        target_entity: EntityId,
+        link_type_uri: VersionedUri,
+    ) -> Result<Link, InsertionError> {
+        let link = Link::new(source_entity, target_entity, link_type_uri);
+        self.store.create_link(link, self.account_id).await
+    }
+
+    pub async fn get_link_target(
+        &self,
+        source_entity_id: EntityId,
+        link_type_uri: VersionedUri,
+    ) -> Result<Outgoing, QueryError> {
+        self.store
+            .get_link_target(source_entity_id, link_type_uri)
+            .await
+    }
+
+    pub async fn get_entity_links(&self, source_entity_id: EntityId) -> Result<Links, QueryError> {
+        self.store.get_entity_links(source_entity_id).await
+    }
+
+    async fn remove_link(
+        &mut self,
+        source_entity: EntityId,
+        target_entity: EntityId,
+        link_type_uri: VersionedUri,
+    ) -> Result<(), LinkActivationError> {
+        let link = Link::new(source_entity, target_entity, link_type_uri);
+        self.store.inactivate_link(link).await
     }
 }
 

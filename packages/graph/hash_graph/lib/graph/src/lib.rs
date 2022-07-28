@@ -39,6 +39,12 @@
     reason = "This encourages importing `as` which breaks IDEs"
 )]
 #![allow(clippy::use_self, reason = "Too many false positives")]
+#![allow(
+    clippy::cast_sign_loss,
+    clippy::cast_possible_truncation,
+    reason = "Postgres doesn't support unsigned values, so we cast from i64 to u32. We don't use \
+              the negative part, though"
+)]
 
 pub mod api;
 
