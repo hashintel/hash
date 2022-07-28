@@ -54,11 +54,10 @@
 )]
 
 use crate::{
-    knowledge::{Entity, EntityId, Links},
+    knowledge::{Entity, EntityId, Link, Links},
     ontology::types::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType},
     store::{crud::Read, Store, StorePool},
 };
-use crate::knowledge::Link;
 
 pub mod api;
 
