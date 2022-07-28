@@ -180,13 +180,15 @@ export class BlockView implements NodeView<Schema> {
       this.dom.id = getBlockDomId(blockEntityId);
     }
 
+    const blockDraftId = this.getBlockDraftId();
+
     this.renderPortal(
       <BlockViewContext.Provider value={this}>
         <CollabPositionIndicators blockEntityId={blockEntityId} />
         <BlockHandle
           deleteBlock={this.deleteBlock}
           entityStore={this.store}
-          draftId={this.getBlockDraftId()}
+          draftId={blockDraftId}
           onTypeChange={this.onBlockChange}
           ref={this.blockHandleRef}
           onMouseDown={() => {
@@ -225,7 +227,7 @@ export class BlockView implements NodeView<Schema> {
         />
       </BlockViewContext.Provider>,
       this.selectContainer,
-      this.node.firstChild?.attrs.draftId,
+      blockDraftId ?? undefined,
     );
 
     return true;
