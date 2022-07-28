@@ -420,5 +420,5 @@ pub trait Store {
     ///
     /// - if the [`Link`] doesn't exist
     /// - if the account referred to by `created_by` does not exist
-    async fn inactivate_link(&mut self, link: Link) -> Result<(), LinkActivationError>;
+    async fn inactivate_link(&mut self, link: &Link) -> Result<(), LinkActivationError>;
 }

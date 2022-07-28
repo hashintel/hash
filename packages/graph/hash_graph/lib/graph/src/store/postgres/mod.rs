@@ -994,7 +994,7 @@ where
         Ok(())
     }
 
-    async fn inactivate_link(&mut self, link: Link) -> Result<(), LinkActivationError> {
+    async fn inactivate_link(&mut self, link: &Link) -> Result<(), LinkActivationError> {
         let link_type_version_id = self
             .version_id_by_uri(link.link_type_uri())
             .await

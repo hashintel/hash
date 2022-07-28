@@ -187,7 +187,7 @@ async fn inactivate_link<P: GraphPool>(
     })?;
 
     store
-        .inactivate_link(Link::new(source_entity, target_entity, link_type_uri))
+        .inactivate_link(&Link::new(source_entity, target_entity, link_type_uri))
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not inactivate link");
