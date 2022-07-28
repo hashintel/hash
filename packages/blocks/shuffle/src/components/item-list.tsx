@@ -4,7 +4,6 @@ import {
   DndContext,
   DragOverlay,
   closestCenter,
-  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
@@ -14,7 +13,6 @@ import {
 } from "@dnd-kit/core";
 import {
   SortableContext,
-  sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -54,12 +52,7 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [droppingId, setDroppingId] = useState<UniqueIdentifier | null>(null);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
+  const sensors = useSensors(useSensor(PointerSensor));
 
   const dragOverlayRef = useRef<HTMLDivElement | null>(null);
 
