@@ -27,6 +27,7 @@ use crate::{
     handlers(
         create_link_type,
         get_link_type,
+        get_link_type_unfiltered,
         update_link_type
     ),
     components(CreateLinkTypeRequest, UpdateLinkTypeRequest, AccountId, LinkType),

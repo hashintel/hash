@@ -27,6 +27,7 @@ use crate::{
     handlers(
         create_data_type,
         get_data_type,
+        get_data_type_unfiltered,
         update_data_type
     ),
     components(CreateDataTypeRequest, UpdateDataTypeRequest, AccountId, DataType),

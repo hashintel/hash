@@ -27,6 +27,7 @@ use crate::{
     handlers(
         create_property_type,
         get_property_type,
+        get_property_type_unfiltered,
         update_property_type
     ),
     components(CreatePropertyTypeRequest, UpdatePropertyTypeRequest, AccountId, PropertyType),

@@ -26,6 +26,7 @@ use crate::{
     handlers(
         create_entity_type,
         get_entity_type,
+        get_entity_type_unfiltered,
         update_entity_type
     ),
     components(CreateEntityTypeRequest, UpdateEntityTypeRequest, AccountId, EntityType),
