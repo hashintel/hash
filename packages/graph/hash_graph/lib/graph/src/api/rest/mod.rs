@@ -12,11 +12,14 @@ mod property_type;
 
 use std::sync::Arc;
 
-use axum::{routing::get, Extension, Json, Router};
+use axum::{http::StatusCode, routing::get, Extension, Json, Router};
 use utoipa::{openapi, Modify, OpenApi};
 
 use self::api_resource::RoutedResource;
-use crate::GraphPool;
+use crate::{
+    store::{crud, QueryError},
+    GraphPool, StorePool,
+};
 
 fn api_resources<P: GraphPool>() -> Vec<Router> {
     vec![
@@ -38,6 +41,34 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
         entity::EntityResource::documentation(),
         link::LinkResource::documentation(),
     ]
+}
+
+async fn read_from_store<'pool, 'id: 'pool, T, O, P, I>(
+    pool: &'pool P,
+    identifier: I,
+) -> Result<O, StatusCode>
+where
+    P: StorePool,
+    P::Store<'pool>: crud::Read<'id, I, T, Output = O>,
+    I: Send + 'id,
+{
+    let store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    crud::Read::<I, T>::get(&store, identifier)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not query from store");
+
+            if report.contains::<QueryError>() {
+                return StatusCode::NOT_FOUND;
+            }
+
+            // Store errors such as connection failure are considered internal server errors.
+            StatusCode::INTERNAL_SERVER_ERROR
+        })
 }
 
 pub fn rest_api_router<P: GraphPool>(store: Arc<P>) -> Router {
