@@ -277,7 +277,7 @@ impl DatabaseApi<'_> {
     }
 
     pub async fn get_entity_links(&self, source_entity_id: EntityId) -> Result<Links, QueryError> {
-        self.store.get_entity_links(source_entity_id).await
+        self.store.get_entity_links(&source_entity_id).await
     }
 
     async fn remove_link(

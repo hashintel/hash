@@ -395,7 +395,12 @@ pub trait Store {
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity_links(&self, source_entity_id: EntityId) -> Result<Links, QueryError>;
+    async fn get_entity_links<I: Sync>(&self, index: &I) -> Result<Self::Output, QueryError>
+    where
+        Self: Read<I, Links>,
+    {
+        self.get(index).await
+    }
 
     /// Get a [`Link`] target identified by an [`EntityId`] and a Link Type [`VersionedUri`].
     ///
