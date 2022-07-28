@@ -88,11 +88,10 @@ async fn create_link<P: GraphPool>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let link = Link::new(source_entity, target_entity, link_type_uri);
+
     store
-        .create_link(
-            Link::new(source_entity, target_entity, link_type_uri),
-            account_id,
-        )
+        .create_link(&link, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create link");
@@ -104,8 +103,9 @@ async fn create_link<P: GraphPool>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })
-        .map(Json)
+        })?;
+
+    Ok(Json(link))
 }
 
 #[utoipa::path(

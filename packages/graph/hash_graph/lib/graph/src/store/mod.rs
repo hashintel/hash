@@ -382,9 +382,9 @@ pub trait Store {
     /// - if the account referred to by `created_by` does not exist
     async fn create_link(
         &mut self,
-        link: Link,
+        link: &Link,
         created_by: AccountId,
-    ) -> Result<Link, InsertionError>;
+    ) -> Result<(), InsertionError>;
 
     /// Get [`Links`] of an [`Entity`] identified by an [`EntityId`].
     ///

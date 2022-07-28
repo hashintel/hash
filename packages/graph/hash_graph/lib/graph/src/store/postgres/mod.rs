@@ -956,9 +956,9 @@ where
 
     async fn create_link(
         &mut self,
-        link: Link,
+        link: &Link,
         created_by: AccountId,
-    ) -> Result<Link, InsertionError> {
+    ) -> Result<(), InsertionError> {
         let link_type_version_id = self
             .version_id_by_uri(link.link_type_uri())
             .await
@@ -991,7 +991,7 @@ where
             .attach_lazy(|| link.clone())?;
         }
 
-        Ok(link)
+        Ok(())
     }
 
     async fn inactivate_link(&mut self, link: Link) -> Result<(), LinkActivationError> {
