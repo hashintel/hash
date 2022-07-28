@@ -78,7 +78,7 @@ const BlockHandle: ForwardRefRenderFunction<
   };
 
   const blockSchema = blockEntity
-    ? blocksMetaMap[blockEntity.properties.componentId]?.componentSchema
+    ? blocksMetaMap[blockEntity.properties.componentId]?.schema
     : null;
 
   const blockContext = useBlockContext();

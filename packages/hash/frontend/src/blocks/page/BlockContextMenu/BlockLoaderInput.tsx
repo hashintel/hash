@@ -37,22 +37,21 @@ export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({
 
     // take point before any state/pm-doc changes occur
     const pos = blockView.getPos();
-
     const normalizedUrl = createNormalizedBlockUrl(blockUrl);
 
     blockView.manager
       .defineBlockByComponentId(normalizedUrl, { bustCache: true })
-      .then((blockMeta) => {
+      .then((block) => {
         unstable_batchedUpdates(() => {
           setError(null);
           setUserBlocks((prevUserBlocks) => ({
             ...prevUserBlocks,
-            [normalizedUrl]: blockMeta,
+            [normalizedUrl]: block,
           }));
         });
-        const block = blockView.manager.renderBlock(normalizedUrl);
+        const renderedBlock = blockView.manager.renderBlock(normalizedUrl);
         blockView.editorView.dispatch(
-          blockView.editorView.state.tr.insert(pos, block),
+          blockView.editorView.state.tr.insert(pos, renderedBlock),
         );
         onLoad();
       })

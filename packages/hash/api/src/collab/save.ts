@@ -1,5 +1,5 @@
 import { ApolloClient, ApolloError } from "@apollo/client";
-import { fetchBlockMeta } from "@hashintel/hash-shared/blocks";
+import { fetchBlock } from "@hashintel/hash-shared/blocks";
 import {
   BlockEntity,
   isDraftTextContainingEntityProperties,
@@ -82,10 +82,8 @@ const ensureEntityTypeForComponent = async (
   }
 
   if (!desiredEntityTypeId) {
-    const componentMeta = await fetchBlockMeta(componentId);
-    const jsonSchema = JSON.parse(
-      JSON.stringify(componentMeta.componentSchema),
-    );
+    const componentMeta = await fetchBlock(componentId);
+    const jsonSchema = JSON.parse(JSON.stringify(componentMeta.schema));
 
     delete jsonSchema.properties.editableRef;
 

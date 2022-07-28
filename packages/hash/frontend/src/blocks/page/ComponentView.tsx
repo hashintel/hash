@@ -1,4 +1,4 @@
-import { BlockConfig } from "@hashintel/hash-shared/blocks";
+import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import {
   BlockEntity,
   getChildDraftEntityFromTextBlock,
@@ -92,7 +92,7 @@ export class ComponentView implements NodeView<Schema> {
     private readonly editorView: EditorView<Schema>,
     private readonly getPos: () => number,
     private readonly renderPortal: RenderPortal,
-    private readonly config: BlockConfig,
+    private readonly meta: HashBlockMeta,
   ) {
     this.dom.setAttribute("data-dom", "true");
     this.contentDOM.setAttribute("data-contentDOM", "true");
@@ -129,7 +129,7 @@ export class ComponentView implements NodeView<Schema> {
 
     if (
       isComponentNode(node) &&
-      componentNodeToId(node) === this.config.componentId
+      componentNodeToId(node) === this.meta.componentId
     ) {
       const entity = this.getDraftBlockEntity();
 
@@ -144,7 +144,7 @@ export class ComponentView implements NodeView<Schema> {
       const childEntity = getChildEntity(entity);
 
       const beforeCapture = (scope: Sentry.Scope) => {
-        scope.setTag("block", this.config.componentId);
+        scope.setTag("block", this.meta.componentId);
       };
 
       const onRetry = () => {
@@ -173,7 +173,7 @@ export class ComponentView implements NodeView<Schema> {
               <BlockLoader
                 blockEntityId={entityId}
                 entityType={childEntity?.entityType}
-                blockMetadata={this.config}
+                blockMetadata={this.meta}
                 // @todo uncomment this when sandbox is fixed
                 // shouldSandbox={!this.editable}
                 editableRef={this.editableRef}

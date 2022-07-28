@@ -5,17 +5,14 @@ import { JsonSchema } from "./json-utils";
 // eslint-disable-next-line global-require
 const fetch = (globalThis as any).fetch ?? require("node-fetch");
 
-/**
- * @todo think about removing this
- */
-export interface BlockConfig extends BlockMetadata {
+export interface HashBlockMeta extends BlockMetadata {
   componentId: string;
   variants: NonNullable<BlockMetadata["variants"]>;
 }
 
-export type BlockMeta = {
-  componentMetadata: BlockConfig;
-  componentSchema: JsonSchema;
+export type HashBlock = {
+  meta: HashBlockMeta;
+  schema: JsonSchema;
 };
 
 /**
@@ -26,7 +23,7 @@ export type BlockMeta = {
  * @deprecated in favor of react context "blockMeta" (which is not the final
  *   solution either)
  */
-const blockCache = new Map<string, Promise<BlockMeta>>();
+const blockCache = new Map<string, Promise<HashBlock>>();
 
 export const componentIdToUrl = (componentId: string) =>
   componentId.replace(/\/$/, "");
@@ -104,8 +101,8 @@ const transformBlockConfig = ({
 }: {
   componentId: string;
   metadata: BlockMetadata;
-  schema: BlockMeta["componentSchema"];
-}): BlockConfig => {
+  schema: HashBlock["schema"];
+}): HashBlockMeta => {
   const defaultProperties =
     schema.default &&
     typeof schema.default === "object" &&
@@ -142,26 +139,26 @@ const transformBlockConfig = ({
   };
 };
 
-export const prepareBlockMetaCache = (
+export const prepareBlockCache = (
   componentId: string,
-  meta: BlockMeta | Promise<BlockMeta>,
+  block: HashBlock | Promise<HashBlock>,
 ) => {
   if (typeof window !== "undefined") {
     const key = componentIdToUrl(componentId);
     if (!blockCache.has(key)) {
       blockCache.set(
         key,
-        Promise.resolve().then(() => meta),
+        Promise.resolve().then(() => block),
       );
     }
   }
 };
 
 // @todo deal with errors, loading, abort etc.
-export const fetchBlockMeta = async (
+export const fetchBlock = async (
   componentId: string,
   options?: { bustCache: boolean },
-): Promise<BlockMeta> => {
+): Promise<HashBlock> => {
   const baseUrl = componentIdToUrl(componentId);
 
   if (options?.bustCache) {
@@ -175,6 +172,7 @@ export const fetchBlockMeta = async (
     const metadataUrl = `${baseUrl}/block-metadata.json`;
     let metadata: BlockMetadata;
     try {
+      // @todo needs validation
       metadata = await (await fetch(metadataUrl)).json();
     } catch (err) {
       blockCache.delete(baseUrl);
@@ -185,13 +183,12 @@ export const fetchBlockMeta = async (
       );
     }
 
-    const schemaPath = metadata.schema;
-
     // schema urls may be absolute, as blocks may rely on schemas they do not define
-    let schema: BlockMeta["componentSchema"];
+    let schema: HashBlock["schema"];
     let schemaUrl;
     try {
-      schemaUrl = deriveAbsoluteUrl({ baseUrl, path: schemaPath });
+      schemaUrl = deriveAbsoluteUrl({ baseUrl, path: metadata.schema });
+      // @todo needs validation
       schema = schemaUrl ? await (await fetch(schemaUrl)).json() : {};
     } catch (err) {
       blockCache.delete(baseUrl);
@@ -217,19 +214,19 @@ export const fetchBlockMeta = async (
       );
     }
 
-    const result: BlockMeta = {
-      componentMetadata: transformBlockConfig({
+    const result: HashBlock = {
+      meta: transformBlockConfig({
         metadata,
         schema,
         componentId: baseUrl,
       }),
-      componentSchema: schema,
+      schema,
     };
 
     return result;
   })();
 
-  prepareBlockMetaCache(baseUrl, promise);
+  prepareBlockCache(baseUrl, promise);
 
   return await promise;
 };

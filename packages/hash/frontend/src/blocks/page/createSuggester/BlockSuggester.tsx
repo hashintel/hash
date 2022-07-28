@@ -2,7 +2,7 @@ import { BlockVariant } from "@blockprotocol/core";
 import { FunctionComponent } from "react";
 import { tw } from "twind";
 import { Box, SxProps, Theme, Typography } from "@mui/material";
-import { BlockMeta } from "@hashintel/hash-shared/blocks";
+import { HashBlock, HashBlockMeta } from "@hashintel/hash-shared/blocks";
 
 import { Suggester } from "./Suggester";
 import { useUserBlocks } from "../../userBlocks";
@@ -11,7 +11,7 @@ import { WarnIcon } from "../../../shared/icons";
 
 export interface BlockSuggesterProps {
   search?: string;
-  onChange(variant: BlockVariant, block: BlockMeta["componentMetadata"]): void;
+  onChange(variant: BlockVariant, blockMeta: HashBlockMeta): void;
   sx?: SxProps<Theme>;
 }
 

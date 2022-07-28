@@ -4,11 +4,11 @@ import { EditorState, Transaction } from "prosemirror-state";
 import { EditorProps, EditorView } from "prosemirror-view";
 
 import {
-  BlockConfig,
-  BlockMeta,
-  fetchBlockMeta,
+  HashBlockMeta,
+  HashBlock,
+  fetchBlock,
   isTextBlock,
-  prepareBlockMetaCache,
+  prepareBlockCache,
 } from "./blocks";
 import {
   BlockEntity,
@@ -40,7 +40,7 @@ import { childrenForTextEntity } from "./text";
 
 type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
 
-type ComponentNodeViewFactory = (meta: BlockConfig) => NodeViewFactory;
+type ComponentNodeViewFactory = (meta: HashBlockMeta) => NodeViewFactory;
 
 const isBlockCompatible = (
   targetComponentId: string,
@@ -74,15 +74,14 @@ export class ProsemirrorSchemaManager {
   ) {}
 
   /**
-   * This is used to define a new block type inside prosemiror when you have
-   * already fetched all the necessary metadata. It'll define a new node type in
-   * the schema, and create a node view wrapper for you too.
+   * This is used to define a new block type inside prosemiror. It'll define a
+   * new node type in the schema, and create a node view wrapper for you too.
    */
-  defineBlock(meta: BlockMeta) {
-    const { componentMetadata } = meta;
-    const { componentId } = componentMetadata;
+  defineBlock(block: HashBlock) {
+    const { meta } = block;
+    const { componentId } = meta;
 
-    prepareBlockMetaCache(componentId, meta);
+    prepareBlockCache(componentId, block);
 
     if (this.schema.nodes[componentId]) {
       return;
@@ -115,7 +114,7 @@ export class ProsemirrorSchemaManager {
         nodeViews: {
           // Private API
           ...(this.view as any).nodeViews,
-          [componentId]: this.componentNodeViewFactory(componentMetadata),
+          [componentId]: this.componentNodeViewFactory(meta),
         },
       });
     }
@@ -130,14 +129,14 @@ export class ProsemirrorSchemaManager {
   async defineBlockByComponentId(
     componentId: string,
     options?: { bustCache: boolean },
-  ): Promise<BlockMeta> {
-    const meta = await fetchBlockMeta(componentId, {
+  ): Promise<HashBlock> {
+    const block = await fetchBlock(componentId, {
       bustCache: !!options?.bustCache,
     });
 
-    this.defineBlock(meta);
+    this.defineBlock(block);
 
-    return meta;
+    return block;
   }
 
   /**

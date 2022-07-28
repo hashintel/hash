@@ -5,7 +5,7 @@ import {
   EntityType as BpEntityType,
   LinkedAggregation as BpLinkedAggregation,
 } from "@blockprotocol/graph";
-import { BlockConfig } from "@hashintel/hash-shared/blocks";
+import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import {
   useCallback,
@@ -44,7 +44,7 @@ import { EntityType as ApiEntityType } from "../../graphql/apiTypes.gen";
 type BlockLoaderProps = {
   accountId: string;
   blockEntityId: string;
-  blockMetadata: BlockConfig;
+  blockMetadata: HashBlockMeta;
   editableRef: unknown;
   entityId: string;
   entityType?: Pick<ApiEntityType, "entityId" | "properties">;

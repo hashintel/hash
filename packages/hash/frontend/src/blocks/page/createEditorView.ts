@@ -1,4 +1,4 @@
-import { BlockMeta } from "@hashintel/hash-shared/blocks";
+import { HashBlock } from "@hashintel/hash-shared/blocks";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
@@ -16,7 +16,7 @@ import { MentionView } from "./MentionView/MentionView";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
 
-export type BlocksMetaMap = Record<string, BlockMeta>;
+export type BlocksMap = Record<string, HashBlock>;
 
 /**
  * An editor view manages the DOM structure that represents an editable document.
@@ -27,7 +27,7 @@ export const createEditorView = (
   renderPortal: RenderPortal,
   accountId: string,
   pageEntityId: string,
-  blocksMeta: BlocksMetaMap,
+  blocks: BlocksMap,
 ) => {
   let manager: ProsemirrorSchemaManager;
 
@@ -138,20 +138,19 @@ export const createEditorView = (
 
   // prosemirror will use the first node type (per group) for auto-creation.
   // we want this to be the paragraph node type.
-  const blocksMetaArray = Object.values(blocksMeta);
+  const blocksArray = Object.values(blocks);
 
-  const paragraphBlockMeta = blocksMetaArray.find(
-    (blockMeta) =>
-      blockMeta.componentMetadata.name === "@hashintel/block-paragraph",
+  const paragraphBlock = blocksArray.find(
+    (block) => block.meta.name === "@hashintel/block-paragraph",
   );
 
-  if (!paragraphBlockMeta) {
+  if (!paragraphBlock) {
     throw new Error("missing required block-type paragraph");
   }
 
   /** note that {@link ProsemirrorSchemaManager#defineBlock} is idempotent */
-  manager.defineBlock(paragraphBlockMeta);
-  blocksMetaArray.forEach((blockMeta) => manager.defineBlock(blockMeta));
+  manager.defineBlock(paragraphBlock);
+  blocksArray.forEach((block) => manager.defineBlock(block));
 
   // @todo figure out how to use dev tools without it breaking fast refresh
   // applyDevTools(view);

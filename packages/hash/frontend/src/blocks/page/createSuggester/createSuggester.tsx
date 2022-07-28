@@ -1,5 +1,5 @@
 import type { BlockVariant } from "@blockprotocol/core";
-import { BlockConfig } from "@hashintel/hash-shared/blocks";
+import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { Schema } from "prosemirror-model";
 import {
@@ -211,10 +211,10 @@ export const createSuggester = (
 
           const onBlockSuggesterChange = (
             variant: BlockVariant,
-            blockMeta: BlockConfig,
+            blockConfig: HashBlockMeta,
           ) => {
             getManager()
-              .replaceRange(blockMeta.componentId, variant, from, to)
+              .replaceRange(blockConfig.componentId, variant, from, to)
               .then(({ tr, componentPosition }) => {
                 tr.setMeta(suggesterPluginKey, {
                   type: "suggestedBlock",

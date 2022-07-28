@@ -1,8 +1,8 @@
 import { useQuery } from "@apollo/client";
 import {
-  BlockMeta,
+  HashBlock,
   defaultBlocks,
-  fetchBlockMeta,
+  fetchBlock,
 } from "@hashintel/hash-shared/blocks";
 import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { Box, Collapse, alpha } from "@mui/material";
@@ -34,7 +34,7 @@ export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
 });
 
 type PageProps = {
-  blocksMeta: BlockMeta[];
+  blocks: HashBlock[];
 };
 
 /**
@@ -44,13 +44,13 @@ type PageProps = {
  * @todo Include blocks present in the document in this
  */
 export const getStaticProps: GetStaticProps<PageProps> = async () => {
-  const fetchedBlocksMeta = await Promise.all(
-    defaultBlocks.map((componentId) => fetchBlockMeta(componentId)),
+  const fetchedBlocks = await Promise.all(
+    defaultBlocks.map((componentId) => fetchBlock(componentId)),
   );
 
   return {
     props: {
-      blocksMeta: fetchedBlocksMeta,
+      blocks: fetchedBlocks,
     },
   };
 };
@@ -114,7 +114,7 @@ export const PageNotificationBanner: FunctionComponent = () => {
   );
 };
 
-const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
+const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   const router = useRouter();
 
   const { accountId } = useRouteAccountInfo();
@@ -123,12 +123,9 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
   // versionId is an optional param for requesting a specific page version
   const versionId = router.query.version as string | undefined;
 
-  const blocksMetaMap = useMemo(() => {
-    return keyBy(
-      blocksMeta,
-      (blockMeta) => blockMeta.componentMetadata.componentId,
-    );
-  }, [blocksMeta]);
+  const blocksMap = useMemo(() => {
+    return keyBy(blocks, (block) => block.meta.componentId);
+  }, [blocks]);
 
   const [pageState, setPageState] = useState<"normal" | "transferring">(
     "normal",
@@ -225,7 +222,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
         <CollabPositionProvider value={collabPositions}>
           <PageBlock
             accountId={accountId}
-            blocksMeta={blocksMetaMap}
+            blocks={blocksMap}
             entityId={pageEntityId}
           />
         </CollabPositionProvider>

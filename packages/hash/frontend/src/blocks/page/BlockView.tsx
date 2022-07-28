@@ -5,7 +5,7 @@ import {
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
-import { BlockConfig } from "@hashintel/hash-shared/blocks";
+import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
@@ -250,7 +250,7 @@ export class BlockView implements NodeView<Schema> {
     });
   };
 
-  onBlockChange = (variant: BlockVariant, meta: BlockConfig) => {
+  onBlockChange = (variant: BlockVariant, meta: HashBlockMeta) => {
     const { node, editorView, getPos } = this;
 
     const state = editorView.state;

@@ -1,32 +1,29 @@
-import { BlockMeta, isTextBlock } from "@hashintel/hash-shared/blocks";
 import { BlockVariant } from "@blockprotocol/core";
+import { HashBlockMeta, isTextBlock } from "@hashintel/hash-shared/blocks";
 import { useMemo } from "react";
+import { BlocksMap } from "../createEditorView";
 
 import { fuzzySearchBy } from "./fuzzySearchBy";
-import { BlocksMetaMap } from "../createEditorView";
 
 type Option = {
   variant: BlockVariant;
-  meta: BlockMeta["componentMetadata"];
+  meta: HashBlockMeta;
 };
 
 export const useFilteredBlocks = (
   searchText: string,
-  blocksMetaMap: BlocksMetaMap,
+  blocksMap: BlocksMap,
   textBlocksOnly = false,
 ) => {
   return useMemo(() => {
-    const allOptions: Option[] = Object.values(blocksMetaMap)
-      .filter(
-        (block) =>
-          !textBlocksOnly || isTextBlock(block.componentMetadata.componentId),
-      )
-      .flatMap(({ componentMetadata: blockMeta }) =>
+    const allOptions: Option[] = Object.values(blocksMap)
+      .filter((block) => !textBlocksOnly || isTextBlock(block.meta.componentId))
+      .flatMap(({ meta }) =>
         // Assumes that variants have been built for all blocks in toBlockConfig
         // any required changes to block metadata should happen there
-        (blockMeta.variants ?? []).map((variant) => ({
+        (meta.variants ?? []).map((variant) => ({
           variant,
-          meta: blockMeta,
+          meta,
         })),
       );
 
@@ -35,5 +32,5 @@ export const useFilteredBlocks = (
       searchText,
       (option) => option.variant.name ?? "",
     );
-  }, [blocksMetaMap, textBlocksOnly, searchText]);
+  }, [blocksMap, textBlocksOnly, searchText]);
 };

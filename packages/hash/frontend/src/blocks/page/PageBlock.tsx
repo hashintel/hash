@@ -10,11 +10,11 @@ import { Button } from "@hashintel/hash-design-system";
 import { BlockLoadedProvider } from "../onBlockLoaded";
 import { UserBlocksProvider } from "../userBlocks";
 import { EditorConnection } from "./collab/EditorConnection";
-import { BlocksMetaMap, createEditorView } from "./createEditorView";
+import { BlocksMap, createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
 
 type PageBlockProps = {
-  blocksMeta: BlocksMetaMap;
+  blocks: BlocksMap;
   accountId: string;
   entityId: string;
 };
@@ -26,7 +26,7 @@ type PageBlockProps = {
  * do that
  */
 export const PageBlock: FunctionComponent<PageBlockProps> = ({
-  blocksMeta,
+  blocks,
   accountId,
   entityId,
 }) => {
@@ -63,7 +63,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       renderPortal,
       accountId,
       entityId,
-      blocksMeta,
+      blocks,
     );
 
     prosemirrorSetup.current = {
@@ -78,10 +78,10 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       prosemirrorSetup.current = null;
       connection?.close();
     };
-  }, [accountId, blocksMeta, entityId, renderPortal]);
+  }, [accountId, blocks, entityId, renderPortal]);
 
   return (
-    <UserBlocksProvider value={blocksMeta}>
+    <UserBlocksProvider value={blocks}>
       <BlockLoadedProvider routeHash={routeHash}>
         <div id="root" ref={root} />
         {portals}
