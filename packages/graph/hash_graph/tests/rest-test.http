@@ -311,7 +311,7 @@ Accept: application/json
     client.global.set("person_b_entity_id", encodeURIComponent(response.body.entity_id));
 %}
 
-### Insert another Person entity
+### Insert link between entities
 POST http://127.0.0.1:3000/entity/{{person_a_entity_id}}/link
 Content-Type: application/json
 Accept: application/json
