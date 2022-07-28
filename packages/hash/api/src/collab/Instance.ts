@@ -25,7 +25,7 @@ import {
   GetPageQueryVariables,
   LatestEntityRef,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
-import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import {
   getLinkedAggregationIdentifierFieldsQuery,
   getLinkQuery,
@@ -99,7 +99,7 @@ export class Instance {
     public accountId: string,
     public pageEntityId: string,
     public state: EditorState<Schema>,
-    public manager: ProsemirrorSchemaManager,
+    public manager: ProsemirrorManager,
     public savedContents: BlockEntity[],
     private entityWatcher: EntityWatcher,
 
@@ -750,7 +750,7 @@ const newInstance =
 
     const state = createProseMirrorState({ accountId });
 
-    const manager = new ProsemirrorSchemaManager(state.schema, accountId);
+    const manager = new ProsemirrorManager(state.schema, accountId);
 
     /**
      * @todo check plugins

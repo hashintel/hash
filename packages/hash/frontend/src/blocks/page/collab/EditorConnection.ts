@@ -7,7 +7,7 @@ import {
   TrackedAction,
   EntityStorePluginAction,
 } from "@hashintel/hash-shared/entityStorePlugin";
-import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { isString } from "lodash";
 import { collab, receiveTransaction, sendableSteps } from "prosemirror-collab";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
@@ -73,7 +73,7 @@ export class EditorConnection {
     public url: string,
     public schema: Schema,
     public view: EditorView<Schema>,
-    public manager: ProsemirrorSchemaManager,
+    public manager: ProsemirrorManager,
     public additionalPlugins: Plugin<unknown, Schema>[],
     public accountId: string,
     private onError: () => void,

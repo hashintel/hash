@@ -1,6 +1,6 @@
 import type { BlockVariant } from "@blockprotocol/core";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
-import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { Schema } from "prosemirror-model";
 import {
   EditorState,
@@ -119,7 +119,7 @@ const docChangedInTransaction = (tr: Transaction<Schema>) => {
  */
 export const createSuggester = (
   renderPortal: RenderPortal,
-  getManager: () => ProsemirrorSchemaManager,
+  getManager: () => ProsemirrorManager,
   accountId: string,
 ) =>
   new Plugin<SuggesterState, Schema>({

@@ -65,8 +65,8 @@ const ensureEntitiesAreWrapped = (
       /**
        * In the event that a block is not fully wrapped (i.e. is _not_ a block node), we provide a fallback
        *    in case wrapperNodes were not provided.
-       * We need to ensure that the layers match those provided in ProsemirrorSchemaManager
-       * @see ProsemirrorSchemaManager, createRemoteBlock
+       * We need to ensure that the layers match those provided in ProsemirrorManager
+       * @see ProsemirrorManager, createRemoteBlock
        * @todo this should never happen, can we remove it?
        */
       const defaultWrappers = [{ type: schema.nodes.block! }];

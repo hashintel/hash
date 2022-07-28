@@ -6,7 +6,7 @@ import {
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
-import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
@@ -71,7 +71,7 @@ export class BlockView implements NodeView<Schema> {
     public editorView: EditorView<Schema>,
     public getPos: () => number,
     public renderPortal: RenderPortal,
-    public manager: ProsemirrorSchemaManager,
+    public manager: ProsemirrorManager,
   ) {
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block!);

@@ -61,10 +61,10 @@ const isBlockCompatible = (
 };
 
 /**
- * Manages the creation and editing of the ProseMirror schema.
- * Editing the ProseMirror schema on the fly involves unsupported hacks flagged below.
+ * Manages the creation and editing of the ProseMirror schema, and utilities around
+ * editing the prosemirror document.
  */
-export class ProsemirrorSchemaManager {
+export class ProsemirrorManager {
   constructor(
     private schema: Schema,
     private accountId: string,

@@ -1,4 +1,4 @@
-import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { useRouter } from "next/router";
 import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
@@ -39,7 +39,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   const prosemirrorSetup = useRef<null | {
     view: EditorView<Schema>;
     connection: EditorConnection | null;
-    manager: ProsemirrorSchemaManager;
+    manager: ProsemirrorManager;
   }>(null);
 
   const router = useRouter();

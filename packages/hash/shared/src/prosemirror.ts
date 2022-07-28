@@ -35,7 +35,7 @@ export const createSchema = () =>
          * Prosemirror attempts to instantiate a componentNode it uses that
          * node instead of the blank one
          *
-         * @see import("./ProsemirrorSchemaManager").ProsemirrorSchemaManager#prepareToDisableBlankDefaultComponentNode
+         * @see import("./ProsemirrorManager.ts").ProsemirrorManager#prepareToDisableBlankDefaultComponentNode
          */
         group: componentNodeGroupName,
         toDOM: () => ["div", 0] as const,
