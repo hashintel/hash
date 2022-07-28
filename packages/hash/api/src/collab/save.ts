@@ -1,4 +1,5 @@
 import { ApolloClient, ApolloError } from "@apollo/client";
+import { JsonObject } from "@blockprotocol/core";
 import { fetchBlockMeta } from "@hashintel/hash-shared/blocks";
 import {
   BlockEntity,
@@ -126,6 +127,57 @@ const calculateSaveActions = async (
   const draftIdToPlaceholderId = new Map<string, string>();
   const draftIdToBlockEntities = new Map<string, DraftEntity<BlockEntity>>();
 
+  // @todo reduce duplication here
+  const shouldSetTextProperties = (
+    properties: JsonObject,
+    savedProperties?: JsonObject,
+  ): JsonObject | null => {
+    if (!isDraftTextContainingEntityProperties(properties)) {
+      return null;
+    }
+
+    const savedWithoutText = omit(savedProperties, "text");
+    const draftWithoutText = omit(properties, "text");
+    const savedTextLink = isDraftTextContainingEntityProperties(savedProperties)
+      ? savedProperties.text.__linkedData
+      : null;
+
+    if (savedTextLink) {
+      if (
+        !isEqual(savedWithoutText, draftWithoutText) ||
+        isEqual(savedTextLink, properties.text.__linkedData)
+      ) {
+        return {
+          ...draftWithoutText,
+          text: {
+            __linkedData: properties.text.__linkedData,
+          },
+        };
+      }
+    } else {
+      const textEntity = properties.text.data;
+      let textEntityId =
+        draftIdToPlaceholderId.get(textEntity.draftId) ?? textEntity.entityId;
+
+      if (!textEntityId) {
+        textEntityId = generatePlaceholderId();
+        draftIdToPlaceholderId.set(textEntity.draftId, textEntityId);
+      }
+
+      return {
+        ...draftWithoutText,
+        text: {
+          __linkedData: {
+            entityTypeId: textEntityTypeId,
+            entityId: textEntityId,
+          },
+        },
+      };
+    }
+
+    return null;
+  };
+
   for (const draftEntity of Object.values(store.draft)) {
     if (isDraftBlockEntity(draftEntity)) {
       draftIdToBlockEntities.set(draftEntity.draftId, draftEntity);
@@ -146,68 +198,21 @@ const calculateSaveActions = async (
         continue;
       }
 
-      // @todo update this branch not to using legacy links
-      if (isDraftTextContainingEntityProperties(draftEntity.properties)) {
-        const savedWithoutText = omit(savedEntity.properties, "text");
-        const draftWithoutText = omit(draftEntity.properties, "text");
-        const savedTextLink = isDraftTextContainingEntityProperties(
-          savedEntity.properties,
-        )
-          ? savedEntity.properties.text.__linkedData
-          : null;
+      const nextProperties = shouldSetTextProperties(
+        draftEntity.properties,
+        savedEntity.properties,
+      );
 
-        if (savedTextLink) {
-          if (
-            !isEqual(savedWithoutText, draftWithoutText) ||
-            isEqual(savedTextLink, draftEntity.properties.text.__linkedData)
-          ) {
-            actions.push({
-              updateEntity: {
-                entityId: draftEntity.entityId,
-                accountId: draftEntity.accountId,
-                properties: {
-                  ...draftWithoutText,
-                  text: {
-                    __linkedData: draftEntity.properties.text.__linkedData,
-                  },
-                },
-              },
-            });
-          }
-        } else {
-          // @todo reduce duplication here
-          const textEntity = draftEntity.properties.text.data;
-          let textEntityId =
-            draftIdToPlaceholderId.get(textEntity.draftId) ??
-            textEntity.entityId;
-
-          if (!textEntityId) {
-            textEntityId = generatePlaceholderId();
-            draftIdToPlaceholderId.set(textEntity.draftId, textEntityId);
-          }
-
-          actions.push({
-            updateEntity: {
-              entityId: draftEntity.entityId,
-              accountId: draftEntity.accountId,
-              properties: {
-                ...draftWithoutText,
-                text: {
-                  __linkedData: {
-                    entityTypeId: textEntityTypeId,
-                    entityId: textEntityId,
-                  },
-                },
-              },
-            },
-          });
-        }
-      } else if (!isEqual(draftEntity.properties, savedEntity.properties)) {
+      if (
+        nextProperties ||
+        (!isDraftTextContainingEntityProperties(draftEntity.properties) &&
+          !isEqual(draftEntity.properties, savedEntity.properties))
+      ) {
         actions.push({
           updateEntity: {
             entityId: draftEntity.entityId,
             accountId: draftEntity.accountId,
-            properties: draftEntity.properties,
+            properties: nextProperties ?? draftEntity.properties,
           },
         });
       }
@@ -248,27 +253,7 @@ const calculateSaveActions = async (
 
         entityType = { entityTypeId };
 
-        if (isDraftTextContainingEntityProperties(properties)) {
-          const textEntity = properties.text.data;
-          let textEntityId =
-            draftIdToPlaceholderId.get(textEntity.draftId) ??
-            textEntity.entityId;
-
-          if (!textEntityId) {
-            textEntityId = generatePlaceholderId();
-            draftIdToPlaceholderId.set(textEntity.draftId, textEntityId);
-          }
-
-          properties = {
-            ...properties,
-            text: {
-              __linkedData: {
-                entityTypeId: textEntityTypeId,
-                entityId: textEntityId,
-              },
-            },
-          };
-        }
+        properties = shouldSetTextProperties(properties) ?? properties;
       }
 
       const action: UpdatePageAction = {
