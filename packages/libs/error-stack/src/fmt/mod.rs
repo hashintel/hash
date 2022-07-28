@@ -156,7 +156,7 @@ impl Display for Instruction {
             #[cfg(not(feature = "glyph"))]
             Self::Title { end: false } => fmt.write_str("| "),
             #[cfg(feature = "glyph")]
-            Self::Glyph(Glyph::Location) => fmt.write_str("📌 "),
+            Self::Glyph(Glyph::Location) => fmt.write_str(""),
             #[cfg(not(feature = "glyph"))]
             Self::Glyph(Glyph::Location) => fmt.write_str("@ "),
         }
