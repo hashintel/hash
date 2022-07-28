@@ -58,6 +58,7 @@ use crate::{
     ontology::types::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType},
     store::{crud::Read, Store, StorePool},
 };
+use crate::knowledge::Link;
 
 pub mod api;
 
@@ -83,4 +84,4 @@ pub trait Graph = where
         + Read<'i, &'i VersionedUri, LinkType, Output = LinkType>
         + Read<'i, &'i VersionedUri, EntityType, Output = EntityType>
         + Read<'i, EntityId, Entity, Output = Entity>
-        + Read<'i, EntityId, Links, Output = Links>;
+        + Read<'i, EntityId, Link, Output = Links>;
