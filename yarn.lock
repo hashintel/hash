@@ -11163,6 +11163,11 @@ dot-prop@^5.2.0:
   dependencies:
     is-obj "^2.0.0"
 
+dotenv-expand@8.0.3:
+  version "8.0.3"
+  resolved "https://registry.yarnpkg.com/dotenv-expand/-/dotenv-expand-8.0.3.tgz#29016757455bcc748469c83a19b36aaf2b83dd6e"
+  integrity sha512-SErOMvge0ZUyWd5B0NXMQlDkN+8r+HhVUsxgOO7IoPDOdDRD2JjExpN6y3KnFR66jsJMwSn1pqIivhU5rcJiNg==
+
 dotenv-expand@^5.1.0:
   version "5.1.0"
   resolved "https://registry.yarnpkg.com/dotenv-expand/-/dotenv-expand-5.1.0.tgz#3fbaf020bfd794884072ea26b1e9791d45a629f0"
@@ -17301,10 +17306,10 @@ node-int64@^0.4.0:
   resolved "https://registry.yarnpkg.com/node-int64/-/node-int64-0.4.0.tgz#87a9065cdb355d3182d8f94ce11188b825c68a3b"
   integrity sha1-h6kGXNs1XTGC2PlM4RGIuCXGijs=
 
-node-pg-migrate@6.2.1:
-  version "6.2.1"
-  resolved "https://registry.yarnpkg.com/node-pg-migrate/-/node-pg-migrate-6.2.1.tgz#994753e0dbb6ba297f4529a54be8a508381b117d"
-  integrity sha512-EsIOAWFBSBa/2g4BjA1tjRtPOEjOiZ/gqpjjxtsUyQRau0O2s1SVwyRW1HRA2qXZDMT/sA8GxcwLWqkK6BaGxA==
+node-pg-migrate@6.2.2:
+  version "6.2.2"
+  resolved "https://registry.yarnpkg.com/node-pg-migrate/-/node-pg-migrate-6.2.2.tgz#68f3c074489b187f19442411a62e243bae4d19ab"
+  integrity sha512-0WYLTXpWu2doeZhiwJUW/1u21OqAFU2CMQ8YZ8VBcJ0xrdqYAjtd8GGFe5A5DM4NJdIZsqJcLPDFqY0FQsmivw==
   dependencies:
     "@types/pg" "^8.0.0"
     decamelize "^5.0.0"

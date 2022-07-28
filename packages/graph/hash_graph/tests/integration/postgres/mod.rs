@@ -32,9 +32,9 @@ pub struct DatabaseApi<'pool> {
 
 impl DatabaseTestWrapper {
     pub async fn new() -> Self {
-        const USER: &str = "postgres";
+        const USER: &str = "graph";
 
-        const PASSWORD: &str = "postgres";
+        const PASSWORD: &str = "graph";
         const HOST: &str = "localhost";
         const PORT: u16 = 5432;
         const DATABASE: &str = "graph";
