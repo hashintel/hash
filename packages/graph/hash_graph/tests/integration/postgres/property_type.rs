@@ -36,7 +36,7 @@ async fn query() {
         .expect("could not create property type");
 
     let property_type = api
-        .get_property_type(created_property_type.version_id())
+        .get_property_type(created_property_type.inner().id())
         .await
         .expect("could not query property type");
 

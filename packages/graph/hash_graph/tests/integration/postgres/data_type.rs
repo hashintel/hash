@@ -33,7 +33,7 @@ async fn query() {
         .expect("could not create data type");
 
     let data_type = api
-        .get_data_type(created_data_type.version_id())
+        .get_data_type(created_data_type.inner().id())
         .await
         .expect("could not query data type");
 

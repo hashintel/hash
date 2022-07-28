@@ -5,21 +5,19 @@ use tokio_postgres::GenericClient;
 
 use crate::{
     knowledge::{Entity, EntityId, Links, Outgoing},
-    ontology::{
-        types::{uri::VersionedUri, Persisted},
-        VersionId,
-    },
+    ontology::types::{uri::VersionedUri, Persisted},
     store::{crud, postgres::database_type::DatabaseType, AsClient, PostgresStore, QueryError},
 };
 
 #[async_trait]
-impl<C: AsClient, T> crud::Read<'_, VersionId, T> for PostgresStore<C>
+impl<'i, C: AsClient, T> crud::Read<'i, &'i VersionedUri, T> for PostgresStore<C>
 where
     for<'de> T: DatabaseType + Deserialize<'de>,
 {
     type Output = Persisted<T>;
 
-    async fn get(&self, identifier: VersionId) -> Result<Self::Output, QueryError> {
+    async fn get(&self, uri: &'i VersionedUri) -> Result<Self::Output, QueryError> {
+        let version = i64::from(uri.version());
         // SAFETY: We insert a table name here, but `T::table()` is only accessible from within this
         //   module.
         let row = self
@@ -29,16 +27,20 @@ where
                     r#"
                     SELECT version_id, schema, created_by
                     FROM {}
-                    WHERE version_id = $1;
+                    WHERE version_id = (
+                        SELECT version_id
+                        FROM ids
+                        WHERE base_uri = $1 AND version = $2
+                    )
                     "#,
                     T::table()
                 ),
-                &[&identifier],
+                &[uri.base_uri(), &version],
             )
             .await
             .report()
             .change_context(QueryError)
-            .attach_printable(identifier)?;
+            .attach_printable_lazy(|| uri.clone())?;
 
         Ok(Persisted::new(
             row.get(0),

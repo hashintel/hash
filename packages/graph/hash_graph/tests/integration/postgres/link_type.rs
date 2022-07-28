@@ -33,7 +33,7 @@ async fn query() {
         .expect("could not create link type");
 
     let link_type = api
-        .get_link_type(created_link_type.version_id())
+        .get_link_type(created_link_type.inner().id())
         .await
         .expect("could not query link type");
 

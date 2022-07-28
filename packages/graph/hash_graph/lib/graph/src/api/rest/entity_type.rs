@@ -124,19 +124,8 @@ async fn get_entity_type<P: GraphPool>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let version_id = store.version_id_by_uri(&uri).await.map_err(|report| {
-        tracing::error!(error=?report, "Could not resolve URI");
-
-        if report.contains::<QueryError>() {
-            return StatusCode::NOT_FOUND;
-        }
-
-        // Datastore errors such as connection failure are considered internal server errors.
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
     store
-        .get_entity_type(version_id)
+        .get_entity_type(&uri.0)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not query entity type");

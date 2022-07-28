@@ -121,19 +121,8 @@ async fn get_link_type<P: GraphPool>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let version_id = store.version_id_by_uri(&uri).await.map_err(|report| {
-        tracing::error!(error=?report, "Could not resolve URI");
-
-        if report.contains::<QueryError>() {
-            return StatusCode::NOT_FOUND;
-        }
-
-        // Datastore errors such as connection failure are considered internal server errors.
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
     store
-        .get_link_type(version_id)
+        .get_link_type(&uri.0)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not query link type");
