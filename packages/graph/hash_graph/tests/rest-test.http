@@ -1,7 +1,7 @@
 # This file either runs with JetBrains' http requests or using httpYac (https://httpyac.github.io).
 
 ### Insert Text data type
-POST http://127.0.0.1:3000/data-type
+POST http://127.0.0.1:3000/data-types
 Content-Type: application/json
 Accept: application/json
 
@@ -23,7 +23,7 @@ Accept: application/json
 %}
 
 ### Get Text data type
-GET http://127.0.0.1:3000/data-type/{{text_data_type_uri}}
+GET http://127.0.0.1:3000/data-types/{{text_data_type_uri}}
 
 > {%
     client.test("status", function() {
@@ -32,7 +32,7 @@ GET http://127.0.0.1:3000/data-type/{{text_data_type_uri}}
 %}
 
 ### Update Text data type
-PUT http://127.0.0.1:3000/data-type
+PUT http://127.0.0.1:3000/data-types
 Content-Type: application/json
 Accept: application/json
 
@@ -54,7 +54,7 @@ Accept: application/json
 %}
 
 ### Insert Name property type
-POST http://127.0.0.1:3000/property-type
+POST http://127.0.0.1:3000/property-types
 Content-Type: application/json
 Accept: application/json
 
@@ -80,7 +80,7 @@ Accept: application/json
 %}
 
 ### Get Name property type
-GET http://127.0.0.1:3000/property-type/{{person_property_type_uri}}
+GET http://127.0.0.1:3000/property-types/{{person_property_type_uri}}
 
 > {%
     client.test("status", function() {
@@ -89,7 +89,7 @@ GET http://127.0.0.1:3000/property-type/{{person_property_type_uri}}
 %}
 
 ### Update Name property type
-PUT http://127.0.0.1:3000/property-type
+PUT http://127.0.0.1:3000/property-types
 Content-Type: application/json
 Accept: application/json
 
@@ -114,7 +114,7 @@ Accept: application/json
 %}
 
 ### Insert FriendOf link type
-POST http://127.0.0.1:3000/link-type
+POST http://127.0.0.1:3000/link-types
 Content-Type: application/json
 Accept: application/json
 
@@ -138,7 +138,7 @@ Accept: application/json
 %}
 
 ### Get FriendOf link type
-GET http://127.0.0.1:3000/link-type/{{friend_of_link_type_uri}}
+GET http://127.0.0.1:3000/link-types/{{friend_of_link_type_uri}}
 
 > {%
     client.test("status", function() {
@@ -147,7 +147,7 @@ GET http://127.0.0.1:3000/link-type/{{friend_of_link_type_uri}}
 %}
 
 ### Update FriendOf link type
-PUT http://127.0.0.1:3000/link-type
+PUT http://127.0.0.1:3000/link-types
 Content-Type: application/json
 Accept: application/json
 
@@ -171,7 +171,7 @@ Accept: application/json
 
 
 ### Insert Person entity type
-POST http://127.0.0.1:3000/entity-type
+POST http://127.0.0.1:3000/entity-types
 Content-Type: application/json
 Accept: application/json
 
@@ -198,7 +198,7 @@ Accept: application/json
 %}
 
 ### Get Person entity type
-GET http://127.0.0.1:3000/entity-type/{{person_entity_type_uri}}
+GET http://127.0.0.1:3000/entity-types/{{person_entity_type_uri}}
 
 > {%
     client.test("status", function() {
@@ -207,7 +207,7 @@ GET http://127.0.0.1:3000/entity-type/{{person_entity_type_uri}}
 %}
 
 ### Update Person entity type
-PUT http://127.0.0.1:3000/entity-type
+PUT http://127.0.0.1:3000/entity-types
 Content-Type: application/json
 Accept: application/json
 
@@ -243,7 +243,7 @@ Accept: application/json
 
 
 ### Insert Person entity
-POST http://127.0.0.1:3000/entity
+POST http://127.0.0.1:3000/entities
 Content-Type: application/json
 Accept: application/json
 
@@ -263,7 +263,7 @@ Accept: application/json
 %}
 
 ### Get Person entity
-GET http://127.0.0.1:3000/entity/{{person_a_entity_id}}
+GET http://127.0.0.1:3000/entities/{{person_a_entity_id}}
 
 > {%
     client.test("status", function() {
@@ -272,7 +272,7 @@ GET http://127.0.0.1:3000/entity/{{person_a_entity_id}}
 %}
 
 ### Update Person entity
-PUT http://127.0.0.1:3000/entity
+PUT http://127.0.0.1:3000/entities
 Content-Type: application/json
 Accept: application/json
 
@@ -292,7 +292,7 @@ Accept: application/json
 %}
 
 ### Insert another Person entity
-POST http://127.0.0.1:3000/entity
+POST http://127.0.0.1:3000/entities
 Content-Type: application/json
 Accept: application/json
 
@@ -312,7 +312,7 @@ Accept: application/json
 %}
 
 ### Insert link between entities
-POST http://127.0.0.1:3000/entity/{{person_a_entity_id}}/link
+POST http://127.0.0.1:3000/entities/{{person_a_entity_id}}/links
 Content-Type: application/json
 Accept: application/json
 
@@ -329,7 +329,7 @@ Accept: application/json
 %}
 
 ### Get person "a" links
-GET http://127.0.0.1:3000/entity/{{person_a_entity_id}}/link
+GET http://127.0.0.1:3000/entities/{{person_a_entity_id}}/links
 Content-Type: application/json
 Accept: application/json
 
@@ -343,7 +343,7 @@ Accept: application/json
 %}
 
 ### Inactivate person "a" to person "b" link
-DELETE http://127.0.0.1:3000/entity/{{person_a_entity_id}}/link
+DELETE http://127.0.0.1:3000/entities/{{person_a_entity_id}}/links
 Content-Type: application/json
 Accept: application/json
 
@@ -359,7 +359,7 @@ Accept: application/json
 %}
 
 ### Check inactivated person "a" to person "b" link
-GET http://127.0.0.1:3000/entity/{{person_a_entity_id}}/link
+GET http://127.0.0.1:3000/entities/{{person_a_entity_id}}/links
 Content-Type: application/json
 Accept: application/json
 
