@@ -1,4 +1,4 @@
-import { NodeType, ProsemirrorNode, Schema } from "prosemirror-model";
+import { NodeSpec, NodeType, ProsemirrorNode, Schema } from "prosemirror-model";
 
 type NodeWithAttrs<Attrs extends {}> = Omit<
   ProsemirrorNode<Schema>,
@@ -260,7 +260,15 @@ export const findComponentNode = (
 
 export const componentNodeToId = (node: ComponentNode) => node.type.name;
 
-export const processSchemaMutations = (schema: Schema) => {
+declare interface OrderedMapPrivateInterface<T> {
+  content: (string | T)[];
+}
+
+export const mutateSchema = (
+  schema: Schema,
+  mutate: (map: OrderedMapPrivateInterface<NodeSpec>) => void,
+) => {
+  mutate(schema.spec.nodes as any);
   const blankType = schema.nodes.blank!;
 
   if (isComponentNodeType(blankType)) {

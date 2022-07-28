@@ -1,5 +1,5 @@
 import { BlockVariant, JsonObject } from "@blockprotocol/core";
-import { NodeSpec, ProsemirrorNode, Schema } from "prosemirror-model";
+import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorProps, EditorView } from "prosemirror-view";
 
@@ -34,13 +34,9 @@ import {
 import {
   componentNodeGroupName,
   findComponentNode,
-  processSchemaMutations,
+  mutateSchema,
 } from "./prosemirror";
 import { childrenForTextEntity } from "./text";
-
-declare interface OrderedMapPrivateInterface<T> {
-  content: (string | T)[];
-}
 
 type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
 
@@ -51,24 +47,18 @@ const isBlockCompatible = (
   draftBlockId: string | null | undefined,
   entityStore: EntityStore | null,
 ) => {
-  if (draftBlockId && entityStore?.draft[draftBlockId]) {
-    const blockEntity = entityStore.draft[draftBlockId];
+  const blockEntity = draftBlockId ? entityStore?.draft[draftBlockId] : null;
 
-    if (!isBlockEntity(blockEntity)) {
-      throw new Error("Can only create remote block from block entity");
-    }
-
-    if (blockEntity.properties.componentId !== targetComponentId) {
-      if (
-        !isTextBlock(blockEntity.properties.componentId) ||
-        !isTextBlock(targetComponentId)
-      ) {
-        return false;
-      }
-    }
+  if (blockEntity && !isBlockEntity(blockEntity)) {
+    throw new Error("Block entity missing from store");
   }
 
-  return true;
+  return (
+    !blockEntity ||
+    blockEntity.properties.componentId === targetComponentId ||
+    (isTextBlock(blockEntity.properties.componentId) &&
+      isTextBlock(targetComponentId))
+  );
 };
 
 /**
@@ -89,50 +79,46 @@ export class ProsemirrorSchemaManager {
    * the schema, and create a node view wrapper for you too.
    */
   defineBlock(meta: BlockMeta) {
-    const { componentId } = meta.componentMetadata;
+    const { componentMetadata } = meta;
+    const { componentId } = componentMetadata;
 
-    prepareBlockMetaCache(meta.componentMetadata.componentId, meta);
+    prepareBlockMetaCache(componentId, meta);
 
     if (this.schema.nodes[componentId]) {
       return;
     }
 
-    const map: OrderedMapPrivateInterface<NodeSpec> = this.schema.spec
-      .nodes as any;
+    mutateSchema(this.schema, (nodeMap) => {
+      nodeMap.content.push(componentId, {
+        selectable: false,
+        content: "inline*",
+        marks: "_",
+        group: componentNodeGroupName,
 
-    map.content.push(componentId, {
-      selectable: false,
-      content: "inline*",
-      marks: "_",
-      group: componentNodeGroupName,
-
-      /**
-       * Used for serializing when drag and dropping
-       * @todo consider if we should encode the component id here / any other
-       *       information
-       */
-      toDOM(node) {
-        if (node.textContent?.length > 0) {
-          return ["span", { "data-hash-type": "component" }, 0];
-        } else {
-          return ["span", { "data-hash-type": "component" }];
-        }
-      },
+        /**
+         * Used for serializing when drag and dropping
+         * @todo consider if we should encode the component id here / any other
+         *       information
+         */
+        toDOM(node) {
+          if (node.textContent?.length > 0) {
+            return ["span", { "data-hash-type": "component" }, 0];
+          } else {
+            return ["span", { "data-hash-type": "component" }];
+          }
+        },
+      });
     });
-
-    processSchemaMutations(this.schema);
 
     if (this.componentNodeViewFactory && this.view) {
       this.view.setProps({
         nodeViews: {
           // Private API
           ...(this.view as any).nodeViews,
-          [componentId]: this.componentNodeViewFactory(meta.componentMetadata),
+          [componentId]: this.componentNodeViewFactory(componentMetadata),
         },
       });
     }
-
-    this.assertBlockDefined(componentId);
   }
 
   /**
@@ -159,9 +145,8 @@ export class ProsemirrorSchemaManager {
    */
   async ensureBlocksDefined(componentIds: string[] = []) {
     return Promise.all(
-      componentIds.map(
-        (componentId) => this.defineBlockByComponentId(componentId),
-        this,
+      componentIds.map((componentId) =>
+        this.defineBlockByComponentId(componentId),
       ),
     );
   }
@@ -197,7 +182,6 @@ export class ProsemirrorSchemaManager {
       blockData && isTextEntity(blockData)
         ? childrenForTextEntity(blockData, this.schema)
         : [];
-    this.assertBlockDefined(targetComponentId);
 
     return this.schema.nodes.block!.create({}, [
       this.schema.nodes.entity!.create(
@@ -310,11 +294,11 @@ export class ProsemirrorSchemaManager {
     const { tr } = this.view.state;
 
     let blockIdForNode = draftBlockId;
+    let entityProperties = targetVariant?.properties ?? {};
 
     if (blockIdForNode) {
       // we already have a block which we're swapping
       const entityStoreState = entityStorePluginState(this.view.state);
-
       const blockEntity = entityStoreState.store.draft[blockIdForNode];
 
       if (!blockEntity || !isDraftBlockEntity(blockEntity)) {
@@ -342,57 +326,42 @@ export class ProsemirrorSchemaManager {
             type: "updateEntityProperties",
             payload: {
               draftId: blockEntity.properties.entity.draftId,
-              properties: targetVariant.properties ?? {},
+              properties: entityProperties,
               merge: true,
             },
           });
         } else {
           // we're swapping to the same text component - preserve text
-          blockIdForNode = await this.createNewDraftBlock(
-            tr,
-            {
-              ...targetVariant.properties,
-              text: {
-                __linkedData: {},
-                data: isTextContainingEntityProperties(
-                  blockEntity.properties.entity.properties,
-                )
-                  ? blockEntity.properties.entity.properties.text.data
-                  : blockEntity.properties.entity,
-              },
-            },
-            targetComponentId,
-          );
-        }
-      } else {
-        // we're swapping a block to a different component
-        let entityProperties = targetVariant?.properties ?? {};
-        if (isTextBlock(targetComponentId)) {
-          const textEntityLink = isDraftTextContainingEntityProperties(
-            blockEntity.properties.entity.properties,
-          )
-            ? blockEntity.properties.entity.properties.text
-            : {
-                __linkedData: {},
-                data: blockEntity.properties.entity,
-              };
-
           entityProperties = {
             ...entityProperties,
-            text: textEntityLink,
+            text: {
+              __linkedData: {},
+              data: isTextContainingEntityProperties(
+                blockEntity.properties.entity.properties,
+              )
+                ? blockEntity.properties.entity.properties.text.data
+                : blockEntity.properties.entity,
+            },
           };
         }
+      } else if (isTextBlock(targetComponentId)) {
+        const textEntityLink = isDraftTextContainingEntityProperties(
+          blockEntity.properties.entity.properties,
+        )
+          ? blockEntity.properties.entity.properties.text
+          : {
+              __linkedData: {},
+              data: blockEntity.properties.entity,
+            };
 
-        blockIdForNode = await this.createNewDraftBlock(
-          tr,
-          entityProperties,
-          targetComponentId,
-        );
+        entityProperties = {
+          ...entityProperties,
+          text: textEntityLink,
+        };
       }
-    } else {
-      // we're adding a new block, rather than swapping an existing one
-      const entityProperties = targetVariant?.properties ?? {};
+    }
 
+    if (!blockIdForNode) {
       blockIdForNode = await this.createNewDraftBlock(
         tr,
         entityProperties,
@@ -422,7 +391,6 @@ export class ProsemirrorSchemaManager {
     tr.replaceWith(from, to, []);
 
     const blockPosition = tr.doc.resolve(tr.mapping.map(from)).after(1);
-
     const containingNode = tr.doc.nodeAt(blockPosition);
 
     if (!containingNode) {
@@ -567,7 +535,6 @@ export class ProsemirrorSchemaManager {
       },
     });
 
-    // @todo handle non-intermediary entities
     addEntityStoreAction(this.view.state, tr, {
       type: "updateEntityProperties",
       payload: {
