@@ -15,7 +15,7 @@ use utoipa::{Component, OpenApi};
 use super::api_resource::RoutedResource;
 use crate::{
     ontology::{
-        types::{uri::VersionedUri, LinkType, Persisted, PersistedLinkType},
+        types::{uri::VersionedUri, LinkType},
         AccountId,
     },
     store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError},
@@ -29,7 +29,7 @@ use crate::{
         get_link_type,
         update_link_type
     ),
-    components(CreateLinkTypeRequest, UpdateLinkTypeRequest, AccountId, PersistedLinkType),
+    components(CreateLinkTypeRequest, UpdateLinkTypeRequest, AccountId, LinkType),
     tags(
         (name = "LinkType", description = "Link type management API")
     )
@@ -62,7 +62,7 @@ struct CreateLinkTypeRequest {
     request_body = CreateLinkTypeRequest,
     tag = "LinkType",
     responses(
-      (status = 201, content_type = "application/json", description = "Link type created successfully", body = PersistedLinkType),
+      (status = 201, content_type = "application/json", description = "Link type created successfully", body = LinkType),
       (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
       (status = 409, description = "Unable to create link type in the store as the base link type ID already exists"),
@@ -73,7 +73,7 @@ struct CreateLinkTypeRequest {
 async fn create_link_type<P: GraphPool>(
     body: Json<CreateLinkTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<Persisted<LinkType>>, StatusCode> {
+) -> Result<Json<LinkType>, StatusCode> {
     let Json(CreateLinkTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -82,7 +82,7 @@ async fn create_link_type<P: GraphPool>(
     })?;
 
     store
-        .create_link_type(schema, account_id)
+        .create_link_type(&schema, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create link type");
@@ -93,8 +93,9 @@ async fn create_link_type<P: GraphPool>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })
-        .map(Json)
+        })?;
+
+    Ok(Json(schema))
 }
 
 #[utoipa::path(
@@ -102,7 +103,7 @@ async fn create_link_type<P: GraphPool>(
     path = "/link-type/{uri}",
     tag = "LinkType",
     responses(
-        (status = 200, content_type = "application/json", description = "Link type found", body = PersistedLinkType),
+        (status = 200, content_type = "application/json", description = "Link type found", body = LinkType),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Link type was not found"),
@@ -115,7 +116,7 @@ async fn create_link_type<P: GraphPool>(
 async fn get_link_type<P: GraphPool>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<Persisted<LinkType>>, impl IntoResponse> {
+) -> Result<Json<LinkType>, impl IntoResponse> {
     let store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
@@ -149,7 +150,7 @@ struct UpdateLinkTypeRequest {
     path = "/link-type",
     tag = "LinkType",
     responses(
-        (status = 200, content_type = "application/json", description = "Link type updated successfully", body = PersistedLinkType),
+        (status = 200, content_type = "application/json", description = "Link type updated successfully", body = LinkType),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base link type ID was not found"),
@@ -160,7 +161,7 @@ struct UpdateLinkTypeRequest {
 async fn update_link_type<P: GraphPool>(
     body: Json<UpdateLinkTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<Persisted<LinkType>>, StatusCode> {
+) -> Result<Json<LinkType>, StatusCode> {
     let Json(UpdateLinkTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -169,7 +170,7 @@ async fn update_link_type<P: GraphPool>(
     })?;
 
     store
-        .update_link_type(schema, account_id)
+        .update_link_type(&schema, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update link type");
@@ -180,6 +181,7 @@ async fn update_link_type<P: GraphPool>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })
-        .map(Json)
+        })?;
+
+    Ok(Json(schema))
 }

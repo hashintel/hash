@@ -15,7 +15,7 @@ use utoipa::{Component, OpenApi};
 use super::api_resource::RoutedResource;
 use crate::{
     ontology::{
-        types::{uri::VersionedUri, Persisted, PersistedPropertyType, PropertyType},
+        types::{uri::VersionedUri, PropertyType},
         AccountId,
     },
     store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError},
@@ -29,7 +29,7 @@ use crate::{
         get_property_type,
         update_property_type
     ),
-    components(CreatePropertyTypeRequest, UpdatePropertyTypeRequest, AccountId, PersistedPropertyType),
+    components(CreatePropertyTypeRequest, UpdatePropertyTypeRequest, AccountId, PropertyType),
     tags(
         (name = "PropertyType", description = "Property type management API")
     )
@@ -65,7 +65,7 @@ struct CreatePropertyTypeRequest {
     request_body = CreatePropertyTypeRequest,
     tag = "PropertyType",
     responses(
-      (status = 201, content_type = "application/json", description = "Property type created successfully", body = PersistedPropertyType),
+      (status = 201, content_type = "application/json", description = "Property type created successfully", body = PropertyType),
       (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
       (status = 409, description = "Unable to create property type in the store as the base property type ID already exists"),
@@ -76,7 +76,7 @@ struct CreatePropertyTypeRequest {
 async fn create_property_type<P: GraphPool>(
     body: Json<CreatePropertyTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<Persisted<PropertyType>>, StatusCode> {
+) -> Result<Json<PropertyType>, StatusCode> {
     let Json(CreatePropertyTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -85,7 +85,7 @@ async fn create_property_type<P: GraphPool>(
     })?;
 
     store
-        .create_property_type(schema, account_id)
+        .create_property_type(&schema, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create property type");
@@ -96,8 +96,9 @@ async fn create_property_type<P: GraphPool>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })
-        .map(Json)
+        })?;
+
+    Ok(Json(schema))
 }
 
 #[utoipa::path(
@@ -105,7 +106,7 @@ async fn create_property_type<P: GraphPool>(
     path = "/property-type/{uri}",
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", description = "Property type found", body = PersistedPropertyType),
+        (status = 200, content_type = "application/json", description = "Property type found", body = PropertyType),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Property type was not found"),
@@ -118,7 +119,7 @@ async fn create_property_type<P: GraphPool>(
 async fn get_property_type<P: GraphPool>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<Persisted<PropertyType>>, impl IntoResponse> {
+) -> Result<Json<PropertyType>, impl IntoResponse> {
     let store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
@@ -152,7 +153,7 @@ struct UpdatePropertyTypeRequest {
     path = "/property-type",
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", description = "Property type updated successfully", body = PersistedPropertyType),
+        (status = 200, content_type = "application/json", description = "Property type updated successfully", body = PropertyType),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base property type ID was not found"),
@@ -163,7 +164,7 @@ struct UpdatePropertyTypeRequest {
 async fn update_property_type<P: GraphPool>(
     body: Json<UpdatePropertyTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<Persisted<PropertyType>>, StatusCode> {
+) -> Result<Json<PropertyType>, StatusCode> {
     let Json(UpdatePropertyTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -172,7 +173,7 @@ async fn update_property_type<P: GraphPool>(
     })?;
 
     store
-        .update_property_type(schema, account_id)
+        .update_property_type(&schema, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update property type");
@@ -183,6 +184,7 @@ async fn update_property_type<P: GraphPool>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })
-        .map(Json)
+        })?;
+
+    Ok(Json(schema))
 }

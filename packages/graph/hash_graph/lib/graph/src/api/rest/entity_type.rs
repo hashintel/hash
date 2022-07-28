@@ -15,7 +15,7 @@ use utoipa::{Component, OpenApi};
 use crate::{
     api::rest::api_resource::RoutedResource,
     ontology::{
-        types::{uri::VersionedUri, EntityType, Persisted, PersistedEntityType},
+        types::{uri::VersionedUri, EntityType},
         AccountId,
     },
     store::error::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError},
@@ -29,7 +29,7 @@ use crate::{
         get_entity_type,
         update_entity_type
     ),
-    components(CreateEntityTypeRequest, UpdateEntityTypeRequest, AccountId, PersistedEntityType),
+    components(CreateEntityTypeRequest, UpdateEntityTypeRequest, AccountId, EntityType),
     tags(
         (name = "EntityType", description = "Entity type management API")
     )
@@ -65,7 +65,7 @@ struct CreateEntityTypeRequest {
     request_body = CreateEntityTypeRequest,
     tag = "EntityType",
     responses(
-      (status = 201, content_type = "application/json", description = "Entity type created successfully", body = PersistedEntityType),
+      (status = 201, content_type = "application/json", description = "Entity type created successfully", body = EntityType),
       (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
       (status = 409, description = "Unable to create entity type in the datastore as the base entity type ID already exists"),
@@ -76,7 +76,7 @@ struct CreateEntityTypeRequest {
 async fn create_entity_type<P: GraphPool>(
     body: Json<CreateEntityTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<Persisted<EntityType>>, StatusCode> {
+) -> Result<Json<EntityType>, StatusCode> {
     let Json(CreateEntityTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -85,7 +85,7 @@ async fn create_entity_type<P: GraphPool>(
     })?;
 
     store
-        .create_entity_type(schema, account_id)
+        .create_entity_type(&schema, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create entity type");
@@ -96,8 +96,9 @@ async fn create_entity_type<P: GraphPool>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })
-        .map(Json)
+        })?;
+
+    Ok(Json(schema))
 }
 
 #[utoipa::path(
@@ -105,7 +106,7 @@ async fn create_entity_type<P: GraphPool>(
     path = "/entity-type/{uri}",
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "Entity type found", body = PersistedEntityType),
+        (status = 200, content_type = "application/json", description = "Entity type found", body = EntityType),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Entity type was not found"),
@@ -118,7 +119,7 @@ async fn create_entity_type<P: GraphPool>(
 async fn get_entity_type<P: GraphPool>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<Persisted<EntityType>>, impl IntoResponse> {
+) -> Result<Json<EntityType>, impl IntoResponse> {
     let store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
@@ -152,7 +153,7 @@ struct UpdateEntityTypeRequest {
     path = "/entity-type",
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "Entity type updated successfully", body = PersistedEntityType),
+        (status = 200, content_type = "application/json", description = "Entity type updated successfully", body = EntityType),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base entity type ID was not found"),
@@ -163,7 +164,7 @@ struct UpdateEntityTypeRequest {
 async fn update_entity_type<P: GraphPool>(
     body: Json<UpdateEntityTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<Persisted<EntityType>>, StatusCode> {
+) -> Result<Json<EntityType>, StatusCode> {
     let Json(UpdateEntityTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -172,7 +173,7 @@ async fn update_entity_type<P: GraphPool>(
     })?;
 
     store
-        .update_entity_type(schema, account_id)
+        .update_entity_type(&schema, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity type");
@@ -183,6 +184,7 @@ async fn update_entity_type<P: GraphPool>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })
-        .map(Json)
+        })?;
+
+    Ok(Json(schema))
 }

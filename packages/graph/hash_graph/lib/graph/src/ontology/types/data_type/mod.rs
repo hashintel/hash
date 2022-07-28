@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use error_stack::{ensure, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use utoipa::Component;
 
 use crate::ontology::types::{
     error::ValidationError,
@@ -52,7 +53,7 @@ enum DataTypeTag {
     DataType,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
 #[serde(rename_all = "camelCase")]
 pub struct DataType {
     kind: DataTypeTag,

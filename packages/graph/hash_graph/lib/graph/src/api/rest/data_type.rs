@@ -15,7 +15,7 @@ use utoipa::{Component, OpenApi};
 use super::api_resource::RoutedResource;
 use crate::{
     ontology::{
-        types::{uri::VersionedUri, DataType, Persisted, PersistedDataType},
+        types::{uri::VersionedUri, DataType},
         AccountId,
     },
     store::{BaseUriAlreadyExists, BaseUriDoesNotExist, QueryError},
@@ -29,7 +29,7 @@ use crate::{
         get_data_type,
         update_data_type
     ),
-    components(CreateDataTypeRequest, UpdateDataTypeRequest, AccountId, PersistedDataType),
+    components(CreateDataTypeRequest, UpdateDataTypeRequest, AccountId, DataType),
     tags(
         (name = "DataType", description = "Data Type management API")
     )
@@ -62,7 +62,7 @@ struct CreateDataTypeRequest {
     request_body = CreateDataTypeRequest,
     tag = "DataType",
     responses(
-      (status = 201, content_type = "application/json", description = "Data type created successfully", body = PersistedDataType),
+      (status = 201, content_type = "application/json", description = "Data type created successfully", body = DataType),
       (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
       (status = 409, description = "Unable to create data type in the store as the base data type ID already exists"),
@@ -73,7 +73,7 @@ struct CreateDataTypeRequest {
 async fn create_data_type<P: GraphPool>(
     body: Json<CreateDataTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<Persisted<DataType>>, StatusCode> {
+) -> Result<Json<DataType>, StatusCode> {
     let Json(CreateDataTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -82,7 +82,7 @@ async fn create_data_type<P: GraphPool>(
     })?;
 
     store
-        .create_data_type(schema, account_id)
+        .create_data_type(&schema, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create data type");
@@ -93,8 +93,9 @@ async fn create_data_type<P: GraphPool>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })
-        .map(Json)
+        })?;
+
+    Ok(Json(schema))
 }
 
 #[utoipa::path(
@@ -102,7 +103,7 @@ async fn create_data_type<P: GraphPool>(
     path = "/data-type/{uri}",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "Data type found", body = PersistedDataType),
+        (status = 200, content_type = "application/json", description = "Data type found", body = DataType),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Data type was not found"),
@@ -115,7 +116,7 @@ async fn create_data_type<P: GraphPool>(
 async fn get_data_type<P: GraphPool>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<Persisted<DataType>>, impl IntoResponse> {
+) -> Result<Json<DataType>, impl IntoResponse> {
     let store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
@@ -149,7 +150,7 @@ struct UpdateDataTypeRequest {
     path = "/data-type",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "Data type updated successfully", body = PersistedDataType),
+        (status = 200, content_type = "application/json", description = "Data type updated successfully", body = DataType),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base data type ID was not found"),
@@ -160,7 +161,7 @@ struct UpdateDataTypeRequest {
 async fn update_data_type<P: GraphPool>(
     body: Json<UpdateDataTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<Persisted<DataType>>, StatusCode> {
+) -> Result<Json<DataType>, StatusCode> {
     let Json(UpdateDataTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -169,7 +170,7 @@ async fn update_data_type<P: GraphPool>(
     })?;
 
     store
-        .update_data_type(schema, account_id)
+        .update_data_type(&schema, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update data type");
@@ -180,6 +181,7 @@ async fn update_data_type<P: GraphPool>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })
-        .map(Json)
+        })?;
+
+    Ok(Json(schema))
 }
