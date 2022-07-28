@@ -240,9 +240,9 @@ impl DatabaseApi<'_> {
         source_entity: EntityId,
         target_entity: EntityId,
         link_type_uri: VersionedUri,
-    ) -> Result<Link, InsertionError> {
+    ) -> Result<(), InsertionError> {
         let link = Link::new(source_entity, target_entity, link_type_uri);
-        self.store.create_link(link, self.account_id).await
+        self.store.create_link(&link, self.account_id).await
     }
 
     pub async fn get_link_target(
@@ -266,7 +266,7 @@ impl DatabaseApi<'_> {
         link_type_uri: VersionedUri,
     ) -> Result<(), LinkActivationError> {
         let link = Link::new(source_entity, target_entity, link_type_uri);
-        self.store.inactivate_link(link).await
+        self.store.inactivate_link(&link).await
     }
 }
 

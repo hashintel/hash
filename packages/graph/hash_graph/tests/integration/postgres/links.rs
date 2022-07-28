@@ -41,23 +41,19 @@ async fn insert() {
         .await
         .expect("could not create entity");
 
-    let created_link = api
-        .create_link(
-            person_a_entity_id,
-            person_b_entity_id,
-            link_type_uri.clone(),
-        )
-        .await
-        .expect("coud not create link");
+    api.create_link(
+        person_a_entity_id,
+        person_b_entity_id,
+        link_type_uri.clone(),
+    )
+    .await
+    .expect("coud not create link");
 
     let link_target = api
         .get_link_target(person_a_entity_id, link_type_uri.clone())
         .await
         .expect("could not fetch link");
 
-    assert_eq!(created_link.source_entity(), person_a_entity_id);
-    assert_eq!(created_link.target_entity(), person_b_entity_id);
-    assert_eq!(created_link.link_type_uri(), &link_type_uri);
     assert_eq!(link_target, Outgoing::Single(person_b_entity_id));
 }
 
