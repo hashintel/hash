@@ -41,18 +41,22 @@ export const isDraftTextEntity = (
 /**
  * @deprecated
  */
-type LegacyLink<Type extends EntityStoreType | DraftEntity = EntityStoreType> =
-  {
-    /**
-     * @deprecated
-     */
-    data: Type;
+export type LegacyLink<
+  Type extends EntityStoreType | DraftEntity = EntityStoreType,
+> = {
+  /**
+   * @deprecated
+   */
+  data: Type;
 
-    /**
-     * @deprecated
-     */
-    __linkedData: {};
+  /**
+   * @deprecated
+   */
+  __linkedData: {
+    entityTypeId?: string;
+    entityId?: string;
   };
+};
 
 /**
  * @deprecated

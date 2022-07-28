@@ -1,10 +1,10 @@
 import { ApolloClient, ApolloError } from "@apollo/client";
-import { JsonObject } from "@blockprotocol/core";
 import { fetchBlockMeta } from "@hashintel/hash-shared/blocks";
 import {
   BlockEntity,
   isDraftTextContainingEntityProperties,
   isDraftTextEntity,
+  LegacyLink,
 } from "@hashintel/hash-shared/entity";
 import {
   DraftEntity,
@@ -25,6 +25,7 @@ import {
   GetTextEntityTypeQuery,
   GetTextEntityTypeQueryVariables,
   SystemTypeName,
+  Text,
   UpdatePageAction,
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
@@ -127,28 +128,28 @@ const calculateSaveActions = async (
   const draftIdToPlaceholderId = new Map<string, string>();
   const draftIdToBlockEntities = new Map<string, DraftEntity<BlockEntity>>();
 
-  // @todo reduce duplication here
-  const shouldSetTextProperties = (
-    properties: JsonObject,
-    savedProperties?: JsonObject,
-  ): JsonObject | null => {
+  const shouldSetTextProperties = <T extends any>(
+    properties: T,
+    savedProperties?: DraftEntity["properties"],
+  ): (T & { text: Omit<LegacyLink<DraftEntity<Text>>, "data"> }) | null => {
     if (!isDraftTextContainingEntityProperties(properties)) {
       return null;
     }
 
     const savedWithoutText = omit(savedProperties, "text");
-    const draftWithoutText = omit(properties, "text");
     const savedTextLink = isDraftTextContainingEntityProperties(savedProperties)
       ? savedProperties.text.__linkedData
       : null;
 
     if (savedTextLink) {
+      const draftWithoutText = omit(properties, "text");
+
       if (
         !isEqual(savedWithoutText, draftWithoutText) ||
         isEqual(savedTextLink, properties.text.__linkedData)
       ) {
         return {
-          ...draftWithoutText,
+          ...properties,
           text: {
             __linkedData: properties.text.__linkedData,
           },
@@ -165,7 +166,7 @@ const calculateSaveActions = async (
       }
 
       return {
-        ...draftWithoutText,
+        ...properties,
         text: {
           __linkedData: {
             entityTypeId: textEntityTypeId,
