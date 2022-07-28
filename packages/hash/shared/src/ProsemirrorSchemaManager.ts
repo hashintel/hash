@@ -413,8 +413,8 @@ export class ProsemirrorSchemaManager {
   async replaceRange(
     targetComponentId: string,
     variant: BlockVariant,
-    to: number,
     from: number,
+    to: number,
   ) {
     const [tr, node] = await this.createBlock(targetComponentId, null, variant);
 

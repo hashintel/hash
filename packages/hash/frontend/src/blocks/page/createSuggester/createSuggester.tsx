@@ -110,12 +110,12 @@ const docChangedInTransaction = (tr: Transaction<Schema>) => {
  * Suggester plugin factory
  *
  * Behaviour:
- * Typing one of the trigger characters followed by any number of
- * non-whitespace characters will activate the plugin and open a popup right
- * under the "textual trigger". Moving the cursor outside the trigger will
- * close the popup. Pressing the Escape-key while inside the trigger will
- * disable the plugin until a trigger is newly encountered (e.g. by
- * leaving/deleting and reentering/retyping a trigger).
+ * Typing one of the trigger characters followed by any number of non-whitespace characters will
+ * activate the plugin and open a popup right under the "textual trigger".
+ * Moving the cursor outside the trigger will close the popup. Pressing the
+ * Escape-key while inside the trigger will disable the plugin until a trigger
+ * is newly encountered (e.g. by leaving/deleting and reentering/retyping a
+ * trigger).
  */
 export const createSuggester = (
   renderPortal: RenderPortal,
@@ -170,24 +170,24 @@ export const createSuggester = (
       /** cannot use EditorProps.handleKeyDown because it doesn't capture all keys (notably Enter) */
       handleDOMEvents: {
         keydown(view, event) {
-          view.dispatch(
-            view.state.tr.setMeta(suggesterPluginKey, { type: "key" }),
-          );
+          const tr = view.state.tr.setMeta(suggesterPluginKey, { type: "key" });
+          let prevented = false;
 
           switch (event.key) {
             // stop prosemirror from handling these keyboard events while the suggester handles them
             case "Enter":
             case "ArrowUp":
             case "ArrowDown":
-              return this.getState(view.state).isOpen();
+              prevented = this.getState(view.state).isOpen();
+              break;
             case "Escape":
-              view.dispatch(
-                view.state.tr.setMeta(suggesterPluginKey, { type: "escape" }),
-              );
-              return false;
-            default:
-              return false;
+              tr.setMeta(suggesterPluginKey, { type: "escape" });
+              break;
           }
+
+          view.dispatch(tr);
+
+          return prevented;
         },
       },
     },
@@ -214,7 +214,7 @@ export const createSuggester = (
             blockMeta: BlockConfig,
           ) => {
             getManager()
-              .replaceRange(blockMeta.componentId, variant, to, from)
+              .replaceRange(blockMeta.componentId, variant, from, to)
               .then(({ tr, componentPosition }) => {
                 tr.setMeta(suggesterPluginKey, {
                   type: "suggestedBlock",
