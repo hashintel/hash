@@ -41,7 +41,7 @@ impl RoutedResource for EntityTypeResource {
     fn routes<P: GraphPool>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
-            "/entity-type",
+            "/entity-types",
             Router::new()
                 .route(
                     "/",
@@ -61,7 +61,7 @@ struct CreateEntityTypeRequest {
 
 #[utoipa::path(
     post,
-    path = "/entity-type",
+    path = "/entity-types",
     request_body = CreateEntityTypeRequest,
     tag = "EntityType",
     responses(
@@ -103,7 +103,7 @@ async fn create_entity_type<P: GraphPool>(
 
 #[utoipa::path(
     get,
-    path = "/entity-type/{uri}",
+    path = "/entity-types/{uri}",
     tag = "EntityType",
     responses(
         (status = 200, content_type = "application/json", description = "Entity type found", body = EntityType),
@@ -150,7 +150,7 @@ struct UpdateEntityTypeRequest {
 
 #[utoipa::path(
     put,
-    path = "/entity-type",
+    path = "/entity-types",
     tag = "EntityType",
     responses(
         (status = 200, content_type = "application/json", description = "Entity type updated successfully", body = EntityType),

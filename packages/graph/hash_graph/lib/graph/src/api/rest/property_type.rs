@@ -41,7 +41,7 @@ impl RoutedResource for PropertyTypeResource {
     fn routes<P: GraphPool>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
-            "/property-type",
+            "/property-types",
             Router::new()
                 .route(
                     "/",
@@ -61,7 +61,7 @@ struct CreatePropertyTypeRequest {
 
 #[utoipa::path(
     post,
-    path = "/property-type",
+    path = "/property-types",
     request_body = CreatePropertyTypeRequest,
     tag = "PropertyType",
     responses(
@@ -103,7 +103,7 @@ async fn create_property_type<P: GraphPool>(
 
 #[utoipa::path(
     get,
-    path = "/property-type/{uri}",
+    path = "/property-types/{uri}",
     tag = "PropertyType",
     responses(
         (status = 200, content_type = "application/json", description = "Property type found", body = PropertyType),
@@ -150,7 +150,7 @@ struct UpdatePropertyTypeRequest {
 
 #[utoipa::path(
     put,
-    path = "/property-type",
+    path = "/property-types",
     tag = "PropertyType",
     responses(
         (status = 200, content_type = "application/json", description = "Property type updated successfully", body = PropertyType),

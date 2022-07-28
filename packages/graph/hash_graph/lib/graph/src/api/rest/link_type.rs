@@ -41,7 +41,7 @@ impl RoutedResource for LinkTypeResource {
     fn routes<P: GraphPool>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
-            "/link-type",
+            "/link-types",
             Router::new()
                 .route("/", post(create_link_type::<P>).put(update_link_type::<P>))
                 .route("/:version_id", get(get_link_type::<P>)),
@@ -58,7 +58,7 @@ struct CreateLinkTypeRequest {
 
 #[utoipa::path(
     post,
-    path = "/link-type",
+    path = "/link-types",
     request_body = CreateLinkTypeRequest,
     tag = "LinkType",
     responses(
@@ -100,7 +100,7 @@ async fn create_link_type<P: GraphPool>(
 
 #[utoipa::path(
     get,
-    path = "/link-type/{uri}",
+    path = "/link-types/{uri}",
     tag = "LinkType",
     responses(
         (status = 200, content_type = "application/json", description = "Link type found", body = LinkType),
@@ -147,7 +147,7 @@ struct UpdateLinkTypeRequest {
 
 #[utoipa::path(
     put,
-    path = "/link-type",
+    path = "/link-types",
     tag = "LinkType",
     responses(
         (status = 200, content_type = "application/json", description = "Link type updated successfully", body = LinkType),
