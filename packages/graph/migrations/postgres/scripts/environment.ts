@@ -1,10 +1,11 @@
 import { config } from "dotenv-flow";
+import dotenvExpand from "dotenv-expand";
 
 import path from "path";
 
 export const graphRootDir = path.resolve(__dirname, "../../../");
 
-config({ silent: true, path: graphRootDir });
+dotenvExpand.expand(config({ silent: true, path: graphRootDir }));
 
 /**
  * Get a required environment variable. Throws an error if it's not set.
