@@ -291,7 +291,7 @@ export class ProsemirrorSchemaManager {
 
     const { tr } = this.view.state;
 
-    let entityProperties = targetVariant?.properties ?? {};
+    const entityProperties = targetVariant?.properties ?? {};
 
     const entityStoreState = entityStorePluginState(this.view.state);
     const blockEntity = draftBlockId
@@ -305,7 +305,7 @@ export class ProsemirrorSchemaManager {
       throw new Error("draft id does not belong to a block");
     }
 
-    let targetBlockId: string | null;
+    let targetBlockId: string;
 
     if (targetComponentId === blockEntity?.properties.componentId) {
       addEntityStoreAction(this.view.state, tr, {
@@ -318,30 +318,25 @@ export class ProsemirrorSchemaManager {
       });
       targetBlockId = blockEntity.draftId;
     } else {
-      targetBlockId = null;
-
-      /**
-       * This is supporting swapping between text blocks and persisting the
-       * existing text
-       */
-      if (
+      const newBlockProperties =
         blockEntity &&
         isTextBlock(targetComponentId) &&
         isDraftTextContainingEntityProperties(
           blockEntity.properties.entity.properties,
         )
-      ) {
-        entityProperties = {
-          ...entityProperties,
-          text: blockEntity.properties.entity.properties.text,
-        };
-      }
-    }
+          ? /**
+             * This is supporting swapping between text blocks and persisting the
+             * existing text
+             */
+            {
+              ...entityProperties,
+              text: blockEntity.properties.entity.properties.text,
+            }
+          : entityProperties;
 
-    if (!targetBlockId) {
       targetBlockId = await this.createNewDraftBlock(
         tr,
-        entityProperties,
+        newBlockProperties,
         targetComponentId,
       );
     }
