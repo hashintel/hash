@@ -1,5 +1,5 @@
 import { Listbox, Transition } from "@headlessui/react";
-import { Fragment, ReactElement, VoidFunctionComponent } from "react";
+import { Fragment, ReactElement, FunctionComponent } from "react";
 import { tw } from "twind";
 
 import { DropdownIcon } from "../../shared/icons";
@@ -21,7 +21,7 @@ export type DropdownProps = {
  * Needs the styling sorting out
  * @see https://headlessui.dev/react/listbox for the example
  */
-export const Dropdown: VoidFunctionComponent<DropdownProps> = ({
+export const Dropdown: FunctionComponent<DropdownProps> = ({
   onChange,
   options,
   value,

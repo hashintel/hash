@@ -1,5 +1,5 @@
-import React, {
-  VoidFunctionComponent,
+import {
+  FunctionComponent,
   SyntheticEvent,
   useMemo,
   useState,
@@ -61,7 +61,7 @@ const renderTree = (
   );
 };
 
-export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
+export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   currentPageEntityId,
   accountId,
 }) => {

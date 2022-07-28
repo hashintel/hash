@@ -692,10 +692,12 @@ export interface DbClient {
 
   /**
    * Get entity types associated with a given accountId.
-   * Optionally include other types the account uses.
+   * Optionally include other types the account uses, OR all other types
+   * @todo replace this with aggregateEntityTypes
    * */
   getAccountEntityTypes(params: {
     accountId: string;
+    includeAllTypes?: boolean | null;
     includeOtherTypesInUse?: boolean | null;
   }): Promise<EntityType[]>;
 

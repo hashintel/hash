@@ -1,5 +1,5 @@
 import { BlockComponent } from "@blockprotocol/graph/react";
-import React, { RefCallback } from "react";
+import { RefCallback } from "react";
 
 type BlockEntityProperties = {
   color?: string;

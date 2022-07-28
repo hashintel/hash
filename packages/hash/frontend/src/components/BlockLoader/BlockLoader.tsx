@@ -7,12 +7,12 @@ import {
 } from "@blockprotocol/graph";
 import { BlockConfig } from "@hashintel/hash-shared/blocks";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
-import React, {
+import {
   useCallback,
   useLayoutEffect,
   useMemo,
   useRef,
-  VoidFunctionComponent,
+  FunctionComponent,
 } from "react";
 import { uniqBy } from "lodash";
 
@@ -63,7 +63,7 @@ type BlockLoaderProps = {
  * Converts API data to Block Protocol-formatted data (e.g. entities, links),
  * and passes the correctly formatted data to RemoteBlock, along with message callbacks
  */
-export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
+export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   accountId,
   blockEntityId,
   blockMetadata,

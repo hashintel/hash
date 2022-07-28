@@ -3,7 +3,7 @@ import {
   ReactNode,
   useContext,
   useMemo,
-  VoidFunctionComponent,
+  FunctionComponent,
 } from "react";
 import { Schema } from "jsonschema";
 
@@ -22,7 +22,7 @@ type SchemaPropertyTypeListProps = {
   updatePermittedType?: (newType: string) => void; // @todo support selecting multiple types
 };
 
-const PropertyTypeDisplay: VoidFunctionComponent<
+const PropertyTypeDisplay: FunctionComponent<
   Omit<SchemaPropertyTypeListProps, "readonly" | "updatePermittedType">
 > = ({ $ref, hasSubSchema, GoToSchemaElement, propertyName, type }) => {
   if ($ref) {
@@ -44,7 +44,7 @@ const PropertyTypeDisplay: VoidFunctionComponent<
   );
 };
 
-const PropertyTypeSelect: VoidFunctionComponent<
+const PropertyTypeSelect: FunctionComponent<
   Omit<
     SchemaPropertyTypeListProps,
     "hasSubSchema" | "GoToSchemaElement" | "propertyName" | "readonly"
@@ -84,13 +84,15 @@ const PropertyTypeSelect: VoidFunctionComponent<
       options.push(
         {
           disabled: true,
-          label: "---- Other entities ----",
+          label: "---- Entity types ----",
           value: "__other_type_divider",
         },
-        ...availableEntityTypes.map((entityType) => ({
-          label: entityType.schema.title,
-          value: entityType.schema.$id,
-        })),
+        ...availableEntityTypes
+          .sort((a, b) => a.schema.title.localeCompare(b.schema.title))
+          .map((entityType) => ({
+            label: entityType.schema.title,
+            value: entityType.schema.$id,
+          })),
       );
     }
     return options;
@@ -106,7 +108,7 @@ const PropertyTypeSelect: VoidFunctionComponent<
   );
 };
 
-export const SchemaPropertyTypeList: VoidFunctionComponent<
+export const SchemaPropertyTypeList: FunctionComponent<
   SchemaPropertyTypeListProps
 > = ({ readonly, ...props }) => {
   if (!readonly) {

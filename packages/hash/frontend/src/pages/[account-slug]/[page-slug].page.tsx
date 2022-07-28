@@ -11,12 +11,7 @@ import { GetStaticPaths, GetStaticProps } from "next";
 import Head from "next/head";
 import { Router, useRouter } from "next/router";
 
-import React, {
-  useEffect,
-  useMemo,
-  useState,
-  VoidFunctionComponent,
-} from "react";
+import { useEffect, useMemo, useState, FunctionComponent } from "react";
 import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
@@ -60,7 +55,7 @@ export const getStaticProps: GetStaticProps<PageProps> = async () => {
   };
 };
 
-export const PageNotificationBanner: VoidFunctionComponent = () => {
+export const PageNotificationBanner: FunctionComponent = () => {
   const router = useRouter();
 
   const { accountId } = useRouteAccountInfo();

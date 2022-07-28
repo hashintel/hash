@@ -1,7 +1,7 @@
-import React from "react";
+import { FunctionComponent } from "react";
 import { tw } from "twind";
 
-const Loader: React.VoidFunctionComponent = () => {
+const Loader: FunctionComponent = () => {
   return (
     <svg
       className={tw`animate-spin h-4 text-white mr-2`}

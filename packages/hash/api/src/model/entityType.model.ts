@@ -288,7 +288,17 @@ class __EntityType {
 
   static async getAccountEntityTypes(
     client: DbClient,
-    params: { accountId: string; includeOtherTypesInUse?: boolean | null },
+    params: {
+      accountId: string;
+      /**
+       * This makes the query return ALL types in the system.
+       * This doesn't make sense for a method called 'getAccountEntityTypes',
+       * but is a temporary stopgap to introduce the feature while the API is being rebuilt.
+       * @todo replace this function with a proper aggregateEntityTypes
+       */
+      includeAllTypes?: boolean | null;
+      includeOtherTypesInUse?: boolean | null;
+    },
   ) {
     const dbTypes = await client.getAccountEntityTypes(params);
 

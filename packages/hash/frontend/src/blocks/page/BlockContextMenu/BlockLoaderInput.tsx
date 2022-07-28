@@ -1,5 +1,5 @@
 import { Box, Collapse } from "@mui/material";
-import React, { useState, useRef, FormEvent } from "react";
+import { useState, useRef, FormEvent, FunctionComponent } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 
 import { TextField } from "@hashintel/hash-design-system";
@@ -14,7 +14,7 @@ type BlockLoaderInputProps = {
   onLoad: () => void;
 };
 
-export const BlockLoaderInput: React.VFC<BlockLoaderInputProps> = ({
+export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({
   onLoad,
 }) => {
   const blockView = useBlockView();

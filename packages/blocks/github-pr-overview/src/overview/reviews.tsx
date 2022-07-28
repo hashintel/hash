@@ -1,4 +1,4 @@
-import * as React from "react";
+import { FunctionComponent } from "react";
 import {
   Box,
   Typography,
@@ -16,7 +16,7 @@ type SectionProps = {
   }[];
 };
 
-const Section: React.FC<SectionProps> = ({ title, reviews }) => {
+const Section: FunctionComponent<SectionProps> = ({ title, reviews }) => {
   return (
     <Box>
       <Stack direction="row" alignItems="center">
@@ -86,7 +86,7 @@ type ReviewsProps = {
   }[];
 };
 
-export const Reviews: React.FC<ReviewsProps> = ({
+export const Reviews: FunctionComponent<ReviewsProps> = ({
   pendingReviews,
   completedReviews,
 }) => (

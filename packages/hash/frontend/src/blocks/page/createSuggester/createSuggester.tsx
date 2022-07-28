@@ -9,7 +9,7 @@ import {
   TextSelection,
   Transaction,
 } from "prosemirror-state";
-import React, { CSSProperties } from "react";
+import { CSSProperties, ReactElement } from "react";
 import { ensureMounted } from "../../../lib/dom";
 import { RenderPortal } from "../usePortals";
 import { BlockSuggester } from "./BlockSuggester";
@@ -242,7 +242,7 @@ export const createSuggester = (
             view.dispatch(tr);
           };
 
-          let jsx: JSX.Element | null = null;
+          let jsx: ReactElement | null = null;
 
           switch (triggerChar) {
             case "/":

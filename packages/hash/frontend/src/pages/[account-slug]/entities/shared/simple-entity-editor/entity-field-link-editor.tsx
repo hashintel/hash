@@ -4,13 +4,13 @@ import {
   Link,
 } from "@blockprotocol/graph";
 import { JsonObject } from "@blockprotocol/core";
-import React, {
+import {
   ChangeEvent,
   HTMLProps,
   useCallback,
   useEffect,
   useState,
-  VoidFunctionComponent,
+  FunctionComponent,
 } from "react";
 import { tw } from "twind";
 
@@ -38,7 +38,7 @@ type EntitySelectProps = {
 
 const noSelectionValue = "__none";
 
-const SelectInput: VoidFunctionComponent<
+const SelectInput: FunctionComponent<
   Required<Pick<HTMLProps<HTMLSelectElement>, "onChange" | "value">> & {
     options: MinimalEntity[];
     defaultLabel: string;
@@ -61,9 +61,7 @@ const SelectInput: VoidFunctionComponent<
 /**
  * Allows a user to select one or more entities of a given type
  */
-export const EntityFieldLinkEditor: VoidFunctionComponent<
-  EntitySelectProps
-> = ({
+export const EntityFieldLinkEditor: FunctionComponent<EntitySelectProps> = ({
   aggregateEntities,
   allowsMultipleSelections,
   createLinkFromEntity,

@@ -1,3 +1,4 @@
+import { ReactElement } from "react";
 import { memoizeFetchFunction } from "../../lib/memoize";
 import { blockDependencies } from "../../../block.dependencies";
 import { crossFrameFetchFn } from "../sandbox/FramedBlock/util";
@@ -5,7 +6,7 @@ import { crossFrameFetchFn } from "../sandbox/FramedBlock/util";
 export type UnknownBlock =
   | string
   | typeof HTMLElement
-  | ((...props: any[]) => JSX.Element);
+  | ((...props: any[]) => ReactElement);
 
 export type FetchSourceFn = (
   url: string,

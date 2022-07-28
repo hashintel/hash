@@ -1,7 +1,7 @@
 import { tw } from "twind";
 import { useRouter } from "next/router";
 import { useMutation } from "@apollo/client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useUser } from "../components/hooks/useUser";
 
 import { AuthLayout } from "./shared/auth-layout";
@@ -91,7 +91,7 @@ const Page: NextPageWithLayout = () => {
     },
   });
 
-  const handleSubmit = (evt: React.FormEvent) => {
+  const handleSubmit = (evt: FormEvent) => {
     evt.preventDefault();
     if (!responsibility || !invitationInfo) return;
 

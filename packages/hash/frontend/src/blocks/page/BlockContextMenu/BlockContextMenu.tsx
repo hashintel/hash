@@ -1,9 +1,4 @@
-import React, {
-  useRef,
-  forwardRef,
-  useMemo,
-  ForwardRefRenderFunction,
-} from "react";
+import { useRef, forwardRef, useMemo, ForwardRefRenderFunction } from "react";
 
 import { useKey } from "rooks";
 

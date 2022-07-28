@@ -1,4 +1,4 @@
-import React from "react";
+import { FunctionComponent } from "react";
 import { Box, Typography } from "@mui/material";
 import { LoadingSpinner } from "@hashintel/hash-design-system";
 import { GithubIcon } from "./icons";
@@ -8,7 +8,7 @@ export type PullRequestSelectorProps = {
   loading?: boolean;
 };
 
-export const InfoUI: React.FunctionComponent<PullRequestSelectorProps> = ({
+export const InfoUI: FunctionComponent<PullRequestSelectorProps> = ({
   title,
   loading,
 }) => {

@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
-import React, { useLayoutEffect, useRef, VoidFunctionComponent } from "react";
+import { useLayoutEffect, useRef, FunctionComponent } from "react";
 import { useLocalstorageState } from "rooks";
 
 import { Button } from "@hashintel/hash-design-system";
@@ -25,7 +25,7 @@ type PageBlockProps = {
  * rendering child blocks from this and have a renderer, but it seems tricky to
  * do that
  */
-export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
+export const PageBlock: FunctionComponent<PageBlockProps> = ({
   blocksMeta,
   accountId,
   entityId,

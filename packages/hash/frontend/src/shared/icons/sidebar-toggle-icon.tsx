@@ -1,7 +1,7 @@
-import { FC } from "react";
+import { FunctionComponent } from "react";
 import { SvgIcon, SvgIconProps } from "@mui/material";
 
-export const SidebarToggleIcon: FC<SvgIconProps> = (props) => {
+export const SidebarToggleIcon: FunctionComponent<SvgIconProps> = (props) => {
   const { sx = [], ...otherProps } = props;
   return (
     <SvgIcon

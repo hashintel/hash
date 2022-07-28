@@ -1,4 +1,4 @@
-import * as React from "react";
+import { FunctionComponent } from "react";
 import Avatar from "@mui/material/Avatar";
 import Stack from "@mui/material/Stack";
 import { uniqBy } from "lodash";
@@ -30,7 +30,7 @@ export type GithubPrOverviewProps = {
   reset: () => void;
 };
 
-const PRStatus: React.FC<{
+const PRStatus: FunctionComponent<{
   pullRequest: GithubPullRequestEntityType["properties"];
 }> = ({ pullRequest }) => {
   const status =
@@ -80,9 +80,12 @@ const PRStatus: React.FC<{
   );
 };
 
-export const GithubPrOverview: React.FunctionComponent<
-  GithubPrOverviewProps
-> = ({ pullRequest, reviews, events, reset }) => {
+export const GithubPrOverview: FunctionComponent<GithubPrOverviewProps> = ({
+  pullRequest,
+  reviews,
+  events,
+  reset,
+}) => {
   const uniqueReviewers = uniqBy(
     reviews.map(({ user }) => {
       return {

@@ -4,7 +4,7 @@ import "../../styles/prism.css";
 import { EmotionCache } from "@emotion/react";
 import type { AppProps } from "next/app";
 import { useRouter } from "next/router";
-import { useEffect, VFC } from "react";
+import { useEffect, FunctionComponent } from "react";
 import "../../styles/globals.css";
 import { PageLayout } from "../components/PageLayout";
 import { theme } from "../theme";
@@ -19,7 +19,11 @@ type MyAppProps = {
   emotionCache?: EmotionCache;
 } & AppPropsWithLayout;
 
-const MyApp: VFC<MyAppProps> = ({ Component, pageProps, emotionCache }) => {
+const MyApp: FunctionComponent<MyAppProps> = ({
+  Component,
+  pageProps,
+  emotionCache,
+}) => {
   const router = useRouter();
 
   // Use the layout defined at the page level, if available

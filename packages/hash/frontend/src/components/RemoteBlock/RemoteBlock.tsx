@@ -4,7 +4,7 @@ import {
   EmbedderGraphMessageCallbacks,
 } from "@blockprotocol/graph";
 import { useGraphEmbedderService } from "@blockprotocol/graph/react";
-import React from "react";
+import { FunctionComponent, useEffect, useRef } from "react";
 import { BlockRenderer } from "./blockRenderer";
 
 import { useRemoteBlock } from "./useRemoteBlock";
@@ -26,7 +26,9 @@ type RemoteBlockProps = {
   onBlockLoaded?: () => void;
 };
 
-export const BlockLoadingIndicator: React.VFC = () => <div>Loading...</div>;
+export const BlockLoadingIndicator: FunctionComponent = () => (
+  <div>Loading...</div>
+);
 
 /**
  * Loads and renders a block from a URL, instantiates the graph service handler,
@@ -34,7 +36,7 @@ export const BlockLoadingIndicator: React.VFC = () => <div>Loading...</div>;
  *
  * @see https://github.com/Paciolan/remote-component for the original inspiration
  */
-export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
+export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
   blockMetadata,
   crossFrame,
   editableRef,
@@ -48,32 +50,32 @@ export const RemoteBlock: React.VFC<RemoteBlockProps> = ({
     onBlockLoaded,
   );
 
-  const wrapperRef = React.useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   const { graphService } = useGraphEmbedderService(wrapperRef, {
     callbacks: graphCallbacks,
     ...graphProperties,
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (graphService) {
       graphService.blockEntity({ data: graphProperties.blockEntity });
     }
   }, [graphProperties.blockEntity, graphService]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (graphService) {
       graphService.blockGraph({ data: graphProperties.blockGraph });
     }
   }, [graphProperties.blockGraph, graphService]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (graphService) {
       graphService.entityTypes({ data: graphProperties.entityTypes });
     }
   }, [graphProperties.entityTypes, graphService]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (graphService) {
       graphService.linkedAggregations({
         data: graphProperties.linkedAggregations,

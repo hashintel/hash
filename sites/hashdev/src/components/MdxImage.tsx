@@ -1,12 +1,12 @@
 import { Box } from "@mui/system";
 import { ImageProps } from "next/dist/client/image";
 import Image from "next/image";
-import { HTMLProps, VFC } from "react";
+import { HTMLProps, FunctionComponent } from "react";
 import { useBlogPostPhotos } from "./BlogPost";
 
 export const mdxImageClasses = { root: "MdxImage" };
 
-export const MdxImage: VFC<
+export const MdxImage: FunctionComponent<
   Omit<ImageProps, "src"> & { src: string; style: HTMLProps<HTMLDivElement> }
 > = ({ src, width, height, style, ...props }) => {
   const { body } = useBlogPostPhotos();

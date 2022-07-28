@@ -4,24 +4,24 @@ import {
   ButtonProps as MuiButtonProps,
   useTheme,
 } from "@mui/material";
-import * as React from "react";
+import { forwardRef, FunctionComponent, ReactNode, useMemo } from "react";
 import { LoadingSpinner } from "./loading-spinner";
 
 export type ButtonProps = {
-  children: React.ReactNode;
+  children: ReactNode;
   loading?: boolean;
   loadingWithoutText?: boolean;
   disabledTooltipText?: string;
 } & MuiButtonProps & { rel?: string; target?: string }; // MUI button renders <a /> when href is provided, but typings miss rel and target
 
-const LoadingContent: React.VFC<{
+const LoadingContent: FunctionComponent<{
   withText: boolean;
   variant: ButtonProps["variant"];
   size: ButtonProps["size"];
 }> = ({ withText, size, variant = "primary" }) => {
   const theme = useTheme();
 
-  const spinnerSize = React.useMemo(() => {
+  const spinnerSize = useMemo(() => {
     switch (size) {
       case "large":
         return 20;
@@ -34,7 +34,7 @@ const LoadingContent: React.VFC<{
     }
   }, [size]);
 
-  const spinnerColor = React.useMemo(() => {
+  const spinnerColor = useMemo(() => {
     switch (variant) {
       case "tertiary":
       case "tertiary_quiet":
@@ -68,7 +68,7 @@ const LoadingContent: React.VFC<{
   );
 };
 
-export const Button: React.VFC<ButtonProps> = React.forwardRef(
+export const Button: FunctionComponent<ButtonProps> = forwardRef(
   ({ children, loading, loadingWithoutText, sx = [], ...props }, ref) => {
     return (
       <MuiButton

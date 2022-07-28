@@ -22,6 +22,7 @@ thiserror = "1.0.31"
 tracing = "0.1.35"
 
 clap = { version = "=3.0.13", features = ["derive"], optional = true }
+json_comments = "0.2.1"
 
 [features]
 default = ["build-nng"]
