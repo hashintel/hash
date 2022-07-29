@@ -1,5 +1,5 @@
 import { Box, Typography, TypographyProps } from "@mui/material";
-import { ComponentType } from "react";
+import { ComponentType, ReactElement } from "react";
 import dynamic from "next/dynamic";
 
 import { ImageWithText } from "../components/ImageWithText";
@@ -22,7 +22,14 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
   Typography,
 
   p: (props: TypographyProps<"p">) => {
-    if (!Array.isArray(props.children) && typeof props.children !== "string") {
+    if (
+      !Array.isArray(props.children) &&
+      !(
+        typeof props.children === "string" ||
+        (props.children as ReactElement).type === "strong" ||
+        (props.children as ReactElement).type === "em"
+      )
+    ) {
       // eslint-disable-next-line react/jsx-no-useless-fragment -- fragment is required by tsc
       return <>{props.children}</>;
     }
