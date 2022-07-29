@@ -99,3 +99,34 @@ struct Stack<L, T, R> {
     right: R,
     _marker: PhantomData<T>,
 }
+
+impl<L, T, U, R> Hook<Frame, UInt0> for Stack<L, (T, U), R>
+where
+    L: Hook<T, U>,
+    T: Sync + Send + 'static,
+    R: Hook<Frame, UInt0>,
+{
+    fn call(&self, frame: &Frame, s: &mut dyn Serializer) -> Option<erased_serde::Result<()>> {
+        frame
+            .downcast_ref()
+            .and_then(|value| self.left.call(value, s))
+            .or_else(|| self.right.call(frame, s))
+    }
+}
+
+struct Combine<L, R> {
+    left: L,
+    right: R,
+}
+
+impl<L, R> Hook<Frame, UInt0> for Combine<L, R>
+where
+    L: Hook<Frame, UInt0>,
+    R: Hook<Frame, UInt0>,
+{
+    fn call(&self, frame: &Frame, s: &mut dyn Serializer) -> Option<erased_serde::Result<()>> {
+        self.left
+            .call(frame, s)
+            .or_else(|| self.right.call(frame, s))
+    }
+}
