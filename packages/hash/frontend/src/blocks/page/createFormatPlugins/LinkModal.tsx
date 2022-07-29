@@ -69,7 +69,7 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
               >
                 <LanguageIcon className={tw`!text-base mr-1`} />
                 <div>
-                  <p className={tw`text-sm leading-none mb-0.5`}>
+                  <p className={tw`text-sm leading-none break-all mb-0.5`}>
                     {savedLinkMarkHref}
                   </p>
                   <span className={tw`font-light`}>Web page</span>
