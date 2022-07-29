@@ -4,5 +4,5 @@ It accepts the property `items` which consists of an array of strings.
 If this property is not provided, the list will default to:
 
 ```javascript
-["Item 1", "Item 2"];
+["Thing 1", "Thing 2"];
 ```
