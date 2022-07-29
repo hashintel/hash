@@ -571,6 +571,16 @@ impl<C> Report<C> {
     pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
         self.frames_mut().find_map(Frame::downcast_mut::<T>)
     }
+
+    /// Return a tuple of `(frame, parents)`, where parents are the frames where a "split" occurred,
+    /// ~> multiple sources exist
+    pub(crate) fn collect(&self) -> (Vec<&Frame>, &[Frame]) {
+        match self.current_frames() {
+            [] => (vec![], &[]),
+            [frame] => frame.collect(),
+            frames => (frames.iter().collect(), &[]),
+        }
+    }
 }
 
 impl<T: Context> Report<T> {

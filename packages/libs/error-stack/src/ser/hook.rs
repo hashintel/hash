@@ -1,8 +1,9 @@
 use std::marker::PhantomData;
 
-use erased_serde::{Serialize, Serializer};
+use erased_serde::{Error, Serialize, Serializer};
+use serde::Serialize as _;
 
-use crate::frame::Frame;
+use crate::{frame::Frame, ser::hook};
 
 macro_rules! all_the_tuples {
     ($name:ident) => {
@@ -39,18 +40,7 @@ impl UInt for () {}
 impl<T: UInt> UInt for ((), T) {}
 
 pub trait Hook<T, U> {
-    fn call(&self, frame: &T, s: &mut dyn Serializer) -> Option<erased_serde::Result<()>>;
-}
-
-// TODO: tuple types (how to do second argument?)
-impl<F, T> Hook<T, UInt0> for F
-where
-    F: Fn(&T, &mut dyn Serializer) -> erased_serde::Result<()>,
-    T: Send + Sync + 'static,
-{
-    fn call(&self, frame: &T, s: &mut dyn Serializer) -> Option<erased_serde::Result<()>> {
-        Some((self)(frame, s))
-    }
+    fn call(&self, frame: &T) -> Option<Box<dyn Serialize>>;
 }
 
 impl<F, T, U> Hook<T, UInt1> for F
@@ -59,9 +49,8 @@ where
     T: Send + Sync + 'static,
     U: serde::Serialize,
 {
-    fn call(&self, frame: &T, s: &mut dyn Serializer) -> Option<erased_serde::Result<()>> {
-        let res = (self)(frame);
-        Some(res.erased_serialize(s).map(|_| ()))
+    fn call(&self, frame: &T) -> Option<Box<dyn Serialize>> {
+        Some(Box::new((self)(frame)))
     }
 }
 
@@ -79,10 +68,10 @@ macro_rules! impl_hook_tuple {
         where
             $($ty: serde::Serialize + Send + Sync + 'static),*
         {
-            fn call(&self, frame: &Frame, s: &mut dyn Serializer) -> Option<erased_serde::Result<()>> {
+            fn call(&self, frame: &Frame) -> Option<Box<dyn Serialize>> {
                 $(
                     if let Some($ty) = frame.downcast_ref::<$ty>() {
-                        return Some($ty.erased_serialize(s).map(|_| ()))
+                        return Some(Box::new($ty))
                     }
                 )*
 
@@ -106,11 +95,11 @@ where
     T: Sync + Send + 'static,
     R: Hook<Frame, UInt0>,
 {
-    fn call(&self, frame: &Frame, s: &mut dyn Serializer) -> Option<erased_serde::Result<()>> {
+    fn call(&self, frame: &Frame) -> Option<Box<dyn Serialize>> {
         frame
             .downcast_ref()
-            .and_then(|value| self.left.call(value, s))
-            .or_else(|| self.right.call(frame, s))
+            .and_then(|value| self.left.call(value))
+            .or_else(|| self.right.call(frame))
     }
 }
 
@@ -124,9 +113,56 @@ where
     L: Hook<Frame, UInt0>,
     R: Hook<Frame, UInt0>,
 {
-    fn call(&self, frame: &Frame, s: &mut dyn Serializer) -> Option<erased_serde::Result<()>> {
-        self.left
-            .call(frame, s)
-            .or_else(|| self.right.call(frame, s))
+    fn call(&self, frame: &Frame) -> Option<Box<dyn Serialize>> {
+        self.left.call(frame).or_else(|| self.right.call(frame))
+    }
+}
+
+impl Hook<Frame, UInt0> for Box<dyn Hook<Frame, UInt0>> {
+    fn call(&self, frame: &Frame) -> Option<Box<dyn Serialize>> {
+        let hook: &dyn Hook<Frame, UInt0> = self;
+        hook.call(frame)
+    }
+}
+
+impl Hook<Frame, UInt0> for () {
+    fn call(&self, _: &Frame) -> Option<Box<dyn Serialize>> {
+        None
+    }
+}
+
+pub struct Hooks<T: Hook<Frame, UInt0>>(T);
+
+impl<T: Hook<Frame, UInt0>> Hooks<T> {
+    fn bind(&self, frame: &Frame) -> Bound<T> {
+        Bound::new(self, frame)
+    }
+
+    pub(crate) fn call(&self, frame: &Frame) -> Option<Box<dyn Serialize>> {
+        self.0.call(frame)
+    }
+}
+
+pub(crate) type ErasedHooks = Hooks<Box<dyn Hook<Frame, UInt0>>>;
+
+struct Bound<'a, T>
+where
+    T: Hook<Frame, UInt0>,
+{
+    hooks: &'a Hooks<T>,
+    frame: &'a Frame,
+}
+
+impl<'a, T: Hook<Frame, UInt0>> Bound<'a, T> {
+    fn new(hooks: &'a Hooks<T>, frame: &'a Frame) -> Self {
+        Self { hooks, frame }
+    }
+
+    fn serialize<S>(&self, frame: &Frame, mut serializer: S) -> Option<Result<S::Ok, S::Error>>
+    where
+        S: serde::Serializer,
+    {
+        let s = self.hooks.call(frame)?;
+        Some(s.serialize(serializer))
     }
 }

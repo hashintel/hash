@@ -43,6 +43,7 @@ spantrace = ["dep:tracing-error"]
 futures = ["dep:pin-project", "dep:futures-core"]
 small = ["dep:smallvec"]
 serde = ["dep:serde", "dep:erased-serde"]
+experimental = []
 
 [package.metadata.docs.rs]
 all-features = true

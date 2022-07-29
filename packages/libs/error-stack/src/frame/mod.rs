@@ -118,6 +118,21 @@ impl Frame {
             unsafe { &mut *(self.frame.as_mut() as *mut dyn FrameImpl).cast::<T>() }
         })
     }
+
+    /// Return a tuple of `(frame, parents)`, where parents are the frames where a "split" occurred,
+    /// ~> multiple sources exist
+    pub(crate) fn collect(&self) -> (Vec<&Frame>, &[Frame]) {
+        let mut stack = vec![self];
+
+        let mut ptr = self.sources();
+
+        while let [parent] = ptr {
+            stack.push(parent);
+            ptr = parent.sources();
+        }
+
+        (stack, ptr)
+    }
 }
 
 #[cfg(nightly)]

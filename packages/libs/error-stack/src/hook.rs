@@ -2,12 +2,16 @@ use std::{error::Error, fmt};
 
 use once_cell::sync::OnceCell;
 
+#[cfg(feature = "serde")]
+use crate::ser::ErasedHooks;
 use crate::{Report, Result};
 
 type FormatterHook = Box<dyn Fn(&Report<()>, &mut fmt::Formatter<'_>) -> fmt::Result + Send + Sync>;
 
 static DEBUG_HOOK: OnceCell<FormatterHook> = OnceCell::new();
 static DISPLAY_HOOK: OnceCell<FormatterHook> = OnceCell::new();
+#[cfg(feature = "serde")]
+static SERIALIZE_HOOK: OnceCell<ErasedHooks> = OnceCell::new();
 
 /// A hook can only be set once.
 ///
@@ -126,6 +130,11 @@ impl Report<()> {
     -> Option<&'static (impl Fn(&Self, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static)>
     {
         DISPLAY_HOOK.get()
+    }
+
+    #[cfg(all(feature = "serde", feature = "hooks"))]
+    pub(crate) fn serialize_hook() -> Option<&'static ErasedHooks> {
+        SERIALIZE_HOOK.get()
     }
 }
 
