@@ -1,0 +1,5 @@
+{
+  "extends": "@hashintel/tsconfig/block.json",
+  "include": ["src"],
+  "exclude": ["node_modules"]
+}
