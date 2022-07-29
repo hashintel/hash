@@ -1,5 +1,5 @@
 import { Box, Typography, TypographyProps } from "@mui/material";
-import { ComponentType, ReactElement } from "react";
+import { ComponentType } from "react";
 import dynamic from "next/dynamic";
 
 import { ImageWithText } from "../components/ImageWithText";
