@@ -25,6 +25,8 @@ impl HookContextImpl {
     }
 }
 
+/// Optional Context used to carry information across hook invocations.
+///
 /// Every hook can request their corresponding `HookContext`, which can be used to emit
 /// `text` (which will be appended if extended [`Debug`] format (`:#?`) has been requested)
 /// or can be used for data which is shared among invocations of the same hook over the whole
@@ -175,6 +177,8 @@ type UInt1 = ((), UInt0);
 #[cfg(feature = "hooks")]
 type UInt2 = ((), UInt1);
 
+/// Trait to interact and inject information on [`Debug`]
+///
 /// A Hook which potentially outputs a line, if conditions met in [`call()`] are met for a specific
 /// type `T`, and a specific number of arguments `U`.
 ///
@@ -271,6 +275,8 @@ where
     }
 }
 
+/// Combine multiple hooks without eagerly casting.
+///
 /// This is the same as [`Stack`], with the difference that it will combine both sides and try both
 /// if the left side was unsuccessful.
 /// This will short circuit.
@@ -343,7 +349,9 @@ impl<T> Hook<T, UInt0> for () {
     }
 }
 
-/// Holds a chain of [`Hook`]s, which are used to augment the [`Debug`] and [`Display`] information
+/// Holds a chain of [`Hook`]s
+///
+/// These are used to augment the [`Debug`] and [`Display`] information
 /// of attachments, which are normally not printable.
 ///
 /// [`Hook`]s are added via [`.push()`], which is implemented for functions with the signature:
@@ -366,8 +374,10 @@ pub struct Hooks<T: Hook<Frame, UInt0>>(T);
 
 #[cfg(feature = "hooks")]
 impl Hooks<Builtin> {
-    /// Create a new instance of `Hooks`, which is preloaded with [`Builtin`] hooks
-    /// to display [`Backtrace`] and [`SpanTrace`] if those features have been enabled.
+    /// Create a new instance of `Hooks`
+    ///
+    /// Preloaded with [`Builtin`] hooks display [`Backtrace`] and [`SpanTrace`] if those features
+    /// have been enabled.
     ///
     /// [`Backtrace`]: std::backtrace::Backtrace
     /// [`SpanTrace`]: tracing_error::SpanTrace
@@ -385,8 +395,10 @@ impl Default for Hooks<Builtin> {
 
 #[cfg(feature = "hooks")]
 impl Hooks<()> {
-    /// Create a new bare instance of `Hooks`, which does not have the [`Builtin`] hooks
-    /// pre-installed, use [`new()`] to get an instance with [`Builtin`] hook support.
+    /// Create a new bare instance of `Hooks`.
+    ///
+    /// Which does not have the [`Builtin`] hooks pre-installed, use [`new()`] to get an instance
+    /// with [`Builtin`] hook support.
     ///
     /// [`new()`]: Self::new
     pub const fn bare() -> Self {
@@ -401,6 +413,7 @@ impl<T: Hook<Frame, UInt0>> Hooks<T> {
     }
 
     /// Push a new [`Hook`] onto the stack.
+    ///
     /// [`Hook`] is implemented for [`Fn(&T) -> Line + Send + Sync + 'static`]
     /// and [`Fn(&T, &mut HookContext<T>) -> Line + Send + Sync + 'static`].
     ///
@@ -441,8 +454,9 @@ impl<T: Hook<Frame, UInt0>> Hooks<T> {
         Hooks::new_with(stack)
     }
 
-    /// Combine multiple [`Hooks`] together, where the argument will be processed **after** the
-    /// current stack.
+    /// Combine multiple [`Hooks`] together
+    ///
+    /// The argument will be processed **after** the current stack.
     /// This means that the current stack of [`Hook`]s has a higher priority than the hooks of the
     /// argument.
     ///
@@ -547,8 +561,10 @@ mod builtin {
         Line::Defer(format!("spantrace with {span} frames ({})", idx + 1))
     }
 
-    /// Builtin hooks, which provide defaults for common attachments that are automatically created
-    /// by `error_stack`, this includes [`Backtrace`] and [`SpanTrace`]
+    /// Builtin hooks
+    ///
+    /// This provides defaults for common attachments that are automatically created
+    /// by `error_stack`, like [`Backtrace`] and [`SpanTrace`]
     ///
     /// [`Backtrace`]: std::backtrace::Backtrace
     /// [`SpanTrace`]: tracing_error::SpanTrace
