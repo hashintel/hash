@@ -56,9 +56,11 @@
     },
     "displayName": "shuffle",
     "examples": [
-      "Alice",
-      "Bob",
-      "Charlie"
+      [
+        "Alice",
+        "Bob",
+        "Charlie"
+       ]
     ],
     "icon": "public/shuffle.svg",
     "image": "public/preview.png",
