@@ -29,6 +29,9 @@ pub enum AttachmentKind<'f> {
     ///
     /// [`attach_printable()`]: crate::Report::attach_printable
     Printable(&'f dyn Printable),
+    /// A serializable attachment created through [`attach_serializable()`].
+    ///
+    /// [`attach_serializable()`]: crate::Report::attach_serializable
     #[cfg(feature = "serde")]
     Serializable(&'f dyn erased_serde::Serialize),
 }

@@ -393,6 +393,8 @@ impl<C> Report<C> {
         ))
     }
 
+    // TODO: attach_serializable
+
     /// Adds additional (printable) information to the [`Frame`] stack.
     ///
     /// This behaves like [`attach()`] but the display implementation will be called when
