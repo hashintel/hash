@@ -214,3 +214,42 @@ impl Frame {
         }
     }
 }
+
+#[cfg(feature = "serde")]
+#[repr(C)]
+struct SerializableAttachmentFrame<A> {
+    attachment: A,
+    location: &'static Location<'static>,
+    sources: Box<[Frame]>,
+}
+
+#[cfg(feature = "serde")]
+// SAFETY: `type_id` returns `A` and `A` is the first field in `#[repr(C)]`
+unsafe impl<A: 'static + serde::Serialize + Send + Sync> FrameImpl
+    for SerializableAttachmentFrame<A>
+{
+    fn kind(&self) -> FrameKind<'_> {
+        FrameKind::Attachment(AttachmentKind::Serializable(&self.attachment))
+    }
+
+    fn type_id(&self) -> TypeId {
+        TypeId::of::<A>()
+    }
+
+    fn location(&self) -> &'static Location<'static> {
+        self.location
+    }
+
+    fn sources(&self) -> &[Frame] {
+        &self.sources
+    }
+
+    fn sources_mut(&mut self) -> &mut [Frame] {
+        &mut self.sources
+    }
+
+    #[cfg(nightly)]
+    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
+        demand.provide_ref(&self.attachment);
+    }
+}

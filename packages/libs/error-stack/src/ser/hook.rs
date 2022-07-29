@@ -1,5 +1,8 @@
+use std::marker::PhantomData;
+
 use erased_serde::{Serialize, Serializer};
-use serde::Serialize;
+
+use crate::frame::Frame;
 
 macro_rules! all_the_tuples {
     ($name:ident) => {
@@ -45,6 +48,9 @@ where
     F: Fn(&T, &mut dyn Serializer) -> erased_serde::Result<()>,
     T: Send + Sync + 'static,
 {
+    fn call(&self, frame: &T, s: &mut dyn Serializer) -> Option<erased_serde::Result<()>> {
+        Some((self)(frame, s))
+    }
 }
 
 impl<F, T, U> Hook<T, UInt1> for F
@@ -54,22 +60,42 @@ where
     U: serde::Serialize,
 {
     fn call(&self, frame: &T, s: &mut dyn Serializer) -> Option<erased_serde::Result<()>> {
-        let res: dyn Serialize = (self)(frame);
+        let res = (self)(frame);
         Some(res.erased_serialize(s).map(|_| ()))
     }
+}
+
+struct Phantom<T> {
+    _marker: PhantomData<T>,
 }
 
 macro_rules! impl_hook_tuple {
     () => {};
 
     ( $($ty:ident),* $(,)? ) => {
-        impl<$($ty,)*> Hook<Frame, ($($ty,)*)> for ($($ty,)*)
+        #[allow(non_snake_case)]
+        #[automatically_derived]
+        impl<$($ty,)*> Hook<Frame, ($($ty,)*)> for Phantom<($($ty,)*)>
         where
-            $($ty: serde::Serialize),*
+            $($ty: serde::Serialize + Send + Sync + 'static),*
         {
+            fn call(&self, frame: &Frame, s: &mut dyn Serializer) -> Option<erased_serde::Result<()>> {
+                $(
+                    if let Some($ty) = frame.downcast_ref::<$ty>() {
+                        return Some($ty.erased_serialize(s).map(|_| ()))
+                    }
+                )*
 
+                None
+            }
         }
     }
 }
 
 all_the_tuples!(impl_hook_tuple);
+
+struct Stack<L, T, R> {
+    left: L,
+    right: R,
+    _marker: PhantomData<T>,
+}

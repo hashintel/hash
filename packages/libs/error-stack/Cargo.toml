@@ -36,7 +36,7 @@ once_cell = "1.13.0"
 rustc_version = "0.2.3"
 
 [features]
-default = ["std", "small"]
+default = ["std", "small", "serde"]
 std = ["anyhow?/std", "once_cell?/std", "serde?/std"]
 hooks = ["dep:once_cell", "std"]
 spantrace = ["dep:tracing-error"]

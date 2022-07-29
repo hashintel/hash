@@ -29,6 +29,8 @@ pub enum AttachmentKind<'f> {
     ///
     /// [`attach_printable()`]: crate::Report::attach_printable
     Printable(&'f dyn Printable),
+    #[cfg(feature = "serde")]
+    Serializable(&'f dyn erased_serde::Serialize),
 }
 
 // TODO: Replace `Printable` by trait bounds when trait objects for multiple traits are supported.
