@@ -8,7 +8,6 @@ import {
   areComponentsCompatible,
   fetchBlock,
   HashBlock,
-  HashBlockMeta,
   prepareBlockCache,
 } from "./blocks";
 import {
@@ -43,7 +42,7 @@ import { childrenForTextEntity } from "./text";
 
 type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
 
-type ComponentNodeViewFactory = (meta: HashBlockMeta) => NodeViewFactory;
+type ComponentNodeViewFactory = (meta: HashBlock) => NodeViewFactory;
 /**
  * Manages the creation and editing of the ProseMirror schema, and utilities around
  * editing the prosemirror document.
@@ -97,7 +96,7 @@ export class ProsemirrorManager {
         nodeViews: {
           // Private API
           ...(this.view as any).nodeViews,
-          [componentId]: this.componentNodeViewFactory(meta),
+          [componentId]: this.componentNodeViewFactory(block),
         },
       });
     }

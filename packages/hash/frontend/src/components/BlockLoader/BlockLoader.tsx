@@ -5,8 +5,14 @@ import {
   EntityType as BpEntityType,
   LinkedAggregation as BpLinkedAggregation,
 } from "@blockprotocol/graph";
-import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
+import { HashBlock } from "@hashintel/hash-shared/blocks";
+import {
+  BlockEntity,
+  isTextContainingEntityProperties,
+  isTextProperties,
+} from "@hashintel/hash-shared/entity";
+import { childrenForTextEntity } from "@hashintel/hash-shared/text";
+import { Fragment, Schema } from "prosemirror-model";
 import {
   useCallback,
   useLayoutEffect,
@@ -44,7 +50,7 @@ import { EntityType as ApiEntityType } from "../../graphql/apiTypes.gen";
 type BlockLoaderProps = {
   accountId: string;
   blockEntityId: string;
-  blockMetadata: HashBlockMeta;
+  block: HashBlock;
   editableRef: unknown;
   entityId: string;
   entityType?: Pick<ApiEntityType, "entityId" | "properties">;
@@ -54,10 +60,61 @@ type BlockLoaderProps = {
   linkedEntities: BlockEntity["properties"]["entity"]["linkedEntities"];
   linkedAggregations: BlockEntity["properties"]["entity"]["linkedAggregations"];
   onBlockLoaded: () => void;
+  prosemirrorSchema: Schema;
   // shouldSandbox?: boolean;
 };
 
 // const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
+
+/**
+ * @see https://app.asana.com/0/1201095311341924/1202694273052398/f
+ * @todo remove this when ticket is addressed
+ */
+const wrapTextProperties = (properties: {}) => {
+  if (isTextProperties(properties)) {
+    return { text: { __linkedData: {}, data: properties } };
+  }
+
+  return properties;
+};
+
+const prepareHashEntityProperties = (
+  properties: {},
+  blockSchema: HashBlock["schema"],
+  prosemirrorSchema: Schema,
+) => {
+  const wrapped = wrapTextProperties(properties);
+
+  if (isTextContainingEntityProperties(wrapped)) {
+    const { text, ...otherProperties } = wrapped;
+    if (blockSchema.properties?.text?.type === "string") {
+      const textFragment = Fragment.from(
+        childrenForTextEntity(text.data, prosemirrorSchema),
+      );
+
+      return {
+        ...otherProperties,
+        text: textFragment.textBetween(0, textFragment.size, "", (node) => {
+          switch (node.type.name) {
+            case "hardBreak": {
+              return "\n";
+            }
+            case "mention": {
+              // @todo find way of resolving the name of the mention here
+              return "@MENTION_NAME_NOT_YET_SUPPORTED";
+            }
+          }
+
+          return "";
+        }),
+      };
+    }
+
+    return otherProperties;
+  }
+
+  return wrapped;
+};
 
 /**
  * Converts API data to Block Protocol-formatted data (e.g. entities, links),
@@ -66,7 +123,7 @@ type BlockLoaderProps = {
 export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   accountId,
   blockEntityId,
-  blockMetadata,
+  block,
   editableRef,
   entityId,
   entityType,
@@ -77,6 +134,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   linkedAggregations,
   onBlockLoaded,
   // shouldSandbox,
+  prosemirrorSchema,
 }) => {
   const { aggregateEntityTypes } =
     useBlockProtocolAggregateEntityTypes(accountId);
@@ -131,7 +189,11 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       accountId,
       entityId: entityId ?? "entityId-not-yet-set", // @todo ensure blocks always get sent an entityId
       entityTypeId,
-      properties: entityProperties,
+      properties: prepareHashEntityProperties(
+        entityProperties,
+        block.schema,
+        prosemirrorSchema,
+      ),
     });
 
     return {
@@ -148,11 +210,13 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       linkedAggregations: convertedLinkedAggregations,
     };
   }, [
-    accountId,
     entityType,
+    accountId,
     entityId,
-    entityProperties,
     entityTypeId,
+    entityProperties,
+    block.schema,
+    prosemirrorSchema,
     linkGroups,
     linkedEntities,
     linkedAggregations,
@@ -209,7 +273,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
   return (
     <RemoteBlock
-      blockMetadata={blockMetadata}
+      blockMetadata={block.meta}
       editableRef={editableRef}
       graphCallbacks={functions}
       graphProperties={graphProperties}
