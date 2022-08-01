@@ -34,7 +34,7 @@ async fn query() {
     let link_type = api
         .get_link_type(submitted_by_lt.id())
         .await
-        .expect("could not query link type");
+        .expect("could not get link type");
 
     assert_eq!(link_type, submitted_by_lt);
 }

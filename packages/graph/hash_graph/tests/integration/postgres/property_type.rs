@@ -37,7 +37,7 @@ async fn query() {
     let property_type = api
         .get_property_type(favorite_quote_pt.id())
         .await
-        .expect("could not query property type");
+        .expect("could not get property type");
 
     assert_eq!(property_type, favorite_quote_pt);
 }

@@ -42,7 +42,7 @@ async fn query() {
     let entity_type = api
         .get_entity_type(organization_et.id())
         .await
-        .expect("could not query entity type");
+        .expect("could not get entity type");
 
     assert_eq!(entity_type, organization_et);
 }

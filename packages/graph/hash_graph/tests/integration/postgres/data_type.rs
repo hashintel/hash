@@ -36,7 +36,7 @@ async fn query() {
     let data_type = api
         .get_data_type(empty_list_dt.id())
         .await
-        .expect("could not query data type");
+        .expect("could not get data type");
 
     assert_eq!(data_type, empty_list_dt);
 }

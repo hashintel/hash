@@ -34,7 +34,7 @@ async fn insert() {
     let entity = api
         .get_entity(entity_id)
         .await
-        .expect("Could not query entity");
+        .expect("could not get entity");
 
     assert_eq!(entity, person);
 }
@@ -66,7 +66,7 @@ async fn query() {
     let queried_organization = api
         .get_entity(entity_id)
         .await
-        .expect("Could not query entity");
+        .expect("could not get entity");
     assert_eq!(organization, queried_organization);
 }
 
@@ -108,7 +108,7 @@ async fn update() {
     let entity = api
         .get_entity(created_entity_id)
         .await
-        .expect("Could not query entity");
+        .expect("could not get entity");
 
     assert_eq!(entity, page_v2);
 }
