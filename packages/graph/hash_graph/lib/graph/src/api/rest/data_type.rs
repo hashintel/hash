@@ -62,10 +62,10 @@ struct CreateDataTypeRequest {
     request_body = CreateDataTypeRequest,
     tag = "DataType",
     responses(
-        (status = 201, content_type = "application/json", description = "Data type created successfully", body = EXTERNAL_DATA_TYPE),
+        (status = 201, content_type = "application/json", description = "The schema of the created data type", body = EXTERNAL_DATA_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-        (status = 409, description = "Unable to create data type in the store as the base data type ID already exists"),
+        (status = 409, description = "Unable to create data type in the store as the base data type URI already exists"),
         (status = 500, description = "Store error occurred"),
     ),
     request_body = CreateDataTypeRequest,
@@ -103,7 +103,7 @@ async fn create_data_type<P: GraphPool>(
     path = "/data-types/{uri}",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "Data type found", body = EXTERNAL_DATA_TYPE),
+        (status = 200, content_type = "application/json", description = "The schema of the requested data type", body = EXTERNAL_DATA_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Data type was not found"),
@@ -150,7 +150,7 @@ struct UpdateDataTypeRequest {
     path = "/data-types",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "Data type updated successfully", body = EXTERNAL_DATA_TYPE),
+        (status = 200, content_type = "application/json", description = "The schema of the updated data type", body = EXTERNAL_DATA_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base data type ID was not found"),

@@ -68,7 +68,7 @@ struct CreateEntityRequest {
     request_body = CreateEntityRequest,
     tag = "Entity",
     responses(
-        (status = 201, content_type = "application/json", description = "entity created successfully", body = QualifiedEntity),
+        (status = 201, content_type = "application/json", description = "The created entity", body = QualifiedEntity),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Entity Type URI was not found"),
@@ -108,7 +108,7 @@ async fn create_entity<P: GraphPool>(
     path = "/entities/{entity_id}",
     tag = "Entity",
     responses(
-        (status = 200, content_type = "application/json", description = "entity found", body = QualifiedEntity),
+        (status = 200, content_type = "application/json", description = "The requested entity", body = QualifiedEntity),
         (status = 422, content_type = "text/plain", description = "Provided entity id is invalid"),
 
         (status = 404, description = "entity was not found"),
@@ -160,7 +160,7 @@ struct UpdateEntityRequest {
     path = "/entities",
     tag = "Entity",
     responses(
-        (status = 200, content_type = "application/json", description = "entity updated successfully", body = QualifiedEntity),
+        (status = 200, content_type = "application/json", description = "The updated entity", body = QualifiedEntity),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Entity ID or Entity Type URI was not found"),
