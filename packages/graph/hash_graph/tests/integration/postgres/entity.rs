@@ -18,7 +18,7 @@ async fn insert() {
             [entity_type::PERSON_V1],
         )
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     let entity_id = api
         .create_entity(
@@ -50,7 +50,7 @@ async fn query() {
             entity_type::ORGANIZATION_V1,
         ])
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     let entity_id = api
         .create_entity(
@@ -81,7 +81,7 @@ async fn update() {
             entity_type::PAGE_V1,
         ])
         .await
-        .expect("Could not seed database:");
+        .expect("could not seed database:");
 
     let created_entity_id = api
         .create_entity(

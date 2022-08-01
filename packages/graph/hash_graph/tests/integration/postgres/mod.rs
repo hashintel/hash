@@ -81,7 +81,7 @@ impl DatabaseTestWrapper {
                 .as_mut_client()
                 .transaction()
                 .await
-                .expect("Could start test transaction"),
+                .expect("could not start test transaction"),
         );
 
         let account_id = AccountId::new(Uuid::new_v4());

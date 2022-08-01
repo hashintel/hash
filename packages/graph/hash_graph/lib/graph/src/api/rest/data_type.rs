@@ -85,6 +85,7 @@ async fn create_data_type<P: GraphPool>(
         .create_data_type(&schema, account_id)
         .await
         .map_err(|report| {
+            // TODO: consider adding the data type, or at least its URI in the trace
             tracing::error!(error=?report, "Could not create data type");
 
             if report.contains::<BaseUriAlreadyExists>() {

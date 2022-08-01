@@ -206,7 +206,7 @@ mod tests {
         let property_type: PropertyType =
             serde_json::from_value(schema.clone()).expect("invalid schema");
         assert_eq!(
-            serde_json::to_value(property_type.clone()).expect("Could not serialize"),
+            serde_json::to_value(property_type.clone()).expect("could not serialize"),
             *schema,
             "{property_type:#?}"
         );

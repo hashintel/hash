@@ -12,7 +12,7 @@ async fn insert() {
     let mut api = database
         .seed([data_type::NUMBER_V1], [], [], [])
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     api.create_property_type(&age_pt)
         .await
@@ -28,7 +28,7 @@ async fn query() {
     let mut api = database
         .seed([data_type::TEXT_V1], [], [], [])
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     api.create_property_type(&favorite_quote_pt)
         .await
@@ -53,7 +53,7 @@ async fn update() {
     let mut api = database
         .seed([data_type::NUMBER_V1, data_type::TEXT_V1], [], [], [])
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     api.create_property_type(&user_id_pt_v1)
         .await

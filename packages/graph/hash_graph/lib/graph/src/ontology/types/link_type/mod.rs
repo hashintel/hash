@@ -74,7 +74,7 @@ mod tests {
     fn test_link_type_schema(schema: &serde_json::Value) -> LinkType {
         let link_type: LinkType = serde_json::from_value(schema.clone()).expect("invalid schema");
         assert_eq!(
-            serde_json::to_value(link_type.clone()).expect("Could not serialize"),
+            serde_json::to_value(link_type.clone()).expect("could not serialize"),
             *schema,
             "{link_type:#?}"
         );
