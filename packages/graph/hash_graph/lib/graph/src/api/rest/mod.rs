@@ -161,13 +161,9 @@ impl Modify for ExternalRefAddon {
                     modify_component_references(&mut request_body.content);
                 }
 
-                operation
-                    .responses
-                    .responses
-                    .iter_mut()
-                    .for_each(|(_, response)| {
-                        modify_component_references(&mut response.content);
-                    });
+                for response in &mut operation.responses.responses.values_mut() {
+                    modify_component_references(&mut response.content);
+                }
             }
         }
     }
