@@ -5,9 +5,9 @@ import {
   IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
 import pluralize from "pluralize";
-import { ListItemIcon, ListItemText, Menu } from "@mui/material";
+import { ListItemIcon, ListItemText } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/core";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { MenuItem } from "../../../ui";
 
 type EntityTypeMenuProps = {

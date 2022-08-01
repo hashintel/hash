@@ -1,8 +1,8 @@
-import { Box, Dialog, Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { Schema } from "prosemirror-model";
 import { Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { FunctionComponent } from "react";
-import { Button } from "@hashintel/hash-design-system";
+import { Button, Dialog } from "@hashintel/hash-design-system";
 import { ensureMounted } from "../../lib/dom";
 import { RenderPortal } from "./usePortals";
 

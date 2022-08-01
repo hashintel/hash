@@ -1,9 +1,9 @@
 import { FunctionComponent, useMemo, useState } from "react";
-import { ListItemIcon, ListItemText, Menu } from "@mui/material";
+import { ListItemIcon, ListItemText } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import { faArchive, faLink } from "@fortawesome/free-solid-svg-icons";
 import { faFileAlt } from "@fortawesome/free-regular-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { useArchivePage } from "../../../../components/hooks/useArchivePage";
 import { useRouteAccountInfo } from "../../../routing";
 import { useCreatePage } from "../../../../components/hooks/useCreatePage";
