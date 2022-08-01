@@ -110,7 +110,7 @@ async fn create_data_type<P: GraphPool>(
         (status = 500, description = "Store error occurred"),
     ),
     params(
-        ("uri" = String, Path, description = "The URI of data type"),
+        ("uri" = String, Path, description = "The URI of the data type"),
     )
 )]
 async fn get_data_type<P: GraphPool>(

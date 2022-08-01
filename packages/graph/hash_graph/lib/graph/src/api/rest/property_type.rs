@@ -113,7 +113,7 @@ async fn create_property_type<P: GraphPool>(
         (status = 500, description = "Store error occurred"),
     ),
     params(
-        ("uri" = String, Path, description = "The URI of property type"),
+        ("uri" = String, Path, description = "The URI of the property type"),
     )
 )]
 async fn get_property_type<P: GraphPool>(
