@@ -12,11 +12,21 @@ mod property_type;
 
 use std::sync::Arc;
 
-use axum::{routing::get, Extension, Json, Router};
+use axum::{
+    body::{self, Empty, Full},
+    extract::Path,
+    http::{header, HeaderValue, Response, StatusCode},
+    response::IntoResponse,
+    routing::get,
+    Extension, Json, Router,
+};
+use include_dir::{include_dir, Dir};
 use utoipa::{openapi, Modify, OpenApi};
 
 use self::api_resource::RoutedResource;
 use crate::GraphPool;
+
+static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
 
 fn api_resources<P: GraphPool>() -> Vec<Router> {
     vec![
@@ -53,13 +63,37 @@ pub fn rest_api_router<P: GraphPool>(store: Arc<P>) -> Router {
     merged_routes
         // Make sure extensions are added at the end so they are made available to merged routers.
         .layer(Extension(store))
-        .route(
-            "/api-doc/openapi.json",
+        .nest("/api-doc", Router::new().route(
+            "/openapi.json",
             get({
                 let doc = open_api_doc;
                 move || async { Json(doc) }
-            }),
+            })).route("/models/*path", get(static_schemas)),
         )
+}
+
+#[allow(
+    clippy::unused_async,
+    reason = "This route does not need async capabilities, but axum requires it in trait bounds."
+)]
+async fn static_schemas<'a>(Path(path): Path<String>) -> impl IntoResponse {
+    let path = path.trim_start_matches('/');
+
+    match STATIC_SCHEMAS.get_file(path) {
+        None => Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body(body::boxed(Empty::new()))
+            .expect("Could not create 404 response"),
+        Some(file) => Response::builder()
+            .status(StatusCode::OK)
+            .header(
+                header::CONTENT_TYPE,
+                HeaderValue::from_str("application/json")
+                    .expect("Could not create header value for found static file"),
+            )
+            .body(body::boxed(Full::from(file.contents())))
+            .expect("Could not serve static file"),
+    }
 }
 
 #[derive(OpenApi)]
@@ -71,7 +105,7 @@ pub fn rest_api_router<P: GraphPool>(store: Arc<P>) -> Router {
     )]
 struct OpenApiDocumentation;
 
-/// Addon to merge multiple OpenAPI Documentations together.
+/// Addon to merge multiple API Documentations together.
 struct MergeAddon;
 
 impl Modify for MergeAddon {
@@ -116,7 +150,7 @@ impl Modify for MergeAddon {
 /// Any component that starts with `EXTERNAL_` will transform into a relative URL in the schema and
 /// receive a `.json` ending.
 ///
-/// For example the `EXTERNAL_Entity` component will be transformed into `./Entity.json`
+/// For example the `EXTERNAL_Entity` component will be transformed into `./models/Entity.json`
 struct ExternalRefAddon;
 
 impl Modify for ExternalRefAddon {
@@ -147,7 +181,7 @@ fn modify_component_references(content: &mut std::collections::HashMap<String, o
             if reference.ref_location.starts_with(REF_PREFIX) {
                 reference
                     .ref_location
-                    .replace_range(0..REF_PREFIX.len(), "./");
+                    .replace_range(0..REF_PREFIX.len(), "./models/");
                 reference.ref_location.push_str(".json");
             };
         }

@@ -1,0 +1,150 @@
+{
+  "$id": "https://blockprotocol.org/type-system/0.2/schema/meta/property-type",
+  "description": "Specifies the structure of a Property Type",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "const": "propertyType"
+    },
+    "$id": {
+      "type": "string",
+      "format": "uri"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "oneOf": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/propertyValues"
+      }
+    }
+  },
+  "required": ["kind", "$id", "title", "oneOf"],
+  "$defs": {
+    "propertyValues": {
+      "$comment": "The definition of potential property values, made up of a `oneOf` keyword which has a list of options of either references to Data Types, or objects made up of more Property Types",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/propertyTypeObject"
+        },
+        {
+          "$ref": "#/$defs/dataTypeReference"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "array"
+            },
+            "items": {
+              "type": "object",
+              "properties": {
+                "oneOf": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/propertyValues"
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": ["oneOf"],
+              "additionalProperties": false
+            },
+            "minItems": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxItems": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": ["type", "items"]
+        }
+      ]
+    },
+    "propertyTypeObject": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "object"
+        },
+        "properties": {
+          "type": "object",
+          "propertyNames": {
+            "$comment": "Property names must be a valid URI to a Property Type",
+            "type": "string",
+            "format": "uri"
+          },
+          "patternProperties": {
+            ".*": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/propertyTypeReference"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "const": "array"
+                    },
+                    "items": {
+                      "$ref": "#/$defs/propertyTypeReference"
+                    },
+                    "minItems": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "maxItems": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": ["type", "items"],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "minimumProperties": 1
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "required": ["type", "properties"],
+      "additionalProperties": false
+    },
+    "propertyTypeReference": {
+      "type": "object",
+      "properties": {
+        "$ref": {
+          "$comment": "Property Object values must be defined through references to the same valid URI to a Property Type",
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "additionalProperties": false,
+      "required": ["$ref"]
+    },
+    "dataTypeReference": {
+      "type": "object",
+      "properties": {
+        "$ref": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "additionalProperties": false,
+      "required": ["$ref"]
+    }
+  }
+}
