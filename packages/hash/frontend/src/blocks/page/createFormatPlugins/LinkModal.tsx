@@ -69,7 +69,16 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
               >
                 <LanguageIcon className={tw`!text-base mr-1`} />
                 <div>
-                  <p className={tw`text-sm leading-none break-all mb-0.5`}>
+                  <p
+                    className={tw`text-sm leading-none break-all mb-0.5`}
+                    style={{
+                      display: "-webkit-box",
+                      WebkitLineClamp: 4,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
                     {savedLinkMarkHref}
                   </p>
                   <span className={tw`font-light`}>Web page</span>
@@ -79,7 +88,7 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
             <div className={tw`h-px bg-gray-100`} />
             <ul className={tw`text-sm py-1`}>
               {isValidLink(newLinkHref) && (
-                <li>
+                <li style={{ listStyle: "none" }}>
                   <button
                     className={tw`bg-transparent cursor-pointer border-none text-sm text-gray-700 hover:bg-gray-200 flex items-center w-full px-4 py-1 my-1`}
                     onClick={() => updateLink(newLinkHref)}
@@ -90,7 +99,7 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
                   </button>
                 </li>
               )}
-              <li>
+              <li style={{ listStyle: "none" }}>
                 <button
                   className={tw`bg-transparent cursor-pointer border-none hover:bg-gray-200 text-gray-700 flex items-center w-full px-4 py-1`}
                   onClick={removeLink}
