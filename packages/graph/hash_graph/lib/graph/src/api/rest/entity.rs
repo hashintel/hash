@@ -33,7 +33,7 @@ struct QualifiedEntity {
         get_entity,
         update_entity
     ),
-    components(CreateEntityRequest, UpdateEntityRequest, EntityId, QualifiedEntity),
+    components(CreateEntityRequest, UpdateEntityRequest, EntityId, QualifiedEntity, Entity),
     tags(
         (name = "Entity", description = "entity management API")
     )
@@ -57,6 +57,7 @@ impl RoutedResource for EntityResource {
 struct CreateEntityRequest {
     #[component(value_type = Any)]
     entity: Entity,
+    #[component(value_type = String)]
     entity_type_uri: VersionedUri,
     account_id: AccountId,
 }
@@ -67,11 +68,11 @@ struct CreateEntityRequest {
     request_body = CreateEntityRequest,
     tag = "Entity",
     responses(
-      (status = 201, content_type = "application/json", description = "entity created successfully", body = QualifiedEntity),
-      (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 201, content_type = "application/json", description = "entity created successfully", body = QualifiedEntity),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-      (status = 404, description = "Entity Type URI was not found"),
-      (status = 500, description = "Datastore error occurred"),
+        (status = 404, description = "Entity Type URI was not found"),
+        (status = 500, description = "Datastore error occurred"),
     ),
     request_body = CreateEntityRequest,
 )]
@@ -149,6 +150,7 @@ struct UpdateEntityRequest {
     #[component(value_type = Any)]
     entity: Entity,
     entity_id: EntityId,
+    #[component(value_type = String)]
     entity_type_uri: VersionedUri,
     account_id: AccountId,
 }

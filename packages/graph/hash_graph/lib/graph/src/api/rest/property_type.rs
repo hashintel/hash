@@ -29,7 +29,7 @@ use crate::{
         get_property_type,
         update_property_type
     ),
-    components(CreatePropertyTypeRequest, UpdatePropertyTypeRequest, AccountId, PropertyType),
+    components(CreatePropertyTypeRequest, UpdatePropertyTypeRequest, AccountId),
     tags(
         (name = "PropertyType", description = "Property type management API")
     )
@@ -65,11 +65,11 @@ struct CreatePropertyTypeRequest {
     request_body = CreatePropertyTypeRequest,
     tag = "PropertyType",
     responses(
-      (status = 201, content_type = "application/json", description = "Property type created successfully", body = PropertyType),
-      (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 201, content_type = "application/json", description = "Property type created successfully", body = EXTERNAL_PropertyType),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-      (status = 409, description = "Unable to create property type in the store as the base property type ID already exists"),
-      (status = 500, description = "Store error occurred"),
+        (status = 409, description = "Unable to create property type in the store as the base property type ID already exists"),
+        (status = 500, description = "Store error occurred"),
     ),
     request_body = CreatePropertyTypeRequest,
 )]
@@ -106,7 +106,7 @@ async fn create_property_type<P: GraphPool>(
     path = "/property-types/{uri}",
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", description = "Property type found", body = PropertyType),
+        (status = 200, content_type = "application/json", description = "Property type found", body = EXTERNAL_PropertyType),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Property type was not found"),
@@ -153,7 +153,7 @@ struct UpdatePropertyTypeRequest {
     path = "/property-types",
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", description = "Property type updated successfully", body = PropertyType),
+        (status = 200, content_type = "application/json", description = "Property type updated successfully", body = EXTERNAL_PropertyType),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base property type ID was not found"),
