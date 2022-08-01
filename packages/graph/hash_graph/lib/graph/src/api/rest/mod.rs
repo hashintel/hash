@@ -83,16 +83,16 @@ async fn static_schemas<'a>(Path(path): Path<String>) -> impl IntoResponse {
         None => Response::builder()
             .status(StatusCode::NOT_FOUND)
             .body(body::boxed(Empty::new()))
-            .expect("Could not create 404 response"),
+            .expect("could not create empty 404 response"),
         Some(file) => Response::builder()
             .status(StatusCode::OK)
             .header(
                 header::CONTENT_TYPE,
                 HeaderValue::from_str("application/json")
-                    .expect("Could not create header value for found static file"),
+                    .expect("could not create JSON content type header value"),
             )
             .body(body::boxed(Full::from(file.contents())))
-            .expect("Could not serve static file"),
+            .expect("could not construct OK response"),
     }
 }
 
