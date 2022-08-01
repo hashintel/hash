@@ -6144,17 +6144,10 @@
     date-fns "^2.0.1"
     react-popper "^2.2.5"
 
-"@types/react-dom@17.0.8":
-  version "17.0.8"
-  resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-17.0.8.tgz#3180de6d79bf53762001ad854e3ce49f36dd71fc"
-  integrity sha512-0ohAiJAx1DAUEcY9UopnfwCE9sSMDGnY/oXjWMax6g3RpzmTt2GMyMVAXcbn0mo8XAff0SbQJl2/SBU+hjSZ1A==
-  dependencies:
-    "@types/react" "*"
-
-"@types/react-dom@^18.0.0":
-  version "18.0.5"
-  resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-18.0.5.tgz#330b2d472c22f796e5531446939eacef8378444a"
-  integrity sha512-OWPWTUrY/NIrjsAPkAk1wW9LZeIjSvkXRhclsFO8CZcZGCOg2G0YZy4ft+rOyYxy8B7ui5iZzi9OkDebZ7/QSA==
+"@types/react-dom@18.0.6", "@types/react-dom@^18.0.0":
+  version "18.0.6"
+  resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-18.0.6.tgz#36652900024842b74607a17786b6662dd1e103a1"
+  integrity sha512-/5OFZgfIPSwy+YuIBP/FgJnQnsxhZhjjrnxudMddeblOouIodEQ75X14Rr4wGSG/bknL+Omy9iWlLo1u/9GzAA==
   dependencies:
     "@types/react" "*"
 
@@ -6186,7 +6179,7 @@
   dependencies:
     "@types/react" "*"
 
-"@types/react@*", "@types/react@16 || 17 || 18", "@types/react@18.0.15", "@types/react@>=16", "@types/react@^17.0.39":
+"@types/react@*", "@types/react@16 || 17 || 18", "@types/react@18.0.15", "@types/react@>=16", "@types/react@^17.0.39", "@types/react@^18.0.15":
   version "18.0.15"
   resolved "https://registry.yarnpkg.com/@types/react/-/react-18.0.15.tgz#d355644c26832dc27f3e6cbf0c4f4603fc4ab7fe"
   integrity sha512-iz3BtLuIYH1uWdsv6wXYdhozhqj20oD4/Hk2DNXIn1kFsmp9x8d9QB6FnPhfkbhd2PgEONt9Q1x/ebkwjfFLow==
@@ -7459,6 +7452,13 @@ blockprotocol@0.0.10:
   integrity sha512-YyEEPQDyf+LGKSoiXjsOXySTvkT9TL/hyh1zKKua2HnsigdDSJ30fjHNWeiXAKO/6VEyjpHFXpEI7mmBjWDyig==
   dependencies:
     "@types/react" "^17.0.39"
+
+blockprotocol@0.0.12:
+  version "0.0.12"
+  resolved "https://registry.yarnpkg.com/blockprotocol/-/blockprotocol-0.0.12.tgz#95c29bc06629b0bb43436d076c17c7130a40277d"
+  integrity sha512-8OE9fHuZOeXgtNXk8jJZ+cTYwOcVkV95hHbz4440r1+8YuNpIvLcB8ueOgduaAN9gGCOTPWKolW3xM9vXcH1aw==
+  dependencies:
+    "@types/react" "^18.0.15"
 
 bluebird@^3.7.1:
   version "3.7.2"

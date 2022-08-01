@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/shuffle",
+  "name": "@hashintel/block-shuffle",
   "version": "0.0.0",
   "description": "Create a list and set it into a random order",
   "keywords": [
@@ -56,11 +56,13 @@
     },
     "displayName": "shuffle",
     "examples": [
-      [
-        "Alice",
-        "Bob",
-        "Charlie"
-      ]
+      {
+        "items": [
+          "Alice",
+          "Bob",
+          "Charlie"
+        ]
+      }
     ],
     "icon": "public/shuffle.svg",
     "image": "public/preview.png",
