@@ -24,11 +24,21 @@ dependencies = ["install-cargo-nextest"]
 [tasks.test-rest-api]
 # This is a temporary solution until we have e2e tests in place
 script = """
+#!/usr/bin/env bash
+
+# Fail entire script if any error occurs.
+set -eo pipefail
+
 cargo build
 cargo run&
 pid=$!
+# ensure pid is killed no matter what happens
+trap "kill $pid" 0 ERR
+
+exit_status=0
+
 yarn httpyac send --all ${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/tests/rest-test.http
-ret=$?
-kill "$pid"
-exit $ret
+
+# This generates a `openapitools.json` file.
+yarn openapi-generator-cli validate -i http://localhost:3000/api-doc/openapi.json
 """
