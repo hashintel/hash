@@ -126,7 +126,7 @@ async fn get_link_type<P: GraphPool>(
         .get_link_type(&uri.0)
         .await
         .map_err(|report| {
-            tracing::error!(error=?report, "Could not query link type");
+            tracing::error!(error=?report, uri=?uri.0, "Could not get link type");
 
             if report.contains::<QueryError>() {
                 return StatusCode::NOT_FOUND;

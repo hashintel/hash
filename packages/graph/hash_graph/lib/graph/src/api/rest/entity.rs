@@ -132,7 +132,7 @@ async fn get_entity<P: GraphPool>(
         .get_entity(entity_id)
         .await
         .map_err(|report| {
-            tracing::error!(error=?report, "Could not query entity");
+            tracing::error!(error=?report, uri=?uri.0, "Could not get entity");
 
             if report.contains::<QueryError>() {
                 return StatusCode::NOT_FOUND;

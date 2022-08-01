@@ -129,7 +129,7 @@ async fn get_property_type<P: GraphPool>(
         .get_property_type(&uri.0)
         .await
         .map_err(|report| {
-            tracing::error!(error=?report, "Could not query property type");
+            tracing::error!(error=?report, uri=?uri.0, "Could not get property type");
 
             if report.contains::<QueryError>() {
                 return StatusCode::NOT_FOUND;

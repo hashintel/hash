@@ -138,7 +138,7 @@ async fn get_entity_links<P: GraphPool>(
         .get_entity_links(source_entity_id)
         .await
         .map_err(|report| {
-            tracing::error!(error=?report, "Could not query link");
+            tracing::error!(error=?report, uri=?uri.0, "Could not get link");
 
             if report.contains::<QueryError>() {
                 return StatusCode::NOT_FOUND;
