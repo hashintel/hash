@@ -105,7 +105,9 @@ async fn static_schemas<'a>(Path(path): Path<String>) -> impl IntoResponse {
     )]
 struct OpenApiDocumentation;
 
-/// Addon to merge multiple API Documentations together.
+/// Addon to merge multiple [`OpenApi`] documents together.
+///
+/// [`OpenApi`]: utoipa::openapi::OpenApi
 struct MergeAddon;
 
 impl Modify for MergeAddon {
