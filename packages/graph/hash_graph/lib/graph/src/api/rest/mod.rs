@@ -67,10 +67,11 @@ pub fn rest_api_router<P: GraphPool>(store: Arc<P>) -> Router {
         tags(
             (name = "Graph", description = "HASH Graph API")
         ),
-        modifiers(&MergeAddon)
+        modifiers(&MergeAddon, &ExternalRefAddon)
     )]
 struct OpenApiDocumentation;
 
+/// Addon to merge multiple OpenAPI Documentations together.
 struct MergeAddon;
 
 impl Modify for MergeAddon {
@@ -107,5 +108,48 @@ impl Modify for MergeAddon {
                 .cloned()
                 .flat_map(|api_docs| api_docs.paths.paths.into_iter()),
         );
+    }
+}
+
+/// Addon to allow external references in schemas.
+///
+/// Any component that starts with `EXTERNAL_` will transform into a relative URL in the schema and
+/// receive a `.json` ending.
+///
+/// For example the `EXTERNAL_Entity` component will be transformed into `./Entity.json`
+struct ExternalRefAddon;
+
+impl Modify for ExternalRefAddon {
+    fn modify(&self, openapi: &mut openapi::OpenApi) {
+        for path_item in openapi.paths.paths.values_mut() {
+            for operation in path_item.operations.values_mut() {
+                if let Some(request_body) = &mut operation.request_body {
+                    modify_component_references(&mut request_body.content);
+                }
+
+                operation
+                    .responses
+                    .responses
+                    .iter_mut()
+                    .for_each(|(_, response)| {
+                        modify_component_references(&mut response.content);
+                    });
+            }
+        }
+    }
+}
+
+fn modify_component_references(content: &mut std::collections::HashMap<String, openapi::Content>) {
+    static REF_PREFIX: &str = "#/components/schemas/EXTERNAL_";
+
+    for content in content.values_mut() {
+        if let openapi::Component::Ref(reference) = &mut content.schema {
+            if reference.ref_location.starts_with(REF_PREFIX) {
+                reference
+                    .ref_location
+                    .replace_range(0..REF_PREFIX.len(), "./");
+                reference.ref_location.push_str(".json");
+            };
+        }
     }
 }
