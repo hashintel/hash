@@ -178,6 +178,7 @@ fn modify_component_references(content: &mut std::collections::HashMap<String, o
                 reference
                     .ref_location
                     .replace_range(0..REF_PREFIX.len(), "./models/");
+                reference.ref_location.make_ascii_lowercase();
                 reference.ref_location.push_str(".json");
             };
         }

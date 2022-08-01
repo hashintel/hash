@@ -65,7 +65,7 @@ struct CreateEntityTypeRequest {
     request_body = CreateEntityTypeRequest,
     tag = "EntityType",
     responses(
-        (status = 201, content_type = "application/json", description = "Entity type created successfully", body = EXTERNAL_EntityType),
+        (status = 201, content_type = "application/json", description = "Entity type created successfully", body = EXTERNAL_ENTITY_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create entity type in the datastore as the base entity type ID already exists"),
@@ -106,7 +106,7 @@ async fn create_entity_type<P: GraphPool>(
     path = "/entity-types/{uri}",
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "Entity type found", body = EXTERNAL_EntityType),
+        (status = 200, content_type = "application/json", description = "Entity type found", body = EXTERNAL_ENTITY_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Entity type was not found"),
@@ -153,7 +153,7 @@ struct UpdateEntityTypeRequest {
     path = "/entity-types",
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "Entity type updated successfully", body = EXTERNAL_EntityType),
+        (status = 200, content_type = "application/json", description = "Entity type updated successfully", body = EXTERNAL_ENTITY_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base entity type ID was not found"),

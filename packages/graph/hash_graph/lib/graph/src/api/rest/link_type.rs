@@ -62,7 +62,7 @@ struct CreateLinkTypeRequest {
     request_body = CreateLinkTypeRequest,
     tag = "LinkType",
     responses(
-        (status = 201, content_type = "application/json", description = "Link type created successfully", body = EXTERNAL_LinkType),
+        (status = 201, content_type = "application/json", description = "Link type created successfully", body = EXTERNAL_LINK_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create link type in the store as the base link type ID already exists"),
@@ -103,7 +103,7 @@ async fn create_link_type<P: GraphPool>(
     path = "/link-types/{uri}",
     tag = "LinkType",
     responses(
-        (status = 200, content_type = "application/json", description = "Link type found", body = EXTERNAL_LinkType),
+        (status = 200, content_type = "application/json", description = "Link type found", body = EXTERNAL_LINK_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Link type was not found"),
@@ -150,7 +150,7 @@ struct UpdateLinkTypeRequest {
     path = "/link-types",
     tag = "LinkType",
     responses(
-        (status = 200, content_type = "application/json", description = "Link type updated successfully", body = EXTERNAL_LinkType),
+        (status = 200, content_type = "application/json", description = "Link type updated successfully", body = EXTERNAL_LINK_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base link type ID was not found"),
