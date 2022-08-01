@@ -13,10 +13,9 @@ mod property_type;
 use std::sync::Arc;
 
 use axum::{
-    body::{self, Empty, Full},
     extract::Path,
-    http::{header, HeaderValue, Response, StatusCode},
-    response::IntoResponse,
+    http::StatusCode,
+    response::{IntoResponse, Response},
     routing::get,
     Extension, Json, Router,
 };
@@ -68,7 +67,7 @@ pub fn rest_api_router<P: GraphPool>(store: Arc<P>) -> Router {
             get({
                 let doc = open_api_doc;
                 move || async { Json(doc) }
-            })).route("/models/*path", get(static_schemas)),
+            })).route("/models/*path", get(serve_static_schemas)),
         )
 }
 
@@ -76,23 +75,19 @@ pub fn rest_api_router<P: GraphPool>(store: Arc<P>) -> Router {
     clippy::unused_async,
     reason = "This route does not need async capabilities, but axum requires it in trait bounds."
 )]
-async fn static_schemas<'a>(Path(path): Path<String>) -> impl IntoResponse {
+async fn serve_static_schemas(Path(path): Path<String>) -> Result<Response, StatusCode> {
     let path = path.trim_start_matches('/');
 
     match STATIC_SCHEMAS.get_file(path) {
-        None => Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(body::boxed(Empty::new()))
-            .expect("could not create empty 404 response"),
-        Some(file) => Response::builder()
-            .status(StatusCode::OK)
-            .header(
-                header::CONTENT_TYPE,
-                HeaderValue::from_str("application/json")
-                    .expect("could not create JSON content type header value"),
-            )
-            .body(body::boxed(Full::from(file.contents())))
-            .expect("could not construct OK response"),
+        None => Err(StatusCode::NOT_FOUND),
+        Some(file) => Ok((
+            [(
+                axum::http::header::CONTENT_TYPE,
+                axum::http::HeaderValue::from_static("application/json"),
+            )],
+            file.contents(),
+        )
+            .into_response()),
     }
 }
 
