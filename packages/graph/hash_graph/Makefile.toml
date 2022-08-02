@@ -32,13 +32,11 @@ set -eo pipefail
 cargo build
 cargo run&
 pid=$!
-# ensure pid is killed no matter what happens
+# Ensure the webserver process is killed regardless of script outcome.
 trap "kill $pid" 0 ERR
-
-exit_status=0
 
 yarn httpyac send --all ${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/tests/rest-test.http
 
-# This generates a `openapitools.json` file.
+# Side effect: this call generates a `openapitools.json` file, which isn't automatically cleaned up.
 yarn openapi-generator-cli validate -i http://localhost:3000/api-doc/openapi.json
 """
