@@ -157,6 +157,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
     openConfigMenu,
     popupState,
     canSwap,
+    compatibleBlocks,
   ]);
 
   useKey(["Escape"], () => {
