@@ -6,7 +6,11 @@ import {
   isDraftEntity,
   isEntity,
 } from "./entityStore";
-import { PageFieldsFragment, Text } from "./graphql/apiTypes.gen";
+import {
+  PageFieldsFragment,
+  Text,
+  TextProperties,
+} from "./graphql/apiTypes.gen";
 import {
   DistributiveOmit,
   DistributivePick,
@@ -29,10 +33,15 @@ export type BlockEntity = DistributiveOmit<ContentsEntity, "properties"> & {
   };
 };
 
+// @todo make this more robust
+export const isTextProperties =
+  (properties: {}): properties is TextProperties => "tokens" in properties;
+
 // @todo make this more robust, checking system type name of entity type
 export const isTextEntity = (
   entity: EntityStoreType | DraftEntity,
-): entity is Text => "properties" in entity && "tokens" in entity.properties;
+): entity is Text =>
+  "properties" in entity && isTextProperties(entity.properties);
 
 export const isDraftTextEntity = (
   entity: DraftEntity,

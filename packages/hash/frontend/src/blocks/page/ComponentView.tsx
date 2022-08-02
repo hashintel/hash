@@ -12,14 +12,13 @@ import {
 import {
   addEntityStoreAction,
   entityStorePluginState,
-  entityStorePluginStateFromTransaction,
-  generateDraftIdForEntity,
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import {
   componentNodeToId,
   isComponentNode,
 } from "@hashintel/hash-shared/prosemirror";
+import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { textBlockNodeToEntityProperties } from "@hashintel/hash-shared/text";
 import * as Sentry from "@sentry/nextjs";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
@@ -93,6 +92,7 @@ export class ComponentView implements NodeView<Schema> {
     private readonly getPos: () => number,
     private readonly renderPortal: RenderPortal,
     private readonly meta: HashBlockMeta,
+    private readonly manager: ProsemirrorManager,
   ) {
     this.dom.setAttribute("data-dom", "true");
     this.contentDOM.setAttribute("data-contentDOM", "true");
@@ -252,37 +252,17 @@ export class ComponentView implements NodeView<Schema> {
     if (!isTextEntity(childEntity)) {
       tr ??= state.tr;
 
-      const newTextDraftId = generateDraftIdForEntity(null);
-      addEntityStoreAction(state, tr, {
-        type: "newDraftEntity",
-        payload: {
-          accountId: childEntity.accountId,
-          draftId: newTextDraftId,
-          entityId: null,
-        },
-      });
-
-      // @todo should we use the text entity directly, or just copy the content?
-      addEntityStoreAction(state, tr, {
-        type: "updateEntityProperties",
-        payload: {
-          draftId: newTextDraftId,
-          // @todo indicate the entity type?
-          properties: textBlockNodeToEntityProperties(this.node),
-          merge: false,
-        },
-      });
-
       addEntityStoreAction(state, tr, {
         type: "updateEntityProperties",
         payload: {
           draftId: childEntity.draftId,
           properties: {
-            text: {
-              __linkedData: {},
-              data: entityStorePluginStateFromTransaction(tr, state).store
-                .draft[newTextDraftId]!,
-            },
+            text: this.manager.createNewLegacyTextLink(
+              state,
+              tr,
+              childEntity.accountId,
+              textBlockNodeToEntityProperties(this.node),
+            ),
           },
           merge: true,
         },

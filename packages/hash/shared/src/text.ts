@@ -1,6 +1,6 @@
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { ComponentNode } from "./prosemirror";
-import { Text } from "./graphql/apiTypes.gen";
+import { Text, TextProperties } from "./graphql/apiTypes.gen";
 import { TextToken } from "./graphql/types";
 
 export const childrenForTextEntity = (
@@ -38,7 +38,9 @@ export const childrenForTextEntity = (
       }
     });
 
-export const textBlockNodeToEntityProperties = (node: ComponentNode) => {
+export const textBlockNodeToEntityProperties = (
+  node: ComponentNode,
+): TextProperties => {
   const tokens: TextToken[] = [];
 
   node.content.descendants((child) => {

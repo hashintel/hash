@@ -116,7 +116,14 @@ export const createEditorView = (
         throw new Error("Invalid config for nodeview");
       }
 
-      return new ComponentView(node, editorView, getPos, renderPortal, meta);
+      return new ComponentView(
+        node,
+        editorView,
+        getPos,
+        renderPortal,
+        meta,
+        manager,
+      );
     },
   );
 
