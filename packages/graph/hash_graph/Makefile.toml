@@ -24,11 +24,21 @@ dependencies = ["install-cargo-nextest"]
 [tasks.test-rest-api]
 # This is a temporary solution until we have e2e tests in place
 script = """
+#!/usr/bin/env bash
+
+# Fail entire script if any error occurs.
+set -eo pipefail
+
 cargo build
 cargo run&
 pid=$!
+# Ensure the webserver process is killed regardless of script outcome.
+trap "kill $pid" 0 ERR
+
 yarn httpyac send --all ${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/tests/rest-test.http
-ret=$?
-kill "$pid"
-exit $ret
+
+# Side effect: this call generates a `openapitools.json` file, which isn't automatically cleaned up.
+yarn workspace @hashintel/hash-graph-migrations openapi-generator-cli validate -i http://localhost:3000/api-doc/openapi.json
+# Clean up file manually. It's run in the context of the migrations yarn workspace.
+rm -v ${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/../migrations/openapitools.json
 """
