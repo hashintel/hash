@@ -109,7 +109,7 @@ async fn create_link_type<P: GraphPool>(
     path = "/link-types",
     tag = "LinkType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all link types at their latest versions", body = [LinkType]),
+        (status = 200, content_type = "application/json", description = "List of all link types at their latest versions", body = [VAR_LINK_TYPE]),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 500, description = "Store error occurred"),

@@ -205,9 +205,7 @@ impl Modify for ExternalRefAddon {
 
 fn modify_component_references(content: &mut HashMap<String, openapi::Content>) {
     for content in content.values_mut() {
-        if let openapi::Component::Ref(reference) = &mut content.schema {
-            modify_reference(reference);
-        }
+        modify_schema_references(&mut content.schema);
     }
 }
 
