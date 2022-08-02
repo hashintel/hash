@@ -2,14 +2,12 @@
 
 use std::sync::Arc;
 
-use axum::{
-    extract::Path, http::StatusCode, response::IntoResponse, routing::post, Extension, Json, Router,
-};
+use axum::{extract::Path, http::StatusCode, routing::post, Extension, Json, Router};
 use serde::{Deserialize, Serialize};
 use utoipa::{Component, OpenApi};
 
 use crate::{
-    api::rest::api_resource::RoutedResource,
+    api::rest::{api_resource::RoutedResource, read_from_store},
     knowledge::{EntityId, Link, Links},
     ontology::{types::uri::VersionedUri, AccountId},
     store::error::QueryError,
@@ -124,29 +122,11 @@ async fn create_link<P: GraphPool>(
     )
 )]
 async fn get_entity_links<P: GraphPool>(
-    source_entity_id: Path<EntityId>,
-    pool: Extension<Arc<P>>,
-) -> Result<Json<Links>, impl IntoResponse> {
-    let Path(source_entity_id) = source_entity_id;
-
-    let store = pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    store
-        .get_entity_links(source_entity_id)
+    Path(source_entity_id): Path<EntityId>,
+    Extension(pool): Extension<Arc<P>>,
+) -> Result<Json<Links>, StatusCode> {
+    read_from_store::<Link, _, _, _>(pool.as_ref(), source_entity_id)
         .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not query link");
-
-            if report.contains::<QueryError>() {
-                return StatusCode::NOT_FOUND;
-            }
-
-            // Datastore errors such as connection failure are considered internal server errors.
-            StatusCode::INTERNAL_SERVER_ERROR
-        })
         .map(Json)
 }
 

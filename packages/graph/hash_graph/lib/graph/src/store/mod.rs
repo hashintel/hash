@@ -16,7 +16,7 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    knowledge::{Entity, EntityId, Link, Links},
+    knowledge::{Entity, EntityId, Link},
     ontology::{
         types::{uri::VersionedUri, EntityType, LinkType, PropertyType},
         AccountId,
@@ -410,14 +410,16 @@ pub trait LinkStore {
         created_by: AccountId,
     ) -> Result<(), InsertionError>;
 
-    /// Get [`Links`] of an [`Entity`] identified by an [`EntityId`].
+    /// Get one or multiple [`Link`]s of an [`Entity`] specified by `identifier`.
+    ///
+    /// Depending on the `identifier` the output is specified by [`Read::Output`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
     async fn get_entity_links<'i, I: Send>(&self, identifier: I) -> Result<Self::Output, QueryError>
     where
-        Self: Read<'i, I, Links>,
+        Self: Read<'i, I, Link>,
     {
         self.get(identifier).await
     }
@@ -433,7 +435,7 @@ pub trait LinkStore {
         link_type: L,
     ) -> Result<Self::Output, QueryError>
     where
-        Self: Read<'i, (E, L), Links>,
+        Self: Read<'i, (E, L), Link>,
     {
         self.get((source_entity, link_type)).await
     }
