@@ -126,10 +126,16 @@ const calculateSaveActions = async (
   const draftIdToPlaceholderId = new Map<string, string>();
   const draftIdToBlockEntities = new Map<string, DraftEntity<BlockEntity>>();
 
-  const shouldSetTextProperties = <T extends {}>(
-    properties: T,
+  /**
+   * In some cases, in order to update an entity, we need to create a legacy link
+   * within the properties to link it to the relevant text entity. This sometimes
+   * involves creating a new text entity, which will be done later, but we need
+   * to decide its placeholder entity id now in order to generate the correct link
+   */
+  const ensureNecessaryLegacyTextLink = (
+    properties: {},
     savedProperties?: DraftEntity["properties"],
-  ): (T & { text: Omit<LegacyLink<DraftEntity<Text>>, "data"> }) | null => {
+  ): Omit<LegacyLink<DraftEntity<Text>>, "data"> | null => {
     if (!isDraftTextContainingEntityProperties(properties)) {
       return null;
     }
@@ -147,10 +153,7 @@ const calculateSaveActions = async (
         isEqual(savedTextLink, properties.text.__linkedData)
       ) {
         return {
-          ...properties,
-          text: {
-            __linkedData: properties.text.__linkedData,
-          },
+          __linkedData: properties.text.__linkedData,
         };
       }
     } else {
@@ -164,12 +167,9 @@ const calculateSaveActions = async (
       }
 
       return {
-        ...properties,
-        text: {
-          __linkedData: {
-            entityTypeId: textEntityTypeId,
-            entityId: textEntityId,
-          },
+        __linkedData: {
+          entityTypeId: textEntityTypeId,
+          entityId: textEntityId,
         },
       };
     }
@@ -197,13 +197,13 @@ const calculateSaveActions = async (
         continue;
       }
 
-      const nextProperties = shouldSetTextProperties(
+      const textLink = ensureNecessaryLegacyTextLink(
         draftEntity.properties,
         savedEntity.properties,
       );
 
       if (
-        nextProperties ||
+        textLink ||
         (!isDraftTextContainingEntityProperties(draftEntity.properties) &&
           !isEqual(draftEntity.properties, savedEntity.properties))
       ) {
@@ -211,7 +211,12 @@ const calculateSaveActions = async (
           updateEntity: {
             entityId: draftEntity.entityId,
             accountId: draftEntity.accountId,
-            properties: nextProperties ?? draftEntity.properties,
+            properties: textLink
+              ? {
+                  ...draftEntity.properties,
+                  text: textLink,
+                }
+              : draftEntity.properties,
           },
         });
       }
@@ -252,7 +257,13 @@ const calculateSaveActions = async (
 
         entityType = { entityTypeId };
 
-        properties = shouldSetTextProperties(properties) ?? properties;
+        const textLink = ensureNecessaryLegacyTextLink(properties);
+        properties = textLink
+          ? {
+              ...properties,
+              text: textLink,
+            }
+          : properties;
       }
 
       const action: UpdatePageAction = {
