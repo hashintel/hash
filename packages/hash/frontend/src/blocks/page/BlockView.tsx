@@ -5,7 +5,7 @@ import {
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
-import { BlockConfig } from "@hashintel/hash-shared/blockMeta";
+import { BlockConfig, BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
@@ -18,6 +18,7 @@ import styles from "./style.module.css";
 
 import { RenderPortal } from "./usePortals";
 import { BlockHandle } from "./BlockHandle";
+import { InsertBlock } from "./InsertBlock";
 
 export const getBlockDomId = (blockEntityId: string) =>
   `entity-${blockEntityId}`;
@@ -29,6 +30,7 @@ export const getBlockDomId = (blockEntityId: string) =>
 export class BlockView implements NodeView<Schema> {
   dom: HTMLDivElement;
   selectContainer: HTMLDivElement;
+  insertBlockContainer: HTMLDivElement;
   contentDOM: HTMLDivElement;
 
   allowDragging = false;
@@ -77,6 +79,15 @@ export class BlockView implements NodeView<Schema> {
     this.contentDOM = document.createElement("div");
     this.dom.appendChild(this.contentDOM);
     this.contentDOM.classList.add(styles.Block__Content!);
+
+    this.insertBlockContainer = document.createElement("div");
+    this.dom.appendChild(this.insertBlockContainer);
+    this.insertBlockContainer.classList.add(styles.Block__InsertBlock!);
+    this.insertBlockContainer.contentEditable = "false";
+    this.renderPortal(
+      <InsertBlock onBlockSuggesterChange={this.onBlockInsert} />,
+      this.insertBlockContainer,
+    );
 
     this.store = entityStorePluginState(editorView.state).store;
     this.unsubscribe = subscribeToEntityStore(this.editorView, (store) => {
@@ -133,7 +144,10 @@ export class BlockView implements NodeView<Schema> {
   ) {
     if (record.target === this.dom && record.type === "attributes") {
       return record.attributeName === "class" || record.attributeName === "id";
-    } else if (this.selectContainer.contains(record.target)) {
+    } else if (
+      this.selectContainer.contains(record.target) ||
+      this.insertBlockContainer.contains(record.target)
+    ) {
       return true;
     }
 
@@ -258,6 +272,27 @@ export class BlockView implements NodeView<Schema> {
         getPos(),
       )
       .catch((err: Error) => {
+        // eslint-disable-next-line no-console -- TODO: consider using logger
+        console.error(err);
+      });
+  };
+
+  onBlockInsert = (
+    variant: BlockVariant,
+    blockMeta: BlockMeta["componentMetadata"],
+  ) => {
+    const { editorView, getPos } = this;
+
+    const pos = getPos();
+
+    this.manager
+      .createRemoteBlockTr(blockMeta.componentId, null, variant)
+      .then(([tr, node]) => {
+        const position = editorView.state.doc.resolve(pos);
+        tr.insert(position.posAtIndex(position.index(0) + 1), node);
+        editorView.dispatch(tr);
+      })
+      .catch((err) => {
         // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error(err);
       });
