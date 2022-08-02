@@ -22,6 +22,7 @@ import { EditorView, NodeView } from "prosemirror-view";
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
 import { ErrorBlock } from "../../components/ErrorBlock/ErrorBlock";
 import { BlockContext } from "./BlockContext";
+import { InsertBlock } from "./InsertBlock";
 import { RenderPortal } from "./usePortals";
 
 /**
@@ -183,6 +184,7 @@ export class ComponentView implements NodeView<Schema> {
                 linkedEntities={childEntity?.linkedEntities ?? []}
                 linkedAggregations={childEntity?.linkedAggregations ?? []}
               />
+              <InsertBlock />
             </Sentry.ErrorBoundary>
           )}
         </BlockContext.Consumer>,
