@@ -231,11 +231,11 @@ export const fetchBlock = async (
   return await promise;
 };
 
-const textBlocks = [
+const textBlocks = new Set([
   "https://blockprotocol.org/blocks/@hash/paragraph",
   "https://blockprotocol.org/blocks/@hash/header",
   "https://blockprotocol.org/blocks/@hash/callout",
-];
+]);
 
 /**
  * Default blocks loaded for every user.
@@ -246,7 +246,7 @@ const textBlocks = [
  *    we currently store this in localStorage - see UserBlockProvider.
  */
 export const defaultBlocks = [
-  ...textBlocks,
+  ...Array.from(textBlocks),
   "https://blockprotocol.org/blocks/@hash/person",
   "https://blockprotocol.org/blocks/@hash/image",
   "https://blockprotocol.org/blocks/@hash/table",
@@ -256,5 +256,26 @@ export const defaultBlocks = [
   "https://blockprotocol.org/blocks/@hash/video",
 ];
 
-export const isTextBlock = (componentId: string = "") =>
-  textBlocks.includes(componentId);
+/**
+ * This is used to work out if the block is one of our hardcoded text blocks,
+ * which is used to know if the block is compatible for switching from one
+ * text block to another
+ */
+const isHashTextBlock = (componentId: string) => textBlocks.has(componentId);
+
+/**
+ * In some places, we need to know if the current component and a target
+ * component we're trying to switch to are compatible, in order to know whether
+ * to share existing properties or whether to enabling switching. This does that
+ * by checking IDs are the same (i.e, they're variants of the same block) or
+ * if we've hardcoded support for switching (i.e, they're HASH text blocks)
+ */
+export const areComponentsCompatible = (
+  currentComponentId: string | null = null,
+  targetComponentId: string | null = null,
+) =>
+  currentComponentId &&
+  targetComponentId &&
+  (currentComponentId === targetComponentId ||
+    (isHashTextBlock(currentComponentId) &&
+      isHashTextBlock(targetComponentId)));

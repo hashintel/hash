@@ -1,6 +1,5 @@
 import { JsonObject } from "@blockprotocol/core";
 import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
-import { isTextBlock } from "@hashintel/hash-shared/blocks";
 import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import { Box } from "@mui/material";
 import { bindTrigger } from "material-ui-popup-state";
@@ -110,9 +109,7 @@ const BlockHandle: ForwardRefRenderFunction<
         openConfigMenu={configMenuPopupState.open}
         popupState={contextMenuPopupState}
         ref={blockMenuRef}
-        swapType={
-          isTextBlock(blockEntity?.properties.componentId) || blockContext.error
-        }
+        canSwap={!blockContext.error}
       />
 
       <BlockConfigMenu

@@ -5,10 +5,10 @@ import { EditorProps, EditorView } from "prosemirror-view";
 
 import { Text, TextProperties } from "./graphql/apiTypes.gen";
 import {
+  areComponentsCompatible,
   fetchBlock,
   HashBlock,
   HashBlockMeta,
-  isTextBlock,
   prepareBlockCache,
 } from "./blocks";
 import {
@@ -57,9 +57,10 @@ const isBlockCompatible = (
 
   return (
     !blockEntity ||
-    blockEntity.properties.componentId === targetComponentId ||
-    (isTextBlock(blockEntity.properties.componentId) &&
-      isTextBlock(targetComponentId))
+    areComponentsCompatible(
+      blockEntity.properties.componentId,
+      targetComponentId,
+    )
   );
 };
 
@@ -306,24 +307,30 @@ export class ProsemirrorManager {
 
     let targetBlockId: string;
 
-    if (targetComponentId === blockEntity?.properties.componentId) {
-      addEntityStoreAction(this.view.state, tr, {
-        type: "updateEntityProperties",
-        payload: {
-          draftId: blockEntity.properties.entity.draftId,
-          properties: entityProperties,
-          merge: true,
-        },
-      });
-      targetBlockId = blockEntity.draftId;
-    } else {
-      let newBlockProperties = entityProperties;
+    if (
+      blockEntity &&
+      areComponentsCompatible(
+        blockEntity.properties.componentId,
+        targetComponentId,
+      )
+    ) {
+      if (targetComponentId === blockEntity?.properties.componentId) {
+        addEntityStoreAction(this.view.state, tr, {
+          type: "updateEntityProperties",
+          payload: {
+            draftId: blockEntity.properties.entity.draftId,
+            properties: entityProperties,
+            merge: true,
+          },
+        });
+        targetBlockId = blockEntity.draftId;
+      } else {
+        let newBlockProperties = entityProperties;
 
-      /**
-       * This is supporting swapping between text blocks and persisting the
-       * existing text
-       */
-      if (blockEntity && isTextBlock(targetComponentId)) {
+        /**
+         * This is supporting swapping between text blocks and persisting the
+         * existing text
+         */
         if (
           isDraftTextContainingEntityProperties(
             blockEntity.properties.entity.properties,
@@ -344,11 +351,17 @@ export class ProsemirrorManager {
             ),
           };
         }
-      }
 
+        targetBlockId = await this.createNewDraftBlock(
+          tr,
+          newBlockProperties,
+          targetComponentId,
+        );
+      }
+    } else {
       targetBlockId = await this.createNewDraftBlock(
         tr,
-        newBlockProperties,
+        entityProperties,
         targetComponentId,
       );
     }

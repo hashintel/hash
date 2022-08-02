@@ -1,5 +1,5 @@
 import { BlockVariant } from "@blockprotocol/core";
-import { FunctionComponent } from "react";
+import { FunctionComponent, useMemo } from "react";
 import { tw } from "twind";
 import { Box, SxProps, Theme, Typography } from "@mui/material";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
@@ -25,9 +25,13 @@ export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
   onChange,
   sx,
 }) => {
-  const { value: userBlocks, blockFetchFailed } = useUserBlocks();
+  const { value: blocksMap, blockFetchFailed } = useUserBlocks();
 
-  const filteredBlocks = useFilteredBlocks(search, userBlocks);
+  const blocksArray = useMemo(
+    () => Array.from(Object.values(blocksMap)),
+    [blocksMap],
+  );
+  const filteredBlocks = useFilteredBlocks(search, blocksArray);
 
   return (
     <Suggester

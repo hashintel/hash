@@ -1,4 +1,5 @@
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
+import { HashBlock } from "@hashintel/hash-shared/blocks";
 import {
   Box,
   InputAdornment,
@@ -12,21 +13,20 @@ import { useRef, useState, FunctionComponent } from "react";
 import { TextField, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { BlockSuggesterProps } from "../createSuggester/BlockSuggester";
 import { useFilteredBlocks } from "../createSuggester/useFilteredBlocks";
-import { useUserBlocks } from "../../userBlocks";
 import { MenuItem } from "../../../shared/ui";
 
 type BlockListMenuContentProps = {
   popupState?: PopupState;
   blockSuggesterProps: BlockSuggesterProps;
+  compatibleBlocks: HashBlock[];
 };
 
 export const BlockListMenuContent: FunctionComponent<
   BlockListMenuContentProps
-> = ({ blockSuggesterProps, popupState }) => {
+> = ({ blockSuggesterProps, popupState, compatibleBlocks }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const { value: userBlocks } = useUserBlocks();
-  const blocks = useFilteredBlocks(searchQuery, userBlocks, true);
+  const blocks = useFilteredBlocks(searchQuery, compatibleBlocks);
 
   // The essence of this is to autoFocus the input when
   // the blocklist menu comes up. We have a listener for
