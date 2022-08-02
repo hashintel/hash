@@ -139,6 +139,16 @@ export class ComponentView implements NodeView<Schema> {
   update(node: ProsemirrorNode<Schema>) {
     this.node = node;
 
+    /**
+     * Prosemirror will sometimes call `update` on your `NodeView` with a new
+     * node to see if it is compatible with your `NdoeView`, so that it can be
+     * reused. If you return `false` from the `update` function, it will call
+     * `destroy` on your `NodeView` and create a new one instead. So this means
+     * in theory we could get `update` called with a component node representing
+     * a different component. We need to guard against that.
+     *
+     * @see https://prosemirror.net/docs/ref/#view.NodeView.update
+     */
     if (
       isComponentNode(node) &&
       componentNodeToId(node) === this.meta.componentId
