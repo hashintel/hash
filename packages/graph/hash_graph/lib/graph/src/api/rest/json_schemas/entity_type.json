@@ -10,6 +10,9 @@
       "type": "string",
       "format": "uri"
     },
+    "type": {
+      "const": "object"
+    },
     "title": { "type": "string" },
     "description": { "type": "string" },
     "default": {
@@ -41,26 +44,40 @@
         "format": "uri"
       }
     },
+    "links": { "$ref": "#/$defs/linkTypeObject" },
     "requiredLinks": {
       "$comment": "A list of link-types which are required. This is a separate field to 'required' to avoid breaking standard JSON schema validation",
       "type": "array",
-      "items": { "type": "string" }
-    },
-    "links": {
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": ["kind", "$id", "type", "title", "properties"],
+  "$defs": {
+    "propertyTypeObject": {
       "type": "object",
       "propertyNames": {
-        "$comment": "Property names must be a valid URI to a link-type",
+        "$comment": "Property names must be a valid URI to a Property Type",
         "type": "string",
         "format": "uri"
       },
       "patternProperties": {
         ".*": {
-          "type": "object",
           "oneOf": [
             {
+              "$ref": "#/$defs/propertyTypeReference"
+            },
+            {
+              "type": "object",
               "properties": {
-                "ordered": { "type": "boolean", "default": false },
-                "type": { "const": "array" },
+                "type": {
+                  "const": "array"
+                },
+                "items": {
+                  "$ref": "#/$defs/propertyTypeReference"
+                },
                 "minItems": {
                   "type": "integer",
                   "minimum": 0
@@ -70,73 +87,13 @@
                   "minimum": 0
                 }
               },
-              "required": ["ordered", "type"]
-            },
-            {}
-          ],
-          "additionalProperties": false
-        }
-      }
-    }
-  },
-  "additionalProperties": false,
-  "required": ["kind", "$id", "title", "properties"],
-  "$defs": {
-    "propertyTypeObject": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "const": "object"
-        },
-        "properties": {
-          "type": "object",
-          "propertyNames": {
-            "$comment": "Property names must be a valid URI to a Property Type",
-            "type": "string",
-            "format": "uri"
-          },
-          "patternProperties": {
-            ".*": {
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/propertyTypeReference"
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "const": "array"
-                    },
-                    "items": {
-                      "$ref": "#/$defs/propertyTypeReference"
-                    },
-                    "minItems": {
-                      "type": "integer",
-                      "minimum": 0
-                    },
-                    "maxItems": {
-                      "type": "integer",
-                      "minimum": 0
-                    }
-                  },
-                  "required": ["type", "items"],
-                  "additionalProperties": false
-                }
-              ]
+              "required": ["type", "items"],
+              "additionalProperties": false
             }
-          },
-          "minimumProperties": 1
-        },
-        "required": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "uri"
-          }
+          ]
         }
       },
-      "required": ["type", "properties"],
-      "additionalProperties": false
+      "minimumProperties": 1
     },
     "propertyTypeReference": {
       "type": "object",
@@ -149,6 +106,43 @@
       },
       "required": ["$ref"],
       "additionalProperties": false
+    },
+    "linkTypeObject": {
+      "type": "object",
+      "propertyNames": {
+        "$comment": "Property names must be a valid URI to a Property Type",
+        "type": "string",
+        "format": "uri"
+      },
+      "patternProperties": {
+        ".*": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "const": "array"
+                },
+                "ordered": { "type": "boolean", "default": false },
+                "minItems": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "maxItems": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": ["type", "ordered"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
     }
   }
 }
