@@ -175,10 +175,10 @@ impl Modify for MergeAddon {
 
 /// Addon to allow external references in schemas.
 ///
-/// Any component that starts with `EXTERNAL_` will transform into a relative URL in the schema and
+/// Any component that starts with `VAR_` will transform into a relative URL in the schema and
 /// receive a `.json` ending.
 ///
-/// For example the `EXTERNAL_Entity` component will be transformed into `./models/Entity.json`
+/// For example the `VAR_Entity` component will be transformed into `./models/Entity.json`
 struct ExternalRefAddon;
 
 impl Modify for ExternalRefAddon {
@@ -227,7 +227,7 @@ fn modify_schema_references(schema_component: &mut openapi::Component) {
 }
 
 fn modify_reference(reference: &mut openapi::Ref) {
-    static REF_PREFIX: &str = "#/components/schemas/EXTERNAL_";
+    static REF_PREFIX: &str = "#/components/schemas/VAR_";
 
     if reference.ref_location.starts_with(REF_PREFIX) {
         reference

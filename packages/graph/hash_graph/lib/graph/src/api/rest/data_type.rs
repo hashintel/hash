@@ -51,7 +51,7 @@ impl RoutedResource for DataTypeResource {
 
 #[derive(Serialize, Deserialize, Component)]
 struct CreateDataTypeRequest {
-    #[component(value_type = EXTERNAL_DATA_TYPE)]
+    #[component(value_type = VAR_DATA_TYPE)]
     schema: DataType,
     account_id: AccountId,
 }
@@ -62,7 +62,7 @@ struct CreateDataTypeRequest {
     request_body = CreateDataTypeRequest,
     tag = "DataType",
     responses(
-        (status = 201, content_type = "application/json", description = "The schema of the created data type", body = EXTERNAL_DATA_TYPE),
+        (status = 201, content_type = "application/json", description = "The schema of the created data type", body = VAR_DATA_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create data type in the store as the base data type URI already exists"),
@@ -103,7 +103,7 @@ async fn create_data_type<P: GraphPool>(
     path = "/data-types/{uri}",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the requested data type", body = EXTERNAL_DATA_TYPE),
+        (status = 200, content_type = "application/json", description = "The schema of the requested data type", body = VAR_DATA_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Data type was not found"),
@@ -124,7 +124,7 @@ async fn get_data_type<P: GraphPool>(
 
 #[derive(Component, Serialize, Deserialize)]
 struct UpdateDataTypeRequest {
-    #[component(value_type = EXTERNAL_DATA_TYPE)]
+    #[component(value_type = VAR_DATA_TYPE)]
     schema: DataType,
     account_id: AccountId,
 }
@@ -134,7 +134,7 @@ struct UpdateDataTypeRequest {
     path = "/data-types",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the updated data type", body = EXTERNAL_DATA_TYPE),
+        (status = 200, content_type = "application/json", description = "The schema of the updated data type", body = VAR_DATA_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base data type ID was not found"),

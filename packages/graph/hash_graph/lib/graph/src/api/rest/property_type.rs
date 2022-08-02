@@ -54,7 +54,7 @@ impl RoutedResource for PropertyTypeResource {
 
 #[derive(Serialize, Deserialize, Component)]
 struct CreatePropertyTypeRequest {
-    #[component(value_type = EXTERNAL_PROPERTY_TYPE)]
+    #[component(value_type = VAR_PROPERTY_TYPE)]
     schema: PropertyType,
     account_id: AccountId,
 }
@@ -65,7 +65,7 @@ struct CreatePropertyTypeRequest {
     request_body = CreatePropertyTypeRequest,
     tag = "PropertyType",
     responses(
-        (status = 201, content_type = "application/json", description = "The schema of the created property type", body = EXTERNAL_PROPERTY_TYPE),
+        (status = 201, content_type = "application/json", description = "The schema of the created property type", body = VAR_PROPERTY_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create property type in the store as the base property type ID already exists"),
@@ -106,7 +106,7 @@ async fn create_property_type<P: GraphPool>(
     path = "/property-types/{uri}",
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the requested property type", body = EXTERNAL_PROPERTY_TYPE),
+        (status = 200, content_type = "application/json", description = "The schema of the requested property type", body = VAR_PROPERTY_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Property type was not found"),
@@ -127,7 +127,7 @@ async fn get_property_type<P: GraphPool>(
 
 #[derive(Component, Serialize, Deserialize)]
 struct UpdatePropertyTypeRequest {
-    #[component(value_type = EXTERNAL_PROPERTY_TYPE)]
+    #[component(value_type = VAR_PROPERTY_TYPE)]
     schema: PropertyType,
     account_id: AccountId,
 }
@@ -137,7 +137,7 @@ struct UpdatePropertyTypeRequest {
     path = "/property-types",
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the updated property type", body = EXTERNAL_PROPERTY_TYPE),
+        (status = 200, content_type = "application/json", description = "The schema of the updated property type", body = VAR_PROPERTY_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base property type ID was not found"),
