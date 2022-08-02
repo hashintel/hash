@@ -89,7 +89,7 @@ export class ComponentView implements NodeView<Schema> {
   constructor(
     private node: ProsemirrorNode<Schema>,
     private readonly editorView: EditorView<Schema>,
-    private readonly getPos: () => number,
+    private readonly getPos: () => number | undefined,
     private readonly renderPortal: RenderPortal,
     private readonly meta: HashBlockMeta,
     private readonly manager: ProsemirrorManager,
@@ -237,8 +237,16 @@ export class ComponentView implements NodeView<Schema> {
     return entity;
   }
 
+  private isNodeInDoc() {
+    return typeof this.getPos() === "number";
+  }
+
   private getBlockDraftId() {
-    return this.editorView.state.doc.resolve(this.getPos()).node(2).attrs
+    if (!this.isNodeInDoc()) {
+      throw new Error("Component has been removed from doc");
+    }
+
+    return this.editorView.state.doc.resolve(this.getPos()!).node(2).attrs
       .draftId;
   }
 
@@ -265,7 +273,7 @@ export class ComponentView implements NodeView<Schema> {
     const state = this.editorView.state;
     let tr: Transaction<Schema> | null = null;
 
-    if (editableNode) {
+    if (editableNode && this.isNodeInDoc()) {
       const childEntity = getBlockChildEntity(
         this.getBlockDraftId(),
         this.store,
