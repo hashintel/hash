@@ -7,6 +7,7 @@ import {
   EditorState,
   NodeSelection,
   Plugin,
+  TextSelection,
   Transaction,
 } from "prosemirror-state";
 import { Mapping } from "prosemirror-transform";
@@ -171,7 +172,18 @@ const prepareCommandForWrappedEntities =
             store,
           );
 
-          if (childEntity && isTextEntity(childEntity)) {
+          const selection: TextSelection | null =
+            (state.selection as any) instanceof TextSelection
+              ? state.selection
+              : null;
+          const cursorPos = selection?.$cursor?.pos;
+
+          const inNode =
+            typeof cursorPos === "number" &&
+            cursorPos >= pos &&
+            cursorPos < pos + node.nodeSize;
+
+          if (inNode || (childEntity && isTextEntity(childEntity))) {
             const range = getRangeForNodeAtMappedPosition(pos, node, tr);
 
             if (!range) {
@@ -179,7 +191,6 @@ const prepareCommandForWrappedEntities =
             }
 
             const wrapperNodes: ProsemirrorNode<Schema>[] = [];
-
             const $originalStart = state.doc.resolve(pos);
 
             for (let depth = $originalStart.depth; depth > 0; depth--) {
