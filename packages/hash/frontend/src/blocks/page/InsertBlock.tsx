@@ -75,6 +75,8 @@ export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
         anchorPosition={contextMenu ?? undefined}
         sx={{
           [`& .${popoverClasses.paper}`]: {
+            width: 340,
+            height: 400,
             overflow: "visible",
           },
         }}
