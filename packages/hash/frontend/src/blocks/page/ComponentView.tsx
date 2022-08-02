@@ -241,12 +241,16 @@ export class ComponentView implements NodeView<Schema> {
     return typeof this.getPos() === "number";
   }
 
-  private getBlockDraftId() {
+  private mustGetPos() {
     if (!this.isNodeInDoc()) {
       throw new Error("Component has been removed from doc");
     }
 
-    return this.editorView.state.doc.resolve(this.getPos()!).node(2).attrs
+    return this.getPos()!;
+  }
+
+  private getBlockDraftId() {
+    return this.editorView.state.doc.resolve(this.mustGetPos()).node(2).attrs
       .draftId;
   }
 
@@ -313,7 +317,7 @@ export class ComponentView implements NodeView<Schema> {
       if (this.wasSuggested) {
         tr ??= state.tr;
         tr.setSelection(
-          TextSelection.create<Schema>(state.doc, this.getPos() + 1),
+          TextSelection.create<Schema>(state.doc, this.mustGetPos() + 1),
         );
 
         this.wasSuggested = false;
