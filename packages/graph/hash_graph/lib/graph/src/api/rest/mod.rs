@@ -98,7 +98,7 @@ pub fn rest_api_router<P: GraphPool>(store: Arc<P>) -> Router {
             get({
                 let doc = open_api_doc;
                 move || async { Json(doc) }
-            })).route("/models/*path", get(serve_static_schemas)),
+            })).route("/models/*path", get(serve_static_schema)),
         )
 }
 
@@ -106,7 +106,7 @@ pub fn rest_api_router<P: GraphPool>(store: Arc<P>) -> Router {
     clippy::unused_async,
     reason = "This route does not need async capabilities, but axum requires it in trait bounds."
 )]
-async fn serve_static_schemas(Path(path): Path<String>) -> Result<Response, StatusCode> {
+async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, StatusCode> {
     let path = path.trim_start_matches('/');
 
     match STATIC_SCHEMAS.get_file(path) {
