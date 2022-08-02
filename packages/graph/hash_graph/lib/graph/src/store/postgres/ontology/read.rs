@@ -22,8 +22,9 @@ where
 
     async fn get(&self, uri: &'i VersionedUri) -> Result<Self::Output, QueryError> {
         let version = i64::from(uri.version());
-        // SAFETY: We insert a table name here, but `T::table()` is only accessible from within this
-        //   module.
+        // Generally bad practice to construct a query without preparation, but it's not possible to
+        // pass a table name as a parameter and `T::table()` is well-defined, so this is a safe
+        // usage.
         let row = self
             .as_client()
             .query_one(
@@ -60,8 +61,9 @@ where
     type Output = Vec<T>;
 
     async fn get(&self, _: AllLatest) -> Result<Self::Output, QueryError> {
-        // SAFETY: We insert a table name here, but `T::table()` is only accessible from within this
-        //   module.
+        // Generally bad practice to construct a query without preparation, but it's not possible to
+        // pass a table name as a parameter and `T::table()` is well-defined, so this is a safe
+        // usage.
         let row_stream = self
             .as_client()
             .query_raw(
