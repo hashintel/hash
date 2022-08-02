@@ -410,7 +410,9 @@ pub trait LinkStore {
         created_by: AccountId,
     ) -> Result<(), InsertionError>;
 
-    /// Get [`Links`] of an [`Entity`] identified by an [`EntityId`].
+    /// Get one or multiple [`Link`]s of an [`Entity`] specified by `identifier`.
+    ///
+    /// Depending on the `identifier` the output is specified by [`Read::Output`].
     ///
     /// # Errors
     ///
