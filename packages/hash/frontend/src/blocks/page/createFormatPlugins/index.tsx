@@ -104,6 +104,13 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
           const state = view.state;
 
           /**
+           * Hide tooltip if in readonly mode
+           */
+          if (!view.props.editable?.(state)) {
+            return;
+          }
+
+          /**
            * We don't always want to display a format tooltip – i.e, when
            * the view isn't focused, when we're dragging and dropping, if
            * you're got an entire node selection, or the text selected is
