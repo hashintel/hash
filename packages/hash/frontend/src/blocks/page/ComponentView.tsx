@@ -245,9 +245,9 @@ export class ComponentView implements NodeView<Schema> {
   private onBlockLoaded = () => {
     /**
      * After two calls to setImmediate, we know the block will have had the
-     * chance to initiate an editable section and thereby become selected if
-     * initiated via the suggester. If it hasn't happened in that time, we want
-     * to expire the opportunity to become automatically selected.
+     * chance to initiate an editable section and thereby claim the cursor if
+     * inserted via the suggester. If it hasn't happened in that time, we want
+     * to expire the opportunity to claim the cursor.
      *
      * @todo find a better way of knowing there's been the opportunity for
      *       this which doesn't depend on timing
