@@ -30,7 +30,8 @@ export const getBlockDomId = (blockEntityId: string) =>
 export class BlockView implements NodeView<Schema> {
   dom: HTMLDivElement;
   selectContainer: HTMLDivElement;
-  insertBlockContainer: HTMLDivElement;
+  insertBlockBottomContainer: HTMLDivElement;
+  insertBlockTopContainer?: HTMLDivElement;
   contentDOM: HTMLDivElement;
 
   allowDragging = false;
@@ -90,14 +91,31 @@ export class BlockView implements NodeView<Schema> {
     this.dom.appendChild(this.contentDOM);
     this.contentDOM.classList.add(styles.Block__Content!);
 
-    this.insertBlockContainer = document.createElement("div");
-    this.dom.appendChild(this.insertBlockContainer);
-    this.insertBlockContainer.classList.add(styles.Block__InsertBlock!);
-    this.insertBlockContainer.contentEditable = "false";
-    this.renderPortal(
-      <InsertBlock onBlockSuggesterChange={this.onBlockInsert} />,
-      this.insertBlockContainer,
+    this.insertBlockBottomContainer = document.createElement("div");
+    this.dom.appendChild(this.insertBlockBottomContainer);
+    this.insertBlockBottomContainer.classList.add(
+      styles.Block__InsertBlock!,
+      styles.Block__InsertBlock__Bottom!,
     );
+    this.insertBlockBottomContainer.contentEditable = "false";
+    this.renderPortal(
+      <InsertBlock onBlockSuggesterChange={this.onBlockInsert(true)} />,
+      this.insertBlockBottomContainer,
+    );
+
+    if (getPos() === 0) {
+      this.insertBlockTopContainer = document.createElement("div");
+      this.dom.appendChild(this.insertBlockTopContainer);
+      this.insertBlockTopContainer.classList.add(
+        styles.Block__InsertBlock!,
+        styles.Block__InsertBlock__Top!,
+      );
+      this.insertBlockTopContainer.contentEditable = "false";
+      this.renderPortal(
+        <InsertBlock onBlockSuggesterChange={this.onBlockInsert(false)} />,
+        this.insertBlockTopContainer,
+      );
+    }
 
     this.store = entityStorePluginState(editorView.state).store;
     this.unsubscribe = subscribeToEntityStore(this.editorView, (store) => {
@@ -156,7 +174,8 @@ export class BlockView implements NodeView<Schema> {
       return record.attributeName === "class" || record.attributeName === "id";
     } else if (
       this.selectContainer.contains(record.target) ||
-      this.insertBlockContainer.contains(record.target)
+      this.insertBlockBottomContainer.contains(record.target) ||
+      this.insertBlockTopContainer?.contains(record.target)
     ) {
       return true;
     }
@@ -244,6 +263,10 @@ export class BlockView implements NodeView<Schema> {
       blockDraftId ?? undefined,
     );
 
+    if (this.insertBlockTopContainer && this.getPos() !== 0) {
+      this.insertBlockTopContainer.remove();
+    }
+
     return true;
   }
 
@@ -283,20 +306,24 @@ export class BlockView implements NodeView<Schema> {
       });
   };
 
-  onBlockInsert = (variant: BlockVariant, blockMeta: HashBlockMeta) => {
-    const { editorView, getPos } = this;
+  onBlockInsert =
+    (insertBelow = true) =>
+    (variant: BlockVariant, blockMeta: HashBlockMeta) => {
+      const { editorView, getPos } = this;
 
-    const position = editorView.state.doc.resolve(getPos());
-    const newPosition = position.posAtIndex(position.index(0) + 1);
+      const position = editorView.state.doc.resolve(getPos());
+      const newPosition = position.posAtIndex(
+        position.index(0) + (insertBelow ? 1 : 0),
+      );
 
-    this.manager
-      .replaceRange(blockMeta.componentId, variant, newPosition, newPosition)
-      .then(({ tr }) => {
-        editorView.dispatch(tr);
-      })
-      .catch((err) => {
-        // eslint-disable-next-line no-console -- TODO: consider using logger
-        console.error(err);
-      });
-  };
+      this.manager
+        .replaceRange(blockMeta.componentId, variant, newPosition, newPosition)
+        .then(({ tr }) => {
+          editorView.dispatch(tr);
+        })
+        .catch((err) => {
+          // eslint-disable-next-line no-console -- TODO: consider using logger
+          console.error(err);
+        });
+    };
 }

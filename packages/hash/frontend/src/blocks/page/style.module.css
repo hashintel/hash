@@ -66,10 +66,17 @@
 }
 
 .Block__InsertBlock {
-  top: 100%;
   width: 100%;
   max-width: 1200px;
   position: absolute;
   height: 30px;
   margin-left: 32px;
+}
+
+.Block__InsertBlock__Bottom {
+  top: 100%;
+}
+
+.Block__InsertBlock__Top {
+  bottom: 100%;
 }
