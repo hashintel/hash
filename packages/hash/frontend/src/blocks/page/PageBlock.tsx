@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
-import { useLayoutEffect, useRef, FunctionComponent } from "react";
+import { useLayoutEffect, useRef, FunctionComponent, useEffect } from "react";
 import { useLocalstorageState } from "rooks";
 
 import { Button } from "@hashintel/hash-design-system";
@@ -71,6 +71,12 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       connection: connection ?? null,
       manager,
     };
+
+    setTimeout(() => {
+      if (prosemirrorSetup.current && "readonly" in router.query) {
+        prosemirrorSetup.current?.manager.setReadonlyMode();
+      }
+    }, 1000);
 
     return () => {
       // @todo how does this work with portals?

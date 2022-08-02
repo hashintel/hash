@@ -1,6 +1,7 @@
 import { ReactNode, FunctionComponent } from "react";
 import { Box, Fade, styled, Tooltip } from "@mui/material";
 import { IconButton } from "@hashintel/hash-design-system";
+import { useRouter } from "next/router";
 import { HEADER_HEIGHT } from "./layout-with-header/page-header";
 import {
   PageSidebar,
@@ -15,6 +16,9 @@ const Main = styled("main")(({ theme }) => ({
   overflowY: "auto",
   flexGrow: 1,
   padding: "56px 80px",
+  maxWidth: 1200,
+  marginLeft: "auto",
+  marginRight: "auto",
   transition: theme.transitions.create("margin", {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
@@ -31,6 +35,9 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
   banner,
 }) => {
   const { openSidebar, sidebarOpen } = useSidebarContext();
+  const router = useRouter();
+
+  const isReadonly = "readonly" in router.query;
 
   return (
     <LayoutWithHeader>
@@ -40,7 +47,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
           position: "relative",
         }}
       >
-        <PageSidebar />
+        {!isReadonly && <PageSidebar />}
 
         <Box
           sx={(theme) => ({
