@@ -271,6 +271,15 @@ export class ProsemirrorManager {
     view.dispatch(tr);
   }
 
+  /**
+   * The purpose of this is to render a component specified by a targetComponentId
+   * with a block specified by a draftBlockId. It may update the block data if
+   * a specific variant of the component is specified.
+   *
+   * Mostly it just works out if the draftBlockId and targetComponentId are
+   * compatible, and creates a new block if not, and then renders with the
+   * relevant data.
+   */
   async createBlock(
     targetComponentId: string,
     draftBlockId: string | null,
