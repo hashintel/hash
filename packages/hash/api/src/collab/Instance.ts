@@ -577,7 +577,7 @@ export class Instance {
       let updates = this.updates.slice(startIndex);
 
       const storeUpdateIndex = updates.findIndex(
-        (update): update is StoreUpdate => update.type === "store",
+        (update) => update.type === "store",
       );
 
       let storeUpdate: StoreUpdate | null = null;
@@ -592,9 +592,15 @@ export class Instance {
       if (storeUpdateIndex > -1) {
         if (storeUpdateIndex > 0) {
           updates = updates.slice(0, storeUpdateIndex);
+        } else if (
+          updates
+            .slice(storeUpdateIndex)
+            .every((update) => update.type === "store")
+        ) {
+          storeUpdate = updates[updates.length - 1] as StoreUpdate;
+          updates = [];
         } else {
-          storeUpdate = (updates[storeUpdateIndex] ??
-            null) as StoreUpdate | null;
+          storeUpdate = updates[storeUpdateIndex] as StoreUpdate;
         }
       }
 
@@ -611,7 +617,7 @@ export class Instance {
         clientIDs: steps.map((step) => this.clientIds.get(step)),
         store: storeUpdate?.payload.store,
         actions,
-        shouldRespondImmediately: updates.length > 0,
+        shouldRespondImmediately: updates.length > 0 || storeUpdate,
         nextVersion: storeUpdate?.payload.version,
       };
     } catch (err) {
