@@ -3,13 +3,13 @@ use error_stack::{IntoReport, Report, Result, ResultExt};
 use tokio_postgres::GenericClient;
 
 use crate::{
-    knowledge::{EntityId, Links, Outgoing},
+    knowledge::{EntityId, Link, Links, Outgoing},
     ontology::types::uri::VersionedUri,
     store::{crud, AsClient, PostgresStore, QueryError},
 };
 
 #[async_trait]
-impl<C: AsClient> crud::Read<'_, EntityId, Links> for PostgresStore<C> {
+impl<C: AsClient> crud::Read<'_, EntityId, Link> for PostgresStore<C> {
     type Output = Links;
 
     async fn get(&self, identifier: EntityId) -> Result<Self::Output, QueryError> {
@@ -65,7 +65,7 @@ impl<C: AsClient> crud::Read<'_, EntityId, Links> for PostgresStore<C> {
 }
 
 #[async_trait]
-impl<'i, C: AsClient> crud::Read<'i, (EntityId, &'i VersionedUri), Links> for PostgresStore<C> {
+impl<'i, C: AsClient> crud::Read<'i, (EntityId, &'i VersionedUri), Link> for PostgresStore<C> {
     type Output = Outgoing;
 
     async fn get(

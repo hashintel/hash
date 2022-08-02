@@ -14,7 +14,7 @@ use graph::{
     },
     store::{
         error::LinkActivationError, AsClient, DatabaseConnectionInfo, DatabaseType, InsertionError,
-        PostgresStore, PostgresStorePool, QueryError, Store, StorePool, UpdateError,
+        LinkStore, PostgresStore, PostgresStorePool, QueryError, Store, StorePool, UpdateError,
     },
 };
 use tokio_postgres::{NoTls, Transaction};
