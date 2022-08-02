@@ -108,6 +108,18 @@ export class ComponentView implements NodeView<Schema> {
       this.update(this.node);
     });
 
+    /**
+     * If this block was inserted by the suggester, we may want to update the
+     * cursor to within this block once its loaded, if it turns out to be a
+     * text block, so we "remember" that the block was inserted by the suggester.
+     * However, we also want to clear the suggester state as we have "claimed"
+     * the suggested position, and it makes it less likely the cursor will
+     * accidentally be claimed by the wrong block if something changes block
+     * positions in unexpected ways.
+     *
+     * @note This is cleared in `onBlockLoaded` if the cursor isn't claimed in
+     *       time
+     */
     this.wasSuggested =
       suggesterPluginKey.getState(this.editorView.state)
         ?.suggestedBlockPosition === this.getPos();
