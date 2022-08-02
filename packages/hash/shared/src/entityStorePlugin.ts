@@ -375,9 +375,7 @@ const updateEntityStoreListeners = collect<
         listeners.delete(listener);
       }
     } else {
-      if (!listeners) {
-        listeners = new Set();
-      }
+      listeners ??= new Set();
 
       listeners.add(listener);
     }
