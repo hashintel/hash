@@ -43,7 +43,7 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
     ]
 }
 
-async fn read_from_store<'pool, 'id: 'pool, T, O, P, I>(
+async fn read_from_store<'pool, 'id: 'pool, T, P, I, O>(
     pool: &'pool P,
     identifier: I,
 ) -> Result<O, StatusCode>
