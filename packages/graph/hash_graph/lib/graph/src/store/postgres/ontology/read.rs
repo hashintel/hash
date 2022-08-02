@@ -64,10 +64,12 @@ where
             .query_raw(
                 &format!(
                     r#"
-                    SELECT schema
-                    FROM {};
+                    SELECT DISTINCT ON(base_uri) schema
+                    FROM {table}
+                    INNER JOIN ids ON ids.version_id = {table}.version_id
+                    ORDER BY base_uri, version DESC;
                     "#,
-                    T::table()
+                    table = T::table()
                 ),
                 [] as [&(dyn ToSql + Sync); 0],
             )

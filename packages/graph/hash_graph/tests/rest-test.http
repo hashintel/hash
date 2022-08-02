@@ -59,7 +59,7 @@ GET http://127.0.0.1:3000/data-types
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.length === 2, "Unexpected number of data types");
+        client.assert(response.body.length === 1, "Unexpected number of data types");
     });
 %}
 
@@ -129,7 +129,7 @@ GET http://127.0.0.1:3000/property-types
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.length === 2, "Unexpected number of property types");
+        client.assert(response.body.length === 1, "Unexpected number of property types");
     });
 %}
 
@@ -195,7 +195,7 @@ GET http://127.0.0.1:3000/link-types
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.length === 2, "Unexpected number of link types");
+        client.assert(response.body.length === 1, "Unexpected number of link types");
     });
 %}
 
@@ -277,7 +277,7 @@ GET http://127.0.0.1:3000/entity-types
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.length === 2, "Unexpected number of entity types");
+        client.assert(response.body.length === 1, "Unexpected number of entity types");
     });
 %}
 
