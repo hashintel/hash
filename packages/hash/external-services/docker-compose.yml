@@ -31,9 +31,8 @@ services:
     # volumes:
     #   - ../../../var/external-services/opensearch/data:/usr/share/opensearch/data
 
-  hash-dev-postgres:
-    build:
-      context: ./postgres
+  postgres:
+    image: postgres:14-alpine
     deploy:
       restart_policy:
         condition: on-failure
@@ -43,10 +42,11 @@ services:
     environment:
       - PGDATA=/data/pgdata
     ports:
-      - 5432:5432
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - ../../../var/external-services/postgres/data:/data
-
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./postgres/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh
   hash-dev-redis:
     deploy:
       restart_policy:
@@ -54,3 +54,35 @@ services:
     image: redis:6.2
     ports:
       - 6379:6379
+  kratos-migrate:
+    depends_on:
+      - postgres
+    image: oryd/kratos:v0.10.1
+    volumes:
+      - type: bind
+        source: ./kratos
+        target: /etc/config/kratos
+    environment:
+      - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DATABASE}
+    command: -c /etc/config/kratos/kratos.yml migrate sql -e --yes
+  kratos:
+    depends_on:
+      - kratos-migrate
+    image: oryd/kratos:v0.10.1
+    ports:
+      - "4433:4433" # public
+      - "4434:4434" # admin
+    restart: unless-stopped
+    environment:
+      - DSN=postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DATABASE}
+      - LOG_LEVEL=trace
+    command: serve -c /etc/config/kratos/kratos.yml --dev --watch-courier
+    volumes:
+      - type: bind
+        source: ./kratos
+        target: /etc/config/kratos
+  mailslurper:
+    image: oryd/mailslurper:latest-smtps
+    ports:
+      - "4436:4436"
+      - "4437:4437"
