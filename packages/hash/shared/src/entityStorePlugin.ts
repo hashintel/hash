@@ -4,13 +4,18 @@ import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
-import { BlockEntity, isDraftTextContainingEntityProperties } from "./entity";
+import {
+  BlockEntity,
+  getEntityChildEntity,
+  isDraftTextContainingEntityProperties,
+  isTextEntity,
+} from "./entity";
 import {
   createEntityStore,
   DraftEntity,
-  getDraftEntityFromEntityId,
   EntityStore,
   EntityStoreType,
+  getDraftEntityByEntityId,
   isBlockEntity,
   isDraftBlockEntity,
 } from "./entityStore";
@@ -21,8 +26,8 @@ import {
   findComponentNodes,
   isComponentNode,
   isEntityNode,
-  textBlockNodeToEntityProperties,
 } from "./prosemirror";
+import { textBlockNodeToEntityProperties } from "./text";
 import { collect } from "./util";
 
 type EntityStorePluginStateListener = (store: EntityStore) => void;
@@ -30,7 +35,6 @@ type EntityStorePluginStateListener = (store: EntityStore) => void;
 export type TrackedAction = { action: EntityStorePluginAction; id: string };
 type EntityStorePluginState = {
   store: EntityStore;
-  listeners: EntityStorePluginStateListener[];
   trackedActions: TrackedAction[];
 };
 
@@ -56,8 +60,6 @@ export type EntityStorePluginAction = { received?: boolean } & (
       };
     }
   | { type: "store"; payload: EntityStore }
-  | { type: "subscribe"; payload: EntityStorePluginStateListener }
-  | { type: "unsubscribe"; payload: EntityStorePluginStateListener }
   | {
       type: "updateEntityProperties";
       payload: {
@@ -79,6 +81,11 @@ export type EntityStorePluginAction = { received?: boolean } & (
       payload: { blockEntityDraftId: string; targetEntity: EntityStoreType };
     }
 );
+
+const EntityStoreListeners = new WeakMap<
+  Plugin<EntityStorePluginState, Schema>,
+  Set<EntityStorePluginStateListener>
+>();
 
 const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
   "entityStore",
@@ -126,8 +133,8 @@ export const entityStorePluginStateFromTransaction = (
  * Do NOT change the entity's draftId mid-session - leave it as fake.
  * If you need to recall the entity's draftId, use mustGetDraftEntityForEntityId
  */
-export const createDraftIdForEntity = (entityId: string | null) =>
-  entityId ? `draft-${entityId}` : `fake-${uuid()}`;
+export const generateDraftIdForEntity = (entityId: string | null) =>
+  entityId ? `draft-${entityId}-${uuid()}` : `fake-${uuid()}`;
 
 /**
  * As we're not yet working with a totally flat entity store, the same
@@ -180,7 +187,7 @@ const swapBlockData = (
   blockEntityDraftId: string,
   targetEntity: EntityStoreType,
 ) => {
-  let targetDraftEntity = getDraftEntityFromEntityId(
+  let targetDraftEntity = getDraftEntityByEntityId(
     draftEntityStore,
     targetEntity.entityId,
   );
@@ -189,7 +196,7 @@ const swapBlockData = (
   // present there
   // @todo consider moving this to ProseMirrorSchemaManager.updateBlockData
   if (!targetDraftEntity) {
-    const targetEntityDraftId = createDraftIdForEntity(targetEntity.entityId);
+    const targetEntityDraftId = generateDraftIdForEntity(targetEntity.entityId);
     targetDraftEntity = {
       accountId: targetEntity.accountId,
       draftId: targetEntityDraftId,
@@ -245,20 +252,6 @@ const entityStoreReducer = (
         trackedActions: [],
       };
     }
-
-    case "subscribe":
-      return {
-        ...state,
-        listeners: Array.from(new Set([...state.listeners, action.payload])),
-      };
-
-    case "unsubscribe":
-      return {
-        ...state,
-        listeners: state.listeners.filter(
-          (listener) => listener !== action.payload,
-        ),
-      };
 
     case "updateEntityProperties": {
       if (!state.store.draft[action.payload.draftId]) {
@@ -368,25 +361,28 @@ const updateEntityStoreListeners = collect<
     unsubscribe: boolean | undefined | void,
   ]
 >((updates) => {
-  const transactions = new Map<EditorView<Schema>, Transaction<Schema>>();
-
   for (const [view, listener, unsubscribe] of updates) {
-    if (!transactions.has(view)) {
-      const { tr } = view.state;
-      tr.setMeta("addToHistory", false);
-      transactions.set(view, tr);
+    const plugin = entityStorePluginKey.get(view.state);
+
+    if (!plugin) {
+      throw new Error("Can only trigger on views with the plugin installed");
     }
 
-    const tr = transactions.get(view)!;
+    let listeners = EntityStoreListeners.get(plugin);
 
-    addEntityStoreAction(view.state, tr, {
-      type: unsubscribe ? "unsubscribe" : "subscribe",
-      payload: listener,
-    });
-  }
+    if (unsubscribe) {
+      if (listeners) {
+        listeners.delete(listener);
+      }
+    } else {
+      listeners ??= new Set();
 
-  for (const [view, transaction] of Array.from(transactions.entries())) {
-    view.dispatch(transaction);
+      listeners.add(listener);
+    }
+
+    if (listeners) {
+      EntityStoreListeners.set(plugin, listeners);
+    }
   }
 });
 
@@ -405,11 +401,11 @@ export const subscribeToEntityStore = (
  * Retrieves the draft entity for an entity, given its entityId and the draft store.
  * @throws {Error} if entity not found - use getDraftEntityForEntityId if you don't want an error on missing entities.
  */
-export const mustGetDraftEntityFromEntityId = (
+export const mustGetDraftEntityByEntityId = (
   draftStore: EntityStore["draft"],
   entityId: string,
 ) => {
-  const existingEntity = getDraftEntityFromEntityId(draftStore, entityId);
+  const existingEntity = getDraftEntityByEntityId(draftStore, entityId);
 
   if (!existingEntity) {
     throw new Error("invariant: entity missing from entity store");
@@ -550,30 +546,24 @@ class ProsemirrorStateChangeHandler {
 
   private handlePotentialTextContentChangesInEntityNode(node: EntityNode) {
     const draftEntityStore = this.getDraftEntityStoreFromTransaction();
-    const draftEntity =
-      draftEntityStore[getRequiredDraftIdFromEntityNode(node)];
-
-    if (!draftEntity) {
-      throw new Error("invariant: draft entity missing from store");
-    }
+    const childEntity = getEntityChildEntity(
+      getRequiredDraftIdFromEntityNode(node),
+      draftEntityStore,
+    );
 
     if (
-      "properties" in draftEntity &&
+      isTextEntity(childEntity) &&
       node.firstChild &&
-      node.firstChild.isTextblock
+      isComponentNode(node.firstChild)
     ) {
       const nextProps = textBlockNodeToEntityProperties(node.firstChild);
 
-      if (!isEqual(draftEntity.properties, nextProps)) {
-        /**
-         * @todo this is communicated by the contents of the
-         * prosemirror tree – do we really need to send this too?
-         */
+      if (!isEqual(childEntity.properties, nextProps)) {
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
           payload: {
             merge: false,
-            draftId: draftEntity.draftId,
+            draftId: childEntity.draftId,
             properties: nextProps,
           },
         });
@@ -589,13 +579,13 @@ class ProsemirrorStateChangeHandler {
       : null;
 
     const draftId = entityId
-      ? mustGetDraftEntityFromEntityId(draftEntityStore, entityId).draftId
+      ? mustGetDraftEntityByEntityId(draftEntityStore, entityId).draftId
       : /**
          * @todo this will lead to the frontend setting draft id uuids for
          *   new blocks – this is potentially insecure and needs
          *   considering
          */
-        node.attrs.draftId ?? createDraftIdForEntity(null);
+        node.attrs.draftId ?? generateDraftIdForEntity(null);
 
     if (!draftEntityStore[draftId]) {
       addEntityStoreAction(this.state, this.tr, {
@@ -670,8 +660,12 @@ const scheduleNotifyEntityStoreSubscribers = collect<
 
     // If the plugin state has changed, notify listeners
     if (nextPluginState !== prevPluginState) {
-      for (const listener of nextPluginState.listeners) {
-        listener(nextPluginState.store);
+      const listeners = EntityStoreListeners.get(entityStorePlugin);
+
+      if (listeners) {
+        for (const listener of Array.from(listeners)) {
+          listener(nextPluginState.store);
+        }
       }
     }
   }
@@ -688,7 +682,6 @@ export const createEntityStorePlugin = ({
       init(_): EntityStorePluginState {
         return {
           store: createEntityStore([], {}),
-          listeners: [],
           trackedActions: [],
         };
       },

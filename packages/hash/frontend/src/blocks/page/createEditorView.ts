@@ -1,7 +1,7 @@
-import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { HashBlock } from "@hashintel/hash-shared/blocks";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
-import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 // import applyDevTools from "prosemirror-dev-tools";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
@@ -16,7 +16,7 @@ import { MentionView } from "./MentionView/MentionView";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
 
-export type BlocksMetaMap = Record<string, BlockMeta>;
+export type BlocksMap = Record<string, HashBlock>;
 
 /**
  * An editor view manages the DOM structure that represents an editable document.
@@ -27,9 +27,9 @@ export const createEditorView = (
   renderPortal: RenderPortal,
   accountId: string,
   pageEntityId: string,
-  blocksMeta: BlocksMetaMap,
+  blocks: BlocksMap,
 ) => {
-  let manager: ProsemirrorSchemaManager;
+  let manager: ProsemirrorManager;
 
   const [errorPlugin, onError] = createErrorPlugin(renderPortal);
 
@@ -105,7 +105,7 @@ export const createEditorView = (
       connection?.dispatchTransaction(tr, connection?.state.version ?? 0),
   });
 
-  manager = new ProsemirrorSchemaManager(
+  manager = new ProsemirrorManager(
     state.schema,
     accountId,
     view,
@@ -116,7 +116,14 @@ export const createEditorView = (
         throw new Error("Invalid config for nodeview");
       }
 
-      return new ComponentView(node, editorView, getPos, renderPortal, meta);
+      return new ComponentView(
+        node,
+        editorView,
+        getPos,
+        renderPortal,
+        meta,
+        manager,
+      );
     },
   );
 
@@ -138,20 +145,19 @@ export const createEditorView = (
 
   // prosemirror will use the first node type (per group) for auto-creation.
   // we want this to be the paragraph node type.
-  const blocksMetaArray = Object.values(blocksMeta);
+  const blocksArray = Object.values(blocks);
 
-  const paragraphBlockMeta = blocksMetaArray.find(
-    (blockMeta) =>
-      blockMeta.componentMetadata.name === "@hashintel/block-paragraph",
+  const paragraphBlock = blocksArray.find(
+    (block) => block.meta.name === "@hashintel/block-paragraph",
   );
 
-  if (!paragraphBlockMeta) {
+  if (!paragraphBlock) {
     throw new Error("missing required block-type paragraph");
   }
 
-  /** note that {@link ProsemirrorSchemaManager#defineNewBlock} is idempotent */
-  manager.defineNewBlock(paragraphBlockMeta);
-  blocksMetaArray.forEach((blockMeta) => manager.defineNewBlock(blockMeta));
+  /** note that {@link ProsemirrorManager#defineBlock} is idempotent */
+  manager.defineBlock(paragraphBlock);
+  blocksArray.forEach((block) => manager.defineBlock(block));
 
   // @todo figure out how to use dev tools without it breaking fast refresh
   // applyDevTools(view);
