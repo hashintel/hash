@@ -53,6 +53,16 @@ Accept: application/json
     });
 %}
 
+### Get all data types
+GET http://127.0.0.1:3000/data-types
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.length === 1, "Unexpected number of data types");
+    });
+%}
+
 ### Insert Name property type
 POST http://127.0.0.1:3000/property-types
 Content-Type: application/json
@@ -113,6 +123,16 @@ Accept: application/json
     });
 %}
 
+### Get all property types
+GET http://127.0.0.1:3000/property-types
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.length === 1, "Unexpected number of property types");
+    });
+%}
+
 ### Insert FriendOf link type
 POST http://127.0.0.1:3000/link-types
 Content-Type: application/json
@@ -166,6 +186,16 @@ Accept: application/json
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Get all link types
+GET http://127.0.0.1:3000/link-types
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.length === 1, "Unexpected number of link types");
     });
 %}
 
@@ -238,6 +268,16 @@ Accept: application/json
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Get all entity types
+GET http://127.0.0.1:3000/entity-types
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.length === 1, "Unexpected number of entity types");
     });
 %}
 

@@ -367,8 +367,9 @@ where
         let value = serde_json::to_value(database_type)
             .report()
             .change_context(InsertionError)?;
-        // SAFETY: We insert a table name here, but `T::table()` is only accessible from within this
-        //   module.
+        // Generally bad practice to construct a query without preparation, but it's not possible to
+        // pass a table name as a parameter and `T::table()` is well-defined, so this is a safe
+        // usage.
         self.as_client()
             .query_one(
                 &format!(

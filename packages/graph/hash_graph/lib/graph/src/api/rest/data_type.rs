@@ -18,7 +18,7 @@ use crate::{
         types::{uri::VersionedUri, DataType},
         AccountId,
     },
-    store::{BaseUriAlreadyExists, BaseUriDoesNotExist},
+    store::{crud::AllLatest, BaseUriAlreadyExists, BaseUriDoesNotExist},
     GraphPool,
 };
 
@@ -27,6 +27,7 @@ use crate::{
     handlers(
         create_data_type,
         get_data_type,
+        get_latest_data_types,
         update_data_type
     ),
     components(CreateDataTypeRequest, UpdateDataTypeRequest, AccountId),
@@ -43,7 +44,12 @@ impl RoutedResource for DataTypeResource {
         Router::new().nest(
             "/data-types",
             Router::new()
-                .route("/", post(create_data_type::<P>).put(update_data_type::<P>))
+                .route(
+                    "/",
+                    post(create_data_type::<P>)
+                        .get(get_latest_data_types::<P>)
+                        .put(update_data_type::<P>),
+                )
                 .route("/:version_id", get(get_data_type::<P>)),
         )
     }
@@ -96,6 +102,25 @@ async fn create_data_type<P: GraphPool>(
         })?;
 
     Ok(Json(schema))
+}
+
+#[utoipa::path(
+    get,
+    path = "/data-types",
+    tag = "DataType",
+    responses(
+        (status = 200, content_type = "application/json", description = "List of all data types at their latest versions", body = [DataType]),
+        (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
+
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+async fn get_latest_data_types<P: GraphPool>(
+    pool: Extension<Arc<P>>,
+) -> Result<Json<Vec<DataType>>, StatusCode> {
+    read_from_store::<DataType, _, _, _>(pool.as_ref(), AllLatest)
+        .await
+        .map(Json)
 }
 
 #[utoipa::path(

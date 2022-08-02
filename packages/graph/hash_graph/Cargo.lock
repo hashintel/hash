@@ -398,6 +398,7 @@ dependencies = [
  "bb8-postgres",
  "clap",
  "error-stack",
+ "futures",
  "include_dir",
  "postgres-types",
  "serde",
