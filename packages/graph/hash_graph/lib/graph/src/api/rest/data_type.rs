@@ -109,7 +109,7 @@ async fn create_data_type<P: GraphPool>(
     path = "/data-types",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of the latest version of all data types", body = [DataType]),
+        (status = 200, content_type = "application/json", description = "List of all data types at their latest versions", body = [DataType]),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 500, description = "Store error occurred"),

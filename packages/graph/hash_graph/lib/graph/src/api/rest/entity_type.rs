@@ -111,7 +111,7 @@ async fn create_entity_type<P: GraphPool>(
     path = "/entity-types",
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of the latest version of all entity types", body = [EntityType]),
+        (status = 200, content_type = "application/json", description = "List of all entity types at their latest versions", body = [EntityType]),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 500, description = "Datastore error occurred"),
