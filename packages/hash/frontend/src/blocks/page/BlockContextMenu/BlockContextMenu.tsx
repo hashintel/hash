@@ -1,3 +1,4 @@
+import { areComponentsCompatible } from "@hashintel/hash-shared/blocks";
 import { useRef, forwardRef, useMemo, ForwardRefRenderFunction } from "react";
 
 import { useKey } from "rooks";
@@ -21,6 +22,7 @@ import {
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 
 import { Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { useUserBlocks } from "../../userBlocks";
 import { getBlockDomId } from "../BlockView";
 import { BlockSuggesterProps } from "../createSuggester/BlockSuggester";
 
@@ -34,10 +36,9 @@ type BlockContextMenuProps = {
   blockEntity: BlockEntity | null;
   blockSuggesterProps: BlockSuggesterProps;
   deleteBlock: () => void;
-  entityId: string | null;
   openConfigMenu: () => void;
   popupState: PopupState;
-  swapType: boolean;
+  canSwap: boolean;
 };
 
 const LOAD_BLOCK_ENTITY_UI = "hash-load-entity-ui";
@@ -50,16 +51,24 @@ const BlockContextMenu: ForwardRefRenderFunction<
     blockEntity,
     blockSuggesterProps,
     deleteBlock,
-    entityId,
     openConfigMenu,
     popupState,
-    swapType,
+    canSwap,
   },
   ref,
 ) => {
   const { data: users } = useUsers();
   const setEntityMenuItemRef = useRef<HTMLLIElement>(null);
   const swapBlocksMenuItemRef = useRef<HTMLLIElement>(null);
+  const { value: userBlocks } = useUserBlocks();
+  const currentComponentId = blockEntity?.properties.componentId;
+  const compatibleBlocks = useMemo(() => {
+    return Object.values(userBlocks).filter((block) =>
+      areComponentsCompatible(currentComponentId, block.meta.componentId),
+    );
+  }, [currentComponentId, userBlocks]);
+
+  const entityId = blockEntity?.entityId ?? null;
 
   const menuItems = useMemo(() => {
     const hasChildEntity =
@@ -103,7 +112,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
         icon: <FontAwesomeIcon icon={faTrashCan} />,
         onClick: deleteBlock,
       },
-      ...(swapType
+      ...(canSwap && compatibleBlocks.length > 1
         ? [
             {
               key: "swap-block",
@@ -112,6 +121,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
               subMenu: (
                 <BlockListMenuContent
                   blockSuggesterProps={blockSuggesterProps}
+                  compatibleBlocks={compatibleBlocks}
                 />
               ),
               subMenuWidth: 228,
@@ -146,7 +156,8 @@ const BlockContextMenu: ForwardRefRenderFunction<
     deleteBlock,
     openConfigMenu,
     popupState,
-    swapType,
+    canSwap,
+    compatibleBlocks,
   ]);
 
   useKey(["Escape"], () => {

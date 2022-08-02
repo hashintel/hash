@@ -5,8 +5,8 @@ import {
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
-import { BlockConfig, BlockMeta } from "@hashintel/hash-shared/blockMeta";
-import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
+import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
@@ -58,12 +58,22 @@ export class BlockView implements NodeView<Schema> {
     return draftEntity?.entityId ?? null;
   };
 
+  private getBlockDraftId() {
+    const blockEntityNode = this.node.firstChild;
+
+    if (!blockEntityNode || !isEntityNode(blockEntityNode)) {
+      throw new Error("Unexpected prosemirror structure");
+    }
+
+    return blockEntityNode.attrs.draftId ?? null;
+  }
+
   constructor(
     public node: ProsemirrorNode<Schema>,
     public editorView: EditorView<Schema>,
     public getPos: () => number,
     public renderPortal: RenderPortal,
-    public manager: ProsemirrorSchemaManager,
+    public manager: ProsemirrorManager,
   ) {
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block!);
@@ -184,13 +194,15 @@ export class BlockView implements NodeView<Schema> {
       this.dom.id = getBlockDomId(blockEntityId);
     }
 
+    const blockDraftId = this.getBlockDraftId();
+
     this.renderPortal(
       <BlockViewContext.Provider value={this}>
         <CollabPositionIndicators blockEntityId={blockEntityId} />
         <BlockHandle
           deleteBlock={this.deleteBlock}
-          entityId={blockEntityId}
           entityStore={this.store}
+          draftId={blockDraftId}
           onTypeChange={this.onBlockChange}
           ref={this.blockHandleRef}
           onMouseDown={() => {
@@ -229,7 +241,7 @@ export class BlockView implements NodeView<Schema> {
         />
       </BlockViewContext.Provider>,
       this.selectContainer,
-      this.node.firstChild?.attrs.draftId,
+      blockDraftId ?? undefined,
     );
 
     return true;
@@ -252,7 +264,7 @@ export class BlockView implements NodeView<Schema> {
     });
   };
 
-  onBlockChange = (variant: BlockVariant, meta: BlockConfig) => {
+  onBlockChange = (variant: BlockVariant, meta: HashBlockMeta) => {
     const { node, editorView, getPos } = this;
 
     const state = editorView.state;
@@ -264,32 +276,22 @@ export class BlockView implements NodeView<Schema> {
     }
 
     this.manager
-      .replaceNodeWithRemoteBlock(
-        draftId,
-        meta.componentId,
-        variant,
-        node,
-        getPos(),
-      )
+      .replaceNode(draftId, meta.componentId, variant, node, getPos())
       .catch((err: Error) => {
         // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error(err);
       });
   };
 
-  onBlockInsert = (
-    variant: BlockVariant,
-    blockMeta: BlockMeta["componentMetadata"],
-  ) => {
+  onBlockInsert = (variant: BlockVariant, blockMeta: HashBlockMeta) => {
     const { editorView, getPos } = this;
 
-    const pos = getPos();
+    const position = editorView.state.doc.resolve(getPos());
+    const newPosition = position.posAtIndex(position.index(0) + 1);
 
     this.manager
-      .createRemoteBlockTr(blockMeta.componentId, null, variant)
-      .then(([tr, node]) => {
-        const position = editorView.state.doc.resolve(pos);
-        tr.insert(position.posAtIndex(position.index(0) + 1), node);
+      .replaceRange(blockMeta.componentId, variant, newPosition, newPosition)
+      .then(({ tr }) => {
         editorView.dispatch(tr);
       })
       .catch((err) => {

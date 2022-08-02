@@ -1,7 +1,7 @@
 import { useState, FunctionComponent } from "react";
 import { Box, popoverClasses } from "@mui/material";
 import { Popover } from "@hashintel/hash-design-system/popover";
-import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import type { BlockVariant } from "@blockprotocol/core";
 import { PlusBoxOutlineIcon } from "../../shared/icons/plus-box-outline-icon";
 import { BlockSuggester } from "./createSuggester/BlockSuggester";
@@ -9,7 +9,7 @@ import { BlockSuggester } from "./createSuggester/BlockSuggester";
 type InsertBlockProps = {
   onBlockSuggesterChange: (
     variant: BlockVariant,
-    blockMeta: BlockMeta["componentMetadata"],
+    blockMeta: HashBlockMeta,
   ) => void;
 };
 
@@ -23,11 +23,8 @@ export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
 
   const onCloseSuggester = () => setContextMenu(null);
 
-  const onChange = (
-    variant: BlockVariant,
-    block: BlockMeta["componentMetadata"],
-  ) => {
-    onBlockSuggesterChange(variant, block);
+  const onChange = (variant: BlockVariant, blockMeta: HashBlockMeta) => {
+    onBlockSuggesterChange(variant, blockMeta);
     onCloseSuggester();
   };
 

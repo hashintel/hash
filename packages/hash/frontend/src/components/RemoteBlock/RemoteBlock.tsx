@@ -24,7 +24,6 @@ type RemoteBlockProps = {
   crossFrame?: boolean;
   editableRef?: unknown;
   onBlockLoaded?: () => void;
-  sourceUrl: string;
 };
 
 export const BlockLoadingIndicator: FunctionComponent = () => (
@@ -44,10 +43,9 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
   graphCallbacks,
   graphProperties,
   onBlockLoaded,
-  sourceUrl,
 }) => {
   const [loading, err, blockSource] = useRemoteBlock(
-    sourceUrl,
+    blockMetadata.source,
     crossFrame,
     onBlockLoaded,
   );
@@ -111,7 +109,7 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
           blockSource={blockSource}
           blockType={blockMetadata.blockType}
           properties={propsToInject}
-          sourceUrl={sourceUrl}
+          sourceUrl={blockMetadata.source}
         />
       ) : null}
     </div>

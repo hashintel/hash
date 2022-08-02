@@ -1,19 +1,17 @@
 import type { BlockVariant } from "@blockprotocol/core";
-import {
-  blockComponentRequiresText,
-  BlockMeta,
-} from "@hashintel/hash-shared/blockMeta";
-import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
+import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { Schema } from "prosemirror-model";
 import {
   EditorState,
   Plugin,
   PluginKey,
   TextSelection,
+  Transaction,
 } from "prosemirror-state";
 import { CSSProperties, ReactElement } from "react";
-import { RenderPortal } from "../usePortals";
 import { ensureMounted } from "../../../lib/dom";
+import { RenderPortal } from "../usePortals";
 import { BlockSuggester } from "./BlockSuggester";
 import { MentionSuggester } from "./MentionSuggester";
 
@@ -74,7 +72,10 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   };
 };
 
-type SuggesterAction = { type: "escape" };
+export type SuggesterAction =
+  | { type: "escape" }
+  | { type: "key" }
+  | { type: "suggestedBlock"; payload: { position: number | null } };
 
 interface SuggesterState {
   /** whether or not the suggester is disabled */
@@ -83,13 +84,27 @@ interface SuggesterState {
   trigger: Trigger | null;
   /** whether or not the suggester is currently open */
   isOpen(): boolean;
+
+  suggestedBlockPosition: number | null;
 }
 
 /**
  * used to tag the suggester plugin/make it a singleton
  * @see https://prosemirror.net/docs/ref/#state.PluginKey
  */
-const key = new PluginKey<SuggesterState, Schema>("suggester");
+export const suggesterPluginKey = new PluginKey<SuggesterState, Schema>(
+  "suggester",
+);
+
+const docChangedInTransaction = (tr: Transaction<Schema>) => {
+  const appendedTransaction: Transaction<Schema> | undefined = tr.getMeta(
+    "appendedTransaction",
+  );
+  const meta: SuggesterAction | undefined =
+    appendedTransaction?.getMeta(suggesterPluginKey);
+
+  return tr.docChanged && meta?.type !== "suggestedBlock";
+};
 
 /**
  * Suggester plugin factory
@@ -104,15 +119,16 @@ const key = new PluginKey<SuggesterState, Schema>("suggester");
  */
 export const createSuggester = (
   renderPortal: RenderPortal,
-  getManager: () => ProsemirrorSchemaManager,
+  getManager: () => ProsemirrorManager,
   accountId: string,
 ) =>
   new Plugin<SuggesterState, Schema>({
-    key,
+    key: suggesterPluginKey,
     state: {
       init() {
         return {
           trigger: null,
+          suggestedBlockPosition: null,
           disabled: false,
           isOpen() {
             return this.trigger !== null && !this.disabled;
@@ -121,35 +137,74 @@ export const createSuggester = (
       },
       /** produces a new state from the old state and incoming transactions (cf. reducer) */
       apply(tr, state, _prevEditorState, nextEditorState) {
-        const action: SuggesterAction | undefined = tr.getMeta(key);
+        const action: SuggesterAction | undefined =
+          tr.getMeta(suggesterPluginKey);
 
         switch (action?.type) {
           case "escape":
-            return { ...state, disabled: true };
+            return { ...state, disabled: true, suggestedBlockPosition: null };
+
+          case "key":
+            return { ...state, suggestedBlockPosition: null };
+
+          case "suggestedBlock":
+            return {
+              ...state,
+              suggestedBlockPosition: action.payload.position,
+            };
         }
 
+        /**
+         * If the user has manually moved the cursor since we inserted a block
+         * through the suggester, we want to clear the suggested position so
+         * the cursor can't be unexpectedly moved into a block once it is loaded.
+         *
+         * However, if the user hasn't manually moved the cursor, but the
+         * position of the suggested block has changed for some unknown other
+         * reason (that isn't the user typing elsewhere in the document), then
+         * we want to map it.
+         *
+         * @note it's unclear if it's ever actually possible for the position of
+         *       the block to change in a way that doesn't make us want to clear
+         *       the suggested block position, but it's expected in Prosemirror
+         *       when tracking positions to "map" the position through
+         *       transactions, so we do that here when we don't clear it. This
+         *       helps deal with unknown unknowns/
+         */
+        const suggestedBlockPosition =
+          state.suggestedBlockPosition === null ||
+          tr.selectionSet ||
+          docChangedInTransaction(tr)
+            ? null
+            : tr.mapping.map(state.suggestedBlockPosition);
         const trigger = findTrigger(nextEditorState);
         const disabled = state.disabled && trigger !== null;
 
-        return { ...state, trigger, disabled };
+        return { ...state, trigger, disabled, suggestedBlockPosition };
       },
     },
     props: {
       /** cannot use EditorProps.handleKeyDown because it doesn't capture all keys (notably Enter) */
       handleDOMEvents: {
         keydown(view, event) {
+          const tr = view.state.tr.setMeta(suggesterPluginKey, { type: "key" });
+          let prevented = false;
+
           switch (event.key) {
             // stop prosemirror from handling these keyboard events while the suggester handles them
             case "Enter":
             case "ArrowUp":
             case "ArrowDown":
-              return this.getState(view.state).isOpen();
+              prevented = this.getState(view.state).isOpen();
+              break;
             case "Escape":
-              view.dispatch(view.state.tr.setMeta(key, { type: "escape" }));
-              return false;
-            default:
-              return false;
+              tr.setMeta(suggesterPluginKey, { type: "escape" });
+              break;
           }
+
+          view.dispatch(tr);
+
+          return prevented;
         },
       },
     },
@@ -158,7 +213,7 @@ export const createSuggester = (
 
       return {
         update(view) {
-          const state = key.getState(view.state)!;
+          const state = suggesterPluginKey.getState(view.state)!;
 
           if (!state.isOpen()) return this.destroy!();
 
@@ -171,26 +226,17 @@ export const createSuggester = (
             left: coords.left + document.documentElement.scrollLeft,
           };
 
-          /**
-           * @todo actually create and insert an instance of the selected block
-           *   type variant
-           */
           const onBlockSuggesterChange = (
             variant: BlockVariant,
-            blockMeta: BlockMeta["componentMetadata"],
+            blockConfig: HashBlockMeta,
           ) => {
             getManager()
-              .createRemoteBlockTr(blockMeta.componentId, null, variant)
-              .then(([tr, node, meta]) => {
-                const endPosition = view.state.doc.resolve(to).pos;
-                tr.insert(endPosition, node);
-
-                if (blockComponentRequiresText(meta.componentSchema)) {
-                  tr.setSelection(
-                    TextSelection.create<Schema>(tr.doc, endPosition + 1),
-                  );
-                }
-                tr.replaceWith(from, to, []);
+              .replaceRange(blockConfig.componentId, variant, from, to)
+              .then(({ tr, componentPosition }) => {
+                tr.setMeta(suggesterPluginKey, {
+                  type: "suggestedBlock",
+                  payload: { position: componentPosition },
+                } as SuggesterAction);
 
                 view.dispatch(tr);
               })
