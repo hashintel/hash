@@ -258,8 +258,23 @@ export class EditorConnection {
           version: number;
         };
 
+        // pull out all componentIds and ensure they are defined
+        const componentIds = data.actions?.reduce((acc, curr) => {
+          if (
+            curr.type === "updateEntityProperties" &&
+            isString(curr.payload.properties.componentId) &&
+            !acc.includes(curr.payload.properties.componentId)
+          ) {
+            return acc.concat(curr.payload.properties.componentId);
+          }
+          return acc;
+        }, [] as string[]);
+
+        await this.manager.ensureBlocksDefined(componentIds);
+
         if (this.state.edit) {
           const tr = this.state.edit.tr;
+
           // This also allows an empty object response to act
           // like a polling checkpoint
           let shouldDispatch = false;
@@ -280,20 +295,6 @@ export class EditorConnection {
             }
             shouldDispatch = true;
           }
-
-          // pull out all componentIds and ensure they are defined
-          const componentIds = data.actions?.reduce((acc, curr) => {
-            if (
-              curr.type === "updateEntityProperties" &&
-              isString(curr.payload.properties.componentId) &&
-              !acc.includes(curr.payload.properties.componentId)
-            ) {
-              return acc.concat(curr.payload.properties.componentId);
-            }
-            return acc;
-          }, [] as string[]);
-
-          await this.manager.ensureBlocksDefined(componentIds);
 
           if (data.actions?.length) {
             for (const action of data.actions) {

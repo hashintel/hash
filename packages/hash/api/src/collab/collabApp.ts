@@ -32,7 +32,10 @@ const formatGetEventsResponse = (
   instance: Instance,
   data: Exclude<ReturnType<Instance["getEvents"]>, boolean>,
 ) => ({
-  version: instance.version,
+  version:
+    "nextVersion" in data && typeof data.nextVersion === "number"
+      ? data.nextVersion
+      : instance.version,
   steps: data.steps.map((step) => step.toJSON()),
   clientIDs: data.clientIDs,
   store: data.store,

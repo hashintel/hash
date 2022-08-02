@@ -62,7 +62,7 @@ type StepUpdate = {
 
 type StoreUpdate = {
   type: "store";
-  payload: EntityStore;
+  payload: { store: EntityStore; version: number };
 };
 
 type ActionUpdate = {
@@ -372,7 +372,6 @@ export class Instance {
 
   private updateSavedContents(
     blocks: BlockEntity[],
-    additionalActions: EntityStorePluginAction[] = [],
     draftToEntity: Record<string, string> = {},
   ) {
     if (this.errored) {
@@ -381,11 +380,6 @@ export class Instance {
 
     this.sendUpdates();
     const { tr } = this.state;
-
-    for (const action of additionalActions) {
-      addEntityStoreAction(this.state, tr, action);
-    }
-
     addEntityStoreAction(this.state, tr, {
       type: "mergeNewPageContents",
       payload: {
@@ -402,7 +396,10 @@ export class Instance {
     this.addUpdates([
       {
         type: "store",
-        payload: entityStorePluginState(this.state).store,
+        payload: {
+          store: entityStorePluginState(this.state).store,
+          version: this.version + 1,
+        },
       },
     ]);
     this.sendUpdates();
@@ -483,7 +480,7 @@ export class Instance {
           entityStorePluginState(this.state).store,
         );
 
-        this.updateSavedContents(nextBlocks, [], draftToEntity);
+        this.updateSavedContents(nextBlocks, draftToEntity);
       })
       .catch((err) => {
         this.error(err);
@@ -579,16 +576,33 @@ export class Instance {
       const startIndex = this.updates.length - (this.version - version);
       if (startIndex < 0) return false;
 
-      const updates = this.updates.slice(startIndex);
+      let updates = this.updates.slice(startIndex);
+
+      const storeUpdateIndex = updates.findIndex(
+        (update): update is StoreUpdate => update.type === "store",
+      );
+
+      let storeUpdate: StoreUpdate | null = null;
+
+      /**
+       * As store actions are separated from others right now, the client doesn't
+       * know the order. If collab wasn't being rebuilt, I'd restructure this
+       * to create a single stream of updates. But because it is, it's easier
+       * to just separate store messages from all others by not sending a
+       * store update alongside other updates
+       */
+      if (storeUpdateIndex > -1) {
+        if (storeUpdateIndex > 0) {
+          updates = updates.slice(0, storeUpdateIndex);
+        } else {
+          storeUpdate = (updates[storeUpdateIndex] ??
+            null) as StoreUpdate | null;
+        }
+      }
+
       const steps = updates
         .filter((update): update is StepUpdate => update.type === "step")
         .map((update) => update.payload);
-
-      const store =
-        [...updates]
-          .reverse()
-          .find((update): update is StoreUpdate => update.type === "store")
-          ?.payload ?? null;
 
       const actions = updates
         .filter((update): update is ActionUpdate => update.type === "action")
@@ -597,9 +611,10 @@ export class Instance {
       return {
         steps,
         clientIDs: steps.map((step) => this.clientIds.get(step)),
-        store,
+        store: storeUpdate?.payload.store,
         actions,
         shouldRespondImmediately: updates.length > 0,
+        nextVersion: storeUpdate?.payload.version,
       };
     } catch (err) {
       this.error(err);
