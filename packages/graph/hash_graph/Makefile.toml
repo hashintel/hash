@@ -38,5 +38,7 @@ trap "kill $pid" 0 ERR
 yarn httpyac send --all ${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/tests/rest-test.http
 
 # Side effect: this call generates a `openapitools.json` file, which isn't automatically cleaned up.
-yarn openapi-generator-cli validate -i http://localhost:3000/api-doc/openapi.json
+yarn workspace @hashintel/hash-graph-migrations openapi-generator-cli validate -i http://localhost:3000/api-doc/openapi.json
+# Clean up file manually. It's run in the context of the migrations yarn workspace.
+rm -v ${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/../migrations/openapitools.json
 """
