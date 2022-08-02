@@ -2,8 +2,8 @@ import { BlockMetadata, UnknownRecord } from "@blockprotocol/core";
 import {
   BlockGraphProperties,
   EmbedderGraphMessageCallbacks,
+  useGraphEmbedderService,
 } from "@blockprotocol/graph";
-import { useGraphEmbedderService } from "@blockprotocol/graph/react";
 import { FunctionComponent, useEffect, useRef } from "react";
 import { BlockRenderer } from "./blockRenderer";
 
@@ -82,6 +82,14 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
       });
     }
   }, [graphProperties.linkedAggregations, graphService]);
+
+  useEffect(() => {
+    if (graphService) {
+      graphService.readonly({
+        data: graphProperties.readonly,
+      });
+    }
+  }, [graphProperties.readonly, graphService]);
 
   if (loading) {
     return <BlockLoadingIndicator />;

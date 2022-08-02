@@ -146,6 +146,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
         "entityTypeId",
       ),
       linkedAggregations: convertedLinkedAggregations,
+      readonly: true, // @todo pull this from context
     };
   }, [
     accountId,

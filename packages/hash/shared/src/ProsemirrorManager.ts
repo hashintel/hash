@@ -529,6 +529,17 @@ export class ProsemirrorManager {
   }
 
   /**
+   * @todo add comment
+   */
+  setReadonlyMode() {
+    if (this.view) {
+      this.view.setProps({
+        editable: () => false,
+      });
+    }
+  }
+
+  /**
    * There are a number of common entity store actions necessary to insert
    * a completely new block + its block data entity. This function will do
    * that for you.

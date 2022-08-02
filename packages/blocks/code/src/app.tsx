@@ -17,12 +17,14 @@ type BlockEntityProperties = {
 };
 
 export const App: BlockComponent<BlockEntityProperties> = ({
-  graph: { blockEntity },
+  graph: { blockEntity, readonly },
 }) => {
   const {
     entityId,
     properties: { caption, content, language },
   } = blockEntity;
+
+  console.log({ readonly });
 
   const blockRef = useRef<HTMLDivElement>(null);
   const { graphService } = useGraphBlockService(blockRef);
