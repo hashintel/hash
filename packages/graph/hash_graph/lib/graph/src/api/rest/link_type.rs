@@ -51,7 +51,7 @@ impl RoutedResource for LinkTypeResource {
 
 #[derive(Serialize, Deserialize, Component)]
 struct CreateLinkTypeRequest {
-    #[component(value_type = Any)]
+    #[component(value_type = EXTERNAL_LINK_TYPE)]
     schema: LinkType,
     account_id: AccountId,
 }
@@ -140,7 +140,7 @@ async fn get_link_type<P: GraphPool>(
 
 #[derive(Component, Serialize, Deserialize)]
 struct UpdateLinkTypeRequest {
-    #[component(value_type = Any)]
+    #[component(value_type = EXTERNAL_LINK_TYPE)]
     schema: LinkType,
     account_id: AccountId,
 }

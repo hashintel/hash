@@ -55,7 +55,6 @@ impl RoutedResource for EntityResource {
 
 #[derive(Serialize, Deserialize, Component)]
 struct CreateEntityRequest {
-    #[component(value_type = Any)]
     entity: Entity,
     #[component(value_type = String)]
     entity_type_uri: VersionedUri,
@@ -147,7 +146,6 @@ async fn get_entity<P: GraphPool>(
 
 #[derive(Component, Serialize, Deserialize)]
 struct UpdateEntityRequest {
-    #[component(value_type = Any)]
     entity: Entity,
     entity_id: EntityId,
     #[component(value_type = String)]

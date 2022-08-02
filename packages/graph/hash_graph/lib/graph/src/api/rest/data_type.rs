@@ -51,7 +51,7 @@ impl RoutedResource for DataTypeResource {
 
 #[derive(Serialize, Deserialize, Component)]
 struct CreateDataTypeRequest {
-    #[component(value_type = Any)]
+    #[component(value_type = EXTERNAL_DATA_TYPE)]
     schema: DataType,
     account_id: AccountId,
 }
@@ -140,7 +140,7 @@ async fn get_data_type<P: GraphPool>(
 
 #[derive(Component, Serialize, Deserialize)]
 struct UpdateDataTypeRequest {
-    #[component(value_type = Any)]
+    #[component(value_type = EXTERNAL_DATA_TYPE)]
     schema: DataType,
     account_id: AccountId,
 }

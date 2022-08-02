@@ -54,7 +54,7 @@ impl RoutedResource for EntityTypeResource {
 
 #[derive(Serialize, Deserialize, Component)]
 struct CreateEntityTypeRequest {
-    #[component(value_type = Any)]
+    #[component(value_type = EXTERNAL_ENTITY_TYPE)]
     schema: EntityType,
     account_id: AccountId,
 }
@@ -143,7 +143,7 @@ async fn get_entity_type<P: GraphPool>(
 
 #[derive(Component, Serialize, Deserialize)]
 struct UpdateEntityTypeRequest {
-    #[component(value_type = Any)]
+    #[component(value_type = EXTERNAL_ENTITY_TYPE)]
     schema: EntityType,
     account_id: AccountId,
 }

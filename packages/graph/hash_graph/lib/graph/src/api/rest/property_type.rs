@@ -54,7 +54,7 @@ impl RoutedResource for PropertyTypeResource {
 
 #[derive(Serialize, Deserialize, Component)]
 struct CreatePropertyTypeRequest {
-    #[component(value_type = Any)]
+    #[component(value_type = EXTERNAL_PROPERTY_TYPE)]
     schema: PropertyType,
     account_id: AccountId,
 }
@@ -143,7 +143,7 @@ async fn get_property_type<P: GraphPool>(
 
 #[derive(Component, Serialize, Deserialize)]
 struct UpdatePropertyTypeRequest {
-    #[component(value_type = Any)]
+    #[component(value_type = EXTERNAL_PROPERTY_TYPE)]
     schema: PropertyType,
     account_id: AccountId,
 }

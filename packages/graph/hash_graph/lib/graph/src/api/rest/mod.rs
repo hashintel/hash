@@ -10,7 +10,7 @@ mod link;
 mod link_type;
 mod property_type;
 
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use axum::{
     extract::Path,
@@ -163,21 +163,46 @@ impl Modify for ExternalRefAddon {
                 }
             }
         }
+
+        if let Some(components) = &mut openapi.components {
+            for component in &mut components.schemas.values_mut() {
+                modify_schema_references(component);
+            }
+        }
     }
 }
 
-fn modify_component_references(content: &mut std::collections::HashMap<String, openapi::Content>) {
-    static REF_PREFIX: &str = "#/components/schemas/EXTERNAL_";
-
+fn modify_component_references(content: &mut HashMap<String, openapi::Content>) {
     for content in content.values_mut() {
         if let openapi::Component::Ref(reference) = &mut content.schema {
-            if reference.ref_location.starts_with(REF_PREFIX) {
-                reference
-                    .ref_location
-                    .replace_range(0..REF_PREFIX.len(), "./models/");
-                reference.ref_location.make_ascii_lowercase();
-                reference.ref_location.push_str(".json");
-            };
+            modify_reference(reference);
         }
     }
+}
+
+fn modify_schema_references(schema_component: &mut openapi::Component) {
+    match schema_component {
+        openapi::Component::Ref(reference) => modify_reference(reference),
+        openapi::Component::Object(object) => object
+            .properties
+            .values_mut()
+            .for_each(modify_schema_references),
+        openapi::Component::Array(array) => modify_schema_references(array.items.as_mut()),
+        openapi::Component::OneOf(one_of) => {
+            one_of.items.iter_mut().for_each(modify_schema_references);
+        }
+        _ => (),
+    }
+}
+
+fn modify_reference(reference: &mut openapi::Ref) {
+    static REF_PREFIX: &str = "#/components/schemas/EXTERNAL_";
+
+    if reference.ref_location.starts_with(REF_PREFIX) {
+        reference
+            .ref_location
+            .replace_range(0..REF_PREFIX.len(), "./models/");
+        reference.ref_location.make_ascii_lowercase();
+        reference.ref_location.push_str(".json");
+    };
 }
