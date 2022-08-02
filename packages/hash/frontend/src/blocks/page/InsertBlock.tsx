@@ -1,6 +1,6 @@
 import { useState, FunctionComponent } from "react";
 import { Box, popoverClasses } from "@mui/material";
-import { Popover } from "@hashintel/hash-design-system/popover";
+import { Popover } from "@hashintel/hash-design-system";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import type { BlockVariant } from "@blockprotocol/core";
 import { PlusBoxOutlineIcon } from "../../shared/icons/plus-box-outline-icon";
