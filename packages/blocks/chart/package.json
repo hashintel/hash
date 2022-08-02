@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@mui/material": "5.4.3",
-    "blockprotocol": "0.0.10",
+    "blockprotocol": "0.0.12",
     "echarts": "^5.3.2",
     "lodash.debounce": "4.0.8"
   },

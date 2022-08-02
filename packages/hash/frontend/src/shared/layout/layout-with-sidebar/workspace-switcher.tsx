@@ -2,7 +2,6 @@ import { FunctionComponent, useRef, useMemo } from "react";
 import {
   Box,
   Typography,
-  Menu,
   Divider,
   ListItemText,
   ListItemAvatar,
@@ -14,7 +13,7 @@ import {
   bindTrigger,
   bindMenu,
 } from "material-ui-popup-state/hooks";
-import { Avatar, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Avatar, Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { useUser } from "../../../components/hooks/useUser";
 import { useLogout } from "../../../components/hooks/useLogout";
 import { Button, MenuItem } from "../../ui";
