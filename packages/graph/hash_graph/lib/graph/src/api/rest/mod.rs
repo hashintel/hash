@@ -53,14 +53,14 @@ where
     I: Send + 'id,
 {
     let store = pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
+        tracing::error!(error=?report, "Could not acquire access to the store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
     crud::Read::<I, T>::get(&store, identifier)
         .await
         .map_err(|report| {
-            tracing::error!(error=?report, "Could not query from store");
+            tracing::error!(error=?report, "Could not read from the store");
 
             if report.contains::<QueryError>() {
                 return StatusCode::NOT_FOUND;
