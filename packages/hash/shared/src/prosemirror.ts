@@ -266,6 +266,21 @@ declare interface OrderedMapPrivateInterface<T> {
   content: (string | T)[];
 }
 
+/**
+ * Prosemirror is designed for you to design your document schema ahead of time
+ * and for this not to change during the lifetime of your document. We support
+ * dynamically loaded in new blocks, which requires creating new node types,
+ * which therefore requires mutating the Prosemirror schema. This is not
+ * officially supported, so we had to develop a hack to force Prosemirror to
+ * mutate the schema for us to apply the expected changes for a new node type.
+ *
+ * We want to have the hacks necessary for this in one place, so this allows
+ * a user to pass a function which will apply the mutations they want to apply,
+ * and the relevant hacks are then applied after to process the mutation.
+ *
+ * This also deals with deleting the default "blank" node type which we create
+ * when first creating a new schema before any blocks have been loaded in.
+ */
 export const mutateSchema = (
   schema: Schema,
   mutate: (map: OrderedMapPrivateInterface<NodeSpec>) => void,
