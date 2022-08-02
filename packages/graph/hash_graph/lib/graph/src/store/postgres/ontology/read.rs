@@ -76,7 +76,7 @@ where
                     "#,
                     table = T::table()
                 ),
-                // Requires a concrete types, which implements
+                // Requires a concrete type, which implements
                 // `IntoIterator<Item = impl BorrowToSql>`
                 [] as [&(dyn ToSql + Sync); 0],
             )
