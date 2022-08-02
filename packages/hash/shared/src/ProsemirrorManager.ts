@@ -202,7 +202,7 @@ export class ProsemirrorManager {
       entityStorePluginState(currentState).store.draft,
     );
 
-    const newNodes = await Promise.all(
+    const nodes = await Promise.all(
       entities.map(async (blockEntity) => {
         const draftEntity = mustGetDraftEntityByEntityId(
           store.draft,
@@ -223,7 +223,7 @@ export class ProsemirrorManager {
 
     addEntityStoreAction(currentState, tr, { type: "store", payload: store });
 
-    tr.replaceWith(0, currentState.doc.content.size, newNodes);
+    tr.replaceWith(0, currentState.doc.content.size, nodes);
 
     return tr;
   }
