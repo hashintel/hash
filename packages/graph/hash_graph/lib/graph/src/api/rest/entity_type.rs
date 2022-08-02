@@ -17,7 +17,10 @@ use crate::{
         types::{uri::VersionedUri, EntityType},
         AccountId,
     },
-    store::error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
+    store::{
+        crud::AllLatest,
+        error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
+    },
     GraphPool,
 };
 
@@ -26,6 +29,7 @@ use crate::{
     handlers(
         create_entity_type,
         get_entity_type,
+        get_latest_entity_types,
         update_entity_type
     ),
     components(CreateEntityTypeRequest, UpdateEntityTypeRequest, AccountId, EntityType),
@@ -44,7 +48,9 @@ impl RoutedResource for EntityTypeResource {
             Router::new()
                 .route(
                     "/",
-                    post(create_entity_type::<P>).put(update_entity_type::<P>),
+                    post(create_entity_type::<P>)
+                        .get(get_latest_entity_types::<P>)
+                        .put(update_entity_type::<P>),
                 )
                 .route("/:version_id", get(get_entity_type::<P>)),
         )
@@ -98,6 +104,25 @@ async fn create_entity_type<P: GraphPool>(
         })?;
 
     Ok(Json(schema))
+}
+
+#[utoipa::path(
+    get,
+    path = "/entity-types",
+    tag = "EntityType",
+    responses(
+        (status = 200, content_type = "application/json", description = "List of all entity types at their latest versions", body = [EntityType]),
+        (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
+
+        (status = 500, description = "Datastore error occurred"),
+    )
+)]
+async fn get_latest_entity_types<P: GraphPool>(
+    pool: Extension<Arc<P>>,
+) -> Result<Json<Vec<EntityType>>, StatusCode> {
+    read_from_store::<EntityType, _, _, _>(pool.as_ref(), AllLatest)
+        .await
+        .map(Json)
 }
 
 #[utoipa::path(
