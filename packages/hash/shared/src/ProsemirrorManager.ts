@@ -290,11 +290,12 @@ export class ProsemirrorManager {
       ? entityStoreState.store.draft[draftBlockId]
       : null;
 
-    if (
-      (draftBlockId && !blockEntity) ||
-      (blockEntity && !isDraftBlockEntity(blockEntity))
-    ) {
-      throw new Error("draft id does not belong to a block");
+    if (draftBlockId && !blockEntity) {
+      throw new Error("draftId is not present in entity store");
+    }
+
+    if (blockEntity && !isDraftBlockEntity(blockEntity)) {
+      throw new Error("draftId does not belong to a block");
     }
 
     let targetBlockId: string;
