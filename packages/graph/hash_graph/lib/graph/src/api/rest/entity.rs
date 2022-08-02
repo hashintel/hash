@@ -106,7 +106,7 @@ async fn create_entity<P: GraphPool>(
     path = "/entities/{entity_id}",
     tag = "Entity",
     responses(
-        (status = 200, content_type = "application/json", description = "entity found", body = QualifiedEntity),
+        (status = 200, content_type = "application/json", description = "entity found", body = Entity),
         (status = 422, content_type = "text/plain", description = "Provided entity id is invalid"),
 
         (status = 404, description = "entity was not found"),
@@ -117,13 +117,12 @@ async fn create_entity<P: GraphPool>(
     )
 )]
 async fn get_entity<P: GraphPool>(
-    entity_id: Path<EntityId>,
-    pool: Extension<Arc<P>>,
-) -> Result<Json<QualifiedEntity>, StatusCode> {
-    Ok(Json(QualifiedEntity {
-        entity_id: entity_id.0,
-        entity: read_from_store::<Entity, _, _, _>(pool.as_ref(), entity_id.0).await?,
-    }))
+    Path(entity_id): Path<EntityId>,
+    Extension(pool): Extension<Arc<P>>,
+) -> Result<Json<Entity>, StatusCode> {
+    read_from_store::<Entity, _, _, _>(pool.as_ref(), entity_id)
+        .await
+        .map(Json)
 }
 
 #[derive(Component, Serialize, Deserialize)]

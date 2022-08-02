@@ -116,10 +116,10 @@ async fn create_entity_type<P: GraphPool>(
     )
 )]
 async fn get_entity_type<P: GraphPool>(
-    uri: Path<VersionedUri>,
-    pool: Extension<Arc<P>>,
+    Path(uri): Path<VersionedUri>,
+    Extension(pool): Extension<Arc<P>>,
 ) -> Result<Json<EntityType>, StatusCode> {
-    read_from_store::<EntityType, _, _, _>(pool.as_ref(), &uri.0)
+    read_from_store::<EntityType, _, _, _>(pool.as_ref(), &uri)
         .await
         .map(Json)
 }

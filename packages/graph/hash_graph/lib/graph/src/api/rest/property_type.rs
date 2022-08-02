@@ -117,10 +117,10 @@ async fn create_property_type<P: GraphPool>(
     )
 )]
 async fn get_property_type<P: GraphPool>(
-    uri: Path<VersionedUri>,
-    pool: Extension<Arc<P>>,
+    Path(uri): Path<VersionedUri>,
+    Extension(pool): Extension<Arc<P>>,
 ) -> Result<Json<PropertyType>, StatusCode> {
-    read_from_store::<PropertyType, _, _, _>(pool.as_ref(), &uri.0)
+    read_from_store::<PropertyType, _, _, _>(pool.as_ref(), &uri)
         .await
         .map(Json)
 }

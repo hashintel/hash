@@ -114,10 +114,10 @@ async fn create_link_type<P: GraphPool>(
     )
 )]
 async fn get_link_type<P: GraphPool>(
-    uri: Path<VersionedUri>,
-    pool: Extension<Arc<P>>,
+    Path(uri): Path<VersionedUri>,
+    Extension(pool): Extension<Arc<P>>,
 ) -> Result<Json<LinkType>, StatusCode> {
-    read_from_store::<LinkType, _, _, _>(pool.as_ref(), &uri.0)
+    read_from_store::<LinkType, _, _, _>(pool.as_ref(), &uri)
         .await
         .map(Json)
 }

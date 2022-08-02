@@ -114,10 +114,10 @@ async fn create_data_type<P: GraphPool>(
     )
 )]
 async fn get_data_type<P: GraphPool>(
-    uri: Path<VersionedUri>,
-    pool: Extension<Arc<P>>,
+    Path(uri): Path<VersionedUri>,
+    Extension(pool): Extension<Arc<P>>,
 ) -> Result<Json<DataType>, StatusCode> {
-    read_from_store::<DataType, _, _, _>(pool.as_ref(), &uri.0)
+    read_from_store::<DataType, _, _, _>(pool.as_ref(), &uri)
         .await
         .map(Json)
 }

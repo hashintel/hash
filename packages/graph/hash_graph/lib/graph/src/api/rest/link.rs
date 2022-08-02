@@ -122,10 +122,10 @@ async fn create_link<P: GraphPool>(
     )
 )]
 async fn get_entity_links<P: GraphPool>(
-    source_entity_id: Path<EntityId>,
-    pool: Extension<Arc<P>>,
+    Path(source_entity_id): Path<EntityId>,
+    Extension(pool): Extension<Arc<P>>,
 ) -> Result<Json<Links>, StatusCode> {
-    read_from_store::<Link, _, _, _>(pool.as_ref(), source_entity_id.0)
+    read_from_store::<Link, _, _, _>(pool.as_ref(), source_entity_id)
         .await
         .map(Json)
 }
