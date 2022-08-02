@@ -109,7 +109,7 @@ async fn create_property_type<P: GraphPool>(
     path = "/property-types",
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", description = "Property type found", body = [PropertyType]),
+        (status = 200, content_type = "application/json", description = "List of the latest version of all property types", body = [PropertyType]),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 500, description = "Store error occurred"),
