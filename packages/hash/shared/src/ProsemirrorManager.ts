@@ -338,17 +338,17 @@ export class ProsemirrorManager {
           };
         }
 
-        targetBlockId = await this.createNewDraftBlock(
+        targetBlockId = await this.createBlockEntity(
           tr,
-          newBlockProperties,
           targetComponentId,
+          newBlockProperties,
         );
       }
     } else {
-      targetBlockId = await this.createNewDraftBlock(
+      targetBlockId = await this.createBlockEntity(
         tr,
-        entityProperties,
         targetComponentId,
+        entityProperties,
       );
     }
 
@@ -526,13 +526,18 @@ export class ProsemirrorManager {
     this.view.dispatch(tr);
   }
 
-  private async createNewDraftBlock(
+  /**
+   * There are a number of common entity store actions necessary to insert
+   * a completely new block + its block data entity. This function will do
+   * that for you.
+   */
+  private async createBlockEntity(
     tr: Transaction<Schema>,
-    entityProperties: {},
     targetComponentId: string,
+    blockDataProperties: {},
   ) {
     if (!this.view) {
-      throw new Error("Cannot trigger createNewDraftBlock without view");
+      throw new Error("Cannot trigger createBlockEntity without view");
     }
 
     const newBlockId = generateDraftIdForEntity(null);
@@ -545,12 +550,12 @@ export class ProsemirrorManager {
       },
     });
 
-    const newVariantDraftId = generateDraftIdForEntity(null);
+    const blockDraftDraftId = generateDraftIdForEntity(null);
     addEntityStoreAction(this.view.state, tr, {
       type: "newDraftEntity",
       payload: {
         accountId: this.accountId,
-        draftId: newVariantDraftId,
+        draftId: blockDraftDraftId,
         entityId: null,
       },
     });
@@ -558,8 +563,8 @@ export class ProsemirrorManager {
     addEntityStoreAction(this.view.state, tr, {
       type: "updateEntityProperties",
       payload: {
-        draftId: newVariantDraftId,
-        properties: entityProperties,
+        draftId: blockDraftDraftId,
+        properties: blockDataProperties,
         // @todo maybe need to remove this?
         merge: true,
       },
@@ -573,7 +578,7 @@ export class ProsemirrorManager {
         properties: {
           componentId: targetComponentId,
           entity: entityStorePluginStateFromTransaction(tr, this.view.state)
-            .store.draft[newVariantDraftId],
+            .store.draft[blockDraftDraftId],
         },
       },
     });
