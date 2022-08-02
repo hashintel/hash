@@ -136,7 +136,7 @@ const calculateSaveActions = async (
     T extends { text: LegacyLink<DraftEntity<Text>> },
   >(
     properties: T,
-  ): Pick<LegacyLink<DraftEntity<Text>>, "__linkedData"> | null => {
+  ): Pick<LegacyLink<DraftEntity<Text>>, "__linkedData"> => {
     if (
       properties.text.__linkedData.entityId &&
       properties.text.__linkedData.entityTypeId
@@ -168,6 +168,7 @@ const calculateSaveActions = async (
     }
 
     if (draftEntity.entityId) {
+      // This means the entity already exists, but may need updating
       const savedEntity = store.saved[draftEntity.entityId];
 
       /**
@@ -218,6 +219,8 @@ const calculateSaveActions = async (
         },
       });
     } else {
+      // We need to create the entity, and possibly a new entity type too
+
       /**
        * Sometimes, by the time it comes to create new entities, we have already
        * created an entity that depends on this one (i.e, text containing entities).
@@ -241,10 +244,19 @@ const calculateSaveActions = async (
       let properties = draftEntity.properties;
 
       if (isDraftTextEntity(draftEntity)) {
+        /**
+         * Text types are built in, so we know in this case we don't need to
+         * create an entity type, and we know we don't need to deal with any
+         * legacy links
+         */
         entityType = {
           systemTypeName: SystemTypeName.Text,
         };
       } else {
+        /**
+         * At this point, we may need to create an entity type for the entity
+         * we want to insert, which can also require dealing with legacy links
+         */
         const blockEntity = Object.values(store.draft).find(
           (entity): entity is DraftEntity<BlockEntity> =>
             isDraftBlockEntity(entity) &&
@@ -260,7 +272,7 @@ const calculateSaveActions = async (
         );
 
         entityType = { entityTypeId };
-        // Placing at front to ensure latter actions can make use of this
+        // Placing at front to ensure latter actions can make use of this type
         actions.unshift(...newTypeActions);
 
         properties = isDraftTextContainingEntityProperties(properties)
