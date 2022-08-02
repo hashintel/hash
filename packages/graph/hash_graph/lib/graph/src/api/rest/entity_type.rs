@@ -17,7 +17,10 @@ use crate::{
         types::{uri::VersionedUri, EntityType},
         AccountId,
     },
-    store::error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
+    store::{
+        crud::AllLatest,
+        error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
+    },
     GraphPool,
 };
 
@@ -117,7 +120,7 @@ async fn create_entity_type<P: GraphPool>(
 async fn get_latest_entity_types<P: GraphPool>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<EntityType>>, StatusCode> {
-    read_from_store::<EntityType, _, _, _>(pool.as_ref(), ())
+    read_from_store::<EntityType, _, _, _>(pool.as_ref(), AllLatest)
         .await
         .map(Json)
 }

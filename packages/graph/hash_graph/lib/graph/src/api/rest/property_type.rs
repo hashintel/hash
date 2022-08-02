@@ -18,7 +18,7 @@ use crate::{
         types::{uri::VersionedUri, PropertyType},
         AccountId,
     },
-    store::{BaseUriAlreadyExists, BaseUriDoesNotExist},
+    store::{crud::AllLatest, BaseUriAlreadyExists, BaseUriDoesNotExist},
     GraphPool,
 };
 
@@ -118,7 +118,7 @@ async fn create_property_type<P: GraphPool>(
 async fn get_latest_property_types<P: GraphPool>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PropertyType>>, StatusCode> {
-    read_from_store::<PropertyType, _, _, _>(pool.as_ref(), ())
+    read_from_store::<PropertyType, _, _, _>(pool.as_ref(), AllLatest)
         .await
         .map(Json)
 }

@@ -7,7 +7,10 @@ use tokio_postgres::GenericClient;
 
 use crate::{
     ontology::types::uri::VersionedUri,
-    store::{crud, postgres::ontology::OntologyDatabaseType, AsClient, PostgresStore, QueryError},
+    store::{
+        crud, crud::AllLatest, postgres::ontology::OntologyDatabaseType, AsClient, PostgresStore,
+        QueryError,
+    },
 };
 
 #[async_trait]
@@ -50,13 +53,13 @@ where
 }
 
 #[async_trait]
-impl<C: AsClient, T> crud::Read<'_, (), T> for PostgresStore<C>
+impl<C: AsClient, T> crud::Read<'_, AllLatest, T> for PostgresStore<C>
 where
     for<'de> T: OntologyDatabaseType + Deserialize<'de> + Send,
 {
     type Output = Vec<T>;
 
-    async fn get(&self, _: ()) -> Result<Self::Output, QueryError> {
+    async fn get(&self, _: AllLatest) -> Result<Self::Output, QueryError> {
         // SAFETY: We insert a table name here, but `T::table()` is only accessible from within this
         //   module.
         let row_stream = self
@@ -71,6 +74,8 @@ where
                     "#,
                     table = T::table()
                 ),
+                // Requires a concrete types, which implements
+                // `IntoIterator<Item = impl BorrowToSql>`
                 [] as [&(dyn ToSql + Sync); 0],
             )
             .await

@@ -9,6 +9,10 @@ use error_stack::Result;
 
 use crate::store::{QueryError, Store};
 
+/// Marker to return the latest version of all records.
+#[derive(Copy, Clone, Debug)]
+pub struct AllLatest;
+
 /// Read access to a [`Store`].
 #[async_trait]
 pub trait Read<'i, I: Send + 'i, T>: Store {
