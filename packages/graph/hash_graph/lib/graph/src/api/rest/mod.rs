@@ -10,7 +10,7 @@ mod link;
 mod link_type;
 mod property_type;
 
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
 use axum::{http::StatusCode, routing::get, Extension, Json, Router};
 use utoipa::{openapi, Modify, OpenApi};
@@ -50,7 +50,7 @@ async fn read_from_store<'pool, 'id: 'pool, T, P, I, O>(
 where
     P: StorePool,
     P::Store<'pool>: crud::Read<'id, I, T, Output = O>,
-    I: Send + 'id,
+    I: Send + Debug + Copy + 'id,
 {
     let store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire access to the store");
@@ -60,7 +60,7 @@ where
     crud::Read::<I, T>::get(&store, identifier)
         .await
         .map_err(|report| {
-            tracing::error!(error=?report, "Could not read from the store");
+            tracing::error!(error=?report, identifier=?identifier, "Could not read from the store");
 
             if report.contains::<QueryError>() {
                 return StatusCode::NOT_FOUND;
