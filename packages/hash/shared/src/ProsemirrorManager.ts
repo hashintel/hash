@@ -190,6 +190,12 @@ export class ProsemirrorManager {
     }
   }
 
+  /**
+   * The process of loading a list of blocks into the document is somewhat
+   * complicated, as we need to ensure the schema is set up for these blocks,
+   * and that the entity store has these blocks loaded in too. This function
+   * handles that for you.
+   */
   async loadPage(currentState: EditorState<Schema>, entities: BlockEntity[]) {
     const store = createEntityStore(
       entities,
