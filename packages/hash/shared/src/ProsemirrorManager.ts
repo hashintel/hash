@@ -21,6 +21,7 @@ import {
 } from "./entity";
 import {
   createEntityStore,
+  DraftEntity,
   EntityStore,
   EntityStoreType,
   isBlockEntity,
@@ -43,27 +44,6 @@ import { childrenForTextEntity } from "./text";
 type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
 
 type ComponentNodeViewFactory = (meta: HashBlockMeta) => NodeViewFactory;
-
-const isBlockCompatible = (
-  targetComponentId: string,
-  draftBlockId: string | null | undefined,
-  entityStore: EntityStore | null,
-) => {
-  const blockEntity = draftBlockId ? entityStore?.draft[draftBlockId] : null;
-
-  if (blockEntity && !isBlockEntity(blockEntity)) {
-    throw new Error("Block entity missing from store");
-  }
-
-  return (
-    !blockEntity ||
-    areComponentsCompatible(
-      blockEntity.properties.componentId,
-      targetComponentId,
-    )
-  );
-};
-
 /**
  * Manages the creation and editing of the ProseMirror schema, and utilities around
  * editing the prosemirror document.
@@ -165,15 +145,21 @@ export class ProsemirrorManager {
   ) {
     this.assertBlockDefined(targetComponentId);
 
-    const blockEntity =
-      draftBlockId &&
-      isBlockCompatible(targetComponentId, draftBlockId, entityStore)
-        ? entityStore?.draft[draftBlockId]
-        : null;
+    let blockEntity: DraftEntity<BlockEntity> | null = null;
+    if (draftBlockId && entityStore?.draft[draftBlockId]) {
+      const entityInStore = entityStore.draft[draftBlockId];
+      if (!isDraftBlockEntity(entityInStore)) {
+        throw new Error("Block entity missing from store");
+      }
 
-    const childDraftId = isDraftBlockEntity(blockEntity)
-      ? blockEntity.properties.entity.draftId
-      : null;
+      if (entityInStore.properties.componentId !== targetComponentId) {
+        throw new Error("Cannot render this block entity with this component");
+      }
+
+      blockEntity = entityInStore;
+    }
+
+    const childDraftId = blockEntity?.properties.entity.draftId;
 
     const blockData =
       draftBlockId && entityStore
