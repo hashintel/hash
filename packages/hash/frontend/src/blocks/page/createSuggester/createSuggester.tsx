@@ -154,6 +154,23 @@ export const createSuggester = (
             };
         }
 
+        /**
+         * If the user has manually moved the cursor since we inserted a block
+         * through the suggester, we want to clear the suggested position so
+         * the cursor can't be unexpectedly moved into a block once it is loaded.
+         *
+         * However, if the user hasn't manually moved the cursor, but the
+         * position of the suggested block has changed for some unknown other
+         * reason (that isn't the user typing elsewhere in the document), then
+         * we want to map it.
+         *
+         * @note it's unclear if it's ever actually possible for the position of
+         *       the block to change in a way that doesn't make us want to clear
+         *       the suggested block position, but it's expected in Prosemirror
+         *       when tracking positions to "map" the position through
+         *       transactions, so we do that here when we don't clear it. This
+         *       helps deal with unknown unknowns/
+         */
         const suggestedBlockPosition =
           state.suggestedBlockPosition === null ||
           tr.selectionSet ||
