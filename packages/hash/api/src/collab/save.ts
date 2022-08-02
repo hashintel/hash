@@ -218,6 +218,16 @@ const calculateSaveActions = async (
         },
       });
     } else {
+      /**
+       * Sometimes, by the time it comes to create new entities, we have already
+       * created an entity that depends on this one (i.e, text containing entities).
+       * In this case, we need to use the placeholder ID used in that link instead
+       * of generating new ones.
+       *
+       * When that happens, our insert action ends up needing to come before
+       * the insert action of the entity that depends on this entity, so we
+       * insert it at the front of the action list later on
+       */
       const dependedOn = draftIdToPlaceholderId.has(draftEntity.draftId);
       const placeholderId = dependedOn
         ? draftIdToPlaceholderId.get(draftEntity.draftId)!
@@ -273,6 +283,15 @@ const calculateSaveActions = async (
         },
       };
 
+      /**
+       * When this entity is depended on, insert this action at the earliest
+       * possible position on the list to ensure the later action can be
+       * processed properly.
+       *
+       * @note If another entity *also* depends on this entity, this won't work,
+       *       but we don't currently have multiple levels of linked entities
+       *       being handled here, so that's okay for now.
+       */
       if (dependedOn) {
         const idx = actions.findIndex((item) => !item.createEntityType);
         actions.splice(idx === -1 ? 0 : idx, 0, action);
