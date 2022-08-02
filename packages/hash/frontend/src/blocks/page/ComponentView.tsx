@@ -240,36 +240,39 @@ export class ComponentView implements NodeView<Schema> {
   };
 
   private editableRef = (editableNode: HTMLElement | null) => {
-    const childEntity = getBlockChildEntity(this.getBlockDraftId(), this.store);
-
-    if (!childEntity || !isComponentNode(this.node)) {
-      throw new Error("Block not ready to become editable");
-    }
-
     const state = this.editorView.state;
     let tr: Transaction<Schema> | null = null;
 
-    if (!isTextEntity(childEntity)) {
-      tr ??= state.tr;
-
-      addEntityStoreAction(state, tr, {
-        type: "updateEntityProperties",
-        payload: {
-          draftId: childEntity.draftId,
-          properties: {
-            text: this.manager.createNewLegacyTextLink(
-              state,
-              tr,
-              childEntity.accountId,
-              textBlockNodeToEntityProperties(this.node),
-            ),
-          },
-          merge: true,
-        },
-      });
-    }
-
     if (editableNode) {
+      const childEntity = getBlockChildEntity(
+        this.getBlockDraftId(),
+        this.store,
+      );
+
+      if (!childEntity || !isComponentNode(this.node)) {
+        throw new Error("Block not ready to become editable");
+      }
+
+      if (!isTextEntity(childEntity)) {
+        tr ??= state.tr;
+
+        addEntityStoreAction(state, tr, {
+          type: "updateEntityProperties",
+          payload: {
+            draftId: childEntity.draftId,
+            properties: {
+              text: this.manager.createNewLegacyTextLink(
+                state,
+                tr,
+                childEntity.accountId,
+                textBlockNodeToEntityProperties(this.node),
+              ),
+            },
+            merge: true,
+          },
+        });
+      }
+
       if (!editableNode.contains(this.contentDOM)) {
         editableNode.appendChild(this.contentDOM);
         this.contentDOM.style.display = "";
