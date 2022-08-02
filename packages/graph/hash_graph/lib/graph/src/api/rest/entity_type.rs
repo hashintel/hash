@@ -26,7 +26,7 @@ use crate::{
     handlers(
         create_entity_type,
         get_entity_type,
-        get_entity_type_unfiltered,
+        get_latest_entity_types,
         update_entity_type
     ),
     components(CreateEntityTypeRequest, UpdateEntityTypeRequest, AccountId, EntityType),
@@ -46,7 +46,7 @@ impl RoutedResource for EntityTypeResource {
                 .route(
                     "/",
                     post(create_entity_type::<P>)
-                        .get(get_entity_type_unfiltered::<P>)
+                        .get(get_latest_entity_types::<P>)
                         .put(update_entity_type::<P>),
                 )
                 .route("/:version_id", get(get_entity_type::<P>)),
@@ -114,7 +114,7 @@ async fn create_entity_type<P: GraphPool>(
         (status = 500, description = "Datastore error occurred"),
     )
 )]
-async fn get_entity_type_unfiltered<P: GraphPool>(
+async fn get_latest_entity_types<P: GraphPool>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<EntityType>>, StatusCode> {
     read_from_store::<EntityType, _, _, _>(pool.as_ref(), ())

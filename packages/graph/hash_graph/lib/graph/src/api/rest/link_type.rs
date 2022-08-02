@@ -27,7 +27,7 @@ use crate::{
     handlers(
         create_link_type,
         get_link_type,
-        get_link_type_unfiltered,
+        get_latest_link_types,
         update_link_type
     ),
     components(CreateLinkTypeRequest, UpdateLinkTypeRequest, AccountId, LinkType),
@@ -47,7 +47,7 @@ impl RoutedResource for LinkTypeResource {
                 .route(
                     "/",
                     post(create_link_type::<P>)
-                        .get(get_link_type_unfiltered::<P>)
+                        .get(get_latest_link_types::<P>)
                         .put(update_link_type::<P>),
                 )
                 .route("/:version_id", get(get_link_type::<P>)),
@@ -115,7 +115,7 @@ async fn create_link_type<P: GraphPool>(
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_link_type_unfiltered<P: GraphPool>(
+async fn get_latest_link_types<P: GraphPool>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<LinkType>>, StatusCode> {
     read_from_store::<LinkType, _, _, _>(pool.as_ref(), ())

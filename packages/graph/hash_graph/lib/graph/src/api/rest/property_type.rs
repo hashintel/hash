@@ -27,7 +27,7 @@ use crate::{
     handlers(
         create_property_type,
         get_property_type,
-        get_property_type_unfiltered,
+        get_latest_property_types,
         update_property_type
     ),
     components(CreatePropertyTypeRequest, UpdatePropertyTypeRequest, AccountId, PropertyType),
@@ -47,7 +47,7 @@ impl RoutedResource for PropertyTypeResource {
                 .route(
                     "/",
                     post(create_property_type::<P>)
-                        .get(get_property_type_unfiltered::<P>)
+                        .get(get_latest_property_types::<P>)
                         .put(update_property_type::<P>),
                 )
                 .route("/:version_id", get(get_property_type::<P>)),
@@ -115,7 +115,7 @@ async fn create_property_type<P: GraphPool>(
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_property_type_unfiltered<P: GraphPool>(
+async fn get_latest_property_types<P: GraphPool>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PropertyType>>, StatusCode> {
     read_from_store::<PropertyType, _, _, _>(pool.as_ref(), ())

@@ -27,7 +27,7 @@ use crate::{
     handlers(
         create_data_type,
         get_data_type,
-        get_data_type_unfiltered,
+        get_latest_data_types,
         update_data_type
     ),
     components(CreateDataTypeRequest, UpdateDataTypeRequest, AccountId, DataType),
@@ -47,7 +47,7 @@ impl RoutedResource for DataTypeResource {
                 .route(
                     "/",
                     post(create_data_type::<P>)
-                        .get(get_data_type_unfiltered::<P>)
+                        .get(get_latest_data_types::<P>)
                         .put(update_data_type::<P>),
                 )
                 .route("/:version_id", get(get_data_type::<P>)),
@@ -115,7 +115,7 @@ async fn create_data_type<P: GraphPool>(
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_data_type_unfiltered<P: GraphPool>(
+async fn get_latest_data_types<P: GraphPool>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<DataType>>, StatusCode> {
     read_from_store::<DataType, _, _, _>(pool.as_ref(), ())
