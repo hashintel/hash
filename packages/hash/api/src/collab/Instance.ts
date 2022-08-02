@@ -511,10 +511,8 @@ export class Instance {
         await this.saveChain;
 
         /**
-         * This is a *serious* security risk as the frontend can instruct us
-         * to make a web request
-         *
-         * @todo deal with this?
+         * @todo implement block caching layer
+         * @see https://app.asana.com/0/1201095311341924/1202707274604481/f
          */
         await this.manager.ensureBlocksDefined(blockIds);
 
