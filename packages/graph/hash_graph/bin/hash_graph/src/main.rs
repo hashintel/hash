@@ -2,7 +2,7 @@ mod args;
 
 use std::{fmt, net::SocketAddr, sync::Arc};
 
-use error_stack::{Context, FutureExt, Result, ResultExt};
+use error_stack::{Context, Result, ResultExt};
 use graph::{
     api::rest::rest_api_router,
     logging::init_logger,
@@ -35,8 +35,8 @@ async fn main() -> Result<(), GraphError> {
     );
 
     let pool = PostgresStorePool::new(&args.db_info, NoTls)
-        .change_context(GraphError)
         .await
+        .change_context(GraphError)
         .map_err(|err| {
             tracing::error!("{err:?}");
             err
