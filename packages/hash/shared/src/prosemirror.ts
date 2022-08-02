@@ -45,12 +45,15 @@ export const createSchema = () =>
         /**
          * These properties are necessary for copy and paste (which is
          * necessary for drag and drop)
+         *
+         * @note – the actual rendering in the DOM is taken over by the NodeView
+         *         so check `BlockView` and `ComponentView` for how this will
+         *         actually appear
          */
         toDOM: () => {
           return [
             "div",
             {
-              // @todo this isn't applied because of the node view
               "data-hash-type": "block",
             },
             0,
@@ -58,7 +61,6 @@ export const createSchema = () =>
         },
         parseDOM: [
           {
-            // @todo is this necessary
             tag: 'div[data-hash-type="block"]',
           },
         ],
