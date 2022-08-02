@@ -25,7 +25,7 @@ impl fmt::Display for EntityId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
 pub struct Entity {
     #[serde(flatten)]
     properties: HashMap<BaseUri, serde_json::Value>,

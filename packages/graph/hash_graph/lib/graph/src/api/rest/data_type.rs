@@ -30,7 +30,7 @@ use crate::{
         get_latest_data_types,
         update_data_type
     ),
-    components(CreateDataTypeRequest, UpdateDataTypeRequest, AccountId, DataType),
+    components(CreateDataTypeRequest, UpdateDataTypeRequest, AccountId),
     tags(
         (name = "DataType", description = "Data Type management API")
     )
@@ -57,7 +57,7 @@ impl RoutedResource for DataTypeResource {
 
 #[derive(Serialize, Deserialize, Component)]
 struct CreateDataTypeRequest {
-    #[component(value_type = Any)]
+    #[component(value_type = VAR_DATA_TYPE)]
     schema: DataType,
     account_id: AccountId,
 }
@@ -68,11 +68,11 @@ struct CreateDataTypeRequest {
     request_body = CreateDataTypeRequest,
     tag = "DataType",
     responses(
-      (status = 201, content_type = "application/json", description = "Data type created successfully", body = DataType),
-      (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 201, content_type = "application/json", description = "The schema of the created data type", body = VAR_DATA_TYPE),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-      (status = 409, description = "Unable to create data type in the store as the base data type ID already exists"),
-      (status = 500, description = "Store error occurred"),
+        (status = 409, description = "Unable to create data type in the store as the base data type URI already exists"),
+        (status = 500, description = "Store error occurred"),
     ),
     request_body = CreateDataTypeRequest,
 )]
@@ -110,7 +110,7 @@ async fn create_data_type<P: GraphPool>(
     path = "/data-types",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all data types at their latest versions", body = [DataType]),
+        (status = 200, content_type = "application/json", description = "List of all data types at their latest versions", body = [VAR_DATA_TYPE]),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 500, description = "Store error occurred"),
@@ -129,7 +129,7 @@ async fn get_latest_data_types<P: GraphPool>(
     path = "/data-types/{uri}",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "Data type found", body = DataType),
+        (status = 200, content_type = "application/json", description = "The schema of the requested data type", body = VAR_DATA_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Data type was not found"),
@@ -150,7 +150,7 @@ async fn get_data_type<P: GraphPool>(
 
 #[derive(Component, Serialize, Deserialize)]
 struct UpdateDataTypeRequest {
-    #[component(value_type = Any)]
+    #[component(value_type = VAR_DATA_TYPE)]
     schema: DataType,
     account_id: AccountId,
 }
@@ -160,7 +160,7 @@ struct UpdateDataTypeRequest {
     path = "/data-types",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "Data type updated successfully", body = DataType),
+        (status = 200, content_type = "application/json", description = "The schema of the updated data type", body = VAR_DATA_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base data type ID was not found"),

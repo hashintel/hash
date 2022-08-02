@@ -32,7 +32,7 @@ use crate::{
         get_latest_entity_types,
         update_entity_type
     ),
-    components(CreateEntityTypeRequest, UpdateEntityTypeRequest, AccountId, EntityType),
+    components(CreateEntityTypeRequest, UpdateEntityTypeRequest, AccountId),
     tags(
         (name = "EntityType", description = "Entity type management API")
     )
@@ -59,7 +59,7 @@ impl RoutedResource for EntityTypeResource {
 
 #[derive(Serialize, Deserialize, Component)]
 struct CreateEntityTypeRequest {
-    #[component(value_type = Any)]
+    #[component(value_type = VAR_ENTITY_TYPE)]
     schema: EntityType,
     account_id: AccountId,
 }
@@ -70,11 +70,11 @@ struct CreateEntityTypeRequest {
     request_body = CreateEntityTypeRequest,
     tag = "EntityType",
     responses(
-      (status = 201, content_type = "application/json", description = "Entity type created successfully", body = EntityType),
-      (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 201, content_type = "application/json", description = "The schema of the created entity type", body = VAR_ENTITY_TYPE),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-      (status = 409, description = "Unable to create entity type in the datastore as the base entity type ID already exists"),
-      (status = 500, description = "Datastore error occurred"),
+        (status = 409, description = "Unable to create entity type in the datastore as the base entity type ID already exists"),
+        (status = 500, description = "Datastore error occurred"),
     ),
     request_body = CreateEntityTypeRequest,
 )]
@@ -111,7 +111,7 @@ async fn create_entity_type<P: GraphPool>(
     path = "/entity-types",
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all entity types at their latest versions", body = [EntityType]),
+        (status = 200, content_type = "application/json", description = "List of all entity types at their latest versions", body = [VAR_ENTITY_TYPE]),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 500, description = "Datastore error occurred"),
@@ -130,7 +130,7 @@ async fn get_latest_entity_types<P: GraphPool>(
     path = "/entity-types/{uri}",
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "Entity type found", body = EntityType),
+        (status = 200, content_type = "application/json", description = "The schema of the requested entity type", body = VAR_ENTITY_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Entity type was not found"),
@@ -151,7 +151,7 @@ async fn get_entity_type<P: GraphPool>(
 
 #[derive(Component, Serialize, Deserialize)]
 struct UpdateEntityTypeRequest {
-    #[component(value_type = Any)]
+    #[component(value_type = VAR_ENTITY_TYPE)]
     schema: EntityType,
     account_id: AccountId,
 }
@@ -161,7 +161,7 @@ struct UpdateEntityTypeRequest {
     path = "/entity-types",
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "Entity type updated successfully", body = EntityType),
+        (status = 200, content_type = "application/json", description = "The schema of the updated entity type", body = VAR_ENTITY_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base entity type ID was not found"),

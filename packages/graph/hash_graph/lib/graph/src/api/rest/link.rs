@@ -21,7 +21,7 @@ use crate::{
         get_entity_links,
         inactivate_link
     ),
-    components(AccountId, Link, InactivateLinkRequest),
+    components(AccountId, Link, Links, CreateLinkRequest, InactivateLinkRequest),
     tags(
         (name = "Link", description = "link management API")
     )
@@ -59,11 +59,11 @@ struct CreateLinkRequest {
     request_body = CreateLinkRequest,
     tag = "Link",
     responses(
-      (status = 201, content_type = "application/json", description = "link created successfully", body = Link),
-      (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 201, content_type = "application/json", description = "The created link on the given source entity", body = Link),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-      (status = 404, description = "Source entity, target entity or link type URI was not found"),
-      (status = 500, description = "Datastore error occurred"),
+        (status = 404, description = "Source entity, target entity or link type URI was not found"),
+        (status = 500, description = "Datastore error occurred"),
     ),
     params(
         ("entity_id" = Uuid, Path, description = "The ID of the source entity"),
@@ -111,7 +111,7 @@ async fn create_link<P: GraphPool>(
     path = "/entities/{entity_id}/links",
     tag = "Link",
     responses(
-        (status = 200, content_type = "application/json", description = "all active links from the source entity", body = QualifiedLink),
+        (status = 200, content_type = "application/json", description = "The requested links on the given source entity", body = Links),
         (status = 422, content_type = "text/plain", description = "Provided source entity id is invalid"),
 
         (status = 404, description = "No links were found"),
@@ -142,13 +142,16 @@ struct InactivateLinkRequest {
     path = "/entities/{entity_id}/links",
     tag = "Link",
     responses(
-        (status = 204, content_type = "application/json", description = "link updated successfully"),
+        (status = 204, content_type = "application/json", description = "Empty response at link inactivation"),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Source entity, target entity or link type URI was not found"),
         (status = 500, description = "Datastore error occurred"),
     ),
-    request_body = UpdateLinkRequest,
+    request_body = InactivateLinkRequest,
+    params(
+        ("entity_id" = Uuid, Path, description = "The ID of the source entity"),
+    ),
 )]
 async fn inactivate_link<P: GraphPool>(
     source_entity: Path<EntityId>,

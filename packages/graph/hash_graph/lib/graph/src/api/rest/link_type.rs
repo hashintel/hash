@@ -30,7 +30,7 @@ use crate::{
         get_latest_link_types,
         update_link_type
     ),
-    components(CreateLinkTypeRequest, UpdateLinkTypeRequest, AccountId, LinkType),
+    components(CreateLinkTypeRequest, UpdateLinkTypeRequest, AccountId),
     tags(
         (name = "LinkType", description = "Link type management API")
     )
@@ -57,7 +57,7 @@ impl RoutedResource for LinkTypeResource {
 
 #[derive(Serialize, Deserialize, Component)]
 struct CreateLinkTypeRequest {
-    #[component(value_type = Any)]
+    #[component(value_type = VAR_LINK_TYPE)]
     schema: LinkType,
     account_id: AccountId,
 }
@@ -68,11 +68,11 @@ struct CreateLinkTypeRequest {
     request_body = CreateLinkTypeRequest,
     tag = "LinkType",
     responses(
-      (status = 201, content_type = "application/json", description = "Link type created successfully", body = LinkType),
-      (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 201, content_type = "application/json", description = "The schema of the created link type", body = VAR_LINK_TYPE),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-      (status = 409, description = "Unable to create link type in the store as the base link type ID already exists"),
-      (status = 500, description = "Store error occurred"),
+        (status = 409, description = "Unable to create link type in the store as the base link type ID already exists"),
+        (status = 500, description = "Store error occurred"),
     ),
     request_body = CreateLinkTypeRequest,
 )]
@@ -109,7 +109,7 @@ async fn create_link_type<P: GraphPool>(
     path = "/link-types",
     tag = "LinkType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all link types at their latest versions", body = [LinkType]),
+        (status = 200, content_type = "application/json", description = "List of all link types at their latest versions", body = [VAR_LINK_TYPE]),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 500, description = "Store error occurred"),
@@ -128,7 +128,7 @@ async fn get_latest_link_types<P: GraphPool>(
     path = "/link-types/{uri}",
     tag = "LinkType",
     responses(
-        (status = 200, content_type = "application/json", description = "Link type found", body = LinkType),
+        (status = 200, content_type = "application/json", description = "The schema of the requested link type", body = VAR_LINK_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Link type was not found"),
@@ -149,7 +149,7 @@ async fn get_link_type<P: GraphPool>(
 
 #[derive(Component, Serialize, Deserialize)]
 struct UpdateLinkTypeRequest {
-    #[component(value_type = Any)]
+    #[component(value_type = VAR_LINK_TYPE)]
     schema: LinkType,
     account_id: AccountId,
 }
@@ -159,7 +159,7 @@ struct UpdateLinkTypeRequest {
     path = "/link-types",
     tag = "LinkType",
     responses(
-        (status = 200, content_type = "application/json", description = "Link type updated successfully", body = LinkType),
+        (status = 200, content_type = "application/json", description = "The schema of the updated link type", body = VAR_LINK_TYPE),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base link type ID was not found"),

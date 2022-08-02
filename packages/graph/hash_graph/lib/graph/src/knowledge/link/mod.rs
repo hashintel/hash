@@ -64,7 +64,7 @@ pub enum Outgoing {
 }
 
 /// A collection of links that originate from the same source entity.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
 pub struct Links {
     #[serde(flatten)]
     outgoing: HashMap<VersionedUri, Outgoing>,

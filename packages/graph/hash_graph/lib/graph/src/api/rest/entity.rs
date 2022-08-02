@@ -32,7 +32,7 @@ struct QualifiedEntity {
         get_entity,
         update_entity
     ),
-    components(CreateEntityRequest, UpdateEntityRequest, EntityId, QualifiedEntity),
+    components(CreateEntityRequest, UpdateEntityRequest, EntityId, QualifiedEntity, Entity),
     tags(
         (name = "Entity", description = "entity management API")
     )
@@ -54,8 +54,8 @@ impl RoutedResource for EntityResource {
 
 #[derive(Serialize, Deserialize, Component)]
 struct CreateEntityRequest {
-    #[component(value_type = Any)]
     entity: Entity,
+    #[component(value_type = String)]
     entity_type_uri: VersionedUri,
     account_id: AccountId,
 }
@@ -66,11 +66,11 @@ struct CreateEntityRequest {
     request_body = CreateEntityRequest,
     tag = "Entity",
     responses(
-      (status = 201, content_type = "application/json", description = "entity created successfully", body = QualifiedEntity),
-      (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 201, content_type = "application/json", description = "The created entity", body = QualifiedEntity),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-      (status = 404, description = "Entity Type URI was not found"),
-      (status = 500, description = "Datastore error occurred"),
+        (status = 404, description = "Entity Type URI was not found"),
+        (status = 500, description = "Datastore error occurred"),
     ),
     request_body = CreateEntityRequest,
 )]
@@ -106,7 +106,7 @@ async fn create_entity<P: GraphPool>(
     path = "/entities/{entity_id}",
     tag = "Entity",
     responses(
-        (status = 200, content_type = "application/json", description = "entity found", body = Entity),
+        (status = 200, content_type = "application/json", description = "The requested entity", body = Entity),
         (status = 422, content_type = "text/plain", description = "Provided entity id is invalid"),
 
         (status = 404, description = "entity was not found"),
@@ -127,9 +127,9 @@ async fn get_entity<P: GraphPool>(
 
 #[derive(Component, Serialize, Deserialize)]
 struct UpdateEntityRequest {
-    #[component(value_type = Any)]
     entity: Entity,
     entity_id: EntityId,
+    #[component(value_type = String)]
     entity_type_uri: VersionedUri,
     account_id: AccountId,
 }
@@ -139,7 +139,7 @@ struct UpdateEntityRequest {
     path = "/entities",
     tag = "Entity",
     responses(
-        (status = 200, content_type = "application/json", description = "entity updated successfully", body = QualifiedEntity),
+        (status = 200, content_type = "application/json", description = "The updated entity", body = QualifiedEntity),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Entity ID or Entity Type URI was not found"),

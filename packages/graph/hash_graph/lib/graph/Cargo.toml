@@ -23,6 +23,7 @@ tracing-error = "0.2.0"
 tracing-subscriber = { version = "0.3.14", features = ["env-filter", "json"] }
 uuid = { version = "1.1.2", features = ["v4", "serde"] }
 utoipa = { git = "https://github.com/juhaku/utoipa", rev = "031073f", features = ["uuid"] }
+include_dir = "0.7.2"
 
 [dev-dependencies]
 tokio = { version = "1.18.2", features = ["rt-multi-thread", "macros"] }

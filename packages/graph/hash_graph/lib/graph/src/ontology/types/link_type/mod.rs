@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use utoipa::Component;
 
 use crate::ontology::types::{uri::VersionedUri, OntologyType};
 
@@ -10,7 +9,7 @@ enum LinkTypeTag {
     LinkType,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkType {
     kind: LinkTypeTag,

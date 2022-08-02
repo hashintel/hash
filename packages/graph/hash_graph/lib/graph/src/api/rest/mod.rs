@@ -10,9 +10,16 @@ mod link;
 mod link_type;
 mod property_type;
 
-use std::{fmt::Debug, sync::Arc};
+use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
-use axum::{http::StatusCode, routing::get, Extension, Json, Router};
+use axum::{
+    extract::Path,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    routing::get,
+    Extension, Json, Router,
+};
+use include_dir::{include_dir, Dir};
 use utoipa::{openapi, Modify, OpenApi};
 
 use self::api_resource::RoutedResource;
@@ -20,6 +27,8 @@ use crate::{
     store::{crud, QueryError},
     GraphPool, StorePool,
 };
+
+static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
 
 fn api_resources<P: GraphPool>() -> Vec<Router> {
     vec![
@@ -84,13 +93,33 @@ pub fn rest_api_router<P: GraphPool>(store: Arc<P>) -> Router {
     merged_routes
         // Make sure extensions are added at the end so they are made available to merged routers.
         .layer(Extension(store))
-        .route(
-            "/api-doc/openapi.json",
+        .nest("/api-doc", Router::new().route(
+            "/openapi.json",
             get({
                 let doc = open_api_doc;
                 move || async { Json(doc) }
-            }),
+            })).route("/models/*path", get(serve_static_schema)),
         )
+}
+
+#[allow(
+    clippy::unused_async,
+    reason = "This route does not need async capabilities, but axum requires it in trait bounds."
+)]
+async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, StatusCode> {
+    let path = path.trim_start_matches('/');
+
+    match STATIC_SCHEMAS.get_file(path) {
+        None => Err(StatusCode::NOT_FOUND),
+        Some(file) => Ok((
+            [(
+                axum::http::header::CONTENT_TYPE,
+                axum::http::HeaderValue::from_static("application/json"),
+            )],
+            file.contents(),
+        )
+            .into_response()),
+    }
 }
 
 #[derive(OpenApi)]
@@ -98,10 +127,13 @@ pub fn rest_api_router<P: GraphPool>(store: Arc<P>) -> Router {
         tags(
             (name = "Graph", description = "HASH Graph API")
         ),
-        modifiers(&MergeAddon)
+        modifiers(&MergeAddon, &ExternalRefAddon)
     )]
 struct OpenApiDocumentation;
 
+/// Addon to merge multiple [`OpenApi`] documents together.
+///
+/// [`OpenApi`]: utoipa::openapi::OpenApi
 struct MergeAddon;
 
 impl Modify for MergeAddon {
@@ -139,4 +171,67 @@ impl Modify for MergeAddon {
                 .flat_map(|api_docs| api_docs.paths.paths.into_iter()),
         );
     }
+}
+
+/// Addon to allow external references in schemas.
+///
+/// Any component that starts with `VAR_` will transform into a relative URL in the schema and
+/// receive a `.json` ending.
+///
+/// For example the `VAR_Entity` component will be transformed into `./models/Entity.json`
+struct ExternalRefAddon;
+
+impl Modify for ExternalRefAddon {
+    fn modify(&self, openapi: &mut openapi::OpenApi) {
+        for path_item in openapi.paths.paths.values_mut() {
+            for operation in path_item.operations.values_mut() {
+                if let Some(request_body) = &mut operation.request_body {
+                    modify_component_references(&mut request_body.content);
+                }
+
+                for response in &mut operation.responses.responses.values_mut() {
+                    modify_component_references(&mut response.content);
+                }
+            }
+        }
+
+        if let Some(components) = &mut openapi.components {
+            for component in &mut components.schemas.values_mut() {
+                modify_schema_references(component);
+            }
+        }
+    }
+}
+
+fn modify_component_references(content: &mut HashMap<String, openapi::Content>) {
+    for content in content.values_mut() {
+        modify_schema_references(&mut content.schema);
+    }
+}
+
+fn modify_schema_references(schema_component: &mut openapi::Component) {
+    match schema_component {
+        openapi::Component::Ref(reference) => modify_reference(reference),
+        openapi::Component::Object(object) => object
+            .properties
+            .values_mut()
+            .for_each(modify_schema_references),
+        openapi::Component::Array(array) => modify_schema_references(array.items.as_mut()),
+        openapi::Component::OneOf(one_of) => {
+            one_of.items.iter_mut().for_each(modify_schema_references);
+        }
+        _ => (),
+    }
+}
+
+fn modify_reference(reference: &mut openapi::Ref) {
+    static REF_PREFIX: &str = "#/components/schemas/VAR_";
+
+    if reference.ref_location.starts_with(REF_PREFIX) {
+        reference
+            .ref_location
+            .replace_range(0..REF_PREFIX.len(), "./models/");
+        reference.ref_location.make_ascii_lowercase();
+        reference.ref_location.push_str(".json");
+    };
 }
