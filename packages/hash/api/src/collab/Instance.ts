@@ -590,17 +590,16 @@ export class Instance {
        * store update alongside other updates
        */
       if (storeUpdateIndex > -1) {
-        if (storeUpdateIndex > 0) {
-          updates = updates.slice(0, storeUpdateIndex);
-        } else if (
-          updates
-            .slice(storeUpdateIndex)
-            .every((update) => update.type === "store")
-        ) {
-          storeUpdate = updates[updates.length - 1] as StoreUpdate;
+        if (storeUpdateIndex === 0) {
+          if (updates.every((update) => update.type === "store")) {
+            storeUpdate = updates[updates.length - 1] as StoreUpdate;
+          } else {
+            storeUpdate = updates[0] as StoreUpdate;
+          }
+
           updates = [];
         } else {
-          storeUpdate = updates[storeUpdateIndex] as StoreUpdate;
+          updates = updates.slice(0, storeUpdateIndex);
         }
       }
 
