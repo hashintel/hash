@@ -19,7 +19,7 @@ async fn insert() {
             [entity_type::PERSON_V1],
         )
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     let person_type_uri = VersionedUri::new(
         "https://blockprotocol.org/@alice/types/entity-type/person".to_owned(),
@@ -72,7 +72,7 @@ async fn get_entity_links() {
             [entity_type::PERSON_V1],
         )
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     let person_type_uri = VersionedUri::new(
         "https://blockprotocol.org/@alice/types/entity-type/person".to_owned(),
@@ -153,7 +153,7 @@ async fn remove_link() {
             [entity_type::PERSON_V1],
         )
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     let person_type_uri = VersionedUri::new(
         "https://blockprotocol.org/@alice/types/entity-type/person".to_owned(),

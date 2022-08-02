@@ -137,7 +137,7 @@ async fn get_latest_entity_types<P: GraphPool>(
         (status = 500, description = "Datastore error occurred"),
     ),
     params(
-        ("uri" = String, Path, description = "The URI of entity type"),
+        ("uri" = String, Path, description = "The URI of the entity type"),
     )
 )]
 async fn get_entity_type<P: GraphPool>(

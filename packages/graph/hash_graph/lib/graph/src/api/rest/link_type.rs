@@ -135,7 +135,7 @@ async fn get_latest_link_types<P: GraphPool>(
         (status = 500, description = "Store error occurred"),
     ),
     params(
-        ("uri" = String, Path, description = "The URI of link type"),
+        ("uri" = String, Path, description = "The URI of the link type"),
     )
 )]
 async fn get_link_type<P: GraphPool>(

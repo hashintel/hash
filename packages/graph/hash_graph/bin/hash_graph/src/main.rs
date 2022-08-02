@@ -54,15 +54,17 @@ async fn main() -> Result<(), GraphError> {
             err
         })?;
 
+    // TODO: When we improve error management we need to match on it here, this will continue
+    //  normally even if the DB is down
     if connection
         .insert_account_id(account_id)
         .await
         .change_context(GraphError)
         .is_err()
     {
-        tracing::info!(%account_id, "account id already exist");
+        tracing::info!(%account_id, "tried to create root account, but id already exists");
     } else {
-        tracing::info!(%account_id, "created account id");
+        tracing::info!(%account_id, "created root account id");
     }
 
     drop(connection);

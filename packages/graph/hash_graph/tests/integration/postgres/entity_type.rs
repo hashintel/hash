@@ -17,7 +17,7 @@ async fn insert() {
             [],
         )
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     api.create_entity_type(&person_et)
         .await
@@ -33,7 +33,7 @@ async fn query() {
     let mut api = database
         .seed([data_type::TEXT_V1], [property_type::NAME_V1], [], [])
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     api.create_entity_type(&organization_et)
         .await
@@ -42,7 +42,7 @@ async fn query() {
     let entity_type = api
         .get_entity_type(organization_et.id())
         .await
-        .expect("could not query entity type");
+        .expect("could not get entity type");
 
     assert_eq!(entity_type, organization_et);
 }
@@ -67,7 +67,7 @@ async fn update() {
             [entity_type::PERSON_V1, entity_type::BLOCK_V1],
         )
         .await
-        .expect("Could not seed database:");
+        .expect("could not seed database:");
 
     api.create_entity_type(&page_et_v1)
         .await
