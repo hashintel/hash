@@ -13,7 +13,7 @@ import {
   isDraftBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
 import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
-import { isEqual, omit } from "lodash";
+import { isEqual, pick } from "lodash";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 import {
@@ -132,49 +132,33 @@ const calculateSaveActions = async (
    * involves creating a new text entity, which will be done later, but we need
    * to decide its placeholder entity id now in order to generate the correct link
    */
-  const ensureNecessaryLegacyTextLink = (
-    properties: {},
-    savedProperties?: DraftEntity["properties"],
-  ): Omit<LegacyLink<DraftEntity<Text>>, "data"> | null => {
-    if (!isDraftTextContainingEntityProperties(properties)) {
-      return null;
+  const ensureNecessaryLegacyTextLink = <
+    T extends { text: LegacyLink<DraftEntity<Text>> },
+  >(
+    properties: T,
+  ): Pick<LegacyLink<DraftEntity<Text>>, "__linkedData"> | null => {
+    if (
+      properties.text.__linkedData.entityId &&
+      properties.text.__linkedData.entityTypeId
+    ) {
+      return pick(properties.text, "__linkedData");
     }
 
-    const savedWithoutText = omit(savedProperties, "text");
-    const savedTextLink = isDraftTextContainingEntityProperties(savedProperties)
-      ? savedProperties.text.__linkedData
-      : null;
+    const textEntity = properties.text.data;
+    let textEntityId =
+      draftIdToPlaceholderId.get(textEntity.draftId) ?? textEntity.entityId;
 
-    if (savedTextLink) {
-      const draftWithoutText = omit(properties, "text");
-
-      if (
-        !isEqual(savedWithoutText, draftWithoutText) ||
-        isEqual(savedTextLink, properties.text.__linkedData)
-      ) {
-        return {
-          __linkedData: properties.text.__linkedData,
-        };
-      }
-    } else {
-      const textEntity = properties.text.data;
-      let textEntityId =
-        draftIdToPlaceholderId.get(textEntity.draftId) ?? textEntity.entityId;
-
-      if (!textEntityId) {
-        textEntityId = generatePlaceholderId();
-        draftIdToPlaceholderId.set(textEntity.draftId, textEntityId);
-      }
-
-      return {
-        __linkedData: {
-          entityTypeId: textEntityTypeId,
-          entityId: textEntityId,
-        },
-      };
+    if (!textEntityId) {
+      textEntityId = generatePlaceholderId();
+      draftIdToPlaceholderId.set(textEntity.draftId, textEntityId);
     }
 
-    return null;
+    return {
+      __linkedData: {
+        entityTypeId: textEntityTypeId,
+        entityId: textEntityId,
+      },
+    };
   };
 
   for (const draftEntity of Object.values(store.draft)) {
@@ -197,29 +181,42 @@ const calculateSaveActions = async (
         continue;
       }
 
-      const textLink = ensureNecessaryLegacyTextLink(
-        draftEntity.properties,
-        savedEntity.properties,
-      );
-
-      if (
-        textLink ||
-        (!isDraftTextContainingEntityProperties(draftEntity.properties) &&
-          !isEqual(draftEntity.properties, savedEntity.properties))
-      ) {
-        actions.push({
-          updateEntity: {
-            entityId: draftEntity.entityId,
-            accountId: draftEntity.accountId,
-            properties: textLink
-              ? {
-                  ...draftEntity.properties,
-                  text: textLink,
-                }
-              : draftEntity.properties,
-          },
-        });
+      // Nothing has changed…
+      if (isEqual(savedEntity.properties, draftEntity.properties)) {
+        continue;
       }
+
+      const previousProperties = isDraftTextContainingEntityProperties(
+        savedEntity.properties,
+      )
+        ? {
+            ...savedEntity.properties,
+            text: pick(savedEntity.properties.text, "__linkedData"),
+          }
+        : savedEntity.properties;
+
+      const nextProperties = isDraftTextContainingEntityProperties(
+        draftEntity.properties,
+      )
+        ? {
+            ...draftEntity.properties,
+            text: ensureNecessaryLegacyTextLink(draftEntity.properties),
+          }
+        : draftEntity.properties;
+
+      // The only thing that has changed is the text entity within the legacy link,
+      // so there is no update to this entity itself
+      if (isEqual(previousProperties, nextProperties)) {
+        continue;
+      }
+
+      actions.push({
+        updateEntity: {
+          entityId: draftEntity.entityId,
+          accountId: draftEntity.accountId,
+          properties: nextProperties,
+        },
+      });
     } else {
       const dependedOn = draftIdToPlaceholderId.has(draftEntity.draftId);
       const placeholderId = dependedOn
@@ -252,16 +249,14 @@ const calculateSaveActions = async (
           blockEntity.properties.componentId,
         );
 
+        entityType = { entityTypeId };
         // Placing at front to ensure latter actions can make use of this
         actions.unshift(...newTypeActions);
 
-        entityType = { entityTypeId };
-
-        const textLink = ensureNecessaryLegacyTextLink(properties);
-        properties = textLink
+        properties = isDraftTextContainingEntityProperties(properties)
           ? {
               ...properties,
-              text: textLink,
+              text: ensureNecessaryLegacyTextLink(properties),
             }
           : properties;
       }
