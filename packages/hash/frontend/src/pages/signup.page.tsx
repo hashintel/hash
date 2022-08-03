@@ -7,7 +7,7 @@ import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import {
   createFlowErrorHandler,
-  getCsrfTokenFromFlow,
+  mustGetCsrfTokenFromFlow,
   IdentityTraits,
   oryKratosClient,
 } from "./shared/ory-kratos";
@@ -71,11 +71,7 @@ const SignupPage: NextPageWithLayout = () => {
       return;
     }
 
-    const csrf_token = getCsrfTokenFromFlow(flow);
-
-    if (!csrf_token) {
-      throw new Error("CSRF token not found in flow");
-    }
+    const csrf_token = mustGetCsrfTokenFromFlow(flow);
 
     const traits: IdentityTraits = {
       emails: [email],

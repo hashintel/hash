@@ -7,7 +7,7 @@ import { AxiosError } from "axios";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import {
   createFlowErrorHandler,
-  getCsrfTokenFromFlow,
+  mustGetCsrfTokenFromFlow,
   oryKratosClient,
   useLogoutFlow,
 } from "./shared/ory-kratos";
@@ -91,7 +91,7 @@ const LoginPage: NextPageWithLayout = () => {
       return;
     }
 
-    const csrf_token = getCsrfTokenFromFlow(flow);
+    const csrf_token = mustGetCsrfTokenFromFlow(flow);
 
     void router
       // On submission, add the flow ID to the URL but do not navigate. This prevents the user loosing

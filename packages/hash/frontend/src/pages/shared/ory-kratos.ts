@@ -116,11 +116,21 @@ export const createFlowErrorHandler =
     return Promise.reject(err);
   };
 
-export const getCsrfTokenFromFlow = (flow: SelfServiceFlow) =>
+const maybeGetCsrfTokenFromFlow = (flow: SelfServiceFlow) =>
   flow.ui.nodes
     .map(({ attributes }) => attributes)
     .filter(isUiNodeInputAttributes)
     .find(({ name }) => name === "csrf_token")?.value;
+
+export const mustGetCsrfTokenFromFlow = (flow: SelfServiceFlow): string => {
+  const csrf_token = maybeGetCsrfTokenFromFlow(flow);
+
+  if (!csrf_token) {
+    throw new Error("CSRF token not found in flow");
+  }
+
+  return csrf_token;
+};
 
 // Returns a function which will log the user out
 export const useLogoutFlow = (deps?: DependencyList) => {
@@ -141,6 +151,7 @@ export const useLogoutFlow = (deps?: DependencyList) => {
         // Something else happened!
         return Promise.reject(err);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
   return {
