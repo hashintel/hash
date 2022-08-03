@@ -5,11 +5,16 @@
   "description": "OpenAPI client for the HASH Graph API.",
   "license": "AGPL-3.0",
   "main": "./index.ts",
+  "scripts": {
+    "eslint:fix": "eslint ./*.ts --fix --no-inline-config"
+  },
   "dependencies": {
     "axios": "0.26.1"
   },
   "devDependencies": {
     "@types/node": "16.7.6",
+    "@typescript-eslint/parser": "5.17.0",
+    "eslint-plugin-typescript-sort-keys": "2.1.0",
     "typescript": "^4.0"
   }
 }

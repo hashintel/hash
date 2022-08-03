@@ -13,21 +13,21 @@
  */
 
 export interface ConfigurationParameters {
-  apiKey?:
-    | string
-    | Promise<string>
-    | ((name: string) => string)
-    | ((name: string) => Promise<string>);
-  username?: string;
-  password?: string;
   accessToken?:
     | string
     | Promise<string>
     | ((name?: string, scopes?: string[]) => string)
     | ((name?: string, scopes?: string[]) => Promise<string>);
-  basePath?: string;
+  apiKey?:
+    | string
+    | Promise<string>
+    | ((name: string) => string)
+    | ((name: string) => Promise<string>);
   baseOptions?: any;
+  basePath?: string;
   formDataCtor?: new () => any;
+  password?: string;
+  username?: string;
 }
 
 export class Configuration {

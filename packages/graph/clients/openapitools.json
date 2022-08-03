@@ -14,7 +14,9 @@
           "supportsES6": "true",
           "withInterfaces": true,
           "disallowAdditionalPropertiesIfNotPresent": true,
-          "withNodeImports": true
+          "withNodeImports": true,
+          "sortModelPropertiesByRequiredFlag": false,
+          "sortParamsByRequiredFlag": false
         }
       }
     }

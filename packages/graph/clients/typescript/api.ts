@@ -118,12 +118,6 @@ export interface CreateLinkRequest {
    * @type {string}
    * @memberof CreateLinkRequest
    */
-  target_entity: string;
-  /**
-   *
-   * @type {string}
-   * @memberof CreateLinkRequest
-   */
   account_id: string;
   /**
    *
@@ -131,6 +125,12 @@ export interface CreateLinkRequest {
    * @memberof CreateLinkRequest
    */
   link_type_uri: string;
+  /**
+   *
+   * @type {string}
+   * @memberof CreateLinkRequest
+   */
+  target_entity: string;
 }
 /**
  *
@@ -140,16 +140,16 @@ export interface CreateLinkRequest {
 export interface CreateLinkTypeRequest {
   /**
    *
-   * @type {LinkType}
-   * @memberof CreateLinkTypeRequest
-   */
-  schema: LinkType;
-  /**
-   *
    * @type {string}
    * @memberof CreateLinkTypeRequest
    */
   account_id: string;
+  /**
+   *
+   * @type {LinkType}
+   * @memberof CreateLinkTypeRequest
+   */
+  schema: LinkType;
 }
 /**
  *
@@ -159,16 +159,16 @@ export interface CreateLinkTypeRequest {
 export interface CreatePropertyTypeRequest {
   /**
    *
-   * @type {PropertyType}
-   * @memberof CreatePropertyTypeRequest
-   */
-  schema: PropertyType;
-  /**
-   *
    * @type {string}
    * @memberof CreatePropertyTypeRequest
    */
   account_id: string;
+  /**
+   *
+   * @type {PropertyType}
+   * @memberof CreatePropertyTypeRequest
+   */
+  schema: PropertyType;
 }
 /**
  * Specifies the structure of a Data Type
@@ -180,12 +180,6 @@ export interface DataType {
 
   /**
    *
-   * @type {object}
-   * @memberof DataType
-   */
-  kind: DataTypeKindEnum;
-  /**
-   *
    * @type {string}
    * @memberof DataType
    */
@@ -195,13 +189,19 @@ export interface DataType {
    * @type {string}
    * @memberof DataType
    */
-  title: string;
+  description?: string;
+  /**
+   *
+   * @type {object}
+   * @memberof DataType
+   */
+  kind: DataTypeKindEnum;
   /**
    *
    * @type {string}
    * @memberof DataType
    */
-  description?: string;
+  title: string;
   /**
    *
    * @type {string}
@@ -251,12 +251,6 @@ export interface Entity {
 export interface EntityType {
   /**
    *
-   * @type {object}
-   * @memberof EntityType
-   */
-  kind: EntityTypeKindEnum;
-  /**
-   *
    * @type {string}
    * @memberof EntityType
    */
@@ -266,13 +260,7 @@ export interface EntityType {
    * @type {object}
    * @memberof EntityType
    */
-  type: EntityTypeTypeEnum;
-  /**
-   *
-   * @type {string}
-   * @memberof EntityType
-   */
-  title: string;
+  default?: object;
   /**
    *
    * @type {string}
@@ -281,16 +269,22 @@ export interface EntityType {
   description?: string;
   /**
    *
-   * @type {object}
-   * @memberof EntityType
-   */
-  default?: object;
-  /**
-   *
    * @type {Array<object>}
    * @memberof EntityType
    */
   examples?: Array<object>;
+  /**
+   *
+   * @type {object}
+   * @memberof EntityType
+   */
+  kind: EntityTypeKindEnum;
+  /**
+   *
+   * @type {object}
+   * @memberof EntityType
+   */
+  links?: object;
   /**
    *
    * @type {object}
@@ -305,16 +299,22 @@ export interface EntityType {
   required?: Array<string>;
   /**
    *
-   * @type {object}
-   * @memberof EntityType
-   */
-  links?: object;
-  /**
-   *
    * @type {Array<string>}
    * @memberof EntityType
    */
   requiredLinks?: Array<string>;
+  /**
+   *
+   * @type {string}
+   * @memberof EntityType
+   */
+  title: string;
+  /**
+   *
+   * @type {object}
+   * @memberof EntityType
+   */
+  type: EntityTypeTypeEnum;
 }
 
 export const EntityTypeKindEnum = {
@@ -360,6 +360,12 @@ export interface Link {
    * @type {string}
    * @memberof Link
    */
+  link_type_uri: string;
+  /**
+   *
+   * @type {string}
+   * @memberof Link
+   */
   source_entity: string;
   /**
    *
@@ -367,12 +373,6 @@ export interface Link {
    * @memberof Link
    */
   target_entity: string;
-  /**
-   *
-   * @type {string}
-   * @memberof Link
-   */
-  link_type_uri: string;
 }
 /**
  * Specifies the structure of a Link Type
@@ -380,12 +380,6 @@ export interface Link {
  * @interface LinkType
  */
 export interface LinkType {
-  /**
-   *
-   * @type {object}
-   * @memberof LinkType
-   */
-  kind: LinkTypeKindEnum;
   /**
    *
    * @type {string}
@@ -397,19 +391,25 @@ export interface LinkType {
    * @type {string}
    * @memberof LinkType
    */
-  title: string;
+  description: string;
   /**
    *
-   * @type {string}
+   * @type {object}
    * @memberof LinkType
    */
-  description: string;
+  kind: LinkTypeKindEnum;
   /**
    *
    * @type {Array<string>}
    * @memberof LinkType
    */
   relatedKeywords?: Array<string>;
+  /**
+   *
+   * @type {string}
+   * @memberof LinkType
+   */
+  title: string;
 }
 
 export const LinkTypeKindEnum = {
@@ -440,12 +440,6 @@ export interface Links {
 export interface PropertyArrayValue {
   /**
    *
-   * @type {string}
-   * @memberof PropertyArrayValue
-   */
-  type: PropertyArrayValueTypeEnum;
-  /**
-   *
    * @type {PropertyArrayValueItems}
    * @memberof PropertyArrayValue
    */
@@ -455,13 +449,19 @@ export interface PropertyArrayValue {
    * @type {number}
    * @memberof PropertyArrayValue
    */
-  minItems?: number;
+  maxItems?: number;
   /**
    *
    * @type {number}
    * @memberof PropertyArrayValue
    */
-  maxItems?: number;
+  minItems?: number;
+  /**
+   *
+   * @type {string}
+   * @memberof PropertyArrayValue
+   */
+  type: PropertyArrayValueTypeEnum;
 }
 
 export const PropertyArrayValueTypeEnum = {
@@ -492,16 +492,16 @@ export interface PropertyArrayValueItems {
 export interface PropertyObjectValue {
   /**
    *
-   * @type {string}
-   * @memberof PropertyObjectValue
-   */
-  type: PropertyObjectValueTypeEnum;
-  /**
-   *
    * @type {object}
    * @memberof PropertyObjectValue
    */
   properties: object;
+  /**
+   *
+   * @type {string}
+   * @memberof PropertyObjectValue
+   */
+  type: PropertyObjectValueTypeEnum;
 }
 
 export const PropertyObjectValueTypeEnum = {
@@ -519,12 +519,6 @@ export type PropertyObjectValueTypeEnum =
 export interface PropertyType {
   /**
    *
-   * @type {object}
-   * @memberof PropertyType
-   */
-  kind: PropertyTypeKindEnum;
-  /**
-   *
    * @type {string}
    * @memberof PropertyType
    */
@@ -534,19 +528,25 @@ export interface PropertyType {
    * @type {string}
    * @memberof PropertyType
    */
-  title: string;
+  description?: string;
   /**
    *
-   * @type {string}
+   * @type {object}
    * @memberof PropertyType
    */
-  description?: string;
+  kind: PropertyTypeKindEnum;
   /**
    *
    * @type {Array<PropertyValues>}
    * @memberof PropertyType
    */
   oneOf: Array<PropertyValues>;
+  /**
+   *
+   * @type {string}
+   * @memberof PropertyType
+   */
+  title: string;
 }
 
 export const PropertyTypeKindEnum = {
@@ -573,16 +573,16 @@ export type PropertyValues =
 export interface QualifiedEntity {
   /**
    *
-   * @type {string}
-   * @memberof QualifiedEntity
-   */
-  entity_id: string;
-  /**
-   *
    * @type {Entity}
    * @memberof QualifiedEntity
    */
   entity: Entity;
+  /**
+   *
+   * @type {string}
+   * @memberof QualifiedEntity
+   */
+  entity_id: string;
 }
 /**
  *
@@ -592,16 +592,16 @@ export interface QualifiedEntity {
 export interface UpdateDataTypeRequest {
   /**
    *
-   * @type {DataType}
-   * @memberof UpdateDataTypeRequest
-   */
-  schema: DataType;
-  /**
-   *
    * @type {string}
    * @memberof UpdateDataTypeRequest
    */
   account_id: string;
+  /**
+   *
+   * @type {DataType}
+   * @memberof UpdateDataTypeRequest
+   */
+  schema: DataType;
 }
 /**
  *
@@ -617,16 +617,16 @@ export interface UpdateEntityRequest {
   account_id: string;
   /**
    *
-   * @type {string}
-   * @memberof UpdateEntityRequest
-   */
-  entity_id: string;
-  /**
-   *
    * @type {Entity}
    * @memberof UpdateEntityRequest
    */
   entity: Entity;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateEntityRequest
+   */
+  entity_id: string;
   /**
    *
    * @type {string}
@@ -642,16 +642,16 @@ export interface UpdateEntityRequest {
 export interface UpdateEntityTypeRequest {
   /**
    *
-   * @type {EntityType}
-   * @memberof UpdateEntityTypeRequest
-   */
-  schema: EntityType;
-  /**
-   *
    * @type {string}
    * @memberof UpdateEntityTypeRequest
    */
   account_id: string;
+  /**
+   *
+   * @type {EntityType}
+   * @memberof UpdateEntityTypeRequest
+   */
+  schema: EntityType;
 }
 /**
  *
@@ -680,16 +680,16 @@ export interface UpdateLinkTypeRequest {
 export interface UpdatePropertyTypeRequest {
   /**
    *
-   * @type {PropertyType}
-   * @memberof UpdatePropertyTypeRequest
-   */
-  schema: PropertyType;
-  /**
-   *
    * @type {string}
    * @memberof UpdatePropertyTypeRequest
    */
   account_id: string;
+  /**
+   *
+   * @type {PropertyType}
+   * @memberof UpdatePropertyTypeRequest
+   */
+  schema: PropertyType;
 }
 
 /**
