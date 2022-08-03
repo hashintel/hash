@@ -91,6 +91,7 @@ async fn create_data_type<P: GraphPool>(
         .create_data_type(&schema, account_id)
         .await
         .map_err(|report| {
+            // TODO: consider adding the data type, or at least its URI in the trace
             tracing::error!(error=?report, "Could not create data type");
 
             if report.contains::<BaseUriAlreadyExists>() {
@@ -110,7 +111,6 @@ async fn create_data_type<P: GraphPool>(
     tag = "DataType",
     responses(
         (status = 200, content_type = "application/json", description = "List of all data types at their latest versions", body = [VAR_DATA_TYPE]),
-        (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -135,7 +135,7 @@ async fn get_latest_data_types<P: GraphPool>(
         (status = 500, description = "Store error occurred"),
     ),
     params(
-        ("uri" = String, Path, description = "The URI of data type"),
+        ("uri" = String, Path, description = "The URI of the data type"),
     )
 )]
 async fn get_data_type<P: GraphPool>(

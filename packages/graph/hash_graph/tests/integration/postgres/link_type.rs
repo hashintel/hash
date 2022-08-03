@@ -9,7 +9,7 @@ async fn insert() {
     let mut api = database
         .seed([], [], [], [])
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     api.create_link_type(&owns_lt)
         .await
@@ -25,7 +25,7 @@ async fn query() {
     let mut api = database
         .seed([], [], [], [])
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     api.create_link_type(&submitted_by_lt)
         .await
@@ -34,7 +34,7 @@ async fn query() {
     let link_type = api
         .get_link_type(submitted_by_lt.id())
         .await
-        .expect("could not query link type");
+        .expect("could not get link type");
 
     assert_eq!(link_type, submitted_by_lt);
 }
@@ -50,7 +50,7 @@ async fn update() {
     let mut api = database
         .seed([], [], [], [])
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     api.create_link_type(&owns_lt_v1)
         .await

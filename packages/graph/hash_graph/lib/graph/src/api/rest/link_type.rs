@@ -110,7 +110,6 @@ async fn create_link_type<P: GraphPool>(
     tag = "LinkType",
     responses(
         (status = 200, content_type = "application/json", description = "List of all link types at their latest versions", body = [VAR_LINK_TYPE]),
-        (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -135,7 +134,7 @@ async fn get_latest_link_types<P: GraphPool>(
         (status = 500, description = "Store error occurred"),
     ),
     params(
-        ("uri" = String, Path, description = "The URI of link type"),
+        ("uri" = String, Path, description = "The URI of the link type"),
     )
 )]
 async fn get_link_type<P: GraphPool>(

@@ -11,7 +11,7 @@ async fn insert() {
     let mut api = database
         .seed([], [], [], [])
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     api.create_data_type(&boolean_dt)
         .await
@@ -27,7 +27,7 @@ async fn query() {
     let mut api = database
         .seed([], [], [], [])
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     api.create_data_type(&empty_list_dt)
         .await
@@ -36,7 +36,7 @@ async fn query() {
     let data_type = api
         .get_data_type(empty_list_dt.id())
         .await
-        .expect("could not query data type");
+        .expect("could not get data type");
 
     assert_eq!(data_type, empty_list_dt);
 }
@@ -52,7 +52,7 @@ async fn update() {
     let mut api = database
         .seed([], [], [], [])
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     api.create_data_type(&object_dt_v1)
         .await
