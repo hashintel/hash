@@ -1,7 +1,6 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { SearchAdapter } from "@hashintel/hash-backend-utils/search/adapter";
 
-import { PassportGraphQLMethods } from "../auth/passport";
 import { User } from "../model";
 import { DbAdapter } from "../db";
 import { CacheAdapter } from "../cache";
@@ -22,7 +21,6 @@ export interface GraphQLContext {
   };
   emailTransporter: EmailTransporter;
   uploadProvider: StorageType;
-  passport: PassportGraphQLMethods;
   logger: Logger;
   user?: Omit<User, "entityType">;
 }
