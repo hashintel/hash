@@ -74,7 +74,7 @@ export const useUser = (options?: Omit<QueryHookOptions, "errorPolicy">) => {
   return {
     user,
     kratosSession,
-    refetch: () => Promise.all([refetchUser]),
+    refetch: () => Promise.all([refetchUser, fetchKratosIdentity]),
     loading: loadingUser || loadingKratosSession,
   };
 };
