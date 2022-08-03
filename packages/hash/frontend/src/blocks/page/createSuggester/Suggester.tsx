@@ -11,6 +11,7 @@ export interface SuggesterProps<T> {
   onChange(item: T): void;
   loading?: boolean;
   itemKey(option: T): string;
+  getPos?: (width: number, height: number) => { left: number; top: number };
   sx?: SxProps<Theme>;
 }
 
@@ -24,8 +25,11 @@ export const Suggester = <T,>({
   itemKey,
   renderItem,
   error,
+  getPos,
   sx = [],
-}: SuggesterProps<T>): ReactElement => {
+}: SuggesterProps<T>) => {
+  const [pos, setPos] = useState<{ left: number; top: number }>();
+  const ref = useRef<HTMLDivElement>();
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   // reset selected index if it exceeds the options available
@@ -42,13 +46,6 @@ export const Suggester = <T,>({
     setSelectedIndex(index);
   });
 
-  // scroll the selected option into view
-  const selectedRef = useRef<HTMLLIElement>(null);
-  useEffect(
-    () => selectedRef.current?.scrollIntoView({ block: "nearest" }),
-    [selectedIndex],
-  );
-
   useKey(["Enter"], (event) => {
     event.preventDefault();
 
@@ -58,8 +55,15 @@ export const Suggester = <T,>({
     }
   });
 
+  useEffect(() => {
+    if (getPos && ref.current) {
+      setPos(getPos(ref.current?.offsetWidth, ref.current?.offsetHeight));
+    }
+  }, [ref, getPos]);
+
   return (
     <Box
+      ref={ref}
       sx={[
         ({ palette }) => ({
           position: "absolute",
@@ -73,6 +77,8 @@ export const Suggester = <T,>({
           gridTemplateRows: "1fr auto",
           overflow: "hidden",
           textAlign: "left",
+          opacity: pos ? 1 : 0,
+          ...pos,
         }),
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
@@ -97,7 +103,6 @@ export const Suggester = <T,>({
         {options.map((option, index) => (
           <Box
             component="li"
-            ref={index === selectedIndex ? selectedRef : undefined}
             key={itemKey(option)}
             sx={({ palette }) => ({
               backgroundColor:

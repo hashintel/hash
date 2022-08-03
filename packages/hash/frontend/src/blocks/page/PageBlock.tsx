@@ -83,7 +83,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   return (
     <UserBlocksProvider value={blocks}>
       <BlockLoadedProvider routeHash={routeHash}>
-        <div id="root" ref={root} />
+        <div id="root" ref={root} style={{ position: "relative" }} />
         {portals}
         {/**
          * @todo position this better

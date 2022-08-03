@@ -121,8 +121,8 @@ export const createSuggester = (
   renderPortal: RenderPortal,
   getManager: () => ProsemirrorManager,
   accountId: string,
-) =>
-  new Plugin<SuggesterState, Schema>({
+) => {
+  return new Plugin<SuggesterState, Schema>({
     key: suggesterPluginKey,
     state: {
       init() {
@@ -209,7 +209,10 @@ export const createSuggester = (
       },
     },
     view() {
+      // console.log(document.querySelector("#root"));
       const mountNode = document.createElement("div");
+      // console.log(document.querySelector("main"));
+      // document.querySelector("main")?.appendChild(mountNode);
 
       return {
         update(view) {
@@ -224,6 +227,7 @@ export const createSuggester = (
             position: "absolute",
             top: coords.bottom + document.documentElement.scrollTop,
             left: coords.left + document.documentElement.scrollLeft,
+            opacity: 1,
           };
 
           const onBlockSuggesterChange = (
@@ -261,12 +265,35 @@ export const createSuggester = (
 
           let jsx: ReactElement | null = null;
 
+          const container = document.querySelector("#root") as HTMLDivElement;
+
+          const getPos = (width: number, height: number) => {
+            let top = 0;
+            let left = 0;
+
+            const { x, y } = container.getBoundingClientRect();
+
+            if ((style.top as number) - y > container.offsetHeight - height) {
+              top = (style.top as number) - y - height - 30;
+            } else {
+              top = (style.top as number) - y;
+            }
+
+            left = Math.min(
+              container.offsetWidth - width,
+              (style.left as number) - x,
+            );
+
+            return { left, top };
+          };
+
           switch (triggerChar) {
             case "/":
               jsx = (
                 <BlockSuggester
                   search={search.substring(1)}
                   onChange={onBlockSuggesterChange}
+                  getPos={getPos}
                 />
               );
               break;
@@ -276,13 +303,14 @@ export const createSuggester = (
                   search={search.substring(1)}
                   onChange={onMentionChange}
                   accountId={accountId}
+                  getPos={getPos}
                 />
               );
           }
 
           if (jsx) {
-            ensureMounted(mountNode, document.body);
-            renderPortal(<div style={style}>{jsx}</div>, mountNode);
+            ensureMounted(mountNode, container);
+            renderPortal(jsx, mountNode);
           }
         },
         destroy() {
@@ -292,3 +320,4 @@ export const createSuggester = (
       };
     },
   }) as Plugin<unknown, Schema>;
+};
