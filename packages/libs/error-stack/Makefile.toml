@@ -12,7 +12,9 @@ release ${groups}
 # prepend the list with --group-features and join them
 prefix = array
 for group in ${raw}
-    array_push ${prefix} "--group-features ${group}"
+    if not is_empty ${group}
+        array_push ${prefix} "--group-features ${group}"
+    end
 end
 
 release ${raw}
@@ -21,7 +23,9 @@ release ${prefix}
 
 # append the value to the existing hack flags
 flags = get_env CARGO_TEST_HACK_FLAGS
-flags = set "${flags} ${groups}"
+if not is_empty ${groups}
+    flags = set "${flags} ${groups}"
+end
 set_env CARGO_TEST_HACK_FLAGS ${flags}
 
 release ${flags}
