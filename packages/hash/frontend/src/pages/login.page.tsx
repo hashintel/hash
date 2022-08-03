@@ -94,7 +94,7 @@ const LoginPage: NextPageWithLayout = () => {
     const csrf_token = mustGetCsrfTokenFromFlow(flow);
 
     void router
-      // On submission, add the flow ID to the URL but do not navigate. This prevents the user loosing
+      // On submission, add the flow ID to the URL but do not navigate. This prevents the user losing
       // their data when they reload the page.
       .push(`/login?flow=${flow?.id}`, undefined, { shallow: true })
       .then(() =>
