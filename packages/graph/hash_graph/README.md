@@ -51,3 +51,13 @@ The REST API can be tested as well. Note, that this does not clean up the databa
 ```shell
 cargo make test-rest-api
 ```
+
+## Generate OpenAPI client
+
+The HASH Graph produces an OpenAPI Spec while running, which can be used to generate the `@hashintel/hash-graph-client` typescript client. In the `hash_graph` directory run:
+
+```shell
+cargo make generate-openapi-client
+```
+
+Make sure to run this command whenever changes are made to the specification. CI will not pass otherwise.

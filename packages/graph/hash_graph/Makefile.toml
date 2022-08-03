@@ -38,6 +38,8 @@ trap "kill $pid" 0 ERR
 yarn httpyac send --all ${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/tests/rest-test.http
 """
 
+# If this step fails, the OpenAPI spec is invalid.
+# When running in CI, a non-empty git diff will fail the pipeline.
 [tasks.generate-openapi-client]
 script = """
 #!/usr/bin/env bash
