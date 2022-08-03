@@ -47,7 +47,7 @@ selfservice:
 
     registration:
       lifespan: 10m
-      ui_url: http://127.0.0.1:3000/registration
+      ui_url: http://127.0.0.1:3000/signup
       after:
         password:
           hooks:
