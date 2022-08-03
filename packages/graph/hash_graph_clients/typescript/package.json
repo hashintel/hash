@@ -1,0 +1,27 @@
+{
+  "name": "@hashintel/hash-graph-client",
+  "version": "0.0.0",
+  "private": true,
+  "description": "OpenAPI client for @hashintel/hash-graph-client",
+  "keywords": [
+    "axios",
+    "typescript",
+    "openapi-client",
+    "openapi-generator",
+    "@hashintel/hash-graph-client"
+  ],
+  "license": "AGPL-3.0",
+  "main": "./dist/index.js",
+  "typings": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc --outDir dist/",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "axios": "^0.26.1"
+  },
+  "devDependencies": {
+    "@types/node": "16.7.6",
+    "typescript": "^4.0"
+  }
+}
