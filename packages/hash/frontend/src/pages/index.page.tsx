@@ -28,6 +28,7 @@ const Page: NextPageWithLayout = () => {
     }
   }, [loading, router, user, kratosSession]);
 
+  /** @todo: remove session developer information */
   return (
     <Container sx={{ pt: 10 }}>
       <Typography variant="h1" gutterBottom>
