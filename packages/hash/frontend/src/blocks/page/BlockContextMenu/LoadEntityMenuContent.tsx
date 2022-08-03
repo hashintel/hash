@@ -148,7 +148,6 @@ export const LoadEntityMenuContent: FunctionComponent<
             key={entity.entityId}
             onClick={() => {
               swapEntity(entity);
-
               closeParentContextMenu();
             }}
           >
