@@ -1,7 +1,37 @@
 extend = { path = "../../../.github/scripts/rust/Makefile.toml" }
 
+env_scripts = [
+'''
+#!@duckscript
+
+# get the groups from CARGO_TEST_HACK_GROUPS and convert them into a list
+groups = get_env CARGO_TEST_HACK_GROUPS
+raw = split ${groups} ;
+release ${groups}
+
+# prepend the list with --group-features and join them
+prefix = array
+for group in ${raw}
+    array_push ${prefix} "--group-features ${group}"
+end
+
+release ${raw}
+groups = array_join ${prefix} " "
+release ${prefix}
+
+# append the value to the existing hack flags
+flags = get_env CARGO_TEST_HACK_FLAGS
+flags = set "${flags} ${groups}"
+set_env CARGO_TEST_HACK_FLAGS ${flags}
+
+release ${flags}
+release ${groups}
+'''
+]
+
 [env]
 CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default --optional-deps eyre,anyhow"
+CARGO_TEST_HACK_GROUPS = ["anyhow,eyre", "glyph,serde", "std,hooks", "spantrace,futures,small"]
 CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default --optional-deps eyre,anyhow"
 CARGO_MIRI_FLAGS = "--tests --lib"
 
