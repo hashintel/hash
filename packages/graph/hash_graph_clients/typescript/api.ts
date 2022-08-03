@@ -52,16 +52,16 @@ import {
 export interface CreateDataTypeRequest {
   /**
    *
-   * @type {string}
-   * @memberof CreateDataTypeRequest
-   */
-  account_id: string;
-  /**
-   *
    * @type {DataType}
    * @memberof CreateDataTypeRequest
    */
   schema: DataType;
+  /**
+   *
+   * @type {string}
+   * @memberof CreateDataTypeRequest
+   */
+  account_id: string;
 }
 /**
  *
@@ -74,12 +74,6 @@ export interface CreateEntityRequest {
    * @type {string}
    * @memberof CreateEntityRequest
    */
-  entity_type_uri: string;
-  /**
-   *
-   * @type {string}
-   * @memberof CreateEntityRequest
-   */
   account_id: string;
   /**
    *
@@ -87,6 +81,12 @@ export interface CreateEntityRequest {
    * @memberof CreateEntityRequest
    */
   entity: Entity;
+  /**
+   *
+   * @type {string}
+   * @memberof CreateEntityRequest
+   */
+  entity_type_uri: string;
 }
 /**
  *
@@ -118,7 +118,7 @@ export interface CreateLinkRequest {
    * @type {string}
    * @memberof CreateLinkRequest
    */
-  link_type_uri: string;
+  account_id: string;
   /**
    *
    * @type {string}
@@ -130,7 +130,7 @@ export interface CreateLinkRequest {
    * @type {string}
    * @memberof CreateLinkRequest
    */
-  account_id: string;
+  link_type_uri: string;
 }
 /**
  *
@@ -159,16 +159,16 @@ export interface CreateLinkTypeRequest {
 export interface CreatePropertyTypeRequest {
   /**
    *
-   * @type {PropertyType}
-   * @memberof CreatePropertyTypeRequest
-   */
-  schema: PropertyType;
-  /**
-   *
    * @type {string}
    * @memberof CreatePropertyTypeRequest
    */
   account_id: string;
+  /**
+   *
+   * @type {PropertyType}
+   * @memberof CreatePropertyTypeRequest
+   */
+  schema: PropertyType;
 }
 /**
  * Specifies the structure of a Data Type
@@ -360,7 +360,7 @@ export interface Link {
    * @type {string}
    * @memberof Link
    */
-  target_entity: string;
+  source_entity: string;
   /**
    *
    * @type {string}
@@ -372,7 +372,7 @@ export interface Link {
    * @type {string}
    * @memberof Link
    */
-  source_entity: string;
+  target_entity: string;
 }
 /**
  * Specifies the structure of a Link Type
@@ -573,16 +573,16 @@ export type PropertyValues =
 export interface QualifiedEntity {
   /**
    *
-   * @type {string}
-   * @memberof QualifiedEntity
-   */
-  entity_id: string;
-  /**
-   *
    * @type {Entity}
    * @memberof QualifiedEntity
    */
   entity: Entity;
+  /**
+   *
+   * @type {string}
+   * @memberof QualifiedEntity
+   */
+  entity_id: string;
 }
 /**
  *
@@ -592,16 +592,16 @@ export interface QualifiedEntity {
 export interface UpdateDataTypeRequest {
   /**
    *
-   * @type {string}
-   * @memberof UpdateDataTypeRequest
-   */
-  account_id: string;
-  /**
-   *
    * @type {DataType}
    * @memberof UpdateDataTypeRequest
    */
   schema: DataType;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateDataTypeRequest
+   */
+  account_id: string;
 }
 /**
  *
@@ -609,18 +609,6 @@ export interface UpdateDataTypeRequest {
  * @interface UpdateEntityRequest
  */
 export interface UpdateEntityRequest {
-  /**
-   *
-   * @type {string}
-   * @memberof UpdateEntityRequest
-   */
-  entity_id: string;
-  /**
-   *
-   * @type {string}
-   * @memberof UpdateEntityRequest
-   */
-  entity_type_uri: string;
   /**
    *
    * @type {Entity}
@@ -633,6 +621,18 @@ export interface UpdateEntityRequest {
    * @memberof UpdateEntityRequest
    */
   account_id: string;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateEntityRequest
+   */
+  entity_type_uri: string;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateEntityRequest
+   */
+  entity_id: string;
 }
 /**
  *
