@@ -4,16 +4,16 @@ dsn: memory
 
 serve:
   public:
-    base_url: http://127.0.0.1:4433/
+    base_url: http://localhost:4433/
     cors:
       enabled: true
   admin:
     base_url: http://kratos:4434/
 
 selfservice:
-  default_browser_return_url: http://127.0.0.1:3000/
+  default_browser_return_url: http://localhost:3000/
   allowed_return_urls:
-    - http://127.0.0.1:3000
+    - http://localhost:3000
 
   methods:
     password:
@@ -21,33 +21,19 @@ selfservice:
 
   flows:
     error:
-      ui_url: http://127.0.0.1:3000/error
-
-    settings:
-      ui_url: http://127.0.0.1:3000/settings
-      privileged_session_max_age: 15m
-
-    recovery:
-      enabled: true
-      ui_url: http://127.0.0.1:3000/recovery
-
-    verification:
-      enabled: true
-      ui_url: http://127.0.0.1:3000/verification
-      after:
-        default_browser_return_url: http://127.0.0.1:3000/
+      ui_url: http://localhost:3000/error
 
     logout:
       after:
-        default_browser_return_url: http://127.0.0.1:3000/login
+        default_browser_return_url: http://localhost:3000/login
 
     login:
-      ui_url: http://127.0.0.1:3000/login
+      ui_url: http://localhost:3000/login
       lifespan: 10m
 
     registration:
       lifespan: 10m
-      ui_url: http://127.0.0.1:3000/signup
+      ui_url: http://localhost:3000/signup
       after:
         password:
           hooks:
