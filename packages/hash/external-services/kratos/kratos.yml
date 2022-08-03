@@ -1,3 +1,5 @@
+# Based on the quick-start example https://github.com/ory/kratos/blob/master/contrib/quickstart/kratos/email-password/kratos.yml
+
 version: v0.7.1-alpha.1
 
 dsn: memory
@@ -43,12 +45,6 @@ log:
   level: debug
   format: text
   leak_sensitive_values: true
-
-secrets:
-  cookie:
-    - PLEASE-CHANGE-ME-I-AM-VERY-INSECURE
-  cipher:
-    - 32-LONG-SECRET-NOT-SECURE-AT-ALL
 
 ciphers:
   algorithm: xchacha20-poly1305
