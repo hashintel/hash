@@ -85,6 +85,7 @@ pub trait Graph = where
         + Read<'i, AllLatest, PropertyType, Output = Vec<PropertyType>>
         + Read<'i, AllLatest, LinkType, Output = Vec<LinkType>>
         + Read<'i, AllLatest, EntityType, Output = Vec<EntityType>>
+        + Read<'i, AllLatest, Entity, Output = Vec<Entity>>
         + Read<'i, &'i VersionedUri, DataType, Output = DataType>
         + Read<'i, &'i VersionedUri, PropertyType, Output = PropertyType>
         + Read<'i, &'i VersionedUri, LinkType, Output = LinkType>
