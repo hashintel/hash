@@ -80,7 +80,7 @@ const SignupPage: NextPageWithLayout = () => {
     void router
       // On submission, add the flow ID to the URL but do not navigate. This prevents the user loosing
       // his data when she/he reloads the page.
-      .push(`/registration?flow=${flow.id}`, undefined, { shallow: true })
+      .push(`/signup?flow=${flow.id}`, undefined, { shallow: true })
       .then(() =>
         oryKratosClient
           .submitSelfServiceRegistrationFlow(String(flow?.id), {
@@ -125,7 +125,9 @@ const SignupPage: NextPageWithLayout = () => {
 
   return (
     <Container sx={{ pt: 10 }}>
-      <Typography variant="h1">Create an account</Typography>
+      <Typography variant="h1" gutterBottom>
+        Create an account
+      </Typography>
       <Box
         component="form"
         onSubmit={handleSubmit}
@@ -133,6 +135,9 @@ const SignupPage: NextPageWithLayout = () => {
           display: "flex",
           flexDirection: "column",
           maxWidth: 500,
+          "> *:not(:first-child)": {
+            marginTop: 1,
+          },
         }}
       >
         <TextField
@@ -167,6 +172,9 @@ const SignupPage: NextPageWithLayout = () => {
           <Typography key={id}>{text}</Typography>
         ))}
         {errorMessage ? <Typography>{errorMessage}</Typography> : null}
+        <Button variant="secondary" href="/login">
+          Already have an account? Log in
+        </Button>
       </Box>
     </Container>
   );

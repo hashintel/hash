@@ -159,8 +159,7 @@ export const useLogoutFlow = (deps?: DependencyList) => {
       if (logoutToken) {
         await oryKratosClient
           .submitSelfServiceLogoutFlow(logoutToken)
-          .then(() => router.push("/login"))
-          .then(() => router.reload());
+          .then(() => router.push("/login"));
       }
     },
   };

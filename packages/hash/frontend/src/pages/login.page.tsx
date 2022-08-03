@@ -140,7 +140,9 @@ const LoginPage: NextPageWithLayout = () => {
 
   return (
     <Container sx={{ pt: 10 }}>
-      <Typography variant="h1">Log In</Typography>
+      <Typography variant="h1" gutterBottom>
+        Log In
+      </Typography>
       <Box
         component="form"
         onSubmit={handleSubmit}
@@ -148,6 +150,9 @@ const LoginPage: NextPageWithLayout = () => {
           display: "flex",
           flexDirection: "column",
           maxWidth: 500,
+          "> *:not(:first-child)": {
+            marginTop: 1,
+          },
         }}
       >
         <TextField
@@ -182,17 +187,22 @@ const LoginPage: NextPageWithLayout = () => {
           <Typography key={id}>{text}</Typography>
         ))}
         {errorMessage ? <Typography>{errorMessage}</Typography> : null}
+        {aal || refresh ? (
+          <Button variant="secondary" onClick={logout}>
+            Log out
+          </Button>
+        ) : (
+          <>
+            <Button variant="secondary" href="/signup">
+              Create account
+            </Button>
+            {/* @todo: implement kratos recovery flow, and add button here */}
+            {/* <Button variant="secondary" href="/recovery">
+              Recover your account
+            </Button> */}
+          </>
+        )}
       </Box>
-      {aal || refresh ? (
-        <Button data-testid="logout-link" onClick={logout}>
-          Log out
-        </Button>
-      ) : (
-        <>
-          <Button href="/signup">Create account</Button>
-          <Button href="/recovery">Recover your account</Button>
-        </>
-      )}
     </Container>
   );
 };

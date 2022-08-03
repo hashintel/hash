@@ -4,10 +4,14 @@ import { useRouter } from "next/router";
 import { Box, Container, Typography } from "@mui/material";
 import { useUser } from "../components/hooks/useUser";
 import { NextPageWithLayout } from "../shared/layout";
+import { Button } from "../shared/ui";
+import { useLogoutFlow } from "./shared/ory-kratos";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const { user, loading, kratosSession } = useUser();
+
+  const { logout } = useLogoutFlow();
 
   useEffect(() => {
     if (loading) {
@@ -31,6 +35,7 @@ const Page: NextPageWithLayout = () => {
           ? "You have a kratos session"
           : "You don't have a kratos session"}
       </Typography>
+      <Button onClick={logout}>Log out</Button>
       <Typography gutterBottom>
         This is what your kratos session looks like:
       </Typography>
