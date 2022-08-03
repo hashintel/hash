@@ -7,6 +7,7 @@ import {
   ListItemIcon,
   ListItemText,
   MenuList,
+  Tooltip,
 } from "@mui/material";
 import { PopupState } from "material-ui-popup-state/core";
 import {
@@ -17,7 +18,6 @@ import {
   FunctionComponent,
 } from "react";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
-import { EntityFieldsFragment } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import {
   LoadingSpinner,
   TextField,
@@ -27,90 +27,86 @@ import { useBlockView } from "../BlockViewContext";
 import { useRouteAccountInfo } from "../../../shared/routing";
 import { MenuItem } from "../../../shared/ui";
 import { useAccountEntities } from "../../../components/hooks/useAccountEntities";
+import { guessEntityName } from "../../../lib/entities";
 
 type LoadEntityMenuContentProps = {
-  entityId: string | null;
+  blockEntityId: string | null;
+  closeParentContextMenu: () => void;
   popupState?: PopupState;
 };
 
 export const LoadEntityMenuContent: FunctionComponent<
   LoadEntityMenuContentProps
-> = ({ entityId, popupState }) => {
+> = ({ blockEntityId, closeParentContextMenu, popupState }) => {
   const { accountId } = useRouteAccountInfo();
   const blockView = useBlockView();
+
   // This depends on state external to react without subscribing to it
   // and this can cause some bugs.
   // @todo make this a subscription
   const entityStore = entityStorePluginState(blockView.editorView.state).store;
+
   // savedEntity and blockEntity are the same. savedEntity variable
   // is needed to get proper typing on blockEntity
-  const savedEntity = entityId ? entityStore.saved[entityId] : null;
+  const savedEntity = blockEntityId ? entityStore.saved[blockEntityId] : null;
   const blockEntity = isBlockEntity(savedEntity) ? savedEntity : null;
+
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const popupWasOpen = useRef<boolean>(false);
+
   const { data: entities, loading } = useAccountEntities({
     accountId,
-    entityTypeFilter: {
-      componentId: blockEntity
-        ? blockEntity?.properties.componentId
-        : undefined,
-    },
     skip: !(!!blockEntity && !!accountId),
   });
 
   useEffect(() => {
-    if (popupState?.isOpen) {
+    if (popupState?.isOpen && !popupWasOpen.current) {
       searchInputRef.current?.focus();
+      popupWasOpen.current = true;
+    } else if (!popupState?.isOpen) {
+      popupWasOpen.current = false;
     }
   }, [popupState]);
 
-  const handleClick = useCallback(
-    (targetEntity: BlockEntity) => {
-      const targetData = targetEntity.properties.entity;
-
-      if (!entityId || !targetData) {
+  const swapEntity = useCallback(
+    (targetEntity: BlockEntity["properties"]["entity"]) => {
+      if (!blockEntityId) {
         return;
       }
 
-      blockView.manager.swapBlockData(entityId, targetData, blockView.getPos());
-      popupState?.close();
+      blockView.manager.replaceBlockChildEntity(blockEntityId, targetEntity);
     },
-    [blockView, entityId, popupState],
+    [blockView, blockEntityId],
   );
 
   const filteredEntities = useMemo(() => {
     const uniqueEntityIds = new Set();
-    // EntityFieldsFragment has fields BlockEntity doesn't - so TypeScript is complaining about this type guard
-    // @todo figure out how to remove this cast
-    return (entities as (EntityFieldsFragment | BlockEntity)[]).filter(
-      (entity): entity is BlockEntity => {
-        // Right now we only handle entities that are created by a block.
-        // This will be updated later on to also handle entities that have a similar
-        // schema with the block's data
-        if (!isBlockEntity(entity)) return false;
+    return entities.filter((entity) => {
+      // we are interested in loading different child entities into blocks, not the block entities
+      // – block entities are simply a reference to (a) a component and (b) a child entity
+      if (isBlockEntity(entity)) return false;
 
-        // don't include entities that have empty data
-        if (Object.keys(entity.properties.entity.properties).length === 0) {
-          return false;
-        }
+      // don't include entities that have empty data
+      if (Object.keys(entity.properties).length === 0) {
+        return false;
+      }
 
-        const targetEntityId = entity.properties.entity.entityId;
+      const targetEntityId = entity.entityId;
 
-        // don't include the current entity the block is tied to
-        if (targetEntityId === blockEntity?.properties.entity.entityId) {
-          return false;
-        }
+      // don't include the current entity the block is tied to
+      if (targetEntityId === blockEntity?.properties.entity.entityId) {
+        return false;
+      }
 
-        // don't include duplicates
-        if (uniqueEntityIds.has(targetEntityId)) {
-          uniqueEntityIds.add(targetEntityId);
-          return false;
-        }
+      // don't include duplicates
+      if (uniqueEntityIds.has(targetEntityId)) {
+        return false;
+      }
 
-        uniqueEntityIds.add(targetEntityId);
+      uniqueEntityIds.add(targetEntityId);
 
-        return true;
-      },
-    );
+      return true;
+    });
   }, [entities, blockEntity]);
 
   return (
@@ -141,18 +137,32 @@ export const LoadEntityMenuContent: FunctionComponent<
           }}
         />
       </Box>
+      {loading ? (
+        <Box padding={2}>
+          <LoadingSpinner size={16} thickness={4} />
+        </Box>
+      ) : null}
       {filteredEntities.map((entity) => {
         return (
-          <MenuItem key={entity.entityId} onClick={() => handleClick(entity)}>
+          <MenuItem
+            key={entity.entityId}
+            onClick={() => {
+              swapEntity(entity);
+
+              closeParentContextMenu();
+            }}
+          >
             <ListItemIcon>
               <FontAwesomeIcon icon={faAsterisk} />
             </ListItemIcon>
-            <ListItemText
-              primary={entity.properties.entity.entityId}
-              primaryTypographyProps={{
-                noWrap: true,
-              }}
-            />
+            <Tooltip title={JSON.stringify(entity.properties, undefined, 2)}>
+              <ListItemText
+                primary={guessEntityName(entity)}
+                primaryTypographyProps={{
+                  noWrap: true,
+                }}
+              />
+            </Tooltip>
           </MenuItem>
         );
       })}
