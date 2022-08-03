@@ -134,35 +134,9 @@ impl Hook<Frame, UInt0> for () {
 pub struct Hooks<T: Hook<Frame, UInt0>>(T);
 
 impl<T: Hook<Frame, UInt0>> Hooks<T> {
-    fn bind(&self, frame: &Frame) -> Bound<T> {
-        Bound::new(self, frame)
-    }
-
     pub(crate) fn call(&self, frame: &Frame) -> Option<Box<dyn Serialize>> {
         self.0.call(frame)
     }
 }
 
 pub(crate) type ErasedHooks = Hooks<Box<dyn Hook<Frame, UInt0>>>;
-
-struct Bound<'a, T>
-where
-    T: Hook<Frame, UInt0>,
-{
-    hooks: &'a Hooks<T>,
-    frame: &'a Frame,
-}
-
-impl<'a, T: Hook<Frame, UInt0>> Bound<'a, T> {
-    fn new(hooks: &'a Hooks<T>, frame: &'a Frame) -> Self {
-        Self { hooks, frame }
-    }
-
-    fn serialize<S>(&self, frame: &Frame, mut serializer: S) -> Option<Result<S::Ok, S::Error>>
-    where
-        S: serde::Serializer,
-    {
-        let s = self.hooks.call(frame)?;
-        Some(s.serialize(serializer))
-    }
-}
