@@ -6,4 +6,3 @@ common.ts
 configuration.ts
 git_push.sh
 index.ts
-tsconfig.json

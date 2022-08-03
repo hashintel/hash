@@ -23,3 +23,4 @@
 #!docs/README.md
 package.json
 README.md
+tsconfig.json
