@@ -135,13 +135,13 @@ async fn get_entity<P: GraphPool>(
 }
 
 #[utoipa::path(
-get,
-path = "/entities",
-tag = "Entity",
-responses(
-(status = 200, content_type = "application/json", description = "List of all entities", body = [Entity]),
-(status = 500, description = "Store error occurred"),
-)
+    get,
+    path = "/entities",
+    tag = "Entity",
+    responses(
+        (status = 200, content_type = "application/json", description = "List of all entities", body = [Entity]),
+        (status = 500, description = "Store error occurred"),
+    )
 )]
 async fn get_latest_entities<P: GraphPool>(
     pool: Extension<Arc<P>>,
