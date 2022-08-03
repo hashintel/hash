@@ -112,7 +112,7 @@ const ensureEntityTypeForComponent = async (
 };
 
 /**
- * Given the entity 'store', the 'blocks' persisted to the database, and hte PromiseMirror 'doc',
+ * Given the entity 'store', the 'blocks' persisted to the database, and the PromiseMirror 'doc',
  * determines what changes are needed to persist changes to the database.
  */
 const calculateSaveActions = async (
