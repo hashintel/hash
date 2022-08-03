@@ -99,7 +99,7 @@ const main = async () => {
     10,
   );
 
-  await Promise.all([waitOnResource(`tcp:${redisHost}:${redisPort}`, logger)]);
+  await waitOnResource(`tcp:${redisHost}:${redisPort}`, logger);
 
   // Connect to Redis
   const redis = new RedisCache(logger, {
