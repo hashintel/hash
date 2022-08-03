@@ -1,39 +1,202 @@
 import { useRouter } from "next/router";
-import { LoginModal } from "./login.page/login-modal";
-import { useUser } from "../components/hooks/useUser";
-import {
-  isParsedInvitationEmailQuery,
-  isParsedInvitationLinkQuery,
-} from "./shared/auth-utils";
+import React, { useEffect, FormEventHandler, useState, useMemo } from "react";
+import { SelfServiceLoginFlow } from "@ory/client";
+import { Typography, Container, Box, TextField } from "@mui/material";
+import { isUiNodeInputAttributes } from "@ory/integrations/ui";
+import { AxiosError } from "axios";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
+import {
+  createFlowErrorHandler,
+  getCsrfTokenFromFlow,
+  oryKratosClient,
+  useLogoutFlow,
+} from "./shared/ory-kratos";
+import { Button } from "../shared/ui";
 
-const Page: NextPageWithLayout = () => {
-  const { refetch } = useUser();
+const LoginPage: NextPageWithLayout = () => {
+  // Get ?flow=... from the URL
   const router = useRouter();
 
-  return (
-    <LoginModal
-      show
-      onLoggedIn={({ accountSignupComplete, accountId }) => {
-        void refetch().then(() => {
-          // redirect to invite page if login occured from invitation link
-          if (accountSignupComplete) {
-            if (
-              isParsedInvitationEmailQuery(router.query) ||
-              isParsedInvitationLinkQuery(router.query)
-            ) {
-              void router.push({ pathname: "/invite", query: router.query });
+  const {
+    return_to: returnTo,
+    flow: flowId,
+    // Refresh means we want to refresh the session. This is needed, for example, when we want to update the password
+    // of a user.
+    refresh,
+    // AAL = Authorization Assurance Level. This implies that we want to upgrade the AAL, meaning that we want
+    // to perform two-factor authentication/verification.
+    aal,
+  } = router.query;
+
+  const [flow, setFlow] = useState<SelfServiceLoginFlow>();
+
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string>();
+
+  const handleFlowError = useMemo(
+    () =>
+      createFlowErrorHandler({
+        router,
+        flowType: "login",
+        setFlow,
+        setErrorMessage,
+      }),
+    [router, setFlow, setErrorMessage],
+  );
+
+  // This might be confusing, but we want to show the user an option
+  // to sign out if they are performing two-factor authentication!
+  const { logout } = useLogoutFlow([aal, refresh]);
+
+  useEffect(() => {
+    // If the router is not ready yet, or we already have a flow, do nothing.
+    if (!router.isReady || flow) {
+      return;
+    }
+
+    // If ?flow=.. was in the URL, we fetch it
+    if (flowId) {
+      oryKratosClient
+        .getSelfServiceLoginFlow(String(flowId))
+        .then(({ data }) => setFlow(data))
+        .catch(handleFlowError);
+      return;
+    }
+
+    // Otherwise we initialize it
+    oryKratosClient
+      .initializeSelfServiceLoginFlowForBrowsers(
+        Boolean(refresh),
+        aal ? String(aal) : undefined,
+        returnTo ? String(returnTo) : undefined,
+      )
+      .then(({ data }) => setFlow(data))
+      .catch(handleFlowError);
+  }, [
+    flowId,
+    router,
+    router.isReady,
+    aal,
+    refresh,
+    returnTo,
+    flow,
+    handleFlowError,
+  ]);
+
+  const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
+    event.preventDefault();
+
+    if (!flow || !email || !password) {
+      return;
+    }
+
+    const csrf_token = getCsrfTokenFromFlow(flow);
+
+    void router
+      // On submission, add the flow ID to the URL but do not navigate. This prevents the user loosing
+      // his data when she/he reloads the page.
+      .push(`/login?flow=${flow?.id}`, undefined, { shallow: true })
+      .then(() =>
+        oryKratosClient
+          .submitSelfServiceLoginFlow(String(flow?.id), {
+            csrf_token,
+            method: "password",
+            identifier: email,
+            password,
+          })
+          // We logged in successfully! Let's bring the user home.
+          .then(() => {
+            if (flow?.return_to) {
+              window.location.href = flow?.return_to;
+              return;
+            }
+            void router.push("/");
+          })
+          .catch(handleFlowError)
+          .catch((err: AxiosError<SelfServiceLoginFlow>) => {
+            // If the previous handler did not catch the error it's most likely a form validation error
+            if (err.response?.status === 400) {
+              // Yup, it is!
+              setFlow(err.response?.data);
               return;
             }
 
-            void router.push(`/${accountId}`);
+            return Promise.reject(err);
+          }),
+      );
+  };
+
+  const emailInputUiNode = flow?.ui.nodes.find(
+    ({ attributes }) =>
+      isUiNodeInputAttributes(attributes) &&
+      attributes.name === "traits.emails",
+  );
+
+  const passwordInputUiNode = flow?.ui.nodes.find(
+    ({ attributes }) =>
+      isUiNodeInputAttributes(attributes) && attributes.name === "password",
+  );
+
+  return (
+    <Container sx={{ pt: 10 }}>
+      <Typography variant="h1">Log In</Typography>
+      <Box
+        component="form"
+        onSubmit={handleSubmit}
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          maxWidth: 500,
+        }}
+      >
+        <TextField
+          label="Email"
+          type="email"
+          placeholder="Enter your email"
+          value={email}
+          onChange={({ target }) => setEmail(target.value)}
+          error={
+            !!emailInputUiNode?.messages.find(({ type }) => type === "error")
           }
-        });
-      }}
-    />
+          helperText={emailInputUiNode?.messages.map(({ id, text }) => (
+            <Typography key={id}>{text}</Typography>
+          ))}
+          required
+        />
+        <TextField
+          label="Password"
+          type="password"
+          value={password}
+          onChange={({ target }) => setPassword(target.value)}
+          error={
+            !!passwordInputUiNode?.messages.find(({ type }) => type === "error")
+          }
+          helperText={passwordInputUiNode?.messages.map(({ id, text }) => (
+            <Typography key={id}>{text}</Typography>
+          ))}
+          required
+        />
+        <Button type="submit">Login with Email</Button>
+        {flow?.ui.messages?.map(({ text, id }) => (
+          <Typography key={id}>{text}</Typography>
+        ))}
+        {errorMessage ? <Typography>{errorMessage}</Typography> : null}
+      </Box>
+      {aal || refresh ? (
+        <Button data-testid="logout-link" onClick={logout}>
+          Log out
+        </Button>
+      ) : (
+        <>
+          <Button href="/signup">Create account</Button>
+          <Button href="/recovery">Recover your account</Button>
+        </>
+      )}
+    </Container>
   );
 };
 
-Page.getLayout = getPlainLayout;
+LoginPage.getLayout = getPlainLayout;
 
-export default Page;
+export default LoginPage;

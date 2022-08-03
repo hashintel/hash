@@ -1,7 +1,22 @@
-import { Configuration, V0alpha2Api, SelfServiceError } from "@ory/client";
+import {
+  Configuration,
+  V0alpha2Api,
+  SelfServiceError,
+  SelfServiceLoginFlow,
+  SelfServiceRegistrationFlow,
+} from "@ory/client";
+import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { AxiosError } from "axios";
-import { NextRouter } from "next/router";
-import { Dispatch, SetStateAction } from "react";
+import { NextRouter, useRouter } from "next/router";
+import {
+  DependencyList,
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useState,
+} from "react";
+
+type SelfServiceFlow = SelfServiceLoginFlow | SelfServiceRegistrationFlow;
 
 export const oryKratosClient = new V0alpha2Api(
   new Configuration({
@@ -100,3 +115,42 @@ export const createFlowErrorHandler =
     // We are not able to handle the error? Return it.
     return Promise.reject(err);
   };
+
+export const getCsrfTokenFromFlow = (flow: SelfServiceFlow) =>
+  flow.ui.nodes
+    .map(({ attributes }) => attributes)
+    .filter(isUiNodeInputAttributes)
+    .find(({ name }) => name === "csrf_token")?.value;
+
+// Returns a function which will log the user out
+export const useLogoutFlow = (deps?: DependencyList) => {
+  const [logoutToken, setLogoutToken] = useState<string>("");
+  const router = useRouter();
+
+  useEffect(() => {
+    oryKratosClient
+      .createSelfServiceLogoutFlowUrlForBrowsers()
+      .then(({ data }) => setLogoutToken(data.logout_token))
+      .catch((err: AxiosError) => {
+        switch (err.response?.status) {
+          case 401:
+            // do nothing, the user is not logged in
+            return;
+        }
+
+        // Something else happened!
+        return Promise.reject(err);
+      });
+  }, deps);
+
+  return {
+    logout: async () => {
+      if (logoutToken) {
+        await oryKratosClient
+          .submitSelfServiceLogoutFlow(logoutToken)
+          .then(() => router.push("/login"))
+          .then(() => router.reload());
+      }
+    },
+  };
+};

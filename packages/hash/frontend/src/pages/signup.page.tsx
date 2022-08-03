@@ -7,6 +7,7 @@ import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import {
   createFlowErrorHandler,
+  getCsrfTokenFromFlow,
   IdentityTraits,
   oryKratosClient,
 } from "./shared/ory-kratos";
@@ -70,10 +71,7 @@ const SignupPage: NextPageWithLayout = () => {
       return;
     }
 
-    const csrf_token = flow.ui.nodes
-      .map(({ attributes }) => attributes)
-      .filter(isUiNodeInputAttributes)
-      .find(({ name }) => name === "csrf_token")?.value;
+    const csrf_token = getCsrfTokenFromFlow(flow);
 
     if (!csrf_token) {
       throw new Error("CSRF token not found in flow");
@@ -157,7 +155,6 @@ const SignupPage: NextPageWithLayout = () => {
         />
         <TextField
           label="Password"
-          placeholder="alice@example.com"
           type="password"
           value={password}
           onChange={({ target }) => setPassword(target.value)}
