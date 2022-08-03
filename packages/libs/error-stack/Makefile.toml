@@ -19,12 +19,12 @@ private = true
 install_crate = { rustup_component_name = "rust-src" }
 
 # Snapshot tests
-[tasks.insta-test]
+[tasks.update-snapshots]
 category = "Test"
 description = "Test against insta to update snapshots"
-run_task = { name = ['insta-test-task'] }
+run_task = { name = ['update-snapshots-task'] }
 
-[tasks.insta-test-task]
+[tasks.update-snapshots-task]
 extend = "task"
 install_crate = "insta"
 args = ["hack", "@@split(CARGO_INSTA_TEST_HACK_FLAGS, )", "nextest", "run", "--cargo-profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_TEST_FLAGS, )", "@@split(CARGO_INSTA_TEST_FLAGS, )", "${@}"]
