@@ -21,7 +21,7 @@ const setupAuth = (app: Express) => {
       .catch((err: AxiosError) => {
         // 403 on toSession means that we need to request 2FA
         if (err.response && err.response.status === 403) {
-          /** @todo: figure out if this shoulds be handled here, or in the next.js app (when implementing 2FA) */
+          /** @todo: figure out if this should be handled here, or in the next.js app (when implementing 2FA) */
         }
         return undefined;
       });
