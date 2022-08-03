@@ -9,7 +9,9 @@ import {
 import { updateEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
 import { convertApiEntityTypeToBpEntityType } from "../../../lib/entities";
 
-export const useBlockProtocolUpdateEntityType = (): {
+export const useBlockProtocolUpdateEntityType = (
+  readonly?: boolean,
+): {
   updateEntityType: EmbedderGraphMessageCallbacks["updateEntityType"];
 } => {
   const [runUpdateEntityTypeMutation] = useMutation<
@@ -20,6 +22,17 @@ export const useBlockProtocolUpdateEntityType = (): {
   const updateEntityType: EmbedderGraphMessageCallbacks["updateEntityType"] =
     useCallback(
       async ({ data }) => {
+        if (readonly) {
+          return {
+            errors: [
+              {
+                code: "FORBIDDEN",
+                message: "Operation can't be carried out in readonly mode",
+              },
+            ],
+          };
+        }
+
         if (!data) {
           return {
             errors: [
@@ -53,7 +66,7 @@ export const useBlockProtocolUpdateEntityType = (): {
           ),
         };
       },
-      [runUpdateEntityTypeMutation],
+      [runUpdateEntityTypeMutation, readonly],
     );
 
   return {

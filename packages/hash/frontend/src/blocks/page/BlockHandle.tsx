@@ -11,6 +11,7 @@ import { BlockConfigMenu } from "./BlockConfigMenu/BlockConfigMenu";
 import { BlockContextMenu } from "./BlockContextMenu/BlockContextMenu";
 import { useBlockView } from "./BlockViewContext";
 import { useBlockContext } from "./BlockContext";
+import { useReadonlyMode } from "../../shared/readonly-mode/context";
 
 type BlockHandleProps = {
   deleteBlock: () => void;
@@ -24,6 +25,7 @@ const BlockHandle: ForwardRefRenderFunction<
   HTMLDivElement,
   BlockHandleProps
 > = ({ deleteBlock, draftId, entityStore, onMouseDown, onClick }, ref) => {
+  const { readonlyMode } = useReadonlyMode();
   const contextMenuPopupState = usePopupState({
     variant: "popover",
     popupId: "block-context-menu",
@@ -65,6 +67,10 @@ const BlockHandle: ForwardRefRenderFunction<
     : null;
 
   const blockContext = useBlockContext();
+
+  if (readonlyMode) {
+    return;
+  }
 
   return (
     <Box ref={ref} data-testid="block-handle">

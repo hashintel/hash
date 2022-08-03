@@ -532,6 +532,10 @@ export class ProsemirrorManager {
    * @todo add comment
    */
   setReadonlyMode() {
+    if (!this.view) {
+      throw new Error("Cannot trigger setReadonlyMode without view");
+    }
+
     if (this.view) {
       this.view.setProps({
         editable: () => false,

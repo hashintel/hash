@@ -3078,10 +3078,10 @@
     lit "^2.2.5"
     react "^17.0.2"
 
-"@blockprotocol/graph@0.0.11-canary.25":
-  version "0.0.11-canary.25"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.11-canary.25.tgz#0734f853b12362318c87fcc6d7cdea00185261f4"
-  integrity sha512-YR7Argl4eTsg22RJ57vhnHdgrxxsnzaUNLVsOgI3LBDFek1nYLZW7qrNyB0iRee8959YGxu5DVwR/e+p9tNBdQ==
+"@blockprotocol/graph@0.0.11-canary.27":
+  version "0.0.11-canary.27"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.11-canary.27.tgz#f92aa73c2cff181e4b4140f90ac3084e46b95202"
+  integrity sha512-XlY94Tdp9t62o/NB3egrQdfiQrIaKvpAyCQ/6HSbVHo86fo0Ur5dLzNsYctY524HnFvADkzBTPgbAaud1vAX3w==
   dependencies:
     "@blockprotocol/core" "0.0.8"
     lit "^2.2.5"

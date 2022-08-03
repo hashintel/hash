@@ -10,6 +10,7 @@ import {
 } from "./layout-with-sidebar/page-sidebar";
 import { SidebarToggleIcon } from "../icons";
 import { LayoutWithHeader } from "./layout-with-header";
+import { useReadonlyMode } from "../readonly-mode/context";
 
 const Main = styled("main")(({ theme }) => ({
   height: `calc(100vh - ${HEADER_HEIGHT}px)`,
@@ -35,9 +36,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
   banner,
 }) => {
   const { openSidebar, sidebarOpen } = useSidebarContext();
-  const router = useRouter();
-
-  const isReadonly = "readonly" in router.query;
+  const { readonlyMode } = useReadonlyMode();
 
   return (
     <LayoutWithHeader>
@@ -47,7 +46,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
           position: "relative",
         }}
       >
-        {!isReadonly && <PageSidebar />}
+        {!readonlyMode && <PageSidebar />}
 
         <Box
           sx={(theme) => ({

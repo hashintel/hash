@@ -9,7 +9,9 @@ import {
 } from "../../../graphql/apiTypes.gen";
 import { parseLinkIdentifier } from "../../../lib/entities";
 
-export const useBlockProtocolDeleteLink = (): {
+export const useBlockProtocolDeleteLink = (
+  readonly?: boolean,
+): {
   deleteLink: EmbedderGraphMessageCallbacks["deleteLink"];
 } => {
   const [runDeleteLinkMutation] = useMutation<
@@ -19,6 +21,17 @@ export const useBlockProtocolDeleteLink = (): {
 
   const deleteLink: EmbedderGraphMessageCallbacks["deleteLink"] = useCallback(
     async ({ data }) => {
+      if (readonly) {
+        return {
+          errors: [
+            {
+              code: "FORBIDDEN",
+              message: "Operation can't be carried out in readonly mode",
+            },
+          ],
+        };
+      }
+
       if (!data) {
         return {
           errors: [
@@ -56,7 +69,7 @@ export const useBlockProtocolDeleteLink = (): {
         data: true,
       };
     },
-    [runDeleteLinkMutation],
+    [runDeleteLinkMutation, readonly],
   );
 
   return {

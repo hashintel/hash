@@ -23,6 +23,7 @@ import {
   RouteAccountInfoProvider,
   RoutePageInfoProvider,
 } from "../shared/routing";
+import { ReadonlyModeProvider } from "../shared/readonly-mode/context";
 
 export const apolloClient = createApolloClient();
 
@@ -77,11 +78,13 @@ const App: FunctionComponent<AppProps> = ({
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <ModalProvider>
-            <RouteAccountInfoProvider>
-              <RoutePageInfoProvider>
-                {getLayout(<Component {...pageProps} />)}
-              </RoutePageInfoProvider>
-            </RouteAccountInfoProvider>
+            <ReadonlyModeProvider>
+              <RouteAccountInfoProvider>
+                <RoutePageInfoProvider>
+                  {getLayout(<Component {...pageProps} />)}
+                </RoutePageInfoProvider>
+              </RouteAccountInfoProvider>
+            </ReadonlyModeProvider>
           </ModalProvider>
         </ThemeProvider>
       </CacheProvider>

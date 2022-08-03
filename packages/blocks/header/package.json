@@ -19,7 +19,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.11-canary.25"
+    "@blockprotocol/graph": "0.0.11-canary.27"
   },
   "devDependencies": {
     "block-scripts": "0.0.14",
