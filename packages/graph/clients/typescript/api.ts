@@ -2143,6 +2143,2589 @@ export class EntityTypeApi extends BaseAPI implements EntityTypeApiInterface {
 }
 
 /**
+ * GraphApi - axios parameter creator
+ * @export
+ */
+export const GraphApiAxiosParamCreator = function (
+  configuration?: Configuration,
+) {
+  return {
+    /**
+     *
+     * @param {CreateDataTypeRequest} createDataTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createDataType: async (
+      createDataTypeRequest: CreateDataTypeRequest,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'createDataTypeRequest' is not null or undefined
+      assertParamExists(
+        "createDataType",
+        "createDataTypeRequest",
+        createDataTypeRequest,
+      );
+      const localVarPath = `/data-types`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "POST",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      localVarHeaderParameter["Content-Type"] = "application/json";
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+      localVarRequestOptions.data = serializeDataIfNeeded(
+        createDataTypeRequest,
+        localVarRequestOptions,
+        configuration,
+      );
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {CreateEntityRequest} createEntityRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createEntity: async (
+      createEntityRequest: CreateEntityRequest,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'createEntityRequest' is not null or undefined
+      assertParamExists(
+        "createEntity",
+        "createEntityRequest",
+        createEntityRequest,
+      );
+      const localVarPath = `/entities`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "POST",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      localVarHeaderParameter["Content-Type"] = "application/json";
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+      localVarRequestOptions.data = serializeDataIfNeeded(
+        createEntityRequest,
+        localVarRequestOptions,
+        configuration,
+      );
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {CreateEntityTypeRequest} createEntityTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createEntityType: async (
+      createEntityTypeRequest: CreateEntityTypeRequest,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'createEntityTypeRequest' is not null or undefined
+      assertParamExists(
+        "createEntityType",
+        "createEntityTypeRequest",
+        createEntityTypeRequest,
+      );
+      const localVarPath = `/entity-types`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "POST",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      localVarHeaderParameter["Content-Type"] = "application/json";
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+      localVarRequestOptions.data = serializeDataIfNeeded(
+        createEntityTypeRequest,
+        localVarRequestOptions,
+        configuration,
+      );
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {string} entityId The ID of the source entity
+     * @param {CreateLinkRequest} createLinkRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createLink: async (
+      entityId: string,
+      createLinkRequest: CreateLinkRequest,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'entityId' is not null or undefined
+      assertParamExists("createLink", "entityId", entityId);
+      // verify required parameter 'createLinkRequest' is not null or undefined
+      assertParamExists("createLink", "createLinkRequest", createLinkRequest);
+      const localVarPath = `/entities/{entity_id}/links`.replace(
+        `{${"entity_id"}}`,
+        encodeURIComponent(String(entityId)),
+      );
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "POST",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      localVarHeaderParameter["Content-Type"] = "application/json";
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+      localVarRequestOptions.data = serializeDataIfNeeded(
+        createLinkRequest,
+        localVarRequestOptions,
+        configuration,
+      );
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {CreateLinkTypeRequest} createLinkTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createLinkType: async (
+      createLinkTypeRequest: CreateLinkTypeRequest,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'createLinkTypeRequest' is not null or undefined
+      assertParamExists(
+        "createLinkType",
+        "createLinkTypeRequest",
+        createLinkTypeRequest,
+      );
+      const localVarPath = `/link-types`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "POST",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      localVarHeaderParameter["Content-Type"] = "application/json";
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+      localVarRequestOptions.data = serializeDataIfNeeded(
+        createLinkTypeRequest,
+        localVarRequestOptions,
+        configuration,
+      );
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {CreatePropertyTypeRequest} createPropertyTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createPropertyType: async (
+      createPropertyTypeRequest: CreatePropertyTypeRequest,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'createPropertyTypeRequest' is not null or undefined
+      assertParamExists(
+        "createPropertyType",
+        "createPropertyTypeRequest",
+        createPropertyTypeRequest,
+      );
+      const localVarPath = `/property-types`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "POST",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      localVarHeaderParameter["Content-Type"] = "application/json";
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+      localVarRequestOptions.data = serializeDataIfNeeded(
+        createPropertyTypeRequest,
+        localVarRequestOptions,
+        configuration,
+      );
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {string} uri The URI of the data type
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getDataType: async (
+      uri: string,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'uri' is not null or undefined
+      assertParamExists("getDataType", "uri", uri);
+      const localVarPath = `/data-types/{uri}`.replace(
+        `{${"uri"}}`,
+        encodeURIComponent(String(uri)),
+      );
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "GET",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {string} entityId The ID of the entity
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getEntity: async (
+      entityId: string,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'entityId' is not null or undefined
+      assertParamExists("getEntity", "entityId", entityId);
+      const localVarPath = `/entities/{entity_id}`.replace(
+        `{${"entity_id"}}`,
+        encodeURIComponent(String(entityId)),
+      );
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "GET",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {string} entityId The ID of the source entity
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getEntityLinks: async (
+      entityId: string,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'entityId' is not null or undefined
+      assertParamExists("getEntityLinks", "entityId", entityId);
+      const localVarPath = `/entities/{entity_id}/links`.replace(
+        `{${"entity_id"}}`,
+        encodeURIComponent(String(entityId)),
+      );
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "GET",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {string} uri The URI of the entity type
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getEntityType: async (
+      uri: string,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'uri' is not null or undefined
+      assertParamExists("getEntityType", "uri", uri);
+      const localVarPath = `/entity-types/{uri}`.replace(
+        `{${"uri"}}`,
+        encodeURIComponent(String(uri)),
+      );
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "GET",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getLatestDataTypes: async (
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      const localVarPath = `/data-types`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "GET",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getLatestEntities: async (
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      const localVarPath = `/entities`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "GET",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getLatestEntityTypes: async (
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      const localVarPath = `/entity-types`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "GET",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getLatestLinkTypes: async (
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      const localVarPath = `/link-types`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "GET",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getLatestPropertyTypes: async (
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      const localVarPath = `/property-types`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "GET",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {string} uri The URI of the link type
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getLinkType: async (
+      uri: string,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'uri' is not null or undefined
+      assertParamExists("getLinkType", "uri", uri);
+      const localVarPath = `/link-types/{uri}`.replace(
+        `{${"uri"}}`,
+        encodeURIComponent(String(uri)),
+      );
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "GET",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {string} uri The URI of the property type
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getPropertyType: async (
+      uri: string,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'uri' is not null or undefined
+      assertParamExists("getPropertyType", "uri", uri);
+      const localVarPath = `/property-types/{uri}`.replace(
+        `{${"uri"}}`,
+        encodeURIComponent(String(uri)),
+      );
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "GET",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {string} entityId The ID of the source entity
+     * @param {InactivateLinkRequest} inactivateLinkRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    inactivateLink: async (
+      entityId: string,
+      inactivateLinkRequest: InactivateLinkRequest,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'entityId' is not null or undefined
+      assertParamExists("inactivateLink", "entityId", entityId);
+      // verify required parameter 'inactivateLinkRequest' is not null or undefined
+      assertParamExists(
+        "inactivateLink",
+        "inactivateLinkRequest",
+        inactivateLinkRequest,
+      );
+      const localVarPath = `/entities/{entity_id}/links`.replace(
+        `{${"entity_id"}}`,
+        encodeURIComponent(String(entityId)),
+      );
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "DELETE",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      localVarHeaderParameter["Content-Type"] = "application/json";
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+      localVarRequestOptions.data = serializeDataIfNeeded(
+        inactivateLinkRequest,
+        localVarRequestOptions,
+        configuration,
+      );
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {UpdateDataTypeRequest} updateDataTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updateDataType: async (
+      updateDataTypeRequest: UpdateDataTypeRequest,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'updateDataTypeRequest' is not null or undefined
+      assertParamExists(
+        "updateDataType",
+        "updateDataTypeRequest",
+        updateDataTypeRequest,
+      );
+      const localVarPath = `/data-types`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "PUT",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      localVarHeaderParameter["Content-Type"] = "application/json";
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+      localVarRequestOptions.data = serializeDataIfNeeded(
+        updateDataTypeRequest,
+        localVarRequestOptions,
+        configuration,
+      );
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {UpdateEntityRequest} updateEntityRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updateEntity: async (
+      updateEntityRequest: UpdateEntityRequest,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'updateEntityRequest' is not null or undefined
+      assertParamExists(
+        "updateEntity",
+        "updateEntityRequest",
+        updateEntityRequest,
+      );
+      const localVarPath = `/entities`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "PUT",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      localVarHeaderParameter["Content-Type"] = "application/json";
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+      localVarRequestOptions.data = serializeDataIfNeeded(
+        updateEntityRequest,
+        localVarRequestOptions,
+        configuration,
+      );
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {UpdateEntityTypeRequest} updateEntityTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updateEntityType: async (
+      updateEntityTypeRequest: UpdateEntityTypeRequest,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'updateEntityTypeRequest' is not null or undefined
+      assertParamExists(
+        "updateEntityType",
+        "updateEntityTypeRequest",
+        updateEntityTypeRequest,
+      );
+      const localVarPath = `/entity-types`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "PUT",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      localVarHeaderParameter["Content-Type"] = "application/json";
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+      localVarRequestOptions.data = serializeDataIfNeeded(
+        updateEntityTypeRequest,
+        localVarRequestOptions,
+        configuration,
+      );
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {UpdateLinkTypeRequest} updateLinkTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updateLinkType: async (
+      updateLinkTypeRequest: UpdateLinkTypeRequest,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'updateLinkTypeRequest' is not null or undefined
+      assertParamExists(
+        "updateLinkType",
+        "updateLinkTypeRequest",
+        updateLinkTypeRequest,
+      );
+      const localVarPath = `/link-types`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "PUT",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      localVarHeaderParameter["Content-Type"] = "application/json";
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+      localVarRequestOptions.data = serializeDataIfNeeded(
+        updateLinkTypeRequest,
+        localVarRequestOptions,
+        configuration,
+      );
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {UpdatePropertyTypeRequest} updatePropertyTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updatePropertyType: async (
+      updatePropertyTypeRequest: UpdatePropertyTypeRequest,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'updatePropertyTypeRequest' is not null or undefined
+      assertParamExists(
+        "updatePropertyType",
+        "updatePropertyTypeRequest",
+        updatePropertyTypeRequest,
+      );
+      const localVarPath = `/property-types`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "PUT",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      localVarHeaderParameter["Content-Type"] = "application/json";
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+      localVarRequestOptions.data = serializeDataIfNeeded(
+        updatePropertyTypeRequest,
+        localVarRequestOptions,
+        configuration,
+      );
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+  };
+};
+
+/**
+ * GraphApi - functional programming interface
+ * @export
+ */
+export const GraphApiFp = function (configuration?: Configuration) {
+  const localVarAxiosParamCreator = GraphApiAxiosParamCreator(configuration);
+  return {
+    /**
+     *
+     * @param {CreateDataTypeRequest} createDataTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async createDataType(
+      createDataTypeRequest: CreateDataTypeRequest,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<DataType>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.createDataType(
+        createDataTypeRequest,
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {CreateEntityRequest} createEntityRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async createEntity(
+      createEntityRequest: CreateEntityRequest,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<QualifiedEntity>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.createEntity(
+        createEntityRequest,
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {CreateEntityTypeRequest} createEntityTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async createEntityType(
+      createEntityTypeRequest: CreateEntityTypeRequest,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<EntityType>
+    > {
+      const localVarAxiosArgs =
+        await localVarAxiosParamCreator.createEntityType(
+          createEntityTypeRequest,
+          options,
+        );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {string} entityId The ID of the source entity
+     * @param {CreateLinkRequest} createLinkRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async createLink(
+      entityId: string,
+      createLinkRequest: CreateLinkRequest,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Link>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.createLink(
+        entityId,
+        createLinkRequest,
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {CreateLinkTypeRequest} createLinkTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async createLinkType(
+      createLinkTypeRequest: CreateLinkTypeRequest,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<LinkType>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.createLinkType(
+        createLinkTypeRequest,
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {CreatePropertyTypeRequest} createPropertyTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async createPropertyType(
+      createPropertyTypeRequest: CreatePropertyTypeRequest,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<PropertyType>
+    > {
+      const localVarAxiosArgs =
+        await localVarAxiosParamCreator.createPropertyType(
+          createPropertyTypeRequest,
+          options,
+        );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {string} uri The URI of the data type
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async getDataType(
+      uri: string,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<DataType>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getDataType(
+        uri,
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {string} entityId The ID of the entity
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async getEntity(
+      entityId: string,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Entity>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getEntity(
+        entityId,
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {string} entityId The ID of the source entity
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async getEntityLinks(
+      entityId: string,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Links>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getEntityLinks(
+        entityId,
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {string} uri The URI of the entity type
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async getEntityType(
+      uri: string,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<EntityType>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getEntityType(
+        uri,
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async getLatestDataTypes(
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<Array<DataType>>
+    > {
+      const localVarAxiosArgs =
+        await localVarAxiosParamCreator.getLatestDataTypes(options);
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async getLatestEntities(
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<Entity>>
+    > {
+      const localVarAxiosArgs =
+        await localVarAxiosParamCreator.getLatestEntities(options);
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async getLatestEntityTypes(
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<Array<EntityType>>
+    > {
+      const localVarAxiosArgs =
+        await localVarAxiosParamCreator.getLatestEntityTypes(options);
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async getLatestLinkTypes(
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<Array<LinkType>>
+    > {
+      const localVarAxiosArgs =
+        await localVarAxiosParamCreator.getLatestLinkTypes(options);
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async getLatestPropertyTypes(
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<Array<PropertyType>>
+    > {
+      const localVarAxiosArgs =
+        await localVarAxiosParamCreator.getLatestPropertyTypes(options);
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {string} uri The URI of the link type
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async getLinkType(
+      uri: string,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<LinkType>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getLinkType(
+        uri,
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {string} uri The URI of the property type
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async getPropertyType(
+      uri: string,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<PropertyType>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getPropertyType(
+        uri,
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {string} entityId The ID of the source entity
+     * @param {InactivateLinkRequest} inactivateLinkRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async inactivateLink(
+      entityId: string,
+      inactivateLinkRequest: InactivateLinkRequest,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.inactivateLink(
+        entityId,
+        inactivateLinkRequest,
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {UpdateDataTypeRequest} updateDataTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async updateDataType(
+      updateDataTypeRequest: UpdateDataTypeRequest,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<DataType>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.updateDataType(
+        updateDataTypeRequest,
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {UpdateEntityRequest} updateEntityRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async updateEntity(
+      updateEntityRequest: UpdateEntityRequest,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<QualifiedEntity>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.updateEntity(
+        updateEntityRequest,
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {UpdateEntityTypeRequest} updateEntityTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async updateEntityType(
+      updateEntityTypeRequest: UpdateEntityTypeRequest,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<EntityType>
+    > {
+      const localVarAxiosArgs =
+        await localVarAxiosParamCreator.updateEntityType(
+          updateEntityTypeRequest,
+          options,
+        );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {UpdateLinkTypeRequest} updateLinkTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async updateLinkType(
+      updateLinkTypeRequest: UpdateLinkTypeRequest,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<LinkType>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.updateLinkType(
+        updateLinkTypeRequest,
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {UpdatePropertyTypeRequest} updatePropertyTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async updatePropertyType(
+      updatePropertyTypeRequest: UpdatePropertyTypeRequest,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<PropertyType>
+    > {
+      const localVarAxiosArgs =
+        await localVarAxiosParamCreator.updatePropertyType(
+          updatePropertyTypeRequest,
+          options,
+        );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+  };
+};
+
+/**
+ * GraphApi - factory interface
+ * @export
+ */
+export const GraphApiFactory = function (
+  configuration?: Configuration,
+  basePath?: string,
+  axios?: AxiosInstance,
+) {
+  const localVarFp = GraphApiFp(configuration);
+  return {
+    /**
+     *
+     * @param {CreateDataTypeRequest} createDataTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createDataType(
+      createDataTypeRequest: CreateDataTypeRequest,
+      options?: any,
+    ): AxiosPromise<DataType> {
+      return localVarFp
+        .createDataType(createDataTypeRequest, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {CreateEntityRequest} createEntityRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createEntity(
+      createEntityRequest: CreateEntityRequest,
+      options?: any,
+    ): AxiosPromise<QualifiedEntity> {
+      return localVarFp
+        .createEntity(createEntityRequest, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {CreateEntityTypeRequest} createEntityTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createEntityType(
+      createEntityTypeRequest: CreateEntityTypeRequest,
+      options?: any,
+    ): AxiosPromise<EntityType> {
+      return localVarFp
+        .createEntityType(createEntityTypeRequest, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {string} entityId The ID of the source entity
+     * @param {CreateLinkRequest} createLinkRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createLink(
+      entityId: string,
+      createLinkRequest: CreateLinkRequest,
+      options?: any,
+    ): AxiosPromise<Link> {
+      return localVarFp
+        .createLink(entityId, createLinkRequest, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {CreateLinkTypeRequest} createLinkTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createLinkType(
+      createLinkTypeRequest: CreateLinkTypeRequest,
+      options?: any,
+    ): AxiosPromise<LinkType> {
+      return localVarFp
+        .createLinkType(createLinkTypeRequest, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {CreatePropertyTypeRequest} createPropertyTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createPropertyType(
+      createPropertyTypeRequest: CreatePropertyTypeRequest,
+      options?: any,
+    ): AxiosPromise<PropertyType> {
+      return localVarFp
+        .createPropertyType(createPropertyTypeRequest, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {string} uri The URI of the data type
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getDataType(uri: string, options?: any): AxiosPromise<DataType> {
+      return localVarFp
+        .getDataType(uri, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {string} entityId The ID of the entity
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getEntity(entityId: string, options?: any): AxiosPromise<Entity> {
+      return localVarFp
+        .getEntity(entityId, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {string} entityId The ID of the source entity
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getEntityLinks(entityId: string, options?: any): AxiosPromise<Links> {
+      return localVarFp
+        .getEntityLinks(entityId, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {string} uri The URI of the entity type
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getEntityType(uri: string, options?: any): AxiosPromise<EntityType> {
+      return localVarFp
+        .getEntityType(uri, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getLatestDataTypes(options?: any): AxiosPromise<Array<DataType>> {
+      return localVarFp
+        .getLatestDataTypes(options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getLatestEntities(options?: any): AxiosPromise<Array<Entity>> {
+      return localVarFp
+        .getLatestEntities(options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getLatestEntityTypes(options?: any): AxiosPromise<Array<EntityType>> {
+      return localVarFp
+        .getLatestEntityTypes(options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getLatestLinkTypes(options?: any): AxiosPromise<Array<LinkType>> {
+      return localVarFp
+        .getLatestLinkTypes(options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getLatestPropertyTypes(options?: any): AxiosPromise<Array<PropertyType>> {
+      return localVarFp
+        .getLatestPropertyTypes(options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {string} uri The URI of the link type
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getLinkType(uri: string, options?: any): AxiosPromise<LinkType> {
+      return localVarFp
+        .getLinkType(uri, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {string} uri The URI of the property type
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getPropertyType(uri: string, options?: any): AxiosPromise<PropertyType> {
+      return localVarFp
+        .getPropertyType(uri, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {string} entityId The ID of the source entity
+     * @param {InactivateLinkRequest} inactivateLinkRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    inactivateLink(
+      entityId: string,
+      inactivateLinkRequest: InactivateLinkRequest,
+      options?: any,
+    ): AxiosPromise<void> {
+      return localVarFp
+        .inactivateLink(entityId, inactivateLinkRequest, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {UpdateDataTypeRequest} updateDataTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updateDataType(
+      updateDataTypeRequest: UpdateDataTypeRequest,
+      options?: any,
+    ): AxiosPromise<DataType> {
+      return localVarFp
+        .updateDataType(updateDataTypeRequest, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {UpdateEntityRequest} updateEntityRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updateEntity(
+      updateEntityRequest: UpdateEntityRequest,
+      options?: any,
+    ): AxiosPromise<QualifiedEntity> {
+      return localVarFp
+        .updateEntity(updateEntityRequest, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {UpdateEntityTypeRequest} updateEntityTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updateEntityType(
+      updateEntityTypeRequest: UpdateEntityTypeRequest,
+      options?: any,
+    ): AxiosPromise<EntityType> {
+      return localVarFp
+        .updateEntityType(updateEntityTypeRequest, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {UpdateLinkTypeRequest} updateLinkTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updateLinkType(
+      updateLinkTypeRequest: UpdateLinkTypeRequest,
+      options?: any,
+    ): AxiosPromise<LinkType> {
+      return localVarFp
+        .updateLinkType(updateLinkTypeRequest, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {UpdatePropertyTypeRequest} updatePropertyTypeRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updatePropertyType(
+      updatePropertyTypeRequest: UpdatePropertyTypeRequest,
+      options?: any,
+    ): AxiosPromise<PropertyType> {
+      return localVarFp
+        .updatePropertyType(updatePropertyTypeRequest, options)
+        .then((request) => request(axios, basePath));
+    },
+  };
+};
+
+/**
+ * GraphApi - interface
+ * @export
+ * @interface GraphApi
+ */
+export interface GraphApiInterface {
+  /**
+   *
+   * @param {CreateDataTypeRequest} createDataTypeRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  createDataType(
+    createDataTypeRequest: CreateDataTypeRequest,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<DataType>;
+
+  /**
+   *
+   * @param {CreateEntityRequest} createEntityRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  createEntity(
+    createEntityRequest: CreateEntityRequest,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<QualifiedEntity>;
+
+  /**
+   *
+   * @param {CreateEntityTypeRequest} createEntityTypeRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  createEntityType(
+    createEntityTypeRequest: CreateEntityTypeRequest,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<EntityType>;
+
+  /**
+   *
+   * @param {string} entityId The ID of the source entity
+   * @param {CreateLinkRequest} createLinkRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  createLink(
+    entityId: string,
+    createLinkRequest: CreateLinkRequest,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<Link>;
+
+  /**
+   *
+   * @param {CreateLinkTypeRequest} createLinkTypeRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  createLinkType(
+    createLinkTypeRequest: CreateLinkTypeRequest,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<LinkType>;
+
+  /**
+   *
+   * @param {CreatePropertyTypeRequest} createPropertyTypeRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  createPropertyType(
+    createPropertyTypeRequest: CreatePropertyTypeRequest,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<PropertyType>;
+
+  /**
+   *
+   * @param {string} uri The URI of the data type
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  getDataType(
+    uri: string,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<DataType>;
+
+  /**
+   *
+   * @param {string} entityId The ID of the entity
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  getEntity(
+    entityId: string,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<Entity>;
+
+  /**
+   *
+   * @param {string} entityId The ID of the source entity
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  getEntityLinks(
+    entityId: string,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<Links>;
+
+  /**
+   *
+   * @param {string} uri The URI of the entity type
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  getEntityType(
+    uri: string,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<EntityType>;
+
+  /**
+   *
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  getLatestDataTypes(
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<Array<DataType>>;
+
+  /**
+   *
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  getLatestEntities(options?: AxiosRequestConfig): AxiosPromise<Array<Entity>>;
+
+  /**
+   *
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  getLatestEntityTypes(
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<Array<EntityType>>;
+
+  /**
+   *
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  getLatestLinkTypes(
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<Array<LinkType>>;
+
+  /**
+   *
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  getLatestPropertyTypes(
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<Array<PropertyType>>;
+
+  /**
+   *
+   * @param {string} uri The URI of the link type
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  getLinkType(
+    uri: string,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<LinkType>;
+
+  /**
+   *
+   * @param {string} uri The URI of the property type
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  getPropertyType(
+    uri: string,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<PropertyType>;
+
+  /**
+   *
+   * @param {string} entityId The ID of the source entity
+   * @param {InactivateLinkRequest} inactivateLinkRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  inactivateLink(
+    entityId: string,
+    inactivateLinkRequest: InactivateLinkRequest,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<void>;
+
+  /**
+   *
+   * @param {UpdateDataTypeRequest} updateDataTypeRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  updateDataType(
+    updateDataTypeRequest: UpdateDataTypeRequest,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<DataType>;
+
+  /**
+   *
+   * @param {UpdateEntityRequest} updateEntityRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  updateEntity(
+    updateEntityRequest: UpdateEntityRequest,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<QualifiedEntity>;
+
+  /**
+   *
+   * @param {UpdateEntityTypeRequest} updateEntityTypeRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  updateEntityType(
+    updateEntityTypeRequest: UpdateEntityTypeRequest,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<EntityType>;
+
+  /**
+   *
+   * @param {UpdateLinkTypeRequest} updateLinkTypeRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  updateLinkType(
+    updateLinkTypeRequest: UpdateLinkTypeRequest,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<LinkType>;
+
+  /**
+   *
+   * @param {UpdatePropertyTypeRequest} updatePropertyTypeRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  updatePropertyType(
+    updatePropertyTypeRequest: UpdatePropertyTypeRequest,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<PropertyType>;
+}
+
+/**
+ * GraphApi - object-oriented interface
+ * @export
+ * @class GraphApi
+ * @extends {BaseAPI}
+ */
+export class GraphApi extends BaseAPI implements GraphApiInterface {
+  /**
+   *
+   * @param {CreateDataTypeRequest} createDataTypeRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public createDataType(
+    createDataTypeRequest: CreateDataTypeRequest,
+    options?: AxiosRequestConfig,
+  ) {
+    return GraphApiFp(this.configuration)
+      .createDataType(createDataTypeRequest, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {CreateEntityRequest} createEntityRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public createEntity(
+    createEntityRequest: CreateEntityRequest,
+    options?: AxiosRequestConfig,
+  ) {
+    return GraphApiFp(this.configuration)
+      .createEntity(createEntityRequest, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {CreateEntityTypeRequest} createEntityTypeRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public createEntityType(
+    createEntityTypeRequest: CreateEntityTypeRequest,
+    options?: AxiosRequestConfig,
+  ) {
+    return GraphApiFp(this.configuration)
+      .createEntityType(createEntityTypeRequest, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {string} entityId The ID of the source entity
+   * @param {CreateLinkRequest} createLinkRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public createLink(
+    entityId: string,
+    createLinkRequest: CreateLinkRequest,
+    options?: AxiosRequestConfig,
+  ) {
+    return GraphApiFp(this.configuration)
+      .createLink(entityId, createLinkRequest, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {CreateLinkTypeRequest} createLinkTypeRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public createLinkType(
+    createLinkTypeRequest: CreateLinkTypeRequest,
+    options?: AxiosRequestConfig,
+  ) {
+    return GraphApiFp(this.configuration)
+      .createLinkType(createLinkTypeRequest, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {CreatePropertyTypeRequest} createPropertyTypeRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public createPropertyType(
+    createPropertyTypeRequest: CreatePropertyTypeRequest,
+    options?: AxiosRequestConfig,
+  ) {
+    return GraphApiFp(this.configuration)
+      .createPropertyType(createPropertyTypeRequest, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {string} uri The URI of the data type
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public getDataType(uri: string, options?: AxiosRequestConfig) {
+    return GraphApiFp(this.configuration)
+      .getDataType(uri, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {string} entityId The ID of the entity
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public getEntity(entityId: string, options?: AxiosRequestConfig) {
+    return GraphApiFp(this.configuration)
+      .getEntity(entityId, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {string} entityId The ID of the source entity
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public getEntityLinks(entityId: string, options?: AxiosRequestConfig) {
+    return GraphApiFp(this.configuration)
+      .getEntityLinks(entityId, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {string} uri The URI of the entity type
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public getEntityType(uri: string, options?: AxiosRequestConfig) {
+    return GraphApiFp(this.configuration)
+      .getEntityType(uri, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public getLatestDataTypes(options?: AxiosRequestConfig) {
+    return GraphApiFp(this.configuration)
+      .getLatestDataTypes(options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public getLatestEntities(options?: AxiosRequestConfig) {
+    return GraphApiFp(this.configuration)
+      .getLatestEntities(options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public getLatestEntityTypes(options?: AxiosRequestConfig) {
+    return GraphApiFp(this.configuration)
+      .getLatestEntityTypes(options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public getLatestLinkTypes(options?: AxiosRequestConfig) {
+    return GraphApiFp(this.configuration)
+      .getLatestLinkTypes(options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public getLatestPropertyTypes(options?: AxiosRequestConfig) {
+    return GraphApiFp(this.configuration)
+      .getLatestPropertyTypes(options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {string} uri The URI of the link type
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public getLinkType(uri: string, options?: AxiosRequestConfig) {
+    return GraphApiFp(this.configuration)
+      .getLinkType(uri, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {string} uri The URI of the property type
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public getPropertyType(uri: string, options?: AxiosRequestConfig) {
+    return GraphApiFp(this.configuration)
+      .getPropertyType(uri, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {string} entityId The ID of the source entity
+   * @param {InactivateLinkRequest} inactivateLinkRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public inactivateLink(
+    entityId: string,
+    inactivateLinkRequest: InactivateLinkRequest,
+    options?: AxiosRequestConfig,
+  ) {
+    return GraphApiFp(this.configuration)
+      .inactivateLink(entityId, inactivateLinkRequest, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {UpdateDataTypeRequest} updateDataTypeRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public updateDataType(
+    updateDataTypeRequest: UpdateDataTypeRequest,
+    options?: AxiosRequestConfig,
+  ) {
+    return GraphApiFp(this.configuration)
+      .updateDataType(updateDataTypeRequest, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {UpdateEntityRequest} updateEntityRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public updateEntity(
+    updateEntityRequest: UpdateEntityRequest,
+    options?: AxiosRequestConfig,
+  ) {
+    return GraphApiFp(this.configuration)
+      .updateEntity(updateEntityRequest, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {UpdateEntityTypeRequest} updateEntityTypeRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public updateEntityType(
+    updateEntityTypeRequest: UpdateEntityTypeRequest,
+    options?: AxiosRequestConfig,
+  ) {
+    return GraphApiFp(this.configuration)
+      .updateEntityType(updateEntityTypeRequest, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {UpdateLinkTypeRequest} updateLinkTypeRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public updateLinkType(
+    updateLinkTypeRequest: UpdateLinkTypeRequest,
+    options?: AxiosRequestConfig,
+  ) {
+    return GraphApiFp(this.configuration)
+      .updateLinkType(updateLinkTypeRequest, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {UpdatePropertyTypeRequest} updatePropertyTypeRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public updatePropertyType(
+    updatePropertyTypeRequest: UpdatePropertyTypeRequest,
+    options?: AxiosRequestConfig,
+  ) {
+    return GraphApiFp(this.configuration)
+      .updatePropertyType(updatePropertyTypeRequest, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+}
+
+/**
  * LinkApi - axios parameter creator
  * @export
  */
