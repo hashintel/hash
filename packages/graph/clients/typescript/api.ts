@@ -755,7 +755,7 @@ export const DataTypeApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {string} uri The URI of data type
+     * @param {string} uri The URI of the data type
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -924,7 +924,7 @@ export const DataTypeApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {string} uri The URI of data type
+     * @param {string} uri The URI of the data type
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1020,7 +1020,7 @@ export const DataTypeApiFactory = function (
     },
     /**
      *
-     * @param {string} uri The URI of data type
+     * @param {string} uri The URI of the data type
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1076,7 +1076,7 @@ export interface DataTypeApiInterface {
 
   /**
    *
-   * @param {string} uri The URI of data type
+   * @param {string} uri The URI of the data type
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof DataTypeApiInterface
@@ -1134,7 +1134,7 @@ export class DataTypeApi extends BaseAPI implements DataTypeApiInterface {
 
   /**
    *
-   * @param {string} uri The URI of data type
+   * @param {string} uri The URI of the data type
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof DataTypeApi
@@ -1282,6 +1282,44 @@ export const EntityApiAxiosParamCreator = function (
     },
     /**
      *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getLatestEntities: async (
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      const localVarPath = `/entities`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "GET",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
      * @param {UpdateEntityRequest} updateEntityRequest
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1394,6 +1432,25 @@ export const EntityApiFp = function (configuration?: Configuration) {
     },
     /**
      *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async getLatestEntities(
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<Entity>>
+    > {
+      const localVarAxiosArgs =
+        await localVarAxiosParamCreator.getLatestEntities(options);
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
      * @param {UpdateEntityRequest} updateEntityRequest
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1459,6 +1516,16 @@ export const EntityApiFactory = function (
     },
     /**
      *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getLatestEntities(options?: any): AxiosPromise<Array<Entity>> {
+      return localVarFp
+        .getLatestEntities(options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
      * @param {UpdateEntityRequest} updateEntityRequest
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1506,6 +1573,14 @@ export interface EntityApiInterface {
 
   /**
    *
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof EntityApiInterface
+   */
+  getLatestEntities(options?: AxiosRequestConfig): AxiosPromise<Array<Entity>>;
+
+  /**
+   *
    * @param {UpdateEntityRequest} updateEntityRequest
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -1550,6 +1625,18 @@ export class EntityApi extends BaseAPI implements EntityApiInterface {
   public getEntity(entityId: string, options?: AxiosRequestConfig) {
     return EntityApiFp(this.configuration)
       .getEntity(entityId, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof EntityApi
+   */
+  public getLatestEntities(options?: AxiosRequestConfig) {
+    return EntityApiFp(this.configuration)
+      .getLatestEntities(options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -1633,7 +1720,7 @@ export const EntityTypeApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {string} uri The URI of entity type
+     * @param {string} uri The URI of the entity type
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1804,7 +1891,7 @@ export const EntityTypeApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {string} uri The URI of entity type
+     * @param {string} uri The URI of the entity type
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1901,7 +1988,7 @@ export const EntityTypeApiFactory = function (
     },
     /**
      *
-     * @param {string} uri The URI of entity type
+     * @param {string} uri The URI of the entity type
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1957,7 +2044,7 @@ export interface EntityTypeApiInterface {
 
   /**
    *
-   * @param {string} uri The URI of entity type
+   * @param {string} uri The URI of the entity type
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof EntityTypeApiInterface
@@ -2015,7 +2102,7 @@ export class EntityTypeApi extends BaseAPI implements EntityTypeApiInterface {
 
   /**
    *
-   * @param {string} uri The URI of entity type
+   * @param {string} uri The URI of the entity type
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof EntityTypeApi
@@ -2574,7 +2661,7 @@ export const LinkTypeApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {string} uri The URI of link type
+     * @param {string} uri The URI of the link type
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -2727,7 +2814,7 @@ export const LinkTypeApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {string} uri The URI of link type
+     * @param {string} uri The URI of the link type
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -2811,7 +2898,7 @@ export const LinkTypeApiFactory = function (
     },
     /**
      *
-     * @param {string} uri The URI of link type
+     * @param {string} uri The URI of the link type
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -2867,7 +2954,7 @@ export interface LinkTypeApiInterface {
 
   /**
    *
-   * @param {string} uri The URI of link type
+   * @param {string} uri The URI of the link type
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof LinkTypeApiInterface
@@ -2927,7 +3014,7 @@ export class LinkTypeApi extends BaseAPI implements LinkTypeApiInterface {
 
   /**
    *
-   * @param {string} uri The URI of link type
+   * @param {string} uri The URI of the link type
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof LinkTypeApi
@@ -3056,7 +3143,7 @@ export const PropertyTypeApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {string} uri The URI of property type
+     * @param {string} uri The URI of the property type
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -3211,7 +3298,7 @@ export const PropertyTypeApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {string} uri The URI of property type
+     * @param {string} uri The URI of the property type
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -3296,7 +3383,7 @@ export const PropertyTypeApiFactory = function (
     },
     /**
      *
-     * @param {string} uri The URI of property type
+     * @param {string} uri The URI of the property type
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -3352,7 +3439,7 @@ export interface PropertyTypeApiInterface {
 
   /**
    *
-   * @param {string} uri The URI of property type
+   * @param {string} uri The URI of the property type
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PropertyTypeApiInterface
@@ -3415,7 +3502,7 @@ export class PropertyTypeApi
 
   /**
    *
-   * @param {string} uri The URI of property type
+   * @param {string} uri The URI of the property type
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PropertyTypeApi
