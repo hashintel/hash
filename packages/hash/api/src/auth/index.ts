@@ -21,14 +21,14 @@ const setupAuth = (app: Express) => {
       .catch((err: AxiosError) => {
         // 403 on toSession means that we need to request 2FA
         if (err.response && err.response.status === 403) {
-          /** @todo: should this be handled here, or client side? */
+          /** @todo: figure out if this shoulds be handled here, or in the next.js app (when implementing 2FA) */
         }
         return undefined;
       });
 
     if (kratosSession) {
       req.session = kratosSession;
-      /** @todo: attach User model class instanace to the `req` object */
+      /** @todo: attach User model class instance to the `req` object */
     }
 
     next();
