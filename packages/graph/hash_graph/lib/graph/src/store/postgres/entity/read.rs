@@ -49,10 +49,10 @@ impl<C: AsClient> crud::Read<'_, AllLatest, Entity> for PostgresStore<C> {
             .as_client()
             .query_raw(
                 r#"
-                    SELECT DISTINCT ON(entity_id) properties
-                    FROM entities
-                    ORDER BY entity_id, version DESC;
-                    "#,
+                SELECT DISTINCT ON(entity_id) properties
+                FROM entities
+                ORDER BY entity_id, version DESC;
+                "#,
                 // Requires a concrete type, which implements
                 // `IntoIterator<Item = impl BorrowToSql>`
                 [] as [&(dyn ToSql + Sync); 0],
