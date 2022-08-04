@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import { DataSource } from "apollo-datasource";
 import {
   Configuration,
@@ -36,10 +34,10 @@ const httpsAgent = new HttpsAgent({
   freeSocketTimeout: 30000,
 });
 
-export class GraphAdapter extends DataSource implements DbClient {
+export class GraphClient extends DataSource implements DbClient {
   private graphApi: GraphApi;
 
-  constructor({ basePath }: { basePath: string }, logger: Logger) {
+  constructor({ basePath }: { basePath: string }, private logger: Logger) {
     super();
     const axiosInstance = axios.create({
       httpAgent,
@@ -101,7 +99,7 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  createEntity(params: {
+  createEntity(_params: {
     accountId: string;
     createdByAccountId: string;
     entityId?: string | undefined;
@@ -115,7 +113,7 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  getEntityAccountId(params: {
+  getEntityAccountId(_params: {
     entityId: string;
     entityVersionId?: string | undefined;
   }): Promise<string> {
@@ -123,54 +121,54 @@ export class GraphAdapter extends DataSource implements DbClient {
   }
 
   getEntity(
-    params: { accountId: string; entityVersionId: string },
-    lock?: boolean | undefined,
+    _params: { accountId: string; entityVersionId: string },
+    _lock?: boolean | undefined,
   ): Promise<DbEntity | undefined> {
     throw new Error("Method not implemented.");
   }
 
-  getEntityLatestVersion(params: {
+  getEntityLatestVersion(_params: {
     accountId: string;
     entityId: string;
   }): Promise<DbEntity | undefined> {
     throw new Error("Method not implemented.");
   }
 
-  getEntityType(params: {
+  getEntityType(_params: {
     entityTypeVersionId: string;
   }): Promise<EntityType | null> {
     throw new Error("Method not implemented.");
   }
 
-  getEntityTypeLatestVersion(params: {
+  getEntityTypeLatestVersion(_params: {
     entityTypeId: string;
   }): Promise<EntityType | null> {
     throw new Error("Method not implemented.");
   }
 
-  getEntityTypeByComponentId(params: {
+  getEntityTypeByComponentId(_params: {
     componentId: string;
   }): Promise<EntityType | null> {
     throw new Error("Method not implemented.");
   }
 
-  getEntityTypeBySchema$id(params: {
+  getEntityTypeBySchema$id(_params: {
     schema$id: string;
   }): Promise<EntityType | null> {
     throw new Error("Method not implemented.");
   }
 
-  getEntityTypeChildren(params: { schemaRef: string }): Promise<EntityType[]> {
+  getEntityTypeChildren(_params: { schemaRef: string }): Promise<EntityType[]> {
     throw new Error("Method not implemented.");
   }
 
-  getSystemTypeLatestVersion(params: {
+  getSystemTypeLatestVersion(_params: {
     systemTypeName: SystemType;
   }): Promise<EntityType> {
     throw new Error("Method not implemented.");
   }
 
-  updateEntityType(params: {
+  updateEntityType(_params: {
     accountId: string;
     entityId: string;
     updatedByAccountId: string;
@@ -180,7 +178,7 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  updateEntity(params: {
+  updateEntity(_params: {
     accountId: string;
     entityId: string;
     properties: any;
@@ -189,7 +187,7 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  updateEntityAccountId(params: {
+  updateEntityAccountId(_params: {
     originalAccountId: string;
     entityId: string;
     newAccountId: string;
@@ -197,7 +195,7 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  getUserByEmail(params: {
+  getUserByEmail(_params: {
     email: string;
     verified?: boolean | undefined;
     primary?: boolean | undefined;
@@ -205,15 +203,15 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  getUserByShortname(params: { shortname: string }): Promise<DbEntity | null> {
+  getUserByShortname(_params: { shortname: string }): Promise<DbEntity | null> {
     throw new Error("Method not implemented.");
   }
 
-  getOrgByShortname(params: { shortname: string }): Promise<DbEntity | null> {
+  getOrgByShortname(_params: { shortname: string }): Promise<DbEntity | null> {
     throw new Error("Method not implemented.");
   }
 
-  getEntitiesByType(params: {
+  getEntitiesByType(_params: {
     accountId: string;
     entityTypeId: string;
     entityTypeVersionId?: string | undefined;
@@ -222,7 +220,7 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  getEntitiesBySystemType(params: {
+  getEntitiesBySystemType(_params: {
     accountId: string;
     latestOnly?: boolean | undefined;
     systemTypeName: SystemType;
@@ -234,11 +232,11 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  accountExists(params: { accountId: string }): Promise<boolean> {
+  accountExists(_params: { accountId: string }): Promise<boolean> {
     throw new Error("Method not implemented.");
   }
 
-  updateEntityMetadata(params: {
+  updateEntityMetadata(_params: {
     accountId: string;
     entityId: string;
     extra: any;
@@ -246,7 +244,7 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  createLink(params: {
+  createLink(_params: {
     createdByAccountId: string;
     path: string;
     index?: number | undefined;
@@ -259,7 +257,7 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  updateLink(params: {
+  updateLink(_params: {
     sourceAccountId: string;
     linkId: string;
     updatedIndex: number;
@@ -268,14 +266,14 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  getLink(params: {
+  getLink(_params: {
     sourceAccountId: string;
     linkId: string;
   }): Promise<DbLink | null> {
     throw new Error("Method not implemented.");
   }
 
-  deleteLink(params: {
+  deleteLink(_params: {
     deletedByAccountId: string;
     sourceAccountId: string;
     linkId: string;
@@ -283,7 +281,7 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  getEntityOutgoingLinks(params: {
+  getEntityOutgoingLinks(_params: {
     accountId: string;
     entityId: string;
     activeAt?: Date | undefined;
@@ -292,14 +290,14 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  getEntityIncomingLinks(params: {
+  getEntityIncomingLinks(_params: {
     accountId: string;
     entityId: string;
   }): Promise<DbLink[]> {
     throw new Error("Method not implemented.");
   }
 
-  createVerificationCode(params: {
+  createVerificationCode(_params: {
     accountId: string;
     userId: string;
     code: string;
@@ -308,7 +306,7 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  createAggregation(params: {
+  createAggregation(_params: {
     sourceAccountId: string;
     sourceEntityId: string;
     path: string;
@@ -318,7 +316,7 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  updateAggregationOperation(params: {
+  updateAggregationOperation(_params: {
     sourceAccountId: string;
     aggregationId: string;
     updatedOperation: object;
@@ -327,14 +325,14 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  getAggregation(params: {
+  getAggregation(_params: {
     sourceAccountId: string;
     aggregationId: string;
   }): Promise<DbAggregation | null> {
     throw new Error("Method not implemented.");
   }
 
-  getEntityAggregationByPath(params: {
+  getEntityAggregationByPath(_params: {
     sourceAccountId: string;
     sourceEntityId: string;
     path: string;
@@ -343,7 +341,7 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  getEntityAggregations(params: {
+  getEntityAggregations(_params: {
     sourceAccountId: string;
     sourceEntityId: string;
     activeAt?: Date | undefined;
@@ -351,7 +349,7 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  deleteAggregation(params: {
+  deleteAggregation(_params: {
     sourceAccountId: string;
     aggregationId: string;
     deletedByAccountId: string;
@@ -359,38 +357,38 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  getVerificationCode(params: {
+  getVerificationCode(_params: {
     id: string;
   }): Promise<VerificationCode | null> {
     throw new Error("Method not implemented.");
   }
 
-  getUserVerificationCodes(params: {
+  getUserVerificationCodes(_params: {
     userEntityId: string;
     createdAfter?: Date | undefined;
   }): Promise<VerificationCode[]> {
     throw new Error("Method not implemented.");
   }
 
-  incrementVerificationCodeAttempts(params: {
+  incrementVerificationCodeAttempts(_params: {
     id: string;
     userId: string;
   }): Promise<void> {
     throw new Error("Method not implemented.");
   }
 
-  setVerificationCodeToUsed(params: {
+  setVerificationCodeToUsed(_params: {
     id: string;
     userId: string;
   }): Promise<void> {
     throw new Error("Method not implemented.");
   }
 
-  pruneVerificationCodes(params: { maxAgeInMs: number }): Promise<number> {
+  pruneVerificationCodes(_params: { maxAgeInMs: number }): Promise<number> {
     throw new Error("Method not implemented.");
   }
 
-  getEntityHistory(params: {
+  getEntityHistory(_params: {
     accountId: string;
     entityId: string;
     order: "asc" | "desc";
@@ -399,7 +397,7 @@ export class GraphAdapter extends DataSource implements DbClient {
   }
 
   getEntities(
-    entities: {
+    _entities: {
       accountId: string;
       entityId: string;
       entityVersionId?: string | undefined;
@@ -408,7 +406,7 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  getAccountEntities(params: {
+  getAccountEntities(_params: {
     accountId: string;
     entityTypeFilter?:
       | {
@@ -422,25 +420,25 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  getAccountEntityTypes(params: {
+  getAccountEntityTypes(_params: {
     accountId: string;
     includeOtherTypesInUse?: boolean | null | undefined;
   }): Promise<EntityType[]> {
     throw new Error("Method not implemented.");
   }
 
-  acquireEntityLock(params: { entityId: string }): Promise<null> {
+  acquireEntityLock(_params: { entityId: string }): Promise<null> {
     throw new Error("Method not implemented.");
   }
 
-  getImpliedEntityHistory(params: {
+  getImpliedEntityHistory(_params: {
     accountId: string;
     entityId: string;
   }): Promise<Graph[]> {
     throw new Error("Method not implemented.");
   }
 
-  getAncestorReferences(params: {
+  getAncestorReferences(_params: {
     accountId: string;
     entityId: string;
     depth?: number | undefined;
@@ -452,7 +450,7 @@ export class GraphAdapter extends DataSource implements DbClient {
     throw new Error("Method not implemented.");
   }
 
-  getChildren(params: {
+  getChildren(_params: {
     accountId: string;
     entityId: string;
     entityVersionId: string;
