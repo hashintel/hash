@@ -6,7 +6,7 @@
   "license": "AGPL-3.0",
   "main": "./index.ts",
   "scripts": {
-    "eslint:fix": "eslint ./*.ts --fix --no-inline-config",
+    "fix:eslint": "eslint ./*.ts --fix --no-inline-config",
     "lint:eslint": "echo noop",
     "lint:tsc": "echo noop"
   },
