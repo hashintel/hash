@@ -236,7 +236,14 @@ fn modify_reference(reference: &mut openapi::Ref) {
     };
 }
 
-/// Append a "Graph" tag wherever a tag appears in individual routes.
+/// Append a `Graph` tag wherever a tag appears in individual routes.
+///
+/// When generating API clients the tags are used for grouping routes. Having the `Graph` tag on all
+/// routes makes it so that every operation appear under the same `Graph` API interface.
+///
+/// As generators are not all created the same way, we're putting the `Graph` tag in the beginning
+/// for it to take precedence. Other tags in the system are used for logical grouping of the
+/// routes, which is why we don't want to entirely replace them.
 struct OperationGraphTagAddon;
 
 impl Modify for OperationGraphTagAddon {
@@ -246,7 +253,6 @@ impl Modify for OperationGraphTagAddon {
         for path_item in openapi.paths.paths.values_mut() {
             for operation in path_item.operations.values_mut() {
                 if let Some(tags) = &mut operation.tags {
-                    // Add the tag in the beginning to make it take precedence for client generation
                     tags.insert(0, tag.to_owned());
                 }
             }
