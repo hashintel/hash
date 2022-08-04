@@ -22,19 +22,15 @@ import {
 } from "../adapter";
 import { SystemType } from "../../types/entityTypes";
 
-const httpAgent = new HttpAgent({
+const agentConfig = {
   maxSockets: 128,
   maxFreeSockets: 20,
   timeout: 60 * 1000, // ms
   freeSocketTimeout: 30 * 1000, // ms
-});
+};
 
-const httpsAgent = new HttpsAgent({
-  maxSockets: 128,
-  maxFreeSockets: 128,
-  timeout: 60000,
-  freeSocketTimeout: 30000,
-});
+const httpAgent = new HttpAgent(agentConfig);
+const httpsAgent = new HttpsAgent(agentConfig);
 
 export class GraphClient extends DataSource implements DbClient {
   private graphApi: GraphApi;
