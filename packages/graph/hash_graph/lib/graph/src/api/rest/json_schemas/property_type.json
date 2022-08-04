@@ -4,7 +4,7 @@
   "type": "object",
   "properties": {
     "kind": {
-      "const": "propertyType"
+      "enum": ["propertyType"]
     },
     "$id": {
       "type": "string",
@@ -39,7 +39,7 @@
           "type": "object",
           "properties": {
             "type": {
-              "const": "object"
+              "enum": ["object"]
             },
             "properties": {
               "$ref": "propertyTypeObject"
@@ -53,7 +53,7 @@
           "type": "object",
           "properties": {
             "type": {
-              "const": "array"
+              "enum": ["array"]
             },
             "items": {
               "type": "object",
@@ -102,7 +102,7 @@
               "type": "object",
               "properties": {
                 "type": {
-                  "const": "array"
+                  "enum": ["array"]
                 },
                 "items": {
                   "$ref": "#/$defs/propertyTypeReference"

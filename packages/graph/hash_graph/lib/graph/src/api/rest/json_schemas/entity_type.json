@@ -4,14 +4,14 @@
   "type": "object",
   "properties": {
     "kind": {
-      "const": "entityType"
+      "enum": ["entityType"]
     },
     "$id": {
       "type": "string",
       "format": "uri"
     },
     "type": {
-      "const": "object"
+      "enum": ["object"]
     },
     "title": { "type": "string" },
     "description": { "type": "string" },
@@ -73,7 +73,7 @@
               "type": "object",
               "properties": {
                 "type": {
-                  "const": "array"
+                  "enum": ["array"]
                 },
                 "items": {
                   "$ref": "#/$defs/propertyTypeReference"
@@ -125,7 +125,7 @@
               "type": "object",
               "properties": {
                 "type": {
-                  "const": "array"
+                  "enum": ["array"]
                 },
                 "ordered": { "type": "boolean", "default": false },
                 "minItems": {

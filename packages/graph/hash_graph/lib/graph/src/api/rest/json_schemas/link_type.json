@@ -3,7 +3,7 @@
   "description": "Specifies the structure of a Link Type",
   "properties": {
     "kind": {
-      "const": "linkType"
+      "enum": ["linkType"]
     },
     "$id": {
       "type": "string",
