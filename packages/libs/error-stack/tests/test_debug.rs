@@ -301,7 +301,7 @@ mod hooks {
         let report = create_report().attach(2u32);
 
         Report::install_hook(Hooks::new().push(|_: &u32, ctx: &mut HookContext<u32>| {
-            Line::next(format!("unsigned 32bit integer (No. {})", ctx.incr()))
+            Line::next(format!("unsigned 32bit integer (No. {})", ctx.increment()))
         }))
         .unwrap();
 
@@ -377,10 +377,9 @@ mod hooks {
             .attach(2u32)
             .attach(3u32);
 
-        Report::install_hook(
-            Hooks::new()
-                .push(|_: &u32, ctx: &mut HookContext<u32>| Line::next(format!("{}", ctx.decr()))),
-        )
+        Report::install_hook(Hooks::new().push(|_: &u32, ctx: &mut HookContext<u32>| {
+            Line::next(format!("{}", ctx.decrement()))
+        }))
         .unwrap();
 
         assert_snapshot!(redact(&format!("{report:?}")));
@@ -395,10 +394,9 @@ mod hooks {
             .attach(2u32)
             .attach(3u32);
 
-        Report::install_hook(
-            Hooks::new()
-                .push(|_: &u32, ctx: &mut HookContext<u32>| Line::next(format!("{}", ctx.incr()))),
-        )
+        Report::install_hook(Hooks::new().push(|_: &u32, ctx: &mut HookContext<u32>| {
+            Line::next(format!("{}", ctx.increment()))
+        }))
         .unwrap();
 
         assert_snapshot!(redact(&format!("{report:?}")));

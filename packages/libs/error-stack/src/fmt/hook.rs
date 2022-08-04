@@ -25,7 +25,7 @@ impl HookContextImpl {
     }
 }
 
-/// Optional Context used to carry information across hook invocations.
+/// Optional context used to carry information across hook invocations.
 ///
 /// Every hook can request their corresponding `HookContext`, which can be used to emit
 /// `text` (which will be appended if extended [`Debug`] format (`:#?`) has been requested)
@@ -43,13 +43,13 @@ impl<T> HookContext<'_, T> {
     ///
     /// This is useful for dense information like backtraces, or span traces, which are omitted when
     /// rendering without the alternate [`Debug`] output.
-    pub fn text(&mut self, value: &str) {
+    pub fn set_text(&mut self, value: &str) {
         self.text_lines(value.lines());
     }
 
     /// Same as [`Self::text`], but only accepts lines (the internal representation used during
     /// rendering)
-    pub fn text_lines(&mut self, lines: core::str::Lines) {
+    fn text_lines(&mut self, lines: core::str::Lines) {
         self.parent
             .text
             .push(lines.map(ToOwned::to_owned).collect());
@@ -115,7 +115,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// increment a counter, if the counter wasn't initialized this method will return `0`.
     ///
     /// [`text()`]: Self::text
-    pub fn incr(&mut self) -> isize {
+    pub fn increment(&mut self) -> isize {
         let counter: Option<&mut isize> = self
             .parent
             .inner
@@ -147,7 +147,7 @@ impl<T: 'static> HookContext<'_, T> {
     ///
     /// [`incr()`]: Self::incr
     /// [`text()`]: Self::text
-    pub fn decr(&mut self) -> isize {
+    pub fn decrement(&mut self) -> isize {
         let counter: Option<&mut isize> = self
             .parent
             .inner
@@ -434,7 +434,9 @@ impl<T: Hook<Frame, UInt0>> Hooks<T> {
     ///
     /// let hooks = Hooks::new() //
     ///     .push(|val: &u32| Line::next(format!("{val}u32")))
-    ///     .push(|_: &u64, ctx: &mut HookContext<u64>| Line::defer(format!("u64 No. {}", ctx.incr())));
+    ///     .push(|_: &u64, ctx: &mut HookContext<u64>| {
+    ///         Line::defer(format!("u64 No. {}", ctx.increment()))
+    ///     });
     ///
     /// Report::install_hook(hooks).unwrap();
     ///
@@ -477,7 +479,9 @@ impl<T: Hook<Frame, UInt0>> Hooks<T> {
     ///
     /// let hooks = Hooks::new() //
     ///     .push(|val: &u32| Line::next(format!("{val}u32")))
-    ///     .push(|_: &u64, ctx: &mut HookContext<u64>| Line::defer(format!("u64 No. {}", ctx.incr())))
+    ///     .push(|_: &u64, ctx: &mut HookContext<u64>| {
+    ///         Line::defer(format!("u64 No. {}", ctx.increment()))
+    ///     })
     ///     .combine(other);
     ///
     /// Report::install_hook(hooks).unwrap();
@@ -536,9 +540,9 @@ mod builtin {
 
     #[cfg(all(nightly, feature = "std"))]
     fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Line {
-        let idx = ctx.incr();
+        let idx = ctx.increment();
 
-        ctx.text(&format!("Backtrace No. {}\n{}", idx + 1, backtrace));
+        ctx.set_text(&format!("Backtrace No. {}\n{}", idx + 1, backtrace));
 
         Line::Defer(format!(
             "backtrace with {} frames ({})",
@@ -549,7 +553,7 @@ mod builtin {
 
     #[cfg(feature = "spantrace")]
     fn spantrace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) -> Line {
-        let idx = ctx.incr();
+        let idx = ctx.increment();
 
         let mut span = 0;
         spantrace.with_spans(|_, _| {
@@ -557,7 +561,7 @@ mod builtin {
             true
         });
 
-        ctx.text(&format!("Span Trace No. {}\n{}", idx + 1, spantrace));
+        ctx.set_text(&format!("Span Trace No. {}\n{}", idx + 1, spantrace));
 
         Line::Defer(format!("spantrace with {span} frames ({})", idx + 1))
     }

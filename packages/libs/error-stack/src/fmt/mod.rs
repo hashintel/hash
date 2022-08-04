@@ -117,25 +117,30 @@ impl Display for Instruction {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Self::Content(text) => fmt.write_str(text),
+
             #[cfg(feature = "glyph")]
             Self::Entry { end: true } => {
                 fmt::Display::fmt(&"╰─▶ ".if_supports_color(Stdout, OwoColorize::red), fmt)
             }
             #[cfg(not(feature = "glyph"))]
             Self::Entry { end: true } => fmt.write_str(r#"\-> "#),
+
             #[cfg(feature = "glyph")]
             Self::Entry { end: false } => {
                 fmt::Display::fmt(&"├─▶ ".if_supports_color(Stdout, OwoColorize::red), fmt)
             }
             #[cfg(not(feature = "glyph"))]
             Self::Entry { end: false } => fmt.write_str("|-> "),
+
             #[cfg(feature = "glyph")]
             Self::Vertical => {
                 fmt::Display::fmt(&"│   ".if_supports_color(Stdout, OwoColorize::red), fmt)
             }
             #[cfg(not(feature = "glyph"))]
             Self::Vertical => fmt.write_str("|   "),
+
             Self::Indent => fmt.write_str("    "),
+
             #[cfg(feature = "glyph")]
             Self::Gray(text) => fmt::Display::fmt(
                 &text.if_supports_color(Stdout, OwoColorize::bright_black),
@@ -143,18 +148,21 @@ impl Display for Instruction {
             ),
             #[cfg(not(feature = "glyph"))]
             Self::Gray(text) => fmt.write_str(text),
+
             #[cfg(feature = "glyph")]
             Self::Title { end: true } => {
                 fmt::Display::fmt(&"╰ ".if_supports_color(Stdout, OwoColorize::red), fmt)
             }
             #[cfg(not(feature = "glyph"))]
             Self::Title { end: true } => fmt.write_str("> "),
+
             #[cfg(feature = "glyph")]
             Self::Title { end: false } => {
                 fmt::Display::fmt(&"│ ".if_supports_color(Stdout, OwoColorize::red), fmt)
             }
             #[cfg(not(feature = "glyph"))]
             Self::Title { end: false } => fmt.write_str("| "),
+
             #[cfg(feature = "glyph")]
             Self::Glyph(Glyph::Location) => fmt.write_str(""),
             #[cfg(not(feature = "glyph"))]
@@ -176,7 +184,7 @@ fn debug_frame(
             #[cfg(all(nightly, feature = "experimental"))]
             if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
                 for text in debug.text() {
-                    ctx.cast::<()>().text(text);
+                    ctx.cast::<()>().set_text(text);
                 }
 
                 return Some(debug.output().clone()).map(|line| (line, frame.location()));
