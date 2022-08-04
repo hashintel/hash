@@ -2,8 +2,6 @@
 
 version: v0.10.1
 
-dsn: memory
-
 serve:
   public:
     base_url: http://localhost:4433/
