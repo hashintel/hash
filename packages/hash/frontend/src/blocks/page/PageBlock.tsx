@@ -74,12 +74,9 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       manager,
     };
 
-    // @todo remove need for settimeout
-    setTimeout(() => {
-      if (prosemirrorSetup.current && readonlyMode) {
-        prosemirrorSetup.current?.manager.setReadonlyMode();
-      }
-    }, 1000);
+    if (readonlyMode) {
+      prosemirrorSetup.current.manager.setReadonlyMode();
+    }
 
     return () => {
       // @todo how does this work with portals?
