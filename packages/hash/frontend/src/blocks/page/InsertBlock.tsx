@@ -62,7 +62,12 @@ export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
               "linear-gradient(90deg, #DDE7F0 41.42%, #FFFFFF 50.26%, #DDE7F0 59.11%)",
           }}
         />
-        <PlusBoxOutlineIcon sx={{ position: "absolute" }} />
+        <PlusBoxOutlineIcon
+          sx={{
+            color: ({ palette }) => palette.gray[40],
+            position: "absolute",
+          }}
+        />
       </Box>
 
       <Popover
