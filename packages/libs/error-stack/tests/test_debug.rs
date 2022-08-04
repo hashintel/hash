@@ -103,7 +103,7 @@ fn install_backtrace() {
 
 #[cfg(feature = "glyph")]
 fn force_color() {
-    set_override(false);
+    owo_colors::set_override(false);
 }
 
 #[cfg(not(feature = "glyph"))]
