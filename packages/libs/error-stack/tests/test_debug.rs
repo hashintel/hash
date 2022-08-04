@@ -153,13 +153,10 @@ pub fn create_report() -> Report<RootError> {
 }
 
 /// This is taken from the rstest pattern https://insta.rs/docs/patterns/
-macro_rules! set_snapshot_suffix {
-    () => {{
-        let mut settings = insta::Settings::clone_current();
-        settings.set_snapshot_suffix(snap_suffix());
-        #[allow(deprecated)]
-        settings.bind_to_thread();
-    }};
+fn set_snapshot_suffix() -> impl Guard {
+    let mut settings = insta::Settings::clone_current();
+    settings.set_snapshot_suffix(snap_suffix());
+    settings.bind_to_scope()
 }
 
 /// The provider API extension via `DebugDiagnostic` is only available under experimental and
@@ -167,7 +164,7 @@ macro_rules! set_snapshot_suffix {
 #[test]
 #[cfg(all(nightly, feature = "experimental"))]
 fn provider() {
-    set_snapshot_suffix!();
+    let _guard = set_snapshot_suffix();
 
     let mut report = create_report().attach_printable(PrintableA(0));
     report.extend_one({
@@ -191,7 +188,7 @@ fn provider() {
 #[test]
 #[cfg(all(nightly, feature = "experimental"))]
 fn provider_ext() {
-    set_snapshot_suffix!();
+    let _guard = set_snapshot_suffix();
 
     let mut report = create_report().attach_printable(PrintableA(0));
     report.extend_one({
@@ -212,7 +209,7 @@ fn provider_ext() {
 
 #[test]
 fn linear() {
-    set_snapshot_suffix!();
+    let _guard = set_snapshot_suffix();
 
     let report = create_report()
         .attach_printable(PrintableA(0))
@@ -229,7 +226,7 @@ fn linear() {
 
 #[test]
 fn linear_ext() {
-    set_snapshot_suffix!();
+    let _guard = set_snapshot_suffix();
 
     let report = create_report()
         .attach_printable(PrintableA(0))
@@ -246,7 +243,7 @@ fn linear_ext() {
 
 #[test]
 fn complex() {
-    set_snapshot_suffix!();
+    let _guard = set_snapshot_suffix();
 
     let mut report = create_report().attach_printable(PrintableA(0));
     report.extend_one({
@@ -267,7 +264,7 @@ fn complex() {
 
 #[test]
 fn location_edge_case() {
-    set_snapshot_suffix!();
+    let _guard = set_snapshot_suffix();
 
     let report = create_report();
 
@@ -284,7 +281,7 @@ mod hooks {
 
     #[test]
     fn hook() {
-        set_snapshot_suffix!();
+        let _guard = set_snapshot_suffix();
 
         let report = create_report().attach(2u32);
 
@@ -296,7 +293,7 @@ mod hooks {
 
     #[test]
     fn hook_context() {
-        set_snapshot_suffix!();
+        let _guard = set_snapshot_suffix();
 
         let report = create_report().attach(2u32);
 
@@ -310,7 +307,7 @@ mod hooks {
 
     #[test]
     fn hook_stack() {
-        set_snapshot_suffix!();
+        let _guard = set_snapshot_suffix();
 
         let report = create_report().attach(1u32).attach(2u64);
 
@@ -326,7 +323,7 @@ mod hooks {
 
     #[test]
     fn hook_combine() {
-        set_snapshot_suffix!();
+        let _guard = set_snapshot_suffix();
 
         let report = create_report() //
             .attach(1u32)
@@ -350,7 +347,7 @@ mod hooks {
 
     #[test]
     fn hook_defer() {
-        set_snapshot_suffix!();
+        let _guard = set_snapshot_suffix();
 
         let report = create_report() //
             .attach(1u32)
@@ -370,7 +367,7 @@ mod hooks {
 
     #[test]
     fn hook_decr() {
-        set_snapshot_suffix!();
+        let _guard = set_snapshot_suffix();
 
         let report = create_report() //
             .attach(1u32)
@@ -387,7 +384,7 @@ mod hooks {
 
     #[test]
     fn hook_incr() {
-        set_snapshot_suffix!();
+        let _guard = set_snapshot_suffix();
 
         let report = create_report() //
             .attach(1u32)
