@@ -13,7 +13,7 @@ use crate::Frame;
 #[derive(Default)]
 pub struct HookContextImpl {
     pub(crate) text: Vec<Vec<String>>,
-    inner: BTreeMap<TypeId, Box<dyn Any>>,
+    inner: BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>,
 }
 
 impl HookContextImpl {
@@ -27,11 +27,96 @@ impl HookContextImpl {
 
 /// Optional context used to carry information across hook invocations.
 ///
-/// Every hook can request their corresponding `HookContext`, which can be used to emit
-/// `text` (which will be appended if extended [`Debug`] format (`:#?`) has been requested)
-/// or can be used for data which is shared among invocations of the same hook over the whole
-/// rendering, meaning that two frames of the same type can share common data during rendering. This
-/// is especially helpful for counters.
+/// `HookContext` has two fundamental use-cases:
+/// 1) Emitting `text`
+/// 2) Storage
+///
+/// ## Emitting Text
+///
+/// A [`Debug`] backtrace consists of two different sections, a rendered tree of objects and
+/// additional text/information that is too large to fit.
+/// There is no guarantee that the text set via [`set_text()`] will be displayed on every invocation
+/// and is currently only output when the alternate format (`:#?`) has been requested.
+///
+/// ### Example
+///
+/// ```rust
+/// use std::io::ErrorKind;
+///
+/// use error_stack::{
+///     fmt::{HookContext, Hooks, Line},
+///     Report,
+/// };
+/// use insta::assert_snapshot;
+///
+/// Report::install_hook(Hooks::bare().push(|val: &u64, ctx: &mut HookContext<u64>| {
+///     ctx.set_text("u64 has been encountered");
+///     Line::next(val.to_string())
+/// }))
+/// .unwrap();
+///
+/// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
+///     .attach(2u64)
+///     .attach(3u64);
+///
+/// assert_snapshot!(format!("{report:#?}"), @r###"3
+/// │ src/fmt/hook.rs:20:6
+/// ├─▶ 2
+/// │   ╰ src/fmt/hook.rs:19:6
+/// ├─▶ invalid input parameter
+/// │   ╰ src/fmt/hook.rs:18:14
+/// ╰─▶ 1 additional attachment
+///
+///
+/// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+///
+/// u64 has been encountered
+///
+/// u64 has been encountered"###);
+/// ```
+///
+/// ## Storage
+///
+/// `HookContext` can be used to store and retrieve values that are going to be used on multiple
+/// hook invocations in a single [`Debug`] call.
+///
+/// Every hook can request their corresponding `HookContext`.
+/// This is especially useful for incrementing/decrementing values, but can also be used to store
+/// any arbitrary value for the duration of the hook invocation.
+///
+/// All data stored in `HookContext` is completely separated from all other [`Hook`]s and can store
+/// any arbitrary data of any type, and even data of multiple types at the same time.
+///
+/// ### Example
+///
+/// ```rust
+/// use std::io::ErrorKind;
+///
+/// use error_stack::{
+///     fmt::{HookContext, Hooks, Line},
+///     Report,
+/// };
+/// use insta::assert_snapshot;
+///
+/// Report::install_hook(Hooks::bare().push(|val: &u64, ctx: &mut HookContext<u64>| {
+///     let mut acc = ctx.get::<u64>().copied().unwrap_or(0);
+///     acc += *val;
+///
+///     let mut div = ctx.get::<f32>().copied().unwrap_or(1.0);
+///     div /= *val;
+///
+///     ctx.insert(acc);
+///
+///     Line::next(format!("{val} (acc: {acc}, div: {div})"))
+/// }))
+/// .unwrap();
+///
+/// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
+///     .attach(2u64)
+///     .attach(3u64);
+///
+/// assert_snapshot!(format!("{report:#?}"), @r###""###);
+/// ```
 pub struct HookContext<'a, T> {
     parent: &'a mut HookContextImpl,
     _marker: PhantomData<T>,
@@ -81,18 +166,22 @@ impl<T: 'static> HookContext<'_, T> {
     /// This will downcast the stored value to `U`, if not possible, it will return [`None`]
     #[must_use]
     pub fn get<U: 'static>(&self) -> Option<&U> {
-        let inner = self.parent.inner.get(&TypeId::of::<T>())?;
-
-        inner.downcast_ref()
+        self.parent
+            .inner
+            .get(&TypeId::of::<T>())?
+            .get(&TypeId::of::<U>())?
+            .downcast_ref()
     }
 
     /// Returns a mutable reference to the value corresponding to the currently bound type `T`.
     ///
     /// This will downcast the stored value to `U`, if not possible, it will return [`None`]
     pub fn get_mut<U: 'static>(&mut self) -> Option<&mut U> {
-        let inner = self.parent.inner.get_mut(&TypeId::of::<T>())?;
-
-        inner.downcast_mut()
+        self.parent
+            .inner
+            .get_mut(&TypeId::of::<T>())?
+            .get_mut(&TypeId::of::<U>())?
+            .downcast_mut()
     }
 
     /// Insert a value into the context of the currently bound type `T`.
@@ -100,12 +189,13 @@ impl<T: 'static> HookContext<'_, T> {
     /// Returns the previously stored value, downcast to `U`, if no previous value was stored, or
     /// the downcast was not possible will return [`None`]
     pub fn insert<U: 'static>(&mut self, value: U) -> Option<Box<U>> {
-        let inner = self
-            .parent
+        self.parent
             .inner
-            .insert(TypeId::of::<T>(), Box::new(value))?;
-
-        inner.downcast().ok()
+            .entry(TypeId::of::<T>())
+            .or_default()
+            .insert(TypeId::of::<U>(), Box::new(value))?
+            .downcast()
+            .ok()
     }
 
     /// One of the most common interactions with [`HookContext`] is a counter to reference previous
@@ -116,18 +206,13 @@ impl<T: 'static> HookContext<'_, T> {
     ///
     /// [`text()`]: Self::text
     pub fn increment(&mut self) -> isize {
-        let counter: Option<&mut isize> = self
-            .parent
-            .inner
-            .get_mut(&TypeId::of::<T>())
-            .and_then(|any| any.downcast_mut());
+        let counter = self.get_mut::<isize>();
 
         match counter {
             None => {
                 // if the counter hasn't been set yet, default to `0`
-                self.parent
-                    .inner
-                    .insert(TypeId::of::<T>(), Box::new(0isize));
+                self.insert(0isize);
+
                 0
             }
             Some(ctr) => {
@@ -148,20 +233,15 @@ impl<T: 'static> HookContext<'_, T> {
     /// [`incr()`]: Self::incr
     /// [`text()`]: Self::text
     pub fn decrement(&mut self) -> isize {
-        let counter: Option<&mut isize> = self
-            .parent
-            .inner
-            .get_mut(&TypeId::of::<T>())
-            .and_then(|any| any.downcast_mut());
+        let counter = self.get_mut::<isize>();
 
         match counter {
             None => {
                 // given that increment starts with `0` (which is therefore the implicit default
                 // value) decrementing the default value results in `-1`,
                 // which is why we output that value.
-                self.parent
-                    .inner
-                    .insert(TypeId::of::<T>(), Box::new(-1_isize));
+                self.insert(-1_isize);
+
                 -1
             }
             Some(ctr) => {

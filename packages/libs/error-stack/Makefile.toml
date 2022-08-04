@@ -25,7 +25,17 @@ description = "Test against insta to update snapshots"
 run_task = { name = ['update-snapshots-task'] }
 
 [tasks.update-snapshots-task]
+private = true
+run_task = { name = ['update-snapshots-task-lib', 'update-snapshots-task-doc'] }
+
+[tasks.update-snapshots-task-lib]
 extend = "task"
-install_crate = "insta"
+install_crate = "cargo-insta"
 args = ["hack", "@@split(CARGO_INSTA_TEST_HACK_FLAGS, )", "nextest", "run", "--cargo-profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_TEST_FLAGS, )", "@@split(CARGO_INSTA_TEST_FLAGS, )", "${@}"]
 env = { "INSTA_FORCE_PASS" = "1" }
+
+[tasks.update-snapshots-task-doc]
+extend = "task"
+install_crate = "cargo-insta"
+args = ["test", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_DOC_TEST_FLAGS, )", "--doc", "${@}"]
+env = { "INSTA_FORCE_PASS" = "1", "INSTA_FORCE_UPDATE_SNAPSHOTS" = "1" }
