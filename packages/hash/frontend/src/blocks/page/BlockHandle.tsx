@@ -4,20 +4,18 @@ import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import { Box } from "@mui/material";
 import { bindTrigger } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
-import { ForwardRefRenderFunction, useMemo, forwardRef } from "react";
+import { ForwardRefRenderFunction, forwardRef } from "react";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { useUserBlocks } from "../userBlocks";
 import { BlockConfigMenu } from "./BlockConfigMenu/BlockConfigMenu";
 import { BlockContextMenu } from "./BlockContextMenu/BlockContextMenu";
 import { useBlockView } from "./BlockViewContext";
 import { useBlockContext } from "./BlockContext";
-import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
 
 type BlockHandleProps = {
   deleteBlock: () => void;
   draftId: string | null;
   entityStore: EntityStore;
-  onTypeChange: BlockSuggesterProps["onChange"];
   onMouseDown: () => void;
   onClick: () => void;
 };
@@ -25,10 +23,7 @@ type BlockHandleProps = {
 const BlockHandle: ForwardRefRenderFunction<
   HTMLDivElement,
   BlockHandleProps
-> = (
-  { deleteBlock, draftId, entityStore, onTypeChange, onMouseDown, onClick },
-  ref,
-) => {
+> = ({ deleteBlock, draftId, entityStore, onMouseDown, onClick }, ref) => {
   const contextMenuPopupState = usePopupState({
     variant: "popover",
     popupId: "block-context-menu",
@@ -38,16 +33,6 @@ const BlockHandle: ForwardRefRenderFunction<
     variant: "popover",
     popupId: "block-config-menu",
   });
-
-  const blockSuggesterProps: BlockSuggesterProps = useMemo(
-    () => ({
-      onChange: (variant, block) => {
-        onTypeChange(variant, block);
-        contextMenuPopupState.close();
-      },
-    }),
-    [onTypeChange, contextMenuPopupState],
-  );
 
   const { value: blocksMap } = useUserBlocks();
 
@@ -103,7 +88,6 @@ const BlockHandle: ForwardRefRenderFunction<
 
       <BlockContextMenu
         blockEntity={blockEntity}
-        blockSuggesterProps={blockSuggesterProps}
         deleteBlock={deleteBlock}
         openConfigMenu={configMenuPopupState.open}
         popupState={contextMenuPopupState}
