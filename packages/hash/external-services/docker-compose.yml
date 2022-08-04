@@ -74,7 +74,7 @@ services:
       - "4434:4434" # admin
     restart: unless-stopped
     environment:
-      - SECRETS_COOKIE=PLEASE-CHANGE-ME-I-AM-VERY-INSECURE
+      - SECRETS_COOKIE=VERY-INSECURE-AND-SHOULD-ONLY-BE-USED-IN-DEV
       - SECRETS_CIPHER=32-LONG-SECRET-NOT-SECURE-AT-ALL
       - COURIER_SMTP_CONNECTION_URI=smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
       - DSN=postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DATABASE}
