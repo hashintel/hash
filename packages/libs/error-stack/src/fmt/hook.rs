@@ -198,13 +198,13 @@ impl<'a, T> HookContext<'a, T> {
     ///     .attach(3u64);
     ///
     /// assert_snapshot!(format!("{report:?}"), @r###"0
-    /// │ src/fmt/hook.rs:28:6
+    /// │ src/fmt/hook.rs:34:6
     /// ├─▶ 1 (Value)
-    /// │   ╰ src/fmt/hook.rs:27:19
+    /// │   ╰ src/fmt/hook.rs:33:6
     /// ├─▶ 2
-    /// │   ╰ src/fmt/hook.rs:27:6
+    /// │   ╰ src/fmt/hook.rs:32:6
     /// ├─▶ invalid input parameter
-    /// │   ╰ src/fmt/hook.rs:26:14
+    /// │   ╰ src/fmt/hook.rs:31:14
     /// ╰─▶ 1 additional attachment"###);
     /// ```
     #[must_use]

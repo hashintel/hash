@@ -9,13 +9,19 @@ use crate::fmt::Line;
 ///
 /// ```
 /// use std::io::{Error, ErrorKind};
+/// use insta::assert_snapshot;
 ///
 /// use error_stack::{fmt::DebugDiagnostic, report};
 ///
 /// let report = report!(Error::from(ErrorKind::InvalidInput)) //
 ///     .attach(DebugDiagnostic::next("Hello!"));
 ///
-/// println!("{:?}", report);
+/// assert_snapshot!(format!("{report:?}",), @r###"Hello!
+/// │ src/fmt/nightly.rs:10:6
+/// ├─▶ invalid input parameter
+/// │   ╰ src/fmt/nightly.rs:9:14
+/// ╰─▶ backtrace with 11 frames (1)
+///     ╰ src/fmt/nightly.rs:9:14"###);
 /// ```
 ///
 /// # Implementation Notes
