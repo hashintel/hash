@@ -466,13 +466,12 @@ export class ProsemirrorManager {
    *
    * @todo this does not work within text blocks
    */
-  swapBlockData(
-    entityId: string,
+  replaceBlockChildEntity(
+    blockEntityId: string,
     targetChildEntity: EntityStoreType,
-    pos: number,
   ) {
     if (!this.view) {
-      throw new Error("Cannot trigger updateBlock without view");
+      throw new Error("Cannot trigger replaceBlockChildEntity without view");
     }
 
     const { tr } = this.view.state;
@@ -481,18 +480,17 @@ export class ProsemirrorManager {
       this.view.state,
     ).store;
 
-    const blockEntity = entityId ? entityStore.saved[entityId] : null;
-    const blockData = isBlockEntity(blockEntity)
-      ? blockEntity.properties.entity
-      : null;
+    const blockEntity = blockEntityId ? entityStore.saved[blockEntityId] : null;
 
-    if (!isBlockEntity(blockEntity) || !blockData) {
-      throw new Error("Can only update data of a BlockEntity");
+    if (!isBlockEntity(blockEntity)) {
+      throw new Error("Can only update child of a BlockEntity");
     }
+
+    const childEntity = blockEntity.properties.entity;
 
     // If the target entity is the same as the block's child entity
     // we don't need to do anything
-    if (targetChildEntity.entityId === blockData.entityId) {
+    if (targetChildEntity.entityId === childEntity.entityId) {
       return;
     }
 
@@ -502,25 +500,13 @@ export class ProsemirrorManager {
     ).draftId;
 
     addEntityStoreAction(this.view.state, tr, {
-      type: "updateBlockEntityProperties",
+      type: "setBlockChildEntity",
       payload: {
         targetEntity: targetChildEntity,
         blockEntityDraftId,
       },
     });
 
-    const updatedStore = entityStorePluginStateFromTransaction(
-      tr,
-      this.view.state,
-    ).store;
-
-    const newBlockNode = this.renderBlock(
-      blockEntity.properties.componentId,
-      updatedStore,
-      blockEntityDraftId,
-    );
-
-    tr.replaceRangeWith(pos, pos + newBlockNode.nodeSize, newBlockNode);
     this.view.dispatch(tr);
   }
 

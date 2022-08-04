@@ -77,7 +77,7 @@ export type EntityStorePluginAction = { received?: boolean } & (
       };
     }
   | {
-      type: "updateBlockEntityProperties";
+      type: "setBlockChildEntity";
       payload: { blockEntityDraftId: string; targetEntity: EntityStoreType };
     }
 );
@@ -182,7 +182,7 @@ const updateEntitiesByDraftId = (
  * @param blockEntityDraftId draft id of the Block Entity whose child entity should be changed
  * @param targetEntity entity to be changed to
  */
-const swapBlockData = (
+const setBlockChildEntity = (
   draftEntityStore: Draft<EntityStore["draft"]>,
   blockEntityDraftId: string,
   targetEntity: EntityStoreType,
@@ -280,7 +280,7 @@ const entityStoreReducer = (
       });
     }
 
-    case "updateBlockEntityProperties": {
+    case "setBlockChildEntity": {
       if (!state.store.draft[action.payload.blockEntityDraftId]) {
         throw new Error(
           `Block missing to merge entity properties -> ${action.payload.blockEntityDraftId}`,
@@ -296,7 +296,7 @@ const entityStoreReducer = (
           draftState.trackedActions.push({ action, id: uuid() });
         }
 
-        swapBlockData(
+        setBlockChildEntity(
           draftState.store.draft,
           action.payload.blockEntityDraftId,
           action.payload.targetEntity,
