@@ -3,6 +3,7 @@ import {
   Configuration,
   GraphApi,
   PropertyType,
+  DataType,
 } from "@hashintel/hash-graph-client";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import axios from "axios";
@@ -47,6 +48,43 @@ export class GraphClient extends DataSource implements DbClient {
     const config = new Configuration({ basePath });
 
     this.graphApi = new GraphApi(config, basePath, axiosInstance);
+  }
+
+  createDataType(params: {
+    accountId: string;
+    schema: DataType;
+  }): Promise<DataType> {
+    return this.graphApi
+      .createDataType({
+        account_id: params.accountId,
+        schema: params.schema,
+      })
+      .then((response) => response.data);
+  }
+
+  getLatestDataTypes(_params: { accountId: string }): Promise<DataType[]> {
+    return this.graphApi.getLatestDataTypes().then((response) => response.data);
+  }
+
+  getDataType(params: {
+    accountId: string;
+    versionedUri: string;
+  }): Promise<DataType> {
+    return this.graphApi
+      .getDataType(params.versionedUri)
+      .then((response) => response.data);
+  }
+
+  updateDataType(params: {
+    accountId: string;
+    schema: DataType;
+  }): Promise<DataType> {
+    return this.graphApi
+      .updateDataType({
+        account_id: params.accountId,
+        schema: params.schema,
+      })
+      .then((response) => response.data);
   }
 
   createPropertyType(params: {

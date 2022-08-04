@@ -5,7 +5,7 @@ import {
   createPostgresConnPool,
   PgPool,
 } from "@hashintel/hash-backend-utils/postgres";
-import { PropertyType } from "@hashintel/hash-graph-client";
+import { PropertyType, DataType } from "@hashintel/hash-graph-client";
 
 import { PostgresClient } from "./client";
 import { DbAdapter, DbClient } from "../adapter";
@@ -78,6 +78,31 @@ export class PostgresAdapter extends DataSource implements DbAdapter {
         return await fn(client);
       });
     });
+  }
+
+  createDataType(_params: {
+    accountId: string;
+    schema: DataType;
+  }): Promise<DataType> {
+    throw new Error("Method not implemented.");
+  }
+
+  getLatestDataTypes(_params: { accountId: string }): Promise<DataType[]> {
+    throw new Error("Method not implemented.");
+  }
+
+  getDataType(_params: {
+    accountId: string;
+    versionedUri: string;
+  }): Promise<DataType> {
+    throw new Error("Method not implemented.");
+  }
+
+  updateDataType(_params: {
+    accountId: string;
+    schema: DataType;
+  }): Promise<DataType> {
+    throw new Error("Method not implemented.");
   }
 
   createPropertyType(_params: {
