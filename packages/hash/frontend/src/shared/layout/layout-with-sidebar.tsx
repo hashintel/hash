@@ -1,7 +1,6 @@
 import { ReactNode, FunctionComponent } from "react";
 import { Box, Fade, styled, Tooltip } from "@mui/material";
 import { IconButton } from "@hashintel/hash-design-system";
-import { useRouter } from "next/router";
 import { HEADER_HEIGHT } from "./layout-with-header/page-header";
 import {
   PageSidebar,

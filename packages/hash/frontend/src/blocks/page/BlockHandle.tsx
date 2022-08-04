@@ -22,7 +22,7 @@ type BlockHandleProps = {
 };
 
 const BlockHandle: ForwardRefRenderFunction<
-  HTMLDivElement,
+  HTMLDivElement | undefined,
   BlockHandleProps
 > = ({ deleteBlock, draftId, entityStore, onMouseDown, onClick }, ref) => {
   const { readonlyMode } = useReadonlyMode();
@@ -69,11 +69,17 @@ const BlockHandle: ForwardRefRenderFunction<
   const blockContext = useBlockContext();
 
   if (readonlyMode) {
-    return;
+    return null;
   }
 
   return (
-    <Box ref={ref} data-testid="block-handle">
+    <Box
+      ref={ref}
+      sx={{
+        display: readonlyMode ? "block" : "block",
+      }}
+      data-testid="block-handle"
+    >
       <IconButton
         ref={(el) => {
           if (el && !contextMenuPopupState.setAnchorElUsed) {

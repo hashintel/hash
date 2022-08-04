@@ -65,9 +65,6 @@ export const UserBlocksProvider: FunctionComponent<{
               apiProvidedBlocksMap[componentId] = await fetchBlock(componentId);
             }
 
-            console.log("got here ==> ");
-            console.log({ data: responseData });
-
             setValue((prevValue) => {
               return { ...prevValue, ...apiProvidedBlocksMap };
             });
@@ -81,8 +78,6 @@ export const UserBlocksProvider: FunctionComponent<{
         return controller;
       }
     };
-
-    console.log("got hereee");
 
     const controller = setInitialBlocks();
 
