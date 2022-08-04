@@ -16,12 +16,12 @@ type InsertBlockProps = {
 export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
   onBlockSuggesterChange,
 }) => {
-  const [contextMenu, setContextMenu] = useState<{
+  const [contextMenuPosition, setContextMenuPosition] = useState<{
     left: number;
     top: number;
   } | null>(null);
 
-  const onCloseSuggester = () => setContextMenu(null);
+  const onCloseSuggester = () => setContextMenuPosition(null);
 
   const onChange = (variant: BlockVariant, blockMeta: HashBlockMeta) => {
     onBlockSuggesterChange(variant, blockMeta);
@@ -32,8 +32,8 @@ export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
     <>
       <Box
         onClick={({ clientX, clientY }) => {
-          setContextMenu(
-            contextMenu === null
+          setContextMenuPosition(
+            contextMenuPosition === null
               ? {
                   left: clientX,
                   top: clientY,
@@ -45,7 +45,7 @@ export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          opacity: contextMenu !== null ? 1 : 0,
+          opacity: contextMenuPosition !== null ? 1 : 0,
           height: 30,
           cursor: "pointer",
           transition: ({ transitions }) => transitions.create("opacity"),
@@ -66,10 +66,10 @@ export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
       </Box>
 
       <Popover
-        open={contextMenu !== null}
+        open={contextMenuPosition !== null}
         onClose={onCloseSuggester}
         anchorReference="anchorPosition"
-        anchorPosition={contextMenu ?? undefined}
+        anchorPosition={contextMenuPosition ?? undefined}
         sx={{
           [`& .${popoverClasses.paper}`]: {
             width: 340,
