@@ -40,8 +40,9 @@ pub struct HookContext<'a, T> {
 impl<T> HookContext<'_, T> {
     /// If [`Debug`] requests, this text (can include line breaks) will be appended to the main
     /// message.
-    /// This is especially useful for dense information like backtraces,
-    /// which one might want to omit from the tree rendering or omit from the normal debug.  
+    ///
+    /// This is useful for dense information like backtraces, or span traces, which are omitted when
+    /// rendering without the alternate [`Debug`] output.
     pub fn text(&mut self, value: &str) {
         self.text_lines(value.lines());
     }
@@ -160,7 +161,7 @@ impl<T: 'static> HookContext<'_, T> {
                 // which is why we output that value.
                 self.parent
                     .inner
-                    .insert(TypeId::of::<T>(), Box::new(-1isize));
+                    .insert(TypeId::of::<T>(), Box::new(-1_isize));
                 -1
             }
             Some(ctr) => {
@@ -397,8 +398,8 @@ impl Default for Hooks<Builtin> {
 impl Hooks<()> {
     /// Create a new bare instance of `Hooks`.
     ///
-    /// Which does not have the [`Builtin`] hooks pre-installed, use [`new()`] to get an instance
-    /// with [`Builtin`] hook support.
+    /// A bare `Hooks` instance does not have [`Builtin`] hooks pre-installed, use [`new()`] to get
+    /// an instance with [`Builtin`] hook support.
     ///
     /// [`new()`]: Self::new
     pub const fn bare() -> Self {

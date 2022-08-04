@@ -1,7 +1,7 @@
 //! Implementation of display, which can be either fancy or "normal", depending
-//! on the type color and non ascii character can be used.
+//! on the type color and non-ascii character can be used.
 //!
-//! This is inspired by [miette](https://docs.rs/miette/latest/miette/index.html)
+//! This is inspired by the [miette](https://docs.rs/miette/latest/miette/index.html)-crate.
 
 mod hook;
 #[cfg(all(nightly, feature = "experimental"))]
