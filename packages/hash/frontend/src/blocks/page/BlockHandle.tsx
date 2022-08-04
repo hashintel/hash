@@ -22,7 +22,7 @@ type BlockHandleProps = {
 };
 
 const BlockHandle: ForwardRefRenderFunction<
-  HTMLDivElement | undefined,
+  HTMLDivElement,
   BlockHandleProps
 > = ({ deleteBlock, draftId, entityStore, onMouseDown, onClick }, ref) => {
   const { readonlyMode } = useReadonlyMode();
