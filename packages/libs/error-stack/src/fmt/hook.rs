@@ -148,10 +148,63 @@ impl<T> HookContext<'_, T> {
 }
 
 impl<'a, T> HookContext<'a, T> {
-    /// Cast the `HookContext` to a new type.
+    /// Cast the [`HookContext`] to a new type `U`.
     ///
-    /// This binds the parent context to a different value,
-    /// which allows to access the data stored for the type this is casted to.
+    /// The storage of [`HookContext`] is partitioned, meaning that if `T` and `U` are different
+    /// types the values stored in [`HookContext<T>`] will be separated from values in
+    /// [`HookContext<U>`].
+    ///
+    /// Most user-facing should never need to use this function, as function hooks are only able to
+    /// get a mutable reference to [`HookContext`].
+    /// This is not the case for for [`Hook::call`], which receives the context as value,
+    /// allowing for "dynamic" recasting, if needed, for example to implement [`Hook`] on custom
+    /// types.
+    ///
+    /// ### Example
+    ///
+    /// ```rust
+    /// use std::io::ErrorKind;
+    ///
+    /// use error_stack::{
+    ///     fmt::{Hook, HookContext, Hooks, Line},
+    ///     Report,
+    /// };
+    /// use insta::assert_snapshot;
+    ///
+    /// struct CustomHook;
+    /// struct Value(u64);
+    ///
+    /// impl Hook<Value, ()> for CustomHook {
+    ///     fn call(&self, _: &Value, ctx: HookContext<Value>) -> Option<Line> {
+    ///         // the inner value of `Value` is always `u64`,
+    ///         // we therefore only "mask" u64 and want to use the same incremental value.
+    ///         let mut ctx = ctx.cast::<u64>();
+    ///         Some(Line::next(format!("{} (Value)", ctx.increment())))
+    ///     }
+    /// }
+    ///
+    /// Report::install_hook(
+    ///     Hooks::bare()
+    ///         .push(|_: &u64, ctx: &mut HookContext<u64>| Line::next(format!("{}", ctx.increment())))
+    ///         .push(CustomHook),
+    /// )
+    /// .unwrap();
+    ///
+    /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
+    ///     .attach(1u64)
+    ///     .attach(Value(2u64))
+    ///     .attach(3u64);
+    ///
+    /// assert_snapshot!(format!("{report:?}"), @r###"0
+    /// │ src/fmt/hook.rs:28:6
+    /// ├─▶ 1 (Value)
+    /// │   ╰ src/fmt/hook.rs:27:19
+    /// ├─▶ 2
+    /// │   ╰ src/fmt/hook.rs:27:6
+    /// ├─▶ invalid input parameter
+    /// │   ╰ src/fmt/hook.rs:26:14
+    /// ╰─▶ 1 additional attachment"###);
+    /// ```
     #[must_use]
     pub fn cast<U>(self) -> HookContext<'a, U> {
         HookContext {
