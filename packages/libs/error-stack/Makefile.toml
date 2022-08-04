@@ -6,7 +6,7 @@ CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --exclude-features defau
 CARGO_MIRI_FLAGS = "--tests --lib"
 
 [tasks.test]
-env = { CARGO_TEST_HACK_FLAGS = "${CARGO_TEST_HACK_FLAGS} --group-features anyhow,eyre --group-features std,hook --group-features spantrace,futures,small" }
+env = { CARGO_TEST_HACK_FLAGS = "${CARGO_TEST_HACK_FLAGS} --group-features anyhow,eyre --group-features std,hooks --group-features spantrace,futures,small" }
 
 
 [tasks.test-release]
