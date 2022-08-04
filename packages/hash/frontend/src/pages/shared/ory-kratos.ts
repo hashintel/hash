@@ -26,7 +26,9 @@ export const oryKratosClient = new V0alpha2Api(
     /**
      * Directly connecting to kratos (using "http://127.0.0.1:4433") would prevent the
      * CRSF token from being set as an HTTP-Cookie, because the browser cannot send or
-     * receive cookies via the browser `fetch` method.
+     * receive cookies via the browser `fetch` method unless:
+     *  1. `credentials: "include"` is set in the HTTP request header
+     *  2. the correct CORS origin is configured in the kratos server
      *
      * Therefore requests to the ory kratos public endpoint are made on the server in a
      * Next.js API handler.
