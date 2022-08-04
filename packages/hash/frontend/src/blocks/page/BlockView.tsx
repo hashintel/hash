@@ -8,7 +8,7 @@ import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
-import { NodeSelection } from "prosemirror-state";
+import { NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import { createRef } from "react";
 
@@ -102,20 +102,6 @@ export class BlockView implements NodeView<Schema> {
       <InsertBlock onBlockSuggesterChange={this.onBlockInsert(true)} />,
       this.insertBlockBottomContainer,
     );
-
-    if (getPos() === 0) {
-      this.insertBlockTopContainer = document.createElement("div");
-      this.dom.appendChild(this.insertBlockTopContainer);
-      this.insertBlockTopContainer.classList.add(
-        styles.Block__InsertBlock!,
-        styles.Block__InsertBlock__Top!,
-      );
-      this.insertBlockTopContainer.contentEditable = "false";
-      this.renderPortal(
-        <InsertBlock onBlockSuggesterChange={this.onBlockInsert(false)} />,
-        this.insertBlockTopContainer,
-      );
-    }
 
     this.store = entityStorePluginState(editorView.state).store;
     this.unsubscribe = subscribeToEntityStore(this.editorView, (store) => {
@@ -252,7 +238,7 @@ export class BlockView implements NodeView<Schema> {
               ),
             );
 
-            this.editorView.dispatch(tr);
+            // this.editorView.dispatch(tr);
 
             this.update(this.node);
           }}
@@ -263,8 +249,22 @@ export class BlockView implements NodeView<Schema> {
       blockDraftId ?? undefined,
     );
 
-    if (this.insertBlockTopContainer && this.getPos() !== 0) {
-      this.insertBlockTopContainer.remove();
+    if (this.getPos() === 0) {
+      if (!this.insertBlockTopContainer) {
+        this.insertBlockTopContainer = document.createElement("div");
+        this.dom.appendChild(this.insertBlockTopContainer);
+        this.insertBlockTopContainer.classList.add(
+          styles.Block__InsertBlock!,
+          styles.Block__InsertBlock__Top!,
+        );
+        this.insertBlockTopContainer.contentEditable = "false";
+        this.renderPortal(
+          <InsertBlock onBlockSuggesterChange={this.onBlockInsert(false)} />,
+          this.insertBlockTopContainer,
+        );
+      }
+    } else {
+      this.insertBlockTopContainer?.remove();
     }
 
     return true;
@@ -317,8 +317,9 @@ export class BlockView implements NodeView<Schema> {
       );
 
       this.manager
-        .replaceRange(blockMeta.componentId, variant, newPosition, newPosition)
+        .insertBlock(blockMeta.componentId, variant, newPosition)
         .then(({ tr }) => {
+          tr.setSelection(TextSelection.create<Schema>(tr.doc, newPosition));
           editorView.dispatch(tr);
         })
         .catch((err) => {
