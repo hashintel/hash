@@ -38,6 +38,8 @@ impl HookContextImpl {
 /// There is no guarantee that the text set via [`set_text()`] will be displayed on every invocation
 /// and is currently only output when the alternate format (`:#?`) has been requested.
 ///
+/// [`set_text()`]: HookContext::set_text
+///
 /// ### Example
 ///
 /// ```rust
