@@ -103,7 +103,7 @@ impl HookContextImpl {
 ///     acc += *val;
 ///
 ///     let mut div = ctx.get::<f32>().copied().unwrap_or(1.0);
-///     div /= *val;
+///     div /= *val as f32;
 ///
 ///     ctx.insert(acc);
 ///
@@ -115,7 +115,13 @@ impl HookContextImpl {
 ///     .attach(2u64)
 ///     .attach(3u64);
 ///
-/// assert_snapshot!(format!("{report:#?}"), @r###""###);
+/// assert_snapshot!(format!("{report:#?}"), @r###"3 (acc: 3, div: 0.33333334)
+/// │ src/fmt/hook.rs:27:6
+/// ├─▶ 2 (acc: 5, div: 0.5)
+/// │   ╰ src/fmt/hook.rs:26:6
+/// ├─▶ invalid input parameter
+/// │   ╰ src/fmt/hook.rs:25:14
+/// ╰─▶ 1 additional attachment"###);
 /// ```
 pub struct HookContext<'a, T> {
     parent: &'a mut HookContextImpl,
@@ -123,8 +129,8 @@ pub struct HookContext<'a, T> {
 }
 
 impl<T> HookContext<'_, T> {
-    /// If [`Debug`] requests, this text (can include line breaks) will be appended to the main
-    /// message.
+    /// If [`Debug`] requests, this text (which can include line breaks) will be appended to the
+    /// main message.
     ///
     /// This is useful for dense information like backtraces, or span traces, which are omitted when
     /// rendering without the alternate [`Debug`] output.
@@ -161,9 +167,11 @@ impl<'a, T> HookContext<'a, T> {
 }
 
 impl<T: 'static> HookContext<'_, T> {
-    /// Returns a reference to the value corresponding to the currently bound type `T`.
+    /// Return a reference to a value of type `U`, if a value of that type exists.
     ///
-    /// This will downcast the stored value to `U`, if not possible, it will return [`None`]
+    /// Values returned are isolated and therefore "bound" to `T`, this means that if two different
+    /// [`HookContext`]s that share the same inner value (e.g. same invocation of [`Debug`]) will
+    /// return the same value.
     #[must_use]
     pub fn get<U: 'static>(&self) -> Option<&U> {
         self.parent
@@ -173,9 +181,11 @@ impl<T: 'static> HookContext<'_, T> {
             .downcast_ref()
     }
 
-    /// Returns a mutable reference to the value corresponding to the currently bound type `T`.
+    /// Return a mutable reference to a value of type `U`, if a value of that type exists.
     ///
-    /// This will downcast the stored value to `U`, if not possible, it will return [`None`]
+    /// Values returned are isolated and therefore "bound" to `T`, this means that if two different
+    /// [`HookContext`]s that share the same inner value (e.g. same invocation of [`Debug`]) will
+    /// return the same value.
     pub fn get_mut<U: 'static>(&mut self) -> Option<&mut U> {
         self.parent
             .inner
@@ -184,10 +194,10 @@ impl<T: 'static> HookContext<'_, T> {
             .downcast_mut()
     }
 
-    /// Insert a value into the context of the currently bound type `T`.
+    /// Insert a new value of type `U` into the storage of [`HookContext`].
     ///
-    /// Returns the previously stored value, downcast to `U`, if no previous value was stored, or
-    /// the downcast was not possible will return [`None`]
+    /// The returned value will the previously stored value of the same type `U` scoped over type
+    /// `T`, if it existed, did no such value exist it will return [`None`].
     pub fn insert<U: 'static>(&mut self, value: U) -> Option<Box<U>> {
         self.parent
             .inner
@@ -198,13 +208,52 @@ impl<T: 'static> HookContext<'_, T> {
             .ok()
     }
 
+    /// Remove the value of type `U` from the storage of [`HookContext`] if it existed.
+    ///
+    /// The returned value will be the previously stored value of the same type `U`.
+    pub fn remove<U: 'static>(&mut self) -> Option<Box<U>> {
+        self.parent
+            .inner
+            .get_mut(&TypeId::of::<T>())?
+            .remove(&TypeId::of::<U>())?
+            .downcast()
+            .ok()
+    }
+
     /// One of the most common interactions with [`HookContext`] is a counter to reference previous
-    /// frames or the content emitted during [`text()`].
+    /// frames or the content emitted during [`set_text()`].
     ///
     /// This is a utility method, which uses the other primitive methods provided to automatically
     /// increment a counter, if the counter wasn't initialized this method will return `0`.
     ///
-    /// [`text()`]: Self::text
+    /// ```rust
+    /// use std::io::ErrorKind;
+    ///
+    /// use error_stack::{
+    ///     fmt::{HookContext, Hooks, Line},
+    ///     Report,
+    /// };
+    /// use insta::assert_snapshot;
+    ///
+    /// Report::install_hook(Hooks::bare().push(|_: &(), ctx: &mut HookContext<()>| {
+    ///     Line::next(format!("{}", ctx.increment()))
+    /// }))
+    /// .unwrap();
+    ///
+    /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
+    ///     .attach(())
+    ///     .attach(());
+    ///
+    /// assert_snapshot!(format!("{report:?}"), @r###"0
+    /// │ src/fmt/hook.rs:19:6
+    /// ├─▶ 1
+    /// │   ╰ src/fmt/hook.rs:18:6
+    /// ├─▶ invalid input parameter
+    /// │   ╰ src/fmt/hook.rs:17:14
+    /// ╰─▶ 1 additional attachment"###);
+    /// ```
+    ///
+    /// [`set_text()`]: Self::set_text
     pub fn increment(&mut self) -> isize {
         let counter = self.get_mut::<isize>();
 
@@ -224,14 +273,41 @@ impl<T: 'static> HookContext<'_, T> {
     }
 
     /// One of the most common interactions with [`HookContext`] is a counter
-    /// to reference previous frames or the content emitted during [`text()`].
+    /// to reference previous frames or the content emitted during [`set_text()`].
     ///
     /// This is a utility method, which uses the other primitive method provided to automatically
     /// decrement a counter, if the counter wasn't initialized this method will return `-1` to stay
-    /// consistent with [`incr()`].
+    /// consistent with [`increment()`].
     ///
-    /// [`incr()`]: Self::incr
-    /// [`text()`]: Self::text
+    /// ```rust
+    /// use std::io::ErrorKind;
+    ///
+    /// use error_stack::{
+    ///     fmt::{HookContext, Hooks, Line},
+    ///     Report,
+    /// };
+    /// use insta::assert_snapshot;
+    ///
+    /// Report::install_hook(Hooks::bare().push(|_: &(), ctx: &mut HookContext<()>| {
+    ///     Line::next(format!("{}", ctx.decrement()))
+    /// }))
+    /// .unwrap();
+    ///
+    /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
+    ///     .attach(())
+    ///     .attach(());
+    ///
+    /// assert_snapshot!(format!("{report:?}"), @r###"-1
+    /// │ src/fmt/hook.rs:19:6
+    /// ├─▶ -2
+    /// │   ╰ src/fmt/hook.rs:18:6
+    /// ├─▶ invalid input parameter
+    /// │   ╰ src/fmt/hook.rs:17:14
+    /// ╰─▶ 1 additional attachment"###);
+    /// ```
+    ///
+    /// [`increment()`]: Self::increment
+    /// [`set_text()`]: Self::set_text
     pub fn decrement(&mut self) -> isize {
         let counter = self.get_mut::<isize>();
 
