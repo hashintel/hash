@@ -82,6 +82,7 @@ export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
             overflow: "visible",
           },
         }}
+        disableRestoreFocus
       >
         <BlockSuggester onChange={onChange} />
       </Popover>

@@ -320,6 +320,7 @@ export class BlockView implements NodeView<Schema> {
         .insertBlock(blockMeta.componentId, variant, newPosition)
         .then(({ tr }) => {
           tr.setSelection(TextSelection.create<Schema>(tr.doc, newPosition));
+          editorView.focus();
           editorView.dispatch(tr);
         })
         .catch((err) => {
