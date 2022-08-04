@@ -1,2 +1,3 @@
-snapshots/*.snap linguist-generated=true
+tests/snapshots/*.snap linguist-generated=true
+tests/snapshots/ linguist-generated=true
 
