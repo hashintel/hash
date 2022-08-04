@@ -9,9 +9,9 @@ import {
   createFlowErrorHandler,
   mustGetCsrfTokenFromFlow,
   oryKratosClient,
-  useLogoutFlow,
 } from "./shared/ory-kratos";
 import { Button } from "../shared/ui";
+import { useLogoutFlow } from "../components/hooks/useLogoutFlow";
 
 const LoginPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL

@@ -5,7 +5,7 @@ import { Box, Container, Typography } from "@mui/material";
 import { useUser } from "../components/hooks/useUser";
 import { NextPageWithLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
-import { useLogoutFlow } from "./shared/ory-kratos";
+import { useLogoutFlow } from "../components/hooks/useLogoutFlow";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();

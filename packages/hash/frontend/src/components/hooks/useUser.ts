@@ -28,6 +28,7 @@ export const useUser = (options?: Omit<QueryHookOptions, "errorPolicy">) => {
 
   const { me: user } = meQueryResponseData || {};
 
+  /** @todo: store this in a react context if we have a use for it long-term */
   const [kratosSession, setKratosSession] = useState<Session>();
   const [loadingKratosSession, setLoadingKratosSession] =
     useState<boolean>(true);
@@ -74,7 +75,7 @@ export const useUser = (options?: Omit<QueryHookOptions, "errorPolicy">) => {
   return {
     user,
     kratosSession,
-    refetch: () => Promise.all([refetchUser, fetchKratosIdentity]),
+    refetch: () => Promise.all([refetchUser(), fetchKratosIdentity()]),
     loading: loadingUser || loadingKratosSession,
   };
 };
