@@ -64,7 +64,7 @@ services:
         target: /etc/config/kratos
     environment:
       - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DATABASE}
-    command: -c /etc/config/kratos/kratos.yml migrate sql -e --yes
+    command: -c /etc/config/kratos/kratos.dev.yml migrate sql -e --yes
   kratos:
     depends_on:
       - kratos-migrate
@@ -79,7 +79,7 @@ services:
       - COURIER_SMTP_CONNECTION_URI=smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
       - DSN=postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DATABASE}
       - LOG_LEVEL=trace
-    command: serve -c /etc/config/kratos/kratos.yml --dev --watch-courier
+    command: serve -c /etc/config/kratos/kratos.dev.yml --dev --watch-courier
     volumes:
       - type: bind
         source: ./kratos
