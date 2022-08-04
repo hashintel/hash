@@ -115,7 +115,7 @@ const SignupPage: NextPageWithLayout = () => {
   const emailInputUiNode = flow?.ui.nodes.find(
     ({ attributes }) =>
       isUiNodeInputAttributes(attributes) &&
-      attributes.name === "traits.emails",
+      attributes.name.startsWith("traits.emails"),
   );
 
   const passwordInputUiNode = flow?.ui.nodes.find(
