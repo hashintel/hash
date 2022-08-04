@@ -1,5 +1,5 @@
 import { sql } from "slonik";
-import { PropertyType, DataType } from "@hashintel/hash-graph-client";
+import { PropertyType, DataType, LinkType } from "@hashintel/hash-graph-client";
 
 import { DbClient, DbEntity, EntityType } from "../adapter";
 import { genId, exactlyOne } from "../../util";
@@ -131,6 +131,31 @@ export class PostgresClient implements DbClient {
     accountId: string;
     schema: PropertyType;
   }): Promise<PropertyType> {
+    throw new Error("Method not implemented.");
+  }
+
+  createLinkType(_params: {
+    accountId: string;
+    schema: LinkType;
+  }): Promise<LinkType> {
+    throw new Error("Method not implemented.");
+  }
+
+  getLatestLinkTypes(_params: { accountId: string }): Promise<LinkType[]> {
+    throw new Error("Method not implemented.");
+  }
+
+  getLinkType(_params: {
+    accountId: string;
+    versionedUri: string;
+  }): Promise<LinkType> {
+    throw new Error("Method not implemented.");
+  }
+
+  updateLinkType(_params: {
+    accountId: string;
+    schema: LinkType;
+  }): Promise<LinkType> {
     throw new Error("Method not implemented.");
   }
 

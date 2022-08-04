@@ -1,6 +1,6 @@
 import { DataSource } from "apollo-datasource";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
-import { PropertyType, DataType } from "@hashintel/hash-graph-client";
+import { PropertyType, DataType, LinkType } from "@hashintel/hash-graph-client";
 
 import { SystemType } from "../types/entityTypes";
 
@@ -321,6 +321,42 @@ export interface DbClient {
     accountId: string;
     schema: PropertyType;
   }): Promise<PropertyType>;
+
+  /**
+   * Create a link type.
+   * @param params.accountId the accountId of the account creating the link type
+   * @param params.schema a link type JSON Schema
+   */
+  createLinkType(params: {
+    accountId: string;
+    schema: LinkType;
+  }): Promise<LinkType>;
+
+  /**
+   * Get latest versions of all link types.
+   * @param params.accountId the accountId of the account requesting the link types
+   */
+  getLatestLinkTypes(params: { accountId: string }): Promise<LinkType[]>;
+
+  /**
+   * Get a link type by its versioned URI.
+   * @param params.accountId the accountId of the account requesting the link type
+   * @param params.versionedUri the unique versioned URI for a link type.
+   */
+  getLinkType(params: {
+    accountId: string;
+    versionedUri: string;
+  }): Promise<LinkType>;
+
+  /**
+   * Update a link type.
+   * @param params.accountId the accountId of the account making the update
+   * @param params.schema a link type JSON Schema
+   */
+  updateLinkType(params: {
+    accountId: string;
+    schema: LinkType;
+  }): Promise<LinkType>;
 
   /**
    * Create an entity type.

@@ -4,6 +4,7 @@ import {
   GraphApi,
   PropertyType,
   DataType,
+  LinkType,
 } from "@hashintel/hash-graph-client";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import axios from "axios";
@@ -122,6 +123,43 @@ export class GraphClient extends DataSource implements DbClient {
   }): Promise<PropertyType> {
     return this.graphApi
       .updatePropertyType({
+        account_id: params.accountId,
+        schema: params.schema,
+      })
+      .then((response) => response.data);
+  }
+
+  createLinkType(params: {
+    accountId: string;
+    schema: LinkType;
+  }): Promise<LinkType> {
+    return this.graphApi
+      .createLinkType({
+        account_id: params.accountId,
+        schema: params.schema,
+      })
+      .then((response) => response.data);
+  }
+
+  getLatestLinkTypes(_params: { accountId: string }): Promise<LinkType[]> {
+    return this.graphApi.getLatestLinkTypes().then((response) => response.data);
+  }
+
+  getLinkType(params: {
+    accountId: string;
+    versionedUri: string;
+  }): Promise<LinkType> {
+    return this.graphApi
+      .getLinkType(params.versionedUri)
+      .then((response) => response.data);
+  }
+
+  updateLinkType(params: {
+    accountId: string;
+    schema: LinkType;
+  }): Promise<LinkType> {
+    return this.graphApi
+      .updateLinkType({
         account_id: params.accountId,
         schema: params.schema,
       })
