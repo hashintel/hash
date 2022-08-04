@@ -405,6 +405,7 @@
 //! `small`    | Enable optimizations for the memory footprint of [`Report`]    |         | enabled
 //!  `anyhow`  | Provides conversion from [`anyhow::Error`] to [`Report`]       |         | disabled
 //!   `eyre`   | Provides conversion from [`eyre::Report`] to [`Report`]        |         | disabled
+//!   `glyph`  | Provide color and use of box drawing characters in [`Debug`] output |    | enabled
 //!
 //! [`set_display_hook`]: Report::set_display_hook
 //! [`set_debug_hook`]: Report::set_debug_hook
@@ -448,7 +449,7 @@ mod hook;
 #[doc(inline)]
 pub use self::ext::*;
 #[cfg(feature = "hooks")]
-pub use self::hook::HookAlreadySet;
+pub use self::hook::{HookAlreadySet, Install};
 pub use self::{
     context::Context,
     frame::{AttachmentKind, Frame, FrameKind},
