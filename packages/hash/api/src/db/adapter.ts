@@ -251,7 +251,7 @@ export interface DbClient {
   /**
    * Create a data type.
    * @param params.accountId the accountId of the account creating the data type
-   * @param params.schema a data type JSON Schema
+   * @param params.schema a `DataType`
    */
   createDataType(params: {
     accountId: string;
@@ -277,7 +277,7 @@ export interface DbClient {
   /**
    * Update a data type.
    * @param params.accountId the accountId of the account making the update
-   * @param params.schema a data type JSON Schema
+   * @param params.schema a `DataType`
    */
   updateDataType(params: {
     accountId: string;
@@ -287,7 +287,7 @@ export interface DbClient {
   /**
    * Create a property type.
    * @param params.accountId the accountId of the account creating the property type
-   * @param params.schema a property type JSON Schema
+   * @param params.schema a `PropertyType`
    */
   createPropertyType(params: {
     accountId: string;
@@ -315,7 +315,7 @@ export interface DbClient {
   /**
    * Update a property type.
    * @param params.accountId the accountId of the account making the update
-   * @param params.schema a property type JSON Schema
+   * @param params.schema a `PropertyType`
    */
   updatePropertyType(params: {
     accountId: string;
@@ -325,7 +325,7 @@ export interface DbClient {
   /**
    * Create a link type.
    * @param params.accountId the accountId of the account creating the link type
-   * @param params.schema a link type JSON Schema
+   * @param params.schema a `LinkType`
    */
   createLinkType(params: {
     accountId: string;
@@ -351,7 +351,7 @@ export interface DbClient {
   /**
    * Update a link type.
    * @param params.accountId the accountId of the account making the update
-   * @param params.schema a link type JSON Schema
+   * @param params.schema a `LinkType`
    */
   updateLinkType(params: {
     accountId: string;
