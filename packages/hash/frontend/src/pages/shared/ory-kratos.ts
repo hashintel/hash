@@ -62,7 +62,7 @@ export const createFlowErrorHandler =
     if (kratosError) {
       switch ((kratosError.error as any | undefined)?.id) {
         case "session_aal2_required": {
-          // 2FA is enabled and enforced, but user did not perform 2fa yet!
+          // 2FA is enabled and enforced, but user did not perform 2FA yet!
           const { redirect_browser_to } =
             kratosError as ErrorAuthenticatorAssuranceLevelNotSatisfied;
 
