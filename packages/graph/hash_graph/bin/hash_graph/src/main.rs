@@ -70,7 +70,7 @@ async fn main() -> Result<(), GraphError> {
     drop(connection);
 
     let rest_router = rest_api_router(Arc::new(pool));
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let addr = SocketAddr::from(([127, 0, 0, 1], 4000));
 
     tracing::info!("Listening on {addr}");
     axum::Server::bind(&addr)
