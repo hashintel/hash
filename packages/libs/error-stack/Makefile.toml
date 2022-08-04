@@ -1,44 +1,19 @@
 extend = { path = "../../../.github/scripts/rust/Makefile.toml" }
 
-env_scripts = [
-'''
-#!@duckscript
-
-# get the groups from CARGO_TEST_HACK_GROUPS and convert them into a list
-groups = get_env CARGO_TEST_HACK_GROUPS
-raw = split ${groups} ;
-release ${groups}
-
-# prepend the list with --group-features and join them
-prefix = array
-for group in ${raw}
-    if not is_empty ${group}
-        array_push ${prefix} "--group-features ${group}"
-    end
-end
-
-release ${raw}
-groups = array_join ${prefix} " "
-release ${prefix}
-
-# append the value to the existing hack flags
-flags = get_env CARGO_TEST_HACK_FLAGS
-if not is_empty ${groups}
-    flags = set "${flags} ${groups}"
-end
-set_env CARGO_TEST_HACK_FLAGS ${flags}
-
-release ${flags}
-release ${groups}
-'''
-]
-
 [env]
 CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default --optional-deps eyre,anyhow"
-CARGO_TEST_HACK_GROUPS = ["anyhow,eyre", "std,hooks", "spantrace,futures,small"]
 CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default --optional-deps eyre,anyhow"
 CARGO_MIRI_FLAGS = "--tests --lib"
 
+[tasks.test]
+env = { CARGO_TEST_HACK_FLAGS = "${CARGO_TEST_HACK_FLAGS} --group-features anyhow,eyre --group-features std,hook --group-features spantrace,futures,small" }
+
+
+[tasks.test-release]
+category = "Test"
+description = "Runs the complete test suite with all permutations"
+extend = "test"
+env = { CARGO_TEST_HACK_FLAGS = { source = "CARGO_TEST_HACK_FLAGS" } }
 
 [tasks.test-task]
 dependencies = ["install-rust-src"]
