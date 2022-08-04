@@ -84,77 +84,101 @@ export class PostgresAdapter extends DataSource implements DbAdapter {
     accountId: string;
     schema: DataType;
   }): Promise<DataType> {
-    throw new Error("Method not implemented.");
+    throw new Error(
+      "Won't be implemented in Postgres. These operations come from the new Type System.",
+    );
   }
 
   getLatestDataTypes(_params: { accountId: string }): Promise<DataType[]> {
-    throw new Error("Method not implemented.");
+    throw new Error(
+      "Won't be implemented in Postgres. These operations come from the new Type System.",
+    );
   }
 
   getDataType(_params: {
     accountId: string;
     versionedUri: string;
   }): Promise<DataType> {
-    throw new Error("Method not implemented.");
+    throw new Error(
+      "Won't be implemented in Postgres. These operations come from the new Type System.",
+    );
   }
 
   updateDataType(_params: {
     accountId: string;
     schema: DataType;
   }): Promise<DataType> {
-    throw new Error("Method not implemented.");
+    throw new Error(
+      "Won't be implemented in Postgres. These operations come from the new Type System.",
+    );
   }
 
   createPropertyType(_params: {
     accountId: string;
     schema: PropertyType;
   }): Promise<PropertyType> {
-    throw new Error("Method not implemented.");
+    throw new Error(
+      "Won't be implemented in Postgres. These operations come from the new Type System.",
+    );
   }
 
   getLatestPropertyTypes(_params: {
     accountId: string;
   }): Promise<PropertyType[]> {
-    throw new Error("Method not implemented.");
+    throw new Error(
+      "Won't be implemented in Postgres. These operations come from the new Type System.",
+    );
   }
 
   getPropertyType(_params: {
     accountId: string;
     versionedUri: string;
   }): Promise<PropertyType> {
-    throw new Error("Method not implemented.");
+    throw new Error(
+      "Won't be implemented in Postgres. These operations come from the new Type System.",
+    );
   }
 
   updatePropertyType(_params: {
     accountId: string;
     schema: PropertyType;
   }): Promise<PropertyType> {
-    throw new Error("Method not implemented.");
+    throw new Error(
+      "Won't be implemented in Postgres. These operations come from the new Type System.",
+    );
   }
 
   createLinkType(_params: {
     accountId: string;
     schema: LinkType;
   }): Promise<LinkType> {
-    throw new Error("Method not implemented.");
+    throw new Error(
+      "Won't be implemented in Postgres. These operations come from the new Type System.",
+    );
   }
 
   getLatestLinkTypes(_params: { accountId: string }): Promise<LinkType[]> {
-    throw new Error("Method not implemented.");
+    throw new Error(
+      "Won't be implemented in Postgres. These operations come from the new Type System.",
+    );
   }
 
   getLinkType(_params: {
     accountId: string;
     versionedUri: string;
   }): Promise<LinkType> {
-    throw new Error("Method not implemented.");
+    throw new Error(
+      "Won't be implemented in Postgres. These operations come from the new Type System.",
+    );
   }
 
   updateLinkType(_params: {
     accountId: string;
     schema: LinkType;
   }): Promise<LinkType> {
-    throw new Error("Method not implemented.");
+    throw new Error(
+      "Won't be implemented in Postgres. These operations come from the new Type System.",
+    );
   }
 
   createEntityType(
