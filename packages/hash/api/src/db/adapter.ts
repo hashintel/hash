@@ -259,13 +259,13 @@ export interface DbClient {
   }): Promise<DataType>;
 
   /**
-   * Get latest versions of all data types
+   * Get latest versions of all data types.
    * @param params.accountId the accountId of the account requesting the data types
    */
   getLatestDataTypes(params: { accountId: string }): Promise<DataType[]>;
 
   /**
-   * Get a data type by its versioned URI
+   * Get a data type by its versioned URI.
    * @param params.accountId the accountId of the account requesting the data type
    * @param params.versionedUri the unique versioned URI for a data type.
    */
@@ -295,7 +295,7 @@ export interface DbClient {
   }): Promise<PropertyType>;
 
   /**
-   * Get latest versions of all property types
+   * Get latest versions of all property types.
    * @param params.accountId the accountId of the account requesting the property types
    */
   getLatestPropertyTypes(params: {
@@ -303,7 +303,7 @@ export interface DbClient {
   }): Promise<PropertyType[]>;
 
   /**
-   * Get a property type by its versioned URI
+   * Get a property type by its versioned URI.
    * @param params.accountId the accountId of the account requesting the property type
    * @param params.versionedUri the unique versioned URI for a property type.
    */
