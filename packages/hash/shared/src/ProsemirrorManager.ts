@@ -529,7 +529,8 @@ export class ProsemirrorManager {
   }
 
   /**
-   * @todo add comment
+   * Updates the prosemirror editor to not be editable.
+   * @see https://prosemirror.net/docs/ref/#view.EditorView.editable
    */
   setReadonlyMode() {
     if (!this.view) {
