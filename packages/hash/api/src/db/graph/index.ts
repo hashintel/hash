@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { DataSource } from "apollo-datasource";
-import { Configuration, GraphApi } from "@hashintel/hash-graph-client";
+import {
+  Configuration,
+  GraphApi,
+  PropertyType,
+} from "@hashintel/hash-graph-client";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import axios from "axios";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
@@ -47,7 +51,48 @@ export class GraphAdapter extends DataSource implements DbClient {
     this.graphApi = new GraphApi(config, basePath, axiosInstance);
   }
 
-  createEntityType(params: {
+  createPropertyType(params: {
+    accountId: string;
+    schema: PropertyType;
+  }): Promise<PropertyType> {
+    return this.graphApi
+      .createPropertyType({
+        account_id: params.accountId,
+        schema: params.schema,
+      })
+      .then((response) => response.data);
+  }
+
+  getLatestPropertyTypes(_params: {
+    accountId: string;
+  }): Promise<PropertyType[]> {
+    return this.graphApi
+      .getLatestPropertyTypes()
+      .then((response) => response.data);
+  }
+
+  getPropertyType(params: {
+    accountId: string;
+    versionedUri: string;
+  }): Promise<PropertyType> {
+    return this.graphApi
+      .getPropertyType(params.versionedUri)
+      .then((response) => response.data);
+  }
+
+  updatePropertyType(params: {
+    accountId: string;
+    schema: PropertyType;
+  }): Promise<PropertyType> {
+    return this.graphApi
+      .updatePropertyType({
+        account_id: params.accountId,
+        schema: params.schema,
+      })
+      .then((response) => response.data);
+  }
+
+  createEntityType(_params: {
     accountId: string;
     createdByAccountId: string;
     name: string;

@@ -1,5 +1,6 @@
 import { DataSource } from "apollo-datasource";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
+import { PropertyType } from "@hashintel/hash-graph-client";
 
 import { SystemType } from "../types/entityTypes";
 
@@ -247,6 +248,44 @@ export interface DbAdapter extends DataSource, DbClient {
  * Generic interface to the database.
  */
 export interface DbClient {
+  /**
+   * Create a property type.
+   * @param params.accountId the accountId of the account creating the property type
+   * @param params.schema a property type JSON Schema
+   */
+  createPropertyType(params: {
+    accountId: string;
+    schema: PropertyType;
+  }): Promise<PropertyType>;
+
+  /**
+   * Get latest versions of all property types
+   * @param params.accountId the accountId of the account requesting the property types
+   */
+  getLatestPropertyTypes(params: {
+    accountId: string;
+  }): Promise<PropertyType[]>;
+
+  /**
+   * Get a property type by its versioned URI
+   * @param params.accountId the accountId of the account requesting the property type
+   * @param params.versionedUri the unique versioned URI for a property type.
+   */
+  getPropertyType(params: {
+    accountId: string;
+    versionedUri: string;
+  }): Promise<PropertyType>;
+
+  /**
+   * Update a property type.
+   * @param params.accountId the accountId of the account making the update
+   * @param params.schema a property type JSON Schema
+   */
+  updatePropertyType(params: {
+    accountId: string;
+    schema: PropertyType;
+  }): Promise<PropertyType>;
+
   /**
    * Create an entity type.
    * @param params.name the type name - must be unique in the specified account

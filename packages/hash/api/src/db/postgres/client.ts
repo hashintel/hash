@@ -1,4 +1,5 @@
 import { sql } from "slonik";
+import { PropertyType } from "@hashintel/hash-graph-client";
 
 import { DbClient, DbEntity, EntityType } from "../adapter";
 import { genId, exactlyOne } from "../../util";
@@ -79,6 +80,33 @@ export class PostgresClient implements DbClient {
     handler: (connection: Connection) => Promise<T>,
   ) => Promise<T> {
     return requireTransaction(this.conn);
+  }
+
+  createPropertyType(_params: {
+    accountId: string;
+    schema: PropertyType;
+  }): Promise<PropertyType> {
+    throw new Error("Method not implemented.");
+  }
+
+  getLatestPropertyTypes(_params: {
+    accountId: string;
+  }): Promise<PropertyType[]> {
+    throw new Error("Method not implemented.");
+  }
+
+  getPropertyType(_params: {
+    accountId: string;
+    versionedUri: string;
+  }): Promise<PropertyType> {
+    throw new Error("Method not implemented.");
+  }
+
+  updatePropertyType(_params: {
+    accountId: string;
+    schema: PropertyType;
+  }): Promise<PropertyType> {
+    throw new Error("Method not implemented.");
   }
 
   /** Create an entity type definition and return its uuid. */
