@@ -13,6 +13,18 @@ import Page from "./page.model";
 import Block from "./block.model";
 import Link from "./link.model";
 import Aggregation from "./aggregation.model";
+import DataType from "./ontology/dataType.model";
+import PropertyType from "./ontology/propertyType.model";
+import LinkType from "./ontology/linkType.model";
+
+export * from "./ontology/dataType.model";
+export { DataType };
+
+export * from "./ontology/propertyType.model";
+export { PropertyType };
+
+export * from "./ontology/linkType.model";
+export { LinkType };
 
 export * from "./entityType.model";
 export { EntityType };
