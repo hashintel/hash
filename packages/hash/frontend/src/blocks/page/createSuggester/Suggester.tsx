@@ -57,7 +57,6 @@ export const Suggester = <T,>({
       ref={ref}
       sx={[
         ({ palette }) => ({
-          position: "absolute",
           width: "340px",
           maxHeight: 400,
           borderRadius: "6px",

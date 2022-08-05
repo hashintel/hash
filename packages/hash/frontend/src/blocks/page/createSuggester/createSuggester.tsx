@@ -284,7 +284,6 @@ export const createSuggester = (
             renderPortal(
               <Popper
                 open
-                style={{ width: "340px", height: "400px" }}
                 placement="bottom-start"
                 container={container}
                 modifiers={[
