@@ -15,7 +15,10 @@ use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store},
     knowledge::{Entity, EntityId},
     ontology::{types::uri::VersionedUri, AccountId},
-    store::error::{EntityDoesNotExist, QueryError},
+    store::{
+        crud::AllLatest,
+        error::{EntityDoesNotExist, QueryError},
+    },
     GraphPool,
 };
 
@@ -30,6 +33,7 @@ struct QualifiedEntity {
     handlers(
         create_entity,
         get_entity,
+        get_latest_entities,
         update_entity
     ),
     components(CreateEntityRequest, UpdateEntityRequest, EntityId, QualifiedEntity, Entity),
@@ -46,7 +50,12 @@ impl RoutedResource for EntityResource {
         Router::new().nest(
             "/entities",
             Router::new()
-                .route("/", post(create_entity::<P>).put(update_entity::<P>))
+                .route(
+                    "/",
+                    post(create_entity::<P>)
+                        .get(get_latest_entities::<P>)
+                        .put(update_entity::<P>),
+                )
                 .route("/:entity_id", get(get_entity::<P>)),
         )
     }
@@ -121,6 +130,23 @@ async fn get_entity<P: GraphPool>(
     Extension(pool): Extension<Arc<P>>,
 ) -> Result<Json<Entity>, StatusCode> {
     read_from_store::<Entity, _, _, _>(pool.as_ref(), entity_id)
+        .await
+        .map(Json)
+}
+
+#[utoipa::path(
+    get,
+    path = "/entities",
+    tag = "Entity",
+    responses(
+        (status = 200, content_type = "application/json", description = "List of all entities", body = [Entity]),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+async fn get_latest_entities<P: GraphPool>(
+    pool: Extension<Arc<P>>,
+) -> Result<Json<Vec<Entity>>, StatusCode> {
+    read_from_store::<Entity, _, _, _>(pool.as_ref(), AllLatest)
         .await
         .map(Json)
 }

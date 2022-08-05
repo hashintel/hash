@@ -23,6 +23,7 @@
     "@aws-sdk/s3-presigned-post": "3.38.0",
     "@aws-sdk/s3-request-presigner": "3.38.0",
     "@hashintel/hash-backend-utils": "0.0.0",
+    "@hashintel/hash-graph-client": "0.0.0",
     "@hashintel/hash-shared": "0.0.0",
     "@snowplow/node-tracker": "3.3.1",
     "@types/lodash": "4.14.175",

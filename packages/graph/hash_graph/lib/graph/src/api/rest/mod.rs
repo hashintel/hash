@@ -127,7 +127,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
         tags(
             (name = "Graph", description = "HASH Graph API")
         ),
-        modifiers(&MergeAddon, &ExternalRefAddon)
+        modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon)
     )]
 struct OpenApiDocumentation;
 
@@ -234,4 +234,28 @@ fn modify_reference(reference: &mut openapi::Ref) {
         reference.ref_location.make_ascii_lowercase();
         reference.ref_location.push_str(".json");
     };
+}
+
+/// Append a `Graph` tag wherever a tag appears in individual routes.
+///
+/// When generating API clients the tags are used for grouping routes. Having the `Graph` tag on all
+/// routes makes it so that every operation appear under the same `Graph` API interface.
+///
+/// As generators are not all created the same way, we're putting the `Graph` tag in the beginning
+/// for it to take precedence. Other tags in the system are used for logical grouping of the
+/// routes, which is why we don't want to entirely replace them.
+struct OperationGraphTagAddon;
+
+impl Modify for OperationGraphTagAddon {
+    fn modify(&self, openapi: &mut openapi::OpenApi) {
+        let tag = "Graph";
+
+        for path_item in openapi.paths.paths.values_mut() {
+            for operation in path_item.operations.values_mut() {
+                if let Some(tags) = &mut operation.tags {
+                    tags.insert(0, tag.to_owned());
+                }
+            }
+        }
+    }
 }

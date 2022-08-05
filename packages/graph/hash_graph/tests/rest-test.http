@@ -351,6 +351,16 @@ Accept: application/json
     client.global.set("person_b_entity_id", encodeURIComponent(response.body.entity_id));
 %}
 
+### Get all entities
+GET http://127.0.0.1:3000/entities
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.length === 2, "Unexpected number of entities");
+    });
+%}
+
 ### Insert link between entities
 POST http://127.0.0.1:3000/entities/{{person_a_entity_id}}/links
 Content-Type: application/json

@@ -4,12 +4,13 @@
   "type": "object",
   "properties": {
     "kind": {
-      "const": "dataType"
+      "enum": ["dataType"]
     },
     "$id": { "type": "string", "format": "uri" },
     "title": { "type": "string" },
     "description": { "type": "string" },
     "type": { "type": "string" }
   },
-  "required": ["kind", "$id", "title", "type"]
+  "required": ["kind", "$id", "title", "type"],
+  "additionalProperties": true
 }

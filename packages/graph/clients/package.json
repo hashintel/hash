@@ -1,0 +1,15 @@
+{
+  "name": "@hashintel/hash-graph-client-generator",
+  "version": "0.0.0",
+  "private": true,
+  "description": "OpenAPI client generator helper",
+  "scripts": {
+    "generate": "openapi-generator-cli generate",
+    "lint:eslint": "echo noop",
+    "lint:tsc": "echo noop",
+    "validate": "openapi-generator-cli validate"
+  },
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "2.5.1"
+  }
+}
