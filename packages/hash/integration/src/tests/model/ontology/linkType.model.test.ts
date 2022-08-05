@@ -2,8 +2,8 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
-import { LinkType as LinkTypeSchema } from "@hashintel/hash-graph-client/";
-import { LinkType } from "@hashintel/hash-api/src/model";
+import { LinkType } from "@hashintel/hash-graph-client/";
+import { LinkTypeModel } from "@hashintel/hash-api/src/model";
 
 jest.setTimeout(60000);
 
@@ -21,7 +21,7 @@ const graphApi = createGraphClient(
 const accountId = { accountId: "00000000-0000-0000-0000-000000000000" };
 
 describe("Link type CRU", () => {
-  const linkType = ($id: string): LinkTypeSchema => {
+  const linkType = ($id: string): LinkType => {
     return {
       $id,
       kind: "linkType",
@@ -31,16 +31,16 @@ describe("Link type CRU", () => {
   };
 
   const createdLinkType$id = "https://example.com/link-type/v/1";
-  let createdLinkType: LinkType;
+  let createdLinkType: LinkTypeModel;
   it("can create a link type", async () => {
-    createdLinkType = await LinkType.create(graphApi, {
+    createdLinkType = await LinkTypeModel.create(graphApi, {
       ...accountId,
       schema: linkType(createdLinkType$id),
     });
   });
 
   it("can read a link type", async () => {
-    const fetchedLinkType = await LinkType.get(graphApi, {
+    const fetchedLinkType = await LinkTypeModel.get(graphApi, {
       ...accountId,
       versionedUri: createdLinkType$id,
     });
@@ -63,7 +63,7 @@ describe("Link type CRU", () => {
   });
 
   it("can read all latest link types", async () => {
-    const allLinkTypes = await LinkType.getAllLatest(graphApi, accountId);
+    const allLinkTypes = await LinkTypeModel.getAllLatest(graphApi, accountId);
 
     const newlyUpdated = allLinkTypes.find(
       (lt) => lt.schema.$id === updated$id,

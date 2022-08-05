@@ -3,14 +3,14 @@ import {
   GraphApi,
 } from "@hashintel/hash-graph-client";
 
-import { LinkType as LinkTypeModel } from "../index";
+import { LinkTypeModel } from "../index";
 
 type LinkTypeArgs = {
   accountId: string;
   schema: LinkTypeSchema;
 };
 
-class __LinkType {
+class __LinkTypeModel {
   accountId: string;
 
   schema: LinkTypeSchema;
@@ -95,4 +95,4 @@ class __LinkType {
   }
 }
 
-export default __LinkType;
+export default __LinkTypeModel;

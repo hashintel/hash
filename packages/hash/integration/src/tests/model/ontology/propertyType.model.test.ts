@@ -2,8 +2,11 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
-import { PropertyType as PropertyTypeSchema } from "@hashintel/hash-graph-client/";
-import { DataType, PropertyType } from "@hashintel/hash-api/src/model";
+import { PropertyType } from "@hashintel/hash-graph-client/";
+import {
+  DataTypeModel,
+  PropertyTypeModel,
+} from "@hashintel/hash-api/src/model";
 
 jest.setTimeout(60000);
 
@@ -23,7 +26,7 @@ const accountId = { accountId: "00000000-0000-0000-0000-000000000000" };
 const textDataType$id = "https://property-type~example.com/data-type/v/1";
 
 beforeAll(async () => {
-  await DataType.create(graphApi, {
+  await DataTypeModel.create(graphApi, {
     ...accountId,
     schema: {
       $id: textDataType$id,
@@ -35,7 +38,7 @@ beforeAll(async () => {
 });
 
 describe("Property type CRU", () => {
-  const propertyType = ($id: string): PropertyTypeSchema => {
+  const propertyType = ($id: string): PropertyType => {
     return {
       $id,
       kind: "propertyType",
@@ -50,16 +53,16 @@ describe("Property type CRU", () => {
 
   const createdPropertyType$id =
     "https://property-type~example.com/property-type/v/1";
-  let createdPropertyType: PropertyType;
+  let createdPropertyType: PropertyTypeModel;
   it("can create a property type", async () => {
-    createdPropertyType = await PropertyType.create(graphApi, {
+    createdPropertyType = await PropertyTypeModel.create(graphApi, {
       ...accountId,
       schema: propertyType(createdPropertyType$id),
     });
   });
 
   it("can read a property type", async () => {
-    const fetchedPropertyType = await PropertyType.get(graphApi, {
+    const fetchedPropertyType = await PropertyTypeModel.get(graphApi, {
       ...accountId,
       versionedUri: createdPropertyType$id,
     });
@@ -82,7 +85,7 @@ describe("Property type CRU", () => {
   });
 
   it("can read all latest property types", async () => {
-    const allPropertyTypes = await PropertyType.getAllLatest(
+    const allPropertyTypes = await PropertyTypeModel.getAllLatest(
       graphApi,
       accountId,
     );

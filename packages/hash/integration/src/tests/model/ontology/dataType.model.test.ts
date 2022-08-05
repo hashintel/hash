@@ -2,8 +2,8 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
-import { DataType as DataTypeSchema } from "@hashintel/hash-graph-client/";
-import { DataType } from "@hashintel/hash-api/src/model";
+import { DataType } from "@hashintel/hash-graph-client/";
+import { DataTypeModel } from "@hashintel/hash-api/src/model";
 
 jest.setTimeout(60000);
 
@@ -23,7 +23,7 @@ const accountId = { accountId: "00000000-0000-0000-0000-000000000000" };
 const textDataType$id = "https://data-type~example.com/data-type/v/1";
 
 describe("Data type CRU", () => {
-  const dataType = ($id: string): DataTypeSchema => {
+  const dataType = ($id: string): DataType => {
     return {
       $id,
       kind: "dataType",
@@ -33,16 +33,16 @@ describe("Data type CRU", () => {
   };
 
   const createdDataType$id = textDataType$id;
-  let createdDataType: DataType;
+  let createdDataType: DataTypeModel;
   it("can create a data type", async () => {
-    createdDataType = await DataType.create(graphApi, {
+    createdDataType = await DataTypeModel.create(graphApi, {
       ...accountId,
       schema: dataType(createdDataType$id),
     });
   });
 
   it("can read a data type", async () => {
-    const fetchedDataType = await DataType.get(graphApi, {
+    const fetchedDataType = await DataTypeModel.get(graphApi, {
       ...accountId,
       versionedUri: createdDataType$id,
     });
@@ -62,7 +62,7 @@ describe("Data type CRU", () => {
   });
 
   it("can read all latest data types", async () => {
-    const allDataTypes = await DataType.getAllLatest(graphApi, accountId);
+    const allDataTypes = await DataTypeModel.getAllLatest(graphApi, accountId);
 
     const newlyUpdated = allDataTypes.find(
       (dt) => dt.schema.$id === updated$id,

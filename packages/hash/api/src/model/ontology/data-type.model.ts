@@ -3,14 +3,14 @@ import {
   GraphApi,
 } from "@hashintel/hash-graph-client";
 
-import { DataType as DataTypeModel } from "../index";
+import { DataTypeModel } from "../index";
 
 type DataTypeArgs = {
   accountId: string;
   schema: DataTypeSchema;
 };
 
-class __DataType {
+class __DataTypeModel {
   accountId: string;
 
   schema: DataTypeSchema;
@@ -101,4 +101,4 @@ class __DataType {
   }
 }
 
-export default __DataType;
+export default __DataTypeModel;

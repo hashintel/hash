@@ -3,14 +3,14 @@ import {
   GraphApi,
 } from "@hashintel/hash-graph-client";
 
-import { PropertyType as PropertyTypeModel } from "../index";
+import { PropertyTypeModel } from "../index";
 
 type PropertyTypeArgs = {
   accountId: string;
   schema: PropertyTypeSchema;
 };
 
-class __PropertyType {
+class __PropertyTypeModel {
   accountId: string;
 
   schema: PropertyTypeSchema;
@@ -96,4 +96,4 @@ class __PropertyType {
   }
 }
 
-export default __PropertyType;
+export default __PropertyTypeModel;
