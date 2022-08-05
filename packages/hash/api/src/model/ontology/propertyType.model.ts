@@ -20,6 +20,12 @@ class __PropertyType {
     this.schema = schema;
   }
 
+  /**
+   * Create a property type.
+   *
+   * @param params.accountId the accountId of the account creating the property type
+   * @param params.schema a `PropertyType`
+   */
   static async create(
     graphApi: GraphApi,
     params: {
@@ -32,6 +38,11 @@ class __PropertyType {
     return new PropertyTypeModel({ schema, accountId: params.accountId });
   }
 
+  /**
+   * Get latest versions of all property types.
+   *
+   * @param params.accountId the accountId of the account requesting the property types
+   */
   static async getAllLatest(
     graphApi: GraphApi,
     params: { accountId: string },
@@ -45,6 +56,12 @@ class __PropertyType {
     );
   }
 
+  /**
+   * Get a property type by its versioned URI.
+   *
+   * @param params.accountId the accountId of the account requesting the property type
+   * @param params.versionedUri the unique versioned URI for a property type.
+   */
   static async get(
     graphApi: GraphApi,
     params: {
@@ -58,6 +75,12 @@ class __PropertyType {
     return new PropertyTypeModel({ schema, accountId });
   }
 
+  /**
+   * Update a property type.
+   *
+   * @param params.accountId the accountId of the account making the update
+   * @param params.schema a `PropertyType`
+   */
   async update(
     graphApi: GraphApi,
     params: {

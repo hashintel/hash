@@ -21,10 +21,13 @@ class __DataType {
   }
 
   /**
-   * User defined datat types are not specified yet, which means this `create`
+   * Create a data type.
+   *
+   * User defined data types are not specified yet, which means this `create`
    * operations should not be exposed to users yet.
    *
-   * This also implies that an `update` operation is not required for data types.
+   * @param params.accountId the accountId of the account creating the data type
+   * @param params.schema a `DataType`
    */
   static async create(
     graphApi: GraphApi,
@@ -38,6 +41,11 @@ class __DataType {
     return new DataTypeModel({ schema, accountId: params.accountId });
   }
 
+  /**
+   * Get latest versions of all data types.
+   *
+   * @param params.accountId the accountId of the account requesting the data types
+   */
   static async getAllLatest(
     graphApi: GraphApi,
     params: { accountId: string },
@@ -50,6 +58,12 @@ class __DataType {
     );
   }
 
+  /**
+   * Get a data type by its versioned URI.
+   *
+   * @param params.accountId the accountId of the account requesting the data type
+   * @param params.versionedUri the unique versioned URI for a data type.
+   */
   static async get(
     graphApi: GraphApi,
     params: {
@@ -59,6 +73,29 @@ class __DataType {
   ): Promise<DataTypeModel> {
     const { accountId, versionedUri } = params;
     const { data: schema } = await graphApi.getDataType(versionedUri);
+
+    return new DataTypeModel({ schema, accountId });
+  }
+
+  /**
+   * Update a data type.
+   *
+   * As with data type `create`, this `update` operation is not relevant to users
+   * as user defined data types are not fully specified.
+   *
+   * @param params.accountId the accountId of the account making the update
+   * @param params.schema a `DataType`
+   */
+  async update(
+    graphApi: GraphApi,
+    params: {
+      accountId: string;
+      schema: DataTypeSchema;
+    },
+  ): Promise<DataTypeModel> {
+    const { accountId } = params;
+
+    const { data: schema } = await graphApi.updateDataType(params);
 
     return new DataTypeModel({ schema, accountId });
   }

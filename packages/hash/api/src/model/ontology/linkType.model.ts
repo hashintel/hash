@@ -20,6 +20,12 @@ class __LinkType {
     this.schema = schema;
   }
 
+  /**
+   * Create a link type.
+   *
+   * @param params.accountId the accountId of the account creating the link type
+   * @param params.schema a `LinkType`
+   */
   static async create(
     graphApi: GraphApi,
     params: {
@@ -32,6 +38,11 @@ class __LinkType {
     return new LinkTypeModel({ schema, accountId: params.accountId });
   }
 
+  /**
+   * Get latest versions of all link types.
+   *
+   * @param params.accountId the accountId of the account requesting the link types
+   */
   static async getAllLatest(
     graphApi: GraphApi,
     params: { accountId: string },
@@ -44,6 +55,12 @@ class __LinkType {
     );
   }
 
+  /**
+   * Get a link type by its versioned URI.
+   *
+   * @param params.accountId the accountId of the account requesting the link type
+   * @param params.versionedUri the unique versioned URI for a link type.
+   */
   static async get(
     graphApi: GraphApi,
     params: {
@@ -57,6 +74,12 @@ class __LinkType {
     return new LinkTypeModel({ schema, accountId });
   }
 
+  /**
+   * Update a link type.
+   *
+   * @param params.accountId the accountId of the account making the update
+   * @param params.schema a `LinkType`
+   */
   async update(
     graphApi: GraphApi,
     params: {

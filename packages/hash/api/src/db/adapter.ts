@@ -1,6 +1,5 @@
 import { DataSource } from "apollo-datasource";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
-import { PropertyType, DataType, LinkType } from "@hashintel/hash-graph-client";
 
 import { SystemType } from "../types/entityTypes";
 
@@ -248,116 +247,6 @@ export interface DbAdapter extends DataSource, DbClient {
  * Generic interface to the database.
  */
 export interface DbClient {
-  /**
-   * Create a data type.
-   * @param params.accountId the accountId of the account creating the data type
-   * @param params.schema a `DataType`
-   */
-  createDataType(params: {
-    accountId: string;
-    schema: DataType;
-  }): Promise<DataType>;
-
-  /**
-   * Get latest versions of all data types.
-   * @param params.accountId the accountId of the account requesting the data types
-   */
-  getLatestDataTypes(params: { accountId: string }): Promise<DataType[]>;
-
-  /**
-   * Get a data type by its versioned URI.
-   * @param params.accountId the accountId of the account requesting the data type
-   * @param params.versionedUri the unique versioned URI for a data type.
-   */
-  getDataType(params: {
-    accountId: string;
-    versionedUri: string;
-  }): Promise<DataType>;
-
-  /**
-   * Update a data type.
-   * @param params.accountId the accountId of the account making the update
-   * @param params.schema a `DataType`
-   */
-  updateDataType(params: {
-    accountId: string;
-    schema: DataType;
-  }): Promise<DataType>;
-
-  /**
-   * Create a property type.
-   * @param params.accountId the accountId of the account creating the property type
-   * @param params.schema a `PropertyType`
-   */
-  createPropertyType(params: {
-    accountId: string;
-    schema: PropertyType;
-  }): Promise<PropertyType>;
-
-  /**
-   * Get latest versions of all property types.
-   * @param params.accountId the accountId of the account requesting the property types
-   */
-  getLatestPropertyTypes(params: {
-    accountId: string;
-  }): Promise<PropertyType[]>;
-
-  /**
-   * Get a property type by its versioned URI.
-   * @param params.accountId the accountId of the account requesting the property type
-   * @param params.versionedUri the unique versioned URI for a property type.
-   */
-  getPropertyType(params: {
-    accountId: string;
-    versionedUri: string;
-  }): Promise<PropertyType>;
-
-  /**
-   * Update a property type.
-   * @param params.accountId the accountId of the account making the update
-   * @param params.schema a `PropertyType`
-   */
-  updatePropertyType(params: {
-    accountId: string;
-    schema: PropertyType;
-  }): Promise<PropertyType>;
-
-  /**
-   * Create a link type.
-   * @param params.accountId the accountId of the account creating the link type
-   * @param params.schema a `LinkType`
-   */
-  createLinkType(params: {
-    accountId: string;
-    schema: LinkType;
-  }): Promise<LinkType>;
-
-  /**
-   * Get latest versions of all link types.
-   * @param params.accountId the accountId of the account requesting the link types
-   */
-  getLatestLinkTypes(params: { accountId: string }): Promise<LinkType[]>;
-
-  /**
-   * Get a link type by its versioned URI.
-   * @param params.accountId the accountId of the account requesting the link type
-   * @param params.versionedUri the unique versioned URI for a link type.
-   */
-  getLinkType(params: {
-    accountId: string;
-    versionedUri: string;
-  }): Promise<LinkType>;
-
-  /**
-   * Update a link type.
-   * @param params.accountId the accountId of the account making the update
-   * @param params.schema a `LinkType`
-   */
-  updateLinkType(params: {
-    accountId: string;
-    schema: LinkType;
-  }): Promise<LinkType>;
-
   /**
    * Create an entity type.
    * @param params.name the type name - must be unique in the specified account
