@@ -1,5 +1,5 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { createGraphClient } from "@hashintel/hash-api/src/hashGraph";
+import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { DataType as DataTypeSchema } from "@hashintel/hash-graph-client/";
