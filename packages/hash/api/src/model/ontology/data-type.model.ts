@@ -1,7 +1,4 @@
-import {
-  DataType,
-  GraphApi,
-} from "@hashintel/hash-graph-client";
+import { DataType, GraphApi } from "@hashintel/hash-graph-client";
 
 import { DataTypeModel } from "../index";
 

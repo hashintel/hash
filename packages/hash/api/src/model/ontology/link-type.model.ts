@@ -1,7 +1,4 @@
-import {
-  LinkType,
-  GraphApi,
-} from "@hashintel/hash-graph-client";
+import { LinkType, GraphApi } from "@hashintel/hash-graph-client";
 
 import { LinkTypeModel } from "../index";
 

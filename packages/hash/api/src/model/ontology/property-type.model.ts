@@ -1,7 +1,4 @@
-import {
-  PropertyType,
-  GraphApi,
-} from "@hashintel/hash-graph-client";
+import { PropertyType, GraphApi } from "@hashintel/hash-graph-client";
 
 import { PropertyTypeModel } from "../index";
 
