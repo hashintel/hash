@@ -55,7 +55,7 @@ export interface CreateDataTypeRequest {
    * @type {string}
    * @memberof CreateDataTypeRequest
    */
-  account_id: string;
+  accountId: string;
   /**
    *
    * @type {DataType}
@@ -74,7 +74,7 @@ export interface CreateEntityRequest {
    * @type {string}
    * @memberof CreateEntityRequest
    */
-  account_id: string;
+  accountId: string;
   /**
    *
    * @type {Entity}
@@ -86,7 +86,7 @@ export interface CreateEntityRequest {
    * @type {string}
    * @memberof CreateEntityRequest
    */
-  entity_type_uri: string;
+  entityTypeUri: string;
 }
 /**
  *
@@ -99,7 +99,7 @@ export interface CreateEntityTypeRequest {
    * @type {string}
    * @memberof CreateEntityTypeRequest
    */
-  account_id: string;
+  accountId: string;
   /**
    *
    * @type {EntityType}
@@ -118,19 +118,19 @@ export interface CreateLinkRequest {
    * @type {string}
    * @memberof CreateLinkRequest
    */
-  account_id: string;
+  accountId: string;
   /**
    *
    * @type {string}
    * @memberof CreateLinkRequest
    */
-  link_type_uri: string;
+  linkTypeUri: string;
   /**
    *
    * @type {string}
    * @memberof CreateLinkRequest
    */
-  target_entity: string;
+  targetEntity: string;
 }
 /**
  *
@@ -143,7 +143,7 @@ export interface CreateLinkTypeRequest {
    * @type {string}
    * @memberof CreateLinkTypeRequest
    */
-  account_id: string;
+  accountId: string;
   /**
    *
    * @type {LinkType}
@@ -162,7 +162,7 @@ export interface CreatePropertyTypeRequest {
    * @type {string}
    * @memberof CreatePropertyTypeRequest
    */
-  account_id: string;
+  accountId: string;
   /**
    *
    * @type {PropertyType}
@@ -341,13 +341,13 @@ export interface InactivateLinkRequest {
    * @type {string}
    * @memberof InactivateLinkRequest
    */
-  link_type_uri: string;
+  linkTypeUri: string;
   /**
    *
    * @type {string}
    * @memberof InactivateLinkRequest
    */
-  target_entity: string;
+  targetEntity: string;
 }
 /**
  * A Link between a source and a target entity identified by [`EntityId`]s.
@@ -582,7 +582,7 @@ export interface QualifiedEntity {
    * @type {string}
    * @memberof QualifiedEntity
    */
-  entity_id: string;
+  entityId: string;
 }
 /**
  *
@@ -595,7 +595,7 @@ export interface UpdateDataTypeRequest {
    * @type {string}
    * @memberof UpdateDataTypeRequest
    */
-  account_id: string;
+  accountId: string;
   /**
    *
    * @type {DataType}
@@ -645,7 +645,7 @@ export interface UpdateEntityTypeRequest {
    * @type {string}
    * @memberof UpdateEntityTypeRequest
    */
-  account_id: string;
+  accountId: string;
   /**
    *
    * @type {EntityType}
@@ -664,7 +664,7 @@ export interface UpdateLinkTypeRequest {
    * @type {string}
    * @memberof UpdateLinkTypeRequest
    */
-  account_id: string;
+  accountId: string;
   /**
    *
    * @type {LinkType}
@@ -683,7 +683,7 @@ export interface UpdatePropertyTypeRequest {
    * @type {string}
    * @memberof UpdatePropertyTypeRequest
    */
-  account_id: string;
+  accountId: string;
   /**
    *
    * @type {PropertyType}
@@ -1247,8 +1247,8 @@ export const EntityApiAxiosParamCreator = function (
     ): Promise<RequestArgs> => {
       // verify required parameter 'entityId' is not null or undefined
       assertParamExists("getEntity", "entityId", entityId);
-      const localVarPath = `/entities/{entity_id}`.replace(
-        `{${"entity_id"}}`,
+      const localVarPath = `/entities/{entityId}`.replace(
+        `{${"entityId"}}`,
         encodeURIComponent(String(entityId)),
       );
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -2325,8 +2325,8 @@ export const GraphApiAxiosParamCreator = function (
       assertParamExists("createLink", "entityId", entityId);
       // verify required parameter 'createLinkRequest' is not null or undefined
       assertParamExists("createLink", "createLinkRequest", createLinkRequest);
-      const localVarPath = `/entities/{entity_id}/links`.replace(
-        `{${"entity_id"}}`,
+      const localVarPath = `/entities/{entityId}/links`.replace(
+        `{${"entityId"}}`,
         encodeURIComponent(String(entityId)),
       );
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -2528,8 +2528,8 @@ export const GraphApiAxiosParamCreator = function (
     ): Promise<RequestArgs> => {
       // verify required parameter 'entityId' is not null or undefined
       assertParamExists("getEntity", "entityId", entityId);
-      const localVarPath = `/entities/{entity_id}`.replace(
-        `{${"entity_id"}}`,
+      const localVarPath = `/entities/{entityId}`.replace(
+        `{${"entityId"}}`,
         encodeURIComponent(String(entityId)),
       );
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -2573,8 +2573,8 @@ export const GraphApiAxiosParamCreator = function (
     ): Promise<RequestArgs> => {
       // verify required parameter 'entityId' is not null or undefined
       assertParamExists("getEntityLinks", "entityId", entityId);
-      const localVarPath = `/entities/{entity_id}/links`.replace(
-        `{${"entity_id"}}`,
+      const localVarPath = `/entities/{entityId}/links`.replace(
+        `{${"entityId"}}`,
         encodeURIComponent(String(entityId)),
       );
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -2951,8 +2951,8 @@ export const GraphApiAxiosParamCreator = function (
         "inactivateLinkRequest",
         inactivateLinkRequest,
       );
-      const localVarPath = `/entities/{entity_id}/links`.replace(
-        `{${"entity_id"}}`,
+      const localVarPath = `/entities/{entityId}/links`.replace(
+        `{${"entityId"}}`,
         encodeURIComponent(String(entityId)),
       );
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -4749,8 +4749,8 @@ export const LinkApiAxiosParamCreator = function (
       assertParamExists("createLink", "entityId", entityId);
       // verify required parameter 'createLinkRequest' is not null or undefined
       assertParamExists("createLink", "createLinkRequest", createLinkRequest);
-      const localVarPath = `/entities/{entity_id}/links`.replace(
-        `{${"entity_id"}}`,
+      const localVarPath = `/entities/{entityId}/links`.replace(
+        `{${"entityId"}}`,
         encodeURIComponent(String(entityId)),
       );
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -4801,8 +4801,8 @@ export const LinkApiAxiosParamCreator = function (
     ): Promise<RequestArgs> => {
       // verify required parameter 'entityId' is not null or undefined
       assertParamExists("getEntityLinks", "entityId", entityId);
-      const localVarPath = `/entities/{entity_id}/links`.replace(
-        `{${"entity_id"}}`,
+      const localVarPath = `/entities/{entityId}/links`.replace(
+        `{${"entityId"}}`,
         encodeURIComponent(String(entityId)),
       );
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -4854,8 +4854,8 @@ export const LinkApiAxiosParamCreator = function (
         "inactivateLinkRequest",
         inactivateLinkRequest,
       );
-      const localVarPath = `/entities/{entity_id}/links`.replace(
-        `{${"entity_id"}}`,
+      const localVarPath = `/entities/{entityId}/links`.replace(
+        `{${"entityId"}}`,
         encodeURIComponent(String(entityId)),
       );
       // use dummy base URL string because the URL constructor only accepts absolute URLs.

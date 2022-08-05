@@ -56,6 +56,7 @@ impl RoutedResource for PropertyTypeResource {
 }
 
 #[derive(Serialize, Deserialize, Component)]
+#[serde(rename_all = "camelCase")]
 struct CreatePropertyTypeRequest {
     #[component(value_type = VAR_PROPERTY_TYPE)]
     schema: PropertyType,
@@ -147,6 +148,7 @@ async fn get_property_type<P: GraphPool>(
 }
 
 #[derive(Component, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct UpdatePropertyTypeRequest {
     #[component(value_type = VAR_PROPERTY_TYPE)]
     schema: PropertyType,

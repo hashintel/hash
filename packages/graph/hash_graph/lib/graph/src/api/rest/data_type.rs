@@ -56,6 +56,7 @@ impl RoutedResource for DataTypeResource {
 }
 
 #[derive(Serialize, Deserialize, Component)]
+#[serde(rename_all = "camelCase")]
 struct CreateDataTypeRequest {
     #[component(value_type = VAR_DATA_TYPE)]
     schema: DataType,
@@ -148,6 +149,7 @@ async fn get_data_type<P: GraphPool>(
 }
 
 #[derive(Component, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct UpdateDataTypeRequest {
     #[component(value_type = VAR_DATA_TYPE)]
     schema: DataType,

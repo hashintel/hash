@@ -56,6 +56,7 @@ impl RoutedResource for LinkTypeResource {
 }
 
 #[derive(Serialize, Deserialize, Component)]
+#[serde(rename_all = "camelCase")]
 struct CreateLinkTypeRequest {
     #[component(value_type = VAR_LINK_TYPE)]
     schema: LinkType,
@@ -147,6 +148,7 @@ async fn get_link_type<P: GraphPool>(
 }
 
 #[derive(Component, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct UpdateLinkTypeRequest {
     #[component(value_type = VAR_LINK_TYPE)]
     schema: LinkType,

@@ -58,6 +58,7 @@ impl RoutedResource for EntityTypeResource {
 }
 
 #[derive(Serialize, Deserialize, Component)]
+#[serde(rename_all = "camelCase")]
 struct CreateEntityTypeRequest {
     #[component(value_type = VAR_ENTITY_TYPE)]
     schema: EntityType,
@@ -149,6 +150,7 @@ async fn get_entity_type<P: GraphPool>(
 }
 
 #[derive(Component, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct UpdateEntityTypeRequest {
     #[component(value_type = VAR_ENTITY_TYPE)]
     schema: EntityType,

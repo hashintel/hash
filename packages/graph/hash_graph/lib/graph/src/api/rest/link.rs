@@ -46,6 +46,7 @@ impl RoutedResource for LinkResource {
 }
 
 #[derive(Serialize, Deserialize, Component)]
+#[serde(rename_all = "camelCase")]
 struct CreateLinkRequest {
     target_entity: EntityId,
     #[component(value_type = String)]
@@ -55,7 +56,7 @@ struct CreateLinkRequest {
 
 #[utoipa::path(
     post,
-    path = "/entities/{entity_id}/links",
+    path = "/entities/{entityId}/links",
     request_body = CreateLinkRequest,
     tag = "Link",
     responses(
@@ -66,7 +67,7 @@ struct CreateLinkRequest {
         (status = 500, description = "Datastore error occurred"),
     ),
     params(
-        ("entity_id" = Uuid, Path, description = "The ID of the source entity"),
+        ("entityId" = Uuid, Path, description = "The ID of the source entity"),
     )
 )]
 async fn create_link<P: GraphPool>(
@@ -108,7 +109,7 @@ async fn create_link<P: GraphPool>(
 
 #[utoipa::path(
     get,
-    path = "/entities/{entity_id}/links",
+    path = "/entities/{entityId}/links",
     tag = "Link",
     responses(
         (status = 200, content_type = "application/json", description = "The requested links on the given source entity", body = Links),
@@ -118,7 +119,7 @@ async fn create_link<P: GraphPool>(
         (status = 500, description = "Datastore error occurred"),
     ),
     params(
-        ("entity_id" = Uuid, Path, description = "The ID of the source entity"),
+        ("entityId" = Uuid, Path, description = "The ID of the source entity"),
     )
 )]
 async fn get_entity_links<P: GraphPool>(
@@ -131,6 +132,7 @@ async fn get_entity_links<P: GraphPool>(
 }
 
 #[derive(Serialize, Deserialize, Component)]
+#[serde(rename_all = "camelCase")]
 struct InactivateLinkRequest {
     target_entity: EntityId,
     #[component(value_type = String)]
@@ -139,7 +141,7 @@ struct InactivateLinkRequest {
 
 #[utoipa::path(
     delete,
-    path = "/entities/{entity_id}/links",
+    path = "/entities/{entityId}/links",
     tag = "Link",
     responses(
         (status = 204, content_type = "application/json", description = "Empty response at link inactivation"),
@@ -150,7 +152,7 @@ struct InactivateLinkRequest {
     ),
     request_body = InactivateLinkRequest,
     params(
-        ("entity_id" = Uuid, Path, description = "The ID of the source entity"),
+        ("entityId" = Uuid, Path, description = "The ID of the source entity"),
     ),
 )]
 async fn inactivate_link<P: GraphPool>(
