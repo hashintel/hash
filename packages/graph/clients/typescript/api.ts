@@ -614,7 +614,7 @@ export interface UpdateEntityRequest {
    * @type {string}
    * @memberof UpdateEntityRequest
    */
-  account_id: string;
+  accountId: string;
   /**
    *
    * @type {Entity}
@@ -626,13 +626,13 @@ export interface UpdateEntityRequest {
    * @type {string}
    * @memberof UpdateEntityRequest
    */
-  entity_id: string;
+  entityId: string;
   /**
    *
    * @type {string}
    * @memberof UpdateEntityRequest
    */
-  entity_type_uri: string;
+  entityTypeUri: string;
 }
 /**
  *

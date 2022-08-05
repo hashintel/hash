@@ -154,6 +154,7 @@ async fn get_latest_entities<P: GraphPool>(
 }
 
 #[derive(Component, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct UpdateEntityRequest {
     entity: Entity,
     entity_id: EntityId,
