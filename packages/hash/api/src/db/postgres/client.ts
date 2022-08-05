@@ -1,5 +1,4 @@
 import { sql } from "slonik";
-import { PropertyType, DataType, LinkType } from "@hashintel/hash-graph-client";
 
 import { DbClient, DbEntity, EntityType } from "../adapter";
 import { genId, exactlyOne } from "../../util";

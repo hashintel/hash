@@ -5,7 +5,6 @@ import {
   createPostgresConnPool,
   PgPool,
 } from "@hashintel/hash-backend-utils/postgres";
-import { PropertyType, DataType, LinkType } from "@hashintel/hash-graph-client";
 
 import { PostgresClient } from "./client";
 import { DbAdapter, DbClient } from "../adapter";
