@@ -135,7 +135,7 @@ const SignupPage: NextPageWithLayout = () => {
           display: "flex",
           flexDirection: "column",
           maxWidth: 500,
-          "> *:not(:first-child)": {
+          "> *": {
             marginTop: 1,
           },
         }}
@@ -143,7 +143,7 @@ const SignupPage: NextPageWithLayout = () => {
         <TextField
           label="Email"
           type="email"
-          placeholder="alice@example.com"
+          placeholder="Enter your email address"
           value={email}
           onChange={({ target }) => setEmail(target.value)}
           error={
@@ -167,7 +167,7 @@ const SignupPage: NextPageWithLayout = () => {
           ))}
           required
         />
-        <Button type="submit">Sign up with Email</Button>
+        <Button type="submit">Sign up with email</Button>
         {flow?.ui.messages?.map(({ text, id }) => (
           <Typography key={id}>{text}</Typography>
         ))}
