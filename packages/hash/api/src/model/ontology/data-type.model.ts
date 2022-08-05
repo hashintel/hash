@@ -1,5 +1,5 @@
 import {
-  DataType as DataTypeSchema,
+  DataType,
   GraphApi,
 } from "@hashintel/hash-graph-client";
 
@@ -7,7 +7,7 @@ import { DataTypeModel } from "../index";
 
 type DataTypeArgs = {
   accountId: string;
-  schema: DataTypeSchema;
+  schema: DataType;
 };
 
 /**
@@ -16,7 +16,7 @@ type DataTypeArgs = {
 export default class {
   accountId: string;
 
-  schema: DataTypeSchema;
+  schema: DataType;
 
   constructor({ schema, accountId }: DataTypeArgs) {
     this.accountId = accountId;
@@ -37,7 +37,7 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: DataTypeSchema;
+      schema: DataType;
     },
   ): Promise<DataTypeModel> {
     const { data: schema } = await graphApi.createDataType(params);
@@ -95,7 +95,7 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: DataTypeSchema;
+      schema: DataType;
     },
   ): Promise<DataTypeModel> {
     const { accountId } = params;

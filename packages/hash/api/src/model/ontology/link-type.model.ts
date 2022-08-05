@@ -1,5 +1,5 @@
 import {
-  LinkType as LinkTypeSchema,
+  LinkType,
   GraphApi,
 } from "@hashintel/hash-graph-client";
 
@@ -7,7 +7,7 @@ import { LinkTypeModel } from "../index";
 
 type LinkTypeArgs = {
   accountId: string;
-  schema: LinkTypeSchema;
+  schema: LinkType;
 };
 
 /**
@@ -16,7 +16,7 @@ type LinkTypeArgs = {
 export default class {
   accountId: string;
 
-  schema: LinkTypeSchema;
+  schema: LinkType;
 
   constructor({ schema, accountId }: LinkTypeArgs) {
     this.accountId = accountId;
@@ -33,7 +33,7 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: LinkTypeSchema;
+      schema: LinkType;
     },
   ): Promise<LinkTypeModel> {
     const { data: schema } = await graphApi.createLinkType(params);
@@ -87,7 +87,7 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: LinkTypeSchema;
+      schema: LinkType;
     },
   ): Promise<LinkTypeModel> {
     const { accountId } = params;

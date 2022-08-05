@@ -1,5 +1,5 @@
 import {
-  PropertyType as PropertyTypeSchema,
+  PropertyType,
   GraphApi,
 } from "@hashintel/hash-graph-client";
 
@@ -7,7 +7,7 @@ import { PropertyTypeModel } from "../index";
 
 type PropertyTypeArgs = {
   accountId: string;
-  schema: PropertyTypeSchema;
+  schema: PropertyType;
 };
 
 /**
@@ -16,7 +16,7 @@ type PropertyTypeArgs = {
 export default class {
   accountId: string;
 
-  schema: PropertyTypeSchema;
+  schema: PropertyType;
 
   constructor({ schema, accountId }: PropertyTypeArgs) {
     this.accountId = accountId;
@@ -33,7 +33,7 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: PropertyTypeSchema;
+      schema: PropertyType;
     },
   ): Promise<PropertyTypeModel> {
     const { data: schema } = await graphApi.createPropertyType(params);
@@ -88,7 +88,7 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: PropertyTypeSchema;
+      schema: PropertyType;
     },
   ): Promise<PropertyTypeModel> {
     const { accountId } = params;
