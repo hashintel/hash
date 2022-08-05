@@ -1,5 +1,5 @@
 import { Box, SxProps, Theme, Typography } from "@mui/material";
-import { ReactElement, useEffect, useRef, useState } from "react";
+import { ReactElement, useRef, useState } from "react";
 import { useKey } from "rooks";
 import { tw } from "twind";
 import { SpinnerIcon } from "../../../shared/icons";
@@ -11,7 +11,6 @@ export interface SuggesterProps<T> {
   onChange(item: T): void;
   loading?: boolean;
   itemKey(option: T): string;
-  getPos?: (width: number, height: number) => { left: number; top: number };
   sx?: SxProps<Theme>;
 }
 
@@ -25,10 +24,8 @@ export const Suggester = <T,>({
   itemKey,
   renderItem,
   error,
-  getPos,
   sx = [],
 }: SuggesterProps<T>) => {
-  const [pos, setPos] = useState<{ left: number; top: number }>();
   const ref = useRef<HTMLDivElement>();
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -55,12 +52,6 @@ export const Suggester = <T,>({
     }
   });
 
-  useEffect(() => {
-    if (getPos && ref.current) {
-      setPos(getPos(ref.current?.offsetWidth, ref.current?.offsetHeight));
-    }
-  }, [ref, getPos]);
-
   return (
     <Box
       ref={ref}
@@ -77,8 +68,6 @@ export const Suggester = <T,>({
           gridTemplateRows: "1fr auto",
           overflow: "hidden",
           textAlign: "left",
-          opacity: pos ? 1 : 0,
-          ...pos,
         }),
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}

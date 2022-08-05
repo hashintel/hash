@@ -12,7 +12,6 @@ import { WarnIcon } from "../../../shared/icons";
 export interface BlockSuggesterProps {
   search?: string;
   onChange(variant: BlockVariant, blockMeta: HashBlockMeta): void;
-  getPos?: (width: number, height: number) => { left: number; top: number };
   sx?: SxProps<Theme>;
 }
 
@@ -24,7 +23,6 @@ export interface BlockSuggesterProps {
 export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
   search = "",
   onChange,
-  getPos,
   sx,
 }) => {
   const { value: blocksMap, blockFetchFailed } = useUserBlocks();
@@ -103,7 +101,6 @@ export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
       onChange={(option) => {
         onChange(option.variant, option.meta);
       }}
-      getPos={getPos}
       sx={sx}
     />
   );

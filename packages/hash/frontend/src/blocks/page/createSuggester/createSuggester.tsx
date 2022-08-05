@@ -1,6 +1,7 @@
 import type { BlockVariant } from "@blockprotocol/core";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
+import { Popper } from "@mui/material";
 import { Schema } from "prosemirror-model";
 import {
   EditorState,
@@ -9,7 +10,7 @@ import {
   TextSelection,
   Transaction,
 } from "prosemirror-state";
-import { CSSProperties, ReactElement } from "react";
+import { ReactElement } from "react";
 import { ensureMounted } from "../../../lib/dom";
 import { RenderPortal } from "../usePortals";
 import { BlockSuggester } from "./BlockSuggester";
@@ -121,8 +122,8 @@ export const createSuggester = (
   renderPortal: RenderPortal,
   getManager: () => ProsemirrorManager,
   accountId: string,
-) => {
-  return new Plugin<SuggesterState, Schema>({
+) =>
+  new Plugin<SuggesterState, Schema>({
     key: suggesterPluginKey,
     state: {
       init() {
@@ -209,10 +210,8 @@ export const createSuggester = (
       },
     },
     view() {
-      // console.log(document.querySelector("#root"));
+      const container = document.querySelector("#root") as HTMLDivElement;
       const mountNode = document.createElement("div");
-      // console.log(document.querySelector("main"));
-      // document.querySelector("main")?.appendChild(mountNode);
 
       return {
         update(view) {
@@ -222,13 +221,9 @@ export const createSuggester = (
 
           const { from, to, search, char: triggerChar } = state.trigger!;
           const coords = view.coordsAtPos(from);
-
-          const style: CSSProperties = {
-            position: "absolute",
-            top: coords.bottom + document.documentElement.scrollTop,
-            left: coords.left + document.documentElement.scrollLeft,
-            opacity: 1,
-          };
+          const { node } = view.domAtPos(from);
+          const anchorNode =
+            node instanceof HTMLElement ? node : node.parentElement;
 
           const onBlockSuggesterChange = (
             variant: BlockVariant,
@@ -265,35 +260,12 @@ export const createSuggester = (
 
           let jsx: ReactElement | null = null;
 
-          const container = document.querySelector("#root") as HTMLDivElement;
-
-          const getPos = (width: number, height: number) => {
-            let top = 0;
-            let left = 0;
-
-            const { x, y } = container.getBoundingClientRect();
-
-            if ((style.top as number) - y > container.offsetHeight - height) {
-              top = (style.top as number) - y - height - 30;
-            } else {
-              top = (style.top as number) - y;
-            }
-
-            left = Math.min(
-              container.offsetWidth - width,
-              (style.left as number) - x,
-            );
-
-            return { left, top };
-          };
-
           switch (triggerChar) {
             case "/":
               jsx = (
                 <BlockSuggester
                   search={search.substring(1)}
                   onChange={onBlockSuggesterChange}
-                  getPos={getPos}
                 />
               );
               break;
@@ -303,14 +275,43 @@ export const createSuggester = (
                   search={search.substring(1)}
                   onChange={onMentionChange}
                   accountId={accountId}
-                  getPos={getPos}
                 />
               );
           }
 
           if (jsx) {
             ensureMounted(mountNode, container);
-            renderPortal(jsx, mountNode);
+            renderPortal(
+              <Popper
+                open
+                style={{ width: "340px", height: "400px" }}
+                placement="bottom-start"
+                container={container}
+                modifiers={[
+                  {
+                    name: "offset",
+                    options: {
+                      offset: () => [
+                        coords.left -
+                          (anchorNode?.getBoundingClientRect().x || 0),
+                        0,
+                      ],
+                    },
+                  },
+                  {
+                    name: "preventOverflow",
+                    enabled: true,
+                    options: {
+                      padding: 20,
+                    },
+                  },
+                ]}
+                anchorEl={anchorNode}
+              >
+                {jsx}
+              </Popper>,
+              mountNode,
+            );
           }
         },
         destroy() {
@@ -320,4 +321,3 @@ export const createSuggester = (
       };
     },
   }) as Plugin<unknown, Schema>;
-};
