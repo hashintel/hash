@@ -1,11 +1,5 @@
-mod data_type;
-mod entity_type;
-mod link_type;
+mod knowledge;
 mod ontology;
-mod property_type;
-
-mod entity;
-mod link;
 
 mod pool;
 mod version_id;
