@@ -60,5 +60,5 @@ yarn workspace @hashintel/hash-graph-client-generator generate
 yarn workspace @hashintel/hash-graph-client prettier --write .
 # The generator isn't idempotent, unfortunately. The interface members are not in a strict order.
 # ESlint enforces ordering, which enables us to rely on the output diff as a CI check.
-yarn workspace @hashintel/hash-graph-client eslint:fix
+yarn workspace @hashintel/hash-graph-client fix:eslint
 """
