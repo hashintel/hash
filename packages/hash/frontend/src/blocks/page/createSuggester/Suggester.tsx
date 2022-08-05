@@ -1,5 +1,5 @@
 import { Box, SxProps, Theme, Typography } from "@mui/material";
-import { ReactElement, useRef, useState } from "react";
+import { ReactElement, useState } from "react";
 import { useKey } from "rooks";
 import { tw } from "twind";
 import { SpinnerIcon } from "../../../shared/icons";
@@ -26,7 +26,6 @@ export const Suggester = <T,>({
   error,
   sx = [],
 }: SuggesterProps<T>) => {
-  const ref = useRef<HTMLDivElement>();
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   // reset selected index if it exceeds the options available
@@ -54,7 +53,6 @@ export const Suggester = <T,>({
 
   return (
     <Box
-      ref={ref}
       sx={[
         ({ palette }) => ({
           width: "340px",
