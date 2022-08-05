@@ -84,7 +84,7 @@ impl HookContextImpl {
 ///
 /// Every hook can request their corresponding `HookContext`.
 /// This is especially useful for incrementing/decrementing values, but can also be used to store
-/// any arbitrary value for the duration of the hook invocation.
+/// any arbitrary value for the duration of the [`Debug`] invocation.
 ///
 /// All data stored in `HookContext` is completely separated from all other [`Hook`]s and can store
 /// any arbitrary data of any type, and even data of multiple types at the same time.

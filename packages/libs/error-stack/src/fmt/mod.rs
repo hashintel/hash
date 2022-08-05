@@ -35,17 +35,58 @@ use owo_colors::{OwoColorize, Stream::Stdout};
 
 use crate::{AttachmentKind, Frame, FrameKind, Report};
 
-/// Different types of `Line` that exist during rendering.
+/// Modify the behaviour, with which `Line`s returned from hook invocations are rendered.
+///
+/// A `Line` can either be emitted immediately as the [`Line::Next`] line, or defer the via
+/// [`Line::Defer`] until the end of the current "group".
+/// [`Line::Defer`] does not modify the order of frames, only emits them after all [`Line::Next`]
+/// frames in the order they were added in.
 ///
 /// # Example
 ///
-/// Given Hooks:
+/// ```rust
+/// use std::io::{Error, ErrorKind};
+/// use insta::assert_debug_snapshot;
 ///
-/// * `AttachmentA -> Next`
-/// * `AttachmentB -> Defer`
+/// use error_stack::{
+///     fmt::{Hooks, Line},
+///     Report,
+/// };
 ///
-/// The following chain of attachments: `A1`, `B2`, `A3`, `A4`, `A5`, `B6`, `A7`, `B8`, `A9` is
-/// going to be printed as: `A1`, `A3`, `A4`, `A5`, `A7`, `A9`, `B2`, `B6`, `B8`.
+/// Report::install_hook(
+///     Hooks::bare()
+///         .push(|val: &u64| Line::next(format!("u64: {val}")))
+///         .push(|val: &u32| Line::defer(format!("u32: {val}"))),
+/// )
+/// .unwrap();
+///
+/// let report = Report::new(Error::from(ErrorKind::InvalidInput))
+///     .attach(1u64)
+///     .attach(2u32)
+///     .attach(3u64)
+///     .attach(4u32)
+///     .attach(5u32)
+///     .attach(6u64)
+///     .attach(7u64);
+///
+/// assert_debug_snapshot!(report, @r###"u64: 7
+/// │ src/fmt/mod.rs:26:6
+/// ├─▶ u64: 6
+/// │   ╰ src/fmt/mod.rs:25:6
+/// ├─▶ u64: 3
+/// │   ╰ src/fmt/mod.rs:22:6
+/// ├─▶ u64: 1
+/// │   ╰ src/fmt/mod.rs:20:6
+/// ├─▶ invalid input parameter
+/// │   ╰ src/fmt/mod.rs:19:14
+/// ├─▶ u32: 5
+/// │   ╰ src/fmt/mod.rs:24:6
+/// ├─▶ u32: 4
+/// │   ╰ src/fmt/mod.rs:23:6
+/// ├─▶ u32: 2
+/// │   ╰ src/fmt/mod.rs:21:6
+/// ╰─▶ 1 additional attachment"###)
+/// ```
 #[derive(Debug, Clone)]
 pub enum Line {
     /// Line is going to be emitted after all immediate lines have been emitted from the current
