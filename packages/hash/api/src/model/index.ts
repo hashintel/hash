@@ -1,6 +1,6 @@
-// The following import order prevents dependency cycles from occuring.
+// The following import order prevents dependency cycles from occurring.
 // The name of these default imports define the name of the model classes 
-// outside this module.
+// when accessed from outside of this module.
 
 import EntityType from "./entityType.model";
 import VerificationCode from "./verificationCode.model";
