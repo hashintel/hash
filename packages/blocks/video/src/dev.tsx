@@ -22,6 +22,7 @@ const App = () => {
         },
       }}
       debug
+      readonly
     />
   );
 };
