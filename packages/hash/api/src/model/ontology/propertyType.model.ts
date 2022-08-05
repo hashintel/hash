@@ -50,7 +50,7 @@ class __PropertyType {
     /** @todo: get all latest property types in specified account */
     const { data: schemas } = await graphApi.getLatestPropertyTypes();
 
-    throw schemas.map(
+    return schemas.map(
       (schema) =>
         new PropertyTypeModel({ schema, accountId: params.accountId }),
     );

@@ -53,7 +53,7 @@ class __DataType {
     /** @todo: get all latest data types in specified account */
     const { data: schemas } = await graphApi.getLatestDataTypes();
 
-    throw schemas.map(
+    return schemas.map(
       (schema) => new DataTypeModel({ schema, accountId: params.accountId }),
     );
   }

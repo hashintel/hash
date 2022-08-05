@@ -50,7 +50,7 @@ class __LinkType {
     /** @todo: get all latest link types in specified account */
     const { data: schemas } = await graphApi.getLatestLinkTypes();
 
-    throw schemas.map(
+    return schemas.map(
       (schema) => new LinkTypeModel({ schema, accountId: params.accountId }),
     );
   }
