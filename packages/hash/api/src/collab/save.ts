@@ -111,6 +111,10 @@ const ensureEntityTypeForComponent = async (
   return [desiredEntityTypeId, actions];
 };
 
+/**
+ * Given the entity 'store', the 'blocks' persisted to the database, and the PromiseMirror 'doc',
+ * determines what changes are needed to persist changes to the database.
+ */
 const calculateSaveActions = async (
   store: EntityStore,
   accountId: string,
@@ -161,8 +165,10 @@ const calculateSaveActions = async (
     };
   };
 
+  // Check the entities in the draft entity store against their representation (if any) in the database
   for (const draftEntity of Object.values(store.draft)) {
     if (isDraftBlockEntity(draftEntity)) {
+      // Draft blocks are checked for updates separately, after this loop
       draftIdToBlockEntities.set(draftEntity.draftId, draftEntity);
       continue;
     }
@@ -313,6 +319,9 @@ const calculateSaveActions = async (
     }
   }
 
+  // Having dealt with non-block entities, now we check for changes in the blocks themselves
+  // Block entities are wrappers which point to (a) a component and (b) a child entity
+  // First, gather the ids of the blocks as they appear in the db-persisted page
   const beforeBlockDraftIds = blocks.map((block) => {
     const draftEntity = getDraftEntityByEntityId(store.draft, block.entityId);
 
@@ -325,6 +334,7 @@ const calculateSaveActions = async (
 
   const afterBlockDraftIds: string[] = [];
 
+  // Check nodes in the ProseMirror document to gather the ids of the blocks as they appear in the latest page
   doc.descendants((node) => {
     if (isEntityNode(node)) {
       if (!node.attrs.draftId) {
@@ -346,6 +356,7 @@ const calculateSaveActions = async (
     return true;
   });
 
+  // Check the blocks from the db-persisted page against the latest version of the page
   let position = 0;
   let itCount = 0;
   while (
@@ -366,15 +377,63 @@ const calculateSaveActions = async (
     }
 
     if (afterDraftId === beforeDraftId) {
+      // the block id has not changed – but its child entity may have done, so we need to compare them
+
+      const draftEntity = draftIdToBlockEntities.get(afterDraftId!); // asserted because we've just checked they're not both falsy
+      if (!draftEntity) {
+        throw new Error("missing draft block entity");
+      }
+
+      if (!draftEntity.entityId) {
+        // The block has not yet been saved to the database, and therefore there is no saved block to compare it with
+        // It's probably been inserted as part of this loop and spliced into the before ids – no further action required
+        position += 1;
+        continue;
+      }
+
+      const savedEntity = store.saved[draftEntity.entityId];
+      if (!savedEntity) {
+        throw new Error("missing saved block entity");
+      }
+
+      // extract the children for comparison
+      const newChildEntityForBlock = draftEntity.properties.entity;
+      if (!("entity" in savedEntity.properties)) {
+        throw new Error("Missing child entity in saved block entity");
+      }
+
+      const oldChildEntityForBlock = savedEntity.properties.entity;
+
+      if (oldChildEntityForBlock.entityId !== newChildEntityForBlock.entityId) {
+        if (!newChildEntityForBlock.entityId) {
+          // this should never happen because users select new child entities from API-provided entities.
+          // if this errors in future, it's because users are choosing locally-created but not yet db-persisted entities
+          throw new Error("New child entity for block has not yet been saved");
+        }
+
+        actions.push({
+          swapBlockData: {
+            accountId: draftEntity.accountId,
+            entityId: savedEntity.entityId,
+            newEntityEntityId: newChildEntityForBlock.entityId,
+            newEntityAccountId: newChildEntityForBlock.accountId,
+          },
+        });
+      }
+
       position += 1;
       continue;
     }
 
+    // the before draft id isn't the same as the after draft id, so this block shouldn't be in this position any more
     if (beforeDraftId) {
       actions.push({ removeBlock: { position } });
+
+      // delete this block from the 'before' series so that we're comparing subsequent blocks in the correct position
       beforeBlockDraftIds.splice(position, 1);
     }
 
+    // this block wasn't in this position before – it needs inserting there
     if (afterDraftId) {
       const draftEntity = draftIdToBlockEntities.get(afterDraftId);
 
@@ -419,6 +478,8 @@ const calculateSaveActions = async (
               }),
         },
       });
+
+      // insert this new block into the 'before' series so that we compare subsequent blocks in the current position
       beforeBlockDraftIds.splice(position, 0, afterDraftId);
     }
   }
