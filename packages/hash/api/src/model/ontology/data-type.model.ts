@@ -23,6 +23,7 @@ class __DataTypeModel {
   /**
    * Create a data type.
    *
+   * @todo revisit data type creation
    * User defined data types are not specified yet, which means this `create`
    * operation should not be exposed to users yet.
    *
@@ -80,8 +81,9 @@ class __DataTypeModel {
   /**
    * Update a data type.
    *
-   * @todo As with data type `create`, this `update` operation is not currently relevant to users
-   *   because user defined data types are not fully specified.
+   * @todo revisit data type update
+   * As with data type `create`, this `update` operation is not currently relevant to users
+   * because user defined data types are not fully specified.
    *
    * @param params.accountId the accountId of the account making the update
    * @param params.schema a `DataType`
