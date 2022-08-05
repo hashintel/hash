@@ -10,7 +10,10 @@ type DataTypeArgs = {
   schema: DataTypeSchema;
 };
 
-class __DataTypeModel {
+/**
+ * @class {@link DataTypeModel}
+ */
+export default class {
   accountId: string;
 
   schema: DataTypeSchema;
@@ -102,5 +105,3 @@ class __DataTypeModel {
     return new DataTypeModel({ schema, accountId });
   }
 }
-
-export default __DataTypeModel;

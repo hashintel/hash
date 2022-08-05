@@ -1,3 +1,7 @@
+// The following import order prevents dependency cycles from occuring.
+// The name of these default imports define the name of the model classes 
+// outside this module.
+
 import EntityType from "./entityType.model";
 import VerificationCode from "./verificationCode.model";
 import Entity from "./entity.model";
@@ -38,7 +42,6 @@ export { Link };
 export * from "./aggregation.model";
 export { Aggregation };
 
-// Import in order of inheritance
 export * from "./entity.model";
 export { Entity };
 

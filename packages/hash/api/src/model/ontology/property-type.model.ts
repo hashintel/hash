@@ -10,7 +10,10 @@ type PropertyTypeArgs = {
   schema: PropertyTypeSchema;
 };
 
-class __PropertyTypeModel {
+/**
+ * @class {@link PropertyTypeModel}
+ */
+export default class {
   accountId: string;
 
   schema: PropertyTypeSchema;
@@ -95,5 +98,3 @@ class __PropertyTypeModel {
     return new PropertyTypeModel({ schema, accountId });
   }
 }
-
-export default __PropertyTypeModel;

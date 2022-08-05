@@ -10,7 +10,10 @@ type LinkTypeArgs = {
   schema: LinkTypeSchema;
 };
 
-class __LinkTypeModel {
+/**
+ * @class {@link LinkTypeModel}
+ */
+export default class {
   accountId: string;
 
   schema: LinkTypeSchema;
@@ -94,5 +97,3 @@ class __LinkTypeModel {
     return new LinkTypeModel({ schema, accountId });
   }
 }
-
-export default __LinkTypeModel;
