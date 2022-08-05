@@ -153,7 +153,7 @@ pub fn create_report() -> Report<RootError> {
 }
 
 /// This is taken from the rstest pattern https://insta.rs/docs/patterns/
-fn set_snapshot_suffix() -> impl Guard {
+fn set_snapshot_suffix() -> impl Drop {
     let mut settings = insta::Settings::clone_current();
     settings.set_snapshot_suffix(snap_suffix());
     settings.bind_to_scope()

@@ -253,25 +253,27 @@ impl<T: 'static> HookContext<'_, T> {
     ///
     /// The returned value will the previously stored value of the same type `U` scoped over type
     /// `T`, if it existed, did no such value exist it will return [`None`].
-    pub fn insert<U: 'static>(&mut self, value: U) -> Option<Box<U>> {
+    pub fn insert<U: 'static>(&mut self, value: U) -> Option<U> {
         self.parent
             .inner
             .entry(TypeId::of::<T>())
             .or_default()
             .insert(TypeId::of::<U>(), Box::new(value))?
             .downcast()
+            .map(|boxed| *boxed)
             .ok()
     }
 
     /// Remove the value of type `U` from the storage of [`HookContext`] if it existed.
     ///
     /// The returned value will be the previously stored value of the same type `U`.
-    pub fn remove<U: 'static>(&mut self) -> Option<Box<U>> {
+    pub fn remove<U: 'static>(&mut self) -> Option<U> {
         self.parent
             .inner
             .get_mut(&TypeId::of::<T>())?
             .remove(&TypeId::of::<U>())?
             .downcast()
+            .map(|boxed| *boxed)
             .ok()
     }
 
