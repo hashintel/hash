@@ -1,12 +1,12 @@
 # This file either runs with JetBrains' http requests or using httpYac (https://httpyac.github.io).
 
 ### Insert Text data type
-POST http://127.0.0.1:3000/data-types
+POST http://127.0.0.1:4000/data-types
 Content-Type: application/json
 Accept: application/json
 
 {
-  "account_id": "00000000-0000-0000-0000-000000000000",
+  "accountId": "00000000-0000-0000-0000-000000000000",
   "schema": {
     "kind": "dataType",
     "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
@@ -23,7 +23,7 @@ Accept: application/json
 %}
 
 ### Get Text data type
-GET http://127.0.0.1:3000/data-types/{{text_data_type_uri}}
+GET http://127.0.0.1:4000/data-types/{{text_data_type_uri}}
 
 > {%
     client.test("status", function() {
@@ -32,12 +32,12 @@ GET http://127.0.0.1:3000/data-types/{{text_data_type_uri}}
 %}
 
 ### Update Text data type
-PUT http://127.0.0.1:3000/data-types
+PUT http://127.0.0.1:4000/data-types
 Content-Type: application/json
 Accept: application/json
 
 {
-  "account_id": "00000000-0000-0000-0000-000000000000",
+  "accountId": "00000000-0000-0000-0000-000000000000",
   "schema": {
     "kind": "dataType",
     "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/2",
@@ -54,7 +54,7 @@ Accept: application/json
 %}
 
 ### Get all data types
-GET http://127.0.0.1:3000/data-types
+GET http://127.0.0.1:4000/data-types
 
 > {%
     client.test("status", function() {
@@ -64,12 +64,12 @@ GET http://127.0.0.1:3000/data-types
 %}
 
 ### Insert Name property type
-POST http://127.0.0.1:3000/property-types
+POST http://127.0.0.1:4000/property-types
 Content-Type: application/json
 Accept: application/json
 
 {
-  "account_id": "00000000-0000-0000-0000-000000000000",
+  "accountId": "00000000-0000-0000-0000-000000000000",
   "schema": {
     "kind": "propertyType",
     "$id": "https://blockprotocol.org/@alice/types/property-type/name/v/1",
@@ -90,7 +90,7 @@ Accept: application/json
 %}
 
 ### Get Name property type
-GET http://127.0.0.1:3000/property-types/{{person_property_type_uri}}
+GET http://127.0.0.1:4000/property-types/{{person_property_type_uri}}
 
 > {%
     client.test("status", function() {
@@ -99,12 +99,12 @@ GET http://127.0.0.1:3000/property-types/{{person_property_type_uri}}
 %}
 
 ### Update Name property type
-PUT http://127.0.0.1:3000/property-types
+PUT http://127.0.0.1:4000/property-types
 Content-Type: application/json
 Accept: application/json
 
 {
-  "account_id": "00000000-0000-0000-0000-000000000000",
+  "accountId": "00000000-0000-0000-0000-000000000000",
   "schema": {
     "kind": "propertyType",
     "$id": "https://blockprotocol.org/@alice/types/property-type/name/v/2",
@@ -124,7 +124,7 @@ Accept: application/json
 %}
 
 ### Get all property types
-GET http://127.0.0.1:3000/property-types
+GET http://127.0.0.1:4000/property-types
 
 > {%
     client.test("status", function() {
@@ -134,12 +134,12 @@ GET http://127.0.0.1:3000/property-types
 %}
 
 ### Insert FriendOf link type
-POST http://127.0.0.1:3000/link-types
+POST http://127.0.0.1:4000/link-types
 Content-Type: application/json
 Accept: application/json
 
 {
-  "account_id": "00000000-0000-0000-0000-000000000000",
+  "accountId": "00000000-0000-0000-0000-000000000000",
   "schema": {
     "kind": "linkType",
     "$id": "https://blockprotocol.org/@alice/types/link-type/friend-of/v/1",
@@ -158,7 +158,7 @@ Accept: application/json
 %}
 
 ### Get FriendOf link type
-GET http://127.0.0.1:3000/link-types/{{friend_of_link_type_uri}}
+GET http://127.0.0.1:4000/link-types/{{friend_of_link_type_uri}}
 
 > {%
     client.test("status", function() {
@@ -167,12 +167,12 @@ GET http://127.0.0.1:3000/link-types/{{friend_of_link_type_uri}}
 %}
 
 ### Update FriendOf link type
-PUT http://127.0.0.1:3000/link-types
+PUT http://127.0.0.1:4000/link-types
 Content-Type: application/json
 Accept: application/json
 
 {
-  "account_id": "00000000-0000-0000-0000-000000000000",
+  "accountId": "00000000-0000-0000-0000-000000000000",
   "schema": {
     "kind": "linkType",
     "$id": "https://blockprotocol.org/@alice/types/link-type/friend-of/v/2",
@@ -190,7 +190,7 @@ Accept: application/json
 %}
 
 ### Get all link types
-GET http://127.0.0.1:3000/link-types
+GET http://127.0.0.1:4000/link-types
 
 > {%
     client.test("status", function() {
@@ -201,12 +201,12 @@ GET http://127.0.0.1:3000/link-types
 
 
 ### Insert Person entity type
-POST http://127.0.0.1:3000/entity-types
+POST http://127.0.0.1:4000/entity-types
 Content-Type: application/json
 Accept: application/json
 
 {
-  "account_id": "00000000-0000-0000-0000-000000000000",
+  "accountId": "00000000-0000-0000-0000-000000000000",
   "schema": {
     "kind": "entityType",
     "$id": "https://blockprotocol.org/@alice/types/entity-type/person/v/1",
@@ -228,7 +228,7 @@ Accept: application/json
 %}
 
 ### Get Person entity type
-GET http://127.0.0.1:3000/entity-types/{{person_entity_type_uri}}
+GET http://127.0.0.1:4000/entity-types/{{person_entity_type_uri}}
 
 > {%
     client.test("status", function() {
@@ -237,12 +237,12 @@ GET http://127.0.0.1:3000/entity-types/{{person_entity_type_uri}}
 %}
 
 ### Update Person entity type
-PUT http://127.0.0.1:3000/entity-types
+PUT http://127.0.0.1:4000/entity-types
 Content-Type: application/json
 Accept: application/json
 
 {
-  "account_id": "00000000-0000-0000-0000-000000000000",
+  "accountId": "00000000-0000-0000-0000-000000000000",
   "schema": {
     "kind": "entityType",
     "$id": "https://blockprotocol.org/@alice/types/entity-type/person/v/2",
@@ -272,7 +272,7 @@ Accept: application/json
 %}
 
 ### Get all entity types
-GET http://127.0.0.1:3000/entity-types
+GET http://127.0.0.1:4000/entity-types
 
 > {%
     client.test("status", function() {
@@ -283,27 +283,27 @@ GET http://127.0.0.1:3000/entity-types
 
 
 ### Insert Person entity
-POST http://127.0.0.1:3000/entities
+POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
 
 {
-  "account_id": "00000000-0000-0000-0000-000000000000",
+  "accountId": "00000000-0000-0000-0000-000000000000",
   "entity": {
     "https://blockprotocol.org/@alice/types/property-type/name": "Alice"
   },
-  "entity_type_uri": "https://blockprotocol.org/@alice/types/entity-type/person/v/1"
+  "entityTypeUri": "https://blockprotocol.org/@alice/types/entity-type/person/v/1"
 }
 
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_a_entity_id", encodeURIComponent(response.body.entity_id));
+    client.global.set("person_a_entity_id", encodeURIComponent(response.body.entityId));
 %}
 
 ### Get Person entity
-GET http://127.0.0.1:3000/entities/{{person_a_entity_id}}
+GET http://127.0.0.1:4000/entities/{{person_a_entity_id}}
 
 > {%
     client.test("status", function() {
@@ -312,14 +312,14 @@ GET http://127.0.0.1:3000/entities/{{person_a_entity_id}}
 %}
 
 ### Update Person entity
-PUT http://127.0.0.1:3000/entities
+PUT http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
 
 {
-  "account_id": "00000000-0000-0000-0000-000000000000",
-  "entity_id": "{{person_a_entity_id}}",
-  "entity_type_uri": "https://blockprotocol.org/@alice/types/entity-type/person/v/2",
+  "accountId": "00000000-0000-0000-0000-000000000000",
+  "entityId": "{{person_a_entity_id}}",
+  "entityTypeUri": "https://blockprotocol.org/@alice/types/entity-type/person/v/2",
   "entity": {
     "https://blockprotocol.org/@alice/types/property-type/name": "Alice Allison"
   }
@@ -332,27 +332,27 @@ Accept: application/json
 %}
 
 ### Insert another Person entity
-POST http://127.0.0.1:3000/entities
+POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
 
 {
-  "account_id": "00000000-0000-0000-0000-000000000000",
+  "accountId": "00000000-0000-0000-0000-000000000000",
   "entity": {
     "https://blockprotocol.org/@alice/types/property-type/name": "Bob"
   },
-  "entity_type_uri": "https://blockprotocol.org/@alice/types/entity-type/person/v/1"
+  "entityTypeUri": "https://blockprotocol.org/@alice/types/entity-type/person/v/1"
 }
 
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_b_entity_id", encodeURIComponent(response.body.entity_id));
+    client.global.set("person_b_entity_id", encodeURIComponent(response.body.entityId));
 %}
 
 ### Get all entities
-GET http://127.0.0.1:3000/entities
+GET http://127.0.0.1:4000/entities
 
 > {%
     client.test("status", function() {
@@ -362,14 +362,14 @@ GET http://127.0.0.1:3000/entities
 %}
 
 ### Insert link between entities
-POST http://127.0.0.1:3000/entities/{{person_a_entity_id}}/links
+POST http://127.0.0.1:4000/entities/{{person_a_entity_id}}/links
 Content-Type: application/json
 Accept: application/json
 
 {
-  "account_id": "00000000-0000-0000-0000-000000000000",
-  "target_entity": "{{person_b_entity_id}}",
-  "link_type_uri": "{{friend_of_link_type_uri_raw}}"
+  "accountId": "00000000-0000-0000-0000-000000000000",
+  "targetEntity": "{{person_b_entity_id}}",
+  "linkTypeUri": "{{friend_of_link_type_uri_raw}}"
 }
 
 > {%
@@ -379,7 +379,7 @@ Accept: application/json
 %}
 
 ### Get person "a" links
-GET http://127.0.0.1:3000/entities/{{person_a_entity_id}}/links
+GET http://127.0.0.1:4000/entities/{{person_a_entity_id}}/links
 Content-Type: application/json
 Accept: application/json
 
@@ -393,13 +393,13 @@ Accept: application/json
 %}
 
 ### Inactivate person "a" to person "b" link
-DELETE http://127.0.0.1:3000/entities/{{person_a_entity_id}}/links
+DELETE http://127.0.0.1:4000/entities/{{person_a_entity_id}}/links
 Content-Type: application/json
 Accept: application/json
 
 {
-  "target_entity": "{{person_b_entity_id}}",
-  "link_type_uri": "{{friend_of_link_type_uri_raw}}"
+  "targetEntity": "{{person_b_entity_id}}",
+  "linkTypeUri": "{{friend_of_link_type_uri_raw}}"
 }
 
 > {%
@@ -409,7 +409,7 @@ Accept: application/json
 %}
 
 ### Check inactivated person "a" to person "b" link
-GET http://127.0.0.1:3000/entities/{{person_a_entity_id}}/links
+GET http://127.0.0.1:4000/entities/{{person_a_entity_id}}/links
 Content-Type: application/json
 Accept: application/json
 

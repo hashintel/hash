@@ -23,6 +23,7 @@ use crate::{
 };
 
 #[derive(Component, Serialize)]
+#[serde(rename_all = "camelCase")]
 struct QualifiedEntity {
     entity_id: EntityId,
     entity: Entity,
@@ -62,6 +63,7 @@ impl RoutedResource for EntityResource {
 }
 
 #[derive(Serialize, Deserialize, Component)]
+#[serde(rename_all = "camelCase")]
 struct CreateEntityRequest {
     entity: Entity,
     #[component(value_type = String)]
@@ -112,7 +114,7 @@ async fn create_entity<P: GraphPool>(
 
 #[utoipa::path(
     get,
-    path = "/entities/{entity_id}",
+    path = "/entities/{entityId}",
     tag = "Entity",
     responses(
         (status = 200, content_type = "application/json", description = "The requested entity", body = Entity),
@@ -122,7 +124,7 @@ async fn create_entity<P: GraphPool>(
         (status = 500, description = "Datastore error occurred"),
     ),
     params(
-        ("entity_id" = Uuid, Path, description = "The ID of the entity"),
+        ("entityId" = Uuid, Path, description = "The ID of the entity"),
     )
 )]
 async fn get_entity<P: GraphPool>(
@@ -152,6 +154,7 @@ async fn get_latest_entities<P: GraphPool>(
 }
 
 #[derive(Component, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct UpdateEntityRequest {
     entity: Entity,
     entity_id: EntityId,
