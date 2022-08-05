@@ -39,7 +39,7 @@ class __LinkType {
   }
 
   /**
-   * Get latest versions of all link types.
+   * Get all link types at their latest version.
    *
    * @param params.accountId the accountId of the account requesting the link types
    */

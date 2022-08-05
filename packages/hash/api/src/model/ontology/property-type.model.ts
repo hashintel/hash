@@ -39,7 +39,7 @@ class __PropertyType {
   }
 
   /**
-   * Get latest versions of all property types.
+   * Get all property types at their latest version.
    *
    * @param params.accountId the accountId of the account requesting the property types
    */

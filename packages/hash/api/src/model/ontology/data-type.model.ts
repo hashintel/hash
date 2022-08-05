@@ -24,7 +24,7 @@ class __DataType {
    * Create a data type.
    *
    * User defined data types are not specified yet, which means this `create`
-   * operations should not be exposed to users yet.
+   * operation should not be exposed to users yet.
    *
    * @param params.accountId the accountId of the account creating the data type
    * @param params.schema a `DataType`
@@ -42,7 +42,7 @@ class __DataType {
   }
 
   /**
-   * Get latest versions of all data types.
+   * Get all data types at their latest version.
    *
    * @param params.accountId the accountId of the account requesting the data types
    */
@@ -80,8 +80,8 @@ class __DataType {
   /**
    * Update a data type.
    *
-   * As with data type `create`, this `update` operation is not relevant to users
-   * as user defined data types are not fully specified.
+   * @todo As with data type `create`, this `update` operation is not currently relevant to users
+   *   because user defined data types are not fully specified.
    *
    * @param params.accountId the accountId of the account making the update
    * @param params.schema a `DataType`
