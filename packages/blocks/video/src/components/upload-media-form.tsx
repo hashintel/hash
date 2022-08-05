@@ -48,7 +48,6 @@ export const UploadMediaForm: FunctionComponent<UploadMediaFormProps> = ({
         className={tw`mb-0`}
         onSubmit={(event) => {
           event.preventDefault();
-
           onUrlConfirm();
         }}
       >

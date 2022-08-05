@@ -220,9 +220,9 @@ export const Media: FunctionComponent<
       entityId,
       graphService,
       mediaType,
+      readonly,
       setDraftSrc,
       setDraftWidth,
-      readonly,
     ],
   );
 
@@ -303,8 +303,8 @@ export const Media: FunctionComponent<
       graphService,
       loading,
       mediaType,
-      updateData,
       readonly,
+      updateData,
     ],
   );
 
