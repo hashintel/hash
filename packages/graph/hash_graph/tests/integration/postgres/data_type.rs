@@ -1,5 +1,3 @@
-use graph::ontology::types::OntologyType;
-
 use crate::postgres::DatabaseTestWrapper;
 
 #[tokio::test]
@@ -63,5 +61,5 @@ async fn update() {
         .expect("could not update data type");
 
     assert_ne!(object_dt_v1, object_dt_v2);
-    assert_ne!(object_dt_v1.uri(), object_dt_v2.uri());
+    assert_ne!(object_dt_v1.id(), object_dt_v2.id());
 }

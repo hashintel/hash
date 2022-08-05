@@ -15,8 +15,13 @@ use graph::{
         AccountId,
     },
     store::{
-        error::LinkActivationError, AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
-        EntityStore, EntityTypeStore, InsertionError, LinkStore, LinkTypeStore, PostgresStore,
+        error::LinkActivationError,
+        query::{
+            DataTypeQuery, EntityQuery, EntityTypeQuery, LinkQuery, LinkTypeQuery,
+            PropertyTypeQuery,
+        },
+        AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
+        EntityTypeStore, InsertionError, LinkStore, LinkTypeStore, PostgresStore,
         PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
 };
@@ -143,7 +148,16 @@ impl DatabaseApi<'_> {
     }
 
     pub async fn get_data_type(&mut self, uri: &VersionedUri) -> Result<DataType, QueryError> {
-        self.store.get_data_type(uri).await
+        Ok(self
+            .store
+            .get_data_type(
+                &DataTypeQuery::new()
+                    .with_uri(uri.base_uri())
+                    .with_version(uri.version()),
+            )
+            .await?
+            .pop()
+            .expect("No data type found"))
     }
 
     pub async fn update_data_type(&mut self, data_type: &DataType) -> Result<(), UpdateError> {
@@ -165,7 +179,16 @@ impl DatabaseApi<'_> {
         &mut self,
         uri: &VersionedUri,
     ) -> Result<PropertyType, QueryError> {
-        self.store.get_property_type(uri).await
+        Ok(self
+            .store
+            .get_property_type(
+                &PropertyTypeQuery::new()
+                    .with_uri(uri.base_uri())
+                    .with_version(uri.version()),
+            )
+            .await?
+            .pop()
+            .expect("No property type found"))
     }
 
     pub async fn update_property_type(
@@ -187,7 +210,16 @@ impl DatabaseApi<'_> {
     }
 
     pub async fn get_entity_type(&mut self, uri: &VersionedUri) -> Result<EntityType, QueryError> {
-        self.store.get_entity_type(uri).await
+        Ok(self
+            .store
+            .get_entity_type(
+                &EntityTypeQuery::new()
+                    .with_uri(uri.base_uri())
+                    .with_version(uri.version()),
+            )
+            .await?
+            .pop()
+            .expect("No entity type found"))
     }
 
     pub async fn update_entity_type(
@@ -206,7 +238,16 @@ impl DatabaseApi<'_> {
     }
 
     pub async fn get_link_type(&mut self, uri: &VersionedUri) -> Result<LinkType, QueryError> {
-        self.store.get_link_type(uri).await
+        Ok(self
+            .store
+            .get_link_type(
+                &LinkTypeQuery::new()
+                    .with_uri(uri.base_uri())
+                    .with_version(uri.version()),
+            )
+            .await?
+            .pop()
+            .expect("No link type found"))
     }
 
     pub async fn update_link_type(&mut self, link_type: &LinkType) -> Result<(), UpdateError> {
@@ -226,7 +267,12 @@ impl DatabaseApi<'_> {
     }
 
     pub async fn get_entity(&mut self, entity_id: EntityId) -> Result<PersistedEntity, QueryError> {
-        self.store.get_entity(entity_id).await
+        Ok(self
+            .store
+            .get_entity(&EntityQuery::new().with_id(entity_id).with_latest_version())
+            .await?
+            .pop()
+            .expect("No entity found"))
     }
 
     pub async fn update_entity(
@@ -252,16 +298,34 @@ impl DatabaseApi<'_> {
 
     pub async fn get_link_target(
         &self,
-        source_entity_id: EntityId,
+        source_entity: EntityId,
         link_type_uri: VersionedUri,
     ) -> Result<Outgoing, QueryError> {
-        self.store
-            .get_link_target(source_entity_id, &link_type_uri)
-            .await
+        Ok(self
+            .store
+            .get_links(
+                &LinkQuery::new()
+                    .with_source_entity_id(source_entity)
+                    .with_link_types(|link_types| {
+                        link_types
+                            .with_uri(link_type_uri.base_uri())
+                            .with_version(link_type_uri.version())
+                    }),
+            )
+            .await?
+            .pop()
+            .expect("No links found")
+            .outgoing()[&link_type_uri]
+            .clone())
     }
 
-    pub async fn get_entity_links(&self, source_entity_id: EntityId) -> Result<Links, QueryError> {
-        self.store.get_entity_links(source_entity_id).await
+    pub async fn get_entity_links(&self, source_entity: EntityId) -> Result<Links, QueryError> {
+        Ok(self
+            .store
+            .get_links(&LinkQuery::new().with_source_entity_id(source_entity))
+            .await?
+            .pop()
+            .expect("No links found"))
     }
 
     async fn remove_link(

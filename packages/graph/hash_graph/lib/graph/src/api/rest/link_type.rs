@@ -18,8 +18,9 @@ use crate::{
         types::{uri::VersionedUri, LinkType},
         AccountId,
     },
-    store::{crud::AllLatest, BaseUriAlreadyExists, BaseUriDoesNotExist},
-    GraphPool,
+    store::{
+        query::LinkTypeQuery, BaseUriAlreadyExists, BaseUriDoesNotExist, LinkTypeStore, StorePool,
+    },
 };
 
 #[derive(OpenApi)]
@@ -39,7 +40,7 @@ pub struct LinkTypeResource;
 
 impl RoutedResource for LinkTypeResource {
     /// Create routes for interacting with link types.
-    fn routes<P: GraphPool>() -> Router {
+    fn routes<P: StorePool + Send + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/link-types",
@@ -77,7 +78,7 @@ struct CreateLinkTypeRequest {
     ),
     request_body = CreateLinkTypeRequest,
 )]
-async fn create_link_type<P: GraphPool>(
+async fn create_link_type<P: StorePool + Send>(
     body: Json<CreateLinkTypeRequest>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<LinkType>, StatusCode> {
@@ -115,10 +116,10 @@ async fn create_link_type<P: GraphPool>(
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_latest_link_types<P: GraphPool>(
+async fn get_latest_link_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<LinkType>>, StatusCode> {
-    read_from_store::<LinkType, _, _, _>(pool.as_ref(), AllLatest)
+    read_from_store(pool.as_ref(), &LinkTypeQuery::new().with_latest_version())
         .await
         .map(Json)
 }
@@ -138,13 +139,19 @@ async fn get_latest_link_types<P: GraphPool>(
         ("uri" = String, Path, description = "The URI of the link type"),
     )
 )]
-async fn get_link_type<P: GraphPool>(
-    Path(uri): Path<VersionedUri>,
-    Extension(pool): Extension<Arc<P>>,
+async fn get_link_type<P: StorePool + Send>(
+    uri: Path<VersionedUri>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<LinkType>, StatusCode> {
-    read_from_store::<LinkType, _, _, _>(pool.as_ref(), &uri)
-        .await
-        .map(Json)
+    read_from_store(
+        pool.as_ref(),
+        &LinkTypeQuery::new()
+            .with_uri(uri.base_uri())
+            .with_version(uri.version()),
+    )
+    .await
+    .and_then(|mut link_types| link_types.pop().ok_or(StatusCode::NOT_FOUND))
+    .map(Json)
 }
 
 #[derive(Component, Serialize, Deserialize)]
@@ -168,7 +175,7 @@ struct UpdateLinkTypeRequest {
     ),
     request_body = UpdateLinkTypeRequest,
 )]
-async fn update_link_type<P: GraphPool>(
+async fn update_link_type<P: StorePool + Send>(
     body: Json<UpdateLinkTypeRequest>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<LinkType>, StatusCode> {

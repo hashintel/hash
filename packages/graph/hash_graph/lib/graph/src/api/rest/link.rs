@@ -10,8 +10,7 @@ use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store},
     knowledge::{EntityId, Link, Links},
     ontology::{types::uri::VersionedUri, AccountId},
-    store::error::QueryError,
-    GraphPool,
+    store::{error::QueryError, query::LinkQuery, LinkStore, StorePool},
 };
 
 #[derive(OpenApi)]
@@ -30,7 +29,7 @@ pub struct LinkResource;
 
 impl RoutedResource for LinkResource {
     /// Create routes for interacting with links.
-    fn routes<P: GraphPool>() -> Router {
+    fn routes<P: StorePool + Send + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         //   for links specifically, we are stacking on top of the existing `/entity/` routes.
         Router::new().nest(
@@ -70,7 +69,7 @@ struct CreateLinkRequest {
         ("entityId" = Uuid, Path, description = "The ID of the source entity"),
     )
 )]
-async fn create_link<P: GraphPool>(
+async fn create_link<P: StorePool + Send>(
     source_entity: Path<EntityId>,
     body: Json<CreateLinkRequest>,
     pool: Extension<Arc<P>>,
@@ -122,13 +121,17 @@ async fn create_link<P: GraphPool>(
         ("entityId" = Uuid, Path, description = "The ID of the source entity"),
     )
 )]
-async fn get_entity_links<P: GraphPool>(
+async fn get_entity_links<P: StorePool + Send>(
     Path(source_entity_id): Path<EntityId>,
-    Extension(pool): Extension<Arc<P>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<Links>, StatusCode> {
-    read_from_store::<Link, _, _, _>(pool.as_ref(), source_entity_id)
-        .await
-        .map(Json)
+    read_from_store(
+        pool.as_ref(),
+        &LinkQuery::new().with_source_entity_id(source_entity_id),
+    )
+    .await
+    .and_then(|mut links| links.pop().ok_or(StatusCode::NOT_FOUND))
+    .map(Json)
 }
 
 #[derive(Serialize, Deserialize, Component)]
@@ -155,7 +158,7 @@ struct InactivateLinkRequest {
         ("entityId" = Uuid, Path, description = "The ID of the source entity"),
     ),
 )]
-async fn inactivate_link<P: GraphPool>(
+async fn inactivate_link<P: StorePool + Send>(
     source_entity: Path<EntityId>,
     body: Json<InactivateLinkRequest>,
     pool: Extension<Arc<P>>,

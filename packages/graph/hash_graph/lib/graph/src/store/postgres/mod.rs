@@ -266,7 +266,7 @@ where
     where
         T: OntologyDatabaseType + Serialize + Send + Sync,
     {
-        let uri = database_type.uri();
+        let uri = database_type.versioned_uri();
 
         if self
             .contains_base_uri(uri.base_uri())
@@ -317,7 +317,7 @@ where
     where
         T: OntologyDatabaseType + Serialize + Send + Sync,
     {
-        let uri = database_type.uri();
+        let uri = database_type.versioned_uri();
 
         if !self
             .contains_base_uri(uri.base_uri())

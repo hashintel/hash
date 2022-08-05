@@ -15,7 +15,6 @@ mod entity_type;
 mod link_type;
 mod property_type;
 
-use crate::ontology::types::uri::VersionedUri;
 pub use crate::ontology::types::{
     data_type::{DataType, DataTypeReference},
     entity_type::{EntityType, EntityTypeReference},
@@ -26,8 +25,3 @@ pub use crate::ontology::types::{
 pub mod error;
 
 mod serde_shared;
-
-pub trait OntologyType {
-    /// Returns the unique versioned URI used to identify this instance of a type.
-    fn uri(&self) -> &VersionedUri;
-}

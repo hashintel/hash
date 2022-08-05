@@ -3,9 +3,8 @@ use error_stack::{IntoReport, Result, ResultExt};
 use tokio_postgres::GenericClient;
 
 use crate::{
-    ontology::AccountId,
+    ontology::{types::EntityType, AccountId},
     store::{AsClient, EntityTypeStore, InsertionError, PostgresStore, UpdateError},
-    EntityType,
 };
 
 #[async_trait]
