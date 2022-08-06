@@ -25,7 +25,10 @@ use core::{
 #[cfg(feature = "hooks")]
 pub(crate) use hook::ErasedHooks;
 use hook::HookContextImpl;
+#[cfg(feature = "hooks")]
 pub use hook::{Builtin, Hook};
+#[cfg(not(feature = "hooks"))]
+pub(crate) use hook::{Builtin, Hook};
 #[cfg(feature = "hooks")]
 pub use hook::{HookContext, Hooks};
 #[cfg(all(nightly, feature = "experimental"))]
