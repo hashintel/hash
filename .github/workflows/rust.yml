@@ -209,7 +209,10 @@ jobs:
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.publish) }}
         toolchain:
+          - stable
           - ${{ needs.setup.outputs.nightly }}
+        profile:
+          - release
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -221,6 +224,18 @@ jobs:
           profile: minimal
           toolchain: ${{ matrix.toolchain }}
           override: true
+
+      - name: Install tools
+        shell: bash
+        run: |
+          cargo install cargo-quickinstall
+          cargo quickinstall cargo-make --version 0.35.15
+          cargo quickinstall cargo-hack --version 0.5.15
+          cargo quickinstall cargo-nextest --version 0.9.28
+
+      - name: Run tests
+        working-directory: ${{ matrix.directory }}
+        run: cargo make --profile ${{ matrix.profile }} test --no-fail-fast
 
       - name: Login
         run: |
