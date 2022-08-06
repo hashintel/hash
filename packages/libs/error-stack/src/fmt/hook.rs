@@ -385,34 +385,82 @@ impl<T: 'static> HookContext<'_, T> {
     }
 }
 
-type UInt0 = ();
+mod sealed {
+    /// Sealed trait used in `Hook<T, U>` as a "hack" to allow for multiple blanket type
+    /// implementation.
+    ///
+    /// Otherwise it wouldn't be possible to implement [`Hook<T, U>`] for both `Fn(&T)` and
+    /// `Fn(&T, &mut HookContext)`.
+    pub trait Sealed {}
+}
+
+/// Internal marker trait, which isn't exposed, this is only used to allow for a
+/// blanket implementation on `Fn(&T)`
 #[cfg(feature = "hooks")]
-type UInt1 = ((), UInt0);
+struct FnMarker;
+
+/// Internal marker trait, which isn't exposed, this is only used to allow for a blanket
+/// implementation on `Fn(&T, &mut HookContext<T>)`.
 #[cfg(feature = "hooks")]
-type UInt2 = ((), UInt1);
+struct FnContextMarker;
+
+impl sealed::Sealed for () {}
+#[cfg(feature = "hooks")]
+impl sealed::Sealed for FnMarker {}
+#[cfg(feature = "hooks")]
+impl sealed::Sealed for FnContextMarker {}
 
 /// Trait to interact and inject information on [`Debug`]
 ///
-/// A Hook which potentially outputs a line, if conditions met in [`call()`] are met for a specific
-/// type `T`, and a specific number of arguments `U`.
+/// A [`Hook`] can be used to emit a [`Line`] for a [`Frame`], if it can be downcast to `T`.
 ///
-/// This trait is used internally and is automatically implemented for [`Fn(&T) -> Line`]
-/// and [`Fn(&T, &mut HookContext<T>) -> Line`]
+/// `U` acts as am internal marker type. User implementations can only use `()` for `U`.
 ///
-/// [`call()`]: Self::call
-pub trait Hook<T, U> {
-    /// This function gets called for every frame, but only if no other hook before has returned a
-    /// [`Line`].
+/// This trait is automatically implemented for [`Fn(&T) -> Line`] and
+/// [`Fn(&T, &mut HookContext<T>) -> Line`].
+pub trait Hook<T, U>
+where
+    U: sealed::Sealed,
+{
+    /// Function which is called to invoke the hook on a potentially downcasted [`Frame`].
     ///
-    /// The implementation can either find an acceptable hook to process the frame
-    /// (will return [`Some`]) or cannot process the [`Frame`] and return [`None`],
-    /// elementary types *should* always return [`Some`] and not do any casting, while combinators
-    /// can use [`None`] to propagate to other elementary hooks.
+    /// This function must return [`Option<Line>`], if this function return [`None`] it is
+    /// determined that the hook did **not** successfully execute or wasn't applicable,
+    /// and other [`Hook`]s are tried, until all [`Hook`]s have been tried, or a single [`Hook`]
+    /// returned [`Some`].
+    ///
+    /// This function is not guaranteed to run for every [`Frame`] that can be downcast to `T`,
+    /// and will only be called if no [`Hook`] before, that has been deemed suitable has returned
+    /// [`None`].
+    ///
+    /// ## Explanation
+    ///
+    /// This pseudo code roughly explains how calling of [`Hook`]s is performed.
+    ///
+    /// ```text
+    /// have a list of hooks H
+    /// have a frame F
+    ///
+    /// for every hook h in H {
+    ///     able = can F be downcast to T (of h)?
+    ///     if not able {
+    ///         skip
+    ///     }
+    ///     
+    ///     f = F.downcast();
+    ///
+    ///     if let Some(result) = h.call(f) {
+    ///         return Some(result)
+    ///     }
+    /// }
+    ///
+    /// return None
+    /// ```
     fn call(&self, frame: &T, ctx: HookContext<T>) -> Option<Line>;
 }
 
 #[cfg(feature = "hooks")]
-impl<F, T> Hook<T, UInt2> for F
+impl<F, T> Hook<T, FnContextMarker> for F
 where
     F: Fn(&T, &mut HookContext<T>) -> Line,
     T: Send + Sync + 'static,
@@ -423,7 +471,7 @@ where
 }
 
 #[cfg(feature = "hooks")]
-impl<F, T> Hook<T, UInt1> for F
+impl<F, T> Hook<T, FnMarker> for F
 where
     F: Fn(&T) -> Line,
     T: Send + Sync + 'static,
@@ -474,8 +522,9 @@ impl<L, T, R> Stack<L, T, R> {
 // clippy::mismatching_type_param_order is a false positive
 #[cfg(feature = "hooks")]
 #[allow(clippy::mismatching_type_param_order)]
-impl<L, T, U, R> Hook<Frame, UInt0> for Stack<L, (T, U), R>
+impl<L, T, U, R> Hook<Frame, ()> for Stack<L, (T, U), R>
 where
+    U: sealed::Sealed,
     L: Hook<T, U>,
     T: Send + Sync + 'static,
     R: Hook<Frame, ()>,
@@ -533,10 +582,10 @@ impl<L, R> Combine<L, R> {
 }
 
 #[cfg(feature = "hooks")]
-impl<L, R> Hook<Frame, UInt0> for Combine<L, R>
+impl<L, R> Hook<Frame, ()> for Combine<L, R>
 where
-    L: Hook<Frame, UInt0>,
-    R: Hook<Frame, UInt0>,
+    L: Hook<Frame, ()>,
+    R: Hook<Frame, ()>,
 {
     fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Line> {
         let parent = ctx.into_impl();
@@ -548,7 +597,7 @@ where
 }
 
 #[cfg(feature = "hooks")]
-impl Hook<Frame, UInt0> for Box<dyn Hook<Frame, UInt0> + Send + Sync> {
+impl Hook<Frame, ()> for Box<dyn Hook<Frame, ()> + Send + Sync> {
     fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Line> {
         let hook = self.as_ref();
 
@@ -557,7 +606,7 @@ impl Hook<Frame, UInt0> for Box<dyn Hook<Frame, UInt0> + Send + Sync> {
 }
 
 #[cfg(feature = "hooks")]
-impl<T> Hook<T, UInt0> for () {
+impl<T> Hook<T, ()> for () {
     fn call(&self, _: &T, _: HookContext<T>) -> Option<Line> {
         None
     }
@@ -584,7 +633,7 @@ impl<T> Hook<T, UInt0> for () {
 /// [`.push()`]: Hooks::push
 #[cfg(feature = "hooks")]
 #[must_use]
-pub struct Hooks<T: Hook<Frame, UInt0>>(T);
+pub struct Hooks<T: Hook<Frame, ()>>(T);
 
 #[cfg(feature = "hooks")]
 impl Hooks<Builtin> {
@@ -621,7 +670,7 @@ impl Hooks<()> {
 }
 
 #[cfg(feature = "hooks")]
-impl<T: Hook<Frame, UInt0>> Hooks<T> {
+impl<T: Hook<Frame, ()>> Hooks<T> {
     const fn new_with(hook: T) -> Self {
         Self(hook)
     }
@@ -710,7 +759,7 @@ impl<T: Hook<Frame, UInt0>> Hooks<T> {
     /// ```
     // clippy::missing_const_for_fn is a false positive
     #[allow(clippy::missing_const_for_fn)]
-    pub fn combine<U: Hook<Frame, UInt0>>(self, other: Hooks<U>) -> Hooks<Combine<T, U>> {
+    pub fn combine<U: Hook<Frame, ()>>(self, other: Hooks<U>) -> Hooks<Combine<T, U>> {
         let both = Combine::new(self.0, other.0);
 
         Hooks::new_with(both)
@@ -718,14 +767,14 @@ impl<T: Hook<Frame, UInt0>> Hooks<T> {
 }
 
 #[cfg(feature = "hooks")]
-impl<T: Hook<Frame, UInt0> + Send + Sync + 'static> Hooks<T> {
+impl<T: Hook<Frame, ()> + Send + Sync + 'static> Hooks<T> {
     pub(crate) fn erase(self) -> ErasedHooks {
         Hooks::new_with(Box::new(self.0))
     }
 }
 
 #[cfg(feature = "hooks")]
-pub type ErasedHooks = Hooks<Box<dyn Hook<Frame, UInt0> + Send + Sync>>;
+pub type ErasedHooks = Hooks<Box<dyn Hook<Frame, ()> + Send + Sync>>;
 
 #[cfg(feature = "hooks")]
 impl ErasedHooks {
@@ -745,7 +794,7 @@ mod builtin {
 
     use crate::{
         fmt::{
-            hook::{Hook, HookContext, UInt0},
+            hook::{Hook, HookContext},
             Line,
         },
         Frame,
@@ -788,7 +837,7 @@ mod builtin {
     /// [`SpanTrace`]: tracing_error::SpanTrace
     pub struct Builtin;
 
-    impl Hook<Frame, UInt0> for Builtin {
+    impl Hook<Frame, ()> for Builtin {
         #[allow(unused_variables)]
         fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Line> {
             #[cfg(all(nightly, feature = "std"))]
