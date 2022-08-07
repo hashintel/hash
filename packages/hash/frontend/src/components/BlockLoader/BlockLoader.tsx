@@ -97,7 +97,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   const { deleteLinkedAggregation } =
     useBlockProtocolDeleteLinkedAggregation(readonlyMode);
   const { deleteLink } = useBlockProtocolDeleteLink(readonlyMode);
-  const { updateEntity } = useBlockProtocolUpdateEntity(readonlyMode);
+  const { updateEntity } = useBlockProtocolUpdateEntity(false, readonlyMode);
   const { uploadFile } = useBlockProtocolFileUpload(accountId, readonlyMode);
   const { updateEntityType } = useBlockProtocolUpdateEntityType(readonlyMode);
   const { updateLinkedAggregation } =
