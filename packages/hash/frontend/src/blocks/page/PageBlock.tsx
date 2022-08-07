@@ -12,7 +12,7 @@ import { UserBlocksProvider } from "../userBlocks";
 import { EditorConnection } from "./collab/EditorConnection";
 import { BlocksMap, createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
-import { useReadonlyMode } from "../../shared/readonly-mode/context";
+import { useReadonlyMode } from "../../shared/readonly-mode";
 
 type PageBlockProps = {
   blocks: BlocksMap;

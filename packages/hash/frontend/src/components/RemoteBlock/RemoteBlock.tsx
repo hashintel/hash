@@ -2,7 +2,6 @@ import { BlockMetadata, UnknownRecord } from "@blockprotocol/core";
 import {
   BlockGraphProperties,
   EmbedderGraphMessageCallbacks,
-  // useGraphEmbedderService
 } from "@blockprotocol/graph";
 import { useGraphEmbedderService } from "@blockprotocol/graph/react";
 import { FunctionComponent, useEffect, useRef } from "react";

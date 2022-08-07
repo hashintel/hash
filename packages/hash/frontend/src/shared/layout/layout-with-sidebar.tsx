@@ -9,7 +9,7 @@ import {
 } from "./layout-with-sidebar/page-sidebar";
 import { SidebarToggleIcon } from "../icons";
 import { LayoutWithHeader } from "./layout-with-header";
-import { useReadonlyMode } from "../readonly-mode/context";
+import { useReadonlyMode } from "../readonly-mode";
 
 const Main = styled("main")(({ theme }) => ({
   height: `calc(100vh - ${HEADER_HEIGHT}px)`,

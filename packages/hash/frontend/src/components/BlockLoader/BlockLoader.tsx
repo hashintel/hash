@@ -40,7 +40,7 @@ import { useBlockProtocolUpdateEntityType } from "../hooks/blockProtocolFunction
 import { useBlockProtocolUpdateLink } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLink";
 import { useBlockProtocolUpdateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregation";
 import { EntityType as ApiEntityType } from "../../graphql/apiTypes.gen";
-import { useReadonlyMode } from "../../shared/readonly-mode/context";
+import { useReadonlyMode } from "../../shared/readonly-mode";
 
 type BlockLoaderProps = {
   accountId: string;

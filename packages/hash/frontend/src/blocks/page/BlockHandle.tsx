@@ -11,7 +11,7 @@ import { BlockConfigMenu } from "./BlockConfigMenu/BlockConfigMenu";
 import { BlockContextMenu } from "./BlockContextMenu/BlockContextMenu";
 import { useBlockView } from "./BlockViewContext";
 import { useBlockContext } from "./BlockContext";
-import { useReadonlyMode } from "../../shared/readonly-mode/context";
+import { useReadonlyMode } from "../../shared/readonly-mode";
 
 type BlockHandleProps = {
   deleteBlock: () => void;
@@ -76,7 +76,7 @@ const BlockHandle: ForwardRefRenderFunction<
     <Box
       ref={ref}
       sx={{
-        display: readonlyMode ? "block" : "block",
+        display: readonlyMode ? "none" : "block",
       }}
       data-testid="block-handle"
     >
