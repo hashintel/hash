@@ -106,7 +106,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
           /**
            * Hide tooltip if in readonly mode
            */
-          if (!view.props.editable?.(state)) {
+          if (!view.editable) {
             return;
           }
 
