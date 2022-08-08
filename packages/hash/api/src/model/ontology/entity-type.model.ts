@@ -97,7 +97,7 @@ export default class {
   /**
    * Get all outgoing link types of the entity type.
    */
-  async getOutoingLinkTypes(graphApi: GraphApi): Promise<LinkTypeModel[]> {
+  async getOutgoingLinkTypes(graphApi: GraphApi): Promise<LinkTypeModel[]> {
     const linkTypeVersionedUris = Object.keys(this.schema.links ?? {});
 
     return await Promise.all(

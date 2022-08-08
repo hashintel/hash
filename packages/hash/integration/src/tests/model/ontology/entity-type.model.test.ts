@@ -166,7 +166,7 @@ describe("Entity type CRU", () => {
   });
 
   it("can get all outgoing link types", async () => {
-    const linkTypes = await createdEntityType.getOutoingLinkTypes(graphApi);
+    const linkTypes = await createdEntityType.getOutgoingLinkTypes(graphApi);
 
     expect(linkTypes).toHaveLength(1);
 
