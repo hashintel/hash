@@ -8,7 +8,7 @@ execution = { path = "../../lib/execution", default-features = false }
 experiment-structure = { path = "../../lib/experiment-structure", default-features = false }
 experiment-control = { path = "../../lib/experiment-control", default-features = false, features = ["clap"] }
 
-error-stack = { version = "0.1.1", features = ["spantrace"] }
+error-stack = { version = "0.1.1", path = "../../../libs/error-stack", features = ["spantrace"] }
 
 tokio = "1.19.2"
 tracing = "0.1.35"

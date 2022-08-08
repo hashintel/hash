@@ -53,7 +53,7 @@ fn get_simple_experiment_config(
         .attach_printable("Experiment configuration not found: experiments.json")?;
     let experiments_manifest_comment_remover = StripComments::new(experiments_manifest.as_bytes());
     let parsed = serde_json::from_reader(experiments_manifest_comment_remover)
-        .report()
+        .into_report()
         .change_context(ExperimentPlanError)
         .attach_printable("Could not parse experiment manifest")?;
     let plan = create_experiment_plan(&parsed, &experiment_name)
@@ -133,7 +133,7 @@ fn create_multiparameter_variant(
     }
 
     let var: MultiparameterVariant = serde_json::from_value(selected_experiment.clone())
-        .report()
+        .into_report()
         .change_context(ExperimentPlanError)
         .attach_printable("Could not parse multiparameter variant")?;
     let subplans = var
@@ -190,7 +190,7 @@ fn create_group_variant(
         runs: Vec<ExperimentName>,
     }
     let var: GroupVariant = serde_json::from_value(selected_experiment.clone())
-        .report()
+        .into_report()
         .change_context(ExperimentPlanError)
         .attach_printable("Could not create group variant")?;
     var.runs.iter().try_fold(
@@ -289,37 +289,37 @@ fn create_monte_carlo_variant_plan(
             let distribution = match self.distribution.as_str() {
                 "normal" => Box::new(
                     Normal::new(self.mean.unwrap_or(1.0), self.std.unwrap_or(1.0))
-                        .report()
+                        .into_report()
                         .change_context(ExperimentPlanError)
                         .attach_printable("Unable to create normal distribution")?,
                 ) as Box<dyn DynDistribution<f64>>,
                 "log-normal" => Box::new(
                     LogNormal::new(self.mu.unwrap_or(1.0), self.sigma.unwrap_or(1.0))
-                        .report()
+                        .into_report()
                         .change_context(ExperimentPlanError)
                         .attach_printable("Unable to create log-normal distribution")?,
                 ),
                 "poisson" => Box::new(
                     Poisson::new(self.rate.unwrap_or(1.0))
-                        .report()
+                        .into_report()
                         .change_context(ExperimentPlanError)
                         .attach_printable("Unable to create poisson distribution")?,
                 ),
                 "beta" => Box::new(
                     Beta::new(self.alpha.unwrap_or(1.0), self.beta.unwrap_or(1.0))
-                        .report()
+                        .into_report()
                         .change_context(ExperimentPlanError)
                         .attach_printable("Unable to create beta distribution")?,
                 ),
                 "gamma" => Box::new(
                     Gamma::new(self.shape.unwrap_or(1.0), self.scale.unwrap_or(1.0))
-                        .report()
+                        .into_report()
                         .change_context(ExperimentPlanError)
                         .attach_printable("Unable to create gamma distribution")?,
                 ),
                 _ => Box::new(
                     Normal::new(1.0, 1.0)
-                        .report()
+                        .into_report()
                         .change_context(ExperimentPlanError)
                         .attach_printable("Unable to create normal distribution")?,
                 ),
@@ -332,7 +332,7 @@ fn create_monte_carlo_variant_plan(
     }
 
     let var: MonteCarloVariant = serde_json::from_value(selected_experiment.clone())
-        .report()
+        .into_report()
         .change_context(ExperimentPlanError)
         .attach_printable("Could not create monte carlo distribution")?;
     let values: Vec<_> = (0..var.samples as usize).map(|_| 0.into()).collect();
@@ -357,7 +357,7 @@ fn create_value_variant_plan(
     }
 
     let var: ValueVariant = serde_json::from_value(selected_experiment.clone())
-        .report()
+        .into_report()
         .change_context(ExperimentPlanError)
         .attach_printable("Could not parse value variant")?;
     let mapper: Mapper = Box::new(|val, _index| val);
@@ -383,7 +383,7 @@ fn create_linspace_variant_plan(
         stop: f64,
     }
     let var: LinspaceVariant = serde_json::from_value(selected_experiment.clone())
-        .report()
+        .into_report()
         .change_context(ExperimentPlanError)
         .attach_printable("Could not create linspace variant")?;
     let values: Vec<_> = (0..var.samples as usize).map(|_| 0.into()).collect();
@@ -422,7 +422,7 @@ fn create_arange_variant_plan(
         stop: f64,
     }
     let var: ArangeVariant = serde_json::from_value(selected_experiment.clone())
-        .report()
+        .into_report()
         .change_context(ExperimentPlanError)
         .attach_printable("Could not create arange variant")?;
     let mut values = vec![];
@@ -455,7 +455,7 @@ fn create_meshgrid_variant_plan(
         y: [f64; 3], // [start, stop, num_samples]
     }
     let var: MeshgridVariant = serde_json::from_value(selected_experiment.clone())
-        .report()
+        .into_report()
         .change_context(ExperimentPlanError)
         .attach_printable("Could not create meshgrid variant")?;
 

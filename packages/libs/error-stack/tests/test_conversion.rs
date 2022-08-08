@@ -12,7 +12,7 @@ fn io_error() -> Result<(), io::Error> {
 #[test]
 #[allow(deprecated)]
 fn report() {
-    let report = io_error().report().expect_err("Not an error");
+    let report = io_error().into_report().expect_err("Not an error");
     assert!(report.contains::<io::Error>());
     assert_eq!(report.current_context().kind(), io::ErrorKind::Other);
 }
