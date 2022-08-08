@@ -91,7 +91,7 @@ impl Handler {
         })?;
         result_rx
             .await
-            .report()
+            .into_report()
             .change_context(OrchestratorError::from("Failed to receive response from"))?
     }
 
@@ -223,7 +223,7 @@ impl Server {
                 // completes before sending de-registering the experiment.
                 Ok(())
             }
-            Some(sender) => sender.send(msg.body).report().attach_printable_lazy(|| {
+            Some(sender) => sender.send(msg.body).into_report().attach_printable_lazy(|| {
                 format!("Routing message for experiment {}", msg.experiment_id)
             }),
         }
