@@ -17,7 +17,7 @@ use std::{error::Error, ops::Deref};
 use common::*;
 use error_stack::compat::IntoReportCompat;
 
-#[cfg(all(nightly, feature = "std"))]
+#[cfg(all(nightly, feature = "std", feature = "eyre"))]
 fn has_backtrace<E: Deref<Target = dyn Error + Send + Sync>>(err: &Result<(), E>) -> bool {
     err.as_ref()
         .unwrap_err()
