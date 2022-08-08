@@ -2,7 +2,7 @@ import { EntityType, GraphApi } from "@hashintel/hash-graph-client";
 
 import { EntityTypeModel, PropertyTypeModel, LinkTypeModel } from "../index";
 
-type EntityTypeArgs = {
+type EntityTypeModelConstructorArgs = {
   accountId: string;
   schema: EntityType;
 };
@@ -15,7 +15,7 @@ export default class {
 
   schema: EntityType;
 
-  constructor({ schema, accountId }: EntityTypeArgs) {
+  constructor({ schema, accountId }: EntityTypeModelConstructorArgs) {
     this.accountId = accountId;
     this.schema = schema;
   }
