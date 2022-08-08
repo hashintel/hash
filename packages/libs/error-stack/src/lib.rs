@@ -455,7 +455,6 @@ pub use self::{
     report::Report,
 };
 
-
 #[cfg(test)]
 mod tests {
     use crate::Report;
