@@ -397,12 +397,12 @@ mod sealed {
 /// Internal marker trait, which isn't exposed, this is only used to allow for a
 /// blanket implementation on `Fn(&T)`
 #[cfg(feature = "hooks")]
-struct FnMarker;
+pub struct FnMarker;
 
 /// Internal marker trait, which isn't exposed, this is only used to allow for a blanket
 /// implementation on `Fn(&T, &mut HookContext<T>)`.
 #[cfg(feature = "hooks")]
-struct FnContextMarker;
+pub struct FnContextMarker;
 
 impl sealed::Sealed for () {}
 #[cfg(feature = "hooks")]
@@ -710,7 +710,7 @@ impl<T: Hook<Frame, ()>> Hooks<T> {
     ///
     /// assert!(format!("{report:?}").starts_with("4u32"));
     /// ```
-    pub fn push<H: Hook<F, U>, F: Send + Sync + 'static, U>(
+    pub fn push<H: Hook<F, U>, F: Send + Sync + 'static, U: sealed::Sealed>(
         self,
         hook: H,
     ) -> Hooks<Stack<H, (F, U), T>> {

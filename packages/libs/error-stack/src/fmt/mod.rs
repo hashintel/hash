@@ -1,7 +1,108 @@
-//! Implementation of display, which can be either fancy or "normal", depending
-//! on the type color and non-ascii character can be used.
+//! Implementation of formatting, to enable colors and the use of box-drawing characters use the
+//! `glyph` feature.
 //!
 //! This is inspired by the [miette](https://docs.rs/miette/latest/miette/index.html)-crate.
+//!
+//! # Hooks
+//!
+//! The format implementation (especially the [`Debug`] implementation),
+//! can be easily extended using [`Hooks`], they provide an easy and ergonomic way to partially
+//! modify the format and enable the output of types that are not necessarily added via
+//! `.attach_printable()` or are unable to implement [`Display`].
+//!
+//! [`Hooks`] can be attached through the central hooking mechanism which `error-stack`
+//! provides via [`Report::install_hook`].
+//!
+//! A format [`Hook`] is a function [`Fn`], which is [`Send`], [`Sync`] and has a `'static`
+//! timeline, this means that in contrast to [`FnMut`] they **may not** directly mutate state.
+//! You can still achieve mutable global state (or use mutable resources in the current scope)
+//! through interior mutability, which is implemented for example implemented for [`Mutex`].
+//!
+//! This function takes one required and one optional argument: `val` as reference of type `&T`,
+//! as well as a current `ctx` ([`&mut HookContext`]), which is created for every [`Debug`]
+//! invocation separately.
+//! The function must return of value [`Line`], indicating if the value is going to be emitted
+//! during regular flow (which should be most of the cases), or is going to be deferred until the
+//! end of the current group of frames.
+//! This function will then automatically be called for every [`Frame`], which saved an attachment
+//! of the type `T` (which was specified as the type of `val` in the hook).
+//! These function hooks currently do **not** support functions with traits attached to them.
+//!
+//! ## Example
+//!
+//! ```rust
+//! use std::io::{Error, ErrorKind};
+//! use insta::assert_snapshot;
+//! use error_stack::{
+//!     fmt::{Hooks, Line},
+//!     Report,
+//! };
+//! use error_stack::fmt::HookContext;
+//!
+//! # stringify!(
+//! Report::install_hook(Hooks::new()
+//! # // to make the output easier, we actually use `::bare`, but that shouldn't be really used in this example
+//! # )); Report::install_hook(Hooks::bare()
+//!  // this will never be called, because the a hook after this one has already "taken ownership" of `u64`
+//!  .push(|_: &u64| Line::next("will never be called"))
+//!  // `HookContext` always has a type parameter, which needs to be the same as the type of the
+//!  // value, we use `HookContext` here as storage, to store values specific to this hook.
+//!  // Here we make use of the auto-incrementing feature.
+//!  .push(|_: &u32, ctx: &mut HookContext<u32>| Line::next(format!("u32 value {}", ctx.increment())))
+//!  // we do not need to make use of the context, to either store a value for the duration of the
+//!  // rendering, or to render additional text, which is why we omit the parameter.
+//!  .push(|val: &u64| Line::next(format!("u64 value ({val})")))
+//!  .push(|_: &u16, ctx: &mut HookContext<u16>| {
+//!     // we set a value, which will be removed on non-alternate views
+//!     // and is going to be appended to the actual return value.
+//!     ctx.set_text("Look! I was rendered from a `u16`");
+//!     Line::next("For more information, look down below")
+//!  })
+//!  // you can use arbitrary values as arguments, just make sure that you won't repeat them.
+//!  // here we use [`Line::defer`], this means that this value will be put at the end of the group.
+//!  .push(|val: &String| Line::defer(val))
+//! ).unwrap();
+//!
+//! let report = Report::new(Error::from(ErrorKind::InvalidInput)).attach(2u64).attach("This is going to be at the end".to_owned()).attach(3u32).attach(3u32).attach(4u16);
+//!
+//! assert_snapshot!(format!("{report:?}"), @r###"For more information, look down below
+//! │ src/fmt/mod.rs:38:155
+//! ├─▶ u32 value 0
+//! │   ╰ src/fmt/mod.rs:38:142
+//! ├─▶ u32 value 1
+//! │   ╰ src/fmt/mod.rs:38:129
+//! ├─▶ u64 value (2)
+//! │   ╰ src/fmt/mod.rs:38:64
+//! ├─▶ invalid input parameter
+//! │   ╰ src/fmt/mod.rs:38:14
+//! ├─▶ This is going to be at the end
+//! │   ╰ src/fmt/mod.rs:38:77
+//! ╰─▶ 1 additional attachment"###);
+//!
+//! assert_snapshot!(format!("{report:#?}"), @r###"For more information, look down below
+//! │ src/fmt/mod.rs:38:155
+//! ├─▶ u32 value 0
+//! │   ╰ src/fmt/mod.rs:38:142
+//! ├─▶ u32 value 1
+//! │   ╰ src/fmt/mod.rs:38:129
+//! ├─▶ u64 value (2)
+//! │   ╰ src/fmt/mod.rs:38:64
+//! ├─▶ invalid input parameter
+//! │   ╰ src/fmt/mod.rs:38:14
+//! ├─▶ This is going to be at the end
+//! │   ╰ src/fmt/mod.rs:38:77
+//! ╰─▶ 1 additional attachment
+//!
+//!
+//! ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//!
+//! Look! I was rendered from a `u16`"###);
+//! ```
+//!
+//!
+//! [`Display`]: std::fmt::Display
+//! [`Debug`]: std::fmt::Debug
+//! [`Mutex`]: std::sync::Mutex
 
 mod hook;
 #[cfg(all(nightly, feature = "experimental"))]
