@@ -15,6 +15,7 @@ All notable changes to `error-stack` will be documented in this file.
 - Add support for async `Stream`s ([#718](https://github.com/hashintel/hash/pull/718))
 - Add support for `Iterator`s ([#716](https://github.com/hashintel/hash/pull/716))
 - Add compatibility for `anyhow` and `eyre` to convert their types into `Report` ([#763](https://github.com/hashintel/hash/pull/763))
+- Add support for [`Error::provide()`](https://doc.rust-lang.org/nightly/std/error/trait.Error.html#method.provide) ([#904](https://github.com/hashintel/hash/pull/904))
 
 ### Deprecations
 
