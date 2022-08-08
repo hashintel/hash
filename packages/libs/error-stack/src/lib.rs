@@ -337,8 +337,8 @@
 //!
 //! This crate uses the [`Provider` API] to provide arbitrary data. This can be done either by
 //! [`attach`]ing them to a [`Report`] or by providing it directly when implementing [`Context`].
-//! The blanket implementation of [`Context`] for [`Error`] will provide the [`Backtrace`] to be
-//! requested later.
+//! The blanket implementation of [`Context`] for [`Error`] will provide any data provided by
+//! [`Error::provide`].
 //!
 //! To request a provided type, [`Report::request_ref`] or [`Report::request_value`] are used. Both
 //! return an iterator of all provided values with the specified type. The value, which was provided
@@ -410,6 +410,7 @@
 //! [`set_debug_hook`]: Report::set_debug_hook
 //!
 //! [`Error`]: std::error::Error
+//! [`Error::provide`]: std::error::Error::provide
 //! [`Backtrace`]: std::backtrace::Backtrace
 //! [`Display`]: std::fmt::Display
 //! [`SpanTrace`]: tracing_error::SpanTrace
