@@ -12,7 +12,7 @@ use std::backtrace::Backtrace;
 #[cfg(feature = "eyre")]
 use std::sync::Once;
 #[cfg(all(nightly, feature = "std", feature = "eyre"))]
-use std::{acktrace::BacktraceStatus, error::Error, ops::Deref};
+use std::{backtrace::BacktraceStatus, error::Error, ops::Deref};
 
 use common::*;
 use error_stack::compat::IntoReportCompat;
