@@ -231,7 +231,7 @@ export interface DataTypeReference {
   $ref: string;
 }
 /**
- *
+ * An entity.
  * @export
  * @interface Entity
  */
