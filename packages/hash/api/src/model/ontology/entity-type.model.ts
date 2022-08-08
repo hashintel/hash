@@ -78,7 +78,7 @@ export default class {
    * Update an entity type.
    *
    * @param params.accountId the accountId of the account making the update
-   * @param params.schema a `EntityType`
+   * @param params.schema an `EntityType`
    */
   async update(
     graphApi: GraphApi,
