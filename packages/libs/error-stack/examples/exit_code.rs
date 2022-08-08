@@ -20,5 +20,5 @@ fn main() -> ExitCode {
         .attach(ExitCode::from(100))
         .attach_printable("This error has an exit code of 100!");
 
-    report.into_report()
+    report.report()
 }
