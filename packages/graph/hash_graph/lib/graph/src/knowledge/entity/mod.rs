@@ -1,11 +1,15 @@
 use std::{collections::HashMap, fmt};
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::{FromSql, ToSql};
 use utoipa::Component;
 use uuid::Uuid;
 
-use crate::ontology::types::uri::BaseUri;
+use crate::{
+    ontology::{types::uri::BaseUri, AccountId},
+    VersionedUri,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, Component, FromSql, ToSql)]
 #[repr(transparent)]
@@ -25,10 +29,61 @@ impl fmt::Display for EntityId {
     }
 }
 
+/// An entity.
+///
+/// When expressed as JSON, this should validate against its respective entity type(s).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
 pub struct Entity {
     #[serde(flatten)]
     properties: HashMap<BaseUri, serde_json::Value>,
+}
+
+/// A record of an entity that has been persisted in the datastore, with its associated metadata.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
+pub struct PersistedEntity {
+    inner: Entity,
+    id: EntityId,
+    version: DateTime<Utc>,
+    type_versioned_uri: VersionedUri,
+    created_by: AccountId,
+}
+
+impl PersistedEntity {
+    pub fn new(
+        inner: Entity,
+        id: EntityId,
+        version: DateTime<Utc>,
+        type_versioned_uri: VersionedUri,
+        created_by: AccountId,
+    ) -> Self {
+        Self {
+            inner,
+            id,
+            version,
+            type_versioned_uri,
+            created_by,
+        }
+    }
+
+    pub fn inner(&self) -> &Entity {
+        &self.inner
+    }
+
+    pub fn id(&self) -> EntityId {
+        self.id
+    }
+
+    pub fn version(&self) -> DateTime<Utc> {
+        self.version
+    }
+
+    pub fn type_versioned_uri(&self) -> &VersionedUri {
+        &self.type_versioned_uri
+    }
+
+    pub fn created_by(&self) -> AccountId {
+        self.created_by
+    }
 }
 
 #[cfg(test)]
