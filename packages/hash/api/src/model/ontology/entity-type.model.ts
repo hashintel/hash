@@ -1,6 +1,6 @@
 import { EntityType, GraphApi } from "@hashintel/hash-graph-client";
 
-import { EntityTypeModel } from "../index";
+import { EntityTypeModel, PropertyTypeModel, LinkTypeModel } from "../index";
 
 type EntityTypeArgs = {
   accountId: string;
@@ -92,5 +92,39 @@ export default class {
     const { data: schema } = await graphApi.updateEntityType(params);
 
     return new EntityTypeModel({ schema, accountId });
+  }
+
+  /**
+   * Get all outgoing link types of the entity type.
+   */
+  async getOutoingLinkTypes(graphApi: GraphApi): Promise<LinkTypeModel[]> {
+    const linkTypeVersionedUris = Object.keys(this.schema.links ?? {});
+
+    return await Promise.all(
+      linkTypeVersionedUris.map((versionedUri) =>
+        LinkTypeModel.get(graphApi, {
+          accountId: this.accountId,
+          versionedUri,
+        }),
+      ),
+    );
+  }
+
+  /**
+   * Get all property types of the entity type.
+   */
+  async getPropertyTypes(graphApi: GraphApi): Promise<PropertyTypeModel[]> {
+    const propertyTypeVersionedUris = Object.values(this.schema.properties).map(
+      ({ $ref }) => $ref,
+    );
+
+    return await Promise.all(
+      propertyTypeVersionedUris.map((versionedUri) =>
+        PropertyTypeModel.get(graphApi, {
+          accountId: this.accountId,
+          versionedUri,
+        }),
+      ),
+    );
   }
 }
