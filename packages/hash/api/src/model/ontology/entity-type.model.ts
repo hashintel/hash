@@ -24,7 +24,7 @@ export default class {
    * Create an entity type.
    *
    * @param params.accountId the accountId of the account creating the entity type
-   * @param params.schema a `EntityType`
+   * @param params.schema an `EntityType`
    */
   static async create(
     graphApi: GraphApi,
