@@ -457,11 +457,13 @@ pub use self::{
 
 #[cfg(test)]
 mod tests {
+    #![allow(dead_code)]
+
     use crate::Report;
 
-    fn test_send<T: Send>() {}
-    fn test_sync<T: Sync>() {}
-    fn test_static<T: 'static>() {}
+    const fn test_send<T: Send>() {}
+    const fn test_sync<T: Sync>() {}
+    const fn test_static<T: 'static>() {}
 
     fn report() {
         test_send::<Report<()>>();
