@@ -60,7 +60,7 @@ To run HASH locally, please follow these steps:
 
 1.  Ensure Docker is running.
     If you are on Windows or macOS, you should see app icon in the system tray or the menu bar.
-    Alternatively, you can use this command to test if Docker is running.
+    Alternatively, you can use this command to check Docker:
 
     ```sh
     docker run hello-world
