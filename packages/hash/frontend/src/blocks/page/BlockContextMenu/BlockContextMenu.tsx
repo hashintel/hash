@@ -24,7 +24,6 @@ import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { useUserBlocks } from "../../userBlocks";
 import { getBlockDomId } from "../BlockView";
-import { BlockSuggesterProps } from "../createSuggester/BlockSuggester";
 
 import { BlockLoaderInput } from "./BlockLoaderInput";
 import { useUsers } from "../../../components/hooks/useUsers";
@@ -34,27 +33,17 @@ import { BlockListMenuContent } from "./BlockListMenuContent";
 
 type BlockContextMenuProps = {
   blockEntity: BlockEntity | null;
-  blockSuggesterProps: BlockSuggesterProps;
   deleteBlock: () => void;
   openConfigMenu: () => void;
   popupState: PopupState;
   canSwap: boolean;
 };
 
-const LOAD_BLOCK_ENTITY_UI = "hash-load-entity-ui";
-
 const BlockContextMenu: ForwardRefRenderFunction<
   HTMLDivElement,
   BlockContextMenuProps
 > = (
-  {
-    blockEntity,
-    blockSuggesterProps,
-    deleteBlock,
-    openConfigMenu,
-    popupState,
-    canSwap,
-  },
+  { blockEntity, deleteBlock, openConfigMenu, popupState, canSwap },
   ref,
 ) => {
   const { data: users } = useUsers();
@@ -78,7 +67,12 @@ const BlockContextMenu: ForwardRefRenderFunction<
         key: "set-entity",
         title: hasChildEntity ? "Swap Entity" : "Add an entity",
         icon: <FontAwesomeIcon icon={faAdd} />,
-        subMenu: <LoadEntityMenuContent entityId={entityId} />,
+        subMenu: (
+          <LoadEntityMenuContent
+            blockEntityId={entityId}
+            closeParentContextMenu={() => popupState.close()}
+          />
+        ),
         subMenuWidth: 280,
       },
       {
@@ -95,10 +89,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
         key: "configure",
         title: "Configure",
         icon: <FontAwesomeIcon icon={faGear} />,
-        onClick: () => {
-          popupState.close();
-          openConfigMenu();
-        },
+        onClick: () => openConfigMenu(),
       },
       {
         key: "duplicate",
@@ -119,10 +110,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
               title: "Swap block type",
               icon: <FontAwesomeIcon icon={faRefresh} />,
               subMenu: (
-                <BlockListMenuContent
-                  blockSuggesterProps={blockSuggesterProps}
-                  compatibleBlocks={compatibleBlocks}
-                />
+                <BlockListMenuContent compatibleBlocks={compatibleBlocks} />
               ),
               subMenuWidth: 228,
             },
@@ -142,16 +130,9 @@ const BlockContextMenu: ForwardRefRenderFunction<
       },
     ];
 
-    // @todo this flag wouldn't be need once
-    // https://app.asana.com/0/1201959586244685/1202106892392942 has been addressed
-    if (!localStorage.getItem(LOAD_BLOCK_ENTITY_UI)) {
-      items.shift();
-    }
-
     return items;
   }, [
     blockEntity,
-    blockSuggesterProps,
     entityId,
     deleteBlock,
     openConfigMenu,
@@ -165,7 +146,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
   });
 
   useKey(["@"], () => {
-    if (popupState.isOpen && localStorage.getItem(LOAD_BLOCK_ENTITY_UI)) {
+    if (popupState.isOpen) {
       setEntityMenuItemRef.current?.focus();
     }
   });
@@ -231,7 +212,10 @@ const BlockContextMenu: ForwardRefRenderFunction<
               title={title}
               itemKey={key}
               icon={icon}
-              onClick={onClick}
+              onClick={() => {
+                onClick?.();
+                popupState.close();
+              }}
               subMenu={subMenu}
               subMenuWidth={subMenuWidth}
               {...(menuItemRef && { ref: menuItemRef })}

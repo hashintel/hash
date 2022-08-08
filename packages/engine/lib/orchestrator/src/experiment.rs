@@ -212,7 +212,7 @@ impl Experiment {
             engine_handle.recv(),
         )
         .await
-        .report()
+        .into_report()
         .change_context(OrchestratorError::from("engine start timeout"));
         match msg {
             Ok(EngineStatus::Started) => {}
