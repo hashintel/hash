@@ -465,7 +465,7 @@ mod tests {
     const fn test_sync<T: Sync>() {}
     const fn test_static<T: 'static>() {}
 
-    fn report() {
+    const fn report() {
         test_send::<Report<()>>();
         test_sync::<Report<()>>();
         test_static::<Report<()>>();
