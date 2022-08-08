@@ -49,7 +49,8 @@ pub struct PersistedEntity {
 }
 
 impl PersistedEntity {
-    pub fn new(
+    #[must_use]
+    pub const fn new(
         inner: Entity,
         id: EntityId,
         version: DateTime<Utc>,
@@ -65,23 +66,28 @@ impl PersistedEntity {
         }
     }
 
-    pub fn inner(&self) -> &Entity {
+    #[must_use]
+    pub const fn inner(&self) -> &Entity {
         &self.inner
     }
 
-    pub fn id(&self) -> EntityId {
+    #[must_use]
+    pub const fn id(&self) -> EntityId {
         self.id
     }
 
-    pub fn version(&self) -> DateTime<Utc> {
+    #[must_use]
+    pub const fn version(&self) -> DateTime<Utc> {
         self.version
     }
 
-    pub fn type_versioned_uri(&self) -> &VersionedUri {
+    #[must_use]
+    pub const fn type_versioned_uri(&self) -> &VersionedUri {
         &self.type_versioned_uri
     }
 
-    pub fn created_by(&self) -> AccountId {
+    #[must_use]
+    pub const fn created_by(&self) -> AccountId {
         self.created_by
     }
 }
