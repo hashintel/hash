@@ -36,6 +36,8 @@ mod sealed {
 /// Internal trait which is used for [`Report::install_hook`],
 /// this trait is sealed and cannot be implemented by foreign objects.
 pub trait Install: sealed::Sealed {
+    /// Install a specific hook globally, exactly once,
+    /// if a hook has already been installed this should return [`HookAlreadySet`]
     fn install(self) -> Result<(), HookAlreadySet>;
 }
 

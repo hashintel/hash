@@ -1,25 +1,68 @@
-use alloc::{borrow::ToOwned, boxed::Box, collections::BTreeMap, string::String, vec::Vec};
-use core::{
-    any::{Any, TypeId},
-    marker::PhantomData,
-};
+#[cfg(any(
+    feature = "hooks",
+    feature = "spantrace",
+    all(nightly, feature = "std"),
+    feature = "experimental"
+))]
+use alloc::borrow::ToOwned;
+#[cfg(any(
+    feature = "hooks",
+    feature = "spantrace",
+    all(nightly, feature = "std")
+))]
+use alloc::{boxed::Box, collections::BTreeMap};
+use alloc::{string::String, vec::Vec};
+#[cfg(any(
+    feature = "hooks",
+    feature = "spantrace",
+    all(nightly, feature = "std")
+))]
+use core::any::{Any, TypeId};
+use core::marker::PhantomData;
 
 pub use builtin::Builtin;
 
-use crate::fmt::Line;
 #[cfg(feature = "hooks")]
-use crate::Frame;
+use crate::fmt::Frame;
+use crate::fmt::Line;
 
 #[derive(Default)]
 pub struct HookContextImpl {
     pub(crate) text: Vec<Vec<String>>,
+    #[cfg(any(
+        feature = "hooks",
+        feature = "spantrace",
+        all(nightly, feature = "std")
+    ))]
     inner: BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>,
 }
 
 impl HookContextImpl {
+    #[cfg_attr(
+        not(any(
+            feature = "hooks",
+            feature = "spantrace",
+            all(nightly, feature = "std"),
+            feature = "experimental"
+        )),
+        allow(clippy::unused_self)
+    )]
     pub(crate) fn cast<T>(&mut self) -> HookContext<T> {
         HookContext {
+            #[cfg(any(
+                feature = "hooks",
+                feature = "spantrace",
+                all(nightly, feature = "std"),
+                feature = "experimental"
+            ))]
             parent: self,
+            #[cfg(not(any(
+                feature = "hooks",
+                feature = "spantrace",
+                all(nightly, feature = "std"),
+                feature = "experimental"
+            )))]
+            _parent: PhantomData::default(),
             _marker: PhantomData::default(),
         }
     }
@@ -126,8 +169,21 @@ impl HookContextImpl {
 /// ╰─▶ 1 additional attachment"###);
 /// ```
 pub struct HookContext<'a, T> {
+    #[cfg(any(
+        feature = "hooks",
+        feature = "spantrace",
+        all(nightly, feature = "std"),
+        feature = "experimental"
+    ))]
     parent: &'a mut HookContextImpl,
     _marker: PhantomData<T>,
+    #[cfg(not(any(
+        feature = "hooks",
+        feature = "spantrace",
+        all(nightly, feature = "std"),
+        feature = "experimental"
+    )))]
+    _parent: PhantomData<&'a ()>,
 }
 
 impl<T> HookContext<'_, T> {
@@ -136,12 +192,24 @@ impl<T> HookContext<'_, T> {
     ///
     /// This is useful for dense information like backtraces, or span traces, which are omitted when
     /// rendering without the alternate [`Debug`] output.
+    #[cfg(any(
+        feature = "hooks",
+        feature = "spantrace",
+        all(nightly, feature = "std"),
+        feature = "experimental"
+    ))]
     pub fn set_text(&mut self, value: &str) {
         self.text_lines(value.lines());
     }
 
     /// Same as [`Self::text`], but only accepts lines (the internal representation used during
     /// rendering)
+    #[cfg(any(
+        feature = "hooks",
+        feature = "spantrace",
+        all(nightly, feature = "std"),
+        feature = "experimental"
+    ))]
     fn text_lines(&mut self, lines: core::str::Lines) {
         self.parent
             .text
@@ -208,6 +276,11 @@ impl<'a, T> HookContext<'a, T> {
     /// ╰─▶ 1 additional attachment"###);
     /// ```
     #[must_use]
+    #[cfg(any(
+        feature = "hooks",
+        feature = "spantrace",
+        all(nightly, feature = "std"),
+    ))]
     pub fn cast<U>(self) -> HookContext<'a, U> {
         HookContext {
             parent: self.parent,
@@ -227,6 +300,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// Values returned are isolated and therefore "bound" to `T`, this means that if two different
     /// [`HookContext`]s that share the same inner value (e.g. same invocation of [`Debug`]) will
     /// return the same value.
+    #[cfg(feature = "hooks")]
     #[must_use]
     pub fn get<U: 'static>(&self) -> Option<&U> {
         self.parent
@@ -241,6 +315,11 @@ impl<T: 'static> HookContext<'_, T> {
     /// Values returned are isolated and therefore "bound" to `T`, this means that if two different
     /// [`HookContext`]s that share the same inner value (e.g. same invocation of [`Debug`]) will
     /// return the same value.
+    #[cfg(any(
+        feature = "hooks",
+        feature = "spantrace",
+        all(nightly, feature = "std")
+    ))]
     pub fn get_mut<U: 'static>(&mut self) -> Option<&mut U> {
         self.parent
             .inner
@@ -253,6 +332,11 @@ impl<T: 'static> HookContext<'_, T> {
     ///
     /// The returned value will the previously stored value of the same type `U` scoped over type
     /// `T`, if it existed, did no such value exist it will return [`None`].
+    #[cfg(any(
+        feature = "hooks",
+        feature = "spantrace",
+        all(nightly, feature = "std")
+    ))]
     pub fn insert<U: 'static>(&mut self, value: U) -> Option<U> {
         self.parent
             .inner
@@ -267,6 +351,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// Remove the value of type `U` from the storage of [`HookContext`] if it existed.
     ///
     /// The returned value will be the previously stored value of the same type `U`.
+    #[cfg(feature = "hooks")]
     pub fn remove<U: 'static>(&mut self) -> Option<U> {
         self.parent
             .inner
@@ -311,6 +396,11 @@ impl<T: 'static> HookContext<'_, T> {
     /// ```
     ///
     /// [`set_text()`]: Self::set_text
+    #[cfg(any(
+        feature = "hooks",
+        feature = "spantrace",
+        all(nightly, feature = "std")
+    ))]
     pub fn increment(&mut self) -> isize {
         let counter = self.get_mut::<isize>();
 
@@ -365,6 +455,7 @@ impl<T: 'static> HookContext<'_, T> {
     ///
     /// [`increment()`]: Self::increment
     /// [`set_text()`]: Self::set_text
+    #[cfg(feature = "hooks")]
     pub fn decrement(&mut self) -> isize {
         let counter = self.get_mut::<isize>();
 

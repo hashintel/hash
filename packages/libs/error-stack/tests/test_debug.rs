@@ -14,8 +14,6 @@ use error_stack::fmt::{HookContext, Hooks, Line};
 use error_stack::Report;
 use insta::assert_snapshot;
 use once_cell::sync::Lazy;
-#[cfg(feature = "glyph")]
-use owo_colors::set_override;
 use regex::Regex;
 #[cfg(feature = "spantrace")]
 use tracing_error::ErrorLayer;
