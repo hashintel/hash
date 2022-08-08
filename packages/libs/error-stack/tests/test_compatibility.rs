@@ -22,23 +22,18 @@ fn has_backtrace<E: Deref<Target = dyn Error + Send + Sync>>(err: &Result<(), E>
     err.as_ref()
         .unwrap_err()
         .deref()
-        .backtrace()
+        .request_ref::<Backtrace>()
         .filter(|bt| bt.status() == BacktraceStatus::Captured)
         .is_some()
 }
 
 #[cfg(all(nightly, feature = "std"))]
-fn remove_backtrace_context<E: Deref<Target = dyn Error + Send + Sync>>(
-    err: &Result<(), E>,
-    messages: &mut Vec<String>,
-) {
-    if has_backtrace(err) {
-        // anyhow/eyre has a backtrace, this means we don't add it ourselves,
-        // therefore we need to remove the context (if it supports backtrace)
-        let last = messages.pop().unwrap();
-        messages.pop();
-        messages.push(last)
-    }
+fn remove_backtrace_context(messages: &mut Vec<String>) {
+    // anyhow/eyre has a backtrace, this means we don't add it ourselves,
+    // therefore we need to remove the context (if it supports backtrace)
+    let last = messages.pop().unwrap();
+    messages.pop();
+    messages.push(last)
 }
 
 #[test]
@@ -54,18 +49,21 @@ fn anyhow() {
 
     #[allow(unused_mut)]
     let mut report_messages = messages(&report);
+
+    // Backtrace from anyhow cannot be captured currently
     #[cfg(all(nightly, feature = "std"))]
-    {
-        remove_backtrace_context(&anyhow, &mut report_messages);
-    }
+    remove_backtrace_context(&mut report_messages);
 
     let anyhow_report = anyhow.into_report().unwrap_err();
 
-    for (anyhow, error_stack) in messages(&anyhow_report)
-        .into_iter()
-        .rev()
-        .zip(report_messages)
-    {
+    #[allow(unused_mut)]
+    let mut anyhow_messages = messages(&anyhow_report);
+
+    // Backtrace from anyhow cannot be captured currently
+    #[cfg(all(nightly, feature = "std"))]
+    remove_backtrace_context(&mut anyhow_messages);
+
+    for (anyhow, error_stack) in anyhow_messages.into_iter().rev().zip(report_messages) {
         assert_eq!(anyhow, error_stack);
     }
 }
@@ -194,7 +192,9 @@ fn eyre() {
 
     #[cfg(all(nightly, feature = "std"))]
     {
-        remove_backtrace_context(&eyre, &mut report_messages);
+        if has_backtrace(&eyre) {
+            remove_backtrace_context(&mut report_messages);
+        }
 
         if !has_backtrace(&eyre) && supports_backtrace() {
             swap = true;
