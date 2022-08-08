@@ -60,7 +60,10 @@ function computeChecksumMd5(file: File): Promise<string> {
   });
 }
 
-export const useBlockProtocolFileUpload = (accountId: string) => {
+export const useBlockProtocolFileUpload = (
+  accountId: string,
+  readonly?: boolean,
+) => {
   const client = useApolloClient();
 
   const [requestFileUploadFn] = useMutation<
@@ -94,6 +97,17 @@ export const useBlockProtocolFileUpload = (accountId: string) => {
 
   const uploadFile: EmbedderGraphMessageCallbacks["uploadFile"] = useCallback(
     async ({ data }) => {
+      if (readonly) {
+        return {
+          errors: [
+            {
+              code: "FORBIDDEN",
+              message: "Operation can't be carried out in readonly mode",
+            },
+          ],
+        };
+      }
+
       if (!data) {
         return {
           errors: [
@@ -210,7 +224,7 @@ export const useBlockProtocolFileUpload = (accountId: string) => {
         },
       };
     },
-    [accountId, client, createFileFromLinkFn, requestFileUploadFn],
+    [accountId, client, createFileFromLinkFn, requestFileUploadFn, readonly],
   );
 
   return {

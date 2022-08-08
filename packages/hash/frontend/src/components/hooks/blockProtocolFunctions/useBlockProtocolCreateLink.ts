@@ -12,7 +12,9 @@ import {
   parseEntityIdentifier,
 } from "../../../lib/entities";
 
-export const useBlockProtocolCreateLink = (): {
+export const useBlockProtocolCreateLink = (
+  readonly?: boolean,
+): {
   createLink: EmbedderGraphMessageCallbacks["createLink"];
 } => {
   const [runCreateLinkMutation] = useMutation<
@@ -22,6 +24,17 @@ export const useBlockProtocolCreateLink = (): {
 
   const createLink: EmbedderGraphMessageCallbacks["createLink"] = useCallback(
     async ({ data }) => {
+      if (readonly) {
+        return {
+          errors: [
+            {
+              code: "FORBIDDEN",
+              message: "Operation can't be carried out in readonly mode",
+            },
+          ],
+        };
+      }
+
       if (!data) {
         return {
           errors: [
@@ -70,7 +83,7 @@ export const useBlockProtocolCreateLink = (): {
         data: convertApiLinkToBpLink(responseData.createLink),
       };
     },
-    [runCreateLinkMutation],
+    [runCreateLinkMutation, readonly],
   );
 
   return {
