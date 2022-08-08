@@ -34,6 +34,8 @@ export { LinkTypeModel };
 export * from "./ontology/entity-type.model";
 export { EntityTypeModel };
 
+/** @todo: deprecate legacy model classes */
+
 export * from "./entityType.model";
 export { EntityType };
 
