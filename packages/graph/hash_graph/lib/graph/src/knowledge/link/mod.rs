@@ -54,6 +54,8 @@ impl fmt::Display for Link {
     }
 }
 
+// TODO: Add PersistedLink to expose metadata about link instances
+
 /// From a source entity, this is the outgoing link targeting one or more other entities given by
 /// [`EntityId`]s.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
