@@ -7,7 +7,7 @@ edition = "2021"
 stateful = { path = "../stateful", default-features = false }
 execution = { path = "../execution", default-features = false }
 
-error-stack = "0.1.1"
+error-stack = { version = "0.1.1", path = "../../../libs/error-stack", features = ["spantrace"] }
 
 async-trait = "0.1.56"
 csv = "1.1.6"
