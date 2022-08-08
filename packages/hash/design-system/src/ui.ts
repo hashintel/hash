@@ -2,6 +2,7 @@ import "./theme-override.d";
 
 export * from "./avatar";
 export * from "./button";
+export * from "./dialog";
 export * from "./icon-button";
 export * from "./loading-spinner";
 export * from "./popover";
@@ -10,6 +11,7 @@ export * from "./text-field";
 export * from "./form-inline";
 export * from "./chip";
 export * from "./chip-group";
+export * from "./menu";
 export * from "./menu-item";
 export * from "./menu-checkbox-item";
 export * from "./select";

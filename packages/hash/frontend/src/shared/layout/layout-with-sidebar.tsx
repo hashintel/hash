@@ -9,12 +9,16 @@ import {
 } from "./layout-with-sidebar/page-sidebar";
 import { SidebarToggleIcon } from "../icons";
 import { LayoutWithHeader } from "./layout-with-header";
+import { useReadonlyMode } from "../readonly-mode";
 
 const Main = styled("main")(({ theme }) => ({
   height: `calc(100vh - ${HEADER_HEIGHT}px)`,
   overflowY: "auto",
   flexGrow: 1,
   padding: "56px 80px",
+  maxWidth: 1200,
+  marginLeft: "auto",
+  marginRight: "auto",
   transition: theme.transitions.create("margin", {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
@@ -31,6 +35,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
   banner,
 }) => {
   const { openSidebar, sidebarOpen } = useSidebarContext();
+  const { readonlyMode } = useReadonlyMode();
 
   return (
     <LayoutWithHeader>
@@ -40,7 +45,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
           position: "relative",
         }}
       >
-        <PageSidebar />
+        {!readonlyMode && <PageSidebar />}
 
         <Box
           sx={(theme) => ({

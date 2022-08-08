@@ -1,5 +1,5 @@
 import { Draft, produce } from "immer";
-import { createDraftIdForEntity } from "./entityStorePlugin";
+import { generateDraftIdForEntity } from "./entityStorePlugin";
 import { BlockEntity, isTextContainingEntityProperties } from "./entity";
 import { DistributiveOmit } from "./util";
 import { MinimalEntityTypeFieldsFragment } from "./graphql/apiTypes.gen";
@@ -79,7 +79,7 @@ export const isDraftBlockEntity = (
  * Use mustGetDraftEntityFromEntityId if you want an error if the entity is missing.
  * @todo we could store a map of entity id <-> draft id to make this easier
  */
-export const getDraftEntityFromEntityId = (
+export const getDraftEntityByEntityId = (
   draft: EntityStore["draft"],
   entityId: string,
 ): DraftEntity | undefined =>
@@ -144,7 +144,9 @@ export const createEntityStore = (
 
   for (const entity of entities) {
     if (!entityToDraft[entity.entityId]) {
-      entityToDraft[entity.entityId] = createDraftIdForEntity(entity.entityId);
+      entityToDraft[entity.entityId] = generateDraftIdForEntity(
+        entity.entityId,
+      );
     }
   }
 

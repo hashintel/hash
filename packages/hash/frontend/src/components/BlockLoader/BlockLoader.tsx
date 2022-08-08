@@ -5,9 +5,15 @@ import {
   EntityType as BpEntityType,
   LinkedAggregation as BpLinkedAggregation,
 } from "@blockprotocol/graph";
-import { BlockConfig } from "@hashintel/hash-shared/blockMeta";
+import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
-import { useCallback, useMemo, FunctionComponent } from "react";
+import {
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  FunctionComponent,
+} from "react";
 import { uniqBy } from "lodash";
 
 import {
@@ -34,11 +40,12 @@ import { useBlockProtocolUpdateEntityType } from "../hooks/blockProtocolFunction
 import { useBlockProtocolUpdateLink } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLink";
 import { useBlockProtocolUpdateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregation";
 import { EntityType as ApiEntityType } from "../../graphql/apiTypes.gen";
+import { useReadonlyMode } from "../../shared/readonly-mode";
 
 type BlockLoaderProps = {
   accountId: string;
   blockEntityId: string;
-  blockMetadata: BlockConfig;
+  blockMetadata: HashBlockMeta;
   editableRef: unknown;
   entityId: string;
   entityType?: Pick<ApiEntityType, "entityId" | "properties">;
@@ -47,8 +54,8 @@ type BlockLoaderProps = {
   linkGroups: BlockEntity["properties"]["entity"]["linkGroups"];
   linkedEntities: BlockEntity["properties"]["entity"]["linkedEntities"];
   linkedAggregations: BlockEntity["properties"]["entity"]["linkedAggregations"];
+  onBlockLoaded: () => void;
   // shouldSandbox?: boolean;
-  sourceUrl: string;
 };
 
 // const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
@@ -69,22 +76,32 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   linkGroups,
   linkedEntities,
   linkedAggregations,
+  onBlockLoaded,
   // shouldSandbox,
-  sourceUrl,
 }) => {
+  const { readonlyMode } = useReadonlyMode();
   const { aggregateEntityTypes } =
     useBlockProtocolAggregateEntityTypes(accountId);
   const { aggregateEntities } = useBlockProtocolAggregateEntities(accountId);
-  const { createLinkedAggregation } = useBlockProtocolCreateLinkedAggregation();
-  const { createLink } = useBlockProtocolCreateLink();
-  const { createEntity } = useBlockProtocolCreateEntity(accountId);
-  const { createEntityType } = useBlockProtocolCreateEntityType(accountId);
-  const { deleteLinkedAggregation } = useBlockProtocolDeleteLinkedAggregation();
-  const { deleteLink } = useBlockProtocolDeleteLink();
-  const { updateEntity } = useBlockProtocolUpdateEntity();
-  const { uploadFile } = useBlockProtocolFileUpload(accountId);
-  const { updateEntityType } = useBlockProtocolUpdateEntityType();
-  const { updateLinkedAggregation } = useBlockProtocolUpdateLinkedAggregation();
+  const { createLinkedAggregation } =
+    useBlockProtocolCreateLinkedAggregation(readonlyMode);
+  const { createLink } = useBlockProtocolCreateLink(readonlyMode);
+  const { createEntity } = useBlockProtocolCreateEntity(
+    accountId,
+    readonlyMode,
+  );
+  const { createEntityType } = useBlockProtocolCreateEntityType(
+    accountId,
+    readonlyMode,
+  );
+  const { deleteLinkedAggregation } =
+    useBlockProtocolDeleteLinkedAggregation(readonlyMode);
+  const { deleteLink } = useBlockProtocolDeleteLink(readonlyMode);
+  const { updateEntity } = useBlockProtocolUpdateEntity(false, readonlyMode);
+  const { uploadFile } = useBlockProtocolFileUpload(accountId, readonlyMode);
+  const { updateEntityType } = useBlockProtocolUpdateEntityType(readonlyMode);
+  const { updateLinkedAggregation } =
+    useBlockProtocolUpdateLinkedAggregation(readonlyMode);
 
   const { updateLink } = useBlockProtocolUpdateLink();
 
@@ -140,6 +157,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
         "entityTypeId",
       ),
       linkedAggregations: convertedLinkedAggregations,
+      readonly: readonlyMode,
     };
   }, [
     accountId,
@@ -150,6 +168,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     linkGroups,
     linkedEntities,
     linkedAggregations,
+    readonlyMode,
   ]);
 
   const functions = {
@@ -173,11 +192,17 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     updateLinkedAggregation,
   };
 
-  const onBlockLoaded = useBlockLoaded();
+  const onBlockLoadedFromContext = useBlockLoaded();
+  const onBlockLoadedRef = useRef(onBlockLoaded);
+
+  useLayoutEffect(() => {
+    onBlockLoadedRef.current = onBlockLoaded;
+  });
 
   const onRemoteBlockLoaded = useCallback(() => {
-    onBlockLoaded(blockEntityId);
-  }, [blockEntityId, onBlockLoaded]);
+    onBlockLoadedFromContext(blockEntityId);
+    onBlockLoadedRef?.current();
+  }, [blockEntityId, onBlockLoadedFromContext]);
 
   // @todo upgrade sandbox for BP 0.2 and remove feature flag
   // if (sandboxingEnabled && (shouldSandbox || sourceUrl.endsWith(".html"))) {
@@ -202,7 +227,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       graphCallbacks={functions}
       graphProperties={graphProperties}
       onBlockLoaded={onRemoteBlockLoaded}
-      sourceUrl={sourceUrl}
     />
   );
 };

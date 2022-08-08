@@ -1,3 +1,4 @@
+import { JsonObject } from "@blockprotocol/core";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { produce } from "immer";
 import {
@@ -292,6 +293,18 @@ export const updatePageContents: ResolverFn<
         .map(async (updateEntity) => {
           return Entity.updateProperties(client, {
             ...updateEntity,
+            // @todo remove this when legacy links are removed
+            properties: produce(
+              updateEntity.properties as JsonObject,
+              (draftProperties: any) => {
+                if (draftProperties?.text?.__linkedData?.entityId) {
+                  draftProperties.text.__linkedData.entityId =
+                    placeholderResults.get(
+                      draftProperties.text.__linkedData.entityId,
+                    );
+                }
+              },
+            ),
             updatedByAccountId: user.accountId,
           });
         }),

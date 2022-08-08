@@ -1,18 +1,19 @@
 import { ApolloClient, ApolloError } from "@apollo/client";
-import { fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { fetchBlock } from "@hashintel/hash-shared/blocks";
 import {
   BlockEntity,
   isDraftTextContainingEntityProperties,
   isDraftTextEntity,
+  LegacyLink,
 } from "@hashintel/hash-shared/entity";
 import {
   DraftEntity,
   EntityStore,
-  getDraftEntityFromEntityId,
+  getDraftEntityByEntityId,
   isDraftBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
 import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
-import { isEqual, omit } from "lodash";
+import { isEqual, pick } from "lodash";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 import {
@@ -24,6 +25,7 @@ import {
   GetTextEntityTypeQuery,
   GetTextEntityTypeQueryVariables,
   SystemTypeName,
+  Text,
   UpdatePageAction,
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
@@ -80,10 +82,8 @@ const ensureEntityTypeForComponent = async (
   }
 
   if (!desiredEntityTypeId) {
-    const componentMeta = await fetchBlockMeta(componentId);
-    const jsonSchema = JSON.parse(
-      JSON.stringify(componentMeta.componentSchema),
-    );
+    const block = await fetchBlock(componentId);
+    const jsonSchema = JSON.parse(JSON.stringify(block.schema));
 
     delete jsonSchema.properties.editableRef;
 
@@ -111,6 +111,10 @@ const ensureEntityTypeForComponent = async (
   return [desiredEntityTypeId, actions];
 };
 
+/**
+ * Given the entity 'store', the 'blocks' persisted to the database, and the PromiseMirror 'doc',
+ * determines what changes are needed to persist changes to the database.
+ */
 const calculateSaveActions = async (
   store: EntityStore,
   accountId: string,
@@ -126,13 +130,51 @@ const calculateSaveActions = async (
   const draftIdToPlaceholderId = new Map<string, string>();
   const draftIdToBlockEntities = new Map<string, DraftEntity<BlockEntity>>();
 
+  /**
+   * In some cases, in order to update an entity, we need to create a legacy link
+   * within the properties to link it to the relevant text entity. This sometimes
+   * involves creating a new text entity, which will be done later, but we need
+   * to decide its placeholder entity id now in order to generate the correct link
+   */
+  const ensureNecessaryLegacyTextLink = <
+    T extends { text: LegacyLink<DraftEntity<Text>> },
+  >(
+    properties: T,
+  ): Pick<LegacyLink<DraftEntity<Text>>, "__linkedData"> => {
+    if (
+      properties.text.__linkedData.entityId &&
+      properties.text.__linkedData.entityTypeId
+    ) {
+      return pick(properties.text, "__linkedData");
+    }
+
+    const textEntity = properties.text.data;
+    let textEntityId =
+      draftIdToPlaceholderId.get(textEntity.draftId) ?? textEntity.entityId;
+
+    if (!textEntityId) {
+      textEntityId = generatePlaceholderId();
+      draftIdToPlaceholderId.set(textEntity.draftId, textEntityId);
+    }
+
+    return {
+      __linkedData: {
+        entityTypeId: textEntityTypeId,
+        entityId: textEntityId,
+      },
+    };
+  };
+
+  // Check the entities in the draft entity store against their representation (if any) in the database
   for (const draftEntity of Object.values(store.draft)) {
     if (isDraftBlockEntity(draftEntity)) {
+      // Draft blocks are checked for updates separately, after this loop
       draftIdToBlockEntities.set(draftEntity.draftId, draftEntity);
       continue;
     }
 
     if (draftEntity.entityId) {
+      // This means the entity already exists, but may need updating
       const savedEntity = store.saved[draftEntity.entityId];
 
       /**
@@ -146,54 +188,81 @@ const calculateSaveActions = async (
         continue;
       }
 
-      // @todo update this branch not to using legacy links
-      if (isDraftTextContainingEntityProperties(draftEntity.properties)) {
-        const savedWithoutText = omit(savedEntity.properties, "text");
-        const draftWithoutText = omit(draftEntity.properties, "text");
-        const savedTextLink = isDraftTextContainingEntityProperties(
-          savedEntity.properties,
-        )
-          ? savedEntity.properties.text.__linkedData
-          : null;
-
-        if (
-          !isEqual(savedWithoutText, draftWithoutText) ||
-          isEqual(savedTextLink, draftEntity.properties.text.__linkedData)
-        ) {
-          actions.push({
-            updateEntity: {
-              entityId: draftEntity.entityId,
-              accountId: draftEntity.accountId,
-              properties: {
-                ...draftWithoutText,
-                text: {
-                  __linkedData: draftEntity.properties.text.__linkedData,
-                },
-              },
-            },
-          });
-        }
-      } else if (!isEqual(draftEntity.properties, savedEntity.properties)) {
-        actions.push({
-          updateEntity: {
-            entityId: draftEntity.entityId,
-            accountId: draftEntity.accountId,
-            properties: draftEntity.properties,
-          },
-        });
+      // Nothing has changed…
+      if (isEqual(savedEntity.properties, draftEntity.properties)) {
+        continue;
       }
+
+      const previousProperties = isDraftTextContainingEntityProperties(
+        savedEntity.properties,
+      )
+        ? {
+            ...savedEntity.properties,
+            text: pick(savedEntity.properties.text, "__linkedData"),
+          }
+        : savedEntity.properties;
+
+      const nextProperties = isDraftTextContainingEntityProperties(
+        draftEntity.properties,
+      )
+        ? {
+            ...draftEntity.properties,
+            text: ensureNecessaryLegacyTextLink(draftEntity.properties),
+          }
+        : draftEntity.properties;
+
+      // The only thing that has changed is the text entity within the legacy link,
+      // so there is no update to this entity itself
+      if (isEqual(previousProperties, nextProperties)) {
+        continue;
+      }
+
+      actions.push({
+        updateEntity: {
+          entityId: draftEntity.entityId,
+          accountId: draftEntity.accountId,
+          properties: nextProperties,
+        },
+      });
     } else {
-      const placeholderId = generatePlaceholderId();
-      draftIdToPlaceholderId.set(draftEntity.draftId, placeholderId);
+      // We need to create the entity, and possibly a new entity type too
+
+      /**
+       * Sometimes, by the time it comes to create new entities, we have already
+       * created an entity that depends on this one (i.e, text containing entities).
+       * In this case, we need to use the placeholder ID used in that link instead
+       * of generating new ones.
+       *
+       * When that happens, our insert action ends up needing to come before
+       * the insert action of the entity that depends on this entity, so we
+       * insert it at the front of the action list later on
+       */
+      const dependedOn = draftIdToPlaceholderId.has(draftEntity.draftId);
+      const placeholderId = dependedOn
+        ? draftIdToPlaceholderId.get(draftEntity.draftId)!
+        : generatePlaceholderId();
+
+      if (!dependedOn) {
+        draftIdToPlaceholderId.set(draftEntity.draftId, placeholderId);
+      }
 
       let entityType: EntityTypeChoice | null = null;
       let properties = draftEntity.properties;
 
       if (isDraftTextEntity(draftEntity)) {
+        /**
+         * Text types are built in, so we know in this case we don't need to
+         * create an entity type, and we know we don't need to deal with any
+         * legacy links
+         */
         entityType = {
           systemTypeName: SystemTypeName.Text,
         };
       } else {
+        /**
+         * At this point, we may need to create an entity type for the entity
+         * we want to insert, which can also require dealing with legacy links
+         */
         const blockEntity = Object.values(store.draft).find(
           (entity): entity is DraftEntity<BlockEntity> =>
             isDraftBlockEntity(entity) &&
@@ -208,34 +277,19 @@ const calculateSaveActions = async (
           blockEntity.properties.componentId,
         );
 
-        // Placing at front to ensure latter actions can make use of this
+        entityType = { entityTypeId };
+        // Placing at front to ensure latter actions can make use of this type
         actions.unshift(...newTypeActions);
 
-        entityType = { entityTypeId };
-
-        if (isDraftTextContainingEntityProperties(properties)) {
-          const textEntity = properties.text.data;
-          const textEntityId =
-            draftIdToPlaceholderId.get(textEntity.draftId) ??
-            textEntity.entityId;
-
-          if (!textEntityId) {
-            throw new Error("Entity for text not yet created");
-          }
-
-          properties = {
-            ...properties,
-            text: {
-              __linkedData: {
-                entityTypeId: textEntityTypeId,
-                entityId: textEntityId,
-              },
-            },
-          };
-        }
+        properties = isDraftTextContainingEntityProperties(properties)
+          ? {
+              ...properties,
+              text: ensureNecessaryLegacyTextLink(properties),
+            }
+          : properties;
       }
 
-      actions.push({
+      const action: UpdatePageAction = {
         createEntity: {
           accountId,
           entityPlaceholderId: placeholderId,
@@ -245,12 +299,31 @@ const calculateSaveActions = async (
             entityProperties: properties,
           },
         },
-      });
+      };
+
+      /**
+       * When this entity is depended on, insert this action at the earliest
+       * possible position on the list to ensure the later action can be
+       * processed properly.
+       *
+       * @note If another entity *also* depends on this entity, this won't work,
+       *       but we don't currently have multiple levels of linked entities
+       *       being handled here, so that's okay for now.
+       */
+      if (dependedOn) {
+        const idx = actions.findIndex((item) => !item.createEntityType);
+        actions.splice(idx === -1 ? 0 : idx, 0, action);
+      } else {
+        actions.push(action);
+      }
     }
   }
 
+  // Having dealt with non-block entities, now we check for changes in the blocks themselves
+  // Block entities are wrappers which point to (a) a component and (b) a child entity
+  // First, gather the ids of the blocks as they appear in the db-persisted page
   const beforeBlockDraftIds = blocks.map((block) => {
-    const draftEntity = getDraftEntityFromEntityId(store.draft, block.entityId);
+    const draftEntity = getDraftEntityByEntityId(store.draft, block.entityId);
 
     if (!draftEntity) {
       throw new Error("Draft entity missing");
@@ -261,6 +334,7 @@ const calculateSaveActions = async (
 
   const afterBlockDraftIds: string[] = [];
 
+  // Check nodes in the ProseMirror document to gather the ids of the blocks as they appear in the latest page
   doc.descendants((node) => {
     if (isEntityNode(node)) {
       if (!node.attrs.draftId) {
@@ -282,6 +356,7 @@ const calculateSaveActions = async (
     return true;
   });
 
+  // Check the blocks from the db-persisted page against the latest version of the page
   let position = 0;
   let itCount = 0;
   while (
@@ -302,15 +377,63 @@ const calculateSaveActions = async (
     }
 
     if (afterDraftId === beforeDraftId) {
+      // the block id has not changed – but its child entity may have done, so we need to compare them
+
+      const draftEntity = draftIdToBlockEntities.get(afterDraftId!); // asserted because we've just checked they're not both falsy
+      if (!draftEntity) {
+        throw new Error("missing draft block entity");
+      }
+
+      if (!draftEntity.entityId) {
+        // The block has not yet been saved to the database, and therefore there is no saved block to compare it with
+        // It's probably been inserted as part of this loop and spliced into the before ids – no further action required
+        position += 1;
+        continue;
+      }
+
+      const savedEntity = store.saved[draftEntity.entityId];
+      if (!savedEntity) {
+        throw new Error("missing saved block entity");
+      }
+
+      // extract the children for comparison
+      const newChildEntityForBlock = draftEntity.properties.entity;
+      if (!("entity" in savedEntity.properties)) {
+        throw new Error("Missing child entity in saved block entity");
+      }
+
+      const oldChildEntityForBlock = savedEntity.properties.entity;
+
+      if (oldChildEntityForBlock.entityId !== newChildEntityForBlock.entityId) {
+        if (!newChildEntityForBlock.entityId) {
+          // this should never happen because users select new child entities from API-provided entities.
+          // if this errors in future, it's because users are choosing locally-created but not yet db-persisted entities
+          throw new Error("New child entity for block has not yet been saved");
+        }
+
+        actions.push({
+          swapBlockData: {
+            accountId: draftEntity.accountId,
+            entityId: savedEntity.entityId,
+            newEntityEntityId: newChildEntityForBlock.entityId,
+            newEntityAccountId: newChildEntityForBlock.accountId,
+          },
+        });
+      }
+
       position += 1;
       continue;
     }
 
+    // the before draft id isn't the same as the after draft id, so this block shouldn't be in this position any more
     if (beforeDraftId) {
       actions.push({ removeBlock: { position } });
+
+      // delete this block from the 'before' series so that we're comparing subsequent blocks in the correct position
       beforeBlockDraftIds.splice(position, 1);
     }
 
+    // this block wasn't in this position before – it needs inserting there
     if (afterDraftId) {
       const draftEntity = draftIdToBlockEntities.get(afterDraftId);
 
@@ -355,6 +478,8 @@ const calculateSaveActions = async (
               }),
         },
       });
+
+      // insert this new block into the 'before' series so that we compare subsequent blocks in the current position
       beforeBlockDraftIds.splice(position, 0, afterDraftId);
     }
   }

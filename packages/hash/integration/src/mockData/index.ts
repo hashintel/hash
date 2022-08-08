@@ -389,12 +389,6 @@ void (async () => {
           properties: {
             email: "alice@example.com",
             name: "Alice Alison",
-            employer: {
-              __linkedData: {
-                entityTypeId: newTypeIds.Company!,
-                entityId: results.get("c1")!.entityId,
-              },
-            },
           },
           accountId: user.accountId,
           createdByAccountId: user.entityId,
@@ -407,12 +401,6 @@ void (async () => {
           properties: {
             email: "bob@example.com",
             name: "Bob Bobson",
-            employer: {
-              __linkedData: {
-                entityTypeId: newTypeIds.Company!,
-                entityId: results.get("c1")!.entityId,
-              },
-            },
           },
           entityTypeId: newTypeIds.Person!,
           accountId: user.accountId,
