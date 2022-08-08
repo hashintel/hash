@@ -122,14 +122,14 @@ describe("Entity type CRU", () => {
   const createdEntityType$id =
     "https://entity-type~example.com/entity-type/v/1";
   let createdEntityType: EntityTypeModel;
-  it("can create a entity type", async () => {
+  it("can create an entity type", async () => {
     createdEntityType = await EntityTypeModel.create(graphApi, {
       accountId,
       schema: entityType(createdEntityType$id),
     });
   });
 
-  it("can read a entity type", async () => {
+  it("can read an entity type", async () => {
     const fetchedEntityType = await EntityTypeModel.get(graphApi, {
       accountId,
       versionedUri: createdEntityType$id,
@@ -140,7 +140,7 @@ describe("Entity type CRU", () => {
 
   const updated$id = "https://entity-type~example.com/entity-type/v/2";
   const updatedTitle = "New text!";
-  it("can update a entity type", async () => {
+  it("can update an entity type", async () => {
     await createdEntityType
       .update(graphApi, {
         accountId,

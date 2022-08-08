@@ -21,7 +21,7 @@ export default class {
   }
 
   /**
-   * Create a entity type.
+   * Create an entity type.
    *
    * @param params.accountId the accountId of the account creating the entity type
    * @param params.schema a `EntityType`
@@ -56,10 +56,10 @@ export default class {
   }
 
   /**
-   * Get a entity type by its versioned URI.
+   * Get an entity type by its versioned URI.
    *
    * @param params.accountId the accountId of the account requesting the entity type
-   * @param params.versionedUri the unique versioned URI for a entity type.
+   * @param params.versionedUri the unique versioned URI for an entity type.
    */
   static async get(
     graphApi: GraphApi,
@@ -75,7 +75,7 @@ export default class {
   }
 
   /**
-   * Update a entity type.
+   * Update an entity type.
    *
    * @param params.accountId the accountId of the account making the update
    * @param params.schema a `EntityType`
