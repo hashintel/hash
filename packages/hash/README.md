@@ -26,7 +26,7 @@ To run HASH locally, please follow these steps:
     ## ≥ 2.17
     
     node --version
-    ## ≥ 16.13
+    ## ≥ 16.15
     
     yarn --version
     ## ≥ 1.16
@@ -57,6 +57,14 @@ To run HASH locally, please follow these steps:
     ```
 
     It will be used for storing locally defined environment variables (the ones we don’t want to store in git).
+
+1.  Ensure Docker is running.
+    If you are on Windows or macOS, you should see app icon in the system tray or the menu bar.
+    Alternatively, you can use this command to test if Docker is running.
+
+    ```sh
+    docker run hello-world
+    ```
 
 1.  Launch external services (Postgres, Redis and OpenSearch) as Docker containers:
 
