@@ -209,7 +209,6 @@ jobs:
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.publish) }}
         toolchain:
-          - stable
           - ${{ needs.setup.outputs.nightly }}
         profile:
           - release
