@@ -9,7 +9,9 @@ import {
 } from "../../../graphql/apiTypes.gen";
 import { parseLinkedAggregationIdentifier } from "../../../lib/entities";
 
-export const useBlockProtocolDeleteLinkedAggregation = (): {
+export const useBlockProtocolDeleteLinkedAggregation = (
+  readonly?: boolean,
+): {
   deleteLinkedAggregation: EmbedderGraphMessageCallbacks["deleteLinkedAggregation"];
 } => {
   const [runDeleteLinkedAggregationsMutation] = useMutation<
@@ -20,6 +22,17 @@ export const useBlockProtocolDeleteLinkedAggregation = (): {
   const deleteLinkedAggregation: EmbedderGraphMessageCallbacks["deleteLinkedAggregation"] =
     useCallback(
       async ({ data }) => {
+        if (readonly) {
+          return {
+            errors: [
+              {
+                code: "FORBIDDEN",
+                message: "Operation can't be carried out in readonly mode",
+              },
+            ],
+          };
+        }
+
         if (!data) {
           return {
             errors: [
@@ -57,7 +70,7 @@ export const useBlockProtocolDeleteLinkedAggregation = (): {
           data: true,
         };
       },
-      [runDeleteLinkedAggregationsMutation],
+      [runDeleteLinkedAggregationsMutation, readonly],
     );
 
   return {
