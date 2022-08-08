@@ -46,6 +46,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     },
   );
 
+  // TODO: rename ids to type_ids
   pgm.createTable(
     "ids",
     {

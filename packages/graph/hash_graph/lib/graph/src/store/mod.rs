@@ -22,7 +22,7 @@ use crate::{
         AccountId,
     },
     store::crud::Read,
-    DataType,
+    DataType, PersistedEntity,
 };
 
 #[derive(Debug)]
@@ -363,7 +363,7 @@ pub trait EntityStore {
         created_by: AccountId,
     ) -> Result<EntityId, InsertionError>;
 
-    /// Get the [`Entity`] specified by `identifier`.
+    /// Get the [`PersistedEntity`] specified by `identifier`.
     ///
     /// Depending on the `identifier` the output is specified by [`Read::Output`].
     ///
@@ -372,7 +372,7 @@ pub trait EntityStore {
     /// - if the requested [`Entity`] doesn't exist
     async fn get_entity<'i, I: Send>(&self, identifier: I) -> Result<Self::Output, QueryError>
     where
-        Self: Read<'i, I, Entity>,
+        Self: Read<'i, I, PersistedEntity>,
     {
         self.get(identifier).await
     }

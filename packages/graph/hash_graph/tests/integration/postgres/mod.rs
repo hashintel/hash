@@ -7,14 +7,15 @@ mod property_type;
 
 use error_stack::Result;
 use graph::{
-    knowledge::{Entity, EntityId, Link, Links, Outgoing},
+    knowledge::{Entity, EntityId, Link, Links, Outgoing, PersistedEntity},
     ontology::{
         types::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType},
         AccountId,
     },
     store::{
-        error::LinkActivationError, AsClient, DatabaseConnectionInfo, DatabaseType, InsertionError,
-        LinkStore, PostgresStore, PostgresStorePool, QueryError, Store, StorePool, UpdateError,
+        error::LinkActivationError, AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
+        EntityStore, EntityTypeStore, InsertionError, LinkStore, LinkTypeStore, PostgresStore,
+        PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
 };
 use tokio_postgres::{NoTls, Transaction};
@@ -130,6 +131,8 @@ impl DatabaseTestWrapper {
         Ok(DatabaseApi { store, account_id })
     }
 }
+
+// TODO: Add get_all_* methods
 impl DatabaseApi<'_> {
     pub async fn create_data_type(&mut self, data_type: &DataType) -> Result<(), InsertionError> {
         self.store
@@ -220,7 +223,7 @@ impl DatabaseApi<'_> {
             .await
     }
 
-    pub async fn get_entity(&mut self, entity_id: EntityId) -> Result<Entity, QueryError> {
+    pub async fn get_entity(&mut self, entity_id: EntityId) -> Result<PersistedEntity, QueryError> {
         self.store.get_entity(entity_id).await
     }
 

@@ -19,7 +19,7 @@ use crate::{
         crud::AllLatest,
         error::{EntityDoesNotExist, QueryError},
     },
-    GraphPool,
+    GraphPool, PersistedEntity,
 };
 
 #[derive(Component, Serialize)]
@@ -130,8 +130,8 @@ async fn create_entity<P: GraphPool>(
 async fn get_entity<P: GraphPool>(
     Path(entity_id): Path<EntityId>,
     Extension(pool): Extension<Arc<P>>,
-) -> Result<Json<Entity>, StatusCode> {
-    read_from_store::<Entity, _, _, _>(pool.as_ref(), entity_id)
+) -> Result<Json<PersistedEntity>, StatusCode> {
+    read_from_store::<PersistedEntity, _, _, _>(pool.as_ref(), entity_id)
         .await
         .map(Json)
 }
@@ -147,8 +147,8 @@ async fn get_entity<P: GraphPool>(
 )]
 async fn get_latest_entities<P: GraphPool>(
     pool: Extension<Arc<P>>,
-) -> Result<Json<Vec<Entity>>, StatusCode> {
-    read_from_store::<Entity, _, _, _>(pool.as_ref(), AllLatest)
+) -> Result<Json<Vec<PersistedEntity>>, StatusCode> {
+    read_from_store::<PersistedEntity, _, _, _>(pool.as_ref(), AllLatest)
         .await
         .map(Json)
 }
