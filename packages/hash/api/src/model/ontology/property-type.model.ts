@@ -1,6 +1,7 @@
 import { PropertyType, GraphApi } from "@hashintel/hash-graph-client";
 
 import { PropertyTypeModel } from "../index";
+import { NIL_UUID } from "../util";
 
 type PropertyTypeModelConstructorArgs = {
   accountId: string;
@@ -65,12 +66,14 @@ export default class {
   static async get(
     graphApi: GraphApi,
     params: {
-      accountId: string;
       versionedUri: string;
     },
   ): Promise<PropertyTypeModel> {
-    const { accountId, versionedUri } = params;
+    const { versionedUri } = params;
     const { data: schema } = await graphApi.getPropertyType(versionedUri);
+
+    /** @todo: retrieve accountId from `graphApi.getPropertyType` response */
+    const accountId = NIL_UUID;
 
     return new PropertyTypeModel({ schema, accountId });
   }
