@@ -65,7 +65,7 @@ async fn main() -> Result<(), CliError> {
         &format!("cli-{now}"),
         &format!("cli-{now}-texray"),
     )
-    .report()
+    .into_report()
     .attach_printable("Failed to initialize the logger")
     .change_context(CliError)?;
 
@@ -77,7 +77,7 @@ async fn main() -> Result<(), CliError> {
     let absolute_project_path = args
         .project
         .canonicalize()
-        .report()
+        .into_report()
         .attach_printable_lazy(|| {
             format!("Could not canonicalize project path: {:?}", args.project)
         })

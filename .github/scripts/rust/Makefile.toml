@@ -18,6 +18,10 @@ CARGO_DOC_HACK_FLAGS = "--workspace"
 CARGO_RUSTDOC_FLAGS = "--all-features -Zunstable-options -Zrustdoc-scrape-examples=examples -- -Zunstable-options"
 CARGO_RUSTDOC_HACK_FLAGS = "--workspace"
 CARGO_TEST_FLAGS = ""
+# This needs to be here, as error-stack uses it, and _BASE **needs** to be defined before
+# the variable using it has been defined. This is done per suggestion of
+# https://github.com/sagiegurari/cargo-make/issues/685
+CARGO_TEST_HACK_FLAGS_BASE = ""
 CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset"
 CARGO_DOC_TEST_FLAGS = "--workspace --all-features"
 CARGO_MIRI_FLAGS = ""
