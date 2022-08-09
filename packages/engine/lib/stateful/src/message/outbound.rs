@@ -212,11 +212,10 @@ impl Message {
     /// serdes missing variant error
     fn ensure_is_valid_hash_engine_message(value: &serde_json::Value) -> Result<(), Error> {
         // message is intended for hash already, so only ensure type
-        if let Some(serde_json::Value::String(kind /* is a &String */)) = value.get("type") {
+        if let Some(serde_json::Value::String(kind)) = value.get("type") {
             // since all keys stored inside the system message types are lower case, we should also
             // lowercase the kind here too
-            let kind = kind.to_ascii_lowercase();
-            if is_system_message(&kind) {
+            if is_system_message(&kind.to_ascii_lowercase()) {
                 return Ok(());
             }
             // otherwise throw an error
@@ -224,7 +223,7 @@ impl Message {
             // string for our error. I'm sure as an optimization in the future seeing as how an
             // error is the end of life for message preprocessing we can just take it by value
             // instead.
-            return Err(Error::InvalidMessageType(Some(kind)));
+            return Err(Error::InvalidMessageType(Some(kind.to_owned())));
         }
         Err(Error::InvalidMessageType(None))
     }
