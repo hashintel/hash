@@ -13,7 +13,7 @@ use graph::{
     ontology::{
         types::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType},
         AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
-        PersistedPropertyType,
+        PersistedOntologyIdentifier, PersistedPropertyType,
     },
     store::{
         error::LinkActivationError,
@@ -142,7 +142,10 @@ impl DatabaseTestWrapper {
 
 // TODO: Add get_all_* methods
 impl DatabaseApi<'_> {
-    pub async fn create_data_type(&mut self, data_type: &DataType) -> Result<(), InsertionError> {
+    pub async fn create_data_type(
+        &mut self,
+        data_type: &DataType,
+    ) -> Result<PersistedOntologyIdentifier, InsertionError> {
         self.store
             .create_data_type(data_type, self.account_id)
             .await
@@ -164,7 +167,10 @@ impl DatabaseApi<'_> {
             .expect("No data type found"))
     }
 
-    pub async fn update_data_type(&mut self, data_type: &DataType) -> Result<(), UpdateError> {
+    pub async fn update_data_type(
+        &mut self,
+        data_type: &DataType,
+    ) -> Result<PersistedOntologyIdentifier, UpdateError> {
         self.store
             .update_data_type(data_type, self.account_id)
             .await
@@ -173,7 +179,7 @@ impl DatabaseApi<'_> {
     pub async fn create_property_type(
         &mut self,
         property_type: &PropertyType,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<PersistedOntologyIdentifier, InsertionError> {
         self.store
             .create_property_type(property_type, self.account_id)
             .await
@@ -198,7 +204,7 @@ impl DatabaseApi<'_> {
     pub async fn update_property_type(
         &mut self,
         property_type: &PropertyType,
-    ) -> Result<(), UpdateError> {
+    ) -> Result<PersistedOntologyIdentifier, UpdateError> {
         self.store
             .update_property_type(property_type, self.account_id)
             .await
@@ -207,7 +213,7 @@ impl DatabaseApi<'_> {
     pub async fn create_entity_type(
         &mut self,
         entity_type: &EntityType,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<PersistedOntologyIdentifier, InsertionError> {
         self.store
             .create_entity_type(entity_type, self.account_id)
             .await
@@ -232,13 +238,16 @@ impl DatabaseApi<'_> {
     pub async fn update_entity_type(
         &mut self,
         entity_type: &EntityType,
-    ) -> Result<(), UpdateError> {
+    ) -> Result<PersistedOntologyIdentifier, UpdateError> {
         self.store
             .update_entity_type(entity_type, self.account_id)
             .await
     }
 
-    pub async fn create_link_type(&mut self, link_type: &LinkType) -> Result<(), InsertionError> {
+    pub async fn create_link_type(
+        &mut self,
+        link_type: &LinkType,
+    ) -> Result<PersistedOntologyIdentifier, InsertionError> {
         self.store
             .create_link_type(link_type, self.account_id)
             .await
@@ -260,7 +269,10 @@ impl DatabaseApi<'_> {
             .expect("No link type found"))
     }
 
-    pub async fn update_link_type(&mut self, link_type: &LinkType) -> Result<(), UpdateError> {
+    pub async fn update_link_type(
+        &mut self,
+        link_type: &LinkType,
+    ) -> Result<PersistedOntologyIdentifier, UpdateError> {
         self.store
             .update_link_type(link_type, self.account_id)
             .await
