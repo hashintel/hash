@@ -64,12 +64,12 @@ where
         };
 
         row_stream
-            .report()
+            .into_report()
             .change_context(QueryError)?
             .map(|row_result| {
-                let row = row_result.report().change_context(QueryError)?;
+                let row = row_result.into_report().change_context(QueryError)?;
                 serde_json::from_value(row.get(0))
-                    .report()
+                    .into_report()
                     .change_context(QueryError)
             })
             .try_collect()

@@ -73,7 +73,10 @@ impl FromStr for VersionedUri {
 
         Ok(Self::new(
             base_uri.to_owned(),
-            version.parse().report().change_context(ParseUriError)?,
+            version
+                .parse()
+                .into_report()
+                .change_context(ParseUriError)?,
         ))
     }
 }

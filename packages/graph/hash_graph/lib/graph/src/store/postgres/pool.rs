@@ -60,7 +60,7 @@ where
                 .error_sink(Box::new(ErrorLogger))
                 .build(PostgresConnectionManager::new(config, tls))
                 .await
-                .report()
+                .into_report()
                 .change_context(StoreError)
                 .attach_printable_lazy(|| db_info.clone())?,
         })

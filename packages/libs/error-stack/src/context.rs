@@ -105,8 +105,6 @@ pub fn temporary_provider(context: &impl Context) -> impl Provider + '_ {
 impl<C: std::error::Error + Send + Sync + 'static> Context for C {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        if let Some(backtrace) = self.backtrace() {
-            demand.provide_ref(backtrace);
-        }
+        std::error::Error::provide(self, demand);
     }
 }

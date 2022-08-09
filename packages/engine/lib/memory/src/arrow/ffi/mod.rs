@@ -77,7 +77,7 @@ unsafe extern "C" fn get_static_metadata(schema: usize) -> *const meta::Static {
 #[no_mangle]
 unsafe extern "C" fn free_static_metadata(ptr: *mut meta::Static) {
     if !ptr.is_null() {
-        Box::from_raw(ptr);
+        drop(Box::from_raw(ptr));
     }
 }
 
@@ -136,6 +136,6 @@ unsafe extern "C" fn get_dynamic_metadata(memory_ptr: *const CSegment) -> *const
 #[no_mangle]
 unsafe extern "C" fn free_dynamic_metadata(ptr: *mut meta::Dynamic) {
     if !ptr.is_null() {
-        Box::from_raw(ptr);
+        drop(Box::from_raw(ptr));
     }
 }
