@@ -1,5 +1,5 @@
 #![cfg(feature = "std")]
-#![cfg_attr(nightly, feature(provide_any, backtrace))]
+#![cfg_attr(nightly, feature(provide_any, backtrace, error_generic_member_access))]
 
 use std::io;
 
