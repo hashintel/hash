@@ -31,7 +31,7 @@ impl<C: AsClient> crud::Read<'_, EntityId, Link> for PostgresStore<C> {
                 &[&identifier],
             )
             .await
-            .report()
+            .into_report()
             .change_context(QueryError)
             .attach_printable(identifier)?
             .into_iter()
@@ -50,7 +50,7 @@ impl<C: AsClient> crud::Read<'_, EntityId, Link> for PostgresStore<C> {
                 &[&identifier],
             )
             .await
-            .report()
+            .into_report()
             .change_context(QueryError)
             .attach_printable(identifier)?
             .into_iter()
@@ -103,7 +103,7 @@ impl<'i, C: AsClient> crud::Read<'i, (EntityId, &'i VersionedUri), Link> for Pos
             &[&source_entity_id, link_type_uri.base_uri(), &version],
         )
         .await
-        .report()
+        .into_report()
         .change_context(QueryError)
         .attach_printable(source_entity_id)
         .attach_printable(link_type_uri.clone())?;

@@ -11,7 +11,8 @@ description = "The entity-graph query-layer for the HASH datastore"
 axum = "0.5.11"
 clap = { version = "3.2.10", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete = "3.2.3"
-error-stack = { version = "0.1.1", features = ["futures"] }
+# TODO: Change to `version = "0.2"` as soon as it's released
+error-stack = { git = "https://github.com/hashintel/hash", rev = "5edddb5", features = ["spantrace"] }
 graph = { path = "../../lib/graph", features = ["clap"] }
 tokio = { version = "1.18.2", features = ["rt-multi-thread", "macros"] }
 tokio-postgres = { version = "0.7.6", default-features = false }

@@ -60,7 +60,7 @@ where
                 &[&account_id],
             )
             .await
-            .report()
+            .into_report()
             .change_context(InsertionError)
             .attach_printable(account_id)?;
 
@@ -89,7 +89,7 @@ where
                 &[&base_uri],
             )
             .await
-            .report()
+            .into_report()
             .change_context(QueryError)
             .attach_printable_lazy(|| base_uri.clone())?
             .get(0))
@@ -116,7 +116,7 @@ where
                 &[uri.base_uri(), &version],
             )
             .await
-            .report()
+            .into_report()
             .change_context(QueryError)
             .attach_printable_lazy(|| uri.clone())?
             .get(0))
@@ -138,7 +138,7 @@ where
                 &[&entity_id],
             )
             .await
-            .report()
+            .into_report()
             .change_context(InsertionError)
             .attach_printable(entity_id)?;
 
@@ -165,7 +165,7 @@ where
                 &[&entity_id],
             )
             .await
-            .report()
+            .into_report()
             .change_context(QueryError)
             .attach_printable(entity_id)?
             .get(0))
@@ -192,7 +192,7 @@ where
                 &[uri.base_uri(), &version, &version_id],
             )
             .await
-            .report()
+            .into_report()
             .change_context(InsertionError)
             .attach_printable_lazy(|| uri.clone())?;
 
@@ -217,7 +217,7 @@ where
                 &[&base_uri],
             )
             .await
-            .report()
+            .into_report()
             .change_context(InsertionError)
             .attach_printable_lazy(|| base_uri.clone())?;
 
@@ -240,7 +240,7 @@ where
                 &[&version_id],
             )
             .await
-            .report()
+            .into_report()
             .change_context(InsertionError)
             .attach_printable(version_id)?;
 
@@ -359,7 +359,7 @@ where
         T: OntologyDatabaseType + Serialize + Sync,
     {
         let value = serde_json::to_value(database_type)
-            .report()
+            .into_report()
             .change_context(InsertionError)?;
         // Generally bad practice to construct a query without preparation, but it's not possible to
         // pass a table name as a parameter and `T::table()` is well-defined, so this is a safe
@@ -377,7 +377,7 @@ where
                 &[&version_id, &value, &created_by],
             )
             .await
-            .report()
+            .into_report()
             .change_context(InsertionError)?;
 
         Ok(())
@@ -404,7 +404,7 @@ where
                     &[&version_id, &target_id],
                 )
                 .await
-                .report()
+                .into_report()
                 .change_context(InsertionError)?;
         }
 
@@ -424,7 +424,7 @@ where
                     &[&version_id, &target_id],
                 )
                 .await
-                .report()
+                .into_report()
                 .change_context(InsertionError)?;
         }
 
@@ -452,7 +452,7 @@ where
                     &[&version_id, &target_id],
                 )
                 .await
-                .report()
+                .into_report()
                 .change_context(InsertionError)?;
         }
 
@@ -477,7 +477,7 @@ where
                     &[&version_id, &target_id],
                 )
                 .await
-                .report()
+                .into_report()
                 .change_context(InsertionError)?;
         }
 
@@ -497,7 +497,7 @@ where
                     &[&version_id, &target_id],
                 )
                 .await
-                .report()
+                .into_report()
                 .change_context(InsertionError)?;
         }
 
@@ -584,7 +584,7 @@ where
         // TODO: Validate entity against entity type
 
         let value = serde_json::to_value(entity)
-            .report()
+            .into_report()
             .change_context(InsertionError)?;
         let version = self.as_client().query_one(
                 r#"
@@ -595,7 +595,7 @@ where
                 &[&entity_id, &entity_type_id, &value, &account_id]
             )
             .await
-            .report()
+            .into_report()
             .change_context(InsertionError)?.get(0);
 
         Ok(PersistedEntityIdentifier::new(
@@ -621,7 +621,7 @@ where
                 &[&active, &source_entity, &target_entity, &link_type_version_id],
             )
             .await
-            .report()
+            .into_report()
             .change_context(LinkActivationError)?;
 
         Ok(())
@@ -646,7 +646,7 @@ where
                 &[uri.base_uri(), &version],
             )
             .await
-            .report()
+            .into_report()
             .change_context(QueryError)
             .attach_printable_lazy(|| uri.clone())?
             .get(0))
