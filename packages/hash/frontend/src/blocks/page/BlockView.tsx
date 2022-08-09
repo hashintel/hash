@@ -136,7 +136,7 @@ export class BlockView implements NodeView<Schema> {
    * destroyed and/or updated. Here we're instructing PM to ignore changes
    * made by us
    *
-   * @todo find a more generalised alternative
+   * @todo find a more generalized alternative
    */
   ignoreMutation(
     record: Parameters<NonNullable<NodeView<Schema>["ignoreMutation"]>>[0],
