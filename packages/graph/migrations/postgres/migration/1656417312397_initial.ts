@@ -76,6 +76,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     primaryKey: ["base_uri", "version"],
   });
 
+  // TODO: consider changing `created_by` to `author` or something in all tables : https://app.asana.com/0/1201095311341924/1202769355319303/f
   pgm.createTable(
     "data_types",
     {

@@ -46,7 +46,7 @@ pub struct Entity {
 pub struct PersistedEntityIdentifier {
     entity_id: EntityId,
     version: DateTime<Utc>,
-    created_by: AccountId, /* TODO: consider changing this to 'author' or something: https://app.asana.com/0/1201095311341924/1202769355319303/f */
+    created_by: AccountId,
 }
 
 impl PersistedEntityIdentifier {
