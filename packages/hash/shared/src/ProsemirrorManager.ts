@@ -415,6 +415,18 @@ export class ProsemirrorManager {
     };
   }
 
+  async insertBlock(
+    targetComponentId: string,
+    variant: BlockVariant,
+    to: number,
+  ) {
+    const [tr, node] = await this.createBlock(targetComponentId, null, variant);
+
+    tr.insert(to, node);
+
+    return { tr };
+  }
+
   async replaceRange(
     targetComponentId: string,
     variant: BlockVariant,
