@@ -270,7 +270,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
         delete newLinkedData.operation.pageNumber;
       }
 
-      // If in readonly mode, we don't want to save the operation to db
+      // If in read-only mode, we don't want to save the operation to db
       if (graphReadonly) {
         void graphService
           ?.aggregateEntities({
