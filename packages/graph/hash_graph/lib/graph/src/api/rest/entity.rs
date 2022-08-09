@@ -37,7 +37,7 @@ struct QualifiedEntity {
         get_latest_entities,
         update_entity
     ),
-    components(CreateEntityRequest, UpdateEntityRequest, EntityId, QualifiedEntity, Entity),
+    components(CreateEntityRequest, UpdateEntityRequest, EntityId, QualifiedEntity, PersistedEntity, Entity),
     tags(
         (name = "Entity", description = "entity management API")
     )
@@ -117,7 +117,7 @@ async fn create_entity<P: GraphPool>(
     path = "/entities/{entityId}",
     tag = "Entity",
     responses(
-        (status = 200, content_type = "application/json", description = "The requested entity", body = Entity),
+        (status = 200, content_type = "application/json", description = "The requested entity", body = PersistedEntity),
         (status = 422, content_type = "text/plain", description = "Provided entity id is invalid"),
 
         (status = 404, description = "entity was not found"),
@@ -141,7 +141,7 @@ async fn get_entity<P: GraphPool>(
     path = "/entities",
     tag = "Entity",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all entities", body = [Entity]),
+        (status = 200, content_type = "application/json", description = "List of all entities", body = [PersistedEntity]),
         (status = 500, description = "Store error occurred"),
     )
 )]

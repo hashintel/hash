@@ -40,10 +40,12 @@ pub struct Entity {
 
 /// A record of an entity that has been persisted in the datastore, with its associated metadata.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
+#[serde(rename_all = "camelCase")]
 pub struct PersistedEntity {
     inner: Entity,
     id: EntityId,
     version: DateTime<Utc>,
+    #[component(value_type = String)]
     type_versioned_uri: VersionedUri,
     created_by: AccountId,
 }
