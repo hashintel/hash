@@ -1,6 +1,4 @@
-use std::fmt;
-use std::fmt::Formatter;
-use std::marker::PhantomData;
+use std::{fmt, fmt::Formatter, marker::PhantomData};
 
 use crate::ontology::types::{uri::BaseUri, DataType, EntityType, LinkType, PropertyType};
 
@@ -23,7 +21,10 @@ pub struct OntologyQuery<'q, T> {
 
 impl<T> fmt::Debug for OntologyQuery<'_, T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("OntologyQuery").field("uri", &self.uri()).field("version", &self.version()).finish()
+        f.debug_struct("OntologyQuery")
+            .field("uri", &self.uri())
+            .field("version", &self.version())
+            .finish()
     }
 }
 

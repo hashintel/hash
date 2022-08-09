@@ -16,7 +16,7 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    knowledge::{Entity, EntityId, Link, Links, PersistedEntityIdentifier},
+    knowledge::{Entity, EntityId, Link, Links, PersistedEntity, PersistedEntityIdentifier},
     ontology::{
         types::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType},
         AccountId,
@@ -29,7 +29,6 @@ use crate::{
         },
     },
 };
-use crate::knowledge::PersistedEntity;
 
 #[derive(Debug)]
 pub struct StoreError;

@@ -17,7 +17,10 @@ use crate::{
 impl<C: AsClient> crud::Read<Links> for PostgresStore<C> {
     type Query<'q> = LinkQuery<'q>;
 
-    #[expect(clippy::too_many_lines, reason = "TODO: Function needs to be split into smaller parts")]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "TODO: Function needs to be split into smaller parts"
+    )]
     async fn read<'query>(&self, query: &Self::Query<'query>) -> Result<Vec<Links>, QueryError> {
         match (query.link_type_query(), query.source_entity_id()) {
             (None, Some(source_entity_id)) => {

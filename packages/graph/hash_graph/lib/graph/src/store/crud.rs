@@ -5,6 +5,7 @@
 //! [`Store`] without changing the [`Store`] implementation.
 
 use std::fmt::Debug;
+
 use async_trait::async_trait;
 use error_stack::Result;
 
