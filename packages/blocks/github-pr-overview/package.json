@@ -24,7 +24,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.11-canary.24",
+    "@blockprotocol/graph": "0.0.12",
     "@hashintel/hash-design-system": "0.0.0",
     "@mui/icons-material": "5.4.2",
     "@mui/lab": "5.0.0-alpha.71",

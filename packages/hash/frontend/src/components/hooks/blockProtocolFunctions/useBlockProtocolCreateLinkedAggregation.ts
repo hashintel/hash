@@ -11,7 +11,9 @@ import {
   parseEntityIdentifier,
 } from "../../../lib/entities";
 
-export const useBlockProtocolCreateLinkedAggregation = (): {
+export const useBlockProtocolCreateLinkedAggregation = (
+  readonly?: boolean,
+): {
   createLinkedAggregation: EmbedderGraphMessageCallbacks["createLinkedAggregation"];
 } => {
   const [runCreateLinkedAggregationMutation] = useMutation<
@@ -22,6 +24,17 @@ export const useBlockProtocolCreateLinkedAggregation = (): {
   const createLinkedAggregation: EmbedderGraphMessageCallbacks["createLinkedAggregation"] =
     useCallback(
       async ({ data }) => {
+        if (readonly) {
+          return {
+            errors: [
+              {
+                code: "FORBIDDEN",
+                message: "Operation can't be carried out in readonly mode",
+              },
+            ],
+          };
+        }
+
         if (!data) {
           return {
             errors: [
@@ -70,7 +83,7 @@ export const useBlockProtocolCreateLinkedAggregation = (): {
           ),
         };
       },
-      [runCreateLinkedAggregationMutation],
+      [runCreateLinkedAggregationMutation, readonly],
     );
 
   return {
