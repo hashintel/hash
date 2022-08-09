@@ -50,7 +50,9 @@ fn anyhow() {
     #[allow(unused_mut)]
     let mut report_messages = messages(&report);
 
-    // Backtrace from anyhow cannot be captured currently
+    // Backtrace from anyhow cannot be captured currently until `Error::provide` is implemented.
+    // Previously, `backtrace` was a function on `Error`, but this was removed, so it has to be
+    // provided by the Provider API.
     #[cfg(all(nightly, feature = "std"))]
     remove_backtrace_context(&mut report_messages);
 
@@ -59,7 +61,6 @@ fn anyhow() {
     #[allow(unused_mut)]
     let mut anyhow_messages = messages(&anyhow_report);
 
-    // Backtrace from anyhow cannot be captured currently
     #[cfg(all(nightly, feature = "std"))]
     remove_backtrace_context(&mut anyhow_messages);
 
