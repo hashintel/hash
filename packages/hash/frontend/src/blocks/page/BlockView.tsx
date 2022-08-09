@@ -33,6 +33,7 @@ export class BlockView implements NodeView<Schema> {
 
   allowDragging = false;
   dragging = false;
+  hovered = false;
 
   /** used to hide node-view specific events from prosemirror */
   blockHandleRef = createRef<HTMLDivElement>();
@@ -66,6 +67,13 @@ export class BlockView implements NodeView<Schema> {
     return blockEntityNode.attrs.draftId ?? null;
   }
 
+  private createHoverHandler = (hovered: boolean) => {
+    return () => {
+      this.hovered = hovered;
+      this.update(this.node);
+    };
+  };
+
   constructor(
     public node: ProsemirrorNode<Schema>,
     public editorView: EditorView<Schema>,
@@ -76,6 +84,8 @@ export class BlockView implements NodeView<Schema> {
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block!);
     this.dom.setAttribute("data-testid", "block");
+    this.dom.addEventListener("mouseenter", this.onMouseEnter);
+    this.dom.addEventListener("mouseleave", this.onMouseLeave);
 
     this.selectContainer = document.createElement("div");
     this.selectContainer.classList.add(styles.Block__UI!);
@@ -96,6 +106,9 @@ export class BlockView implements NodeView<Schema> {
 
     this.update(node);
   }
+
+  onMouseEnter = this.createHoverHandler(true);
+  onMouseLeave = this.createHoverHandler(false);
 
   onDragEnd = () => {
     (document.activeElement as HTMLElement | null)?.blur();
@@ -237,6 +250,8 @@ export class BlockView implements NodeView<Schema> {
     this.renderPortal(null, this.selectContainer);
     this.dom.remove();
     document.removeEventListener("dragend", this.onDragEnd);
+    document.removeEventListener("mouseenter", this.onMouseEnter);
+    document.removeEventListener("mouseleave", this.onMouseLeave);
   }
 
   deleteBlock = () => {
