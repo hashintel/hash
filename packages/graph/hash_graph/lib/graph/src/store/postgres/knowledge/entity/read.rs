@@ -33,12 +33,12 @@ impl<C: AsClient> crud::Read<'_, EntityId, PersistedEntity> for PostgresStore<C>
                 &[&identifier],
             )
             .await
-            .report()
+            .into_report()
             .change_context(QueryError)
             .attach_printable(identifier)?;
 
         let entity = serde_json::from_value(row.get(0))
-            .report()
+            .into_report()
             .change_context(QueryError)?;
 
         let entity_id: EntityId = row.get(1);
@@ -77,14 +77,14 @@ impl<C: AsClient> crud::Read<'_, AllLatest, PersistedEntity> for PostgresStore<C
                 [] as [&(dyn ToSql + Sync); 0],
             )
             .await
-            .report()
+            .into_report()
             .change_context(QueryError)?;
 
         row_stream
             .map(|row_result| {
-                let row = row_result.report().change_context(QueryError)?;
+                let row = row_result.into_report().change_context(QueryError)?;
                 let entity = serde_json::from_value(row.get(0))
-                    .report()
+                    .into_report()
                     .change_context(QueryError)?;
 
                 let entity_id: EntityId = row.get(1);

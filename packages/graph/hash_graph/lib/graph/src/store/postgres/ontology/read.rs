@@ -43,12 +43,12 @@ where
                 &[uri.base_uri(), &version],
             )
             .await
-            .report()
+            .into_report()
             .change_context(QueryError)
             .attach_printable_lazy(|| uri.clone())?;
 
         serde_json::from_value(row.get(0))
-            .report()
+            .into_report()
             .change_context(QueryError)
     }
 }
@@ -81,14 +81,14 @@ where
                 [] as [&(dyn ToSql + Sync); 0],
             )
             .await
-            .report()
+            .into_report()
             .change_context(QueryError)?;
 
         row_stream
             .map(|row_result| {
-                let row = row_result.report().change_context(QueryError)?;
+                let row = row_result.into_report().change_context(QueryError)?;
                 serde_json::from_value(row.get(0))
-                    .report()
+                    .into_report()
                     .change_context(QueryError)
             })
             .try_collect()
