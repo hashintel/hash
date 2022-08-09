@@ -41,6 +41,15 @@
   align-items: center;
 }
 
+.Block__UI {
+  transition: opacity 0.3s;
+  opacity: 0;
+}
+
+.Block:hover .Block__UI {
+  opacity: 1;
+}
+
 .Block__Content {
   flex: 1;
   height: 100%;
