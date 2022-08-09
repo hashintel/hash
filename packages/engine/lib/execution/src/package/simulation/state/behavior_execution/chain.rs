@@ -1,6 +1,5 @@
-use arrow2::{
-    array::{ListArray, MutableArray, MutableFixedSizeListArray, MutablePrimitiveArray, Utf8Array},
-    datatypes::DataType,
+use arrow2::array::{
+    FixedSizeListArray, ListArray, MutableArray, MutablePrimitiveArray, Utf8Array,
 };
 use memory::arrow::{
     column_with_name_from_record_batch, new_buffer, new_offsets_buffer, record_batch::RecordBatch,
@@ -142,22 +141,17 @@ impl IntoArrowChange for ChainList {
         }
 
         // Indices
-        let child_data = MutablePrimitiveArray::<u16>::from_vec(data);
+        let mut child_data = MutablePrimitiveArray::<u16>::from_vec(data);
 
         // Fixed-length lists
-        let mut child_data = MutableFixedSizeListArray::new(child_data, match self.data_types[1] {
-            DataType::FixedSizeList(_, len) => len,
-            _ => unreachable!(
-                "this is a bug: the wrong datatype is being passed to this function (or this \
-                 function is assuming the wrong datatype)"
-            ),
-        });
+        let child_data =
+            FixedSizeListArray::new(self.data_types[1].clone(), child_data.as_arc(), None);
 
         // Variable-length lists
         let data = ListArray::from_data(
             self.data_types[0].clone(),
             offsets.into(),
-            child_data.as_arc(),
+            child_data.arced(),
             None,
         )
         .arced();
