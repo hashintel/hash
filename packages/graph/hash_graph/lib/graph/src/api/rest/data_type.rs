@@ -16,7 +16,7 @@ use crate::{
     api::rest::read_from_store,
     ontology::{
         types::{uri::VersionedUri, DataType},
-        AccountId,
+        AccountId, PersistedDataType,
     },
     store::{
         query::DataTypeQuery, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool,
@@ -119,7 +119,7 @@ async fn create_data_type<P: StorePool + Send>(
 )]
 async fn get_latest_data_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-) -> Result<Json<Vec<DataType>>, StatusCode> {
+) -> Result<Json<Vec<PersistedDataType>>, StatusCode> {
     read_from_store(pool.as_ref(), &DataTypeQuery::new().by_latest_version())
         .await
         .map(Json)
@@ -143,7 +143,7 @@ async fn get_latest_data_types<P: StorePool + Send>(
 async fn get_data_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<DataType>, StatusCode> {
+) -> Result<Json<PersistedDataType>, StatusCode> {
     read_from_store(
         pool.as_ref(),
         &DataTypeQuery::new()

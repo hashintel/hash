@@ -16,7 +16,7 @@ use crate::{
     api::rest::read_from_store,
     ontology::{
         types::{uri::VersionedUri, PropertyType},
-        AccountId,
+        AccountId, PersistedPropertyType,
     },
     store::{
         query::PropertyTypeQuery, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore,
@@ -119,7 +119,7 @@ async fn create_property_type<P: StorePool + Send>(
 )]
 async fn get_latest_property_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-) -> Result<Json<Vec<PropertyType>>, StatusCode> {
+) -> Result<Json<Vec<PersistedPropertyType>>, StatusCode> {
     read_from_store(pool.as_ref(), &PropertyTypeQuery::new().by_latest_version())
         .await
         .map(Json)
@@ -143,7 +143,7 @@ async fn get_latest_property_types<P: StorePool + Send>(
 async fn get_property_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PropertyType>, StatusCode> {
+) -> Result<Json<PersistedPropertyType>, StatusCode> {
     read_from_store(
         pool.as_ref(),
         &PropertyTypeQuery::new()

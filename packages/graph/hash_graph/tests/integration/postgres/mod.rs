@@ -12,7 +12,8 @@ use graph::{
     },
     ontology::{
         types::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType},
-        AccountId,
+        AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
+        PersistedPropertyType,
     },
     store::{
         error::LinkActivationError,
@@ -147,7 +148,10 @@ impl DatabaseApi<'_> {
             .await
     }
 
-    pub async fn get_data_type(&mut self, uri: &VersionedUri) -> Result<DataType, QueryError> {
+    pub async fn get_data_type(
+        &mut self,
+        uri: &VersionedUri,
+    ) -> Result<PersistedDataType, QueryError> {
         Ok(self
             .store
             .get_data_type(
@@ -178,7 +182,7 @@ impl DatabaseApi<'_> {
     pub async fn get_property_type(
         &mut self,
         uri: &VersionedUri,
-    ) -> Result<PropertyType, QueryError> {
+    ) -> Result<PersistedPropertyType, QueryError> {
         Ok(self
             .store
             .get_property_type(
@@ -209,7 +213,10 @@ impl DatabaseApi<'_> {
             .await
     }
 
-    pub async fn get_entity_type(&mut self, uri: &VersionedUri) -> Result<EntityType, QueryError> {
+    pub async fn get_entity_type(
+        &mut self,
+        uri: &VersionedUri,
+    ) -> Result<PersistedEntityType, QueryError> {
         Ok(self
             .store
             .get_entity_type(
@@ -237,7 +244,10 @@ impl DatabaseApi<'_> {
             .await
     }
 
-    pub async fn get_link_type(&mut self, uri: &VersionedUri) -> Result<LinkType, QueryError> {
+    pub async fn get_link_type(
+        &mut self,
+        uri: &VersionedUri,
+    ) -> Result<PersistedLinkType, QueryError> {
         Ok(self
             .store
             .get_link_type(

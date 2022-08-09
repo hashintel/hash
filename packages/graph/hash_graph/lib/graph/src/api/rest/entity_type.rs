@@ -15,7 +15,7 @@ use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store},
     ontology::{
         types::{uri::VersionedUri, EntityType},
-        AccountId,
+        AccountId, PersistedEntityType,
     },
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
@@ -119,7 +119,7 @@ async fn create_entity_type<P: StorePool + Send>(
 )]
 async fn get_latest_entity_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-) -> Result<Json<Vec<EntityType>>, StatusCode> {
+) -> Result<Json<Vec<PersistedEntityType>>, StatusCode> {
     read_from_store(pool.as_ref(), &EntityTypeQuery::new().by_latest_version())
         .await
         .map(Json)
@@ -143,7 +143,7 @@ async fn get_latest_entity_types<P: StorePool + Send>(
 async fn get_entity_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<EntityType>, StatusCode> {
+) -> Result<Json<PersistedEntityType>, StatusCode> {
     read_from_store(
         pool.as_ref(),
         &EntityTypeQuery::new()

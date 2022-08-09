@@ -19,7 +19,8 @@ use crate::{
     knowledge::{Entity, EntityId, Link, Links, PersistedEntity, PersistedEntityIdentifier},
     ontology::{
         types::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType},
-        AccountId,
+        AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
+        PersistedPropertyType,
     },
     store::{
         error::LinkActivationError,
@@ -186,7 +187,9 @@ pub trait Store =
 
 /// Describes the API of a store implementation for [`DataType`]s.
 #[async_trait]
-pub trait DataTypeStore: for<'q> crud::Read<DataType, Query<'q> = DataTypeQuery<'q>> {
+pub trait DataTypeStore:
+    for<'q> crud::Read<PersistedDataType, Query<'q> = DataTypeQuery<'q>>
+{
     /// Creates a new [`DataType`].
     ///
     /// # Errors:
@@ -206,7 +209,10 @@ pub trait DataTypeStore: for<'q> crud::Read<DataType, Query<'q> = DataTypeQuery<
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    async fn get_data_type(&self, query: &DataTypeQuery<'_>) -> Result<Vec<DataType>, QueryError> {
+    async fn get_data_type(
+        &self,
+        query: &DataTypeQuery<'_>,
+    ) -> Result<Vec<PersistedDataType>, QueryError> {
         self.read(query).await
     }
 
@@ -225,7 +231,7 @@ pub trait DataTypeStore: for<'q> crud::Read<DataType, Query<'q> = DataTypeQuery<
 /// Describes the API of a store implementation for [`PropertyType`]s.
 #[async_trait]
 pub trait PropertyTypeStore:
-    for<'q> crud::Read<PropertyType, Query<'q> = PropertyTypeQuery<'q>>
+    for<'q> crud::Read<PersistedPropertyType, Query<'q> = PropertyTypeQuery<'q>>
 {
     /// Creates a new [`PropertyType`].
     ///
@@ -249,7 +255,7 @@ pub trait PropertyTypeStore:
     async fn get_property_type(
         &self,
         query: &PropertyTypeQuery<'_>,
-    ) -> Result<Vec<PropertyType>, QueryError> {
+    ) -> Result<Vec<PersistedPropertyType>, QueryError> {
         self.read(query).await
     }
 
@@ -267,7 +273,9 @@ pub trait PropertyTypeStore:
 
 /// Describes the API of a store implementation for [`EntityType`]s.
 #[async_trait]
-pub trait EntityTypeStore: for<'q> crud::Read<EntityType, Query<'q> = EntityTypeQuery<'q>> {
+pub trait EntityTypeStore:
+    for<'q> crud::Read<PersistedEntityType, Query<'q> = EntityTypeQuery<'q>>
+{
     /// Creates a new [`EntityType`].
     ///
     /// # Errors:
@@ -290,7 +298,7 @@ pub trait EntityTypeStore: for<'q> crud::Read<EntityType, Query<'q> = EntityType
     async fn get_entity_type(
         &self,
         query: &EntityTypeQuery<'_>,
-    ) -> Result<Vec<EntityType>, QueryError> {
+    ) -> Result<Vec<PersistedEntityType>, QueryError> {
         self.read(query).await
     }
 
@@ -308,7 +316,9 @@ pub trait EntityTypeStore: for<'q> crud::Read<EntityType, Query<'q> = EntityType
 
 /// Describes the API of a store implementation for [`LinkType`]s.
 #[async_trait]
-pub trait LinkTypeStore: for<'q> crud::Read<LinkType, Query<'q> = LinkTypeQuery<'q>> {
+pub trait LinkTypeStore:
+    for<'q> crud::Read<PersistedLinkType, Query<'q> = LinkTypeQuery<'q>>
+{
     /// Creates a new [`LinkType`].
     ///
     /// # Errors:
@@ -328,7 +338,10 @@ pub trait LinkTypeStore: for<'q> crud::Read<LinkType, Query<'q> = LinkTypeQuery<
     /// # Errors
     ///
     /// - if the requested [`LinkType`] doesn't exist.
-    async fn get_link_type(&self, query: &LinkTypeQuery<'_>) -> Result<Vec<LinkType>, QueryError> {
+    async fn get_link_type(
+        &self,
+        query: &LinkTypeQuery<'_>,
+    ) -> Result<Vec<PersistedLinkType>, QueryError> {
         self.read(query).await
     }
 

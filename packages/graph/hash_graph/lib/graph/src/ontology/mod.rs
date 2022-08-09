@@ -51,6 +51,7 @@ impl PersistedOntologyIdentifier {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
 pub struct PersistedOntologyType<T> {
     inner: T,
     identifier: PersistedOntologyIdentifier,
