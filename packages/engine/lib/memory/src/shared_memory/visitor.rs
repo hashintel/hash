@@ -5,11 +5,13 @@
 
 use std::ops::{Index, IndexMut};
 
+#[cfg(not(target_vendor = "apple"))]
+use crate::{error::Error, shared_memory::markers::Val};
 use crate::{
-    error::{Error, Result},
+    error::Result,
     shared_memory::{
         continuation::{arrow_continuation, buffer_without_continuation, CONTINUATION},
-        markers::{Buffer, Markers, Val},
+        markers::{Buffer, Markers},
         ptr::MemoryPtr,
         BufferChange, Segment,
     },
@@ -174,7 +176,8 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
         self.prepare_buffer_write(&Buffer::Data, size)
     }
 
-    pub fn _shrink_with_data_length(&mut self, size: usize) -> Result<BufferChange> {
+    #[cfg(not(target_vendor = "apple"))]
+    pub fn shrink_with_data_length(&mut self, size: usize) -> Result<BufferChange> {
         let markers = self.markers_mut();
         if size >= markers.data_size() {
             return Err(Error::ExpectedSmallerNewDataSize(self.memory.id().into()));
