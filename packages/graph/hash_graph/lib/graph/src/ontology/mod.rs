@@ -9,6 +9,8 @@ use tokio_postgres::types::{FromSql, ToSql};
 use utoipa::Component;
 use uuid::Uuid;
 
+use crate::ontology::types::{DataType, EntityType, LinkType, PropertyType};
+
 // TODO - find a good place for AccountId, perhaps it will become redundant in a future design
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, Component, FromSql, ToSql)]
@@ -73,3 +75,8 @@ impl<T> PersistedOntologyType<T> {
         &self.identifier
     }
 }
+
+pub type PersistedDataType = PersistedOntologyType<DataType>;
+pub type PersistedPropertyType = PersistedOntologyType<PropertyType>;
+pub type PersistedLinkType = PersistedOntologyType<LinkType>;
+pub type PersistedEntityType = PersistedOntologyType<EntityType>;
