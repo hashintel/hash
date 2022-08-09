@@ -1,12 +1,13 @@
-import { Entity, GraphApi } from "@hashintel/hash-graph-client";
+import { PersistedEntity, GraphApi } from "@hashintel/hash-graph-client";
 
-import { EntityModel } from "../index";
+import { EntityModel, EntityTypeModel } from "../index";
 
-type EntityModelArgs = {
+type EntityModelConstructorArgs = {
   accountId: string;
   entityId: string;
-  entityTypeUri: string;
-  entity: Entity;
+  version: string;
+  entityType: EntityTypeModel;
+  properties: object;
 };
 
 /**
@@ -16,15 +17,53 @@ export default class {
   accountId: string;
 
   entityId: string;
-  entityTypeUri: string;
-  entity: Entity;
+  version: string;
+  entityType: EntityTypeModel;
+  properties: object;
 
-  constructor({ accountId, entityId, entityTypeUri, entity }: EntityModelArgs) {
+  constructor({
+    accountId,
+    entityId,
+    version,
+    entityType,
+    properties,
+  }: EntityModelConstructorArgs) {
     this.accountId = accountId;
 
     this.entityId = entityId;
-    this.entityTypeUri = entityTypeUri;
-    this.entity = entity;
+    this.version = version;
+    this.entityType = entityType;
+    this.properties = properties;
+  }
+
+  private static async fromPersistedEntity(
+    graphApi: GraphApi,
+    { identifier, inner, typeVersionedUri }: PersistedEntity,
+    cachedEntityTypes?: Map<string, EntityTypeModel>,
+  ): Promise<EntityModel> {
+    const { createdBy: accountId, version } = identifier;
+    const cachedEntityType = cachedEntityTypes?.get(typeVersionedUri);
+
+    let entityType: EntityTypeModel;
+
+    if (cachedEntityType) {
+      entityType = cachedEntityType;
+    } else {
+      entityType = await EntityTypeModel.get(graphApi, {
+        versionedUri: typeVersionedUri,
+      });
+      if (cachedEntityTypes) {
+        cachedEntityTypes.set(typeVersionedUri, entityType);
+      }
+    }
+
+    return new EntityModel({
+      accountId,
+      entityId: identifier.entityId,
+      version,
+      entityType,
+      properties: inner.properties,
+    });
   }
 
   /**
@@ -37,19 +76,25 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      entity: Entity;
-      entityTypeUri: string;
+      properties: object;
+      entityType: EntityTypeModel;
     },
   ): Promise<EntityModel> {
+    const { accountId, entityType, properties } = params;
     const {
-      data: { entity, entityId },
-    } = await graphApi.createEntity(params);
+      data: { entityId, version },
+    } = await graphApi.createEntity({
+      accountId,
+      entityTypeUri: entityType.schema.$id,
+      entity: { properties },
+    });
 
     return new EntityModel({
-      accountId: params.accountId,
+      accountId,
       entityId,
-      entityTypeUri: params.entityTypeUri,
-      entity,
+      version,
+      entityType,
+      properties,
     });
   }
 
@@ -60,13 +105,17 @@ export default class {
    */
   static async getAllLatest(
     graphApi: GraphApi,
-    params: { accountId: string },
+    _params: { accountId: string },
   ): Promise<EntityModel[]> {
     /** @todo: get all latest entities in specified account */
     const { data: entities } = await graphApi.getLatestEntities();
 
-    return entities.map(
-      ({ schema }) => new EntityModel({ schema, accountId: params.accountId }),
+    const cachedEntityTypes = new Map<string, EntityTypeModel>();
+
+    return await Promise.all(
+      entities.map((entity) =>
+        EntityModel.fromPersistedEntity(graphApi, entity, cachedEntityTypes),
+      ),
     );
   }
 
@@ -76,25 +125,21 @@ export default class {
    * @param params.accountId the accountId of the account requesting the entity
    * @param params.versionedUri the unique versioned URI for an entity.
    */
-  static async get(
+  static async getLatest(
     graphApi: GraphApi,
     params: {
       accountId: string;
       entityId: string;
     },
   ): Promise<EntityModel> {
-    const { accountId, entityId } = params;
-    const { data: qualifiedEntity } = await graphApi.getEntity(entityId);
+    const { entityId } = params;
+    const { data: persistedEntity } = await graphApi.getEntity(entityId);
 
-    return new EntityModel({ schema, accountId });
+    return await EntityModel.fromPersistedEntity(graphApi, persistedEntity);
   }
 
   /**
    * Update an entity.
-   *
-   * @todo revisit entity update
-   * As with entity `create`, this `update` operation is not currently relevant to users
-   * because user defined entities are not fully specified.
    *
    * @param params.accountId the accountId of the account making the update
    * @param params.schema an `Entity`
@@ -103,13 +148,34 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: Entity;
+      properties: object;
     },
   ): Promise<EntityModel> {
-    const { accountId } = params;
+    const { accountId, properties } = params;
+    const { entityId, entityType } = this;
 
-    const { data: schema } = await graphApi.updateEntity(params);
+    const {
+      data: { version },
+    } = await graphApi.updateEntity({
+      accountId,
+      entityId,
+      /** @todo: make this argument optional */
+      entityTypeUri: entityType.schema.$id,
+      entity: { properties },
+    });
 
-    return new EntityModel({ schema, accountId });
+    return new EntityModel({
+      accountId,
+      entityId,
+      version,
+      entityType,
+      properties,
+    });
+  }
+
+  async getLatestVersion(graphApi: GraphApi) {
+    const { accountId, entityId } = this;
+
+    return await EntityModel.getLatest(graphApi, { accountId, entityId });
   }
 }
