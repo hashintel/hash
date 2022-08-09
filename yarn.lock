@@ -3070,23 +3070,6 @@
     "@blockprotocol/core" "0.0.8"
     lit "^2.2.5"
 
-"@blockprotocol/graph@0.0.12":
-  version "0.0.12"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.12.tgz#b2e7a79388535d8c78ff941114d843b7af84c2ee"
-  integrity sha512-sjDjUbl01LCIRUqtbvJlZspEvsdnCAvy9TMQVOZ09xfkPjiHvBP1ZTq2DPnx3ekercj6Rk/W5ejvfbw4dH2Llw==
-  dependencies:
-    "@blockprotocol/core" "0.0.8"
-    lit "^2.2.5"
-
-"@blockprotocol/graph@0.0.8":
-  version "0.0.8"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.8.tgz#27b28c6cb18168fc02b71df7b6a24b3fb494b413"
-  integrity sha512-G7bx4H9ttydUYeQLvsBOmnGaDLkpNmqLJkAwr2TCtxyRlUPIvIi+cEVi7m+Q/BkkXcDIhYZvjQhF/2gJy5Dd6Q==
-  dependencies:
-    "@blockprotocol/core" "0.0.6"
-    lit "^2.2.5"
-    react "^17.0.2"
-
 "@cspotcode/source-map-consumer@0.8.0":
   version "0.8.0"
   resolved "https://registry.yarnpkg.com/@cspotcode/source-map-consumer/-/source-map-consumer-0.8.0.tgz#33bf4b7b39c178821606f669bbc447a6a629786b"
