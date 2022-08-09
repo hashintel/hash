@@ -12,11 +12,7 @@ export const createUserWithOrgEmailInvitation: Resolver<
   {},
   GraphQLContext,
   MutationCreateUserWithOrgEmailInvitationArgs
-> = async (
-  _,
-  { orgEntityId, invitationEmailToken },
-  { dataSources, passport },
-) =>
+> = async (_, { orgEntityId, invitationEmailToken }, { dataSources }) =>
   dataSources.db.transaction(async (client) => {
     const org = await Org.getOrgById(client, { entityId: orgEntityId });
 
@@ -66,8 +62,6 @@ export const createUserWithOrgEmailInvitation: Resolver<
         emails: [{ address: email, primary: true, verified: true }],
         infoProvidedAtSignup: {},
       }));
-
-    await passport.login(user, {});
 
     return user.toGQLUnknownEntity();
   });

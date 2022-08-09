@@ -2,7 +2,7 @@ import { DataType, GraphApi } from "@hashintel/hash-graph-client";
 
 import { DataTypeModel } from "../index";
 
-type DataTypeArgs = {
+type DataTypeModelConstructorArgs = {
   accountId: string;
   schema: DataType;
 };
@@ -15,7 +15,7 @@ export default class {
 
   schema: DataType;
 
-  constructor({ schema, accountId }: DataTypeArgs) {
+  constructor({ schema, accountId }: DataTypeModelConstructorArgs) {
     this.accountId = accountId;
     this.schema = schema;
   }

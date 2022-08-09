@@ -52,6 +52,7 @@
   "overrides": [
     {
       "files": [
+        "./src/pages/**/*.api.ts",
         "./src/pages/**/*.page.ts",
         "./src/pages/**/*.page.tsx",
         "**/__mocks__/**"

@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, useTheme, useMediaQuery } from "@mui/material";
 
-import { useLogout } from "../../../components/hooks/useLogout";
+import { useLogoutFlow } from "../../../components/hooks/useLogoutFlow";
 import { useUser } from "../../../components/hooks/useUser";
 import { AccountDropdown } from "./account-dropdown";
 import { SearchBar } from "./search-bar";
@@ -30,7 +30,7 @@ export const PageHeader: React.VFC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const { user } = useUser();
-  const { logout } = useLogout();
+  const { logout } = useLogoutFlow();
 
   return (
     <Box
