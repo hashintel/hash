@@ -11,6 +11,7 @@ execution = { path = "../execution", default-features = false }
 experiment-structure = { path = "../experiment-structure", default-features = false }
 simulation-control = { path = "../simulation-control", default-features = false }
 
+# TODO: Change to `version = "0.2"` as soon as it's released
 error-stack = { git = "https://github.com/hashintel/hash", rev = "5edddb5", features = ["spantrace"] }
 
 clap = { version = "=3.0.13", features = ["cargo", "derive", "env"], optional = true }
