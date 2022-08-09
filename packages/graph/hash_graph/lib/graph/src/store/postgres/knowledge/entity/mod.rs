@@ -6,6 +6,7 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::{
+    knowledge::PersistedEntityIdentifier,
     ontology::AccountId,
     store::{
         error::EntityDoesNotExist, AsClient, EntityStore, InsertionError, PostgresStore,
@@ -21,7 +22,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity: &Entity,
         entity_type_uri: VersionedUri,
         created_by: AccountId,
-    ) -> Result<EntityId, InsertionError> {
+    ) -> Result<PersistedEntityIdentifier, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -33,7 +34,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let entity_id = EntityId::new(Uuid::new_v4());
 
         transaction.insert_entity_id(entity_id).await?;
-        transaction
+        let identifier = transaction
             .insert_entity(entity_id, entity, entity_type_uri, created_by)
             .await?;
 
@@ -44,7 +45,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .report()
             .change_context(InsertionError)?;
 
-        Ok(entity_id)
+        Ok(identifier)
     }
 
     async fn update_entity(
@@ -53,7 +54,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity: &Entity,
         entity_type_uri: VersionedUri,
         updated_by: AccountId,
-    ) -> Result<(), UpdateError> {
+    ) -> Result<PersistedEntityIdentifier, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -72,7 +73,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(UpdateError));
         }
 
-        transaction
+        let identifier = transaction
             .insert_entity(entity_id, entity, entity_type_uri, updated_by)
             .await
             .change_context(UpdateError)?;
@@ -84,6 +85,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .report()
             .change_context(UpdateError)?;
 
-        Ok(())
+        Ok(identifier)
     }
 }

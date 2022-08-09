@@ -12,7 +12,7 @@ use uuid::Uuid;
 pub use self::pool::{AsClient, PostgresStorePool};
 use super::error::LinkActivationError;
 use crate::{
-    knowledge::{Entity, EntityId, LinkStatus},
+    knowledge::{Entity, EntityId, LinkStatus, PersistedEntityIdentifier},
     ontology::{
         types::{
             uri::{BaseUri, VersionedUri},
@@ -575,7 +575,7 @@ where
         entity: &Entity,
         entity_type_uri: VersionedUri,
         account_id: AccountId,
-    ) -> Result<EntityId, InsertionError> {
+    ) -> Result<PersistedEntityIdentifier, InsertionError> {
         let entity_type_id = self
             .version_id_by_uri(&entity_type_uri)
             .await
@@ -586,19 +586,21 @@ where
         let value = serde_json::to_value(entity)
             .report()
             .change_context(InsertionError)?;
-        self.as_client().query_one(
+        let version = self.as_client().query_one(
                 r#"
                     INSERT INTO entities (entity_id, version, entity_type_version_id, properties, created_by) 
                     VALUES ($1, clock_timestamp(), $2, $3, $4)
-                    RETURNING entity_id;
+                    RETURNING version;
                 "#,
                 &[&entity_id, &entity_type_id, &value, &account_id]
             )
             .await
             .report()
-            .change_context(InsertionError)?;
+            .change_context(InsertionError)?.get(0);
 
-        Ok(entity_id)
+        Ok(PersistedEntityIdentifier::new(
+            entity_id, version, account_id,
+        ))
     }
 
     async fn update_link_status(

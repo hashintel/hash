@@ -54,7 +54,7 @@
 )]
 
 use crate::{
-    knowledge::{Entity, EntityId, Link, Links},
+    knowledge::{Entity, EntityId, Link, Links, PersistedEntity},
     ontology::types::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType},
     store::{
         crud::{AllLatest, Read},
@@ -85,10 +85,10 @@ pub trait Graph = where
         + Read<'i, AllLatest, PropertyType, Output = Vec<PropertyType>>
         + Read<'i, AllLatest, LinkType, Output = Vec<LinkType>>
         + Read<'i, AllLatest, EntityType, Output = Vec<EntityType>>
-        + Read<'i, AllLatest, Entity, Output = Vec<Entity>>
+        + Read<'i, AllLatest, PersistedEntity, Output = Vec<PersistedEntity>>
         + Read<'i, &'i VersionedUri, DataType, Output = DataType>
         + Read<'i, &'i VersionedUri, PropertyType, Output = PropertyType>
         + Read<'i, &'i VersionedUri, LinkType, Output = LinkType>
         + Read<'i, &'i VersionedUri, EntityType, Output = EntityType>
-        + Read<'i, EntityId, Entity, Output = Entity>
+        + Read<'i, EntityId, PersistedEntity, Output = PersistedEntity>
         + Read<'i, EntityId, Link, Output = Links>;

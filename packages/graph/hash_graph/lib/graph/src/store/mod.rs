@@ -16,13 +16,13 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    knowledge::{Entity, EntityId, Link},
+    knowledge::{Entity, EntityId, Link, PersistedEntityIdentifier},
     ontology::{
         types::{uri::VersionedUri, EntityType, LinkType, PropertyType},
         AccountId,
     },
     store::crud::Read,
-    DataType,
+    DataType, PersistedEntity,
 };
 
 #[derive(Debug)]
@@ -361,9 +361,9 @@ pub trait EntityStore {
         entity: &Entity,
         entity_type_uri: VersionedUri,
         created_by: AccountId,
-    ) -> Result<EntityId, InsertionError>;
+    ) -> Result<PersistedEntityIdentifier, InsertionError>;
 
-    /// Get the [`Entity`] specified by `identifier`.
+    /// Get the [`PersistedEntity`] specified by `identifier`.
     ///
     /// Depending on the `identifier` the output is specified by [`Read::Output`].
     ///
@@ -372,7 +372,7 @@ pub trait EntityStore {
     /// - if the requested [`Entity`] doesn't exist
     async fn get_entity<'i, I: Send>(&self, identifier: I) -> Result<Self::Output, QueryError>
     where
-        Self: Read<'i, I, Entity>,
+        Self: Read<'i, I, PersistedEntity>,
     {
         self.get(identifier).await
     }
@@ -391,7 +391,7 @@ pub trait EntityStore {
         entity: &Entity,
         entity_type_uri: VersionedUri,
         updated_by: AccountId,
-    ) -> Result<(), UpdateError>;
+    ) -> Result<PersistedEntityIdentifier, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [`Link`]s.

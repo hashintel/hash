@@ -231,7 +231,7 @@ export interface DataTypeReference {
   $ref: string;
 }
 /**
- *
+ * An entity.
  * @export
  * @interface Entity
  */
@@ -433,6 +433,56 @@ export interface Links {
   outgoing: object;
 }
 /**
+ * A record of an [`Entity`] that has been persisted in the datastore, with its associated
+ * @export
+ * @interface PersistedEntity
+ */
+export interface PersistedEntity {
+  /**
+   *
+   * @type {PersistedEntityIdentifier}
+   * @memberof PersistedEntity
+   */
+  identifier: PersistedEntityIdentifier;
+  /**
+   *
+   * @type {Entity}
+   * @memberof PersistedEntity
+   */
+  inner: Entity;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedEntity
+   */
+  typeVersionedUri: string;
+}
+/**
+ * The metadata required to uniquely identify an instance of an [`Entity`] that has been persisted
+ * @export
+ * @interface PersistedEntityIdentifier
+ */
+export interface PersistedEntityIdentifier {
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedEntityIdentifier
+   */
+  createdBy: string;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedEntityIdentifier
+   */
+  entityId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedEntityIdentifier
+   */
+  version: string;
+}
+/**
  *
  * @export
  * @interface PropertyArrayValue
@@ -565,25 +615,6 @@ export type PropertyValues =
   | PropertyArrayValue
   | PropertyObjectValue;
 
-/**
- *
- * @export
- * @interface QualifiedEntity
- */
-export interface QualifiedEntity {
-  /**
-   *
-   * @type {Entity}
-   * @memberof QualifiedEntity
-   */
-  entity: Entity;
-  /**
-   *
-   * @type {string}
-   * @memberof QualifiedEntity
-   */
-  entityId: string;
-}
 /**
  *
  * @export
@@ -1394,7 +1425,7 @@ export const EntityApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<QualifiedEntity>
+      ) => AxiosPromise<PersistedEntityIdentifier>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.createEntity(
         createEntityRequest,
@@ -1417,7 +1448,10 @@ export const EntityApiFp = function (configuration?: Configuration) {
       entityId: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Entity>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<PersistedEntity>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getEntity(
         entityId,
@@ -1438,7 +1472,10 @@ export const EntityApiFp = function (configuration?: Configuration) {
     async getLatestEntities(
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<Entity>>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<Array<PersistedEntity>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLatestEntities(options);
@@ -1462,7 +1499,7 @@ export const EntityApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<QualifiedEntity>
+      ) => AxiosPromise<PersistedEntityIdentifier>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.updateEntity(
         updateEntityRequest,
@@ -1498,7 +1535,7 @@ export const EntityApiFactory = function (
     createEntity(
       createEntityRequest: CreateEntityRequest,
       options?: any,
-    ): AxiosPromise<QualifiedEntity> {
+    ): AxiosPromise<PersistedEntityIdentifier> {
       return localVarFp
         .createEntity(createEntityRequest, options)
         .then((request) => request(axios, basePath));
@@ -1509,7 +1546,7 @@ export const EntityApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getEntity(entityId: string, options?: any): AxiosPromise<Entity> {
+    getEntity(entityId: string, options?: any): AxiosPromise<PersistedEntity> {
       return localVarFp
         .getEntity(entityId, options)
         .then((request) => request(axios, basePath));
@@ -1519,7 +1556,7 @@ export const EntityApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getLatestEntities(options?: any): AxiosPromise<Array<Entity>> {
+    getLatestEntities(options?: any): AxiosPromise<Array<PersistedEntity>> {
       return localVarFp
         .getLatestEntities(options)
         .then((request) => request(axios, basePath));
@@ -1533,7 +1570,7 @@ export const EntityApiFactory = function (
     updateEntity(
       updateEntityRequest: UpdateEntityRequest,
       options?: any,
-    ): AxiosPromise<QualifiedEntity> {
+    ): AxiosPromise<PersistedEntityIdentifier> {
       return localVarFp
         .updateEntity(updateEntityRequest, options)
         .then((request) => request(axios, basePath));
@@ -1557,7 +1594,7 @@ export interface EntityApiInterface {
   createEntity(
     createEntityRequest: CreateEntityRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<QualifiedEntity>;
+  ): AxiosPromise<PersistedEntityIdentifier>;
 
   /**
    *
@@ -1569,7 +1606,7 @@ export interface EntityApiInterface {
   getEntity(
     entityId: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Entity>;
+  ): AxiosPromise<PersistedEntity>;
 
   /**
    *
@@ -1577,7 +1614,9 @@ export interface EntityApiInterface {
    * @throws {RequiredError}
    * @memberof EntityApiInterface
    */
-  getLatestEntities(options?: AxiosRequestConfig): AxiosPromise<Array<Entity>>;
+  getLatestEntities(
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<Array<PersistedEntity>>;
 
   /**
    *
@@ -1589,7 +1628,7 @@ export interface EntityApiInterface {
   updateEntity(
     updateEntityRequest: UpdateEntityRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<QualifiedEntity>;
+  ): AxiosPromise<PersistedEntityIdentifier>;
 }
 
 /**
@@ -3302,7 +3341,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<QualifiedEntity>
+      ) => AxiosPromise<PersistedEntityIdentifier>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.createEntity(
         createEntityRequest,
@@ -3445,7 +3484,10 @@ export const GraphApiFp = function (configuration?: Configuration) {
       entityId: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Entity>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<PersistedEntity>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getEntity(
         entityId,
@@ -3534,7 +3576,10 @@ export const GraphApiFp = function (configuration?: Configuration) {
     async getLatestEntities(
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<Entity>>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<Array<PersistedEntity>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLatestEntities(options);
@@ -3719,7 +3764,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<QualifiedEntity>
+      ) => AxiosPromise<PersistedEntityIdentifier>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.updateEntity(
         updateEntityRequest,
@@ -3840,7 +3885,7 @@ export const GraphApiFactory = function (
     createEntity(
       createEntityRequest: CreateEntityRequest,
       options?: any,
-    ): AxiosPromise<QualifiedEntity> {
+    ): AxiosPromise<PersistedEntityIdentifier> {
       return localVarFp
         .createEntity(createEntityRequest, options)
         .then((request) => request(axios, basePath));
@@ -3920,7 +3965,7 @@ export const GraphApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getEntity(entityId: string, options?: any): AxiosPromise<Entity> {
+    getEntity(entityId: string, options?: any): AxiosPromise<PersistedEntity> {
       return localVarFp
         .getEntity(entityId, options)
         .then((request) => request(axios, basePath));
@@ -3962,7 +4007,7 @@ export const GraphApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getLatestEntities(options?: any): AxiosPromise<Array<Entity>> {
+    getLatestEntities(options?: any): AxiosPromise<Array<PersistedEntity>> {
       return localVarFp
         .getLatestEntities(options)
         .then((request) => request(axios, basePath));
@@ -4058,7 +4103,7 @@ export const GraphApiFactory = function (
     updateEntity(
       updateEntityRequest: UpdateEntityRequest,
       options?: any,
-    ): AxiosPromise<QualifiedEntity> {
+    ): AxiosPromise<PersistedEntityIdentifier> {
       return localVarFp
         .updateEntity(updateEntityRequest, options)
         .then((request) => request(axios, basePath));
@@ -4136,7 +4181,7 @@ export interface GraphApiInterface {
   createEntity(
     createEntityRequest: CreateEntityRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<QualifiedEntity>;
+  ): AxiosPromise<PersistedEntityIdentifier>;
 
   /**
    *
@@ -4210,7 +4255,7 @@ export interface GraphApiInterface {
   getEntity(
     entityId: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Entity>;
+  ): AxiosPromise<PersistedEntity>;
 
   /**
    *
@@ -4252,7 +4297,9 @@ export interface GraphApiInterface {
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
-  getLatestEntities(options?: AxiosRequestConfig): AxiosPromise<Array<Entity>>;
+  getLatestEntities(
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<Array<PersistedEntity>>;
 
   /**
    *
@@ -4344,7 +4391,7 @@ export interface GraphApiInterface {
   updateEntity(
     updateEntityRequest: UpdateEntityRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<QualifiedEntity>;
+  ): AxiosPromise<PersistedEntityIdentifier>;
 
   /**
    *
