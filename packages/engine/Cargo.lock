@@ -649,10 +649,12 @@ dependencies = [
 [[package]]
 name = "error-stack"
 version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5975af488b218348f3f183862f88e8699a91a809f0ee2658fcafaa6239d6759e"
+source = "git+https://github.com/hashintel/hash?rev=5edddb5#5edddb5566f9bd82dcdf9ba3b430759bc6b15dc5"
 dependencies = [
+ "anyhow",
+ "once_cell",
  "rustc_version",
+ "smallvec",
  "tracing-error",
 ]
 

@@ -27,7 +27,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             self.as_mut_client()
                 .transaction()
                 .await
-                .report()
+                .into_report()
                 .change_context(InsertionError)?,
         );
 
@@ -42,7 +42,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .client
             .commit()
             .await
-            .report()
+            .into_report()
             .change_context(InsertionError)?;
 
         Ok(identifier)
@@ -59,7 +59,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             self.as_mut_client()
                 .transaction()
                 .await
-                .report()
+                .into_report()
                 .change_context(UpdateError)?,
         );
 
@@ -82,7 +82,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .client
             .commit()
             .await
-            .report()
+            .into_report()
             .change_context(UpdateError)?;
 
         Ok(identifier)

@@ -360,7 +360,7 @@ mod tests {
 
         #[test]
         fn value() -> Result<(), serde_json::Error> {
-            check(&ValueOrArray::Value("value".to_owned()), json!("value")).report()
+            check(&ValueOrArray::Value("value".to_owned()), json!("value")).into_report()
         }
 
         #[test]
@@ -374,7 +374,7 @@ mod tests {
                     },
                 }),
             )
-            .report()
+            .into_report()
         }
     }
 }

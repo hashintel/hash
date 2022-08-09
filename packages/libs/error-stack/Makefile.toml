@@ -9,6 +9,10 @@ CARGO_MIRI_FLAGS = "--tests --lib"
 [tasks.test-task]
 dependencies = ["install-rust-src"]
 
+# Miri is disabled on `dev/graph`
+[tasks.miri]
+run_task = { name = [] }
+
 # Required for UI tests
 [tasks.install-rust-src]
 private = true

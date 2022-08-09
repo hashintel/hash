@@ -215,12 +215,7 @@ impl Message {
         if let Some(serde_json::Value::String(kind /* is a &String */)) = value.get("type") {
             // since all keys stored inside the system message types are lower case, we should also
             // lowercase the kind here too
-            let kind: &String = &kind.to_ascii_lowercase();
-            // contains needs a &str, our type is a &String, so
-            // 1. *&String -> String
-            // 2. *String -> &str
-            // 3. (wrap in a temp ref, for std::borrow::Borrow), thus &**
-            if is_system_message(&**kind) {
+            if is_system_message(&kind.to_ascii_lowercase()) {
                 return Ok(());
             }
             // otherwise throw an error
