@@ -250,8 +250,8 @@ export class BlockView implements NodeView<Schema> {
     this.renderPortal(null, this.selectContainer);
     this.dom.remove();
     document.removeEventListener("dragend", this.onDragEnd);
-    document.removeEventListener("mouseenter", this.onMouseEnter);
-    document.removeEventListener("mouseleave", this.onMouseLeave);
+    this.dom.removeEventListener("mouseenter", this.onMouseEnter);
+    this.dom.removeEventListener("mouseleave", this.onMouseLeave);
   }
 
   deleteBlock = () => {
