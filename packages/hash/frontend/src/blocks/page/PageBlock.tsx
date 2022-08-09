@@ -7,6 +7,7 @@ import { useLayoutEffect, useRef, FunctionComponent } from "react";
 import { useLocalstorageState } from "rooks";
 
 import { Button } from "@hashintel/hash-design-system";
+import Box from "@mui/material/Box";
 import { BlockLoadedProvider } from "../onBlockLoaded";
 import { UserBlocksProvider } from "../userBlocks";
 import { EditorConnection } from "./collab/EditorConnection";
@@ -83,7 +84,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   return (
     <UserBlocksProvider value={blocks}>
       <BlockLoadedProvider routeHash={routeHash}>
-        <div id="root" ref={root} style={{ position: "relative" }} />
+        <Box id="root" ref={root} position="relative" />
         {portals}
         {/**
          * @todo position this better
