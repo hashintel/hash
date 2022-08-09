@@ -31,30 +31,33 @@ async fn insert() {
         1,
     );
 
-    let person_a_entity_id = api
+    let person_a_identifier = api
         .create_entity(&person_a, person_type_uri.clone())
         .await
         .expect("could not create entity");
 
-    let person_b_entity_id = api
+    let person_b_identifier = api
         .create_entity(&person_b, person_type_uri.clone())
         .await
         .expect("could not create entity");
 
     api.create_link(
-        person_a_entity_id,
-        person_b_entity_id,
+        person_a_identifier.entity_id(),
+        person_b_identifier.entity_id(),
         link_type_uri.clone(),
     )
     .await
     .expect("coud not create link");
 
     let link_target = api
-        .get_link_target(person_a_entity_id, link_type_uri.clone())
+        .get_link_target(person_a_identifier.entity_id(), link_type_uri.clone())
         .await
         .expect("could not fetch link");
 
-    assert_eq!(link_target, Outgoing::Single(person_b_entity_id));
+    assert_eq!(
+        link_target,
+        Outgoing::Single(person_b_identifier.entity_id())
+    );
 }
 
 #[tokio::test]
@@ -89,25 +92,25 @@ async fn get_entity_links() {
         1,
     );
 
-    let person_a_entity_id = api
+    let person_a_identifier = api
         .create_entity(&person_a, person_type_uri.clone())
         .await
         .expect("could not create entity");
 
-    let person_b_entity_id = api
+    let person_b_identifier = api
         .create_entity(&person_b, person_type_uri.clone())
         .await
         .expect("could not create entity");
 
-    let person_c_entity_id = api
+    let person_c_identifier = api
         .create_entity(&person_c, person_type_uri.clone())
         .await
         .expect("could not create entity");
 
     let _a_b_link = api
         .create_link(
-            person_a_entity_id,
-            person_b_entity_id,
+            person_a_identifier.entity_id(),
+            person_b_identifier.entity_id(),
             friend_link_type_uri.clone(),
         )
         .await
@@ -115,15 +118,15 @@ async fn get_entity_links() {
 
     let _a_c_link = api
         .create_link(
-            person_a_entity_id,
-            person_c_entity_id,
+            person_a_identifier.entity_id(),
+            person_c_identifier.entity_id(),
             acquaintance_link_type_uri.clone(),
         )
         .await
         .expect("coud not create link");
 
     let links_from_source = api
-        .get_entity_links(person_a_entity_id)
+        .get_entity_links(person_a_identifier.entity_id())
         .await
         .expect("could not fetch link");
 
@@ -165,35 +168,35 @@ async fn remove_link() {
         1,
     );
 
-    let person_a_entity_id = api
+    let person_a_identifier = api
         .create_entity(&person_a, person_type_uri.clone())
         .await
         .expect("could not create entity");
 
-    let person_b_entity_id = api
+    let person_b_identifier = api
         .create_entity(&person_b, person_type_uri.clone())
         .await
         .expect("could not create entity");
 
     let _a_b_link = api
         .create_link(
-            person_a_entity_id,
-            person_b_entity_id,
+            person_a_identifier.entity_id(),
+            person_b_identifier.entity_id(),
             link_type_uri.clone(),
         )
         .await
-        .expect("coud not create link");
+        .expect("could not create link");
 
     api.remove_link(
-        person_a_entity_id,
-        person_b_entity_id,
+        person_a_identifier.entity_id(),
+        person_b_identifier.entity_id(),
         link_type_uri.clone(),
     )
     .await
     .expect("could not remove link");
 
     let _ = api
-        .get_link_target(person_a_entity_id, link_type_uri.clone())
+        .get_link_target(person_a_identifier.entity_id(), link_type_uri)
         .await
         .expect_err("found link that should have been deleted");
 }

@@ -8,6 +8,7 @@ use crate::{
     store::{crud, AsClient, PostgresStore, QueryError},
 };
 
+// TODO: we should probably support taking PersistedEntityIdentifier here as well as an EntityId
 #[async_trait]
 impl<C: AsClient> crud::Read<'_, EntityId, Link> for PostgresStore<C> {
     type Output = Links;

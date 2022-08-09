@@ -16,7 +16,7 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    knowledge::{Entity, EntityId, Link},
+    knowledge::{Entity, EntityId, Link, PersistedEntityIdentifier},
     ontology::{
         types::{uri::VersionedUri, EntityType, LinkType, PropertyType},
         AccountId,
@@ -361,7 +361,7 @@ pub trait EntityStore {
         entity: &Entity,
         entity_type_uri: VersionedUri,
         created_by: AccountId,
-    ) -> Result<EntityId, InsertionError>;
+    ) -> Result<PersistedEntityIdentifier, InsertionError>;
 
     /// Get the [`PersistedEntity`] specified by `identifier`.
     ///
@@ -391,7 +391,7 @@ pub trait EntityStore {
         entity: &Entity,
         entity_type_uri: VersionedUri,
         updated_by: AccountId,
-    ) -> Result<(), UpdateError>;
+    ) -> Result<PersistedEntityIdentifier, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [`Link`]s.

@@ -20,7 +20,7 @@ async fn insert() {
         .await
         .expect("could not seed database");
 
-    let entity_id = api
+    let identifier = api
         .create_entity(
             &person,
             VersionedUri::new(
@@ -32,7 +32,7 @@ async fn insert() {
         .expect("could not create entity");
 
     let persisted_entity = api
-        .get_entity(entity_id)
+        .get_entity(identifier.entity_id())
         .await
         .expect("could not get entity");
 
@@ -52,7 +52,7 @@ async fn query() {
         .await
         .expect("could not seed database");
 
-    let entity_id = api
+    let identifier = api
         .create_entity(
             &organization,
             VersionedUri::new(
@@ -64,7 +64,7 @@ async fn query() {
         .expect("could not create entity");
 
     let queried_organization = api
-        .get_entity(entity_id)
+        .get_entity(identifier.entity_id())
         .await
         .expect("could not get entity");
     assert_eq!(&organization, queried_organization.inner());
@@ -83,7 +83,7 @@ async fn update() {
         .await
         .expect("could not seed database:");
 
-    let created_entity_id = api
+    let identifier = api
         .create_entity(
             &page_v1,
             VersionedUri::new(
@@ -95,7 +95,7 @@ async fn update() {
         .expect("could not create entity");
 
     api.update_entity(
-        created_entity_id,
+        identifier.entity_id(),
         &page_v2,
         VersionedUri::new(
             "https://blockprotocol.org/@alice/types/entity-type/page".to_owned(),
@@ -106,7 +106,7 @@ async fn update() {
     .expect("could not update entity");
 
     let persisted_entity = api
-        .get_entity(created_entity_id)
+        .get_entity(identifier.entity_id())
         .await
         .expect("could not get entity");
 

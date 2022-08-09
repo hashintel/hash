@@ -13,7 +13,7 @@ use utoipa::{Component, OpenApi};
 
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store},
-    knowledge::{Entity, EntityId},
+    knowledge::{Entity, EntityId, PersistedEntityIdentifier},
     ontology::{types::uri::VersionedUri, AccountId},
     store::{
         crud::AllLatest,
@@ -21,13 +21,6 @@ use crate::{
     },
     GraphPool, PersistedEntity,
 };
-
-#[derive(Component, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct QualifiedEntity {
-    entity_id: EntityId,
-    entity: Entity,
-}
 
 #[derive(OpenApi)]
 #[openapi(
@@ -37,7 +30,7 @@ struct QualifiedEntity {
         get_latest_entities,
         update_entity
     ),
-    components(CreateEntityRequest, UpdateEntityRequest, EntityId, QualifiedEntity, PersistedEntity, Entity),
+    components(CreateEntityRequest, UpdateEntityRequest, EntityId, PersistedEntityIdentifier, PersistedEntity, Entity),
     tags(
         (name = "Entity", description = "entity management API")
     )
@@ -77,7 +70,7 @@ struct CreateEntityRequest {
     request_body = CreateEntityRequest,
     tag = "Entity",
     responses(
-        (status = 201, content_type = "application/json", description = "The created entity", body = QualifiedEntity),
+        (status = 201, content_type = "application/json", description = "The created entity", body = PersistedEntityIdentifier),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Entity Type URI was not found"),
@@ -88,7 +81,7 @@ struct CreateEntityRequest {
 async fn create_entity<P: GraphPool>(
     body: Json<CreateEntityRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<QualifiedEntity>, StatusCode> {
+) -> Result<Json<PersistedEntityIdentifier>, StatusCode> {
     let Json(CreateEntityRequest {
         entity,
         entity_type_uri,
@@ -109,7 +102,7 @@ async fn create_entity<P: GraphPool>(
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
         })
-        .map(|entity_id| Json(QualifiedEntity { entity_id, entity }))
+        .map(Json)
 }
 
 #[utoipa::path(
@@ -168,7 +161,7 @@ struct UpdateEntityRequest {
     path = "/entities",
     tag = "Entity",
     responses(
-        (status = 200, content_type = "application/json", description = "The updated entity", body = QualifiedEntity),
+        (status = 200, content_type = "application/json", description = "The updated entity", body = PersistedEntityIdentifier),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Entity ID or Entity Type URI was not found"),
@@ -179,7 +172,7 @@ struct UpdateEntityRequest {
 async fn update_entity<P: GraphPool>(
     body: Json<UpdateEntityRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<QualifiedEntity>, StatusCode> {
+) -> Result<Json<PersistedEntityIdentifier>, StatusCode> {
     let Json(UpdateEntityRequest {
         entity,
         entity_id,
@@ -205,5 +198,5 @@ async fn update_entity<P: GraphPool>(
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
         })
-        .map(|_| Json(QualifiedEntity { entity_id, entity }))
+        .map(Json)
 }

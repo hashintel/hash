@@ -38,33 +38,68 @@ pub struct Entity {
     properties: HashMap<BaseUri, serde_json::Value>,
 }
 
-/// A record of an entity that has been persisted in the datastore, with its associated metadata.
+// TODO: consider making an analogue of this for Links and elements of the Ontology
+/// The metadata required to uniquely identify an instance of an [`Entity`] that has been persisted
+/// in the datastore.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
+#[serde(rename_all = "camelCase")]
+pub struct PersistedEntityIdentifier {
+    entity_id: EntityId,
+    version: DateTime<Utc>,
+    created_by: AccountId, /* TODO: consider changing this to 'author' or something: https://app.asana.com/0/1201095311341924/1202769355319303/f */
+}
+
+impl PersistedEntityIdentifier {
+    #[must_use]
+    pub const fn new(entity_id: EntityId, version: DateTime<Utc>, created_by: AccountId) -> Self {
+        Self {
+            entity_id,
+            version,
+            created_by,
+        }
+    }
+
+    #[must_use]
+    pub const fn entity_id(&self) -> EntityId {
+        self.entity_id
+    }
+
+    #[must_use]
+    pub const fn version(&self) -> DateTime<Utc> {
+        self.version
+    }
+
+    #[must_use]
+    pub const fn created_by(&self) -> AccountId {
+        self.created_by
+    }
+}
+
+/// A record of an [`Entity`] that has been persisted in the datastore, with its associated
+/// metadata.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
 #[serde(rename_all = "camelCase")]
 pub struct PersistedEntity {
     inner: Entity,
-    id: EntityId,
-    version: DateTime<Utc>,
+    #[serde(flatten)]
+    identifier: PersistedEntityIdentifier,
     #[component(value_type = String)]
     type_versioned_uri: VersionedUri,
-    created_by: AccountId,
 }
 
 impl PersistedEntity {
     #[must_use]
     pub const fn new(
         inner: Entity,
-        id: EntityId,
+        entity_id: EntityId,
         version: DateTime<Utc>,
         type_versioned_uri: VersionedUri,
         created_by: AccountId,
     ) -> Self {
         Self {
             inner,
-            id,
-            version,
+            identifier: PersistedEntityIdentifier::new(entity_id, version, created_by),
             type_versioned_uri,
-            created_by,
         }
     }
 
@@ -74,23 +109,13 @@ impl PersistedEntity {
     }
 
     #[must_use]
-    pub const fn id(&self) -> EntityId {
-        self.id
-    }
-
-    #[must_use]
-    pub const fn version(&self) -> DateTime<Utc> {
-        self.version
+    pub const fn identifier(&self) -> &PersistedEntityIdentifier {
+        &self.identifier
     }
 
     #[must_use]
     pub const fn type_versioned_uri(&self) -> &VersionedUri {
         &self.type_versioned_uri
-    }
-
-    #[must_use]
-    pub const fn created_by(&self) -> AccountId {
-        self.created_by
     }
 }
 

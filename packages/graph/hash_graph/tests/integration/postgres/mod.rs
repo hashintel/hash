@@ -7,7 +7,9 @@ mod property_type;
 
 use error_stack::Result;
 use graph::{
-    knowledge::{Entity, EntityId, Link, Links, Outgoing, PersistedEntity},
+    knowledge::{
+        Entity, EntityId, Link, Links, Outgoing, PersistedEntity, PersistedEntityIdentifier,
+    },
     ontology::{
         types::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType},
         AccountId,
@@ -217,7 +219,7 @@ impl DatabaseApi<'_> {
         &mut self,
         entity: &Entity,
         entity_type_uri: VersionedUri,
-    ) -> Result<EntityId, InsertionError> {
+    ) -> Result<PersistedEntityIdentifier, InsertionError> {
         self.store
             .create_entity(entity, entity_type_uri, self.account_id)
             .await
@@ -232,7 +234,7 @@ impl DatabaseApi<'_> {
         entity_id: EntityId,
         entity: &Entity,
         entity_type_uri: VersionedUri,
-    ) -> Result<(), UpdateError> {
+    ) -> Result<PersistedEntityIdentifier, UpdateError> {
         self.store
             .update_entity(entity_id, entity, entity_type_uri, self.account_id)
             .await
