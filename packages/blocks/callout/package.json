@@ -19,11 +19,11 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.11-canary.24"
+    "@blockprotocol/graph": "0.0.12"
   },
   "devDependencies": {
-    "block-scripts": "0.0.13",
-    "eslint": "8.13.0",
+    "block-scripts": "0.0.14",
+    "eslint": "8.20.0",
     "mock-block-dock": "0.0.15",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

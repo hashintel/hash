@@ -18,6 +18,7 @@ type IEditorProps = {
   language: LanguageType;
   editorRef: RefObject<HTMLTextAreaElement>;
   onBlur: () => void;
+  readonly: boolean;
 };
 
 export const Editor = ({
@@ -26,6 +27,7 @@ export const Editor = ({
   setContent,
   editorRef,
   onBlur,
+  readonly,
 }: IEditorProps) => {
   const textAreaRef = editorRef;
   const highlightedElementRef = useRef<HTMLPreElement>(null);
@@ -124,6 +126,7 @@ export const Editor = ({
         onScroll={syncScroll}
         onBlur={onBlur}
         spellCheck="false"
+        disabled={readonly}
       />
       <pre ref={highlightedElementRef}>
         <code className={`language-${language}`}>{content}</code>

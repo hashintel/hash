@@ -1,8 +1,9 @@
+import { areComponentsCompatible } from "@hashintel/hash-shared/blocks";
 import { useRef, forwardRef, useMemo, ForwardRefRenderFunction } from "react";
 
 import { useKey } from "rooks";
 
-import { Box, Divider, Menu, Typography } from "@mui/material";
+import { Box, Divider, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";
 import { format } from "date-fns";
@@ -20,9 +21,9 @@ import {
 } from "@fortawesome/free-regular-svg-icons";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { useUserBlocks } from "../../userBlocks";
 import { getBlockDomId } from "../BlockView";
-import { BlockSuggesterProps } from "../createSuggester/BlockSuggester";
 
 import { BlockLoaderInput } from "./BlockLoaderInput";
 import { useUsers } from "../../../components/hooks/useUsers";
@@ -32,34 +33,31 @@ import { BlockListMenuContent } from "./BlockListMenuContent";
 
 type BlockContextMenuProps = {
   blockEntity: BlockEntity | null;
-  blockSuggesterProps: BlockSuggesterProps;
   deleteBlock: () => void;
-  entityId: string | null;
   openConfigMenu: () => void;
   popupState: PopupState;
-  swapType: boolean;
+  canSwap: boolean;
 };
-
-const LOAD_BLOCK_ENTITY_UI = "hash-load-entity-ui";
 
 const BlockContextMenu: ForwardRefRenderFunction<
   HTMLDivElement,
   BlockContextMenuProps
 > = (
-  {
-    blockEntity,
-    blockSuggesterProps,
-    deleteBlock,
-    entityId,
-    openConfigMenu,
-    popupState,
-    swapType,
-  },
+  { blockEntity, deleteBlock, openConfigMenu, popupState, canSwap },
   ref,
 ) => {
   const { data: users } = useUsers();
   const setEntityMenuItemRef = useRef<HTMLLIElement>(null);
   const swapBlocksMenuItemRef = useRef<HTMLLIElement>(null);
+  const { value: userBlocks } = useUserBlocks();
+  const currentComponentId = blockEntity?.properties.componentId;
+  const compatibleBlocks = useMemo(() => {
+    return Object.values(userBlocks).filter((block) =>
+      areComponentsCompatible(currentComponentId, block.meta.componentId),
+    );
+  }, [currentComponentId, userBlocks]);
+
+  const entityId = blockEntity?.entityId ?? null;
 
   const menuItems = useMemo(() => {
     const hasChildEntity =
@@ -69,7 +67,12 @@ const BlockContextMenu: ForwardRefRenderFunction<
         key: "set-entity",
         title: hasChildEntity ? "Swap Entity" : "Add an entity",
         icon: <FontAwesomeIcon icon={faAdd} />,
-        subMenu: <LoadEntityMenuContent entityId={entityId} />,
+        subMenu: (
+          <LoadEntityMenuContent
+            blockEntityId={entityId}
+            closeParentContextMenu={() => popupState.close()}
+          />
+        ),
         subMenuWidth: 280,
       },
       {
@@ -86,10 +89,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
         key: "configure",
         title: "Configure",
         icon: <FontAwesomeIcon icon={faGear} />,
-        onClick: () => {
-          popupState.close();
-          openConfigMenu();
-        },
+        onClick: () => openConfigMenu(),
       },
       {
         key: "duplicate",
@@ -103,16 +103,14 @@ const BlockContextMenu: ForwardRefRenderFunction<
         icon: <FontAwesomeIcon icon={faTrashCan} />,
         onClick: deleteBlock,
       },
-      ...(swapType
+      ...(canSwap && compatibleBlocks.length > 1
         ? [
             {
               key: "swap-block",
               title: "Swap block type",
               icon: <FontAwesomeIcon icon={faRefresh} />,
               subMenu: (
-                <BlockListMenuContent
-                  blockSuggesterProps={blockSuggesterProps}
-                />
+                <BlockListMenuContent compatibleBlocks={compatibleBlocks} />
               ),
               subMenuWidth: 228,
             },
@@ -132,21 +130,15 @@ const BlockContextMenu: ForwardRefRenderFunction<
       },
     ];
 
-    // @todo this flag wouldn't be need once
-    // https://app.asana.com/0/1201959586244685/1202106892392942 has been addressed
-    if (!localStorage.getItem(LOAD_BLOCK_ENTITY_UI)) {
-      items.shift();
-    }
-
     return items;
   }, [
     blockEntity,
-    blockSuggesterProps,
     entityId,
     deleteBlock,
     openConfigMenu,
     popupState,
-    swapType,
+    canSwap,
+    compatibleBlocks,
   ]);
 
   useKey(["Escape"], () => {
@@ -154,7 +146,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
   });
 
   useKey(["@"], () => {
-    if (popupState.isOpen && localStorage.getItem(LOAD_BLOCK_ENTITY_UI)) {
+    if (popupState.isOpen) {
       setEntityMenuItemRef.current?.focus();
     }
   });
@@ -220,7 +212,10 @@ const BlockContextMenu: ForwardRefRenderFunction<
               title={title}
               itemKey={key}
               icon={icon}
-              onClick={onClick}
+              onClick={() => {
+                onClick?.();
+                popupState.close();
+              }}
               subMenu={subMenu}
               subMenuWidth={subMenuWidth}
               {...(menuItemRef && { ref: menuItemRef })}

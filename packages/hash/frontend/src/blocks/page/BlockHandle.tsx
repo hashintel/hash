@@ -1,28 +1,22 @@
 import { JsonObject } from "@blockprotocol/core";
 import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
-import {
-  EntityStore,
-  getDraftEntityFromEntityId,
-  isBlockEntity,
-} from "@hashintel/hash-shared/entityStore";
+import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import { Box } from "@mui/material";
 import { bindTrigger } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
-import { ForwardRefRenderFunction, useRef, useMemo, forwardRef } from "react";
+import { ForwardRefRenderFunction, forwardRef } from "react";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { useUserBlocks } from "../userBlocks";
 import { BlockConfigMenu } from "./BlockConfigMenu/BlockConfigMenu";
 import { BlockContextMenu } from "./BlockContextMenu/BlockContextMenu";
 import { useBlockView } from "./BlockViewContext";
 import { useBlockContext } from "./BlockContext";
-import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
-import { isBlockSwappable } from "./createSuggester/useFilteredBlocks";
+import { useReadonlyMode } from "../../shared/readonly-mode";
 
 type BlockHandleProps = {
   deleteBlock: () => void;
-  entityId: string | null;
+  draftId: string | null;
   entityStore: EntityStore;
-  onTypeChange: BlockSuggesterProps["onChange"];
   onMouseDown: () => void;
   onClick: () => void;
 };
@@ -30,11 +24,8 @@ type BlockHandleProps = {
 const BlockHandle: ForwardRefRenderFunction<
   HTMLDivElement,
   BlockHandleProps
-> = (
-  { deleteBlock, entityId, entityStore, onTypeChange, onMouseDown, onClick },
-  ref,
-) => {
-  const blockMenuRef = useRef(null);
+> = ({ deleteBlock, draftId, entityStore, onMouseDown, onClick }, ref) => {
+  const { readonlyMode } = useReadonlyMode();
   const contextMenuPopupState = usePopupState({
     variant: "popover",
     popupId: "block-context-menu",
@@ -45,17 +36,7 @@ const BlockHandle: ForwardRefRenderFunction<
     popupId: "block-config-menu",
   });
 
-  const blockSuggesterProps: BlockSuggesterProps = useMemo(
-    () => ({
-      onChange: (variant, block) => {
-        onTypeChange(variant, block);
-        contextMenuPopupState.close();
-      },
-    }),
-    [onTypeChange, contextMenuPopupState],
-  );
-
-  const { value: blocksMetaMap } = useUserBlocks();
+  const { value: blocksMap } = useUserBlocks();
 
   /**
    * The context and config menu use data from the draft store to subscribe to the latest local changes.
@@ -65,12 +46,10 @@ const BlockHandle: ForwardRefRenderFunction<
    * This lag will be eliminated when all updates are sent via collab, rather than some via the API.
    * @todo remove this comment when all updates are sent via collab
    */
-  const blockEntity = entityId
-    ? getDraftEntityFromEntityId(entityStore.draft, entityId) ?? null
-    : null;
+  const blockEntity = draftId ? entityStore.draft[draftId] ?? null : null;
 
   if (blockEntity && !isBlockEntity(blockEntity)) {
-    throw new Error(`Non-block entity ${entityId} loaded into BlockView.`);
+    throw new Error(`Non-block entity ${draftId} loaded into BlockView.`);
   }
 
   const blockView = useBlockView();
@@ -84,13 +63,23 @@ const BlockHandle: ForwardRefRenderFunction<
   };
 
   const blockSchema = blockEntity
-    ? blocksMetaMap[blockEntity.properties.componentId]?.componentSchema
+    ? blocksMap[blockEntity.properties.componentId]?.schema
     : null;
 
   const blockContext = useBlockContext();
 
+  if (readonlyMode) {
+    return null;
+  }
+
   return (
-    <Box ref={ref} data-testid="block-handle">
+    <Box
+      ref={ref}
+      sx={{
+        display: readonlyMode ? "none" : "block",
+      }}
+      data-testid="block-handle"
+    >
       <IconButton
         ref={(el) => {
           if (el && !contextMenuPopupState.setAnchorElUsed) {
@@ -111,16 +100,10 @@ const BlockHandle: ForwardRefRenderFunction<
 
       <BlockContextMenu
         blockEntity={blockEntity}
-        blockSuggesterProps={blockSuggesterProps}
         deleteBlock={deleteBlock}
-        entityId={entityId}
         openConfigMenu={configMenuPopupState.open}
         popupState={contextMenuPopupState}
-        ref={blockMenuRef}
-        swapType={
-          isBlockSwappable(blockEntity?.properties.componentId) ||
-          blockContext.error
-        }
+        canSwap={!blockContext.error}
       />
 
       <BlockConfigMenu

@@ -2,7 +2,6 @@ import { ReactNode, useEffect, useState, FunctionComponent } from "react";
 import {
   Box,
   Collapse,
-  // eslint-disable-next-line no-restricted-imports
   TextField as MuiTextField,
   TextFieldProps as MuiTextFieldProps,
 } from "@mui/material";

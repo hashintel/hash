@@ -4,7 +4,7 @@ import { keymap } from "prosemirror-keymap";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
 import { createEntityStorePlugin } from "./entityStorePlugin";
-import { createSchema } from "./schema";
+import { createSchema } from "./prosemirror";
 import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
 
 const createInitialDoc = (schema: Schema = createSchema()) =>

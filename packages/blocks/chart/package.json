@@ -18,13 +18,13 @@
   },
   "dependencies": {
     "@mui/material": "5.4.3",
-    "blockprotocol": "0.0.10",
+    "blockprotocol": "0.0.12",
     "echarts": "^5.3.2",
     "lodash.debounce": "4.0.8"
   },
   "devDependencies": {
     "@types/lodash.debounce": "4.0.7",
-    "block-scripts": "0.0.13",
+    "block-scripts": "0.0.14",
     "mock-block-dock": "0.0.10",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

@@ -11,6 +11,7 @@ import { convertApiEntityTypeToBpEntityType } from "../../../lib/entities";
 
 export const useBlockProtocolCreateEntityType = (
   accountId: string,
+  readonly?: boolean,
 ): {
   createEntityType: EmbedderGraphMessageCallbacks["createEntityType"];
 } => {
@@ -22,6 +23,17 @@ export const useBlockProtocolCreateEntityType = (
   const createEntityType: EmbedderGraphMessageCallbacks["createEntityType"] =
     useCallback(
       async ({ data }) => {
+        if (readonly) {
+          return {
+            errors: [
+              {
+                code: "FORBIDDEN",
+                message: "Operation can't be carried out in readonly mode",
+              },
+            ],
+          };
+        }
+
         if (!data) {
           return {
             errors: [
@@ -60,7 +72,7 @@ export const useBlockProtocolCreateEntityType = (
           ),
         };
       },
-      [accountId, createFn],
+      [accountId, createFn, readonly],
     );
 
   return {
