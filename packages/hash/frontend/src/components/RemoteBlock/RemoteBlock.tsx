@@ -83,6 +83,14 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
     }
   }, [graphProperties.linkedAggregations, graphService]);
 
+  useEffect(() => {
+    if (graphService) {
+      graphService.readonly({
+        data: graphProperties.readonly,
+      });
+    }
+  }, [graphProperties.readonly, graphService]);
+
   if (loading) {
     return <BlockLoadingIndicator />;
   }

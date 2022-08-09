@@ -40,6 +40,7 @@ import { useBlockProtocolUpdateEntityType } from "../hooks/blockProtocolFunction
 import { useBlockProtocolUpdateLink } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLink";
 import { useBlockProtocolUpdateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregation";
 import { EntityType as ApiEntityType } from "../../graphql/apiTypes.gen";
+import { useReadonlyMode } from "../../shared/readonly-mode";
 
 type BlockLoaderProps = {
   accountId: string;
@@ -78,19 +79,29 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   onBlockLoaded,
   // shouldSandbox,
 }) => {
+  const { readonlyMode } = useReadonlyMode();
   const { aggregateEntityTypes } =
     useBlockProtocolAggregateEntityTypes(accountId);
   const { aggregateEntities } = useBlockProtocolAggregateEntities(accountId);
-  const { createLinkedAggregation } = useBlockProtocolCreateLinkedAggregation();
-  const { createLink } = useBlockProtocolCreateLink();
-  const { createEntity } = useBlockProtocolCreateEntity(accountId);
-  const { createEntityType } = useBlockProtocolCreateEntityType(accountId);
-  const { deleteLinkedAggregation } = useBlockProtocolDeleteLinkedAggregation();
-  const { deleteLink } = useBlockProtocolDeleteLink();
-  const { updateEntity } = useBlockProtocolUpdateEntity();
-  const { uploadFile } = useBlockProtocolFileUpload(accountId);
-  const { updateEntityType } = useBlockProtocolUpdateEntityType();
-  const { updateLinkedAggregation } = useBlockProtocolUpdateLinkedAggregation();
+  const { createLinkedAggregation } =
+    useBlockProtocolCreateLinkedAggregation(readonlyMode);
+  const { createLink } = useBlockProtocolCreateLink(readonlyMode);
+  const { createEntity } = useBlockProtocolCreateEntity(
+    accountId,
+    readonlyMode,
+  );
+  const { createEntityType } = useBlockProtocolCreateEntityType(
+    accountId,
+    readonlyMode,
+  );
+  const { deleteLinkedAggregation } =
+    useBlockProtocolDeleteLinkedAggregation(readonlyMode);
+  const { deleteLink } = useBlockProtocolDeleteLink(readonlyMode);
+  const { updateEntity } = useBlockProtocolUpdateEntity(false, readonlyMode);
+  const { uploadFile } = useBlockProtocolFileUpload(accountId, readonlyMode);
+  const { updateEntityType } = useBlockProtocolUpdateEntityType(readonlyMode);
+  const { updateLinkedAggregation } =
+    useBlockProtocolUpdateLinkedAggregation(readonlyMode);
 
   const { updateLink } = useBlockProtocolUpdateLink();
 
@@ -146,6 +157,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
         "entityTypeId",
       ),
       linkedAggregations: convertedLinkedAggregations,
+      readonly: readonlyMode,
     };
   }, [
     accountId,
@@ -156,6 +168,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     linkGroups,
     linkedEntities,
     linkedAggregations,
+    readonlyMode,
   ]);
 
   const functions = {

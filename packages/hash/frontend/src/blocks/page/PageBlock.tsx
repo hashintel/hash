@@ -12,6 +12,7 @@ import { UserBlocksProvider } from "../userBlocks";
 import { EditorConnection } from "./collab/EditorConnection";
 import { BlocksMap, createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
+import { useReadonlyMode } from "../../shared/readonly-mode";
 
 type PageBlockProps = {
   blocks: BlocksMap;
@@ -44,6 +45,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
 
   const router = useRouter();
   const routeHash = router.asPath.split("#")[1] ?? "";
+  const { readonlyMode } = useReadonlyMode();
 
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not
@@ -72,13 +74,17 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       manager,
     };
 
+    if (readonlyMode) {
+      prosemirrorSetup.current.manager.setReadonlyMode();
+    }
+
     return () => {
       // @todo how does this work with portals?
       node.innerHTML = "";
       prosemirrorSetup.current = null;
       connection?.close();
     };
-  }, [accountId, blocks, entityId, renderPortal]);
+  }, [accountId, blocks, entityId, renderPortal, readonlyMode]);
 
   return (
     <UserBlocksProvider value={blocks}>
