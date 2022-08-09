@@ -11,7 +11,7 @@ execution = { path = "../execution", default-features = false }
 experiment-structure = { path = "../experiment-structure", default-features = false }
 simulation-control = { path = "../simulation-control", default-features = false }
 
-error-stack = { version = "0.1.1", path = "../../../libs/error-stack", features = ["spantrace"] }
+error-stack = { git = "https://github.com/hashintel/hash", rev = "5edddb5", features = ["spantrace"] }
 
 clap = { version = "=3.0.13", features = ["cargo", "derive", "env"], optional = true }
 num_cpus = "1.13.1"
