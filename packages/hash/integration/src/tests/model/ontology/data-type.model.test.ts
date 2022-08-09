@@ -18,7 +18,7 @@ const graphApi = createGraphClient(
   logger,
 );
 
-const accountId = { accountId: "00000000-0000-0000-0000-000000000000" };
+const accountId = "00000000-0000-0000-0000-000000000000";
 
 const textDataType$id = "https://data-type~example.com/data-type/v/1";
 
@@ -36,14 +36,14 @@ describe("Data type CRU", () => {
   let createdDataType: DataTypeModel;
   it("can create a data type", async () => {
     createdDataType = await DataTypeModel.create(graphApi, {
-      ...accountId,
+      accountId,
       schema: dataType(createdDataType$id),
     });
   });
 
   it("can read a data type", async () => {
     const fetchedDataType = await DataTypeModel.get(graphApi, {
-      ...accountId,
+      accountId,
       versionedUri: createdDataType$id,
     });
 
@@ -55,14 +55,16 @@ describe("Data type CRU", () => {
   it("can update a data type", async () => {
     await createdDataType
       .update(graphApi, {
-        ...accountId,
+        accountId,
         schema: { ...dataType(updated$id), title: updatedTitle },
       })
       .catch((err) => Promise.reject(err.data));
   });
 
   it("can read all latest data types", async () => {
-    const allDataTypes = await DataTypeModel.getAllLatest(graphApi, accountId);
+    const allDataTypes = await DataTypeModel.getAllLatest(graphApi, {
+      accountId,
+    });
 
     const newlyUpdated = allDataTypes.find(
       (dt) => dt.schema.$id === updated$id,
