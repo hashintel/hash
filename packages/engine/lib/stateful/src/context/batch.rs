@@ -57,8 +57,8 @@ impl ContextBatch {
         let mut metadata = vec![];
         write_record_batch_message_header(&mut metadata, &info)?;
 
-        let mut body_data = Vec::with_capacity(info.body_len);
-        body_data.resize(info.body_len, 0);
+        let mut body_data = vec![0; info.body_len];
+
         write_record_batch_body(record_batch, &mut body_data, &info)?;
 
         let segment =
