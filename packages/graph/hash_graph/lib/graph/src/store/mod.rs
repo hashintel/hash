@@ -201,7 +201,7 @@ pub trait DataTypeStore: for<'q> crud::Read<DataType, Query<'q> = DataTypeQuery<
         created_by: AccountId,
     ) -> Result<(), InsertionError>;
 
-    /// Get the [`DataType`] by the specified [`OntologyQuery`].
+    /// Get the [`DataType`] by the specified [`DataTypeQuery`].
     ///
     /// # Errors
     ///
@@ -362,8 +362,6 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = EntityQue
     ) -> Result<PersistedEntityIdentifier, InsertionError>;
 
     /// Get the [`PersistedEntity`] specified by `identifier`.
-    ///
-    /// Depending on the `identifier` the output is specified by [`Read::Output`].
     ///
     /// # Errors
     ///
