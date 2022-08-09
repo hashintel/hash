@@ -91,27 +91,27 @@ impl IntoRecordBatch for &[&Agent] {
             // `name` must have static lifetime, like `match` arms.
             // TODO: built-ins should take nullability from the schema
             let col = if name.eq(AgentStateField::AgentId.name()) {
-                agents_to_id_col(*self)?
+                agents_to_id_col(self)?
             } else if name == AgentStateField::AgentName.name() {
                 Arc::new(json_vals_to_utf8(vals, true)?)
             } else if name == AgentStateField::Messages.name() {
                 Arc::new(MessageArray::from_json(vals)?)
             } else if name == AgentStateField::Position.name() {
-                Arc::new(agents_to_position_col(*self)?)
+                Arc::new(agents_to_position_col(self)?)
             } else if name == AgentStateField::Direction.name()
                 || name == AgentStateField::Velocity.name()
             {
-                Arc::new(agents_to_direction_col(*self)?)
+                Arc::new(agents_to_direction_col(self)?)
             } else if name == AgentStateField::Shape.name() {
                 Arc::new(json_vals_to_utf8(vals, true)?)
             } else if name == AgentStateField::Height.name() {
                 Arc::new(json_vals_to_primitive::<Float64Type>(vals, true)?)
             } else if name == AgentStateField::Scale.name() {
-                Arc::new(agents_to_scale_col(*self)?)
+                Arc::new(agents_to_scale_col(self)?)
             } else if name == AgentStateField::Color.name() {
                 Arc::new(json_vals_to_utf8(vals, true)?)
             } else if name == AgentStateField::Rgb.name() {
-                Arc::new(agents_to_rgb_col(*self)?)
+                Arc::new(agents_to_rgb_col(self)?)
             } else if name == AgentStateField::Hidden.name() {
                 Arc::new(json_vals_to_bool(vals)?)
             } else if name == PREVIOUS_INDEX_FIELD_KEY {

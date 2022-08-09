@@ -109,7 +109,14 @@ impl fmt::Display for ErrorB {
 
 #[cfg(all(nightly, feature = "std"))]
 impl std::error::Error for ErrorB {
-    fn backtrace(&self) -> Option<&std::backtrace::Backtrace> {
+    fn provide<'a>(&'a self, demand: &mut core::any::Demand<'a>) {
+        demand.provide_ref(&self.1);
+    }
+}
+
+#[cfg(all(nightly, feature = "std"))]
+impl ErrorB {
+    pub fn backtrace(&self) -> Option<&std::backtrace::Backtrace> {
         Some(&self.1)
     }
 }

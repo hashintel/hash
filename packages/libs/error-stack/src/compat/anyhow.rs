@@ -3,10 +3,7 @@ use alloc::boxed::Box;
 use core::any::Demand;
 use core::{fmt, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
-use std::{
-    backtrace::{Backtrace, BacktraceStatus},
-    ops::Deref,
-};
+use std::backtrace::{Backtrace, BacktraceStatus};
 
 use anyhow::Error as AnyhowError;
 
@@ -42,15 +39,9 @@ impl Context for AnyhowContext {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
         demand.provide_ref(&self.0);
+
         #[cfg(feature = "std")]
-        if let Some(backtrace) = self
-            .0
-            .deref()
-            .backtrace()
-            .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
-        {
-            demand.provide_ref(backtrace);
-        }
+        self.0.provide(demand);
     }
 }
 
@@ -69,12 +60,11 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
                 // only capture a backtrace if needed, otherwise the anyhow context provides one
                 #[cfg(all(nightly, feature = "std"))]
                 let backtrace = anyhow
-                    .deref()
-                    .backtrace()
-                    .filter(|bt| matches!(bt.status(), std::backtrace::BacktraceStatus::Captured))
+                    .request_ref::<Backtrace>()
+                    .filter(|bt| matches!(bt.status(), BacktraceStatus::Captured))
                     .is_none()
                     .then(Backtrace::capture)
-                    .filter(|bt| matches!(bt.status(), std::backtrace::BacktraceStatus::Captured));
+                    .filter(|bt| matches!(bt.status(), BacktraceStatus::Captured));
 
                 #[cfg(feature = "spantrace")]
                 let spantrace = Some(tracing_error::SpanTrace::capture())

@@ -142,7 +142,7 @@ impl Commands {
 
         let mut refs = Vec::with_capacity(HASH.len());
         for hash_recipient in &HASH {
-            refs.push(message_map.get_msg_refs(*hash_recipient))
+            refs.push(message_map.get_msg_refs(hash_recipient))
         }
 
         let res: Commands = refs

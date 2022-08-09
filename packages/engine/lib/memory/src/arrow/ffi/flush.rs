@@ -41,7 +41,7 @@ unsafe extern "C" fn flush_changes(
     let changes = &*changes;
     // Use this base lifetime for everything
     let static_meta_ref = &*static_meta;
-    let num_changes = (*changes).len;
+    let num_changes = changes.len;
     let indices = std::slice::from_raw_parts(changes.indices, num_changes);
     let arrays = std::slice::from_raw_parts(changes.columns, num_changes);
     let prepared_columns: Vec<PreparedColumn<'_>> = match (0..num_changes)
