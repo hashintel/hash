@@ -11,7 +11,8 @@ experiment-structure = { path = "../../lib/experiment-structure", default-featur
 experiment-control = { path = "../../lib/experiment-control", default-features = false, features = ["clap"] }
 orchestrator = { path = "../../lib/orchestrator", default-features = false, features = ["clap"] }
 
-error-stack = { version = "0.1.1", path = "../../../libs/error-stack", features = ["spantrace"] }
+# TODO: Change to `version = "0.2"` as soon as it's released
+error-stack = { git = "https://github.com/hashintel/hash", rev = "5edddb5", features = ["spantrace"] }
 
 clap = { version = "=3.0.13", features = ["cargo", "derive", "env"] }
 serde = { version = "1.0.138", features = ["derive"] }
