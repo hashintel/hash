@@ -20,7 +20,7 @@ use crate::{
             DataTypeReference, EntityType, EntityTypeReference, PropertyType,
             PropertyTypeReference,
         },
-        AccountId,
+        AccountId, PersistedOntologyIdentifier,
     },
     store::{
         error::VersionedUriAlreadyExists,
@@ -271,7 +271,7 @@ where
         &self,
         database_type: &T,
         created_by: AccountId,
-    ) -> Result<VersionId, InsertionError>
+    ) -> Result<(VersionId, PersistedOntologyIdentifier), InsertionError>
     where
         T: OntologyDatabaseType + Serialize + Send + Sync,
     {
@@ -305,7 +305,7 @@ where
         self.insert_with_id(version_id, database_type, created_by)
             .await?;
 
-        Ok(version_id)
+        Ok((version_id, PersistedOntologyIdentifier::new(created_by)))
     }
 
     /// Updates the specified [`OntologyDatabaseType`].
@@ -322,7 +322,7 @@ where
         &self,
         database_type: &T,
         updated_by: AccountId,
-    ) -> Result<VersionId, UpdateError>
+    ) -> Result<(VersionId, PersistedOntologyIdentifier), UpdateError>
     where
         T: OntologyDatabaseType + Serialize + Send + Sync,
     {
@@ -349,7 +349,7 @@ where
             .await
             .change_context(UpdateError)?;
 
-        Ok(version_id)
+        Ok((version_id, PersistedOntologyIdentifier::new(updated_by)))
     }
 
     /// Inserts an [`OntologyDatabaseType`] identified by [`VersionId`], and associated with an

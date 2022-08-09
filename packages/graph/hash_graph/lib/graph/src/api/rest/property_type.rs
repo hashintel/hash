@@ -16,7 +16,7 @@ use crate::{
     api::rest::read_from_store,
     ontology::{
         types::{uri::VersionedUri, PropertyType},
-        AccountId, PersistedPropertyType,
+        AccountId, PersistedOntologyIdentifier, PersistedPropertyType,
     },
     store::{
         query::PropertyTypeQuery, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore,
@@ -82,7 +82,7 @@ struct CreatePropertyTypeRequest {
 async fn create_property_type<P: StorePool + Send>(
     body: Json<CreatePropertyTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PropertyType>, StatusCode> {
+) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
     let Json(CreatePropertyTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -102,9 +102,8 @@ async fn create_property_type<P: StorePool + Send>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(Json(schema))
+        })
+        .map(Json)
 }
 
 #[utoipa::path(
@@ -179,7 +178,7 @@ struct UpdatePropertyTypeRequest {
 async fn update_property_type<P: StorePool + Send>(
     body: Json<UpdatePropertyTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PropertyType>, StatusCode> {
+) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
     let Json(UpdatePropertyTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -199,7 +198,6 @@ async fn update_property_type<P: StorePool + Send>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(Json(schema))
+        })
+        .map(Json)
 }

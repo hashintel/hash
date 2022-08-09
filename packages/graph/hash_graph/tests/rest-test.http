@@ -29,7 +29,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("text_data_type_uri", encodeURIComponent(response.body["$id"]));
+    client.global.set("text_data_type_uri", encodeURIComponent("https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"));
 %}
 
 ### Get Text data type
@@ -86,7 +86,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_property_type_uri", encodeURIComponent(response.body["$id"]));
+    client.global.set("person_property_type_uri", encodeURIComponent("https://blockprotocol.org/@alice/types/property-type/name/v/1"));
 %}
 
 ### Get Name property type
@@ -153,8 +153,8 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("friend_of_link_type_uri", encodeURIComponent(response.body["$id"]));
-    client.global.set("friend_of_link_type_uri_raw", response.body["$id"]);
+    client.global.set("friend_of_link_type_uri", encodeURIComponent("https://blockprotocol.org/@alice/types/link-type/friend-of/v/1"));
+    client.global.set("friend_of_link_type_uri_raw", "https://blockprotocol.org/@alice/types/link-type/friend-of/v/1");
 %}
 
 ### Get FriendOf link type
@@ -224,7 +224,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_entity_type_uri", encodeURIComponent(response.body["$id"]));
+    client.global.set("person_entity_type_uri", encodeURIComponent("https://blockprotocol.org/@alice/types/entity-type/person/v/1"));
 %}
 
 ### Get Person entity type

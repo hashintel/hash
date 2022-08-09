@@ -20,7 +20,7 @@ use crate::{
     ontology::{
         types::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType},
         AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
-        PersistedPropertyType,
+        PersistedOntologyIdentifier, PersistedPropertyType,
     },
     store::{
         error::LinkActivationError,
@@ -202,7 +202,7 @@ pub trait DataTypeStore:
         &mut self,
         data_type: &DataType,
         created_by: AccountId,
-    ) -> Result<(), InsertionError>;
+    ) -> Result<PersistedOntologyIdentifier, InsertionError>;
 
     /// Get the [`DataType`]s specified by the [`DataTypeQuery`].
     ///
@@ -225,7 +225,7 @@ pub trait DataTypeStore:
         &mut self,
         data_type: &DataType,
         updated_by: AccountId,
-    ) -> Result<(), UpdateError>;
+    ) -> Result<PersistedOntologyIdentifier, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [`PropertyType`]s.
@@ -245,7 +245,7 @@ pub trait PropertyTypeStore:
         &mut self,
         property_type: &PropertyType,
         created_by: AccountId,
-    ) -> Result<(), InsertionError>;
+    ) -> Result<PersistedOntologyIdentifier, InsertionError>;
 
     /// Get the [`PropertyType`]s specified by the [`PropertyTypeQuery`].
     ///
@@ -268,7 +268,7 @@ pub trait PropertyTypeStore:
         &mut self,
         property_type: &PropertyType,
         updated_by: AccountId,
-    ) -> Result<(), UpdateError>;
+    ) -> Result<PersistedOntologyIdentifier, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [`EntityType`]s.
@@ -288,7 +288,7 @@ pub trait EntityTypeStore:
         &mut self,
         entity_type: &EntityType,
         created_by: AccountId,
-    ) -> Result<(), InsertionError>;
+    ) -> Result<PersistedOntologyIdentifier, InsertionError>;
 
     /// Get the [`EntityType`]s specified by the [`EntityTypeQuery`].
     ///
@@ -311,7 +311,7 @@ pub trait EntityTypeStore:
         &mut self,
         entity_type: &EntityType,
         updated_by: AccountId,
-    ) -> Result<(), UpdateError>;
+    ) -> Result<PersistedOntologyIdentifier, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [`LinkType`]s.
@@ -331,7 +331,7 @@ pub trait LinkTypeStore:
         &mut self,
         link_type: &LinkType,
         created_by: AccountId,
-    ) -> Result<(), InsertionError>;
+    ) -> Result<PersistedOntologyIdentifier, InsertionError>;
 
     /// Get the [`LinkType`]s specified by the [`LinkTypeQuery`].
     ///
@@ -354,7 +354,7 @@ pub trait LinkTypeStore:
         &mut self,
         property_type: &LinkType,
         updated_by: AccountId,
-    ) -> Result<(), UpdateError>;
+    ) -> Result<PersistedOntologyIdentifier, UpdateError>;
 }
 
 /// Describes the API of a store implementation for Entities.

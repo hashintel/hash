@@ -15,7 +15,7 @@ use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store},
     ontology::{
         types::{uri::VersionedUri, EntityType},
-        AccountId, PersistedEntityType,
+        AccountId, PersistedEntityType, PersistedOntologyIdentifier,
     },
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
@@ -82,7 +82,7 @@ struct CreateEntityTypeRequest {
 async fn create_entity_type<P: StorePool + Send>(
     body: Json<CreateEntityTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<EntityType>, StatusCode> {
+) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
     let Json(CreateEntityTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -102,9 +102,8 @@ async fn create_entity_type<P: StorePool + Send>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(Json(schema))
+        })
+        .map(Json)
 }
 
 #[utoipa::path(
@@ -179,7 +178,7 @@ struct UpdateEntityTypeRequest {
 async fn update_entity_type<P: StorePool + Send>(
     body: Json<UpdateEntityTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<EntityType>, StatusCode> {
+) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
     let Json(UpdateEntityTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -199,7 +198,6 @@ async fn update_entity_type<P: StorePool + Send>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(Json(schema))
+        })
+        .map(Json)
 }
