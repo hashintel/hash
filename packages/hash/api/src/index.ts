@@ -42,6 +42,7 @@ import { setupStorageProviders } from "./storage/storage-provider-lookup";
 import { getAwsRegion } from "./lib/aws-config";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { connectToTaskExecutor } from "./task-execution";
+import { createGraphClient as createGraphApiClient } from "./graph";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -166,7 +167,13 @@ const main = async () => {
     });
     shutdown.addCleanup("OpenSearch", async () => search!.close());
   }
+
+  const graphApi = createGraphApiClient(logger, {
+    basePath: getRequiredEnv("HASH_GRAPH_API_BASE_URL"),
+  });
+
   const apolloServer = createApolloServer({
+    graphApi,
     search,
     cache: redis,
     taskExecutor,

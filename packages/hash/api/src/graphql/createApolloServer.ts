@@ -16,8 +16,10 @@ import { GraphQLContext } from "./context";
 import { EmailTransporter } from "../email/transporters";
 import { StorageType } from "./apiTypes.gen";
 import { TaskExecutor } from "../task-execution";
+import { GraphApi } from "../graph";
 
 export interface CreateApolloServerParams {
+  graphApi: GraphApi;
   cache: CacheAdapter;
   search?: SearchAdapter;
   taskExecutor?: TaskExecutor;
@@ -29,6 +31,7 @@ export interface CreateApolloServerParams {
 }
 
 export const createApolloServer = ({
+  graphApi,
   cache,
   search,
   taskExecutor,
@@ -47,6 +50,7 @@ export const createApolloServer = ({
     const sources: GraphQLContext["dataSources"] = {
       /** @todo: remove all db dependencies */
       db: null as any,
+      graphApi,
       cache,
     };
     if (search) {
@@ -63,7 +67,7 @@ export const createApolloServer = ({
     dataSources: getDataSources,
     context: (ctx): Omit<GraphQLContext, "dataSources"> => ({
       ...ctx,
-      user: ctx.req.user,
+      user: ctx.req.user as any,
       emailTransporter,
       uploadProvider,
       logger: logger.child({ requestId: ctx.res.get("x-hash-request-id") }),
