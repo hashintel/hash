@@ -37,7 +37,7 @@ unsafe extern "C" fn load_shmem(id: *const u8, len: u64) -> *mut CSegment {
 #[no_mangle]
 // Free memory and drop Memory object
 unsafe extern "C" fn free_memory(c_memory: *mut CSegment) {
-    Box::from_raw((*c_memory).segment as *mut Segment);
+    drop(Box::from_raw((*c_memory).segment as *mut Segment));
 }
 
 const _: () = assert!(
