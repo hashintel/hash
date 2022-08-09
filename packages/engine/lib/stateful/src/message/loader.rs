@@ -1,4 +1,4 @@
-use arrow2::array::Utf8Array;
+use arrow2::array::FixedSizeBinaryArray;
 
 use super::arrow::{array::FieldIndex, record_batch::MessageField};
 use crate::{
@@ -31,7 +31,10 @@ impl<'a> MessageLoader<'a> {
     pub fn from_batch(message_batch: &'a MessageBatch) -> Result<Self> {
         let record_batch = message_batch.batch.record_batch()?;
         let column = record_batch.column(FROM_COLUMN_INDEX);
-        let data = column.as_any().downcast_ref::<Utf8Array<i32>>().unwrap();
+        let data = column
+            .as_any()
+            .downcast_ref::<FixedSizeBinaryArray>()
+            .unwrap();
         let from = data.values().as_slice();
 
         // let to = get_message_field(record_batch, FieldIndex::To);

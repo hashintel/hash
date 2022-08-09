@@ -251,7 +251,7 @@ impl Packages {
             .fields
             .iter()
             .map(|arrow_field| {
-                keys_and_columns
+                let col = keys_and_columns
                     .get(&arrow_field.name)
                     .ok_or_else(|| {
                         Error::from(format!(
@@ -259,7 +259,21 @@ impl Packages {
                             arrow_field.name
                         ))
                     })
-                    .map(Arc::clone)
+                    .map(Arc::clone);
+                if let Ok(col) = &col {
+                    if col.len() != num_agents {
+                        // note: we panic here because it is not possible to recover from this error
+                        // (and [`arrow2::Chunk`] will panic anyway when we call it later)
+                        panic!(
+                            r#"the length ({}) of the column "{}" does not equal the number of agents \
+                             ({num_agents}). {:#?}"#,
+                            col.len(),
+                            arrow_field.name,
+                            col
+                        )
+                    }
+                }
+                col
             })
             .collect::<Result<Vec<_>>>()?;
 

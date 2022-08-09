@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use arrow2::{
-    array::{MutableFixedSizeListArray, MutableListArray, MutablePrimitiveArray},
+    array::{MutableFixedSizeListArray, MutableListArray, MutablePrimitiveArray, TryExtend},
     datatypes::{DataType, Field},
 };
 use async_trait::async_trait;
@@ -133,20 +133,25 @@ impl ContextPackage for Neighbors {
     ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow2::array::Array>)>> {
         let index_builder = MutablePrimitiveArray::<u32>::with_capacity(1024);
 
-        let neighbor_index_builder = MutableFixedSizeListArray::new(index_builder, 2);
+        let neighbor_index_builder = MutableFixedSizeListArray::new(index_builder, 3);
         // todo: this may not be the correct shape
-        let neighbors_builder: MutableListArray<
+        let mut neighbors_builder: MutableListArray<
             i32,
             MutableFixedSizeListArray<MutablePrimitiveArray<u32>>,
         > = MutableListArray::new_from(
             neighbor_index_builder,
             DataType::List(Box::new(Field::new(
                 "item",
-                DataType::FixedSizeList(Box::new(Field::new("item", DataType::UInt32, false)), 3),
+                DataType::FixedSizeList(Box::new(Field::new("item", DataType::UInt32, true)), 3),
                 false,
             ))),
             num_agents,
         );
+
+        neighbors_builder
+            .try_extend((0..num_agents).map(|_| Option::<Vec<Option<Vec<Option<u32>>>>>::None))?;
+        let neighbors = neighbors_builder.into_arc();
+        assert_eq!(neighbors.len(), num_agents);
 
         // TODO, this is unclean, we won't have to do this if we move empty arrow
         //   initialisation to be done per schema instead of per package
@@ -155,7 +160,7 @@ impl ContextPackage for Neighbors {
             .get_agent_scoped_field_spec("neighbors")?
             .create_key()?;
 
-        Ok(vec![(field_key, neighbors_builder.into_arc())])
+        Ok(vec![(field_key, neighbors)])
     }
 
     fn span(&self) -> Span {

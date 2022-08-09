@@ -57,6 +57,11 @@ pub fn calculate_ipc_data_size(record_batch: &super::RecordBatch) -> IpcDataMeta
 
     IpcDataMetadata {
         body_len: offset as usize,
+        num_rows: if record_batch.columns().is_empty() {
+            0
+        } else {
+            record_batch.column(0).len()
+        },
         nodes,
         buffers,
     }
@@ -64,7 +69,9 @@ pub fn calculate_ipc_data_size(record_batch: &super::RecordBatch) -> IpcDataMeta
 
 #[derive(Debug)]
 pub struct IpcDataMetadata {
+    /// The length of the body, in bytes
     pub body_len: usize,
+    pub num_rows: usize,
     pub nodes: Vec<arrow_format::ipc::FieldNode>,
     pub buffers: Vec<arrow_format::ipc::Buffer>,
 }
@@ -82,7 +89,7 @@ pub fn write_record_batch_message_header(
         &mut builder,
         arrow_format::ipc::MetadataVersion::V4,
         arrow_format::ipc::MessageHeader::RecordBatch(Box::new(arrow_format::ipc::RecordBatch {
-            length: metadata.body_len as i64,
+            length: metadata.num_rows as i64,
             nodes: Some(metadata.nodes.clone()),
             buffers: Some(metadata.buffers.clone()),
             compression: None,
@@ -99,6 +106,11 @@ pub fn write_record_batch_message_header(
     Ok(())
 }
 
+/// Writes the body section of a record batch to the provided buffer.
+///
+/// **Important**: callers _must_ ensure that the length of the buffer is equal
+/// to the value provided by [`calculate_ipc_data_size`] (otherwise this
+/// function will panic).
 pub fn write_record_batch_body(
     record_batch: &RecordBatch,
     buf: &mut [u8],
@@ -167,6 +179,7 @@ pub fn write_record_batch_to_segment(
 
     // write the data
     let data_buffer = segment.get_mut_data_buffer()?;
+    assert_eq!(data_buffer.len(), data_metadata.body_len);
     write_record_batch_body(record_batch, data_buffer, &data_metadata)?;
 
     Ok(segment)

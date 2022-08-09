@@ -3,7 +3,7 @@ use std::sync::Arc;
 use arrow2::{
     array::{Array, ListArray, StructArray, Utf8Array},
     chunk::Chunk,
-    datatypes::Schema,
+    datatypes::{DataType, Field, Schema},
 };
 use memory::arrow::record_batch::RecordBatch;
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
@@ -126,14 +126,19 @@ pub(crate) fn get_message_field(record_batch: &RecordBatch, index: FieldIndex) -
             .downcast_ref::<ListArray<i32>>()
             .unwrap();
 
+        debug_assert_eq!(
+            list_field_node.data_type(),
+            &DataType::List(Box::new(Field::new("item", DataType::Utf8, true)))
+        );
+
         list_of_strings = Some(list_field_node.clone());
 
         // List<String>
-        list_field_node.value(0)
+        list_field_node.values()
     } else {
         list_of_strings = None;
         // String
-        struct_level.values()[index_usize].to_boxed()
+        &struct_level.values()[index_usize]
     };
 
     let field = field_field_node

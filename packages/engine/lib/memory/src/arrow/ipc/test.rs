@@ -17,6 +17,8 @@ use crate::{
     shared_memory::MemoryId,
 };
 
+/// A test utility which serializes and deserializes a record batch, asserting
+/// that the two record batches are the same.
 fn round_trip(schema: Arc<Schema>, record_batch: RecordBatch) {
     let segment =
         write_record_batch_to_segment(&record_batch, &schema, MemoryId::new(Uuid::new_v4()))
@@ -28,13 +30,13 @@ fn round_trip(schema: Arc<Schema>, record_batch: RecordBatch) {
     // messages (sometimes the `Debug` representations of different arrays are identical, because
     // their datatypes are different.)
     assert_eq!(record_batch.schema(), read_record_batch.schema());
-    for (after, before) in record_batch
+    for (before, after) in record_batch
         .columns()
         .iter()
         .zip(read_record_batch.columns())
     {
-        assert_eq!(after.data_type(), before.data_type());
-        assert_eq!(after, before);
+        assert_eq!(before.data_type(), after.data_type());
+        assert_eq!(before, after);
     }
 }
 
@@ -154,6 +156,26 @@ fn fixed_size_binary_roundrip() {
                 [0u8, 104u8, 202u8, 59u8, 212u8],
                 [0u8, 122u8, 12u8, 59u8, 212u8],
             ])
+            .arced(),
+        ]),
+    };
+
+    round_trip(schema, record_batch)
+}
+
+#[test]
+fn single_fixed_size_binary_roundtrip() {
+    let schema = Arc::new(Schema {
+        fields: vec![Field::new("field1", DataType::FixedSizeBinary(16), false)],
+        metadata: BTreeMap::new(),
+    });
+
+    let record_batch = RecordBatch {
+        schema: schema.clone(),
+        columns: Chunk::new(vec![
+            FixedSizeBinaryArray::from_slice(&[[
+                44, 76, 252, 210, 92, 141, 68, 36, 129, 235, 57, 157, 47, 231, 116, 103,
+            ]])
             .arced(),
         ]),
     };

@@ -211,7 +211,9 @@ impl MessageBatch {
         let mut metadata = vec![];
         write_record_batch_message_header(&mut metadata, &info)?;
 
-        let mut body = vec![];
+        let mut body = Vec::with_capacity(info.body_len);
+        body.resize(info.body_len, 0);
+
         ipc::write_record_batch_body(record_batch, &mut body, &info)?;
 
         let segment = Segment::from_batch_buffers(

@@ -7,7 +7,10 @@ mod writer;
 
 use std::sync::Arc;
 
-use arrow2::{array::ListArray, datatypes::DataType};
+use arrow2::{
+    array::ListArray,
+    datatypes::{DataType, Field},
+};
 use async_trait::async_trait;
 use futures::{stream::FuturesOrdered, StreamExt};
 use stateful::{
@@ -153,8 +156,14 @@ impl ContextPackage for ApiRequests {
             .ok_or_else(|| Error::ColumnNotFound(field_key.value().to_string()))?
             .clone();
 
-        let api_response_list: ListArray<i32> =
-            ListArray::new_null(DataType::Struct(arrow_fields), num_agents);
+        let api_response_list: ListArray<i32> = ListArray::new_null(
+            DataType::List(Box::new(Field::new(
+                "item",
+                DataType::Struct(arrow_fields),
+                false,
+            ))),
+            num_agents,
+        );
 
         Ok(vec![(field_key, api_response_list.arced())])
     }

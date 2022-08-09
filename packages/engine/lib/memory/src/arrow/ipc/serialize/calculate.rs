@@ -146,7 +146,9 @@ fn write_fixed_size_binary(
         arrow_data_len,
         offset,
     );
+    let start = *arrow_data_len;
     write_bytes(array.values(), buffers, arrow_data_len, offset);
+    debug_assert!(*arrow_data_len > start);
 }
 
 fn write_list<O: Offset>(

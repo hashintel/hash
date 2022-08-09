@@ -8,7 +8,7 @@ mod writer;
 use std::sync::Arc;
 
 use arrow2::{
-    array::{Array, MutableFixedSizeListArray, MutableListArray, MutablePrimitiveArray},
+    array::{Array, MutableFixedSizeListArray, MutableListArray, MutablePrimitiveArray, TryExtend},
     datatypes::{DataType, Field},
 };
 use async_trait::async_trait;
@@ -121,21 +121,32 @@ impl ContextPackage for AgentMessages {
     ) -> Result<Vec<(RootFieldKey, Arc<dyn Array>)>> {
         let index_builder = MutablePrimitiveArray::<u32>::with_capacity(1024);
         let loc_builder = MutableFixedSizeListArray::new(index_builder, 3);
-        let messages_builder: MutableListArray<
+        let mut messages_builder: MutableListArray<
             i32,
             MutableFixedSizeListArray<MutablePrimitiveArray<u32>>,
         > = MutableListArray::new_from(
             loc_builder,
-            DataType::List(Box::new(Field::new("item", DataType::UInt32, false))),
+            DataType::List(Box::new(Field::new(
+                "item",
+                DataType::FixedSizeList(Box::new(Field::new("item", DataType::UInt32, true)), 3),
+                false,
+            ))),
             num_agents,
         );
+
+        messages_builder
+            .try_extend((0..num_agents).map(|_| Option::<Vec<Option<Vec<Option<u32>>>>>::None))?;
+
+        let messages = messages_builder.into_arc();
+
+        assert_eq!(messages.len(), num_agents);
 
         let field_key = self
             .context_field_spec_accessor
             .get_agent_scoped_field_spec(MESSAGES_FIELD_NAME)?
             .create_key()?;
 
-        Ok(vec![(field_key, messages_builder.into_arc())])
+        Ok(vec![(field_key, messages)])
     }
 
     fn span(&self) -> Span {

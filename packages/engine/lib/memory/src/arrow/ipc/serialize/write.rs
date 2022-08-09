@@ -464,14 +464,32 @@ pub fn write(
             offset,
             is_little_endian,
         ),
-        FixedSizeBinary => write_fixed_size_binary(
-            array.as_any().downcast_ref().unwrap(),
-            buffers,
-            arrow_data,
-            arrow_data_len,
-            offset,
-            is_little_endian,
-        ),
+        FixedSizeBinary => {
+            #[cfg(debug_assertions)]
+            {
+                let array = array
+                    .as_any()
+                    .downcast_ref::<FixedSizeBinaryArray>()
+                    .unwrap();
+                let len_lower_bound = array.values().len();
+                if len_lower_bound > arrow_data.len() {
+                    panic!(
+                        "Should not be possible for arrow data len (length={}) to be shorter than \
+                         {len_lower_bound}",
+                        arrow_data.len()
+                    )
+                }
+            }
+
+            write_fixed_size_binary(
+                array.as_any().downcast_ref().unwrap(),
+                buffers,
+                arrow_data,
+                arrow_data_len,
+                offset,
+                is_little_endian,
+            )
+        }
         Utf8 => write_utf8::<i32>(
             array.as_any().downcast_ref().unwrap(),
             buffers,
@@ -568,7 +586,7 @@ fn pad_buffer_to_8(buffer: &mut [u8], arrow_data_len: &mut usize, length: usize)
     *arrow_data_len += pad_len;
 }
 
-/// writes `bytes` to `arrow_data` updating `buffers` and `offset` and guaranteeing a 8 byte
+/// writes `bytes` to `arrow_data` updating `buffers` and `offset` and guaranteeing an 8 byte
 /// boundary.
 fn write_bytes(
     bytes: &[u8],
