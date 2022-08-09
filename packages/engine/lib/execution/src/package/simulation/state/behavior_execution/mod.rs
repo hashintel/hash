@@ -136,8 +136,7 @@ impl StatePackageCreator for BehaviorExecutionCreator {
     }
 }
 
-/// Finds the index of the given field in the [`Schema`]. If the index does not exist, then this
-/// function will panic ([`try_index_of`] returns an [`Option`], rather than panicing).
+/// Finds the index of the given field in the [`Schema`].
 pub fn index_of(schema: Arc<Schema>, field_name: &str) -> crate::Result<usize> {
     schema
         .fields
