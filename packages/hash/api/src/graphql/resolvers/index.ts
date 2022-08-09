@@ -32,9 +32,7 @@ import { updateUser } from "./user/updateUser";
 import { createOrg } from "./org/createOrg";
 import { orgLinkedEntities } from "./org/linkedEntities";
 import { accountSignupComplete } from "./user/accountSignupComplete";
-import { verifyEmail } from "./user/verifyEmail";
 import { sendLoginCode } from "./user/sendLoginCode";
-import { loginWithLoginCode } from "./user/loginWithLoginCode";
 import { userLinkedEntities } from "./user/linkedEntities";
 import { orgMembershipLinkedEntities } from "./orgMembership/linkedEntities";
 import { embedCode } from "./embed";
@@ -43,7 +41,6 @@ import {
   getImpliedEntityVersion,
 } from "./entity/impliedHistory";
 
-import { logout } from "./user/logout";
 import { me } from "./user/me";
 import { isShortnameTaken } from "./user/isShortnameTaken";
 import { createEntityType } from "./entityType/createEntityType";
@@ -135,13 +132,10 @@ export const resolvers = {
     setParentPage: loggedInAndSignedUp(setParentPage),
     // Logged in users only
     updateUser: loggedIn(updateUser),
-    logout: loggedIn(logout),
     // Any user
     createUser,
     createUserWithOrgEmailInvitation,
-    verifyEmail,
     sendLoginCode,
-    loginWithLoginCode,
     // Task execution
     executeDemoTask,
     executeGithubSpecTask,

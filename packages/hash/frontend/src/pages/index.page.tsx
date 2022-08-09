@@ -1,13 +1,17 @@
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 
-import { Box, Typography } from "@mui/material";
+import { Box, Container, Typography } from "@mui/material";
 import { useUser } from "../components/hooks/useUser";
 import { NextPageWithLayout } from "../shared/layout";
+import { Button } from "../shared/ui";
+import { useLogoutFlow } from "../components/hooks/useLogoutFlow";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
-  const { user, loading } = useUser();
+  const { user, loading, kratosSession } = useUser();
+
+  const { logout } = useLogoutFlow();
 
   useEffect(() => {
     if (loading) {
@@ -17,20 +21,29 @@ const Page: NextPageWithLayout = () => {
     if (user) {
       // Temporarily redirect logged in user to their account page
       void router.push(`/${user.accountId}`);
-    } else {
+    }
+
+    if (!kratosSession) {
       void router.push("/login");
     }
-  }, [loading, router, user]);
+  }, [loading, router, user, kratosSession]);
 
+  /** @todo: remove session developer information */
   return (
-    <Box component="main" pt="30vh" display="flex" justifyContent="center">
-      <Typography
-        variant="h1"
-        sx={({ palette }) => ({ color: palette.gray[70], fontWeight: 400 })}
-      >
-        Loading...
+    <Container sx={{ pt: 10 }}>
+      <Typography variant="h1" gutterBottom>
+        {kratosSession
+          ? "You have a kratos session"
+          : "You don't have a kratos session"}
       </Typography>
-    </Box>
+      <Button onClick={logout}>Log out</Button>
+      <Typography gutterBottom>
+        This is what your kratos session looks like:
+      </Typography>
+      {kratosSession ? (
+        <Box component="pre">{JSON.stringify(kratosSession, null, 2)}</Box>
+      ) : null}
+    </Container>
   );
 };
 
