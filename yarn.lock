@@ -3078,14 +3078,13 @@
     lit "^2.2.5"
     react "^17.0.2"
 
-"@blockprotocol/graph@0.0.11-canary.24":
-  version "0.0.11-canary.24"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.11-canary.24.tgz#e1018ad577d1eb4924ea2f068dec5259649c209e"
-  integrity sha512-us4h4ilVwuDKdHZPIeRMQiN1ak+vWcuF1vn4g1B6Rgf/dwG5Hf+8ube01QhUbg7JGIXVppwIN1OGoPWLxLyMYg==
+"@blockprotocol/graph@0.0.12":
+  version "0.0.12"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.12.tgz#b2e7a79388535d8c78ff941114d843b7af84c2ee"
+  integrity sha512-sjDjUbl01LCIRUqtbvJlZspEvsdnCAvy9TMQVOZ09xfkPjiHvBP1ZTq2DPnx3ekercj6Rk/W5ejvfbw4dH2Llw==
   dependencies:
     "@blockprotocol/core" "0.0.8"
     lit "^2.2.5"
-    react "^17.0.2"
 
 "@blockprotocol/graph@0.0.8":
   version "0.0.8"

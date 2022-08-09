@@ -189,7 +189,6 @@ export class BlockView implements NodeView<Schema> {
           deleteBlock={this.deleteBlock}
           entityStore={this.store}
           draftId={blockDraftId}
-          onTypeChange={this.onBlockChange}
           ref={this.blockHandleRef}
           onMouseDown={() => {
             /**

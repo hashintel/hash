@@ -454,3 +454,20 @@ pub use self::{
     macros::*,
     report::Report,
 };
+
+#[cfg(test)]
+mod tests {
+    #![allow(dead_code)]
+
+    use crate::Report;
+
+    const fn test_send<T: Send>() {}
+    const fn test_sync<T: Sync>() {}
+    const fn test_static<T: 'static>() {}
+
+    const fn report() {
+        test_send::<Report<()>>();
+        test_sync::<Report<()>>();
+        test_static::<Report<()>>();
+    }
+}

@@ -303,7 +303,7 @@ impl Manifest {
         tracing::debug!("Reading behaviors in {src_folder:?}");
         for entry in src_folder
             .read_dir()
-            .report()
+            .into_report()
             .attach_printable_lazy(|| format!("Could not read behavior directory: {src_folder:?}"))
             .change_context(ManifestError)?
         {
@@ -387,7 +387,7 @@ impl Manifest {
         tracing::debug!("Reading datasets in {src_folder:?}");
         for entry in src_folder
             .read_dir()
-            .report()
+            .into_report()
             .attach_printable_lazy(|| format!("Could not read dataset directory: {src_folder:?}"))
             .change_context(ManifestError)?
         {
@@ -713,7 +713,7 @@ fn _try_read_local_dependencies<P: AsRef<Path>>(dependency_path: P) -> Result<Ve
 
     let mut entries = dependency_path
         .read_dir()
-        .report()
+        .into_report()
         .attach_printable_lazy(|| format!("Could not read dependency directory: {dependency_path:?}"))
         .change_context(ManifestError)?
         .filter_map(|dir_res| {
@@ -729,7 +729,7 @@ fn _try_read_local_dependencies<P: AsRef<Path>>(dependency_path: P) -> Result<Ve
             user_dir
                 .path()
                 .read_dir()
-                .report()
+                .into_report()
                 .attach_printable_lazy(|| {
                     format!("Could not read directory {:?}", user_dir.path())
                 })
@@ -770,7 +770,7 @@ fn file_contents<P: AsRef<Path>>(path: P) -> Result<String> {
     let path = path.as_ref();
     tracing::debug!("Reading contents at path: {path:?}");
     std::fs::read_to_string(path)
-        .report()
+        .into_report()
         .attach_printable_lazy(|| format!("Could not read file: {path:?}"))
         .change_context(ManifestError)
 }
@@ -788,11 +788,11 @@ fn parse_file<T: DeserializeOwned, P: AsRef<Path>>(path: P) -> Result<T> {
     let path = path.as_ref();
     serde_json::from_reader(BufReader::new(
         File::open(path)
-            .report()
+            .into_report()
             .attach_printable_lazy(|| format!("Could not read file {path:?}"))
             .change_context(ManifestError)?,
     ))
-    .report()
+    .into_report()
     .attach_printable_lazy(|| format!("Could not parse {path:?}"))
     .change_context(ManifestError)
 }

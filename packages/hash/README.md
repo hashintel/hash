@@ -26,7 +26,7 @@ To run HASH locally, please follow these steps:
     ## ≥ 2.17
     
     node --version
-    ## ≥ 16.13
+    ## ≥ 16.15
     
     yarn --version
     ## ≥ 1.16
@@ -57,6 +57,14 @@ To run HASH locally, please follow these steps:
     ```
 
     It will be used for storing locally defined environment variables (the ones we don’t want to store in git).
+
+1.  Ensure Docker is running.
+    If you are on Windows or macOS, you should see app icon in the system tray or the menu bar.
+    Alternatively, you can use this command to check Docker:
+
+    ```sh
+    docker run hello-world
+    ```
 
 1.  Launch external services (Postgres, Redis and OpenSearch) as Docker containers:
 
@@ -384,6 +392,7 @@ If the service should report metrics to a StatsD server, the following variables
 - `NEXT_PUBLIC_API_ORIGIN`: The origin that the API service can be reached on (default: `http://localhost:5001`)
 - `SESSION_SECRET`: The secret used to sign login sessions (default: `secret`)
 - `LOG_LEVEL`: the level of runtime logs that should be omitted, either set to `debug`, `info`, `warn`, `error` (default: `info`)
+- `NEXT_PUBLIC_BLOCK_PROTOCOL_API_KEY`: the api key for fetching blocks from [BP Hub](https://blockprotocol.org/hub).
 
 ## Contributors
 

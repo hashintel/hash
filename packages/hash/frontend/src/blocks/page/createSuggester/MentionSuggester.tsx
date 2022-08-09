@@ -1,4 +1,4 @@
-import { FunctionComponent, useMemo } from "react";
+import { useMemo, FunctionComponent } from "react";
 import { tw } from "twind";
 import ArticleIcon from "@mui/icons-material/Article";
 
@@ -11,7 +11,6 @@ export interface MentionSuggesterProps {
   search?: string;
   onChange(entityId: string, title: string): void;
   accountId: string;
-  getPos?: (width: number, height: number) => { left: number; top: number };
 }
 
 type SearchableItem = {
@@ -26,7 +25,6 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   search = "",
   onChange,
   accountId,
-  getPos,
 }) => {
   const { data: users, loading: usersLoading } = useUsers();
   const { data: pages, loading: pagesLoading } = useAccountPages(accountId);
@@ -92,7 +90,6 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       itemKey={(option) => option.entityId}
       onChange={(option) => onChange(option.entityId, option.type)}
       loading={loading}
-      getPos={getPos}
     />
   );
 };
