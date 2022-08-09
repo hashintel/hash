@@ -24,7 +24,10 @@ test("user can view page in read-only mode but not update", async ({
   const blockRegionLocator = page.locator("#root");
 
   await blockRegionLocator.locator("p div").click();
-  await page.keyboard.type("My test paragraph with");
+  await page.keyboard.type("typing in edit mode");
+  await expect(
+    blockRegionLocator.locator("text=typing in edit mode"),
+  ).toBeVisible();
 
   await expect(
     blockRegionLocator.locator('[data-testid="block-handle"]').first(),
@@ -33,6 +36,12 @@ test("user can view page in read-only mode but not update", async ({
   await page.goto(`${page.url()}?readonly`);
 
   await expect(page.locator('[data-testid="page-sidebar"]')).not.toBeVisible();
+
+  await blockRegionLocator.locator("p div").click();
+  await page.keyboard.type("typing in read-only mode");
+  await expect(
+    blockRegionLocator.locator("text=typing in read-only mode"),
+  ).not.toBeVisible();
 
   await expect(
     blockRegionLocator.locator('[data-testid="block-handle"]'),
