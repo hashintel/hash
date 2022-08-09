@@ -237,7 +237,7 @@ export class BlockView implements NodeView<Schema> {
               ),
             );
 
-            // this.editorView.dispatch(tr);
+            this.editorView.dispatch(tr);
 
             this.update(this.node);
           }}
