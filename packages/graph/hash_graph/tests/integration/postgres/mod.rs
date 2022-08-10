@@ -314,7 +314,7 @@ impl DatabaseApi<'_> {
             )
             .await?
             .pop()
-            .expect("No links found")
+            .expect("No link found")
             .outgoing()[&link_type_uri]
             .clone())
     }
