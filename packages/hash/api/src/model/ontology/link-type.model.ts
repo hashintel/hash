@@ -33,9 +33,12 @@ export default class {
       schema: LinkType;
     },
   ): Promise<LinkTypeModel> {
-    const { data: schema } = await graphApi.createLinkType(params);
+    const { data: identifier } = await graphApi.createLinkType(params);
 
-    return new LinkTypeModel({ schema, accountId: params.accountId });
+    return new LinkTypeModel({
+      schema: params.schema,
+      accountId: identifier.createdBy,
+    });
   }
 
   /**
@@ -87,10 +90,11 @@ export default class {
       schema: LinkType;
     },
   ): Promise<LinkTypeModel> {
-    const { accountId } = params;
+    const { data: identifier } = await graphApi.updateLinkType(params);
 
-    const { data: schema } = await graphApi.updateLinkType(params);
-
-    return new LinkTypeModel({ schema, accountId });
+    return new LinkTypeModel({
+      schema: params.schema,
+      accountId: identifier.createdBy,
+    });
   }
 }

@@ -33,9 +33,12 @@ export default class {
       schema: PropertyType;
     },
   ): Promise<PropertyTypeModel> {
-    const { data: schema } = await graphApi.createPropertyType(params);
+    const { data: identifier } = await graphApi.createPropertyType(params);
 
-    return new PropertyTypeModel({ schema, accountId: params.accountId });
+    return new PropertyTypeModel({
+      schema: params.schema,
+      accountId: identifier.createdBy,
+    });
   }
 
   /**
@@ -88,10 +91,11 @@ export default class {
       schema: PropertyType;
     },
   ): Promise<PropertyTypeModel> {
-    const { accountId } = params;
+    const { data: identifier } = await graphApi.updatePropertyType(params);
 
-    const { data: schema } = await graphApi.updatePropertyType(params);
-
-    return new PropertyTypeModel({ schema, accountId });
+    return new PropertyTypeModel({
+      schema: params.schema,
+      accountId: identifier.createdBy,
+    });
   }
 }

@@ -33,9 +33,12 @@ export default class {
       schema: EntityType;
     },
   ): Promise<EntityTypeModel> {
-    const { data: schema } = await graphApi.createEntityType(params);
+    const { data: identifier } = await graphApi.createEntityType(params);
 
-    return new EntityTypeModel({ schema, accountId: params.accountId });
+    return new EntityTypeModel({
+      schema: params.schema,
+      accountId: identifier.createdBy,
+    });
   }
 
   /**
@@ -87,11 +90,12 @@ export default class {
       schema: EntityType;
     },
   ): Promise<EntityTypeModel> {
-    const { accountId } = params;
+    const { data: identifier } = await graphApi.updateEntityType(params);
 
-    const { data: schema } = await graphApi.updateEntityType(params);
-
-    return new EntityTypeModel({ schema, accountId });
+    return new EntityTypeModel({
+      schema: params.schema,
+      accountId: identifier.createdBy,
+    });
   }
 
   /**

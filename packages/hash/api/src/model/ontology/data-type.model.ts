@@ -37,9 +37,12 @@ export default class {
       schema: DataType;
     },
   ): Promise<DataTypeModel> {
-    const { data: schema } = await graphApi.createDataType(params);
+    const { data: identifier } = await graphApi.createDataType(params);
 
-    return new DataTypeModel({ schema, accountId: params.accountId });
+    return new DataTypeModel({
+      schema: params.schema,
+      accountId: identifier.createdBy,
+    });
   }
 
   /**
@@ -95,10 +98,11 @@ export default class {
       schema: DataType;
     },
   ): Promise<DataTypeModel> {
-    const { accountId } = params;
+    const { data: identifier } = await graphApi.updateDataType(params);
 
-    const { data: schema } = await graphApi.updateDataType(params);
-
-    return new DataTypeModel({ schema, accountId });
+    return new DataTypeModel({
+      schema: params.schema,
+      accountId: identifier.createdBy,
+    });
   }
 }
