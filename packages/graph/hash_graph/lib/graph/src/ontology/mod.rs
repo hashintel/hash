@@ -66,21 +66,21 @@ pub struct PersistedDataType {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
 pub struct PersistedPropertyType {
-    #[component(value_type = VAR_DATA_TYPE)]
+    #[component(value_type = VAR_PROPERTY_TYPE)]
     pub inner: PropertyType,
     pub identifier: PersistedOntologyIdentifier,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
 pub struct PersistedLinkType {
-    #[component(value_type = VAR_DATA_TYPE)]
+    #[component(value_type = VAR_LINK_TYPE)]
     pub inner: LinkType,
     pub identifier: PersistedOntologyIdentifier,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
 pub struct PersistedEntityType {
-    #[component(value_type = VAR_DATA_TYPE)]
+    #[component(value_type = VAR_ENTITY_TYPE)]
     pub inner: EntityType,
     pub identifier: PersistedOntologyIdentifier,
 }
