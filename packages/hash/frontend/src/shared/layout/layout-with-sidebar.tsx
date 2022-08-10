@@ -28,11 +28,13 @@ const Main = styled("main")(({ theme }) => ({
 export type LayoutWithSidebarProps = {
   children?: ReactNode;
   banner?: ReactNode;
+  contextBar?: ReactNode;
 };
 
 export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
   children,
   banner,
+  contextBar,
 }) => {
   const { openSidebar, sidebarOpen } = useSidebarContext();
   const { readonlyMode } = useReadonlyMode();
@@ -64,6 +66,8 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
           })}
         >
           {banner}
+
+          {contextBar}
 
           <Box>
             <Fade timeout={800} in={!sidebarOpen}>
