@@ -1,9 +1,10 @@
 import { EntityType, GraphApi } from "@hashintel/hash-graph-client";
 
 import { EntityTypeModel, PropertyTypeModel, LinkTypeModel } from "../index";
+import { NIL_UUID } from "../util";
 
 type EntityTypeModelConstructorArgs = {
-  accountId: string;
+  accountId?: string;
   schema: EntityType;
 };
 
@@ -11,7 +12,7 @@ type EntityTypeModelConstructorArgs = {
  * @class {@link EntityTypeModel}
  */
 export default class {
-  accountId: string;
+  accountId?: string;
 
   schema: EntityType;
 
@@ -64,12 +65,14 @@ export default class {
   static async get(
     graphApi: GraphApi,
     params: {
-      accountId: string;
       versionedUri: string;
     },
   ): Promise<EntityTypeModel> {
-    const { accountId, versionedUri } = params;
+    const { versionedUri } = params;
     const { data: schema } = await graphApi.getEntityType(versionedUri);
+
+    /** @todo: retrieve accountId from `graphApi.getEntityType` response */
+    const accountId = NIL_UUID;
 
     return new EntityTypeModel({ schema, accountId });
   }
@@ -103,7 +106,6 @@ export default class {
     return await Promise.all(
       linkTypeVersionedUris.map((versionedUri) =>
         LinkTypeModel.get(graphApi, {
-          accountId: this.accountId,
           versionedUri,
         }),
       ),
@@ -121,7 +123,6 @@ export default class {
     return await Promise.all(
       propertyTypeVersionedUris.map((versionedUri) =>
         PropertyTypeModel.get(graphApi, {
-          accountId: this.accountId,
           versionedUri,
         }),
       ),
