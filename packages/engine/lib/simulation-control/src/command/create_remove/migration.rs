@@ -824,10 +824,7 @@ impl<'a> BufferActions {
                     let create_actions = new_agents.as_ref().map(|ad| {
                         let buffer = &ad.buffer(i - 1);
 
-                        // TODO: SAFETY
                         let src_buffer: &[i32] = cast_slice(buffer);
-
-                        dbg!(&src_buffer);
 
                         let mut total_create_len = 0;
                         let ret = range_actions
@@ -970,7 +967,6 @@ impl<'a> BufferActions {
                             .create()
                             .iter()
                             .map(|range| {
-                                dbg!("created InnerCreateAction::Data");
                                 let action = InnerCreateAction::Data {
                                     byte_offset: next_unit_index * unit_byte_size,
                                     data: ad.as_ref().clone(),

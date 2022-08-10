@@ -208,8 +208,11 @@ export const gen_group_state = (agent_schema, getters) => {
     const group_msgs = this.__msg_batch.cols.messages;
     for (var i_agent = 0; i_agent < group_msgs.length; ++i_agent) {
       const agent_msgs = group_msgs[i_agent];
-      for (var i = 0; i < agent_msgs.length; ++i) {
-        agent_msgs[i].data = JSON.stringify(agent_msgs[i].data);
+      // note: arrow2 serializes empty fields as null objects
+      if (agent_msgs) {
+        for (var i = 0; i < agent_msgs.length; ++i) {
+          agent_msgs[i].data = JSON.stringify(agent_msgs[i].data);
+        }
       }
     }
     const msg_changes = this.__msg_batch.flush_changes(schema.msg, {});

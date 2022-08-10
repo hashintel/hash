@@ -978,7 +978,8 @@ impl<'s> ThreadLocalRunner<'s> {
             "Expected offset count is smaller than the actual buffer: {:?}",
             slice::from_raw_parts(data_ptr.as_ptr(), data_len + 1)
         );
-        builder.resize(target_len, 0);
+        // todo: not sure here, but this behavior is definitely not correct
+        builder.resize(target_len + 1, 0);
         (Buffer::from_iter(builder), last as usize)
     }
 
@@ -1148,6 +1149,14 @@ impl<'s> ThreadLocalRunner<'s> {
                         target_len,
                     )
                 };
+
+                debug_assert!(
+                    offsets.len() > data.len,
+                    "the offsets array was too short! offsets.len()={} but data.len={}. Note: we \
+                     should have at least values + 1 offsets",
+                    offsets.len(),
+                    data.len
+                );
 
                 // SAFETY: `data` is provided by arrow, the length is provided by `offsets`, and the
                 //   type for strings is `u8`

@@ -152,9 +152,12 @@ const fill3 = (arr, val) => {
 
 const postprocess = (agent_state) => {
   const msgs = agent_state.messages;
-  for (var i = 0; i < msgs.length; ++i) {
-    const m = msgs[i];
-    if (typeof m.to === "string") m.to = [m.to];
+  // if the messages are empty, then we don't
+  if (msgs) {
+    for (var i = 0; i < msgs.length; ++i) {
+      const m = msgs[i];
+      if (typeof m.to === "string") m.to = [m.to];
+    }
   }
 
   // Extend partial 3D coordinates with zeros.

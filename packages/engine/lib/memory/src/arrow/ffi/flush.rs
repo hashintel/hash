@@ -257,7 +257,7 @@ impl GrowableArrayData for PreparedArrayData<'_> {
     }
 
     fn buffer(&self, index: usize) -> Arc<&[u8]> {
-        dbg!(self.buffers[index].clone())
+        self.buffers[index].clone()
     }
 
     fn non_null_buffer_count(&self) -> usize {

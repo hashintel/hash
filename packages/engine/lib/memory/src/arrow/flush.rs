@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use arrow2::{
     array::{
-        Array, ArrayRef, BinaryArray, BooleanArray, FixedSizeBinaryArray, ListArray,
-        PrimitiveArray, Utf8Array,
+        Array, ArrayRef, BinaryArray, BooleanArray, FixedSizeBinaryArray, FixedSizeListArray,
+        ListArray, PrimitiveArray, StructArray, Utf8Array,
     },
     datatypes::{PhysicalType, PrimitiveType},
 };
@@ -59,11 +59,12 @@ impl GrowableArrayData for ArrayRef {
             .map(Arc::new)
     }
 
+    // see the trait definition for documentation on this method
     fn buffer(&self, index: usize) -> Arc<&[u8]> {
         Arc::new(match self.data_type().to_physical_type() {
             arrow2::datatypes::PhysicalType::Null => &[],
+            // boolean arrays only have a "values" field - i.e. one buffer
             arrow2::datatypes::PhysicalType::Boolean => {
-                // boolean arrays only have a "values" field - i.e. one buffer
                 debug_assert_eq!(index, 0);
 
                 let bool_array = self.as_any().downcast_ref::<BooleanArray>().unwrap();
@@ -167,10 +168,21 @@ impl GrowableArrayData for ArrayRef {
                 large_binary.values().as_slice()
             }
             arrow2::datatypes::PhysicalType::Utf8 => {
-                debug_assert_eq!(index, 0);
+                debug_assert!(
+                    index <= 1,
+                    "utf8 arrays have only two buffers; a offsets buffer (index 0) and a values \
+                     buffer (index 1), however, the caller provided index `{}`, which does not \
+                     exist for this kind of array",
+                    index
+                );
 
                 let utf8 = self.as_any().downcast_ref::<Utf8Array<i32>>().unwrap();
-                utf8.values().as_slice()
+
+                if index == 0 {
+                    cast_slice(utf8.offsets().as_slice())
+                } else {
+                    utf8.values().as_slice()
+                }
             }
             arrow2::datatypes::PhysicalType::LargeUtf8 => {
                 debug_assert_eq!(index, 0);
@@ -205,7 +217,7 @@ impl GrowableArrayData for ArrayRef {
             PhysicalType::Null => 0,
             PhysicalType::Boolean | PhysicalType::Primitive(_) => 1,
             PhysicalType::Binary | PhysicalType::LargeBinary => 2,
-            PhysicalType::Utf8 => 1,
+            PhysicalType::Utf8 => 2,
             PhysicalType::LargeUtf8 => 1,
             PhysicalType::LargeList => 1,
             PhysicalType::Map => 1,
@@ -225,6 +237,25 @@ impl GrowableArrayData for ArrayRef {
                     array
                         .values_iter()
                         .map(|boxed| Arc::new(Arc::from(boxed)))
+                        .collect(),
+                )
+            }
+            PhysicalType::FixedSizeList => {
+                let array = self.as_any().downcast_ref::<FixedSizeListArray>().unwrap();
+                Arc::new(
+                    array
+                        .values_iter()
+                        .map(|boxed| Arc::new(Arc::from(boxed)))
+                        .collect(),
+                )
+            }
+            PhysicalType::Struct => {
+                let array = self.as_any().downcast_ref::<StructArray>().unwrap();
+                Arc::new(
+                    array
+                        .values()
+                        .iter()
+                        .map(|val| Arc::new(val.clone()))
                         .collect(),
                 )
             }
@@ -278,12 +309,12 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
         let column_metas = self.static_meta().get_column_meta();
 
         let mut buffer_actions = Vec::with_capacity(self.dynamic_meta().buffers.len());
-        let mut array_datas_container = Vec::with_capacity(self.dynamic_meta().buffers.len());
         let mut node_changes = vec![];
 
         let mut this_buffer_index = 0;
         let mut this_buffer_offset = 0;
 
+        let mut array_datas_container = Vec::with_capacity(self.dynamic_meta().buffers.len());
         column_changes.iter().for_each(|change| {
             array_datas_container.push(gather_array_datas_depth_first(change.data()));
         });
