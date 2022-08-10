@@ -201,7 +201,7 @@ pub trait DataTypeStore: for<'q> crud::Read<DataType, Query<'q> = DataTypeQuery<
         created_by: AccountId,
     ) -> Result<(), InsertionError>;
 
-    /// Get the [`DataType`] by the specified [`DataTypeQuery`].
+    /// Get the [`DataType`]s specified by the [`DataTypeQuery`].
     ///
     /// # Errors
     ///
@@ -241,7 +241,7 @@ pub trait PropertyTypeStore:
         created_by: AccountId,
     ) -> Result<(), InsertionError>;
 
-    /// Get the [`PropertyType`] specified by `identifier`.
+    /// Get the [`PropertyType`]s specified by the [`PropertyTypeQuery`].
     ///
     /// # Errors
     ///
@@ -282,7 +282,7 @@ pub trait EntityTypeStore: for<'q> crud::Read<EntityType, Query<'q> = EntityType
         created_by: AccountId,
     ) -> Result<(), InsertionError>;
 
-    /// Get the [`EntityType`] specified by `identifier`.
+    /// Get the [`EntityType`]s specified by the [`EntityTypeQuery`].
     ///
     /// # Errors
     ///
@@ -323,7 +323,7 @@ pub trait LinkTypeStore: for<'q> crud::Read<LinkType, Query<'q> = LinkTypeQuery<
         created_by: AccountId,
     ) -> Result<(), InsertionError>;
 
-    /// Get the [`LinkType`] specified by `identifier`.
+    /// Get the [`LinkType`]s specified by the [`LinkTypeQuery`].
     ///
     /// # Errors
     ///
@@ -361,7 +361,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = EntityQue
         created_by: AccountId,
     ) -> Result<PersistedEntityIdentifier, InsertionError>;
 
-    /// Get the [`PersistedEntity`] specified by `identifier`.
+    /// Get the [`PersistedEntity`] specified by the [`EntityQuery`].
     ///
     /// # Errors
     ///
