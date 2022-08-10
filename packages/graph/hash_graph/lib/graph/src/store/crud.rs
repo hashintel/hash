@@ -25,6 +25,8 @@ pub trait Read<T: Send>: Sync {
     ///
     /// [`Store`]: crate::store::Store
     async fn read<'query>(&self, query: &Self::Query<'query>) -> Result<Vec<T>, QueryError>;
+
+    // TODO: Consider adding additional methods, which defaults to `read` e.g. reading exactly one
 }
 
 // TODO: Add remaining CRUD traits (but probably don't implement the `D`-part)
