@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "block-scripts": "0.0.14",
-    "mock-block-dock": "0.0.15",
+    "mock-block-dock": "0.0.20",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
