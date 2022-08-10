@@ -41,7 +41,6 @@ describe("Link type CRU", () => {
 
   it("can read a link type", async () => {
     const fetchedLinkType = await LinkTypeModel.get(graphApi, {
-      accountId,
       versionedUri: createdLinkType$id,
     });
 

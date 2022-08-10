@@ -82,7 +82,6 @@ impl PersistedEntityIdentifier {
 #[serde(rename_all = "camelCase")]
 pub struct PersistedEntity {
     inner: Entity,
-    #[serde(flatten)]
     identifier: PersistedEntityIdentifier,
     #[component(value_type = String)]
     type_versioned_uri: VersionedUri,
