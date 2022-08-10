@@ -515,10 +515,10 @@ export interface PersistedEntityType {
   identifier: PersistedOntologyIdentifier;
   /**
    *
-   * @type {DataType}
+   * @type {EntityType}
    * @memberof PersistedEntityType
    */
-  inner: DataType;
+  inner: EntityType;
 }
 /**
  *
@@ -534,10 +534,10 @@ export interface PersistedLinkType {
   identifier: PersistedOntologyIdentifier;
   /**
    *
-   * @type {DataType}
+   * @type {LinkType}
    * @memberof PersistedLinkType
    */
-  inner: DataType;
+  inner: LinkType;
 }
 /**
  * The metadata required to uniquely identify an ontology element that has been persisted in the
@@ -553,10 +553,10 @@ export interface PersistedOntologyIdentifier {
   createdBy: string;
   /**
    *
-   * @type {VersionedUri}
+   * @type {string}
    * @memberof PersistedOntologyIdentifier
    */
-  uri: VersionedUri;
+  uri: string;
 }
 /**
  *
@@ -572,10 +572,10 @@ export interface PersistedPropertyType {
   identifier: PersistedOntologyIdentifier;
   /**
    *
-   * @type {DataType}
+   * @type {PropertyType}
    * @memberof PersistedPropertyType
    */
-  inner: DataType;
+  inner: PropertyType;
 }
 /**
  *
