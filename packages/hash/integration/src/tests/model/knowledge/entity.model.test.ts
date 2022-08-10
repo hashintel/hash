@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
@@ -34,7 +35,7 @@ const namePropertyType$id = `${namePropertyTypeBaseId}/v/1`;
 
 const entityType$id = "https://entity~example.com/entity-type-/v/1";
 
-let entityType: EntityTypeModel;
+let entityTypeModel: EntityTypeModel;
 
 beforeAll(async () => {
   await DataTypeModel.create(graphApi, {
@@ -78,35 +79,35 @@ beforeAll(async () => {
     }),
   ]);
 
-  entityType = results[0];
+  entityTypeModel = results[0];
 });
 
 describe("Entity CRU", () => {
-  let createdEntity: EntityModel;
+  let createdEntityModel: EntityModel;
   it("can create an entity", async () => {
-    createdEntity = await EntityModel.create(graphApi, {
+    createdEntityModel = await EntityModel.create(graphApi, {
       accountId,
       properties: {
         [namePropertyTypeBaseId]: "Bob",
         [textPropertyTypeBaseId]: "some text",
       },
-      entityType,
+      entityTypeModel,
     });
   });
 
   it("can read an entity", async () => {
-    const fetchedEntity = await EntityModel.getLatest(graphApi, {
+    const fetchedEntityModel = await EntityModel.getLatest(graphApi, {
       accountId,
-      entityId: createdEntity.entityId,
+      entityId: createdEntityModel.entityId,
     });
 
-    expect(fetchedEntity.entityId).toEqual(createdEntity.entityId);
-    expect(fetchedEntity.version).toEqual(createdEntity.version);
+    expect(fetchedEntityModel.entityId).toEqual(createdEntityModel.entityId);
+    expect(fetchedEntityModel.version).toEqual(createdEntityModel.version);
   });
 
-  let updatedEntity: EntityModel;
+  let updatedEntityModel: EntityModel;
   it("can update an entity", async () => {
-    updatedEntity = await createdEntity
+    updatedEntityModel = await createdEntityModel
       .update(graphApi, {
         accountId,
         properties: {
@@ -118,22 +119,22 @@ describe("Entity CRU", () => {
   });
 
   it("can read all latest entities", async () => {
-    const allEntities = await EntityModel.getAllLatest(graphApi, {
+    const allEntityModels = await EntityModel.getAllLatest(graphApi, {
       accountId,
     });
 
-    const newlyUpdated = allEntities.find(
-      (ent) => ent.entityId === updatedEntity.entityId,
+    const newlyUpdatedModel = allEntityModels.find(
+      (ent) => ent.entityId === updatedEntityModel.entityId,
     );
 
     // Even though we've inserted two entities, they're the different versions
     // of the same entity. This should only retrieve a single entity.
-    expect(allEntities.length).toEqual(1);
-    expect(newlyUpdated).toBeDefined();
+    expect(allEntityModels.length).toEqual(1);
+    expect(newlyUpdatedModel).toBeDefined();
 
-    expect(newlyUpdated!.version).toEqual(updatedEntity.version);
-    expect((newlyUpdated!.properties as any)[namePropertyTypeBaseId]).toEqual(
-      (updatedEntity.properties as any)[namePropertyTypeBaseId],
-    );
+    expect(newlyUpdatedModel!.version).toEqual(updatedEntityModel.version);
+    expect(
+      (newlyUpdatedModel!.properties as any)[namePropertyTypeBaseId],
+    ).toEqual((updatedEntityModel.properties as any)[namePropertyTypeBaseId]);
   });
 });
