@@ -316,8 +316,32 @@ impl Display for Instruction {
     }
 }
 
-type Instructions = VecDeque<Instruction>;
-type Lines = Vec<Instructions>;
+pub struct Line(VecDeque<Instruction>);
+
+impl Line {
+    pub fn new(text: String) -> Self {
+        let mut deque = VecDeque::new();
+        deque.push_back(Instruction::Content(text));
+
+        Self(deque)
+    }
+}
+
+pub struct Lines(Vec<Line>);
+
+impl Lines {
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    pub fn push(&mut self, line: Line) {
+        self.0.push(line);
+    }
+
+    pub fn iter_mut(&mut self) -> core::slice::IterMut<Line> {
+        self.0.iter_mut()
+    }
+}
 
 fn debug_frame(
     frame: &Frame,
