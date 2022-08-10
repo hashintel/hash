@@ -6,9 +6,9 @@ use tokio_postgres::types::{FromSql, ToSql};
 use utoipa::Component;
 use uuid::Uuid;
 
-use crate::{
-    ontology::{types::uri::BaseUri, AccountId},
-    VersionedUri,
+use crate::ontology::{
+    types::uri::{BaseUri, VersionedUri},
+    AccountId,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, Component, FromSql, ToSql)]

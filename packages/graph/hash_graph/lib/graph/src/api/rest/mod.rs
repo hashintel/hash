@@ -10,7 +10,7 @@ mod link;
 mod link_type;
 mod property_type;
 
-use std::{collections::HashMap, fmt::Debug, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use axum::{
     extract::Path,
@@ -23,14 +23,11 @@ use include_dir::{include_dir, Dir};
 use utoipa::{openapi, Modify, OpenApi};
 
 use self::api_resource::RoutedResource;
-use crate::{
-    store::{crud, QueryError},
-    GraphPool, StorePool,
-};
+use crate::store::{crud::Read, StorePool};
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
 
-fn api_resources<P: GraphPool>() -> Vec<Router> {
+fn api_resources<P: StorePool + Send + 'static>() -> Vec<Router> {
     vec![
         data_type::DataTypeResource::routes::<P>(),
         property_type::PropertyTypeResource::routes::<P>(),
@@ -52,35 +49,28 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
     ]
 }
 
-async fn read_from_store<'pool, 'id: 'pool, T, P, I, O>(
+async fn read_from_store<'pool, P, T>(
     pool: &'pool P,
-    identifier: I,
-) -> Result<O, StatusCode>
+    query: &<P::Store<'pool> as Read<T>>::Query<'_>,
+) -> Result<Vec<T>, StatusCode>
 where
     P: StorePool,
-    P::Store<'pool>: crud::Read<'id, I, T, Output = O>,
-    I: Send + Debug + Copy + 'id,
+    P::Store<'pool>: Read<T>,
+    T: Send,
 {
     let store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire access to the store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    crud::Read::<I, T>::get(&store, identifier)
-        .await
-        .map_err(|report| {
-            tracing::error!(error=?report, identifier=?identifier, "Could not read from the store");
-
-            if report.contains::<QueryError>() {
-                return StatusCode::NOT_FOUND;
-            }
-
-            // Store errors such as connection failure are considered internal server errors.
-            StatusCode::INTERNAL_SERVER_ERROR
-        })
+    // TODO: Implement `Valuable` for queries and print them here
+    store.read(query).await.map_err(|report| {
+        tracing::error!(error=?report, ?query, "Could not read from the store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
 }
 
-pub fn rest_api_router<P: GraphPool>(store: Arc<P>) -> Router {
+pub fn rest_api_router<P: StorePool + Send + 'static>(store: Arc<P>) -> Router {
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<P>()
         .into_iter()

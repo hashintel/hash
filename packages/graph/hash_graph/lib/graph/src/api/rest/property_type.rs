@@ -18,8 +18,10 @@ use crate::{
         types::{uri::VersionedUri, PropertyType},
         AccountId,
     },
-    store::{crud::AllLatest, BaseUriAlreadyExists, BaseUriDoesNotExist},
-    GraphPool,
+    store::{
+        query::PropertyTypeQuery, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore,
+        StorePool,
+    },
 };
 
 #[derive(OpenApi)]
@@ -39,7 +41,7 @@ pub struct PropertyTypeResource;
 
 impl RoutedResource for PropertyTypeResource {
     /// Create routes for interacting with property types.
-    fn routes<P: GraphPool>() -> Router {
+    fn routes<P: StorePool + Send + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/property-types",
@@ -77,7 +79,7 @@ struct CreatePropertyTypeRequest {
     ),
     request_body = CreatePropertyTypeRequest,
 )]
-async fn create_property_type<P: GraphPool>(
+async fn create_property_type<P: StorePool + Send>(
     body: Json<CreatePropertyTypeRequest>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PropertyType>, StatusCode> {
@@ -115,10 +117,10 @@ async fn create_property_type<P: GraphPool>(
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_latest_property_types<P: GraphPool>(
+async fn get_latest_property_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PropertyType>>, StatusCode> {
-    read_from_store::<PropertyType, _, _, _>(pool.as_ref(), AllLatest)
+    read_from_store(pool.as_ref(), &PropertyTypeQuery::new().by_latest_version())
         .await
         .map(Json)
 }
@@ -138,13 +140,19 @@ async fn get_latest_property_types<P: GraphPool>(
         ("uri" = String, Path, description = "The URI of the property type"),
     )
 )]
-async fn get_property_type<P: GraphPool>(
-    Path(uri): Path<VersionedUri>,
-    Extension(pool): Extension<Arc<P>>,
+async fn get_property_type<P: StorePool + Send>(
+    uri: Path<VersionedUri>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<PropertyType>, StatusCode> {
-    read_from_store::<PropertyType, _, _, _>(pool.as_ref(), &uri)
-        .await
-        .map(Json)
+    read_from_store(
+        pool.as_ref(),
+        &PropertyTypeQuery::new()
+            .by_uri(uri.base_uri())
+            .by_version(uri.version()),
+    )
+    .await
+    .and_then(|mut property_types| property_types.pop().ok_or(StatusCode::NOT_FOUND))
+    .map(Json)
 }
 
 #[derive(Component, Serialize, Deserialize)]
@@ -168,7 +176,7 @@ struct UpdatePropertyTypeRequest {
     ),
     request_body = UpdatePropertyTypeRequest,
 )]
-async fn update_property_type<P: GraphPool>(
+async fn update_property_type<P: StorePool + Send>(
     body: Json<UpdatePropertyTypeRequest>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PropertyType>, StatusCode> {
