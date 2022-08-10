@@ -10,10 +10,32 @@ import { treeFromParentReferences } from "@hashintel/hash-shared/util";
 import { TreeView } from "@mui/lab";
 import { useRouter } from "next/router";
 import { useLocalstorageState } from "rooks";
+import {
+  useSortable,
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  UniqueIdentifier,
+  DropAnimation,
+  MeasuringStrategy,
+} from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  restrictToVerticalAxis,
+  restrictToWindowEdges,
+} from "@dnd-kit/modifiers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { useCreatePage } from "../../../components/hooks/useCreatePage";
 import { NavLink } from "./nav-link";
 import { PageTreeItem } from "./account-page-list/page-tree-item";
+import { AccountPageListItem } from "./account-page-list-item";
 
 type AccountPageListProps = {
   accountId: string;
@@ -27,38 +49,59 @@ type TreeElement = {
   children?: TreeElement[];
 };
 
-const renderTree = (
-  node: TreeElement,
-  accountId: string,
-  depth: number = 0,
-) => {
-  return (
-    <PageTreeItem
-      key={node.entityId}
-      nodeId={node.entityId}
-      label={node.title}
-      depth={depth}
-      ContentProps={
-        {
-          /**
-           *  ContentProps type is currently limited to HtmlAttributes and unfortunately can't be augmented
-           *  Casting the type to any as a temporary workaround
-           * @see https://stackoverflow.com/a/69483286
-           * @see https://github.com/mui/material-ui/issues/28668
-           */
-          expandable: Boolean(
-            Array.isArray(node.children) ? node.children.length : node.children,
-          ),
-          url: `/${accountId}/${node.entityId}`,
-          depth,
-        } as any
-      }
-    >
-      {Array.isArray(node.children)
-        ? node.children.map((child) => renderTree(child, accountId, depth + 1))
-        : null}
-    </PageTreeItem>
-  );
+// const RenderTree = (
+//   node: TreeElement,
+//   accountId: string,
+//   depth: number = 0,
+// ) => {
+//   const id = node.entityId;
+//   const { attributes, listeners, setNodeRef, transform, transition } =
+//     useSortable({ id });
+
+//   const style = {
+//     transform: CSS.Transform.toString(transform),
+//     transition,
+//   };
+
+//   return (
+//     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+//       <PageTreeItem
+//         key={node.entityId}
+//         nodeId={node.entityId}
+//         label={node.title}
+//         depth={depth}
+//         ContentProps={
+//           {
+//             /**
+//              *  ContentProps type is currently limited to HtmlAttributes and unfortunately can't be augmented
+//              *  Casting the type to any as a temporary workaround
+//              * @see https://stackoverflow.com/a/69483286
+//              * @see https://github.com/mui/material-ui/issues/28668
+//              */
+//             expandable: Boolean(
+//               Array.isArray(node.children)
+//                 ? node.children.length
+//                 : node.children,
+//             ),
+//             url: `/${accountId}/${node.entityId}`,
+//             depth,
+//           } as any
+//         }
+//       >
+//         {Array.isArray(node.children)
+//           ? node.children.map((child) =>
+//               RenderTree(child, accountId, depth + 1),
+//             )
+//           : null}
+//       </PageTreeItem>
+//     </div>
+//   );
+// };
+
+const measuringConfig = {
+  droppable: {
+    strategy: MeasuringStrategy.Always,
+  },
 };
 
 export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
@@ -111,6 +154,49 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     setExpanded(nodeIds);
   };
 
+  const sensors = useSensors(useSensor(PointerSensor));
+
+  // const dropAnimationConfig: DropAnimation = {
+  //   keyframes({ transform }) {
+  //     return [
+  //       {
+  //         transform: CSS.Transform.toString(transform.initial),
+  //       },
+  //       {
+  //         transform: CSS.Transform.toString({
+  //           ...transform.final,
+  //           scaleX: 0.95,
+  //           scaleY: 0.95,
+  //         }),
+  //       },
+  //     ];
+  //   },
+  //   duration: 250,
+  //   sideEffects({ active }) {
+  //     setDroppingId(active.id);
+
+  //     if (dragOverlayRef.current) {
+  //       dragOverlayRef.current.animate(
+  //         [
+  //           {
+  //             boxShadow: draggingBoxShadow,
+  //           },
+  //           { boxShadow },
+  //         ],
+  //         {
+  //           duration: 250,
+  //           easing: "ease",
+  //           fill: "forwards",
+  //         },
+  //       );
+  //     }
+
+  //     return () => {
+  //       setDroppingId(null);
+  //     };
+  //   },
+  // };
+
   return (
     <NavLink
       title="Pages"
@@ -120,19 +206,59 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         "data-testid": "create-page-btn",
       }}
     >
-      <TreeView
-        data-testid="pages-tree"
-        tabIndex={-1}
-        sx={{
-          mx: 0.75,
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={
+          ({ active }) => {
+            console.log(active);
+          }
+          // setActiveIndex(findItemIndexById(list, active.id))
+        }
+        onDragEnd={({ active, over }) => {
+          // setActiveIndex(null);
+
+          // if (over?.id && active.id !== over?.id) {
+          //   const sourceIndex = findItemIndexById(list, active.id);
+          //   const destinationIndex = findItemIndexById(list, over.id);
+          //   onReorder(sourceIndex, destinationIndex);
+          // }
+          console.log(active, over);
         }}
-        {...(currentPageEntityId && { selected: currentPageEntityId })}
-        expanded={expanded}
-        onNodeToggle={handleToggle}
-        onNodeSelect={handleSelect}
+        // onDragCancel={() => setActiveIndex(null)}
+        measuring={measuringConfig}
+        modifiers={[restrictToVerticalAxis, restrictToWindowEdges]}
       >
-        {formattedData.map((node) => renderTree(node, accountId, 0))}
-      </TreeView>
+        <SortableContext
+          // items={formattedData.map((node) => node.entityId)}
+          items={getFlatmap(formattedData).map((x) => x.entityId)}
+          strategy={verticalListSortingStrategy}
+        >
+          <TreeView
+            data-testid="pages-tree"
+            tabIndex={-1}
+            sx={{
+              mx: 0.75,
+            }}
+            {...(currentPageEntityId && { selected: currentPageEntityId })}
+            expanded={expanded}
+            onNodeToggle={handleToggle}
+            onNodeSelect={handleSelect}
+          >
+            {formattedData.map((node) => (
+              <AccountPageListItem
+                key={node.entityId}
+                node={node}
+                accountId={accountId}
+                depth={0}
+              />
+            ))}
+          </TreeView>
+        </SortableContext>
+      </DndContext>
     </NavLink>
   );
 };
+
+const getFlatmap = (x: TreeElement[]) =>
+  x.flatMap((x) => [x, ...(x.children! || [])]);
