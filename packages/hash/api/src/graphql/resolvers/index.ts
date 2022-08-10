@@ -76,6 +76,7 @@ import {
 } from "./taskExecutor";
 import { getLink } from "./link/getLink";
 import { getLinkedAggregation } from "./linkedAggregation/getLinkedAggregation";
+import { createDataType } from "./ontology/data-type";
 
 export const resolvers = {
   Query: {
@@ -142,6 +143,8 @@ export const resolvers = {
     executeGithubCheckTask,
     executeGithubDiscoverTask: loggedInAndSignedUp(executeGithubDiscoverTask),
     executeGithubReadTask: loggedInAndSignedUp(executeGithubReadTask),
+    // Ontology
+    createDataType: loggedInAndSignedUp(createDataType),
   },
 
   JSONObject: GraphQLJSON,
