@@ -1,6 +1,6 @@
 import { useTheme } from "@mui/material";
 import { motion } from "framer-motion";
-import { useBlockHighlightContext } from "../BlockHighlightContext";
+import { useBlockHighlightContext } from "./BlockHighlightContext";
 import { useBlockView } from "./BlockViewContext";
 
 interface HighlightProps {

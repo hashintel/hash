@@ -14,7 +14,7 @@ import { EditorConnection } from "./collab/EditorConnection";
 import { BlocksMap, createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
 import { useReadonlyMode } from "../../shared/readonly-mode";
-import { BlockHighlightProvider } from "../BlockHighlightContext";
+import { BlockHighlightProvider } from "./BlockHighlightContext";
 
 type PageBlockProps = {
   blocks: BlocksMap;
