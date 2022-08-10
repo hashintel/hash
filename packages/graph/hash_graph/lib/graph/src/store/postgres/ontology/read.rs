@@ -9,15 +9,11 @@ use crate::{
     ontology::types::uri::BaseUri,
     store::{
         crud::Read,
-        postgres::ontology::OntologyDatabaseType,
+        postgres::{ontology::OntologyDatabaseType, parameter_list},
         query::{OntologyQuery, OntologyVersion},
         AsClient, PostgresStore, QueryError,
     },
 };
-
-fn parameter_list<const N: usize>(list: [&(dyn ToSql + Sync); N]) -> [&(dyn ToSql + Sync); N] {
-    list
-}
 
 async fn by_uri_by_version<T: OntologyDatabaseType>(
     client: &(impl GenericClient + Sync),

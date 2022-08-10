@@ -5,6 +5,7 @@ mod pool;
 mod version_id;
 
 use error_stack::{IntoReport, Report, Result, ResultExt};
+use postgres_types::ToSql;
 use serde::Serialize;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
@@ -27,6 +28,14 @@ use crate::{
         BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError,
     },
 };
+
+/// Utility function used for [`GenericClient::query_raw`] to infer the parameter as
+/// [`dyn ToSql`][ToSql].
+///
+/// [`GenericClient::query_raw`]: tokio_postgres::GenericClient::query_raw
+fn parameter_list<const N: usize>(list: [&(dyn ToSql + Sync); N]) -> [&(dyn ToSql + Sync); N] {
+    list
+}
 
 /// A Postgres-backed store
 pub struct PostgresStore<C> {

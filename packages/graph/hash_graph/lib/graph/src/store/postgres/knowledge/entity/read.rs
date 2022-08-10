@@ -10,6 +10,7 @@ use crate::{
     ontology::{types::uri::VersionedUri, AccountId},
     store::{
         crud,
+        postgres::parameter_list,
         query::{EntityQuery, EntityVersion},
         AsClient, PostgresStore, QueryError,
     },
@@ -31,7 +32,7 @@ async fn by_id_by_latest_version(
                 WHERE entity_id = $1
             );
             "#,
-            &[&entity_id],
+            parameter_list([&entity_id]),
         )
         .await
         .into_report()
@@ -47,8 +48,7 @@ async fn by_latest_version(client: &(impl GenericClient + Sync)) -> Result<RowSt
             INNER JOIN ids ON ids.version_id = entities.entity_type_version_id
             ORDER BY entity_id, entities.version DESC;
             "#,
-            // Requires a concrete type, which implements `IntoIterator<Item = impl BorrowToSql>`
-            [] as [&(dyn ToSql + Sync); 0],
+            parameter_list([]),
         ).await
         .into_report()
         .change_context(QueryError)
