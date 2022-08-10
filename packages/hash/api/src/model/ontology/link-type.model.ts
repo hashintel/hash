@@ -1,6 +1,7 @@
 import { LinkType, GraphApi } from "@hashintel/hash-graph-client";
 
 import { LinkTypeModel } from "../index";
+import { NIL_UUID } from "../util";
 
 type LinkTypeModelConstructorArgs = {
   accountId: string;
@@ -64,12 +65,14 @@ export default class {
   static async get(
     graphApi: GraphApi,
     params: {
-      accountId: string;
       versionedUri: string;
     },
   ): Promise<LinkTypeModel> {
-    const { accountId, versionedUri } = params;
+    const { versionedUri } = params;
     const { data: schema } = await graphApi.getLinkType(versionedUri);
+
+    /** @todo: retrieve accountId from `graphApi.getLinkType` response */
+    const accountId = NIL_UUID;
 
     return new LinkTypeModel({ schema, accountId });
   }

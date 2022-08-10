@@ -63,7 +63,6 @@ describe("Property type CRU", () => {
 
   it("can read a property type", async () => {
     const fetchedPropertyType = await PropertyTypeModel.get(graphApi, {
-      accountId,
       versionedUri: createdPropertyType$id,
     });
 

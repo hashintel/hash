@@ -43,7 +43,6 @@ describe("Data type CRU", () => {
 
   it("can read a data type", async () => {
     const fetchedDataType = await DataTypeModel.get(graphApi, {
-      accountId,
       versionedUri: createdDataType$id,
     });
 
