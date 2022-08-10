@@ -16,7 +16,7 @@ use crate::{
     api::rest::read_from_store,
     ontology::{
         types::{uri::VersionedUri, DataType},
-        AccountId,
+        AccountId, PersistedDataType, PersistedOntologyIdentifier,
     },
     store::{
         query::DataTypeQuery, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool,
@@ -31,7 +31,13 @@ use crate::{
         get_latest_data_types,
         update_data_type
     ),
-    components(CreateDataTypeRequest, UpdateDataTypeRequest, AccountId),
+    components(
+        CreateDataTypeRequest,
+        UpdateDataTypeRequest,
+        AccountId,
+        PersistedOntologyIdentifier,
+        PersistedDataType
+    ),
     tags(
         (name = "DataType", description = "Data Type management API")
     )
@@ -70,7 +76,7 @@ struct CreateDataTypeRequest {
     request_body = CreateDataTypeRequest,
     tag = "DataType",
     responses(
-        (status = 201, content_type = "application/json", description = "The schema of the created data type", body = VAR_DATA_TYPE),
+        (status = 201, content_type = "application/json", description = "The schema of the created data type", body = PersistedOntologyIdentifier),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create data type in the store as the base data type URI already exists"),
@@ -81,7 +87,7 @@ struct CreateDataTypeRequest {
 async fn create_data_type<P: StorePool + Send>(
     body: Json<CreateDataTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<DataType>, StatusCode> {
+) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
     let Json(CreateDataTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -102,9 +108,8 @@ async fn create_data_type<P: StorePool + Send>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(Json(schema))
+        })
+        .map(Json)
 }
 
 #[utoipa::path(
@@ -119,7 +124,7 @@ async fn create_data_type<P: StorePool + Send>(
 )]
 async fn get_latest_data_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-) -> Result<Json<Vec<DataType>>, StatusCode> {
+) -> Result<Json<Vec<PersistedDataType>>, StatusCode> {
     read_from_store(pool.as_ref(), &DataTypeQuery::new().by_latest_version())
         .await
         .map(Json)
@@ -143,7 +148,7 @@ async fn get_latest_data_types<P: StorePool + Send>(
 async fn get_data_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<DataType>, StatusCode> {
+) -> Result<Json<PersistedDataType>, StatusCode> {
     read_from_store(
         pool.as_ref(),
         &DataTypeQuery::new()
@@ -168,7 +173,7 @@ struct UpdateDataTypeRequest {
     path = "/data-types",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the updated data type", body = VAR_DATA_TYPE),
+        (status = 200, content_type = "application/json", description = "The schema of the updated data type", body = PersistedOntologyIdentifier),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base data type ID was not found"),
@@ -179,7 +184,7 @@ struct UpdateDataTypeRequest {
 async fn update_data_type<P: StorePool + Send>(
     body: Json<UpdateDataTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<DataType>, StatusCode> {
+) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
     let Json(UpdateDataTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -199,7 +204,6 @@ async fn update_data_type<P: StorePool + Send>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(Json(schema))
+        })
+        .map(Json)
 }

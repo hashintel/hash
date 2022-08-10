@@ -3,7 +3,7 @@ use error_stack::{IntoReport, Result, ResultExt};
 use tokio_postgres::GenericClient;
 
 use crate::{
-    ontology::{types::LinkType, AccountId},
+    ontology::{types::LinkType, AccountId, PersistedOntologyIdentifier},
     store::{AsClient, InsertionError, LinkTypeStore, PostgresStore, UpdateError},
 };
 
@@ -13,7 +13,7 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
         &mut self,
         link_type: &LinkType,
         created_by: AccountId,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<PersistedOntologyIdentifier, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -22,7 +22,7 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
                 .change_context(InsertionError)?,
         );
 
-        transaction.create(link_type, created_by).await?;
+        let (_, identifier) = transaction.create(link_type, created_by).await?;
 
         transaction
             .client
@@ -31,14 +31,14 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
             .into_report()
             .change_context(InsertionError)?;
 
-        Ok(())
+        Ok(identifier)
     }
 
     async fn update_link_type(
         &mut self,
         link_type: &LinkType,
         updated_by: AccountId,
-    ) -> Result<(), UpdateError> {
+    ) -> Result<PersistedOntologyIdentifier, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -47,7 +47,7 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
                 .change_context(UpdateError)?,
         );
 
-        transaction.update(link_type, updated_by).await?;
+        let (_, identifier) = transaction.update(link_type, updated_by).await?;
 
         transaction
             .client
@@ -56,6 +56,6 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
             .into_report()
             .change_context(UpdateError)?;
 
-        Ok(())
+        Ok(identifier)
     }
 }

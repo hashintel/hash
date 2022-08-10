@@ -44,7 +44,7 @@ async fn query() {
         .await
         .expect("could not get entity type");
 
-    assert_eq!(entity_type, organization_et);
+    assert_eq!(entity_type.inner, organization_et);
 }
 
 #[tokio::test]

@@ -15,7 +15,7 @@ use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store},
     ontology::{
         types::{uri::VersionedUri, EntityType},
-        AccountId,
+        AccountId, PersistedEntityType, PersistedOntologyIdentifier,
     },
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
@@ -32,7 +32,13 @@ use crate::{
         get_latest_entity_types,
         update_entity_type
     ),
-    components(CreateEntityTypeRequest, UpdateEntityTypeRequest, AccountId),
+    components(
+        CreateEntityTypeRequest,
+        UpdateEntityTypeRequest,
+        AccountId,
+        PersistedOntologyIdentifier,
+        PersistedEntityType
+    ),
     tags(
         (name = "EntityType", description = "Entity type management API")
     )
@@ -71,7 +77,7 @@ struct CreateEntityTypeRequest {
     request_body = CreateEntityTypeRequest,
     tag = "EntityType",
     responses(
-        (status = 201, content_type = "application/json", description = "The schema of the created entity type", body = VAR_ENTITY_TYPE),
+        (status = 201, content_type = "application/json", description = "The schema of the created entity type", body = PersistedOntologyIdentifier),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create entity type in the datastore as the base entity type ID already exists"),
@@ -82,7 +88,7 @@ struct CreateEntityTypeRequest {
 async fn create_entity_type<P: StorePool + Send>(
     body: Json<CreateEntityTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<EntityType>, StatusCode> {
+) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
     let Json(CreateEntityTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -102,9 +108,8 @@ async fn create_entity_type<P: StorePool + Send>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(Json(schema))
+        })
+        .map(Json)
 }
 
 #[utoipa::path(
@@ -119,7 +124,7 @@ async fn create_entity_type<P: StorePool + Send>(
 )]
 async fn get_latest_entity_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-) -> Result<Json<Vec<EntityType>>, StatusCode> {
+) -> Result<Json<Vec<PersistedEntityType>>, StatusCode> {
     read_from_store(pool.as_ref(), &EntityTypeQuery::new().by_latest_version())
         .await
         .map(Json)
@@ -143,7 +148,7 @@ async fn get_latest_entity_types<P: StorePool + Send>(
 async fn get_entity_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<EntityType>, StatusCode> {
+) -> Result<Json<PersistedEntityType>, StatusCode> {
     read_from_store(
         pool.as_ref(),
         &EntityTypeQuery::new()
@@ -168,7 +173,7 @@ struct UpdateEntityTypeRequest {
     path = "/entity-types",
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the updated entity type", body = VAR_ENTITY_TYPE),
+        (status = 200, content_type = "application/json", description = "The schema of the updated entity type", body = PersistedOntologyIdentifier),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base entity type ID was not found"),
@@ -179,7 +184,7 @@ struct UpdateEntityTypeRequest {
 async fn update_entity_type<P: StorePool + Send>(
     body: Json<UpdateEntityTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<EntityType>, StatusCode> {
+) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
     let Json(UpdateEntityTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -199,7 +204,6 @@ async fn update_entity_type<P: StorePool + Send>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(Json(schema))
+        })
+        .map(Json)
 }
