@@ -16,6 +16,8 @@ import {
 } from "react";
 import { uniqBy } from "lodash";
 
+import { useLocalstorageState } from "rooks";
+import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 import {
   convertApiEntityToBpEntity,
   convertApiEntityTypesToBpEntityTypes,
@@ -41,11 +43,14 @@ import { useBlockProtocolUpdateLink } from "../hooks/blockProtocolFunctions/useB
 import { useBlockProtocolUpdateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregation";
 import { EntityType as ApiEntityType } from "../../graphql/apiTypes.gen";
 import { useReadonlyMode } from "../../shared/readonly-mode";
+import { DataMapEditor } from "./data-map-editor";
+import { mapData, SchemaMap } from "./shared";
 
 type BlockLoaderProps = {
   accountId: string;
   blockEntityId: string;
   blockMetadata: HashBlockMeta;
+  blockSchema: JsonSchema;
   editableRef: unknown;
   entityId: string;
   entityType?: Pick<ApiEntityType, "entityId" | "properties">;
@@ -55,6 +60,8 @@ type BlockLoaderProps = {
   linkedEntities: BlockEntity["properties"]["entity"]["linkedEntities"];
   linkedAggregations: BlockEntity["properties"]["entity"]["linkedAggregations"];
   onBlockLoaded: () => void;
+  showDataMappingUi: boolean;
+  setShowDataMappingUi: (shouldShow: boolean) => void;
   // shouldSandbox?: boolean;
 };
 
@@ -68,15 +75,18 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   accountId,
   blockEntityId,
   blockMetadata,
+  blockSchema,
   editableRef,
   entityId,
   entityType,
   entityTypeId,
-  entityProperties,
+  entityProperties: untransformedEntityProperties,
   linkGroups,
   linkedEntities,
   linkedAggregations,
   onBlockLoaded,
+  showDataMappingUi,
+  setShowDataMappingUi,
   // shouldSandbox,
 }) => {
   const { readonlyMode } = useReadonlyMode();
@@ -104,6 +114,14 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     useBlockProtocolUpdateLinkedAggregation(readonlyMode);
 
   const { updateLink } = useBlockProtocolUpdateLink();
+
+  // Storing these in local storage is a temporary solution – we want them in the db soon
+  // Known issue: this hook always sets _some_ value in local storage, so we end up with unnecessary things stored there
+  const mapId = `${entityTypeId}:${blockMetadata.source}`;
+  const [schemaMap, setSchemaMap] = useLocalstorageState<SchemaMap>(
+    `map:${mapId}`,
+    { mapId },
+  );
 
   const graphProperties = useMemo<
     Required<BlockGraphProperties<UnknownRecord>["graph"]>
@@ -138,20 +156,29 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       );
     }
 
+    const blockGraph = {
+      depth: 1,
+      linkGroups: convertApiLinkGroupsToBpLinkGroups(linkGroups),
+      linkedEntities: convertedLinkedEntities,
+    };
+
     const blockEntity = convertApiEntityToBpEntity({
       accountId,
       entityId: entityId ?? "entityId-not-yet-set", // @todo ensure blocks always get sent an entityId
       entityTypeId,
-      properties: entityProperties,
+      properties: untransformedEntityProperties,
     });
+
+    if (
+      typeof schemaMap === "object" &&
+      Object.keys(schemaMap.transformations ?? {}).length > 0
+    ) {
+      blockEntity.properties = mapData(blockEntity, blockGraph, schemaMap);
+    }
 
     return {
       blockEntity,
-      blockGraph: {
-        depth: 1,
-        linkGroups: convertApiLinkGroupsToBpLinkGroups(linkGroups),
-        linkedEntities: convertedLinkedEntities,
-      },
+      blockGraph,
       entityTypes: uniqBy(
         convertedEntityTypesForProvidedEntities,
         "entityTypeId",
@@ -163,12 +190,13 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     accountId,
     entityType,
     entityId,
-    entityProperties,
+    untransformedEntityProperties,
     entityTypeId,
     linkGroups,
     linkedEntities,
     linkedAggregations,
     readonlyMode,
+    schemaMap,
   ]);
 
   const functions = {
@@ -219,6 +247,25 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   //     />
   //   );
   // }
+
+  if (showDataMappingUi) {
+    return (
+      <DataMapEditor
+        close={() => setShowDataMappingUi(false)}
+        key={mapId}
+        mapId={mapId}
+        schemaMap={schemaMap}
+        sourceBlockEntity={{
+          ...graphProperties.blockEntity,
+          properties: untransformedEntityProperties,
+        }}
+        sourceBlockGraph={graphProperties.blockGraph}
+        targetSchema={blockSchema}
+        transformedTree={graphProperties.blockEntity.properties}
+        updateSchemaMap={setSchemaMap}
+      />
+    );
+  }
 
   return (
     <RemoteBlock

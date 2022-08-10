@@ -2,6 +2,7 @@ import { BlockVariant, JsonObject } from "@blockprotocol/core";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorProps, EditorView } from "prosemirror-view";
+import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 
 import { Text, TextProperties } from "./graphql/apiTypes.gen";
 import {
@@ -43,7 +44,11 @@ import { childrenForTextEntity } from "./text";
 
 type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
 
-type ComponentNodeViewFactory = (meta: HashBlockMeta) => NodeViewFactory;
+type ComponentNodeViewFactory = (
+  meta: HashBlockMeta,
+  schema: JsonSchema,
+) => NodeViewFactory;
+
 /**
  * Manages the creation and editing of the ProseMirror schema, and utilities around
  * editing the prosemirror document.
@@ -61,7 +66,7 @@ export class ProsemirrorManager {
    * new node type in the schema, and create a node view wrapper for you too.
    */
   defineBlock(block: HashBlock) {
-    const { meta } = block;
+    const { meta, schema } = block;
     const { componentId } = meta;
 
     prepareBlockCache(componentId, block);
@@ -97,7 +102,7 @@ export class ProsemirrorManager {
         nodeViews: {
           // Private API
           ...(this.view as any).nodeViews,
-          [componentId]: this.componentNodeViewFactory(meta),
+          [componentId]: this.componentNodeViewFactory(meta, schema),
         },
       });
     }
@@ -171,6 +176,16 @@ export class ProsemirrorManager {
         ? childrenForTextEntity(blockData, this.schema)
         : [];
 
+    /**
+     * Wrap the component node itself (rendered by ComponentView) in the
+     * following:
+     *
+     *    1. An entity node to store draft ids for the Text entity (if any)
+     *       linked to the block
+     *    2. An entity node to store ids for the entity linked to the block
+     *    3. [Outermost] The block node (rendered by BlockView) which
+     *       provides the surrounding UI
+     */
     return this.schema.nodes.block!.create({}, [
       this.schema.nodes.entity!.create(
         { draftId: draftBlockId },

@@ -14,6 +14,7 @@ import {
   entityStorePluginState,
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
+import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 import {
   componentNodeToId,
   isComponentNode,
@@ -92,6 +93,7 @@ export class ComponentView implements NodeView<Schema> {
     private readonly getPos: () => number | undefined,
     private readonly renderPortal: RenderPortal,
     private readonly meta: HashBlockMeta,
+    private readonly schema: JsonSchema,
     private readonly manager: ProsemirrorManager,
   ) {
     this.dom.setAttribute("data-dom", "true");
@@ -193,9 +195,10 @@ export class ComponentView implements NodeView<Schema> {
               }}
             >
               <BlockLoader
+                key={entityId}
                 blockEntityId={entityId}
-                entityType={childEntity?.entityType}
                 blockMetadata={this.meta}
+                blockSchema={this.schema}
                 // @todo uncomment this when sandbox is fixed
                 // shouldSandbox={!this.editable}
                 editableRef={this.editableRef}
@@ -203,6 +206,7 @@ export class ComponentView implements NodeView<Schema> {
                 accountId={childEntity?.accountId!}
                 entityId={childEntity?.entityId!}
                 entityTypeId={childEntity?.entityTypeId!}
+                entityType={childEntity?.entityType}
                 entityProperties={
                   childEntity && "properties" in childEntity
                     ? childEntity.properties
@@ -212,6 +216,10 @@ export class ComponentView implements NodeView<Schema> {
                 linkedEntities={childEntity?.linkedEntities ?? []}
                 linkedAggregations={childEntity?.linkedAggregations ?? []}
                 onBlockLoaded={this.onBlockLoaded}
+                showDataMappingUi={ctx?.showDataMappingUi ?? false}
+                setShowDataMappingUi={(shouldShow: boolean) =>
+                  ctx?.setShowDataMappingUi(shouldShow)
+                }
               />
             </Sentry.ErrorBoundary>
           )}
