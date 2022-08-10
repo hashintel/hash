@@ -32,7 +32,13 @@ use crate::{
         get_latest_entity_types,
         update_entity_type
     ),
-    components(CreateEntityTypeRequest, UpdateEntityTypeRequest, AccountId),
+    components(
+        CreateEntityTypeRequest,
+        UpdateEntityTypeRequest,
+        AccountId,
+        PersistedOntologyIdentifier,
+        PersistedEntityType
+    ),
     tags(
         (name = "EntityType", description = "Entity type management API")
     )

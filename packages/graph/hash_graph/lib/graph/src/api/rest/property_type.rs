@@ -32,7 +32,13 @@ use crate::{
         get_latest_property_types,
         update_property_type
     ),
-    components(CreatePropertyTypeRequest, UpdatePropertyTypeRequest, AccountId),
+    components(
+        CreatePropertyTypeRequest,
+        UpdatePropertyTypeRequest,
+        AccountId,
+        PersistedOntologyIdentifier,
+        PersistedPropertyType
+    ),
     tags(
         (name = "PropertyType", description = "Property type management API")
     )

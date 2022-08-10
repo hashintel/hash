@@ -31,7 +31,13 @@ use crate::{
         get_latest_data_types,
         update_data_type
     ),
-    components(CreateDataTypeRequest, UpdateDataTypeRequest, AccountId),
+    components(
+        CreateDataTypeRequest,
+        UpdateDataTypeRequest,
+        AccountId,
+        PersistedOntologyIdentifier,
+        PersistedDataType
+    ),
     tags(
         (name = "DataType", description = "Data Type management API")
     )

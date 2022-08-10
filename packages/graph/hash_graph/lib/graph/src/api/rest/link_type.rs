@@ -31,7 +31,13 @@ use crate::{
         get_latest_link_types,
         update_link_type
     ),
-    components(CreateLinkTypeRequest, UpdateLinkTypeRequest, AccountId),
+    components(
+        CreateLinkTypeRequest,
+        UpdateLinkTypeRequest,
+        AccountId,
+        PersistedOntologyIdentifier,
+        PersistedLinkType
+    ),
     tags(
         (name = "LinkType", description = "Link type management API")
     )
