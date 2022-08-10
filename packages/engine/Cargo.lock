@@ -707,6 +707,7 @@ dependencies = [
 [[package]]
 name = "error-stack"
 version = "0.1.1"
+source = "git+https://github.com/hashintel/hash?rev=5edddb5#5edddb5566f9bd82dcdf9ba3b430759bc6b15dc5"
 dependencies = [
  "anyhow",
  "once_cell",

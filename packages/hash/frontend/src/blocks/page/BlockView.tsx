@@ -8,7 +8,7 @@ import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
-import { NodeSelection } from "prosemirror-state";
+import { NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import { createRef } from "react";
 
@@ -18,6 +18,7 @@ import styles from "./style.module.css";
 
 import { RenderPortal } from "./usePortals";
 import { BlockHandle } from "./BlockHandle";
+import { InsertBlock } from "./InsertBlock";
 
 export const getBlockDomId = (blockEntityId: string) =>
   `entity-${blockEntityId}`;
@@ -29,10 +30,13 @@ export const getBlockDomId = (blockEntityId: string) =>
 export class BlockView implements NodeView<Schema> {
   dom: HTMLDivElement;
   selectContainer: HTMLDivElement;
+  insertBlockBottomContainer: HTMLDivElement;
+  insertBlockTopContainer?: HTMLDivElement;
   contentDOM: HTMLDivElement;
 
   allowDragging = false;
   dragging = false;
+  hovered = false;
 
   /** used to hide node-view specific events from prosemirror */
   blockHandleRef = createRef<HTMLDivElement>();
@@ -66,6 +70,13 @@ export class BlockView implements NodeView<Schema> {
     return blockEntityNode.attrs.draftId ?? null;
   }
 
+  private createHoverHandler = (hovered: boolean) => {
+    return () => {
+      this.hovered = hovered;
+      this.update(this.node);
+    };
+  };
+
   constructor(
     public node: ProsemirrorNode<Schema>,
     public editorView: EditorView<Schema>,
@@ -76,6 +87,8 @@ export class BlockView implements NodeView<Schema> {
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block!);
     this.dom.setAttribute("data-testid", "block");
+    this.dom.addEventListener("mouseenter", this.onMouseEnter);
+    this.dom.addEventListener("mouseleave", this.onMouseLeave);
 
     this.selectContainer = document.createElement("div");
     this.selectContainer.classList.add(styles.Block__UI!);
@@ -88,6 +101,18 @@ export class BlockView implements NodeView<Schema> {
     this.dom.appendChild(this.contentDOM);
     this.contentDOM.classList.add(styles.Block__Content!);
 
+    this.insertBlockBottomContainer = document.createElement("div");
+    this.dom.appendChild(this.insertBlockBottomContainer);
+    this.insertBlockBottomContainer.classList.add(
+      styles.Block__InsertBlock!,
+      styles.Block__InsertBlock__Bottom!,
+    );
+    this.insertBlockBottomContainer.contentEditable = "false";
+    this.renderPortal(
+      <InsertBlock onBlockSuggesterChange={this.onBlockInsert(true)} />,
+      this.insertBlockBottomContainer,
+    );
+
     this.store = entityStorePluginState(editorView.state).store;
     this.unsubscribe = subscribeToEntityStore(this.editorView, (store) => {
       this.store = store;
@@ -96,6 +121,9 @@ export class BlockView implements NodeView<Schema> {
 
     this.update(node);
   }
+
+  onMouseEnter = this.createHoverHandler(true);
+  onMouseLeave = this.createHoverHandler(false);
 
   onDragEnd = () => {
     (document.activeElement as HTMLElement | null)?.blur();
@@ -136,14 +164,18 @@ export class BlockView implements NodeView<Schema> {
    * destroyed and/or updated. Here we're instructing PM to ignore changes
    * made by us
    *
-   * @todo find a more generalised alternative
+   * @todo find a more generalized alternative
    */
   ignoreMutation(
     record: Parameters<NonNullable<NodeView<Schema>["ignoreMutation"]>>[0],
   ) {
     if (record.target === this.dom && record.type === "attributes") {
       return record.attributeName === "class" || record.attributeName === "id";
-    } else if (this.selectContainer.contains(record.target)) {
+    } else if (
+      this.selectContainer.contains(record.target) ||
+      this.insertBlockBottomContainer.contains(record.target) ||
+      this.insertBlockTopContainer?.contains(record.target)
+    ) {
       return true;
     }
 
@@ -229,6 +261,24 @@ export class BlockView implements NodeView<Schema> {
       blockDraftId ?? undefined,
     );
 
+    if (this.getPos() === 0) {
+      if (!this.insertBlockTopContainer) {
+        this.insertBlockTopContainer = document.createElement("div");
+        this.dom.appendChild(this.insertBlockTopContainer);
+        this.insertBlockTopContainer.classList.add(
+          styles.Block__InsertBlock!,
+          styles.Block__InsertBlock__Top!,
+        );
+        this.insertBlockTopContainer.contentEditable = "false";
+        this.renderPortal(
+          <InsertBlock onBlockSuggesterChange={this.onBlockInsert(false)} />,
+          this.insertBlockTopContainer,
+        );
+      }
+    } else {
+      this.insertBlockTopContainer?.remove();
+    }
+
     return true;
   }
 
@@ -237,6 +287,8 @@ export class BlockView implements NodeView<Schema> {
     this.renderPortal(null, this.selectContainer);
     this.dom.remove();
     document.removeEventListener("dragend", this.onDragEnd);
+    this.dom.removeEventListener("mouseenter", this.onMouseEnter);
+    this.dom.removeEventListener("mouseleave", this.onMouseLeave);
   }
 
   deleteBlock = () => {
@@ -267,4 +319,27 @@ export class BlockView implements NodeView<Schema> {
         console.error(err);
       });
   };
+
+  onBlockInsert =
+    (insertBelow = true) =>
+    (variant: BlockVariant, blockMeta: HashBlockMeta) => {
+      const { editorView, getPos } = this;
+
+      const position = editorView.state.doc.resolve(getPos());
+      const newPosition = position.posAtIndex(
+        position.index(0) + (insertBelow ? 1 : 0),
+      );
+
+      this.manager
+        .insertBlock(blockMeta.componentId, variant, newPosition)
+        .then(({ tr }) => {
+          tr.setSelection(TextSelection.create<Schema>(tr.doc, newPosition));
+          editorView.focus();
+          editorView.dispatch(tr);
+        })
+        .catch((err) => {
+          // eslint-disable-next-line no-console -- TODO: consider using logger
+          console.error(err);
+        });
+    };
 }
