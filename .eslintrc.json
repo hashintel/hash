@@ -218,6 +218,7 @@
     "@typescript-eslint/no-use-before-define": ["error"],
     "no-redeclare": "off",
     "@typescript-eslint/no-redeclare": ["error"],
+    "@typescript-eslint/no-unnecessary-condition": ["error"],
 
     // Part of @typescript-eslint/recommended-requiring-type-checking
     // TODO: re-enable
