@@ -14,6 +14,7 @@ use memory::{
     },
     shared_memory::{MemoryId, Metaversion, Segment},
 };
+use tracing::trace;
 
 use crate::{
     agent::{arrow::array::IntoRecordBatch, AgentBatch, AgentStateField},
@@ -156,6 +157,12 @@ impl MessageBatch {
         schema: &MessageSchema,
         memory_id: MemoryId,
     ) -> Result<Self> {
+        trace!(
+            "writing record batch with schema {:?} to shared memory segment {}",
+            schema.arrow,
+            memory_id
+        );
+
         let agent_count = agent_batch.num_agents();
         let agent_record_batch = agent_batch.batch.record_batch()?;
         let column_name = AgentStateField::AgentId.name();
@@ -206,6 +213,12 @@ impl MessageBatch {
         msg_schema: &MessageSchema,
         memory_id: MemoryId,
     ) -> Result<Self> {
+        trace!(
+            "writing record batch with schema {:?} to shared memory segment {}",
+            msg_schema.arrow,
+            memory_id
+        );
+
         let info = calculate_ipc_data_size(record_batch);
 
         let mut metadata = vec![];

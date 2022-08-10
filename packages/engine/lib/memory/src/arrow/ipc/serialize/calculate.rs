@@ -13,7 +13,7 @@ use arrow2::{
 };
 use arrow_format::ipc;
 
-use crate::shared_memory::padding::pad_to_8;
+use crate::{arrow::ipc::serialize::assert_buffer_monotonicity, shared_memory::padding::pad_to_8};
 
 fn write_primitive<T: NativeType>(
     array: &PrimitiveArray<T>,
@@ -476,6 +476,8 @@ pub fn write(
             );
         }
     }
+
+    assert_buffer_monotonicity(buffers);
 }
 
 #[inline]

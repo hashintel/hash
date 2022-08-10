@@ -2,8 +2,8 @@ use std::borrow::Cow;
 
 use arrow2::{
     array::{
-        Array, BooleanArray, FixedSizeBinaryArray, MutableArray, MutableBooleanArray,
-        MutableUtf8Array, PrimitiveArray, Utf8Array,
+        Array, BooleanArray, FixedSizeBinaryArray, MutableArray, MutableUtf8Array, PrimitiveArray,
+        Utf8Array,
     },
     datatypes::DataType,
 };
@@ -12,7 +12,7 @@ use memory::arrow::{
 };
 
 use crate::{
-    agent::{into_agent::schema_column_with_name, AgentStateField},
+    agent::{arrow::boolean::BooleanColumn, into_agent::schema_column_with_name, AgentStateField},
     field::{POSITION_DIM, UUID_V4_LEN},
     Error, Result,
 };
@@ -151,12 +151,13 @@ pub(crate) fn topology_mut_iter(
             Option<&mut [f64; POSITION_DIM]>,
         ),
     >,
-    MutableBooleanArray,
+    BooleanColumn,
 )> {
     let row_count = record_batch.num_rows();
     // TODO: Remove the dependency on the `position_was_corrected` field
     let pwc_column = column_with_name_from_record_batch(record_batch, "position_was_corrected")?;
     let pwc_column = pwc_column.as_any().downcast_ref::<BooleanArray>().unwrap();
+    let pwc_column = BooleanColumn::new_non_nullable(pwc_column);
 
     let pos_column_name = AgentStateField::Position.name();
     let pos_column = column_with_name_from_record_batch(record_batch, pos_column_name)?;
@@ -240,7 +241,7 @@ pub(crate) fn topology_mut_iter(
 
             (pos, dir)
         }),
-        pwc_column.clone().into_mut().unwrap_right(),
+        pwc_column,
     ))
 }
 

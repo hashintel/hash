@@ -3,7 +3,9 @@ use arrow2::{
     io::ipc::write::{default_ipc_fields, schema_to_bytes},
 };
 use arrow_format::ipc::Message;
+use tracing::trace;
 
+use super::serialize::assert_buffer_monotonicity;
 use crate::{
     arrow::record_batch::RecordBatch,
     shared_memory::{padding::pad_to_8, MemoryId, Metaversion, Segment},
@@ -84,6 +86,8 @@ pub fn write_record_batch_message_header(
     buf: &mut Vec<u8>,
     metadata: &IpcDataMetadata,
 ) -> crate::Result<()> {
+    assert_buffer_monotonicity(&metadata.buffers);
+
     let mut builder = arrow_format::ipc::planus::Builder::new();
     let msg = Message::create(
         &mut builder,
@@ -145,6 +149,7 @@ pub fn write_record_batch_body(
 
     debug_assert_eq!(buffers, metadata.buffers);
     debug_assert_eq!(nodes, metadata.nodes);
+    debug_assert_eq!(data_len, buf.len());
 
     Ok(())
 }
@@ -154,6 +159,12 @@ pub fn write_record_batch_to_segment(
     schema: &Schema,
     memory_id: MemoryId,
 ) -> crate::Result<Segment> {
+    trace!(
+        "writing record batch with schema {:?} to shared memory segment {}",
+        schema,
+        memory_id
+    );
+
     let metaversion = Metaversion::default().to_le_bytes();
 
     let data_metadata = calculate_ipc_data_size(record_batch);

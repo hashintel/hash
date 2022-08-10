@@ -2,27 +2,59 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use arrow2::{
     array::{
-        BooleanArray, FixedSizeBinaryArray, FixedSizeListArray, ListArray,
+        Array, BooleanArray, FixedSizeBinaryArray, FixedSizeListArray, ListArray,
         MutableFixedSizeListArray, MutableListArray, MutablePrimitiveArray, PrimitiveArray,
         TryExtend, Utf8Array,
     },
     chunk::Chunk,
     datatypes::{DataType, Field, Schema},
 };
+use arrow2_convert::serialize::TryIntoArrow;
 use uuid::Uuid;
 
 use super::read_record_batch;
 use crate::{
-    arrow::{ipc::write_record_batch_to_segment, record_batch::RecordBatch},
+    arrow::{
+        ipc::{calculate_ipc_data_size, read_record_batch_message, write_record_batch_to_segment},
+        record_batch::RecordBatch,
+    },
     shared_memory::MemoryId,
 };
 
 /// A test utility which serializes and deserializes a record batch, asserting
 /// that the two record batches are the same.
 fn round_trip(schema: Arc<Schema>, record_batch: RecordBatch) {
+    // first write the data
     let segment =
         write_record_batch_to_segment(&record_batch, &schema, MemoryId::new(Uuid::new_v4()))
             .unwrap();
+
+    // then check all the metadata
+
+    let metadata = calculate_ipc_data_size(&record_batch);
+    let record_batch_ref = read_record_batch_message(&segment).unwrap();
+
+    let read_nodes = record_batch_ref.nodes().unwrap().unwrap();
+
+    assert_eq!(read_nodes.len(), metadata.nodes.len());
+
+    let read_buffers = record_batch_ref.buffers().unwrap().unwrap();
+
+    assert_eq!(
+        metadata.buffers.len(),
+        read_buffers.len(),
+        "expected number of buffers ({}) does not match number of buffers in read RecordBatch \
+         message ({})",
+        metadata.buffers.len(),
+        read_buffers.len()
+    );
+
+    for (expected, actual) in read_buffers.iter().zip(metadata.buffers) {
+        assert_eq!(expected.offset(), actual.offset);
+        assert_eq!(expected.length(), actual.length);
+    }
+
+    // after which we can check the data
 
     let read_record_batch =
         read_record_batch(&segment, schema).expect("failed to read the written record batch");
@@ -223,6 +255,80 @@ fn multiple_columns() {
             list_array.arced(),
         ]),
     );
+
+    round_trip(schema, record_batch);
+}
+
+#[derive(arrow2_convert::ArrowField, Default, Clone)]
+pub struct StructWithFields {
+    boolean: bool,
+    strings: Vec<String>,
+    number: u32,
+}
+
+#[test]
+fn struct_list_roundtrip() {
+    let schema = Arc::new(Schema {
+        fields: vec![Field::new(
+            "item",
+            DataType::List(Box::new(Field::new(
+                "item",
+                DataType::Struct(vec![
+                    Field::new("boolean", DataType::Boolean, false),
+                    Field::new(
+                        "strings",
+                        DataType::List(Box::new(Field::new("item", DataType::Utf8, false))),
+                        false,
+                    ),
+                    Field::new("number", DataType::UInt32, false),
+                ]),
+                false,
+            ))),
+            true,
+        )],
+        metadata: BTreeMap::new(),
+    });
+
+    let struct_array = vec![
+        StructWithFields {
+            boolean: true,
+            strings: vec![
+                "A screaming comes across the sky. It has happened before, but there is nothing \
+                 to compare it to now."
+                    .to_string(),
+                "Hale knew, before he had been in Brighton three hours that they meant to murder \
+                 him."
+                    .to_string(),
+            ],
+            number: 42,
+        },
+        StructWithFields {
+            boolean: true,
+            strings: vec![
+                "Men travel faster now, but I do not know if they go to better things.".to_string(),
+            ],
+            number: 11882,
+        },
+        StructWithFields {
+            boolean: false,
+            strings: vec![],
+            number: 1243523,
+        },
+    ];
+
+    let list_array = vec![
+        struct_array.clone(),
+        struct_array.clone(),
+        struct_array,
+        vec![Default::default(), Default::default(), Default::default()],
+    ];
+
+    let array: Arc<dyn Array> = list_array.try_into_arrow().unwrap();
+
+    let record_batch = RecordBatch {
+        schema: schema.clone(),
+        columns: Chunk::new(vec![Arc::from(array)]),
+    };
 
     round_trip(schema, record_batch);
 }

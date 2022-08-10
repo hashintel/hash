@@ -2,10 +2,7 @@
 
 use std::{borrow::Cow, sync::Arc};
 
-use arrow2::{
-    array::MutableBooleanArray,
-    io::ipc::write::{default_ipc_fields, schema_to_bytes},
-};
+use arrow2::io::ipc::write::{default_ipc_fields, schema_to_bytes};
 use arrow_format::ipc::{planus::ReadAsRoot, MessageHeaderRef};
 use memory::{
     arrow::{
@@ -18,6 +15,7 @@ use memory::{
     shared_memory::{BufferChange, MemoryId, Metaversion, Segment},
 };
 
+use super::boolean::BooleanColumn;
 use crate::{
     agent::{
         arrow::{array::IntoRecordBatch, record_batch},
@@ -224,7 +222,7 @@ impl AgentBatch {
                 Option<&mut [f64; POSITION_DIM]>,
             ),
         >,
-        MutableBooleanArray,
+        BooleanColumn,
     )> {
         record_batch::topology_mut_iter(self.batch.record_batch_mut()?)
     }

@@ -119,16 +119,18 @@ impl ArrowBatch {
             self.segment().validate_markers().is_ok(),
             "Can't reload record batch; see validate_markers"
         );
+
+        // The record batch was loaded at least once before, since this struct has a `RecordBatch`
+        // field, and the Arrow schema doesn't change, so we can reuse it.
+        let schema = self.record_batch.schema();
+        self.record_batch = ipc::read_record_batch(&self.segment, schema)?;
+
         let record_batch_message = ipc::read_record_batch_message(&self.segment)?;
         let dynamic_meta = DynamicMetadata::from_record_batch(
             &record_batch_message,
             self.segment().get_data_buffer()?.len(),
         )?;
 
-        // The record batch was loaded at least once before, since this struct has a `RecordBatch`
-        // field, and the Arrow schema doesn't change, so we can reuse it.
-        let schema = self.record_batch.schema();
-        self.record_batch = ipc::read_record_batch(&self.segment, schema)?;
         *self.dynamic_meta_mut() = dynamic_meta;
         tracing::trace!("finished reloading record batch and dynamic metadata");
         Ok(())

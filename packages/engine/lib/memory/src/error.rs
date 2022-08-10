@@ -30,7 +30,7 @@ pub enum Error {
     Unique(String),
 
     #[error("Arrow Error: {0}")]
-    Arrow(#[from] arrow2::error::Error),
+    Arrow(arrow2::error::Error),
 
     #[error("Invalid Arrow object downcast. Field name: {name}")]
     InvalidArrowDowncast { name: String },
@@ -96,5 +96,11 @@ impl From<&str> for Error {
 impl From<String> for Error {
     fn from(s: String) -> Self {
         Error::Unique(s)
+    }
+}
+
+impl From<arrow2::error::Error> for Error {
+    fn from(e: arrow2::error::Error) -> Self {
+        panic!("{:?}", e);
     }
 }

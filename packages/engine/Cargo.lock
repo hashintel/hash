@@ -1362,6 +1362,7 @@ version = "0.0.0"
 dependencies = [
  "arrow-format",
  "arrow2",
+ "arrow2_convert",
  "bytemuck",
  "flatbuffers",
  "flatbuffers_gen",

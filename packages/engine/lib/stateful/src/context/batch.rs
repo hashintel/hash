@@ -17,6 +17,7 @@ use memory::{
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
+use tracing::trace;
 
 use crate::{context::ContextColumn, Error, Result};
 
@@ -50,6 +51,11 @@ impl ContextBatch {
         schema: Arc<Schema>,
         memory_id: MemoryId,
     ) -> Result<Self> {
+        trace!(
+            "writing record batch with schema {:?} to shared memory segment {}",
+            schema,
+            memory_id
+        );
         let header = Metaversion::default().to_le_bytes();
 
         let info = calculate_ipc_data_size(record_batch);

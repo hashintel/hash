@@ -1,4 +1,5 @@
 use arrow_format::ipc;
+use tracing::log::trace;
 
 use crate::{
     arrow::meta::{Buffer, ColumnDynamicMetadata, Node},
@@ -65,12 +66,14 @@ impl DynamicMetadata {
         }
     }
 
-    /// Constructs the relevant [`DynamicMetadata`] from the given [`arrow::ipc::RecordBatch`]
-    /// message (note: not [`arrow::record_batch::RecordBatch`]).
+    /// Constructs the relevant [`DynamicMetadata`] from the given
+    /// [`arrow_format::ipc::RecordBatchRef`] message.
     pub fn from_record_batch(
         record_batch: &arrow_format::ipc::RecordBatchRef<'_>,
         data_length: usize,
     ) -> crate::Result<Self> {
+        trace!("started reading dynamic metadata from the RecordBatchRef");
+
         let nodes = record_batch
             .nodes()?
             .ok_or_else(|| Error::ArrowBatch("Missing field nodes".into()))?
@@ -102,6 +105,8 @@ impl DynamicMetadata {
                 })
             })
             .collect::<crate::Result<_>>()?;
+
+        trace!("successfully finished reading dynamic metadata from the RecordBatchRef");
 
         Ok(DynamicMetadata {
             length: record_batch.length()? as usize,

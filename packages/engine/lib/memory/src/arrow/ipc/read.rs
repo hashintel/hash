@@ -7,6 +7,7 @@ use arrow2::{
     io::ipc::{write::default_ipc_fields, IpcSchema},
 };
 use arrow_format::ipc::planus::ReadAsRoot;
+use tracing::log::trace;
 
 use super::RecordBatch;
 use crate::shared_memory::Segment;
@@ -16,6 +17,9 @@ use crate::shared_memory::Segment;
 /// If the data in the [`Segment`] is incorrectly formatted, this method will
 /// return an error.
 pub fn read_record_batch(segment: &Segment, schema: Arc<Schema>) -> crate::Result<RecordBatch> {
+    trace!("started reading record batch");
+    trace!("reading from {}", segment.id());
+
     let batch = read_record_batch_message(segment)?;
 
     let mut reader = std::io::Cursor::new(segment.get_data_buffer()?);
@@ -34,6 +38,7 @@ pub fn read_record_batch(segment: &Segment, schema: Arc<Schema>) -> crate::Resul
         0,
     )?;
 
+    trace!("successfully finished reading record batch");
     Ok(RecordBatch { schema, columns })
 }
 
@@ -50,11 +55,12 @@ pub fn read_record_batch(segment: &Segment, schema: Arc<Schema>) -> crate::Resul
 pub fn read_record_batch_message(
     segment: &Segment,
 ) -> crate::Result<arrow_format::ipc::RecordBatchRef<'_>> {
+    trace!("started reading RecordBatch header message");
     let metadata = segment.get_metadata()?;
     let msg = arrow_format::ipc::MessageRef::read_as_root(metadata)?;
     let header = msg.header()?.ok_or_else(|| {
         crate::Error::ArrowBatch(
-            "the message header was missing on the record batch - this is a bug in the engine"
+            "the message header was missing on the record batch (this is a bug in the engine)"
                 .to_string(),
         )
     })?;
@@ -66,6 +72,9 @@ pub fn read_record_batch_message(
             ));
         }
     };
+
+    trace!("successfully finished reading RecordBatch header message");
+
     Ok(batch)
 }
 

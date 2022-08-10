@@ -1,5 +1,27 @@
+use arrow_format::ipc;
+
 pub mod calculate;
 pub mod write;
+
+/// If and only if debug assertions are enabled (i.e. in debug builds) this function will panic if
+/// the buffers do not increase monotonically. We don't enable this during release builds to
+/// increase performance.
+pub(crate) fn assert_buffer_monotonicity(buffers: &Vec<ipc::Buffer>) {
+    #[cfg(debug_assertions)]
+    {
+        let mut offset = 0;
+        for buffer in buffers {
+            debug_assert!(
+                buffer.offset >= offset,
+                "the offsets in the buffers must be an increasing set, but are not: the previous \
+                 offset was {}, but the next one was {} (which is less than the previous)",
+                offset,
+                buffer.offset
+            );
+            offset = buffer.offset;
+        }
+    }
+}
 
 mod macros {
     #[doc(hidden)]
