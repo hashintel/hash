@@ -2,7 +2,7 @@ import { LinkType, GraphApi } from "@hashintel/hash-graph-client";
 
 import { LinkTypeModel } from "../index";
 
-type LinkTypeModelConstructorArgs = {
+type LinkTypeModelConstructorParams = {
   accountId: string;
   schema: LinkType;
 };
@@ -15,7 +15,7 @@ export default class {
 
   schema: LinkType;
 
-  constructor({ schema, accountId }: LinkTypeModelConstructorArgs) {
+  constructor({ schema, accountId }: LinkTypeModelConstructorParams) {
     this.accountId = accountId;
     this.schema = schema;
   }
