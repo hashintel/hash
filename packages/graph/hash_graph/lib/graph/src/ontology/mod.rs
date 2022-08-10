@@ -36,6 +36,7 @@ impl fmt::Display for AccountId {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
 #[serde(rename_all = "camelCase")]
 pub struct PersistedOntologyIdentifier {
+    #[component(value_type = String)]
     uri: VersionedUri,
     created_by: AccountId,
 }
