@@ -1,5 +1,15 @@
 # This file either runs with JetBrains' http requests or using httpYac (https://httpyac.github.io).
 
+### Get all data types
+GET http://127.0.0.1:4000/data-types
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.length === 6, "Unexpected number of data types"); // The number of primitive data types
+    });
+%}
+
 ### Insert Text data type
 POST http://127.0.0.1:4000/data-types
 Content-Type: application/json
@@ -9,7 +19,7 @@ Accept: application/json
   "accountId": "00000000-0000-0000-0000-000000000000",
   "schema": {
     "kind": "dataType",
-    "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+    "$id": "https://example.com/data-type/text/v/1",
     "title": "Text",
     "type": "string"
   }
@@ -40,7 +50,7 @@ Accept: application/json
   "accountId": "00000000-0000-0000-0000-000000000000",
   "schema": {
     "kind": "dataType",
-    "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/2",
+    "$id": "https://example.com/data-type/text/v/2",
     "title": "Text",
     "description": "An ordered sequence of characters",
     "type": "string"
@@ -50,16 +60,6 @@ Accept: application/json
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-    });
-%}
-
-### Get all data types
-GET http://127.0.0.1:4000/data-types
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.length === 1, "Unexpected number of data types");
     });
 %}
 
@@ -76,7 +76,7 @@ Accept: application/json
     "title": "Name",
     "oneOf": [
       {
-        "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+        "$ref": "https://example.com/data-type/text/v/1"
       }
     ]
   }
@@ -111,7 +111,7 @@ Accept: application/json
     "title": "Name",
     "oneOf": [
       {
-        "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/2"
+        "$ref": "https://example.com/data-type/text/v/2"
       }
     ]
   }
