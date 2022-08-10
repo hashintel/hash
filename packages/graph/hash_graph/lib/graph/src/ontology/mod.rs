@@ -9,8 +9,7 @@ use tokio_postgres::types::{FromSql, ToSql};
 use utoipa::Component;
 use uuid::Uuid;
 
-// TODO - find a good place for AccountId and VersionId, perhaps they will become redundant in a
-//  future design
+// TODO - find a good place for AccountId, perhaps it will become redundant in a future design
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, Component, FromSql, ToSql)]
 #[repr(transparent)]

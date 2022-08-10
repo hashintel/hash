@@ -1,5 +1,6 @@
 pub mod crud;
 pub mod error;
+pub mod query;
 
 mod pool;
 mod postgres;
@@ -9,20 +10,24 @@ use std::fmt;
 use async_trait::async_trait;
 use error_stack::{Context, Result};
 
-use self::error::LinkActivationError;
 pub use self::{
     error::{BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError},
     pool::StorePool,
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    knowledge::{Entity, EntityId, Link, PersistedEntityIdentifier},
+    knowledge::{Entity, EntityId, Link, Links, PersistedEntity, PersistedEntityIdentifier},
     ontology::{
-        types::{uri::VersionedUri, EntityType, LinkType, PropertyType},
+        types::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType},
         AccountId,
     },
-    store::crud::Read,
-    DataType, PersistedEntity,
+    store::{
+        error::LinkActivationError,
+        query::{
+            DataTypeQuery, EntityQuery, EntityTypeQuery, LinkQuery, LinkTypeQuery,
+            PropertyTypeQuery,
+        },
+    },
 };
 
 #[derive(Debug)]
@@ -181,7 +186,7 @@ pub trait Store =
 
 /// Describes the API of a store implementation for [`DataType`]s.
 #[async_trait]
-pub trait DataTypeStore {
+pub trait DataTypeStore: for<'q> crud::Read<DataType, Query<'q> = DataTypeQuery<'q>> {
     /// Creates a new [`DataType`].
     ///
     /// # Errors:
@@ -196,16 +201,13 @@ pub trait DataTypeStore {
         created_by: AccountId,
     ) -> Result<(), InsertionError>;
 
-    /// Get the [`DataType`] specified by `identifier`.
+    /// Get the [`DataType`]s specified by the [`DataTypeQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    async fn get_data_type<'i, I: Send>(&self, identifier: I) -> Result<Self::Output, QueryError>
-    where
-        Self: Read<'i, I, DataType>,
-    {
-        self.get(identifier).await
+    async fn get_data_type(&self, query: &DataTypeQuery<'_>) -> Result<Vec<DataType>, QueryError> {
+        self.read(query).await
     }
 
     /// Update the definition of an existing [`DataType`].
@@ -222,7 +224,9 @@ pub trait DataTypeStore {
 
 /// Describes the API of a store implementation for [`PropertyType`]s.
 #[async_trait]
-pub trait PropertyTypeStore {
+pub trait PropertyTypeStore:
+    for<'q> crud::Read<PropertyType, Query<'q> = PropertyTypeQuery<'q>>
+{
     /// Creates a new [`PropertyType`].
     ///
     /// # Errors:
@@ -237,19 +241,16 @@ pub trait PropertyTypeStore {
         created_by: AccountId,
     ) -> Result<(), InsertionError>;
 
-    /// Get the [`PropertyType`] specified by `identifier`.
+    /// Get the [`PropertyType`]s specified by the [`PropertyTypeQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`PropertyType`] doesn't exist.
-    async fn get_property_type<'i, I: Send>(
+    async fn get_property_type(
         &self,
-        identifier: I,
-    ) -> Result<Self::Output, QueryError>
-    where
-        Self: Read<'i, I, PropertyType>,
-    {
-        self.get(identifier).await
+        query: &PropertyTypeQuery<'_>,
+    ) -> Result<Vec<PropertyType>, QueryError> {
+        self.read(query).await
     }
 
     /// Update the definition of an existing [`PropertyType`].
@@ -266,7 +267,7 @@ pub trait PropertyTypeStore {
 
 /// Describes the API of a store implementation for [`EntityType`]s.
 #[async_trait]
-pub trait EntityTypeStore {
+pub trait EntityTypeStore: for<'q> crud::Read<EntityType, Query<'q> = EntityTypeQuery<'q>> {
     /// Creates a new [`EntityType`].
     ///
     /// # Errors:
@@ -281,16 +282,16 @@ pub trait EntityTypeStore {
         created_by: AccountId,
     ) -> Result<(), InsertionError>;
 
-    /// Get the [`EntityType`] specified by `identifier`.
+    /// Get the [`EntityType`]s specified by the [`EntityTypeQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`EntityType`] doesn't exist.
-    async fn get_entity_type<'i, I: Send>(&self, identifier: I) -> Result<Self::Output, QueryError>
-    where
-        Self: Read<'i, I, EntityType>,
-    {
-        self.get(identifier).await
+    async fn get_entity_type(
+        &self,
+        query: &EntityTypeQuery<'_>,
+    ) -> Result<Vec<EntityType>, QueryError> {
+        self.read(query).await
     }
 
     /// Update the definition of an existing [`EntityType`].
@@ -307,7 +308,7 @@ pub trait EntityTypeStore {
 
 /// Describes the API of a store implementation for [`LinkType`]s.
 #[async_trait]
-pub trait LinkTypeStore {
+pub trait LinkTypeStore: for<'q> crud::Read<LinkType, Query<'q> = LinkTypeQuery<'q>> {
     /// Creates a new [`LinkType`].
     ///
     /// # Errors:
@@ -322,16 +323,13 @@ pub trait LinkTypeStore {
         created_by: AccountId,
     ) -> Result<(), InsertionError>;
 
-    /// Get the [`LinkType`] specified by `identifier`.
+    /// Get the [`LinkType`]s specified by the [`LinkTypeQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`LinkType`] doesn't exist.
-    async fn get_link_type<'i, I: Send>(&self, identifier: I) -> Result<Self::Output, QueryError>
-    where
-        Self: Read<'i, I, LinkType>,
-    {
-        self.get(identifier).await
+    async fn get_link_type(&self, query: &LinkTypeQuery<'_>) -> Result<Vec<LinkType>, QueryError> {
+        self.read(query).await
     }
 
     /// Update the definition of an existing [`LinkType`].
@@ -348,7 +346,7 @@ pub trait LinkTypeStore {
 
 /// Describes the API of a store implementation for Entities.
 #[async_trait]
-pub trait EntityStore {
+pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = EntityQuery> {
     /// Creates a new [`Entity`].
     ///
     /// # Errors:
@@ -363,18 +361,13 @@ pub trait EntityStore {
         created_by: AccountId,
     ) -> Result<PersistedEntityIdentifier, InsertionError>;
 
-    /// Get the [`PersistedEntity`] specified by `identifier`.
-    ///
-    /// Depending on the `identifier` the output is specified by [`Read::Output`].
+    /// Get the [`PersistedEntity`] specified by the [`EntityQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity<'i, I: Send>(&self, identifier: I) -> Result<Self::Output, QueryError>
-    where
-        Self: Read<'i, I, PersistedEntity>,
-    {
-        self.get(identifier).await
+    async fn get_entity(&self, query: &EntityQuery) -> Result<Vec<PersistedEntity>, QueryError> {
+        self.read(query).await
     }
 
     /// Update an existing [`Entity`].
@@ -396,7 +389,7 @@ pub trait EntityStore {
 
 /// Describes the API of a store implementation for [`Link`]s.
 #[async_trait]
-pub trait LinkStore {
+pub trait LinkStore: for<'q> crud::Read<Links, Query<'q> = LinkQuery<'q>> {
     /// Creates a new [`Link`].
     ///
     /// # Errors:
@@ -410,34 +403,13 @@ pub trait LinkStore {
         created_by: AccountId,
     ) -> Result<(), InsertionError>;
 
-    /// Get one or multiple [`Link`]s of an [`Entity`] specified by `identifier`.
-    ///
-    /// Depending on the `identifier` the output is specified by [`Read::Output`].
+    /// Get the [`Links`] specified by the [`LinkQuery`].
     ///
     /// # Errors
     ///
-    /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity_links<'i, I: Send>(&self, identifier: I) -> Result<Self::Output, QueryError>
-    where
-        Self: Read<'i, I, Link>,
-    {
-        self.get(identifier).await
-    }
-
-    /// Get a [`Link`] target identified by an [`EntityId`] and a Link Type [`VersionedUri`].
-    ///
-    /// # Errors
-    ///
-    /// - if the requested [`Entity`] doesn't exist
-    async fn get_link_target<'i, E: Send, L: Send>(
-        &self,
-        source_entity: E,
-        link_type: L,
-    ) -> Result<Self::Output, QueryError>
-    where
-        Self: Read<'i, (E, L), Link>,
-    {
-        self.get((source_entity, link_type)).await
+    /// - if the requested [`Links`] don't exist.
+    async fn get_links(&self, query: &LinkQuery<'_>) -> Result<Vec<Links>, QueryError> {
+        self.read(query).await
     }
 
     /// Inactivates a [`Link`] between a source and target [`Entity`].

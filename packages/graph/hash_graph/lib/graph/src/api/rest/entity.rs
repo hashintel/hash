@@ -13,13 +13,13 @@ use utoipa::{Component, OpenApi};
 
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store},
-    knowledge::{Entity, EntityId, PersistedEntityIdentifier},
+    knowledge::{Entity, EntityId, PersistedEntity, PersistedEntityIdentifier},
     ontology::{types::uri::VersionedUri, AccountId},
     store::{
-        crud::AllLatest,
         error::{EntityDoesNotExist, QueryError},
+        query::EntityQuery,
+        EntityStore, StorePool,
     },
-    GraphPool, PersistedEntity,
 };
 
 #[derive(OpenApi)]
@@ -39,7 +39,7 @@ pub struct EntityResource;
 
 impl RoutedResource for EntityResource {
     /// Create routes for interacting with entities.
-    fn routes<P: GraphPool>() -> Router {
+    fn routes<P: StorePool + Send + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/entities",
@@ -78,7 +78,7 @@ struct CreateEntityRequest {
     ),
     request_body = CreateEntityRequest,
 )]
-async fn create_entity<P: GraphPool>(
+async fn create_entity<P: StorePool + Send>(
     body: Json<CreateEntityRequest>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedEntityIdentifier>, StatusCode> {
@@ -120,13 +120,17 @@ async fn create_entity<P: GraphPool>(
         ("entityId" = Uuid, Path, description = "The ID of the entity"),
     )
 )]
-async fn get_entity<P: GraphPool>(
+async fn get_entity<P: StorePool + Send>(
     Path(entity_id): Path<EntityId>,
-    Extension(pool): Extension<Arc<P>>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedEntity>, StatusCode> {
-    read_from_store::<PersistedEntity, _, _, _>(pool.as_ref(), entity_id)
-        .await
-        .map(Json)
+    read_from_store(
+        pool.as_ref(),
+        &EntityQuery::new().by_id(entity_id).by_latest_version(),
+    )
+    .await
+    .and_then(|mut entities| entities.pop().ok_or(StatusCode::NOT_FOUND))
+    .map(Json)
 }
 
 #[utoipa::path(
@@ -138,10 +142,10 @@ async fn get_entity<P: GraphPool>(
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_latest_entities<P: GraphPool>(
+async fn get_latest_entities<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PersistedEntity>>, StatusCode> {
-    read_from_store::<PersistedEntity, _, _, _>(pool.as_ref(), AllLatest)
+    read_from_store(pool.as_ref(), &EntityQuery::new().by_latest_version())
         .await
         .map(Json)
 }
@@ -169,7 +173,7 @@ struct UpdateEntityRequest {
     ),
     request_body = UpdateEntityRequest,
 )]
-async fn update_entity<P: GraphPool>(
+async fn update_entity<P: StorePool + Send>(
     body: Json<UpdateEntityRequest>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedEntityIdentifier>, StatusCode> {

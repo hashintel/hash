@@ -6,13 +6,12 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::{
-    knowledge::PersistedEntityIdentifier,
-    ontology::AccountId,
+    knowledge::{Entity, EntityId, PersistedEntityIdentifier},
+    ontology::{types::uri::VersionedUri, AccountId},
     store::{
         error::EntityDoesNotExist, AsClient, EntityStore, InsertionError, PostgresStore,
         UpdateError,
     },
-    Entity, EntityId, VersionedUri,
 };
 
 #[async_trait]

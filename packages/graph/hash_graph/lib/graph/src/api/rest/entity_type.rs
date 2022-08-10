@@ -18,10 +18,10 @@ use crate::{
         AccountId,
     },
     store::{
-        crud::AllLatest,
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
+        query::EntityTypeQuery,
+        EntityTypeStore, StorePool,
     },
-    GraphPool,
 };
 
 #[derive(OpenApi)]
@@ -41,7 +41,7 @@ pub struct EntityTypeResource;
 
 impl RoutedResource for EntityTypeResource {
     /// Create routes for interacting with entity types.
-    fn routes<P: GraphPool>() -> Router {
+    fn routes<P: StorePool + Send + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/entity-types",
@@ -79,7 +79,7 @@ struct CreateEntityTypeRequest {
     ),
     request_body = CreateEntityTypeRequest,
 )]
-async fn create_entity_type<P: GraphPool>(
+async fn create_entity_type<P: StorePool + Send>(
     body: Json<CreateEntityTypeRequest>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<EntityType>, StatusCode> {
@@ -117,10 +117,10 @@ async fn create_entity_type<P: GraphPool>(
         (status = 500, description = "Datastore error occurred"),
     )
 )]
-async fn get_latest_entity_types<P: GraphPool>(
+async fn get_latest_entity_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<EntityType>>, StatusCode> {
-    read_from_store::<EntityType, _, _, _>(pool.as_ref(), AllLatest)
+    read_from_store(pool.as_ref(), &EntityTypeQuery::new().by_latest_version())
         .await
         .map(Json)
 }
@@ -140,13 +140,19 @@ async fn get_latest_entity_types<P: GraphPool>(
         ("uri" = String, Path, description = "The URI of the entity type"),
     )
 )]
-async fn get_entity_type<P: GraphPool>(
-    Path(uri): Path<VersionedUri>,
-    Extension(pool): Extension<Arc<P>>,
+async fn get_entity_type<P: StorePool + Send>(
+    uri: Path<VersionedUri>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<EntityType>, StatusCode> {
-    read_from_store::<EntityType, _, _, _>(pool.as_ref(), &uri)
-        .await
-        .map(Json)
+    read_from_store(
+        pool.as_ref(),
+        &EntityTypeQuery::new()
+            .by_uri(uri.base_uri())
+            .by_version(uri.version()),
+    )
+    .await
+    .and_then(|mut entity_types| entity_types.pop().ok_or(StatusCode::NOT_FOUND))
+    .map(Json)
 }
 
 #[derive(Component, Serialize, Deserialize)]
@@ -170,7 +176,7 @@ struct UpdateEntityTypeRequest {
     ),
     request_body = UpdateEntityTypeRequest,
 )]
-async fn update_entity_type<P: GraphPool>(
+async fn update_entity_type<P: StorePool + Send>(
     body: Json<UpdateEntityTypeRequest>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<EntityType>, StatusCode> {

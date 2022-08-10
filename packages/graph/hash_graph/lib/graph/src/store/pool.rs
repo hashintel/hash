@@ -5,12 +5,12 @@ use crate::store::Store;
 
 /// Managed pool to keep track about [`Store`]s.
 #[async_trait]
-pub trait StorePool: Send + Sync {
+pub trait StorePool: Sync {
     /// The error returned when acquiring a [`Store`].
     type Error;
 
     /// The store returned when acquiring.
-    type Store<'pool>: Store + Send + Sync
+    type Store<'pool>: Store + Send
     where
         Self: 'pool;
 

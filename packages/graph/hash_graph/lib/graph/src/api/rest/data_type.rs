@@ -18,8 +18,9 @@ use crate::{
         types::{uri::VersionedUri, DataType},
         AccountId,
     },
-    store::{crud::AllLatest, BaseUriAlreadyExists, BaseUriDoesNotExist},
-    GraphPool,
+    store::{
+        query::DataTypeQuery, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool,
+    },
 };
 
 #[derive(OpenApi)]
@@ -39,7 +40,7 @@ pub struct DataTypeResource;
 
 impl RoutedResource for DataTypeResource {
     /// Create routes for interacting with data types.
-    fn routes<P: GraphPool>() -> Router {
+    fn routes<P: StorePool + Send + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/data-types",
@@ -77,7 +78,7 @@ struct CreateDataTypeRequest {
     ),
     request_body = CreateDataTypeRequest,
 )]
-async fn create_data_type<P: GraphPool>(
+async fn create_data_type<P: StorePool + Send>(
     body: Json<CreateDataTypeRequest>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<DataType>, StatusCode> {
@@ -116,10 +117,10 @@ async fn create_data_type<P: GraphPool>(
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_latest_data_types<P: GraphPool>(
+async fn get_latest_data_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<DataType>>, StatusCode> {
-    read_from_store::<DataType, _, _, _>(pool.as_ref(), AllLatest)
+    read_from_store(pool.as_ref(), &DataTypeQuery::new().by_latest_version())
         .await
         .map(Json)
 }
@@ -139,13 +140,19 @@ async fn get_latest_data_types<P: GraphPool>(
         ("uri" = String, Path, description = "The URI of the data type"),
     )
 )]
-async fn get_data_type<P: GraphPool>(
-    Path(uri): Path<VersionedUri>,
-    Extension(pool): Extension<Arc<P>>,
+async fn get_data_type<P: StorePool + Send>(
+    uri: Path<VersionedUri>,
+    pool: Extension<Arc<P>>,
 ) -> Result<Json<DataType>, StatusCode> {
-    read_from_store::<DataType, _, _, _>(pool.as_ref(), &uri)
-        .await
-        .map(Json)
+    read_from_store(
+        pool.as_ref(),
+        &DataTypeQuery::new()
+            .by_uri(uri.base_uri())
+            .by_version(uri.version()),
+    )
+    .await
+    .and_then(|mut data_types| data_types.pop().ok_or(StatusCode::NOT_FOUND))
+    .map(Json)
 }
 
 #[derive(Component, Serialize, Deserialize)]
@@ -169,7 +176,7 @@ struct UpdateDataTypeRequest {
     ),
     request_body = UpdateDataTypeRequest,
 )]
-async fn update_data_type<P: GraphPool>(
+async fn update_data_type<P: StorePool + Send>(
     body: Json<UpdateDataTypeRequest>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<DataType>, StatusCode> {
