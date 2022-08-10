@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
-use postgres_types::ToSql;
 use serde::Deserialize;
 use tokio_postgres::GenericClient;
 
@@ -13,15 +12,11 @@ use crate::{
     },
     store::{
         crud::Read,
-        postgres::ontology::OntologyDatabaseType,
+        postgres::{ontology::OntologyDatabaseType, parameter_list},
         query::{OntologyQuery, OntologyVersion},
         AsClient, PostgresStore, QueryError,
     },
 };
-
-fn parameter_list<const N: usize>(list: [&(dyn ToSql + Sync); N]) -> [&(dyn ToSql + Sync); N] {
-    list
-}
 
 pub trait PersistedOntologyType {
     type Inner;
