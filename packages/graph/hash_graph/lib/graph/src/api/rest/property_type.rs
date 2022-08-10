@@ -120,12 +120,9 @@ async fn create_property_type<P: StorePool + Send>(
 async fn get_latest_property_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PropertyType>>, StatusCode> {
-    read_from_store(
-        pool.as_ref(),
-        &PropertyTypeQuery::new().by_latest_version(),
-    )
-    .await
-    .map(Json)
+    read_from_store(pool.as_ref(), &PropertyTypeQuery::new().by_latest_version())
+        .await
+        .map(Json)
 }
 
 #[utoipa::path(
