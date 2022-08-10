@@ -6,10 +6,10 @@ labels: A-error-stack, C-bug
 assignees: TimDiekmann, Alfred-Mountfield
 ---
 
-**Describe the bug**
+**Describe the bug**  
 A clear and concise description of what the bug is.
 
-**To reproduce**
+**To reproduce**  
 Steps to reproduce the behavior:
 
 ```rust
@@ -18,10 +18,10 @@ fn main() {
 }
 ```
 
-**Expected behavior**
+**Expected behavior**  
 A clear and concise description of what you expected to happen.
 
-**Screenshots**
+**Screenshots**  
 If applicable, add screenshots to help explain your problem.
 
 **Desktop (please complete the following information):**
@@ -32,5 +32,5 @@ If applicable, add screenshots to help explain your problem.
 - Version: [e.g. 0.1.1]
 - Features: [e.g. default, spantrace]
 
-**Additional context**
+**Additional context**  
 Add any other context about the problem here.

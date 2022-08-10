@@ -6,10 +6,10 @@ labels: A-engine, C-bug
 assignees: TimDiekmann, Alfred-Mountfield
 ---
 
-**Describe the bug**
+**Describe the bug**  
 A clear and concise description of what the bug is.
 
-**To reproduce**
+**To reproduce**  
 Where possible, please link us to your simulation project on HASH to help us debug. Steps to reproduce the behavior:
 
 1.  Go to '...'
@@ -17,10 +17,10 @@ Where possible, please link us to your simulation project on HASH to help us deb
 1.  Scroll down to '...'
 1.  See error
 
-**Expected behavior**
+**Expected behavior**  
 A clear and concise description of what you expected to happen.
 
-**Screenshots**
+**Screenshots**  
 If applicable, add screenshots to help explain your problem.
 
 **Desktop (please complete the following information):**
@@ -29,5 +29,5 @@ If applicable, add screenshots to help explain your problem.
 - rustc: [e.g. nightly-2020-08-08]
 - target: [e.g. x86_64-unknown-linux-gnu]
 
-**Additional context**
+**Additional context**  
 Add any other context about the problem here, e.g. the log output.
