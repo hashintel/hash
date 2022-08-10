@@ -49,7 +49,7 @@ export const createApolloServer = ({
   const getDataSources = () => {
     const sources: GraphQLContext["dataSources"] = {
       /** @todo: remove all db dependencies */
-      db: null as any,
+      db: {} as any,
       graphApi,
       cache,
     };
