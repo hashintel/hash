@@ -13,8 +13,8 @@ A clear and concise description of what the bug is.
 Where possible, please link us to your simulation project on HASH to help us debug. Steps to reproduce the behavior:
 
 1.  Go to '...'
-1.  Click on '....'
-1.  Scroll down to '....'
+1.  Click on '...'
+1.  Scroll down to '...'
 1.  See error
 
 **Expected behavior**
