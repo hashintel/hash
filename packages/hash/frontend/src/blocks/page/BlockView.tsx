@@ -19,6 +19,7 @@ import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
 import { BlockHandle } from "./BlockHandle";
 import { InsertBlock } from "./InsertBlock";
+import { BlockHighlight } from "./BlockHighlight";
 
 export const getBlockDomId = (blockEntityId: string) =>
   `entity-${blockEntityId}`;
@@ -217,6 +218,7 @@ export class BlockView implements NodeView<Schema> {
     this.renderPortal(
       <BlockViewContext.Provider value={this}>
         <CollabPositionIndicators blockEntityId={blockEntityId} />
+        <BlockHighlight />
         <BlockHandle
           deleteBlock={this.deleteBlock}
           entityStore={this.store}
