@@ -10,7 +10,7 @@ assignees: ''
 **Describe the bug**
 A clear and concise description of what the bug is.
 
-**To Reproduce**
+**To reproduce**
 Where possible, please link us to your simulation project on HASH to help us debug. Steps to reproduce the behavior:
 1. Go to '...'
 2. Click on '....'
