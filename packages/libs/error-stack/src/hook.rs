@@ -80,7 +80,7 @@ impl Report<()> {
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::{
-    ///     fmt::{self, Line},
+    ///     fmt::{self, Emit},
     ///     report, Report,
     /// };
     ///
@@ -88,7 +88,7 @@ impl Report<()> {
     ///
     /// # fn main() -> Result<(), Report<error_stack::HookAlreadySet>> {
     /// Report::install_hook(
-    ///     fmt::Hooks::new().push(|val: &Suggestion| Line::Next(format!("Suggestion: {}", val.0))),
+    ///     fmt::Hooks::new().push(|val: &Suggestion| Emit::Next(format!("Suggestion: {}", val.0))),
     /// )?;
     ///
     /// let report =

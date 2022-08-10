@@ -9,7 +9,7 @@ use common::*;
 #[cfg(all(nightly, feature = "experimental"))]
 use error_stack::fmt::DebugDiagnostic;
 #[cfg(feature = "hooks")]
-use error_stack::fmt::{HookContext, Hooks, Line};
+use error_stack::fmt::{Emit, HookContext, Hooks};
 #[allow(unused_imports)]
 use error_stack::Report;
 use insta::assert_snapshot;
@@ -283,7 +283,7 @@ mod hooks {
 
         let report = create_report().attach(2u32);
 
-        Report::install_hook(Hooks::new().push(|_: &u32| Line::next("unsigned 32bit integer")))
+        Report::install_hook(Hooks::new().push(|_: &u32| Emit::next("unsigned 32bit integer")))
             .unwrap();
 
         assert_snapshot!(redact(&format!("{report:?}")));
@@ -296,7 +296,7 @@ mod hooks {
         let report = create_report().attach(2u32);
 
         Report::install_hook(Hooks::new().push(|_: &u32, ctx: &mut HookContext<u32>| {
-            Line::next(format!("unsigned 32bit integer (No. {})", ctx.increment()))
+            Emit::next(format!("unsigned 32bit integer (No. {})", ctx.increment()))
         }))
         .unwrap();
 
@@ -311,8 +311,8 @@ mod hooks {
 
         Report::install_hook(
             Hooks::new()
-                .push(|_: &u32| Line::next("unsigned 32bit integer"))
-                .push(|_: &u64| Line::next("unsigned 64-bit integer")),
+                .push(|_: &u32| Emit::next("unsigned 32bit integer"))
+                .push(|_: &u64| Emit::next("unsigned 64-bit integer")),
         )
         .unwrap();
 
@@ -329,13 +329,13 @@ mod hooks {
             .attach(3u16);
 
         let other = Hooks::new()
-            .push(|_: &u32| Line::next("u32 (other)"))
-            .push(|_: &u16| Line::next("u16 (other)"));
+            .push(|_: &u32| Emit::next("u32 (other)"))
+            .push(|_: &u16| Emit::next("u16 (other)"));
 
         Report::install_hook(
             Hooks::new()
-                .push(|_: &u32| Line::next("u32"))
-                .push(|_: &u64| Line::next("u64"))
+                .push(|_: &u32| Emit::next("u32"))
+                .push(|_: &u64| Emit::next("u64"))
                 .combine(other),
         )
         .unwrap();
@@ -354,9 +354,9 @@ mod hooks {
 
         Report::install_hook(
             Hooks::new()
-                .push(|_: &u32| Line::defer("u32"))
-                .push(|_: &u64| Line::next("u64"))
-                .push(|_: &u16| Line::defer("u16")),
+                .push(|_: &u32| Emit::defer("u32"))
+                .push(|_: &u64| Emit::next("u64"))
+                .push(|_: &u16| Emit::defer("u16")),
         )
         .unwrap();
 
@@ -373,7 +373,7 @@ mod hooks {
             .attach(3u32);
 
         Report::install_hook(Hooks::new().push(|_: &u32, ctx: &mut HookContext<u32>| {
-            Line::next(format!("{}", ctx.decrement()))
+            Emit::next(format!("{}", ctx.decrement()))
         }))
         .unwrap();
 
@@ -390,7 +390,7 @@ mod hooks {
             .attach(3u32);
 
         Report::install_hook(Hooks::new().push(|_: &u32, ctx: &mut HookContext<u32>| {
-            Line::next(format!("{}", ctx.increment()))
+            Emit::next(format!("{}", ctx.increment()))
         }))
         .unwrap();
 

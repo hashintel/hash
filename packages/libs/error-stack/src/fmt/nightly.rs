@@ -1,6 +1,6 @@
 use alloc::{string::String, vec, vec::Vec};
 
-use crate::fmt::Line;
+use crate::fmt::Emit;
 
 /// `nightly` experimental type, which is used during the formatting of [`Debug`] context via the
 /// [`Provider`] api.
@@ -44,7 +44,7 @@ use crate::fmt::Line;
 // TODO: remove experimental flag once specialisation is stabilized or sound or `.attach_provider()`
 //  is introduced.
 pub struct DebugDiagnostic {
-    output: Line,
+    output: Emit,
     text: Vec<String>,
 }
 
@@ -52,7 +52,7 @@ impl DebugDiagnostic {
     /// The diagnostic is going to be emitted immediately once encountered in the frame stack.
     pub fn next<T: Into<String>>(output: T) -> Self {
         Self {
-            output: Line::Next(output.into()),
+            output: Emit::Next(output.into()),
             text: vec![],
         }
     }
@@ -61,7 +61,7 @@ impl DebugDiagnostic {
     /// stack.
     pub fn defer<T: Into<String>>(output: T) -> Self {
         Self {
-            output: Line::Defer(output.into()),
+            output: Emit::Defer(output.into()),
             text: vec![],
         }
     }
@@ -76,7 +76,7 @@ impl DebugDiagnostic {
         self
     }
 
-    pub(crate) const fn output(&self) -> &Line {
+    pub(crate) const fn output(&self) -> &Emit {
         &self.output
     }
 

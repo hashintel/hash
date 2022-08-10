@@ -22,13 +22,14 @@ use core::marker::PhantomData;
 
 pub use builtin::Builtin;
 
+use crate::fmt::Emit;
 #[cfg(feature = "hooks")]
 use crate::fmt::Frame;
-use crate::fmt::Line;
 
 #[derive(Default)]
 pub struct HookContextImpl {
     pub(crate) text: Vec<Vec<String>>,
+    alternate: bool,
     #[cfg(any(
         feature = "hooks",
         feature = "spantrace",
@@ -89,14 +90,14 @@ impl HookContextImpl {
 /// use std::io::ErrorKind;
 ///
 /// use error_stack::{
-///     fmt::{HookContext, Hooks, Line},
+///     fmt::{HookContext, Hooks, Emit},
 ///     Report,
 /// };
 /// use insta::assert_snapshot;
 ///
 /// Report::install_hook(Hooks::bare().push(|val: &u64, ctx: &mut HookContext<u64>| {
 ///     ctx.set_text("u64 has been encountered");
-///     Line::next(val.to_string())
+///     Emit::next(val.to_string())
 /// }))
 /// .unwrap();
 ///
@@ -138,7 +139,7 @@ impl HookContextImpl {
 /// use std::io::ErrorKind;
 ///
 /// use error_stack::{
-///     fmt::{HookContext, Hooks, Line},
+///     fmt::{HookContext, Hooks, Emit},
 ///     Report,
 /// };
 /// use insta::assert_snapshot;
@@ -152,7 +153,7 @@ impl HookContextImpl {
 ///
 ///     ctx.insert(acc);
 ///
-///     Line::next(format!("{val} (acc: {acc}, div: {div})"))
+///     Emit::next(format!("{val} (acc: {acc}, div: {div})"))
 /// }))
 /// .unwrap();
 ///
@@ -236,7 +237,7 @@ impl<'a, T> HookContext<'a, T> {
     /// use std::io::ErrorKind;
     ///
     /// use error_stack::{
-    ///     fmt::{Hook, HookContext, Hooks, Line},
+    ///     fmt::{Hook, HookContext, Hooks, Emit},
     ///     Report,
     /// };
     /// use insta::assert_snapshot;
@@ -245,17 +246,17 @@ impl<'a, T> HookContext<'a, T> {
     /// struct Value(u64);
     ///
     /// impl Hook<Value, ()> for CustomHook {
-    ///     fn call(&self, _: &Value, ctx: HookContext<Value>) -> Option<Line> {
+    ///     fn call(&self, _: &Value, ctx: HookContext<Value>) -> Option<Emit> {
     ///         // the inner value of `Value` is always `u64`,
     ///         // we therefore only "mask" u64 and want to use the same incremental value.
     ///         let mut ctx = ctx.cast::<u64>();
-    ///         Some(Line::next(format!("{} (Value)", ctx.increment())))
+    ///         Some(Emit::next(format!("{} (Value)", ctx.increment())))
     ///     }
     /// }
     ///
     /// Report::install_hook(
     ///     Hooks::bare()
-    ///         .push(|_: &u64, ctx: &mut HookContext<u64>| Line::next(format!("{}", ctx.increment())))
+    ///         .push(|_: &u64, ctx: &mut HookContext<u64>| Emit::next(format!("{}", ctx.increment())))
     ///         .push(CustomHook),
     /// )
     /// .unwrap();
@@ -286,6 +287,13 @@ impl<'a, T> HookContext<'a, T> {
             parent: self.parent,
             _marker: PhantomData::default(),
         }
+    }
+
+    // TODO: text force (how?)
+    /// Is the currently requested format the alternate representation?
+    /// This corresponds to the output of [`std::fmt::Formatter::alternate`].
+    pub fn alternate(&self) -> bool {
+        self.parent.alternate
     }
 
     #[cfg(feature = "hooks")]
@@ -372,13 +380,13 @@ impl<T: 'static> HookContext<'_, T> {
     /// use std::io::ErrorKind;
     ///
     /// use error_stack::{
-    ///     fmt::{HookContext, Hooks, Line},
+    ///     fmt::{HookContext, Hooks, Emit},
     ///     Report,
     /// };
     /// use insta::assert_snapshot;
     ///
     /// Report::install_hook(Hooks::bare().push(|_: &(), ctx: &mut HookContext<()>| {
-    ///     Line::next(format!("{}", ctx.increment()))
+    ///     Emit::next(format!("{}", ctx.increment()))
     /// }))
     /// .unwrap();
     ///
@@ -430,13 +438,13 @@ impl<T: 'static> HookContext<'_, T> {
     /// use std::io::ErrorKind;
     ///
     /// use error_stack::{
-    ///     fmt::{HookContext, Hooks, Line},
+    ///     fmt::{HookContext, Hooks, Emit},
     ///     Report,
     /// };
     /// use insta::assert_snapshot;
     ///
     /// Report::install_hook(Hooks::bare().push(|_: &(), ctx: &mut HookContext<()>| {
-    ///     Line::next(format!("{}", ctx.decrement()))
+    ///     Emit::next(format!("{}", ctx.decrement()))
     /// }))
     /// .unwrap();
     ///
@@ -547,16 +555,16 @@ where
     ///
     /// return None
     /// ```
-    fn call(&self, frame: &T, ctx: HookContext<T>) -> Option<Line>;
+    fn call(&self, frame: &T, ctx: HookContext<T>) -> Option<Emit>;
 }
 
 #[cfg(feature = "hooks")]
 impl<F, T> Hook<T, FnContextMarker> for F
 where
-    F: Fn(&T, &mut HookContext<T>) -> Line,
+    F: Fn(&T, &mut HookContext<T>) -> Emit,
     T: Send + Sync + 'static,
 {
-    fn call(&self, frame: &T, mut ctx: HookContext<T>) -> Option<Line> {
+    fn call(&self, frame: &T, mut ctx: HookContext<T>) -> Option<Emit> {
         Some((self)(frame, &mut ctx))
     }
 }
@@ -564,10 +572,10 @@ where
 #[cfg(feature = "hooks")]
 impl<F, T> Hook<T, FnMarker> for F
 where
-    F: Fn(&T) -> Line,
+    F: Fn(&T) -> Emit,
     T: Send + Sync + 'static,
 {
-    fn call(&self, frame: &T, _: HookContext<T>) -> Option<Line> {
+    fn call(&self, frame: &T, _: HookContext<T>) -> Option<Emit> {
         Some((self)(frame))
     }
 }
@@ -620,7 +628,7 @@ where
     T: Send + Sync + 'static,
     R: Hook<Frame, ()>,
 {
-    fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Line> {
+    fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Emit> {
         if let Some(frame) = frame.downcast_ref::<T>() {
             self.left.call(frame, ctx.cast())
         } else {
@@ -678,7 +686,7 @@ where
     L: Hook<Frame, ()>,
     R: Hook<Frame, ()>,
 {
-    fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Line> {
+    fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Emit> {
         let parent = ctx.into_impl();
 
         self.left
@@ -689,7 +697,7 @@ where
 
 #[cfg(feature = "hooks")]
 impl Hook<Frame, ()> for Box<dyn Hook<Frame, ()> + Send + Sync> {
-    fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Line> {
+    fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Emit> {
         let hook = self.as_ref();
 
         hook.call(frame, ctx)
@@ -698,7 +706,7 @@ impl Hook<Frame, ()> for Box<dyn Hook<Frame, ()> + Send + Sync> {
 
 #[cfg(feature = "hooks")]
 impl<T> Hook<T, ()> for () {
-    fn call(&self, _: &T, _: HookContext<T>) -> Option<Line> {
+    fn call(&self, _: &T, _: HookContext<T>) -> Option<Emit> {
         None
     }
 }
@@ -781,14 +789,14 @@ impl<T: Hook<Frame, ()>> Hooks<T> {
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::{
-    ///     fmt::{HookContext, Hooks, Line},
+    ///     fmt::{Emit, HookContext, Hooks},
     ///     report, Report,
     /// };
     ///
     /// let hooks = Hooks::new() //
-    ///     .push(|val: &u32| Line::next(format!("{val}u32")))
+    ///     .push(|val: &u32| Emit::next(format!("{val}u32")))
     ///     .push(|_: &u64, ctx: &mut HookContext<u64>| {
-    ///         Line::defer(format!("u64 No. {}", ctx.increment()))
+    ///         Emit::defer(format!("u64 No. {}", ctx.increment()))
     ///     });
     ///
     /// Report::install_hook(hooks).unwrap();
@@ -822,18 +830,18 @@ impl<T: Hook<Frame, ()>> Hooks<T> {
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::{
-    ///     fmt::{HookContext, Hooks, Line},
+    ///     fmt::{Emit, HookContext, Hooks},
     ///     report, Report,
     /// };
     ///
     /// let other = Hooks::new()
-    ///     .push(|val: &u32| Line::next(format!("unsigned integer: {val}")))
-    ///     .push(|_: &&str| Line::next("You should have used `.attach_printable` ..."));
+    ///     .push(|val: &u32| Emit::next(format!("unsigned integer: {val}")))
+    ///     .push(|_: &&str| Emit::next("You should have used `.attach_printable` ..."));
     ///
     /// let hooks = Hooks::new() //
-    ///     .push(|val: &u32| Line::next(format!("{val}u32")))
+    ///     .push(|val: &u32| Emit::next(format!("{val}u32")))
     ///     .push(|_: &u64, ctx: &mut HookContext<u64>| {
-    ///         Line::defer(format!("u64 No. {}", ctx.increment()))
+    ///         Emit::defer(format!("u64 No. {}", ctx.increment()))
     ///     })
     ///     .combine(other);
     ///
@@ -869,7 +877,7 @@ pub type ErasedHooks = Hooks<Box<dyn Hook<Frame, ()> + Send + Sync>>;
 
 #[cfg(feature = "hooks")]
 impl ErasedHooks {
-    pub(crate) fn call(&self, frame: &Frame, ctx: &mut HookContextImpl) -> Option<Line> {
+    pub(crate) fn call(&self, frame: &Frame, ctx: &mut HookContextImpl) -> Option<Emit> {
         self.0.call(frame, ctx.cast())
     }
 }
@@ -886,18 +894,18 @@ mod builtin {
     use crate::{
         fmt::{
             hook::{Hook, HookContext},
-            Line,
+            Emit,
         },
         Frame,
     };
 
     #[cfg(all(nightly, feature = "std"))]
-    fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Line {
+    fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Emit {
         let idx = ctx.increment();
 
         ctx.set_text(&format!("Backtrace No. {}\n{}", idx + 1, backtrace));
 
-        Line::Defer(format!(
+        Emit::Defer(format!(
             "backtrace with {} frames ({})",
             backtrace.frames().len(),
             idx + 1
@@ -905,7 +913,7 @@ mod builtin {
     }
 
     #[cfg(feature = "spantrace")]
-    fn spantrace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) -> Line {
+    fn spantrace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) -> Emit {
         let idx = ctx.increment();
 
         let mut span = 0;
@@ -916,7 +924,7 @@ mod builtin {
 
         ctx.set_text(&format!("Span Trace No. {}\n{}", idx + 1, spantrace));
 
-        Line::Defer(format!("spantrace with {span} frames ({})", idx + 1))
+        Emit::Defer(format!("spantrace with {span} frames ({})", idx + 1))
     }
 
     /// Builtin hooks
@@ -930,7 +938,7 @@ mod builtin {
 
     impl Hook<Frame, ()> for Builtin {
         #[allow(unused_variables)]
-        fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Line> {
+        fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Emit> {
             #[cfg(all(nightly, feature = "std"))]
             if let Some(bt) = frame.request_ref() {
                 return Some(backtrace(bt, &mut ctx.cast()));

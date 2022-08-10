@@ -34,7 +34,7 @@
 //! use std::io::{Error, ErrorKind};
 //! use insta::assert_snapshot;
 //! use error_stack::{
-//!     fmt::{Hooks, Line},
+//!     fmt::{Hooks, Emit},
 //!     Report,
 //! };
 //! use error_stack::fmt::HookContext;
@@ -44,23 +44,23 @@
 //! # // to make the output easier, we actually use `::bare`, but that shouldn't be really used in this example
 //! # )); Report::install_hook(Hooks::bare()
 //!  // this will never be called, because the a hook after this one has already "taken ownership" of `u64`
-//!  .push(|_: &u64| Line::next("will never be called"))
+//!  .push(|_: &u64| Emit::next("will never be called"))
 //!  // `HookContext` always has a type parameter, which needs to be the same as the type of the
 //!  // value, we use `HookContext` here as storage, to store values specific to this hook.
 //!  // Here we make use of the auto-incrementing feature.
-//!  .push(|_: &u32, ctx: &mut HookContext<u32>| Line::next(format!("u32 value {}", ctx.increment())))
+//!  .push(|_: &u32, ctx: &mut HookContext<u32>| Emit::next(format!("u32 value {}", ctx.increment())))
 //!  // we do not need to make use of the context, to either store a value for the duration of the
 //!  // rendering, or to render additional text, which is why we omit the parameter.
-//!  .push(|val: &u64| Line::next(format!("u64 value ({val})")))
+//!  .push(|val: &u64| Emit::next(format!("u64 value ({val})")))
 //!  .push(|_: &u16, ctx: &mut HookContext<u16>| {
 //!     // we set a value, which will be removed on non-alternate views
 //!     // and is going to be appended to the actual return value.
 //!     ctx.set_text("Look! I was rendered from a `u16`");
-//!     Line::next("For more information, look down below")
+//!     Emit::next("For more information, look down below")
 //!  })
 //!  // you can use arbitrary values as arguments, just make sure that you won't repeat them.
 //!  // here we use [`Line::defer`], this means that this value will be put at the end of the group.
-//!  .push(|val: &String| Line::defer(val))
+//!  .push(|val: &String| Emit::defer(val))
 //! ).unwrap();
 //!
 //! let report = Report::new(Error::from(ErrorKind::InvalidInput)).attach(2u64).attach("This is going to be at the end".to_owned()).attach(3u32).attach(3u32).attach(4u16);
@@ -153,14 +153,14 @@ use crate::{AttachmentKind, Frame, FrameKind, Report};
 /// use insta::assert_debug_snapshot;
 ///
 /// use error_stack::{
-///     fmt::{Hooks, Line},
+///     fmt::{Hooks, Emit},
 ///     Report,
 /// };
 ///
 /// Report::install_hook(
 ///     Hooks::bare()
-///         .push(|val: &u64| Line::next(format!("u64: {val}")))
-///         .push(|val: &u32| Line::defer(format!("u32: {val}"))),
+///         .push(|val: &u64| Emit::next(format!("u64: {val}")))
+///         .push(|val: &u32| Emit::defer(format!("u32: {val}"))),
 /// )
 /// .unwrap();
 ///
@@ -192,7 +192,7 @@ use crate::{AttachmentKind, Frame, FrameKind, Report};
 /// ╰─▶ 1 additional attachment"###)
 /// ```
 #[derive(Debug, Clone)]
-pub enum Line {
+pub enum Emit {
     /// Line is going to be emitted after all immediate lines have been emitted from the current
     /// stack.
     /// This means that deferred lines will always be last in a group.
@@ -202,7 +202,7 @@ pub enum Line {
     Next(String),
 }
 
-impl Line {
+impl Emit {
     /// Create a new [`Next`] line, which is emitted immediately in the tree.
     ///
     /// [`Next`]: Self::Next
@@ -322,9 +322,9 @@ type Lines = Vec<Instructions>;
 fn debug_frame(
     frame: &Frame,
     ctx: &mut HookContextImpl,
-) -> Option<(Line, &'static Location<'static>)> {
+) -> Option<(Emit, &'static Location<'static>)> {
     let line = match frame.kind() {
-        FrameKind::Context(context) => Some(context.to_string()).map(Line::Next),
+        FrameKind::Context(context) => Some(context.to_string()).map(Emit::Next),
         FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
             #[cfg(all(nightly, feature = "experimental"))]
             if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
@@ -343,7 +343,7 @@ fn debug_frame(
             Builtin.call(frame, ctx.cast())
         }
         FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-            Some(attachment.to_string()).map(Line::Next)
+            Some(attachment.to_string()).map(Emit::Next)
         }
     }?;
 
@@ -399,10 +399,10 @@ fn debug_frame_root(root: &Frame, ctx: &mut HookContextImpl) -> Lines {
     for child in plain {
         if let Some((line, loc)) = debug_frame(child, ctx) {
             match line {
-                Line::Defer(line) => {
+                Emit::Defer(line) => {
                     defer.push((line, loc));
                 }
-                Line::Next(line) => push(&mut groups, &line, loc),
+                Emit::Next(line) => push(&mut groups, &line, loc),
             }
         } else {
             opaque += 1;
