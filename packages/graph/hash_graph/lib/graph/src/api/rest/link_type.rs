@@ -119,7 +119,7 @@ async fn create_link_type<P: StorePool + Send>(
 async fn get_latest_link_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<LinkType>>, StatusCode> {
-    read_from_store(pool.as_ref(), &LinkTypeQuery::new().with_latest_version())
+    read_from_store(pool.as_ref(), &LinkTypeQuery::new().by_latest_version())
         .await
         .map(Json)
 }
@@ -146,8 +146,8 @@ async fn get_link_type<P: StorePool + Send>(
     read_from_store(
         pool.as_ref(),
         &LinkTypeQuery::new()
-            .with_uri(uri.base_uri())
-            .with_version(uri.version()),
+            .by_uri(uri.base_uri())
+            .by_version(uri.version()),
     )
     .await
     .and_then(|mut link_types| link_types.pop().ok_or(StatusCode::NOT_FOUND))

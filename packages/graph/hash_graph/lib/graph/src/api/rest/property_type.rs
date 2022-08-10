@@ -122,7 +122,7 @@ async fn get_latest_property_types<P: StorePool + Send>(
 ) -> Result<Json<Vec<PropertyType>>, StatusCode> {
     read_from_store(
         pool.as_ref(),
-        &PropertyTypeQuery::new().with_latest_version(),
+        &PropertyTypeQuery::new().by_latest_version(),
     )
     .await
     .map(Json)
@@ -150,8 +150,8 @@ async fn get_property_type<P: StorePool + Send>(
     read_from_store(
         pool.as_ref(),
         &PropertyTypeQuery::new()
-            .with_uri(uri.base_uri())
-            .with_version(uri.version()),
+            .by_uri(uri.base_uri())
+            .by_version(uri.version()),
     )
     .await
     .and_then(|mut property_types| property_types.pop().ok_or(StatusCode::NOT_FOUND))

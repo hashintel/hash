@@ -152,8 +152,8 @@ impl DatabaseApi<'_> {
             .store
             .get_data_type(
                 &DataTypeQuery::new()
-                    .with_uri(uri.base_uri())
-                    .with_version(uri.version()),
+                    .by_uri(uri.base_uri())
+                    .by_version(uri.version()),
             )
             .await?
             .pop()
@@ -183,8 +183,8 @@ impl DatabaseApi<'_> {
             .store
             .get_property_type(
                 &PropertyTypeQuery::new()
-                    .with_uri(uri.base_uri())
-                    .with_version(uri.version()),
+                    .by_uri(uri.base_uri())
+                    .by_version(uri.version()),
             )
             .await?
             .pop()
@@ -214,8 +214,8 @@ impl DatabaseApi<'_> {
             .store
             .get_entity_type(
                 &EntityTypeQuery::new()
-                    .with_uri(uri.base_uri())
-                    .with_version(uri.version()),
+                    .by_uri(uri.base_uri())
+                    .by_version(uri.version()),
             )
             .await?
             .pop()
@@ -242,8 +242,8 @@ impl DatabaseApi<'_> {
             .store
             .get_link_type(
                 &LinkTypeQuery::new()
-                    .with_uri(uri.base_uri())
-                    .with_version(uri.version()),
+                    .by_uri(uri.base_uri())
+                    .by_version(uri.version()),
             )
             .await?
             .pop()
@@ -269,7 +269,7 @@ impl DatabaseApi<'_> {
     pub async fn get_entity(&mut self, entity_id: EntityId) -> Result<PersistedEntity, QueryError> {
         Ok(self
             .store
-            .get_entity(&EntityQuery::new().with_id(entity_id).with_latest_version())
+            .get_entity(&EntityQuery::new().by_id(entity_id).by_latest_version())
             .await?
             .pop()
             .expect("No entity found"))
@@ -305,11 +305,11 @@ impl DatabaseApi<'_> {
             .store
             .get_links(
                 &LinkQuery::new()
-                    .with_source_entity_id(source_entity)
-                    .with_link_types(|link_types| {
+                    .by_source_entity_id(source_entity)
+                    .by_link_types(|link_types| {
                         link_types
-                            .with_uri(link_type_uri.base_uri())
-                            .with_version(link_type_uri.version())
+                            .by_uri(link_type_uri.base_uri())
+                            .by_version(link_type_uri.version())
                     }),
             )
             .await?
@@ -322,7 +322,7 @@ impl DatabaseApi<'_> {
     pub async fn get_entity_links(&self, source_entity: EntityId) -> Result<Links, QueryError> {
         Ok(self
             .store
-            .get_links(&LinkQuery::new().with_source_entity_id(source_entity))
+            .get_links(&LinkQuery::new().by_source_entity_id(source_entity))
             .await?
             .pop()
             .expect("No links found"))

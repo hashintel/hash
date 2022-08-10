@@ -126,7 +126,7 @@ async fn get_entity<P: StorePool + Send>(
 ) -> Result<Json<PersistedEntity>, StatusCode> {
     read_from_store(
         pool.as_ref(),
-        &EntityQuery::new().with_id(entity_id).with_latest_version(),
+        &EntityQuery::new().by_id(entity_id).by_latest_version(),
     )
     .await
     .and_then(|mut entities| entities.pop().ok_or(StatusCode::NOT_FOUND))
@@ -145,7 +145,7 @@ async fn get_entity<P: StorePool + Send>(
 async fn get_latest_entities<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PersistedEntity>>, StatusCode> {
-    read_from_store(pool.as_ref(), &EntityQuery::new().with_latest_version())
+    read_from_store(pool.as_ref(), &EntityQuery::new().by_latest_version())
         .await
         .map(Json)
 }

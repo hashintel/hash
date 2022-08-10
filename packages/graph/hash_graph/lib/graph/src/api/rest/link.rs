@@ -127,7 +127,7 @@ async fn get_entity_links<P: StorePool + Send>(
 ) -> Result<Json<Links>, StatusCode> {
     read_from_store(
         pool.as_ref(),
-        &LinkQuery::new().with_source_entity_id(source_entity_id),
+        &LinkQuery::new().by_source_entity_id(source_entity_id),
     )
     .await
     .and_then(|mut links| links.pop().ok_or(StatusCode::NOT_FOUND))

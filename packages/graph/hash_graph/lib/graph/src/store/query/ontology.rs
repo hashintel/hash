@@ -42,19 +42,19 @@ impl<T> OntologyQuery<'_, T> {
 /// Methods for building up a query.
 impl<'q, T> OntologyQuery<'q, T> {
     #[must_use]
-    pub const fn with_uri(mut self, uri: &'q BaseUri) -> Self {
+    pub const fn by_uri(mut self, uri: &'q BaseUri) -> Self {
         self.uri = Some(uri);
         self
     }
 
     #[must_use]
-    pub const fn with_version(mut self, version: u32) -> Self {
+    pub const fn by_version(mut self, version: u32) -> Self {
         self.version = Some(OntologyVersion::Exact(version));
         self
     }
 
     #[must_use]
-    pub const fn with_latest_version(mut self) -> Self {
+    pub const fn by_latest_version(mut self) -> Self {
         self.version = Some(OntologyVersion::Latest);
         self
     }

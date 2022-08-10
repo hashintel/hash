@@ -19,7 +19,7 @@ impl LinkQuery<'_> {
 /// Methods for building up a query.
 impl<'q> LinkQuery<'q> {
     #[must_use]
-    pub fn with_link_types<Q>(mut self, link_type_query: Q) -> Self
+    pub fn by_link_types<Q>(mut self, link_type_query: Q) -> Self
     where
         Q: FnOnce(LinkTypeQuery<'q>) -> LinkTypeQuery<'q>,
     {
@@ -28,7 +28,7 @@ impl<'q> LinkQuery<'q> {
     }
 
     #[must_use]
-    pub const fn with_source_entity_id(mut self, source_entity_id: EntityId) -> Self {
+    pub const fn by_source_entity_id(mut self, source_entity_id: EntityId) -> Self {
         self.source_entity_id = Some(source_entity_id);
         self
     }

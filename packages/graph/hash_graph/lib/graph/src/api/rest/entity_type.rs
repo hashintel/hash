@@ -120,7 +120,7 @@ async fn create_entity_type<P: StorePool + Send>(
 async fn get_latest_entity_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<EntityType>>, StatusCode> {
-    read_from_store(pool.as_ref(), &EntityTypeQuery::new().with_latest_version())
+    read_from_store(pool.as_ref(), &EntityTypeQuery::new().by_latest_version())
         .await
         .map(Json)
 }
@@ -147,8 +147,8 @@ async fn get_entity_type<P: StorePool + Send>(
     read_from_store(
         pool.as_ref(),
         &EntityTypeQuery::new()
-            .with_uri(uri.base_uri())
-            .with_version(uri.version()),
+            .by_uri(uri.base_uri())
+            .by_version(uri.version()),
     )
     .await
     .and_then(|mut entity_types| entity_types.pop().ok_or(StatusCode::NOT_FOUND))

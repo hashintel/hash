@@ -24,13 +24,13 @@ impl EntityQuery {
 /// Methods for building up a query.
 impl EntityQuery {
     #[must_use]
-    pub const fn with_id(mut self, id: EntityId) -> Self {
+    pub const fn by_id(mut self, id: EntityId) -> Self {
         self.id = Some(id);
         self
     }
 
     #[must_use]
-    pub const fn with_latest_version(mut self) -> Self {
+    pub const fn by_latest_version(mut self) -> Self {
         self.version = Some(EntityVersion::Latest);
         self
     }
