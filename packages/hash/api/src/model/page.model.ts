@@ -181,7 +181,7 @@ class __Page extends Entity {
     ).then((filteredPages) => filteredPages.flat());
   }
 
-  async isArchived(client: DbClient): Promise<Boolean> {
+  async isArchived(client: DbClient): Promise<boolean> {
     if (this.properties.archived) {
       return true;
     }

@@ -76,7 +76,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
             <div
               className={tw`w-6 h-6 flex items-center justify-center text-sm rounded-full bg-gray-200 mr-2`}
             >
-              {option.name?.[0]?.toUpperCase()}
+              {option.name[0]?.toUpperCase()}
             </div>
           ) : (
             <div className={tw`w-6 h-6 flex items-center justify-center mr-2`}>

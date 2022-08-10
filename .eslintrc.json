@@ -218,7 +218,6 @@
     "@typescript-eslint/no-use-before-define": ["error"],
     "no-redeclare": "off",
     "@typescript-eslint/no-redeclare": ["error"],
-    "@typescript-eslint/no-unnecessary-condition": ["error"],
 
     // Part of @typescript-eslint/recommended-requiring-type-checking
     // TODO: re-enable
@@ -323,8 +322,7 @@
     {
       "files": ["*.ts", "*.tsx"],
       "rules": {
-        "no-unused-vars": "off",
-        // replaced by @typescript-eslint/no-unused-vars
+        "no-unused-vars": "off", // replaced by @typescript-eslint/no-unused-vars
         "@typescript-eslint/no-unused-vars": [
           "error",
           {
@@ -332,7 +330,9 @@
             "argsIgnorePattern": "^_+",
             "varsIgnorePattern": "^_+"
           }
-        ]
+        ],
+        "no-constant-condition": "off", // replaced by @typescript-eslint/no-unnecessary-condition
+        "@typescript-eslint/no-unnecessary-condition": ["error"]
       }
     },
     {

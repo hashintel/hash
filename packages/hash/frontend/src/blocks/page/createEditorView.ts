@@ -102,7 +102,7 @@ export const createEditorView = (
       },
     },
     dispatchTransaction: (tr) =>
-      connection?.dispatchTransaction(tr, connection?.state.version ?? 0),
+      connection.dispatchTransaction(tr, connection.state.version),
   });
 
   manager = new ProsemirrorManager(

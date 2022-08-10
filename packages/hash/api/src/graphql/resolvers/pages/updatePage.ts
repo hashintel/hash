@@ -26,7 +26,7 @@ export const updatePage: ResolverFn<
     // @todo: lock entity to prevent potential race-condition when updating entity's properties
     await entity.updateEntityProperties(client, {
       properties: {
-        ...(entity.properties ?? {}),
+        ...entity.properties,
         ...properties,
       },
       updatedByAccountId: user.accountId,

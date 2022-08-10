@@ -151,7 +151,7 @@ export const schemaEditorReducer: Reducer<
   // Get a reference to the target sub-schema, checked against to validate if action should be taken
   const subSchemaToCheck = selectSubSchema(schemaState, pathToSubSchema);
 
-  if (pathToSubSchema && !subSchemaToCheck) {
+  if (pathToSubSchema) {
     throw new Error(
       `Target sub-schema at path ${pathToSubSchema} does not exist.`,
     );

@@ -75,7 +75,7 @@ export const textBlockNodeToEntityProperties = (
           ...(marks.has("link")
             ? {
                 link: child.marks.find((mark) => mark.type.name === "link")
-                  ?.attrs?.href,
+                  ?.attrs.href,
               }
             : {}),
         });

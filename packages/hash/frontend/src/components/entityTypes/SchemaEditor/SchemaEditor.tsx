@@ -36,10 +36,10 @@ export const SchemaOptionsContext = createContext<{
 } | null>(null);
 
 type JsonSchemaEditorProps = {
-  aggregateEntityTypes: EmbedderGraphMessageCallbacks["aggregateEntityTypes"];
+  aggregateEntityTypes?: EmbedderGraphMessageCallbacks["aggregateEntityTypes"];
   GoToSchemaElement: SchemaSelectElementType;
   subSchemaReference?: string;
-  updateEntityType: EmbedderGraphMessageCallbacks["updateEntityType"];
+  updateEntityType?: EmbedderGraphMessageCallbacks["updateEntityType"];
 } & EntityType;
 
 const entityTypeIdMatchesSchema = (entityTypeId: string, schema: JsonSchema) =>

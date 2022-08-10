@@ -63,7 +63,7 @@ export const SchemaPropertiesTable: FunctionComponent<
       </thead>
       <tbody>
         {Object.entries(properties ?? {})
-          ?.sort((a, b) => a[0].localeCompare(b[0]))
+          .sort((a, b) => a[0].localeCompare(b[0]))
           .map(([name, propertySchema]) => {
             const isRequired =
               requiredArray?.includes(name) || !!propertySchema.required;

@@ -37,7 +37,7 @@ export const useUsers = (): {
             : account.properties.shortname!,
         isActiveOrgMember:
           "memberOf" in account &&
-          account.memberOf?.some(
+          account.memberOf.some(
             ({ org }) => org.accountId === workspaceAccountId,
           ),
       };

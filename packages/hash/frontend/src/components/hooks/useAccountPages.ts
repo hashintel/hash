@@ -20,7 +20,7 @@ export const useAccountPages = (accountId: string) => {
       return [];
     }
 
-    return data?.accountPages.map((page) => ({
+    return data.accountPages.map((page) => ({
       title: page.properties.title,
       entityId: page.entityId,
       parentPageEntityId: page.parentPageEntityId,

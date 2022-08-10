@@ -59,8 +59,6 @@ export const OrgInvite: FunctionComponent<OrgInviteProps> = ({
   };
 
   const invitationLink = useMemo(() => {
-    if (!createOrgInfo) return "-";
-
     const inviteQueryParams = new URLSearchParams({
       orgEntityId: createOrgInfo.orgEntityId,
       invitationLinkToken: createOrgInfo.invitationLinkToken,

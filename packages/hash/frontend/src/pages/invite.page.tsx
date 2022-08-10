@@ -121,7 +121,7 @@ const Page: NextPageWithLayout = () => {
       ];
     } else {
       return [
-        `You have been invited to join ${invitationInfo?.orgName} on HASH`,
+        `You have been invited to join ${invitationInfo.orgName} on HASH`,
         `Now it's time to select your role at ${invitationInfo.orgName}`,
       ];
     }

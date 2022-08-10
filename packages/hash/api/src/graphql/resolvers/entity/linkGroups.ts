@@ -38,7 +38,7 @@ const addEntityOutgoingLinks =
     const { accountId, entityId, entityVersionId } = entity;
 
     const existingGroups =
-      linkGroupsObject?.[`${accountId}*${entityId}`]?.[entityVersionId];
+      linkGroupsObject[`${accountId}*${entityId}`]?.[entityVersionId];
 
     let outgoingLinks: Link[];
 
@@ -51,7 +51,7 @@ const addEntityOutgoingLinks =
         const { stringifiedPath } = outgoingLink;
 
         const existingLinks =
-          linkGroupsObject?.[`${accountId}*${entityId}`]?.[entityVersionId]?.[
+          linkGroupsObject[`${accountId}*${entityId}`]?.[entityVersionId]?.[
             stringifiedPath
           ];
 

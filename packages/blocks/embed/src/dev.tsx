@@ -50,7 +50,7 @@ const getVariantProperties = (variant: typeof variants[number]) => {
   return {
     ...variant.properties,
     embedType: variant.properties?.embedType as ProviderName | undefined,
-    ...variant.examples?.[0],
+    ...variant.examples[0],
   };
 };
 

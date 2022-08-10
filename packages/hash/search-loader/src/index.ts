@@ -168,7 +168,7 @@ const main = async () => {
       return;
     }
     const size = await queueConsumer.length(SEARCH_QUEUE_NAME);
-    statsd?.gauge("queue_size", size);
+    statsd.gauge("queue_size", size);
   }, 5_000);
   shutdown.addCleanup("statsd reporting", async () => clearInterval(int1));
 

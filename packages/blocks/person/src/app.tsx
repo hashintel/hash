@@ -38,8 +38,8 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     const linkData = new URL(link);
 
     return DOMPurify.sanitize(
-      `<a href="${linkData.href}">${linkData?.hostname}${
-        linkData?.pathname !== "/" ? linkData?.pathname : ""
+      `<a href="${linkData.href}">${linkData.hostname}${
+        linkData.pathname !== "/" ? linkData.pathname : ""
       }</a>`,
       {
         ALLOWED_TAGS: ["a"],

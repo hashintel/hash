@@ -201,7 +201,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
       void getPrDetails(
         selectedPullRequestIdentifier,
         githubEntityTypeIds,
-        ({ data }) => graphService?.aggregateEntities({ data }),
+        ({ data }) => graphService.aggregateEntities({ data }),
       )
         .then((data) => {
           dispatch({

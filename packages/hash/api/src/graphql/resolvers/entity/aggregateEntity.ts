@@ -13,10 +13,10 @@ export const dbAggregateEntity =
   async (params: { accountId: string; operation: AggregateOperationInput }) => {
     const { accountId, operation } = params;
     const { entityTypeId } = operation;
-    const pageNumber = operation?.pageNumber || 1;
-    const itemsPerPage = operation?.itemsPerPage || 10;
-    const multiSort = operation?.multiSort ?? [{ field: "updatedAt" }];
-    const multiFilter = operation?.multiFilter;
+    const pageNumber = operation.pageNumber || 1;
+    const itemsPerPage = operation.itemsPerPage || 10;
+    const multiSort = operation.multiSort ?? [{ field: "updatedAt" }];
+    const multiFilter = operation.multiFilter;
 
     // TODO: this returns an array of all entities matching the type filter (if any) in the account.
     // We should perform the sorting & filtering in the database for better performance.

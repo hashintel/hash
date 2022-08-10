@@ -6,7 +6,7 @@ import { getLayoutWithHeader, NextPageWithLayout } from "../shared/layout";
 
 type ErrorProps = {
   hasGetInitialPropsRun?: boolean;
-  err: Error;
+  err?: Error;
 } & NextErrorProps;
 
 /**

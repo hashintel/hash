@@ -220,7 +220,7 @@ export const TimelineItem: FunctionComponent<TimelineItemProps> = ({
             })}
             variant="microText"
           >
-            For {event.actor?.login}
+            For {event.actor.login}
           </Typography>
         </Stack>
       </Popover>

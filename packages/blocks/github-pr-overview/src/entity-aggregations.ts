@@ -278,7 +278,7 @@ export const getPrDetails = (
     ),
   ])
     .then(([pullRequests, reviews, events]) => {
-      const pullRequest = pullRequests?.[0];
+      const pullRequest = pullRequests[0];
       if (!pullRequest) {
         throw new Error("An error occured while fetching PR info");
       }

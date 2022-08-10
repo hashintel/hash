@@ -61,7 +61,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
 
   const menuItems = useMemo(() => {
     const hasChildEntity =
-      Object.keys(blockEntity?.properties.entity?.properties ?? {}).length > 0;
+      Object.keys(blockEntity?.properties.entity.properties ?? {}).length > 0;
     const items = [
       {
         key: "set-entity",

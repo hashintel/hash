@@ -115,6 +115,7 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
             // eslint-disable-next-line react/no-array-index-key
             key={index}
             // faded={faded}
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- left ?? for future-proofing
             onClick={onClick ?? popupState.close}
           >
             <ListItemIcon>

@@ -276,7 +276,7 @@ class __EntityType {
   ) {
     const dbEntityType = await client.getSystemTypeLatestVersion(params);
 
-    return dbEntityType ? new EntityType(dbEntityType) : null;
+    return new EntityType(dbEntityType);
   }
 
   static async getEntityTypeType(client: DbClient) {

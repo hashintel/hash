@@ -141,7 +141,7 @@ export const OrgCreate: FunctionComponent<OrgCreateProps> = ({
   });
 
   const createOrgErrorMessage = useMemo(() => {
-    return error?.graphQLErrors?.[0]?.message ?? "";
+    return error?.graphQLErrors[0]?.message ?? "";
   }, [error]);
 
   const handleAvatarUpload = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -181,7 +181,7 @@ export const OrgCreate: FunctionComponent<OrgCreateProps> = ({
   const nameWatcher = watch("name", "");
 
   const shortnameError = getShortnameError(
-    errors?.shortname?.message,
+    errors.shortname?.message,
     Boolean(touchedFields.shortname),
   );
 
@@ -271,7 +271,7 @@ export const OrgCreate: FunctionComponent<OrgCreateProps> = ({
                 <span className={tw`text-red-500 text-sm`}>
                   {name === "shortname"
                     ? shortnameError
-                    : errors?.[name]?.message}
+                    : errors[name]?.message}
                 </span>
                 {index !== FORM_INPUTS.length - 1 && (
                   <div className={tw`mb-6`} />

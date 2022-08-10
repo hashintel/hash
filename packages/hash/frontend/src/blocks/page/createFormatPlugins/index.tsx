@@ -129,7 +129,6 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
           }
 
           if (
-            !dragging &&
             lastState &&
             lastState.doc.eq(state.doc) &&
             lastState.selection.eq(state.selection)
@@ -198,8 +197,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
         ) {
           linkUrl = nextEditorState.selection.$from
             .marks()
-            ?.find((mark: Mark) => mark.type.name === linkMark.name)
-            ?.attrs.href;
+            .find((mark: Mark) => mark.type.name === linkMark.name)?.attrs.href;
         }
         // If link is in text selection
         else if (

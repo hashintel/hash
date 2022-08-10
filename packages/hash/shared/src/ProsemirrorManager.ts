@@ -83,7 +83,7 @@ export class ProsemirrorManager {
          *       information
          */
         toDOM(node) {
-          if (node.textContent?.length > 0) {
+          if (node.textContent.length > 0) {
             return ["span", { "data-hash-type": "component" }, 0];
           } else {
             return ["span", { "data-hash-type": "component" }];
@@ -293,7 +293,7 @@ export class ProsemirrorManager {
 
     const { tr } = this.view.state;
 
-    const entityProperties = targetVariant?.properties ?? {};
+    const entityProperties = targetVariant.properties;
     const entityStoreState = entityStorePluginState(this.view.state);
     const blockEntity = draftBlockId
       ? entityStoreState.store.draft[draftBlockId]
@@ -316,7 +316,7 @@ export class ProsemirrorManager {
         targetComponentId,
       )
     ) {
-      if (targetComponentId === blockEntity?.properties.componentId) {
+      if (targetComponentId === blockEntity.properties.componentId) {
         addEntityStoreAction(this.view.state, tr, {
           type: "updateEntityProperties",
           payload: {
@@ -549,11 +549,9 @@ export class ProsemirrorManager {
       throw new Error("Cannot trigger setReadonlyMode without view");
     }
 
-    if (this.view) {
-      this.view.setProps({
-        editable: () => false,
-      });
-    }
+    this.view.setProps({
+      editable: () => false,
+    });
   }
 
   /**

@@ -117,7 +117,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     }
 
     const convertedLinkedEntities: BpEntity[] = [];
-    for (const entity of linkedEntities ?? []) {
+    for (const entity of linkedEntities) {
       convertedLinkedEntities.push(convertApiEntityToBpEntity(entity));
       convertedEntityTypesForProvidedEntities.push(
         convertApiEntityTypeToBpEntityType(entity.entityType),
@@ -125,7 +125,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     }
 
     const convertedLinkedAggregations: BpLinkedAggregation[] = [];
-    for (const linkedAggregation of linkedAggregations ?? []) {
+    for (const linkedAggregation of linkedAggregations) {
       convertedLinkedAggregations.push(
         convertApiLinkedAggregationToBpLinkedAggregation(linkedAggregation),
       );
@@ -140,7 +140,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
     const blockEntity = convertApiEntityToBpEntity({
       accountId,
-      entityId: entityId ?? "entityId-not-yet-set", // @todo ensure blocks always get sent an entityId
+      entityId: entityId || "entityId-not-yet-set", // @todo ensure blocks always get sent an entityId
       entityTypeId,
       properties: entityProperties,
     });
@@ -201,7 +201,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
   const onRemoteBlockLoaded = useCallback(() => {
     onBlockLoadedFromContext(blockEntityId);
-    onBlockLoadedRef?.current();
+    onBlockLoadedRef.current();
   }, [blockEntityId, onBlockLoadedFromContext]);
 
   // @todo upgrade sandbox for BP 0.2 and remove feature flag

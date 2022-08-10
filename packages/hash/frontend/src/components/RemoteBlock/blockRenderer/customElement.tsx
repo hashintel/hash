@@ -26,7 +26,7 @@ export const CustomElementLoader: FunctionComponent<
   useLayoutEffect(() => {
     if (
       existingDefinitionRef.current?.elementClass === elementClass &&
-      existingDefinitionRef.current?.tagName === tagName
+      existingDefinitionRef.current.tagName === tagName
     ) {
       return;
     }

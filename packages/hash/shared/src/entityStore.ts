@@ -60,7 +60,6 @@ export const isEntity = (value: unknown): value is EntityStoreType =>
 export const isBlockEntity = (entity: unknown): entity is BlockEntity =>
   isEntity(entity) &&
   "properties" in entity &&
-  entity.properties &&
   "entity" in entity.properties &&
   isEntity(entity.properties.entity);
 

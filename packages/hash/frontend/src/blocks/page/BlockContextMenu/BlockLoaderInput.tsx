@@ -19,7 +19,7 @@ export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({
   const blockView = useBlockView();
   const { value: userBlocks, setValue: setUserBlocks } = useUserBlocks();
 
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<unknown>(null);
   const [blockUrl, setBlockUrl] = useState("");
   const blockUrlRef = useRef<HTMLInputElement | null>(null);
 

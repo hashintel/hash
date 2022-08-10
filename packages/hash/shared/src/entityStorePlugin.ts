@@ -287,10 +287,6 @@ const entityStoreReducer = (
         );
       }
 
-      if (!action.payload.targetEntity) {
-        throw new Error("Entity missing to update Block data");
-      }
-
       return produce(state, (draftState) => {
         if (!action.received) {
           draftState.trackedActions.push({ action, id: uuid() });

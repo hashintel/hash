@@ -71,7 +71,7 @@ export const PageNotificationBanner: FunctionComponent = () => {
     },
   );
 
-  const archived = data?.page?.properties?.archived;
+  const archived = data?.page.properties.archived;
 
   return (
     <Collapse in={!!archived}>

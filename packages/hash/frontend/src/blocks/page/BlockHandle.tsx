@@ -76,7 +76,7 @@ const BlockHandle: ForwardRefRenderFunction<
     <Box
       ref={ref}
       sx={(theme) => ({
-        display: readonlyMode ? "none" : "block",
+        display: "block",
         opacity: blockView.hovered || contextMenuPopupState.isOpen ? 1 : 0,
         transition: theme.transitions.create("opacity"),
       })}
@@ -92,7 +92,7 @@ const BlockHandle: ForwardRefRenderFunction<
         unpadded
         {...bindTrigger(contextMenuPopupState)}
         onClick={() => {
-          onClick?.();
+          onClick();
           contextMenuPopupState.open();
         }}
         data-testid="block-changer"

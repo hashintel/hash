@@ -231,7 +231,7 @@ export const GithubPrOverview: FunctionComponent<GithubPrOverviewProps> = ({
 
         <Reviews
           pendingReviews={(pullRequest.requested_reviewers ?? [])
-            ?.filter(isDefined)
+            .filter(isDefined)
             .map(({ login, avatar_url }) => ({ login, avatar_url }))}
           completedReviews={uniqueReviewers}
         />

@@ -112,7 +112,7 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
       // @ts-expect-error -- Args is a tuple but the compiler doesn't know. why?
       fn(...args)
         .then((response) => {
-          sendMessage({ ...responseMsg, payload: { data: response ?? "ok" } });
+          sendMessage({ ...responseMsg, payload: { data: response || "ok" } });
         })
         .catch((error) => {
           sendMessage({

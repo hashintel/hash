@@ -95,7 +95,7 @@ function getLinkedEntities(params: {
     sourceEntityId,
   });
 
-  if (!matchingLinkGroup?.links?.[0]) {
+  if (!matchingLinkGroup?.links[0]) {
     return null;
   }
 
@@ -111,10 +111,6 @@ function getLinkedEntities(params: {
     (linkedEntity): linkedEntity is Entity & { url: string } =>
       linkedEntity.entityId === destinationEntityId && "url" in linkedEntity,
   );
-
-  if (!matchingLinkedEntities) {
-    return null;
-  }
 
   return matchingLinkedEntities;
 }
@@ -144,7 +140,7 @@ export const Media: FunctionComponent<
   const { graphService } = useGraphBlockService(blockRef);
 
   const matchingLinkedEntities = useMemo(() => {
-    if (blockGraph?.linkGroups && blockGraph?.linkedEntities && entityId) {
+    if (blockGraph?.linkGroups && entityId) {
       return getLinkedEntities({
         sourceEntityId: entityId,
         path: "$.file",
@@ -199,7 +195,7 @@ export const Media: FunctionComponent<
             updateEntityData.properties.initialWidth = width;
           }
 
-          void graphService?.updateEntity({ data: updateEntityData });
+          void graphService.updateEntity({ data: updateEntityData });
         }
 
         unstable_batchedUpdates(() => {
@@ -230,13 +226,7 @@ export const Media: FunctionComponent<
 
   const handleImageUpload = useCallback(
     (imageProp: { url: string } | { file: FileList[number] }) => {
-      if (
-        !loading &&
-        entityId &&
-        graphService?.createLink &&
-        graphService.deleteLink &&
-        graphService.uploadFile
-      ) {
+      if (!loading && entityId && graphService) {
         unstable_batchedUpdates(() => {
           setErrorString(null);
           setLoading(true);
@@ -266,7 +256,7 @@ export const Media: FunctionComponent<
               });
             }
 
-            await graphService?.createLink({
+            await graphService.createLink({
               data: {
                 sourceEntityId: entityId,
                 destinationEntityId: file.entityId,
@@ -304,7 +294,7 @@ export const Media: FunctionComponent<
       return;
     }
 
-    if (draftUrl?.trim()) {
+    if (draftUrl.trim()) {
       handleImageUpload({ url: draftUrl });
     } else {
       setErrorString("Please enter a valid image URL or select a file below");

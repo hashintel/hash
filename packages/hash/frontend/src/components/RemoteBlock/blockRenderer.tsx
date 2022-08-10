@@ -7,7 +7,7 @@ import { UnknownBlock } from "./loadRemoteBlock";
 
 type BlockRendererProps = {
   blockSource: UnknownBlock;
-  blockType: BlockMetadata["blockType"];
+  blockType: BlockMetadata["blockType"] | { entryPoint: undefined };
   properties: UnknownRecord;
   sourceUrl: string;
 };
@@ -18,8 +18,7 @@ export const BlockRenderer: FunctionComponent<BlockRendererProps> = ({
   properties,
   sourceUrl,
 }) => {
-  // @todo remove this React default when we update all blocks to 0.2
-  const entryPoint = blockType?.entryPoint ?? "react";
+  const entryPoint = blockType.entryPoint;
 
   if (entryPoint === "html") {
     if (typeof blockSource !== "string") {

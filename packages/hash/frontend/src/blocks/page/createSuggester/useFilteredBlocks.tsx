@@ -17,7 +17,7 @@ export const useFilteredBlocks = (
     const allOptions: Option[] = compatibleBlocks.flatMap(({ meta }) =>
       // Assumes that variants have been built for all blocks in toBlockConfig
       // any required changes to block metadata should happen there
-      (meta.variants ?? []).map((variant) => ({
+      meta.variants.map((variant) => ({
         variant,
         meta,
       })),
@@ -26,7 +26,7 @@ export const useFilteredBlocks = (
     return fuzzySearchBy(
       allOptions,
       searchText,
-      (option) => option.variant.name ?? "",
+      (option) => option.variant.name,
     );
   }, [compatibleBlocks, searchText]);
 };

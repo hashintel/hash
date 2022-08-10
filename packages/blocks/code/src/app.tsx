@@ -84,6 +84,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
 
   const copyToClipboard = async () => {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- upstream typings assume that Clipboard is always present
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(localData.content);
         setCopied(true);
@@ -111,16 +112,13 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     setCaptionVisibility(true);
     setTimeout(() => {
       captionRef.current?.focus();
-      captionRef.current?.setSelectionRange(
-        0,
-        captionRef.current?.value.length,
-      );
+      captionRef.current?.setSelectionRange(0, captionRef.current.value.length);
     }, 0);
   };
 
   useEffect(() => {
     if (captionRef.current !== document.activeElement) {
-      setCaptionVisibility(localData.caption && localData.caption?.length > 0);
+      setCaptionVisibility(localData.caption && localData.caption.length > 0);
     }
   }, [localData.caption]);
 

@@ -50,7 +50,7 @@ export const useCollabPositions = (
     let activeRequest: AbortingPromise<string> | undefined = undefined;
     void (async () => {
       let poll = false;
-      // eslint-disable-next-line no-constant-condition -- we break this async loop as soon as pageHasChanged
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- we break this async loop as soon as pageHasChanged
       while (true) {
         try {
           activeRequest = fetchRawPositions({
@@ -67,6 +67,7 @@ export const useCollabPositions = (
 
           activeRequest = undefined;
 
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false-positive (because of await)
           if (pageHasChanged) {
             break;
           }

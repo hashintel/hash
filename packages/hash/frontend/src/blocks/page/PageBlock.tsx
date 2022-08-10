@@ -71,7 +71,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
 
     prosemirrorSetup.current = {
       view,
-      connection: connection ?? null,
+      connection,
       manager,
     };
 
@@ -83,7 +83,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       // @todo how does this work with portals?
       node.innerHTML = "";
       prosemirrorSetup.current = null;
-      connection?.close();
+      connection.close();
     };
   }, [accountId, blocks, entityId, renderPortal, readonlyMode]);
 

@@ -55,7 +55,9 @@ const filterHasValue = (filter: Filter): filter is FilterRequiringValue => {
   return (
     !FILTER_OPERATORS_WITHOUT_VALUE.includes(
       filter.operator as FilterOperatorWithoutValue,
-    ) && (filter as FilterRequiringValue).value !== null
+    ) &&
+    "value" in filter &&
+    Boolean(filter.value)
   );
 };
 
@@ -101,7 +103,7 @@ export const FilterDetail: FunctionComponent<FilterDetailProps> = ({
     setFilters((prevFields) => [
       ...prevFields,
       {
-        field: columns?.[0]?.id ?? "",
+        field: columns[0]?.id ?? "",
         operator: "CONTAINS",
         value: "",
         id: uuid(),
@@ -136,7 +138,7 @@ export const FilterDetail: FunctionComponent<FilterDetailProps> = ({
 
   if (multiFilter && !filters.length && !isMounted.current) {
     isMounted.current = true;
-    const fieldsWithId = (multiFilter.filters ?? []).map((filter) => ({
+    const fieldsWithId = multiFilter.filters.map((filter) => ({
       ...filter,
       id: uuid(),
     }));

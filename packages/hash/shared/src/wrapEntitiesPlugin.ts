@@ -160,6 +160,7 @@ const prepareCommandForWrappedEntities =
 
       if (isComponentNode(node)) {
         const blockNode = state.doc.resolve(pos).node(1);
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo check ProseMirror typings
         const blockEntityNode = blockNode?.firstChild;
 
         if (!blockEntityNode || !isEntityNode(blockEntityNode)) {

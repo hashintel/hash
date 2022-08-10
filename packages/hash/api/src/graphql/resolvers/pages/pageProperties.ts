@@ -47,9 +47,7 @@ export const pageProperties: ResolverFn<
   /** Only fetch contents of page if it is a requested field in the query */
   const shouldFetchContents =
     propertiesFieldNode?.selectionSet?.selections
-      ?.filter(
-        (selection): selection is FieldNode => selection.kind === "Field",
-      )
+      .filter((selection): selection is FieldNode => selection.kind === "Field")
       .find(({ name }) => name.value === "contents") !== undefined;
 
   return {

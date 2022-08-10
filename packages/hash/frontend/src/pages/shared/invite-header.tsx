@@ -16,7 +16,7 @@ export const InviteHeader: FunctionComponent<InviteHeaderProps> = memo(
         {invitationInfo.inviterPreferredName
           ? `${invitationInfo.inviterPreferredName} has invited you to join 
           ${invitationInfo.orgName}`
-          : ` You have been invited you to join ${invitationInfo?.orgName}`}
+          : ` You have been invited you to join ${invitationInfo.orgName}`}
       </p>
     );
   },

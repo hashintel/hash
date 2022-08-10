@@ -109,7 +109,7 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
       onDragEnd={({ active, over }) => {
         setActiveIndex(null);
 
-        if (over?.id && active.id !== over?.id) {
+        if (over?.id && active.id !== over.id) {
           const sourceIndex = findItemIndexById(list, active.id);
           const destinationIndex = findItemIndexById(list, over.id);
           onReorder(sourceIndex, destinationIndex);

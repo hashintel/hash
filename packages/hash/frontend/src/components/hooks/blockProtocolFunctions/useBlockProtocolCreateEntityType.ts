@@ -49,8 +49,9 @@ export const useBlockProtocolCreateEntityType = (
         const { data: responseData } = await createFn({
           variables: {
             accountId,
-            description: (schema.description as string) ?? "",
-            name: schema.title ?? "",
+            description:
+              typeof schema.description === "string" ? schema.description : "",
+            name: schema.title || "",
             schema,
           },
         });

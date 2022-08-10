@@ -70,8 +70,8 @@ export const getStaticProps: GetStaticProps<
       fileNameWithoutIndex,
     });
 
-    const authorPhotoSrc: string | null = data?.authorPhoto ?? null;
-    const postPhotoSrc: string | null = data?.postPhoto ?? null;
+    const authorPhotoSrc: string | null = data.authorPhoto ?? null;
+    const postPhotoSrc: string | null = data.postPhoto ?? null;
 
     const [authorPhoto, postPhoto, bodyImages] = await Promise.all([
       getPhoto(authorPhotoSrc),

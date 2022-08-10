@@ -59,7 +59,7 @@ export const MediaWithCaption: FunctionComponent<MediaWithCaptionProps> = ({
             style={{
               maxWidth: "100%",
             }}
-            src={src ?? ""}
+            src={src}
           />
           {captionNode}
         </div>

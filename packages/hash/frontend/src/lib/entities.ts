@@ -407,7 +407,7 @@ export function convertApiLinkedAggregationToBpLinkedAggregation(
     path,
     operation: operation as BpLinkedAggregation["operation"],
     results:
-      "results" in linkedAggregation && linkedAggregation.results
+      "results" in linkedAggregation
         ? convertApiEntitiesToBpEntities(linkedAggregation.results)
         : undefined,
   };

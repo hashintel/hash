@@ -121,7 +121,7 @@ export class LinkVersion {
         ? new Date(row.removed_from_source_at as string)
         : undefined,
       removedFromSourceByAccountId:
-        (row.removed_from_source_by_account_id as string) ?? undefined,
+        (row.removed_from_source_by_account_id as string) || undefined,
       destinationAccountId: row.destination_account_id as string,
       destinationEntityId: row.destination_entity_id as string,
       updatedAt: new Date(row.updated_at as string),

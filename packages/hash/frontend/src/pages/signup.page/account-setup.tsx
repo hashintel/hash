@@ -81,7 +81,7 @@ export const AccountSetup: FunctionComponent<AccountSetupProps> = ({
   }, [invitationInfo, email]);
 
   const shortnameError = getShortnameError(
-    errors?.shortname?.message,
+    errors.shortname?.message,
     Boolean(touchedFields.shortname),
   );
 

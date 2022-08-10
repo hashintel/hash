@@ -260,7 +260,7 @@ export const createSuggester = (
 
           let jsx: ReactElement | null = null;
 
-          switch (triggerChar) {
+          switch (triggerChar as string) {
             case "/":
               jsx = (
                 <BlockSuggester

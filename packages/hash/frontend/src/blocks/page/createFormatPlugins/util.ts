@@ -74,7 +74,7 @@ export function updateLink(editorView: EditorView<Schema>, href: string) {
     }
   }
 
-  dispatch?.(tr);
+  dispatch(tr);
 }
 
 export function removeLink(editorView: EditorView<Schema>) {

@@ -153,7 +153,7 @@ export class EditorConnection {
       const steps = sendableState ? sendableSteps(newEditState) : null;
       const actions = sendableState ? this.unsentActions(newEditState) : [];
 
-      if (steps || actions?.length) {
+      if (steps || actions.length) {
         if (this.request) {
           if (this.state.comm === "send") {
             throw new Error("Cannot send while already in a sending state");
@@ -214,7 +214,7 @@ export class EditorConnection {
           .map(
             (entity) =>
               "componentId" in entity.properties &&
-              entity.properties?.componentId,
+              entity.properties.componentId,
           )
           .filter(isString);
 
@@ -259,7 +259,7 @@ export class EditorConnection {
         };
 
         // pull out all componentIds and ensure they are defined
-        const componentIds = data.actions?.reduce((acc, curr) => {
+        const componentIds = data.actions.reduce((acc, curr) => {
           if (
             curr.type === "updateEntityProperties" &&
             isString(curr.payload.properties.componentId) &&
@@ -296,7 +296,7 @@ export class EditorConnection {
             shouldDispatch = true;
           }
 
-          if (data.actions?.length) {
+          if (data.actions.length) {
             for (const action of data.actions) {
               addEntityStoreAction(this.state.edit, tr, {
                 ...action,
@@ -318,7 +318,7 @@ export class EditorConnection {
 
         let tr: Transaction<Schema> | null = null;
 
-        if (data.steps?.length) {
+        if (data.steps.length) {
           if (!this.state.edit) {
             throw new Error("Cannot receive transaction without state");
           }
@@ -341,7 +341,7 @@ export class EditorConnection {
             type: "update",
             transaction: tr,
             requestDone: true,
-            version: data.version ?? this.state.version,
+            version: data.version || this.state.version,
           });
         } else {
           this.poll();

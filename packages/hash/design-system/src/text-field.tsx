@@ -107,7 +107,7 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
           ...{ notched: false },
           ...otherInputProps,
           endAdornment:
-            error || success ? renderEndAdornment() : InputProps?.endAdornment,
+            error || success ? renderEndAdornment() : InputProps.endAdornment,
         }}
         helperText={
           <Collapse in={!!helperText}>

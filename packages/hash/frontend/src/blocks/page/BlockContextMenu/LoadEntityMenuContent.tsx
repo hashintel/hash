@@ -127,10 +127,7 @@ export const LoadEntityMenuContent: FunctionComponent<
               </InputAdornment>
             ),
             endAdornment: loading ? (
-              <InputAdornment
-                position="start"
-                sx={{ visibility: loading ? "visible" : "hidden" }}
-              >
+              <InputAdornment position="start" sx={{ visibility: "visible" }}>
                 <LoadingSpinner size={12} thickness={4} />
               </InputAdornment>
             ) : null,

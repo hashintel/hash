@@ -203,7 +203,7 @@ export const getImpliedEntityHistory = async (
   // Find all implied version history sub-graphs for the root node.
   const checkpoints = new CheckpointManager();
   const impliedHistorySubGraphs: Graph[] = [];
-  // eslint-disable-next-line no-constant-condition
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     const rootVersion = entityVersions.get(root.entityId)![
       checkpoints.getRoot()

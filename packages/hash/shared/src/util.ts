@@ -135,6 +135,7 @@ export const topologicalSort = <T>(edges: [T, T][]) => {
  * @param key is the name of the id property on the element, used to strongly type the code
  * @param reference is the name of the parent reference property on the element
  * @param recursive is the name of the property that deals with children of an element. This will be populated with the tree structure.
+ *
  */
 export const treeFromParentReferences = <
   Element extends {
@@ -149,6 +150,8 @@ export const treeFromParentReferences = <
   reference: Ref,
   recursive: Rec,
 ) => {
+  /* eslint-disable @typescript-eslint/no-unnecessary-condition -- */
+
   const topologicallySorted = topologicalSort(
     elements
       .filter((element) => element[reference] != null)
@@ -192,6 +195,8 @@ export const treeFromParentReferences = <
   return Array.from(mapping.values()).filter(
     (element) => element[reference] == null,
   );
+
+  /* eslint-enable @typescript-eslint/no-unnecessary-condition */
 };
 
 /**
@@ -212,7 +217,7 @@ export const flatMapTree = <T>(graph: object, fn: (a: unknown) => T[]) => {
     result.push(...fn(currentNode));
 
     // Traverse direct descendants of all nodes in the current depth
-    if (typeof currentNode === "object" && currentNode !== null) {
+    if (typeof currentNode === "object") {
       for (const current of Object.values(currentNode)) {
         queue.push(current);
       }

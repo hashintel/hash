@@ -18,7 +18,7 @@ type StorageProviderInitialiser = () =>
 
 const storageProviderInitialiserLookup: Record<
   StorageType,
-  StorageProviderInitialiser
+  StorageProviderInitialiser | undefined
 > = {
   [StorageType.AwsS3]: () => new AwsS3StorageProvider(getAwsS3Config()),
   [StorageType.ExternalLink]: () => new ExternalStorageProvider(),

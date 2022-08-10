@@ -98,6 +98,7 @@ export class SearchLoader {
     logger.debug("Search loader started");
     this.stopRequested = false;
     this.isStopped = false;
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false-positive (because of await)
     while (!this.stopRequested) {
       await this.processNextQueueMsg(1000);
     }

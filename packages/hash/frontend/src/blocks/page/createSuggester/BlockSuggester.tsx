@@ -39,18 +39,18 @@ export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
       renderItem={(option) => (
         <>
           <div className={tw`flex w-16 items-center justify-center`}>
-            {option?.variant.icon && (
+            {option.variant.icon && (
               <img
                 className={tw`w-6 h-6`}
                 alt={option.variant.name}
-                src={option.variant.icon ?? "/format-font.svg"}
+                src={option.variant.icon || "/format-font.svg"}
               />
             )}
           </div>
           <div className={tw`py-3 flex-1 pr-2`}>
-            <p className={tw`text-sm font-bold`}>{option?.variant.name}</p>
+            <p className={tw`text-sm font-bold`}>{option.variant.name}</p>
             <p className={tw`text-xs text-opacity-60 text-black`}>
-              {option?.variant.description}
+              {option.variant.description}
             </p>
           </div>
         </>

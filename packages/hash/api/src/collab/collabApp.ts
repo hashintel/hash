@@ -255,6 +255,7 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
           data.actions,
         );
         if (!result) {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false-positive (because of await)
           if (instance.errored) {
             response.status(500).json({ error: true });
           } else {

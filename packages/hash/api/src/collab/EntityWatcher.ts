@@ -30,6 +30,7 @@ export class EntityWatcher {
 
   async start() {
     this.started = true;
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false-positive (because of await)
     while (this.started) {
       await this.processNextQueueMsg(1000);
     }
