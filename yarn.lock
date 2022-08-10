@@ -13758,10 +13758,10 @@ mock-block-dock@0.0.10:
     lodash "^4.17.21"
     uuid "^8.3.2"
 
-mock-block-dock@0.0.18:
-  version "0.0.18"
-  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.18.tgz#25c117a107d4db893434e2e16465b6b21786c0c3"
-  integrity sha512-zXX9Jag9HKRisLYaIfMYZYANRH88lDBnThe+f0vVxufec3tPOxh0Y2PlffkynNbqknjFMUhG4TU72i2p+aSrrA==
+mock-block-dock@0.0.20:
+  version "0.0.20"
+  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.20.tgz#95cb396d5eeeff892fd1acc3a661a6f4d7d4502c"
+  integrity sha512-EjKbxf7a1BXXpXVjcxZXhZQ6KPkC5BTrraS4l7VWempLGWB316d5/YPIfDfenDDQhbX+VsMI/cNs20XYfZbvGA==
   dependencies:
     "@blockprotocol/core" "0.0.8"
     "@blockprotocol/graph" "0.0.12"
