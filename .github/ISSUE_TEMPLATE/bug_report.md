@@ -6,10 +6,10 @@ labels: ""
 assignees: ""
 ---
 
-**Describe the bug**
+**Describe the bug**  
 A clear and concise description of what the bug is.
 
-**To reproduce**
+**To reproduce**  
 Steps to reproduce the behavior:
 
 1.  Go to '...'
@@ -17,10 +17,10 @@ Steps to reproduce the behavior:
 1.  Scroll down to '...'
 1.  See error
 
-**Expected behavior**
+**Expected behavior**  
 A clear and concise description of what you expected to happen.
 
-**Screenshots**
+**Screenshots**  
 If applicable, add screenshots to help explain your problem.
 
 **Desktop (please complete the following information):**
@@ -36,5 +36,5 @@ If applicable, add screenshots to help explain your problem.
 - Browser [e.g. stock browser, safari]
 - Version [e.g. 22]
 
-**Additional context**
+**Additional context**  
 Add any other context about the problem here.
