@@ -71,7 +71,7 @@ struct CreatePropertyTypeRequest {
     request_body = CreatePropertyTypeRequest,
     tag = "PropertyType",
     responses(
-        (status = 201, content_type = "application/json", description = "The schema of the created property type", body = VAR_PROPERTY_TYPE),
+        (status = 201, content_type = "application/json", description = "The schema of the created property type", body = PersistedOntologyIdentifier),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create property type in the store as the base property type ID already exists"),
@@ -167,7 +167,7 @@ struct UpdatePropertyTypeRequest {
     path = "/property-types",
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the updated property type", body = VAR_PROPERTY_TYPE),
+        (status = 200, content_type = "application/json", description = "The schema of the updated property type", body = PersistedOntologyIdentifier),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base property type ID was not found"),
