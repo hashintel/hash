@@ -36,7 +36,7 @@ async fn query() {
         .await
         .expect("could not get link type");
 
-    assert_eq!(link_type.inner(), &submitted_by_lt);
+    assert_eq!(link_type.inner, submitted_by_lt);
 }
 
 #[tokio::test]

@@ -9,7 +9,7 @@ use tokio_postgres::types::{FromSql, ToSql};
 use utoipa::Component;
 use uuid::Uuid;
 
-use crate::ontology::types::{DataType, EntityType, LinkType, PropertyType};
+use crate::ontology::types::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
 
 // TODO - find a good place for AccountId, perhaps it will become redundant in a future design
 
@@ -36,13 +36,19 @@ impl fmt::Display for AccountId {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
 #[serde(rename_all = "camelCase")]
 pub struct PersistedOntologyIdentifier {
+    uri: VersionedUri,
     created_by: AccountId,
 }
 
 impl PersistedOntologyIdentifier {
     #[must_use]
-    pub const fn new(created_by: AccountId) -> Self {
-        Self { created_by }
+    pub const fn new(uri: VersionedUri, created_by: AccountId) -> Self {
+        Self { uri, created_by }
+    }
+
+    #[must_use]
+    pub const fn uri(&self) -> &VersionedUri {
+        &self.uri
     }
 
     #[must_use]
@@ -52,32 +58,29 @@ impl PersistedOntologyIdentifier {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
-pub struct PersistedOntologyType<T> {
-    inner: T,
-    identifier: PersistedOntologyIdentifier,
+pub struct PersistedDataType {
+    #[component(value_type = VAR_DATA_TYPE)]
+    pub inner: DataType,
+    pub identifier: PersistedOntologyIdentifier,
 }
 
-impl<T> PersistedOntologyType<T> {
-    #[must_use]
-    pub const fn new(inner: T, created_by: AccountId) -> Self {
-        Self {
-            inner,
-            identifier: PersistedOntologyIdentifier::new(created_by),
-        }
-    }
-
-    #[must_use]
-    pub const fn inner(&self) -> &T {
-        &self.inner
-    }
-
-    #[must_use]
-    pub const fn identifier(&self) -> &PersistedOntologyIdentifier {
-        &self.identifier
-    }
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
+pub struct PersistedPropertyType {
+    #[component(value_type = VAR_DATA_TYPE)]
+    pub inner: PropertyType,
+    pub identifier: PersistedOntologyIdentifier,
 }
 
-pub type PersistedDataType = PersistedOntologyType<DataType>;
-pub type PersistedPropertyType = PersistedOntologyType<PropertyType>;
-pub type PersistedLinkType = PersistedOntologyType<LinkType>;
-pub type PersistedEntityType = PersistedOntologyType<EntityType>;
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
+pub struct PersistedLinkType {
+    #[component(value_type = VAR_DATA_TYPE)]
+    pub inner: LinkType,
+    pub identifier: PersistedOntologyIdentifier,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
+pub struct PersistedEntityType {
+    #[component(value_type = VAR_DATA_TYPE)]
+    pub inner: EntityType,
+    pub identifier: PersistedOntologyIdentifier,
+}

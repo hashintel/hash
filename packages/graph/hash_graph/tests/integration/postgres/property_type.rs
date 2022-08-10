@@ -39,7 +39,7 @@ async fn query() {
         .await
         .expect("could not get property type");
 
-    assert_eq!(property_type.inner(), &favorite_quote_pt);
+    assert_eq!(property_type.inner, favorite_quote_pt);
 }
 
 #[tokio::test]

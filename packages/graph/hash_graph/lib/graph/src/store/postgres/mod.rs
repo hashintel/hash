@@ -305,7 +305,10 @@ where
         self.insert_with_id(version_id, database_type, created_by)
             .await?;
 
-        Ok((version_id, PersistedOntologyIdentifier::new(created_by)))
+        Ok((
+            version_id,
+            PersistedOntologyIdentifier::new(uri.clone(), created_by),
+        ))
     }
 
     /// Updates the specified [`OntologyDatabaseType`].
@@ -349,7 +352,10 @@ where
             .await
             .change_context(UpdateError)?;
 
-        Ok((version_id, PersistedOntologyIdentifier::new(updated_by)))
+        Ok((
+            version_id,
+            PersistedOntologyIdentifier::new(uri.clone(), updated_by),
+        ))
     }
 
     /// Inserts an [`OntologyDatabaseType`] identified by [`VersionId`], and associated with an

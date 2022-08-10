@@ -36,7 +36,7 @@ async fn query() {
         .await
         .expect("could not get data type");
 
-    assert_eq!(data_type.inner(), &empty_list_dt);
+    assert_eq!(data_type.inner, empty_list_dt);
 }
 
 #[tokio::test]
