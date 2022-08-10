@@ -2,8 +2,8 @@
 name: Bug report (website)
 about: Create a report to help us improve our websites
 title: "[BUG]"
-labels: C-bug
-assignees: ""
+labels:
+  - C-bug
 ---
 
 **Website URL**  

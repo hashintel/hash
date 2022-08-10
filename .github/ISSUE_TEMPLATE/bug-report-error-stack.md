@@ -2,8 +2,12 @@
 name: Bug report (`error-stack`)
 about: Create a report to help us improve `error-stack`
 title: "[BUG]"
-labels: A-error-stack, C-bug
-assignees: TimDiekmann, Alfred-Mountfield
+labels:
+  - A-error-stack
+  - C-bug
+assignees:
+  - Alfred-Mountfield
+  - TimDiekmann
 ---
 
 **Describe the bug**  

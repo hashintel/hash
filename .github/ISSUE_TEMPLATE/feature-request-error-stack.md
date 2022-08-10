@@ -2,8 +2,12 @@
 name: Feature request (`error-stack`)
 about: Suggest an idea, feature or enhancement to help us improve `error-stack`
 title: ""
-labels: A-error-stack, C-enhancement
-assignees: TimDiekmann, Alfred-Mountfield
+labels:
+  - A-error-stack
+  - C-enhancement
+assignees:
+  - Alfred-Mountfield
+  - TimDiekmann
 ---
 
 **Is your feature request related to a problem? Please describe.**  

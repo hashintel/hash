@@ -2,8 +2,9 @@
 name: Bug report (block)
 about: Create a report to help us improve our blocks
 title: "[BUG]"
-labels: A-blocks, C-bug
-assignees: ""
+labels:
+  - A-blocks
+  - C-bug
 ---
 
 **Block impacted**  

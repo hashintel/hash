@@ -2,8 +2,9 @@
 name: Bug report (HASH App)
 about: Create a report to help us improve HASH
 title: "[BUG]"
-labels: A-hash, C-bug
-assignees: ""
+labels:
+  - A-hash
+  - C-bug
 ---
 
 **Describe the bug**  

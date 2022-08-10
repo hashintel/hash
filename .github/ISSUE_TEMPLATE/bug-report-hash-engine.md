@@ -2,8 +2,12 @@
 name: Bug report (HASH Engine)
 about: Create a report to help us improve HASH Engine
 title: "[BUG]"
-labels: A-engine, C-bug
-assignees: TimDiekmann, Alfred-Mountfield
+labels:
+  - A-engine
+  - C-bug
+assignees:
+  - Alfred-Mountfield
+  - TimDiekmann
 ---
 
 **Describe the bug**  
