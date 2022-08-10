@@ -2,7 +2,6 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use error_stack::{IntoReport, Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
-use postgres_types::ToSql;
 use tokio_postgres::{GenericClient, RowStream};
 
 use crate::{

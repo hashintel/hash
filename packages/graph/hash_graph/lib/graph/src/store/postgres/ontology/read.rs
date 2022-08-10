@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
-use postgres_types::ToSql;
 use serde::Deserialize;
 use tokio_postgres::{GenericClient, RowStream};
 
