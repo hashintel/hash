@@ -6,7 +6,7 @@ type EntityModelConstructorArgs = {
   accountId: string;
   entityId: string;
   version: string;
-  entityType: EntityTypeModel;
+  entityTypeModel: EntityTypeModel;
   properties: object;
 };
 
@@ -18,42 +18,42 @@ export default class {
 
   entityId: string;
   version: string;
-  entityType: EntityTypeModel;
+  entityTypeModel: EntityTypeModel;
   properties: object;
 
   constructor({
     accountId,
     entityId,
     version,
-    entityType,
+    entityTypeModel,
     properties,
   }: EntityModelConstructorArgs) {
     this.accountId = accountId;
 
     this.entityId = entityId;
     this.version = version;
-    this.entityType = entityType;
+    this.entityTypeModel = entityTypeModel;
     this.properties = properties;
   }
 
   private static async fromPersistedEntity(
     graphApi: GraphApi,
     { identifier, inner, typeVersionedUri }: PersistedEntity,
-    cachedEntityTypes?: Map<string, EntityTypeModel>,
+    cachedEntityTypeModels?: Map<string, EntityTypeModel>,
   ): Promise<EntityModel> {
     const { createdBy: accountId, version } = identifier;
-    const cachedEntityType = cachedEntityTypes?.get(typeVersionedUri);
+    const cachedEntityTypeModel = cachedEntityTypeModels?.get(typeVersionedUri);
 
-    let entityType: EntityTypeModel;
+    let entityTypeModel: EntityTypeModel;
 
-    if (cachedEntityType) {
-      entityType = cachedEntityType;
+    if (cachedEntityTypeModel) {
+      entityTypeModel = cachedEntityTypeModel;
     } else {
-      entityType = await EntityTypeModel.get(graphApi, {
+      entityTypeModel = await EntityTypeModel.get(graphApi, {
         versionedUri: typeVersionedUri,
       });
-      if (cachedEntityTypes) {
-        cachedEntityTypes.set(typeVersionedUri, entityType);
+      if (cachedEntityTypeModels) {
+        cachedEntityTypeModels.set(typeVersionedUri, entityTypeModel);
       }
     }
 
@@ -61,7 +61,7 @@ export default class {
       accountId,
       entityId: identifier.entityId,
       version,
-      entityType,
+      entityTypeModel,
       properties: inner.properties,
     });
   }
@@ -77,15 +77,15 @@ export default class {
     params: {
       accountId: string;
       properties: object;
-      entityType: EntityTypeModel;
+      entityTypeModel: EntityTypeModel;
     },
   ): Promise<EntityModel> {
-    const { accountId, entityType, properties } = params;
+    const { accountId, entityTypeModel, properties } = params;
     const {
       data: { entityId, version },
     } = await graphApi.createEntity({
       accountId,
-      entityTypeUri: entityType.schema.$id,
+      entityTypeUri: entityTypeModel.schema.$id,
       entity: { properties },
     });
 
@@ -93,7 +93,7 @@ export default class {
       accountId,
       entityId,
       version,
-      entityType,
+      entityTypeModel,
       properties,
     });
   }
@@ -110,11 +110,15 @@ export default class {
     /** @todo: get all latest entities in specified account */
     const { data: entities } = await graphApi.getLatestEntities();
 
-    const cachedEntityTypes = new Map<string, EntityTypeModel>();
+    const cachedEntityTypeModelss = new Map<string, EntityTypeModel>();
 
     return await Promise.all(
       entities.map((entity) =>
-        EntityModel.fromPersistedEntity(graphApi, entity, cachedEntityTypes),
+        EntityModel.fromPersistedEntity(
+          graphApi,
+          entity,
+          cachedEntityTypeModelss,
+        ),
       ),
     );
   }
@@ -152,7 +156,7 @@ export default class {
     },
   ): Promise<EntityModel> {
     const { accountId, properties } = params;
-    const { entityId, entityType } = this;
+    const { entityId, entityTypeModel } = this;
 
     const {
       data: { version },
@@ -160,7 +164,7 @@ export default class {
       accountId,
       entityId,
       /** @todo: make this argument optional */
-      entityTypeUri: entityType.schema.$id,
+      entityTypeUri: entityTypeModel.schema.$id,
       entity: { properties },
     });
 
@@ -168,7 +172,7 @@ export default class {
       accountId,
       entityId,
       version,
-      entityType,
+      entityTypeModel,
       properties,
     });
   }
