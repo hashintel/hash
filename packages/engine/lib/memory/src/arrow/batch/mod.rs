@@ -99,6 +99,7 @@ impl ArrowBatch {
 
     /// Reload record batch (without checking metaversions).
     pub fn reload_record_batch(&mut self) -> Result<()> {
+        tracing::debug!("reloading record batch");
         debug_assert!(
             self.segment().validate_markers().is_ok(),
             "Can't reload record batch; see validate_markers"
@@ -113,6 +114,7 @@ impl ArrowBatch {
 
     /// Reload record batch and dynamic metadata (without checking metaversions).
     pub fn reload_record_batch_and_dynamic_meta(&mut self) -> Result<()> {
+        tracing::trace!("reloading record batch and dynamic metadata");
         debug_assert!(
             self.segment().validate_markers().is_ok(),
             "Can't reload record batch; see validate_markers"
@@ -128,6 +130,7 @@ impl ArrowBatch {
         let schema = self.record_batch.schema();
         self.record_batch = ipc::read_record_batch(&self.segment, schema)?;
         *self.dynamic_meta_mut() = dynamic_meta;
+        tracing::trace!("finished reloading record batch and dynamic metadata");
         Ok(())
     }
 

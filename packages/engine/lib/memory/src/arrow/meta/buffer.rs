@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 /// Internal representation of Arrow `Buffer` Message with padding included
 #[derive(Debug, Clone)]
 pub struct Buffer {
@@ -73,6 +75,6 @@ pub enum BufferAction<'a> {
         index: usize,
         offset: usize,
         padding: usize,
-        buffer: &'a [u8],
+        buffer: Arc<&'a [u8]>,
     },
 }

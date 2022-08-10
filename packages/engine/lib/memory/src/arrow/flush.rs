@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use arrow2::{
     array::{
         Array, ArrayRef, BinaryArray, BooleanArray, FixedSizeBinaryArray, ListArray,
@@ -5,6 +7,7 @@ use arrow2::{
     },
     datatypes::{PhysicalType, PrimitiveType},
 };
+use bytemuck::cast_slice;
 
 use crate::{
     arrow::{meta, util::bit_util},
@@ -25,16 +28,20 @@ pub trait GrowableArrayData: Sized + std::fmt::Debug {
     fn null_count(&self) -> usize;
     /// This returns a bitmap, where the nth bit of the returned data specifies whether or not the
     /// nth item in the array is null or not.
-    fn null_buffer(&self) -> Option<&[u8]>;
+    fn null_buffer(&self) -> Option<Arc<&[u8]>>;
     /// Returns the nth buffer of this array. We follow the
     /// [specification](https://arrow.apache.org/docs/format/Columnar.html#dictionary-encoded-layout)
     /// _except_ that instead of returning the validity bitmap in position zero, we instead return
     /// this as part of [`GrowableArrayData::null_buffer`]
-    fn buffer(&self, index: usize) -> &[u8];
+    fn buffer(&self, index: usize) -> Arc<&[u8]>;
     /// Arrow stores the null buffer separately from other buffers.
     fn non_null_buffer_count(&self) -> usize;
     /// This returns the data of the child arrays.
-    fn child_data(&self) -> &[Self];
+    ///
+    /// todo: reduce number of atomic reference counters (the return type here is a bit awkward
+    /// because we implement [`GrowableArrayData`] for [`Arc<dyn arrow2::Array>`] so we end up
+    /// with [`Arc<Arc<dyn Array>`] in some places).
+    fn child_data(&self) -> Arc<Vec<Arc<Self>>>;
 }
 
 impl GrowableArrayData for ArrayRef {
@@ -46,12 +53,14 @@ impl GrowableArrayData for ArrayRef {
         Array::null_count(self.as_ref())
     }
 
-    fn null_buffer(&self) -> Option<&[u8]> {
-        Array::validity(self.as_ref()).map(|bitmap| bitmap.as_slice().0)
+    fn null_buffer(&self) -> Option<Arc<&[u8]>> {
+        Array::validity(self.as_ref())
+            .map(|bitmap| bitmap.as_slice().0)
+            .map(Arc::new)
     }
 
-    fn buffer(&self, index: usize) -> &[u8] {
-        match self.data_type().to_physical_type() {
+    fn buffer(&self, index: usize) -> Arc<&[u8]> {
+        Arc::new(match self.data_type().to_physical_type() {
             arrow2::datatypes::PhysicalType::Null => &[],
             arrow2::datatypes::PhysicalType::Boolean => {
                 // boolean arrays only have a "values" field - i.e. one buffer
@@ -64,25 +73,25 @@ impl GrowableArrayData for ArrayRef {
                 debug_assert_eq!(index, 0);
 
                 let int_8_array = self.as_any().downcast_ref::<PrimitiveArray<i8>>().unwrap();
-                unsafe { std::mem::transmute(int_8_array.values().as_slice()) }
+                cast_slice(int_8_array.values().as_slice())
             }
             arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::Int16) => {
                 debug_assert_eq!(index, 0);
 
                 let int_16_array = self.as_any().downcast_ref::<PrimitiveArray<i16>>().unwrap();
-                unsafe { std::mem::transmute(int_16_array.values().as_slice()) }
+                cast_slice(int_16_array.values().as_slice())
             }
             arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::Int32) => {
                 debug_assert_eq!(index, 0);
 
                 let int_32_array = self.as_any().downcast_ref::<PrimitiveArray<i32>>().unwrap();
-                unsafe { std::mem::transmute(int_32_array.values().as_slice()) }
+                cast_slice(int_32_array.values().as_slice())
             }
             arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::Int64) => {
                 debug_assert_eq!(index, 0);
 
                 let int_64_array = self.as_any().downcast_ref::<PrimitiveArray<i64>>().unwrap();
-                unsafe { std::mem::transmute(int_64_array.values().as_slice()) }
+                cast_slice(int_64_array.values().as_slice())
             }
             arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::Int128) => {
                 debug_assert_eq!(index, 0);
@@ -91,52 +100,52 @@ impl GrowableArrayData for ArrayRef {
                     .as_any()
                     .downcast_ref::<PrimitiveArray<i128>>()
                     .unwrap();
-                unsafe { std::mem::transmute(int_64_array.values().as_slice()) }
+                cast_slice(int_64_array.values().as_slice())
             }
             arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::UInt8) => {
                 debug_assert_eq!(index, 0);
 
                 let uint_8_array = self.as_any().downcast_ref::<PrimitiveArray<u8>>().unwrap();
-                unsafe { std::mem::transmute(uint_8_array.values().as_slice()) }
+                cast_slice(uint_8_array.values().as_slice())
             }
             arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::UInt16) => {
                 debug_assert_eq!(index, 0);
 
                 let uint_16_array = self.as_any().downcast_ref::<PrimitiveArray<u16>>().unwrap();
-                unsafe { std::mem::transmute(uint_16_array.values().as_slice()) }
+                cast_slice(uint_16_array.values().as_slice())
             }
             arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::UInt32) => {
                 debug_assert_eq!(index, 0);
 
                 let uint_32_array = self.as_any().downcast_ref::<PrimitiveArray<u32>>().unwrap();
-                unsafe { std::mem::transmute(uint_32_array.values().as_slice()) }
+                cast_slice(uint_32_array.values().as_slice())
             }
             arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::UInt64) => {
                 debug_assert_eq!(index, 0);
 
                 let uint_64_array = self.as_any().downcast_ref::<PrimitiveArray<u64>>().unwrap();
-                unsafe { std::mem::transmute(uint_64_array.values().as_slice()) }
+                cast_slice(uint_64_array.values().as_slice())
             }
             arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::Float32) => {
                 debug_assert_eq!(index, 0);
 
                 let float_32_array = self.as_any().downcast_ref::<PrimitiveArray<f32>>().unwrap();
-                unsafe { std::mem::transmute(float_32_array.values().as_slice()) }
+                cast_slice(float_32_array.values().as_slice())
             }
             arrow2::datatypes::PhysicalType::Primitive(PrimitiveType::Float64) => {
                 debug_assert_eq!(index, 0);
 
                 let float_64_array = self.as_any().downcast_ref::<PrimitiveArray<f64>>().unwrap();
-                unsafe { std::mem::transmute(float_64_array.values().as_slice()) }
+                cast_slice(float_64_array.values().as_slice())
             }
             arrow2::datatypes::PhysicalType::Primitive(
                 PrimitiveType::DaysMs | PrimitiveType::MonthDayNano,
             ) => {
-                todo!()
+                todo!("the dayms and monthdaynano array types have not yet been implemented")
             }
             arrow2::datatypes::PhysicalType::Binary if index == 0 => {
                 let binary = self.as_any().downcast_ref::<BinaryArray<i32>>().unwrap();
-                unsafe { std::mem::transmute(binary.offsets().as_slice()) }
+                cast_slice(binary.offsets().as_slice())
             }
             arrow2::datatypes::PhysicalType::Binary if index == 1 => {
                 let binary = self.as_any().downcast_ref::<BinaryArray<i32>>().unwrap();
@@ -171,7 +180,7 @@ impl GrowableArrayData for ArrayRef {
             }
             arrow2::datatypes::PhysicalType::List if index == 0 => {
                 let list = self.as_any().downcast_ref::<ListArray<i32>>().unwrap();
-                unsafe { std::mem::transmute(list.offsets().as_slice()) }
+                cast_slice(list.offsets().as_slice())
             }
             arrow2::datatypes::PhysicalType::List => {
                 // only two buffers exist for a list (the two cases were handled above)
@@ -188,7 +197,7 @@ impl GrowableArrayData for ArrayRef {
             _ => {
                 panic!("The provided buffer index was out of range");
             }
-        }
+        })
     }
 
     fn non_null_buffer_count(&self) -> usize {
@@ -208,15 +217,26 @@ impl GrowableArrayData for ArrayRef {
         }
     }
 
-    fn child_data(&self) -> &[Self] {
-        todo!()
+    fn child_data(&self) -> Arc<Vec<Arc<Self>>> {
+        match self.data_type().to_physical_type() {
+            PhysicalType::List => {
+                let array = self.as_any().downcast_ref::<ListArray<i32>>().unwrap();
+                Arc::new(
+                    array
+                        .values_iter()
+                        .map(|boxed| Arc::new(Arc::from(boxed)))
+                        .collect(),
+                )
+            }
+            _ => Arc::new(Vec::new()),
+        }
     }
 }
 
 /// The info required about an Arrow column in order to grow it
 pub trait GrowableColumn<D: GrowableArrayData>: Sized {
     fn index(&self) -> usize;
-    fn data(&self) -> &D;
+    fn data(&self) -> Arc<D>;
 }
 
 /// A batch that can be grown after creation.
@@ -258,123 +278,132 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
         let column_metas = self.static_meta().get_column_meta();
 
         let mut buffer_actions = Vec::with_capacity(self.dynamic_meta().buffers.len());
+        let mut array_datas_container = Vec::with_capacity(self.dynamic_meta().buffers.len());
         let mut node_changes = vec![];
 
         let mut this_buffer_index = 0;
         let mut this_buffer_offset = 0;
 
+        column_changes.iter().for_each(|change| {
+            array_datas_container.push(gather_array_datas_depth_first(change.data()));
+        });
+
         // Go over all of the pending changes, calculate target locations for those buffers
         // and neighbouring buffers if they need to be moved.
-        column_changes.iter().for_each(|column_change| {
-            let column_index = column_change.index();
-            // `meta` contains the information about where to look in `self.dynamic_meta` for
-            // current offset/node information
-            let meta = &column_metas[column_index];
+        column_changes
+            .iter()
+            .enumerate()
+            .for_each(|(index, column_change)| {
+                let column_index = column_change.index();
+                // `meta` contains the information about where to look in `self.dynamic_meta` for
+                // current offset/node information
+                let meta = &column_metas[column_index];
 
-            let buffer_start = meta.buffer_start;
-            // Depth-first is required, because this is the order in which
-            // nodes are written into memory, see `write_static_array_data` in ./arrow/ipc.rs
-            let array_datas = gather_array_datas_depth_first(column_change.data());
+                let buffer_start = meta.buffer_start;
 
-            // Iterate over buffers that are not modified, but might have to be moved,
-            // because of preceding buffers which may have been moved/resized
-            if this_buffer_index != buffer_start {
-                this_buffer_offset = push_non_modify_actions(
-                    &mut buffer_actions,
-                    this_buffer_index,
-                    buffer_start - 1,
-                    this_buffer_offset,
-                    self.dynamic_meta(),
-                );
-                this_buffer_index = buffer_start;
-            }
-
-            // A column can consist of more than one node. For example a field that is
-            // List<u8> corresponds to a column with 2 nodes
-            array_datas.iter().enumerate().for_each(|(i, array_data)| {
-                let node_index = meta.node_start + i;
-                // Update Node information
-                node_changes.push((node_index, meta::Node {
-                    null_count: array_data.null_count(),
-                    length: array_data.len(),
-                }));
-
-                // Null buffer calculation.
-                // The null buffer is always the first buffer in a column,
-                // it is found under `array_data.null_buffer()` and
-                // NOT under `array_data.buffers()[0]`
-                {
-                    let num_bytes = bit_util::ceil(array_data.len(), 8);
-                    let next_buffer_offset = self
-                        .dynamic_meta()
-                        .buffers
-                        .get(this_buffer_index + 1)
-                        .map_or_else(|| self.dynamic_meta().data_length, |v| v.offset);
-                    let new_padding = padding::maybe_new_dynamic_pad(
+                // Iterate over buffers that are not modified, but might have to be moved,
+                // because of preceding buffers which may have been moved/resized
+                if this_buffer_index != buffer_start {
+                    this_buffer_offset = push_non_modify_actions(
+                        &mut buffer_actions,
+                        this_buffer_index,
+                        buffer_start - 1,
                         this_buffer_offset,
-                        num_bytes,
-                        next_buffer_offset,
+                        self.dynamic_meta(),
                     );
-                    // Safety: A null buffer is always followed by another buffer
-                    if let Some(b) = array_data.null_buffer() {
-                        buffer_actions.push(meta::BufferAction::Ref {
-                            index: this_buffer_index,
-                            offset: this_buffer_offset,
-                            padding: new_padding,
-                            buffer: b,
-                        });
-                    } else {
-                        // We know all values must be valid.
-                        // Hence we have to make a homogeneous
-                        // null buffer corresponding to valid values
-                        let buffer = vec![255_u8; num_bytes];
-
-                        buffer_actions.push(meta::BufferAction::Owned {
-                            index: this_buffer_index,
-                            offset: this_buffer_offset,
-                            padding: new_padding,
-                            buffer,
-                        });
-                    }
-
-                    this_buffer_index += 1;
-                    let total_buffer_length = num_bytes + new_padding;
-                    this_buffer_offset += total_buffer_length;
+                    this_buffer_index = buffer_start;
                 }
 
-                // Go over offset/data buffers (these are not null buffers)
-                // Have to do `meta.buffer_counts[i] - 1` because the null buffer is separate
-                debug_assert_eq!(
-                    meta.buffer_counts[i] - 1,
-                    array_data.non_null_buffer_count(),
-                    "Number of buffers in metadata does not match actual number of buffers"
-                );
-                // todo: when adding datatypes with no null buffer (the null datatype), then this
-                //   convention does not work
-                (0..meta.buffer_counts[i] - 1).for_each(|j| {
-                    let buffer = array_data.buffer(j);
-                    let new_len = buffer.len();
-                    let next_buffer_offset = self
-                        .dynamic_meta()
-                        .buffers
-                        .get(this_buffer_index + 1)
-                        .map_or_else(|| self.dynamic_meta().data_length, |v| v.offset);
-                    let new_padding = padding::maybe_new_dynamic_pad(
-                        this_buffer_offset,
-                        new_len,
-                        next_buffer_offset,
-                    );
-                    buffer_actions.push(meta::BufferAction::Ref {
-                        index: this_buffer_index,
-                        offset: this_buffer_offset,
-                        padding: new_padding,
-                        buffer,
+                // A column can consist of more than one node. For example a field that is
+                // List<u8> corresponds to a column with 2 nodes
+                array_datas_container[index]
+                    .iter()
+                    .enumerate()
+                    .for_each(|(i, array_data)| {
+                        let node_index = meta.node_start + i;
+                        // Update Node information
+                        node_changes.push((node_index, meta::Node {
+                            null_count: array_data.null_count(),
+                            length: array_data.len(),
+                        }));
+
+                        // Null buffer calculation.
+                        // The null buffer is always the first buffer in a column,
+                        // it is found under `array_data.null_buffer()` and
+                        // NOT under `array_data.buffers()[0]`
+                        {
+                            let num_bytes = bit_util::ceil(array_data.len(), 8);
+                            let next_buffer_offset = self
+                                .dynamic_meta()
+                                .buffers
+                                .get(this_buffer_index + 1)
+                                .map_or_else(|| self.dynamic_meta().data_length, |v| v.offset);
+                            let new_padding = padding::maybe_new_dynamic_pad(
+                                this_buffer_offset,
+                                num_bytes,
+                                next_buffer_offset,
+                            );
+                            // Safety: A null buffer is always followed by another buffer
+                            if let Some(b) = array_data.null_buffer().as_ref() {
+                                buffer_actions.push(meta::BufferAction::Ref {
+                                    index: this_buffer_index,
+                                    offset: this_buffer_offset,
+                                    padding: new_padding,
+                                    buffer: b.clone(),
+                                });
+                            } else {
+                                // We know all values must be valid.
+                                // Hence we have to make a homogeneous
+                                // null buffer corresponding to valid values
+                                let buffer = vec![255_u8; num_bytes];
+
+                                buffer_actions.push(meta::BufferAction::Owned {
+                                    index: this_buffer_index,
+                                    offset: this_buffer_offset,
+                                    padding: new_padding,
+                                    buffer,
+                                });
+                            }
+
+                            this_buffer_index += 1;
+                            let total_buffer_length = num_bytes + new_padding;
+                            this_buffer_offset += total_buffer_length;
+                        }
+
+                        // Go over offset/data buffers (these are not null buffers)
+                        // Have to do `meta.buffer_counts[i] - 1` because the null buffer is
+                        // separate
+                        debug_assert_eq!(
+                            meta.buffer_counts[i] - 1,
+                            array_data.non_null_buffer_count(),
+                            "Number of buffers in metadata does not match actual number of buffers"
+                        );
+                        // todo: when adding datatypes with no null buffer (the null datatype), then
+                        // this   convention does not work
+                        (0..meta.buffer_counts[i] - 1).for_each(|j| {
+                            let buffer = array_data.buffer(j);
+                            let new_len = buffer.len();
+                            let next_buffer_offset = self
+                                .dynamic_meta()
+                                .buffers
+                                .get(this_buffer_index + 1)
+                                .map_or_else(|| self.dynamic_meta().data_length, |v| v.offset);
+                            let new_padding = padding::maybe_new_dynamic_pad(
+                                this_buffer_offset,
+                                new_len,
+                                next_buffer_offset,
+                            );
+                            buffer_actions.push(meta::BufferAction::Ref {
+                                index: this_buffer_index,
+                                offset: this_buffer_offset,
+                                padding: new_padding,
+                                buffer,
+                            });
+                            this_buffer_offset += new_len + new_padding;
+                            this_buffer_index += 1;
+                        });
                     });
-                    this_buffer_offset += new_len + new_padding;
-                    this_buffer_index += 1;
-                });
             });
-        });
 
         // There can be buffers at the end which have not been
         // attended to yet. Create actions for them too and use
@@ -451,7 +480,7 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
                     dynamic_meta.buffers[index].padding = padding;
                     dynamic_meta.buffers[index].length = buffer.len();
                     self.segment_mut()
-                        .overwrite_in_data_buffer_unchecked_nonoverlapping(offset, buffer)
+                        .overwrite_in_data_buffer_unchecked_nonoverlapping(offset, buffer.as_ref())
                 }
             })?;
 
@@ -481,7 +510,7 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
 
 /// Add an action for buffer(s) whose data is not changed but might have to be moved
 fn push_non_modify_actions(
-    buffer_actions: &mut Vec<meta::BufferAction<'_>>,
+    buffer_actions: &mut Vec<meta::BufferAction>,
     first_index: usize,
     last_index: usize,
     mut this_buffer_offset: usize,
@@ -513,11 +542,14 @@ fn push_non_modify_actions(
     this_buffer_offset
 }
 
-fn gather_array_datas_depth_first<D: GrowableArrayData>(data: &D) -> Vec<&D> {
-    let mut ret = vec![data];
+/// This function performs a depth-first pre-order (i.e. it searches first the root node and then
+/// all the subtrees from left-to-right) traversal of the nodes (this is as per the
+/// [Arrow specification](https://arrow.apache.org/docs/format/Columnar.html)).
+fn gather_array_datas_depth_first<D: GrowableArrayData>(data: Arc<D>) -> Vec<Arc<D>> {
+    let mut ret = vec![data.clone()];
     // Depth-first get all nodes
     data.child_data().iter().for_each(|v| {
-        ret.append(&mut gather_array_datas_depth_first(v));
+        ret.append(&mut gather_array_datas_depth_first(v.clone()));
     });
     ret
 }

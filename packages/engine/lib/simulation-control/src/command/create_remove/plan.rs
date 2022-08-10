@@ -9,14 +9,14 @@ use crate::command::{
 };
 
 #[derive(Debug)]
-pub struct MigrationPlan<'a> {
+pub struct MigrationPlan {
     // Same order as dynamic pool
-    pub existing_mutations: Vec<ExistingGroupBufferActions<'a>>,
-    pub create_commands: Vec<CreateActions<'a>>,
+    pub existing_mutations: Vec<ExistingGroupBufferActions>,
+    pub create_commands: Vec<CreateActions>,
     pub num_agents_after_execution: usize,
 }
 
-impl<'a> MigrationPlan<'a> {
+impl<'a> MigrationPlan {
     pub fn execute(
         self,
         state: &mut StateBatchPools,

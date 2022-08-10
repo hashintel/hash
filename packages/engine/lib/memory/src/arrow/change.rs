@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use arrow2::array::ArrayRef;
 
 use crate::{arrow::flush::GrowableColumn, Result};
@@ -14,8 +16,8 @@ impl GrowableColumn<ArrayRef> for ColumnChange {
         self.index
     }
 
-    fn data(&self) -> &ArrayRef {
-        &self.data
+    fn data(&self) -> Arc<ArrayRef> {
+        Arc::new(self.data.clone())
     }
 }
 

@@ -5,6 +5,8 @@
     clippy::missing_safety_doc
 )]
 
+use std::sync::Arc;
+
 use crate::{
     arrow::{
         ffi::{ArrowArray, CSegment},
@@ -57,7 +59,7 @@ unsafe extern "C" fn flush_changes(
                 node_into_prepared_array_data(arrow_array, static_meta_ref, node_index)?;
             Ok(PreparedColumn {
                 index: column_index,
-                data: prepared_array_data,
+                data: Arc::new(prepared_array_data),
             })
         })
         .collect::<Result<_>>()
@@ -224,52 +226,52 @@ unsafe fn node_into_prepared_array_data(
         Vec::with_capacity(0)
     };
     let prepared = PreparedArrayData {
-        inner: arrow_array,
-        child_data,
-        null_buffer,
-        buffers,
+        inner: Arc::new(arrow_array),
+        child_data: Arc::new(child_data.into_iter().map(Arc::new).collect()),
+        null_buffer: null_buffer.map(Arc::new),
+        buffers: buffers.into_iter().map(Arc::new).collect(),
     };
 
     Ok((prepared, next_node_index))
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PreparedArrayData<'a> {
-    inner: *const ArrowArray,
-    child_data: Vec<PreparedArrayData<'a>>,
-    null_buffer: Option<&'a [u8]>,
-    buffers: Vec<&'a [u8]>,
+    inner: Arc<*const ArrowArray>,
+    child_data: Arc<Vec<Arc<PreparedArrayData<'a>>>>,
+    null_buffer: Option<Arc<&'a [u8]>>,
+    buffers: Vec<Arc<&'a [u8]>>,
 }
 
 impl GrowableArrayData for PreparedArrayData<'_> {
     fn len(&self) -> usize {
-        unsafe { (*self.inner).length as usize }
+        unsafe { (*(*self.inner)).length as usize }
     }
 
     fn null_count(&self) -> usize {
-        unsafe { (*self.inner).null_count as usize }
+        unsafe { (*(*self.inner)).null_count as usize }
     }
 
-    fn null_buffer(&self) -> Option<&[u8]> {
-        self.null_buffer
+    fn null_buffer(&self) -> Option<Arc<&[u8]>> {
+        self.null_buffer.clone()
     }
 
-    fn buffer(&self, index: usize) -> &[u8] {
-        self.buffers[index]
+    fn buffer(&self, index: usize) -> Arc<&[u8]> {
+        dbg!(self.buffers[index].clone())
     }
 
     fn non_null_buffer_count(&self) -> usize {
         self.buffers.len()
     }
 
-    fn child_data(&self) -> &[Self] {
-        &self.child_data
+    fn child_data(&self) -> Arc<Vec<Arc<Self>>> {
+        self.child_data.clone()
     }
 }
 
 pub struct PreparedColumn<'a> {
     index: usize,
-    data: PreparedArrayData<'a>,
+    data: Arc<PreparedArrayData<'a>>,
 }
 
 impl<'a> GrowableColumn<PreparedArrayData<'a>> for PreparedColumn<'a> {
@@ -277,8 +279,8 @@ impl<'a> GrowableColumn<PreparedArrayData<'a>> for PreparedColumn<'a> {
         self.index
     }
 
-    fn data(&self) -> &PreparedArrayData<'a> {
-        &self.data
+    fn data(&self) -> Arc<PreparedArrayData<'a>> {
+        self.data.clone()
     }
 }
 
