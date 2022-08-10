@@ -1,4 +1,5 @@
 import { ApolloError } from "apollo-server-express";
+import { AxiosError } from "axios";
 
 import {
   IdentifiedDataType,
@@ -19,8 +20,8 @@ export const createDataType: Resolver<
   const createdDataType = await DataTypeModel.create(graphApi, {
     accountId,
     schema: dataType as any,
-  }).catch((err) => {
-    throw new ApolloError(err.response, "CREATION_ERROR");
+  }).catch((err: AxiosError) => {
+    throw new ApolloError(`${err.response?.data}`, "CREATION_ERROR");
   });
 
   return {

@@ -144,7 +144,8 @@ export const resolvers = {
     executeGithubDiscoverTask: loggedInAndSignedUp(executeGithubDiscoverTask),
     executeGithubReadTask: loggedInAndSignedUp(executeGithubReadTask),
     // Ontology
-    createDataType: loggedInAndSignedUp(createDataType),
+    /** @todo add auth gate for the following endpoints. */
+    createDataType,
   },
 
   JSONObject: GraphQLJSON,

@@ -1,10 +1,6 @@
 import { gql } from "apollo-server-express";
 
 export const dataTypeTypedef = gql`
-  input DataTypeDefinition {
-    schema: DataType!
-  }
-
   type IdentifiedDataType {
     dataTypeVersionedUri: String!
     createdBy: ID!
@@ -15,9 +11,6 @@ export const dataTypeTypedef = gql`
     """
     Create a data type
     """
-    createDataType(
-      accountId: ID!
-      dataType: DataTypeDefinition!
-    ): IdentifiedDataType!
+    createDataType(accountId: ID!, dataType: DataType!): IdentifiedDataType!
   }
 `;
