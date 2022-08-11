@@ -5,6 +5,7 @@ import {
   LinkType,
 } from "@hashintel/hash-graph-client";
 import slugify from "slugify";
+import { getRequiredEnv } from "../util";
 
 /** @todo: enable admins to expand upon restricted shortnames block list */
 export const RESTRICTED_SHORTNAMES = [
@@ -67,8 +68,10 @@ export const nilUuid = "00000000-0000-0000-0000-000000000000" as const;
  */
 export const workspaceAccountId = nilUuid;
 
-export const workspaceTypesNamespaceUri =
-  "https://example.com/@workspace/types";
+const workspaceAccountShortname = getRequiredEnv("SYSTEM_ACCOUNT_SHORTNAME");
+
+/** @todo: revisit how this URI is defined and obtained as this is a temporary solution */
+export const workspaceTypesNamespaceUri = `https://example.com/@${workspaceAccountShortname}/types`;
 
 export const blockprotocolTypesNamespaceUri =
   "https://blockprotocol.org/@blockprotocol/types";
