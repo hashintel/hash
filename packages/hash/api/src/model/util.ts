@@ -87,7 +87,7 @@ const schemaKindSlugs: Record<SchemaKind, string> = {
 };
 
 const slugifySchemaTitle = (title: string): string =>
-  slugify(title.toLowerCase());
+  slugify(title, { lower: true });
 
 export const generateSchemaBaseUri = (params: {
   namespaceUri: string;
