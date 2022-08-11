@@ -276,7 +276,7 @@ jobs:
 
   merging-enabled:
     name: merging enabled
-    needs: [lint, test, publish]
+    needs: [lint, test, docker, publish]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -286,6 +286,9 @@ jobs:
       - name: check test
         run: |
           [[ ${{ needs.test.result }} =~ success|skipped ]]
+      - name: check docker
+        run: |
+          [[ ${{ needs.docker.result }} =~ success|skipped ]]
       - name: check publish
         run: |
           [[ ${{ needs.publish.result }} =~ success|skipped ]]
