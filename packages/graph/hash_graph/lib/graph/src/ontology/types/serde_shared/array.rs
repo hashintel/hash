@@ -1,5 +1,9 @@
 use serde::{Deserialize, Serialize};
 
+use crate::ontology::types::{
+    error::ValidationError, serde_shared::object::ValidateUri, uri::BaseUri,
+};
+
 /// Will serialize as a constant value `"array"`
 #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -43,6 +47,22 @@ impl<T> Array<T> {
     #[must_use]
     pub const fn max_items(&self) -> Option<usize> {
         self.max_items
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged, deny_unknown_fields)]
+pub enum ValueOrArray<T> {
+    Value(T),
+    Array(Array<T>),
+}
+
+impl<T: ValidateUri> ValidateUri for ValueOrArray<T> {
+    fn validate_uri(&self, base_uri: &BaseUri) -> error_stack::Result<(), ValidationError> {
+        match self {
+            Self::Value(value) => value.validate_uri(base_uri),
+            Self::Array(array) => array.items().validate_uri(base_uri),
+        }
     }
 }
 
@@ -94,5 +114,30 @@ mod tests {
             "maxItems": 20,
             "additional": 30,
         }));
+    }
+
+    mod value_or_array {
+        use serde_json::json;
+
+        use super::*;
+        use crate::ontology::types::serde_shared::tests::{check, StringTypeStruct};
+
+        #[test]
+        fn value() -> Result<(), serde_json::Error> {
+            check(&ValueOrArray::Value("value".to_owned()), json!("value"))
+        }
+
+        #[test]
+        fn array() -> Result<(), serde_json::Error> {
+            check(
+                &ValueOrArray::Array(Array::new(StringTypeStruct::default(), None, None)),
+                json!({
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                }),
+            )
+        }
     }
 }

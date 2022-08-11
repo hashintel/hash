@@ -7,7 +7,7 @@ use crate::ontology::types::{
     data_type::DataTypeReference,
     error::ValidationError,
     serde_shared::{
-        array::Array,
+        array::{Array, ValueOrArray},
         object::{Object, ValidateUri},
         one_of::OneOf,
     },
@@ -45,22 +45,6 @@ impl ValidateUri for PropertyTypeReference {
             }
         );
         Ok(())
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged, deny_unknown_fields)]
-pub enum ValueOrArray<T> {
-    Value(T),
-    Array(Array<T>),
-}
-
-impl<T: ValidateUri> ValidateUri for ValueOrArray<T> {
-    fn validate_uri(&self, base_uri: &BaseUri) -> Result<(), ValidationError> {
-        match self {
-            Self::Value(value) => value.validate_uri(base_uri),
-            Self::Array(array) => array.items().validate_uri(base_uri),
-        }
     }
 }
 
@@ -342,32 +326,5 @@ mod tests {
         ]);
 
         test_property_type_property_refs(&property_type, []);
-    }
-
-    mod value_or_array {
-        use error_stack::IntoReport;
-        use serde_json::json;
-
-        use super::*;
-        use crate::ontology::types::serde_shared::tests::{check, StringTypeStruct};
-
-        #[test]
-        fn value() -> Result<(), serde_json::Error> {
-            check(&ValueOrArray::Value("value".to_owned()), json!("value")).into_report()
-        }
-
-        #[test]
-        fn array() -> Result<(), serde_json::Error> {
-            check(
-                &ValueOrArray::Array(Array::new(StringTypeStruct::default(), None, None)),
-                json!({
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                }),
-            )
-            .into_report()
-        }
     }
 }
