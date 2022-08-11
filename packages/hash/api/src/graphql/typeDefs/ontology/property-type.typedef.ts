@@ -7,6 +7,10 @@ export const propertyTypeTypedef = gql`
     propertyTypeVersionedUri: String!
     createdBy: ID!
     schema: PropertyType!
+    # TODO: we might need something like
+    # "referencedDataTypes: [DataType!]"
+    # for us to retrieve all referenced data types, and one for referenced property types as well.
+    # This will be helpful for displaying the entire property type in the frontend
   }
 
   extend type Query {
