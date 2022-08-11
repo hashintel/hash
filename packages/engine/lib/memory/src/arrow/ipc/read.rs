@@ -7,7 +7,7 @@ use arrow2::{
     io::ipc::{write::default_ipc_fields, IpcSchema},
 };
 use arrow_format::ipc::planus::ReadAsRoot;
-use tracing::log::trace;
+use tracing::trace;
 
 use super::RecordBatch;
 use crate::shared_memory::Segment;

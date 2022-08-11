@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use arrow2::array::ArrayRef;
-use tracing::log::trace;
+use tracing::trace;
 
 use super::record_batch::RecordBatch;
 use crate::{

@@ -1,5 +1,5 @@
 use arrow_format::ipc;
-use tracing::log::trace;
+use tracing::trace;
 
 use crate::{
     arrow::meta::{Buffer, ColumnDynamicMetadata, Node},
