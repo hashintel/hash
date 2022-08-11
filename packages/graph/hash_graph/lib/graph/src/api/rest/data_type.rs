@@ -117,7 +117,7 @@ async fn create_data_type<P: StorePool + Send>(
     path = "/data-types",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all data types at their latest versions", body = [VAR_DATA_TYPE]),
+        (status = 200, content_type = "application/json", description = "List of all data types at their latest versions", body = [PersistedDataType]),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -135,7 +135,7 @@ async fn get_latest_data_types<P: StorePool + Send>(
     path = "/data-types/{uri}",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the requested data type", body = VAR_DATA_TYPE),
+        (status = 200, content_type = "application/json", description = "The schema of the requested data type", body = PersistedDataType),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Data type was not found"),

@@ -1,7 +1,6 @@
 import { LinkType, GraphApi } from "@hashintel/hash-graph-client";
 
 import { LinkTypeModel } from "../index";
-import { NIL_UUID } from "../util";
 
 type LinkTypeModelConstructorArgs = {
   accountId: string;
@@ -49,13 +48,17 @@ export default class {
    */
   static async getAllLatest(
     graphApi: GraphApi,
-    params: { accountId: string },
+    _params: { accountId: string },
   ): Promise<LinkTypeModel[]> {
     /** @todo: get all latest link types in specified account */
-    const { data: schemas } = await graphApi.getLatestLinkTypes();
+    const { data: identifiedLinkTypes } = await graphApi.getLatestLinkTypes();
 
-    return schemas.map(
-      (schema) => new LinkTypeModel({ schema, accountId: params.accountId }),
+    return identifiedLinkTypes.map(
+      (identifiedLinkType) =>
+        new LinkTypeModel({
+          schema: identifiedLinkType.inner,
+          accountId: identifiedLinkType.identifier.createdBy,
+        }),
     );
   }
 
@@ -72,12 +75,14 @@ export default class {
     },
   ): Promise<LinkTypeModel> {
     const { versionedUri } = params;
-    const { data: schema } = await graphApi.getLinkType(versionedUri);
+    const { data: identifiedLinkType } = await graphApi.getLinkType(
+      versionedUri,
+    );
 
-    /** @todo: retrieve accountId from `graphApi.getLinkType` response */
-    const accountId = NIL_UUID;
-
-    return new LinkTypeModel({ schema, accountId });
+    return new LinkTypeModel({
+      schema: identifiedLinkType.inner,
+      accountId: identifiedLinkType.identifier.createdBy,
+    });
   }
 
   /**

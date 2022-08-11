@@ -1,7 +1,6 @@
 import { DataType, GraphApi } from "@hashintel/hash-graph-client";
 
 import { DataTypeModel } from "../index";
-import { NIL_UUID } from "../util";
 
 type DataTypeModelConstructorArgs = {
   accountId: string;
@@ -53,13 +52,17 @@ export default class {
    */
   static async getAllLatest(
     graphApi: GraphApi,
-    params: { accountId: string },
+    _params: { accountId: string },
   ): Promise<DataTypeModel[]> {
     /** @todo: get all latest data types in specified account */
-    const { data: schemas } = await graphApi.getLatestDataTypes();
+    const { data: identifiedDataTypes } = await graphApi.getLatestDataTypes();
 
-    return schemas.map(
-      (schema) => new DataTypeModel({ schema, accountId: params.accountId }),
+    return identifiedDataTypes.map(
+      (identifiedDataType) =>
+        new DataTypeModel({
+          schema: identifiedDataType.inner,
+          accountId: identifiedDataType.identifier.createdBy,
+        }),
     );
   }
 
@@ -76,12 +79,14 @@ export default class {
     },
   ): Promise<DataTypeModel> {
     const { versionedUri } = params;
-    const { data: schema } = await graphApi.getDataType(versionedUri);
+    const { data: identifiedDataType } = await graphApi.getDataType(
+      versionedUri,
+    );
 
-    /** @todo: retrieve accountId from `graphApi.getDataType` response */
-    const accountId = NIL_UUID;
-
-    return new DataTypeModel({ schema, accountId });
+    return new DataTypeModel({
+      schema: identifiedDataType.inner,
+      accountId: identifiedDataType.identifier.createdBy,
+    });
   }
 
   /**

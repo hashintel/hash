@@ -117,7 +117,7 @@ async fn create_property_type<P: StorePool + Send>(
     path = "/property-types",
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all property types at their latest versions", body = [VAR_PROPERTY_TYPE]),
+        (status = 200, content_type = "application/json", description = "List of all property types at their latest versions", body = [PersistedPropertyType]),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -135,7 +135,7 @@ async fn get_latest_property_types<P: StorePool + Send>(
     path = "/property-types/{uri}",
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the requested property type", body = VAR_PROPERTY_TYPE),
+        (status = 200, content_type = "application/json", description = "The schema of the requested property type", body = PersistedPropertyType),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Property type was not found"),

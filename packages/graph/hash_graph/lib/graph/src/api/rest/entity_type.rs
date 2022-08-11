@@ -117,7 +117,7 @@ async fn create_entity_type<P: StorePool + Send>(
     path = "/entity-types",
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all entity types at their latest versions", body = [VAR_ENTITY_TYPE]),
+        (status = 200, content_type = "application/json", description = "List of all entity types at their latest versions", body = [PersistedEntityType]),
 
         (status = 500, description = "Datastore error occurred"),
     )
@@ -135,7 +135,7 @@ async fn get_latest_entity_types<P: StorePool + Send>(
     path = "/entity-types/{uri}",
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the requested entity type", body = VAR_ENTITY_TYPE),
+        (status = 200, content_type = "application/json", description = "The schema of the requested entity type", body = PersistedEntityType),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Entity type was not found"),
