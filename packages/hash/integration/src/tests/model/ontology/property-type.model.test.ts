@@ -16,10 +16,9 @@ const logger = new Logger({
   serviceName: "integration-tests",
 });
 
-const graphApi = createGraphClient(
-  { basePath: getRequiredEnv("HASH_GRAPH_API_BASE_URL") },
-  logger,
-);
+const graphApi = createGraphClient(logger, {
+  basePath: getRequiredEnv("HASH_GRAPH_API_BASE_URL"),
+});
 
 const accountId = "00000000-0000-0000-0000-000000000000";
 
