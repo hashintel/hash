@@ -24,6 +24,9 @@ generates:
       skipTypename: true
       scalars:
         DataType: object
+        PropertyType: object
+        EntityType: object
+        LinkType: object
         TextToken: "@hashintel/hash-shared/graphql/types#TextToken"
         Date: string
         UnknownEntityProperties: "@hashintel/hash-shared/graphql/types#UnknownEntityProperties"
