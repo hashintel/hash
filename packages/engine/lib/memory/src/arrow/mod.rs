@@ -18,6 +18,7 @@ pub mod meta;
 pub mod record_batch;
 pub mod util;
 
+pub(crate) mod array_buffer_count;
 mod batch;
 mod buffer;
 mod change;

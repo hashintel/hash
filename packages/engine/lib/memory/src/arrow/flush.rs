@@ -233,21 +233,11 @@ impl GrowableArrayData for ArrayRef {
         match self.data_type().to_physical_type() {
             PhysicalType::List => {
                 let array = self.as_any().downcast_ref::<ListArray<i32>>().unwrap();
-                Arc::new(
-                    array
-                        .values_iter()
-                        .map(|boxed| Arc::new(Arc::from(boxed)))
-                        .collect(),
-                )
+                Arc::new(vec![Arc::new(array.values().to_owned())])
             }
             PhysicalType::FixedSizeList => {
                 let array = self.as_any().downcast_ref::<FixedSizeListArray>().unwrap();
-                Arc::new(
-                    array
-                        .values_iter()
-                        .map(|boxed| Arc::new(Arc::from(boxed)))
-                        .collect(),
-                )
+                Arc::new(vec![Arc::new(array.values().to_owned())])
             }
             PhysicalType::Struct => {
                 let array = self.as_any().downcast_ref::<StructArray>().unwrap();
@@ -259,6 +249,7 @@ impl GrowableArrayData for ArrayRef {
                         .collect(),
                 )
             }
+
             _ => Arc::new(Vec::new()),
         }
     }
@@ -314,6 +305,9 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
         let mut this_buffer_index = 0;
         let mut this_buffer_offset = 0;
 
+        // this is messy, but we have to create this here in order to avoid lifetime problems (which
+        // would come about if we did it inside of the following loop
+        // `column_changes.iter().enumerate().for_each...`)
         let mut array_datas_container = Vec::with_capacity(self.dynamic_meta().buffers.len());
         column_changes.iter().for_each(|change| {
             array_datas_container.push(gather_array_datas_depth_first(change.data()));
