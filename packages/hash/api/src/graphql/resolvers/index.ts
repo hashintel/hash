@@ -83,6 +83,12 @@ import {
   getPropertyType,
   updatePropertyType,
 } from "./ontology/property-type";
+import {
+  createLinkType,
+  getAllLatestLinkTypes,
+  getLinkType,
+  updateLinkType,
+} from "./ontology/link-type";
 
 export const resolvers = {
   Query: {
@@ -118,6 +124,8 @@ export const resolvers = {
     getDataType,
     getAllLatestPropertyTypes,
     getPropertyType,
+    getAllLatestLinkTypes,
+    getLinkType,
   },
 
   Mutation: {
@@ -159,6 +167,8 @@ export const resolvers = {
     /** @todo add auth gate for the following endpoints. */
     createPropertyType,
     updatePropertyType,
+    createLinkType,
+    updateLinkType,
   },
 
   JSONObject: GraphQLJSON,
