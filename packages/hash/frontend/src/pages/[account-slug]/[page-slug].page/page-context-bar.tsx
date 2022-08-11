@@ -1,6 +1,7 @@
 import {
   faClockRotateLeft,
   faEllipsisVertical,
+  faFile,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
 import { Box, Typography } from "@mui/material";
@@ -21,6 +22,10 @@ const crumbs = [
     href: "#",
   },
   {
+    title: "Nesting level 3",
+    href: "#",
+  },
+  {
     title: "Favourite candidates from my list of users",
     href: "#",
   },
@@ -30,7 +35,10 @@ export const PageContextBar = () => {
   return (
     <Box display="flex" alignItems="center" height={50} pl={3} pr={4}>
       <Box>
-        <Breadcrumbs crumbs={crumbs} />
+        <Breadcrumbs
+          crumbs={crumbs}
+          defaultIcon={<FontAwesomeIcon icon={faFile} />}
+        />
       </Box>
 
       <Box

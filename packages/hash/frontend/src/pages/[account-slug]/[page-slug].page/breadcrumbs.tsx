@@ -1,10 +1,9 @@
-import { faAngleRight } from "@fortawesome/free-solid-svg-icons";
+import { faAngleRight, faFile } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
   FontAwesomeIcon,
   IconButton,
   Menu,
-  MenuItem,
 } from "@hashintel/hash-design-system";
 import {
   Breadcrumbs as MuiBreadcrumbs,
@@ -17,12 +16,13 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
+import { ReactNode } from "react";
+import { MenuItem } from "../../../shared/ui";
 
-export type BreadcrumbsProps = {
-  crumbs: {
-    title?: string;
-    href?: string;
-  }[];
+type Breadcrumb = {
+  title: string;
+  href: string;
+  icon?: ReactNode;
 };
 
 const shortenText = (text: string, max: number) => {
@@ -30,7 +30,12 @@ const shortenText = (text: string, max: number) => {
   return `${text.slice(0, max)}…`;
 };
 
-const SubMenu = () => {
+type SubMenuProps = {
+  items: Breadcrumb[];
+  defaultIcon: ReactNode;
+};
+
+const SubMenu = ({ items, defaultIcon }: SubMenuProps) => {
   const popupState = usePopupState({
     variant: "popover",
     popupId: "submenu",
@@ -48,32 +53,36 @@ const SubMenu = () => {
           horizontal: "center",
         }}
       >
-        <MenuItem>
-          <ListItemIcon>🎄</ListItemIcon>
-          <ListItemText>Some random Stuff</ListItemText>
-        </MenuItem>
+        {items.map((item) => (
+          <MenuItem href={item.href} key={item.title}>
+            <ListItemIcon>{item.icon ?? defaultIcon}</ListItemIcon>
+            <ListItemText>{item.title}</ListItemText>
+          </MenuItem>
+        ))}
       </Menu>
     </>
   );
 };
 
-export const Breadcrumbs = ({ crumbs }) => {
-  let items = [];
+export type BreadcrumbsProps = {
+  crumbs: Breadcrumb[];
+  defaultIcon?: ReactNode;
+};
+
+export const Breadcrumbs = ({ crumbs, defaultIcon }: BreadcrumbsProps) => {
+  let items = [] as (Breadcrumb | { submenu: Breadcrumb[] })[];
 
   if (crumbs.length > 3) {
     items = [
-      crumbs[0],
+      crumbs[0]!,
       {
-        type: "submenu",
-        items: crumbs.slice(1, -1),
+        submenu: crumbs.slice(1, -1),
       },
-      crumbs[crumbs.length - 1],
+      crumbs[crumbs.length - 1]!,
     ];
   } else {
     items = crumbs;
   }
-
-  console.log({ items });
 
   return (
     <MuiBreadcrumbs
@@ -85,8 +94,8 @@ export const Breadcrumbs = ({ crumbs }) => {
       }
     >
       {items.map((item, index) => {
-        if (item?.type === "submenu") {
-          return <SubMenu />;
+        if ("submenu" in item) {
+          return <SubMenu items={item.submenu} defaultIcon={defaultIcon} />;
         }
         return (
           <Tooltip
@@ -98,7 +107,7 @@ export const Breadcrumbs = ({ crumbs }) => {
             <Button
               variant="tertiary_quiet"
               size="xs"
-              startIcon={<>🎄</>}
+              startIcon={defaultIcon}
               sx={{
                 px: 1,
               }}
