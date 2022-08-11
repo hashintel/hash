@@ -67,6 +67,10 @@ impl HookContextImpl {
             _marker: PhantomData::default(),
         }
     }
+
+    pub(crate) fn alternate(&self) -> bool {
+        self.alternate
+    }
 }
 
 /// Optional context used to carry information across hook invocations.

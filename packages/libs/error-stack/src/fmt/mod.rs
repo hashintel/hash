@@ -122,6 +122,7 @@ use core::{
     iter::once,
     panic::Location,
 };
+use std::mem;
 
 #[cfg(feature = "hooks")]
 pub(crate) use hook::ErasedHooks;
@@ -135,10 +136,9 @@ pub use hook::{HookContext, Hooks};
 #[cfg(all(nightly, feature = "experimental"))]
 pub use nightly::DebugDiagnostic;
 #[cfg(feature = "glyph")]
-use owo_colors::{OwoColorize, Stream::Stdout};
-use owo_colors::{Stream, Style};
+use owo_colors::{colored::Color, OwoColorize, Stream, Stream::Stdout, Style};
 
-use crate::{AttachmentKind, Frame, FrameKind, Report};
+use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
 /// Modify the behaviour, with which `Line`s returned from hook invocations are rendered.
 ///
@@ -277,9 +277,9 @@ impl Display for Symbol {
 
 #[derive(Debug, Copy, Clone)]
 enum Position {
-    Start,
+    First,
     Middle,
-    End,
+    Last,
 }
 
 /// The display of content is using an instruction style architecture,
@@ -294,6 +294,7 @@ enum Instruction {
         value: String,
         style: Style,
     },
+    Symbol(Symbol),
 
     Group {
         position: Position,
@@ -316,6 +317,7 @@ enum Instruction {
         visible: bool,
         /// Should spacing included, this is the difference between `|   ` and `|`
         spacing: bool,
+        minimal: bool,
     },
 }
 
@@ -330,8 +332,10 @@ impl Instruction {
     fn prepare(&self) -> PreparedInstruction {
         match self {
             Instruction::Value { value, style } => PreparedInstruction::Content(&value, style),
+            Instruction::Symbol(symbol) => PreparedInstruction::Symbols(&[*symbol]),
+
             Instruction::Group { position } => match position {
-                Position::Start => PreparedInstruction::Symbols(&[
+                Position::First => PreparedInstruction::Symbols(&[
                     Symbol::CurveRight,
                     Symbol::HorizontalDown,
                     Symbol::ArrowRight,
@@ -343,39 +347,44 @@ impl Instruction {
                     Symbol::ArrowRight,
                     Symbol::Space,
                 ]),
-                Position::End => PreparedInstruction::Symbols(&[
+                Position::Last => PreparedInstruction::Symbols(&[
                     Symbol::Space,
                     Symbol::CurveRight,
                     Symbol::ArrowRight,
                     Symbol::Space,
                 ]),
             },
+
             Instruction::Context { position } => match position {
-                Position::Start | Position::Middle => PreparedInstruction::Symbols(&[
+                Position::First | Position::Middle => PreparedInstruction::Symbols(&[
                     Symbol::VerticalRight,
                     Symbol::Horizontal,
                     Symbol::ArrowRight,
                     Symbol::Space,
                 ]),
-                Position::End => PreparedInstruction::Symbols(&[
+                Position::Last => PreparedInstruction::Symbols(&[
                     Symbol::CurveRight,
                     Symbol::Horizontal,
                     Symbol::ArrowRight,
                     Symbol::Space,
                 ]),
             },
+
             Instruction::Attachment { position } => match position {
-                Position::Start | Position::Middle => {
+                Position::First | Position::Middle => {
                     PreparedInstruction::Symbols(&[Symbol::VerticalRight, Symbol::HorizontalLeft])
                 }
-                Position::End => {
+                Position::Last => {
                     PreparedInstruction::Symbols(&[Symbol::CurveRight, Symbol::HorizontalLeft])
                 }
             },
+
+            // Indentation (like `|   ` or ` |  `)
             Instruction::Indent {
                 group: true,
                 visible: true,
                 spacing: true,
+                ..
             } => PreparedInstruction::Symbols(&[
                 Symbol::Space,
                 Symbol::Vertical,
@@ -386,11 +395,13 @@ impl Instruction {
                 group: true,
                 visible: true,
                 spacing: false,
+                ..
             } => PreparedInstruction::Symbols(&[Symbol::Space, Symbol::Vertical]),
             Instruction::Indent {
                 group: false,
                 visible: true,
                 spacing: true,
+                minimal: false,
             } => PreparedInstruction::Symbols(&[
                 Symbol::Vertical,
                 Symbol::Space,
@@ -400,11 +411,19 @@ impl Instruction {
             Instruction::Indent {
                 group: false,
                 visible: true,
+                spacing: true,
+                minimal: true,
+            } => PreparedInstruction::Symbols(&[Symbol::Vertical, Symbol::Space]),
+            Instruction::Indent {
+                group: false,
+                visible: true,
                 spacing: false,
+                ..
             } => PreparedInstruction::Symbols(&[Symbol::Vertical]),
             Instruction::Indent {
                 visible: false,
                 spacing: true,
+                minimal: false,
                 ..
             } => PreparedInstruction::Symbols(&[
                 Symbol::Space,
@@ -412,6 +431,17 @@ impl Instruction {
                 Symbol::Space,
                 Symbol::Space,
             ]),
+            Instruction::Indent {
+                visible: false,
+                spacing: true,
+                minimal: true,
+                ..
+            } => PreparedInstruction::Symbols(&[Symbol::Space, Symbol::Space]),
+            Instruction::Indent {
+                visible: false,
+                spacing: false,
+                ..
+            } => PreparedInstruction::Symbols(&[]),
         }
     }
 }
@@ -421,7 +451,7 @@ impl Display for Instruction {
         match self.prepare() {
             PreparedInstruction::Symbols(symbols) => {
                 for symbol in symbols {
-                    Display::fmt(symbol, fmt)?;
+                    Display::fmt(symbol, fmt)?.if_supports_color(Stdout, OwoColorize::red);
                 }
             }
             PreparedInstruction::Content(value, style) => {
@@ -433,192 +463,417 @@ impl Display for Instruction {
     }
 }
 
-pub struct Line(VecDeque<Instruction>);
+pub struct Line(Vec<Instruction>);
 
 impl Line {
-    pub fn new(text: String) -> Self {
-        let mut deque = VecDeque::new();
-        deque.push_back(Instruction::Content(text));
-
-        Self(deque)
-    }
-}
-
-pub struct Lines(Vec<Line>);
-
-impl Lines {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self(Vec::new())
     }
 
-    pub fn push(&mut self, line: Line) {
-        self.0.push(line);
+    fn push(mut self, instruction: Instruction) -> Self {
+        self.0.push(instruction);
+        self
     }
 
-    pub fn iter_mut(&mut self) -> core::slice::IterMut<Line> {
-        self.0.iter_mut()
+    fn into_lines(self) -> Lines {
+        let mut lines = Lines::new();
+        lines.after(self);
+        lines
     }
 }
 
-fn debug_frame(
-    frame: &Frame,
-    ctx: &mut HookContextImpl,
-) -> Option<(Emit, &'static Location<'static>)> {
-    let line = match frame.kind() {
-        FrameKind::Context(context) => Some(context.to_string()).map(Emit::Next),
-        FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
-            #[cfg(all(nightly, feature = "experimental"))]
-            if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
-                for text in debug.text() {
-                    ctx.cast::<()>().set_text(text);
-                }
+pub struct Lines(VecDeque<Line>);
 
-                return Some(debug.output().clone()).map(|line| (line, frame.location()));
+impl Lines {
+    fn new() -> Self {
+        Self(VecDeque::new())
+    }
+
+    fn into_iter(self) -> alloc::collections::vec_deque::IntoIter<Line> {
+        self.0.into_iter()
+    }
+
+    fn then(mut self, other: Self) -> Self {
+        self.0.extend(other.0);
+        self
+    }
+
+    fn before(mut self, line: Line) -> Self {
+        self.0.push_front(line);
+        self
+    }
+
+    fn after(mut self, line: Line) -> Self {
+        self.0.push_back(line);
+        self
+    }
+
+    fn into_vec(self) -> Vec<Line> {
+        self.0.into_iter().collect()
+    }
+}
+
+impl FromIterator<Line> for Lines {
+    fn from_iter<T: IntoIterator<Item = Line>>(iter: T) -> Self {
+        Self(iter.into_iter().collect())
+    }
+}
+
+/// Collect the current "stack", a stack are the current frames which only have a single
+/// source/parent.
+/// This searches until it finds a stack "split", where a frame has more than a single source.
+fn collect<'a>(root: &'a Frame, prefix: &'a [&Frame]) -> (Vec<&'a Frame>, &'a [Frame]) {
+    let mut stack = vec![];
+    stack.extend(prefix);
+    stack.push(root);
+
+    let mut ptr = Some(root);
+    let mut next: &'a [_] = &[];
+
+    while let Some(current) = ptr.take() {
+        let sources = current.sources();
+
+        match sources {
+            [parent] => {
+                stack.push(parent);
+                ptr = Some(parent)
             }
-
-            #[cfg(feature = "hooks")]
-            if let Some(hooks) = Report::format_hook() {
-                return hooks.call(frame, ctx).map(|line| (line, frame.location()));
+            sources => {
+                next = sources;
             }
-
-            Builtin.call(frame, ctx.cast())
         }
-        FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-            Some(attachment.to_string()).map(Emit::Next)
-        }
-    }?;
-
-    Some((line, frame.location()))
-}
-
-fn push(groups: &mut Vec<Lines>, line: &str, loc: &'static Location<'static>) {
-    groups.push(
-        line.lines()
-            .map(ToOwned::to_owned)
-            .map(Instruction::plain)
-            .chain(once(Instruction::location(loc)))
-            .enumerate()
-            .map(|(idx, mut line)| {
-                if idx != 0 {
-                    line.push_front(Instruction::Title { end: false });
-                }
-
-                line
-            })
-            .collect(),
-    );
-}
-
-fn debug_frame_root(root: &Frame, ctx: &mut HookContextImpl) -> Lines {
-    let mut plain = vec![root];
-
-    let next;
-    let mut ptr = root;
-
-    // find all the frames that are part of this stack,
-    // meaning collect them until we hit the end or a group of multiple frames.
-    loop {
-        let sources = ptr.sources();
-
-        next = match sources {
-            [] => None,
-            [child] => {
-                plain.push(child);
-                ptr = child;
-                continue;
-            }
-            group => Some(group),
-        };
-
-        break;
     }
 
-    let mut groups: Vec<Lines> = vec![];
-    let mut defer = vec![];
+    (stack, next)
+}
 
-    let mut opaque = 0;
-    for child in plain {
-        if let Some((line, loc)) = debug_frame(child, ctx) {
-            match line {
-                Emit::Defer(line) => {
-                    defer.push((line, loc));
-                }
-                Emit::Next(line) => push(&mut groups, &line, loc),
-            }
+/// Partition the tree, this looks for the first `Context`,
+/// then moves it up the chain and adds it to our results.
+/// Once we reach the end all remaining items on the stack are added to the prefix pile,
+/// which will be used in next iteration.
+fn partition(stack: &[&Frame]) -> (Vec<(&Frame, Vec<&Frame>)>, Vec<&Frame>) {
+    let mut result = vec![];
+    let mut queue = vec![];
+
+    for frame in stack {
+        if matches!(frame.kind(), FrameKind::Context(_)) {
+            let frames = mem::replace(&mut queue, vec![]);
+
+            result.push((*frame, frames));
         } else {
-            opaque += 1;
+            queue.push(*frame);
         }
     }
 
-    for (line, loc) in defer {
-        push(&mut groups, &line, loc);
-    }
+    (result, queue)
+}
 
-    match opaque {
-        0 => {}
-        1 => {
-            groups.push(vec![Instruction::plain(
-                "1 additional attachment".to_owned(),
-            )]);
-        }
-        n => {
-            groups.push(vec![Instruction::plain(format!(
-                "{n} additional attachments"
-            ))]);
-        }
-    }
-
-    if let Some(group) = next {
-        for child in group {
-            let content = debug_frame_root(child, ctx);
-
-            if !content.is_empty() {
-                groups.push(content);
-            }
-        }
-    }
-
-    // The first item is always the title,
-    // after that every group gets one of the following indents: `|->`, or `\->`
-    // if it is the last one.
-    let total = groups.len();
-    groups
-        .into_iter()
+fn context(frame: &Frame, context: &dyn Context, alternate: bool) -> (Lines, Line) {
+    let loc = frame.location();
+    let context = context
+        .to_string()
+        .lines()
+        .map(ToOwned::to_owned)
         .enumerate()
-        .flat_map(|(pos, content)| {
-            let last = pos == total - 1;
-            let first = pos == 0;
-            let len = content.len();
-
-            content.into_iter().enumerate().map(move |(idx, mut line)| {
-                // in the title we need to change from |- to \- if there are no other values.
-                // there are places where first is last, but not the other way around,
-                // this is why we need to test both.
-                // They are not mutually exclusive.
-                if (!first || last) && idx == len - 1 {
-                    if let Some(Instruction::Title { end }) = line.front_mut() {
-                        *end = true;
-                    }
-                }
-
-                if first {
-                    // the first line is the title, therefore not indented.
-                } else if last {
-                    if idx == 0 {
-                        line.push_front(Instruction::Entry { end: true });
-                    } else {
-                        line.push_front(Instruction::Indent);
-                    }
-                } else if idx == 0 {
-                    line.push_front(Instruction::Entry { end: false });
-                } else {
-                    line.push_front(Instruction::Vertical);
-                }
-
+        .map(|(idx, value)| {
+            if idx == 0 {
+                Line::new().push(Instruction::Value {
+                    value,
+                    style: Style::new().bold(),
+                })
+            } else {
+                Line::new().push(Instruction::Value {
+                    value,
+                    style: Style::new(),
+                })
+            }
+        })
+        .enumerate()
+        .map(|(idx, line)| {
+            if idx == 0 {
                 line
+            } else {
+                line.push(Instruction::Indent {
+                    group: false,
+                    visible: true,
+                    spacing: true,
+                    minimal: true,
+                })
+            }
+        })
+        .collect();
+
+    let loc = Line::new()
+        .push(Instruction::Value {
+            value: if alternate {
+                format!("{loc:?}")
+            } else {
+                loc.to_string()
+            },
+            style: Style::new().color(Color::BrightBlack),
+        })
+        .push(Instruction::Symbol(Symbol::Location));
+
+    (context, loc)
+}
+
+struct Opaque(usize);
+
+impl Opaque {
+    pub fn new() -> Self {
+        Self(0)
+    }
+
+    pub fn increase(&mut self) {
+        self.0 += 1;
+    }
+
+    pub fn render(self) -> Option<Line> {
+        match self.0 {
+            0 => None,
+            1 => Some(Line::new().push(Instruction::Value {
+                value: "1 additional attachment".to_owned(),
+                style: Style::new(),
+            })),
+            n => Some(Line::new().push(Instruction::Value {
+                value: format!("{n} additional attachments"),
+                style: Style::new(),
+            })),
+        }
+    }
+}
+
+fn attachments(
+    loc: Option<Line>,
+    ctx: &mut HookContextImpl,
+    last: bool,
+    frames: Vec<&Frame>,
+) -> Lines {
+    let mut opaque = Opaque::new();
+
+    // evaluate all frames to their respective values, will call all hooks with the current context
+    let (next, defer): (Vec<_>, _) = frames
+        .into_iter()
+        .map(|frame| match frame.kind() {
+            FrameKind::Context(_) => unreachable!(),
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
+                #[cfg(all(nightly, feature = "experimental"))]
+                if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
+                    for text in debug.text() {
+                        ctx.cast::<()>().set_text(text);
+                    }
+
+                    return Some(debug.output().clone());
+                }
+
+                #[cfg(feature = "hooks")]
+                if let Some(hooks) = Report::format_hook() {
+                    return hooks.call(frame, ctx);
+                }
+
+                Builtin.call(frame, ctx.cast())
+            }
+            FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
+                Some(attachment.to_string()).map(Emit::Next)
+            }
+        })
+        // increase the opaque counter if we're unable to determine the actual value of the frame
+        .inspect(|value| {
+            if value.is_none() {
+                opaque.increase();
+            }
+        })
+        .flatten()
+        .partition(|f| matches!(f, Emit::Next));
+
+    let opaque = opaque.render();
+
+    // calculate the len, combine next and defer emitted values into a single stream
+    let len = next.len() + defer.len() + loc.map_or(0, |_| 1) + opaque.map_or(0, |_| 1);
+    let lines = next
+        .into_iter()
+        .chain(defer.into_iter())
+        .map(|emit| match emit {
+            Emit::Defer(value) => value,
+            Emit::Next(value) => value,
+        })
+        .map(|value| {
+            value
+                .lines()
+                .map(ToOwned::to_owned)
+                .map(|line| {
+                    Line::new().push(Instruction::Value {
+                        value,
+                        style: Style::new(),
+                    })
+                })
+                .collect::<Vec<_>>()
+        });
+
+    // indentation for every first line, use `Instruction::Attachment`, otherwise use minimal indent
+    // omit that indent when we're the last value
+    let lines = loc
+        .into_iter()
+        .map(|line| line.into_lines().into_vec())
+        .chain(lines)
+        .chain(opaque.into_iter().map(|line| line.into_lines().into_vec()))
+        .enumerate()
+        .flat_map(|(idx, lines)| {
+            let position = match idx {
+                pos if pos + 1 == len && last => Position::Last,
+                0 => Position::First,
+                _ => Position::Middle,
+            };
+
+            lines.into_iter().enumerate().map(|(idx, line)| {
+                if idx == 0 {
+                    line.push(Instruction::Attachment { position })
+                } else {
+                    line.push(Instruction::Indent {
+                        group: false,
+                        visible: !matches!(position, Position::Last),
+                        spacing: true,
+                        minimal: true,
+                    })
+                }
             })
         })
-        .collect()
+        .collect();
+
+    lines
+}
+
+fn frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Vec<Lines> {
+    let (stack, sources) = collect(root, prefix);
+    let (stack, prefix) = partition(&stack);
+
+    let len = stack.len();
+    let mut contexts: VecDeque<_> = stack
+        .into_iter()
+        .enumerate()
+        .map(|(idx, (head, body))| {
+            let (head, loc) = context(
+                head,
+                match head.kind() {
+                    FrameKind::Context(c) => c,
+                    _ => unreachable!(),
+                },
+                ctx.alternate(),
+            );
+
+            let body = attachments(Some(loc), ctx, idx + 1 == len && sources.is_empty(), body);
+
+            head.then(body)
+        })
+        .enumerate()
+        .map(|(idx, lines)| {
+            if idx == 0 {
+                lines
+            } else {
+                // if we're not the last entry, create a "buffer" line, which is just
+                // a single indentation.
+                lines.before(Line::new().push(Instruction::Indent {
+                    group: false,
+                    visible: true,
+                    spacing: false,
+                    minimal: false,
+                }))
+            }
+        })
+        .collect();
+
+    let sources = sources
+        .iter()
+        // if the group is "transparent" (has no context), it will return all it's parents rendered
+        // this is why we must first flat_map.
+        .flat_map(|source| frame(source, ctx, &prefix))
+        .collect::<Vec<_>>();
+
+    let len = sources.len();
+    let sources = sources
+        .into_iter()
+        .enumerate()
+        .map(|(idx, lines)| {
+            let position = match idx {
+                // this is first to make sure that 0 is caught as `Last` instead of `First`
+                pos if pos + 1 == len => Position::Last,
+                0 => Position::First,
+                _ => Position::Middle,
+            };
+
+            lines
+            .into_iter()
+            .enumerate()
+            .map(|(idx, line)| {
+                if idx == 0 {
+                    line.push(Instruction::Group { position })
+                } else {
+                    line.push(Instruction::Indent {
+                        group: true,
+                        visible: true,
+                        spacing: true,
+                        minimal: false,
+                    })
+                }
+            })
+            .collect::<Lines>()
+            // add a buffer line for readability
+            .before(
+                Line::new().push(Instruction::Indent {
+                    group: idx != 0,
+                    visible: true,
+                    spacing: false,
+                    minimal: false,
+                })
+            )
+        })
+        .collect::<Vec<_>>();
+
+    // if there is no context, this is considered a "transparent" group,
+    // and just directly returns all sources
+    if contexts.is_empty() {
+        return sources;
+    }
+
+    // take the first Context, this is our "root", all others are indented
+    // this unwrap always succeeds due to the call before <3
+    let head = contexts.pop_front().unwrap();
+
+    let tail = !sources.is_empty();
+    let len = contexts.len();
+
+    let contexts = contexts.into_iter().enumerate().flat_map(|(idx, lines)| {
+        let position = match idx {
+            pos if pos + 1 == len && !tail => Position::Last,
+            0 => Position::First,
+            _ => Position::Middle,
+        };
+
+        lines
+            .into_iter()
+            .enumerate()
+            .map(|(idx, line)| {
+                if idx == 0 {
+                    line.push(Instruction::Context { position })
+                } else {
+                    line.push(Instruction::Indent {
+                        group: false,
+                        visible: true,
+                        spacing: true,
+                        minimal: false,
+                    })
+                }
+            })
+            .collect::<Vec<_>>()
+    });
+
+    // combine everything into a single group
+    vec![
+        head.into_iter()
+            .chain(contexts)
+            .chain(sources.into_iter().flat_map(|source| source.into_vec()))
+            .collect(),
+    ]
 }
 
 impl<C> Debug for Report<C> {
