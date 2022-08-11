@@ -1,28 +1,41 @@
 import { GraphApi } from "@hashintel/hash-graph-client";
 import {
   EntityModel,
-  EntityModelConstructorParams,
   EntityModelCreateParams,
   EntityTypeModel,
   UserModel,
 } from "..";
 import {
-  generateSchemaVersionedUri,
+  generateSchemaBaseUri,
+  generateWorkspaceEntityTypeSchema,
+  generateWorkspacePropertyTypeSchema,
   workspaceAccountId,
   worskspaceTypesNamespaceUri,
 } from "../util";
 
-type UserProperties = {
-  shortname?: string;
-  emails: string[];
-};
+// Generate the schema for the shortname property type
+export const shortnamePropertyType = generateWorkspacePropertyTypeSchema({
+  title: "Shortname",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
 
-type UserModelConstructorParams = Omit<
-  EntityModelConstructorParams,
-  "properties"
-> & {
-  properties: UserProperties;
-};
+// Generate the schema for the email property type
+export const emailPropertyType = generateWorkspacePropertyTypeSchema({
+  title: "Email",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+export const shortnameBaseUri = generateSchemaBaseUri({
+  namespaceUri: worskspaceTypesNamespaceUri,
+  kind: "propertyType",
+  title: shortnamePropertyType.title,
+});
+
+export const emailBaseUri = generateSchemaBaseUri({
+  namespaceUri: worskspaceTypesNamespaceUri,
+  kind: "propertyType",
+  title: emailPropertyType.title,
+});
 
 type UserModelCreateParams = Omit<
   EntityModelCreateParams,
@@ -32,25 +45,29 @@ type UserModelCreateParams = Omit<
   shortname?: string;
 };
 
-const userEntityTypeVersionedUri = generateSchemaVersionedUri({
-  namespaceUri: worskspaceTypesNamespaceUri,
-  kind: "entityType",
+// Generate the schema for the user entity type
+export const userEntityType = generateWorkspaceEntityTypeSchema({
   title: "User",
-  version: 1,
+  properties: [
+    {
+      baseUri: shortnameBaseUri,
+      versionedUri: shortnamePropertyType.$id,
+    },
+    {
+      baseUri: emailBaseUri,
+      versionedUri: emailPropertyType.$id,
+      required: true,
+      array: { minItems: 1 },
+    },
+  ],
 });
+
+const userEntityTypeVersionedUri = userEntityType.$id;
 
 /**
  * @class {@link UserModel}
  */
 export default class extends EntityModel {
-  properties: UserProperties;
-
-  constructor({ properties, ...args }: UserModelConstructorParams) {
-    super({ properties, ...args });
-
-    this.properties = properties;
-  }
-
   /**
    * Get a workspace user entity by their shortname.
    *
@@ -61,33 +78,21 @@ export default class extends EntityModel {
     params: { shortname: string },
   ): Promise<UserModel | null> {
     /** @todo: use upcoming Graph API method to filter entities in the datastore */
-    const { data: allEntities } = await graphApi.getLatestEntities();
+    const allEntities = await EntityModel.getAllLatest(graphApi, {
+      accountId: workspaceAccountId,
+    });
 
     const matchingEntity = allEntities
       .filter(
-        ({ typeVersionedUri }) =>
-          typeVersionedUri === userEntityTypeVersionedUri,
+        ({ entityTypeModel }) =>
+          entityTypeModel.schema.$id === userEntityTypeVersionedUri,
       )
       .find(
-        ({ inner }) =>
-          (inner.properties as UserProperties).shortname === params.shortname,
+        ({ properties }) =>
+          (properties as any)[shortnameBaseUri] === params.shortname,
       );
 
-    if (matchingEntity) {
-      const { identifier, inner } = matchingEntity;
-
-      const { createdBy: accountId, version } = identifier;
-
-      return new UserModel({
-        accountId,
-        entityId: identifier.entityId,
-        version,
-        entityTypeModel: await UserModel.getUserEntityType(graphApi),
-        properties: inner.properties as UserProperties,
-      });
-    }
-
-    return null;
+    return matchingEntity ? new UserModel(matchingEntity) : null;
   }
 
   static async getUserEntityType(graphApi: GraphApi): Promise<EntityTypeModel> {
@@ -124,9 +129,9 @@ export default class extends EntityModel {
       /** @todo: also ensure shortname is unique amongst orgs */
     }
 
-    const properties: UserProperties = {
-      emails,
-      shortname,
+    const properties: object = {
+      [emailBaseUri]: emails,
+      [shortnameBaseUri]: shortname,
     };
 
     const entityTypeModel = await UserModel.getUserEntityType(graphApi);
@@ -146,5 +151,13 @@ export default class extends EntityModel {
       entityTypeModel,
       properties,
     });
+  }
+
+  getEmails(): string[] {
+    return (this.properties as any)[emailBaseUri];
+  }
+
+  getShortname(): string {
+    return (this.properties as any)[shortnameBaseUri];
   }
 }

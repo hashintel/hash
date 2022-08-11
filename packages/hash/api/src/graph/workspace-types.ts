@@ -5,58 +5,24 @@ import {
 } from "@hashintel/hash-graph-client";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { AxiosError } from "axios";
-import { DataTypeModel, EntityTypeModel, PropertyTypeModel } from "../model";
+import {
+  DataTypeModel,
+  emailPropertyType,
+  EntityTypeModel,
+  PropertyTypeModel,
+  shortnamePropertyType,
+  userEntityType,
+} from "../model";
 import { logger } from "../logger";
 import {
   primitiveDataTypeVersionedUris,
-  generateSchemaBaseUri,
-  generateWorkspacePropertyTypeSchema,
-  generateWorkspaceEntityTypeSchema,
-  worskspaceTypesNamespaceUri,
   workspaceAccountId,
 } from "../model/util";
-
-// Generate the schema for the shortname property type
-const shortnamePropertyType = generateWorkspacePropertyTypeSchema({
-  title: "Shortname",
-  possibleValues: [{ primitiveDataType: "Text" }],
-});
-
-// Generate the schema for the email property type
-const emailPropertyType = generateWorkspacePropertyTypeSchema({
-  title: "Email",
-  possibleValues: [{ primitiveDataType: "Text" }],
-});
 
 const workspacePropertyTypes: PropertyType[] = [
   shortnamePropertyType,
   emailPropertyType,
 ];
-
-// Generate the schema for the user entity type
-const userEntityType = generateWorkspaceEntityTypeSchema({
-  title: "User",
-  properties: [
-    {
-      baseUri: generateSchemaBaseUri({
-        namespaceUri: worskspaceTypesNamespaceUri,
-        kind: "propertyType",
-        title: "Shortname",
-      }),
-      versionedUri: shortnamePropertyType.$id,
-    },
-    {
-      baseUri: generateSchemaBaseUri({
-        namespaceUri: worskspaceTypesNamespaceUri,
-        kind: "propertyType",
-        title: "Email",
-      }),
-      versionedUri: emailPropertyType.$id,
-      required: true,
-      array: { minItems: 1 },
-    },
-  ],
-});
 
 const workspaceEntityTypes: EntityType[] = [userEntityType];
 

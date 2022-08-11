@@ -112,14 +112,14 @@ export default class {
     /** @todo: get all latest entities in specified account */
     const { data: entities } = await graphApi.getLatestEntities();
 
-    const cachedEntityTypeModelss = new Map<string, EntityTypeModel>();
+    const cachedEntityTypeModels = new Map<string, EntityTypeModel>();
 
     return await Promise.all(
       entities.map((entity) =>
         EntityModel.fromPersistedEntity(
           graphApi,
           entity,
-          cachedEntityTypeModelss,
+          cachedEntityTypeModels,
         ),
       ),
     );
