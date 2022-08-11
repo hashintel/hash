@@ -10,7 +10,7 @@ RUN apk add --no-cache gcc musl-dev && \
     rustup show
 
 FROM rust AS builder
-WORKDIR app
+WORKDIR /app
 COPY . .
 RUN cargo build --profile production --all-features --locked && \
     cp target/production/hash-graph /tmp/hash-graph && \
