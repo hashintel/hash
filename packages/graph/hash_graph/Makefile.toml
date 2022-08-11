@@ -62,3 +62,24 @@ yarn workspace @hashintel/hash-graph-client prettier --write .
 # ESlint enforces ordering, which enables us to rely on the output diff as a CI check.
 yarn workspace @hashintel/hash-graph-client fix:eslint
 """
+
+[tasks.docker-build]
+category = "Deploy"
+description = "Builds a docker image of the graph"
+command = "docker"
+cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}"
+args = ["build", "--tag", "graph", "--file", "../deployment/graph/Dockerfile", "."]
+
+[tasks.docker-up]
+category = "Deploy"
+description = "Runs the docker image of the graph"
+command = "docker"
+cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}"
+args = ["run", "--rm", "--network", "host", "--name", "graph", "--env", "RUST_LOG=trace", "--detach", "graph"]
+
+[tasks.docker-down]
+category = "Deploy"
+description = "Stops the docker image of the graph"
+command = "docker"
+cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}"
+args = ["kill", "--signal", "SIGKILL", "graph"]

@@ -1,26 +1,23 @@
-FROM alpine:3.16 as builder
+FROM alpine:3.16 as rust
 
-## Install dependencies
-RUN apk add --no-cache \
-    gcc \
-    musl-dev
-
-## Install rustup
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH=:$PATH:/usr/local/cargo/bin
-RUN wget -q -O- https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
 
-## Copy the source files to the user's home directory
-WORKDIR /usr/src
-COPY ./hash_graph/ .
+COPY rust-toolchain.toml .
+RUN apk add --no-cache gcc musl-dev && \
+    wget -q -O- https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal && \
+    rustup show
 
-## Build the project
-RUN cargo build --release --all-features
+FROM rust AS builder
+WORKDIR app
+COPY . .
+RUN cargo build --profile production --all-features --locked && \
+    cp target/production/hash-graph /tmp/hash-graph && \
+    cargo clean && \
+    rm -rf $CARGO_HOME/registry && \
+    rm -rf $CARGO_HOME/.git
 
-
-FROM alpine:3.16
-
-COPY --from=builder /usr/src/target/release/hash-graph /usr/local/bin/
-
-ENTRYPOINT ["/usr/local/bin/hash-graph"]
+FROM scratch AS runtime
+COPY --from=builder tmp/hash-graph /
+ENTRYPOINT ["/hash-graph"]
