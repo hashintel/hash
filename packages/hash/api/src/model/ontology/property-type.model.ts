@@ -1,7 +1,6 @@
 import { PropertyType, GraphApi } from "@hashintel/hash-graph-client";
 
 import { PropertyTypeModel } from "../index";
-import { NIL_UUID } from "../util";
 
 type PropertyTypeModelConstructorArgs = {
   accountId: string;
@@ -49,14 +48,18 @@ export default class {
    */
   static async getAllLatest(
     graphApi: GraphApi,
-    params: { accountId: string },
+    _params: { accountId: string },
   ): Promise<PropertyTypeModel[]> {
     /** @todo: get all latest property types in specified account */
-    const { data: schemas } = await graphApi.getLatestPropertyTypes();
+    const { data: persistedPropertyTypes } =
+      await graphApi.getLatestPropertyTypes();
 
-    return schemas.map(
-      (schema) =>
-        new PropertyTypeModel({ schema, accountId: params.accountId }),
+    return persistedPropertyTypes.map(
+      (persistedPropertyType) =>
+        new PropertyTypeModel({
+          schema: persistedPropertyType.inner,
+          accountId: persistedPropertyType.identifier.createdBy,
+        }),
     );
   }
 
@@ -73,12 +76,14 @@ export default class {
     },
   ): Promise<PropertyTypeModel> {
     const { versionedUri } = params;
-    const { data: schema } = await graphApi.getPropertyType(versionedUri);
+    const { data: persistedPropertyType } = await graphApi.getPropertyType(
+      versionedUri,
+    );
 
-    /** @todo: retrieve accountId from `graphApi.getPropertyType` response */
-    const accountId = NIL_UUID;
-
-    return new PropertyTypeModel({ schema, accountId });
+    return new PropertyTypeModel({
+      schema: persistedPropertyType.inner,
+      accountId: persistedPropertyType.identifier.createdBy,
+    });
   }
 
   /**
