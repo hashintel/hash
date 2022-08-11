@@ -119,10 +119,8 @@ use alloc::{
 use core::{
     fmt,
     fmt::{Debug, Display, Formatter},
-    iter::once,
-    panic::Location,
+    mem,
 };
-use std::mem;
 
 #[cfg(feature = "hooks")]
 pub(crate) use hook::ErasedHooks;
@@ -136,7 +134,7 @@ pub use hook::{HookContext, Hooks};
 #[cfg(all(nightly, feature = "experimental"))]
 pub use nightly::DebugDiagnostic;
 #[cfg(feature = "glyph")]
-use owo_colors::{colored::Color, OwoColorize, Stream, Stream::Stdout, Style};
+use owo_colors::{OwoColorize, Stream::Stdout, Style as OwOStyle};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
@@ -220,11 +218,6 @@ impl Emit {
     }
 }
 
-#[derive(Debug)]
-enum Glyph {
-    Location,
-}
-
 #[derive(Debug, Copy, Clone)]
 enum Symbol {
     // special, used to indicate location
@@ -241,37 +234,77 @@ enum Symbol {
     Space,
 }
 
-#[cfg(feature = "hooks")]
+#[cfg(feature = "glyph")]
 impl Display for Symbol {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Symbol::Location => f.write_str(""),
-            Symbol::Vertical => f.write_str("│"),
-            Symbol::VerticalRight => f.write_str("├"),
-            Symbol::Horizontal => f.write_str("─"),
-            Symbol::HorizontalLeft => f.write_str("╴"),
-            Symbol::HorizontalDown => f.write_str("┬"),
-            Symbol::ArrowRight => f.write_str("▶"),
-            Symbol::CurveRight => f.write_str("╰"),
-            Symbol::Space => f.write_str(" "),
+            Self::Location => f.write_str(""),
+            Self::Vertical => f.write_str("│"),
+            Self::VerticalRight => f.write_str("├"),
+            Self::Horizontal => f.write_str("─"),
+            Self::HorizontalLeft => f.write_str("╴"),
+            Self::HorizontalDown => f.write_str("┬"),
+            Self::ArrowRight => f.write_str("▶"),
+            Self::CurveRight => f.write_str("╰"),
+            Self::Space => f.write_str(" "),
         }
     }
 }
 
-#[cfg(not(feature = "hooks"))]
+#[cfg(not(feature = "glyph"))]
 impl Display for Symbol {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Symbol::Location => f.write_str("@ "),
-            Symbol::Vertical => f.write_str("|"),
-            Symbol::VerticalRight => f.write_str("|"),
-            Symbol::Horizontal => f.write_str("-"),
-            Symbol::HorizontalLeft => f.write_str("-"),
-            Symbol::HorizontalDown => f.write_str("-"),
-            Symbol::ArrowRight => f.write_str(">"),
-            Symbol::CurveRight => f.write_str(r"\"),
-            Symbol::Space => f.write_str(" "),
+            Self::Location => f.write_str("@ "),
+            Self::Vertical | Self::VerticalRight => f.write_str("|"),
+            Self::Horizontal | Self::HorizontalLeft | Self::HorizontalDown => f.write_str("-"),
+            Self::ArrowRight => f.write_str(">"),
+            Self::CurveRight => f.write_str(r"\"),
+            Self::Space => f.write_str(" "),
         }
+    }
+}
+
+/// Small compatability layer between owocolors regardless if we use glyph or not
+#[derive(Debug, Copy, Clone)]
+struct Style {
+    bold: bool,
+    fg_gray: bool,
+}
+
+impl Style {
+    const fn new() -> Self {
+        Self {
+            bold: false,
+            fg_gray: false,
+        }
+    }
+
+    const fn bold(mut self) -> Self {
+        self.bold = true;
+        self
+    }
+
+    const fn gray(mut self) -> Self {
+        self.fg_gray = true;
+        self
+    }
+}
+
+#[cfg(feature = "glyph")]
+impl From<Style> for OwOStyle {
+    fn from(val: Style) -> Self {
+        let mut this = Self::new();
+
+        if val.bold {
+            this = this.bold();
+        }
+
+        if val.fg_gray {
+            this = this.bright_black();
+        }
+
+        this
     }
 }
 
@@ -324,17 +357,22 @@ enum Instruction {
 /// Minimized instruction, which looses information about what it represents and converts it to only
 /// symbols, this then is output instead.
 enum PreparedInstruction<'a> {
+    Symbol(&'a Symbol),
     Symbols(&'a [Symbol]),
     Content(&'a str, &'a Style),
 }
 
 impl Instruction {
+    /// Reason for allow:
+    /// > This is just a big statement to convert to a prepared instruction, there
+    /// isn't really any logic here
+    #[allow(clippy::too_many_lines)]
     fn prepare(&self) -> PreparedInstruction {
         match self {
-            Instruction::Value { value, style } => PreparedInstruction::Content(&value, style),
-            Instruction::Symbol(symbol) => PreparedInstruction::Symbols(&[*symbol]),
+            Self::Value { value, style } => PreparedInstruction::Content(value, style),
+            Self::Symbol(symbol) => PreparedInstruction::Symbol(symbol),
 
-            Instruction::Group { position } => match position {
+            Self::Group { position } => match position {
                 Position::First => PreparedInstruction::Symbols(&[
                     Symbol::CurveRight,
                     Symbol::HorizontalDown,
@@ -355,7 +393,7 @@ impl Instruction {
                 ]),
             },
 
-            Instruction::Context { position } => match position {
+            Self::Context { position } => match position {
                 Position::First | Position::Middle => PreparedInstruction::Symbols(&[
                     Symbol::VerticalRight,
                     Symbol::Horizontal,
@@ -370,7 +408,7 @@ impl Instruction {
                 ]),
             },
 
-            Instruction::Attachment { position } => match position {
+            Self::Attachment { position } => match position {
                 Position::First | Position::Middle => {
                     PreparedInstruction::Symbols(&[Symbol::VerticalRight, Symbol::HorizontalLeft])
                 }
@@ -380,7 +418,7 @@ impl Instruction {
             },
 
             // Indentation (like `|   ` or ` |  `)
-            Instruction::Indent {
+            Self::Indent {
                 group: true,
                 visible: true,
                 spacing: true,
@@ -391,13 +429,13 @@ impl Instruction {
                 Symbol::Space,
                 Symbol::Space,
             ]),
-            Instruction::Indent {
+            Self::Indent {
                 group: true,
                 visible: true,
                 spacing: false,
                 ..
             } => PreparedInstruction::Symbols(&[Symbol::Space, Symbol::Vertical]),
-            Instruction::Indent {
+            Self::Indent {
                 group: false,
                 visible: true,
                 spacing: true,
@@ -408,19 +446,19 @@ impl Instruction {
                 Symbol::Space,
                 Symbol::Space,
             ]),
-            Instruction::Indent {
+            Self::Indent {
                 group: false,
                 visible: true,
                 spacing: true,
                 minimal: true,
             } => PreparedInstruction::Symbols(&[Symbol::Vertical, Symbol::Space]),
-            Instruction::Indent {
+            Self::Indent {
                 group: false,
                 visible: true,
                 spacing: false,
                 ..
             } => PreparedInstruction::Symbols(&[Symbol::Vertical]),
-            Instruction::Indent {
+            Self::Indent {
                 visible: false,
                 spacing: true,
                 minimal: false,
@@ -431,13 +469,13 @@ impl Instruction {
                 Symbol::Space,
                 Symbol::Space,
             ]),
-            Instruction::Indent {
+            Self::Indent {
                 visible: false,
                 spacing: true,
                 minimal: true,
                 ..
             } => PreparedInstruction::Symbols(&[Symbol::Space, Symbol::Space]),
-            Instruction::Indent {
+            Self::Indent {
                 visible: false,
                 spacing: false,
                 ..
@@ -446,27 +484,51 @@ impl Instruction {
     }
 }
 
+#[cfg(feature = "glyph")]
 impl Display for Instruction {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         match self.prepare() {
+            PreparedInstruction::Symbol(symbol) => {
+                Display::fmt(symbol, fmt)?;
+            }
             PreparedInstruction::Symbols(symbols) => {
                 for symbol in symbols {
-                    Display::fmt(symbol, fmt)?.if_supports_color(Stdout, OwoColorize::red);
+                    Display::fmt(&symbol.if_supports_color(Stdout, OwoColorize::red), fmt)?;
                 }
             }
-            PreparedInstruction::Content(value, style) => {
-                value.if_supports_color(Stdout, |value| value.style(*style))
-            }
+            PreparedInstruction::Content(value, &style) => Display::fmt(
+                &value.if_supports_color(Stdout, |value| value.style(style.into())),
+                fmt,
+            )?,
         }
 
         Ok(())
     }
 }
 
-pub struct Line(Vec<Instruction>);
+#[cfg(not(feature = "glyph"))]
+impl Display for Instruction {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        match self.prepare() {
+            PreparedInstruction::Symbol(symbol) => {
+                Display::fmt(symbol, fmt)?;
+            }
+            PreparedInstruction::Symbols(symbols) => {
+                for symbol in symbols {
+                    Display::fmt(symbol, fmt)?;
+                }
+            }
+            PreparedInstruction::Content(value, _) => fmt.write_str(value)?,
+        }
+
+        Ok(())
+    }
+}
+
+struct Line(Vec<Instruction>);
 
 impl Line {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self(Vec::new())
     }
 
@@ -476,13 +538,22 @@ impl Line {
     }
 
     fn into_lines(self) -> Lines {
-        let mut lines = Lines::new();
-        lines.after(self);
-        lines
+        let lines = Lines::new();
+        lines.after(self)
     }
 }
 
-pub struct Lines(VecDeque<Line>);
+impl Display for Line {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        for instruction in self.0.iter().rev() {
+            Display::fmt(instruction, f)?;
+        }
+
+        Ok(())
+    }
+}
+
+struct Lines(VecDeque<Line>);
 
 impl Lines {
     fn new() -> Self {
@@ -536,7 +607,7 @@ fn collect<'a>(root: &'a Frame, prefix: &'a [&Frame]) -> (Vec<&'a Frame>, &'a [F
         match sources {
             [parent] => {
                 stack.push(parent);
-                ptr = Some(parent)
+                ptr = Some(parent);
             }
             sources => {
                 next = sources;
@@ -551,13 +622,13 @@ fn collect<'a>(root: &'a Frame, prefix: &'a [&Frame]) -> (Vec<&'a Frame>, &'a [F
 /// then moves it up the chain and adds it to our results.
 /// Once we reach the end all remaining items on the stack are added to the prefix pile,
 /// which will be used in next iteration.
-fn partition(stack: &[&Frame]) -> (Vec<(&Frame, Vec<&Frame>)>, Vec<&Frame>) {
+fn partition<'a>(stack: &'a [&'a Frame]) -> (Vec<(&'a Frame, Vec<&'a Frame>)>, Vec<&'a Frame>) {
     let mut result = vec![];
     let mut queue = vec![];
 
     for frame in stack {
         if matches!(frame.kind(), FrameKind::Context(_)) {
-            let frames = mem::replace(&mut queue, vec![]);
+            let frames = mem::take(&mut queue);
 
             result.push((*frame, frames));
         } else {
@@ -568,7 +639,7 @@ fn partition(stack: &[&Frame]) -> (Vec<(&Frame, Vec<&Frame>)>, Vec<&Frame>) {
     (result, queue)
 }
 
-fn context(frame: &Frame, context: &dyn Context, alternate: bool) -> (Lines, Line) {
+fn debug_context(frame: &Frame, context: &dyn Context, alternate: bool) -> (Lines, Line) {
     let loc = frame.location();
     let context = context
         .to_string()
@@ -610,7 +681,7 @@ fn context(frame: &Frame, context: &dyn Context, alternate: bool) -> (Lines, Lin
             } else {
                 loc.to_string()
             },
-            style: Style::new().color(Color::BrightBlack),
+            style: Style::new().gray(),
         })
         .push(Instruction::Symbol(Symbol::Location));
 
@@ -620,15 +691,15 @@ fn context(frame: &Frame, context: &dyn Context, alternate: bool) -> (Lines, Lin
 struct Opaque(usize);
 
 impl Opaque {
-    pub fn new() -> Self {
+    const fn new() -> Self {
         Self(0)
     }
 
-    pub fn increase(&mut self) {
+    fn increase(&mut self) {
         self.0 += 1;
     }
 
-    pub fn render(self) -> Option<Line> {
+    fn render(self) -> Option<Line> {
         match self.0 {
             0 => None,
             1 => Some(Line::new().push(Instruction::Value {
@@ -643,7 +714,7 @@ impl Opaque {
     }
 }
 
-fn attachments(
+fn debug_attachments(
     loc: Option<Line>,
     ctx: &mut HookContextImpl,
     last: bool,
@@ -684,18 +755,18 @@ fn attachments(
             }
         })
         .flatten()
-        .partition(|f| matches!(f, Emit::Next));
+        .partition(|f| matches!(f, Emit::Next(_)));
 
     let opaque = opaque.render();
 
     // calculate the len, combine next and defer emitted values into a single stream
-    let len = next.len() + defer.len() + loc.map_or(0, |_| 1) + opaque.map_or(0, |_| 1);
+    let len =
+        next.len() + defer.len() + loc.as_ref().map_or(0, |_| 1) + opaque.as_ref().map_or(0, |_| 1);
     let lines = next
         .into_iter()
         .chain(defer.into_iter())
         .map(|emit| match emit {
-            Emit::Defer(value) => value,
-            Emit::Next(value) => value,
+            Emit::Defer(value) | Emit::Next(value) => value,
         })
         .map(|value| {
             value
@@ -703,7 +774,7 @@ fn attachments(
                 .map(ToOwned::to_owned)
                 .map(|line| {
                     Line::new().push(Instruction::Value {
-                        value,
+                        value: line,
                         style: Style::new(),
                     })
                 })
@@ -712,8 +783,7 @@ fn attachments(
 
     // indentation for every first line, use `Instruction::Attachment`, otherwise use minimal indent
     // omit that indent when we're the last value
-    let lines = loc
-        .into_iter()
+    loc.into_iter()
         .map(|line| line.into_lines().into_vec())
         .chain(lines)
         .chain(opaque.into_iter().map(|line| line.into_lines().into_vec()))
@@ -725,7 +795,7 @@ fn attachments(
                 _ => Position::Middle,
             };
 
-            lines.into_iter().enumerate().map(|(idx, line)| {
+            lines.into_iter().enumerate().map(move |(idx, line)| {
                 if idx == 0 {
                     line.push(Instruction::Attachment { position })
                 } else {
@@ -738,57 +808,10 @@ fn attachments(
                 }
             })
         })
-        .collect();
-
-    lines
+        .collect()
 }
 
-fn frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Vec<Lines> {
-    let (stack, sources) = collect(root, prefix);
-    let (stack, prefix) = partition(&stack);
-
-    let len = stack.len();
-    let mut contexts: VecDeque<_> = stack
-        .into_iter()
-        .enumerate()
-        .map(|(idx, (head, body))| {
-            let (head, loc) = context(
-                head,
-                match head.kind() {
-                    FrameKind::Context(c) => c,
-                    _ => unreachable!(),
-                },
-                ctx.alternate(),
-            );
-
-            let body = attachments(Some(loc), ctx, idx + 1 == len && sources.is_empty(), body);
-
-            head.then(body)
-        })
-        .enumerate()
-        .map(|(idx, lines)| {
-            if idx == 0 {
-                lines
-            } else {
-                // if we're not the last entry, create a "buffer" line, which is just
-                // a single indentation.
-                lines.before(Line::new().push(Instruction::Indent {
-                    group: false,
-                    visible: true,
-                    spacing: false,
-                    minimal: false,
-                }))
-            }
-        })
-        .collect();
-
-    let sources = sources
-        .iter()
-        // if the group is "transparent" (has no context), it will return all it's parents rendered
-        // this is why we must first flat_map.
-        .flat_map(|source| frame(source, ctx, &prefix))
-        .collect::<Vec<_>>();
-
+fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> Lines {
     let len = sources.len();
     let sources = sources
         .into_iter()
@@ -829,19 +852,10 @@ fn frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Vec<Line
         })
         .collect::<Vec<_>>();
 
-    // if there is no context, this is considered a "transparent" group,
-    // and just directly returns all sources
-    if contexts.is_empty() {
-        return sources;
-    }
-
-    // take the first Context, this is our "root", all others are indented
-    // this unwrap always succeeds due to the call before <3
-    let head = contexts.pop_front().unwrap();
-
     let tail = !sources.is_empty();
     let len = contexts.len();
 
+    // insert the arrows and buffer indentation
     let contexts = contexts.into_iter().enumerate().flat_map(|(idx, lines)| {
         let position = match idx {
             pos if pos + 1 == len && !tail => Position::Last,
@@ -867,13 +881,77 @@ fn frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Vec<Line
             .collect::<Vec<_>>()
     });
 
+    head.into_iter()
+        .chain(contexts)
+        .chain(sources.into_iter().flat_map(Lines::into_vec))
+        .collect()
+}
+
+fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Vec<Lines> {
+    let (stack, sources) = collect(root, prefix);
+    let (stack, prefix) = partition(&stack);
+
+    let len = stack.len();
+    // collect all the contexts that we have partitioned previously and render them
+    let mut contexts: VecDeque<_> = stack
+        .into_iter()
+        .enumerate()
+        .map(|(idx, (head, body))| {
+            // each "paket" on the stack is made up of a head (guaranteed to be a `Context`) and
+            // `n` attachments.
+            // The attachments are rendered as direct descendants of the parent context
+            let (head, loc) = debug_context(
+                head,
+                match head.kind() {
+                    FrameKind::Context(c) => c,
+                    FrameKind::Attachment(_) => unreachable!(),
+                },
+                ctx.alternate(),
+            );
+
+            let body =
+                debug_attachments(Some(loc), ctx, idx + 1 == len && sources.is_empty(), body);
+
+            head.then(body)
+        })
+        .enumerate()
+        .map(|(idx, lines)| {
+            if idx == 0 {
+                lines
+            } else {
+                // if we're not the last entry, create a "buffer" line, which is just
+                // a single indentation.
+                lines.before(Line::new().push(Instruction::Indent {
+                    group: false,
+                    visible: true,
+                    spacing: false,
+                    minimal: false,
+                }))
+            }
+        })
+        .collect();
+
+    let sources = sources
+        .iter()
+        // if the group is "transparent" (has no context), it will return all it's parents rendered
+        // this is why we must first flat_map.
+        .flat_map(|source| debug_frame(source, ctx, &prefix))
+        .collect::<Vec<_>>();
+
+    // if there is no context, this is considered a "transparent" group,
+    // and just directly returns all sources without modifying them
+    if contexts.is_empty() {
+        return sources;
+    }
+
+    // TODO: test of multiple "splits" w/o context between them.
+
+    // take the first Context, this is our "root", all others are indented
+    // this unwrap always succeeds due to the call before <3
+    let head = contexts.pop_front().unwrap();
+
     // combine everything into a single group
-    vec![
-        head.into_iter()
-            .chain(contexts)
-            .chain(sources.into_iter().flat_map(|source| source.into_vec()))
-            .collect(),
-    ]
+    vec![debug_render(head, contexts, sources)]
 }
 
 impl<C> Debug for Report<C> {
@@ -883,27 +961,32 @@ impl<C> Debug for Report<C> {
             return hook(self.generalized(), fmt);
         }
 
-        let mut lines = vec![];
         let mut ctx = HookContextImpl::default();
 
-        for frame in self.current_frames() {
-            let display = debug_frame_root(frame, &mut ctx);
-
-            lines.extend(display);
-            lines.push(Instruction::plain("".to_owned()));
-        }
-
-        let mut lines = lines
-            .into_iter()
-            .map(|line| {
-                line.iter()
-                    .map(ToString::to_string)
-                    .collect::<Vec<_>>()
-                    .concat()
+        let mut lines = self
+            .current_frames()
+            .iter()
+            .flat_map(|frame| debug_frame(frame, &mut ctx, &[]))
+            .enumerate()
+            .flat_map(|(idx, lines)| {
+                if idx == 0 {
+                    lines.into_vec()
+                } else {
+                    lines
+                        .before(Line::new().push(Instruction::Indent {
+                            group: false,
+                            visible: false,
+                            spacing: false,
+                            minimal: false,
+                        }))
+                        .into_vec()
+                }
             })
-            .collect::<Vec<String>>()
+            .map(|line| line.to_string())
+            .collect::<Vec<_>>()
             .join("\n");
 
+        // TODO: force
         // only output detailed information (like backtraces), if alternative mode has been enabled.
         if fmt.alternate() {
             let suffix = ctx

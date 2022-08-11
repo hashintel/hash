@@ -68,7 +68,7 @@ impl HookContextImpl {
         }
     }
 
-    pub(crate) fn alternate(&self) -> bool {
+    pub(crate) const fn alternate(&self) -> bool {
         self.alternate
     }
 }
@@ -296,6 +296,8 @@ impl<'a, T> HookContext<'a, T> {
     // TODO: text force (how?)
     /// Is the currently requested format the alternate representation?
     /// This corresponds to the output of [`std::fmt::Formatter::alternate`].
+    #[cfg(feature = "hooks")]
+    #[must_use]
     pub fn alternate(&self) -> bool {
         self.parent.alternate
     }
