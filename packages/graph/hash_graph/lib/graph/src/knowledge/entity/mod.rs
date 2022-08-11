@@ -45,6 +45,7 @@ pub struct Entity {
 #[serde(rename_all = "camelCase")]
 pub struct PersistedEntityIdentifier {
     entity_id: EntityId,
+    #[component(value_type = String)]
     version: DateTime<Utc>,
     created_by: AccountId,
 }

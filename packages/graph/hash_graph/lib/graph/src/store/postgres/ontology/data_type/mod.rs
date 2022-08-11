@@ -3,7 +3,7 @@ use error_stack::{IntoReport, Result, ResultExt};
 use tokio_postgres::GenericClient;
 
 use crate::{
-    ontology::{types::DataType, AccountId},
+    ontology::{types::DataType, AccountId, PersistedOntologyIdentifier},
     store::{AsClient, DataTypeStore, InsertionError, PostgresStore, UpdateError},
 };
 
@@ -13,7 +13,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         &mut self,
         data_type: &DataType,
         created_by: AccountId,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<PersistedOntologyIdentifier, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -22,7 +22,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 .change_context(InsertionError)?,
         );
 
-        transaction.create(data_type, created_by).await?;
+        let (_, identifier) = transaction.create(data_type, created_by).await?;
 
         transaction
             .client
@@ -31,14 +31,14 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             .into_report()
             .change_context(InsertionError)?;
 
-        Ok(())
+        Ok(identifier)
     }
 
     async fn update_data_type(
         &mut self,
         data_type: &DataType,
         updated_by: AccountId,
-    ) -> Result<(), UpdateError> {
+    ) -> Result<PersistedOntologyIdentifier, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -47,7 +47,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 .change_context(UpdateError)?,
         );
 
-        transaction.update(data_type, updated_by).await?;
+        let (_, identifier) = transaction.update(data_type, updated_by).await?;
 
         transaction
             .client
@@ -56,6 +56,6 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             .into_report()
             .change_context(UpdateError)?;
 
-        Ok(())
+        Ok(identifier)
     }
 }

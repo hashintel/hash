@@ -16,7 +16,7 @@ use crate::{
     api::rest::read_from_store,
     ontology::{
         types::{uri::VersionedUri, LinkType},
-        AccountId,
+        AccountId, PersistedLinkType, PersistedOntologyIdentifier,
     },
     store::{
         query::LinkTypeQuery, BaseUriAlreadyExists, BaseUriDoesNotExist, LinkTypeStore, StorePool,
@@ -31,7 +31,13 @@ use crate::{
         get_latest_link_types,
         update_link_type
     ),
-    components(CreateLinkTypeRequest, UpdateLinkTypeRequest, AccountId),
+    components(
+        CreateLinkTypeRequest,
+        UpdateLinkTypeRequest,
+        AccountId,
+        PersistedOntologyIdentifier,
+        PersistedLinkType
+    ),
     tags(
         (name = "LinkType", description = "Link type management API")
     )
@@ -70,7 +76,7 @@ struct CreateLinkTypeRequest {
     request_body = CreateLinkTypeRequest,
     tag = "LinkType",
     responses(
-        (status = 201, content_type = "application/json", description = "The schema of the created link type", body = VAR_LINK_TYPE),
+        (status = 201, content_type = "application/json", description = "The schema of the created link type", body = PersistedOntologyIdentifier),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create link type in the store as the base link type ID already exists"),
@@ -81,7 +87,7 @@ struct CreateLinkTypeRequest {
 async fn create_link_type<P: StorePool + Send>(
     body: Json<CreateLinkTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<LinkType>, StatusCode> {
+) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
     let Json(CreateLinkTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -101,9 +107,8 @@ async fn create_link_type<P: StorePool + Send>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(Json(schema))
+        })
+        .map(Json)
 }
 
 #[utoipa::path(
@@ -118,7 +123,7 @@ async fn create_link_type<P: StorePool + Send>(
 )]
 async fn get_latest_link_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-) -> Result<Json<Vec<LinkType>>, StatusCode> {
+) -> Result<Json<Vec<PersistedLinkType>>, StatusCode> {
     read_from_store(pool.as_ref(), &LinkTypeQuery::new().by_latest_version())
         .await
         .map(Json)
@@ -142,7 +147,7 @@ async fn get_latest_link_types<P: StorePool + Send>(
 async fn get_link_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<LinkType>, StatusCode> {
+) -> Result<Json<PersistedLinkType>, StatusCode> {
     read_from_store(
         pool.as_ref(),
         &LinkTypeQuery::new()
@@ -167,7 +172,7 @@ struct UpdateLinkTypeRequest {
     path = "/link-types",
     tag = "LinkType",
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the updated link type", body = VAR_LINK_TYPE),
+        (status = 200, content_type = "application/json", description = "The schema of the updated link type", body = PersistedOntologyIdentifier),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base link type ID was not found"),
@@ -178,7 +183,7 @@ struct UpdateLinkTypeRequest {
 async fn update_link_type<P: StorePool + Send>(
     body: Json<UpdateLinkTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<LinkType>, StatusCode> {
+) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
     let Json(UpdateLinkTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -198,7 +203,6 @@ async fn update_link_type<P: StorePool + Send>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(Json(schema))
+        })
+        .map(Json)
 }

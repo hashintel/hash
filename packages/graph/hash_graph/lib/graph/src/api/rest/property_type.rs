@@ -16,7 +16,7 @@ use crate::{
     api::rest::read_from_store,
     ontology::{
         types::{uri::VersionedUri, PropertyType},
-        AccountId,
+        AccountId, PersistedOntologyIdentifier, PersistedPropertyType,
     },
     store::{
         query::PropertyTypeQuery, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore,
@@ -32,7 +32,13 @@ use crate::{
         get_latest_property_types,
         update_property_type
     ),
-    components(CreatePropertyTypeRequest, UpdatePropertyTypeRequest, AccountId),
+    components(
+        CreatePropertyTypeRequest,
+        UpdatePropertyTypeRequest,
+        AccountId,
+        PersistedOntologyIdentifier,
+        PersistedPropertyType
+    ),
     tags(
         (name = "PropertyType", description = "Property type management API")
     )
@@ -71,7 +77,7 @@ struct CreatePropertyTypeRequest {
     request_body = CreatePropertyTypeRequest,
     tag = "PropertyType",
     responses(
-        (status = 201, content_type = "application/json", description = "The schema of the created property type", body = VAR_PROPERTY_TYPE),
+        (status = 201, content_type = "application/json", description = "The schema of the created property type", body = PersistedOntologyIdentifier),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create property type in the store as the base property type ID already exists"),
@@ -82,7 +88,7 @@ struct CreatePropertyTypeRequest {
 async fn create_property_type<P: StorePool + Send>(
     body: Json<CreatePropertyTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PropertyType>, StatusCode> {
+) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
     let Json(CreatePropertyTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -102,9 +108,8 @@ async fn create_property_type<P: StorePool + Send>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(Json(schema))
+        })
+        .map(Json)
 }
 
 #[utoipa::path(
@@ -119,7 +124,7 @@ async fn create_property_type<P: StorePool + Send>(
 )]
 async fn get_latest_property_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-) -> Result<Json<Vec<PropertyType>>, StatusCode> {
+) -> Result<Json<Vec<PersistedPropertyType>>, StatusCode> {
     read_from_store(pool.as_ref(), &PropertyTypeQuery::new().by_latest_version())
         .await
         .map(Json)
@@ -143,7 +148,7 @@ async fn get_latest_property_types<P: StorePool + Send>(
 async fn get_property_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PropertyType>, StatusCode> {
+) -> Result<Json<PersistedPropertyType>, StatusCode> {
     read_from_store(
         pool.as_ref(),
         &PropertyTypeQuery::new()
@@ -168,7 +173,7 @@ struct UpdatePropertyTypeRequest {
     path = "/property-types",
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the updated property type", body = VAR_PROPERTY_TYPE),
+        (status = 200, content_type = "application/json", description = "The schema of the updated property type", body = PersistedOntologyIdentifier),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base property type ID was not found"),
@@ -179,7 +184,7 @@ struct UpdatePropertyTypeRequest {
 async fn update_property_type<P: StorePool + Send>(
     body: Json<UpdatePropertyTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PropertyType>, StatusCode> {
+) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
     let Json(UpdatePropertyTypeRequest { schema, account_id }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -199,7 +204,6 @@ async fn update_property_type<P: StorePool + Send>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(Json(schema))
+        })
+        .map(Json)
 }
