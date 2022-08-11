@@ -1,5 +1,33 @@
 # The HASH Graph API
 
+## Run the Graph
+
+The easiest way to run the Graph API is to use docker. Either invoke docker directly:
+
+```shell
+docker build --tag graph --file ../deployment/graph/Dockerfile .
+docker run --rm --network host --name graph --env RUST_LOG=trace --detach graph
+```
+
+or by using `cargo make`:
+
+```shell
+cargo make docker-build
+cargo make docker-up
+```
+
+The container can be stopped by calling
+
+```shell
+docker kill --signal SIGKILL graph
+```
+
+or
+
+```shell
+cargo make docker-down
+```
+
 ## Building
 
 In order to build the HASH Graph API make sure `cargo-make` is installed:
