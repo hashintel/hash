@@ -2,7 +2,7 @@ mod args;
 
 use std::{fmt, net::SocketAddr, sync::Arc};
 
-use error_stack::{Context, Result, ResultExt};
+use error_stack::{Context, IntoReport, Result, ResultExt};
 use graph::{
     api::rest::rest_api_router,
     logging::init_logger,
@@ -100,7 +100,12 @@ async fn main() -> Result<(), GraphError> {
     stop_gap_setup(&pool).await?;
 
     let rest_router = rest_api_router(Arc::new(pool));
-    let addr = SocketAddr::from(([127, 0, 0, 1], 4000));
+    let addr: SocketAddr = args
+        .rest_address
+        .parse()
+        .into_report()
+        .change_context(GraphError)
+        .attach_printable_lazy(|| args.rest_address.clone())?;
 
     tracing::info!("Listening on {addr}");
     axum::Server::bind(&addr)
