@@ -10,7 +10,7 @@ import {
   generateWorkspaceEntityTypeSchema,
   generateWorkspacePropertyTypeSchema,
   workspaceAccountId,
-  worskspaceTypesNamespaceUri,
+  workspaceTypesNamespaceUri,
 } from "../util";
 
 // Generate the schema for the shortname property type
@@ -26,13 +26,13 @@ export const emailPropertyType = generateWorkspacePropertyTypeSchema({
 });
 
 export const shortnameBaseUri = generateSchemaBaseUri({
-  namespaceUri: worskspaceTypesNamespaceUri,
+  namespaceUri: workspaceTypesNamespaceUri,
   kind: "propertyType",
   title: shortnamePropertyType.title,
 });
 
 export const emailBaseUri = generateSchemaBaseUri({
-  namespaceUri: worskspaceTypesNamespaceUri,
+  namespaceUri: workspaceTypesNamespaceUri,
   kind: "propertyType",
   title: emailPropertyType.title,
 });

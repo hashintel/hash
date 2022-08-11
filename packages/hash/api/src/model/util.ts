@@ -67,7 +67,7 @@ export const nilUuid = "00000000-0000-0000-0000-000000000000" as const;
  */
 export const workspaceAccountId = nilUuid;
 
-export const worskspaceTypesNamespaceUri =
+export const workspaceTypesNamespaceUri =
   "https://example.com/@workspace/types";
 
 export const blockprotocolTypesNamespaceUri =
@@ -142,7 +142,7 @@ export const generateWorkspacePropertyTypeSchema = (params: {
   }[];
 }): PropertyType => ({
   $id: generateSchemaVersionedUri({
-    namespaceUri: worskspaceTypesNamespaceUri,
+    namespaceUri: workspaceTypesNamespaceUri,
     title: params.title,
     kind: "propertyType",
   }),
@@ -179,7 +179,7 @@ export const generateWorkspaceEntityTypeSchema = (params: {
   }[];
 }): EntityType => ({
   $id: generateSchemaVersionedUri({
-    namespaceUri: worskspaceTypesNamespaceUri,
+    namespaceUri: workspaceTypesNamespaceUri,
     title: params.title,
     kind: "entityType",
   }),
