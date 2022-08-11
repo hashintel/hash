@@ -11,6 +11,7 @@ use crate::message::arrow::MESSAGE_BATCH_SCHEMA;
 ///
 /// [`Message`]: crate::message::Message
 /// [`FieldSpec`]: crate::field::FieldSpec
+#[derive(Debug)]
 pub struct MessageSchema {
     pub arrow: Arc<Schema>,
     pub static_meta: Arc<meta::StaticMetadata>,

@@ -99,6 +99,7 @@ impl From<String> for Error {
     }
 }
 
+// todo: revert this before merging (here for debugging)
 impl From<arrow2::error::Error> for Error {
     fn from(e: arrow2::error::Error) -> Self {
         panic!("{:?}", e);

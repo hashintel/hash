@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use arrow2::array::ArrayRef;
+use tracing::log::trace;
 
 use super::record_batch::RecordBatch;
 use crate::{
@@ -318,15 +319,20 @@ impl ArrowBatch {
     /// and/or memory is reloaded and the loaded metaversion is mutated to be the persisted one.
     pub fn maybe_reload(&mut self) -> Result<()> {
         if !self.is_persisted() {
+            trace!("batch was not persisted, started reloading ArrowBatch");
+
             let persisted = self.segment.read_persisted_metaversion();
 
             if self.loaded_metaversion.memory() < persisted.memory() {
+                trace!("reloading shared memory segment");
                 self.segment_mut().reload()?;
             }
+
             self.reload_record_batch_and_dynamic_meta()?;
 
             self.loaded_metaversion = persisted;
             debug_assert!(self.is_persisted());
+            trace!("finished reloading ArrowBatch");
         }
         Ok(())
     }

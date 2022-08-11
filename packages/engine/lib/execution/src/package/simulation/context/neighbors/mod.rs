@@ -133,7 +133,7 @@ impl ContextPackage for Neighbors {
     ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow2::array::Array>)>> {
         let index_builder = MutablePrimitiveArray::<u32>::with_capacity(1024);
 
-        let neighbor_index_builder = MutableFixedSizeListArray::new(index_builder, 3);
+        let neighbor_index_builder = MutableFixedSizeListArray::new(index_builder, 2);
         // todo: this may not be the correct shape
         let mut neighbors_builder: MutableListArray<
             i32,
@@ -142,8 +142,8 @@ impl ContextPackage for Neighbors {
             neighbor_index_builder,
             DataType::List(Box::new(Field::new(
                 "item",
-                DataType::FixedSizeList(Box::new(Field::new("item", DataType::UInt32, true)), 3),
-                false,
+                DataType::FixedSizeList(Box::new(Field::new("item", DataType::UInt32, true)), 2),
+                true,
             ))),
             num_agents,
         );

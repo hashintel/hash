@@ -53,7 +53,7 @@ impl MessageColumn {
     }
 
     pub fn from_record_batch(batch: &RecordBatch) -> Result<Self> {
-        MessageColumn::from_array(MessageArray::from_record_batch(batch)?)
+        MessageColumn::from_array(&MessageArray::from_record_batch(batch)?)
     }
 
     pub fn update_agents(&self, agents: &mut [Agent]) -> Result<()> {

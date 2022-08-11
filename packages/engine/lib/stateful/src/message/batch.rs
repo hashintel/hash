@@ -56,7 +56,10 @@ impl MessageBatch {
     /// The persisted metaversion is updated after clearing the column and the loaded metaversion is
     /// set equal to the persisted one after loading the cleared column.
     pub fn reset(&mut self, agent_batch: &AgentBatch) -> Result<()> {
-        tracing::trace!("Resetting batch");
+        tracing::trace!(
+            "started resetting message batch with id {}",
+            self.batch.segment().id()
+        );
 
         let batch = &mut self.batch;
         let mut metaversion_to_persist = batch.segment().read_persisted_metaversion();
@@ -141,14 +144,18 @@ impl MessageBatch {
         // Write new data
         ipc::write_record_batch_body(&record_batch, data_buffer, &write_metadata)?;
 
-        // TODO: reloading batch could be faster if we persisted
-        //       fbb and WIPOffset<Message> from `simulate_record_batch_to_bytes`
         metaversion_to_persist.increment_batch();
         batch
             .segment_mut()
             .persist_metaversion(metaversion_to_persist);
         batch.reload_record_batch_and_dynamic_meta()?;
         *batch.loaded_metaversion_mut() = metaversion_to_persist;
+
+        trace!(
+            "finished resetting batch with id {}",
+            self.batch.segment().id()
+        );
+
         Ok(())
     }
 
@@ -158,7 +165,7 @@ impl MessageBatch {
         memory_id: MemoryId,
     ) -> Result<Self> {
         trace!(
-            "writing record batch with schema {:?} to shared memory segment {}",
+            "writing an empty record batch with schema {:?} to shared memory segment {}",
             schema.arrow,
             memory_id
         );
@@ -168,6 +175,9 @@ impl MessageBatch {
         let column_name = AgentStateField::AgentId.name();
         let id_column = column_with_name_from_record_batch(agent_record_batch, column_name)?;
         let empty_message_column: Arc<dyn Array> = Arc::new(MessageArray::new(agent_count));
+
+        debug_assert_eq!(id_column.len(), agent_count);
+        debug_assert_eq!(empty_message_column.len(), agent_count);
 
         let record_batch = RecordBatch::new(
             Arc::clone(&schema.arrow),

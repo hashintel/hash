@@ -160,7 +160,7 @@ impl ContextPackage for ApiRequests {
             DataType::List(Box::new(Field::new(
                 "item",
                 DataType::Struct(arrow_fields),
-                false,
+                true,
             ))),
             num_agents,
         );

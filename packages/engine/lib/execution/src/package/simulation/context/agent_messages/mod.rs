@@ -129,7 +129,7 @@ impl ContextPackage for AgentMessages {
             DataType::List(Box::new(Field::new(
                 "item",
                 DataType::FixedSizeList(Box::new(Field::new("item", DataType::UInt32, true)), 3),
-                false,
+                true,
             ))),
             num_agents,
         );

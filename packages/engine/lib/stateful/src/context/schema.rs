@@ -10,6 +10,7 @@ use crate::{field::FieldSpecMap, Result};
 ///
 /// [`Context`]: crate::context::Context
 /// [`FieldSpec`]: crate::field::FieldSpec
+#[derive(Debug)]
 pub struct ContextSchema {
     pub arrow: Arc<Schema>,
     pub field_spec_map: Arc<FieldSpecMap>,

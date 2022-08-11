@@ -6,6 +6,7 @@ use arrow2::{
 };
 use arrow2_convert::{serialize::TryIntoArrow, ArrowField};
 use memory::arrow::record_batch::RecordBatch;
+use tracing::trace;
 
 use super::MESSAGE_LIST_ARROW_FIELD;
 use crate::{
@@ -82,13 +83,15 @@ impl Array for MessageArray {
 impl MessageArray {
     /// Creates a new (empty) [`MessageArray`].
     pub fn new(len: usize) -> Self {
+        trace!("creating new MessageArray");
         Self(ListArray::new_null(
             DataType::List(Box::new(MESSAGE_LIST_ARROW_FIELD.clone())),
             len,
         ))
     }
 
-    pub fn from_record_batch(batch: &RecordBatch) -> Result<&Self> {
+    pub fn from_record_batch(batch: &RecordBatch) -> Result<Self> {
+        trace!("loading MessageArray from RecordBatch");
         let list = batch
             .column(MESSAGE_COLUMN_INDEX)
             .as_any()
@@ -96,11 +99,11 @@ impl MessageArray {
             .ok_or(Error::InvalidArrowDowncast {
                 name: MESSAGE_COLUMN_NAME.into(),
             })?;
-        // SAFETY: `OutboundArray` is marked as `#[repr(transparent)]`
-        Ok(unsafe { &*(list as *const ListArray<i32> as *const Self) })
+        Ok(Self(list.clone()))
     }
 
     pub fn from_json(column: Vec<serde_json::Value>) -> Result<Self> {
+        trace!("loading MessageArray from JSON");
         let mut result = Vec::with_capacity(column.len());
 
         for messages in column {
@@ -129,22 +132,26 @@ impl MessageArray {
                     ),
                 };
 
-                message_set.push(AgentMessage {
+                message_set.push(Some(AgentMessage {
                     to: recipients,
                     r#type: kind,
                     data,
-                })
+                }))
             }
             result.push(message_set)
         }
 
         let arrow: Box<dyn Array> = result.try_into_arrow().unwrap();
-        Ok(Self(
-            arrow
-                .as_any()
-                .downcast_ref::<ListArray<i32>>()
-                .unwrap()
-                .clone(),
-        ))
+        let list_array = arrow
+            .as_any()
+            .downcast_ref::<ListArray<i32>>()
+            .unwrap()
+            .clone();
+        debug_assert!(if let DataType::List(field) = list_array.data_type() {
+            field.is_nullable
+        } else {
+            unreachable!()
+        });
+        Ok(Self(list_array))
     }
 }
