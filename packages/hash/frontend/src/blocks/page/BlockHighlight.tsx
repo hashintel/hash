@@ -1,6 +1,6 @@
 import { Box, Fade } from "@mui/material";
 import { useEffect, useState } from "react";
-import { useBlockHighlightContext } from "./BlockHighlightContext";
+import { useBlockLoadedContext } from "../onBlockLoaded";
 import { useBlockView } from "./BlockViewContext";
 
 interface HighlightProps {
@@ -36,8 +36,7 @@ const Highlight = ({ onAnimationComplete }: HighlightProps) => {
 
 export const BlockHighlight = () => {
   const blockView = useBlockView();
-  const { highlightedBlockId, setHighlightedBlockId } =
-    useBlockHighlightContext();
+  const { highlightedBlockId, setHighlightedBlockId } = useBlockLoadedContext();
 
   if (!highlightedBlockId || highlightedBlockId !== blockView.dom.id) {
     return null;

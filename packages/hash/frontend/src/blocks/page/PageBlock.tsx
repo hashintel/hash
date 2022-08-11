@@ -14,7 +14,6 @@ import { EditorConnection } from "./collab/EditorConnection";
 import { BlocksMap, createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
 import { useReadonlyMode } from "../../shared/readonly-mode";
-import { BlockHighlightProvider } from "./BlockHighlightContext";
 
 type PageBlockProps = {
   blocks: BlocksMap;
@@ -90,38 +89,36 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
 
   return (
     <UserBlocksProvider value={blocks}>
-      <BlockHighlightProvider routeHash={routeHash}>
-        <BlockLoadedProvider routeHash={routeHash}>
-          <Box id="root" ref={root} position="relative" />
-          {portals}
-          {/**
-           * @todo position this better
-           */}
-          {(
-            typeof debugging === "boolean"
-              ? debugging
-              : debugging.restartCollabButton
-          ) ? (
-            <Button
-              sx={{
-                position: "fixed",
-                bottom: 2.5,
-                right: 2.5,
-                opacity: 0.3,
+      <BlockLoadedProvider routeHash={routeHash}>
+        <Box id="root" ref={root} position="relative" />
+        {portals}
+        {/**
+         * @todo position this better
+         */}
+        {(
+          typeof debugging === "boolean"
+            ? debugging
+            : debugging.restartCollabButton
+        ) ? (
+          <Button
+            sx={{
+              position: "fixed",
+              bottom: 2.5,
+              right: 2.5,
+              opacity: 0.3,
 
-                "&:hover": {
-                  opacity: 1,
-                },
-              }}
-              onClick={() => {
-                prosemirrorSetup.current?.connection?.restart();
-              }}
-            >
-              Restart Collab Instance
-            </Button>
-          ) : null}
-        </BlockLoadedProvider>
-      </BlockHighlightProvider>
+              "&:hover": {
+                opacity: 1,
+              },
+            }}
+            onClick={() => {
+              prosemirrorSetup.current?.connection?.restart();
+            }}
+          >
+            Restart Collab Instance
+          </Button>
+        ) : null}
+      </BlockLoadedProvider>
     </UserBlocksProvider>
   );
 };
