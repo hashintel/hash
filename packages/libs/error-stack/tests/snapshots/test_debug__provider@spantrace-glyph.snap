@@ -2,28 +2,22 @@
 source: tests/test_debug.rs
 expression: "redact(&format!(\"{report:?}\"))"
 ---
-Printable A
-│ tests/test_debug.rs:172:38
-├─▶ Root error
-│   ╰ tests/common.rs:140:5
-╰─▶ spantrace with 2 frames (1)
-    ╰ tests/common.rs:140:5
+Root error
+├╴tests/common.rs:147:5
+├╴Printable A
+╰╴spantrace with 2 frames (1)
 
-Test
-│ tests/test_debug.rs:183:39
-├─▶ 1 additional attachment
-├─▶ Printable B
-│   │ tests/test_debug.rs:174:42
-│   ├─▶ Root error
-│   │   ╰ tests/common.rs:140:5
-│   ╰─▶ spantrace with 2 frames (2)
-│       ╰ tests/common.rs:140:5
-╰─▶ Printable B
-    │ tests/test_debug.rs:180:18
-    ├─▶ ABC
-    │   ╰ tests/test_debug.rs:178:18
-    ├─▶ Root error
-    │   ╰ tests/common.rs:140:5
-    ├─▶ spantrace with 2 frames (3)
-    │   ╰ tests/common.rs:140:5
-    ╰─▶ 1 additional attachment
+Root error
+├╴tests/common.rs:147:5
+├╴Test
+├╴Printable B
+├╴spantrace with 2 frames (2)
+╰╴1 additional attachment
+
+Root error
+├╴tests/common.rs:147:5
+├╴Test
+├╴Printable B
+├╴ABC
+├╴spantrace with 2 frames (3)
+╰╴2 additional attachments

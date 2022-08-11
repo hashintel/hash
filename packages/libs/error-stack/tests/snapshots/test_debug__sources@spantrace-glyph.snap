@@ -1,0 +1,25 @@
+---
+source: tests/test_debug.rs
+expression: "redact(&format!(\"{report:?}\"))"
+---
+Context A
+├╴tests/test_debug.rs:280:10
+├╴1 additional attachment
+│
+╰┬▶ Root error
+ │  ├╴tests/common.rs:147:5
+ │  ├╴Printable A
+ │  ├╴spantrace with 2 frames (1)
+ │  ╰╴1 additional attachment
+ │
+ ├▶ Root error
+ │  ├╴tests/common.rs:147:5
+ │  ├╴Printable B
+ │  ├╴spantrace with 2 frames (2)
+ │  ╰╴1 additional attachment
+ │
+ ╰▶ Root error
+    ├╴tests/common.rs:147:5
+    ├╴Printable B
+    ├╴spantrace with 2 frames (3)
+    ╰╴1 additional attachment

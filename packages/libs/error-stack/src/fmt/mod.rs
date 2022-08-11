@@ -257,10 +257,11 @@ impl Display for Symbol {
         match self {
             Self::Location => f.write_str("@ "),
             Self::Vertical | Self::VerticalRight => f.write_str("|"),
-            Self::Horizontal | Self::HorizontalLeft | Self::HorizontalDown => f.write_str("-"),
+            Self::Horizontal | Self::HorizontalDown => f.write_str("-"),
             Self::ArrowRight => f.write_str(">"),
             Self::CurveRight => f.write_str(r"\"),
-            Self::Space => f.write_str(" "),
+            // `Self::HorizontalLeft` is erased for readability
+            Self::Space | Self::HorizontalLeft => f.write_str(" "),
         }
     }
 }
@@ -833,7 +834,7 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
                 } else {
                     line.push(Instruction::Indent {
                         group: true,
-                        visible: true,
+                        visible: !matches!(position, Position::Last),
                         spacing: true,
                         minimal: false,
                     })
@@ -863,7 +864,7 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
             _ => Position::Middle,
         };
 
-        lines
+        let mut lines = lines
             .into_iter()
             .enumerate()
             .map(|(idx, line)| {
@@ -872,13 +873,26 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
                 } else {
                     line.push(Instruction::Indent {
                         group: false,
-                        visible: true,
+                        visible: !matches!(position, Position::Last),
                         spacing: true,
                         minimal: false,
                     })
                 }
             })
-            .collect::<Vec<_>>()
+            .collect::<Vec<_>>();
+
+        // this is not using `.collect<>().before()`, because somehow that kills rustfmt?!
+        lines.insert(
+            0,
+            Line::new().push(Instruction::Indent {
+                group: false,
+                visible: true,
+                spacing: false,
+                minimal: false,
+            }),
+        );
+
+        lines
     });
 
     head.into_iter()
@@ -913,21 +927,6 @@ fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Ve
                 debug_attachments(Some(loc), ctx, idx + 1 == len && sources.is_empty(), body);
 
             head.then(body)
-        })
-        .enumerate()
-        .map(|(idx, lines)| {
-            if idx == 0 {
-                lines
-            } else {
-                // if we're not the last entry, create a "buffer" line, which is just
-                // a single indentation.
-                lines.before(Line::new().push(Instruction::Indent {
-                    group: false,
-                    visible: true,
-                    spacing: false,
-                    minimal: false,
-                }))
-            }
         })
         .collect();
 

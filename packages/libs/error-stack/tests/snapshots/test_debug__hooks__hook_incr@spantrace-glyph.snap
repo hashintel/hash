@@ -2,13 +2,9 @@
 source: tests/test_debug.rs
 expression: "redact(&format!(\"{report:?}\"))"
 ---
-0
-│ tests/test_debug.rs:396:14
-├─▶ 1
-│   ╰ tests/test_debug.rs:395:14
-├─▶ 2
-│   ╰ tests/test_debug.rs:394:14
-├─▶ Root error
-│   ╰ tests/common.rs:140:5
-╰─▶ spantrace with 2 frames (1)
-    ╰ tests/common.rs:140:5
+Root error
+├╴tests/common.rs:147:5
+├╴0
+├╴1
+├╴2
+╰╴spantrace with 2 frames (1)

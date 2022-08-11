@@ -7,7 +7,6 @@
     feature(backtrace, error_generic_member_access)
 )]
 
-
 mod common;
 use common::*;
 #[cfg(all(nightly, feature = "experimental"))]
@@ -260,6 +259,26 @@ fn complex() {
 
         report.attach(AttachmentA(2)).attach_printable("Test")
     });
+
+    assert_snapshot!(redact(&format!("{report:?}")));
+}
+
+// TODO: nested sources
+#[test]
+fn sources() {
+    let _guard = set_snapshot_suffix();
+
+    let mut root1 = create_report().attach_printable(PrintableA(1));
+    let root2 = create_report().attach_printable(PrintableB(2));
+    let root3 = create_report().attach_printable(PrintableB(3));
+
+    root1.extend_one(root2);
+    root1.extend_one(root3);
+
+    let report = root1
+        .attach(AttachmentA(1))
+        .change_context(ContextA(2))
+        .attach(AttachmentB(2));
 
     assert_snapshot!(redact(&format!("{report:?}")));
 }

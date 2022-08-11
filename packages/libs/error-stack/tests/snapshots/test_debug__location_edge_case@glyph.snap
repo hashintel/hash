@@ -3,4 +3,4 @@ source: tests/test_debug.rs
 expression: "redact(&format!(\"{report:?}\"))"
 ---
 Root error
-╰ tests/common.rs:140:5
+╰╴tests/common.rs:147:5

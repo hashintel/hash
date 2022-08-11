@@ -2,13 +2,9 @@
 source: tests/test_debug.rs
 expression: "redact(&format!(\"{report:?}\"))"
 ---
-u64
-| @ tests/test_debug.rs:357:14
-|-> Root error
-|   > @ tests/common.rs:140:5
-|-> u16
-|   > @ tests/test_debug.rs:358:14
-|-> u32
-|   > @ tests/test_debug.rs:356:14
-\-> backtrace with [n] frames (1)
-    > @ tests/common.rs:140:5
+Root error
+| @ tests/common.rs:147:5
+| u64
+| u16
+| u32
+\ backtrace with [n] frames (1)
