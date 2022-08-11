@@ -132,9 +132,6 @@ export const primitiveDataTypeVersionedUris = primitiveDataTypeTitles.reduce(
 
 /**
  * Helper method for generating a property type schema for the Graph API.
- *
- * @param params
- * @returns
  */
 export const generateWorkspacePropertyTypeSchema = (params: {
   title: string;
@@ -171,9 +168,6 @@ export const generateWorkspacePropertyTypeSchema = (params: {
 
 /**
  * Helper method for generating an entity schema for the Graph API.
- *
- * @param params
- * @returns
  */
 export const generateWorkspaceEntityTypeSchema = (params: {
   title: string;
