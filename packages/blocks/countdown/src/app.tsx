@@ -20,7 +20,7 @@ type BlockEntityProperties = {
 };
 
 export const App: BlockComponent<BlockEntityProperties> = ({
-  graph: { blockEntity },
+  graph: { blockEntity, readonly },
 }) => {
   const {
     entityId,
@@ -52,6 +52,9 @@ export const App: BlockComponent<BlockEntityProperties> = ({
       targetDate?: Date | null;
       displayTime?: boolean;
     }) => {
+      if (readonly) {
+        return;
+      }
       void graphService?.updateEntity({
         data: {
           entityId,
@@ -63,7 +66,14 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         },
       });
     },
-    [graphService, entityId, localDisplayTime, localTargetDate, localTitle],
+    [
+      graphService,
+      entityId,
+      localDisplayTime,
+      localTargetDate,
+      localTitle,
+      readonly,
+    ],
   );
 
   const handleDateChange = useCallback(
@@ -89,6 +99,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         value={localTitle}
         onChangeText={setLocalTitle}
         onBlur={updateRemoteData}
+        readonly={!!readonly}
       />
       <Display targetDate={localTargetDate} displayTime={!!localDisplayTime} />
       <DatePickerInput
@@ -96,6 +107,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         onChange={handleDateChange}
         displayTime={localDisplayTime}
         setDisplayTime={handleDisplayTimeChange}
+        readonly={!!readonly}
       />
     </div>
   );

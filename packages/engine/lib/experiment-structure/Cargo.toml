@@ -7,7 +7,8 @@ edition = "2021"
 stateful = { path = "../stateful", default-features = false }
 execution = { path = "../execution", default-features = false }
 
-error-stack = { version = "0.1.1", path = "../../../libs/error-stack", features = ["spantrace"] }
+# TODO: Change to `version = "0.2"` as soon as it's released
+error-stack = { git = "https://github.com/hashintel/hash", rev = "5edddb5", features = ["spantrace"] }
 
 async-trait = "0.1.56"
 csv = "1.1.6"

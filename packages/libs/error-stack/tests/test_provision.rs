@@ -1,6 +1,6 @@
 #![cfg(nightly)]
 #![feature(provide_any)]
-#![cfg_attr(feature = "std", feature(backtrace))]
+#![cfg_attr(feature = "std", feature(backtrace, error_generic_member_access))]
 
 mod common;
 

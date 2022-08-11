@@ -3,10 +3,7 @@ use alloc::boxed::Box;
 use core::any::Demand;
 use core::{fmt, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
-use std::{
-    backtrace::{Backtrace, BacktraceStatus},
-    ops::Deref,
-};
+use std::backtrace::{Backtrace, BacktraceStatus};
 
 use eyre::Report as EyreReport;
 
@@ -41,15 +38,9 @@ impl Context for EyreContext {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
         demand.provide_ref(&self.0);
+
         #[cfg(feature = "std")]
-        if let Some(backtrace) = self
-            .0
-            .deref()
-            .backtrace()
-            .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
-        {
-            demand.provide_ref(backtrace);
-        }
+        self.0.provide(demand);
     }
 }
 
@@ -68,12 +59,11 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
                 // only capture a backtrace if needed, otherwise the eyre context provides one
                 #[cfg(all(nightly, feature = "std"))]
                 let backtrace = eyre
-                    .deref()
-                    .backtrace()
-                    .filter(|bt| matches!(bt.status(), std::backtrace::BacktraceStatus::Captured))
+                    .request_ref::<Backtrace>()
+                    .filter(|bt| matches!(bt.status(), BacktraceStatus::Captured))
                     .is_none()
                     .then(Backtrace::capture)
-                    .filter(|bt| matches!(bt.status(), std::backtrace::BacktraceStatus::Captured));
+                    .filter(|bt| matches!(bt.status(), BacktraceStatus::Captured));
 
                 #[cfg(feature = "spantrace")]
                 let spantrace = Some(tracing_error::SpanTrace::capture())

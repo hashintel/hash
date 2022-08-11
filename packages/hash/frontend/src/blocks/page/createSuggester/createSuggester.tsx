@@ -1,6 +1,7 @@
 import type { BlockVariant } from "@blockprotocol/core";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
+import { Popper } from "@mui/material";
 import { Schema } from "prosemirror-model";
 import {
   EditorState,
@@ -9,7 +10,7 @@ import {
   TextSelection,
   Transaction,
 } from "prosemirror-state";
-import { CSSProperties, ReactElement } from "react";
+import { ReactElement } from "react";
 import { ensureMounted } from "../../../lib/dom";
 import { RenderPortal } from "../usePortals";
 import { BlockSuggester } from "./BlockSuggester";
@@ -209,6 +210,7 @@ export const createSuggester = (
       },
     },
     view() {
+      const container = document.querySelector("#root") as HTMLDivElement;
       const mountNode = document.createElement("div");
 
       return {
@@ -219,12 +221,9 @@ export const createSuggester = (
 
           const { from, to, search, char: triggerChar } = state.trigger!;
           const coords = view.coordsAtPos(from);
-
-          const style: CSSProperties = {
-            position: "absolute",
-            top: coords.bottom + document.documentElement.scrollTop,
-            left: coords.left + document.documentElement.scrollLeft,
-          };
+          const { node } = view.domAtPos(from);
+          const anchorNode =
+            node instanceof HTMLElement ? node : node.parentElement;
 
           const onBlockSuggesterChange = (
             variant: BlockVariant,
@@ -281,8 +280,37 @@ export const createSuggester = (
           }
 
           if (jsx) {
-            ensureMounted(mountNode, document.body);
-            renderPortal(<div style={style}>{jsx}</div>, mountNode);
+            ensureMounted(mountNode, container);
+            renderPortal(
+              <Popper
+                open
+                placement="bottom-start"
+                container={container}
+                modifiers={[
+                  {
+                    name: "offset",
+                    options: {
+                      offset: () => [
+                        coords.left -
+                          (anchorNode?.getBoundingClientRect().x || 0),
+                        0,
+                      ],
+                    },
+                  },
+                  {
+                    name: "preventOverflow",
+                    enabled: true,
+                    options: {
+                      padding: 20,
+                    },
+                  },
+                ]}
+                anchorEl={anchorNode}
+              >
+                {jsx}
+              </Popper>,
+              mountNode,
+            );
           }
         },
         destroy() {

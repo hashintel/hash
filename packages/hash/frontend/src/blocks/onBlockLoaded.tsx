@@ -4,14 +4,20 @@ import {
   ReactNode,
   useCallback,
   useContext,
+  useMemo,
   useRef,
+  useState,
 } from "react";
 import { getBlockDomId } from "./page/BlockView";
 
 type OnBlockLoadedFunction = (blockEntityId: string) => void;
 
 /** @private enforces use of custom provider */
-const BlockLoadedContext = createContext<OnBlockLoadedFunction | null>(null);
+const BlockLoadedContext = createContext<{
+  onBlockLoaded: OnBlockLoadedFunction;
+  highlightedBlockId: string;
+  setHighlightedBlockId: (blockId: string) => void;
+} | null>(null);
 
 type BlockLoadedProviderProps = {
   children?: ReactNode;
@@ -25,6 +31,13 @@ export const BlockLoadedProvider: FunctionComponent<
   const scrollFrameRequestIdRef = useRef<ReturnType<
     typeof requestAnimationFrame
   > | null>(null);
+
+  /**
+   * The initial value is `routeHash`, so when the page is first open, the block which has its id in URL is highlighted
+   * `highlightedBlockId` will be used when block context menus are open to indicate which block is being edited
+   */
+  const [highlightedBlockId, setHighlightedBlockId] =
+    useState<string>(routeHash);
 
   const onBlockLoaded = useCallback(
     (blockEntityId: string) => {
@@ -57,14 +70,19 @@ export const BlockLoadedProvider: FunctionComponent<
     [routeHash],
   );
 
+  const value = useMemo(
+    () => ({ highlightedBlockId, setHighlightedBlockId, onBlockLoaded }),
+    [highlightedBlockId, setHighlightedBlockId, onBlockLoaded],
+  );
+
   return (
-    <BlockLoadedContext.Provider value={onBlockLoaded}>
+    <BlockLoadedContext.Provider value={value}>
       {children}
     </BlockLoadedContext.Provider>
   );
 };
 
-export const useBlockLoaded = () => {
+export const useBlockLoadedContext = () => {
   const state = useContext(BlockLoadedContext);
 
   if (state === null) {
