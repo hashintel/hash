@@ -11,7 +11,7 @@ CARGO_MAKE_CARGO_PROFILE = "production"
 
 [tasks.test]
 run_task = [
-    { name = ["test-task", "yarn", "deployment-up", "sleep-for-five-seconds", "migrate-up", "test-integration", "test-rest-api", "generate-openapi-client", "deployment-down"], condition = { env_true = ["CARGO_MAKE_CI" ] } },
+    { name = ["test-task", "yarn", "deployment-up", "sleep-for-five-seconds", "migrate-up", "test-integration", "generate-openapi-client", "deployment-down"], condition = { env_true = ["CARGO_MAKE_CI" ] } },
     { name = ["test-task"] }
 ]
 
@@ -23,21 +23,8 @@ dependencies = ["install-cargo-nextest"]
 
 [tasks.test-rest-api]
 # This is a temporary solution until we have e2e tests in place
-script = """
-#!/usr/bin/env bash
-
-# Fail entire script if any error occurs.
-set -eo pipefail
-
-cargo build
-cargo run&
-pid=$!
-# Ensure the webserver process is killed regardless of script outcome.
-trap "kill $pid" 0 ERR
-
-sleep 1 # the graph query layer needs a chance to start
-yarn httpyac send --all ${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/tests/rest-test.http
-"""
+command = "yarn"
+args = ["httpyac", "send", "--all", "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/tests/rest-test.http"]
 
 # If this step fails, the OpenAPI spec is invalid.
 # When running in CI, a non-empty git diff will fail the pipeline.
@@ -64,7 +51,7 @@ yarn workspace @hashintel/hash-graph-client prettier --write .
 yarn workspace @hashintel/hash-graph-client fix:eslint
 """
 
-[tasks.docker-build]
+[tasks.build-docker]
 category = "Deploy"
 description = "Builds a docker image of the graph"
 command = "docker"
@@ -74,9 +61,12 @@ args = ["build", "--tag", "graph", "--file", "../deployment/graph/Dockerfile", "
 [tasks.docker-up]
 category = "Deploy"
 description = "Runs the docker image of the graph"
-command = "docker"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}"
-args = ["run", "--rm", "--network", "host", "--name", "graph", "--env", "RUST_LOG=trace", "--detach", "graph"]
+script = """
+# We need the IP for the postgres deployment. This will be easier, when the graph docker image is started from docker-compose
+gateway=$(docker network inspect deployment_default | jq -r '.[0].IPAM.Config[0].Gateway')
+docker run --rm --name graph --env RUST_LOG=debug --network deployment_default --publish "4000:4000" --detach graph --host $gateway --rest-address 0.0.0.0:4000
+"""
 
 [tasks.docker-down]
 category = "Deploy"
@@ -84,3 +74,6 @@ description = "Stops the docker image of the graph"
 command = "docker"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}"
 args = ["kill", "--signal", "SIGKILL", "graph"]
+
+[tasks.test-docker]
+run_task = { name = ["yarn", "deployment-up", "sleep-for-five-seconds", "migrate-up", "docker-up", "test-rest-api", "docker-down", "deployment-down"] }

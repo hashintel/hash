@@ -12,7 +12,7 @@ docker run --rm --network host --name graph --env RUST_LOG=trace --detach graph
 or by using `cargo make`:
 
 ```shell
-cargo make docker-build
+cargo make build-docker
 cargo make docker-up
 ```
 
