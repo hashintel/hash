@@ -26,6 +26,7 @@ jobs:
       lint: ${{ steps.crates.outputs.lint }}
       test: ${{ steps.crates.outputs.test }}
       bench: ${{ steps.crates.outputs.bench }}
+      docker: ${{ steps.crates.outputs.docker }}
       publish: ${{ steps.crates.outputs.publish }}
       exclude: ${{ steps.crates.outputs.exclude }}
       samples: ${{ steps.samples.outputs.samples }}
