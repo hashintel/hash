@@ -5,7 +5,8 @@
   "scripts": {
     "fix:eslint": "eslint --ext .ts --fix .",
     "lint:eslint": "eslint --ext .ts .",
-    "lint:tsc": "tsc --noEmit"
+    "lint:tsc": "tsc --noEmit",
+    "test": "playwright test page-readonly-mode --project chromium"
   },
   "dependencies": {
     "@hashintel/hash-backend-utils": "0.0.0",

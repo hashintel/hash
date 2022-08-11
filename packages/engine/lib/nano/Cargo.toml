@@ -4,7 +4,8 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-error-stack = { version = "0.1.1", features = ["spantrace"] }
+# TODO: Change to `version = "0.2"` as soon as it's released
+error-stack = { git = "https://github.com/hashintel/hash", rev = "5edddb5", features = ["spantrace"] }
 
 nng = { version = "1.0.1", default-features = false }
 serde = { version = "1.0.138", features = ["derive"] }

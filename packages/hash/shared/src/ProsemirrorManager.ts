@@ -414,6 +414,18 @@ export class ProsemirrorManager {
     };
   }
 
+  async insertBlock(
+    targetComponentId: string,
+    variant: BlockVariant,
+    to: number,
+  ) {
+    const [tr, node] = await this.createBlock(targetComponentId, null, variant);
+
+    tr.insert(to, node);
+
+    return { tr };
+  }
+
   async replaceRange(
     targetComponentId: string,
     variant: BlockVariant,
@@ -525,6 +537,22 @@ export class ProsemirrorManager {
     });
 
     this.view.dispatch(tr);
+  }
+
+  /**
+   * Updates the prosemirror editor to not be editable.
+   * @see https://prosemirror.net/docs/ref/#view.EditorView.editable
+   */
+  setReadonlyMode() {
+    if (!this.view) {
+      throw new Error("Cannot trigger setReadonlyMode without view");
+    }
+
+    if (this.view) {
+      this.view.setProps({
+        editable: () => false,
+      });
+    }
   }
 
   /**
