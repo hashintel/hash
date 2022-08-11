@@ -116,7 +116,7 @@ async fn create_link_type<P: StorePool + Send>(
     path = "/link-types",
     tag = "LinkType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all link types at their latest versions", body = [VAR_LINK_TYPE]),
+        (status = 200, content_type = "application/json", description = "List of all link types at their latest versions", body = [PersistedLinkType]),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -134,7 +134,7 @@ async fn get_latest_link_types<P: StorePool + Send>(
     path = "/link-types/{uri}",
     tag = "LinkType",
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the requested link type", body = VAR_LINK_TYPE),
+        (status = 200, content_type = "application/json", description = "The schema of the requested link type", body = PersistedLinkType),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Link type was not found"),

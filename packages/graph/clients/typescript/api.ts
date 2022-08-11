@@ -1061,7 +1061,10 @@ export const DataTypeApiFp = function (configuration?: Configuration) {
       uri: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<DataType>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<PersistedDataType>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getDataType(
         uri,
@@ -1085,7 +1088,7 @@ export const DataTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<DataType>>
+      ) => AxiosPromise<Array<PersistedDataType>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLatestDataTypes(options);
@@ -1156,7 +1159,7 @@ export const DataTypeApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getDataType(uri: string, options?: any): AxiosPromise<DataType> {
+    getDataType(uri: string, options?: any): AxiosPromise<PersistedDataType> {
       return localVarFp
         .getDataType(uri, options)
         .then((request) => request(axios, basePath));
@@ -1166,7 +1169,7 @@ export const DataTypeApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getLatestDataTypes(options?: any): AxiosPromise<Array<DataType>> {
+    getLatestDataTypes(options?: any): AxiosPromise<Array<PersistedDataType>> {
       return localVarFp
         .getLatestDataTypes(options)
         .then((request) => request(axios, basePath));
@@ -1216,7 +1219,7 @@ export interface DataTypeApiInterface {
   getDataType(
     uri: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<DataType>;
+  ): AxiosPromise<PersistedDataType>;
 
   /**
    *
@@ -1226,7 +1229,7 @@ export interface DataTypeApiInterface {
    */
   getLatestDataTypes(
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<DataType>>;
+  ): AxiosPromise<Array<PersistedDataType>>;
 
   /**
    *
@@ -2042,7 +2045,10 @@ export const EntityTypeApiFp = function (configuration?: Configuration) {
       uri: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<EntityType>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<PersistedEntityType>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getEntityType(
         uri,
@@ -2066,7 +2072,7 @@ export const EntityTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<EntityType>>
+      ) => AxiosPromise<Array<PersistedEntityType>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLatestEntityTypes(options);
@@ -2138,7 +2144,10 @@ export const EntityTypeApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getEntityType(uri: string, options?: any): AxiosPromise<EntityType> {
+    getEntityType(
+      uri: string,
+      options?: any,
+    ): AxiosPromise<PersistedEntityType> {
       return localVarFp
         .getEntityType(uri, options)
         .then((request) => request(axios, basePath));
@@ -2148,7 +2157,9 @@ export const EntityTypeApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getLatestEntityTypes(options?: any): AxiosPromise<Array<EntityType>> {
+    getLatestEntityTypes(
+      options?: any,
+    ): AxiosPromise<Array<PersistedEntityType>> {
       return localVarFp
         .getLatestEntityTypes(options)
         .then((request) => request(axios, basePath));
@@ -2198,7 +2209,7 @@ export interface EntityTypeApiInterface {
   getEntityType(
     uri: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<EntityType>;
+  ): AxiosPromise<PersistedEntityType>;
 
   /**
    *
@@ -2208,7 +2219,7 @@ export interface EntityTypeApiInterface {
    */
   getLatestEntityTypes(
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<EntityType>>;
+  ): AxiosPromise<Array<PersistedEntityType>>;
 
   /**
    *
@@ -3580,7 +3591,10 @@ export const GraphApiFp = function (configuration?: Configuration) {
       uri: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<DataType>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<PersistedDataType>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getDataType(
         uri,
@@ -3652,7 +3666,10 @@ export const GraphApiFp = function (configuration?: Configuration) {
       uri: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<EntityType>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<PersistedEntityType>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getEntityType(
         uri,
@@ -3676,7 +3693,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<DataType>>
+      ) => AxiosPromise<Array<PersistedDataType>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLatestDataTypes(options);
@@ -3720,7 +3737,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<EntityType>>
+      ) => AxiosPromise<Array<PersistedEntityType>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLatestEntityTypes(options);
@@ -3742,7 +3759,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<LinkType>>
+      ) => AxiosPromise<Array<PersistedLinkType>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLatestLinkTypes(options);
@@ -3764,7 +3781,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<PropertyType>>
+      ) => AxiosPromise<Array<PersistedPropertyType>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLatestPropertyTypes(options);
@@ -3785,7 +3802,10 @@ export const GraphApiFp = function (configuration?: Configuration) {
       uri: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<LinkType>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<PersistedLinkType>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getLinkType(
         uri,
@@ -3808,7 +3828,10 @@ export const GraphApiFp = function (configuration?: Configuration) {
       uri: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<PropertyType>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<PersistedPropertyType>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getPropertyType(
         uri,
@@ -4085,7 +4108,7 @@ export const GraphApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getDataType(uri: string, options?: any): AxiosPromise<DataType> {
+    getDataType(uri: string, options?: any): AxiosPromise<PersistedDataType> {
       return localVarFp
         .getDataType(uri, options)
         .then((request) => request(axios, basePath));
@@ -4118,7 +4141,10 @@ export const GraphApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getEntityType(uri: string, options?: any): AxiosPromise<EntityType> {
+    getEntityType(
+      uri: string,
+      options?: any,
+    ): AxiosPromise<PersistedEntityType> {
       return localVarFp
         .getEntityType(uri, options)
         .then((request) => request(axios, basePath));
@@ -4128,7 +4154,7 @@ export const GraphApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getLatestDataTypes(options?: any): AxiosPromise<Array<DataType>> {
+    getLatestDataTypes(options?: any): AxiosPromise<Array<PersistedDataType>> {
       return localVarFp
         .getLatestDataTypes(options)
         .then((request) => request(axios, basePath));
@@ -4148,7 +4174,9 @@ export const GraphApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getLatestEntityTypes(options?: any): AxiosPromise<Array<EntityType>> {
+    getLatestEntityTypes(
+      options?: any,
+    ): AxiosPromise<Array<PersistedEntityType>> {
       return localVarFp
         .getLatestEntityTypes(options)
         .then((request) => request(axios, basePath));
@@ -4158,7 +4186,7 @@ export const GraphApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getLatestLinkTypes(options?: any): AxiosPromise<Array<LinkType>> {
+    getLatestLinkTypes(options?: any): AxiosPromise<Array<PersistedLinkType>> {
       return localVarFp
         .getLatestLinkTypes(options)
         .then((request) => request(axios, basePath));
@@ -4168,7 +4196,9 @@ export const GraphApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getLatestPropertyTypes(options?: any): AxiosPromise<Array<PropertyType>> {
+    getLatestPropertyTypes(
+      options?: any,
+    ): AxiosPromise<Array<PersistedPropertyType>> {
       return localVarFp
         .getLatestPropertyTypes(options)
         .then((request) => request(axios, basePath));
@@ -4179,7 +4209,7 @@ export const GraphApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getLinkType(uri: string, options?: any): AxiosPromise<LinkType> {
+    getLinkType(uri: string, options?: any): AxiosPromise<PersistedLinkType> {
       return localVarFp
         .getLinkType(uri, options)
         .then((request) => request(axios, basePath));
@@ -4190,7 +4220,10 @@ export const GraphApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getPropertyType(uri: string, options?: any): AxiosPromise<PropertyType> {
+    getPropertyType(
+      uri: string,
+      options?: any,
+    ): AxiosPromise<PersistedPropertyType> {
       return localVarFp
         .getPropertyType(uri, options)
         .then((request) => request(axios, basePath));
@@ -4374,7 +4407,7 @@ export interface GraphApiInterface {
   getDataType(
     uri: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<DataType>;
+  ): AxiosPromise<PersistedDataType>;
 
   /**
    *
@@ -4410,7 +4443,7 @@ export interface GraphApiInterface {
   getEntityType(
     uri: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<EntityType>;
+  ): AxiosPromise<PersistedEntityType>;
 
   /**
    *
@@ -4420,7 +4453,7 @@ export interface GraphApiInterface {
    */
   getLatestDataTypes(
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<DataType>>;
+  ): AxiosPromise<Array<PersistedDataType>>;
 
   /**
    *
@@ -4440,7 +4473,7 @@ export interface GraphApiInterface {
    */
   getLatestEntityTypes(
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<EntityType>>;
+  ): AxiosPromise<Array<PersistedEntityType>>;
 
   /**
    *
@@ -4450,7 +4483,7 @@ export interface GraphApiInterface {
    */
   getLatestLinkTypes(
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<LinkType>>;
+  ): AxiosPromise<Array<PersistedLinkType>>;
 
   /**
    *
@@ -4460,7 +4493,7 @@ export interface GraphApiInterface {
    */
   getLatestPropertyTypes(
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<PropertyType>>;
+  ): AxiosPromise<Array<PersistedPropertyType>>;
 
   /**
    *
@@ -4472,7 +4505,7 @@ export interface GraphApiInterface {
   getLinkType(
     uri: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<LinkType>;
+  ): AxiosPromise<PersistedLinkType>;
 
   /**
    *
@@ -4484,7 +4517,7 @@ export interface GraphApiInterface {
   getPropertyType(
     uri: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<PropertyType>;
+  ): AxiosPromise<PersistedPropertyType>;
 
   /**
    *
@@ -5565,7 +5598,7 @@ export const LinkTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<LinkType>>
+      ) => AxiosPromise<Array<PersistedLinkType>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLatestLinkTypes(options);
@@ -5586,7 +5619,10 @@ export const LinkTypeApiFp = function (configuration?: Configuration) {
       uri: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<LinkType>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<PersistedLinkType>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getLinkType(
         uri,
@@ -5658,7 +5694,7 @@ export const LinkTypeApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getLatestLinkTypes(options?: any): AxiosPromise<Array<LinkType>> {
+    getLatestLinkTypes(options?: any): AxiosPromise<Array<PersistedLinkType>> {
       return localVarFp
         .getLatestLinkTypes(options)
         .then((request) => request(axios, basePath));
@@ -5669,7 +5705,7 @@ export const LinkTypeApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getLinkType(uri: string, options?: any): AxiosPromise<LinkType> {
+    getLinkType(uri: string, options?: any): AxiosPromise<PersistedLinkType> {
       return localVarFp
         .getLinkType(uri, options)
         .then((request) => request(axios, basePath));
@@ -5717,7 +5753,7 @@ export interface LinkTypeApiInterface {
    */
   getLatestLinkTypes(
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<LinkType>>;
+  ): AxiosPromise<Array<PersistedLinkType>>;
 
   /**
    *
@@ -5729,7 +5765,7 @@ export interface LinkTypeApiInterface {
   getLinkType(
     uri: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<LinkType>;
+  ): AxiosPromise<PersistedLinkType>;
 
   /**
    *
@@ -6055,7 +6091,7 @@ export const PropertyTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<PropertyType>>
+      ) => AxiosPromise<Array<PersistedPropertyType>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLatestPropertyTypes(options);
@@ -6076,7 +6112,10 @@ export const PropertyTypeApiFp = function (configuration?: Configuration) {
       uri: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<PropertyType>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<PersistedPropertyType>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getPropertyType(
         uri,
@@ -6149,7 +6188,9 @@ export const PropertyTypeApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getLatestPropertyTypes(options?: any): AxiosPromise<Array<PropertyType>> {
+    getLatestPropertyTypes(
+      options?: any,
+    ): AxiosPromise<Array<PersistedPropertyType>> {
       return localVarFp
         .getLatestPropertyTypes(options)
         .then((request) => request(axios, basePath));
@@ -6160,7 +6201,10 @@ export const PropertyTypeApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getPropertyType(uri: string, options?: any): AxiosPromise<PropertyType> {
+    getPropertyType(
+      uri: string,
+      options?: any,
+    ): AxiosPromise<PersistedPropertyType> {
       return localVarFp
         .getPropertyType(uri, options)
         .then((request) => request(axios, basePath));
@@ -6208,7 +6252,7 @@ export interface PropertyTypeApiInterface {
    */
   getLatestPropertyTypes(
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<PropertyType>>;
+  ): AxiosPromise<Array<PersistedPropertyType>>;
 
   /**
    *
@@ -6220,7 +6264,7 @@ export interface PropertyTypeApiInterface {
   getPropertyType(
     uri: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<PropertyType>;
+  ): AxiosPromise<PersistedPropertyType>;
 
   /**
    *
