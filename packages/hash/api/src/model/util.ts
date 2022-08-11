@@ -62,7 +62,7 @@ export const RESTRICTED_SHORTNAMES = [
 export const nilUuid = "00000000-0000-0000-0000-000000000000" as const;
 
 /**
- * @todo: create workspace types in an account that's dedciated to
+ * @todo: create workspace types in an account that's dedicated to
  * the HASH workspace. For now we're just chucking them in the root account.
  */
 export const workspaceAccountId = nilUuid;
