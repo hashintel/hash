@@ -25,7 +25,6 @@ jobs:
     outputs:
       lint: ${{ steps.crates.outputs.lint }}
       test: ${{ steps.crates.outputs.test }}
-      bench: ${{ steps.crates.outputs.bench }}
       docker: ${{ steps.crates.outputs.docker }}
       publish: ${{ steps.crates.outputs.publish }}
       exclude: ${{ steps.crates.outputs.exclude }}
@@ -210,7 +209,6 @@ jobs:
       fail-fast: false
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.docker) }}
-        exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
