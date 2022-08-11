@@ -226,17 +226,14 @@ jobs:
           key: ${{ hashFiles('**/yarn.lock') }}
 
       - name: Install tools
-        shell: bash
         run: |
           cargo install cargo-quickinstall
           cargo quickinstall cargo-make --version 0.35.15
 
       - name: Build Docker container
-        shell: bash
         run: cargo make --profile ${{ matrix.profile }} build-docker
 
       - name: Test Docker container
-        shell: bash
         run: cargo make --profile ${{ matrix.profile }} test-docker
 
   publish:
