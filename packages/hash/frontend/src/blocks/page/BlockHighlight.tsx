@@ -1,5 +1,5 @@
-import { useTheme } from "@mui/material";
-import { motion } from "framer-motion";
+import { Box, Fade } from "@mui/material";
+import { useEffect, useState } from "react";
 import { useBlockHighlightContext } from "./BlockHighlightContext";
 import { useBlockView } from "./BlockViewContext";
 
@@ -8,23 +8,29 @@ interface HighlightProps {
 }
 
 const Highlight = ({ onAnimationComplete }: HighlightProps) => {
-  const theme = useTheme();
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => setVisible(false), []);
 
   return (
-    <motion.div
-      animate={{ opacity: 0 }}
-      transition={{ duration: 4 }}
-      onAnimationComplete={onAnimationComplete}
-      style={{
-        position: "absolute",
-        width: 6,
-        top: 6,
-        bottom: 6,
-        borderRadius: 3,
-        left: "1rem",
-        background: theme.palette.blue[70],
-      }}
-    />
+    <Fade
+      in={visible}
+      appear={false}
+      timeout={5000}
+      onExited={onAnimationComplete}
+    >
+      <Box
+        sx={(theme) => ({
+          position: "absolute",
+          width: 6,
+          top: 6,
+          bottom: 6,
+          borderRadius: 3,
+          left: "1rem",
+          background: theme.palette.blue[70],
+        })}
+      />
+    </Fade>
   );
 };
 
