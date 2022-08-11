@@ -215,6 +215,13 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+
       - name: Cache Node dependencies
         uses: actions/cache@v3
         with:
