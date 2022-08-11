@@ -80,9 +80,8 @@ export default class {
    */
   static async create(
     graphApi: GraphApi,
-    params: EntityModelCreateParams,
+    { accountId, entityTypeModel, properties }: EntityModelCreateParams,
   ): Promise<EntityModel> {
-    const { accountId, entityTypeModel, properties } = params;
     const {
       data: { entityId, version },
     } = await graphApi.createEntity({
