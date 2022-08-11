@@ -200,6 +200,25 @@ jobs:
                     --arg ddtags "$tags" \
                     '{ message: $message, ddsource: "hash-gh-actions", hostname: "github", service: "actions", ddtags: $ddtags }')
 
+  docker:
+    name: docker
+    needs: setup
+    if: needs.setup.outputs.docker != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        directory: ${{ fromJSON(needs.setup.outputs.docker) }}
+        exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Build Docker container
+        shell: bash
+        working-directory: ${{ matrix.directory }}
+        run: docker build --tag graph --file ../deployment/graph/Dockerfile .
+
   publish:
     name: publish
     needs: setup
