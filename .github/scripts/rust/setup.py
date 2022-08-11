@@ -14,7 +14,7 @@ DISABLE_STABLE_PATTERNS = ["packages/engine**", "packages/graph/hash_graph**"]
 # Try and publish these crates when their version is changed in Cargo.toml
 PUBLISH_PATTERNS = ["packages/libs/error-stack"]
 
-# Try and publish these crates when their version is changed in Cargo.toml
+# Build a docker container for these crates
 DOCKER_PATTERNS = ["packages/graph/hash_graph"]
 
 
