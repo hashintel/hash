@@ -211,6 +211,9 @@ jobs:
         directory: ${{ fromJSON(needs.setup.outputs.docker) }}
         profile:
           - production
+    defaults:
+      run:
+        working-directory: ${{ matrix.directory }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -243,12 +246,10 @@ jobs:
 
       - name: Build Docker container
         shell: bash
-        working-directory: ${{ matrix.directory }}
         run: cargo make --profile ${{ matrix.profile }} build-docker
 
       - name: Test Docker container
         shell: bash
-        working-directory: ${{ matrix.directory }}
         run: cargo make --profile ${{ matrix.profile }} test-docker
 
   publish:
