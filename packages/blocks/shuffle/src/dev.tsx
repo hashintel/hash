@@ -21,6 +21,7 @@ const DevApp = () => {
         },
       }}
       debug
+      readonly
     />
   );
 };

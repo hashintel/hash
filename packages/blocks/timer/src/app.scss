@@ -175,6 +175,11 @@ $fontFamily: Inter, Helvetica, Arial, sans-serif;
       background-color: #ebf8ff;
       border: 1.5px solid rgb(36, 117, 238);
     }
+
+    &:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
   }
 
   .big-button_type_play {

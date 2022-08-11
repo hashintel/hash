@@ -87,7 +87,12 @@ const getLinkedAggregation = (params: {
 const path = "$.data";
 
 export const Table: BlockComponent<BlockEntityProperties> = ({
-  graph: { blockEntity, linkedAggregations, entityTypes: remoteEntityTypes },
+  graph: {
+    blockEntity,
+    linkedAggregations,
+    entityTypes: remoteEntityTypes,
+    readonly: graphReadonly,
+  },
 }) => {
   const blockRef = useRef<HTMLDivElement>(null);
   const { graphService } = useGraphBlockService(blockRef);
@@ -265,6 +270,36 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
         delete newLinkedData.operation.pageNumber;
       }
 
+      // If in read-only mode, we don't want to save the operation to db
+      if (graphReadonly) {
+        void graphService
+          ?.aggregateEntities({
+            data: {
+              operation: newLinkedData.operation,
+            },
+          })
+          .then(({ data, errors }) => {
+            if (errors || !data) {
+              // @todo properly handle error
+              // eslint-disable-next-line
+              console.log({ errors });
+              return;
+            }
+
+            setTableData({
+              data: data.results,
+              linkedAggregation: {
+                ...newLinkedData,
+                operation: {
+                  ...newLinkedData.operation,
+                  ...data.operation,
+                },
+              },
+            });
+          });
+        return;
+      }
+
       void graphService?.updateEntity({
         data: {
           entityId,
@@ -285,6 +320,8 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
       tableData.linkedAggregation,
       initialState,
       graphService,
+      graphReadonly,
+      setTableData,
     ],
   );
 
@@ -292,7 +329,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
     hiddenColumns?: string[];
     columns?: { Header: string; accessor: string }[];
   }) => {
-    if (!entityId || !graphService?.updateEntity) {
+    if (!entityId || !graphService?.updateEntity || graphReadonly) {
       return;
     }
 
@@ -385,6 +422,10 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
 
     setHiddenColumns(newHiddenColumns);
 
+    if (graphReadonly) {
+      return;
+    }
+
     // @todo throttle this call
     updateRemoteColumnsRef.current({ hiddenColumns: newHiddenColumns });
   };
@@ -413,6 +454,10 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
     (updatedEntityTypeId: string | undefined) => {
       if (!entityId || !graphService) {
         throw new Error("Graph service is not initialized");
+      }
+
+      if (graphReadonly) {
+        return;
       }
 
       if (updatedEntityTypeId) {
@@ -447,16 +492,19 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
         });
       }
     },
-    [entityId, graphService, tableData.linkedAggregation],
+    [entityId, graphService, tableData.linkedAggregation, graphReadonly],
   );
 
-  const entityTypeDropdown = entityTypes ? (
-    <EntityTypeDropdown
-      options={entityTypes}
-      value={tableData?.linkedAggregation?.operation?.entityTypeId ?? undefined}
-      onChange={handleEntityTypeChange}
-    />
-  ) : null;
+  const entityTypeDropdown =
+    entityTypes && !graphReadonly ? (
+      <EntityTypeDropdown
+        options={entityTypes}
+        value={
+          tableData?.linkedAggregation?.operation?.entityTypeId ?? undefined
+        }
+        onChange={handleEntityTypeChange}
+      />
+    ) : null;
 
   /** @todo Fix keys in iterators below to not use the index */
   return (
@@ -525,7 +573,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
                           )?.schema,
                           property,
                         );
-                        const readOnly = propertyDef?.readOnly;
+                        const readOnly = propertyDef?.readOnly || graphReadonly;
                         const { key, ...restCellProps } = cell.getCellProps();
                         return (
                           <td

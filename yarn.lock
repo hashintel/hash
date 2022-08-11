@@ -3054,13 +3054,6 @@
   dependencies:
     uuid "^8.3.2"
 
-"@blockprotocol/core@0.0.6":
-  version "0.0.6"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.0.6.tgz#702a4a763a0afc4dd0b1eb57f82a6db40b98f0cc"
-  integrity sha512-DwtNRZhC49SFGIOrsfDal6Ba/RQ1ZVoN4W+GU/ZgmFPzxQGBW33d6wN8zPJRnwGOrnf68tHAh20q9r3+jUHIkw==
-  dependencies:
-    uuid "^8.3.2"
-
 "@blockprotocol/core@0.0.8":
   version "0.0.8"
   resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.0.8.tgz#21924dfd24315120427d3ccef4f3c836eaf6a782"
@@ -3069,15 +3062,6 @@
     es-module-lexer "^0.10.5"
     uuid "^8.3.2"
 
-"@blockprotocol/graph@0.0.10":
-  version "0.0.10"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.10.tgz#9650366f672056131517c4af2ec4d69d1c2dda7f"
-  integrity sha512-qAQ33pXPX3g3yTLre8uhEkDop/TsL3haO9ccVr/SeHngb3nABotDl4U/0dtGETdbn40of3xoAXjr6Nfngm+PDQ==
-  dependencies:
-    "@blockprotocol/core" "0.0.8"
-    lit "^2.2.5"
-    react "^17.0.2"
-
 "@blockprotocol/graph@0.0.12":
   version "0.0.12"
   resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.12.tgz#b2e7a79388535d8c78ff941114d843b7af84c2ee"
@@ -3085,15 +3069,6 @@
   dependencies:
     "@blockprotocol/core" "0.0.8"
     lit "^2.2.5"
-
-"@blockprotocol/graph@0.0.8":
-  version "0.0.8"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.8.tgz#27b28c6cb18168fc02b71df7b6a24b3fb494b413"
-  integrity sha512-G7bx4H9ttydUYeQLvsBOmnGaDLkpNmqLJkAwr2TCtxyRlUPIvIi+cEVi7m+Q/BkkXcDIhYZvjQhF/2gJy5Dd6Q==
-  dependencies:
-    "@blockprotocol/core" "0.0.6"
-    lit "^2.2.5"
-    react "^17.0.2"
 
 "@cspotcode/source-map-consumer@0.8.0":
   version "0.8.0"
@@ -13783,25 +13758,13 @@ mock-block-dock@0.0.10:
     lodash "^4.17.21"
     uuid "^8.3.2"
 
-mock-block-dock@0.0.15:
-  version "0.0.15"
-  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.15.tgz#8a29aab676ebc81dd12f2d4264129f606246ec99"
-  integrity sha512-tGjV5niAjjUSmHxLokwgHogjavTF/HfTEvOOjnx04ssdnLeOKYrbocExrtgNc8uH2Oe6Oz6NpkrPSn/2zwx07A==
-  dependencies:
-    "@blockprotocol/core" "0.0.6"
-    "@blockprotocol/graph" "0.0.8"
-    "@lit-labs/react" "^1.0.4"
-    lodash "^4.17.21"
-    react-json-view "^1.21.3"
-    uuid "^8.3.2"
-
-mock-block-dock@0.0.17:
-  version "0.0.17"
-  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.17.tgz#75109824d530b108601cd6ccdb09da2a2d558ddf"
-  integrity sha512-RoXfAESlPPgGwh2CM4SvXCVyx8Y7gVNwluqHR5jpfncrH+6bkVNa3xqK46d1UP+ESIIXlYRhoD0ExeLA/ywAKQ==
+mock-block-dock@0.0.20:
+  version "0.0.20"
+  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.20.tgz#95cb396d5eeeff892fd1acc3a661a6f4d7d4502c"
+  integrity sha512-EjKbxf7a1BXXpXVjcxZXhZQ6KPkC5BTrraS4l7VWempLGWB316d5/YPIfDfenDDQhbX+VsMI/cNs20XYfZbvGA==
   dependencies:
     "@blockprotocol/core" "0.0.8"
-    "@blockprotocol/graph" "0.0.10"
+    "@blockprotocol/graph" "0.0.12"
     "@lit-labs/react" "^1.0.4"
     lodash "^4.17.21"
     react-json-view "^1.21.3"
