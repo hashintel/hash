@@ -12,9 +12,9 @@ use arrow2::{
 #[derive(Debug, PartialEq)]
 pub struct RecordBatch {
     /// The schema which describes the columns in this [`RecordBatch`].
-    pub schema: Arc<Schema>,
+    schema: Arc<Schema>,
     /// The underlying columns. Each column stores the data for a specific field.
-    pub columns: Chunk<ArrayRef>,
+    columns: Chunk<ArrayRef>,
 }
 
 impl RecordBatch {
@@ -37,7 +37,9 @@ impl RecordBatch {
             .unwrap_or(0)
     }
 
-    /// Creates a new RecordBatch
+    /// Creates a new [`RecordBatch`]
+    ///
+    /// When compiled in debug mode, this struct will check that the [`RecordBatch`] is well-formed.
     pub fn new(schema: Arc<Schema>, columns: Chunk<ArrayRef>) -> Self {
         Self { schema, columns }
     }

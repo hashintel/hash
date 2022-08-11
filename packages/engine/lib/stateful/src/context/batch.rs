@@ -6,7 +6,7 @@ use arrow2::datatypes::Schema;
 use memory::{
     arrow::{
         ipc::{
-            self, calculate_ipc_data_size, read_record_batch, write_record_batch_body,
+            self, calculate_ipc_data_size, write_record_batch_body,
             write_record_batch_message_header,
         },
         meta,
@@ -57,7 +57,7 @@ impl ContextBatch {
             memory_id
         );
 
-        debug_assert_eq!(record_batch.schema, schema);
+        debug_assert_eq!(record_batch.schema(), schema);
 
         let header = Metaversion::default().to_le_bytes();
 
@@ -72,25 +72,6 @@ impl ContextBatch {
 
         let segment =
             Segment::from_batch_buffers(memory_id, &[], &header, &metadata, &body_data, false)?;
-
-        #[cfg(debug_assertions)]
-        {
-            let read_batch = read_record_batch(&segment, schema.clone()).unwrap();
-            assert_eq!(record_batch.num_rows(), read_batch.num_rows());
-            assert_eq!(record_batch.schema, read_batch.schema);
-            for (i, (a, b)) in record_batch
-                .columns
-                .iter()
-                .zip(read_batch.columns())
-                .enumerate()
-            {
-                assert_eq!(a.data_type(), b.data_type());
-                if a != b {
-                    panic!("the column {i} is not equal in both batches: \n {a:?} \n {b:?}")
-                }
-            }
-            assert_eq!(record_batch.columns, read_batch.columns);
-        }
 
         Self::from_segment(segment, schema)
     }
@@ -188,7 +169,7 @@ impl ContextBatch {
         self.segment.persist_metaversion(persisted);
 
         // Reload batch
-        self.batch = ipc::read_record_batch(&self.segment, self.batch.schema.clone())?;
+        self.batch = ipc::read_record_batch(&self.segment, self.batch.schema().clone())?;
         self.loaded = persisted;
 
         Ok(())

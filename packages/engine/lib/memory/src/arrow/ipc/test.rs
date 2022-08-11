@@ -133,12 +133,12 @@ fn utf8_roundrip() {
         metadata: BTreeMap::new(),
     });
 
-    let record_batch = RecordBatch {
-        schema: schema.clone(),
-        columns: Chunk::new(vec![
+    let record_batch = RecordBatch::new(
+        schema.clone(),
+        Chunk::new(vec![
             Utf8Array::<i32>::from_slice(&["one", "two", "three"]).arced(),
         ]),
-    };
+    );
 
     round_trip(schema, record_batch);
 }
@@ -179,9 +179,9 @@ fn fixed_size_binary_roundrip() {
         metadata: BTreeMap::new(),
     });
 
-    let record_batch = RecordBatch {
-        schema: schema.clone(),
-        columns: Chunk::new(vec![
+    let record_batch = RecordBatch::new(
+        schema.clone(),
+        Chunk::new(vec![
             FixedSizeBinaryArray::from_slice(&[
                 [0u8, 1u8, 12u8, 59u8, 212u8],
                 [0u8, 121u8, 12u8, 59u8, 212u8],
@@ -190,7 +190,7 @@ fn fixed_size_binary_roundrip() {
             ])
             .arced(),
         ]),
-    };
+    );
 
     round_trip(schema, record_batch)
 }
@@ -202,15 +202,15 @@ fn single_fixed_size_binary_roundtrip() {
         metadata: BTreeMap::new(),
     });
 
-    let record_batch = RecordBatch {
-        schema: schema.clone(),
-        columns: Chunk::new(vec![
+    let record_batch = RecordBatch::new(
+        schema.clone(),
+        Chunk::new(vec![
             FixedSizeBinaryArray::from_slice(&[[
                 44, 76, 252, 210, 92, 141, 68, 36, 129, 235, 57, 157, 47, 231, 116, 103,
             ]])
             .arced(),
         ]),
-    };
+    );
 
     round_trip(schema, record_batch)
 }
@@ -325,10 +325,7 @@ fn struct_list_roundtrip() {
 
     let array: Arc<dyn Array> = list_array.try_into_arrow().unwrap();
 
-    let record_batch = RecordBatch {
-        schema: schema.clone(),
-        columns: Chunk::new(vec![Arc::from(array)]),
-    };
+    let record_batch = RecordBatch::new(schema.clone(), Chunk::new(vec![Arc::from(array)]));
 
     round_trip(schema, record_batch);
 }

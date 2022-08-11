@@ -222,7 +222,7 @@ fn set_states_agent_id(states: &mut [Agent], record_batch: &RecordBatch) -> Resu
 fn set_states_agent_name(states: &mut [Agent], record_batch: &RecordBatch) -> Result<()> {
     let field = AgentStateField::AgentName;
     if let Some(i_col) = get_i_col(field.clone(), record_batch)? {
-        let array = record_batch.columns[i_col]
+        let array = record_batch.columns()[i_col]
             .as_any()
             .downcast_ref::<Utf8Array<i32>>()
             .ok_or(Error::InvalidArrowDowncast {
@@ -243,7 +243,7 @@ fn set_states_agent_name(states: &mut [Agent], record_batch: &RecordBatch) -> Re
 fn set_states_shape(states: &mut [Agent], record_batch: &RecordBatch) -> Result<()> {
     let field = AgentStateField::Shape;
     if let Some(i_col) = get_i_col(field.clone(), record_batch)? {
-        let array = record_batch.columns[i_col]
+        let array = record_batch.columns()[i_col]
             .as_any()
             .downcast_ref::<Utf8Array<i32>>()
             .ok_or(Error::InvalidArrowDowncast {

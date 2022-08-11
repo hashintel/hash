@@ -39,7 +39,7 @@ pub fn read_record_batch(segment: &Segment, schema: Arc<Schema>) -> crate::Resul
     )?;
 
     trace!("successfully finished reading from {}", segment.id());
-    Ok(RecordBatch { schema, columns })
+    Ok(RecordBatch::new(schema, columns))
 }
 
 /// Loads the Flatbuffers RecordBatch _message_ - i.e. the data in the header (_not_ the data in the

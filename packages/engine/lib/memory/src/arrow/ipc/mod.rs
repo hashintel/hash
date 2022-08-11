@@ -47,8 +47,8 @@ pub use write::*;
 /// <message body>
 /// ```
 pub fn calculate_schema_size(record_batch: &RecordBatch) -> usize {
-    let ipc_fields = default_ipc_fields(&record_batch.schema.fields);
+    let ipc_fields = default_ipc_fields(&record_batch.schema().fields);
 
-    let schema = schema_to_bytes(&record_batch.schema, &ipc_fields);
+    let schema = schema_to_bytes(&record_batch.schema(), &ipc_fields);
     schema.len()
 }
