@@ -226,6 +226,7 @@ jobs:
         uses: Swatinem/rust-cache@v1
         with:
           working-directory: ${{ matrix.directory }}
+          key: ${{ matrix.profile }}
 
       - name: Install tools
         shell: bash
