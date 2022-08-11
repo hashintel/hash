@@ -7,6 +7,7 @@ import {
   LinkedAggregation as BpLinkedAggregation,
   LinkedAggregationDefinition as BpLinkedAggregationDefinition,
 } from "@blockprotocol/graph";
+import { isTextProperties } from "@hashintel/hash-shared/entity";
 
 import { isParsedJsonObject } from "@hashintel/hash-shared/json-utils";
 
