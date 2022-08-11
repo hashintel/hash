@@ -6,7 +6,6 @@ import {
   IdentifiedPropertyType,
   MutationCreatePropertyTypeArgs,
   MutationUpdatePropertyTypeArgs,
-  QueryGetAllLatestPropertyTypesArgs,
   QueryGetPropertyTypeArgs,
   Resolver,
 } from "../../apiTypes.gen";
@@ -24,7 +23,7 @@ export const createPropertyType: Resolver<
 
   const createdPropertyTypeModel = await PropertyTypeModel.create(graphApi, {
     accountId,
-    schema: propertyType as any,
+    schema: propertyType as PropertyType,
   }).catch((err: AxiosError) => {
     throw new ApolloError(`${err.response?.data}`, "CREATION_ERROR");
   });
@@ -40,13 +39,14 @@ export const getAllLatestPropertyTypes: Resolver<
   Promise<IdentifiedPropertyType[]>,
   {},
   GraphQLContext,
-  QueryGetAllLatestPropertyTypesArgs
+  {}
 > = async (_, __, { dataSources }) => {
   const { graphApi } = dataSources;
 
   const allLatestPropertyTypeModels = await PropertyTypeModel.getAllLatest(
     graphApi,
     {
+      /** @todo Replace with User from the request */
       accountId: NIL_UUID,
     },
   ).catch((err: AxiosError) => {

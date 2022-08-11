@@ -3,7 +3,6 @@ import { AxiosError } from "axios";
 
 import {
   IdentifiedDataType,
-  QueryGetAllLatestDataTypesArgs,
   QueryGetDataTypeArgs,
   Resolver,
 } from "../../apiTypes.gen";
@@ -15,11 +14,12 @@ export const getAllLatestDataTypes: Resolver<
   Promise<IdentifiedDataType[]>,
   {},
   GraphQLContext,
-  QueryGetAllLatestDataTypesArgs
+  {}
 > = async (_, __, { dataSources }) => {
   const { graphApi } = dataSources;
 
   const allLatestDataTypeModels = await DataTypeModel.getAllLatest(graphApi, {
+    /** @todo Replace with User from the request */
     accountId: NIL_UUID,
   }).catch((err: AxiosError) => {
     throw new ApolloError(`${err.response?.data}`, "GET_ALL_ERROR");
