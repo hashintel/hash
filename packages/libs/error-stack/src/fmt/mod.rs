@@ -136,6 +136,7 @@ pub use hook::{HookContext, Hooks};
 pub use nightly::DebugDiagnostic;
 #[cfg(feature = "glyph")]
 use owo_colors::{OwoColorize, Stream::Stdout};
+use owo_colors::{Stream, Style};
 
 use crate::{AttachmentKind, Frame, FrameKind, Report};
 
@@ -224,6 +225,63 @@ enum Glyph {
     Location,
 }
 
+#[derive(Debug, Copy, Clone)]
+enum Symbol {
+    // special, used to indicate location
+    Location,
+
+    Vertical,
+    VerticalRight,
+    Horizontal,
+    HorizontalLeft,
+    HorizontalDown,
+    ArrowRight,
+    CurveRight,
+
+    Space,
+}
+
+#[cfg(feature = "hooks")]
+impl Display for Symbol {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Symbol::Location => f.write_str(""),
+            Symbol::Vertical => f.write_str("│"),
+            Symbol::VerticalRight => f.write_str("├"),
+            Symbol::Horizontal => f.write_str("─"),
+            Symbol::HorizontalLeft => f.write_str("╴"),
+            Symbol::HorizontalDown => f.write_str("┬"),
+            Symbol::ArrowRight => f.write_str("▶"),
+            Symbol::CurveRight => f.write_str("╰"),
+            Symbol::Space => f.write_str(" "),
+        }
+    }
+}
+
+#[cfg(not(feature = "hooks"))]
+impl Display for Symbol {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Symbol::Location => f.write_str("@ "),
+            Symbol::Vertical => f.write_str("|"),
+            Symbol::VerticalRight => f.write_str("|"),
+            Symbol::Horizontal => f.write_str("-"),
+            Symbol::HorizontalLeft => f.write_str("-"),
+            Symbol::HorizontalDown => f.write_str("-"),
+            Symbol::ArrowRight => f.write_str(">"),
+            Symbol::CurveRight => f.write_str(r"\"),
+            Symbol::Space => f.write_str(" "),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+enum Position {
+    Start,
+    Middle,
+    End,
+}
+
 /// The display of content is using an instruction style architecture,
 /// where we first render every indentation and action as an [`Instruction`], these instructions are
 /// a lot easier to reason about and enable better manipulation of the stream of data.
@@ -232,87 +290,146 @@ enum Glyph {
 /// (if supported and enabled).
 #[derive(Debug)]
 enum Instruction {
-    Content(String),
-    Gray(String),
-    Entry { end: bool },
-    Vertical,
-    Indent,
-    Title { end: bool },
-    Glyph(Glyph),
+    Value {
+        value: String,
+        style: Style,
+    },
+
+    Group {
+        position: Position,
+    },
+    /// This does not distinguish between first and middle, the true first is handled a bit
+    /// differently.
+    Context {
+        position: Position,
+    },
+    /// `Position::Last` means *that nothing follows*
+    Attachment {
+        position: Position,
+    },
+
+    Indent {
+        /// Is this used in a group context, if that is the case, then add a single leading space
+        group: bool,
+        /// Should the indent be visible, if that isn't the case it will render a space instead of
+        /// `|`
+        visible: bool,
+        /// Should spacing included, this is the difference between `|   ` and `|`
+        spacing: bool,
+    },
+}
+
+/// Minimized instruction, which looses information about what it represents and converts it to only
+/// symbols, this then is output instead.
+enum PreparedInstruction<'a> {
+    Symbols(&'a [Symbol]),
+    Content(&'a str, &'a Style),
 }
 
 impl Instruction {
-    fn plain(text: String) -> Instructions {
-        let mut queue = VecDeque::new();
-        queue.push_back(Self::Content(text));
-
-        queue
-    }
-
-    fn location(text: &'static Location) -> Instructions {
-        let mut queue = VecDeque::new();
-        queue.push_back(Self::Glyph(Glyph::Location));
-        queue.push_back(Self::Gray(text.to_string()));
-
-        queue
+    fn prepare(&self) -> PreparedInstruction {
+        match self {
+            Instruction::Value { value, style } => PreparedInstruction::Content(&value, style),
+            Instruction::Group { position } => match position {
+                Position::Start => PreparedInstruction::Symbols(&[
+                    Symbol::CurveRight,
+                    Symbol::HorizontalDown,
+                    Symbol::ArrowRight,
+                    Symbol::Space,
+                ]),
+                Position::Middle => PreparedInstruction::Symbols(&[
+                    Symbol::Space,
+                    Symbol::VerticalRight,
+                    Symbol::ArrowRight,
+                    Symbol::Space,
+                ]),
+                Position::End => PreparedInstruction::Symbols(&[
+                    Symbol::Space,
+                    Symbol::CurveRight,
+                    Symbol::ArrowRight,
+                    Symbol::Space,
+                ]),
+            },
+            Instruction::Context { position } => match position {
+                Position::Start | Position::Middle => PreparedInstruction::Symbols(&[
+                    Symbol::VerticalRight,
+                    Symbol::Horizontal,
+                    Symbol::ArrowRight,
+                    Symbol::Space,
+                ]),
+                Position::End => PreparedInstruction::Symbols(&[
+                    Symbol::CurveRight,
+                    Symbol::Horizontal,
+                    Symbol::ArrowRight,
+                    Symbol::Space,
+                ]),
+            },
+            Instruction::Attachment { position } => match position {
+                Position::Start | Position::Middle => {
+                    PreparedInstruction::Symbols(&[Symbol::VerticalRight, Symbol::HorizontalLeft])
+                }
+                Position::End => {
+                    PreparedInstruction::Symbols(&[Symbol::CurveRight, Symbol::HorizontalLeft])
+                }
+            },
+            Instruction::Indent {
+                group: true,
+                visible: true,
+                spacing: true,
+            } => PreparedInstruction::Symbols(&[
+                Symbol::Space,
+                Symbol::Vertical,
+                Symbol::Space,
+                Symbol::Space,
+            ]),
+            Instruction::Indent {
+                group: true,
+                visible: true,
+                spacing: false,
+            } => PreparedInstruction::Symbols(&[Symbol::Space, Symbol::Vertical]),
+            Instruction::Indent {
+                group: false,
+                visible: true,
+                spacing: true,
+            } => PreparedInstruction::Symbols(&[
+                Symbol::Vertical,
+                Symbol::Space,
+                Symbol::Space,
+                Symbol::Space,
+            ]),
+            Instruction::Indent {
+                group: false,
+                visible: true,
+                spacing: false,
+            } => PreparedInstruction::Symbols(&[Symbol::Vertical]),
+            Instruction::Indent {
+                visible: false,
+                spacing: true,
+                ..
+            } => PreparedInstruction::Symbols(&[
+                Symbol::Space,
+                Symbol::Space,
+                Symbol::Space,
+                Symbol::Space,
+            ]),
+        }
     }
 }
 
 impl Display for Instruction {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Content(text) => fmt.write_str(text),
-
-            #[cfg(feature = "glyph")]
-            Self::Entry { end: true } => {
-                fmt::Display::fmt(&"╰─▶ ".if_supports_color(Stdout, OwoColorize::red), fmt)
+        match self.prepare() {
+            PreparedInstruction::Symbols(symbols) => {
+                for symbol in symbols {
+                    Display::fmt(symbol, fmt)?;
+                }
             }
-            #[cfg(not(feature = "glyph"))]
-            Self::Entry { end: true } => fmt.write_str(r#"\-> "#),
-
-            #[cfg(feature = "glyph")]
-            Self::Entry { end: false } => {
-                fmt::Display::fmt(&"├─▶ ".if_supports_color(Stdout, OwoColorize::red), fmt)
+            PreparedInstruction::Content(value, style) => {
+                value.if_supports_color(Stdout, |value| value.style(*style))
             }
-            #[cfg(not(feature = "glyph"))]
-            Self::Entry { end: false } => fmt.write_str("|-> "),
-
-            #[cfg(feature = "glyph")]
-            Self::Vertical => {
-                fmt::Display::fmt(&"│   ".if_supports_color(Stdout, OwoColorize::red), fmt)
-            }
-            #[cfg(not(feature = "glyph"))]
-            Self::Vertical => fmt.write_str("|   "),
-
-            Self::Indent => fmt.write_str("    "),
-
-            #[cfg(feature = "glyph")]
-            Self::Gray(text) => fmt::Display::fmt(
-                &text.if_supports_color(Stdout, OwoColorize::bright_black),
-                fmt,
-            ),
-            #[cfg(not(feature = "glyph"))]
-            Self::Gray(text) => fmt.write_str(text),
-
-            #[cfg(feature = "glyph")]
-            Self::Title { end: true } => {
-                fmt::Display::fmt(&"╰ ".if_supports_color(Stdout, OwoColorize::red), fmt)
-            }
-            #[cfg(not(feature = "glyph"))]
-            Self::Title { end: true } => fmt.write_str("> "),
-
-            #[cfg(feature = "glyph")]
-            Self::Title { end: false } => {
-                fmt::Display::fmt(&"│ ".if_supports_color(Stdout, OwoColorize::red), fmt)
-            }
-            #[cfg(not(feature = "glyph"))]
-            Self::Title { end: false } => fmt.write_str("| "),
-
-            #[cfg(feature = "glyph")]
-            Self::Glyph(Glyph::Location) => fmt.write_str(""),
-            #[cfg(not(feature = "glyph"))]
-            Self::Glyph(Glyph::Location) => fmt.write_str("@ "),
         }
+
+        Ok(())
     }
 }
 
