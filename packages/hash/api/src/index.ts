@@ -43,7 +43,7 @@ import { getAwsRegion } from "./lib/aws-config";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { connectToTaskExecutor } from "./task-execution";
 import { createGraphClient } from "./graph";
-import { createWorkspaceTypes } from "./graph/workspace-types";
+import { ensureWorkspaceTypesExist } from "./graph/workspace-types";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -129,7 +129,7 @@ const main = async () => {
     logger,
   );
 
-  await createWorkspaceTypes({ graphApi, logger });
+  await ensureWorkspaceTypesExist({ graphApi, logger });
 
   // Set sensible default security headers: https://www.npmjs.com/package/helmet
   // Temporarily disable contentSecurityPolicy for the GraphQL playground

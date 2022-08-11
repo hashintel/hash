@@ -1,6 +1,6 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
-import { createWorkspaceTypes } from "@hashintel/hash-api/src/graph/workspace-types";
+import { ensureWorkspaceTypesExist } from "@hashintel/hash-api/src/graph/workspace-types";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { UserModel } from "@hashintel/hash-api/src/model";
@@ -25,7 +25,7 @@ const shortname = "alice";
 
 describe("User model class", () => {
   beforeAll(async () => {
-    await createWorkspaceTypes({ graphApi, logger });
+    await ensureWorkspaceTypesExist({ graphApi, logger });
   });
 
   let createdUser: UserModel;

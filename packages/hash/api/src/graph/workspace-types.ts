@@ -62,7 +62,11 @@ const userEntityType = generateWorkspaceEntityTypeSchema({
 
 const workspaceEntityTypes: EntityType[] = [userEntityType];
 
-export const createWorkspaceTypes = async (params: {
+/**
+ * A script that ensures the required primitive data types and workspace types
+ * have been created in the graph.
+ */
+export const ensureWorkspaceTypesExist = async (params: {
   graphApi: GraphApi;
   logger: Logger;
 }) => {
