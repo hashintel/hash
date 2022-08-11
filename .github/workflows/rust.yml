@@ -209,14 +209,39 @@ jobs:
       fail-fast: false
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.docker) }}
+        profile:
+          - production
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
 
+      - name: Cache Node dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            **/node_modules
+          key: ${{ hashFiles('**/yarn.lock') }}
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v1
+        with:
+          working-directory: ${{ matrix.directory }}
+
+      - name: Install tools
+        shell: bash
+        run: |
+          cargo install cargo-quickinstall
+          cargo quickinstall cargo-make --version 0.35.15
+
       - name: Build Docker container
         shell: bash
         working-directory: ${{ matrix.directory }}
-        run: docker build --tag graph --file ../deployment/graph/Dockerfile .
+        run: cargo make --profile ${{ matrix.profile }} build-docker
+
+      - name: Test Docker container
+        shell: bash
+        working-directory: ${{ matrix.directory }}
+        run: cargo make --profile ${{ matrix.profile }} test-docker
 
   publish:
     name: publish
