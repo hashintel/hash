@@ -19,13 +19,12 @@ import { aggregationTypedef } from "./aggregation.typedef";
 import { pagePaginationTypedef } from "./paginationConnections.typedef";
 import { executeTaskTypedef } from "./taskExecution.typedef";
 import { dataTypeTypedef } from "./ontology/data-type.typedef";
+import { propertyTypeTypedef } from "./ontology/property-type.typedef";
 
 const baseSchema = gql`
   scalar Date
   scalar JSONObject
   scalar TextToken
-
-  scalar DataType
 
   """
   The queries available in this schema
@@ -42,7 +41,7 @@ const baseSchema = gql`
   }
 `;
 
-const ontology = [dataTypeTypedef];
+const ontology = [dataTypeTypedef, propertyTypeTypedef];
 
 // This needs to be called 'schema' to be picked up by codegen -
 // It could alternatively be a default export.

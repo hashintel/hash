@@ -3,30 +3,55 @@ import { AxiosError } from "axios";
 
 import {
   IdentifiedDataType,
-  MutationCreateDataTypeArgs,
+  QueryGetAllLatestDataTypesArgs,
+  QueryGetDataTypeArgs,
   Resolver,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { DataTypeModel } from "../../../model";
+import { NIL_UUID } from "../../../model/util";
 
-export const createDataType: Resolver<
+export const getAllLatestDataTypes: Resolver<
+  Promise<IdentifiedDataType[]>,
+  {},
+  GraphQLContext,
+  QueryGetAllLatestDataTypesArgs
+> = async (_, __, { dataSources }) => {
+  const { graphApi } = dataSources;
+
+  const allLatestDataTypeModels = await DataTypeModel.getAllLatest(graphApi, {
+    accountId: NIL_UUID,
+  }).catch((err: AxiosError) => {
+    throw new ApolloError(`${err.response?.data}`, "GET_ALL_ERROR");
+  });
+
+  return allLatestDataTypeModels.map(
+    (dataType) =>
+      <IdentifiedDataType>{
+        createdBy: dataType.accountId,
+        dataTypeVersionedUri: dataType.schema.$id,
+        schema: dataType.schema,
+      },
+  );
+};
+
+export const getDataType: Resolver<
   Promise<IdentifiedDataType>,
   {},
   GraphQLContext,
-  MutationCreateDataTypeArgs
-> = async (_, { accountId, dataType }, { dataSources }) => {
+  QueryGetDataTypeArgs
+> = async (_, { dataTypeVersionedUri }, { dataSources }) => {
   const { graphApi } = dataSources;
 
-  const createdDataType = await DataTypeModel.create(graphApi, {
-    accountId,
-    schema: dataType as any,
+  const dataTypeModel = await DataTypeModel.get(graphApi, {
+    versionedUri: dataTypeVersionedUri,
   }).catch((err: AxiosError) => {
-    throw new ApolloError(`${err.response?.data}`, "CREATION_ERROR");
+    throw new ApolloError(`${err.response?.data}`, "GET_ERROR");
   });
 
   return {
-    createdBy: accountId,
-    dataTypeVersionedUri: createdDataType.schema.$id,
-    schema: createdDataType.schema,
+    createdBy: dataTypeModel.accountId,
+    dataTypeVersionedUri: dataTypeModel.schema.$id,
+    schema: dataTypeModel.schema,
   };
 };
