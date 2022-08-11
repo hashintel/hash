@@ -1,7 +1,8 @@
 version: "3.9"
+
 volumes:
   hash-graph-data:
-    external: true
+
 services:
   postgres:
     image: postgres:14-alpine

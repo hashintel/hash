@@ -1,10 +1,5 @@
 extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 
-[tasks.crate-volume]
-private = true
-command = "docker"
-args = ["volume", "create", "--name", "hash-graph-data"]
-
 [tasks.touch-environment]
 private = true
 command = "touch"
@@ -42,7 +37,7 @@ description = "Spins up the deployment environment"
 command = "docker-compose"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment"
 args = ["--env-file", "../.env", "up", "-d"]
-dependencies = ["crate-volume", "touch-environment"]
+dependencies = ["touch-environment"]
 
 [tasks.deployment-down]
 category = "Deploy"
