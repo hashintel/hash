@@ -118,14 +118,16 @@
         ".*": {
           "oneOf": [
             {
-              "type": "object",
-              "additionalProperties": false
+              "$ref": "#/$defs/entityTypeReference"
             },
             {
               "type": "object",
               "properties": {
                 "type": {
                   "enum": ["array"]
+                },
+                "items": {
+                  "$ref": "#/$defs/entityTypeReference"
                 },
                 "ordered": { "type": "boolean", "default": false },
                 "minItems": {
@@ -143,6 +145,17 @@
           ]
         }
       }
+    },
+    "entityTypeReference": {
+      "type": "object",
+      "properties": {
+        "$ref": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": ["$ref"],
+      "additionalProperties": false
     }
   }
 }

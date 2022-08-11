@@ -9,7 +9,10 @@ use crate::ontology::types::{
     entity_type::links::{Links, ValueOrMaybeOrderedArray},
     error::ValidationError,
     property_type::PropertyTypeReference,
-    serde_shared::object::{Object, ValidateUri},
+    serde_shared::{
+        array::ValueOrArray,
+        object::{Object, ValidateUri},
+    },
     uri::{BaseUri, VersionedUri},
 };
 
@@ -70,7 +73,7 @@ pub struct EntityType {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     examples: Vec<HashMap<VersionedUri, serde_json::Value>>,
     #[serde(flatten)]
-    property_object: Object<PropertyTypeReference>,
+    property_object: Object<ValueOrArray<PropertyTypeReference>>,
     #[serde(flatten)]
     links: Links,
 }
@@ -85,7 +88,7 @@ impl EntityType {
         description: Option<String>,
         default: HashMap<VersionedUri, serde_json::Value>,
         examples: Vec<HashMap<VersionedUri, serde_json::Value>>,
-        properties: HashMap<BaseUri, PropertyTypeReference>,
+        properties: HashMap<BaseUri, ValueOrArray<PropertyTypeReference>>,
         required: Vec<BaseUri>,
         links: HashMap<VersionedUri, ValueOrMaybeOrderedArray<EntityTypeReference>>,
         required_links: Vec<VersionedUri>,
@@ -116,7 +119,7 @@ impl EntityType {
         description: Option<String>,
         default: HashMap<VersionedUri, serde_json::Value>,
         examples: Vec<HashMap<VersionedUri, serde_json::Value>>,
-        properties: HashMap<BaseUri, PropertyTypeReference>,
+        properties: HashMap<BaseUri, ValueOrArray<PropertyTypeReference>>,
         required: Vec<BaseUri>,
         links: HashMap<VersionedUri, ValueOrMaybeOrderedArray<EntityTypeReference>>,
         required_links: Vec<VersionedUri>,
@@ -159,7 +162,7 @@ impl EntityType {
     }
 
     #[must_use]
-    pub const fn properties(&self) -> &HashMap<BaseUri, PropertyTypeReference> {
+    pub const fn properties(&self) -> &HashMap<BaseUri, ValueOrArray<PropertyTypeReference>> {
         self.property_object.properties()
     }
 
@@ -182,7 +185,13 @@ impl EntityType {
 
     #[must_use]
     pub fn property_type_references(&self) -> HashSet<&PropertyTypeReference> {
-        self.properties().iter().map(|(_, uri)| uri).collect()
+        self.properties()
+            .iter()
+            .map(|(_, property_def)| match property_def {
+                ValueOrArray::Value(uri) => uri,
+                ValueOrArray::Array(array) => array.items(),
+            })
+            .collect()
     }
 
     #[must_use]
