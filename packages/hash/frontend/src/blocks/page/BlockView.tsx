@@ -218,7 +218,7 @@ export class BlockView implements NodeView<Schema> {
     this.renderPortal(
       <BlockViewContext.Provider value={this}>
         <CollabPositionIndicators blockEntityId={blockEntityId} />
-        <BlockHighlight />
+        <BlockHighlight blockEntityId={blockEntityId} />
         <BlockHandle
           deleteBlock={this.deleteBlock}
           entityStore={this.store}
