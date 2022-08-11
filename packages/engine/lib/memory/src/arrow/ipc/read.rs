@@ -1,9 +1,9 @@
 //! This file loads data from memory into
 
-use std::{collections::BTreeMap, sync::Arc};
+use std::sync::Arc;
 
 use arrow2::{
-    datatypes::{Metadata, Schema},
+    datatypes::Schema,
     io::ipc::{write::default_ipc_fields, IpcSchema},
 };
 use arrow_format::ipc::planus::ReadAsRoot;
@@ -76,72 +76,4 @@ pub fn read_record_batch_message(
     trace!("successfully finished reading RecordBatch header message");
 
     Ok(batch)
-}
-
-/// Converts a flatbuffers message into a [`arrow2::datatypes::Schema`].
-pub fn arrow_schema_from_fb(
-    fb: arrow_format::ipc::SchemaRef,
-) -> crate::Result<arrow2::datatypes::Schema> {
-    let mut fields = vec![];
-
-    let fb_fields_tmp = fb.fields()?;
-    let fb_fields = fb_fields_tmp.iter().next().unwrap();
-
-    for fb_field in fb_fields.iter() {
-        let fb_field = fb_field?;
-        fields.push(arrow2::datatypes::Field {
-            name: fb_field.name()?.unwrap().to_string(),
-            data_type: fb_type_2_arrow2_type(TryFrom::try_from(fb_field.type_()?.unwrap())?),
-            is_nullable: fb_field.nullable()?,
-            metadata: fb_field
-                .custom_metadata()?
-                .map(
-                    |metadata| -> arrow_format::ipc::planus::Result<BTreeMap<String, String>> {
-                        let mut map = BTreeMap::new();
-                        for m in metadata.iter() {
-                            let m = m?;
-                            map.insert(
-                                m.key()?.unwrap().to_string(),
-                                m.value()?.unwrap().to_string(),
-                            );
-                        }
-                        Ok(map)
-                    },
-                )
-                .unwrap_or_else(|| Ok(BTreeMap::default()))?,
-        })
-    }
-
-    Ok(arrow2::datatypes::Schema {
-        fields,
-        metadata: Metadata::default(),
-    })
-}
-
-/// Converts from the flatbuffers representation of an Arrow type into the interal Rust [`arrow`]2
-/// representation.
-fn fb_type_2_arrow2_type(ty: arrow_format::ipc::Type) -> arrow2::datatypes::DataType {
-    match ty {
-        arrow_format::ipc::Type::Null(_) => todo!(),
-        arrow_format::ipc::Type::Int(_) => todo!(),
-        arrow_format::ipc::Type::FloatingPoint(_) => todo!(),
-        arrow_format::ipc::Type::Binary(_) => todo!(),
-        arrow_format::ipc::Type::Utf8(_) => todo!(),
-        arrow_format::ipc::Type::Bool(_) => todo!(),
-        arrow_format::ipc::Type::Decimal(_) => todo!(),
-        arrow_format::ipc::Type::Date(_) => todo!(),
-        arrow_format::ipc::Type::Time(_) => todo!(),
-        arrow_format::ipc::Type::Timestamp(_) => todo!(),
-        arrow_format::ipc::Type::Interval(_) => todo!(),
-        arrow_format::ipc::Type::List(_) => todo!(),
-        arrow_format::ipc::Type::Struct(_) => todo!(),
-        arrow_format::ipc::Type::Union(_) => todo!(),
-        arrow_format::ipc::Type::FixedSizeBinary(_) => todo!(),
-        arrow_format::ipc::Type::FixedSizeList(_) => todo!(),
-        arrow_format::ipc::Type::Map(_) => todo!(),
-        arrow_format::ipc::Type::Duration(_) => todo!(),
-        arrow_format::ipc::Type::LargeBinary(_) => todo!(),
-        arrow_format::ipc::Type::LargeUtf8(_) => todo!(),
-        arrow_format::ipc::Type::LargeList(_) => todo!(),
-    }
 }

@@ -1,13 +1,13 @@
 #![allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
 
-use std::{borrow::Cow, sync::Arc};
+use std::{borrow::Cow, collections::BTreeMap, sync::Arc};
 
 use arrow2::io::ipc::write::{default_ipc_fields, schema_to_bytes};
 use arrow_format::ipc::{planus::ReadAsRoot, MessageHeaderRef};
 use memory::{
     arrow::{
         flush::GrowableBatch,
-        ipc::{self, arrow_schema_from_fb, write_record_batch_to_segment},
+        ipc::{self, write_record_batch_to_segment},
         meta::{self, DynamicMetadata, StaticMetadata},
         record_batch::RecordBatch,
         ArrowBatch, ColumnChange,
@@ -15,7 +15,7 @@ use memory::{
     shared_memory::{BufferChange, MemoryId, Metaversion, Segment},
 };
 
-use super::boolean::BooleanColumn;
+use super::{arrow_conversion::arrow2_datatype_of_arrow_datatype, boolean::BooleanColumn};
 use crate::{
     agent::{
         arrow::{array::IntoRecordBatch, record_batch},
@@ -85,6 +85,10 @@ impl AgentBatch {
         Self::from_segment(segment, Some(schema), None)
     }
 
+    /// todo: DOC
+    ///
+    /// todo: see if it is possible to only use [`arrow_convert`] and [`arrow2`] (rather than
+    /// [`arrow`]) to read the schema from the flatbuffers.
     pub fn from_segment(
         segment: Segment,
         schema: Option<&AgentSchema>,
@@ -95,15 +99,31 @@ impl AgentBatch {
         let (schema, static_meta) = if let Some(s) = schema {
             (s.arrow.clone(), s.static_meta.clone())
         } else {
-            let message = arrow_format::ipc::MessageRef::read_as_root(buffers.schema())?;
-            let ipc_schema = match message.header() {
-                Ok(Some(MessageHeaderRef::Schema(s))) => s,
-                _ => return Err(Error::ArrowSchemaRead),
+            let message = arrow::ipc::root_as_message(buffers.schema())?;
+            let ipc_schema = match message.header_as_schema() {
+                Some(s) => s,
+                None => return Err(Error::ArrowSchemaRead),
             };
-            let schema: Arc<arrow2::datatypes::Schema> =
-                Arc::new(arrow_schema_from_fb(ipc_schema)?);
-            let static_meta = Arc::new(StaticMetadata::from_schema(schema.clone()));
-            (schema, static_meta)
+            let arrow_schema = arrow::ipc::convert::fb_to_schema(ipc_schema);
+            let arrow2_schema = Arc::new(arrow2::datatypes::Schema {
+                fields: arrow_schema
+                    .fields
+                    .into_iter()
+                    .map(|arrow_field| {
+                        arrow2::datatypes::Field::new(
+                            arrow_field.name(),
+                            arrow2_datatype_of_arrow_datatype(arrow_field.data_type().clone()),
+                            arrow_field.is_nullable(),
+                        )
+                    })
+                    .collect(),
+                metadata: arrow_schema
+                    .metadata
+                    .into_iter()
+                    .collect::<BTreeMap<_, _>>(),
+            });
+            let static_meta = Arc::new(StaticMetadata::from_schema(arrow2_schema.clone()));
+            (arrow2_schema, static_meta)
         };
 
         let message = arrow_format::ipc::MessageRef::read_as_root(buffers.meta())?;
