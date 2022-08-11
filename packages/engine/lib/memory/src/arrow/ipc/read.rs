@@ -38,7 +38,7 @@ pub fn read_record_batch(segment: &Segment, schema: Arc<Schema>) -> crate::Resul
         0,
     )?;
 
-    trace!("successfully finished reading record batch");
+    trace!("successfully finished reading from {}", segment.id());
     Ok(RecordBatch { schema, columns })
 }
 

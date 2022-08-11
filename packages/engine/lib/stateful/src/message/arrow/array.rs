@@ -85,7 +85,7 @@ impl MessageArray {
     pub fn new(len: usize) -> Self {
         trace!("creating new MessageArray");
         Self(ListArray::new_null(
-            DataType::List(Box::new(MESSAGE_LIST_ARROW_FIELD.clone())),
+            MESSAGE_LIST_ARROW_FIELD.data_type.clone(),
             len,
         ))
     }

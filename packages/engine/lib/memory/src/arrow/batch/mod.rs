@@ -319,7 +319,10 @@ impl ArrowBatch {
     /// and/or memory is reloaded and the loaded metaversion is mutated to be the persisted one.
     pub fn maybe_reload(&mut self) -> Result<()> {
         if !self.is_persisted() {
-            trace!("batch was not persisted, started reloading ArrowBatch");
+            trace!(
+                "batch was not persisted, started reloading ArrowBatch (with id {})",
+                self.segment().id()
+            );
 
             let persisted = self.segment.read_persisted_metaversion();
 
@@ -332,7 +335,10 @@ impl ArrowBatch {
 
             self.loaded_metaversion = persisted;
             debug_assert!(self.is_persisted());
-            trace!("finished reloading ArrowBatch");
+            trace!(
+                "finished reloading ArrowBatch (with id {})",
+                self.segment().id()
+            );
         }
         Ok(())
     }

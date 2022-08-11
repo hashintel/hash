@@ -204,6 +204,7 @@ impl MessageBatch {
 
         let data_buffer = segment.get_mut_data_buffer()?;
         ipc::write_record_batch_body(&record_batch, data_buffer, &info)?;
+
         let change = segment.set_header(&header)?;
         debug_assert!(!change.resized() && !change.shifted());
         Self::from_segment(segment, schema)
