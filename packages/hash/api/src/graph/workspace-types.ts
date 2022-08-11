@@ -53,8 +53,7 @@ const userEntityType = generateWorkspaceEntityTypeSchema({
       }),
       versionedUri: emailPropertyType.$id,
       required: true,
-      array: true,
-      minItems: 1,
+      array: { minItems: 1 },
     },
   ],
 });

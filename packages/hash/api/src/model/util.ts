@@ -175,9 +175,7 @@ export const generateWorkspaceEntityTypeSchema = (params: {
     baseUri: string;
     versionedUri: string;
     required?: boolean;
-    array?: boolean;
-    minItems?: number;
-    maxItems?: number;
+    array?: { minItems?: number; maxItems?: number } | boolean;
   }[];
 }): EntityType => ({
   $id: generateSchemaVersionedUri({
@@ -189,14 +187,13 @@ export const generateWorkspaceEntityTypeSchema = (params: {
   type: "object",
   kind: "entityType",
   properties: params.properties.reduce(
-    (prev, { baseUri, versionedUri, array, minItems, maxItems }) => ({
+    (prev, { baseUri, versionedUri, array }) => ({
       ...prev,
       [baseUri]: array
         ? {
             type: "array",
             items: { $ref: versionedUri },
-            minItems,
-            maxItems,
+            ...(array === true ? {} : array),
           }
         : { $ref: versionedUri },
     }),
