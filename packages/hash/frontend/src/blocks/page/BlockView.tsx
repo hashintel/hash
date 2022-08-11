@@ -20,6 +20,7 @@ import { RenderPortal } from "./usePortals";
 import { BlockContext } from "./BlockContext";
 import { BlockHandle } from "./BlockHandle";
 import { InsertBlock } from "./InsertBlock";
+import { BlockHighlight } from "./BlockHighlight";
 
 export const getBlockDomId = (blockEntityId: string) =>
   `entity-${blockEntityId}`;
@@ -220,6 +221,7 @@ export class BlockView implements NodeView<Schema> {
         {(ctx) => {
           return (
             <BlockViewContext.Provider value={this}>
+              <BlockHighlight blockEntityId={blockEntityId} />
               <CollabPositionIndicators blockEntityId={blockEntityId} />
               <BlockHandle
                 deleteBlock={this.deleteBlock}

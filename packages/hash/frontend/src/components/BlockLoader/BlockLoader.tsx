@@ -27,7 +27,7 @@ import {
 } from "../../lib/entities";
 import { fetchEmbedCode } from "./fetchEmbedCode";
 import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
-import { useBlockLoaded } from "../../blocks/onBlockLoaded";
+import { useBlockLoadedContext } from "../../blocks/onBlockLoaded";
 import { useBlockProtocolAggregateEntities } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
 import { useBlockProtocolAggregateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolCreateEntity } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntity";
@@ -220,7 +220,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     updateLinkedAggregation,
   };
 
-  const onBlockLoadedFromContext = useBlockLoaded();
+  const onBlockLoadedFromContext = useBlockLoadedContext()?.onBlockLoaded;
   const onBlockLoadedRef = useRef(onBlockLoaded);
 
   useLayoutEffect(() => {

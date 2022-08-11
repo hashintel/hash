@@ -23,6 +23,7 @@ export type ItemProps = {
   listeners?: Record<string, Function>;
   style?: CSSProperties;
   dragOverlay?: RefObject<HTMLDivElement>;
+  readonly: boolean;
 };
 
 export const Item = forwardRef<HTMLLIElement, ItemProps>(
@@ -38,6 +39,7 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
       style,
       listeners,
       dragOverlay,
+      readonly,
     },
     ref,
   ) => {
@@ -72,7 +74,11 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
             multiline
             fullWidth
             variant="standard"
-            sx={{ border: "none", outline: "none" }}
+            sx={{
+              border: "none",
+              outline: "none",
+              caretColor: readonly ? "transparent" : "initial",
+            }}
             value={value}
             onChange={(event) => onValueChange?.(event.target.value)}
             onBlur={() => onItemBlur?.()}
@@ -81,44 +87,47 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
             }}
           />
 
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            <IconButton
-              onClick={() => onDelete?.()}
-              sx={({ palette }) => ({
-                paddingX: 0.5,
-                paddingY: 1,
-                borderRadius: 1,
-                maxHeight: 40,
-                opacity: dragOverlay || isHovered ? 1 : 0,
-                transition: ({ transitions }) => transitions.create("opacity"),
-                "&:focus-visible, :hover": {
-                  opacity: 1,
-                  background: dragOverlay ? "none" : palette.action.hover,
-                },
-              })}
-              disableFocusRipple
-            >
-              <CloseIcon fontSize="small" />
-            </IconButton>
+          {!readonly && (
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <IconButton
+                onClick={() => onDelete?.()}
+                sx={({ palette }) => ({
+                  paddingX: 0.5,
+                  paddingY: 1,
+                  borderRadius: 1,
+                  maxHeight: 40,
+                  opacity: dragOverlay || isHovered ? 1 : 0,
+                  transition: ({ transitions }) =>
+                    transitions.create("opacity"),
+                  "&:focus-visible, :hover": {
+                    opacity: 1,
+                    background: dragOverlay ? "none" : palette.action.hover,
+                  },
+                })}
+                disableFocusRipple
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
 
-            <IconButton
-              sx={({ palette }) => ({
-                paddingX: 0.5,
-                paddingY: 1,
-                borderRadius: 1,
-                marginLeft: 1,
-                maxHeight: 40,
-                background: dragOverlay ? palette.action.hover : "none",
-                "&:focus-visible": {
-                  background: palette.action.hover,
-                },
-              })}
-              disableFocusRipple
-              {...listeners}
-            >
-              <DragIndicatorIcon fontSize="small" color="action" />
-            </IconButton>
-          </Box>
+              <IconButton
+                sx={({ palette }) => ({
+                  paddingX: 0.5,
+                  paddingY: 1,
+                  borderRadius: 1,
+                  marginLeft: 1,
+                  maxHeight: 40,
+                  background: dragOverlay ? palette.action.hover : "none",
+                  "&:focus-visible": {
+                    background: palette.action.hover,
+                  },
+                })}
+                disableFocusRipple
+                {...listeners}
+              >
+                <DragIndicatorIcon fontSize="small" color="action" />
+              </IconButton>
+            </Box>
+          )}
         </Paper>
       </ListItem>
     );
