@@ -18,14 +18,22 @@ export const createLinkType: Resolver<
   {},
   GraphQLContext,
   MutationCreateLinkTypeArgs
-> = async (_, { accountId, linkType }, { dataSources }) => {
+> = async (_, params, { dataSources }) => {
   const { graphApi } = dataSources;
+  const { accountId } = params;
+  const linkType = params.linkType as LinkType;
 
   const createdLinkTypeModel = await LinkTypeModel.create(graphApi, {
     accountId,
-    schema: linkType as LinkType,
+    schema: linkType,
   }).catch((err: AxiosError) => {
-    throw new ApolloError(`${err.response?.data}`, "CREATION_ERROR");
+    if (err.response?.status === 409) {
+      throw new ApolloError(
+        `Link type with the same URI already exists. [URI=${linkType.$id}]`,
+        "CREATION_ERROR",
+      );
+    }
+    throw new ApolloError(`Couldn't create link type`, "CREATION_ERROR");
   });
 
   return {
@@ -103,7 +111,13 @@ export const updateLinkType: Resolver<
       schema: linkType,
     })
     .catch((err: AxiosError) => {
-      throw new ApolloError(`${err.response?.data}`, "UPDATE_ERROR");
+      if (err.response?.status === 409) {
+        throw new ApolloError(
+          `Link type URI doesn't exist, unable to update. [URI=${linkType.$id}]`,
+          "CREATION_ERROR",
+        );
+      }
+      throw new ApolloError(`Couldn't update link type.`, "CREATION_ERROR");
     });
 
   return {

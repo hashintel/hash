@@ -18,14 +18,23 @@ export const createPropertyType: Resolver<
   {},
   GraphQLContext,
   MutationCreatePropertyTypeArgs
-> = async (_, { accountId, propertyType }, { dataSources }) => {
+> = async (_, params, { dataSources }) => {
   const { graphApi } = dataSources;
+  const { accountId } = params;
+  const propertyType = params.propertyType as PropertyType;
 
   const createdPropertyTypeModel = await PropertyTypeModel.create(graphApi, {
     accountId,
-    schema: propertyType as PropertyType,
+    schema: propertyType,
   }).catch((err: AxiosError) => {
-    throw new ApolloError(`${err.response?.data}`, "CREATION_ERROR");
+    if (err.response?.status === 409) {
+      throw new ApolloError(
+        `Property type with the same URI already exists. [URI=${propertyType.$id}]`,
+        "CREATION_ERROR",
+      );
+    }
+
+    throw new ApolloError(`Couldn't create property type.`, "CREATION_ERROR");
   });
 
   return {
@@ -106,7 +115,13 @@ export const updatePropertyType: Resolver<
       schema: propertyType,
     })
     .catch((err: AxiosError) => {
-      throw new ApolloError(`${err.response?.data}`, "UPDATE_ERROR");
+      if (err.response?.status === 409) {
+        throw new ApolloError(
+          `Property type URI doesn't exist, unable to update. [URI=${propertyType.$id}]`,
+          "CREATION_ERROR",
+        );
+      }
+      throw new ApolloError(`Couldn't update property type.`, "CREATION_ERROR");
     });
 
   return {
