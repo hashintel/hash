@@ -5,7 +5,7 @@ import {
   LayoutWithSidebar,
   LayoutWithSidebarProps,
   SidebarContextProvider,
-} from "./layout/layout-with-sidebar";
+} from "./layout/layout-with-sidebar1";
 import { PlainLayout } from "./layout/plain-layout";
 
 export type NextPageWithLayout<T = {}> = NextPage<T> & {

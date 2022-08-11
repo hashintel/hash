@@ -1,4 +1,4 @@
-import { faAngleRight, faFile } from "@fortawesome/free-solid-svg-icons";
+import { faAngleRight } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
   FontAwesomeIcon,

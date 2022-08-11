@@ -5,7 +5,7 @@ import {
   fetchBlock,
 } from "@hashintel/hash-shared/blocks";
 import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
-import { Box, Collapse, alpha } from "@mui/material";
+import { Box, Collapse, alpha, styled } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Head from "next/head";
@@ -115,6 +115,16 @@ export const PageNotificationBanner: FunctionComponent = () => {
   );
 };
 
+const Container = styled("div")(({ theme }) => ({
+  display: "grid",
+  gridTemplateColumns: "1fr minmax(65ch, 1200px) 1fr",
+  border: "1px solid blue",
+
+  "& > *": {
+    gridColumn: "2",
+  },
+}));
+
 const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   const router = useRouter();
 
@@ -180,8 +190,19 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
       <Head>
         <title>{title}</title>
       </Head>
-      <header>
-        <Box display="flex">
+      <Box
+        sx={({ zIndex }) => ({
+          position: "sticky",
+          top: 0,
+          zIndex: zIndex.appBar,
+        })}
+      >
+        <PageContextBar />
+        <PageNotificationBanner />
+      </Box>
+
+      <Container>
+        <Box component="header">
           <PageTitle
             value={title}
             accountId={accountId}
@@ -217,9 +238,6 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
             </div>
           </div> */}
         </Box>
-      </header>
-
-      <main>
         <CollabPositionProvider value={collabPositions}>
           <PageBlock
             accountId={accountId}
@@ -227,15 +245,14 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
             entityId={pageEntityId}
           />
         </CollabPositionProvider>
-      </main>
+      </Container>
     </>
   );
 };
 
 Page.getLayout = (page) =>
   getLayoutWithSidebar(page, {
-    banner: <PageNotificationBanner />,
-    contextBar: <PageContextBar />,
+    fullWidth: true,
   });
 
 export default Page;
