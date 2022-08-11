@@ -4,6 +4,9 @@ import {
   useMemo,
   useState,
   useCallback,
+  useEffect,
+  useRef,
+  MutableRefObject,
 } from "react";
 
 import { treeFromParentReferences } from "@hashintel/hash-shared/util";
@@ -14,6 +17,7 @@ import {
   useSortable,
   SortableContext,
   verticalListSortingStrategy,
+  arrayMove,
 } from "@dnd-kit/sortable";
 import {
   DndContext,
@@ -25,6 +29,11 @@ import {
   UniqueIdentifier,
   DropAnimation,
   MeasuringStrategy,
+  DragMoveEvent,
+  DragOverEvent,
+  DragEndEvent,
+  DragStartEvent,
+  defaultDropAnimation,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -36,6 +45,7 @@ import { useCreatePage } from "../../../components/hooks/useCreatePage";
 import { NavLink } from "./nav-link";
 import { PageTreeItem } from "./account-page-list/page-tree-item";
 import { AccountPageListItem } from "./account-page-list-item";
+import { buildTree, flatten, getProjection } from "./sortable-tree/utilities";
 
 type AccountPageListProps = {
   accountId: string;
@@ -49,54 +59,33 @@ type TreeElement = {
   children?: TreeElement[];
 };
 
-// const RenderTree = (
-//   node: TreeElement,
-//   accountId: string,
-//   depth: number = 0,
-// ) => {
-//   const id = node.entityId;
-//   const { attributes, listeners, setNodeRef, transform, transition } =
-//     useSortable({ id });
+export type SensorContext = MutableRefObject<{
+  items: TreeElement[];
+  offset: number;
+}>;
 
-//   const style = {
-//     transform: CSS.Transform.toString(transform),
-//     transition,
-//   };
-
-//   return (
-//     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-//       <PageTreeItem
-//         key={node.entityId}
-//         nodeId={node.entityId}
-//         label={node.title}
-//         depth={depth}
-//         ContentProps={
-//           {
-//             /**
-//              *  ContentProps type is currently limited to HtmlAttributes and unfortunately can't be augmented
-//              *  Casting the type to any as a temporary workaround
-//              * @see https://stackoverflow.com/a/69483286
-//              * @see https://github.com/mui/material-ui/issues/28668
-//              */
-//             expandable: Boolean(
-//               Array.isArray(node.children)
-//                 ? node.children.length
-//                 : node.children,
-//             ),
-//             url: `/${accountId}/${node.entityId}`,
-//             depth,
-//           } as any
-//         }
-//       >
-//         {Array.isArray(node.children)
-//           ? node.children.map((child) =>
-//               RenderTree(child, accountId, depth + 1),
-//             )
-//           : null}
-//       </PageTreeItem>
-//     </div>
-//   );
-// };
+const dropAnimationConfig: DropAnimation = {
+  keyframes({ transform }) {
+    return [
+      { opacity: 1, transform: CSS.Transform.toString(transform.initial) },
+      {
+        opacity: 0,
+        transform: CSS.Transform.toString({
+          ...transform.final,
+          x: transform.final.x + 5,
+          y: transform.final.y + 5,
+        }),
+      },
+    ];
+  },
+  easing: "ease-out",
+  sideEffects({ active }) {
+    active.node.animate([{ opacity: 0 }, { opacity: 1 }], {
+      duration: defaultDropAnimation.duration,
+      easing: defaultDropAnimation.easing,
+    });
+  },
+};
 
 const measuringConfig = {
   droppable: {
@@ -115,6 +104,14 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     "hash-expanded-sidebar-pages",
     [],
   );
+  const [items, setItems] = useState(() => data);
+  const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
+  const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
+  const [offsetLeft, setOffsetLeft] = useState(0);
+  const [currentPosition, setCurrentPosition] = useState<{
+    parentId: UniqueIdentifier | null;
+    overId: UniqueIdentifier;
+  } | null>(null);
 
   const { createUntitledPage } = useCreatePage(accountId);
 
@@ -155,47 +152,88 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   };
 
   const sensors = useSensors(useSensor(PointerSensor));
+  // const flattenedItems = formattedData;
+  const flattenedItems = flatten(formattedData);
 
-  // const dropAnimationConfig: DropAnimation = {
-  //   keyframes({ transform }) {
-  //     return [
-  //       {
-  //         transform: CSS.Transform.toString(transform.initial),
-  //       },
-  //       {
-  //         transform: CSS.Transform.toString({
-  //           ...transform.final,
-  //           scaleX: 0.95,
-  //           scaleY: 0.95,
-  //         }),
-  //       },
-  //     ];
-  //   },
-  //   duration: 250,
-  //   sideEffects({ active }) {
-  //     setDroppingId(active.id);
+  const sensorContext: SensorContext = useRef({
+    items: flattenedItems,
+    offset: offsetLeft,
+  });
 
-  //     if (dragOverlayRef.current) {
-  //       dragOverlayRef.current.animate(
-  //         [
-  //           {
-  //             boxShadow: draggingBoxShadow,
-  //           },
-  //           { boxShadow },
-  //         ],
-  //         {
-  //           duration: 250,
-  //           easing: "ease",
-  //           fill: "forwards",
-  //         },
-  //       );
-  //     }
+  useEffect(() => {
+    sensorContext.current = {
+      items: flattenedItems,
+      offset: offsetLeft,
+    };
+  }, [flattenedItems, offsetLeft]);
 
-  //     return () => {
-  //       setDroppingId(null);
-  //     };
-  //   },
-  // };
+  const projected =
+    activeId && overId
+      ? getProjection(flattenedItems, activeId, overId, offsetLeft, 16)
+      : null;
+
+  console.log(projected);
+
+  const resetState = () => {
+    setOverId(null);
+    setActiveId(null);
+    setOffsetLeft(0);
+    setCurrentPosition(null);
+
+    document.body.style.setProperty("cursor", "");
+  };
+
+  const handleDragStart = ({ active: { id: activeId } }: DragStartEvent) => {
+    setActiveId(activeId);
+    setOverId(activeId);
+
+    const activeItem = flattenedItems.find(
+      ({ entityId }) => entityId === activeId,
+    );
+
+    if (activeItem) {
+      setCurrentPosition({
+        parentId: activeItem.parentId,
+        overId: activeId,
+      });
+    }
+
+    document.body.style.setProperty("cursor", "grabbing");
+  };
+
+  const handleDragMove = ({ delta }: DragMoveEvent) => {
+    console.log(delta);
+    setOffsetLeft(delta.x);
+  };
+
+  const handleDragOver = ({ over }: DragOverEvent) => {
+    setOverId(over?.id ?? null);
+  };
+
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    resetState();
+
+    // if (projected && over) {
+    //   const { depth, parentId } = projected;
+    //   const clonedItems: FlattenedItem[] = JSON.parse(
+    //     JSON.stringify(flatten(items)),
+    //   );
+    //   const overIndex = clonedItems.findIndex(({ id }) => id === over.id);
+    //   const activeIndex = clonedItems.findIndex(({ id }) => id === active.id);
+    //   const activeTreeItem = clonedItems[activeIndex];
+
+    //   clonedItems[activeIndex] = { ...activeTreeItem, depth, parentId };
+
+    //   const sortedItems = arrayMove(clonedItems, activeIndex, overIndex);
+    //   const newItems = buildTree(sortedItems);
+
+    //   setItems(newItems);
+    // }
+  };
+
+  const handleDragCancel = () => {
+    resetState();
+  };
 
   return (
     <NavLink
@@ -209,29 +247,17 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
-        onDragStart={
-          ({ active }) => {
-            console.log(active);
-          }
-          // setActiveIndex(findItemIndexById(list, active.id))
-        }
-        onDragEnd={({ active, over }) => {
-          // setActiveIndex(null);
-
-          // if (over?.id && active.id !== over?.id) {
-          //   const sourceIndex = findItemIndexById(list, active.id);
-          //   const destinationIndex = findItemIndexById(list, over.id);
-          //   onReorder(sourceIndex, destinationIndex);
-          // }
-          console.log(active, over);
-        }}
-        // onDragCancel={() => setActiveIndex(null)}
+        onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
         measuring={measuringConfig}
-        modifiers={[restrictToVerticalAxis, restrictToWindowEdges]}
+        // modifiers={[restrictToVerticalAxis, restrictToWindowEdges]}
       >
         <SortableContext
           // items={formattedData.map((node) => node.entityId)}
-          items={getFlatmap(formattedData).map((x) => x.entityId)}
+          items={flattenedItems.map((x) => x.entityId)}
           strategy={verticalListSortingStrategy}
         >
           <TreeView
@@ -245,20 +271,24 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             onNodeToggle={handleToggle}
             onNodeSelect={handleSelect}
           >
-            {formattedData.map((node) => (
+            {flattenedItems.map((node) => (
               <AccountPageListItem
                 key={node.entityId}
                 node={node}
                 accountId={accountId}
-                depth={0}
+                depth={
+                  node.entityId === activeId && projected
+                    ? projected.depth
+                    : node.depth
+                }
+                expandable={!!node.children?.length}
               />
             ))}
+
+            <DragOverlay dropAnimation={dropAnimationConfig} />
           </TreeView>
         </SortableContext>
       </DndContext>
     </NavLink>
   );
 };
-
-const getFlatmap = (x: TreeElement[]) =>
-  x.flatMap((x) => [x, ...(x.children! || [])]);
