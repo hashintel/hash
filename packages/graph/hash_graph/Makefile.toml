@@ -35,6 +35,7 @@ pid=$!
 # Ensure the webserver process is killed regardless of script outcome.
 trap "kill $pid" 0 ERR
 
+sleep 1 # the graph query layer needs a chance to start
 yarn httpyac send --all ${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/tests/rest-test.http
 """
 
