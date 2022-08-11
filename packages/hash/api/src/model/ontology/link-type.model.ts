@@ -51,13 +51,13 @@ export default class {
     _params: { accountId: string },
   ): Promise<LinkTypeModel[]> {
     /** @todo: get all latest link types in specified account */
-    const { data: identifiedLinkTypes } = await graphApi.getLatestLinkTypes();
+    const { data: persistedLinkTypes } = await graphApi.getLatestLinkTypes();
 
-    return identifiedLinkTypes.map(
-      (identifiedLinkType) =>
+    return persistedLinkTypes.map(
+      (persistedLinkType) =>
         new LinkTypeModel({
-          schema: identifiedLinkType.inner,
-          accountId: identifiedLinkType.identifier.createdBy,
+          schema: persistedLinkType.inner,
+          accountId: persistedLinkType.identifier.createdBy,
         }),
     );
   }
@@ -75,13 +75,13 @@ export default class {
     },
   ): Promise<LinkTypeModel> {
     const { versionedUri } = params;
-    const { data: identifiedLinkType } = await graphApi.getLinkType(
+    const { data: persistedLinkType } = await graphApi.getLinkType(
       versionedUri,
     );
 
     return new LinkTypeModel({
-      schema: identifiedLinkType.inner,
-      accountId: identifiedLinkType.identifier.createdBy,
+      schema: persistedLinkType.inner,
+      accountId: persistedLinkType.identifier.createdBy,
     });
   }
 

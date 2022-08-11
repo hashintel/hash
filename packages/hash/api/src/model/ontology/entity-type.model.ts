@@ -51,14 +51,14 @@ export default class {
     _params: { accountId: string },
   ): Promise<EntityTypeModel[]> {
     /** @todo: get all latest entity types in specified account */
-    const { data: identifiedEntityTypes } =
+    const { data: persistedEntityTypes } =
       await graphApi.getLatestEntityTypes();
 
-    return identifiedEntityTypes.map(
-      (identifiedEntityType) =>
+    return persistedEntityTypes.map(
+      (persistedEntityType) =>
         new EntityTypeModel({
-          schema: identifiedEntityType.inner,
-          accountId: identifiedEntityType.identifier.createdBy,
+          schema: persistedEntityType.inner,
+          accountId: persistedEntityType.identifier.createdBy,
         }),
     );
   }
@@ -76,13 +76,13 @@ export default class {
     },
   ): Promise<EntityTypeModel> {
     const { versionedUri } = params;
-    const { data: identifiedEntityType } = await graphApi.getEntityType(
+    const { data: persistedEntityType } = await graphApi.getEntityType(
       versionedUri,
     );
 
     return new EntityTypeModel({
-      schema: identifiedEntityType.inner,
-      accountId: identifiedEntityType.identifier.createdBy,
+      schema: persistedEntityType.inner,
+      accountId: persistedEntityType.identifier.createdBy,
     });
   }
 

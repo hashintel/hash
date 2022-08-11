@@ -51,14 +51,14 @@ export default class {
     _params: { accountId: string },
   ): Promise<PropertyTypeModel[]> {
     /** @todo: get all latest property types in specified account */
-    const { data: identifiedPropertyTypes } =
+    const { data: persistedPropertyTypes } =
       await graphApi.getLatestPropertyTypes();
 
-    return identifiedPropertyTypes.map(
-      (identifiedPropertyType) =>
+    return persistedPropertyTypes.map(
+      (persistedPropertyType) =>
         new PropertyTypeModel({
-          schema: identifiedPropertyType.inner,
-          accountId: identifiedPropertyType.identifier.createdBy,
+          schema: persistedPropertyType.inner,
+          accountId: persistedPropertyType.identifier.createdBy,
         }),
     );
   }
@@ -76,13 +76,13 @@ export default class {
     },
   ): Promise<PropertyTypeModel> {
     const { versionedUri } = params;
-    const { data: identifiedPropertyType } = await graphApi.getPropertyType(
+    const { data: persistedPropertyType } = await graphApi.getPropertyType(
       versionedUri,
     );
 
     return new PropertyTypeModel({
-      schema: identifiedPropertyType.inner,
-      accountId: identifiedPropertyType.identifier.createdBy,
+      schema: persistedPropertyType.inner,
+      accountId: persistedPropertyType.identifier.createdBy,
     });
   }
 

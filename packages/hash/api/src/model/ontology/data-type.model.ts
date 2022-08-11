@@ -55,13 +55,13 @@ export default class {
     _params: { accountId: string },
   ): Promise<DataTypeModel[]> {
     /** @todo: get all latest data types in specified account */
-    const { data: identifiedDataTypes } = await graphApi.getLatestDataTypes();
+    const { data: persistedDataTypes } = await graphApi.getLatestDataTypes();
 
-    return identifiedDataTypes.map(
-      (identifiedDataType) =>
+    return persistedDataTypes.map(
+      (persistedDataType) =>
         new DataTypeModel({
-          schema: identifiedDataType.inner,
-          accountId: identifiedDataType.identifier.createdBy,
+          schema: persistedDataType.inner,
+          accountId: persistedDataType.identifier.createdBy,
         }),
     );
   }
@@ -79,13 +79,13 @@ export default class {
     },
   ): Promise<DataTypeModel> {
     const { versionedUri } = params;
-    const { data: identifiedDataType } = await graphApi.getDataType(
+    const { data: persistedDataType } = await graphApi.getDataType(
       versionedUri,
     );
 
     return new DataTypeModel({
-      schema: identifiedDataType.inner,
-      accountId: identifiedDataType.identifier.createdBy,
+      schema: persistedDataType.inner,
+      accountId: persistedDataType.identifier.createdBy,
     });
   }
 
