@@ -9,6 +9,7 @@ type MediaWithCaptionProps = {
   onCaptionChange: (caption: string) => void;
   onCaptionConfirm: () => void;
   onReset: () => void;
+  readonly?: boolean;
   type: "image" | "video";
 } & (
   | {
@@ -27,6 +28,7 @@ export const MediaWithCaption: FunctionComponent<MediaWithCaptionProps> = ({
   onCaptionChange,
   onCaptionConfirm,
   onReset,
+  readonly,
   ...props
 }) => {
   const captionNode = (
@@ -35,6 +37,7 @@ export const MediaWithCaption: FunctionComponent<MediaWithCaptionProps> = ({
       className={tw`focus:outline-none text-center mt-3`}
       type="text"
       value={caption}
+      disabled={readonly}
       onChange={(event) => onCaptionChange(event.target.value)}
       onBlur={onCaptionConfirm}
     />
@@ -64,13 +67,15 @@ export const MediaWithCaption: FunctionComponent<MediaWithCaptionProps> = ({
           {captionNode}
         </div>
       )}
-      <button
-        type="button"
-        onClick={onReset}
-        className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm self-start`}
-      >
-        <Pencil />
-      </button>
+      {!readonly && (
+        <button
+          type="button"
+          onClick={onReset}
+          className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm self-start`}
+        >
+          <Pencil />
+        </button>
+      )}
     </div>
   );
 };

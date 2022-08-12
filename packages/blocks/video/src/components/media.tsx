@@ -132,6 +132,7 @@ export const Media: FunctionComponent<
         properties: { url, initialCaption, initialWidth },
       },
       blockGraph,
+      readonly,
     },
     mediaType,
   } = props;
@@ -182,6 +183,9 @@ export const Media: FunctionComponent<
 
   const updateData = useCallback(
     ({ width, src }: { src: string | undefined; width?: number }) => {
+      if (readonly) {
+        return;
+      }
       if (src?.trim()) {
         if (graphService?.updateEntity && entityId) {
           const updateEntityData: UpdateEntityData = {
@@ -212,6 +216,7 @@ export const Media: FunctionComponent<
       entityId,
       graphService,
       mediaType,
+      readonly,
       setDraftSrc,
       setDraftWidth,
     ],
@@ -226,6 +231,9 @@ export const Media: FunctionComponent<
 
   const handleImageUpload = useCallback(
     (imageProp: { url: string } | { file: FileList[number] }) => {
+      if (readonly) {
+        return;
+      }
       if (!loading && entityId && graphService) {
         unstable_batchedUpdates(() => {
           setErrorString(null);
@@ -285,6 +293,7 @@ export const Media: FunctionComponent<
       graphService,
       loading,
       mediaType,
+      readonly,
       updateData,
     ],
   );
@@ -302,6 +311,9 @@ export const Media: FunctionComponent<
   };
 
   const resetComponent = () => {
+    if (readonly) {
+      return;
+    }
     unstable_batchedUpdates(() => {
       setLoading(false);
       setErrorString(null);
@@ -324,6 +336,7 @@ export const Media: FunctionComponent<
           onReset={resetComponent}
           width={draftWidth}
           type={mediaType}
+          readonly={readonly}
         />
       ) : (
         <>
@@ -339,6 +352,7 @@ export const Media: FunctionComponent<
             onUrlChange={(nextDraftUrl) => setDraftUrl(nextDraftUrl)}
             loading={loading}
             type={mediaType}
+            readonly={readonly}
           />
         </>
       )}

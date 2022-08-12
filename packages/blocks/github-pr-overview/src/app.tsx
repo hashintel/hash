@@ -77,7 +77,7 @@ const getInitialState = (options: Partial<LocalState>) => ({
 });
 
 export const App: BlockComponent<BlockEntityProperties> = ({
-  graph: { blockEntity },
+  graph: { blockEntity, readonly },
 }) => {
   const blockRef = useRef<HTMLDivElement>(null);
   const { graphService } = useGraphBlockService(blockRef);
@@ -122,14 +122,16 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   const setSelectedPullRequestIdAndPersist = (
     pullRequestId?: PullRequestIdentifier,
   ) => {
-    void graphService?.updateEntity({
-      data: {
-        entityId,
-        properties: {
-          selectedPullRequest: pullRequestId,
+    if (!readonly) {
+      void graphService?.updateEntity({
+        data: {
+          entityId,
+          properties: {
+            selectedPullRequest: pullRequestId,
+          },
         },
-      },
-    });
+      });
+    }
 
     dispatch({
       type: "UPDATE_STATE",
@@ -138,6 +140,9 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   };
 
   const resetPRInfo = () => {
+    if (readonly) {
+      return;
+    }
     void graphService?.updateEntity({
       data: {
         entityId,
@@ -237,6 +242,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
             reviews={reviews}
             events={events}
             reset={resetPRInfo}
+            readonly={!!readonly}
           />
         );
       case BlockState.Error:

@@ -26,6 +26,7 @@ type ItemListProps = {
   onValueChange: (index: number, value: string) => void;
   onItemBlur: () => void;
   onDelete: (index: number) => void;
+  readonly: boolean;
 };
 
 const measuringConfig = {
@@ -48,6 +49,7 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
   onValueChange,
   onItemBlur,
   onDelete,
+  readonly,
 }) => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [droppingId, setDroppingId] = useState<UniqueIdentifier | null>(null);
@@ -130,6 +132,7 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
               onItemBlur={() => onItemBlur()}
               onDelete={() => onDelete(index)}
               paperStyle={{ boxShadow }}
+              readonly={readonly}
             />
           ))}
           <DragOverlay dropAnimation={dropAnimationConfig}>
@@ -151,6 +154,7 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
                   animation: `pop 250ms normal ease`,
                 }}
                 dragOverlay={dragOverlayRef}
+                readonly={readonly}
               />
             ) : null}
           </DragOverlay>

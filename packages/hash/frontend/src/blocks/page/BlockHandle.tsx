@@ -76,7 +76,6 @@ const BlockHandle: ForwardRefRenderFunction<
     <Box
       ref={ref}
       sx={(theme) => ({
-        display: "block",
         opacity: blockView.hovered || contextMenuPopupState.isOpen ? 1 : 0,
         transition: theme.transitions.create("opacity"),
       })}
