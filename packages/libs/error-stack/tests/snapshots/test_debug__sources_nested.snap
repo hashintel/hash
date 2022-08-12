@@ -1,0 +1,75 @@
+---
+source: tests/test_debug.rs
+expression: "redact(&format!(\"{report:?}\"))"
+---
+Context A
+| @ tests/test_debug.rs:301:10
+| 1
+| 2
+|
+\-> Context A
+ |  | @ tests/test_debug.rs:295:10
+ |  | 3
+ |  | 4
+ |  |
+ |  \-> Root error
+ |      | @ tests/common.rs:147:5
+ |      \ 6
+ |
+ \> Context A
+    | @ tests/test_debug.rs:289:10
+    | 3
+    | 5
+    | 7
+    |
+    \-> Context A
+     |  | @ tests/test_debug.rs:280:34
+     |  | 8
+     |  | 9
+     |  |
+     |  \-> Root error
+     |      \ @ tests/common.rs:147:5
+     |
+     |> Context A
+     |  | @ tests/test_debug.rs:274:10
+     |  | 8
+     |  | 9
+     |  | 16
+     |  | 10
+     |  | 13
+     |  |
+     |  \-> Root error
+     |      \ @ tests/common.rs:147:5
+     |
+     |> Context A
+     |  | @ tests/test_debug.rs:260:10
+     |  | 8
+     |  | 9
+     |  | 16
+     |  | 10
+     |  | 14
+     |  | 15
+     |  |
+     |  \-> Root error
+     |      \ @ tests/common.rs:147:5
+     |
+     |> Context A
+     |  | @ tests/test_debug.rs:270:10
+     |  | 8
+     |  | 9
+     |  | 11
+     |  |
+     |  \-> Root error
+     |      \ @ tests/common.rs:147:5
+     |
+     \> Context A
+        | @ tests/test_debug.rs:266:10
+        | 8
+        | 9
+        | 12
+        |
+        |-> Context A
+        |   \ @ tests/test_debug.rs:265:10
+        |
+        \-> Root error
+            \ @ tests/common.rs:147:5

@@ -923,8 +923,12 @@ fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Ve
                 ctx.alternate(),
             );
 
-            let body =
-                debug_attachments(Some(loc), ctx, idx + 1 == len && sources.is_empty(), body);
+            let body = debug_attachments(
+                Some(loc),
+                ctx,
+                (len == 1 && sources.is_empty()) || idx > 0,
+                body,
+            );
 
             head.then(body)
         })
@@ -942,8 +946,6 @@ fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Ve
     if contexts.is_empty() {
         return sources;
     }
-
-    // TODO: test of multiple "splits" w/o context between them.
 
     // take the first Context, this is our "root", all others are indented
     // this unwrap always succeeds due to the call before <3
