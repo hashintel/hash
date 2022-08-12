@@ -21,7 +21,7 @@ use graph::{
             DataTypeQuery, EntityQuery, EntityTypeQuery, LinkQuery, LinkTypeQuery,
             PropertyTypeQuery,
         },
-        AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
+        AccountStore, AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
         EntityTypeStore, InsertionError, LinkStore, LinkTypeStore, PostgresStore,
         PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
     },

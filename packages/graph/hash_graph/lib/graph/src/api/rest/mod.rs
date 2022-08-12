@@ -2,6 +2,7 @@
 //!
 //! Handler methods are grouped by routes that make up the REST API.
 
+mod account;
 mod api_resource;
 mod data_type;
 mod entity;
@@ -29,6 +30,7 @@ static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/
 
 fn api_resources<P: StorePool + Send + 'static>() -> Vec<Router> {
     vec![
+        account::AccountResource::routes::<P>(),
         data_type::DataTypeResource::routes::<P>(),
         property_type::PropertyTypeResource::routes::<P>(),
         link_type::LinkTypeResource::routes::<P>(),
@@ -40,6 +42,7 @@ fn api_resources<P: StorePool + Send + 'static>() -> Vec<Router> {
 
 fn api_documentation() -> Vec<openapi::OpenApi> {
     vec![
+        account::AccountResource::documentation(),
         data_type::DataTypeResource::documentation(),
         property_type::PropertyTypeResource::documentation(),
         link_type::LinkTypeResource::documentation(),

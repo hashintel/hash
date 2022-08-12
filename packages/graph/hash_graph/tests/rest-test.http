@@ -1,5 +1,15 @@
 # This file either runs with JetBrains' http requests or using httpYac (https://httpyac.github.io).
 
+### Create account
+POST http://127.0.0.1:4000/accounts
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.global.set("account_id", response.body.toString());
+    });
+%}
+
 ### Get all data types
 GET http://127.0.0.1:4000/data-types
 
@@ -16,7 +26,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "00000000-0000-0000-0000-000000000000",
+  "accountId": "{{account_id}}",
   "schema": {
     "kind": "dataType",
     "$id": "https://example.com/data-type/text/v/1",
@@ -47,7 +57,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "00000000-0000-0000-0000-000000000000",
+  "accountId": "{{account_id}}",
   "schema": {
     "kind": "dataType",
     "$id": "https://example.com/data-type/text/v/2",
@@ -69,7 +79,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "00000000-0000-0000-0000-000000000000",
+  "accountId": "{{account_id}}",
   "schema": {
     "kind": "propertyType",
     "$id": "https://blockprotocol.org/@alice/types/property-type/name/v/1",
@@ -104,7 +114,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "00000000-0000-0000-0000-000000000000",
+  "accountId": "{{account_id}}",
   "schema": {
     "kind": "propertyType",
     "$id": "https://blockprotocol.org/@alice/types/property-type/name/v/2",
@@ -139,7 +149,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "00000000-0000-0000-0000-000000000000",
+  "accountId": "{{account_id}}",
   "schema": {
     "kind": "linkType",
     "$id": "https://blockprotocol.org/@alice/types/link-type/friend-of/v/1",
@@ -172,7 +182,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "00000000-0000-0000-0000-000000000000",
+  "accountId": "{{account_id}}",
   "schema": {
     "kind": "linkType",
     "$id": "https://blockprotocol.org/@alice/types/link-type/friend-of/v/2",
@@ -206,7 +216,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "00000000-0000-0000-0000-000000000000",
+  "accountId": "{{account_id}}",
   "schema": {
     "kind": "entityType",
     "$id": "https://blockprotocol.org/@alice/types/entity-type/person/v/1",
@@ -242,7 +252,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "00000000-0000-0000-0000-000000000000",
+  "accountId": "{{account_id}}",
   "schema": {
     "kind": "entityType",
     "$id": "https://blockprotocol.org/@alice/types/entity-type/person/v/2",
@@ -288,7 +298,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "00000000-0000-0000-0000-000000000000",
+  "accountId": "{{account_id}}",
   "entity": {
     "https://blockprotocol.org/@alice/types/property-type/name": "Alice"
   },
@@ -317,7 +327,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "00000000-0000-0000-0000-000000000000",
+  "accountId": "{{account_id}}",
   "entityId": "{{person_a_entity_id}}",
   "entityTypeUri": "https://blockprotocol.org/@alice/types/entity-type/person/v/2",
   "entity": {
@@ -337,7 +347,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "00000000-0000-0000-0000-000000000000",
+  "accountId": "{{account_id}}",
   "entity": {
     "https://blockprotocol.org/@alice/types/property-type/name": "Bob"
   },
@@ -367,7 +377,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "00000000-0000-0000-0000-000000000000",
+  "accountId": "{{account_id}}",
   "targetEntity": "{{person_b_entity_id}}",
   "linkTypeUri": "{{friend_of_link_type_uri_raw}}"
 }
