@@ -11,6 +11,7 @@ import {
 import { GraphQLContext } from "../../context";
 import { PropertyTypeModel } from "../../../model";
 import { NIL_UUID } from "../../../model/util";
+import { propertyTypeModelToGQL } from "./model-mapping";
 
 export const createPropertyType: Resolver<
   Promise<IdentifiedPropertyType>,
@@ -35,11 +36,7 @@ export const createPropertyType: Resolver<
     throw new ApolloError(`Couldn't create property type.`, "CREATION_ERROR");
   });
 
-  return {
-    createdBy: accountId,
-    propertyTypeVersionedUri: createdPropertyTypeModel.schema.$id,
-    schema: createdPropertyTypeModel.schema,
-  };
+  return propertyTypeModelToGQL(createdPropertyTypeModel);
 };
 
 export const getAllLatestPropertyTypes: Resolver<
@@ -60,13 +57,8 @@ export const getAllLatestPropertyTypes: Resolver<
     throw new ApolloError(`${err.response?.data}`, "GET_ALL_ERROR");
   });
 
-  return allLatestPropertyTypeModels.map(
-    (propertyType) =>
-      <IdentifiedPropertyType>{
-        createdBy: propertyType.accountId,
-        propertyTypeVersionedUri: propertyType.schema.$id,
-        schema: propertyType.schema,
-      },
+  return allLatestPropertyTypeModels.map((propertyTypeModel) =>
+    propertyTypeModelToGQL(propertyTypeModel),
   );
 };
 
@@ -84,11 +76,7 @@ export const getPropertyType: Resolver<
     throw new ApolloError(`${err.response?.data}`, "GET_ERROR");
   });
 
-  return {
-    createdBy: propertyTypeModel.accountId,
-    propertyTypeVersionedUri: propertyTypeModel.schema.$id,
-    schema: propertyTypeModel.schema,
-  };
+  return propertyTypeModelToGQL(propertyTypeModel);
 };
 
 export const updatePropertyType: Resolver<
@@ -121,9 +109,5 @@ export const updatePropertyType: Resolver<
       throw new ApolloError(`Couldn't update property type.`, "CREATION_ERROR");
     });
 
-  return {
-    createdBy: updatedPropertyTypeModel.accountId,
-    propertyTypeVersionedUri: updatedPropertyTypeModel.schema.$id,
-    schema: updatedPropertyTypeModel.schema,
-  };
+  return propertyTypeModelToGQL(updatedPropertyTypeModel);
 };

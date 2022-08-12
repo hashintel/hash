@@ -9,6 +9,7 @@ import {
 import { GraphQLContext } from "../../context";
 import { DataTypeModel } from "../../../model";
 import { NIL_UUID } from "../../../model/util";
+import { dataTypeModelToGQL } from "./model-mapping";
 
 export const getAllLatestDataTypes: Resolver<
   Promise<IdentifiedDataType[]>,
@@ -25,13 +26,8 @@ export const getAllLatestDataTypes: Resolver<
     throw new ApolloError(`${err.response?.data}`, "GET_ALL_ERROR");
   });
 
-  return allLatestDataTypeModels.map(
-    (dataType) =>
-      <IdentifiedDataType>{
-        createdBy: dataType.accountId,
-        dataTypeVersionedUri: dataType.schema.$id,
-        schema: dataType.schema,
-      },
+  return allLatestDataTypeModels.map((dataTypeModel) =>
+    dataTypeModelToGQL(dataTypeModel),
   );
 };
 
@@ -49,9 +45,5 @@ export const getDataType: Resolver<
     throw new ApolloError(`${err.response?.data}`, "GET_ERROR");
   });
 
-  return {
-    createdBy: dataTypeModel.accountId,
-    dataTypeVersionedUri: dataTypeModel.schema.$id,
-    schema: dataTypeModel.schema,
-  };
+  return dataTypeModelToGQL(dataTypeModel);
 };

@@ -11,6 +11,7 @@ import {
 import { GraphQLContext } from "../../context";
 import { LinkTypeModel } from "../../../model";
 import { NIL_UUID } from "../../../model/util";
+import { linkTypeModelToGQL } from "./model-mapping";
 
 export const createLinkType: Resolver<
   Promise<IdentifiedLinkType>,
@@ -34,11 +35,7 @@ export const createLinkType: Resolver<
     throw new ApolloError(`Couldn't create link type`, "CREATION_ERROR");
   });
 
-  return {
-    createdBy: accountId,
-    linkTypeVersionedUri: createdLinkTypeModel.schema.$id,
-    schema: createdLinkTypeModel.schema,
-  };
+  return linkTypeModelToGQL(createdLinkTypeModel);
 };
 
 export const getAllLatestLinkTypes: Resolver<
@@ -56,13 +53,8 @@ export const getAllLatestLinkTypes: Resolver<
     throw new ApolloError(`${err.response?.data}`, "GET_ALL_ERROR");
   });
 
-  return allLatestLinkTypeModels.map(
-    (linkType) =>
-      <IdentifiedLinkType>{
-        createdBy: linkType.accountId,
-        linkTypeVersionedUri: linkType.schema.$id,
-        schema: linkType.schema,
-      },
+  return allLatestLinkTypeModels.map((linkTypeModel) =>
+    linkTypeModelToGQL(linkTypeModel),
   );
 };
 
@@ -80,11 +72,7 @@ export const getLinkType: Resolver<
     throw new ApolloError(`${err.response?.data}`, "GET_ERROR");
   });
 
-  return {
-    createdBy: linkTypeModel.accountId,
-    linkTypeVersionedUri: linkTypeModel.schema.$id,
-    schema: linkTypeModel.schema,
-  };
+  return linkTypeModelToGQL(linkTypeModel);
 };
 
 export const updateLinkType: Resolver<
@@ -117,9 +105,5 @@ export const updateLinkType: Resolver<
       throw new ApolloError(`Couldn't update link type.`, "CREATION_ERROR");
     });
 
-  return {
-    createdBy: updatedLinkTypeModel.accountId,
-    linkTypeVersionedUri: updatedLinkTypeModel.schema.$id,
-    schema: updatedLinkTypeModel.schema,
-  };
+  return linkTypeModelToGQL(updatedLinkTypeModel);
 };
