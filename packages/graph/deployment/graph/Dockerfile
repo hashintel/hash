@@ -12,10 +12,11 @@ RUN apk add --no-cache gcc musl-dev && \
 FROM rust AS builder
 WORKDIR /app
 COPY . .
+ARG PROFILE=production
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/app/target \
-    cargo install --path bin/hash_graph --all-features --locked
+    cargo install --path bin/hash_graph --profile $PROFILE --all-features --locked
 
 FROM scratch AS runtime
 COPY --from=builder /usr/local/cargo/bin/hash-graph /
