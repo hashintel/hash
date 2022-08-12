@@ -81,7 +81,22 @@ const setupAuth = (params: {
 
     if (kratosSession) {
       req.session = kratosSession;
-      /** @todo: attach User model class instance to the `req` object */
+
+      const { identity } = kratosSession;
+
+      const { id: kratosIdentityId } = identity;
+
+      const user = await UserModel.getUserByKratosIdentityId(graphApi, {
+        kratosIdentityId,
+      });
+
+      if (!user) {
+        throw new Error(
+          `Could not find user with kratos identity id "${kratosIdentityId}"`,
+        );
+      }
+
+      req.user = user;
     }
 
     next();
