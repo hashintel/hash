@@ -169,7 +169,7 @@ impl ContextBatch {
         self.segment.persist_metaversion(persisted);
 
         // Reload batch
-        self.batch = ipc::read_record_batch(&self.segment, self.batch.schema().clone())?;
+        self.batch = ipc::read_record_batch(&self.segment, self.batch.schema())?;
         self.loaded = persisted;
 
         Ok(())

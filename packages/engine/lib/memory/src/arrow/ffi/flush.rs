@@ -239,7 +239,9 @@ unsafe fn node_into_prepared_array_data(
 pub struct PreparedArrayData<'a> {
     inner: Arc<*const ArrowArray>,
     child_data: Arc<Vec<Arc<PreparedArrayData<'a>>>>,
+    #[allow(clippy::redundant_allocation)]
     null_buffer: Option<Arc<&'a [u8]>>,
+    #[allow(clippy::redundant_allocation)]
     buffers: Vec<Arc<&'a [u8]>>,
 }
 

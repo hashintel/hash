@@ -488,7 +488,7 @@ impl<'a> BufferActions {
     }
 
     #[allow(clippy::too_many_lines, clippy::too_many_arguments)]
-    fn traverse_nodes<'b>(
+    fn traverse_nodes(
         mut next_state: NextState,
         children_meta: &NodeMapping,
         column_meta: &meta::Column,
@@ -570,7 +570,6 @@ impl<'a> BufferActions {
                     let mut cur_length = if let Some(agent_batch) = agent_batch {
                         let start_index = buffer_meta.offset;
                         let end_index = start_index + buffer_meta.length;
-                        dbg!(start_index, end_index);
                         let data =
                             &agent_batch.batch.segment().get_data_buffer()?[start_index..end_index];
                         debug_assert_eq!(data, agent_batch.get_buffer(buffer_index).unwrap());

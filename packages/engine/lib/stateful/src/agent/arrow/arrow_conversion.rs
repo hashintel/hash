@@ -57,11 +57,9 @@ pub(crate) fn arrow2_datatype_of_arrow_datatype(
         arrow::datatypes::DataType::LargeList(field) => arrow2::datatypes::DataType::LargeList(
             Box::new(arrow2_field_of_arrow_field(field.as_ref())),
         ),
-        arrow::datatypes::DataType::Struct(s) => arrow2::datatypes::DataType::Struct(
-            s.iter()
-                .map(|field| arrow2_field_of_arrow_field(&field))
-                .collect(),
-        ),
+        arrow::datatypes::DataType::Struct(s) => {
+            arrow2::datatypes::DataType::Struct(s.iter().map(arrow2_field_of_arrow_field).collect())
+        }
         arrow::datatypes::DataType::Union(union, _, mode) => {
             // todo: this is definitey wrong (but we don't currently use it)
             arrow2::datatypes::DataType::Union(

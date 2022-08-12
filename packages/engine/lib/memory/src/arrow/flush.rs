@@ -28,11 +28,13 @@ pub trait GrowableArrayData: Sized + std::fmt::Debug {
     fn null_count(&self) -> usize;
     /// This returns a bitmap, where the nth bit of the returned data specifies whether or not the
     /// nth item in the array is null or not.
+    #[allow(clippy::redundant_allocation)]
     fn null_buffer(&self) -> Option<Arc<&[u8]>>;
     /// Returns the nth buffer of this array. We follow the
     /// [specification](https://arrow.apache.org/docs/format/Columnar.html#dictionary-encoded-layout)
     /// _except_ that instead of returning the validity bitmap in position zero, we instead return
     /// this as part of [`GrowableArrayData::null_buffer`]
+    #[allow(clippy::redundant_allocation)]
     fn buffer(&self, index: usize) -> Arc<&[u8]>;
     /// Arrow stores the null buffer separately from other buffers.
     fn non_null_buffer_count(&self) -> usize;

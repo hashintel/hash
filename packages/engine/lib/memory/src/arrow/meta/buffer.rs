@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 /// Internal representation of Arrow `Buffer` Message with padding included
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Buffer {
     /// Offset from data_buffer start (beginning of first column)
     pub offset: usize,
@@ -75,6 +75,7 @@ pub enum BufferAction<'a> {
         index: usize,
         offset: usize,
         padding: usize,
+        #[allow(clippy::redundant_allocation)]
         buffer: Arc<&'a [u8]>,
     },
 }

@@ -16,7 +16,7 @@ pub struct MigrationPlan {
     pub num_agents_after_execution: usize,
 }
 
-impl<'a> MigrationPlan {
+impl MigrationPlan {
     pub fn execute(
         self,
         state: &mut StateBatchPools,
