@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 mod knowledge;
 mod ontology;
 
@@ -25,7 +26,8 @@ use crate::{
     store::{
         error::VersionedUriAlreadyExists,
         postgres::{ontology::OntologyDatabaseType, version_id::VersionId},
-        BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError,
+        AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
+        UpdateError,
     },
 };
 
@@ -50,30 +52,6 @@ where
     #[must_use]
     pub const fn new(client: C) -> Self {
         Self { client }
-    }
-
-    /// Inserts the specified [`AccountId`] into the database.
-    ///
-    /// # Errors
-    ///
-    /// - if insertion failed, e.g. because the [`AccountId`] already exists.
-    // TODO: Revisit this when having authentication in place
-    pub async fn insert_account_id(&self, account_id: AccountId) -> Result<(), InsertionError> {
-        self.as_client()
-            .query_one(
-                r#"
-                    INSERT INTO accounts (account_id)
-                    VALUES ($1)
-                    RETURNING account_id;
-                "#,
-                &[&account_id],
-            )
-            .await
-            .into_report()
-            .change_context(InsertionError)
-            .attach_printable(account_id)?;
-
-        Ok(())
     }
 
     /// Checks if the specified [`BaseUri`] exists in the database.
@@ -665,5 +643,26 @@ where
             .change_context(QueryError)
             .attach_printable_lazy(|| uri.clone())?
             .get(0))
+    }
+}
+
+#[async_trait]
+impl<C: AsClient> AccountStore for PostgresStore<C> {
+    async fn insert_account_id(&mut self, account_id: AccountId) -> Result<(), InsertionError> {
+        self.as_client()
+            .query_one(
+                r#"
+                INSERT INTO accounts (account_id)
+                VALUES ($1)
+                RETURNING account_id;
+                "#,
+                &[&account_id],
+            )
+            .await
+            .into_report()
+            .change_context(InsertionError)
+            .attach_printable(account_id)?;
+
+        Ok(())
     }
 }
