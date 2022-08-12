@@ -192,7 +192,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     updateLinkedAggregation,
   };
 
-  const onBlockLoadedFromContext = useBlockLoadedContext()?.onBlockLoaded;
+  const onBlockLoadedFromContext = useBlockLoadedContext().onBlockLoaded;
   const onBlockLoadedRef = useRef(onBlockLoaded);
 
   useLayoutEffect(() => {
