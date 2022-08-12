@@ -1,6 +1,5 @@
 import {
   FunctionComponent,
-  SyntheticEvent,
   useMemo,
   useState,
   useCallback,
@@ -9,11 +8,8 @@ import {
   MutableRefObject,
 } from "react";
 
-import { treeFromParentReferences } from "@hashintel/hash-shared/util";
-import { useRouter } from "next/router";
 import { useLocalstorageState } from "rooks";
 import {
-  useSortable,
   SortableContext,
   verticalListSortingStrategy,
   arrayMove,
@@ -35,15 +31,18 @@ import {
   defaultDropAnimation,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
+
+import { groupBy, isEqual } from "lodash";
 import {
-  restrictToVerticalAxis,
-  restrictToWindowEdges,
-} from "@dnd-kit/modifiers";
-import { useAccountPages } from "../../../components/hooks/useAccountPages";
+  AccountPage,
+  useAccountPages,
+} from "../../../components/hooks/useAccountPages";
 import { useCreatePage } from "../../../components/hooks/useCreatePage";
 import { NavLink } from "./nav-link";
 import { AccountPageListItem } from "./account-page-list-item";
-import { buildTree, flatten, getProjection } from "./sortable-tree/utilities";
+import { getProjection } from "./sortable-tree/utilities";
+import { LoadingSpinner } from "@hashintel/hash-design-system/loading-spinner";
+import Box from "@mui/material/Box";
 
 type AccountPageListProps = {
   accountId: string;
@@ -53,8 +52,12 @@ type AccountPageListProps = {
 type TreeElement = {
   entityId: string;
   parentPageEntityId: string;
+  parentId: string;
   title: string;
-  children?: TreeElement[];
+  depth: number;
+  index: number;
+  expanded: boolean;
+  expandable: boolean;
 };
 
 export type SensorContext = MutableRefObject<{
@@ -91,29 +94,64 @@ const measuringConfig = {
   },
 };
 
+const recursiveOrder = (
+  groupedPages: { [id: string]: AccountPage[] },
+  id: string,
+  expandedIds: string[],
+  depth = 0,
+): TreeElement[] => {
+  const emptyList: TreeElement[] = [];
+  return (
+    groupedPages[id]?.reduce((prev, page, index) => {
+      const children = recursiveOrder(
+        groupedPages,
+        page.entityId,
+        expandedIds,
+        depth + 1,
+      );
+      const expanded = expandedIds.includes(page.entityId);
+      const expandable = !!children.length;
+
+      return [
+        ...prev,
+        ...[
+          {
+            ...page,
+            depth,
+            index,
+            parentId: page.parentPageEntityId,
+            expanded,
+            expandable,
+          },
+          ...(expanded ? children : []),
+        ],
+      ];
+    }, emptyList) || emptyList
+  );
+};
+
+const orderItems = (pages: AccountPage[], expandedIds: string[]) =>
+  recursiveOrder(
+    groupBy(pages, (page) => page.parentPageEntityId),
+    "null",
+    expandedIds,
+    0,
+  );
+
 export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   currentPageEntityId,
   accountId,
 }) => {
   const { data } = useAccountPages(accountId);
-  // console.log(data);
-  // console.log(data.sort((a, b) => a.index.localeCompare(b.index)));
-  // console.log(data.map((page) => page.index));
-  // console.log(data.map((page) => page.index).sort());
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [expanded, setExpanded] = useLocalstorageState<string[]>(
+  const [expandedPageIds, setExpandedPageIds] = useLocalstorageState<string[]>(
     "hash-expanded-sidebar-pages",
     [],
   );
-  const [items, setItems] = useState(() => data);
+  const [items, setItems] = useState<TreeElement[]>(() => []);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
   const [offsetLeft, setOffsetLeft] = useState(0);
-  const [currentPosition, setCurrentPosition] = useState<{
-    parentId: UniqueIdentifier | null;
-    overId: UniqueIdentifier;
-  } | null>(null);
 
   const { createUntitledPage, reorderPage } = useCreatePage(accountId);
 
@@ -134,78 +172,63 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     }
   }, [createUntitledPage, loading]);
 
-  const formattedData = useMemo(
-    () =>
-      treeFromParentReferences(
-        data as TreeElement[],
-        "entityId",
-        "parentPageEntityId",
-        "children",
-      ),
-    [data],
-  );
-
-  const handleSelect = (_: SyntheticEvent, pageEntityId: string) => {
-    console.log("handleSelect");
-    void router.push(`/${accountId}/${pageEntityId}`);
-  };
-
   const handleToggle = (nodeId: string) => {
-    console.log("handleToggle");
-    setExpanded((expandedIds) =>
+    setExpandedPageIds((expandedIds) =>
       expandedIds.includes(nodeId)
         ? expandedIds.filter((id) => id !== nodeId)
         : [...expandedIds, nodeId],
     );
   };
 
-  const sensors = useSensors(useSensor(PointerSensor));
-  // const flattenedItems = formattedData;
-  const flattenedItems = flatten(formattedData, expanded);
-  // console.log(flattenedItems);
+  useMemo(() => {
+    setItems(orderItems(data, expandedPageIds));
+  }, [data, expandedPageIds]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+  );
 
   const sensorContext: SensorContext = useRef({
-    items: flattenedItems,
+    items,
     offset: offsetLeft,
   });
 
   useEffect(() => {
     sensorContext.current = {
-      items: flattenedItems,
+      items,
       offset: offsetLeft,
     };
-  }, [flattenedItems, offsetLeft]);
+  }, [items, offsetLeft]);
 
   const projected =
     activeId && overId
-      ? getProjection(flattenedItems, activeId, overId, offsetLeft, 16)
+      ? getProjection(items, activeId, overId, offsetLeft, 16)
       : null;
-
-  // console.log(items);
 
   const resetState = () => {
     setOverId(null);
     setActiveId(null);
     setOffsetLeft(0);
-    setCurrentPosition(null);
-
     document.body.style.setProperty("cursor", "");
   };
 
-  const handleDragStart = ({ active: { id: activeId } }: DragStartEvent) => {
-    setActiveId(activeId);
-    setOverId(activeId);
-
-    const activeItem = flattenedItems.find(
-      ({ entityId }) => entityId === activeId,
-    );
-
-    if (activeItem) {
-      setCurrentPosition({
-        parentId: activeItem.parentId,
-        overId: activeId,
-      });
+  const handleDragStart = ({
+    active: { id: activeItemId },
+  }: DragStartEvent) => {
+    if (expandedPageIds.findIndex((id) => id === activeItemId) > -1) {
+      setItems(
+        orderItems(
+          data,
+          expandedPageIds.filter((id) => id !== activeItemId),
+        ),
+      );
     }
+    setActiveId(activeItemId);
+    setOverId(activeItemId);
 
     document.body.style.setProperty("cursor", "grabbing");
   };
@@ -221,31 +244,11 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   const handleDragEnd = async ({ active, over }: DragEndEvent) => {
     resetState();
 
-    // console.log(flattenedItems);
-    // console.log(active);
-    // console.log(over);
-    // // console.log(projected.parentId);
-
-    // // console.log(projected.depth);
-
-    // const { depth, parentId } = projected;
-
-    // const depthItems = flattenedItems.filter((item) => item.depth === depth);
-
-    // console.log(depthItems);
-
-    // const index =
-    //   parentId === over.id
-    //     ? 0
-    //     : depthItems.findIndex((item) => item.entityId === over.id);
-    // console.log(index);
-
-    // const beforeId = parentId === over.id ? null : over?.id
-    // const afterId = depthItems.find
-
     if (projected && over) {
-      const { depth, parentId } = projected;
-      const clonedItems = JSON.parse(JSON.stringify(flattenedItems));
+      const { depth, parentPageEntityId } = projected;
+
+      const clonedItems = [...items] as TreeElement[];
+
       const overIndex = clonedItems.findIndex(
         ({ entityId }) => entityId === over.id,
       );
@@ -254,16 +257,40 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       );
       const activeTreeItem = clonedItems[activeIndex];
 
-      clonedItems[activeIndex] = { ...activeTreeItem, depth, parentId };
+      if (
+        activeTreeItem &&
+        (activeTreeItem?.depth !== depth || active.id !== over.id)
+      ) {
+        clonedItems[activeIndex] = {
+          ...activeTreeItem,
+          depth,
+          parentPageEntityId,
+          expanded: false,
+          expandable: true,
+        };
 
-      const sortedItems = arrayMove(clonedItems, activeIndex, overIndex);
+        const sortedItems = arrayMove(clonedItems, activeIndex, overIndex);
 
-      const newIndex = sortedItems
-        .filter((items) => items.parentId === parentId)
-        .findIndex((items) => items.entityId === activeId);
+        const newIndex = sortedItems
+          .filter((item) => item.parentPageEntityId === parentPageEntityId)
+          .findIndex((item) => item.entityId === activeId);
 
-      console.log(newIndex);
-      await reorderPage(active.id, parentId, newIndex);
+        const newItems = orderItems(sortedItems, expandedPageIds);
+
+        // if (!isEqual(newItems, items)) {
+        setLoading(true);
+        setItems(sortedItems);
+
+        reorderPage(active.id as string, parentPageEntityId, newIndex).then(
+          () => {
+            setLoading(false);
+          },
+          (err) => {
+            setItems(orderItems(data, expandedPageIds));
+            setLoading(false);
+          },
+        );
+      }
     }
   };
 
@@ -284,8 +311,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       // modifiers={[restrictToVerticalAxis, restrictToWindowEdges]}
     >
       <SortableContext
-        // items={formattedData.map((node) => node.entityId)}
-        items={flattenedItems.map((x) => x.entityId)}
+        items={items.map((x) => x.entityId)}
         strategy={verticalListSortingStrategy}
       >
         <NavLink
@@ -294,30 +320,31 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             tooltipTitle: "Create new Page",
             onClick: addPage,
             "data-testid": "create-page-btn",
+            loading,
           }}
         >
-          {flattenedItems.map((node) => (
-            <AccountPageListItem
-              key={node.entityId}
-              node={node}
-              accountId={accountId}
-              depth={
-                node.entityId === activeId && projected
-                  ? projected.depth
-                  : node.depth
-              }
-              onCollapse={
-                node.children?.length
-                  ? () => handleToggle(node.entityId)
-                  : undefined
-              }
-              selected={currentPageEntityId === node.entityId}
-              expandable={!!node.children?.length}
-              expanded={expanded.includes(node.entityId)}
-            />
-          ))}
+          <Box sx={{ marginX: 0.75 }}>
+            {items.map(({ entityId, title, depth, expandable, expanded }) => (
+              <AccountPageListItem
+                key={entityId}
+                title={title}
+                id={entityId}
+                url={`/${accountId}/${entityId}`}
+                depth={
+                  entityId === activeId && projected ? projected.depth : depth
+                }
+                onCollapse={
+                  expandable ? () => handleToggle(entityId) : undefined
+                }
+                selected={currentPageEntityId === entityId}
+                expandable={expandable}
+                expanded={expanded}
+                disabled={loading}
+              />
+            ))}
 
-          <DragOverlay dropAnimation={dropAnimationConfig} />
+            <DragOverlay dropAnimation={dropAnimationConfig} />
+          </Box>
         </NavLink>
       </SortableContext>
     </DndContext>

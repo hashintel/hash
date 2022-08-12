@@ -12,8 +12,7 @@ export const accountPages: ResolverFn<
     accountId,
   });
 
-  // console.log(pages);
   return pages
-    .sort((a, b) => a.properties.index?.localeCompare(b.properties.index))
+    .sort((a, b) => (a.properties.index > b.properties.index ? 1 : -1))
     .map((page) => page.toGQLUnknownEntity());
 };

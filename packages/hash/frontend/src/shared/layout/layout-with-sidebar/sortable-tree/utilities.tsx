@@ -38,7 +38,7 @@ export function getProjection(
     depth = minDepth;
   }
 
-  return { depth, maxDepth, minDepth, parentId: getParentId() };
+  return { depth, maxDepth, minDepth, parentPageEntityId: getParentId() };
 
   function getParentId() {
     if (depth === 0 || !previousItem) {
@@ -46,7 +46,7 @@ export function getProjection(
     }
 
     if (depth === previousItem.depth) {
-      return previousItem.parentId;
+      return previousItem.parentPageEntityId;
     }
 
     if (depth > previousItem.depth) {
@@ -56,7 +56,7 @@ export function getProjection(
     const newParent = newItems
       .slice(0, overItemIndex)
       .reverse()
-      .find((item) => item.depth === depth)?.parentId;
+      .find((item) => item.depth === depth)?.parentPageEntityId;
 
     return newParent ?? null;
   }

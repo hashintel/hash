@@ -1,36 +1,23 @@
 import { FunctionComponent, CSSProperties } from "react";
 import { useSortable, AnimateLayoutChanges } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { PageTreeItem } from "./account-page-list/page-tree-item";
-import TreeItem from "@mui/lab/TreeItem";
-
-type AccountPageListItemProps = {
-  node: TreeElement;
-  accountId: string;
-  depth: number;
-  expandable: boolean;
-};
-
-type TreeElement = {
-  entityId: string;
-  parentPageEntityId: string;
-  title: string;
-  children?: TreeElement[];
-};
+import {
+  PageTreeItem,
+  PageTreeItemProps,
+} from "./account-page-list/page-tree-item";
 
 const animateLayoutChanges: AnimateLayoutChanges = ({
   isSorting,
   wasDragging,
 }) => !(isSorting || wasDragging);
 
-export const AccountPageListItem: FunctionComponent<
-  AccountPageListItemProps
-> = ({ node, accountId, ...props }) => {
-  const id = node.entityId;
+export const AccountPageListItem: FunctionComponent<PageTreeItemProps> = ({
+  id,
+  ...props
+}) => {
   const {
     attributes,
     isDragging,
-    // isSorting,
     listeners,
     setDraggableNodeRef,
     setDroppableNodeRef,
@@ -40,6 +27,7 @@ export const AccountPageListItem: FunctionComponent<
     id,
     animateLayoutChanges,
   });
+
   const style: CSSProperties = {
     transform: CSS.Translate.toString(transform),
     transition,
@@ -47,16 +35,13 @@ export const AccountPageListItem: FunctionComponent<
 
   return (
     <PageTreeItem
+      id={id}
       ref={setDraggableNodeRef}
       wrapperRef={setDroppableNodeRef}
-      style={style}
       attributes={attributes}
       listeners={listeners}
-      node={node}
-      nodeId={node.entityId}
-      label={node.title}
-      url={`/${accountId}/${node.entityId}`}
       isDragging={isDragging}
+      style={style}
       {...props}
     />
   );

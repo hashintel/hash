@@ -10,7 +10,7 @@ export const setParentPage: ResolverFn<
   MutationSetParentPageArgs
 > = async (
   _,
-  { accountId, pageEntityId, parentPageEntityId, index },
+  { accountId, pageEntityId, parentPageEntityId, index = null },
   { dataSources: { db }, user },
 ) => {
   console.log(index);

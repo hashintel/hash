@@ -1,4 +1,3 @@
-import { TreeItemContentProps } from "@mui/lab/TreeItem";
 import { Box, Tooltip, Typography } from "@mui/material";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
 import {
@@ -7,34 +6,49 @@ import {
   faFile,
 } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { forwardRef, Ref } from "react";
+import { CSSProperties, forwardRef, Ref, useState } from "react";
 import { DraggableAttributes } from "@dnd-kit/core";
 import { Link } from "../../../ui";
 import { PageMenu } from "./page-menu";
 
-interface ExtraProps {
-  attributes?: DraggableAttributes;
-  listeners?: Record<string, Function>;
-  wrapperRef?(node: HTMLLIElement): void;
-  onCollapse: () => void;
+export interface PageTreeItemProps {
+  id: string;
+  title: string;
+  url: string;
+  depth: number;
   selected: boolean;
   expanded: boolean;
+  expandable: boolean;
+  disabled: boolean;
+  onCollapse?: () => void;
   isDragging?: boolean;
+  attributes?: DraggableAttributes;
+  listeners?: Record<string, Function>;
+  style?: CSSProperties;
+  wrapperRef?(node: HTMLLIElement): void;
 }
 // tweaked the example at https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
 export const PageTreeItem = forwardRef(
-  (props: TreeItemContentProps & ExtraProps, ref) => {
-    const {
-      label,
-      nodeId,
+  (
+    {
+      id,
+      title,
       expandable,
       url,
       depth,
       selected,
       onCollapse,
       expanded,
+      disabled,
       isDragging,
-    } = props;
+      style,
+      attributes,
+      listeners,
+      wrapperRef,
+    }: PageTreeItemProps,
+    ref,
+  ) => {
+    const [hovered, setHovered] = useState(false);
 
     const popupState = usePopupState({
       variant: "popover",
@@ -42,55 +56,34 @@ export const PageTreeItem = forwardRef(
     });
 
     return (
-      <Box ref={props.wrapperRef}>
+      <Box
+        ref={wrapperRef}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
         <Box
           tabIndex={0}
           sx={({ palette, transitions }) => ({
-            ...props.style,
+            ...style,
             display: "flex",
             alignItems: "center",
             borderRadius: "4px",
             transition: `${transitions.create("padding-left")}; ${
-              props.style?.transition
+              style?.transition
             }`,
-            pl: `${16 * depth + 8}px`,
-
-            pr: 0.5,
-
-            ...(!selected &&
-              isDragging && {
-                ...(!selected && { backgroundColor: palette.gray[20] }),
-
-                "& .page-title": {
-                  color: palette.gray[80],
-                },
-
-                "& .page-menu-trigger": {
-                  color: palette.gray[40],
-                },
-              }),
-
-            "&:hover": {
-              ...(!selected && { backgroundColor: palette.gray[20] }),
-
-              "& .page-title": {
-                color: palette.gray[80],
-              },
-
-              "& .page-menu-trigger": {
-                color: palette.gray[40],
-              },
-            },
-
-            ...(selected && {
-              backgroundColor: palette.gray[30],
-            }),
+            paddingLeft: `${16 * depth + 8}px`,
+            paddingRight: 0.5,
+            backgroundColor: selected
+              ? palette.gray[30]
+              : hovered || isDragging
+              ? palette.gray[20]
+              : "none",
           })}
           ref={ref as Ref<HTMLDivElement>}
-          {...props.attributes}
+          {...attributes}
         >
           <IconButton
-            onClick={() => onCollapse()}
+            onClick={() => onCollapse?.()}
             size="xs"
             unpadded
             rounded
@@ -106,6 +99,7 @@ export const PageTreeItem = forwardRef(
                 transition: transitions.create("transform", { duration: 300 }),
               }),
             })}
+            disabled={disabled}
           >
             <FontAwesomeIcon icon={faChevronRight} />
           </IconButton>
@@ -127,36 +121,18 @@ export const PageTreeItem = forwardRef(
           >
             <Typography
               variant="smallTextLabels"
-              className="page-title"
               sx={({ palette }) => ({
                 display: "block",
-                color: palette.gray[70],
                 fontWeight: 400,
                 py: 1,
-
-                ...(selected && {
-                  color: palette.gray[90],
-                }),
+                color:
+                  palette.gray[selected || hovered || isDragging ? 90 : 70],
               })}
             >
-              {label}
+              {title}
             </Typography>
           </Link>
-          <IconButton
-            {...props.listeners}
-            size="medium"
-            unpadded
-            className="page-menu-trigger"
-            sx={({ palette }) => ({
-              color: [selected ? palette.gray[40] : "transparent"],
-              "&:focus-visible, &:hover": {
-                backgroundColor: palette.gray[selected ? 40 : 30],
-                color: palette.gray[selected ? 50 : 40],
-              },
-            })}
-          >
-            <FontAwesomeIcon icon={faEllipsis} />
-          </IconButton>
+
           <Tooltip
             title="Add subpages, delete, duplicate and more"
             componentsProps={{
@@ -167,24 +143,30 @@ export const PageTreeItem = forwardRef(
               },
             }}
           >
-            <IconButton
-              // {...props.listeners}
-              {...bindTrigger(popupState)}
-              size="medium"
-              unpadded
-              className="page-menu-trigger"
-              sx={({ palette }) => ({
-                color: [selected ? palette.gray[40] : "transparent"],
-                "&:focus-visible, &:hover": {
-                  backgroundColor: palette.gray[selected ? 40 : 30],
-                  color: palette.gray[selected ? 50 : 40],
-                },
-              })}
-            >
-              <FontAwesomeIcon icon={faEllipsis} />
-            </IconButton>
+            <Box>
+              <IconButton
+                {...listeners}
+                {...bindTrigger(popupState)}
+                size="medium"
+                unpadded
+                sx={({ palette }) => ({
+                  opacity: selected || hovered || isDragging ? 1 : 0,
+                  color: palette.gray[40],
+                  "&:focus-visible, &:hover": {
+                    backgroundColor: palette.gray[selected ? 40 : 30],
+                    color: palette.gray[selected ? 50 : 40],
+                  },
+                  "&:disabled": {
+                    color: palette.gray[40],
+                  },
+                })}
+                disabled={disabled}
+              >
+                <FontAwesomeIcon icon={faEllipsis} />
+              </IconButton>
+            </Box>
           </Tooltip>
-          <PageMenu popupState={popupState} entityId={nodeId} />
+          <PageMenu popupState={popupState} entityId={id} />
         </Box>
       </Box>
     );

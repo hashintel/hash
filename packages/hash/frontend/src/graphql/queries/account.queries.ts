@@ -56,7 +56,7 @@ export const getAccountPagesTree = gql`
       properties {
         title
         pageEntityId
-        # index
+        index
       }
       parentPageEntityId
     }

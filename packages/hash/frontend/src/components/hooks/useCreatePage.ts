@@ -90,7 +90,7 @@ export const useCreatePage = (accountId: string) => {
 
   const reorderPage = useCallback(
     async (pageEntityId: string, parentPageEntityId: string, index: number) => {
-      await setParentPageFn({
+      return setParentPageFn({
         variables: {
           accountId,
           parentPageEntityId,

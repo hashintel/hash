@@ -51,41 +51,59 @@ class __Page extends Entity {
   static async getPageFractionalIndex(
     client: DbClient,
     params: {
+      entityId: string;
       parentId: string | null;
       index: number | null;
       accountId: string;
     },
   ): Promise<string> {
-    const { parentId, index, accountId } = params;
+    const { entityId, parentId, index, accountId } = params;
 
     const pages = await this.getAllPagesInAccount(client, { accountId });
 
-    const childrenIndexes = await Promise.all(
+    const children = await Promise.all(
       pages.map(async (page) => {
         const parentPage = await page.getParentPage(client);
         if (parentId) {
-          return parentPage?.entityId === parentId ? page.properties.index : [];
+          return parentPage?.entityId === parentId ? page : [];
         }
-        return !parentPage ? page.properties.index : [];
+        return !parentPage ? page : [];
       }),
     ).then((parentlessPages) => parentlessPages.flat());
 
+    const sameParent =
+      children.findIndex((page) => page.entityId === entityId) > -1;
+
+    const childrenIndexes = children.map((page) => page.properties.index);
+
     const sortedIndexes = childrenIndexes.sort();
     // console.log(index);
+    // console.log(children);
     // console.log(sortedIndexes);
     // console.log(sortedIndexes.length);
 
-    // console.log(index === 0 ? null : sortedIndexes[index - 1]);
-    // console.log(index === sortedIndexes.length ? null : sortedIndexes[index]);
-
     if (index !== null) {
-      return generateKeyBetween(
-        index === 0 ? null : sortedIndexes[index],
-        index === sortedIndexes.length - 1 ? null : sortedIndexes[index + 1],
-      );
+      const before =
+        index === 0 ? null : sortedIndexes[index - (sameParent ? 0 : 1)];
+      const after =
+        index === sortedIndexes.length - (sameParent ? 1 : 0)
+          ? null
+          : sortedIndexes[index + (sameParent ? 1 : 0)];
+      // console.log(before);
+      // console.log(after);
+      // console.log("final: " + generateKeyBetween(before, after));
+      return generateKeyBetween(before, after);
     }
 
-    return generateKeyBetween(sortedIndexes[sortedIndexes.length - 1], null);
+    console.log(
+      sortedIndexes.length ? sortedIndexes[sortedIndexes.length - 1] : null,
+    );
+    console.log(null);
+
+    return generateKeyBetween(
+      sortedIndexes.length ? sortedIndexes[sortedIndexes.length - 1] : null,
+      null,
+    );
   }
 
   static async createPage(
@@ -368,6 +386,13 @@ class __Page extends Entity {
   ): Promise<void> {
     const { setByAccountId, parentPage, index } = params;
 
+    const newIndex = await __Page.getPageFractionalIndex(client, {
+      entityId: this.entityId,
+      accountId: setByAccountId,
+      index: index,
+      parentId: parentPage?.entityId,
+    });
+
     const existingParentPage = await this.getParentPage(client);
 
     if (existingParentPage) {
@@ -394,14 +419,8 @@ class __Page extends Entity {
 
     // console.log(index);
 
-    console.log(index);
-    console.log(parentPage?.entityId);
-
-    const newIndex = await __Page.getPageFractionalIndex(client, {
-      accountId: setByAccountId,
-      index: index || null,
-      parentId: parentPage?.entityId,
-    });
+    // console.log(index);
+    // console.log(parentPage?.entityId);
 
     // console.log(this);
     // console.log(super.);
