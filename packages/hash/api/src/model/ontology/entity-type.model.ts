@@ -2,8 +2,13 @@ import { EntityType, GraphApi } from "@hashintel/hash-graph-client";
 
 import { EntityTypeModel, PropertyTypeModel, LinkTypeModel } from "../index";
 
-type EntityTypeModelConstructorArgs = {
+export type EntityTypeModelConstructorParams = {
   accountId?: string;
+  schema: EntityType;
+};
+
+export type EntityTypeModelCreateParams = {
+  accountId: string;
   schema: EntityType;
 };
 
@@ -15,7 +20,7 @@ export default class {
 
   schema: EntityType;
 
-  constructor({ schema, accountId }: EntityTypeModelConstructorArgs) {
+  constructor({ schema, accountId }: EntityTypeModelConstructorParams) {
     this.accountId = accountId;
     this.schema = schema;
   }
@@ -28,10 +33,7 @@ export default class {
    */
   static async create(
     graphApi: GraphApi,
-    params: {
-      accountId: string;
-      schema: EntityType;
-    },
+    params: EntityTypeModelCreateParams,
   ): Promise<EntityTypeModel> {
     const { data: identifier } = await graphApi.createEntityType(params);
 

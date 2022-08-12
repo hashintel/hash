@@ -15,13 +15,15 @@ const httpAgent = new HttpAgent(agentConfig);
 const httpsAgent = new HttpsAgent(agentConfig);
 
 export const createGraphClient = (
-  { basePath }: { basePath: string },
+  { host, port }: { host: string; port: number },
   _logger: Logger,
 ): GraphApi & DataSource => {
   const axiosInstance = axios.create({
     httpAgent,
     httpsAgent,
   });
+
+  const basePath = `http://${host}:${port}`;
 
   const config = new Configuration({ basePath });
 

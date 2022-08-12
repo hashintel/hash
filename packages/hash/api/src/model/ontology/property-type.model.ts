@@ -2,7 +2,7 @@ import { PropertyType, GraphApi } from "@hashintel/hash-graph-client";
 
 import { PropertyTypeModel } from "../index";
 
-type PropertyTypeModelConstructorArgs = {
+type PropertyTypeModelConstructorParams = {
   accountId: string;
   schema: PropertyType;
 };
@@ -15,7 +15,7 @@ export default class {
 
   schema: PropertyType;
 
-  constructor({ schema, accountId }: PropertyTypeModelConstructorArgs) {
+  constructor({ schema, accountId }: PropertyTypeModelConstructorParams) {
     this.accountId = accountId;
     this.schema = schema;
   }
