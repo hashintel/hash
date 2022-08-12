@@ -1,19 +1,72 @@
-import { Express } from "express";
+import { Express, Request, RequestHandler } from "express";
 import { AxiosError } from "axios";
 import { Session } from "@ory/client";
-import { kratosSdk } from "./ory-kratos";
-import { User } from "../model";
+import { GraphApi } from "@hashintel/hash-graph-client";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { kratosSdk, KratosUserIdentity } from "./ory-kratos";
+import { UserModel } from "../model";
 
 declare global {
   namespace Express {
     interface Request {
       session: Session | undefined;
-      user: User | undefined;
+      user: UserModel | undefined;
     }
   }
 }
 
-const setupAuth = (app: Express) => {
+/** @todo: get from environment variable */
+const KRATOS_API_KEY = getRequiredEnv("KRATOS_API_KEY");
+
+const requestHeaderContainsValidKratosApiKey = (req: Request): boolean =>
+  req.header("KRATOS_API_KEY") === KRATOS_API_KEY;
+
+const kratosAfterRegistrationHookHandler =
+  (params: {
+    graphApi: GraphApi;
+  }): RequestHandler<{}, {}, { identity: KratosUserIdentity }> =>
+  (req, res) => {
+    const { graphApi } = params;
+    void (async () => {
+      const {
+        body: { identity },
+      } = req;
+
+      if (!requestHeaderContainsValidKratosApiKey(req)) {
+        res
+          .status(401)
+          .send(
+            'Please provide the kratos API key using a "KRATOS_API_KEY" request header',
+          )
+          .end();
+      }
+
+      const { id: kratosIdentityId, traits } = identity;
+      const { emails } = traits;
+
+      await UserModel.createUser(graphApi, {
+        emails,
+        kratosIdentityId,
+      });
+
+      res.status(200).end();
+    })();
+  };
+
+const setupAuth = (params: {
+  app: Express;
+  graphApi: GraphApi;
+  logger: Logger;
+}) => {
+  const { app, graphApi } = params;
+
+  // Kratos hook handlers
+  app.post(
+    "/kratos-after-registration",
+    kratosAfterRegistrationHookHandler({ graphApi }),
+  );
+
   app.use(async (req, _res, next) => {
     const kratosSession = await kratosSdk
       .toSession(undefined, req.header("cookie"))

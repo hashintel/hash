@@ -1,4 +1,4 @@
-import { Configuration } from "@ory/client";
+import { Configuration, Identity } from "@ory/client";
 import { V0alpha2Api as OpenSourceV0alpha2Api } from "@ory/kratos-client";
 import { getRequiredEnv } from "../util";
 
@@ -8,3 +8,11 @@ const publicUrl = getRequiredEnv("ORY_KRATOS_PUBLIC_URL");
 export const kratosSdk = new OpenSourceV0alpha2Api(
   new Configuration({ basePath: publicUrl }),
 );
+
+export type KratosUserIdentityTraits = {
+  emails: string[];
+};
+
+export type KratosUserIdentity = Omit<Identity, "traits"> & {
+  traits: KratosUserIdentityTraits;
+};

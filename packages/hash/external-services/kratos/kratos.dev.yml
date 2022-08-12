@@ -37,6 +37,19 @@ selfservice:
       after:
         password:
           hooks:
+            # TODO - figure out whether this blocks writing to the datastore
+            - hook: web_hook
+              config:
+                url: http://host.docker.internal:5001/kratos-after-registration
+                method: POST
+                body: file:///etc/config/kratos/hooks/after.signup.onboard.jsonnet
+                auth:
+                  type: api_key
+                  config:
+                    name: KRATOS_API_KEY
+                    # TODO - figure out how to get this from an environment variable
+                    value: secret
+                    in: header
             - hook: session
 
 log:
