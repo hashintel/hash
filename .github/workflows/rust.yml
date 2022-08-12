@@ -205,6 +205,8 @@ jobs:
     needs: setup
     if: needs.setup.outputs.docker != '[]'
     runs-on: ubuntu-latest
+    env:
+      DOCKER_BUILDKIT: 1
     strategy:
       fail-fast: false
       matrix:
