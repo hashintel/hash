@@ -1,9 +1,12 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import pluralize from "pluralize";
 import { useQuery } from "@apollo/client";
 import { useRouter } from "next/router";
 
 import { tw } from "twind";
+import { Box, styled } from "@mui/material";
+import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import {
   GetEntityTypeQuery,
   GetEntityTypeQueryVariables,
@@ -22,6 +25,17 @@ import {
 } from "../../../shared/layout";
 import { Button, Link } from "../../../shared/ui";
 import { useRouteAccountInfo } from "../../../shared/routing";
+import { PageContextBar } from "../[page-slug].page/page-context-bar";
+
+const Container = styled("div")(({ theme }) => ({
+  display: "grid",
+  gridTemplateColumns: "1fr minmax(65ch, 1200px) 1fr",
+  padding: theme.spacing(7, 10),
+
+  "& > *": {
+    gridColumn: "2",
+  },
+}));
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -108,39 +122,72 @@ const Page: NextPageWithLayout = () => {
     [schema$id, subSchemaReference],
   );
 
+  const crumbs = useMemo(() => {
+    if (!schema) return [];
+    return [
+      {
+        title: schema.title,
+        href: `/${accountId}/types/${typeId}`,
+        id: typeId,
+      },
+    ];
+  }, [schema, accountId, typeId]);
+
   if (!data) {
-    return <h1>Loading...</h1>;
+    return (
+      <Container>
+        <h1>Loading...</h1>
+      </Container>
+    );
   }
 
   return (
     <>
-      <div className={tw`mb-12`}>
-        <div className={tw`mb-8`}>
-          <h1>
-            <strong>{pluralize(schema.title)} in account</strong>
-          </h1>
-          <AccountEntityOfTypeList
-            accountId={accountId}
-            entityTypeId={typeId}
-          />
-        </div>
+      <Box
+        sx={({ zIndex, palette }) => ({
+          position: "sticky",
+          top: 0,
+          zIndex: zIndex.appBar,
+          backgroundColor: palette.white,
+        })}
+      >
+        <PageContextBar
+          crumbs={crumbs}
+          defaultCrumbIcon={<FontAwesomeIcon icon={faAsterisk} />}
+        />
+      </Box>
+      <Container>
+        <div className={tw`mb-12`}>
+          <div className={tw`mb-8`}>
+            <h1>
+              <strong>{pluralize(schema.title)} in account</strong>
+            </h1>
+            <AccountEntityOfTypeList
+              accountId={accountId}
+              entityTypeId={typeId}
+            />
+          </div>
 
-        <Button href={`/${accountId}/entities/new?entityTypeId=${typeId}`}>
-          New {schema.title}
-        </Button>
-      </div>
-      <SchemaEditor
-        aggregateEntityTypes={aggregateEntityTypes}
-        entityTypeId={data.getEntityType.entityId}
-        schema={schema}
-        GoToSchemaElement={schemaSelectElement}
-        subSchemaReference={subSchemaReference}
-        updateEntityType={updateEntityType}
-      />
+          <Button href={`/${accountId}/entities/new?entityTypeId=${typeId}`}>
+            New {schema.title}
+          </Button>
+        </div>
+        <SchemaEditor
+          aggregateEntityTypes={aggregateEntityTypes}
+          entityTypeId={data.getEntityType.entityId}
+          schema={schema}
+          GoToSchemaElement={schemaSelectElement}
+          subSchemaReference={subSchemaReference}
+          updateEntityType={updateEntityType}
+        />
+      </Container>
     </>
   );
 };
 
-Page.getLayout = getLayoutWithSidebar;
+Page.getLayout = (page) =>
+  getLayoutWithSidebar(page, {
+    fullWidth: true,
+  });
 
 export default Page;

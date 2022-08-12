@@ -16,13 +16,15 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { ReactNode } from "react";
+import { useRouter } from "next/router";
+import { ReactNode, useMemo } from "react";
 import { MenuItem } from "../../../shared/ui";
 
-type Breadcrumb = {
+export type Breadcrumb = {
   title: string;
   href: string;
   icon?: ReactNode;
+  id: string;
 };
 
 const shortenText = (text: string, max: number) => {
@@ -70,6 +72,7 @@ export type BreadcrumbsProps = {
 };
 
 export const Breadcrumbs = ({ crumbs, defaultIcon }: BreadcrumbsProps) => {
+  const router = useRouter();
   let items = [] as (Breadcrumb | { submenu: Breadcrumb[] })[];
 
   if (crumbs.length > 3) {
@@ -89,7 +92,11 @@ export const Breadcrumbs = ({ crumbs, defaultIcon }: BreadcrumbsProps) => {
       separator={
         <FontAwesomeIcon
           icon={faAngleRight}
-          sx={({ palette }) => ({ fontSize: 14, color: palette.gray[50] })}
+          sx={({ palette }) => ({
+            fontSize: 14,
+            color: palette.gray[50],
+            mx: 0,
+          })}
         />
       }
     >
@@ -97,6 +104,11 @@ export const Breadcrumbs = ({ crumbs, defaultIcon }: BreadcrumbsProps) => {
         if ("submenu" in item) {
           return <SubMenu items={item.submenu} defaultIcon={defaultIcon} />;
         }
+        let maxLength = 18;
+        if (items.length === 1 || index !== 0) {
+          maxLength = 36;
+        }
+
         return (
           <Tooltip
             placement="bottom-start"
@@ -106,13 +118,15 @@ export const Breadcrumbs = ({ crumbs, defaultIcon }: BreadcrumbsProps) => {
           >
             <Button
               variant="tertiary_quiet"
+              // don't attach href if it's the current page
+              {...(!item.href.includes(router.asPath) && { href: item.href })}
               size="xs"
-              startIcon={defaultIcon}
+              startIcon={item.icon ?? defaultIcon}
               sx={{
                 px: 1,
               }}
             >
-              {shortenText(item.title, index === 0 ? 18 : 36)}
+              {shortenText(item.title, maxLength)}
             </Button>
           </Tooltip>
         );

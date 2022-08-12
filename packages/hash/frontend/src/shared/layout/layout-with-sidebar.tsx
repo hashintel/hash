@@ -15,8 +15,6 @@ const Main = styled("main")(({ theme }) => ({
   height: `calc(100vh - ${HEADER_HEIGHT}px)`,
   overflowY: "auto",
   flexGrow: 1,
-  padding: "56px 80px",
-  maxWidth: 1200,
   marginLeft: "auto",
   marginRight: "auto",
   transition: theme.transitions.create("margin", {
@@ -29,12 +27,13 @@ export type LayoutWithSidebarProps = {
   children?: ReactNode;
   banner?: ReactNode;
   contextBar?: ReactNode;
+  fullWidth?: boolean;
 };
 
 export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
   children,
-  banner,
-  contextBar,
+
+  fullWidth,
 }) => {
   const { openSidebar, sidebarOpen } = useSidebarContext();
   const { readonlyMode } = useReadonlyMode();
@@ -51,10 +50,8 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
 
         <Box
           sx={(theme) => ({
-            width: 1,
-            display: "flex",
+            width: "100%",
             position: "relative",
-            flexDirection: "column",
             marginLeft: `-${SIDEBAR_WIDTH}px`,
             ...(sidebarOpen && {
               transition: theme.transitions.create("margin", {
@@ -65,35 +62,37 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
             }),
           })}
         >
-          {banner}
+          <Fade timeout={800} in={!sidebarOpen}>
+            <Tooltip title="Expand Sidebar">
+              <IconButton
+                size="medium"
+                sx={{
+                  position: "absolute",
+                  top: 8,
+                  left: 8,
+                  transform: "rotate(180deg)",
 
-          {contextBar}
+                  "&:hover": {
+                    backgroundColor: ({ palette }) => palette.gray[20],
+                    color: ({ palette }) => palette.gray[60],
+                  },
+                }}
+                onClick={openSidebar}
+              >
+                <SidebarToggleIcon />
+              </IconButton>
+            </Tooltip>
+          </Fade>
 
-          <Box>
-            <Fade timeout={800} in={!sidebarOpen}>
-              <Tooltip title="Expand Sidebar">
-                <IconButton
-                  size="medium"
-                  sx={{
-                    position: "absolute",
-                    top: 8,
-                    left: 8,
-                    transform: "rotate(180deg)",
-
-                    "&:hover": {
-                      backgroundColor: ({ palette }) => palette.gray[20],
-                      color: ({ palette }) => palette.gray[60],
-                    },
-                  }}
-                  onClick={openSidebar}
-                >
-                  <SidebarToggleIcon />
-                </IconButton>
-              </Tooltip>
-            </Fade>
-
-            <Main>{children}</Main>
-          </Box>
+          <Main
+            sx={{
+              ...(!fullWidth && {
+                padding: "56px 80px",
+              }),
+            }}
+          >
+            {children}
+          </Main>
         </Box>
       </Box>
     </LayoutWithHeader>

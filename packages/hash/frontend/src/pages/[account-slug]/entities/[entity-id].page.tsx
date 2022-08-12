@@ -7,6 +7,9 @@ import { useRouter } from "next/router";
 import { useMemo } from "react";
 
 import { getEntity } from "@hashintel/hash-shared/queries/entity.queries";
+import { Box, styled } from "@mui/material";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
+import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { SimpleEntityEditor } from "./shared/simple-entity-editor";
 
 import {
@@ -29,6 +32,17 @@ import {
 } from "../../../shared/layout";
 import { BlockBasedEntityEditor } from "./[entity-id].page/block-based-entity-editor";
 import { useRouteAccountInfo } from "../../../shared/routing";
+import { PageContextBar } from "../[page-slug].page/page-context-bar";
+
+const Container = styled("div")(({ theme }) => ({
+  display: "grid",
+  gridTemplateColumns: "1fr minmax(65ch, 1200px) 1fr",
+  padding: theme.spacing(7, 10),
+
+  "& > *": {
+    gridColumn: "2",
+  },
+}));
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -79,38 +93,73 @@ const Page: NextPageWithLayout = () => {
     };
   }, [entity]);
 
+  const crumbs = useMemo(() => {
+    if (!entity) return [];
+
+    return [
+      {
+        title: entity.entityType.properties.title,
+        href: entity.entityType.properties.$id || "https://gogole.com",
+        id: entityId,
+      },
+      {
+        title: guessEntityName(entity),
+        href: `/${accountId}/entities/${entityId}`,
+        id: entityId,
+      },
+    ];
+  }, [entity, accountId, entityId]);
+
   return (
     <>
-      <header>
-        <h1>
-          <strong>
-            {entity ? `Editing '${guessEntityName(entity)}'` : "Loading..."}
-          </strong>
-        </h1>
-      </header>
-      <div>
-        {entity && (
-          <SimpleEntityEditor
-            aggregateEntities={aggregateEntities}
-            blockGraph={blockGraph}
-            createLink={createLink}
-            deleteLink={deleteLink}
-            entityId={rewriteEntityIdentifier({
-              accountId,
-              entityId,
-            })}
-            updateEntity={updateAndNavigateToFirstEntity}
-            entityProperties={entity.properties}
-            refetchEntity={refetch}
-            schema={entity.entityType.properties}
-          />
-        )}
-      </div>
+      <Box
+        sx={({ zIndex, palette }) => ({
+          position: "sticky",
+          top: 0,
+          zIndex: zIndex.appBar,
+          backgroundColor: palette.white,
+        })}
+      >
+        <PageContextBar
+          crumbs={crumbs}
+          defaultCrumbIcon={<FontAwesomeIcon icon={faAsterisk} />}
+        />
+      </Box>
+      <Container>
+        <header>
+          <h1>
+            <strong>
+              {entity ? `Editing '${guessEntityName(entity)}'` : "Loading..."}
+            </strong>
+          </h1>
+        </header>
+        <div>
+          {entity && (
+            <SimpleEntityEditor
+              aggregateEntities={aggregateEntities}
+              blockGraph={blockGraph}
+              createLink={createLink}
+              deleteLink={deleteLink}
+              entityId={rewriteEntityIdentifier({
+                accountId,
+                entityId,
+              })}
+              updateEntity={updateAndNavigateToFirstEntity}
+              entityProperties={entity.properties}
+              refetchEntity={refetch}
+              schema={entity.entityType.properties}
+            />
+          )}
+        </div>
+      </Container>
     </>
   );
 };
 
-Page.getLayout = getLayoutWithSidebar;
+Page.getLayout = (page) =>
+  getLayoutWithSidebar(page, {
+    fullWidth: true,
+  });
 
 const BlockBasedEntityPage: NextPageWithLayout = () => {
   const router = useRouter();
