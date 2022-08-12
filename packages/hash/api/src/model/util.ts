@@ -68,7 +68,7 @@ export const nilUuid = "00000000-0000-0000-0000-000000000000" as const;
  */
 export const workspaceAccountId = nilUuid;
 
-const workspaceAccountShortname = getRequiredEnv("SYSTEM_ACCOUNT_SHORTNAME");
+const workspaceAccountShortname = getRequiredEnv("WORKSPACE_ACCOUNT_SHORTNAME");
 
 /** @todo: revisit how this URI is defined and obtained as this is a temporary solution */
 export const workspaceTypesNamespaceUri = `https://example.com/@${workspaceAccountShortname}/types`;
