@@ -1,4 +1,5 @@
 import { UserInputError, ApolloError } from "apollo-server-express";
+import { generateKeyBetween } from "fractional-indexing";
 import {
   Block,
   Entity,
@@ -45,6 +46,46 @@ class __Page extends Entity {
       systemTypeName: "Page",
     });
     return pageEntityType;
+  }
+
+  static async getPageFractionalIndex(
+    client: DbClient,
+    params: {
+      parentId: string | null;
+      index: number | null;
+      accountId: string;
+    },
+  ): Promise<string> {
+    const { parentId, index, accountId } = params;
+
+    const pages = await this.getAllPagesInAccount(client, { accountId });
+
+    const childrenIndexes = await Promise.all(
+      pages.map(async (page) => {
+        const parentPage = await page.getParentPage(client);
+        if (parentId) {
+          return parentPage?.entityId === parentId ? page.properties.index : [];
+        }
+        return !parentPage ? page.properties.index : [];
+      }),
+    ).then((parentlessPages) => parentlessPages.flat());
+
+    const sortedIndexes = childrenIndexes.sort();
+    // console.log(index);
+    // console.log(sortedIndexes);
+    // console.log(sortedIndexes.length);
+
+    // console.log(index === 0 ? null : sortedIndexes[index - 1]);
+    // console.log(index === sortedIndexes.length ? null : sortedIndexes[index]);
+
+    if (index !== null) {
+      return generateKeyBetween(
+        index === 0 ? null : sortedIndexes[index],
+        index === sortedIndexes.length - 1 ? null : sortedIndexes[index + 1],
+      );
+    }
+
+    return generateKeyBetween(sortedIndexes[sortedIndexes.length - 1], null);
   }
 
   static async createPage(
@@ -116,6 +157,40 @@ class __Page extends Entity {
               },
             },
           ];
+
+    // const pageEntities = await Entity.getEntitiesBySystemType(client, {
+    //   accountId: params.accountId,
+    //   systemTypeName: "Page",
+    //   latestOnly: true,
+    // });
+
+    // const pages = await Promise.all(
+    //   pageEntities.map((entity) => Page.fromEntity(client, entity)),
+    // );
+
+    // const filteredPages = pages.filter(
+    //   async (page) => !(await page.getParentPage(client)),
+    // );
+
+    // const filteredPagesIndex = await Promise.all(
+    //   pages.map(async (page) => {
+    //     if (await page.getParentPage(client)) {
+    //       return [];
+    //     }
+    //     return page.properties.index || [];
+    //   }),
+    // ).then((parentlessPages) => parentlessPages.flat());
+
+    // const sortedIndexes = filteredPagesIndex.sort();
+
+    // const maxIndex =
+    //   sortedIndexes.length && sortedIndexes[sortedIndexes.length - 1];
+
+    pageProperties.index = await __Page.getPageFractionalIndex(client, {
+      accountId,
+      index: null,
+      parentId: null,
+    });
 
     const entity = await Entity.createEntityWithLinks(client, {
       user: createdBy,
@@ -287,10 +362,11 @@ class __Page extends Entity {
     client: DbClient,
     params: {
       parentPage: Page | null;
+      index?: number;
       setByAccountId: string;
     },
   ): Promise<void> {
-    const { setByAccountId } = params;
+    const { setByAccountId, parentPage, index } = params;
 
     const existingParentPage = await this.getParentPage(client);
 
@@ -299,8 +375,6 @@ class __Page extends Entity {
         removedByAccountId: setByAccountId,
       });
     }
-
-    const { parentPage } = params;
 
     if (parentPage) {
       /** Check whether adding the parent page would create a cycle */
@@ -317,6 +391,27 @@ class __Page extends Entity {
         destination: parentPage,
       });
     }
+
+    // console.log(index);
+
+    console.log(index);
+    console.log(parentPage?.entityId);
+
+    const newIndex = await __Page.getPageFractionalIndex(client, {
+      accountId: setByAccountId,
+      index: index || null,
+      parentId: parentPage?.entityId,
+    });
+
+    // console.log(this);
+    // console.log(super.);
+
+    await this.partialPropertiesUpdate(client, {
+      properties: {
+        index: newIndex,
+      },
+      updatedByAccountId: this.accountId,
+    });
   }
 
   async getBlocks(client: DbClient): Promise<Block[]> {

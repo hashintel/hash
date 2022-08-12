@@ -8,7 +8,10 @@ import {
   SetParentPageMutation,
   SetParentPageMutationVariables,
 } from "../../graphql/apiTypes.gen";
-import { getAccountPages } from "../../graphql/queries/account.queries";
+import {
+  getAccountPages,
+  getAccountPagesTree,
+} from "../../graphql/queries/account.queries";
 import { createPage, setParentPage } from "../../graphql/queries/page.queries";
 
 /**
@@ -39,6 +42,10 @@ export const useCreatePage = (accountId: string) => {
     refetchQueries: ({ data }) => [
       {
         query: getAccountPages,
+        variables: { accountId: data!.setParentPage.accountId },
+      },
+      {
+        query: getAccountPagesTree,
         variables: { accountId: data!.setParentPage.accountId },
       },
     ],
@@ -81,8 +88,23 @@ export const useCreatePage = (accountId: string) => {
     [createPageFn, accountId, setParentPageFn, router],
   );
 
+  const reorderPage = useCallback(
+    async (pageEntityId: string, parentPageEntityId: string, index: number) => {
+      await setParentPageFn({
+        variables: {
+          accountId,
+          parentPageEntityId,
+          pageEntityId,
+          index,
+        },
+      });
+    },
+    [accountId, setParentPageFn],
+  );
+
   return {
     createUntitledPage,
     createSubPage,
+    reorderPage,
   };
 };

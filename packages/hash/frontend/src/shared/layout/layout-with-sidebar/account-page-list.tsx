@@ -10,7 +10,6 @@ import {
 } from "react";
 
 import { treeFromParentReferences } from "@hashintel/hash-shared/util";
-import { TreeView } from "@mui/lab";
 import { useRouter } from "next/router";
 import { useLocalstorageState } from "rooks";
 import {
@@ -43,7 +42,6 @@ import {
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { useCreatePage } from "../../../components/hooks/useCreatePage";
 import { NavLink } from "./nav-link";
-import { PageTreeItem } from "./account-page-list/page-tree-item";
 import { AccountPageListItem } from "./account-page-list-item";
 import { buildTree, flatten, getProjection } from "./sortable-tree/utilities";
 
@@ -98,6 +96,10 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   accountId,
 }) => {
   const { data } = useAccountPages(accountId);
+  // console.log(data);
+  // console.log(data.sort((a, b) => a.index.localeCompare(b.index)));
+  // console.log(data.map((page) => page.index));
+  // console.log(data.map((page) => page.index).sort());
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useLocalstorageState<string[]>(
@@ -113,7 +115,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     overId: UniqueIdentifier;
   } | null>(null);
 
-  const { createUntitledPage } = useCreatePage(accountId);
+  const { createUntitledPage, reorderPage } = useCreatePage(accountId);
 
   // @todo handle loading/error states properly
   const addPage = useCallback(async () => {
@@ -144,16 +146,23 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   );
 
   const handleSelect = (_: SyntheticEvent, pageEntityId: string) => {
+    console.log("handleSelect");
     void router.push(`/${accountId}/${pageEntityId}`);
   };
 
-  const handleToggle = (_: SyntheticEvent, nodeIds: string[]) => {
-    setExpanded(nodeIds);
+  const handleToggle = (nodeId: string) => {
+    console.log("handleToggle");
+    setExpanded((expandedIds) =>
+      expandedIds.includes(nodeId)
+        ? expandedIds.filter((id) => id !== nodeId)
+        : [...expandedIds, nodeId],
+    );
   };
 
   const sensors = useSensors(useSensor(PointerSensor));
   // const flattenedItems = formattedData;
-  const flattenedItems = flatten(formattedData);
+  const flattenedItems = flatten(formattedData, expanded);
+  // console.log(flattenedItems);
 
   const sensorContext: SensorContext = useRef({
     items: flattenedItems,
@@ -172,7 +181,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       ? getProjection(flattenedItems, activeId, overId, offsetLeft, 16)
       : null;
 
-  console.log(projected);
+  // console.log(items);
 
   const resetState = () => {
     setOverId(null);
@@ -202,7 +211,6 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   };
 
   const handleDragMove = ({ delta }: DragMoveEvent) => {
-    console.log(delta);
     setOffsetLeft(delta.x);
   };
 
@@ -210,25 +218,53 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     setOverId(over?.id ?? null);
   };
 
-  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+  const handleDragEnd = async ({ active, over }: DragEndEvent) => {
     resetState();
 
-    // if (projected && over) {
-    //   const { depth, parentId } = projected;
-    //   const clonedItems: FlattenedItem[] = JSON.parse(
-    //     JSON.stringify(flatten(items)),
-    //   );
-    //   const overIndex = clonedItems.findIndex(({ id }) => id === over.id);
-    //   const activeIndex = clonedItems.findIndex(({ id }) => id === active.id);
-    //   const activeTreeItem = clonedItems[activeIndex];
+    // console.log(flattenedItems);
+    // console.log(active);
+    // console.log(over);
+    // // console.log(projected.parentId);
 
-    //   clonedItems[activeIndex] = { ...activeTreeItem, depth, parentId };
+    // // console.log(projected.depth);
 
-    //   const sortedItems = arrayMove(clonedItems, activeIndex, overIndex);
-    //   const newItems = buildTree(sortedItems);
+    // const { depth, parentId } = projected;
 
-    //   setItems(newItems);
-    // }
+    // const depthItems = flattenedItems.filter((item) => item.depth === depth);
+
+    // console.log(depthItems);
+
+    // const index =
+    //   parentId === over.id
+    //     ? 0
+    //     : depthItems.findIndex((item) => item.entityId === over.id);
+    // console.log(index);
+
+    // const beforeId = parentId === over.id ? null : over?.id
+    // const afterId = depthItems.find
+
+    if (projected && over) {
+      const { depth, parentId } = projected;
+      const clonedItems = JSON.parse(JSON.stringify(flattenedItems));
+      const overIndex = clonedItems.findIndex(
+        ({ entityId }) => entityId === over.id,
+      );
+      const activeIndex = clonedItems.findIndex(
+        ({ entityId }) => entityId === active.id,
+      );
+      const activeTreeItem = clonedItems[activeIndex];
+
+      clonedItems[activeIndex] = { ...activeTreeItem, depth, parentId };
+
+      const sortedItems = arrayMove(clonedItems, activeIndex, overIndex);
+
+      const newIndex = sortedItems
+        .filter((items) => items.parentId === parentId)
+        .findIndex((items) => items.entityId === activeId);
+
+      console.log(newIndex);
+      await reorderPage(active.id, parentId, newIndex);
+    }
   };
 
   const handleDragCancel = () => {
@@ -236,59 +272,54 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   };
 
   return (
-    <NavLink
-      title="Pages"
-      endAdornmentProps={{
-        tooltipTitle: "Create new Page",
-        onClick: addPage,
-        "data-testid": "create-page-btn",
-      }}
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+      measuring={measuringConfig}
+      // modifiers={[restrictToVerticalAxis, restrictToWindowEdges]}
     >
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragMove={handleDragMove}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-        onDragCancel={handleDragCancel}
-        measuring={measuringConfig}
-        // modifiers={[restrictToVerticalAxis, restrictToWindowEdges]}
+      <SortableContext
+        // items={formattedData.map((node) => node.entityId)}
+        items={flattenedItems.map((x) => x.entityId)}
+        strategy={verticalListSortingStrategy}
       >
-        <SortableContext
-          // items={formattedData.map((node) => node.entityId)}
-          items={flattenedItems.map((x) => x.entityId)}
-          strategy={verticalListSortingStrategy}
+        <NavLink
+          title="Pages"
+          endAdornmentProps={{
+            tooltipTitle: "Create new Page",
+            onClick: addPage,
+            "data-testid": "create-page-btn",
+          }}
         >
-          <TreeView
-            data-testid="pages-tree"
-            tabIndex={-1}
-            sx={{
-              mx: 0.75,
-            }}
-            {...(currentPageEntityId && { selected: currentPageEntityId })}
-            expanded={expanded}
-            onNodeToggle={handleToggle}
-            onNodeSelect={handleSelect}
-          >
-            {flattenedItems.map((node) => (
-              <AccountPageListItem
-                key={node.entityId}
-                node={node}
-                accountId={accountId}
-                depth={
-                  node.entityId === activeId && projected
-                    ? projected.depth
-                    : node.depth
-                }
-                expandable={!!node.children?.length}
-              />
-            ))}
+          {flattenedItems.map((node) => (
+            <AccountPageListItem
+              key={node.entityId}
+              node={node}
+              accountId={accountId}
+              depth={
+                node.entityId === activeId && projected
+                  ? projected.depth
+                  : node.depth
+              }
+              onCollapse={
+                node.children?.length
+                  ? () => handleToggle(node.entityId)
+                  : undefined
+              }
+              selected={currentPageEntityId === node.entityId}
+              expandable={!!node.children?.length}
+              expanded={expanded.includes(node.entityId)}
+            />
+          ))}
 
-            <DragOverlay dropAnimation={dropAnimationConfig} />
-          </TreeView>
-        </SortableContext>
-      </DndContext>
-    </NavLink>
+          <DragOverlay dropAnimation={dropAnimationConfig} />
+        </NavLink>
+      </SortableContext>
+    </DndContext>
   );
 };

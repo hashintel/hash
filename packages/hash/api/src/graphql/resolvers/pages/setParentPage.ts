@@ -10,9 +10,10 @@ export const setParentPage: ResolverFn<
   MutationSetParentPageArgs
 > = async (
   _,
-  { accountId, pageEntityId, parentPageEntityId },
+  { accountId, pageEntityId, parentPageEntityId, index },
   { dataSources: { db }, user },
 ) => {
+  console.log(index);
   if (pageEntityId === parentPageEntityId) {
     throw new ApolloError("A page cannot be the parent of itself");
   }
@@ -49,6 +50,7 @@ export const setParentPage: ResolverFn<
     await pageEntity.setParentPage(client, {
       parentPage,
       setByAccountId: user.accountId,
+      index,
     });
 
     return pageEntity.toGQLUnknownEntity();

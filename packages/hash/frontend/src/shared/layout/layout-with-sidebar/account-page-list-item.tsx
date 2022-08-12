@@ -2,6 +2,7 @@ import { FunctionComponent, CSSProperties } from "react";
 import { useSortable, AnimateLayoutChanges } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { PageTreeItem } from "./account-page-list/page-tree-item";
+import TreeItem from "@mui/lab/TreeItem";
 
 type AccountPageListItemProps = {
   node: TreeElement;
@@ -28,7 +29,7 @@ export const AccountPageListItem: FunctionComponent<
   const id = node.entityId;
   const {
     attributes,
-    // isDragging,
+    isDragging,
     // isSorting,
     listeners,
     setDraggableNodeRef,
@@ -55,6 +56,7 @@ export const AccountPageListItem: FunctionComponent<
       nodeId={node.entityId}
       label={node.title}
       url={`/${accountId}/${node.entityId}`}
+      isDragging={isDragging}
       {...props}
     />
   );

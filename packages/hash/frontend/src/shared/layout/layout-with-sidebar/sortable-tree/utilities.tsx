@@ -50,7 +50,7 @@ export function getProjection(
     }
 
     if (depth > previousItem.depth) {
-      return previousItem.id;
+      return previousItem.entityId;
     }
 
     const newParent = newItems
@@ -80,6 +80,7 @@ function getMinDepth({ nextItem }: { nextItem: FlattenedItem }) {
 
 export function flatten(
   items: TreeItems,
+  expanded: string[],
   parentId: UniqueIdentifier | null = null,
   depth = 0,
 ): FlattenedItem[] {
@@ -88,7 +89,9 @@ export function flatten(
       return [
         ...acc,
         { ...item, parentId, depth, index },
-        ...(flatten(item.children, item.id, depth + 1) || []),
+        ...(expanded?.includes(item.entityId)
+          ? flatten(item.children, expanded, item.entityId, depth + 1) || []
+          : []),
       ];
     }, []);
   }
@@ -105,12 +108,12 @@ export function buildTree(flattenedItems: FlattenedItem[]): TreeItems {
   const items = flattenedItems.map((item) => ({ ...item, children: [] }));
 
   for (const item of items) {
-    const { id, children } = item;
+    const { entityId, children } = item;
     const parentId = item.parentId ?? root.id;
     const parent = nodes[parentId] ?? findItem(items, parentId);
 
-    nodes[id] = { id, children };
-    parent.children.push(item);
+    nodes[entityId] = { entityId, children };
+    parent.children?.push(item);
   }
 
   return root.children;
@@ -168,12 +171,12 @@ export function setProperty<T extends keyof TreeItem>(
   setter: (value: TreeItem[T]) => TreeItem[T],
 ) {
   for (const item of items) {
-    if (item.id === id) {
+    if (item.entityId === id) {
       item[property] = setter(item[property]);
       continue;
     }
 
-    if (item.children.length) {
+    if (item.children?.length) {
       item.children = setProperty(item.children, id, property, setter);
     }
   }

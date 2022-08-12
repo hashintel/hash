@@ -12,11 +12,13 @@ export const setParentPage = gql`
     $accountId: ID!
     $pageEntityId: ID!
     $parentPageEntityId: ID
+    $index: Float
   ) {
     setParentPage(
       accountId: $accountId
       pageEntityId: $pageEntityId
       parentPageEntityId: $parentPageEntityId
+      index: $index
     ) {
       accountId
       entityId

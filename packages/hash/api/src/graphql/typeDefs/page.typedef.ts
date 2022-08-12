@@ -104,6 +104,7 @@ export const pageTypedef = gql`
     pageEntityId: String!
     summary: String
     title: String!
+    index: String!
   }
 
   type EntityRef {
@@ -170,6 +171,7 @@ export const pageTypedef = gql`
     title: String
     summary: String
     archived: Boolean
+    index: String
   }
 
   """
@@ -354,6 +356,7 @@ export const pageTypedef = gql`
       accountId: ID!
       pageEntityId: ID!
       parentPageEntityId: ID
+      index: Float
     ): Page!
 
     """

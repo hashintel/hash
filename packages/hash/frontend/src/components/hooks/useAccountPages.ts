@@ -20,11 +20,14 @@ export const useAccountPages = (accountId: string) => {
       return [];
     }
 
+    console.log(data);
     return data?.accountPages.map((page) => ({
       title: page.properties.title,
       entityId: page.entityId,
       parentPageEntityId: page.parentPageEntityId,
+      // index: page.properties.index,
     }));
+    // .sort((page) => page.index);
   }, [data]);
 
   return { data: accountPages, loading };

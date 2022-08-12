@@ -1,10 +1,4 @@
-import TreeItem, {
-  TreeItemProps,
-  useTreeItem,
-  TreeItemContentProps,
-  treeItemClasses,
-} from "@mui/lab/TreeItem";
-// import clsx from "clsx";
+import { TreeItemContentProps } from "@mui/lab/TreeItem";
 import { Box, Tooltip, Typography } from "@mui/material";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
 import {
@@ -13,81 +7,68 @@ import {
   faFile,
 } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { forwardRef, MouseEvent, Ref, CSSProperties } from "react";
+import { forwardRef, Ref } from "react";
+import { DraggableAttributes } from "@dnd-kit/core";
 import { Link } from "../../../ui";
 import { PageMenu } from "./page-menu";
-import {
-  useSortable,
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { DraggableAttributes } from "@dnd-kit/core";
 
 interface ExtraProps {
   attributes?: DraggableAttributes;
   listeners?: Record<string, Function>;
   wrapperRef?(node: HTMLLIElement): void;
+  onCollapse: () => void;
+  selected: boolean;
+  expanded: boolean;
+  isDragging?: boolean;
 }
 // tweaked the example at https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
 export const PageTreeItem = forwardRef(
   (props: TreeItemContentProps & ExtraProps, ref) => {
-    const { label, nodeId, expandable, url, depth } = props;
+    const {
+      label,
+      nodeId,
+      expandable,
+      url,
+      depth,
+      selected,
+      onCollapse,
+      expanded,
+      isDragging,
+    } = props;
 
     const popupState = usePopupState({
       variant: "popover",
       popupId: "page-menu",
     });
 
-    const { expanded, selected, handleExpansion, preventSelection } =
-      useTreeItem(nodeId);
-
-    const handleMouseDown = (
-      event: MouseEvent<HTMLDivElement, globalThis.MouseEvent>,
-    ) => {
-      preventSelection(event);
-    };
-
-    const handleExpansionClick = (
-      event: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>,
-    ) => {
-      handleExpansion(event);
-    };
-
     return (
-      <Box
-        ref={props.wrapperRef}
-        sx={
-          {
-            // listStyle: "none",
-            // boxSizing: "border-box",
-            paddingLeft: `${16 * depth + 8}px`,
-            // marginBottom: -1,
-
-            // .TreeItem {
-            //   --vertical-padding: 5px;
-
-            //   padding-right: 24px;
-            //   border-radius: 4px;
-            //   box-shadow: 0px 15px 15px 0 rgba(34, 33, 81, 0.1);
-            // }
-
-            // "--spacing": `${indentationWidth * depth}px`,
-          } as CSSProperties
-        }
-      >
+      <Box ref={props.wrapperRef}>
         <Box
           tabIndex={0}
-          onMouseDown={handleMouseDown}
-          sx={({ palette }) => ({
+          sx={({ palette, transitions }) => ({
+            ...props.style,
             display: "flex",
             alignItems: "center",
             borderRadius: "4px",
+            transition: `${transitions.create("padding-left")}; ${
+              props.style?.transition
+            }`,
+            pl: `${16 * depth + 8}px`,
 
-            // pl: `${depth * 16 + 8}px`,
             pr: 0.5,
 
-            ...(!selected && {}),
+            ...(!selected &&
+              isDragging && {
+                ...(!selected && { backgroundColor: palette.gray[20] }),
+
+                "& .page-title": {
+                  color: palette.gray[80],
+                },
+
+                "& .page-menu-trigger": {
+                  color: palette.gray[40],
+                },
+              }),
 
             "&:hover": {
               ...(!selected && { backgroundColor: palette.gray[20] }),
@@ -106,11 +87,10 @@ export const PageTreeItem = forwardRef(
             }),
           })}
           ref={ref as Ref<HTMLDivElement>}
-          style={props.style}
           {...props.attributes}
         >
           <IconButton
-            onClick={handleExpansionClick}
+            onClick={() => onCollapse()}
             size="xs"
             unpadded
             rounded
@@ -162,6 +142,21 @@ export const PageTreeItem = forwardRef(
               {label}
             </Typography>
           </Link>
+          <IconButton
+            {...props.listeners}
+            size="medium"
+            unpadded
+            className="page-menu-trigger"
+            sx={({ palette }) => ({
+              color: [selected ? palette.gray[40] : "transparent"],
+              "&:focus-visible, &:hover": {
+                backgroundColor: palette.gray[selected ? 40 : 30],
+                color: palette.gray[selected ? 50 : 40],
+              },
+            })}
+          >
+            <FontAwesomeIcon icon={faEllipsis} />
+          </IconButton>
           <Tooltip
             title="Add subpages, delete, duplicate and more"
             componentsProps={{
@@ -173,7 +168,7 @@ export const PageTreeItem = forwardRef(
             }}
           >
             <IconButton
-              {...props.listeners}
+              // {...props.listeners}
               {...bindTrigger(popupState)}
               size="medium"
               unpadded

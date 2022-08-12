@@ -12,5 +12,8 @@ export const accountPages: ResolverFn<
     accountId,
   });
 
-  return pages.map((page) => page.toGQLUnknownEntity());
+  // console.log(pages);
+  return pages
+    .sort((a, b) => a.properties.index?.localeCompare(b.properties.index))
+    .map((page) => page.toGQLUnknownEntity());
 };
