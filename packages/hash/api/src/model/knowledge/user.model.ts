@@ -173,6 +173,17 @@ export default class extends EntityModel {
   ): Promise<UserModel> {
     const { emails, shortname, kratosIdentityId } = params;
 
+    const existingUserWithKratosIdentityId =
+      await UserModel.getUserByKratosIdentityId(graphApi, {
+        kratosIdentityId,
+      });
+
+    if (existingUserWithKratosIdentityId) {
+      throw new Error(
+        `A user entity with kratos identity id "${kratosIdentityId}" already exists.`,
+      );
+    }
+
     // if setting a shortname, ensure it's unique across all workspace users
     if (shortname) {
       const existingUserWithShortname = await UserModel.getUserByShortname(
