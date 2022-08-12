@@ -1,6 +1,11 @@
-import { DataType, GraphApi } from "@hashintel/hash-graph-client";
+import {
+  DataType,
+  GraphApi,
+  UpdateDataTypeRequest,
+} from "@hashintel/hash-graph-client";
 
 import { DataTypeModel } from "../index";
+import { incrementVersionedId } from "../util";
 
 type DataTypeModelConstructorArgs = {
   accountId: string;
@@ -106,7 +111,15 @@ export default class {
       schema: DataType;
     },
   ): Promise<DataTypeModel> {
-    const { data: identifier } = await graphApi.updateDataType(params);
+    const newVersionedId = incrementVersionedId(this.schema.$id);
+
+    const { accountId, schema } = params;
+    const updateArguments: UpdateDataTypeRequest = {
+      accountId,
+      schema: { ...schema, $id: newVersionedId },
+    };
+
+    const { data: identifier } = await graphApi.updateDataType(updateArguments);
 
     return new DataTypeModel({
       schema: params.schema,

@@ -206,3 +206,28 @@ export const generateWorkspaceEntityTypeSchema = (params: {
     .filter(({ required }) => !!required)
     .map(({ baseUri }) => baseUri),
 });
+
+export const incrementVersionedId = (verisonedId: string): string => {
+  // Invariant: the last part of a versioned URI is /v/N where N is always a positive number
+  //   with no trailing slash
+  const splitAt = "/v/";
+
+  // Given
+  // "http://example.com/et/v/1"
+  // find index            *
+  const versionPosition = verisonedId.lastIndexOf(splitAt);
+
+  // Given invariant and index
+  // "http://example.com/et/v/1"
+  //                          *
+  // parse and add 1.
+  const newVersion =
+    parseInt(verisonedId.substring(versionPosition + splitAt.length), 10) + 1;
+
+  // Reconstruct with base and new version
+  // "http://example.com/et/v/" + "2"
+  return `${verisonedId.substring(
+    0,
+    versionPosition + splitAt.length,
+  )}${newVersion}`;
+};

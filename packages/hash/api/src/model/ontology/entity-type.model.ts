@@ -1,6 +1,11 @@
-import { EntityType, GraphApi } from "@hashintel/hash-graph-client";
+import {
+  EntityType,
+  GraphApi,
+  UpdateEntityTypeRequest,
+} from "@hashintel/hash-graph-client";
 
 import { EntityTypeModel, PropertyTypeModel, LinkTypeModel } from "../index";
+import { incrementVersionedId } from "../util";
 
 export type EntityTypeModelConstructorParams = {
   accountId?: string;
@@ -101,7 +106,17 @@ export default class {
       schema: EntityType;
     },
   ): Promise<EntityTypeModel> {
-    const { data: identifier } = await graphApi.updateEntityType(params);
+    const newVersionedId = incrementVersionedId(this.schema.$id);
+
+    const { accountId, schema } = params;
+    const updateArguments: UpdateEntityTypeRequest = {
+      accountId,
+      schema: { ...schema, $id: newVersionedId },
+    };
+
+    const { data: identifier } = await graphApi.updateEntityType(
+      updateArguments,
+    );
 
     return new EntityTypeModel({
       schema: params.schema,
