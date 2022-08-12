@@ -60,8 +60,7 @@ async fn create_account_id<P: StorePool + Send>(
         .insert_account_id(account_id)
         .await
         .map_err(|report| {
-            // TODO: consider adding the data type, or at least its URI in the trace
-            tracing::error!(error=?report, "Could not create data type");
+            tracing::error!(error=?report, "Could not create account id");
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
