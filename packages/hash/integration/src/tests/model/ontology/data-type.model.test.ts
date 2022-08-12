@@ -16,10 +16,10 @@ const logger = new Logger({
 const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");
 const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10);
 
-const graphApi = createGraphClient(
-  { host: graphApiHost, port: graphApiPort },
-  logger,
-);
+const graphApi = createGraphClient(logger, {
+  host: graphApiHost,
+  port: graphApiPort,
+});
 
 const accountId = "00000000-0000-0000-0000-000000000000";
 
