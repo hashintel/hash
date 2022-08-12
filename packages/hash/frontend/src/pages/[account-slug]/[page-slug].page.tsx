@@ -18,6 +18,7 @@ import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPos
 import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageTitle } from "../../blocks/page/PageTitle";
 import { useArchivePage } from "../../components/hooks/useArchivePage";
+import { PageIcon } from "../../components/PageIcon";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import {
   GetPageInfoQuery,
@@ -172,15 +173,30 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
     return <h1>No data loaded.</h1>;
   }
 
-  const { title } = data.page.properties;
+  const { title, icon } = data.page.properties;
 
   return (
     <>
       <Head>
         <title>{title}</title>
+        {icon ? (
+          <link
+            rel="icon"
+            href={`data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>
+          ${icon}</text></svg>`}
+          />
+        ) : (
+          <link rel="icon" type="image/png" href="/favicon.png" />
+        )}
       </Head>
       <header>
         <Box display="flex">
+          <PageIcon
+            accountId={accountId}
+            entityId={pageEntityId}
+            versionId={versionId}
+          />
+          <Box ml={3} />
           <PageTitle
             value={title}
             accountId={accountId}

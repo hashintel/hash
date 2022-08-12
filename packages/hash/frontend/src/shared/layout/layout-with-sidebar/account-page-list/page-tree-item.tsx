@@ -8,16 +8,17 @@ import TreeItem, {
 import { Box, Tooltip, Typography } from "@mui/material";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
 import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
-import { faFile } from "@fortawesome/free-regular-svg-icons";
-
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { forwardRef, MouseEvent, Ref } from "react";
+import { PageIcon } from "../../../../components/PageIcon";
 import { Link } from "../../../ui";
 import { PageMenu } from "./page-menu";
+import { useRouteAccountInfo } from "../../../routing";
 
 // tweaked the example at https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
 const CustomContent = forwardRef((props: TreeItemContentProps, ref) => {
   const { label, nodeId, expandable, url, depth } = props;
+  const { accountId } = useRouteAccountInfo();
   const popupState = usePopupState({
     variant: "popover",
     popupId: "page-menu",
@@ -90,19 +91,15 @@ const CustomContent = forwardRef((props: TreeItemContentProps, ref) => {
       >
         <FontAwesomeIcon icon={faChevronRight} />
       </IconButton>
-      <FontAwesomeIcon
-        icon={faFile}
-        sx={{
-          fontSize: 16,
-          mr: 1.25,
-          color: ({ palette }) => palette.gray[40],
-        }}
-      />
+
+      <PageIcon accountId={accountId} entityId={nodeId} size="small" />
+
       <Link
         noLinkStyle
         tabIndex={-1}
         sx={{
           flex: 1,
+          ml: "6px",
         }}
         href={url}
       >
