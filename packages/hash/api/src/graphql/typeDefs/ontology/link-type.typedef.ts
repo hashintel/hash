@@ -24,15 +24,24 @@ export const linkTypeTypedef = gql`
   extend type Mutation {
     """
     Create an link type.
-
-    accountId refers to the account to create the link type in.
     """
-    createLinkType(accountId: ID!, linkType: LinkType!): IdentifiedLinkType!
+    createLinkType(
+      """
+      accountId refers to the account to create the link type in.
+      """
+      accountId: ID!
+      linkType: LinkType!
+    ): IdentifiedLinkType!
+
     """
     Update an link type.
-
-    accountId refers to the account to update the link type in.
     """
-    updateLinkType(accountId: ID!, linkType: LinkType!): IdentifiedLinkType!
+    updateLinkType(
+      """
+      accountId refers to the account to update the link type in.
+      """
+      accountId: ID!
+      linkType: LinkType!
+    ): IdentifiedLinkType!
   }
 `;

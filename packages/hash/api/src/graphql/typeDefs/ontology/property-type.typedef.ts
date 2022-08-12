@@ -28,19 +28,22 @@ export const propertyTypeTypedef = gql`
   extend type Mutation {
     """
     Create a property type.
-
-    accountId refers to the account to create the property type in.
     """
     createPropertyType(
+      """
+      accountId refers to the account to create the property type in.
+      """
       accountId: ID!
       propertyType: PropertyType!
     ): IdentifiedPropertyType!
+
     """
     Update a property type.
-
-    accountId refers to the account to update the property type in.
     """
     updatePropertyType(
+      """
+      accountId refers to the account to update the property type in.
+      """
       accountId: ID!
       propertyType: PropertyType!
     ): IdentifiedPropertyType!
