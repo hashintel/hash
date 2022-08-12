@@ -7,11 +7,9 @@ import TreeItem, {
 // import clsx from "clsx";
 import { Box, Tooltip, Typography } from "@mui/material";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
-import {
-  faChevronRight,
-  faEllipsis,
-  faFile,
-} from "@fortawesome/free-solid-svg-icons";
+import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
+import { faFile } from "@fortawesome/free-regular-svg-icons";
+
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { forwardRef, MouseEvent, Ref } from "react";
 import { Link } from "../../../ui";
