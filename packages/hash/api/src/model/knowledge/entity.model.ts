@@ -2,12 +2,18 @@ import { PersistedEntity, GraphApi } from "@hashintel/hash-graph-client";
 
 import { EntityModel, EntityTypeModel } from "../index";
 
-type EntityModelConstructorArgs = {
+export type EntityModelConstructorParams = {
   accountId: string;
   entityId: string;
   version: string;
   entityTypeModel: EntityTypeModel;
   properties: object;
+};
+
+export type EntityModelCreateParams = {
+  accountId: string;
+  properties: object;
+  entityTypeModel: EntityTypeModel;
 };
 
 /**
@@ -27,7 +33,7 @@ export default class {
     version,
     entityTypeModel,
     properties,
-  }: EntityModelConstructorArgs) {
+  }: EntityModelConstructorParams) {
     this.accountId = accountId;
 
     this.entityId = entityId;
@@ -74,13 +80,8 @@ export default class {
    */
   static async create(
     graphApi: GraphApi,
-    params: {
-      accountId: string;
-      properties: object;
-      entityTypeModel: EntityTypeModel;
-    },
+    { accountId, entityTypeModel, properties }: EntityModelCreateParams,
   ): Promise<EntityModel> {
-    const { accountId, entityTypeModel, properties } = params;
     const {
       data: { entityId, version },
     } = await graphApi.createEntity({
@@ -110,14 +111,14 @@ export default class {
     /** @todo: get all latest entities in specified account */
     const { data: entities } = await graphApi.getLatestEntities();
 
-    const cachedEntityTypeModelss = new Map<string, EntityTypeModel>();
+    const cachedEntityTypeModels = new Map<string, EntityTypeModel>();
 
     return await Promise.all(
       entities.map((entity) =>
         EntityModel.fromPersistedEntity(
           graphApi,
           entity,
-          cachedEntityTypeModelss,
+          cachedEntityTypeModels,
         ),
       ),
     );

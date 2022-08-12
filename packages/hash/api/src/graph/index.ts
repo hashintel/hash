@@ -21,12 +21,14 @@ export type GraphApi = GraphApiClient & DataSource;
 
 export const createGraphClient = (
   _logger: Logger,
-  { basePath }: { basePath: string },
+  { host, port }: { host: string; port: number },
 ): GraphApi => {
   const axiosInstance = axios.create({
     httpAgent,
     httpsAgent,
   });
+
+  const basePath = `http://${host}:${port}`;
 
   const config = new Configuration({ basePath });
 

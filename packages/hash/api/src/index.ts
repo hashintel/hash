@@ -42,7 +42,8 @@ import { setupStorageProviders } from "./storage/storage-provider-lookup";
 import { getAwsRegion } from "./lib/aws-config";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { connectToTaskExecutor } from "./task-execution";
-import { createGraphClient as createGraphApiClient } from "./graph";
+import { createGraphClient } from "./graph";
+import { ensureWorkspaceTypesExist } from "./graph/workspace-types";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -100,7 +101,13 @@ const main = async () => {
     10,
   );
 
-  await waitOnResource(`tcp:${redisHost}:${redisPort}`, logger);
+  const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");
+  const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10);
+
+  await Promise.all([
+    waitOnResource(`tcp:${redisHost}:${redisPort}`, logger),
+    waitOnResource(`tcp:${graphApiHost}:${graphApiPort}`, logger),
+  ]);
 
   // Connect to Redis
   const redis = new RedisCache(logger, {
@@ -115,6 +122,14 @@ const main = async () => {
     port: taskExecutorPort,
   };
   const taskExecutor = connectToTaskExecutor(taskExecutorConfig);
+
+  // Connect to the Graph API
+  const graphApi = createGraphClient(logger, {
+    host: graphApiHost,
+    port: graphApiPort,
+  });
+
+  await ensureWorkspaceTypesExist({ graphApi, logger });
 
   // Set sensible default security headers: https://www.npmjs.com/package/helmet
   // Temporarily disable contentSecurityPolicy for the GraphQL playground
@@ -144,8 +159,8 @@ const main = async () => {
         })
       : new AwsSesEmailTransporter({
           from: `${getRequiredEnv(
-            "SYSTEM_EMAIL_SENDER_NAME",
-          )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
+            "WORKSPACE_EMAIL_SENDER_NAME",
+          )} <${getRequiredEnv("WORKSPACE_EMAIL_ADDRESS")}>`,
           region: getAwsRegion(),
           subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
         });
@@ -167,10 +182,6 @@ const main = async () => {
     });
     shutdown.addCleanup("OpenSearch", async () => search!.close());
   }
-
-  const graphApi = createGraphApiClient(logger, {
-    basePath: getRequiredEnv("HASH_GRAPH_API_BASE_URL"),
-  });
 
   const apolloServer = createApolloServer({
     graphApi,

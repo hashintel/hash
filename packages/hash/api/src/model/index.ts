@@ -22,6 +22,7 @@ import PropertyTypeModel from "./ontology/property-type.model";
 import LinkTypeModel from "./ontology/link-type.model";
 import EntityTypeModel from "./ontology/entity-type.model";
 import EntityModel from "./knowledge/entity.model";
+import UserModel from "./knowledge/user.model";
 
 export * from "./ontology/data-type.model";
 export { DataTypeModel };
@@ -37,6 +38,9 @@ export { EntityTypeModel };
 
 export * from "./knowledge/entity.model";
 export { EntityModel };
+
+export * from "./knowledge/user.model";
+export { UserModel };
 
 /** @todo: deprecate legacy model classes */
 
