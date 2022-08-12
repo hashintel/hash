@@ -12,6 +12,7 @@ export const getPageInfoQuery = gql`
         title
         archived
         pageEntityId
+        icon
       }
     }
   }
@@ -30,6 +31,12 @@ export const updatePage = gql`
     ) {
       accountId
       entityId
+      properties {
+        title
+        icon
+        archived
+        pageEntityId
+      }
     }
   }
 `;
