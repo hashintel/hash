@@ -119,7 +119,7 @@ export default class {
     );
 
     return new EntityTypeModel({
-      schema: params.schema,
+      schema: updateArguments.schema,
       accountId: identifier.createdBy,
     });
   }

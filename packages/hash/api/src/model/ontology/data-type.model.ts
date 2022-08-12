@@ -122,7 +122,7 @@ export default class {
     const { data: identifier } = await graphApi.updateDataType(updateArguments);
 
     return new DataTypeModel({
-      schema: params.schema,
+      schema: updateArguments.schema,
       accountId: identifier.createdBy,
     });
   }

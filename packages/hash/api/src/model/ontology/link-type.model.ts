@@ -114,7 +114,7 @@ export default class {
     const { data: identifier } = await graphApi.updateLinkType(updateArguments);
 
     return new LinkTypeModel({
-      schema: params.schema,
+      schema: updateArguments.schema,
       accountId: identifier.createdBy,
     });
   }

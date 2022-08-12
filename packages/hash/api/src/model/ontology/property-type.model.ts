@@ -117,7 +117,7 @@ export default class {
     );
 
     return new PropertyTypeModel({
-      schema: params.schema,
+      schema: updateArguments.schema,
       accountId: identifier.createdBy,
     });
   }
