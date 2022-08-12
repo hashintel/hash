@@ -18,8 +18,11 @@ const logger = new Logger({
   serviceName: "integration-tests",
 });
 
+const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");
+const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10);
+
 const graphApi = createGraphClient(
-  { basePath: getRequiredEnv("HASH_GRAPH_API_BASE_URL") },
+  { host: graphApiHost, port: graphApiPort },
   logger,
 );
 
