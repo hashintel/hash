@@ -7,6 +7,7 @@ import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
 import { StorageType } from "./apiTypes.gen";
 import { TaskExecutor } from "../task-execution";
+import { GraphApi } from "../graph";
 
 /**
  * Apollo context object with dataSources. For details see:
@@ -14,6 +15,7 @@ import { TaskExecutor } from "../task-execution";
  */
 export interface GraphQLContext {
   dataSources: {
+    graphApi: GraphApi;
     db: DbAdapter;
     cache: CacheAdapter;
     search?: SearchAdapter;

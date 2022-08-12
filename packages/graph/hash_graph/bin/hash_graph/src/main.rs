@@ -7,7 +7,7 @@ use graph::{
     api::rest::rest_api_router,
     logging::init_logger,
     ontology::{types::DataType, AccountId},
-    store::{DataTypeStore, PostgresStorePool, StorePool},
+    store::{AccountStore, DataTypeStore, PostgresStorePool, StorePool},
 };
 use tokio_postgres::NoTls;
 use uuid::Uuid;

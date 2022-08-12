@@ -182,8 +182,24 @@ impl fmt::Display for DatabaseConnectionInfo {
 ///
 /// In addition to the errors described in the methods of this trait, further errors might also be
 /// raised depending on the implementation, e.g. connection issues.
-pub trait Store =
-    DataTypeStore + PropertyTypeStore + LinkTypeStore + EntityTypeStore + EntityStore + LinkStore;
+pub trait Store = AccountStore
+    + DataTypeStore
+    + PropertyTypeStore
+    + LinkTypeStore
+    + EntityTypeStore
+    + EntityStore
+    + LinkStore;
+
+/// Describes the API of a store implementation for accounts.
+#[async_trait]
+pub trait AccountStore {
+    /// Inserts the specified [`AccountId`] into the database.
+    ///
+    /// # Errors
+    ///
+    /// - if insertion failed, e.g. because the [`AccountId`] already exists.
+    async fn insert_account_id(&mut self, account_id: AccountId) -> Result<(), InsertionError>;
+}
 
 /// Describes the API of a store implementation for [`DataType`]s.
 #[async_trait]

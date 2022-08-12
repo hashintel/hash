@@ -819,6 +819,144 @@ export interface UpdatePropertyTypeRequest {
 }
 
 /**
+ * AccountApi - axios parameter creator
+ * @export
+ */
+export const AccountApiAxiosParamCreator = function (
+  configuration?: Configuration,
+) {
+  return {
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createAccountId: async (
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      const localVarPath = `/accounts`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "POST",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+  };
+};
+
+/**
+ * AccountApi - functional programming interface
+ * @export
+ */
+export const AccountApiFp = function (configuration?: Configuration) {
+  const localVarAxiosParamCreator = AccountApiAxiosParamCreator(configuration);
+  return {
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async createAccountId(
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<string>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.createAccountId(
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+  };
+};
+
+/**
+ * AccountApi - factory interface
+ * @export
+ */
+export const AccountApiFactory = function (
+  configuration?: Configuration,
+  basePath?: string,
+  axios?: AxiosInstance,
+) {
+  const localVarFp = AccountApiFp(configuration);
+  return {
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createAccountId(options?: any): AxiosPromise<string> {
+      return localVarFp
+        .createAccountId(options)
+        .then((request) => request(axios, basePath));
+    },
+  };
+};
+
+/**
+ * AccountApi - interface
+ * @export
+ * @interface AccountApi
+ */
+export interface AccountApiInterface {
+  /**
+   *
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof AccountApiInterface
+   */
+  createAccountId(options?: AxiosRequestConfig): AxiosPromise<string>;
+}
+
+/**
+ * AccountApi - object-oriented interface
+ * @export
+ * @class AccountApi
+ * @extends {BaseAPI}
+ */
+export class AccountApi extends BaseAPI implements AccountApiInterface {
+  /**
+   *
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof AccountApi
+   */
+  public createAccountId(options?: AxiosRequestConfig) {
+    return AccountApiFp(this.configuration)
+      .createAccountId(options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+}
+
+/**
  * DataTypeApi - axios parameter creator
  * @export
  */
@@ -2309,6 +2447,44 @@ export const GraphApiAxiosParamCreator = function (
   return {
     /**
      *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createAccountId: async (
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      const localVarPath = `/accounts`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "POST",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
      * @param {CreateDataTypeRequest} createDataTypeRequest
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -3425,6 +3601,26 @@ export const GraphApiFp = function (configuration?: Configuration) {
   return {
     /**
      *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async createAccountId(
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<string>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.createAccountId(
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
      * @param {CreateDataTypeRequest} createDataTypeRequest
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -4018,6 +4214,16 @@ export const GraphApiFactory = function (
   return {
     /**
      *
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createAccountId(options?: any): AxiosPromise<string> {
+      return localVarFp
+        .createAccountId(options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
      * @param {CreateDataTypeRequest} createDataTypeRequest
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -4325,6 +4531,14 @@ export const GraphApiFactory = function (
 export interface GraphApiInterface {
   /**
    *
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  createAccountId(options?: AxiosRequestConfig): AxiosPromise<string>;
+
+  /**
+   *
    * @param {CreateDataTypeRequest} createDataTypeRequest
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -4601,6 +4815,18 @@ export interface GraphApiInterface {
  * @extends {BaseAPI}
  */
 export class GraphApi extends BaseAPI implements GraphApiInterface {
+  /**
+   *
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public createAccountId(options?: AxiosRequestConfig) {
+    return GraphApiFp(this.configuration)
+      .createAccountId(options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
   /**
    *
    * @param {CreateDataTypeRequest} createDataTypeRequest

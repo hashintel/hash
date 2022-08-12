@@ -1,8 +1,13 @@
-import { PropertyType, GraphApi } from "@hashintel/hash-graph-client";
+import {
+  PropertyType,
+  GraphApi,
+  UpdatePropertyTypeRequest,
+} from "@hashintel/hash-graph-client";
 
 import { PropertyTypeModel } from "../index";
+import { incrementVersionedId } from "../util";
 
-type PropertyTypeModelConstructorArgs = {
+type PropertyTypeModelConstructorParams = {
   accountId: string;
   schema: PropertyType;
 };
@@ -15,7 +20,7 @@ export default class {
 
   schema: PropertyType;
 
-  constructor({ schema, accountId }: PropertyTypeModelConstructorArgs) {
+  constructor({ schema, accountId }: PropertyTypeModelConstructorParams) {
     this.accountId = accountId;
     this.schema = schema;
   }
@@ -99,10 +104,20 @@ export default class {
       schema: PropertyType;
     },
   ): Promise<PropertyTypeModel> {
-    const { data: identifier } = await graphApi.updatePropertyType(params);
+    const newVersionedId = incrementVersionedId(this.schema.$id);
+
+    const { accountId, schema } = params;
+    const updateArguments: UpdatePropertyTypeRequest = {
+      accountId,
+      schema: { ...schema, $id: newVersionedId },
+    };
+
+    const { data: identifier } = await graphApi.updatePropertyType(
+      updateArguments,
+    );
 
     return new PropertyTypeModel({
-      schema: params.schema,
+      schema: updateArguments.schema,
       accountId: identifier.createdBy,
     });
   }
