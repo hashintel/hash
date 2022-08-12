@@ -23,7 +23,10 @@ export const getAllLatestDataTypes: Resolver<
     /** @todo Replace with User from the request */
     accountId: nilUuid,
   }).catch((err: AxiosError) => {
-    throw new ApolloError(`${err.response?.data}`, "GET_ALL_ERROR");
+    throw new ApolloError(
+      `Unable to retrieve all latest data types. ${err.response?.data}`,
+      "GET_ALL_ERROR",
+    );
   });
 
   return allLatestDataTypeModels.map((dataTypeModel) =>
@@ -42,7 +45,10 @@ export const getDataType: Resolver<
   const dataTypeModel = await DataTypeModel.get(graphApi, {
     versionedUri: dataTypeVersionedUri,
   }).catch((err: AxiosError) => {
-    throw new ApolloError(`${err.response?.data}`, "GET_ERROR");
+    throw new ApolloError(
+      `Unable to retrieve data type. ${err.response?.data}`,
+      "GET_ERROR",
+    );
   });
 
   return dataTypeModelToGQL(dataTypeModel);

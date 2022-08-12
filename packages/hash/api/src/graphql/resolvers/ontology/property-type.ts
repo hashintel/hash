@@ -54,7 +54,10 @@ export const getAllLatestPropertyTypes: Resolver<
       accountId: nilUuid,
     },
   ).catch((err: AxiosError) => {
-    throw new ApolloError(`${err.response?.data}`, "GET_ALL_ERROR");
+    throw new ApolloError(
+      `Unable to retrieve all latest property types. ${err.response?.data}`,
+      "GET_ALL_ERROR",
+    );
   });
 
   return allLatestPropertyTypeModels.map((propertyTypeModel) =>
@@ -73,7 +76,10 @@ export const getPropertyType: Resolver<
   const propertyTypeModel = await PropertyTypeModel.get(graphApi, {
     versionedUri: propertyTypeVersionedUri,
   }).catch((err: AxiosError) => {
-    throw new ApolloError(`${err.response?.data}`, "GET_ERROR");
+    throw new ApolloError(
+      `Unable to retrieve property type. ${err.response?.data}`,
+      "GET_ERROR",
+    );
   });
 
   return propertyTypeModelToGQL(propertyTypeModel);
@@ -86,23 +92,26 @@ export const updatePropertyType: Resolver<
   MutationUpdatePropertyTypeArgs
 > = async (_, params, { dataSources }) => {
   const { graphApi } = dataSources;
-  const { accountId, propertyType } = params;
+  const { accountId, propertyTypeVersionedUri, updatedPropertyType } = params;
 
   const propertyTypeModel = await PropertyTypeModel.get(graphApi, {
-    versionedUri: propertyType.$id,
+    versionedUri: propertyTypeVersionedUri,
   }).catch((err: AxiosError) => {
-    throw new ApolloError(`${err.response?.data}`, "GET_ERROR");
+    throw new ApolloError(
+      `Unable to retrieve property type. ${err.response?.data} [URI=${propertyTypeVersionedUri}]`,
+      "GET_ERROR",
+    );
   });
 
   const updatedPropertyTypeModel = await propertyTypeModel
     .update(graphApi, {
       accountId,
-      schema: propertyType,
+      schema: updatedPropertyType,
     })
     .catch((err: AxiosError) => {
       if (err.response?.status === 409) {
         throw new ApolloError(
-          `Property type URI doesn't exist, unable to update. [URI=${propertyType.$id}]`,
+          `Property type URI doesn't exist, unable to update. [URI=${propertyTypeVersionedUri}]`,
           "CREATION_ERROR",
         );
       }

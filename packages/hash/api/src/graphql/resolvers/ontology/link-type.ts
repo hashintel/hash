@@ -50,7 +50,10 @@ export const getAllLatestLinkTypes: Resolver<
     /** @todo Replace with User from the request */
     accountId: nilUuid,
   }).catch((err: AxiosError) => {
-    throw new ApolloError(`${err.response?.data}`, "GET_ALL_ERROR");
+    throw new ApolloError(
+      `Unable to retrieve all latest link types. ${err.response?.data}`,
+      "GET_ALL_ERROR",
+    );
   });
 
   return allLatestLinkTypeModels.map((linkTypeModel) =>
@@ -69,7 +72,10 @@ export const getLinkType: Resolver<
   const linkTypeModel = await LinkTypeModel.get(graphApi, {
     versionedUri: linkTypeVersionedUri,
   }).catch((err: AxiosError) => {
-    throw new ApolloError(`${err.response?.data}`, "GET_ERROR");
+    throw new ApolloError(
+      `Unable to retrieve link type. ${err.response?.data} [URI=${linkTypeVersionedUri}]`,
+      "GET_ERROR",
+    );
   });
 
   return linkTypeModelToGQL(linkTypeModel);
@@ -82,23 +88,26 @@ export const updateLinkType: Resolver<
   MutationUpdateLinkTypeArgs
 > = async (_, params, { dataSources }) => {
   const { graphApi } = dataSources;
-  const { accountId, linkType } = params;
+  const { accountId, linkTypeVersionedUri, newLinkType } = params;
 
   const linkTypeModel = await LinkTypeModel.get(graphApi, {
-    versionedUri: linkType.$id,
+    versionedUri: linkTypeVersionedUri,
   }).catch((err: AxiosError) => {
-    throw new ApolloError(`${err.response?.data}`, "GET_ERROR");
+    throw new ApolloError(
+      `Unable to retrieve link type. ${err.response?.data} [URI=${linkTypeVersionedUri}]`,
+      "GET_ERROR",
+    );
   });
 
   const updatedLinkTypeModel = await linkTypeModel
     .update(graphApi, {
       accountId,
-      schema: linkType,
+      schema: newLinkType,
     })
     .catch((err: AxiosError) => {
       if (err.response?.status === 409) {
         throw new ApolloError(
-          `Link type URI doesn't exist, unable to update. [URI=${linkType.$id}]`,
+          `Link type URI doesn't exist, unable to update. [URI=${linkTypeVersionedUri}]`,
           "CREATION_ERROR",
         );
       }

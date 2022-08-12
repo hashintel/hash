@@ -41,7 +41,14 @@ export const linkTypeTypedef = gql`
       accountId refers to the account to update the link type in.
       """
       accountId: ID!
-      linkType: LinkType!
+      """
+      The link type versioned $id to update.
+      """
+      linkTypeVersionedUri: String!
+      """
+      New link type schema contents to be used.
+      """
+      newLinkType: LinkType!
     ): PersistedLinkType!
   }
 `;

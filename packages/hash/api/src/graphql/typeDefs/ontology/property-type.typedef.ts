@@ -45,7 +45,14 @@ export const propertyTypeTypedef = gql`
       accountId refers to the account to update the property type in.
       """
       accountId: ID!
-      propertyType: PropertyType!
+      """
+      The property type versioned $id to update.
+      """
+      propertyTypeVersionedUri: String!
+      """
+      New property type schema contents to be used.
+      """
+      updatedPropertyType: PropertyType!
     ): PersistedPropertyType!
   }
 `;
