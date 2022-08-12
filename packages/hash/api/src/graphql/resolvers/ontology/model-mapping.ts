@@ -4,14 +4,14 @@ import {
   PropertyTypeModel,
 } from "../../../model";
 import {
-  IdentifiedDataType,
-  IdentifiedLinkType,
-  IdentifiedPropertyType,
+  PersistedDataType,
+  PersistedLinkType,
+  PersistedPropertyType,
 } from "../../apiTypes.gen";
 
 export const dataTypeModelToGQL = (
   dataType: DataTypeModel,
-): IdentifiedDataType => ({
+): PersistedDataType => ({
   createdBy: dataType.accountId,
   dataTypeVersionedUri: dataType.schema.$id,
   schema: dataType.schema,
@@ -19,7 +19,7 @@ export const dataTypeModelToGQL = (
 
 export const propertyTypeModelToGQL = (
   propertyType: PropertyTypeModel,
-): IdentifiedPropertyType => ({
+): PersistedPropertyType => ({
   createdBy: propertyType.accountId,
   propertyTypeVersionedUri: propertyType.schema.$id,
   schema: propertyType.schema,
@@ -27,7 +27,7 @@ export const propertyTypeModelToGQL = (
 
 export const linkTypeModelToGQL = (
   linkType: LinkTypeModel,
-): IdentifiedLinkType => ({
+): PersistedLinkType => ({
   createdBy: linkType.accountId,
   linkTypeVersionedUri: linkType.schema.$id,
   schema: linkType.schema,

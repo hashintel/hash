@@ -3,12 +3,12 @@ import { gql } from "apollo-server-express";
 export const propertyTypeTypedef = gql`
   scalar PropertyType
 
-  type IdentifiedPropertyType {
+  type PersistedPropertyType {
     propertyTypeVersionedUri: String!
     createdBy: ID!
     schema: PropertyType!
     # TODO: we might need something like
-    # "referencedDataTypes: [DataType!]"
+    # "referencedDataTypes: [PersistedDataType!]"
     # for us to retrieve all referenced data types, and one for referenced property types as well.
     # This will be helpful for displaying the entire property type in the frontend
   }
@@ -17,12 +17,12 @@ export const propertyTypeTypedef = gql`
     """
     Get all property types at their latest version.
     """
-    getAllLatestPropertyTypes: [IdentifiedPropertyType!]!
+    getAllLatestPropertyTypes: [PersistedPropertyType!]!
 
     """
     Get a property type by its versioned URI.
     """
-    getPropertyType(propertyTypeVersionedUri: String!): IdentifiedPropertyType!
+    getPropertyType(propertyTypeVersionedUri: String!): PersistedPropertyType!
   }
 
   extend type Mutation {
@@ -35,7 +35,7 @@ export const propertyTypeTypedef = gql`
       """
       accountId: ID!
       propertyType: PropertyType!
-    ): IdentifiedPropertyType!
+    ): PersistedPropertyType!
 
     """
     Update a property type.
@@ -46,6 +46,6 @@ export const propertyTypeTypedef = gql`
       """
       accountId: ID!
       propertyType: PropertyType!
-    ): IdentifiedPropertyType!
+    ): PersistedPropertyType!
   }
 `;

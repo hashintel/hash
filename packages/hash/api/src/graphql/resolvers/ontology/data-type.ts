@@ -2,7 +2,7 @@ import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
 
 import {
-  IdentifiedDataType,
+  PersistedDataType,
   QueryGetDataTypeArgs,
   Resolver,
 } from "../../apiTypes.gen";
@@ -12,7 +12,7 @@ import { NIL_UUID } from "../../../model/util";
 import { dataTypeModelToGQL } from "./model-mapping";
 
 export const getAllLatestDataTypes: Resolver<
-  Promise<IdentifiedDataType[]>,
+  Promise<PersistedDataType[]>,
   {},
   GraphQLContext,
   {}
@@ -32,7 +32,7 @@ export const getAllLatestDataTypes: Resolver<
 };
 
 export const getDataType: Resolver<
-  Promise<IdentifiedDataType>,
+  Promise<PersistedDataType>,
   {},
   GraphQLContext,
   QueryGetDataTypeArgs

@@ -2,7 +2,7 @@ import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
 
 import {
-  IdentifiedPropertyType,
+  PersistedPropertyType,
   MutationCreatePropertyTypeArgs,
   MutationUpdatePropertyTypeArgs,
   QueryGetPropertyTypeArgs,
@@ -14,7 +14,7 @@ import { NIL_UUID } from "../../../model/util";
 import { propertyTypeModelToGQL } from "./model-mapping";
 
 export const createPropertyType: Resolver<
-  Promise<IdentifiedPropertyType>,
+  Promise<PersistedPropertyType>,
   {},
   GraphQLContext,
   MutationCreatePropertyTypeArgs
@@ -40,7 +40,7 @@ export const createPropertyType: Resolver<
 };
 
 export const getAllLatestPropertyTypes: Resolver<
-  Promise<IdentifiedPropertyType[]>,
+  Promise<PersistedPropertyType[]>,
   {},
   GraphQLContext,
   {}
@@ -63,7 +63,7 @@ export const getAllLatestPropertyTypes: Resolver<
 };
 
 export const getPropertyType: Resolver<
-  Promise<IdentifiedPropertyType>,
+  Promise<PersistedPropertyType>,
   {},
   GraphQLContext,
   QueryGetPropertyTypeArgs
@@ -80,7 +80,7 @@ export const getPropertyType: Resolver<
 };
 
 export const updatePropertyType: Resolver<
-  Promise<IdentifiedPropertyType>,
+  Promise<PersistedPropertyType>,
   {},
   GraphQLContext,
   MutationUpdatePropertyTypeArgs

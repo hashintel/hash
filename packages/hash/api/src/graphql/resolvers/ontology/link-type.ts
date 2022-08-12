@@ -2,7 +2,7 @@ import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
 
 import {
-  IdentifiedLinkType,
+  PersistedLinkType,
   MutationCreateLinkTypeArgs,
   MutationUpdateLinkTypeArgs,
   QueryGetLinkTypeArgs,
@@ -14,7 +14,7 @@ import { NIL_UUID } from "../../../model/util";
 import { linkTypeModelToGQL } from "./model-mapping";
 
 export const createLinkType: Resolver<
-  Promise<IdentifiedLinkType>,
+  Promise<PersistedLinkType>,
   {},
   GraphQLContext,
   MutationCreateLinkTypeArgs
@@ -39,7 +39,7 @@ export const createLinkType: Resolver<
 };
 
 export const getAllLatestLinkTypes: Resolver<
-  Promise<IdentifiedLinkType[]>,
+  Promise<PersistedLinkType[]>,
   {},
   GraphQLContext,
   {}
@@ -59,7 +59,7 @@ export const getAllLatestLinkTypes: Resolver<
 };
 
 export const getLinkType: Resolver<
-  Promise<IdentifiedLinkType>,
+  Promise<PersistedLinkType>,
   {},
   GraphQLContext,
   QueryGetLinkTypeArgs
@@ -76,7 +76,7 @@ export const getLinkType: Resolver<
 };
 
 export const updateLinkType: Resolver<
-  Promise<IdentifiedLinkType>,
+  Promise<PersistedLinkType>,
   {},
   GraphQLContext,
   MutationUpdateLinkTypeArgs

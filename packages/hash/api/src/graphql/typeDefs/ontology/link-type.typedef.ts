@@ -3,7 +3,7 @@ import { gql } from "apollo-server-express";
 export const linkTypeTypedef = gql`
   scalar LinkType
 
-  type IdentifiedLinkType {
+  type PersistedLinkType {
     linkTypeVersionedUri: String!
     createdBy: ID!
     schema: LinkType!
@@ -13,12 +13,12 @@ export const linkTypeTypedef = gql`
     """
     Get all link types at their latest version.
     """
-    getAllLatestLinkTypes: [IdentifiedLinkType!]!
+    getAllLatestLinkTypes: [PersistedLinkType!]!
 
     """
     Get an link type by its versioned URI.
     """
-    getLinkType(linkTypeVersionedUri: String!): IdentifiedLinkType!
+    getLinkType(linkTypeVersionedUri: String!): PersistedLinkType!
   }
 
   extend type Mutation {
@@ -31,7 +31,7 @@ export const linkTypeTypedef = gql`
       """
       accountId: ID!
       linkType: LinkType!
-    ): IdentifiedLinkType!
+    ): PersistedLinkType!
 
     """
     Update an link type.
@@ -42,6 +42,6 @@ export const linkTypeTypedef = gql`
       """
       accountId: ID!
       linkType: LinkType!
-    ): IdentifiedLinkType!
+    ): PersistedLinkType!
   }
 `;
