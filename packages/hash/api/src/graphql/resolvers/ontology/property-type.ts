@@ -10,7 +10,7 @@ import {
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { PropertyTypeModel } from "../../../model";
-import { NIL_UUID } from "../../../model/util";
+import { nilUuid } from "../../../model/util";
 import { propertyTypeModelToGQL } from "./model-mapping";
 
 export const createPropertyType: Resolver<
@@ -51,7 +51,7 @@ export const getAllLatestPropertyTypes: Resolver<
     graphApi,
     {
       /** @todo Replace with User from the request */
-      accountId: NIL_UUID,
+      accountId: nilUuid,
     },
   ).catch((err: AxiosError) => {
     throw new ApolloError(`${err.response?.data}`, "GET_ALL_ERROR");

@@ -8,7 +8,7 @@ import {
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { DataTypeModel } from "../../../model";
-import { NIL_UUID } from "../../../model/util";
+import { nilUuid } from "../../../model/util";
 import { dataTypeModelToGQL } from "./model-mapping";
 
 export const getAllLatestDataTypes: Resolver<
@@ -21,7 +21,7 @@ export const getAllLatestDataTypes: Resolver<
 
   const allLatestDataTypeModels = await DataTypeModel.getAllLatest(graphApi, {
     /** @todo Replace with User from the request */
-    accountId: NIL_UUID,
+    accountId: nilUuid,
   }).catch((err: AxiosError) => {
     throw new ApolloError(`${err.response?.data}`, "GET_ALL_ERROR");
   });
