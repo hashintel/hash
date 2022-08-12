@@ -1,6 +1,5 @@
 import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
-import { LinkType } from "@hashintel/hash-graph-client";
 
 import {
   IdentifiedLinkType,
@@ -20,8 +19,7 @@ export const createLinkType: Resolver<
   MutationCreateLinkTypeArgs
 > = async (_, params, { dataSources }) => {
   const { graphApi } = dataSources;
-  const { accountId } = params;
-  const linkType = params.linkType as LinkType;
+  const { accountId, linkType } = params;
 
   const createdLinkTypeModel = await LinkTypeModel.create(graphApi, {
     accountId,
@@ -96,8 +94,7 @@ export const updateLinkType: Resolver<
   MutationUpdateLinkTypeArgs
 > = async (_, params, { dataSources }) => {
   const { graphApi } = dataSources;
-  const { accountId } = params;
-  const linkType = params.linkType as LinkType;
+  const { accountId, linkType } = params;
 
   const linkTypeModel = await LinkTypeModel.get(graphApi, {
     versionedUri: linkType.$id,

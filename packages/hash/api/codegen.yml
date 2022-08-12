@@ -23,9 +23,9 @@ generates:
       noSchemaStitching: true
       skipTypename: true
       scalars:
-        DataType: object
-        PropertyType: object
-        LinkType: object
+        DataType: "@hashintel/hash-graph-client#DataType"
+        PropertyType: "@hashintel/hash-graph-client#PropertyType"
+        LinkType: "@hashintel/hash-graph-client#LinkType"
         TextToken: "@hashintel/hash-shared/graphql/types#TextToken"
         Date: string
         UnknownEntityProperties: "@hashintel/hash-shared/graphql/types#UnknownEntityProperties"

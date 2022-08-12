@@ -1,6 +1,5 @@
 import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
-import { PropertyType } from "@hashintel/hash-graph-client";
 
 import {
   IdentifiedPropertyType,
@@ -20,8 +19,7 @@ export const createPropertyType: Resolver<
   MutationCreatePropertyTypeArgs
 > = async (_, params, { dataSources }) => {
   const { graphApi } = dataSources;
-  const { accountId } = params;
-  const propertyType = params.propertyType as PropertyType;
+  const { accountId, propertyType } = params;
 
   const createdPropertyTypeModel = await PropertyTypeModel.create(graphApi, {
     accountId,
@@ -100,8 +98,7 @@ export const updatePropertyType: Resolver<
   MutationUpdatePropertyTypeArgs
 > = async (_, params, { dataSources }) => {
   const { graphApi } = dataSources;
-  const { accountId } = params;
-  const propertyType = params.propertyType as PropertyType;
+  const { accountId, propertyType } = params;
 
   const propertyTypeModel = await PropertyTypeModel.get(graphApi, {
     versionedUri: propertyType.$id,
