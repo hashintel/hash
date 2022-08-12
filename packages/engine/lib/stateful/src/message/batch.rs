@@ -108,21 +108,40 @@ impl MessageBatch {
             }
         }
 
-        let old_metadata_size = batch.segment().get_metadata()?.len();
+        // check how many nodes + buffers we had on the old metadata
+        #[cfg(debug_assertions)]
+        let old_metadata = ipc::read_record_batch_message(batch.segment()).unwrap();
+        #[cfg(debug_assertions)]
+        let old_buffer_count = old_metadata.buffers().unwrap().unwrap().len();
+        #[cfg(debug_assertions)]
+        let old_node_count = old_metadata.nodes().unwrap().unwrap().len();
+
         // Write new metadata
         let mut metadata = vec![];
         ipc::write_record_batch_message_header(&mut metadata, &write_metadata)?;
         let change = batch.segment_mut().set_metadata(&metadata)?;
         debug_assert!(!change.resized() && !change.shifted());
-        debug_assert_eq!(
-            old_metadata_size,
-            batch
-                .segment()
-                .get_metadata()
-                .expect("Memory should have metadata, because we just set it")
-                .len(),
-            "Metadata size should not change"
-        );
+
+        // check that nodes + buffer counts haven't changed
+        #[cfg(debug_assertions)]
+        {
+            let new_metadata = ipc::read_record_batch_message(batch.segment()).unwrap();
+            let new_buffer_count = new_metadata.buffers().unwrap().unwrap().len();
+            let new_node_count = new_metadata.nodes().unwrap().unwrap().len();
+            assert_eq!(old_buffer_count, new_buffer_count);
+            assert_eq!(old_node_count, new_node_count);
+        }
+
+        // debug_assert_eq!(
+        //     old_metadata_size,
+        //     batch
+        //         .segment()
+        //         .get_metadata()
+        //         .expect("Memory should have metadata, because we just set it")
+        //         .len(),
+        //     "Metadata size should not change, but for the batch with id {} it did",
+        //     batch.segment().id()
+        // );
 
         let cur_len = batch.segment().get_data_buffer_len()?;
         if cur_len < write_metadata.body_len

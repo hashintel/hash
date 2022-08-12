@@ -92,24 +92,25 @@ def _format_behavior_error(behavior_name, exc_info):
 
 def _postprocess(agent_state):
     msgs = agent_state.messages
-    for m in msgs:
-        # Types are checked here because flush might not happen until
-        # several Python behaviors later (due to behavior chaining)
-        # and if type becomes correct in the meantime, the error won't
-        # be raised at all, so whether an error is raised would depend
-        # on the rest of the behavior chain, not just the current behavior.
-        # TODO: OPTIM But maybe delay type-checking until flush after all
-        #       if it has a big performance impact, since it wouldn't affect
-        #       correct user code and isn't very likely to affect incorrect
-        #       code.
+    if msgs:
+        for m in msgs:
+            # Types are checked here because flush might not happen until
+            # several Python behaviors later (due to behavior chaining)
+            # and if type becomes correct in the meantime, the error won't
+            # be raised at all, so whether an error is raised would depend
+            # on the rest of the behavior chain, not just the current behavior.
+            # TODO: OPTIM But maybe delay type-checking until flush after all
+            #       if it has a big performance impact, since it wouldn't affect
+            #       correct user code and isn't very likely to affect incorrect
+            #       code.
 
-        if isinstance(m["to"], str):
-            m["to"] = [m["to"]]
-        elif type(m["to"]) != list:
-            raise TypeError(f"Message `to` field must be a list or a string: {m}")
+            if isinstance(m["to"], str):
+                m["to"] = [m["to"]]
+            elif type(m["to"]) != list:
+                raise TypeError(f"Message `to` field must be a list or a string: {m}")
 
-        if not isinstance(m["type"], str):
-            raise TypeError(f"Message `type` field must be a string: {m}")
+            if not isinstance(m["type"], str):
+                raise TypeError(f"Message `type` field must be a string: {m}")
 
     # TODO: OPTIM hasattr outside of loop over agents might be better than
     #       this try/except inside the loop.

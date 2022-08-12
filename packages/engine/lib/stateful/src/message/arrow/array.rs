@@ -30,7 +30,7 @@ pub const MESSAGE_COLUMN_INDEX: usize = 1;
 
 #[derive(Debug, Eq, PartialEq, ArrowField)]
 pub struct AgentMessage {
-    to: Vec<String>,
+    to: Vec<Option<String>>,
     r#type: String,
     r#data: Option<String>,
 }
@@ -83,11 +83,12 @@ impl Array for MessageArray {
 impl MessageArray {
     /// Creates a new (empty) [`MessageArray`].
     pub fn new(len: usize) -> Self {
-        trace!("creating new MessageArray");
-        Self(ListArray::new_null(
+        let ret = Self(ListArray::new_null(
             MESSAGE_LIST_ARROW_FIELD.data_type.clone(),
             len,
-        ))
+        ));
+        debug_assert_eq!(ret.len(), len);
+        ret
     }
 
     pub fn from_record_batch(batch: &RecordBatch) -> Result<Self> {
@@ -133,7 +134,7 @@ impl MessageArray {
                 };
 
                 message_set.push(Some(AgentMessage {
-                    to: recipients,
+                    to: recipients.into_iter().map(Some).collect(),
                     r#type: kind,
                     data,
                 }))

@@ -978,8 +978,7 @@ impl<'s> ThreadLocalRunner<'s> {
             "Expected offset count is smaller than the actual buffer: {:?}",
             slice::from_raw_parts(data_ptr.as_ptr(), data_len + 1)
         );
-        // todo: not sure here, but this behavior is definitely not correct
-        // builder.resize(target_len + 1, 0);
+        builder.resize(target_len + 1, 0);
         (Buffer::from_iter(builder), last as usize)
     }
 

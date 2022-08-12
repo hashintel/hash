@@ -163,8 +163,7 @@ dependencies = [
 [[package]]
 name = "arrow2_convert"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8cf11efa813424951df94cb0174ae0a22b1dbf1b462360831a3360eefbd693c"
+source = "git+https://github.com/teymour-aldridge/arrow2-convert?branch=escaped-fields#9e8d5fb562e95d2404cf42c3aeda584acf3969ad"
 dependencies = [
  "arrow2",
  "arrow2_convert_derive",
@@ -176,8 +175,7 @@ dependencies = [
 [[package]]
 name = "arrow2_convert_derive"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f4529d8b694306e1ffe7ba324f91659d1994e1d0a86a6492d80522b918560d1"
+source = "git+https://github.com/teymour-aldridge/arrow2-convert?branch=escaped-fields#9e8d5fb562e95d2404cf42c3aeda584acf3969ad"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",

@@ -155,7 +155,7 @@ impl BatchPool for MessageBatchPool {
 
 pub fn recipient_iter_all<'b: 'r, 'r>(
     message_pool_proxy: &'b PoolReadProxy<MessageBatch>,
-) -> impl ParallelIterator<Item = (Vec<String>, MessageReference)> + 'r {
+) -> impl ParallelIterator<Item = (Vec<&str>, MessageReference)> + 'r {
     message_pool_proxy
         .batches
         .par_iter()

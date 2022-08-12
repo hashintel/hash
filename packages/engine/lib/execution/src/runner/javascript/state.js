@@ -132,11 +132,18 @@ const gen_agent_state = (agent_schema, getters) => {
   /// `data` is an optional argument. `data` must be JSON-serializable.
   AgentState.prototype.addMessage = function (to, msg_type, data) {
     // Keeps native messages native and JSON messages as JSON.
-    this.__msgs[this.__idx_in_group].push({
+    let new_message = {
       to: typeof to === "string" ? [to] : to.slice(),
       type: msg_type, // `msg_type` is a string, so don't need to deepcopy it.
       data: hash_util.json_deepcopy(data),
-    }); // json_stringify(null) === 'null'.
+    };
+    // because arrow2 serializes empty arrays as `null`, if there are no messages, then we
+    // need to set the field (because we can't push to null)
+    if (!this.__msgs[this.__idx_in_group]) {
+      this.__msgs[this.__idx_in_group] = [new_message]
+    } else {
+      this.__msgs[this.__idx_in_group].push(new_message); // json_stringify(null) === 'null'.
+    }
   };
 
   /// Returns the index of the currently executing behavior in the agent's behavior chain.

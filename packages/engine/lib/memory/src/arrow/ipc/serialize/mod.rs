@@ -14,7 +14,7 @@ pub(crate) fn assert_buffer_monotonicity(buffers: &Vec<ipc::Buffer>) {
             debug_assert!(
                 buffer.offset >= offset,
                 "the offsets in the buffers must be an increasing set, but are not: the previous \
-                 offset was {}, but the next one was {} (which is less than the previous)",
+                 offset was {}, but the next one was {}",
                 offset,
                 buffer.offset
             );

@@ -18,6 +18,25 @@ pub struct RecordBatch {
 }
 
 impl RecordBatch {
+    /// Creates a new [`RecordBatch`]
+    ///
+    /// When compiled in debug mode, this struct will check that the [`RecordBatch`] is well-formed.
+    pub fn new(schema: Arc<Schema>, columns: Chunk<ArrayRef>) -> Self {
+        #[cfg(debug_assertions)]
+        {
+            for (i, (field, array)) in schema.fields.iter().zip(columns.iter()).enumerate() {
+                assert_eq!(
+                    field.data_type(),
+                    array.data_type(),
+                    "the datatype declared in the schema for column {i} and the datatype of the \
+                     array in the position do not match"
+                )
+            }
+        }
+
+        Self { schema, columns }
+    }
+
     /// Computes the needed [`IpcSchema`] for the given [`RecordBatch`]
     pub fn ipc_schema(&self) -> IpcSchema {
         IpcSchema {
@@ -35,13 +54,6 @@ impl RecordBatch {
             .map(|col| col.len())
             // if there are no columns then we definitely don't have any rows, so return 0
             .unwrap_or(0)
-    }
-
-    /// Creates a new [`RecordBatch`]
-    ///
-    /// When compiled in debug mode, this struct will check that the [`RecordBatch`] is well-formed.
-    pub fn new(schema: Arc<Schema>, columns: Chunk<ArrayRef>) -> Self {
-        Self { schema, columns }
     }
 
     /// Returns the schema of the RecordBatch.

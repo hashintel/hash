@@ -14,7 +14,7 @@ BEHAVIOR_INDEX_FIELD_KEY = "_PRIVATE_7_behavior_index"
 
 class AgentState:
     def __init__(
-            self, group_state, agent_batch, msg_batch, msgs_native, i_agent_in_group
+        self, group_state, agent_batch, msg_batch, msgs_native, i_agent_in_group
     ):
         self.__dict__["__group_state"] = group_state
         self.__dict__["__cols"] = agent_batch.cols
@@ -34,8 +34,9 @@ class AgentState:
         if field == "messages":
             messages = self.__dict__["__msgs"][idx]
             if not self.__dict__["__msgs_native"][idx]:
-                for message in messages:
-                    message["data"] = json.loads(message["data"])
+                if messages:
+                    for message in messages:
+                        message["data"] = json.loads(message["data"])
                 self.__dict__["__msgs_native"][idx] = True
 
             return messages
@@ -98,13 +99,17 @@ class AgentState:
     # `data` is an optional argument. `data` must be JSON-serializable.
     def add_message(self, to, msg_type, data=None):
         idx = self.__dict__["__idx_in_group"]
-        self.__dict__["__msgs"][idx].append(
-            {
-                "to": [to] if isinstance(to, str) else to,
-                "type": msg_type,
-                "data": deepcopy(data) if self.__dict__["__msgs_native"][idx] else json.dumps(data),
-            }
-        )
+        new_message = {
+            "to": [to] if isinstance(to, str) else to,
+            "type": msg_type,
+            "data": deepcopy(data)
+            if self.__dict__["__msgs_native"][idx]
+            else json.dumps(data),
+        }
+        if not self.__dict__["__msgs"][idx]:
+            self.__dict__["__msgs"][idx] = [new_message]
+        else:
+            self.__dict__["__msgs"][idx].append(new_message)
 
     def behavior_index(self):
         """Return the index of the currently executing behavior in the agent's behavior chain."""
@@ -170,10 +175,11 @@ class GroupState:
         group_msgs = self.__msg_batch.cols["messages"]
         for i_agent, agent_msgs in enumerate(group_msgs):
             if self.__msgs_native[i_agent]:
-                for msg in agent_msgs:
-                    # When sending a remove-agent message, `data` may be empty to remove self
-                    if "data" in msg:
-                        msg["data"] = json.dumps(msg["data"])
+                if agent_msgs:
+                    for msg in agent_msgs:
+                        # When sending a remove-agent message, `data` may be empty to remove self
+                        if "data" in msg:
+                            msg["data"] = json.dumps(msg["data"])
 
         self.__msg_batch.flush_changes(schema.message, set())
 

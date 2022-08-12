@@ -17,6 +17,7 @@ use stateful::{
     agent::{AgentBatch, AgentSchema},
     message::{MessageBatch, MessageSchema},
 };
+use tracing::trace;
 
 use crate::command::{Error, Result};
 
@@ -501,6 +502,14 @@ impl<'a> BufferActions {
         buffer_metas: &mut Vec<Buffer>,
         node_metas: &mut Vec<Node>,
     ) -> Result<NextState> {
+        trace!(
+            "started traversing nodes (corresponding batch id: {})",
+            if let Some(b) = agent_batch {
+                b.batch.segment().id()
+            } else {
+                "none"
+            }
+        );
         // Iterate over all buffers
         let node_static_meta = &static_meta.get_node_meta()[next_state.node_index];
         let unit_multiplier = node_static_meta.get_unit_multiplier();
@@ -561,13 +570,20 @@ impl<'a> BufferActions {
                     let mut cur_length = if let Some(agent_batch) = agent_batch {
                         let start_index = buffer_meta.offset;
                         let end_index = start_index + buffer_meta.length;
+                        dbg!(start_index, end_index);
                         let data =
                             &agent_batch.batch.segment().get_data_buffer()?[start_index..end_index];
                         debug_assert_eq!(data, agent_batch.get_buffer(buffer_index).unwrap());
                         debug_assert!(range_actions.is_well_ordered_remove());
                         let mut removed_count = 0;
                         range_actions.remove().iter().for_each(|range| {
-                            debug_assert!(range.next_index() <= data.len() * 8);
+                            debug_assert!(
+                                range.next_index() <= data.len() * 8,
+                                "assertion failed: range.next_index() <= data.len() * 8
+                                note: range.next_index() = {} and data.len() * 8 = {}",
+                                range.next_index(),
+                                data.len() * 8
+                            );
                             debug_assert!(
                                 range.index >= next_bit_index,
                                 "range.index {} >!= next_bit_index {}",

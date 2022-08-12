@@ -79,9 +79,6 @@ pub struct IpcDataMetadata {
 }
 
 /// Writes the header of the message to the buffer.
-///
-/// We write to a `Vec<u8>` beacuse we do not compute the size of the header upfront, and it is
-/// likely to be small.
 pub fn write_record_batch_message_header(
     buf: &mut Vec<u8>,
     metadata: &IpcDataMetadata,
@@ -149,7 +146,6 @@ pub fn write_record_batch_body(
 
     debug_assert_eq!(buffers, metadata.buffers);
     debug_assert_eq!(nodes, metadata.nodes);
-    debug_assert_eq!(data_len, buf.len());
 
     Ok(())
 }

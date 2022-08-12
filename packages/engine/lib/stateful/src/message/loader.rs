@@ -1,6 +1,6 @@
 use arrow2::array::FixedSizeBinaryArray;
 
-use super::arrow::{array::FieldIndex, record_batch::MessageField};
+use super::arrow::array::FieldIndex;
 use crate::{
     field::UUID_V4_LEN,
     message::{
@@ -20,31 +20,39 @@ pub struct RawMessage<'a> {
 /// Loads messages from a [`MessageBatch`].
 pub struct MessageLoader<'a> {
     from: &'a [u8],
-
-    // todo: do we need this field?
-    // to: MessageField,
-    typ: MessageField,
-    data: MessageField,
+    to_bufs: Vec<&'a [i32]>,
+    to: &'a str,
+    typ_bufs: Vec<&'a [i32]>,
+    typ: &'a str,
+    data_bufs: Vec<&'a [i32]>,
+    data: &'a str,
 }
 
 impl<'a> MessageLoader<'a> {
     pub fn from_batch(message_batch: &'a MessageBatch) -> Result<Self> {
         let record_batch = message_batch.batch.record_batch()?;
-        let column = record_batch.column(FROM_COLUMN_INDEX);
-        let data = column
+
+        let column = record_batch
+            .column(FROM_COLUMN_INDEX)
             .as_any()
             .downcast_ref::<FixedSizeBinaryArray>()
             .unwrap();
-        let from = data.values().as_slice();
+        let from = column.values().as_slice();
 
-        // let to = get_message_field(record_batch, FieldIndex::To);
-        let typ = get_message_field(record_batch, FieldIndex::Type);
-        let data = get_message_field(record_batch, FieldIndex::Data);
+        let (to_bufs, to) = get_message_field(record_batch, FieldIndex::To);
+        debug_assert_eq!(to_bufs.len(), 3);
+        let (typ_bufs, typ) = get_message_field(record_batch, FieldIndex::Type);
+        debug_assert_eq!(typ_bufs.len(), 2);
+        let (data_bufs, data) = get_message_field(record_batch, FieldIndex::Data);
+        debug_assert_eq!(data_bufs.len(), 2);
 
         Ok(Self {
             from,
-            // to,
+            to_bufs,
+            to,
+            typ_bufs,
             typ,
+            data_bufs,
             data,
         })
     }
@@ -58,18 +66,32 @@ impl<'a> MessageLoader<'a> {
     }
 
     pub(crate) fn get_type(&self, agent_index: usize, message_index: usize) -> &str {
-        let list_index = self.typ.list_of_fields.offsets()[agent_index] as usize + message_index;
-        let type_start = self.typ.field.offsets()[list_index] as usize;
-        let next_type_start = self.typ.field.offsets()[list_index + 1] as usize;
-        std::str::from_utf8(&self.typ.field.values().as_slice()[type_start..next_type_start])
-            .unwrap()
+        let list_index = self.typ_bufs[0][agent_index] as usize + message_index;
+        let type_start = self.typ_bufs[1][list_index] as usize;
+        let next_type_start = self.typ_bufs[1][list_index + 1] as usize;
+        &self.typ[type_start..next_type_start]
     }
 
     pub(crate) fn get_data(&self, agent_index: usize, message_index: usize) -> &str {
-        let list_index = self.data.list_of_fields.offsets()[agent_index] as usize + message_index;
-        let content_start = self.data.field.offsets()[list_index] as usize;
-        let next_content_start = self.data.field.offsets()[list_index + 1] as usize;
-        std::str::from_utf8(&self.data.field.values()[content_start..next_content_start]).unwrap()
+        let list_index = self.data_bufs[0][agent_index] as usize + message_index;
+        let content_start = self.data_bufs[1][list_index] as usize;
+        let next_content_start = self.data_bufs[1][list_index + 1] as usize;
+        &self.data[content_start..next_content_start]
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn get_recipients(&self, agent_index: usize, message_index: usize) -> Vec<&'a str> {
+        let list_index = self.to_bufs[0][agent_index] as usize + message_index;
+        let list_start = self.to_bufs[1][list_index] as usize;
+        let list_end = self.to_bufs[1][list_index + 1] as usize;
+        let list_length = list_end - list_start;
+        (0..list_length)
+            .map(|i| {
+                let index = self.to_bufs[2][i + list_start] as usize;
+                let next_index = self.to_bufs[2][i + list_start + 1] as usize;
+                &self.to[index..next_index]
+            })
+            .collect()
     }
 
     pub fn get_raw_message(&'a self, agent_index: usize, message_index: usize) -> RawMessage<'a> {
