@@ -32,7 +32,7 @@ import {
 } from "../../../shared/layout";
 import { BlockBasedEntityEditor } from "./[entity-id].page/block-based-entity-editor";
 import { useRouteAccountInfo } from "../../../shared/routing";
-import { PageContextBar } from "../[page-slug].page/page-context-bar";
+import { PageContextBar } from "../../shared/page-context-bar";
 
 const Container = styled("div")(({ theme }) => ({
   display: "grid",

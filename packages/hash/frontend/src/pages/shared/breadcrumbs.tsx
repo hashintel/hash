@@ -17,8 +17,8 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
-import { ReactNode, useMemo } from "react";
-import { MenuItem } from "../../../shared/ui";
+import { ReactNode } from "react";
+import { MenuItem } from "../../shared/ui";
 
 export type Breadcrumb = {
   title: string;

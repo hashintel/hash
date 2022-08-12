@@ -30,7 +30,7 @@ import {
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 import { Button } from "../../shared/ui/button";
-import { PageContextBar } from "./[page-slug].page/page-context-bar";
+import { PageContextBar } from "../shared/page-context-bar";
 
 // Apparently defining this is necessary in order to get server rendered props?
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({

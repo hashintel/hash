@@ -6,7 +6,8 @@ import {
 import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
 import { Box, Typography } from "@mui/material";
 import { ReactNode } from "react";
-import { Button } from "../../../shared/ui";
+import { useReadonlyMode } from "../../shared/readonly-mode";
+import { Button } from "../../shared/ui";
 import { Breadcrumbs } from "./breadcrumbs";
 
 type Props = {
@@ -18,6 +19,7 @@ export const PageContextBar = ({
   crumbs,
   defaultCrumbIcon = <FontAwesomeIcon icon={faFile} />,
 }: Props) => {
+  const { readonlyMode } = useReadonlyMode();
   return (
     <Box display="flex" alignItems="center" height={50} pl={3} pr={4}>
       <Box>
@@ -26,9 +28,9 @@ export const PageContextBar = ({
 
       <Box
         ml="auto"
-        display="flex"
         alignItems="center"
         sx={({ palette }) => ({
+          display: readonlyMode ? "none" : "flex",
           "& > *": {
             color: palette.gray[50],
             "&:hover": {

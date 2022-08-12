@@ -25,8 +25,6 @@ const Main = styled("main")(({ theme }) => ({
 
 export type LayoutWithSidebarProps = {
   children?: ReactNode;
-  banner?: ReactNode;
-  contextBar?: ReactNode;
   fullWidth?: boolean;
 };
 
