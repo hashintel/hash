@@ -5,40 +5,23 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
 import { Box, Typography } from "@mui/material";
+import { ReactNode } from "react";
 import { Button } from "../../../shared/ui";
 import { Breadcrumbs } from "./breadcrumbs";
 
-const crumbs = [
-  {
-    title: "Product manager applications in progress",
-    href: "#",
-  },
-  {
-    title: "Nesting level 1",
-    href: "#",
-  },
-  {
-    title: "Nesting level 2",
-    href: "#",
-  },
-  {
-    title: "Nesting level 3",
-    href: "#",
-  },
-  {
-    title: "Favourite candidates from my list of users",
-    href: "#",
-  },
-];
+type Props = {
+  crumbs: { title: string; href: string; id: string }[];
+  defaultCrumbIcon?: ReactNode;
+};
 
-export const PageContextBar = () => {
+export const PageContextBar = ({
+  crumbs,
+  defaultCrumbIcon = <FontAwesomeIcon icon={faFile} />,
+}: Props) => {
   return (
     <Box display="flex" alignItems="center" height={50} pl={3} pr={4}>
       <Box>
-        <Breadcrumbs
-          crumbs={crumbs}
-          defaultIcon={<FontAwesomeIcon icon={faFile} />}
-        />
+        <Breadcrumbs crumbs={crumbs} defaultIcon={defaultCrumbIcon} />
       </Box>
 
       <Box

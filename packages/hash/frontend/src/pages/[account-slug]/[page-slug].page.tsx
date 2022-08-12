@@ -17,6 +17,10 @@ import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions"
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
 import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageTitle } from "../../blocks/page/PageTitle";
+import {
+  AccountPagesInfo,
+  useAccountPages,
+} from "../../components/hooks/useAccountPages";
 import { useArchivePage } from "../../components/hooks/useArchivePage";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import {
@@ -115,10 +119,40 @@ export const PageNotificationBanner: FunctionComponent = () => {
   );
 };
 
+const generateCrumbsFromPages = ({
+  pages = [],
+  pageId,
+  accountId,
+}: {
+  pageId: string;
+  accountId: string;
+  pages: AccountPagesInfo["data"];
+}) => {
+  let currentIndex = pages.find(({ entityId }) => pageId === entityId);
+  let arr = [];
+
+  while (currentIndex) {
+    arr.push({
+      title: currentIndex.title,
+      href: `/${accountId}/${currentIndex.entityId}`,
+      id: currentIndex.entityId,
+    });
+
+    currentIndex = pages.find(
+      // eslint-disable-next-line no-loop-func
+      ({ entityId }) => entityId === currentIndex?.parentPageEntityId,
+    );
+  }
+
+  arr = arr.reverse();
+
+  return arr;
+};
+
 const Container = styled("div")(({ theme }) => ({
   display: "grid",
-  gridTemplateColumns: "1fr minmax(65ch, 1200px) 1fr",
-  border: "1px solid blue",
+  gridTemplateColumns: "1fr minmax(65ch, 960px) 1fr",
+  padding: theme.spacing(7, 10),
 
   "& > *": {
     gridColumn: "2",
@@ -133,6 +167,8 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   const { pageEntityId } = useRoutePageInfo();
   // versionId is an optional param for requesting a specific page version
   const versionId = router.query.version as string | undefined;
+
+  const { data: accountPages } = useAccountPages(accountId);
 
   const blocksMap = useMemo(() => {
     return keyBy(blocks, (block) => block.meta.componentId);
@@ -168,19 +204,35 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   }, [pageState]);
 
   if (pageState === "transferring") {
-    return <h1>Transferring you to the new page...</h1>;
+    return (
+      <Container>
+        <h1>Transferring you to the new page...</h1>
+      </Container>
+    );
   }
 
   if (loading) {
-    return <h1>Loading...</h1>;
+    return (
+      <Container>
+        <h1>Loading...</h1>
+      </Container>
+    );
   }
 
   if (error) {
-    return <h1>Error: {error.message}</h1>;
+    return (
+      <Container>
+        <h1>Error: {error.message}</h1>
+      </Container>
+    );
   }
 
   if (!data) {
-    return <h1>No data loaded.</h1>;
+    return (
+      <Container>
+        <h1>No data loaded.</h1>
+      </Container>
+    );
   }
 
   const { title } = data.page.properties;
@@ -191,13 +243,20 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
         <title>{title}</title>
       </Head>
       <Box
-        sx={({ zIndex }) => ({
+        sx={({ zIndex, palette }) => ({
           position: "sticky",
           top: 0,
           zIndex: zIndex.appBar,
+          backgroundColor: palette.white,
         })}
       >
-        <PageContextBar />
+        <PageContextBar
+          crumbs={generateCrumbsFromPages({
+            pages: accountPages,
+            pageId: data.page.entityId,
+            accountId,
+          })}
+        />
         <PageNotificationBanner />
       </Box>
 
