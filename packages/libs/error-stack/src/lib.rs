@@ -453,7 +453,7 @@ mod hook;
 #[doc(inline)]
 pub use self::ext::*;
 #[cfg(feature = "hooks")]
-pub use self::hook::{HookAlreadySet, Install};
+pub use self::hook::HookAlreadySet;
 pub use self::{
     context::Context,
     frame::{AttachmentKind, Frame, FrameKind},

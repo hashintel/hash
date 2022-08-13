@@ -34,36 +34,37 @@
 //! use std::io::{Error, ErrorKind};
 //! use insta::assert_snapshot;
 //! use error_stack::{
-//!     fmt::{Hooks, Emit},
+//!     fmt::Emit,
 //!     Report,
 //! };
 //! use error_stack::fmt::HookContext;
 //!
-//! # stringify!(
-//! Report::install_hook(Hooks::new()
-//! # // to make the output easier, we actually use `::bare`, but that shouldn't be really used in this example
-//! # )); Report::install_hook(Hooks::bare()
-//!  // this will never be called, because the a hook after this one has already "taken ownership" of `u64`
-//!  .push(|_: &u64| Emit::next("will never be called"))
+//! // this will never be called, because the a hook after this one has already "taken ownership" of `u64`
+//! Report::install_debug_hook(|_: &u64| Emit::next("will never be called"));
+//!
 //!  // `HookContext` always has a type parameter, which needs to be the same as the type of the
 //!  // value, we use `HookContext` here as storage, to store values specific to this hook.
 //!  // Here we make use of the auto-incrementing feature.
-//!  .push(|_: &u32, ctx: &mut HookContext<u32>| Emit::next(format!("u32 value {}", ctx.increment())))
+//! Report::install_debug_hook(|_: &u32, ctx: &mut HookContext<u32>| Emit::next(format!("u32 value {}", ctx.increment())));
+//!
 //!  // we do not need to make use of the context, to either store a value for the duration of the
 //!  // rendering, or to render additional text, which is why we omit the parameter.
-//!  .push(|val: &u64| Emit::next(format!("u64 value ({val})")))
-//!  .push(|_: &u16, ctx: &mut HookContext<u16>| {
+//! Report::install_debug_hook(|val: &u64| Emit::next(format!("u64 value ({val})")));
+//!
+//! Report::install_debug_hook(|_: &u16, ctx: &mut HookContext<u16>| {
 //!     // we set a value, which will be removed on non-alternate views
 //!     // and is going to be appended to the actual return value.
 //!     ctx.set_text("Look! I was rendered from a `u16`");
 //!     Emit::next("For more information, look down below")
-//!  })
-//!  // you can use arbitrary values as arguments, just make sure that you won't repeat them.
-//!  // here we use [`Line::defer`], this means that this value will be put at the end of the group.
-//!  .push(|val: &String| Emit::defer(val))
-//! ).unwrap();
+//!  });
 //!
-//! let report = Report::new(Error::from(ErrorKind::InvalidInput)).attach(2u64).attach("This is going to be at the end".to_owned()).attach(3u32).attach(3u32).attach(4u16);
+//!  // you can use arbitrary values as arguments, just make sure that you won't repeat them.
+//!  // here we use [`Emit::defer`], this means that this value will be put at the end of the group.
+//! Report::install_debug_hook(|val: &String| Emit::defer(val));
+//!
+//!
+//! let report = Report::new(Error::from(ErrorKind::InvalidInput)).attach(2u64).attach("This is
+//! going to be at the end".to_owned()).attach(3u32).attach(3u32).attach(4u16);
 //!
 //! assert_snapshot!(format!("{report:?}"), @r###"For more information, look down below
 //! │ src/fmt/mod.rs:38:155
@@ -123,14 +124,14 @@ use core::{
 };
 
 #[cfg(feature = "hooks")]
-pub(crate) use hook::ErasedHooks;
+pub use hook::HookContext;
 use hook::HookContextImpl;
+#[cfg(feature = "hooks")]
+pub(crate) use hook::Hooks;
 #[cfg(feature = "hooks")]
 pub use hook::{Builtin, Hook};
 #[cfg(not(feature = "hooks"))]
 pub(crate) use hook::{Builtin, Hook};
-#[cfg(feature = "hooks")]
-pub use hook::{HookContext, Hooks};
 #[cfg(all(nightly, feature = "experimental"))]
 pub use nightly::DebugDiagnostic;
 #[cfg(feature = "glyph")]
@@ -152,16 +153,12 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// use insta::assert_debug_snapshot;
 ///
 /// use error_stack::{
-///     fmt::{Hooks, Emit},
+///     fmt::{Emit},
 ///     Report,
 /// };
 ///
-/// Report::install_hook(
-///     Hooks::bare()
-///         .push(|val: &u64| Emit::next(format!("u64: {val}")))
-///         .push(|val: &u32| Emit::defer(format!("u32: {val}"))),
-/// )
-/// .unwrap();
+/// Report::install_debug_hook(|val: &u64| Emit::next(format!("u64: {val}")));
+/// Report::install_debug_hook(|val: &u32| Emit::defer(format!("u32: {val}")));
 ///
 /// let report = Report::new(Error::from(ErrorKind::InvalidInput))
 ///     .attach(1u64)
@@ -739,11 +736,15 @@ fn debug_attachments(
                 }
 
                 #[cfg(feature = "hooks")]
-                if let Some(hooks) = Report::format_hook() {
-                    return hooks.call(frame, ctx);
-                }
+                {
+                    let lock = Report::format_hook();
+                    return lock.call(frame, ctx.cast());
+                };
 
-                Builtin.call(frame, ctx.cast())
+                #[cfg(not(feature = "hooks"))]
+                {
+                    Builtin.call(frame, ctx.cast())
+                }
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                 Some(attachment.to_string()).map(Emit::Next)

@@ -1,15 +1,19 @@
-use std::{error::Error, fmt};
+use std::{
+    error::Error,
+    fmt,
+    sync::{RwLock, RwLockReadGuard},
+};
 
-use once_cell::sync::OnceCell;
+use once_cell::sync::{Lazy, OnceCell};
 
 use crate::{
-    fmt::{ErasedHooks, Hook, Hooks},
+    fmt::{Hook, Hooks},
     Frame, Report, Result,
 };
 
 type FormatterHook = Box<dyn Fn(&Report<()>, &mut fmt::Formatter<'_>) -> fmt::Result + Send + Sync>;
 
-static FMT_HOOK: OnceCell<ErasedHooks> = OnceCell::new();
+static FMT_HOOK: Lazy<RwLock<Hooks>> = Lazy::new(|| RwLock::new(Hooks::new()));
 static DEBUG_HOOK: OnceCell<FormatterHook> = OnceCell::new();
 static DISPLAY_HOOK: OnceCell<FormatterHook> = OnceCell::new();
 
@@ -29,46 +33,11 @@ impl fmt::Display for HookAlreadySet {
 
 impl Error for HookAlreadySet {}
 
-mod sealed {
-    pub trait Sealed {}
-}
-
-/// Internal trait which is used for [`Report::install_hook`],
-/// this trait is sealed and cannot be implemented by foreign objects.
-pub trait Install: sealed::Sealed {
-    /// Install a specific hook globally, exactly once,
-    /// if a hook has already been installed this should return [`HookAlreadySet`]
-    fn install(self) -> Result<(), HookAlreadySet>;
-}
-
-impl<T> sealed::Sealed for Hooks<T> where T: Hook<Frame, ()> {}
-
-impl<T> Install for Hooks<T>
-where
-    T: Hook<Frame, ()> + Send + Sync + 'static,
-{
-    fn install(self) -> Result<(), HookAlreadySet> {
-        FMT_HOOK
-            .set(self.erase())
-            .map_err(|_| Report::new(HookAlreadySet))
-    }
-}
-
 impl Report<()> {
-    /// Can be used to globally set different hooks that implement the `Install` trait,
-    /// the `Install` trait is internal only and cannot be implemented by foreign objects.
+    /// Can be used to globally set a [`Debug`] format hook, for a specific type `T`, this [`Hook`]
+    /// will be called on every [`Debug`] call, if an attachment with the same type has been found.
     ///
-    /// This currently supports [`fmt::Hooks`].
-    /// [`fmt::Hooks`] can be used to augment the [`Debug`] and [`Display`] implementation
-    /// by providing additional information and output for specific attachment types.
-    ///
-    /// [`set_debug_hook`]: Self::set_debug_hook
-    /// [`.attach()`]: Self::attach
-    /// [`Backtrace`]: std::backtrace::Backtrace
-    /// [`SpanTrace`]: tracing_error::SpanTrace
-    /// [`push()`]: crate::fmt::Hooks::push
-    /// [`fmt::Hooks`]: crate::fmt::Hooks
-    /// [`Display`]: core::fmt::Display
+    /// [`Display`]: core::fmt::Debug
     ///
     /// # Errors
     ///
@@ -86,27 +55,30 @@ impl Report<()> {
     ///
     /// struct Suggestion(&'static str);
     ///
-    /// # fn main() -> Result<(), Report<error_stack::HookAlreadySet>> {
-    /// Report::install_hook(
-    ///     fmt::Hooks::new().push(|val: &Suggestion| Emit::Next(format!("Suggestion: {}", val.0))),
-    /// )?;
+    /// Report::install_debug_hook(|val: &Suggestion| Emit::Next(format!("Suggestion: {}", val.0)));
     ///
     /// let report =
     ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("O no, try again"));
     /// assert!(format!("{report:?}").starts_with("Suggestion: O no, try again"));
-    /// # Ok(()) }
     /// ```
     #[cfg(feature = "hooks")]
-    pub fn install_hook<T: Install>(hook: T) -> Result<(), HookAlreadySet> {
-        hook.install()
+    pub fn install_debug_hook<H: Hook<T, U>, T: Send + Sync + 'static, U: 'static>(hook: H) {
+        let mut lock = FMT_HOOK.write().expect("should not be poisoned");
+        lock.insert(hook);
     }
 
-    /// Returns the hook that was previously set by [`install_hook`], if any.
+    // TODO: docs
+    pub fn install_debug_hook_fallback<H: Hook<Frame, ()>>(hook: H) {
+        let mut lock = FMT_HOOK.write().expect("should not be poisoned");
+        lock.fallback(hook);
+    }
+
+    /// Returns the hook that was previously set by [`install_debug_hook`]
     ///
-    /// [`install_hook`]: Self::install_hook
+    /// [`install_hook`]: Self::install_debug_hook
     #[cfg(feature = "hooks")]
-    pub(crate) fn format_hook() -> Option<&'static ErasedHooks> {
-        FMT_HOOK.get()
+    pub(crate) fn format_hook() -> RwLockReadGuard<'static, Hooks> {
+        FMT_HOOK.read().expect("should not be poisoned")
     }
 
     /// Globally sets a hook which is called when formatting [`Report`] with the [`Debug`] trait.

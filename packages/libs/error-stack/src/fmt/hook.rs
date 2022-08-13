@@ -94,16 +94,23 @@ impl HookContextImpl {
 /// use std::io::ErrorKind;
 ///
 /// use error_stack::{
-///     fmt::{HookContext, Hooks, Emit},
-///     Report,
+///     fmt::{HookContext, Emit, Hook},
+///     Report, Frame
 /// };
 /// use insta::assert_snapshot;
 ///
-/// Report::install_hook(Hooks::bare().push(|val: &u64, ctx: &mut HookContext<u64>| {
+/// # struct Bare;
+/// # impl Hook<Frame, ()> for Bare {
+/// #     fn call(&self, _: &Frame, _: HookContext<Frame>) -> Option<Emit> {
+/// #         None
+/// #     }
+/// # }
+/// # Report::install_debug_hook_fallback(Bare);
+///
+/// Report::install_debug_hook(|val: &u64, ctx: &mut HookContext<u64>| {
 ///     ctx.set_text("u64 has been encountered");
 ///     Emit::next(val.to_string())
-/// }))
-/// .unwrap();
+/// });
 ///
 /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
 ///     .attach(2u64)
@@ -143,12 +150,20 @@ impl HookContextImpl {
 /// use std::io::ErrorKind;
 ///
 /// use error_stack::{
-///     fmt::{HookContext, Hooks, Emit},
-///     Report,
+///     fmt::{HookContext, Emit, Hook},
+///     Report, Frame
 /// };
 /// use insta::assert_snapshot;
 ///
-/// Report::install_hook(Hooks::bare().push(|val: &u64, ctx: &mut HookContext<u64>| {
+/// # struct Bare;
+/// # impl Hook<Frame, ()> for Bare {
+/// #     fn call(&self, _: &Frame, _: HookContext<Frame>) -> Option<Emit> {
+/// #         None
+/// #     }
+/// # }
+/// # Report::install_debug_hook_fallback(Bare);
+///
+/// Report::install_debug_hook(|val: &u64, ctx: &mut HookContext<u64>| {
 ///     let mut acc = ctx.get::<u64>().copied().unwrap_or(0);
 ///     acc += *val;
 ///
@@ -158,8 +173,7 @@ impl HookContextImpl {
 ///     ctx.insert(acc);
 ///
 ///     Emit::next(format!("{val} (acc: {acc}, div: {div})"))
-/// }))
-/// .unwrap();
+/// });
 ///
 /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
 ///     .attach(2u64)
@@ -239,12 +253,16 @@ impl<'a, T> HookContext<'a, T> {
     ///
     /// ```rust
     /// use std::io::ErrorKind;
-    ///
-    /// use error_stack::{
-    ///     fmt::{Hook, HookContext, Hooks, Emit},
-    ///     Report,
-    /// };
+    /// use error_stack::{fmt::{Hook, HookContext, Emit}, Frame, Report };
     /// use insta::assert_snapshot;
+    ///
+    /// # struct Bare;
+    /// # impl Hook<Frame, ()> for Bare {
+    /// #     fn call(&self, _: &Frame, _: HookContext<Frame>) -> Option<Emit> {
+    /// #         None
+    /// #     }
+    /// # }
+    /// # Report::install_debug_hook_fallback(Bare);
     ///
     /// struct CustomHook;
     /// struct Value(u64);
@@ -258,12 +276,8 @@ impl<'a, T> HookContext<'a, T> {
     ///     }
     /// }
     ///
-    /// Report::install_hook(
-    ///     Hooks::bare()
-    ///         .push(|_: &u64, ctx: &mut HookContext<u64>| Emit::next(format!("{}", ctx.increment())))
-    ///         .push(CustomHook),
-    /// )
-    /// .unwrap();
+    /// Report::install_debug_hook(|_: &u64, ctx: &mut HookContext<u64>| Emit::next(format!("{}", ctx.increment())));
+    /// Report::install_debug_hook(CustomHook);
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
     ///     .attach(1u64)
@@ -385,16 +399,21 @@ impl<T: 'static> HookContext<'_, T> {
     /// ```rust
     /// use std::io::ErrorKind;
     ///
-    /// use error_stack::{
-    ///     fmt::{HookContext, Hooks, Emit},
-    ///     Report,
-    /// };
     /// use insta::assert_snapshot;
+    /// use error_stack::{Frame, Report};
+    /// use error_stack::fmt::{Emit, Hook, HookContext};
     ///
-    /// Report::install_hook(Hooks::bare().push(|_: &(), ctx: &mut HookContext<()>| {
+    /// # struct Bare;
+    /// # impl Hook<Frame, ()> for Bare {
+    /// #     fn call(&self, _: &Frame, _: HookContext<Frame>) -> Option<Emit> {
+    /// #         None
+    /// #     }
+    /// # }
+    /// # Report::install_debug_hook_fallback(Bare);
+    ///
+    /// Report::install_debug_hook(|_: &(), ctx: &mut HookContext<()>|{
     ///     Emit::next(format!("{}", ctx.increment()))
-    /// }))
-    /// .unwrap();
+    /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
     ///     .attach(())
@@ -444,15 +463,23 @@ impl<T: 'static> HookContext<'_, T> {
     /// use std::io::ErrorKind;
     ///
     /// use error_stack::{
-    ///     fmt::{HookContext, Hooks, Emit},
-    ///     Report,
+    ///     fmt::{HookContext, Emit, Hook},
+    ///     Report, Frame,
     /// };
     /// use insta::assert_snapshot;
     ///
-    /// Report::install_hook(Hooks::bare().push(|_: &(), ctx: &mut HookContext<()>| {
+    /// # struct Bare;
+    /// # impl Hook<Frame, ()> for Bare {
+    /// #     fn call(&self, _: &Frame, _: HookContext<Frame>) -> Option<Emit> {
+    /// #         None
+    /// #     }
+    /// # }
+    /// # Report::install_debug_hook_fallback(Bare);
+    ///
+    ///
+    /// Report::install_debug_hook(|_: &(), ctx: &mut HookContext<()>| {
     ///     Emit::next(format!("{}", ctx.decrement()))
-    /// }))
-    /// .unwrap();
+    /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
     ///     .attach(())
@@ -490,43 +517,15 @@ impl<T: 'static> HookContext<'_, T> {
     }
 }
 
-mod sealed {
-    /// Sealed trait used in `Hook<T, U>` as a "hack" to allow for multiple blanket type
-    /// implementation.
-    ///
-    /// Otherwise it wouldn't be possible to implement [`Hook<T, U>`] for both `Fn(&T)` and
-    /// `Fn(&T, &mut HookContext)`.
-    pub trait Sealed {}
-}
-
-/// Internal marker trait, which isn't exposed, this is only used to allow for a
-/// blanket implementation on `Fn(&T)`
-#[cfg(feature = "hooks")]
-pub struct FnMarker;
-
-/// Internal marker trait, which isn't exposed, this is only used to allow for a blanket
-/// implementation on `Fn(&T, &mut HookContext<T>)`.
-#[cfg(feature = "hooks")]
-pub struct FnContextMarker;
-
-impl sealed::Sealed for () {}
-#[cfg(feature = "hooks")]
-impl sealed::Sealed for FnMarker {}
-#[cfg(feature = "hooks")]
-impl sealed::Sealed for FnContextMarker {}
-
 /// Trait to interact and inject information on [`Debug`]
 ///
 /// A [`Hook`] can be used to emit a [`Line`] for a [`Frame`], if it can be downcast to `T`.
 ///
-/// `U` acts as am internal marker type. User implementations can only use `()` for `U`.
+/// `U` are the arguments a [`Fn`] takes, user defined implementations should set this to `()`.
 ///
 /// This trait is automatically implemented for [`Fn(&T) -> Line`] and
 /// [`Fn(&T, &mut HookContext<T>) -> Line`].
-pub trait Hook<T, U>
-where
-    U: sealed::Sealed,
-{
+pub trait Hook<T, U>: Send + Sync + 'static {
     /// Function which is called to invoke the hook on a potentially downcasted [`Frame`].
     ///
     /// This function must return [`Option<Line>`], if this function return [`None`] it is
@@ -565,9 +564,9 @@ where
 }
 
 #[cfg(feature = "hooks")]
-impl<F, T> Hook<T, FnContextMarker> for F
+impl<F, T> Hook<T, ()> for F
 where
-    F: Fn(&T, &mut HookContext<T>) -> Emit,
+    F: Fn(&T, &mut HookContext<T>) -> Emit + Send + Sync + 'static,
     T: Send + Sync + 'static,
 {
     fn call(&self, frame: &T, mut ctx: HookContext<T>) -> Option<Emit> {
@@ -576,9 +575,9 @@ where
 }
 
 #[cfg(feature = "hooks")]
-impl<F, T> Hook<T, FnMarker> for F
+impl<F, T> Hook<T, (T,)> for F
 where
-    F: Fn(&T) -> Emit,
+    F: Fn(&T) -> Emit + Send + Sync + 'static,
     T: Send + Sync + 'static,
 {
     fn call(&self, frame: &T, _: HookContext<T>) -> Option<Emit> {
@@ -586,134 +585,15 @@ where
     }
 }
 
-/// A Stack is a simple struct which has a left and a right side,
-/// this is used to chain different hooks together into a list of typed hooks.
-///
-/// Consider the following list of hooks: `[HookA, HookB, HookC]` this would be modelled as:
-///
-/// ```text
-/// Stack<HookA,
-///     Stack<HookB,
-///         Stack<HookC, ()>
-///     >
-/// >
-/// ```
-///
-/// The [`Hook`] implementation of stack will check if the left side supports a [`downcast_ref`] for
-/// the specified frame, if that's the case it will execute the left [`call()`], otherwise it will
-/// call the right [`call()`], two combine multiple stacks use [`Combine`].
-///
-/// [`call()`]: Hook::call
-/// [`downcast_ref`]: Frame::downcast_ref
 #[cfg(feature = "hooks")]
-pub struct Stack<L, T, R> {
-    left: L,
-    right: R,
-    _marker: PhantomData<T>,
-}
+type ErasedHook = Box<dyn Hook<Frame, ()> + Send + Sync>;
 
 #[cfg(feature = "hooks")]
-impl<L, T, R> Stack<L, T, R> {
-    /// Create a new stack
-    pub fn new(left: L, right: R) -> Self {
-        Self {
-            left,
-            right,
-            _marker: PhantomData::default(),
-        }
-    }
-}
-
-// clippy::mismatching_type_param_order is a false positive
-#[cfg(feature = "hooks")]
-#[allow(clippy::mismatching_type_param_order)]
-impl<L, T, U, R> Hook<Frame, ()> for Stack<L, (T, U), R>
-where
-    U: sealed::Sealed,
-    L: Hook<T, U>,
-    T: Send + Sync + 'static,
-    R: Hook<Frame, ()>,
-{
-    fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Emit> {
-        if let Some(frame) = frame.downcast_ref::<T>() {
-            self.left.call(frame, ctx.cast())
-        } else {
-            self.right.call(frame, ctx)
-        }
-    }
-}
-
-/// Combine multiple hooks without eagerly casting.
-///
-/// This is the same as [`Stack`], with the difference that it will combine both sides and try both
-/// if the left side was unsuccessful.
-/// This will short circuit.
-///
-/// Consider the following example: `[HookA, HookB, HookC]`
-///
-/// ```text
-/// Combine<
-///     Stack<HookA, ()>,
-///     Stack<
-///         HookB,
-///         Stack<HookC, ()>
-///     >
-/// >
-/// ```
-///
-/// is equivalent to:
-///
-/// ```text
-/// Stack<
-///     HookA,
-///     Stack<
-///         HookB,
-///         Stack<HookC, ()>
-///     >
-/// >
-/// ```
-#[cfg(feature = "hooks")]
-pub struct Combine<L, R> {
-    left: L,
-    right: R,
-}
-
-#[cfg(feature = "hooks")]
-impl<L, R> Combine<L, R> {
-    /// Create a new combine
-    pub const fn new(left: L, right: R) -> Self {
-        Self { left, right }
-    }
-}
-
-#[cfg(feature = "hooks")]
-impl<L, R> Hook<Frame, ()> for Combine<L, R>
-where
-    L: Hook<Frame, ()>,
-    R: Hook<Frame, ()>,
-{
-    fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Emit> {
-        let parent = ctx.into_impl();
-
-        self.left
-            .call(frame, parent.cast())
-            .or_else(|| self.right.call(frame, parent.cast()))
-    }
-}
-
-#[cfg(feature = "hooks")]
-impl Hook<Frame, ()> for Box<dyn Hook<Frame, ()> + Send + Sync> {
+impl Hook<Frame, ()> for ErasedHook {
     fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Emit> {
         let hook = self.as_ref();
 
         hook.call(frame, ctx)
-    }
-}
-
-#[cfg(feature = "hooks")]
-impl<T> Hook<T, ()> for () {
-    fn call(&self, _: &T, _: HookContext<T>) -> Option<Emit> {
-        None
     }
 }
 
@@ -738,10 +618,13 @@ impl<T> Hook<T, ()> for () {
 /// [`.push()`]: Hooks::push
 #[cfg(feature = "hooks")]
 #[must_use]
-pub struct Hooks<T: Hook<Frame, ()>>(T);
+pub(crate) struct Hooks {
+    inner: BTreeMap<TypeId, ErasedHook>,
+    fallback: ErasedHook,
+}
 
 #[cfg(feature = "hooks")]
-impl Hooks<Builtin> {
+impl Hooks {
     /// Create a new instance of `Hooks`
     ///
     /// Preloaded with [`Builtin`] hooks display [`Backtrace`] and [`SpanTrace`] if those features
@@ -749,142 +632,50 @@ impl Hooks<Builtin> {
     ///
     /// [`Backtrace`]: std::backtrace::Backtrace
     /// [`SpanTrace`]: tracing_error::SpanTrace
-    pub const fn new() -> Self {
-        Self(Builtin)
+    pub(crate) fn new() -> Self {
+        Self {
+            inner: BTreeMap::new(),
+            fallback: Box::new(Builtin),
+        }
+    }
+
+    pub(crate) fn insert<H: Hook<T, U>, T: Send + Sync + 'static, U: 'static>(&mut self, hook: H) {
+        struct Dispatch<T, U> {
+            inner: Box<dyn Hook<T, U>>,
+        }
+
+        impl<T: Send + Sync + 'static, U: 'static> Hook<Frame, ()> for Dispatch<T, U> {
+            fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Emit> {
+                // SAFETY: `.unwrap()` never fails here, because `Hooks` guarantees the function
+                // will never be called on an object which cannot be downcast.
+                let frame = frame.downcast_ref::<T>().unwrap();
+
+                self.inner.call(frame, ctx.cast())
+            }
+        }
+
+        let dispatch = Dispatch {
+            inner: Box::new(hook),
+        };
+
+        self.inner.insert(TypeId::of::<T>(), Box::new(dispatch));
+    }
+
+    pub(crate) fn fallback<H: Hook<Frame, ()>>(&mut self, hook: H) {
+        self.fallback = Box::new(hook);
     }
 }
 
 #[cfg(feature = "hooks")]
-impl Default for Hooks<Builtin> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+impl Hook<Frame, ()> for Hooks {
+    fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Emit> {
+        let ty = Frame::type_id(frame);
 
-#[cfg(feature = "hooks")]
-impl Hooks<()> {
-    /// Create a new bare instance of `Hooks`.
-    ///
-    /// A bare `Hooks` instance does not have [`Builtin`] hooks pre-installed, use [`new()`] to get
-    /// an instance with [`Builtin`] hook support.
-    ///
-    /// [`new()`]: Self::new
-    pub const fn bare() -> Self {
-        Self(())
-    }
-}
-
-#[cfg(feature = "hooks")]
-impl<T: Hook<Frame, ()>> Hooks<T> {
-    const fn new_with(hook: T) -> Self {
-        Self(hook)
-    }
-
-    /// Push a new [`Hook`] onto the stack.
-    ///
-    /// [`Hook`] is implemented for [`Fn(&T) -> Line + Send + Sync + 'static`]
-    /// and [`Fn(&T, &mut HookContext<T>) -> Line + Send + Sync + 'static`].
-    ///
-    /// # Implementation Notes
-    ///
-    /// This functions consumes `self`, because we change the inner type from `T` to `Stack<H, T>`.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use std::io::{Error, ErrorKind};
-    ///
-    /// use error_stack::{
-    ///     fmt::{Emit, HookContext, Hooks},
-    ///     report, Report,
-    /// };
-    ///
-    /// let hooks = Hooks::new() //
-    ///     .push(|val: &u32| Emit::next(format!("{val}u32")))
-    ///     .push(|_: &u64, ctx: &mut HookContext<u64>| {
-    ///         Emit::defer(format!("u64 No. {}", ctx.increment()))
-    ///     });
-    ///
-    /// Report::install_hook(hooks).unwrap();
-    ///
-    /// let report = report!(Error::from(ErrorKind::InvalidInput))
-    ///     .attach(1u32)
-    ///     .attach(2u64)
-    ///     .attach(3u64)
-    ///     .attach(4u32);
-    ///
-    /// assert!(format!("{report:?}").starts_with("4u32"));
-    /// ```
-    pub fn push<H: Hook<F, U>, F: Send + Sync + 'static, U: sealed::Sealed>(
-        self,
-        hook: H,
-    ) -> Hooks<Stack<H, (F, U), T>> {
-        let stack = Stack::new(hook, self.0);
-
-        Hooks::new_with(stack)
-    }
-
-    /// Combine multiple [`Hooks`] together
-    ///
-    /// The argument will be processed **after** the current stack.
-    /// This means that the current stack of [`Hook`]s has a higher priority than the hooks of the
-    /// argument.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use std::io::{Error, ErrorKind};
-    ///
-    /// use error_stack::{
-    ///     fmt::{Emit, HookContext, Hooks},
-    ///     report, Report,
-    /// };
-    ///
-    /// let other = Hooks::new()
-    ///     .push(|val: &u32| Emit::next(format!("unsigned integer: {val}")))
-    ///     .push(|_: &&str| Emit::next("You should have used `.attach_printable` ..."));
-    ///
-    /// let hooks = Hooks::new() //
-    ///     .push(|val: &u32| Emit::next(format!("{val}u32")))
-    ///     .push(|_: &u64, ctx: &mut HookContext<u64>| {
-    ///         Emit::defer(format!("u64 No. {}", ctx.increment()))
-    ///     })
-    ///     .combine(other);
-    ///
-    /// Report::install_hook(hooks).unwrap();
-    ///
-    /// let report = report!(Error::from(ErrorKind::InvalidInput))
-    ///     .attach(1u32)
-    ///     .attach(2u64)
-    ///     .attach(3u64)
-    ///     .attach(4u32)
-    ///     .attach("5");
-    ///
-    /// assert!(format!("{report:?}").starts_with("You should have used `.attach_printable` ..."));
-    /// ```
-    // clippy::missing_const_for_fn is a false positive
-    #[allow(clippy::missing_const_for_fn)]
-    pub fn combine<U: Hook<Frame, ()>>(self, other: Hooks<U>) -> Hooks<Combine<T, U>> {
-        let both = Combine::new(self.0, other.0);
-
-        Hooks::new_with(both)
-    }
-}
-
-#[cfg(feature = "hooks")]
-impl<T: Hook<Frame, ()> + Send + Sync + 'static> Hooks<T> {
-    pub(crate) fn erase(self) -> ErasedHooks {
-        Hooks::new_with(Box::new(self.0))
-    }
-}
-
-#[cfg(feature = "hooks")]
-pub type ErasedHooks = Hooks<Box<dyn Hook<Frame, ()> + Send + Sync>>;
-
-#[cfg(feature = "hooks")]
-impl ErasedHooks {
-    pub(crate) fn call(&self, frame: &Frame, ctx: &mut HookContextImpl) -> Option<Emit> {
-        self.0.call(frame, ctx.cast())
+        if let Some(hook) = self.inner.get(&ty) {
+            hook.call(frame, ctx)
+        } else {
+            self.fallback.call(frame, ctx)
+        }
     }
 }
 
