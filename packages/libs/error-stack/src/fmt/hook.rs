@@ -510,7 +510,6 @@ impl<T: 'static> HookContext<'_, T> {
 
 // TODO: docs
 // TODO: bring back stack debug example <3
-#[derive(Debug)]
 pub enum Call<'a, T> {
     // name TBD
     Find(Emit),
@@ -573,7 +572,7 @@ pub trait Hook<T, U>: Send + Sync + 'static {
     ///     fallback(F, context)
     /// }
     /// ```
-    fn call(&self, frame: &T, ctx: HookContext<T>) -> Call<T>;
+    fn call<'a>(&self, frame: &T, ctx: HookContext<'a, T>) -> Call<'a, T>;
 }
 
 #[cfg(feature = "hooks")]
@@ -582,7 +581,7 @@ where
     F: Fn(&T, &mut HookContext<T>) -> Emit + Send + Sync + 'static,
     T: Send + Sync + 'static,
 {
-    fn call(&self, frame: &T, mut ctx: HookContext<T>) -> Call<T> {
+    fn call<'a>(&self, frame: &T, mut ctx: HookContext<'a, T>) -> Call<'a, T> {
         Call::Find((self)(frame, &mut ctx))
     }
 }
@@ -593,7 +592,7 @@ where
     F: Fn(&T) -> Emit + Send + Sync + 'static,
     T: Send + Sync + 'static,
 {
-    fn call(&self, frame: &T, _: HookContext<T>) -> Call<T> {
+    fn call<'a>(&self, frame: &T, _: HookContext<'a, T>) -> Call<'a, T> {
         Call::Find((self)(frame))
     }
 }
@@ -603,7 +602,7 @@ type ErasedHook = Box<dyn Hook<Frame, ()> + Send + Sync>;
 
 #[cfg(feature = "hooks")]
 impl Hook<Frame, ()> for ErasedHook {
-    fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Call<T> {
+    fn call<'a>(&self, frame: &Frame, ctx: HookContext<'a, Frame>) -> Call<'a, Frame> {
         let hook = self.as_ref();
 
         hook.call(frame, ctx)
@@ -658,7 +657,7 @@ impl Hooks {
         }
 
         impl<T: Send + Sync + 'static, U: 'static> Hook<Frame, ()> for Dispatch<T, U> {
-            fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Call<Frame> {
+            fn call<'a>(&self, frame: &Frame, ctx: HookContext<'a, Frame>) -> Call<'a, Frame> {
                 // SAFETY: `.unwrap()` never fails here, because `Hooks` guarantees the function
                 // will never be called on an object which cannot be downcast.
                 let frame = frame.downcast_ref::<T>().unwrap();
@@ -681,7 +680,7 @@ impl Hooks {
 
 #[cfg(feature = "hooks")]
 impl Hook<Frame, ()> for Hooks {
-    fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Call<Frame> {
+    fn call<'a>(&self, frame: &Frame, ctx: HookContext<'a, Frame>) -> Call<'a, Frame> {
         let ty = Frame::type_id(frame);
 
         if let Some(hook) = self.inner.get(&ty) {
@@ -704,7 +703,7 @@ mod builtin {
     use crate::{
         fmt::{
             hook::{Hook, HookContext},
-            Emit, Snippet,
+            Call, Emit, Snippet,
         },
         Frame,
     };
@@ -756,23 +755,23 @@ mod builtin {
 
     impl Hook<Frame, ()> for Builtin {
         #[allow(unused_variables)]
-        fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Emit> {
+        fn call<'a>(&self, frame: &Frame, ctx: HookContext<'a, Frame>) -> Call<'a, Frame> {
             #[cfg(all(nightly, feature = "std"))]
             if let Some(bt) = frame.request_ref() {
-                return Some(backtrace(bt, &mut ctx.cast()));
+                return Call::Find(backtrace(bt, &mut ctx.cast()));
             }
 
             #[cfg(all(feature = "spantrace", not(nightly)))]
             if let Some(st) = frame.downcast_ref() {
-                return Some(spantrace(st, &mut ctx.cast()));
+                return Call::Find(spantrace(st, &mut ctx.cast()));
             }
 
             #[cfg(all(feature = "spantrace", nightly))]
             if let Some(st) = frame.request_ref() {
-                return Some(spantrace(st, &mut ctx.cast()));
+                return Call::Find(spantrace(st, &mut ctx.cast()));
             }
 
-            None
+            Call::Miss(ctx)
         }
     }
 }

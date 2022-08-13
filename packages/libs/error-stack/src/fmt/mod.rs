@@ -129,15 +129,15 @@ use hook::HookContextImpl;
 #[cfg(feature = "hooks")]
 pub(crate) use hook::Hooks;
 #[cfg(feature = "hooks")]
-pub use hook::{Builtin, Hook};
+pub use hook::{Builtin, Call, Hook};
 #[cfg(not(feature = "hooks"))]
-pub(crate) use hook::{Builtin, Hook};
+pub(crate) use hook::{Builtin, Call, Hook};
 #[cfg(all(nightly, feature = "experimental"))]
 pub use nightly::DebugDiagnostic;
 #[cfg(feature = "glyph")]
 use owo_colors::{OwoColorize, Stream::Stdout, Style as OwOStyle};
 
-use crate::{fmt::hook::Call, AttachmentKind, Context, Frame, FrameKind, Report};
+use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
 /// Modify the behaviour, with which `Line`s returned from hook invocations are rendered.
 ///
