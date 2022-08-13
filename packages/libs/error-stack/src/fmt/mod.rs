@@ -137,7 +137,7 @@ pub use nightly::DebugDiagnostic;
 #[cfg(feature = "glyph")]
 use owo_colors::{OwoColorize, Stream::Stdout, Style as OwOStyle};
 
-use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
+use crate::{fmt::hook::Call, AttachmentKind, Context, Frame, FrameKind, Report};
 
 /// Modify the behaviour, with which `Line`s returned from hook invocations are rendered.
 ///
@@ -153,9 +153,17 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// use insta::assert_debug_snapshot;
 ///
 /// use error_stack::{
-///     fmt::{Emit},
-///     Report,
+///     fmt::{Emit, Hook, HookContext},
+///     Report, Frame
 /// };
+///
+/// # struct Bare;
+/// # impl Hook<Frame, ()> for Bare {
+/// #     fn call(&self, _: &Frame, _: HookContext<Frame>) -> Option<Emit> {
+/// #         None
+/// #     }
+/// # }
+/// # Report::install_debug_hook_fallback(Bare);
 ///
 /// Report::install_debug_hook(|val: &u64| Emit::next(format!("u64: {val}")));
 /// Report::install_debug_hook(|val: &u32| Emit::defer(format!("u32: {val}")));
@@ -188,6 +196,7 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// ╰─▶ 1 additional attachment"###)
 /// ```
 #[derive(Debug, Clone)]
+#[must_use]
 pub enum Emit {
     /// Line is going to be emitted after all immediate lines have been emitted from the current
     /// stack.
@@ -212,6 +221,23 @@ impl Emit {
     /// [`Defer`]: Self::Defer
     pub fn defer<T: Into<String>>(line: T) -> Self {
         Self::Defer(line.into())
+    }
+}
+
+#[derive(Debug, Clone)]
+#[must_use]
+pub enum Snippet {
+    Regular(String),
+    Force(String),
+}
+
+impl Snippet {
+    pub fn regular<T: Into<String>>(snippet: T) -> Self {
+        Self::Regular(snippet.into())
+    }
+
+    pub fn force<T: Into<String>>(snippet: T) -> Self {
+        Self::Force(snippet.into())
     }
 }
 
@@ -728,8 +754,8 @@ fn debug_attachments(
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
                 #[cfg(all(nightly, feature = "experimental"))]
                 if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
-                    for text in debug.text() {
-                        ctx.cast::<()>().set_text(text);
+                    for snippet in debug.snippets() {
+                        ctx.cast::<()>().add_snippet(snippet.clone());
                     }
 
                     return Some(debug.output().clone());
@@ -738,7 +764,7 @@ fn debug_attachments(
                 #[cfg(feature = "hooks")]
                 {
                     let lock = Report::format_hook();
-                    return lock.call(frame, ctx.cast());
+                    return lock.call(frame, ctx.cast()).consume()
                 };
 
                 #[cfg(not(feature = "hooks"))]
@@ -988,22 +1014,27 @@ impl<C> Debug for Report<C> {
             .collect::<Vec<_>>()
             .join("\n");
 
-        // TODO: force
-        // only output detailed information (like backtraces), if alternative mode has been enabled.
-        if fmt.alternate() {
-            let suffix = ctx
-                .text
-                .into_iter()
-                .map(|lines| lines.join("\n"))
-                .collect::<Vec<_>>()
-                .join("\n\n");
+        // only output detailed information (like backtraces), if alternate mode is enabled, or the
+        // snippet has been forced.
+        let suffix = ctx
+            .snippets
+            .into_iter()
+            .filter_map(|snippet| match snippet {
+                Snippet::Regular(snippet) if fmt.alternate() => Some(snippet),
+                Snippet::Regular(_) => None,
+                Snippet::Force(snippet) => Some(snippet),
+            })
+            .collect::<Vec<_>>()
+            .join("\n\n");
 
-            if !suffix.is_empty() {
-                lines.push_str("\n\n");
-                lines.push_str(&"━".repeat(40));
-                lines.push_str("\n\n");
-                lines.push_str(&suffix);
-            }
+        if !suffix.is_empty() {
+            // 44 is the size for the separation.
+            lines.reserve(44 + suffix.len());
+
+            lines.push_str("\n\n");
+            lines.push_str(&"━".repeat(40));
+            lines.push_str("\n\n");
+            lines.push_str(&suffix);
         }
 
         fmt.write_str(&lines)

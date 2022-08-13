@@ -22,20 +22,21 @@ use core::marker::PhantomData;
 
 pub use builtin::Builtin;
 
-use crate::fmt::Emit;
 #[cfg(feature = "hooks")]
 use crate::fmt::Frame;
+use crate::fmt::{Emit, Snippet};
 
 #[derive(Default)]
 pub struct HookContextImpl {
-    pub(crate) text: Vec<Vec<String>>,
+    pub(crate) snippets: Vec<Snippet>,
     alternate: bool,
+
     #[cfg(any(
         feature = "hooks",
         feature = "spantrace",
         all(nightly, feature = "std")
     ))]
-    inner: BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>,
+    storage: BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>,
 }
 
 impl HookContextImpl {
@@ -205,36 +206,25 @@ pub struct HookContext<'a, T> {
     _parent: PhantomData<&'a ()>,
 }
 
-// TODO: consider this being cloneable, would tremendously help other implementations.
-//  as otherwise it isn't really possible to call multiple times ~> return HookContext on `None`?
 impl<T> HookContext<'_, T> {
-    /// If [`Debug`] requests, this text (which can include line breaks) will be appended to the
+    /// If [`Debug`] requests, this snippet (which can include line breaks) will be appended to the
     /// main message.
+    ///
+    /// A [`Hook`] can force the append of a snippet by using [`Snippet::Force`],
+    /// [`Snippet::Normal`] will only be appended if [`alternate()`] is requested.
     ///
     /// This is useful for dense information like backtraces, or span traces, which are omitted when
     /// rendering without the alternate [`Debug`] output.
+    ///
+    /// [`alternate()`]: Self::alternate
     #[cfg(any(
         feature = "hooks",
         feature = "spantrace",
         all(nightly, feature = "std"),
         feature = "experimental"
     ))]
-    pub fn set_text(&mut self, value: &str) {
-        self.text_lines(value.lines());
-    }
-
-    /// Same as [`Self::text`], but only accepts lines (the internal representation used during
-    /// rendering)
-    #[cfg(any(
-        feature = "hooks",
-        feature = "spantrace",
-        all(nightly, feature = "std"),
-        feature = "experimental"
-    ))]
-    fn text_lines(&mut self, lines: core::str::Lines) {
-        self.parent
-            .text
-            .push(lines.map(ToOwned::to_owned).collect());
+    pub fn add_snippet(&mut self, snippet: Snippet) {
+        self.parent.snippets.push(snippet)
     }
 }
 
@@ -309,7 +299,6 @@ impl<'a, T> HookContext<'a, T> {
         }
     }
 
-    // TODO: text force (how?)
     /// Is the currently requested format the alternate representation?
     /// This corresponds to the output of [`std::fmt::Formatter::alternate`].
     #[cfg(feature = "hooks")]
@@ -334,7 +323,7 @@ impl<T: 'static> HookContext<'_, T> {
     #[must_use]
     pub fn get<U: 'static>(&self) -> Option<&U> {
         self.parent
-            .inner
+            .storage
             .get(&TypeId::of::<T>())?
             .get(&TypeId::of::<U>())?
             .downcast_ref()
@@ -352,7 +341,7 @@ impl<T: 'static> HookContext<'_, T> {
     ))]
     pub fn get_mut<U: 'static>(&mut self) -> Option<&mut U> {
         self.parent
-            .inner
+            .storage
             .get_mut(&TypeId::of::<T>())?
             .get_mut(&TypeId::of::<U>())?
             .downcast_mut()
@@ -369,7 +358,7 @@ impl<T: 'static> HookContext<'_, T> {
     ))]
     pub fn insert<U: 'static>(&mut self, value: U) -> Option<U> {
         self.parent
-            .inner
+            .storage
             .entry(TypeId::of::<T>())
             .or_default()
             .insert(TypeId::of::<U>(), Box::new(value))?
@@ -384,7 +373,7 @@ impl<T: 'static> HookContext<'_, T> {
     #[cfg(feature = "hooks")]
     pub fn remove<U: 'static>(&mut self) -> Option<U> {
         self.parent
-            .inner
+            .storage
             .get_mut(&TypeId::of::<T>())?
             .remove(&TypeId::of::<U>())?
             .downcast()
@@ -519,6 +508,32 @@ impl<T: 'static> HookContext<'_, T> {
     }
 }
 
+// TODO: docs
+// TODO: bring back stack debug example <3
+#[derive(Debug)]
+pub enum Call<'a, T> {
+    // name TBD
+    Find(Emit),
+    // name TBD
+    Miss(HookContext<'a, T>),
+}
+
+impl<'a, T> Call<'a, T> {
+    pub fn cast<U>(self) -> Call<'a, U> {
+        match self {
+            Call::Find(emit) => Call::Find(emit),
+            Call::Miss(ctx) => Call::Miss(ctx.cast()),
+        }
+    }
+
+    pub fn consume(self) -> Option<Emit> {
+        match self {
+            Call::Find(emit) => Some(emit),
+            Call::Miss(_) => None,
+        }
+    }
+}
+
 /// Trait to interact and inject information on [`Debug`]
 ///
 /// A [`Hook`] can be used to emit a [`Line`] for a [`Frame`], if it can be downcast to `T`.
@@ -547,22 +562,18 @@ pub trait Hook<T, U>: Send + Sync + 'static {
     /// have a list of hooks H
     /// have a frame F
     ///
-    /// for every hook h in H {
-    ///     able = can F be downcast to T (of h)?
-    ///     if not able {
-    ///         skip
-    ///     }
-    ///     
-    ///     f = F.downcast();
+    /// typeid = TypeId of attachment in F
     ///
-    ///     if let Some(result) = h.call(f) {
-    ///         return Some(result)
-    ///     }
+    /// is typeid in hooks? {
+    ///     let h = H[typeid];
+    ///     let f = F.downcast() to T;
+    ///
+    ///     h.call(f, context)
+    /// } else {
+    ///     fallback(F, context)
     /// }
-    ///
-    /// return None
     /// ```
-    fn call(&self, frame: &T, ctx: HookContext<T>) -> Option<Emit>;
+    fn call(&self, frame: &T, ctx: HookContext<T>) -> Call<T>;
 }
 
 #[cfg(feature = "hooks")]
@@ -571,8 +582,8 @@ where
     F: Fn(&T, &mut HookContext<T>) -> Emit + Send + Sync + 'static,
     T: Send + Sync + 'static,
 {
-    fn call(&self, frame: &T, mut ctx: HookContext<T>) -> Option<Emit> {
-        Some((self)(frame, &mut ctx))
+    fn call(&self, frame: &T, mut ctx: HookContext<T>) -> Call<T> {
+        Call::Find((self)(frame, &mut ctx))
     }
 }
 
@@ -582,8 +593,8 @@ where
     F: Fn(&T) -> Emit + Send + Sync + 'static,
     T: Send + Sync + 'static,
 {
-    fn call(&self, frame: &T, _: HookContext<T>) -> Option<Emit> {
-        Some((self)(frame))
+    fn call(&self, frame: &T, _: HookContext<T>) -> Call<T> {
+        Call::Find((self)(frame))
     }
 }
 
@@ -592,7 +603,7 @@ type ErasedHook = Box<dyn Hook<Frame, ()> + Send + Sync>;
 
 #[cfg(feature = "hooks")]
 impl Hook<Frame, ()> for ErasedHook {
-    fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Emit> {
+    fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Call<T> {
         let hook = self.as_ref();
 
         hook.call(frame, ctx)
@@ -647,12 +658,12 @@ impl Hooks {
         }
 
         impl<T: Send + Sync + 'static, U: 'static> Hook<Frame, ()> for Dispatch<T, U> {
-            fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Emit> {
+            fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Call<Frame> {
                 // SAFETY: `.unwrap()` never fails here, because `Hooks` guarantees the function
                 // will never be called on an object which cannot be downcast.
                 let frame = frame.downcast_ref::<T>().unwrap();
 
-                self.inner.call(frame, ctx.cast())
+                self.inner.call(frame, ctx.cast()).cast()
             }
         }
 
@@ -670,7 +681,7 @@ impl Hooks {
 
 #[cfg(feature = "hooks")]
 impl Hook<Frame, ()> for Hooks {
-    fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Option<Emit> {
+    fn call(&self, frame: &Frame, ctx: HookContext<Frame>) -> Call<Frame> {
         let ty = Frame::type_id(frame);
 
         if let Some(hook) = self.inner.get(&ty) {
@@ -693,7 +704,7 @@ mod builtin {
     use crate::{
         fmt::{
             hook::{Hook, HookContext},
-            Emit,
+            Emit, Snippet,
         },
         Frame,
     };
@@ -702,7 +713,11 @@ mod builtin {
     fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Emit {
         let idx = ctx.increment();
 
-        ctx.set_text(&format!("Backtrace No. {}\n{}", idx + 1, backtrace));
+        ctx.add_snippet(Snippet::Regular(format!(
+            "Backtrace No. {}\n{}",
+            idx + 1,
+            backtrace
+        )));
 
         Emit::Defer(format!(
             "backtrace with {} frames ({})",
@@ -721,7 +736,11 @@ mod builtin {
             true
         });
 
-        ctx.set_text(&format!("Span Trace No. {}\n{}", idx + 1, spantrace));
+        ctx.add_snippet(Snippet::regular(format!(
+            "Span Trace No. {}\n{}",
+            idx + 1,
+            spantrace
+        )));
 
         Emit::Defer(format!("spantrace with {span} frames ({})", idx + 1))
     }

@@ -1,6 +1,6 @@
 use alloc::{string::String, vec, vec::Vec};
 
-use crate::fmt::Emit;
+use crate::fmt::{Emit, Snippet};
 
 /// `nightly` experimental type, which is used during the formatting of [`Debug`] context via the
 /// [`Provider`] api.
@@ -45,7 +45,7 @@ use crate::fmt::Emit;
 //  is introduced.
 pub struct DebugDiagnostic {
     output: Emit,
-    text: Vec<String>,
+    snippets: Vec<Snippet>,
 }
 
 impl DebugDiagnostic {
@@ -53,7 +53,7 @@ impl DebugDiagnostic {
     pub fn next<T: Into<String>>(output: T) -> Self {
         Self {
             output: Emit::Next(output.into()),
-            text: vec![],
+            snippets: vec![],
         }
     }
 
@@ -62,7 +62,7 @@ impl DebugDiagnostic {
     pub fn defer<T: Into<String>>(output: T) -> Self {
         Self {
             output: Emit::Defer(output.into()),
-            text: vec![],
+            snippets: vec![],
         }
     }
 
@@ -71,8 +71,8 @@ impl DebugDiagnostic {
     ///
     /// Text is only emitted at the end of extended [`Debug`] (`:#?`)
     #[must_use]
-    pub fn and_text(mut self, text: String) -> Self {
-        self.text.push(text);
+    pub fn add_snippet(mut self, snippet: Snippet) -> Self {
+        self.snippets.push(snippet);
         self
     }
 
@@ -80,7 +80,7 @@ impl DebugDiagnostic {
         &self.output
     }
 
-    pub(crate) fn text(&self) -> &[String] {
-        &self.text
+    pub(crate) fn snippets(&self) -> &[Snippet] {
+        &self.snippets
     }
 }
