@@ -205,6 +205,8 @@ pub struct HookContext<'a, T> {
     _parent: PhantomData<&'a ()>,
 }
 
+// TODO: consider this being cloneable, would tremendously help other implementations.
+//  as otherwise it isn't really possible to call multiple times ~> return HookContext on `None`?
 impl<T> HookContext<'_, T> {
     /// If [`Debug`] requests, this text (which can include line breaks) will be appended to the
     /// main message.
