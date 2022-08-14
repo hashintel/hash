@@ -77,31 +77,21 @@ class __Page extends Entity {
     const childrenIndexes = children.map((page) => page.properties.index);
 
     const sortedIndexes = childrenIndexes.sort();
-    // console.log(index);
-    // console.log(children);
-    // console.log(sortedIndexes);
-    // console.log(sortedIndexes.length);
 
     if (index !== null) {
       const before =
-        index === 0 ? null : sortedIndexes[index - (sameParent ? 0 : 1)];
+        (index !== 0 && sortedIndexes[index - (sameParent ? 0 : 1)]) || null;
+
       const after =
-        index === sortedIndexes.length - (sameParent ? 1 : 0)
-          ? null
-          : sortedIndexes[index + (sameParent ? 1 : 0)];
-      // console.log(before);
-      // console.log(after);
-      // console.log("final: " + generateKeyBetween(before, after));
+        (index !== sortedIndexes.length - (sameParent ? 1 : 0) &&
+          sortedIndexes[index + (sameParent ? 1 : 0)]) ||
+        null;
+
       return generateKeyBetween(before, after);
     }
 
-    console.log(
-      sortedIndexes.length ? sortedIndexes[sortedIndexes.length - 1] : null,
-    );
-    console.log(null);
-
     return generateKeyBetween(
-      sortedIndexes.length ? sortedIndexes[sortedIndexes.length - 1] : null,
+      (sortedIndexes.length && sortedIndexes[sortedIndexes.length - 1]) || null,
       null,
     );
   }
@@ -175,34 +165,6 @@ class __Page extends Entity {
               },
             },
           ];
-
-    // const pageEntities = await Entity.getEntitiesBySystemType(client, {
-    //   accountId: params.accountId,
-    //   systemTypeName: "Page",
-    //   latestOnly: true,
-    // });
-
-    // const pages = await Promise.all(
-    //   pageEntities.map((entity) => Page.fromEntity(client, entity)),
-    // );
-
-    // const filteredPages = pages.filter(
-    //   async (page) => !(await page.getParentPage(client)),
-    // );
-
-    // const filteredPagesIndex = await Promise.all(
-    //   pages.map(async (page) => {
-    //     if (await page.getParentPage(client)) {
-    //       return [];
-    //     }
-    //     return page.properties.index || [];
-    //   }),
-    // ).then((parentlessPages) => parentlessPages.flat());
-
-    // const sortedIndexes = filteredPagesIndex.sort();
-
-    // const maxIndex =
-    //   sortedIndexes.length && sortedIndexes[sortedIndexes.length - 1];
 
     pageProperties.index = await __Page.getPageFractionalIndex(client, {
       accountId,
@@ -380,7 +342,7 @@ class __Page extends Entity {
     client: DbClient,
     params: {
       parentPage: Page | null;
-      index?: number;
+      index: number | null;
       setByAccountId: string;
     },
   ): Promise<void> {
@@ -416,14 +378,6 @@ class __Page extends Entity {
         destination: parentPage,
       });
     }
-
-    // console.log(index);
-
-    // console.log(index);
-    // console.log(parentPage?.entityId);
-
-    // console.log(this);
-    // console.log(super.);
 
     await this.partialPropertiesUpdate(client, {
       properties: {

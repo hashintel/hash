@@ -26,7 +26,6 @@ import {
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 import { Button } from "../../shared/ui/button";
-import { SortableTree } from "../../shared/layout/layout-with-sidebar/sortable-tree/sortable-tree";
 
 // Apparently defining this is necessary in order to get server rendered props?
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
@@ -221,12 +220,11 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
 
       <main>
         <CollabPositionProvider value={collabPositions}>
-          {/* <PageBlock
+          <PageBlock
             accountId={accountId}
             blocks={blocksMap}
             entityId={pageEntityId}
-          /> */}
-          <SortableTree />
+          />
         </CollabPositionProvider>
       </main>
     </>

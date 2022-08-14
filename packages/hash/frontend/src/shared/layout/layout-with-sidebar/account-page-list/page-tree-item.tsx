@@ -19,6 +19,7 @@ export interface PageTreeItemProps {
   selected: boolean;
   expanded: boolean;
   expandable: boolean;
+  collapsed: boolean;
   disabled: boolean;
   onCollapse?: () => void;
   isDragging?: boolean;
@@ -27,7 +28,7 @@ export interface PageTreeItemProps {
   style?: CSSProperties;
   wrapperRef?(node: HTMLLIElement): void;
 }
-// tweaked the example at https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
+
 export const PageTreeItem = forwardRef(
   (
     {
@@ -39,6 +40,7 @@ export const PageTreeItem = forwardRef(
       selected,
       onCollapse,
       expanded,
+      collapsed,
       disabled,
       isDragging,
       style,
@@ -55,7 +57,7 @@ export const PageTreeItem = forwardRef(
       popupId: "page-menu",
     });
 
-    return (
+    return !collapsed ? (
       <Box
         ref={wrapperRef}
         onMouseEnter={() => setHovered(true)}
@@ -68,9 +70,10 @@ export const PageTreeItem = forwardRef(
             display: "flex",
             alignItems: "center",
             borderRadius: "4px",
-            transition: `${transitions.create("padding-left")}; ${
-              style?.transition
-            }`,
+            transition: `${transitions.create("padding-left", {
+              duration: 200,
+              easing: "ease",
+            })}, ${style?.transition}`,
             paddingLeft: `${16 * depth + 8}px`,
             paddingRight: 0.5,
             backgroundColor: selected
@@ -169,6 +172,6 @@ export const PageTreeItem = forwardRef(
           <PageMenu popupState={popupState} entityId={id} />
         </Box>
       </Box>
-    );
+    ) : null;
   },
 );

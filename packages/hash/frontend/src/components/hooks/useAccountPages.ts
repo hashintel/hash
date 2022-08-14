@@ -10,7 +10,7 @@ import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 export type AccountPage = {
   title: string;
   entityId: string;
-  parentPageEntityId: string;
+  parentPageEntityId: string | null;
 };
 
 export const useAccountPages = (accountId: string) => {

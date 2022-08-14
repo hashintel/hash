@@ -1,13 +1,4 @@
-import {
-  FunctionComponent,
-  useMemo,
-  useState,
-  useCallback,
-  useEffect,
-  useRef,
-  MutableRefObject,
-} from "react";
-
+import { FunctionComponent, useMemo, useState, useCallback } from "react";
 import { useLocalstorageState } from "rooks";
 import {
   SortableContext,
@@ -30,58 +21,22 @@ import {
   DragStartEvent,
   defaultDropAnimation,
 } from "@dnd-kit/core";
-import { CSS } from "@dnd-kit/utilities";
-
-import { groupBy, isEqual } from "lodash";
-import {
-  AccountPage,
-  useAccountPages,
-} from "../../../components/hooks/useAccountPages";
-import { useCreatePage } from "../../../components/hooks/useCreatePage";
-import { NavLink } from "./nav-link";
-import { AccountPageListItem } from "./account-page-list-item";
-import { getProjection } from "./sortable-tree/utilities";
-import { LoadingSpinner } from "@hashintel/hash-design-system/loading-spinner";
 import Box from "@mui/material/Box";
+import { useAccountPages } from "../../../../components/hooks/useAccountPages";
+import { useCreatePage } from "../../../../components/hooks/useCreatePage";
+import { NavLink } from "../nav-link";
+import { AccountPageListItem } from "./account-page-list-item";
+import { useReorderPage } from "../../../../components/hooks/useReorderPage";
+import { TreeElement, orderItems, getProjection } from "./utilities";
 
 type AccountPageListProps = {
   accountId: string;
   currentPageEntityId?: string;
 };
 
-type TreeElement = {
-  entityId: string;
-  parentPageEntityId: string;
-  parentId: string;
-  title: string;
-  depth: number;
-  index: number;
-  expanded: boolean;
-  expandable: boolean;
-};
-
-export type SensorContext = MutableRefObject<{
-  items: TreeElement[];
-  offset: number;
-}>;
-
 const dropAnimationConfig: DropAnimation = {
-  keyframes({ transform }) {
-    return [
-      { opacity: 1, transform: CSS.Transform.toString(transform.initial) },
-      {
-        opacity: 0,
-        transform: CSS.Transform.toString({
-          ...transform.final,
-          x: transform.final.x + 5,
-          y: transform.final.y + 5,
-        }),
-      },
-    ];
-  },
-  easing: "ease-out",
   sideEffects({ active }) {
-    active.node.animate([{ opacity: 0 }, { opacity: 1 }], {
+    active.node.animate([{ opacity: 1 }, { opacity: 1 }], {
       duration: defaultDropAnimation.duration,
       easing: defaultDropAnimation.easing,
     });
@@ -94,66 +49,23 @@ const measuringConfig = {
   },
 };
 
-const recursiveOrder = (
-  groupedPages: { [id: string]: AccountPage[] },
-  id: string,
-  expandedIds: string[],
-  depth = 0,
-): TreeElement[] => {
-  const emptyList: TreeElement[] = [];
-  return (
-    groupedPages[id]?.reduce((prev, page, index) => {
-      const children = recursiveOrder(
-        groupedPages,
-        page.entityId,
-        expandedIds,
-        depth + 1,
-      );
-      const expanded = expandedIds.includes(page.entityId);
-      const expandable = !!children.length;
-
-      return [
-        ...prev,
-        ...[
-          {
-            ...page,
-            depth,
-            index,
-            parentId: page.parentPageEntityId,
-            expanded,
-            expandable,
-          },
-          ...(expanded ? children : []),
-        ],
-      ];
-    }, emptyList) || emptyList
-  );
-};
-
-const orderItems = (pages: AccountPage[], expandedIds: string[]) =>
-  recursiveOrder(
-    groupBy(pages, (page) => page.parentPageEntityId),
-    "null",
-    expandedIds,
-    0,
-  );
-
 export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   currentPageEntityId,
   accountId,
 }) => {
   const { data } = useAccountPages(accountId);
+  const { createUntitledPage } = useCreatePage(accountId);
+  const { reorderPage } = useReorderPage(accountId);
+
   const [loading, setLoading] = useState(false);
   const [expandedPageIds, setExpandedPageIds] = useLocalstorageState<string[]>(
     "hash-expanded-sidebar-pages",
     [],
   );
-  const [items, setItems] = useState<TreeElement[]>(() => []);
+  const [items, setItems] = useState<TreeElement[]>([]);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
   const [offsetLeft, setOffsetLeft] = useState(0);
-
-  const { createUntitledPage, reorderPage } = useCreatePage(accountId);
 
   // @todo handle loading/error states properly
   const addPage = useCallback(async () => {
@@ -182,6 +94,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
   useMemo(() => {
     setItems(orderItems(data, expandedPageIds));
+    setLoading(false);
   }, [data, expandedPageIds]);
 
   const sensors = useSensors(
@@ -191,18 +104,6 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       },
     }),
   );
-
-  const sensorContext: SensorContext = useRef({
-    items,
-    offset: offsetLeft,
-  });
-
-  useEffect(() => {
-    sensorContext.current = {
-      items,
-      offset: offsetLeft,
-    };
-  }, [items, offsetLeft]);
 
   const projected =
     activeId && overId
@@ -265,8 +166,6 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           ...activeTreeItem,
           depth,
           parentPageEntityId,
-          expanded: false,
-          expandable: true,
         };
 
         const sortedItems = arrayMove(clonedItems, activeIndex, overIndex);
@@ -277,15 +176,13 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
         const newItems = orderItems(sortedItems, expandedPageIds);
 
-        // if (!isEqual(newItems, items)) {
         setLoading(true);
-        setItems(sortedItems);
-
-        reorderPage(active.id as string, parentPageEntityId, newIndex).then(
+        setItems(newItems);
+        reorderPage(active.id.toString(), parentPageEntityId, newIndex).then(
           () => {
-            setLoading(false);
+            // setLoading(false);
           },
-          (err) => {
+          () => {
             setItems(orderItems(data, expandedPageIds));
             setLoading(false);
           },
@@ -308,7 +205,6 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
       measuring={measuringConfig}
-      // modifiers={[restrictToVerticalAxis, restrictToWindowEdges]}
     >
       <SortableContext
         items={items.map((x) => x.entityId)}
@@ -324,24 +220,27 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           }}
         >
           <Box sx={{ marginX: 0.75 }}>
-            {items.map(({ entityId, title, depth, expandable, expanded }) => (
-              <AccountPageListItem
-                key={entityId}
-                title={title}
-                id={entityId}
-                url={`/${accountId}/${entityId}`}
-                depth={
-                  entityId === activeId && projected ? projected.depth : depth
-                }
-                onCollapse={
-                  expandable ? () => handleToggle(entityId) : undefined
-                }
-                selected={currentPageEntityId === entityId}
-                expandable={expandable}
-                expanded={expanded}
-                disabled={loading}
-              />
-            ))}
+            {items.map(
+              ({ entityId, title, depth, expandable, expanded, collapsed }) => (
+                <AccountPageListItem
+                  key={entityId}
+                  title={title}
+                  id={entityId}
+                  url={`/${accountId}/${entityId}`}
+                  depth={
+                    entityId === activeId && projected ? projected.depth : depth
+                  }
+                  onCollapse={
+                    expandable ? () => handleToggle(entityId) : undefined
+                  }
+                  selected={currentPageEntityId === entityId}
+                  expandable={expandable}
+                  expanded={expanded}
+                  collapsed={collapsed}
+                  disabled={loading}
+                />
+              ),
+            )}
 
             <DragOverlay dropAnimation={dropAnimationConfig} />
           </Box>
