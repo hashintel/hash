@@ -763,13 +763,12 @@ fn debug_attachments(
 
                 #[cfg(feature = "hooks")]
                 {
-                    let lock = Report::format_hook();
-                    return lock.call(frame, ctx.cast()).consume()
+                    return Report::with_format_hook(|hooks| hooks.call(frame, ctx.cast()).consume());
                 };
 
                 #[cfg(not(feature = "hooks"))]
                 {
-                    Builtin.call(frame, ctx.cast())
+                    builtin(frame, ctx.cast())
                 }
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
@@ -985,8 +984,8 @@ fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Ve
 impl<C> Debug for Report<C> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "hooks")]
-        if let Some(hook) = Report::debug_hook() {
-            return hook(self.generalized(), fmt);
+        if let Some(result) = Report::with_debug_hook(|hook| hook(self.generalized(), fmt)) {
+            return result;
         }
 
         let mut ctx = HookContextImpl::default();
@@ -1044,8 +1043,8 @@ impl<C> Debug for Report<C> {
 impl<Context> Display for Report<Context> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "hooks")]
-        if let Some(display_hook) = Report::display_hook() {
-            return display_hook(self.generalized(), fmt);
+        if let Some(result) = Report::with_display_hook(|hook| hook(self.generalized(), fmt)) {
+            return result;
         }
 
         for (index, frame) in self

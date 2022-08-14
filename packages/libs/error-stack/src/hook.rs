@@ -13,9 +13,9 @@ use crate::{
 
 type FormatterHook = Box<dyn Fn(&Report<()>, &mut fmt::Formatter<'_>) -> fmt::Result + Send + Sync>;
 
-static FMT_HOOK: Lazy<RwLock<Hooks>> = Lazy::new(|| RwLock::new(Hooks::new()));
-static DEBUG_HOOK: OnceCell<FormatterHook> = OnceCell::new();
-static DISPLAY_HOOK: OnceCell<FormatterHook> = OnceCell::new();
+static FMT_HOOK: RwLock<Hooks> = RwLock::new(Hooks::new());
+static DEBUG_HOOK: RwLock<Option<FormatterHook>> = RwLock::new(None);
+static DISPLAY_HOOK: RwLock<Option<FormatterHook>> = RwLock::new(None);
 
 /// A hook can only be set once.
 ///
@@ -60,7 +60,9 @@ impl Report<()> {
     /// assert!(format!("{report:?}").starts_with("Suggestion: O no, try again"));
     /// ```
     #[cfg(feature = "hooks")]
-    pub fn install_debug_hook<T>(hook: impl Fn(&T, &mut HookContext<T>) -> Emit) {
+    pub fn install_debug_hook<T: Send + Sync + 'static>(
+        hook: impl Fn(&T, &mut HookContext<T>) -> Emit + Send + Sync + 'static,
+    ) {
         let mut lock = FMT_HOOK.write().expect("should not be poisoned");
         lock.insert(hook);
     }
@@ -109,7 +111,7 @@ impl Report<()> {
     /// assert!(format!("{report:?}").starts_with("Suggestion: O no, try again"));
     /// ```
     pub fn install_debug_hook_fallback(
-        hook: impl for<'a> Fn(&Frame, HookContext<'a, Frame>) -> Call<'a, Frame>,
+        hook: impl for<'a> Fn(&Frame, HookContext<'a, Frame>) -> Call<'a, Frame> + Send + Sync + 'static,
     ) {
         let mut lock = FMT_HOOK.write().expect("should not be poisoned");
         lock.fallback(hook);
@@ -119,8 +121,9 @@ impl Report<()> {
     ///
     /// [`install_hook`]: Self::install_debug_hook
     #[cfg(feature = "hooks")]
-    pub(crate) fn format_hook() -> RwLockReadGuard<'static, Hooks> {
-        FMT_HOOK.read().expect("should not be poisoned")
+    pub(crate) fn with_format_hook<T>(closure: impl FnOnce(&Hooks) -> T) -> T {
+        let hook = FMT_HOOK.read().expect("should not be poisoned");
+        closure(&hook)
     }
 
     /// Globally sets a hook which is called when formatting [`Report`] with the [`Debug`] trait.
@@ -159,23 +162,21 @@ impl Report<()> {
     /// ```
     #[deprecated = "use Report::install_hook() instead"]
     #[cfg(feature = "hooks")]
-    pub fn set_debug_hook<H>(hook: H) -> Result<(), HookAlreadySet>
+    pub fn set_debug_hook<H>(hook: H)
     where
         H: Fn(&Self, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static,
     {
-        DEBUG_HOOK
-            .set(Box::new(hook))
-            .map_err(|_| Report::new(HookAlreadySet))
+        let mut write = DEBUG_HOOK.write().expect("should not poisoned");
+        *write = Some(Box::new(hook));
     }
 
     /// Returns the hook that was previously set by [`set_debug_hook`], if any.
     ///
     /// [`set_debug_hook`]: Self::set_debug_hook
     #[cfg(feature = "hooks")]
-    pub(crate) fn debug_hook()
-    -> Option<&'static (impl Fn(&Self, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static)>
-    {
-        DEBUG_HOOK.get()
+    pub(crate) fn with_debug_hook<T>(closure: impl FnOnce(&FormatterHook) -> T) -> Option<T> {
+        let hook = DEBUG_HOOK.read().expect("should not poisoned");
+        hook.as_ref().map(|hook| closure(hook))
     }
 
     /// Globally sets a hook that is called when formatting [`Report`] with the [`Display`] trait.
@@ -188,10 +189,6 @@ impl Report<()> {
     /// (`"{:#}"`) and it exists, its direct cause.
     ///
     /// [`Display`]: fmt::Display
-    ///
-    /// # Errors
-    ///
-    /// - Returns an error if a display hook was already set
     ///
     /// # Example
     ///
@@ -210,23 +207,18 @@ impl Report<()> {
     /// ```
     #[deprecated]
     #[cfg(feature = "hooks")]
-    pub fn set_display_hook<H>(hook: H) -> Result<(), HookAlreadySet>
-    where
-        H: Fn(&Self, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static,
-    {
-        DISPLAY_HOOK
-            .set(Box::new(hook))
-            .map_err(|_| Report::new(HookAlreadySet))
+    pub fn set_display_hook<H>(hook: H) {
+        let mut write = DISPLAY_HOOK.write().expect("should not poisoned");
+        *write = Some(Box::new(hook));
     }
 
     /// Returns the hook that was previously set by [`set_display_hook`], if any.
     ///
     /// [`set_display_hook`]: Self::set_display_hook
     #[cfg(feature = "hooks")]
-    pub(crate) fn display_hook()
-    -> Option<&'static (impl Fn(&Self, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static)>
-    {
-        DISPLAY_HOOK.get()
+    pub(crate) fn with_display_hook<T>(closure: impl FnOnce(&FormatterHook) -> T) -> Option<T> {
+        let hook = DISPLAY_HOOK.read().expect("should not poisoned");
+        hook.as_ref().map(|hook| closure(hook))
     }
 }
 

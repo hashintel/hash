@@ -7,7 +7,6 @@ use error_stack::{
     Frame,
 };
 
-
 /// Trait to interact and inject information on [`Debug`]
 ///
 /// A [`Hook`] can be used to emit a [`Line`] for a [`Frame`], if it can be downcast to `T`.
@@ -50,6 +49,7 @@ pub trait Hook<T, U>: Send + Sync + 'static {
     fn call<'a>(&self, frame: &T, ctx: HookContext<'a, T>) -> Call<'a, T>;
 }
 
+// todo: impl for Fn(&T, &mut HookContext) <3
 
 /// A Stack is a simple struct which has a left and a right side,
 /// this is used to chain different hooks together into a list of typed hooks.

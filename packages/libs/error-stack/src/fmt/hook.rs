@@ -558,8 +558,8 @@ type BoxedHook =
 #[cfg(feature = "hooks")]
 #[must_use]
 pub(crate) struct Hooks {
-    inner: BTreeMap<TypeId, BoxedHook>,
-    fallback: BoxedHook,
+    inner: Option<BTreeMap<TypeId, BoxedHook>>,
+    fallback: Option<BoxedHook>,
 }
 
 #[cfg(feature = "hooks")]
@@ -571,18 +571,20 @@ impl Hooks {
     ///
     /// [`Backtrace`]: std::backtrace::Backtrace
     /// [`SpanTrace`]: tracing_error::SpanTrace
-    pub(crate) fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self {
-            inner: BTreeMap::new(),
-            fallback: Box::new(builtin::builtin),
+            inner: None,
+            fallback: None,
         }
     }
 
-    pub(crate) fn insert<T>(
+    pub(crate) fn insert<T: Send + Sync + 'static>(
         &mut self,
         hook: impl Fn(&T, &mut HookContext<T>) -> Emit + Send + Sync + 'static,
     ) {
-        self.inner.insert(
+        let mut inner = self.inner.get_or_insert_with(BTreeMap::new);
+
+        inner.insert(
             TypeId::of::<T>(),
             Box::new(move |frame: &Frame, ctx: HookContext<Frame>| {
                 // SAFETY: `.unwrap()` never fails here, because `Hooks` guarantees the function
@@ -598,16 +600,18 @@ impl Hooks {
         &mut self,
         hook: impl for<'a> Fn(&Frame, HookContext<'a, Frame>) -> Call<'a, Frame> + Send + Sync + 'static,
     ) {
-        self.fallback = Box::new(hook);
+        self.fallback = Some(Box::new(hook));
     }
 
     pub(crate) fn call<'a>(&self, frame: &Frame, ctx: HookContext<'a, Frame>) -> Call<'a, Frame> {
         let ty = Frame::type_id(frame);
 
-        if let Some(hook) = self.inner.get(&ty) {
+        if let Some(hook) = self.inner.as_ref().and_then(|map| map.get(&ty)) {
             (hook)(frame, ctx)
+        } else if let Some(fallback) = self.fallback.as_ref() {
+            (fallback)(frame, ctx)
         } else {
-            (self.fallback)(frame, ctx)
+            builtin(frame, ctx)
         }
     }
 }
