@@ -414,10 +414,21 @@ class __Entity {
     return outgoingDbLinks.map((dbLink) => new Link(dbLink));
   }
 
-  async getIncomingLinks(client: DbClient) {
+  async getIncomingLinks(
+    client: DbClient,
+    params?: {
+      activeAt?: Date;
+      stringifiedPath?: string;
+      path?: PathComponent[];
+    },
+  ) {
+    const { activeAt, stringifiedPath, path } = params || {};
+
     const incomingDbLinks = await client.getEntityIncomingLinks({
       accountId: this.accountId,
       entityId: this.entityId,
+      activeAt,
+      path: stringifiedPath ?? (path ? Link.stringifyPath(path) : undefined),
     });
 
     return incomingDbLinks.map((dbLink) => new Link(dbLink));

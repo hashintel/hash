@@ -55,26 +55,24 @@ class __Page extends Entity {
       parentId: string | null;
       index: number | null;
       accountId: string;
+      parent: Page | null;
     },
   ): Promise<string> {
-    const { entityId, parentId, index, accountId } = params;
+    const { entityId, parentId, index, accountId, parent } = params;
 
-    const pages = await this.getAllPagesInAccount(client, { accountId });
+    const pageLinks = await parent?.getIncomingLinks(client, {
+      activeAt: new Date(),
+      path: ["parentPage"],
+    });
 
-    const children = await Promise.all(
-      pages.map(async (page) => {
-        const parentPage = await page.getParentPage(client);
-        if (parentId) {
-          return parentPage?.entityId === parentId ? page : [];
-        }
-        return !parentPage ? page : [];
-      }),
-    ).then((parentlessPages) => parentlessPages.flat());
+    const entities = await Promise.all(
+      pageLinks?.map((link) => link?.getSource(client)) || [],
+    );
 
     const sameParent =
-      children.findIndex((page) => page.entityId === entityId) > -1;
+      entities.findIndex((page) => page.entityId === entityId) > -1;
 
-    const childrenIndexes = children.map((page) => page.properties.index);
+    const childrenIndexes = entities.map((page) => page.properties.index);
 
     const sortedIndexes = childrenIndexes.sort();
 
@@ -170,6 +168,7 @@ class __Page extends Entity {
       accountId,
       index: null,
       parentId: null,
+      parent: null,
     });
 
     const entity = await Entity.createEntityWithLinks(client, {
@@ -353,6 +352,7 @@ class __Page extends Entity {
       accountId: setByAccountId,
       index: index,
       parentId: parentPage?.entityId,
+      parent: parentPage,
     });
 
     const existingParentPage = await this.getParentPage(client);
