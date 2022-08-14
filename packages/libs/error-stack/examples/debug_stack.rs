@@ -3,9 +3,53 @@
 use std::marker::PhantomData;
 
 use error_stack::{
-    fmt::{Call, Emit, Hook, HookContext},
+    fmt::{Call, Emit, HookContext},
     Frame,
 };
+
+
+/// Trait to interact and inject information on [`Debug`]
+///
+/// A [`Hook`] can be used to emit a [`Line`] for a [`Frame`], if it can be downcast to `T`.
+///
+/// `U` are the arguments a [`Fn`] takes, user defined implementations should set this to `()`.
+///
+/// This trait is automatically implemented for [`Fn(&T) -> Line`] and
+/// [`Fn(&T, &mut HookContext<T>) -> Line`].
+pub trait Hook<T, U>: Send + Sync + 'static {
+    /// Function which is called to invoke the hook on a potentially downcasted [`Frame`].
+    ///
+    /// This function must return [`Option<Line>`], if this function return [`None`] it is
+    /// determined that the hook did **not** successfully execute or wasn't applicable,
+    /// and other [`Hook`]s are tried, until all [`Hook`]s have been tried, or a single [`Hook`]
+    /// returned [`Some`].
+    ///
+    /// This function is not guaranteed to run for every [`Frame`] that can be downcast to `T`,
+    /// and will only be called if no [`Hook`] before, that has been deemed suitable has returned
+    /// [`None`].
+    ///
+    /// ## Explanation
+    ///
+    /// This pseudo code roughly explains how calling of [`Hook`]s is performed.
+    ///
+    /// ```text
+    /// have a list of hooks H
+    /// have a frame F
+    ///
+    /// typeid = TypeId of attachment in F
+    ///
+    /// is typeid in hooks? {
+    ///     let h = H[typeid];
+    ///     let f = F.downcast() to T;
+    ///
+    ///     h.call(f, context)
+    /// } else {
+    ///     fallback(F, context)
+    /// }
+    /// ```
+    fn call<'a>(&self, frame: &T, ctx: HookContext<'a, T>) -> Call<'a, T>;
+}
+
 
 /// A Stack is a simple struct which has a left and a right side,
 /// this is used to chain different hooks together into a list of typed hooks.

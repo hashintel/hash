@@ -7,7 +7,7 @@ use std::{
 use once_cell::sync::{Lazy, OnceCell};
 
 use crate::{
-    fmt::{Hook, Hooks},
+    fmt::{Call, Emit, HookContext, Hooks},
     Frame, Report, Result,
 };
 
@@ -37,11 +37,7 @@ impl Report<()> {
     /// Can be used to globally set a [`Debug`] format hook, for a specific type `T`, this [`Hook`]
     /// will be called on every [`Debug`] call, if an attachment with the same type has been found.
     ///
-    /// [`Display`]: core::fmt::Debug
-    ///
-    /// # Errors
-    ///
-    /// - Returns an error if a debug hook was already set
+    /// [`Debug`]: core::fmt::Debug
     ///
     /// # Example
     ///
@@ -55,20 +51,66 @@ impl Report<()> {
     ///
     /// struct Suggestion(&'static str);
     ///
-    /// Report::install_debug_hook(|val: &Suggestion| Emit::Next(format!("Suggestion: {}", val.0)));
+    /// Report::install_debug_hook::<Suggestion>(|val, ctx| {
+    ///     Emit::Next(format!("Suggestion: {}", val.0))
+    /// });
     ///
     /// let report =
     ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("O no, try again"));
     /// assert!(format!("{report:?}").starts_with("Suggestion: O no, try again"));
     /// ```
     #[cfg(feature = "hooks")]
-    pub fn install_debug_hook<H: Hook<T, U>, T: Send + Sync + 'static, U: 'static>(hook: H) {
+    pub fn install_debug_hook<T>(hook: impl Fn(&T, &mut HookContext<T>) -> Emit) {
         let mut lock = FMT_HOOK.write().expect("should not be poisoned");
         lock.insert(hook);
     }
 
-    // TODO: docs
-    pub fn install_debug_hook_fallback<H: Hook<Frame, ()>>(hook: H) {
+    /// Can be used to globally set the fallback [`Debug`] hook, which is called for every
+    /// attachment for which a hook wasn't registered using [`install_debug_hook`].
+    ///
+    /// You can refer to the `debug_stack` for a more in-depth look, as to how to potentially
+    /// exploit the fallback for more advanced use-cases, like using a, immutable builder pattern
+    /// instead, or a trait based approach.
+    ///
+    /// [`Debug`]: core::fmt::Debug
+    /// [`install_debug_hook`]: Self::install_debug_hook
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use std::io::{Error, ErrorKind};
+    ///
+    /// use error_stack::{
+    ///     fmt::{self, Call, Emit},
+    ///     report, Report,
+    /// };
+    ///
+    /// struct Suggestion(&'static str);
+    ///
+    /// // This will remove all formatting for `Backtrace` and `SpanTrace`!
+    /// // The example after this once calls `builtin()`, which makes sure that we always print
+    /// // `Backtrace` and `SpanTrace`.
+    /// Report::install_debug_hook_fallback(|val, ctx| Call::Find(Emit::next("unknown")));
+    ///
+    /// let report =
+    ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("O no, try again"));
+    /// assert!(format!("{report:?}").starts_with("Suggestion: O no, try again"));
+    ///
+    /// Report::install_debug_hook_fallback(|val, ctx| {
+    ///     // first run all builtin hooks to make sure that we print backtrace and spantrace
+    ///     match fmt::builtin(val, ctx) {
+    ///         Call::Miss(_) => Call::Find(Emit::next("unknown")),
+    ///         Call::Find(emit) => Call::Find(emit),
+    ///     }
+    /// });
+    ///
+    /// let report =
+    ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("O no, try again"));
+    /// assert!(format!("{report:?}").starts_with("Suggestion: O no, try again"));
+    /// ```
+    pub fn install_debug_hook_fallback(
+        hook: impl for<'a> Fn(&Frame, HookContext<'a, Frame>) -> Call<'a, Frame>,
+    ) {
         let mut lock = FMT_HOOK.write().expect("should not be poisoned");
         lock.fallback(hook);
     }

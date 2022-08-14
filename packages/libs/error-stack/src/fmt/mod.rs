@@ -129,9 +129,9 @@ use hook::HookContextImpl;
 #[cfg(feature = "hooks")]
 pub(crate) use hook::Hooks;
 #[cfg(feature = "hooks")]
-pub use hook::{Builtin, Call, Hook};
+pub use hook::{builtin, Call};
 #[cfg(not(feature = "hooks"))]
-pub(crate) use hook::{Builtin, Call, Hook};
+pub(crate) use hook::{Builtin, Call};
 #[cfg(all(nightly, feature = "experimental"))]
 pub use nightly::DebugDiagnostic;
 #[cfg(feature = "glyph")]
