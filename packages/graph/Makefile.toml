@@ -37,7 +37,7 @@ category = "Deploy"
 description = "Spins up the deployment environment"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment"
 command = "docker-compose"
-args = ["--env-file", "../.env", "up", "-d"]
+args = ["--env-file", "../.env", "up", "-d", "--wait"]
 
 [tasks.deployment-down]
 category = "Deploy"
