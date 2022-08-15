@@ -1,5 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
 import Picker from "@emoji-mart/react";
 import { Popover } from "@hashintel/hash-design-system/popover";
 import { BaseEmoji, PickerProps } from "emoji-mart";
@@ -8,10 +6,8 @@ import { FunctionComponent } from "react";
 
 const TypedPicker = Picker as FunctionComponent<PickerProps>;
 
-export type EmojiSelectHandler = (emoji: BaseEmoji) => void;
-
 interface EmojiPickerProps {
-  onEmojiSelect: EmojiSelectHandler;
+  onEmojiSelect: (emoji: BaseEmoji) => void;
   popupState: PopupState;
 }
 
@@ -36,12 +32,9 @@ export const EmojiPicker = ({
       <TypedPicker
         autoFocus
         theme="light"
-        // @todo patch onEmojiSelect callback into @types/emoji-mart package
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        onEmojiSelect={(emoji: BaseEmoji) => {
+        onEmojiSelect={(emoji) => {
           popupState.close();
-          onEmojiSelect(emoji);
+          onEmojiSelect(emoji as BaseEmoji);
         }}
       />
     </Popover>

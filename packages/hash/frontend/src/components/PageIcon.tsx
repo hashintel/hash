@@ -11,7 +11,7 @@ import {
 } from "../graphql/apiTypes.gen";
 import { rewriteEntityIdentifier } from "../lib/entities";
 
-import { EmojiPicker } from "./EmojiPicker";
+import { EmojiPicker } from "./EmojiPicker/EmojiPicker";
 import { useBlockProtocolUpdateEntity } from "./hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
 
 type SizeVariant = "small" | "medium";
