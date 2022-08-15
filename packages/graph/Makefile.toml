@@ -47,6 +47,7 @@ cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/../../"
 env = { DOCKER_BUILDKIT = 1 }
 command = "yarn"
 args = ["external-services", "build", "graph"]
+dependencies = ["touch-environment"]
 
 [tasks.graph-up]
 category = "Deploy"
