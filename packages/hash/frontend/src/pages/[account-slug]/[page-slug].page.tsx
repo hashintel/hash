@@ -5,7 +5,8 @@ import {
   fetchBlock,
 } from "@hashintel/hash-shared/blocks";
 import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
-import { Box, Collapse, alpha, styled } from "@mui/material";
+import { isSafariBrowser } from "@hashintel/hash-shared/util";
+import { Box, Collapse, alpha } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Head from "next/head";
@@ -22,6 +23,7 @@ import {
   useAccountPages,
 } from "../../components/hooks/useAccountPages";
 import { useArchivePage } from "../../components/hooks/useArchivePage";
+import { PageIcon } from "../../components/PageIcon";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import {
   GetPageInfoQuery,
@@ -248,12 +250,29 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
     );
   }
 
-  const { title } = data.page.properties;
+  const { title, icon } = data.page.properties;
+
+  const isSafari = isSafariBrowser();
+  const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
 
   return (
     <>
       <Head>
-        <title>{title}</title>
+        <title>{pageTitle}</title>
+
+        {/* 
+          Rendering favicon.png again even if it's already defined on _document.page.tsx,
+          because client-side navigation does not fallback to the default icon when visiting a page without an icon 
+        */}
+        {icon ? (
+          <link
+            rel="icon"
+            href={`data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>
+          ${icon}</text></svg>`}
+          />
+        ) : (
+          <link rel="icon" type="image/png" href="/favicon.png" />
+        )}
       </Head>
       <Box
         sx={({ zIndex, palette }) => ({
@@ -279,9 +298,16 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
           component="header"
           ref={pageHeaderRef}
           sx={{
+            display: "flex",
             scrollMarginTop: HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT,
           }}
         >
+          <PageIcon
+            accountId={accountId}
+            entityId={pageEntityId}
+            versionId={versionId}
+          />
+          <Box ml={3} />
           <PageTitle
             value={title}
             accountId={accountId}

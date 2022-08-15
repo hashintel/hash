@@ -9,7 +9,6 @@ export const PlainLayout: FunctionComponent<{
     <>
       <Head>
         <title>HASH Workspace</title>
-        <link rel="icon" type="image/png" href="/favicon.png" />
         {!isProduction ? <meta name="robots" content="noindex" /> : null}
       </Head>
       {children}
