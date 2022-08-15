@@ -12,9 +12,13 @@ pub struct Args {
     #[clap(flatten)]
     pub log_config: LoggingArgs,
 
-    /// The address the REST client is listening at
-    #[clap(long, default_value = "127.0.0.1:4000", env = "HASH_GRAPH_ADDRESS")]
-    pub rest_address: String,
+    /// The host the REST client is listening at
+    #[clap(long, default_value = "127.0.0.1", env = "HASH_GRAPH_API_HOST")]
+    pub api_host: String,
+
+    /// The port the REST client is listening at
+    #[clap(long, default_value_t = 4000, env = "HASH_GRAPH_API_PORT")]
+    pub api_port: u16,
 
     /// Generate a completion script for the given shell and outputs it to stdout.
     #[clap(long, arg_enum, exclusive = true)]

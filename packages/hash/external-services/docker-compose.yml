@@ -43,9 +43,7 @@ services:
     environment:
       PGDATA: /data/pgdata
       POSTGRES_USER: "${POSTGRES_USER}"
-      POSTGRES_HOST: "${POSTGRES_HOST}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
-      POSTGRES_PORT: "${POSTGRES_PORT}"
       HASH_KRATOS_PG_USER: "${HASH_KRATOS_PG_USER}"
       HASH_KRATOS_PG_PASSWORD: "${HASH_KRATOS_PG_PASSWORD}"
       HASH_KRATOS_PG_DATABASE: "${HASH_KRATOS_PG_DATABASE}"
@@ -76,15 +74,17 @@ services:
       args:
         PROFILE: dev
     environment:
-      HASH_GRAPH_USER: "${HASH_GRAPH_PG_USER}"
-      HASH_GRAPH_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
-      HASH_GRAPH_HOST: "postgres"
-      HASH_GRAPH_API_PORT: "5432"
-      HASH_GRAPH_DATABASE: "${HASH_GRAPH_PG_DATABASE}"
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
+      HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
+      HASH_GRAPH_PG_HOST: "postgres"
+      HASH_GRAPH_PG_PORT: "5432"
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DATABASE}"
       HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
-      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,debug,hyper=warn}"
+      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash_graph=trace}"
     ports:
-      - "4000:4000"
+      - "${HASH_GRAPH_API_PORT}:4000"
     healthcheck:
       test:
         [

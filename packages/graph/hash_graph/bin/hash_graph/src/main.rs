@@ -100,14 +100,14 @@ async fn main() -> Result<(), GraphError> {
     stop_gap_setup(&pool).await?;
 
     let rest_router = rest_api_router(Arc::new(pool));
-    let addr: SocketAddr = args
-        .rest_address
+    let api_address = format!("{}:{}", args.api_host, args.api_port);
+    let addr: SocketAddr = api_address
         .parse()
         .into_report()
         .change_context(GraphError)
-        .attach_printable_lazy(|| args.rest_address.clone())?;
+        .attach_printable_lazy(|| api_address.clone())?;
 
-    tracing::info!("Listening on {addr}");
+    tracing::trace!("Listening on {api_address}");
     axum::Server::bind(&addr)
         .serve(rest_router.into_make_service())
         .await

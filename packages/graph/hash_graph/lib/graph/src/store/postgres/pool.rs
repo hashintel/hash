@@ -46,7 +46,7 @@ where
     ///
     /// - if creating a connection returns an error.
     pub async fn new(db_info: &DatabaseConnectionInfo, tls: Tls) -> Result<Self, StoreError> {
-        tracing::debug!("Creating connection pool to Postgres");
+        tracing::debug!(url=%db_info, "Creating connection pool to Postgres");
         let mut config = Config::new();
         config
             .user(db_info.user())
