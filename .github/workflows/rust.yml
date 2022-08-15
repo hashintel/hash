@@ -21,7 +21,7 @@ env:
 jobs:
   setup:
     name: setup
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       lint: ${{ steps.crates.outputs.lint }}
       test: ${{ steps.crates.outputs.test }}
@@ -63,7 +63,7 @@ jobs:
     name: lint
     needs: setup
     if: needs.setup.outputs.lint != '[]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -116,7 +116,7 @@ jobs:
     name: test
     needs: setup
     if: needs.setup.outputs.test != '[]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -204,7 +204,7 @@ jobs:
     name: docker
     needs: setup
     if: needs.setup.outputs.docker != '[]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -240,7 +240,7 @@ jobs:
     name: publish
     needs: setup
     if: needs.setup.outputs.publish != '[]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -278,7 +278,7 @@ jobs:
     name: merging enabled
     needs: [lint, test, docker, publish]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: check lint
         run: |
