@@ -183,6 +183,11 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
     <>
       <Head>
         <title>{pageTitle}</title>
+
+        {/* 
+          Rendering favicon.png again even if it's already defined on _document.page.tsx,
+          because client-side navigation does not fallback to the default icon when visiting a page without an icon 
+        */}
         {icon ? (
           <link
             rel="icon"
