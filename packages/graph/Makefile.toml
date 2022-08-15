@@ -1,5 +1,11 @@
 extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 
+# Workaround as GH Actions do not support `docker-compose up --wait`
+[tasks.sleep-for-five-seconds]
+private = true
+command = "sleep"
+args = ["5"]
+
 [tasks.touch-environment]
 private = true
 command = "touch"
@@ -65,7 +71,7 @@ command = "yarn"
 args = ["external-services", "down"]
 
 [tasks.test-docker]
-run_task = { name = ["graph-up", "test-rest-api", "graph-down"] }
+run_task = { name = ["graph-up", "sleep-for-five-seconds", "test-rest-api", "graph-down"] }
 
 [tasks.test-rest-api]
 # This is a temporary solution until we have e2e tests in place
