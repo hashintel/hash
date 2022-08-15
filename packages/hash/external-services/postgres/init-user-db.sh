@@ -1,8 +1,6 @@
 #!/bin/bash
 set -e
 
-export
-
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
 
   CREATE USER $HASH_KRATOS_PG_USER WITH PASSWORD '$HASH_KRATOS_PG_PASSWORD';
