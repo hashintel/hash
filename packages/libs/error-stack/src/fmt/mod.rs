@@ -936,7 +936,7 @@ fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Ve
     let mut contexts: VecDeque<_> = stack
         .into_iter()
         .enumerate()
-        .map(|(idx, (head, body))| {
+        .map(|(idx, (head, mut body))| {
             // each "paket" on the stack is made up of a head (guaranteed to be a `Context`) and
             // `n` attachments.
             // The attachments are rendered as direct descendants of the parent context
@@ -949,6 +949,8 @@ fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Ve
                 ctx.alternate(),
             );
 
+            // reverse all attachments, to make it more logical relative to the attachment order
+            body.reverse();
             let body = debug_attachments(
                 Some(loc),
                 ctx,
