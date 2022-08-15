@@ -4,7 +4,7 @@ import { Session } from "@ory/client";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { kratosSdk, KratosUserIdentity } from "./ory-kratos";
+import { KratosUserIdentity, publicKratosSdk } from "./ory-kratos";
 import { UserModel } from "../model";
 
 declare global {
@@ -68,7 +68,7 @@ const setupAuth = (params: {
   );
 
   app.use(async (req, _res, next) => {
-    const kratosSession = await kratosSdk
+    const kratosSession = await publicKratosSdk
       .toSession(undefined, req.header("cookie"))
       .then(({ data }) => data)
       .catch((err: AxiosError) => {

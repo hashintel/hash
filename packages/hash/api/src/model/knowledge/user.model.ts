@@ -5,6 +5,7 @@ import {
   EntityTypeModel,
   UserModel,
 } from "..";
+import { adminKratosSdk, KratosUserIdentity } from "../../auth/ory-kratos";
 import {
   generateSchemaBaseUri,
   generateWorkspaceEntityTypeSchema,
@@ -12,6 +13,8 @@ import {
   workspaceAccountId,
   workspaceTypesNamespaceUri,
 } from "../util";
+
+type QualifiedEmail = { address: string; verified: boolean; primary: boolean };
 
 // Generate the schema for the shortname property type
 export const shortnamePropertyType = generateWorkspacePropertyTypeSchema({
@@ -246,6 +249,45 @@ export default class extends EntityModel {
       version,
       entityTypeModel,
       properties,
+    });
+  }
+
+  /**
+   * Get the kratos identity associated with the user.
+   */
+  async getKratosIdentity(): Promise<KratosUserIdentity> {
+    const kratosIdentityId = this.getKratosIdentityId();
+    const { data: kratosIdentity } = await adminKratosSdk.adminGetIdentity(
+      kratosIdentityId,
+    );
+
+    return kratosIdentity;
+  }
+
+  async getQualifiedEmails(): Promise<QualifiedEmail[]> {
+    const emails: string[] = (this.properties as any)[emailBaseUri];
+
+    const kratosIdentity = await this.getKratosIdentity();
+
+    return emails.map((address) => {
+      const kratosEmail = kratosIdentity.verifiable_addresses?.find(
+        ({ value }) => value === address,
+      );
+
+      if (!kratosEmail) {
+        throw new Error(
+          "Could not find verifiable email address in kratos identity",
+        );
+      }
+
+      const { verified } = kratosEmail;
+
+      return {
+        address,
+        verified,
+        /** @todo: stop hardcoding this */
+        primary: true,
+      };
     });
   }
 

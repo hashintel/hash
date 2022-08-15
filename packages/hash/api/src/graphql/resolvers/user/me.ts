@@ -13,10 +13,10 @@ type GQLUserExternalResolvers =
 
 type UnresolvedGQLUser = Omit<GQLUser, GQLUserExternalResolvers>;
 
-const mapUserModelToGQL = (
+const mapUserModelToGQL = async (
   _graphApi: GraphApi,
   user: UserModel,
-): UnresolvedGQLUser => {
+): Promise<UnresolvedGQLUser> => {
   return {
     accountId: user.accountId,
     id: user.entityId,
@@ -28,11 +28,7 @@ const mapUserModelToGQL = (
     properties: {
       shortname: user.getShortname(),
       preferredName: user.getPreferredName(),
-      emails: user.getEmails().map((address) => ({
-        address,
-        verified: true /** @todo: stop hardcoding this  */,
-        primary: true /** @todo: stop hardcoding this */,
-      })),
+      emails: await user.getQualifiedEmails(),
     },
     entityVersionCreatedAt:
       new Date().toISOString() /** @todo: stop hardcoding this */,
