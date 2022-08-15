@@ -6,7 +6,7 @@ The easiest way to run the Graph API is to use docker. Either invoke docker dire
 
 ```shell
 docker build --tag graph --file ../deployment/graph/Dockerfile .
-docker run --rm --network host --name graph --env RUST_LOG=trace --detach graph
+docker run --rm --init --network host --name graph --env RUST_LOG=trace --detach graph
 ```
 
 or by using `cargo make`:
@@ -19,7 +19,7 @@ cargo make docker-up
 The container can be stopped by calling
 
 ```shell
-docker kill --signal SIGKILL graph
+docker stop graph
 ```
 
 or
