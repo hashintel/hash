@@ -4,7 +4,9 @@ import {
   EmbedderGraphMessageCallbacks,
 } from "@blockprotocol/graph";
 import { useGraphEmbedderService } from "@blockprotocol/graph/react";
+import { HookData, useHookEmbedderService } from "@blockprotocol/hook";
 import { FunctionComponent, useEffect, useRef } from "react";
+import { v4 as uuid } from "uuid";
 import { BlockRenderer } from "./blockRenderer";
 
 import { useRemoteBlock } from "./useRemoteBlock";
@@ -22,7 +24,7 @@ type RemoteBlockProps = {
   graphProperties: Required<BlockGraphProperties<UnknownRecord>["graph"]>;
   blockMetadata: BlockMetadata;
   crossFrame?: boolean;
-  editableRef?: unknown;
+  editableRef?: (node: HTMLElement | null) => void;
   onBlockLoaded?: () => void;
 };
 
@@ -55,6 +57,31 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
   const { graphService } = useGraphEmbedderService(wrapperRef, {
     callbacks: graphCallbacks,
     ...graphProperties,
+  });
+
+  const hookIdRef = useRef<string | null>(null);
+
+  useHookEmbedderService(wrapperRef, {
+    callbacks: {
+      async hook({ data }) {
+        console.log(data);
+        if (
+          data?.type === "text" &&
+          data.path === "$.text" &&
+          (!hookIdRef.current || data.hookId === hookIdRef.current)
+        ) {
+          editableRef?.(data.node);
+
+          const hookId = data.hookId ?? uuid();
+          hookIdRef.current = hookId;
+          return { data: { hookId } };
+        }
+
+        return {
+          errors: [{ code: "NOT_IMPLEMENTED", message: "Improper hook" }],
+        };
+      },
+    },
   });
 
   useEffect(() => {

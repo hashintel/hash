@@ -21,7 +21,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   const headerHookRef = useHookRef<HTMLHeadingElement>(
     hookService,
     "text",
-    "text",
+    "$.text",
     (node) => {
       if (node) {
         // eslint-disable-next-line no-param-reassign

@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.0.12",
-    "@blockprotocol/hook": "0.0.1-canary.1",
+    "@blockprotocol/hook": "0.0.1-canary.2",
     "react-merge-refs": "2.0.1"
   },
   "devDependencies": {

@@ -3096,10 +3096,10 @@
     "@blockprotocol/core" "0.0.8"
     lit "^2.2.5"
 
-"@blockprotocol/hook@0.0.1-canary.1":
-  version "0.0.1-canary.1"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/hook/-/hook-0.0.1-canary.1.tgz#e0571bc4a0eb6e8fb56eb1014201b9278300b7d7"
-  integrity sha512-H2nA7Gee0B97ILpx1Nv0O0Y+7Ihi1si2n0Z8PL/IhxnqLtTve6UPBqyA4bV7Plnvpy3X0zFDmCLSqy29sWjXxg==
+"@blockprotocol/hook@0.0.1-canary.2":
+  version "0.0.1-canary.2"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/hook/-/hook-0.0.1-canary.2.tgz#269fc91d689e2b126abafe22ac6674787ec19280"
+  integrity sha512-pe38PqEgseK1R44Cw9oEmlMXBbQobtLMGxZfQhNT8e00EaoWEy10nFG3sDRNRifNr+iNw1OcxJpC6Ghnlb6ISw==
   dependencies:
     "@blockprotocol/core" "0.0.8"
 
