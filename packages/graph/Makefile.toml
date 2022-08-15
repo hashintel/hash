@@ -8,11 +8,6 @@ args = [
     "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/.env.local",
 ]
 
-[tasks.sleep-for-one-second]
-private = true
-command = "sleep"
-args = ["1"]
-
 [tasks.yarn]
 category = "Deploy"
 description = "Installs the required dependencies"
@@ -63,7 +58,7 @@ category = "Deploy"
 description = "Spins up the Graph API as external service"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/../../"
 command = "yarn"
-args = ["external-services", "up", "--detach", "graph"]
+args = ["external-services", "up", "--wait", "graph"]
 
 [tasks.graph-down]
 category = "Deploy"
@@ -79,4 +74,3 @@ run_task = { name = ["graph-up", "test-rest-api", "graph-down"] }
 # This is a temporary solution until we have e2e tests in place
 command = "yarn"
 args = ["httpyac", "send", "--all", "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/hash_graph/tests/rest-test.http"]
-dependencies = ["sleep-for-one-second"]
