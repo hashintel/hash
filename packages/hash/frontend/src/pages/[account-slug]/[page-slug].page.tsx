@@ -6,7 +6,7 @@ import {
 } from "@hashintel/hash-shared/blocks";
 import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { isSafariBrowser } from "@hashintel/hash-shared/util";
-import { Box, Collapse, alpha } from "@mui/material";
+import { Box, Collapse, alpha, styled } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Head from "next/head";
@@ -144,6 +144,13 @@ const generateCrumbsFromPages = ({
       title: currentPage.title,
       href: `/${accountId}/${currentPage.entityId}`,
       id: currentPage.entityId,
+      icon: (
+        <PageIcon
+          accountId={accountId}
+          entityId={currentPage.entityId}
+          size="small"
+        />
+      ),
     });
 
     if (currentPage.parentPageEntityId) {

@@ -12,7 +12,7 @@ import { Button } from "../../shared/ui";
 import { Breadcrumbs } from "./breadcrumbs";
 
 type Props = {
-  crumbs: { title: string; href: string; id: string }[];
+  crumbs: { title: string; href: string; id: string; icon: ReactNode }[];
   defaultCrumbIcon?: ReactNode;
   scrollToTop: () => void;
 };
