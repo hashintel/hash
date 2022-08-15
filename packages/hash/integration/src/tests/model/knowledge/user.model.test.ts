@@ -35,6 +35,7 @@ describe("User model class", () => {
     createdUser = await UserModel.createUser(graphApi, {
       emails: ["alice@example.com"],
       shortname,
+      preferredName: "Alice",
       kratosIdentityId,
     });
   });
@@ -44,6 +45,7 @@ describe("User model class", () => {
       UserModel.createUser(graphApi, {
         emails: ["bob@example.com"],
         shortname,
+        preferredName: "Bob",
         kratosIdentityId: "bob-kratos-identity-id",
       }),
     ).rejects.toThrowError(`"${shortname}" already exists.`);
@@ -70,7 +72,7 @@ describe("User model class", () => {
 
     expect(fetchedUser).not.toBeNull();
 
-    expect(fetchedUser!.entityId).toBe(createdUser.entityId);
+    expect(fetchedUser).toEqual(createdUser);
   });
 
   it("can get a user by its kratos identity id", async () => {
@@ -80,6 +82,6 @@ describe("User model class", () => {
 
     expect(fetchedUser).not.toBeNull();
 
-    expect(fetchedUser!.entityId).toBe(createdUser.entityId);
+    expect(fetchedUser).toEqual(createdUser);
   });
 });
