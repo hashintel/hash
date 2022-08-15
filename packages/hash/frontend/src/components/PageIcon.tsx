@@ -27,6 +27,7 @@ interface PageIconProps {
   versionId?: string;
   readonly?: boolean;
   size?: SizeVariant;
+  hasDarkBg?: boolean;
 }
 
 export const PageIcon = ({
@@ -35,6 +36,7 @@ export const PageIcon = ({
   versionId,
   readonly,
   size = "medium",
+  hasDarkBg,
 }: PageIconProps) => {
   const popupState = usePopupState({
     variant: "popover",
@@ -56,14 +58,23 @@ export const PageIcon = ({
   return (
     <>
       <Tooltip title="Change icon" placement="bottom">
-        {/* @todo hover highlight of this is not visible on when rendered on the sidebar, fix the design */}
         <IconButton
           {...bindTrigger(popupState)}
-          sx={{
-            width: sizes.container,
-            height: sizes.container,
-            fontSize: sizes.font,
-            [`&.${iconButtonClasses.disabled}`]: { color: "unset" },
+          sx={({ palette }) => {
+            const background = hasDarkBg ? palette.gray[40] : palette.gray[30];
+
+            return {
+              width: sizes.container,
+              height: sizes.container,
+              fontSize: sizes.font,
+              ...(popupState.isOpen && {
+                background,
+              }),
+              "&:focus-visible, &:hover": {
+                background,
+              },
+              [`&.${iconButtonClasses.disabled}`]: { color: "unset" },
+            };
           }}
           disabled={readonly || updateEntityLoading}
         >

@@ -92,7 +92,12 @@ const CustomContent = forwardRef((props: TreeItemContentProps, ref) => {
         <FontAwesomeIcon icon={faChevronRight} />
       </IconButton>
 
-      <PageIcon accountId={accountId} entityId={nodeId} size="small" />
+      <PageIcon
+        hasDarkBg={selected}
+        accountId={accountId}
+        entityId={nodeId}
+        size="small"
+      />
 
       <Link
         noLinkStyle
