@@ -13,7 +13,6 @@ export const setParentPage: ResolverFn<
   { accountId, pageEntityId, parentPageEntityId, index = null },
   { dataSources: { db }, user },
 ) => {
-  console.log(index);
   if (pageEntityId === parentPageEntityId) {
     throw new ApolloError("A page cannot be the parent of itself");
   }

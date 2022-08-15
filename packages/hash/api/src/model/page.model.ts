@@ -51,45 +51,67 @@ class __Page extends Entity {
   static async getPageFractionalIndex(
     client: DbClient,
     params: {
-      entityId: string;
-      parentId: string | null;
+      entityId: string | null;
       index: number | null;
+      parentPage: Page | null;
       accountId: string;
-      parent: Page | null;
     },
   ): Promise<string> {
-    const { entityId, parentId, index, accountId, parent } = params;
+    const { entityId, index, accountId, parentPage } = params;
 
-    const pageLinks = await parent?.getIncomingLinks(client, {
-      activeAt: new Date(),
-      path: ["parentPage"],
-    });
+    let childPages: Page[] = [];
 
-    const entities = await Promise.all(
-      pageLinks?.map((link) => link?.getSource(client)) || [],
+    if (parentPage !== null) {
+      // We get the children pages by querying the incomingLinks on the parent page
+      const parentPageIncomingLinks = await parentPage?.getIncomingLinks(
+        client,
+        {
+          activeAt: new Date(),
+          path: ["parentPage"],
+        },
+      );
+
+      childPages = await Promise.all(
+        parentPageIncomingLinks?.map(async (link) =>
+          __Page.fromEntity(client, await link.getSource(client)),
+        ) || [],
+      );
+    } else {
+      // getAllPagesInAccount is only used when the page doesn't have a parent page
+      // because it's significantly slower than requesting incoming links
+      const pages = await this.getAllPagesInAccount(client, { accountId });
+
+      childPages = await Promise.all(
+        pages.map(async (page) => {
+          const parentPage = await page.getParentPage(client);
+
+          return parentPage ? [] : page;
+        }),
+      ).then((filteredPages) => filteredPages.flat());
+    }
+
+    const childPagesExcludingSelf = childPages.filter(
+      (page) => page.entityId !== entityId,
     );
 
-    const sameParent =
-      entities.findIndex((page) => page.entityId === entityId) > -1;
-
-    const childrenIndexes = entities.map((page) => page.properties.index);
-
-    const sortedIndexes = childrenIndexes.sort();
+    const sortedChildrenIndexes = childPagesExcludingSelf
+      .map((page) => page.properties.index)
+      .sort();
 
     if (index !== null) {
-      const before =
-        (index !== 0 && sortedIndexes[index - (sameParent ? 0 : 1)]) || null;
-
+      const before = (index !== 0 && sortedChildrenIndexes[index - 1]) || null;
       const after =
-        (index !== sortedIndexes.length - (sameParent ? 1 : 0) &&
-          sortedIndexes[index + (sameParent ? 1 : 0)]) ||
+        (index !== sortedChildrenIndexes.length &&
+          sortedChildrenIndexes[index]) ||
         null;
 
       return generateKeyBetween(before, after);
     }
 
     return generateKeyBetween(
-      (sortedIndexes.length && sortedIndexes[sortedIndexes.length - 1]) || null,
+      (sortedChildrenIndexes.length &&
+        sortedChildrenIndexes[sortedChildrenIndexes.length - 1]) ||
+        null,
       null,
     );
   }
@@ -165,10 +187,10 @@ class __Page extends Entity {
           ];
 
     pageProperties.index = await __Page.getPageFractionalIndex(client, {
-      accountId,
+      entityId: null,
       index: null,
-      parentId: null,
-      parent: null,
+      parentPage: null,
+      accountId,
     });
 
     const entity = await Entity.createEntityWithLinks(client, {
@@ -349,10 +371,9 @@ class __Page extends Entity {
 
     const newIndex = await __Page.getPageFractionalIndex(client, {
       entityId: this.entityId,
-      accountId: setByAccountId,
       index: index,
-      parentId: parentPage?.entityId,
-      parent: parentPage,
+      parentPage,
+      accountId: setByAccountId,
     });
 
     const existingParentPage = await this.getParentPage(client);
