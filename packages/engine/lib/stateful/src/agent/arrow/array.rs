@@ -142,7 +142,9 @@ fn agents_to_id_col(agents: &[&Agent]) -> Result<ArrayRef> {
     for agent in agents {
         builder.push(Some(agent.agent_id.as_bytes()));
     }
-    Ok(Arc::new(Into::<FixedSizeBinaryArray>::into(builder)))
+    let array: FixedSizeBinaryArray = builder.into();
+    debug_assert_eq!(array.len(), agents.len());
+    Ok(array.arced())
 }
 
 macro_rules! agents_to_vec_col_gen {

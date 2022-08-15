@@ -139,7 +139,7 @@ pub(crate) fn schema_to_column_hierarchy(
 // calculate every buffer count for every node for every column.
 // The `is_parent_growable` parameter is required because for example
 // a column with elements of type `Vec<[u64; 3]>` has the inner node for
-// `[u64; 3]` data be growable due to `Vec` being growable, even though
+// `[u64; 3]` data is growable due to `Vec` being growable, even though
 // `[u64; 3]` itself if fixed-size.
 
 /// Knowing the data type can help us calculate the node and offset buffer counts in a column
@@ -151,11 +151,17 @@ fn data_type_to_metadata(
     is_parent_growable: bool,
     multiplier: usize,
 ) -> (
+    // node count
     usize,
+    // buffer count
     usize,
+    // buffer counts
     Vec<usize>,
+    // padding
     Vec<bool>,
+    // data
     Vec<meta::NodeStatic>,
+    // root_node_mapping
     NodeMapping,
 ) {
     type D = SupportedDataTypes;

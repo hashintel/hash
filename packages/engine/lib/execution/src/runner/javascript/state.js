@@ -110,7 +110,12 @@ const gen_agent_state = (agent_schema, getters) => {
   };
 
   AgentState.prototype.get = function (field_name) {
-    return hash_util.json_deepcopy(this[field_name]);
+    let value = hash_util.json_deepcopy(this[field_name]);
+    if (field_name === "messages" && !value) {
+      return []
+    } else {
+      return value;
+    }
   };
 
   AgentState.prototype.set = function (field_name, value) {

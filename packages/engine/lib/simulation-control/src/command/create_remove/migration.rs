@@ -541,44 +541,50 @@ impl<'a> BufferActions<'a> {
                     let mut cur_length = if let Some(agent_batch) = agent_batch {
                         let start_index = buffer_meta.offset;
                         let end_index = start_index + buffer_meta.length;
-                        let data =
-                            &agent_batch.batch.segment().get_data_buffer()?[start_index..end_index];
-                        debug_assert_eq!(data, agent_batch.get_buffer(buffer_index).unwrap());
-                        debug_assert!(range_actions.is_well_ordered_remove());
-                        let mut removed_count = 0;
-                        range_actions.remove().iter().for_each(|range| {
-                            debug_assert!(
-                                range.next_index() <= data.len() * 8,
-                                "assertion failed: range.next_index() <= data.len() * 8
-                                note: range.next_index() = {} and data.len() * 8 = {}",
-                                range.next_index(),
-                                data.len() * 8
-                            );
-                            debug_assert!(
-                                range.index >= next_bit_index,
-                                "range.index {} >!= next_bit_index {}",
-                                range.index,
-                                next_bit_index
-                            );
+
+                        if start_index == end_index {
+                            0
+                        } else {
+                            let data = &agent_batch.batch.segment().get_data_buffer()?
+                                [start_index..end_index];
+
+                            debug_assert_eq!(data, agent_batch.get_buffer(buffer_index).unwrap());
+                            debug_assert!(range_actions.is_well_ordered_remove());
+                            let mut removed_count = 0;
+                            range_actions.remove().iter().for_each(|range| {
+                                debug_assert!(
+                                    range.next_index() <= data.len() * 8,
+                                    "assertion failed: range.next_index() <= data.len() * 8
+                                    note: range.next_index() = {} and data.len() * 8 = {}",
+                                    range.next_index(),
+                                    data.len() * 8
+                                );
+                                debug_assert!(
+                                    range.index >= next_bit_index,
+                                    "range.index {} >!= next_bit_index {}",
+                                    range.index,
+                                    next_bit_index
+                                );
+                                unset_bit_count += copy_bits_unchecked(
+                                    data,
+                                    &mut bytes,
+                                    next_bit_index,
+                                    range.index - next_bit_index,
+                                    next_bit_index - removed_count,
+                                );
+                                next_bit_index = range.next_index();
+                                removed_count += range.len;
+                            });
+                            // Also translate final slice
                             unset_bit_count += copy_bits_unchecked(
                                 data,
                                 &mut bytes,
                                 next_bit_index,
-                                range.index - next_bit_index,
+                                original_length - next_bit_index,
                                 next_bit_index - removed_count,
                             );
-                            next_bit_index = range.next_index();
-                            removed_count += range.len;
-                        });
-                        // Also translate final slice
-                        unset_bit_count += copy_bits_unchecked(
-                            data,
-                            &mut bytes,
-                            next_bit_index,
-                            original_length - next_bit_index,
-                            next_bit_index - removed_count,
-                        );
-                        node_dynamic_meta.length - removed_count
+                            node_dynamic_meta.length - removed_count
+                        }
                     } else {
                         0
                     };
@@ -592,6 +598,9 @@ impl<'a> BufferActions<'a> {
                             let src_buffer = agent_batches[*j].get_buffer(buffer_index)?;
 
                             v.iter().for_each(|range| {
+                                if src_buffer.is_empty() {
+                                    return;
+                                }
                                 unset_bit_count += copy_bits_unchecked(
                                     src_buffer,
                                     &mut bytes,
@@ -653,7 +662,6 @@ impl<'a> BufferActions<'a> {
                         null_count = unset_bit_count;
                     }
 
-                    debug_assert_eq!(cur_length, target_unit_count);
                     let variant = BufferActionVariant::Replace { data: bytes };
                     let action = BufferAction {
                         variant,
@@ -1798,7 +1806,7 @@ pub(super) mod test {
             &schema,
             MemoryId::new(experiment_id.as_uuid()),
         )?;
-        println!("Thru JSON took: {} us", now.elapsed().as_micros());
+        println!("JSON took: {} us", now.elapsed().as_micros());
         assert!(agents.num_agents() > 1);
 
         new_json_agents.iter_mut().for_each(|v| {

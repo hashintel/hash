@@ -224,8 +224,7 @@ impl GrowableArrayData for ArrayRef {
 mod arrow2_matches_arrow {
     use std::sync::Arc;
 
-    use arrow::array::{Array, BooleanBuilder, Int32Builder, ListBuilder};
-    use arrow2::array::{ListArray, MutableListArray, MutablePrimitiveArray, TryExtend};
+    use arrow::array::{Array, BooleanBuilder, Int32Builder};
 
     use crate::arrow::flush::GrowableArrayData;
 
@@ -277,56 +276,6 @@ mod arrow2_matches_arrow {
         let arrow = Arc::new(arrow.finish()) as arrow::array::ArrayRef;
 
         test_equal(arrow2, arrow);
-    }
-
-    #[test]
-    fn identical_list_arrays_match() {
-        let data = vec![
-            Some(vec![Some(1), None, Some(2), Some(4), Some(1), None]),
-            None,
-            Some(vec![Some(1), None, Some(8), Some(4), Some(1), None]),
-            Some(vec![Some(1), None, Some(2), Some(4), Some(1), None]),
-            None,
-            Some(vec![Some(1), None, Some(2), Some(4), Some(1), None]),
-            None,
-            // Some(vec![Some(1), None, Some(2), Some(4), Some(1), None]),
-            // None
-            // Some(vec![Some(1), None, Some(2), Some(4), Some(1), None]),
-            // Some(vec![Some(1), None, Some(2), Some(4), Some(1), None]),
-            // Some(vec![Some(1), None, Some(2), Some(4), Some(1), None]),
-            // None
-        ];
-
-        let mut arrow2 = MutableListArray::<i32, MutablePrimitiveArray<i32>>::new();
-        arrow2.try_extend(data.clone()).unwrap();
-        let arrow2: ListArray<i32> = arrow2.into();
-        let arrow2 = arrow2.arced();
-
-        let mut arrow = ListBuilder::new(arrow::array::Int32Builder::new(
-            data[0].clone().unwrap().len(),
-        ));
-        for each in data {
-            match each {
-                Some(t) => {
-                    for value in t {
-                        match value {
-                            Some(int) => {
-                                arrow.values().append_value(int).unwrap();
-                            }
-                            None => {
-                                arrow.values().append_null().unwrap();
-                            }
-                        }
-                    }
-                    arrow.append(true).unwrap();
-                }
-                None => arrow.append(false).unwrap(),
-            }
-        }
-        let arrow = arrow.finish();
-        let arrow = Arc::new(arrow) as arrow::array::ArrayRef;
-
-        test_equal(arrow2, arrow)
     }
 
     #[test]
