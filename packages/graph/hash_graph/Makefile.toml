@@ -65,7 +65,7 @@ cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}"
 script = """
 # We need the IP for the postgres deployment. This will be easier, when the graph docker image is started from docker-compose
 gateway=$(docker network inspect deployment_default | jq -r '.[0].IPAM.Config[0].Gateway')
-docker run --rm --name graph --env RUST_LOG=debug --network deployment_default --publish "4000:4000" --detach graph --host $gateway --rest-address 0.0.0.0:4000
+docker run --rm --init --name graph --env RUST_LOG=debug --network deployment_default --publish "4000:4000" --detach graph --host $gateway --rest-address 0.0.0.0:4000
 """
 
 [tasks.docker-down]
@@ -73,7 +73,7 @@ category = "Deploy"
 description = "Stops the docker image of the graph"
 command = "docker"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}"
-args = ["kill", "--signal", "SIGKILL", "graph"]
+args = ["stop", "graph"]
 
 [tasks.test-docker]
 run_task = { name = ["yarn", "deployment-up", "sleep-for-five-seconds", "migrate-up", "docker-up", "test-rest-api", "docker-down", "deployment-down"] }
