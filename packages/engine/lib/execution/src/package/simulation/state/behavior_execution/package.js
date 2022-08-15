@@ -152,7 +152,6 @@ const fill3 = (arr, val) => {
 
 const postprocess = (agent_state) => {
   const msgs = agent_state.messages;
-  // if the messages are empty, then we don't
   if (msgs) {
     for (var i = 0; i < msgs.length; ++i) {
       const m = msgs[i];

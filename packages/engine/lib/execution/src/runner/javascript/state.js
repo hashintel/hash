@@ -73,7 +73,12 @@ const gen_state_accessors = (AgentState, agent_schema, custom_getters) => {
 
   const msgs_getter = function () {
     const idx = this.__idx_in_group;
-    return this.__msgs[idx];
+    let value = this.__msgs[idx];
+    if (value) {
+      return value;
+    } else {
+      return [];
+    }
   };
   const msgs_setter = function (value) {
     this.__msgs[this.__idx_in_group] = value;
