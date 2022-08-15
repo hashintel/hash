@@ -75,9 +75,10 @@ const BlockHandle: ForwardRefRenderFunction<
   return (
     <Box
       ref={ref}
-      sx={{
-        display: readonlyMode ? "none" : "block",
-      }}
+      sx={(theme) => ({
+        opacity: blockView.hovered || contextMenuPopupState.isOpen ? 1 : 0,
+        transition: theme.transitions.create("opacity"),
+      })}
       data-testid="block-handle"
     >
       <IconButton

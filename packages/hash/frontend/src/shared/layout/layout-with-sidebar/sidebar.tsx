@@ -36,6 +36,7 @@ export const PageSidebar: FunctionComponent = () => {
           width: SIDEBAR_WIDTH,
         },
       }}
+      data-testid="page-sidebar"
     >
       <Box
         sx={{
