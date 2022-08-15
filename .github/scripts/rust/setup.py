@@ -14,6 +14,9 @@ DISABLE_STABLE_PATTERNS = ["packages/engine**", "packages/graph/hash_graph**"]
 # Try and publish these crates when their version is changed in Cargo.toml
 PUBLISH_PATTERNS = ["packages/libs/error-stack"]
 
+# Build a docker container for these crates
+DOCKER_PATTERNS = ["packages/graph/hash_graph"]
+
 
 def generate_diffs():
     """
@@ -101,6 +104,15 @@ def filter_for_publishable_crates(crates):
     return [crate for crate in crates for pattern in PUBLISH_PATTERNS if fnmatch(crate, pattern)]
 
 
+def filter_for_docker_crates(crates):
+    """
+    Returns the crates for which docker containers are built
+    :param crates: a list of paths to crates
+    :return: a list of crate paths for which docker containers are built
+    """
+    return [crate for crate in crates for pattern in DOCKER_PATTERNS if fnmatch(crate, pattern)]
+
+
 def output_exclude(crates):
     """
     Prints a exclude statements for a GitHub Action matrix.
@@ -134,6 +146,7 @@ def main():
     output("lint", changed_crates)
     output("test", changed_crates)
     output("publish", filter_crates_by_changed_version(diffs, filter_for_publishable_crates(changed_crates)))
+    output("docker", filter_for_docker_crates(changed_crates))
     output_exclude(changed_crates)
 
 
