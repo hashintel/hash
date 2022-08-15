@@ -2,8 +2,6 @@
 //!
 //! For more details see the documentation of [`GrowableArrayData`].
 
-use std::sync::Arc;
-
 use arrow2::{
     self,
     array::{
@@ -25,18 +23,16 @@ impl GrowableArrayData for ArrayRef {
         Array::null_count(self.as_ref())
     }
 
-    fn null_buffer(&self) -> Option<Arc<&[u8]>> {
-        Array::validity(self.as_ref())
-            .map(|bitmap| {
-                let (slice, ..) = bitmap.as_slice();
-                slice
-            })
-            .map(Arc::new)
+    fn null_buffer(&self) -> std::option::Option<&[u8]> {
+        Array::validity(self.as_ref()).map(|bitmap| {
+            let (slice, ..) = bitmap.as_slice();
+            slice
+        })
     }
 
     // see the trait definition for documentation on this method
-    fn buffer(&self, index: usize) -> Arc<&[u8]> {
-        Arc::new(match self.data_type().to_physical_type() {
+    fn buffer(&self, index: usize) -> &[u8] {
+        match self.data_type().to_physical_type() {
             arrow2::datatypes::PhysicalType::Null => &[],
             // boolean arrays only have a "values" field - i.e. one buffer
             arrow2::datatypes::PhysicalType::Boolean => {
@@ -184,7 +180,7 @@ impl GrowableArrayData for ArrayRef {
             _ => {
                 panic!("The provided buffer index was out of range");
             }
-        })
+        }
     }
 
     fn non_null_buffer_count(&self) -> usize {
@@ -204,28 +200,22 @@ impl GrowableArrayData for ArrayRef {
         }
     }
 
-    fn child_data(&self) -> Arc<Vec<Arc<Self>>> {
+    fn child_data(&self) -> &[Self] {
         match self.data_type().to_physical_type() {
             PhysicalType::List => {
                 let array = self.as_any().downcast_ref::<ListArray<i32>>().unwrap();
-                Arc::new(vec![Arc::new(array.values().to_owned())])
+                std::slice::from_ref(array.values())
             }
             PhysicalType::FixedSizeList => {
                 let array = self.as_any().downcast_ref::<FixedSizeListArray>().unwrap();
-                Arc::new(vec![Arc::new(array.values().to_owned())])
+                std::slice::from_ref(array.values())
             }
             PhysicalType::Struct => {
                 let array = self.as_any().downcast_ref::<StructArray>().unwrap();
-                Arc::new(
-                    array
-                        .values()
-                        .iter()
-                        .map(|val| Arc::new(val.clone()))
-                        .collect(),
-                )
+                array.values()
             }
 
-            _ => Arc::new(Vec::new()),
+            _ => &[],
         }
     }
 }
@@ -263,7 +253,7 @@ mod arrow2_matches_arrow {
         let arrow2_child_data = arrow2.child_data();
         let arrow_child_data = GrowableArrayData::child_data(arrow);
         for (arrow2, arrow) in arrow2_child_data.iter().zip(arrow_child_data.iter()) {
-            inner_equal_test(arrow2.as_ref().clone(), arrow);
+            inner_equal_test(arrow2.clone(), arrow);
         }
     }
 

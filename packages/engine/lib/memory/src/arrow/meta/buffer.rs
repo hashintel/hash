@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 /// Internal representation of Arrow `Buffer` Message with padding included
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Buffer {
@@ -75,7 +73,6 @@ pub enum BufferAction<'a> {
         index: usize,
         offset: usize,
         padding: usize,
-        #[allow(clippy::redundant_allocation)]
-        buffer: Arc<&'a [u8]>,
+        buffer: &'a [u8],
     },
 }

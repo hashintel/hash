@@ -1,24 +1,24 @@
 use crate::command::create_remove::migration::BufferActions;
 
-pub enum ExistingGroupBufferActions {
+pub enum ExistingGroupBufferActions<'a> {
     Persist {
         worker_index: usize,
     },
     Remove,
     Update {
-        actions: BufferActions,
+        actions: BufferActions<'a>,
         worker_index: usize,
     },
     Undefined,
 }
 
 #[derive(Debug)]
-pub struct CreateActions {
-    pub actions: BufferActions,
+pub struct CreateActions<'a> {
+    pub actions: BufferActions<'a>,
     pub worker_index: usize,
 }
 
-impl std::fmt::Debug for ExistingGroupBufferActions {
+impl std::fmt::Debug for ExistingGroupBufferActions<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ExistingGroupBufferActions::Persist { worker_index } => f

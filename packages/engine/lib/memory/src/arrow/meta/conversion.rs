@@ -423,7 +423,6 @@ pub mod tests {
             let child_node_mappings: Vec<NodeMapping> = data
                 .child_data()
                 .iter()
-                .map(AsRef::as_ref)
                 .map(get_node_mapping_from_array_data)
                 .collect();
             NodeMapping(child_node_mappings)

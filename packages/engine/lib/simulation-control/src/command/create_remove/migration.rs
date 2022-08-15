@@ -1,6 +1,6 @@
 #![allow(clippy::cast_sign_loss, clippy::cast_ptr_alignment)]
 
-use std::{borrow::Cow, mem, ops::Range, sync::Arc};
+use std::{borrow::Cow, mem, sync::Arc};
 
 use arrow2::{self, array::ArrayRef};
 use bytemuck::cast_slice;
@@ -61,25 +61,14 @@ pub struct InnerMoveAction {
 
 #[derive(Debug, Clone)]
 /// TODO: doc
-///
-/// Here we lazily-load the underlying slices from the array; we own the array from within this
-/// struct, and then generate references to the underlying buffers just before those references are
-/// consumed.
-pub enum InnerCreateAction {
+pub enum InnerCreateAction<'a> {
     Data {
         byte_offset: usize,
-        data: ArrayRef,
-        slice_range: Range<usize>,
-        buffer_index: usize,
+        data: &'a [u8],
     },
     Offset {
-        /// The Arrow2 array
-        data: ArrayRef,
-        /// The index of the buffer to get on the array.
-        buffer_index: usize,
-        /// The subslice of the buffer which should be used.
-        range: Range<usize>,
-        /// amount by which to increment the data to be copied
+        // offset values
+        data: &'a [i32],
         offset_shift: i32,
         /// new index of the base offset, relative to the start of the buffer
         base_offset_index: usize,
@@ -127,7 +116,7 @@ impl InnerShiftAction {
 }
 
 #[derive(Debug, Clone)]
-pub enum BufferActionVariant {
+pub enum BufferActionVariant<'a> {
     Replace {
         data: Vec<u8>,
     },
@@ -136,20 +125,20 @@ pub enum BufferActionVariant {
         // shift_actions.len() == (remove_actions.len() || remove_actions.len() + 1)
         shift: Vec<InnerShiftAction>,
         copy: Option<InnerMoveAction>,
-        create: Option<Vec<InnerCreateAction>>,
+        create: Option<Vec<InnerCreateAction<'a>>>,
     },
 }
 
 #[derive(Debug, Clone)]
-pub struct BufferAction {
-    variant: BufferActionVariant,
+pub struct BufferAction<'a> {
+    variant: BufferActionVariant<'a>,
     old_offset: usize,
     old_length: usize,
 }
 
 #[derive(Debug, Clone)]
-pub struct BufferActions {
-    pub actions: Vec<BufferAction>,
+pub struct BufferActions<'a> {
+    pub actions: Vec<BufferAction<'a>>,
     pub new_dynamic_meta: meta::DynamicMetadata,
 }
 
@@ -161,7 +150,7 @@ struct NextState {
     node_index_in_column: usize,
 }
 
-impl<'a> BufferActions {
+impl<'a> BufferActions<'a> {
     pub fn new_batch(
         &self,
         agent_schema: &Arc<AgentSchema>,
@@ -390,15 +379,7 @@ impl<'a> BufferActions {
                             create_actions
                                 .iter()
                                 .for_each(|create_action| match create_action {
-                                    InnerCreateAction::Data {
-                                        byte_offset,
-                                        data,
-                                        slice_range,
-                                        buffer_index,
-                                    } => {
-                                        let buffer = data.buffer(*buffer_index);
-                                        let data = &buffer[slice_range.clone()];
-
+                                    InnerCreateAction::Data { byte_offset, data } => {
                                         let offset = new_offset + byte_offset;
                                         debug_assert!(byte_offset + data.len() <= new_length);
                                         data_buffer[offset..offset + data.len()]
@@ -408,17 +389,7 @@ impl<'a> BufferActions {
                                         data,
                                         offset_shift,
                                         base_offset_index,
-                                        buffer_index,
-                                        range,
                                     } => {
-                                        // first we get the buffer we want to operate
-                                        // on from the array
-                                        let buffer = data.buffer(*buffer_index);
-                                        // offset buffers are always signed 32-bit integers, so we
-                                        // must cast the slice
-                                        let buffer: &[i32] = cast_slice(buffer.as_ref());
-                                        let data = &buffer[range.clone()];
-
                                         let start_offset = new_offset
                                             + base_offset_index * mem::size_of::<Offset>();
                                         let end_offset =
@@ -488,7 +459,7 @@ impl<'a> BufferActions {
     }
 
     #[allow(clippy::too_many_lines, clippy::too_many_arguments)]
-    fn traverse_nodes(
+    fn traverse_nodes<'b>(
         mut next_state: NextState,
         children_meta: &NodeMapping,
         column_meta: &meta::Column,
@@ -497,8 +468,8 @@ impl<'a> BufferActions {
         parent_range_actions: &RangeActions,
         agent_batch: Option<&AgentBatch>,
         agent_batches: &[&AgentBatch],
-        new_agents: Option<Arc<ArrayRef>>,
-        actions: &mut Vec<BufferAction>,
+        new_agents: Option<&'b ArrayRef>,
+        actions: &mut Vec<BufferAction<'b>>,
         buffer_metas: &mut Vec<Buffer>,
         node_metas: &mut Vec<Node>,
     ) -> Result<NextState> {
@@ -853,13 +824,9 @@ impl<'a> BufferActions {
                                 let action = InnerCreateAction::Offset {
                                     // Don't include the first element, because
                                     // that's incorporated in `offset_shift`
-                                    data: ad.as_ref().clone(),
+                                    data: &data[1..],
                                     base_offset_index: next_offset_index,
                                     offset_shift,
-                                    buffer_index: i - 1,
-                                    // note: we used to use an InclusiveRange here, but for the
-                                    // simplicity of having only a single type, we
-                                    range: range.index..range.next_index() + 1,
                                 };
                                 let added_unit_count = data[data.len() - 1] - data[0];
                                 last_offset_value += added_unit_count;
@@ -977,17 +944,20 @@ impl<'a> BufferActions {
                     };
 
                     // CREATE ACTIONS
-                    let create_actions = new_agents.as_ref().map(|ad| {
+                    let create_actions = new_agents.map(|ad| {
+                        let buffer = &ad.buffer(i - 1);
+
+                        let src_buffer = cast_slice(buffer);
                         range_actions
                             .create()
                             .iter()
                             .map(|range| {
+                                let slice = &src_buffer[range.index * unit_byte_size
+                                    ..range.next_index() * unit_byte_size];
+
                                 let action = InnerCreateAction::Data {
                                     byte_offset: next_unit_index * unit_byte_size,
-                                    data: ad.as_ref().clone(),
-                                    buffer_index: i - 1,
-                                    slice_range: range.index * unit_byte_size
-                                        ..range.next_index() * unit_byte_size,
+                                    data: slice,
                                 };
                                 next_unit_index += range.len;
                                 action
@@ -1052,9 +1022,7 @@ impl<'a> BufferActions {
                 range_actions,
                 agent_batch,
                 agent_batches,
-                new_agents
-                    .as_ref()
-                    .map(|parent| parent.child_data()[child_index].clone()),
+                new_agents.map(|parent| &parent.child_data()[child_index]),
                 actions,
                 buffer_metas,
                 node_metas,
@@ -1078,7 +1046,7 @@ impl<'a> BufferActions {
         base_range_actions: RangeActions,
         static_meta: &meta::StaticMetadata,
         new_agents: Option<&'a RecordBatch>,
-    ) -> Result<BufferActions> {
+    ) -> Result<BufferActions<'a>> {
         let agent_batch = batch_index.map(|index| agent_batches[index]);
         let dynamic_meta = batch_index.map(|index| agent_batches[index].batch.dynamic_meta());
         let mut next_indices = NextState {
@@ -1104,7 +1072,7 @@ impl<'a> BufferActions {
                 range_actions.as_ref(),
                 agent_batch,
                 agent_batches,
-                new_agents_data_ref.map(Clone::clone).map(Arc::new),
+                new_agents_data_ref,
                 &mut actions,
                 &mut buffer_metas,
                 &mut node_metas,

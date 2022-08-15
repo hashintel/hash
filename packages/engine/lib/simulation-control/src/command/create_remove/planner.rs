@@ -87,7 +87,7 @@ impl PendingPlan {
         state_proxy: &StateReadProxy,
         new_agents: Option<&'b RecordBatch>,
         config: &Arc<SimulationRunConfig>,
-    ) -> Result<MigrationPlan> {
+    ) -> Result<MigrationPlan<'b>> {
         let dynamic_pool = state_proxy.agent_pool();
         let mut existing_mutations = (0..dynamic_pool.len())
             .map(|_| ExistingGroupBufferActions::Undefined)
@@ -151,7 +151,7 @@ fn buffer_actions_from_pending_batch<'a>(
     inbound_agents: &Option<&'a RecordBatch>,
     schema: &Arc<AgentSchema>,
     inbound_taken_count: &mut usize,
-) -> Result<BufferActions> {
+) -> Result<BufferActions<'a>> {
     let remove = RangeActions::collect_indices(pending_batch.get_remove_actions());
     // We don't copy agents between batches anymore
     let copy = (0, vec![]);

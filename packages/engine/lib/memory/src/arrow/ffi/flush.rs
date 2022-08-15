@@ -226,10 +226,10 @@ unsafe fn node_into_prepared_array_data(
         Vec::with_capacity(0)
     };
     let prepared = PreparedArrayData {
-        inner: Arc::new(arrow_array),
-        child_data: Arc::new(child_data.into_iter().map(Arc::new).collect()),
-        null_buffer: null_buffer.map(Arc::new),
-        buffers: buffers.into_iter().map(Arc::new).collect(),
+        inner: arrow_array,
+        child_data,
+        null_buffer,
+        buffers,
     };
 
     Ok((prepared, next_node_index))
@@ -237,28 +237,26 @@ unsafe fn node_into_prepared_array_data(
 
 #[derive(Debug, Clone)]
 pub struct PreparedArrayData<'a> {
-    inner: Arc<*const ArrowArray>,
-    child_data: Arc<Vec<Arc<PreparedArrayData<'a>>>>,
-    #[allow(clippy::redundant_allocation)]
-    null_buffer: Option<Arc<&'a [u8]>>,
-    #[allow(clippy::redundant_allocation)]
-    buffers: Vec<Arc<&'a [u8]>>,
+    inner: *const ArrowArray,
+    child_data: Vec<PreparedArrayData<'a>>,
+    null_buffer: Option<&'a [u8]>,
+    buffers: Vec<&'a [u8]>,
 }
 
 impl GrowableArrayData for PreparedArrayData<'_> {
     fn len(&self) -> usize {
-        unsafe { (*(*self.inner)).length as usize }
+        unsafe { (*self.inner).length as usize }
     }
 
     fn null_count(&self) -> usize {
-        unsafe { (*(*self.inner)).null_count as usize }
+        unsafe { (*self.inner).null_count as usize }
     }
 
-    fn null_buffer(&self) -> Option<Arc<&[u8]>> {
+    fn null_buffer(&self) -> Option<&[u8]> {
         self.null_buffer.clone()
     }
 
-    fn buffer(&self, index: usize) -> Arc<&[u8]> {
+    fn buffer(&self, index: usize) -> &[u8] {
         self.buffers[index].clone()
     }
 
@@ -266,8 +264,8 @@ impl GrowableArrayData for PreparedArrayData<'_> {
         self.buffers.len()
     }
 
-    fn child_data(&self) -> Arc<Vec<Arc<Self>>> {
-        self.child_data.clone()
+    fn child_data(&self) -> &[Self] {
+        &self.child_data
     }
 }
 
@@ -281,8 +279,8 @@ impl<'a> GrowableColumn<PreparedArrayData<'a>> for PreparedColumn<'a> {
         self.index
     }
 
-    fn data(&self) -> Arc<PreparedArrayData<'a>> {
-        self.data.clone()
+    fn data(&self) -> &PreparedArrayData<'a> {
+        &self.data
     }
 }
 

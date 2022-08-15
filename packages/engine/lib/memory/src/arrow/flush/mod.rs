@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{
     arrow::{meta, util::bit_util},
     error::Result,
@@ -21,14 +19,13 @@ pub trait GrowableArrayData: Sized + std::fmt::Debug {
     fn null_count(&self) -> usize;
     /// This returns a bitmap, where the nth bit of the returned data specifies whether or not the
     /// nth item in the array is null or not.
-    #[allow(clippy::redundant_allocation)]
-    fn null_buffer(&self) -> Option<Arc<&[u8]>>;
+    fn null_buffer(&self) -> Option<&[u8]>;
     /// Returns the nth buffer of this array. We follow the
     /// [specification](https://arrow.apache.org/docs/format/Columnar.html#dictionary-encoded-layout)
     /// _except_ that instead of returning the validity bitmap in position zero, we instead return
     /// this as part of [`GrowableArrayData::null_buffer`]
     #[allow(clippy::redundant_allocation)]
-    fn buffer(&self, index: usize) -> Arc<&[u8]>;
+    fn buffer(&self, index: usize) -> &[u8];
     /// Arrow stores the null buffer separately from other buffers.
     fn non_null_buffer_count(&self) -> usize;
     /// This returns the data of the child arrays.
@@ -36,7 +33,7 @@ pub trait GrowableArrayData: Sized + std::fmt::Debug {
     /// todo: reduce number of atomic reference counters (the return type here is a bit awkward
     /// because we implement [`GrowableArrayData`] for [`Arc<dyn arrow2::Array>`] so we end up
     /// with [`Arc<Arc<dyn Array>`] in some places).
-    fn child_data(&self) -> Arc<Vec<Arc<Self>>>;
+    fn child_data(&self) -> &[Self];
 }
 
 impl GrowableArrayData for arrow::array::ArrayData {
@@ -48,37 +45,27 @@ impl GrowableArrayData for arrow::array::ArrayData {
         arrow::array::ArrayData::null_count(self)
     }
 
-    fn null_buffer(&self) -> Option<Arc<&[u8]>> {
-        dbg!(
-            arrow::array::ArrayData::null_buffer(self)
-                .map(arrow::buffer::Buffer::as_slice)
-                .map(Arc::new)
-        )
+    fn null_buffer(&self) -> std::option::Option<&[u8]> {
+        dbg!(arrow::array::ArrayData::null_buffer(self).map(arrow::buffer::Buffer::as_slice))
     }
 
-    fn buffer(&self, index: usize) -> Arc<&[u8]> {
-        Arc::new(self.buffers()[index].as_slice())
+    fn buffer(&self, index: usize) -> &[u8] {
+        self.buffers()[index].as_slice()
     }
 
     fn non_null_buffer_count(&self) -> usize {
         self.buffers().len()
     }
 
-    fn child_data(&self) -> Arc<Vec<Arc<Self>>> {
-        Arc::new(
-            arrow::array::ArrayData::child_data(self)
-                .into_iter()
-                .map(Clone::clone)
-                .map(Arc::new)
-                .collect(),
-        )
+    fn child_data(&self) -> &[arrow::array::ArrayData] {
+        arrow::array::ArrayData::child_data(self)
     }
 }
 
 /// The info required about an Arrow column in order to grow it
 pub trait GrowableColumn<D: GrowableArrayData>: Sized {
     fn index(&self) -> usize;
-    fn data(&self) -> Arc<D>;
+    fn data(&self) -> &D;
 }
 
 /// A batch that can be grown after creation.
@@ -125,130 +112,119 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
         let mut this_buffer_index = 0;
         let mut this_buffer_offset = 0;
 
-        // this is messy, but we have to create this here in order to avoid lifetime problems (which
-        // would come about if we did it inside of the following loop
-        // `column_changes.iter().enumerate().for_each...`)
-        let mut array_datas_container = Vec::with_capacity(self.dynamic_meta().buffers.len());
-        column_changes.iter().for_each(|change| {
-            array_datas_container.push(gather_array_datas_depth_first(change.data()));
-        });
-
         // Go over all of the pending changes, calculate target locations for those buffers
         // and neighbouring buffers if they need to be moved.
-        column_changes
-            .iter()
-            .enumerate()
-            .for_each(|(index, column_change)| {
-                let column_index = column_change.index();
-                // `meta` contains the information about where to look in `self.dynamic_meta` for
-                // current offset/node information
-                let meta = &column_metas[column_index];
+        column_changes.iter().for_each(|column_change| {
+            let column_index = column_change.index();
+            // `meta` contains the information about where to look in `self.dynamic_meta` for
+            // current offset/node information
+            let meta = &column_metas[column_index];
 
-                let buffer_start = meta.buffer_start;
+            let buffer_start = meta.buffer_start;
+            // Depth-first is required, because this is the order in which
+            // nodes are written into memory, see `write_static_array_data` in ./arrow/ipc.rs
+            let array_datas = gather_array_datas_depth_first(column_change.data());
 
-                // Iterate over buffers that are not modified, but might have to be moved,
-                // because of preceding buffers which may have been moved/resized
-                if this_buffer_index != buffer_start {
-                    this_buffer_offset = push_non_modify_actions(
-                        &mut buffer_actions,
-                        this_buffer_index,
-                        buffer_start - 1,
+            // Iterate over buffers that are not modified, but might have to be moved,
+            // because of preceding buffers which may have been moved/resized
+            if this_buffer_index != buffer_start {
+                this_buffer_offset = push_non_modify_actions(
+                    &mut buffer_actions,
+                    this_buffer_index,
+                    buffer_start - 1,
+                    this_buffer_offset,
+                    self.dynamic_meta(),
+                );
+                this_buffer_index = buffer_start;
+            }
+
+            // A column can consist of more than one node. For example a field that is
+            // List<u8> corresponds to a column with 2 nodes
+            array_datas.iter().enumerate().for_each(|(i, array_data)| {
+                let node_index = meta.node_start + i;
+                // Update Node information
+                node_changes.push((node_index, meta::Node {
+                    null_count: array_data.null_count(),
+                    length: array_data.len(),
+                }));
+
+                // Null buffer calculation.
+                // The null buffer is always the first buffer in a column,
+                // it is found under `array_data.null_buffer()` and
+                // NOT under `array_data.buffers()[0]`
+                {
+                    let num_bytes = bit_util::ceil(array_data.len(), 8);
+                    let next_buffer_offset = self
+                        .dynamic_meta()
+                        .buffers
+                        .get(this_buffer_index + 1)
+                        .map_or_else(|| self.dynamic_meta().data_length, |v| v.offset);
+                    let new_padding = padding::maybe_new_dynamic_pad(
                         this_buffer_offset,
-                        self.dynamic_meta(),
+                        num_bytes,
+                        next_buffer_offset,
                     );
-                    this_buffer_index = buffer_start;
+                    // Safety: A null buffer is always followed by another buffer
+                    if let Some(b) = array_data.null_buffer().as_ref() {
+                        buffer_actions.push(meta::BufferAction::Ref {
+                            index: this_buffer_index,
+                            offset: this_buffer_offset,
+                            padding: new_padding,
+                            buffer: b.clone(),
+                        });
+                    } else {
+                        // We know all values must be valid.
+                        // Hence we have to make a homogeneous
+                        // null buffer corresponding to valid values
+                        let buffer = vec![255_u8; num_bytes];
+
+                        buffer_actions.push(meta::BufferAction::Owned {
+                            index: this_buffer_index,
+                            offset: this_buffer_offset,
+                            padding: new_padding,
+                            buffer,
+                        });
+                    }
+
+                    this_buffer_index += 1;
+                    let total_buffer_length = num_bytes + new_padding;
+                    this_buffer_offset += total_buffer_length;
                 }
 
-                // A column can consist of more than one node. For example a field that is
-                // List<u8> corresponds to a column with 2 nodes
-                array_datas_container[index]
-                    .iter()
-                    .enumerate()
-                    .for_each(|(i, array_data)| {
-                        let node_index = meta.node_start + i;
-                        // Update Node information
-                        node_changes.push((node_index, meta::Node {
-                            null_count: array_data.null_count(),
-                            length: array_data.len(),
-                        }));
-
-                        // Null buffer calculation.
-                        // The null buffer is always the first buffer in a column,
-                        // it is found under `array_data.null_buffer()` and
-                        // NOT under `array_data.buffers()[0]`
-                        {
-                            let num_bytes = bit_util::ceil(array_data.len(), 8);
-                            let next_buffer_offset = self
-                                .dynamic_meta()
-                                .buffers
-                                .get(this_buffer_index + 1)
-                                .map_or_else(|| self.dynamic_meta().data_length, |v| v.offset);
-                            let new_padding = padding::maybe_new_dynamic_pad(
-                                this_buffer_offset,
-                                num_bytes,
-                                next_buffer_offset,
-                            );
-                            // Safety: A null buffer is always followed by another buffer
-                            if let Some(b) = array_data.null_buffer().as_ref() {
-                                buffer_actions.push(meta::BufferAction::Ref {
-                                    index: this_buffer_index,
-                                    offset: this_buffer_offset,
-                                    padding: new_padding,
-                                    buffer: b.clone(),
-                                });
-                            } else {
-                                // We know all values must be valid.
-                                // Hence we have to make a homogeneous
-                                // null buffer corresponding to valid values
-                                let buffer = vec![255_u8; num_bytes];
-
-                                buffer_actions.push(meta::BufferAction::Owned {
-                                    index: this_buffer_index,
-                                    offset: this_buffer_offset,
-                                    padding: new_padding,
-                                    buffer,
-                                });
-                            }
-
-                            this_buffer_index += 1;
-                            let total_buffer_length = num_bytes + new_padding;
-                            this_buffer_offset += total_buffer_length;
-                        }
-
-                        // Go over offset/data buffers (these are not null buffers)
-                        // Have to do `meta.buffer_counts[i] - 1` because the null buffer is
-                        // separate
-                        debug_assert_eq!(
-                            meta.buffer_counts[i] - 1,
-                            array_data.non_null_buffer_count(),
-                            "Number of buffers in metadata does not match actual number of buffers"
-                        );
-                        // todo: when adding datatypes with no null buffer (the null datatype), then
-                        // this   convention does not work
-                        (0..meta.buffer_counts[i] - 1).for_each(|j| {
-                            let buffer = array_data.buffer(j);
-                            let new_len = buffer.len();
-                            let next_buffer_offset = self
-                                .dynamic_meta()
-                                .buffers
-                                .get(this_buffer_index + 1)
-                                .map_or_else(|| self.dynamic_meta().data_length, |v| v.offset);
-                            let new_padding = padding::maybe_new_dynamic_pad(
-                                this_buffer_offset,
-                                new_len,
-                                next_buffer_offset,
-                            );
-                            buffer_actions.push(meta::BufferAction::Ref {
-                                index: this_buffer_index,
-                                offset: this_buffer_offset,
-                                padding: new_padding,
-                                buffer,
-                            });
-                            this_buffer_offset += new_len + new_padding;
-                            this_buffer_index += 1;
-                        });
+                // Go over offset/data buffers (these are not null buffers)
+                // Have to do `meta.buffer_counts[i] - 1` because the null buffer is
+                // separate
+                debug_assert_eq!(
+                    meta.buffer_counts[i] - 1,
+                    array_data.non_null_buffer_count(),
+                    "Number of buffers in metadata does not match actual number of buffers"
+                );
+                // todo: when adding datatypes with no null buffer (the null datatype), then
+                // this   convention does not work
+                (0..meta.buffer_counts[i] - 1).for_each(|j| {
+                    let buffer = array_data.buffer(j);
+                    let new_len = buffer.len();
+                    let next_buffer_offset = self
+                        .dynamic_meta()
+                        .buffers
+                        .get(this_buffer_index + 1)
+                        .map_or_else(|| self.dynamic_meta().data_length, |v| v.offset);
+                    let new_padding = padding::maybe_new_dynamic_pad(
+                        this_buffer_offset,
+                        new_len,
+                        next_buffer_offset,
+                    );
+                    buffer_actions.push(meta::BufferAction::Ref {
+                        index: this_buffer_index,
+                        offset: this_buffer_offset,
+                        padding: new_padding,
+                        buffer,
                     });
+                    this_buffer_offset += new_len + new_padding;
+                    this_buffer_index += 1;
+                });
             });
+        });
 
         // There can be buffers at the end which have not been
         // attended to yet. Create actions for them too and use
@@ -390,11 +366,11 @@ fn push_non_modify_actions(
 /// This function performs a depth-first pre-order (i.e. it searches first the root node and then
 /// all the subtrees from left-to-right) traversal of the nodes (this is as per the
 /// [Arrow specification](https://arrow.apache.org/docs/format/Columnar.html)).
-fn gather_array_datas_depth_first<D: GrowableArrayData>(data: Arc<D>) -> Vec<Arc<D>> {
-    let mut ret = vec![data.clone()];
+fn gather_array_datas_depth_first<D: GrowableArrayData>(data: &D) -> Vec<&D> {
+    let mut ret = vec![data];
     // Depth-first get all nodes
     data.child_data().iter().for_each(|v| {
-        ret.append(&mut gather_array_datas_depth_first(v.clone()));
+        ret.append(&mut gather_array_datas_depth_first(v));
     });
     ret
 }
