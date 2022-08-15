@@ -3201,6 +3201,16 @@
   dependencies:
     tslib "^2.0.0"
 
+"@emoji-mart/data@1.0.5":
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/@emoji-mart/data/-/data-1.0.5.tgz#62c837f1384eb2f94bec4c0dcfe8d230cc67e81d"
+  integrity sha512-HulW+jI7w3ghqRN4+i1LZYJ04bdsMJg5fJ7dr6rlVpsIYKmhpVA7/ACl9R3OB5aoMf8dqNdXftVss8qHCoOi+g==
+
+"@emoji-mart/react@1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@emoji-mart/react/-/react-1.0.1.tgz#46b6a2e92faf16fa9b7f9471f137fa2e3d1e8ac3"
+  integrity sha512-ALhLD96BOL5w+a4NI5NpmfqfF1aVjjj2qJE0dLst/OhjBfVmpteWNgn/h8LZy9ulU6AnbeS+13KnPFzDjCvRRw==
+
 "@emotion/babel-plugin@^11.0.0", "@emotion/babel-plugin@^11.7.1":
   version "11.7.2"
   resolved "https://registry.yarnpkg.com/@emotion/babel-plugin/-/babel-plugin-11.7.2.tgz#fec75f38a6ab5b304b0601c74e2a5e77c95e5fa0"
@@ -5616,6 +5626,13 @@
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/@types/dotenv-flow/-/dotenv-flow-3.2.0.tgz#3a632bcb72d5a6fa770da644a1f63d69a6c7075e"
   integrity sha512-A79hbPwocbYkcTwGcDOFbKDuqyVo5mLAz/6Iq465YZ7R7Go5bT1PIM8I2jlPQkaD9u9fbotGVLkUPhX+9XUHfw==
+
+"@types/emoji-mart@3.0.9":
+  version "3.0.9"
+  resolved "https://registry.yarnpkg.com/@types/emoji-mart/-/emoji-mart-3.0.9.tgz#2f7ef5d9ec194f28029c46c81a5fc1e5b0efa73c"
+  integrity sha512-qdBo/2Y8MXaJ/2spKjDZocuq79GpnOhkwMHnK2GnVFa8WYFgfA+ei6sil3aeWQPCreOKIx9ogPpR5+7MaOqYAA==
+  dependencies:
+    "@types/react" "*"
 
 "@types/eslint-scope@^3.7.3":
   version "3.7.3"
@@ -9303,6 +9320,11 @@ emittery@^0.10.2:
   version "0.10.2"
   resolved "https://registry.yarnpkg.com/emittery/-/emittery-0.10.2.tgz#902eec8aedb8c41938c46e9385e9db7e03182933"
   integrity sha512-aITqOwnLanpHLNXZJENbOgjUBeHocD+xsSJmNrjovKBW5HbSpW3d1pEls7GFQPUWXiwG9+0P4GtHfEqC/4M0Iw==
+
+emoji-mart@5.2.1:
+  version "5.2.1"
+  resolved "https://registry.yarnpkg.com/emoji-mart/-/emoji-mart-5.2.1.tgz#eccd7d650e7bc042a07834a263b87c8153f214e5"
+  integrity sha512-q6lz1u8TrGrO5Bv8dL2Z5atTRQaci3YzUfbYN0MzlLmIKdRt3N6vNT7uvCWRKc1tERrI45sn0nQYk3g99cBr/w==
 
 emoji-regex@^7.0.1:
   version "7.0.3"
