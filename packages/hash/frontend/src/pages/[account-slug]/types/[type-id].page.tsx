@@ -134,16 +134,15 @@ const Page: NextPageWithLayout = () => {
     });
   };
 
-  const crumbs = useMemo(() => {
-    if (!schema) return [];
-    return [
-      {
-        title: schema.title,
-        href: `/${accountId}/types/${typeId}`,
-        id: typeId,
-      },
-    ];
-  }, [schema, accountId, typeId]);
+  const crumbs = !schema
+    ? []
+    : [
+        {
+          title: schema.title,
+          href: `/${accountId}/types/${typeId}`,
+          id: typeId,
+        },
+      ];
 
   if (!data) {
     return (
