@@ -28,6 +28,12 @@ or
 cargo make docker-down
 ```
 
+To completely remove the image again, run
+
+```shell
+docker image rm graph
+```
+
 ## Building
 
 In order to build the HASH Graph API make sure `cargo-make` is installed:
