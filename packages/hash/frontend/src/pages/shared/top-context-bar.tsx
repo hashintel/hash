@@ -9,10 +9,10 @@ import { ReactNode } from "react";
 import { useSidebarContext } from "../../shared/layout/layout-with-sidebar";
 import { useReadonlyMode } from "../../shared/readonly-mode";
 import { Button } from "../../shared/ui";
-import { Breadcrumbs } from "./breadcrumbs";
+import { Breadcrumbs, BreadcrumbsProps } from "./breadcrumbs";
 
 type Props = {
-  crumbs: { title: string; href: string; id: string; icon: ReactNode }[];
+  crumbs: BreadcrumbsProps["crumbs"];
   defaultCrumbIcon?: ReactNode;
   scrollToTop: () => void;
 };

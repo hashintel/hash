@@ -1,9 +1,8 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useRef } from "react";
 import pluralize from "pluralize";
 import { useQuery } from "@apollo/client";
 import { useRouter } from "next/router";
 
-import { tw } from "twind";
 import { Box, styled } from "@mui/material";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
