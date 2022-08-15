@@ -2,18 +2,18 @@
 
 ## Run the Graph
 
-The easiest way to run the Graph API is to use docker. Either invoke docker directly:
-
-```shell
-DOCKER_BUILDKIT=1 docker build --tag graph --file ../deployment/graph/Dockerfile .
-docker run --rm --init --network host --name graph --env RUST_LOG=trace --detach graph
-```
-
-or by using `cargo make`:
+The easiest way to run the Graph API is to use docker through `cargo make`:
 
 ```shell
 cargo make build-docker --profile production
-cargo make docker-up
+cargo make graph-up
+```
+
+or by using `yarn`
+
+```shell
+DOCKER_BUILDKIT=1 yarn external-services build graph
+yarn external-services up --detach graph
 ```
 
 Note, that building the docker image requires `docker-buildkit`, which can be enabled by setting `DOCKER_BUILDKIT=1` as shown above. To enable it by default please refer to [their documentation](https://docs.docker.com/develop/develop-images/build_enhancements/#to-enable-buildkit-builds).
@@ -21,19 +21,19 @@ Note, that building the docker image requires `docker-buildkit`, which can be en
 The container can be stopped by calling
 
 ```shell
-docker stop graph
+cargo make graph-down
 ```
 
 or
 
 ```shell
-cargo make docker-down
+yarn external-services down
 ```
 
 To completely remove the image again, run
 
 ```shell
-docker image rm graph
+yarn external-services rm
 ```
 
 ## Building

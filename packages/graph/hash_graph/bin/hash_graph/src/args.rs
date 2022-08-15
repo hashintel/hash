@@ -13,7 +13,7 @@ pub struct Args {
     pub log_config: LoggingArgs,
 
     /// The address the REST client is listening at
-    #[clap(long, default_value = "127.0.0.1:4000")]
+    #[clap(long, default_value = "127.0.0.1:4000", env = "HASH_GRAPH_ADDRESS")]
     pub rest_address: String,
 
     /// Generate a completion script for the given shell and outputs it to stdout.

@@ -1,4 +1,8 @@
 version: "3.9"
+
+volumes:
+  hash-postgres-data:
+
 services:
   hash-dev-opensearch:
     deploy:
@@ -32,7 +36,7 @@ services:
     #   - ../../../var/external-services/opensearch/data:/usr/share/opensearch/data
 
   postgres:
-    image: postgres:14-alpine
+    image: postgres:14-alpine3.16
     deploy:
       restart_policy:
         condition: on-failure
@@ -44,9 +48,34 @@ services:
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
-      - ../../../var/external-services/postgres/data:/data
+      - hash-postgres-data:/var/lib/postgresql/data
       - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ./postgres/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh
+      - ./postgres/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --username ${POSTGRES_USER}"]
+      interval: 1s
+      timeout: 1s
+      retries: 5
+    command: -c 'config_file=/etc/postgresql/postgresql.conf'
+
+  graph:
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    build:
+      dockerfile: deployment/graph/Dockerfile
+      context: ../../graph
+      args:
+        PROFILE: dev
+    env_file:
+      - ../../../.env
+      - ../../../.env.local
+    environment:
+      POSTGRES_HOST: "postgres"
+    ports:
+      - "4000:4000"
+
   hash-dev-redis:
     deploy:
       restart_policy:
@@ -54,9 +83,11 @@ services:
     image: redis:6.2
     ports:
       - 6379:6379
+
   kratos-migrate:
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     image: oryd/kratos:v0.10.1
     volumes:
       - type: bind
@@ -65,6 +96,7 @@ services:
     environment:
       - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DATABASE}
     command: -c /etc/config/kratos/kratos.dev.yml migrate sql -e --yes
+
   kratos:
     depends_on:
       - kratos-migrate
@@ -84,6 +116,7 @@ services:
       - type: bind
         source: ./kratos
         target: /etc/config/kratos
+
   mailslurper:
     image: oryd/mailslurper:latest-smtps
     ports:
