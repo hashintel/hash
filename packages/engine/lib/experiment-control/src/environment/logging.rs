@@ -57,11 +57,11 @@ enum OutputFormatter<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "clap", derive(clap::ArgEnum))]
+#[cfg_attr(feature = "clap", derive(clap::Subcommand))]
 pub enum OutputLocation {
     StdOut,
     StdErr,
-    File(PathBuf),
+    File { path: PathBuf },
 }
 
 impl Display for OutputLocation {
@@ -69,7 +69,7 @@ impl Display for OutputLocation {
         match self {
             OutputLocation::StdOut => f.write_str("stdout"),
             OutputLocation::StdErr => f.write_str("stderr"),
-            OutputLocation::File(path) => Display::fmt(&path.to_string_lossy(), f),
+            OutputLocation::File { path } => Display::fmt(&path.to_string_lossy(), f),
         }
     }
 }
@@ -81,7 +81,9 @@ impl FromStr for OutputLocation {
         match s {
             "stdout" => Ok(Self::StdOut),
             "stderr" => Ok(Self::StdErr),
-            _ => Ok(Self::File(PathBuf::from_str(s)?)),
+            _ => Ok(Self::File {
+                path: PathBuf::from_str(s)?,
+            }),
         }
     }
 }
@@ -132,8 +134,8 @@ impl OutputLocation {
         match self {
             Self::StdOut => (BoxMakeWriter::new(io::stdout), OutputFileGuard::None),
             Self::StdErr => (BoxMakeWriter::new(io::stderr), OutputFileGuard::None),
-            Self::File(file_name) => {
-                let file_appender = tracing_appender::rolling::never(log_folder, file_name);
+            Self::File { path } => {
+                let file_appender = tracing_appender::rolling::never(log_folder, path);
                 let (file, guard) = tracing_appender::non_blocking(file_appender);
                 (BoxMakeWriter::new(file), OutputFileGuard::File(guard))
             }
@@ -143,7 +145,7 @@ impl OutputLocation {
     fn ansi(&self) -> bool {
         match self {
             // TODO: evaluate if we want disable ansi-output (color) in files
-            Self::File(_) => true,
+            Self::File { path: _ } => true,
             _ => true,
         }
     }
