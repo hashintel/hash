@@ -117,7 +117,7 @@ const Page: NextPageWithLayout = () => {
         })}
       >
         <TopContextBar
-          crumbs={getCrumbs()}
+          crumbs={crumbs}
           defaultCrumbIcon={<FontAwesomeIcon icon={faAsterisk} />}
         />
       </Box>
