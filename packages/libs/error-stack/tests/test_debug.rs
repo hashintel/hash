@@ -10,7 +10,7 @@
 mod common;
 use common::*;
 #[cfg(feature = "hooks")]
-use error_stack::fmt::{Emit, HookContext, Hooks};
+use error_stack::fmt::{Emit, HookContext};
 #[allow(unused_imports)]
 use error_stack::Report;
 use insta::assert_snapshot;
@@ -315,6 +315,7 @@ mod full {
     //!
     //! There are still some big snapshot tests, which are used evaluate all of the above.
 
+    use error_stack::fmt::Call;
     #[cfg(all(nightly, feature = "experimental"))]
     use error_stack::fmt::DebugDiagnostic;
 
@@ -508,8 +509,7 @@ mod full {
 
         let report = create_report().attach(2u32);
 
-        Report::install_hook(Hooks::new().push(|_: &u32| Emit::next("unsigned 32bit integer")))
-            .unwrap();
+        Report::install_debug_hook::<u32>(|_| Emit::next("unsigned 32bit integer"));
 
         assert_snapshot!(redact(&format!("{report:?}")));
     }
@@ -520,50 +520,32 @@ mod full {
 
         let report = create_report().attach(2u32);
 
-        Report::install_hook(Hooks::new().push(|_: &u32, ctx: &mut HookContext<u32>| {
+        Report::install_debug_hook::<u32>(|_, ctx| {
             Emit::next(format!("unsigned 32bit integer (No. {})", ctx.increment()))
-        }))
-        .unwrap();
+        });
 
         assert_snapshot!(redact(&format!("{report:?}")));
     }
 
     #[test]
-    fn hook_stack() {
+    fn hook_multiple() {
         setup();
 
         let report = create_report().attach(1u32).attach(2u64);
 
-        Report::install_hook(
-            Hooks::new()
-                .push(|_: &u32| Emit::next("unsigned 32bit integer"))
-                .push(|_: &u64| Emit::next("unsigned 64-bit integer")),
-        )
-        .unwrap();
+        Report::install_debug_hook::<u32>(|_, _| Emit::next("unsigned 32bit integer"));
+        Report::install_debug_hook::<u64>(|_, _| Emit::next("unsigned 64bit integer"));
 
         assert_snapshot!(redact(&format!("{report:?}")));
     }
 
     #[test]
-    fn hook_combine() {
+    fn hook_fallback() {
         setup();
 
-        let report = create_report() //
-            .attach(1u32)
-            .attach(2u64)
-            .attach(3u16);
+        let report = create_report().attach(1u32);
 
-        let other = Hooks::new()
-            .push(|_: &u32| Emit::next("u32 (other)"))
-            .push(|_: &u16| Emit::next("u16 (other)"));
-
-        Report::install_hook(
-            Hooks::new()
-                .push(|_: &u32| Emit::next("u32"))
-                .push(|_: &u64| Emit::next("u64"))
-                .combine(other),
-        )
-        .unwrap();
+        Report::install_debug_hook_fallback(|_, _| Call::Find(Emit::next("unknown")));
 
         assert_snapshot!(redact(&format!("{report:?}")));
     }
@@ -577,13 +559,9 @@ mod full {
             .attach(2u64)
             .attach(3u16);
 
-        Report::install_hook(
-            Hooks::new()
-                .push(|_: &u32| Emit::defer("u32"))
-                .push(|_: &u64| Emit::next("u64"))
-                .push(|_: &u16| Emit::defer("u16")),
-        )
-        .unwrap();
+        Report::install_debug_hook::<u16>(|_, _| Emit::defer("u16"));
+        Report::install_debug_hook::<u32>(|_, _| Emit::defer("u32"));
+        Report::install_debug_hook::<u64>(|_, _| Emit::next("u64"));
 
         assert_snapshot!(redact(&format!("{report:?}")));
     }
@@ -597,10 +575,7 @@ mod full {
             .attach(2u32)
             .attach(3u32);
 
-        Report::install_hook(Hooks::new().push(|_: &u32, ctx: &mut HookContext<u32>| {
-            Emit::next(format!("{}", ctx.decrement()))
-        }))
-        .unwrap();
+        Report::install_debug_hook::<u32>(|_, ctx| Emit::next(format!("{}", ctx.decrement())));
 
         assert_snapshot!(redact(&format!("{report:?}")));
     }
@@ -614,10 +589,7 @@ mod full {
             .attach(2u32)
             .attach(3u32);
 
-        Report::install_hook(Hooks::new().push(|_: &u32, ctx: &mut HookContext<u32>| {
-            Emit::next(format!("{}", ctx.increment()))
-        }))
-        .unwrap();
+        Report::install_debug_hook::<u32>(|_, ctx| Emit::next(format!("{}", ctx.increment())));
 
         assert_snapshot!(redact(&format!("{report:?}")));
     }
