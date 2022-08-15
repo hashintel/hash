@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-set -euxo
+set -eux
 
 cd /migrations
 
@@ -10,5 +10,5 @@ yarn graph:migrate up
 cd /
 
 export HASH_GRAPH_HOST="$POSTGRES_HOST"
-export HASH_GRAPH_ADDRESS="0.0.0.0:4000"
+export HASH_GRAPH_ADDRESS="0.0.0.0:$HASH_GRAPH_API_PORT"
 exec /usr/local/bin/hash-graph
