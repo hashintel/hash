@@ -6,6 +6,7 @@ import {
   Menu,
 } from "@hashintel/hash-design-system";
 import {
+  Box,
   Breadcrumbs as MuiBreadcrumbs,
   ListItemIcon,
   ListItemText,
@@ -25,11 +26,6 @@ export type Breadcrumb = {
   href: string;
   icon?: ReactNode;
   id: string;
-};
-
-const shortenText = (text: string, max: number) => {
-  if (text.length <= max) return text;
-  return `${text.slice(0, max)}…`;
 };
 
 type SubMenuProps = {
@@ -127,7 +123,17 @@ export const Breadcrumbs = ({ crumbs, defaultIcon }: BreadcrumbsProps) => {
                 px: 1,
               }}
             >
-              {shortenText(item.title, maxLength)}
+              <Box
+                component="span"
+                sx={{
+                  maxWidth: `${maxLength}ch`,
+                  whiteSpace: "nowrap",
+                  overflowX: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {item.title}
+              </Box>
             </Button>
           </Tooltip>
         );

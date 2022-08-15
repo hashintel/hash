@@ -93,7 +93,7 @@ const Page: NextPageWithLayout = () => {
     };
   }, [entity]);
 
-  const crumbs = useMemo(() => {
+  const getCrumbs = () => {
     if (!entity) return [];
 
     return [
@@ -108,7 +108,7 @@ const Page: NextPageWithLayout = () => {
         id: entityId,
       },
     ];
-  }, [entity, accountId, entityId]);
+  };
 
   return (
     <>
@@ -121,7 +121,7 @@ const Page: NextPageWithLayout = () => {
         })}
       >
         <TopContextBar
-          crumbs={crumbs}
+          crumbs={getCrumbs()}
           defaultCrumbIcon={<FontAwesomeIcon icon={faAsterisk} />}
         />
       </Box>
