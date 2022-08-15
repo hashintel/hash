@@ -6,18 +6,22 @@ import {
 } from "@hashintel/hash-shared/blocks";
 import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { isSafariBrowser } from "@hashintel/hash-shared/util";
-import { Box, Collapse, alpha } from "@mui/material";
+import { Box, Collapse, alpha, styled } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Head from "next/head";
 import { Router, useRouter } from "next/router";
 
-import { useEffect, useMemo, useState, FunctionComponent } from "react";
+import { useEffect, useMemo, useState, FunctionComponent, useRef } from "react";
 import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
 import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageTitle } from "../../blocks/page/PageTitle";
+import {
+  AccountPagesInfo,
+  useAccountPages,
+} from "../../components/hooks/useAccountPages";
 import { useArchivePage } from "../../components/hooks/useArchivePage";
 import { PageIcon } from "../../components/PageIcon";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
@@ -26,8 +30,13 @@ import {
   GetPageInfoQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
+import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 import { Button } from "../../shared/ui/button";
+import {
+  TopContextBar,
+  TOP_CONTEXT_BAR_HEIGHT,
+} from "../shared/top-context-bar";
 
 // Apparently defining this is necessary in order to get server rendered props?
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
@@ -116,6 +125,56 @@ export const PageNotificationBanner: FunctionComponent = () => {
   );
 };
 
+const generateCrumbsFromPages = ({
+  pages = [],
+  pageId,
+  accountId,
+}: {
+  pageId: string;
+  accountId: string;
+  pages: AccountPagesInfo["data"];
+}) => {
+  const pageMap = new Map(pages.map((page) => [page.entityId, page]));
+
+  let currentPage = pageMap.get(pageId);
+  let arr = [];
+
+  while (currentPage) {
+    arr.push({
+      title: currentPage.title,
+      href: `/${accountId}/${currentPage.entityId}`,
+      id: currentPage.entityId,
+      icon: (
+        <PageIcon
+          accountId={accountId}
+          entityId={currentPage.entityId}
+          size="small"
+        />
+      ),
+    });
+
+    if (currentPage.parentPageEntityId) {
+      currentPage = pageMap.get(currentPage.parentPageEntityId);
+    } else {
+      break;
+    }
+  }
+
+  arr = arr.reverse();
+
+  return arr;
+};
+
+const Container = styled("div")(({ theme }) => ({
+  display: "grid",
+  gridTemplateColumns: "1fr minmax(65ch, 960px) 1fr",
+  padding: theme.spacing(7, 10),
+
+  "& > *": {
+    gridColumn: "2",
+  },
+}));
+
 const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   const router = useRouter();
 
@@ -124,6 +183,8 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   const { pageEntityId } = useRoutePageInfo();
   // versionId is an optional param for requesting a specific page version
   const versionId = router.query.version as string | undefined;
+
+  const { data: accountPages } = useAccountPages(accountId);
 
   const blocksMap = useMemo(() => {
     return keyBy(blocks, (block) => block.meta.componentId);
@@ -139,6 +200,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   >(getPageInfoQuery, {
     variables: { entityId: pageEntityId, accountId, versionId },
   });
+  const pageHeaderRef = useRef<HTMLElement>();
 
   const collabPositions = useCollabPositions(accountId, pageEntityId);
   const reportPosition = useCollabPositionReporter(accountId, pageEntityId);
@@ -158,20 +220,41 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
     };
   }, [pageState]);
 
+  const scrollToTop = () => {
+    if (!pageHeaderRef.current) return;
+    pageHeaderRef.current.scrollIntoView({ behavior: "smooth" });
+  };
+
   if (pageState === "transferring") {
-    return <h1>Transferring you to the new page...</h1>;
+    return (
+      <Container>
+        <h1>Transferring you to the new page...</h1>
+      </Container>
+    );
   }
 
   if (loading) {
-    return <h1>Loading...</h1>;
+    return (
+      <Container>
+        <h1>Loading...</h1>
+      </Container>
+    );
   }
 
   if (error) {
-    return <h1>Error: {error.message}</h1>;
+    return (
+      <Container>
+        <h1>Error: {error.message}</h1>
+      </Container>
+    );
   }
 
   if (!data) {
-    return <h1>No data loaded.</h1>;
+    return (
+      <Container>
+        <h1>No data loaded.</h1>
+      </Container>
+    );
   }
 
   const { title, icon } = data.page.properties;
@@ -198,8 +281,34 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
           <link rel="icon" type="image/png" href="/favicon.png" />
         )}
       </Head>
-      <header>
-        <Box display="flex">
+      <Box
+        sx={({ zIndex, palette }) => ({
+          position: "sticky",
+          top: 0,
+          zIndex: zIndex.appBar,
+          backgroundColor: palette.white,
+        })}
+      >
+        <TopContextBar
+          crumbs={generateCrumbsFromPages({
+            pages: accountPages,
+            pageId: data.page.entityId,
+            accountId,
+          })}
+          scrollToTop={scrollToTop}
+        />
+        <PageNotificationBanner />
+      </Box>
+
+      <Container>
+        <Box
+          component="header"
+          ref={pageHeaderRef}
+          sx={{
+            display: "flex",
+            scrollMarginTop: HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT,
+          }}
+        >
           <PageIcon
             accountId={accountId}
             entityId={pageEntityId}
@@ -241,9 +350,6 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
             </div>
           </div> */}
         </Box>
-      </header>
-
-      <main>
         <CollabPositionProvider value={collabPositions}>
           <PageBlock
             accountId={accountId}
@@ -251,12 +357,14 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
             entityId={pageEntityId}
           />
         </CollabPositionProvider>
-      </main>
+      </Container>
     </>
   );
 };
 
 Page.getLayout = (page) =>
-  getLayoutWithSidebar(page, { banner: <PageNotificationBanner /> });
+  getLayoutWithSidebar(page, {
+    fullWidth: true,
+  });
 
 export default Page;
