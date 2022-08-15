@@ -14,6 +14,7 @@ import {
   emailPropertyType,
   userEntityType,
   accountIdPropertyType,
+  preferredNamePropertyType,
 } from "../model";
 import { logger } from "../logger";
 import {
@@ -26,6 +27,7 @@ const workspacePropertyTypes: PropertyType[] = [
   emailPropertyType,
   kratosIdentityIdPropertyType,
   accountIdPropertyType,
+  preferredNamePropertyType,
 ];
 
 const workspaceEntityTypes: EntityType[] = [userEntityType];

@@ -39,6 +39,12 @@ export const accountIdPropertyType = generateWorkspacePropertyTypeSchema({
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
+// Generate the schema for the shortname property type
+export const preferredNamePropertyType = generateWorkspacePropertyTypeSchema({
+  title: "Preferred Name",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
 export const shortnameBaseUri = generateSchemaBaseUri({
   namespaceUri: workspaceTypesNamespaceUri,
   kind: "propertyType",
@@ -63,6 +69,12 @@ export const accountIdBaseUri = generateSchemaBaseUri({
   title: accountIdPropertyType.title,
 });
 
+export const preferredNameBaseUri = generateSchemaBaseUri({
+  namespaceUri: workspaceTypesNamespaceUri,
+  kind: "propertyType",
+  title: preferredNamePropertyType.title,
+});
+
 type UserModelCreateParams = Omit<
   EntityModelCreateParams,
   "properties" | "entityTypeModel" | "accountId"
@@ -70,6 +82,7 @@ type UserModelCreateParams = Omit<
   emails: string[];
   kratosIdentityId: string;
   shortname?: string;
+  preferredName?: string;
 };
 
 // Generate the schema for the user entity type
@@ -94,6 +107,11 @@ export const userEntityType = generateWorkspaceEntityTypeSchema({
     {
       baseUri: accountIdBaseUri,
       versionedUri: accountIdPropertyType.$id,
+      required: true,
+    },
+    {
+      baseUri: preferredNameBaseUri,
+      versionedUri: preferredNamePropertyType.$id,
       required: true,
     },
   ],
@@ -165,13 +183,15 @@ export default class extends EntityModel {
    * Create a workspace user entity.
    *
    * @param params.emails - the emails of the user
+   * @param params.kratosIdentityId - the kratos identity id of the user
    * @param params.shortname - the shortname of the user
+   * @param params.preferredName - the preferred name of the user
    */
   static async createUser(
     graphApi: GraphApi,
     params: UserModelCreateParams,
   ): Promise<UserModel> {
-    const { emails, shortname, kratosIdentityId } = params;
+    const { emails, shortname, preferredName, kratosIdentityId } = params;
 
     const existingUserWithKratosIdentityId =
       await UserModel.getUserByKratosIdentityId(graphApi, {
@@ -207,6 +227,7 @@ export default class extends EntityModel {
       [shortnameBaseUri]: shortname,
       [kratosIdentityIdBaseUri]: kratosIdentityId,
       [accountIdBaseUri]: userAccountId,
+      [preferredNameBaseUri]: preferredName,
     };
 
     const entityTypeModel = await UserModel.getUserEntityType(graphApi);
@@ -232,8 +253,12 @@ export default class extends EntityModel {
     return (this.properties as any)[emailBaseUri];
   }
 
-  getShortname(): string {
+  getShortname(): string | undefined {
     return (this.properties as any)[shortnameBaseUri];
+  }
+
+  getPreferredName(): string | undefined {
+    return (this.properties as any)[preferredNameBaseUri];
   }
 
   getKratosIdentityId(): string {
