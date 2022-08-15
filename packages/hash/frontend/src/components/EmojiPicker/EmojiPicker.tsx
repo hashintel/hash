@@ -34,6 +34,10 @@ export const EmojiPicker = ({
         theme="light"
         onEmojiSelect={(emoji) => {
           popupState.close();
+          /**
+           * We cast `EmojiData` to `BaseEmoji` here, because we don't support `CustomEmoji` yet.
+           * So we can safely say `emoji` is `BaseEmoji` for now
+           */
           onEmojiSelect(emoji as BaseEmoji);
         }}
       />
