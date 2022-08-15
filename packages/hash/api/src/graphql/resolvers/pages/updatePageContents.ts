@@ -120,7 +120,7 @@ export const updatePageContents: Resolver<
 
       return await Entity.createEntityWithLinks(client, {
         accountId: entityAccountId,
-        user,
+        user: user as any /** @todo: replace with updated model class */,
         entityDefinition,
       });
     };
@@ -233,7 +233,8 @@ export const updatePageContents: Resolver<
             } else if (blockComponentId) {
               block = await Block.createBlock(client, {
                 blockData,
-                createdBy: user,
+                createdBy:
+                  user as any /** @todo: replace with updated model class */,
                 accountId: user.accountId,
                 properties: {
                   componentId: blockComponentId,

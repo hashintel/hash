@@ -299,8 +299,24 @@ export default class extends EntityModel {
     return (this.properties as any)[shortnameBaseUri];
   }
 
+  async updateShortname(
+    _graphApi: GraphApi,
+    _params: { updatedByAccountId: string; updatedShortname: string },
+  ) {
+    /** @todo: re-implement this method */
+    throw new Error("user.updateShortname is not yet re-implemented");
+  }
+
   getPreferredName(): string | undefined {
     return (this.properties as any)[preferredNameBaseUri];
+  }
+
+  async updatePreferredName(
+    _graphApi: GraphApi,
+    _params: { updatedByAccountId: string; updatedPreferredName: string },
+  ) {
+    /** @todo: re-implement this method */
+    throw new Error("user.updatePreferredName is not yet re-implemented");
   }
 
   getKratosIdentityId(): string {
@@ -309,5 +325,39 @@ export default class extends EntityModel {
 
   getAccountId(): string {
     return (this.properties as any)[accountIdBaseUri];
+  }
+
+  getInfoProvidedAtSignup(): any {
+    throw new Error("user.getInfoProvidedAtSignup is not yet re-implemented");
+  }
+
+  async updateInfoProvidedAtSignup(
+    _graphApi: GraphApi,
+    _params: { updatedByAccountId: string; updatedInfo: any },
+  ) {
+    /** @todo: re-implement this method */
+    throw new Error(
+      "user.updateInfoProvidedAtSignup is not yet re-implemented",
+    );
+  }
+
+  async joinOrg(
+    _graphApi: GraphApi,
+    _params: { org: any; responsibility: string; updatedByAccountId: string },
+  ) {
+    /** @todo: re-implement this method */
+    throw new Error("user.joinOrg is not yet re-implemented");
+  }
+
+  async isMemberOfOrg(
+    _graphApi: GraphApi,
+    _params: { orgEntityId: string },
+  ): Promise<boolean> {
+    /** @todo: re-implement this method */
+    throw new Error("user.isMemberOfOrg is not yet re-implemented");
+  }
+
+  isAccountSignupComplete(): boolean {
+    return !!this.getShortname() && !!this.getPreferredName();
   }
 }
