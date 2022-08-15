@@ -231,7 +231,11 @@ jobs:
           cargo quickinstall cargo-make --version 0.35.15
 
       - name: Build Docker container
-        run: cargo make --profile ${{ matrix.profile }} build-docker
+        run: |
+          docker compose version
+          docker compose version --short
+          docker --version
+          cargo make --profile ${{ matrix.profile }} build-docker
 
       - name: Test Docker container
         run: cargo make --profile ${{ matrix.profile }} test-docker
