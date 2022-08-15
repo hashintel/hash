@@ -32,7 +32,7 @@ import {
 } from "../../../shared/layout";
 import { BlockBasedEntityEditor } from "./[entity-id].page/block-based-entity-editor";
 import { useRouteAccountInfo } from "../../../shared/routing";
-import { PageContextBar } from "../../shared/page-context-bar";
+import { TopContextBar } from "../../shared/top-context-bar";
 
 const Container = styled("div")(({ theme }) => ({
   display: "grid",
@@ -99,7 +99,7 @@ const Page: NextPageWithLayout = () => {
     return [
       {
         title: entity.entityType.properties.title,
-        href: entity.entityType.properties.$id || "https://gogole.com",
+        href: entity.entityType.properties.$id,
         id: entityId,
       },
       {
@@ -120,7 +120,7 @@ const Page: NextPageWithLayout = () => {
           backgroundColor: palette.white,
         })}
       >
-        <PageContextBar
+        <TopContextBar
           crumbs={crumbs}
           defaultCrumbIcon={<FontAwesomeIcon icon={faAsterisk} />}
         />

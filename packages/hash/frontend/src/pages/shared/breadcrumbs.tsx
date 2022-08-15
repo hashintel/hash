@@ -101,9 +101,10 @@ export const Breadcrumbs = ({ crumbs, defaultIcon }: BreadcrumbsProps) => {
       }
     >
       {items.map((item, index) => {
-        if ("submenu" in item) {
+        if (item && "submenu" in item) {
           return <SubMenu items={item.submenu} defaultIcon={defaultIcon} />;
         }
+
         let maxLength = 18;
         if (items.length === 1 || index !== 0) {
           maxLength = 36;

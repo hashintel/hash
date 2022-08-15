@@ -30,7 +30,7 @@ import {
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 import { Button } from "../../shared/ui/button";
-import { PageContextBar } from "../shared/page-context-bar";
+import { TopContextBar } from "../shared/top-context-bar";
 
 // Apparently defining this is necessary in order to get server rendered props?
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
@@ -250,7 +250,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
           backgroundColor: palette.white,
         })}
       >
-        <PageContextBar
+        <TopContextBar
           crumbs={generateCrumbsFromPages({
             pages: accountPages,
             pageId: data.page.entityId,

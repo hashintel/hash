@@ -25,7 +25,7 @@ import {
 } from "../../../shared/layout";
 import { Button, Link } from "../../../shared/ui";
 import { useRouteAccountInfo } from "../../../shared/routing";
-import { PageContextBar } from "../../shared/page-context-bar";
+import { TopContextBar } from "../../shared/top-context-bar";
 
 const Container = styled("div")(({ theme }) => ({
   display: "grid",
@@ -151,7 +151,7 @@ const Page: NextPageWithLayout = () => {
           backgroundColor: palette.white,
         })}
       >
-        <PageContextBar
+        <TopContextBar
           crumbs={crumbs}
           defaultCrumbIcon={<FontAwesomeIcon icon={faAsterisk} />}
         />

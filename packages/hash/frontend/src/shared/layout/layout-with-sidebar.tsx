@@ -51,11 +51,11 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
             width: "100%",
             position: "relative",
             marginLeft: `-${SIDEBAR_WIDTH}px`,
+            transition: theme.transitions.create("margin", {
+              easing: theme.transitions.easing.easeOut,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
             ...(sidebarOpen && {
-              transition: theme.transitions.create("margin", {
-                easing: theme.transitions.easing.easeOut,
-                duration: theme.transitions.duration.enteringScreen,
-              }),
               marginLeft: 0,
             }),
           })}
@@ -83,11 +83,15 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
           </Fade>
 
           <Main
-            sx={{
+            sx={({ spacing }) => ({
               ...(!fullWidth && {
-                padding: "56px 80px",
+                padding: spacing(7, 10),
               }),
-            }}
+              ...(fullWidth &&
+                !sidebarOpen && {
+                  marginLeft: spacing(5),
+                }),
+            })}
           >
             {children}
           </Main>
