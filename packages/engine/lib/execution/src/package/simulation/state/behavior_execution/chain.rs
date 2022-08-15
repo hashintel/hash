@@ -56,18 +56,19 @@ pub fn behavior_list_bytes_iter(
     //         an offset buffer and offsets (not `LargeList` offsets) have type `i32`. The first
     //         buffer of the child data is the same as the first buffer of a `String` column, which
     //         is also an offset buffer.
-    let list_indices = column.offsets();
-    let string_indices = column
+    let list_indices = column.offsets().as_slice();
+    let string_array = column
         .values()
         .as_any()
         .downcast_ref::<Utf8Array<i32>>()
         .unwrap();
-    let utf_8 = string_indices.values();
+    let string_indices = string_array.offsets().as_slice();
+    let utf_8 = string_array.values();
 
     Ok((0..row_count).map(move |i| {
         let list_from = list_indices[i] as usize;
         let list_to = list_indices[i + 1] as usize;
-        let indices = &string_indices.offsets().as_slice()[list_from..=list_to];
+        let indices = &string_indices[list_from..=list_to];
         let mut next_index = indices[0] as usize;
         (0..list_to - list_from)
             .map(|j| {
@@ -143,9 +144,13 @@ impl IntoArrowChange for ChainList {
         // Indices
         let mut child_data = MutablePrimitiveArray::<u16>::from_vec(data);
 
+        debug_assert_eq!(child_data.len(), num_indices);
+
         // Fixed-length lists
         let child_data =
             FixedSizeListArray::new(self.data_types[1].clone(), child_data.as_arc(), None);
+
+        debug_assert_eq!(child_data.len(), num_behavior_ids);
 
         // Variable-length lists
         let data = ListArray::from_data(
@@ -155,6 +160,8 @@ impl IntoArrowChange for ChainList {
             None,
         )
         .arced();
+
+        debug_assert_eq!(data.len(), num_agents);
 
         Ok(ColumnChange {
             data,

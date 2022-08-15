@@ -395,7 +395,7 @@ pub mod tests {
         // for some nodes we add an additional buffer to the metadata that is present in the
         // underlying memory layout but isn't exposed within ArrayRef
         // crate::arrow::array_buffer_count::buffer_count_of_arrow_array(node_data)
-        let mut buffers = if dbg!(has_null_bitmap) {
+        let mut buffers = if has_null_bitmap {
             vec![crate::arrow::array_buffer_count::buffer_count_of_arrow_array(node_data) + 1]
         } else {
             vec![crate::arrow::array_buffer_count::buffer_count_of_arrow_array(node_data)]
@@ -404,7 +404,7 @@ pub mod tests {
         // pop the first element of the slice
         let mut node_meta = &node_meta[1..];
 
-        for child_data in dbg!(node_data.child_data()).as_ref() {
+        for child_data in node_data.child_data().as_ref() {
             let (child_buffers, new_node_meta) =
                 get_buffer_counts_from_array_data(child_data, node_meta);
             node_meta = new_node_meta;
