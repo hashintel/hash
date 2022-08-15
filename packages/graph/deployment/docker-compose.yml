@@ -12,12 +12,7 @@ services:
     environment:
       PGDATA: /var/lib/postgresql/data/pgdata
       POSTGRES_USER: "${POSTGRES_USER}"
-      POSTGRES_HOST: "${POSTGRES_HOST}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
-      POSTGRES_PORT: "${POSTGRES_PORT}"
-      HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
-      HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
-      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DATABASE}"
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
