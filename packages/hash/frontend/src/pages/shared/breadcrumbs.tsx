@@ -69,7 +69,7 @@ export type BreadcrumbsProps = {
 
 export const Breadcrumbs = ({ crumbs, defaultIcon }: BreadcrumbsProps) => {
   const router = useRouter();
-  let items = [] as (Breadcrumb | { submenu: Breadcrumb[] })[];
+  let items: (Breadcrumb | { submenu: Breadcrumb[] })[] = crumbs;
 
   if (crumbs.length > 3) {
     items = [
@@ -79,8 +79,6 @@ export const Breadcrumbs = ({ crumbs, defaultIcon }: BreadcrumbsProps) => {
       },
       crumbs[crumbs.length - 1]!,
     ];
-  } else {
-    items = crumbs;
   }
 
   return (
