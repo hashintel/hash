@@ -4,7 +4,7 @@ import {
   EmbedderGraphMessageCallbacks,
 } from "@blockprotocol/graph";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 
 import { getEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { Box, styled } from "@mui/material";
@@ -32,7 +32,11 @@ import {
 } from "../../../shared/layout";
 import { BlockBasedEntityEditor } from "./[entity-id].page/block-based-entity-editor";
 import { useRouteAccountInfo } from "../../../shared/routing";
-import { TopContextBar } from "../../shared/top-context-bar";
+import {
+  TopContextBar,
+  TOP_CONTEXT_BAR_HEIGHT,
+} from "../../shared/top-context-bar";
+import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 
 const Container = styled("div")(({ theme }) => ({
   display: "grid",
@@ -49,6 +53,7 @@ const Page: NextPageWithLayout = () => {
   const { query } = router;
   const { accountId } = useRouteAccountInfo();
   const entityId = query["entity-id"] as string;
+  const pageHeaderRef = useRef<HTMLElement>();
 
   const { data, refetch } = useQuery<GetEntityQuery, GetEntityQueryVariables>(
     getEntity,
@@ -93,18 +98,27 @@ const Page: NextPageWithLayout = () => {
     };
   }, [entity]);
 
-  const crumbs = !entity ? [] : [
-    {
-      title: entity.entityType.properties.title,
-      href: entity.entityType.properties.$id,
-      id: entityId,
-    },
-    {
-      title: guessEntityName(entity),
-      href: `/${accountId}/entities/${entityId}`,
-      id: entityId,
-    },
-  ];
+  const scrollToTop = () => {
+    if (!pageHeaderRef.current) return;
+    pageHeaderRef.current.scrollIntoView({
+      behavior: "smooth",
+    });
+  };
+
+  const crumbs = !entity
+    ? []
+    : [
+        {
+          title: entity.entityType.properties.title,
+          href: entity.entityType.properties.$id,
+          id: entityId,
+        },
+        {
+          title: guessEntityName(entity),
+          href: `/${accountId}/entities/${entityId}`,
+          id: entityId,
+        },
+      ];
 
   return (
     <>
@@ -119,17 +133,24 @@ const Page: NextPageWithLayout = () => {
         <TopContextBar
           crumbs={crumbs}
           defaultCrumbIcon={<FontAwesomeIcon icon={faAsterisk} />}
+          scrollToTop={scrollToTop}
         />
       </Box>
       <Container>
-        <header>
+        <Box
+          ref={pageHeaderRef}
+          sx={{
+            scrollMarginTop: HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT,
+          }}
+          component="header"
+        >
           <h1>
             <strong>
               {entity ? `Editing '${guessEntityName(entity)}'` : "Loading..."}
             </strong>
           </h1>
-        </header>
-        <div>
+        </Box>
+        <Box>
           {entity && (
             <SimpleEntityEditor
               aggregateEntities={aggregateEntities}
@@ -146,7 +167,7 @@ const Page: NextPageWithLayout = () => {
               schema={entity.entityType.properties}
             />
           )}
-        </div>
+        </Box>
       </Container>
     </>
   );

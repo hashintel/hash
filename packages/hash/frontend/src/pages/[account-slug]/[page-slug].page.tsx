@@ -213,7 +213,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
 
   const scrollToTop = () => {
     if (!pageHeaderRef.current) return;
-    pageHeaderRef.current.scrollIntoView();
+    pageHeaderRef.current.scrollIntoView({ behavior: "smooth" });
   };
 
   if (pageState === "transferring") {

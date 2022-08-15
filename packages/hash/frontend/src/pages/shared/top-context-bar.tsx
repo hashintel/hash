@@ -22,7 +22,7 @@ export const TOP_CONTEXT_BAR_HEIGHT = 50;
 export const TopContextBar = ({
   crumbs,
   defaultCrumbIcon = <FontAwesomeIcon icon={faFile} />,
-  scrollToTop,
+  scrollToTop = () => {},
 }: Props) => {
   const { readonlyMode } = useReadonlyMode();
   const { sidebarOpen } = useSidebarContext();

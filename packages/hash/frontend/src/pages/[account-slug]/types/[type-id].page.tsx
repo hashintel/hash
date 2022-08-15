@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import pluralize from "pluralize";
 import { useQuery } from "@apollo/client";
 import { useRouter } from "next/router";
@@ -25,7 +25,11 @@ import {
 } from "../../../shared/layout";
 import { Button, Link } from "../../../shared/ui";
 import { useRouteAccountInfo } from "../../../shared/routing";
-import { TopContextBar } from "../../shared/top-context-bar";
+import {
+  TopContextBar,
+  TOP_CONTEXT_BAR_HEIGHT,
+} from "../../shared/top-context-bar";
+import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 
 const Container = styled("div")(({ theme }) => ({
   display: "grid",
@@ -47,6 +51,7 @@ const Page: NextPageWithLayout = () => {
   const { updateEntityType } = useBlockProtocolUpdateEntityType();
   const { aggregateEntityTypes } =
     useBlockProtocolAggregateEntityTypes(accountId);
+  const pageHeaderRef = useRef<HTMLElement>();
 
   /** @see https://json-schema.org/understanding-json-schema/structuring.html#json-pointer */
   const subSchemaReference =
@@ -122,6 +127,13 @@ const Page: NextPageWithLayout = () => {
     [schema$id, subSchemaReference],
   );
 
+  const scrollToTop = () => {
+    if (!pageHeaderRef.current) return;
+    pageHeaderRef.current.scrollIntoView({
+      behavior: "smooth",
+    });
+  };
+
   const crumbs = useMemo(() => {
     if (!schema) return [];
     return [
@@ -154,11 +166,22 @@ const Page: NextPageWithLayout = () => {
         <TopContextBar
           crumbs={crumbs}
           defaultCrumbIcon={<FontAwesomeIcon icon={faAsterisk} />}
+          scrollToTop={scrollToTop}
         />
       </Box>
       <Container>
-        <div className={tw`mb-12`}>
-          <div className={tw`mb-8`}>
+        <Box
+          ref={pageHeaderRef}
+          sx={{
+            mb: 6,
+            scrollMarginTop: HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT,
+          }}
+        >
+          <Box
+            sx={{
+              mb: 4,
+            }}
+          >
             <h1>
               <strong>{pluralize(schema.title)} in account</strong>
             </h1>
@@ -166,12 +189,12 @@ const Page: NextPageWithLayout = () => {
               accountId={accountId}
               entityTypeId={typeId}
             />
-          </div>
+          </Box>
 
           <Button href={`/${accountId}/entities/new?entityTypeId=${typeId}`}>
             New {schema.title}
           </Button>
-        </div>
+        </Box>
         <SchemaEditor
           aggregateEntityTypes={aggregateEntityTypes}
           entityTypeId={data.getEntityType.entityId}
