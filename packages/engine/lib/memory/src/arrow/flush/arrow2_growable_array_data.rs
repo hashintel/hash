@@ -28,7 +28,7 @@ impl GrowableArrayData for ArrayRef {
     fn null_buffer(&self) -> Option<Arc<&[u8]>> {
         Array::validity(self.as_ref())
             .map(|bitmap| {
-                let (slice, offset, length) = bitmap.as_slice();
+                let (slice, ..) = bitmap.as_slice();
                 slice
             })
             .map(Arc::new)
@@ -234,7 +234,7 @@ impl GrowableArrayData for ArrayRef {
 mod arrow2_matches_arrow {
     use std::sync::Arc;
 
-    use arrow::array::{Array, ListBuilder};
+    use arrow::array::{Array, BooleanBuilder, Int32Builder, ListBuilder};
     use arrow2::array::{ListArray, MutableListArray, MutablePrimitiveArray, TryExtend};
 
     use crate::arrow::flush::GrowableArrayData;
@@ -243,6 +243,11 @@ mod arrow2_matches_arrow {
     /// arrow-rs and arrow2 types.
     fn test_equal(arrow2: Arc<dyn arrow2::array::Array>, arrow: Arc<dyn arrow::array::Array>) {
         let arrow = arrow.data();
+
+        inner_equal_test(arrow2, arrow);
+    }
+
+    fn inner_equal_test(arrow2: Arc<dyn arrow2::array::Array>, arrow: &arrow::array::ArrayData) {
         assert_eq!(arrow2.null_count(), arrow.null_count());
         assert_eq!(
             arrow2.null_buffer(),
@@ -254,6 +259,11 @@ mod arrow2_matches_arrow {
         );
         for i in 0..arrow2.non_null_buffer_count() {
             assert_eq!(arrow2.buffer(i), arrow.buffer(i));
+        }
+        let arrow2_child_data = arrow2.child_data();
+        let arrow_child_data = GrowableArrayData::child_data(arrow);
+        for (arrow2, arrow) in arrow2_child_data.iter().zip(arrow_child_data.iter()) {
+            inner_equal_test(arrow2.as_ref().clone(), arrow);
         }
     }
 
@@ -327,5 +337,75 @@ mod arrow2_matches_arrow {
         let arrow = Arc::new(arrow) as arrow::array::ArrayRef;
 
         test_equal(arrow2, arrow)
+    }
+
+    #[test]
+    /// This test is important, because its structure is similar to that of the
+    /// MessageArray (which stores the messages to different agents).
+    fn identical_list_array_of_struct_arrays_match() {
+        let first_struct_column_data = vec![Some(12); 12];
+        let second_struct_column_data = vec![Some(true); first_struct_column_data.len()];
+
+        let mut first_struct_column: arrow2::array::MutablePrimitiveArray<i32> = Default::default();
+        first_struct_column.extend(first_struct_column_data.clone());
+        let first_struct_column: arrow2::array::PrimitiveArray<i32> = first_struct_column.into();
+
+        let mut second_struct_column: arrow2::array::MutableBooleanArray = Default::default();
+        second_struct_column.extend(second_struct_column_data.clone());
+        let second_struct_column: arrow2::array::BooleanArray = second_struct_column.into();
+
+        let arrow2 = arrow2::array::StructArray::new(
+            arrow2::datatypes::DataType::Struct(vec![
+                arrow2::datatypes::Field::new("f1", arrow2::datatypes::DataType::Int32, true),
+                arrow2::datatypes::Field::new("f2", arrow2::datatypes::DataType::Boolean, true),
+            ]),
+            vec![first_struct_column.arced(), second_struct_column.arced()],
+            None,
+        );
+
+        let arrow_fields = vec![
+            arrow::datatypes::Field::new("f1", arrow::datatypes::DataType::Int32, true),
+            arrow::datatypes::Field::new("f2", arrow::datatypes::DataType::Boolean, true),
+        ];
+
+        let mut first_struct_column = Int32Builder::new(first_struct_column_data.len());
+
+        for item in first_struct_column_data.clone() {
+            match item {
+                Some(t) => {
+                    first_struct_column.append_value(t).unwrap();
+                }
+                None => {
+                    first_struct_column.append_null().unwrap();
+                }
+            }
+        }
+
+        let first_struct_column = first_struct_column.finish();
+        let first_struct_column = Arc::new(first_struct_column);
+
+        let mut second_struct_column = BooleanBuilder::new(first_struct_column_data.len());
+
+        for item in second_struct_column_data {
+            match item {
+                Some(val) => second_struct_column.append_value(val).unwrap(),
+                None => second_struct_column.append_null().unwrap(),
+            }
+        }
+
+        let second_struct_column = second_struct_column.finish();
+        let second_struct_column = Arc::new(second_struct_column);
+
+        let arrow = arrow::array::StructArray::from(
+            arrow_fields
+                .into_iter()
+                .zip(vec![
+                    first_struct_column as arrow::array::ArrayRef,
+                    second_struct_column as arrow::array::ArrayRef,
+                ])
+                .collect::<Vec<_>>(),
+        );
+
+        test_equal(arrow2.arced(), Arc::new(arrow) as arrow::array::ArrayRef)
     }
 }
