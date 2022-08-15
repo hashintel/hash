@@ -48,8 +48,6 @@
 //!
 //! ```rust
 //! use std::io::{Error, ErrorKind};
-//! use insta::assert_snapshot;
-//! # use insta::Settings;
 //! use error_stack::{
 //!     fmt::{Emit, Snippet},
 //!     Report
@@ -85,44 +83,40 @@
 //!     .attach(3u32)
 //!     .attach(4u16);
 //!
-//! # let mut settings = Settings::new();
-//! # settings.add_filter(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*", "Backtrace No. $1\n  [redacted]");
-//! # settings.add_filter(r"backtrace with (\d+) frames \((\d+)\)", "backtrace with [n] frames ($2)");
-//! # let _guard = settings.bind_to_scope();
+//! # owo_colors::set_override(true);
+//! # fn render(value: String) -> String {
+//! #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+//! #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+//! #
+//! #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+//! #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+//! #
+//! #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+//! # }
+//! #
+//! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__doc.snap")].assert_eq(&render(format!("{report:?}")));
+//! #
+//! # stringify!(
+//! println!("{report:?}");
+//! # );
 //!
-//! assert_snapshot!(format!("{report:?}"), @r###"For more information, look down below
-//! │ src/fmt/mod.rs:38:155
-//! ├─▶ u32 value 0
-//! │   ╰ src/fmt/mod.rs:38:142
-//! ├─▶ u32 value 1
-//! │   ╰ src/fmt/mod.rs:38:129
-//! ├─▶ u64 value (2)
-//! │   ╰ src/fmt/mod.rs:38:64
-//! ├─▶ invalid input parameter
-//! │   ╰ src/fmt/mod.rs:38:14
-//! ├─▶ This is going to be at the end
-//! │   ╰ src/fmt/mod.rs:38:77
-//! ╰─▶ 1 additional attachment"###);
-//!
-//! assert_snapshot!(format!("{report:#?}"), @r###"For more information, look down below
-//! │ src/fmt/mod.rs:38:155
-//! ├─▶ u32 value 0
-//! │   ╰ src/fmt/mod.rs:38:142
-//! ├─▶ u32 value 1
-//! │   ╰ src/fmt/mod.rs:38:129
-//! ├─▶ u64 value (2)
-//! │   ╰ src/fmt/mod.rs:38:64
-//! ├─▶ invalid input parameter
-//! │   ╰ src/fmt/mod.rs:38:14
-//! ├─▶ This is going to be at the end
-//! │   ╰ src/fmt/mod.rs:38:77
-//! ╰─▶ 1 additional attachment
-//!
-//!
-//! ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//!
-//! Look! I was rendered from a `u16`"###);
+//! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt_doc_alt.snap")].assert_eq(&render(format!("{report:#?}")));
+//! #
+//! # stringify!(
+//! println!("{report:#?}");
+//! # );
 //! ```
+//! ### `println!("{report:?}")`
+//!
+//! <pre>
+#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__doc.snap"))]
+//! </pre>
+//!
+//! ### `println!("{report:#?}")`
+//!
+//! <pre>
+#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt_doc_alt.snap"))]
+//! </pre>
 //!
 //!
 //! [`Display`]: std::fmt::Display
@@ -174,8 +168,6 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 ///
 /// ```rust
 /// use std::io::{Error, ErrorKind};
-/// use insta::assert_debug_snapshot;
-/// # use insta::Settings;
 ///
 /// use error_stack::{
 ///     fmt::Emit,
@@ -194,29 +186,27 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 ///     .attach(6u64)
 ///     .attach(7u64);
 ///
-/// # let mut settings = Settings::new();
-/// # settings.add_filter(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*", "Backtrace No. $1\n  [redacted]");
-/// # settings.add_filter(r"backtrace with (\d+) frames \((\d+)\)", "backtrace with [n] frames ($2)");
-/// # let _guard = settings.bind_to_scope();
-///
-/// assert_debug_snapshot!(report, @r###"u64: 7
-/// │ src/fmt/mod.rs:26:6
-/// ├─▶ u64: 6
-/// │   ╰ src/fmt/mod.rs:25:6
-/// ├─▶ u64: 3
-/// │   ╰ src/fmt/mod.rs:22:6
-/// ├─▶ u64: 1
-/// │   ╰ src/fmt/mod.rs:20:6
-/// ├─▶ invalid input parameter
-/// │   ╰ src/fmt/mod.rs:19:14
-/// ├─▶ u32: 5
-/// │   ╰ src/fmt/mod.rs:24:6
-/// ├─▶ u32: 4
-/// │   ╰ src/fmt/mod.rs:23:6
-/// ├─▶ u32: 2
-/// │   ╰ src/fmt/mod.rs:21:6
-/// ╰─▶ 1 additional attachment"###)
+/// # owo_colors::set_override(true);
+/// # fn render(value: String) -> String {
+/// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+/// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+/// #
+/// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+/// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+/// #
+/// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+/// # }
+/// #
+/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__emit.snap")].assert_eq(&render(format!("{report:?}")));
+/// #
+/// # stringify!(
+/// println!("{report:?}");
+/// # );
 /// ```
+///
+/// <pre>
+#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__emit.snap"))]
+/// </pre>
 #[derive(Debug, Clone)]
 #[must_use]
 pub enum Emit {

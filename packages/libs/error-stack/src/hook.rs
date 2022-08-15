@@ -48,8 +48,6 @@ impl Report<()> {
     ///     fmt::{Emit},
     ///     report, Report,
     /// };
-    /// # use insta::Settings;
-    /// use insta::assert_debug_snapshot;
     ///
     /// struct Suggestion(&'static str);
     ///
@@ -60,13 +58,27 @@ impl Report<()> {
     /// let report =
     ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("O no, try again"));
     ///
-    /// # let mut settings = Settings::new();
-    /// # settings.add_filter(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*", "Backtrace No. $1\n  [redacted]");
-    /// # settings.add_filter(r"backtrace with (\d+) frames \((\d+)\)", "backtrace with [n] frames ($2)");
-    /// # let _guard = settings.bind_to_scope();
-    ///
-    /// assert_debug_snapshot!(report, @"");
+    /// # owo_colors::set_override(true);
+    /// # fn render(value: String) -> String {
+    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #
+    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #
+    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// # }
+    /// #
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/hook__debug_hook.snap")].assert_eq(&render(format!("{report:?}")));
+    /// #
+    /// # stringify!(
+    /// println!("{report:?}");
+    /// # );
     /// ```
+    ///
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/hook__debug_hook.snap"))]
+    /// </pre>
     #[cfg(feature = "hooks")]
     pub fn install_debug_hook<T: Send + Sync + 'static>(
         hook: impl Fn(&T, &mut HookContext<T>) -> Emit + Send + Sync + 'static,
@@ -91,11 +103,9 @@ impl Report<()> {
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::{
-    ///     fmt::{self, Call, Emit},
+    ///     fmt::{Call, Emit},
     ///     report, Report,
     /// };
-    /// # use insta::Settings;
-    /// use insta::assert_debug_snapshot;
     ///
     /// struct Suggestion(&'static str);
     ///
@@ -107,12 +117,35 @@ impl Report<()> {
     /// let report =
     ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("O no, try again"));
     ///
-    /// # let mut settings = Settings::new();
-    /// # settings.add_filter(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*", "Backtrace No. $1\n  [redacted]");
-    /// # settings.add_filter(r"backtrace with (\d+) frames \((\d+)\)", "backtrace with [n] frames ($2)");
-    /// # let _guard = settings.bind_to_scope();
+    /// # owo_colors::set_override(true);
+    /// # fn render(value: String) -> String {
+    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #
+    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #
+    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// # }
+    /// #
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/hook__fallback.snap")].assert_eq(&render(format!("{report:?}")));
+    /// #
+    /// # stringify!(
+    /// println!("{report:?}");
+    /// # );
+    /// ```
     ///
-    /// assert_debug_snapshot!(report, @r###""###);
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/hook__fallback.snap"))]
+    /// </pre>
+    ///
+    /// ```
+    /// use std::io::{Error, ErrorKind};
+    ///
+    /// use error_stack::{fmt, report, Report};
+    /// use error_stack::fmt::{Call, Emit};
+    ///
+    /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook_fallback(|val, ctx| {
     ///     // first run all builtin hooks to make sure that we print backtrace and spantrace
@@ -125,8 +158,27 @@ impl Report<()> {
     /// let report =
     ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("O no, try again"));
     ///
-    /// assert_debug_snapshot!(report, @r###""###)
+    /// # owo_colors::set_override(true);
+    /// # fn render(value: String) -> String {
+    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #
+    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #
+    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// # }
+    /// #
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/hook__fallback_builtin.snap")].assert_eq(&render(format!("{report:?}")));
+    /// #
+    /// # stringify!(
+    /// println!("{report:?}");
+    /// # );
     /// ```
+    ///
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/hook__fallback_builtin.snap"))]
+    /// </pre>
     pub fn install_debug_hook_fallback(
         hook: impl for<'a> Fn(&Frame, HookContext<'a, Frame>) -> Call<'a, Frame> + Send + Sync + 'static,
     ) {

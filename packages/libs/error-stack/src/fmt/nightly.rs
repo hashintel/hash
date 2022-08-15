@@ -9,23 +9,33 @@ use crate::fmt::{Emit, Snippet};
 ///
 /// ```
 /// use std::io::{Error, ErrorKind};
-/// use insta::assert_snapshot;
 ///
-/// use error_stack::{fmt::DebugDiagnostic, report, Report};
-/// use error_stack::fmt::Call;
-///
-/// # Report::install_debug_hook_fallback(|_, ctx| Call::Miss(ctx));
+/// use error_stack::{fmt::DebugDiagnostic, report};
 ///
 /// let report = report!(Error::from(ErrorKind::InvalidInput)) //
 ///     .attach(DebugDiagnostic::next("Hello!"));
 ///
-/// assert_snapshot!(format!("{report:?}",), @r###"invalid input parameter
-/// ├╴src/fmt/nightly.rs:9:14
-/// ├╴Hello!
-/// # ╰╴1 additional attachment"###);
-/// # (r###"
-/// ╰╴backtrace with 10 frames (1)"###);
+/// # owo_colors::set_override(true);
+/// # fn render(value: String) -> String {
+/// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+/// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+/// #
+/// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+/// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+/// #
+/// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+/// # }
+/// #
+/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__debugdiagnostic.snap")].assert_eq(&render(format!("{report:?}")));
+/// #
+/// # stringify!(
+/// println!("{report:?}");
+/// # );
 /// ```
+///
+/// <pre>
+#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__debugdiagnostic.snap"))]
+/// </pre>
 ///
 /// # Implementation Notes
 ///
