@@ -8,12 +8,6 @@ args = [
     "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/.env.local",
 ]
 
-
-[tasks.sleep-for-five-seconds]
-private = true
-command = "sleep"
-args = ["5"]
-
 [tasks.sleep-for-one-second]
 private = true
 command = "sleep"
@@ -45,7 +39,7 @@ category = "Deploy"
 description = "Spins up the deployment environment"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment"
 command = "docker-compose"
-args = ["--env-file", "../.env", "up", "-d"]
+args = ["--env-file", "../.env", "up", "--wait"]
 dependencies = ["touch-environment"]
 
 [tasks.deployment-down]

@@ -27,3 +27,8 @@ services:
     security_opt:
       - no-new-privileges:true
     read_only: true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --username ${POSTGRES_USER}"]
+      interval: 1s
+      timeout: 1s
+      retries: 5
