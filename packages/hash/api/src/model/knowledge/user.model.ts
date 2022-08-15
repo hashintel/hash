@@ -223,7 +223,7 @@ export default class extends EntityModel {
       /** @todo: also ensure shortname is unique amongst orgs */
     }
 
-    const userAccountId = graphApi.createAccountId();
+    const { data: userAccountId } = await graphApi.createAccountId();
 
     const properties: object = {
       [emailBaseUri]: emails,
