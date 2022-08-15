@@ -64,17 +64,18 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
             <Tooltip title="Expand Sidebar">
               <IconButton
                 size="medium"
-                sx={{
+                sx={({ zIndex }) => ({
                   position: "absolute",
                   top: 8,
                   left: 8,
                   transform: "rotate(180deg)",
+                  zIndex: zIndex.drawer,
 
                   "&:hover": {
                     backgroundColor: ({ palette }) => palette.gray[20],
                     color: ({ palette }) => palette.gray[60],
                   },
-                }}
+                })}
                 onClick={openSidebar}
               >
                 <SidebarToggleIcon />
@@ -84,9 +85,9 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
 
           <Main
             sx={({ spacing }) => ({
-              ...(fullWidth ? (
-              	!sidebarOpen && { marginLeft: spacing(5) }
-              ) : { padding: spacing(7, 10) })
+              ...(!fullWidth && {
+                padding: spacing(7, 10),
+              }),
             })}
           >
             {children}

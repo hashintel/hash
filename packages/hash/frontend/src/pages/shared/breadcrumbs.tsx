@@ -65,9 +65,14 @@ const SubMenu = ({ items, defaultIcon }: SubMenuProps) => {
 export type BreadcrumbsProps = {
   crumbs: Breadcrumb[];
   defaultIcon?: ReactNode;
+  scrollToTop: () => void;
 };
 
-export const Breadcrumbs = ({ crumbs, defaultIcon }: BreadcrumbsProps) => {
+export const Breadcrumbs = ({
+  crumbs,
+  defaultIcon,
+  scrollToTop,
+}: BreadcrumbsProps) => {
   const router = useRouter();
   let items: (Breadcrumb | { submenu: Breadcrumb[] })[] = crumbs;
 
@@ -115,6 +120,11 @@ export const Breadcrumbs = ({ crumbs, defaultIcon }: BreadcrumbsProps) => {
               variant="tertiary_quiet"
               // don't attach href if it's the current page
               {...(!item.href.includes(router.asPath) && { href: item.href })}
+              onClick={() => {
+                if (item.href.includes(router.asPath)) {
+                  scrollToTop();
+                }
+              }}
               size="xs"
               startIcon={item.icon ?? defaultIcon}
               sx={{

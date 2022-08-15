@@ -11,7 +11,7 @@ import { GetStaticPaths, GetStaticProps } from "next";
 import Head from "next/head";
 import { Router, useRouter } from "next/router";
 
-import { useEffect, useMemo, useState, FunctionComponent } from "react";
+import { useEffect, useMemo, useState, FunctionComponent, useRef } from "react";
 import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
@@ -28,9 +28,13 @@ import {
   GetPageInfoQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
+import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 import { Button } from "../../shared/ui/button";
-import { TopContextBar } from "../shared/top-context-bar";
+import {
+  TopContextBar,
+  TOP_CONTEXT_BAR_HEIGHT,
+} from "../shared/top-context-bar";
 
 // Apparently defining this is necessary in order to get server rendered props?
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
@@ -128,20 +132,23 @@ const generateCrumbsFromPages = ({
   accountId: string;
   pages: AccountPagesInfo["data"];
 }) => {
-  let currentIndex = pages.find(({ entityId }) => pageId === entityId);
+  const pageMap = new Map(pages.map((page) => [page.entityId, page]));
+
+  let currentPage = pageMap.get(pageId);
   let arr = [];
 
-  while (currentIndex) {
+  while (currentPage) {
     arr.push({
-      title: currentIndex.title,
-      href: `/${accountId}/${currentIndex.entityId}`,
-      id: currentIndex.entityId,
+      title: currentPage.title,
+      href: `/${accountId}/${currentPage.entityId}`,
+      id: currentPage.entityId,
     });
 
-    currentIndex = pages.find(
-      // eslint-disable-next-line no-loop-func
-      ({ entityId }) => entityId === currentIndex?.parentPageEntityId,
-    );
+    if (currentPage.parentPageEntityId) {
+      currentPage = pageMap.get(currentPage.parentPageEntityId);
+    } else {
+      break;
+    }
   }
 
   arr = arr.reverse();
@@ -184,6 +191,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   >(getPageInfoQuery, {
     variables: { entityId: pageEntityId, accountId, versionId },
   });
+  const pageHeaderRef = useRef<HTMLElement>();
 
   const collabPositions = useCollabPositions(accountId, pageEntityId);
   const reportPosition = useCollabPositionReporter(accountId, pageEntityId);
@@ -202,6 +210,11 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
       Router.events.off("routeChangeComplete", handleRouteChange);
     };
   }, [pageState]);
+
+  const scrollToTop = () => {
+    if (!pageHeaderRef.current) return;
+    pageHeaderRef.current.scrollIntoView();
+  };
 
   if (pageState === "transferring") {
     return (
@@ -256,12 +269,19 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
             pageId: data.page.entityId,
             accountId,
           })}
+          scrollToTop={scrollToTop}
         />
         <PageNotificationBanner />
       </Box>
 
       <Container>
-        <Box component="header">
+        <Box
+          component="header"
+          ref={pageHeaderRef}
+          sx={{
+            scrollMarginTop: HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT,
+          }}
+        >
           <PageTitle
             value={title}
             accountId={accountId}

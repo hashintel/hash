@@ -6,6 +6,7 @@ import {
 import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
 import { Box, Typography } from "@mui/material";
 import { ReactNode } from "react";
+import { useSidebarContext } from "../../shared/layout/layout-with-sidebar";
 import { useReadonlyMode } from "../../shared/readonly-mode";
 import { Button } from "../../shared/ui";
 import { Breadcrumbs } from "./breadcrumbs";
@@ -13,17 +14,32 @@ import { Breadcrumbs } from "./breadcrumbs";
 type Props = {
   crumbs: { title: string; href: string; id: string }[];
   defaultCrumbIcon?: ReactNode;
+  scrollToTop: () => void;
 };
+
+export const TOP_CONTEXT_BAR_HEIGHT = 50;
 
 export const TopContextBar = ({
   crumbs,
   defaultCrumbIcon = <FontAwesomeIcon icon={faFile} />,
+  scrollToTop,
 }: Props) => {
   const { readonlyMode } = useReadonlyMode();
+  const { sidebarOpen } = useSidebarContext();
   return (
-    <Box display="flex" alignItems="center" height={50} pl={3} pr={4}>
+    <Box
+      display="flex"
+      alignItems="center"
+      height={TOP_CONTEXT_BAR_HEIGHT}
+      pl={sidebarOpen ? 3 : 8}
+      pr={4}
+    >
       <Box>
-        <Breadcrumbs crumbs={crumbs} defaultIcon={defaultCrumbIcon} />
+        <Breadcrumbs
+          crumbs={crumbs}
+          defaultIcon={defaultCrumbIcon}
+          scrollToTop={scrollToTop}
+        />
       </Box>
 
       <Box
