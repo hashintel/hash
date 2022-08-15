@@ -1,10 +1,7 @@
 import Picker from "@emoji-mart/react";
 import { Popover } from "@hashintel/hash-design-system";
-import { BaseEmoji, PickerProps } from "emoji-mart";
+import { BaseEmoji } from "emoji-mart";
 import { bindPopover, PopupState } from "material-ui-popup-state/core";
-import { FunctionComponent } from "react";
-
-const TypedPicker = Picker as FunctionComponent<PickerProps>;
 
 interface EmojiPickerProps {
   onEmojiSelect: (emoji: BaseEmoji) => void;
@@ -29,7 +26,7 @@ export const EmojiPicker = ({
       elevation={4}
       sx={{ mt: 1 }}
     >
-      <TypedPicker
+      <Picker
         autoFocus
         theme="light"
         onEmojiSelect={(emoji) => {
