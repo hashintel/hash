@@ -6,27 +6,43 @@
 //! # Hooks
 //!
 //! The format implementation (especially the [`Debug`] implementation),
-//! can be easily extended using [`Hooks`], they provide an easy and ergonomic way to partially
-//! modify the format and enable the output of types that are not necessarily added via
-//! `.attach_printable()` or are unable to implement [`Display`].
+//! can be easily extended using hooks.
+//! Hooks are functions of the signature `Fn(&T, &mut HookContext<T>) -> Emit`, they provide an easy
+//! and ergonomic way to partially modify the format and enable the output of types that are not
+//! necessarily added via `.attach_printable()` or are unable to implement [`Display`].
 //!
-//! [`Hooks`] can be attached through the central hooking mechanism which `error-stack`
-//! provides via [`Report::install_hook`].
+//! Hooks can be attached through the central hooking mechanism which `error-stack`
+//! provides via [`Report::install_debug_hook`].
 //!
-//! A format [`Hook`] is a function [`Fn`], which is [`Send`], [`Sync`] and has a `'static`
-//! timeline, this means that in contrast to [`FnMut`] they **may not** directly mutate state.
-//! You can still achieve mutable global state (or use mutable resources in the current scope)
-//! through interior mutability, which is implemented for example implemented for [`Mutex`].
+//! You can also provide a fallback function, which is called whenever a hook hasn't been added for
+//! a specific type of attachment.
+//! The fallback function needs to have a signature of
+//! `Fn(&Frame, HookContext<'a, T>) -> Call<'a, Frame>`
+//! and can be set via [`Report::install_debug_hook_fallback`].
 //!
-//! This function takes one required and one optional argument: `val` as reference of type `&T`,
-//! as well as a current `ctx` ([`&mut HookContext`]), which is created for every [`Debug`]
-//! invocation separately.
-//! The function must return of value [`Line`], indicating if the value is going to be emitted
-//! during regular flow (which should be most of the cases), or is going to be deferred until the
-//! end of the current group of frames.
-//! This function will then automatically be called for every [`Frame`], which saved an attachment
-//! of the type `T` (which was specified as the type of `val` in the hook).
-//! These function hooks currently do **not** support functions with traits attached to them.
+//! > **Caution:** Overwriting the fallback **will** remove the builtin formatting for types like
+//! > [`Backtrace`] and [`SpanTrace`], you can mitigate this by calling
+//! > [`error_stack::fmt::builtin`] in your fallback code.
+//!
+//! Hook functions need to be [`Fn`] and **not** [`FnMut`], which means they are unable to directly
+//! mutate state outside of the closure.
+//! You can still achieve mutable state outside of the scope of your closure through interior
+//! mutability.
+//! [`Mutex`], [`RwLock`], and atomics are often used for that exact purpose.
+//!
+//! The type a hook will be called for, is determined by the type of the first argument.
+//! This type can either be specified at the closure level, or when calling
+//! [`Report::install_debug_hook`].
+//! This type needs to be `'static`, [`Send`], and [`Sync`].
+//!
+//! The function must return a value of type [`Emit`], which decides *when* a value is going to be
+//! emitted during printing, refer to the documentation of [`Emit`] for further information.
+//!
+//! Fallback functions must return [`Call`], which is similar to the [`Result`] and [`Option`] type,
+//! [`Call::Find`] is returned if a value for a [`Frame`] could be found, otherwise it must return
+//! [`Call::Miss`], with the [`HookContext<T>`] which has been specified in the arguments.
+//! This ensures that the [`HookContext<T>`] is never cloned and all guarantees are held in place by
+//! the compiler.
 //!
 //! ## Example
 //!
@@ -35,9 +51,12 @@
 //! use insta::assert_snapshot;
 //! use error_stack::{
 //!     fmt::Emit,
-//!     Report,
+//!     Report
 //! };
+//! # use error_stack::fmt::Call;
 //! use error_stack::fmt::HookContext;
+//!
+//! # Report::install_debug_hook_fallback(|_, ctx| Call::Miss(ctx));
 //!
 //! // this will never be called, because the a hook after this one has already "taken ownership" of `u64`
 //! Report::install_debug_hook(|_: &u64| Emit::next("will never be called"));
@@ -141,9 +160,9 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
 /// Modify the behaviour, with which `Line`s returned from hook invocations are rendered.
 ///
-/// A `Line` can either be emitted immediately as the [`Line::Next`] line, or defer the via
-/// [`Line::Defer`] until the end of the current "group".
-/// [`Line::Defer`] does not modify the order of frames, only emits them after all [`Line::Next`]
+/// Lines can either be emitted immediately as the [`Emit::Next`] line, or defer the via
+/// [`Emit::Defer`] until the end of the current "group".
+/// [`Emit::Defer`] does not modify the order of frames, only emits them after all [`Emit::Next`]
 /// frames in the order they were added in.
 ///
 /// # Example
@@ -153,17 +172,12 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// use insta::assert_debug_snapshot;
 ///
 /// use error_stack::{
-///     fmt::{Emit, Hook, HookContext},
+///     fmt::{Emit, HookContext},
 ///     Report, Frame
 /// };
+/// # use error_stack::fmt::Call;
 ///
-/// # struct Bare;
-/// # impl Hook<Frame, ()> for Bare {
-/// #     fn call(&self, _: &Frame, _: HookContext<Frame>) -> Option<Emit> {
-/// #         None
-/// #     }
-/// # }
-/// # Report::install_debug_hook_fallback(Bare);
+/// # Report::install_debug_hook_fallback(|_, ctx| Call::Miss(ctx));
 ///
 /// Report::install_debug_hook(|val: &u64| Emit::next(format!("u64: {val}")));
 /// Report::install_debug_hook(|val: &u32| Emit::defer(format!("u32: {val}")));

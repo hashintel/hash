@@ -95,18 +95,13 @@ impl HookContextImpl {
 /// use std::io::ErrorKind;
 ///
 /// use error_stack::{
-///     fmt::{HookContext, Emit, Hook},
+///     fmt::{HookContext, Emit },
 ///     Report, Frame
 /// };
+/// # use error_stack::fmt::Call;
 /// use insta::assert_snapshot;
 ///
-/// # struct Bare;
-/// # impl Hook<Frame, ()> for Bare {
-/// #     fn call(&self, _: &Frame, _: HookContext<Frame>) -> Option<Emit> {
-/// #         None
-/// #     }
-/// # }
-/// # Report::install_debug_hook_fallback(Bare);
+/// # Report::install_debug_hook_fallback(|_, ctx| Call::Miss(ctx));
 ///
 /// Report::install_debug_hook(|val: &u64, ctx: &mut HookContext<u64>| {
 ///     ctx.set_text("u64 has been encountered");
@@ -151,18 +146,13 @@ impl HookContextImpl {
 /// use std::io::ErrorKind;
 ///
 /// use error_stack::{
-///     fmt::{HookContext, Emit, Hook},
+///     fmt::{HookContext, Emit},
 ///     Report, Frame
 /// };
+/// # use error_stack::fmt::Call;
 /// use insta::assert_snapshot;
 ///
-/// # struct Bare;
-/// # impl Hook<Frame, ()> for Bare {
-/// #     fn call(&self, _: &Frame, _: HookContext<Frame>) -> Option<Emit> {
-/// #         None
-/// #     }
-/// # }
-/// # Report::install_debug_hook_fallback(Bare);
+/// # Report::install_debug_hook_fallback(|_, ctx| Call::Miss(ctx));
 ///
 /// Report::install_debug_hook(|val: &u64, ctx: &mut HookContext<u64>| {
 ///     let mut acc = ctx.get::<u64>().copied().unwrap_or(0);
@@ -237,39 +227,32 @@ impl<'a, T> HookContext<'a, T> {
     ///
     /// Most user-facing should never need to use this function, as function hooks are only able to
     /// get a mutable reference to [`HookContext`].
-    /// This is not the case for for [`Hook::call`], which receives the context as value,
-    /// allowing for "dynamic" recasting, if needed, for example to implement [`Hook`] on custom
-    /// types.
+    /// This is not the case for a fallback function, which receives the context as value,
+    /// allowing for "dynamic" recasting.
     ///
     /// ### Example
     ///
     /// ```rust
     /// use std::io::ErrorKind;
-    /// use error_stack::{fmt::{Hook, HookContext, Emit}, Frame, Report };
+    /// use error_stack::{fmt::{HookContext, Emit}, fmt, Frame, Report};
+    /// # use error_stack::fmt::Call;
     /// use insta::assert_snapshot;
     ///
-    /// # struct Bare;
-    /// # impl Hook<Frame, ()> for Bare {
-    /// #     fn call(&self, _: &Frame, _: HookContext<Frame>) -> Option<Emit> {
-    /// #         None
-    /// #     }
-    /// # }
-    /// # Report::install_debug_hook_fallback(Bare);
-    ///
-    /// struct CustomHook;
     /// struct Value(u64);
     ///
-    /// impl Hook<Value, ()> for CustomHook {
-    ///     fn call(&self, _: &Value, ctx: HookContext<Value>) -> Option<Emit> {
+    /// Report::install_debug_hook_fallback(|frame, ctx| fmt::builtin(frame, ctx).or_else(|ctx| {
+    ///     match frame.downcast_ref::<Value>() {
+    ///         None => Call::Miss(ctx),
+    ///         Some(val) => {
     ///         // the inner value of `Value` is always `u64`,
     ///         // we therefore only "mask" u64 and want to use the same incremental value.
     ///         let mut ctx = ctx.cast::<u64>();
-    ///         Some(Emit::next(format!("{} (Value)", ctx.increment())))
+    ///         Call::Find(Emit::next(format!("{} (Value)", ctx.increment())))
+    ///         }
     ///     }
-    /// }
+    /// }).cast());
     ///
-    /// Report::install_debug_hook(|_: &u64, ctx: &mut HookContext<u64>| Emit::next(format!("{}", ctx.increment())));
-    /// Report::install_debug_hook(CustomHook);
+    /// Report::install_debug_hook::<u64>(|_, ctx| Emit::next(format!("{}", ctx.increment())));
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
     ///     .attach(1u64)
@@ -392,15 +375,10 @@ impl<T: 'static> HookContext<'_, T> {
     ///
     /// use insta::assert_snapshot;
     /// use error_stack::{Frame, Report};
-    /// use error_stack::fmt::{Emit, Hook, HookContext};
+    /// # use error_stack::fmt::Call;
+    /// use error_stack::fmt::{Emit, HookContext};
     ///
-    /// # struct Bare;
-    /// # impl Hook<Frame, ()> for Bare {
-    /// #     fn call(&self, _: &Frame, _: HookContext<Frame>) -> Option<Emit> {
-    /// #         None
-    /// #     }
-    /// # }
-    /// # Report::install_debug_hook_fallback(Bare);
+    /// # Report::install_debug_hook_fallback(|_, ctx| Call::Miss(ctx));
     ///
     /// Report::install_debug_hook(|_: &(), ctx: &mut HookContext<()>|{
     ///     Emit::next(format!("{}", ctx.increment()))
@@ -454,18 +432,13 @@ impl<T: 'static> HookContext<'_, T> {
     /// use std::io::ErrorKind;
     ///
     /// use error_stack::{
-    ///     fmt::{HookContext, Emit, Hook},
+    ///     fmt::{HookContext, Emit},
     ///     Report, Frame,
     /// };
+    /// # use error_stack::fmt::Call;
     /// use insta::assert_snapshot;
     ///
-    /// # struct Bare;
-    /// # impl Hook<Frame, ()> for Bare {
-    /// #     fn call(&self, _: &Frame, _: HookContext<Frame>) -> Option<Emit> {
-    /// #         None
-    /// #     }
-    /// # }
-    /// # Report::install_debug_hook_fallback(Bare);
+    /// # Report::install_debug_hook_fallback(|_, ctx| Call::Miss(ctx));
     ///
     ///
     /// Report::install_debug_hook(|_: &(), ctx: &mut HookContext<()>| {
@@ -529,6 +502,13 @@ impl<'a, T> Call<'a, T> {
         match self {
             Call::Find(emit) => Some(emit),
             Call::Miss(_) => None,
+        }
+    }
+
+    pub fn or_else<U>(self, closure: impl FnOnce(HookContext<T>) -> Call<U>) -> Call<'a, U> {
+        match self {
+            Call::Find(emit) => Call::Find(emit),
+            Call::Miss(ctx) => closure(ctx.cast()),
         }
     }
 }

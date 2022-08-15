@@ -48,6 +48,9 @@ impl Report<()> {
     ///     fmt::{self, Emit},
     ///     report, Report,
     /// };
+    /// # use error_stack::fmt::Call;
+    ///
+    /// # Report::install_debug_hook_fallback(|_, ctx| Call::Miss(ctx));
     ///
     /// struct Suggestion(&'static str);
     ///
@@ -207,7 +210,10 @@ impl Report<()> {
     /// ```
     #[deprecated]
     #[cfg(feature = "hooks")]
-    pub fn set_display_hook<H>(hook: H) {
+    pub fn set_display_hook<H>(hook: H)
+    where
+        H: Fn(&Self, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static,
+    {
         let mut write = DISPLAY_HOOK.write().expect("should not poisoned");
         *write = Some(Box::new(hook));
     }
