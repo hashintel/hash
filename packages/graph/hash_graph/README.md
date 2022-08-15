@@ -1,5 +1,41 @@
 # The HASH Graph API
 
+## Run the Graph
+
+The easiest way to run the Graph API is to use docker. Either invoke docker directly:
+
+```shell
+DOCKER_BUILDKIT=1 docker build --tag graph --file ../deployment/graph/Dockerfile .
+docker run --rm --init --network host --name graph --env RUST_LOG=trace --detach graph
+```
+
+or by using `cargo make`:
+
+```shell
+cargo make build-docker --profile production
+cargo make docker-up
+```
+
+Note, that building the docker image requires `docker-buildkit`, which can be enabled by setting `DOCKER_BUILDKIT=1` as shown above. To enable it by default please refer to [their documentation](https://docs.docker.com/develop/develop-images/build_enhancements/#to-enable-buildkit-builds).
+
+The container can be stopped by calling
+
+```shell
+docker stop graph
+```
+
+or
+
+```shell
+cargo make docker-down
+```
+
+To completely remove the image again, run
+
+```shell
+docker image rm graph
+```
+
 ## Building
 
 In order to build the HASH Graph API make sure `cargo-make` is installed:
@@ -46,7 +82,7 @@ For the integration tests, the database needs to be deployed [as specified here]
 cargo make test-integration
 ```
 
-The REST API can be tested as well. Note, that this does not clean up the database after running:
+The REST API can be tested as well. Note, that this requires the Graph to run and does not clean up the database after running:
 
 ```shell
 cargo make test-rest-api
