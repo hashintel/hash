@@ -119,9 +119,13 @@
 //! </pre>
 //!
 //!
-//! [`Display`]: std::fmt::Display
-//! [`Debug`]: std::fmt::Debug
+//! [`Display`]: core::fmt::Display
+//! [`Debug`]: core::fmt::Debug
 //! [`Mutex`]: std::sync::Mutex
+//! [`RwLock`]: std::sync::RwLock
+//! [`Backtrace`]: std::backtrace::Backtrace
+//! [`SpanTrace`]: tracing_error::SpanTrace
+//! [`error_stack::fmt::builtin`]: crate::fmt::builtin
 
 mod hook;
 #[cfg(all(nightly, feature = "experimental"))]
@@ -236,18 +240,34 @@ impl Emit {
     }
 }
 
+/// [`Snippet`] is text that is going to be added to the initial rendering of the tree.
+///
+/// [`Snippet`]s are usually values that could be very long or detailed and are unable to fit into
+/// the tree correctly.
+/// They can either force output or only be output if the alternate representation
+/// (`:#?`) has been requested.
+///
+/// A [`Snippet`] is able to contain newlines.
 #[derive(Debug, Clone)]
 #[must_use]
 pub enum Snippet {
+    /// A regular snippet, which is only output if the alternate representation has been requested
     Regular(String),
+    /// A forced snippet, which is always output, even if the alternate representation was not
+    /// requested. Handle with care!
+    ///
+    /// This should only be used for things like Backtraces, which are useful on exit, not further
+    /// introspection via the alternate representation.
     Force(String),
 }
 
 impl Snippet {
+    /// Create a new regular snippet
     pub fn regular<T: Into<String>>(snippet: T) -> Self {
         Self::Regular(snippet.into())
     }
 
+    /// Create a new forced snippet
     pub fn force<T: Into<String>>(snippet: T) -> Self {
         Self::Force(snippet.into())
     }

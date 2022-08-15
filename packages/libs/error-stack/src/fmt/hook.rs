@@ -68,17 +68,19 @@ impl HookContextImpl {
 /// Optional context used to carry information across hook invocations.
 ///
 /// `HookContext` has two fundamental use-cases:
-/// 1) Emitting `text`
+/// 1) Emitting [`Snippet`]s
 /// 2) Storage
 ///
-/// ## Emitting Text
+/// ## Emitting [`Snippet`]s
 ///
 /// A [`Debug`] backtrace consists of two different sections, a rendered tree of objects and
-/// additional text/information that is too large to fit.
-/// There is no guarantee that the text set via [`set_text()`] will be displayed on every invocation
-/// and is currently only output when the alternate format (`:#?`) has been requested.
+/// additional text/information that is too large to fit into the tree.
 ///
-/// [`set_text()`]: HookContext::set_text
+/// [`Snippet`]s can be added to the current output via [`add_snippet()`],
+/// depending on the type of the snippet, these text fragments are either always outputted, or just
+/// when alternate mode (`:#?`) has been enabled.
+///
+/// [`add_snippet()`]: HookContext::add_snippet
 ///
 /// ### Example
 ///
@@ -127,7 +129,7 @@ impl HookContextImpl {
 /// This is especially useful for incrementing/decrementing values, but can also be used to store
 /// any arbitrary value for the duration of the [`Debug`] invocation.
 ///
-/// All data stored in `HookContext` is completely separated from all other [`Hook`]s and can store
+/// All data stored in `HookContext` is completely separated from all other hooks and can store
 /// any arbitrary data of any type, and even data of multiple types at the same time.
 ///
 /// ### Example
@@ -196,8 +198,8 @@ impl<T> HookContext<'_, T> {
     /// If [`Debug`] requests, this snippet (which can include line breaks) will be appended to the
     /// main message.
     ///
-    /// A [`Hook`] can force the append of a snippet by using [`Snippet::Force`],
-    /// [`Snippet::Normal`] will only be appended if [`alternate()`] is requested.
+    /// A hook can force the append of a snippet by using [`Snippet::Force`],
+    /// [`Snippet::Regular`] will only be appended if [`alternate()`] is requested.
     ///
     /// This is useful for dense information like backtraces, or span traces, which are omitted when
     /// rendering without the alternate [`Debug`] output.
@@ -374,7 +376,7 @@ impl<T: 'static> HookContext<'_, T> {
     }
 
     /// One of the most common interactions with [`HookContext`] is a counter to reference previous
-    /// frames or the content emitted during [`set_text()`].
+    /// frames or the content emitted during [`add_snippet()`].
     ///
     /// This is a utility method, which uses the other primitive methods provided to automatically
     /// increment a counter, if the counter wasn't initialized this method will return `0`.
@@ -416,7 +418,7 @@ impl<T: 'static> HookContext<'_, T> {
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__hookcontext_increment.snap"))]
     /// </pre>
     ///
-    /// [`set_text()`]: Self::set_text
+    /// [`add_snippet()`]: Self::add_snippet
     #[cfg(any(
         feature = "hooks",
         feature = "spantrace",
@@ -441,7 +443,7 @@ impl<T: 'static> HookContext<'_, T> {
     }
 
     /// One of the most common interactions with [`HookContext`] is a counter
-    /// to reference previous frames or the content emitted during [`set_text()`].
+    /// to reference previous frames or the content emitted during [`add_snippet()`].
     ///
     /// This is a utility method, which uses the other primitive method provided to automatically
     /// decrement a counter, if the counter wasn't initialized this method will return `-1` to stay
@@ -481,7 +483,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// </pre>
     ///
     /// [`increment()`]: Self::increment
-    /// [`set_text()`]: Self::set_text
+    /// [`add_snippet()`]: Self::add_snippet
     #[cfg(feature = "hooks")]
     pub fn decrement(&mut self) -> isize {
         let counter = self.get_mut::<isize>();
@@ -503,16 +505,23 @@ impl<T: 'static> HookContext<'_, T> {
     }
 }
 
-// TODO: docs
-// TODO: bring back stack debug example <3
+/// The return type of every hook.
+///
+/// This is like a [`Result`] or [`Option`] type, but with different semantics.
+/// The different variants indicate what the state of the hook invocation was.
 pub enum Call<'a, T> {
+    /// The hook invocation was successful, a value could be found.
     // name TBD
     Find(Emit),
+    /// The hook invocation was unsuccessful, because it was unable to be called for type `T`,
+    /// returns the ownership of the [`HookContext`], that the function could have used to store
+    /// data or emit [`Snippet`]s
     // name TBD
     Miss(HookContext<'a, T>),
 }
 
 impl<'a, T> Call<'a, T> {
+    /// Cast the inner [`HookContext`], if present to `U`, corresponds to [`HookContext::cast`]
     pub fn cast<U>(self) -> Call<'a, U> {
         match self {
             Call::Find(emit) => Call::Find(emit),
@@ -520,13 +529,17 @@ impl<'a, T> Call<'a, T> {
         }
     }
 
-    pub fn consume(self) -> Option<Emit> {
+    pub(crate) fn consume(self) -> Option<Emit> {
         match self {
             Call::Find(emit) => Some(emit),
             Call::Miss(_) => None,
         }
     }
 
+    /// Execute the closure provided, if the current variant is [`Call::Miss`], with the
+    /// [`HookContext`] it currently holds.
+    ///
+    /// The closure must return [`Call`], but is able to cast [`HookContext`] to any type.
     pub fn or_else<U>(self, closure: impl FnOnce(HookContext<T>) -> Call<U>) -> Call<'a, U> {
         match self {
             Call::Find(emit) => Call::Find(emit),

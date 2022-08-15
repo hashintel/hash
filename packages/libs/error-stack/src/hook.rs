@@ -34,7 +34,7 @@ impl fmt::Display for HookAlreadySet {
 impl Error for HookAlreadySet {}
 
 impl Report<()> {
-    /// Can be used to globally set a [`Debug`] format hook, for a specific type `T`, this [`Hook`]
+    /// Can be used to globally set a [`Debug`] format hook, for a specific type `T`, this hook
     /// will be called on every [`Debug`] call, if an attachment with the same type has been found.
     ///
     /// [`Debug`]: core::fmt::Debug
