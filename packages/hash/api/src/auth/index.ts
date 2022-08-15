@@ -16,7 +16,6 @@ declare global {
   }
 }
 
-/** @todo: get from environment variable */
 const KRATOS_API_KEY = getRequiredEnv("KRATOS_API_KEY");
 
 const requestHeaderContainsValidKratosApiKey = (req: Request): boolean =>
