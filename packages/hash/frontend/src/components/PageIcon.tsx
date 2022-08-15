@@ -1,7 +1,6 @@
 import { useQuery } from "@apollo/client";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
-import { IconButton } from "@hashintel/hash-design-system/icon-button";
+import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
 import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { iconButtonClasses, Tooltip } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
