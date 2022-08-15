@@ -228,7 +228,7 @@ export type DbPageProperties = {
   archived?: boolean | null;
   summary?: string | null;
   title: string;
-  index?: string;
+  index: string;
 };
 
 export type DbPageEntity = Omit<DbEntity, "properties"> & {

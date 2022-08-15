@@ -82,11 +82,9 @@ class __Page extends Entity {
       const pages = await this.getAllPagesInAccount(client, { accountId });
 
       childPages = await Promise.all(
-        pages.map(async (page) => {
-          const parentPage = await page.getParentPage(client);
-
-          return parentPage ? [] : page;
-        }),
+        pages.map(async (page) =>
+          (await page.getParentPage(client)) ? [] : page,
+        ),
       ).then((filteredPages) => filteredPages.flat());
     }
 
@@ -121,7 +119,9 @@ class __Page extends Entity {
     params: {
       createdBy: User;
       accountId: string;
-      properties: DbPageProperties;
+      properties: {
+        title: string;
+      };
       initialLinkedContents?: {
         accountId: string;
         entityId: string;
@@ -186,18 +186,20 @@ class __Page extends Entity {
             },
           ];
 
-    pageProperties.index = await __Page.getPageFractionalIndex(client, {
+    const index = await __Page.getPageFractionalIndex(client, {
       entityId: null,
       index: null,
       parentPage: null,
       accountId,
     });
 
+    const properties = { ...pageProperties, index };
+
     const entity = await Entity.createEntityWithLinks(client, {
       user: createdBy,
       accountId,
       entityDefinition: {
-        entityProperties: pageProperties,
+        entityProperties: properties,
         versioned: true,
         entityType: {
           systemTypeName: SystemTypeName.Page,
@@ -206,7 +208,7 @@ class __Page extends Entity {
       },
     });
 
-    return new Page({ ...entity, properties: pageProperties });
+    return new Page({ ...entity, properties });
   }
 
   static async getPageById(
@@ -371,7 +373,7 @@ class __Page extends Entity {
 
     const newIndex = await __Page.getPageFractionalIndex(client, {
       entityId: this.entityId,
-      index: index,
+      index,
       parentPage,
       accountId: setByAccountId,
     });
