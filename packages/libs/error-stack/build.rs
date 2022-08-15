@@ -16,7 +16,6 @@ fn main() {
         let month: usize = build_date.next().unwrap().parse().unwrap();
         let day: usize = build_date.next().unwrap().parse().unwrap();
 
-        eprintln!("{} {} {}", year, month, day);
         if year >= 2022 && month >= 8 && day >= 10 {
             println!("cargo:rustc-cfg=nightly_2022_08_10")
         }
