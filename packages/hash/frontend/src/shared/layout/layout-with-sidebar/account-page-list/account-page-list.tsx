@@ -178,11 +178,9 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
         setLoading(true);
         setItems(newItems);
-        reorderPage(active.id.toString(), parentPageEntityId, newIndex).then(
+        reorderPage(active.id.toString(), parentPageEntityId, newIndex).catch(
           () => {
-            // setLoading(false);
-          },
-          () => {
+            // fallback to previous state when the request fails
             setItems(orderItems(data, expandedPageIds));
             setLoading(false);
           },

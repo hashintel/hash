@@ -1,6 +1,6 @@
 import { useState, FunctionComponent, ReactNode } from "react";
 import { faAdd, faChevronRight } from "@fortawesome/free-solid-svg-icons";
-import { Box, Typography, Collapse, Tooltip, Fade } from "@mui/material";
+import { Box, Typography, Collapse, Tooltip } from "@mui/material";
 import {
   IconButton,
   IconButtonProps,
@@ -41,6 +41,7 @@ export const NavLink: FunctionComponent<NavLinkProps> = ({
       rounded
       className="end-adornment-button"
       onClick={endAdornmentProps.onClick}
+      disabled={loading}
       {...otherEndAdornmentProps}
       sx={[
         ({ palette }) => ({
