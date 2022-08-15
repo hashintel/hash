@@ -231,8 +231,6 @@ jobs:
           cargo quickinstall cargo-make --version 0.35.15
 
       - name: Build Docker container
-        env:
-          DOCKER_BUILDKIT: 1
         run: cargo make --profile ${{ matrix.profile }} build-docker
 
       - name: Test Docker container
