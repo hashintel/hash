@@ -1,5 +1,10 @@
 extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 
+[tasks.touch-environment]
+private = true
+command = "touch"
+args = ["${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/../../.env.local"]
+
 [tasks.yarn]
 category = "Deploy"
 description = "Installs the required dependencies"
@@ -49,6 +54,7 @@ description = "Spins up the Graph API as external service"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/../../"
 command = "yarn"
 args = ["external-services", "up", "--wait", "graph"]
+dependencies = ["touch-environment"]
 
 [tasks.graph-down]
 category = "Deploy"
