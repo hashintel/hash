@@ -84,13 +84,9 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
 
           <Main
             sx={({ spacing }) => ({
-              ...(!fullWidth && {
-                padding: spacing(7, 10),
-              }),
-              ...(fullWidth &&
-                !sidebarOpen && {
-                  marginLeft: spacing(5),
-                }),
+              ...(fullWidth ? (
+              	!sidebarOpen && { marginLeft: spacing(5) }
+              ) : { padding: spacing(7, 10) })
             })}
           >
             {children}
