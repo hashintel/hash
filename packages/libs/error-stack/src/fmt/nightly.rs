@@ -11,17 +11,20 @@ use crate::fmt::{Emit, Snippet};
 /// use std::io::{Error, ErrorKind};
 /// use insta::assert_snapshot;
 ///
-/// use error_stack::{fmt::DebugDiagnostic, report};
+/// use error_stack::{fmt::DebugDiagnostic, report, Report};
+/// use error_stack::fmt::Call;
+///
+/// # Report::install_debug_hook_fallback(|_, ctx| Call::Miss(ctx));
 ///
 /// let report = report!(Error::from(ErrorKind::InvalidInput)) //
 ///     .attach(DebugDiagnostic::next("Hello!"));
 ///
-/// assert_snapshot!(format!("{report:?}",), @r###"Hello!
-/// │ src/fmt/nightly.rs:10:6
-/// ├─▶ invalid input parameter
-/// │   ╰ src/fmt/nightly.rs:9:14
-/// ╰─▶ backtrace with 11 frames (1)
-///     ╰ src/fmt/nightly.rs:9:14"###);
+/// assert_snapshot!(format!("{report:?}",), @r###"invalid input parameter
+/// ├╴src/fmt/nightly.rs:9:14
+/// ├╴Hello!
+/// # ╰╴1 additional attachment"###);
+/// # (r###"
+/// ╰╴backtrace with 10 frames (1)"###);
 /// ```
 ///
 /// # Implementation Notes

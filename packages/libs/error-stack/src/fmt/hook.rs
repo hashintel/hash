@@ -94,17 +94,12 @@ impl HookContextImpl {
 /// ```rust
 /// use std::io::ErrorKind;
 ///
-/// use error_stack::{
-///     fmt::{HookContext, Emit },
-///     Report, Frame
-/// };
-/// # use error_stack::fmt::Call;
+/// use error_stack::{fmt::{Emit, Snippet}, Report};
 /// use insta::assert_snapshot;
+/// # use insta::Settings;
 ///
-/// # Report::install_debug_hook_fallback(|_, ctx| Call::Miss(ctx));
-///
-/// Report::install_debug_hook(|val: &u64, ctx: &mut HookContext<u64>| {
-///     ctx.set_text("u64 has been encountered");
+/// Report::install_debug_hook::<u64>(|val, ctx| {
+///     ctx.add_snippet(Snippet::regular("u64 has been encountered"));
 ///     Emit::next(val.to_string())
 /// });
 ///
@@ -112,14 +107,16 @@ impl HookContextImpl {
 ///     .attach(2u64)
 ///     .attach(3u64);
 ///
-/// assert_snapshot!(format!("{report:#?}"), @r###"3
-/// │ src/fmt/hook.rs:20:6
-/// ├─▶ 2
-/// │   ╰ src/fmt/hook.rs:19:6
-/// ├─▶ invalid input parameter
-/// │   ╰ src/fmt/hook.rs:18:14
-/// ╰─▶ 1 additional attachment
+/// # let mut settings = Settings::new();
+/// # settings.add_filter(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*", "Backtrace No. $1\n  [redacted]");
+/// # settings.add_filter(r"backtrace with (\d+) frames \((\d+)\)", "backtrace with [n] frames ($2)");
+/// # let _guard = settings.bind_to_scope();
 ///
+/// assert_snapshot!(format!("{report:#?}"), @r###"invalid input parameter
+/// ├╴src/fmt/hook.rs:17:14
+/// ├╴2
+/// ├╴3
+/// ╰╴1 additional attachment
 ///
 /// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ///
@@ -141,20 +138,14 @@ impl HookContextImpl {
 /// any arbitrary data of any type, and even data of multiple types at the same time.
 ///
 /// ### Example
-///
 /// ```rust
 /// use std::io::ErrorKind;
 ///
-/// use error_stack::{
-///     fmt::{HookContext, Emit},
-///     Report, Frame
-/// };
-/// # use error_stack::fmt::Call;
-/// use insta::assert_snapshot;
+/// use error_stack::{fmt::Emit, Report};
+/// use insta::{assert_snapshot, Settings};
 ///
-/// # Report::install_debug_hook_fallback(|_, ctx| Call::Miss(ctx));
 ///
-/// Report::install_debug_hook(|val: &u64, ctx: &mut HookContext<u64>| {
+/// Report::install_debug_hook::<u64>(|val, ctx| {
 ///     let mut acc = ctx.get::<u64>().copied().unwrap_or(0);
 ///     acc += *val;
 ///
@@ -170,13 +161,21 @@ impl HookContextImpl {
 ///     .attach(2u64)
 ///     .attach(3u64);
 ///
-/// assert_snapshot!(format!("{report:#?}"), @r###"3 (acc: 3, div: 0.33333334)
-/// │ src/fmt/hook.rs:27:6
-/// ├─▶ 2 (acc: 5, div: 0.5)
-/// │   ╰ src/fmt/hook.rs:26:6
-/// ├─▶ invalid input parameter
-/// │   ╰ src/fmt/hook.rs:25:14
-/// ╰─▶ 1 additional attachment"###);
+/// # let mut settings = Settings::new();
+/// # settings.add_filter(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*", "Backtrace No. $1\n  [redacted]");
+/// # settings.add_filter(r"backtrace with (\d+) frames \((\d+)\)", "backtrace with [n] frames ($2)");
+/// # let _guard = settings.bind_to_scope();
+///
+/// assert_snapshot!(format!("{report:#?}"), @r###"invalid input parameter
+/// ├╴src/fmt/hook.rs:22:14
+/// ├╴2 (acc: 2, div: 0.5)
+/// ├╴3 (acc: 5, div: 0.33333334)
+/// ╰╴backtrace with [n] frames (1)
+///
+/// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+///
+/// Backtrace No. 1
+///   [redacted]"###);
 /// ```
 pub struct HookContext<'a, T> {
     #[cfg(any(
@@ -234,23 +233,27 @@ impl<'a, T> HookContext<'a, T> {
     ///
     /// ```rust
     /// use std::io::ErrorKind;
-    /// use error_stack::{fmt::{HookContext, Emit}, fmt, Frame, Report};
+    ///
+    /// use error_stack::{fmt, fmt::Emit, Report};
     /// # use error_stack::fmt::Call;
     /// use insta::assert_snapshot;
+    /// # use insta::Settings;
     ///
     /// struct Value(u64);
     ///
-    /// Report::install_debug_hook_fallback(|frame, ctx| fmt::builtin(frame, ctx).or_else(|ctx| {
-    ///     match frame.downcast_ref::<Value>() {
-    ///         None => Call::Miss(ctx),
-    ///         Some(val) => {
-    ///         // the inner value of `Value` is always `u64`,
-    ///         // we therefore only "mask" u64 and want to use the same incremental value.
-    ///         let mut ctx = ctx.cast::<u64>();
-    ///         Call::Find(Emit::next(format!("{} (Value)", ctx.increment())))
-    ///         }
-    ///     }
-    /// }).cast());
+    /// Report::install_debug_hook_fallback(|frame, ctx| {
+    ///     fmt::builtin(frame, ctx)
+    ///         .or_else(|ctx| match frame.downcast_ref::<Value>() {
+    ///             None => Call::Miss(ctx),
+    ///             Some(_) => {
+    ///                 // the inner value of `Value` is always `u64`,
+    ///                 // we therefore only "mask" u64 and want to use the same incremental value.
+    ///                 let mut ctx = ctx.cast::<u64>();
+    ///                 Call::Find(Emit::next(format!("{} (Value)", ctx.increment())))
+    ///             }
+    ///         })
+    ///         .cast()
+    /// });
     ///
     /// Report::install_debug_hook::<u64>(|_, ctx| Emit::next(format!("{}", ctx.increment())));
     ///
@@ -259,15 +262,22 @@ impl<'a, T> HookContext<'a, T> {
     ///     .attach(Value(2u64))
     ///     .attach(3u64);
     ///
-    /// assert_snapshot!(format!("{report:?}"), @r###"0
-    /// │ src/fmt/hook.rs:34:6
-    /// ├─▶ 1 (Value)
-    /// │   ╰ src/fmt/hook.rs:33:6
-    /// ├─▶ 2
-    /// │   ╰ src/fmt/hook.rs:32:6
-    /// ├─▶ invalid input parameter
-    /// │   ╰ src/fmt/hook.rs:31:14
-    /// ╰─▶ 1 additional attachment"###);
+    /// # let mut settings = Settings::new();
+    /// # settings.add_filter(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*", "Backtrace No. $1\n  [redacted]");
+    /// # settings.add_filter(r"backtrace with (\d+) frames \((\d+)\)", "backtrace with [n] frames ($2)");
+    /// # let _guard = settings.bind_to_scope();
+    ///
+    /// assert_snapshot!(format!("{report:?}"), @r###"invalid input parameter
+    /// ├╴src/fmt/hook.rs:30:14
+    /// ├╴0
+    /// ├╴1 (Value)
+    /// ├╴2
+    /// ╰╴backtrace with [n] frames (1)
+    ///
+    /// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    ///
+    /// Backtrace No. 1
+    ///   [redacted]"###);
     /// ```
     #[must_use]
     #[cfg(any(
@@ -373,20 +383,24 @@ impl<T: 'static> HookContext<'_, T> {
     /// ```rust
     /// use std::io::ErrorKind;
     ///
-    /// use insta::assert_snapshot;
-    /// use error_stack::{Frame, Report};
-    /// # use error_stack::fmt::Call;
     /// use error_stack::fmt::{Emit, HookContext};
+    /// use error_stack::Report;
+    /// use insta::assert_snapshot;
+    /// # use insta::Settings;
     ///
-    /// # Report::install_debug_hook_fallback(|_, ctx| Call::Miss(ctx));
     ///
-    /// Report::install_debug_hook(|_: &(), ctx: &mut HookContext<()>|{
+    /// Report::install_debug_hook(|_: &(), ctx: &mut HookContext<()>| {
     ///     Emit::next(format!("{}", ctx.increment()))
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
     ///     .attach(())
     ///     .attach(());
+    ///
+    /// # let mut settings = Settings::new();
+    /// # settings.add_filter(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*", "Backtrace No. $1\n  [redacted]");
+    /// # settings.add_filter(r"backtrace with (\d+) frames \((\d+)\)", "backtrace with [n] frames ($2)");
+    /// # let _guard = settings.bind_to_scope();
     ///
     /// assert_snapshot!(format!("{report:?}"), @r###"0
     /// │ src/fmt/hook.rs:19:6
@@ -431,31 +445,26 @@ impl<T: 'static> HookContext<'_, T> {
     /// ```rust
     /// use std::io::ErrorKind;
     ///
-    /// use error_stack::{
-    ///     fmt::{HookContext, Emit},
-    ///     Report, Frame,
-    /// };
-    /// # use error_stack::fmt::Call;
+    /// use error_stack::{fmt::Emit, Report};
     /// use insta::assert_snapshot;
+    /// # use insta::Settings;
     ///
-    /// # Report::install_debug_hook_fallback(|_, ctx| Call::Miss(ctx));
-    ///
-    ///
-    /// Report::install_debug_hook(|_: &(), ctx: &mut HookContext<()>| {
-    ///     Emit::next(format!("{}", ctx.decrement()))
-    /// });
+    /// Report::install_debug_hook::<()>(|_, ctx| Emit::next(format!("{}", ctx.decrement())));
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
     ///     .attach(())
     ///     .attach(());
     ///
-    /// assert_snapshot!(format!("{report:?}"), @r###"-1
-    /// │ src/fmt/hook.rs:19:6
-    /// ├─▶ -2
-    /// │   ╰ src/fmt/hook.rs:18:6
-    /// ├─▶ invalid input parameter
-    /// │   ╰ src/fmt/hook.rs:17:14
-    /// ╰─▶ 1 additional attachment"###);
+    /// # let mut settings = Settings::new();
+    /// # settings.add_filter(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*", "Backtrace No. $1\n  [redacted]");
+    /// # settings.add_filter(r"backtrace with (\d+) frames \((\d+)\)", "backtrace with [n] frames ($2)");
+    /// # let _guard = settings.bind_to_scope();
+    ///
+    /// assert_snapshot!(format!("{report:?}"), @r###"invalid input parameter
+    /// ├╴src/fmt/hook.rs:14:14
+    /// ├╴-1
+    /// ├╴-2
+    /// ╰╴1 additional attachment"###);
     /// ```
     ///
     /// [`increment()`]: Self::increment
@@ -614,7 +623,7 @@ mod default {
     fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Emit {
         let idx = ctx.increment();
 
-        ctx.add_snippet(Snippet::Regular(format!(
+        ctx.add_snippet(Snippet::force(format!(
             "Backtrace No. {}\n{}",
             idx + 1,
             backtrace
@@ -637,7 +646,7 @@ mod default {
             true
         });
 
-        ctx.add_snippet(Snippet::regular(format!(
+        ctx.add_snippet(Snippet::force(format!(
             "Span Trace No. {}\n{}",
             idx + 1,
             spantrace

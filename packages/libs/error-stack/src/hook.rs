@@ -45,22 +45,27 @@ impl Report<()> {
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::{
-    ///     fmt::{self, Emit},
+    ///     fmt::{Emit},
     ///     report, Report,
     /// };
-    /// # use error_stack::fmt::Call;
-    ///
-    /// # Report::install_debug_hook_fallback(|_, ctx| Call::Miss(ctx));
+    /// # use insta::Settings;
+    /// use insta::assert_debug_snapshot;
     ///
     /// struct Suggestion(&'static str);
     ///
-    /// Report::install_debug_hook::<Suggestion>(|val, ctx| {
+    /// Report::install_debug_hook::<Suggestion>(|val, _| {
     ///     Emit::Next(format!("Suggestion: {}", val.0))
     /// });
     ///
     /// let report =
     ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("O no, try again"));
-    /// assert!(format!("{report:?}").starts_with("Suggestion: O no, try again"));
+    ///
+    /// # let mut settings = Settings::new();
+    /// # settings.add_filter(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*", "Backtrace No. $1\n  [redacted]");
+    /// # settings.add_filter(r"backtrace with (\d+) frames \((\d+)\)", "backtrace with [n] frames ($2)");
+    /// # let _guard = settings.bind_to_scope();
+    ///
+    /// assert_debug_snapshot!(report, @"");
     /// ```
     #[cfg(feature = "hooks")]
     pub fn install_debug_hook<T: Send + Sync + 'static>(
@@ -89,17 +94,25 @@ impl Report<()> {
     ///     fmt::{self, Call, Emit},
     ///     report, Report,
     /// };
+    /// # use insta::Settings;
+    /// use insta::assert_debug_snapshot;
     ///
     /// struct Suggestion(&'static str);
     ///
     /// // This will remove all formatting for `Backtrace` and `SpanTrace`!
     /// // The example after this once calls `builtin()`, which makes sure that we always print
     /// // `Backtrace` and `SpanTrace`.
-    /// Report::install_debug_hook_fallback(|val, ctx| Call::Find(Emit::next("unknown")));
+    /// Report::install_debug_hook_fallback(|_, _| Call::Find(Emit::next("unknown")));
     ///
     /// let report =
     ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("O no, try again"));
-    /// assert!(format!("{report:?}").starts_with("Suggestion: O no, try again"));
+    ///
+    /// # let mut settings = Settings::new();
+    /// # settings.add_filter(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*", "Backtrace No. $1\n  [redacted]");
+    /// # settings.add_filter(r"backtrace with (\d+) frames \((\d+)\)", "backtrace with [n] frames ($2)");
+    /// # let _guard = settings.bind_to_scope();
+    ///
+    /// assert_debug_snapshot!(report, @r###""###);
     ///
     /// Report::install_debug_hook_fallback(|val, ctx| {
     ///     // first run all builtin hooks to make sure that we print backtrace and spantrace
@@ -111,7 +124,8 @@ impl Report<()> {
     ///
     /// let report =
     ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("O no, try again"));
-    /// assert!(format!("{report:?}").starts_with("Suggestion: O no, try again"));
+    ///
+    /// assert_debug_snapshot!(report, @r###""###)
     /// ```
     pub fn install_debug_hook_fallback(
         hook: impl for<'a> Fn(&Frame, HookContext<'a, Frame>) -> Call<'a, Frame> + Send + Sync + 'static,
@@ -146,7 +160,8 @@ impl Report<()> {
     ///
     /// # Errors
     ///
-    /// - Returns an error if a debug hook was already set
+    /// No longer returns an error since version `0.2`, the return value has been preserved for
+    /// compatibility.
     ///
     /// # Example
     ///
@@ -165,12 +180,14 @@ impl Report<()> {
     /// ```
     #[deprecated = "use Report::install_hook() instead"]
     #[cfg(feature = "hooks")]
-    pub fn set_debug_hook<H>(hook: H)
+    pub fn set_debug_hook<H>(hook: H) -> Result<(), HookAlreadySet>
     where
         H: Fn(&Self, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static,
     {
         let mut write = DEBUG_HOOK.write().expect("should not poisoned");
         *write = Some(Box::new(hook));
+
+        Ok(())
     }
 
     /// Returns the hook that was previously set by [`set_debug_hook`], if any.
@@ -193,6 +210,11 @@ impl Report<()> {
     ///
     /// [`Display`]: fmt::Display
     ///
+    /// # Errors
+    ///
+    /// No longer returns an error since version `0.2`, the return value has been preserved for
+    /// compatibility.
+    ///
     /// # Example
     ///
     /// ```
@@ -210,12 +232,14 @@ impl Report<()> {
     /// ```
     #[deprecated]
     #[cfg(feature = "hooks")]
-    pub fn set_display_hook<H>(hook: H)
+    pub fn set_display_hook<H>(hook: H) -> Result<(), HookAlreadySet>
     where
         H: Fn(&Self, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static,
     {
         let mut write = DISPLAY_HOOK.write().expect("should not poisoned");
         *write = Some(Box::new(hook));
+
+        Ok(())
     }
 
     /// Returns the hook that was previously set by [`set_display_hook`], if any.

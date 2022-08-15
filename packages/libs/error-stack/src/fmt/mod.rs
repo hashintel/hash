@@ -49,41 +49,46 @@
 //! ```rust
 //! use std::io::{Error, ErrorKind};
 //! use insta::assert_snapshot;
+//! # use insta::Settings;
 //! use error_stack::{
-//!     fmt::Emit,
+//!     fmt::{Emit, Snippet},
 //!     Report
 //! };
-//! # use error_stack::fmt::Call;
-//! use error_stack::fmt::HookContext;
-//!
-//! # Report::install_debug_hook_fallback(|_, ctx| Call::Miss(ctx));
 //!
 //! // this will never be called, because the a hook after this one has already "taken ownership" of `u64`
-//! Report::install_debug_hook(|_: &u64| Emit::next("will never be called"));
+//! Report::install_debug_hook::<u64>(|_, _| Emit::next("will never be called"));
 //!
-//!  // `HookContext` always has a type parameter, which needs to be the same as the type of the
-//!  // value, we use `HookContext` here as storage, to store values specific to this hook.
-//!  // Here we make use of the auto-incrementing feature.
-//! Report::install_debug_hook(|_: &u32, ctx: &mut HookContext<u32>| Emit::next(format!("u32 value {}", ctx.increment())));
+//! // `HookContext` always has a type parameter, which needs to be the same as the type of the
+//! // value, we use `HookContext` here as storage, to store values specific to this hook.
+//! // Here we make use of the auto-incrementing feature.
+//! Report::install_debug_hook::<u32>(|_, ctx| Emit::next(format!("u32 value {}", ctx.increment())));
 //!
-//!  // we do not need to make use of the context, to either store a value for the duration of the
-//!  // rendering, or to render additional text, which is why we omit the parameter.
-//! Report::install_debug_hook(|val: &u64| Emit::next(format!("u64 value ({val})")));
+//! // we do not need to make use of the context, to either store a value for the duration of the
+//! // rendering, or to render additional text, which is why we omit the parameter.
+//! Report::install_debug_hook::<u64>(|val, _| Emit::next(format!("u64 value ({val})")));
 //!
-//! Report::install_debug_hook(|_: &u16, ctx: &mut HookContext<u16>| {
+//! Report::install_debug_hook::<u16>(|_, ctx| {
 //!     // we set a value, which will be removed on non-alternate views
 //!     // and is going to be appended to the actual return value.
-//!     ctx.set_text("Look! I was rendered from a `u16`");
+//!     ctx.add_snippet(Snippet::regular("Look! I was rendered from a `u16`"));
 //!     Emit::next("For more information, look down below")
 //!  });
 //!
-//!  // you can use arbitrary values as arguments, just make sure that you won't repeat them.
-//!  // here we use [`Emit::defer`], this means that this value will be put at the end of the group.
-//! Report::install_debug_hook(|val: &String| Emit::defer(val));
+//! // you can use arbitrary values as arguments, just make sure that you won't repeat them.
+//! // here we use [`Emit::defer`], this means that this value will be put at the end of the group.
+//! Report::install_debug_hook::<String>(|val, _| Emit::defer(val));
 //!
+//! let report = Report::new(Error::from(ErrorKind::InvalidInput))
+//!     .attach(2u64)
+//!     .attach("This is going to be at the end".to_owned())
+//!     .attach(3u32)
+//!     .attach(3u32)
+//!     .attach(4u16);
 //!
-//! let report = Report::new(Error::from(ErrorKind::InvalidInput)).attach(2u64).attach("This is
-//! going to be at the end".to_owned()).attach(3u32).attach(3u32).attach(4u16);
+//! # let mut settings = Settings::new();
+//! # settings.add_filter(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*", "Backtrace No. $1\n  [redacted]");
+//! # settings.add_filter(r"backtrace with (\d+) frames \((\d+)\)", "backtrace with [n] frames ($2)");
+//! # let _guard = settings.bind_to_scope();
 //!
 //! assert_snapshot!(format!("{report:?}"), @r###"For more information, look down below
 //! │ src/fmt/mod.rs:38:155
@@ -170,17 +175,15 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// ```rust
 /// use std::io::{Error, ErrorKind};
 /// use insta::assert_debug_snapshot;
+/// # use insta::Settings;
 ///
 /// use error_stack::{
-///     fmt::{Emit, HookContext},
-///     Report, Frame
+///     fmt::Emit,
+///     Report
 /// };
-/// # use error_stack::fmt::Call;
 ///
-/// # Report::install_debug_hook_fallback(|_, ctx| Call::Miss(ctx));
-///
-/// Report::install_debug_hook(|val: &u64| Emit::next(format!("u64: {val}")));
-/// Report::install_debug_hook(|val: &u32| Emit::defer(format!("u32: {val}")));
+/// Report::install_debug_hook::<u64>(|val, _| Emit::next(format!("u64: {val}")));
+/// Report::install_debug_hook::<u32>(|val, _| Emit::defer(format!("u32: {val}")));
 ///
 /// let report = Report::new(Error::from(ErrorKind::InvalidInput))
 ///     .attach(1u64)
@@ -190,6 +193,11 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 ///     .attach(5u32)
 ///     .attach(6u64)
 ///     .attach(7u64);
+///
+/// # let mut settings = Settings::new();
+/// # settings.add_filter(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*", "Backtrace No. $1\n  [redacted]");
+/// # settings.add_filter(r"backtrace with (\d+) frames \((\d+)\)", "backtrace with [n] frames ($2)");
+/// # let _guard = settings.bind_to_scope();
 ///
 /// assert_debug_snapshot!(report, @r###"u64: 7
 /// │ src/fmt/mod.rs:26:6
