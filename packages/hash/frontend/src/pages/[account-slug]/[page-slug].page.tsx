@@ -5,6 +5,7 @@ import {
   fetchBlock,
 } from "@hashintel/hash-shared/blocks";
 import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
+import { isSafariBrowser } from "@hashintel/hash-shared/util";
 import { Box, Collapse, alpha } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
@@ -175,10 +176,13 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
 
   const { title, icon } = data.page.properties;
 
+  const isSafari = isSafariBrowser();
+  const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
+
   return (
     <>
       <Head>
-        <title>{title}</title>
+        <title>{pageTitle}</title>
         {icon ? (
           <link
             rel="icon"
