@@ -2,38 +2,10 @@
 
 ## Run the Graph
 
-The easiest way to run the Graph API is to use docker through `cargo make`:
+For running the Graph a postgres database needs to run. For this, see the [corresponding Readme](../README.md). Then run:
 
 ```shell
-cargo make build-docker --profile production
-cargo make graph-up
-```
-
-or by using `yarn`
-
-```shell
-DOCKER_BUILDKIT=1 yarn external-services build graph
-yarn external-services up --detach graph
-```
-
-Note, that building the docker image requires `docker-buildkit`, which can be enabled by setting `DOCKER_BUILDKIT=1` as shown above. To enable it by default please refer to [their documentation](https://docs.docker.com/develop/develop-images/build_enhancements/#to-enable-buildkit-builds).
-
-The container can be stopped by calling
-
-```shell
-cargo make graph-down
-```
-
-or
-
-```shell
-yarn external-services down
-```
-
-To completely remove the image again, run
-
-```shell
-yarn external-services rm
+cargo run
 ```
 
 ## Building

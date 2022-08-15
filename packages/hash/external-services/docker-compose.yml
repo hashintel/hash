@@ -40,11 +40,18 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
-    env_file:
-      - ../../../.env
-      - ../../../.env.local
     environment:
-      - PGDATA=/data/pgdata
+      PGDATA: /data/pgdata
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_HOST: "${POSTGRES_HOST}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_PORT: "${POSTGRES_PORT}"
+      HASH_KRATOS_PG_USER: "${HASH_KRATOS_PG_USER}"
+      HASH_KRATOS_PG_PASSWORD: "${HASH_KRATOS_PG_PASSWORD}"
+      HASH_KRATOS_PG_DATABASE: "${HASH_KRATOS_PG_DATABASE}"
+      HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
+      HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DATABASE}"
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
@@ -53,8 +60,8 @@ services:
       - ./postgres/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready --username ${POSTGRES_USER}"]
-      interval: 1s
-      timeout: 1s
+      interval: 2s
+      timeout: 2s
       retries: 5
     command: -c 'config_file=/etc/postgresql/postgresql.conf'
 
@@ -68,11 +75,14 @@ services:
       context: ../../graph
       args:
         PROFILE: dev
-    env_file:
-      - ../../../.env
-      - ../../../.env.local
     environment:
-      POSTGRES_HOST: "postgres"
+      HASH_GRAPH_USER: "${HASH_GRAPH_PG_USER}"
+      HASH_GRAPH_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
+      HASH_GRAPH_HOST: "postgres"
+      HASH_GRAPH_API_PORT: "5432"
+      HASH_GRAPH_DATABASE: "${HASH_GRAPH_PG_DATABASE}"
+      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
+      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,debug,hyper=warn}"
     ports:
       - "4000:4000"
     healthcheck:
@@ -81,8 +91,8 @@ services:
           "CMD-SHELL",
           "wget --no-verbose --tries=1 --spider http://localhost:4000/api-doc/openapi.json || exit 1",
         ]
-      interval: 1s
-      timeout: 1s
+      interval: 2s
+      timeout: 2s
       retries: 5
   hash-dev-redis:
     deploy:

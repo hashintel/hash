@@ -1,13 +1,5 @@
 extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 
-[tasks.touch-environment]
-private = true
-command = "touch"
-args = [
-    "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/../../.env.local",
-    "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/.env.local",
-]
-
 [tasks.yarn]
 category = "Deploy"
 description = "Installs the required dependencies"
@@ -25,7 +17,7 @@ args = ["graph:recreate-db"]
 category = "Deploy"
 description = "Runs all migrations"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/migrations"
-env_files = ["../.env", "../.env.local"]
+env_files = ["../.env"]
 command = "yarn"
 args = ["graph:migrate", "up"]
 
@@ -35,7 +27,6 @@ description = "Spins up the deployment environment"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment"
 command = "docker-compose"
 args = ["--env-file", "../.env", "up", "--wait"]
-dependencies = ["touch-environment"]
 
 [tasks.deployment-down]
 category = "Deploy"
@@ -51,7 +42,6 @@ cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/../../"
 env = { DOCKER_BUILDKIT = 1 }
 command = "yarn"
 args = ["external-services", "build", "graph"]
-dependencies = ["touch-environment"]
 
 [tasks.graph-up]
 category = "Deploy"

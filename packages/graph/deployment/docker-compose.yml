@@ -9,11 +9,15 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
-    env_file:
-      - ../.env
-      - ../.env.local
     environment:
-      - PGDATA=/var/lib/postgresql/data/pgdata
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_HOST: "${POSTGRES_HOST}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_PORT: "${POSTGRES_PORT}"
+      HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
+      HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DATABASE}"
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
@@ -29,6 +33,6 @@ services:
     read_only: true
     healthcheck:
       test: ["CMD-SHELL", "pg_isready --username ${POSTGRES_USER}"]
-      interval: 1s
+      interval: 2s
       timeout: 1s
       retries: 5
