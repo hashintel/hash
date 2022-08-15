@@ -400,12 +400,14 @@ class __Page extends Entity {
       });
     }
 
-    await this.partialPropertiesUpdate(client, {
-      properties: {
-        index: newIndex,
-      },
-      updatedByAccountId: this.accountId,
-    });
+    if (this.properties.index !== newIndex) {
+      await this.partialPropertiesUpdate(client, {
+        properties: {
+          index: newIndex,
+        },
+        updatedByAccountId: this.accountId,
+      });
+    }
   }
 
   async getBlocks(client: DbClient): Promise<Block[]> {
