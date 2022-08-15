@@ -155,7 +155,7 @@ pub(crate) use hook::Hooks;
 #[cfg(feature = "hooks")]
 pub use hook::{builtin, Call};
 #[cfg(not(feature = "hooks"))]
-pub(crate) use hook::{Builtin, Call};
+pub(crate) use hook::{builtin, Call};
 #[cfg(all(nightly, feature = "experimental"))]
 pub use nightly::DebugDiagnostic;
 #[cfg(feature = "glyph")]
@@ -790,7 +790,7 @@ fn debug_attachments(
 
                 #[cfg(not(feature = "hooks"))]
                 {
-                    builtin(frame, ctx.cast())
+                    builtin(frame, ctx.cast()).consume()
                 }
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {

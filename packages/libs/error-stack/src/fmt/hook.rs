@@ -1,17 +1,10 @@
-#[cfg(any(
-    feature = "hooks",
-    feature = "spantrace",
-    all(nightly, feature = "std"),
-    feature = "experimental"
-))]
-use alloc::borrow::ToOwned;
+use alloc::vec::Vec;
 #[cfg(any(
     feature = "hooks",
     feature = "spantrace",
     all(nightly, feature = "std")
 ))]
 use alloc::{boxed::Box, collections::BTreeMap};
-use alloc::{string::String, vec::Vec};
 #[cfg(any(
     feature = "hooks",
     feature = "spantrace",
@@ -22,9 +15,7 @@ use core::marker::PhantomData;
 
 pub use default::builtin;
 
-#[cfg(feature = "hooks")]
-use crate::fmt::Frame;
-use crate::fmt::{Emit, Snippet};
+use crate::fmt::{Emit, Frame, Snippet};
 
 #[derive(Default)]
 pub struct HookContextImpl {
@@ -95,8 +86,6 @@ impl HookContextImpl {
 /// use std::io::ErrorKind;
 ///
 /// use error_stack::{fmt::{Emit, Snippet}, Report};
-/// use insta::assert_snapshot;
-/// # use insta::Settings;
 ///
 /// Report::install_debug_hook::<u64>(|val, ctx| {
 ///     ctx.add_snippet(Snippet::regular("u64 has been encountered"));
@@ -107,23 +96,27 @@ impl HookContextImpl {
 ///     .attach(2u64)
 ///     .attach(3u64);
 ///
-/// # let mut settings = Settings::new();
-/// # settings.add_filter(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*", "Backtrace No. $1\n  [redacted]");
-/// # settings.add_filter(r"backtrace with (\d+) frames \((\d+)\)", "backtrace with [n] frames ($2)");
-/// # let _guard = settings.bind_to_scope();
-///
-/// assert_snapshot!(format!("{report:#?}"), @r###"invalid input parameter
-/// ├╴src/fmt/hook.rs:17:14
-/// ├╴2
-/// ├╴3
-/// ╰╴1 additional attachment
-///
-/// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-///
-/// u64 has been encountered
-///
-/// u64 has been encountered"###);
+/// # owo_colors::set_override(true);
+/// # fn render(value: String) -> String {
+/// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+/// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+/// #
+/// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+/// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+/// #
+/// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+/// # }
+/// #
+/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__hookcontext_emit.snap")].assert_eq(&render(format!("{report:#?}")));
+/// #
+/// # stringify!(
+/// println!("{report:#?}");
+/// # );
 /// ```
+///
+/// <pre>
+#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__hookcontext_emit.snap"))]
+/// </pre>
 ///
 /// ## Storage
 ///
