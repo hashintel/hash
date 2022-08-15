@@ -5,7 +5,7 @@
 The easiest way to run the Graph API is to use docker. Either invoke docker directly:
 
 ```shell
-docker build --tag graph --file ../deployment/graph/Dockerfile .
+DOCKER_BUILDKIT=1 docker build --tag graph --file ../deployment/graph/Dockerfile .
 docker run --rm --init --network host --name graph --env RUST_LOG=trace --detach graph
 ```
 
@@ -15,6 +15,8 @@ or by using `cargo make`:
 cargo make build-docker --profile production
 cargo make docker-up
 ```
+
+Note, that building the docker image requires `docker-buildkit`, which can be enabled by setting `DOCKER_BUILDKIT=1` as shown above. To enable it by default please refer to [their documentation](https://docs.docker.com/develop/develop-images/build_enhancements/#to-enable-buildkit-builds).
 
 The container can be stopped by calling
 

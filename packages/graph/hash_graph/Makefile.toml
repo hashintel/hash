@@ -56,6 +56,7 @@ category = "Deploy"
 description = "Builds a docker image of the graph"
 command = "docker"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}"
+env = { DOCKER_BUILDKIT = 1 }
 args = ["build", "--tag", "graph", "--file", "../deployment/graph/Dockerfile", "--build-arg", "PROFILE=${CARGO_MAKE_CARGO_PROFILE}", "."]
 
 [tasks.docker-up]
