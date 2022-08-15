@@ -93,22 +93,18 @@ const Page: NextPageWithLayout = () => {
     };
   }, [entity]);
 
-  const getCrumbs = () => {
-    if (!entity) return [];
-
-    return [
-      {
-        title: entity.entityType.properties.title,
-        href: entity.entityType.properties.$id,
-        id: entityId,
-      },
-      {
-        title: guessEntityName(entity),
-        href: `/${accountId}/entities/${entityId}`,
-        id: entityId,
-      },
-    ];
-  };
+  const crumbs = !entity ? [] : [
+    {
+      title: entity.entityType.properties.title,
+      href: entity.entityType.properties.$id,
+      id: entityId,
+    },
+    {
+      title: guessEntityName(entity),
+      href: `/${accountId}/entities/${entityId}`,
+      id: entityId,
+    },
+  ];
 
   return (
     <>
