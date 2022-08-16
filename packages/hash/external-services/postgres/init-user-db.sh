@@ -2,7 +2,6 @@
 set -e
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
-  REVOKE CREATE ON schema public FROM public;
 
   CREATE USER $HASH_KRATOS_PG_USER WITH PASSWORD '$HASH_KRATOS_PG_PASSWORD';
 
@@ -24,6 +23,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
 EOSQL
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$HASH_KRATOS_PG_DATABASE" <<-EOSQL
+
   REVOKE CREATE ON schema public FROM public;
 
   ALTER DEFAULT PRIVILEGES
@@ -35,6 +35,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$HASH_KRATOS_PG_DA
 EOSQL
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$HASH_GRAPH_PG_DATABASE" <<-EOSQL
+
   REVOKE CREATE ON schema public FROM public;
 
   ALTER DEFAULT PRIVILEGES

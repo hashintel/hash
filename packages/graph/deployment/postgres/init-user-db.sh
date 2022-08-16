@@ -14,6 +14,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
 EOSQL
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$HASH_GRAPH_PG_DATABASE" <<-EOSQL
+
   REVOKE CREATE ON schema public FROM public;
 
   ALTER DEFAULT PRIVILEGES
