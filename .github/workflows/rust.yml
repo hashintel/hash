@@ -208,7 +208,7 @@ jobs:
 
       - name: Run tests
         working-directory: ${{ matrix.directory }}
-        run: cargo +${{ matrix.toolchain }} make test --no-fail-fast
+        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
 
       - name: Login
         run: |

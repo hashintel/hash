@@ -131,7 +131,8 @@ def output_matrix(name, crates, **kwargs):
         **kwargs,
         exclude=[dict(directory=str(elem[0]), toolchain=elem[1]) for elem in excluded_toolchain_combinations],
     )
-    matrix = {k: v for k, v in matrix.items() if v != []}
+    if len(matrix["directory"]) == 0:
+        matrix = {}
 
     print(f"::set-output name={name}::{json.dumps(matrix)}")
     print(f"Job matrix for {name}: {json.dumps(matrix, indent=4)}")
@@ -144,7 +145,7 @@ def main():
 
     output_matrix("lint", changed_crates)
     output_matrix("test", changed_crates, profile=["development", "production"])
-    output_matrix("publish", filter_crates_by_changed_version(diffs, filter_for_publishable_crates(changed_crates)))
+    output_matrix("publish", filter_crates_by_changed_version(diffs, filter_for_publishable_crates(changed_crates)), profile=["release"])
 
 
 if __name__ == "__main__":
