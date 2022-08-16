@@ -156,7 +156,6 @@
 //! # #[derive(Debug, PartialEq)]
 //! struct Suggestion(&'static str);
 //!
-//! # #[cfg(all(not(miri), feature = "std"))] {
 //! fn parse_config(path: impl AsRef<Path>) -> Result<Config, Report<ParseConfigError>> {
 //!     let path = path.as_ref();
 //!
@@ -176,7 +175,19 @@
 //! # #[cfg(nightly)]
 //! # assert_eq!(report.request_ref::<String>().next().unwrap(), "Could not read file \"test.txt\"");
 //! # assert!(report.contains::<ParseConfigError>());
+//! #
+//! # owo_colors::set_override(true);
+//! # fn render(value: String) -> String {
+//! #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+//! #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+//! #
+//! #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+//! #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+//! #
+//! #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 //! # }
+//! #
+//! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/lib__suggestion.snap")].assert_eq(&render(format!("{report:?}")));
 //! ```
 //!
 //! As seen above, there are ways on attaching more information to the [`Report`]: [`attach`] and
@@ -184,16 +195,9 @@
 //! bound on the attachment: [`Display`] and [`Debug`]. Depending on the function used, printing the
 //! [`Report`] will also use the [`Display`] and [`Debug`] traits to describe the attachment:
 //!
-//! ```text
-//! Could not parse configuration file
-//!              at main.rs:9:10
-//!       - Could not read file "config.json"
-//!       - 1 additional opaque attachment
-//!
-//! Caused by:
-//!    0: No such file or directory (os error 2)
-//!              at main.rs:7:10
-//! ```
+//! <pre>
+#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/lib__suggestion.snap"))]
+//! </pre>
 //!
 //! The `Suggestion` passed to [`attach`] shown as an opaque attachment. The message passed to
 //! [`attach_printable`] however is printed next to the [`Context`] where it was attached to.

@@ -759,11 +759,11 @@ impl Opaque {
         match self.0 {
             0 => None,
             1 => Some(Line::new().push(Instruction::Value {
-                value: "1 additional attachment".to_owned(),
+                value: "1 additional opaque attachment".to_owned(),
                 style: Style::new(),
             })),
             n => Some(Line::new().push(Instruction::Value {
-                value: format!("{n} additional attachments"),
+                value: format!("{n} additional opaque attachments"),
                 style: Style::new(),
             })),
         }
