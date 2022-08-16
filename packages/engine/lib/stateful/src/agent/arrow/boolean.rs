@@ -11,7 +11,7 @@ impl BooleanColumn {
         let slice = array.values().as_slice().0;
 
         Self {
-            data: slice.as_ptr() as *mut u8,
+            data: slice.as_ptr() as *mut _,
         }
     }
 
@@ -42,7 +42,7 @@ impl BooleanColumn {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(miri)))]
 mod tests {
     use arrow2::array::BooleanArray;
     use rand::{prelude::SliceRandom, Rng};
