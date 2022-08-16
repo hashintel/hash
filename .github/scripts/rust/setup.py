@@ -124,6 +124,7 @@ def output_toolchains_by_crate(crates):
 
                 toolchains[str(crate)] = defined_toolchains + [additional_toolchain]
 
+    toolchains = json.dumps(toolchains)
     print(f"::set-output name=toolchains::{toolchains}")
     print(f"toolchains = {toolchains}")
 

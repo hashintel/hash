@@ -57,7 +57,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: print
-        run: echo ${{ fromJSON(needs.setup.outputs) }}
+        run: |
+          echo ${{ fromJSON(needs.setup.outputs) }}
           echo ${{ fromJSON(needs.setup.outputs.lint) }}
           echo ${{ fromJSON(needs.setup.outputs.toolchains) }}
 
