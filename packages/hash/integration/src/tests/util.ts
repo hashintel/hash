@@ -29,8 +29,8 @@ import {
   UpdatePageContentsMutationVariables,
   DeprecatedCreateEntityTypeMutation,
   DeprecatedCreateEntityTypeMutationVariables,
-  UpdateEntityTypeMutation,
-  UpdateEntityTypeMutationVariables,
+  DeprecatedUpdateEntityTypeMutation,
+  DeprecatedUpdateEntityTypeMutationVariables,
   CreateOrgEmailInvitationMutationVariables,
   CreateOrgEmailInvitationMutation,
   CreateUserWithOrgEmailInvitationMutationVariables,
@@ -66,7 +66,7 @@ import {
   getUnknownEntity,
   getEntities,
   updateEntity,
-  updateEntityType,
+  deprecatedUpdateEntityType,
   getEntityAndLinks,
 } from "../graphql/queries/entity.queries";
 import {
@@ -284,13 +284,13 @@ export class ApiClient {
     ).deprecatedCreateEntityType;
   }
 
-  async updateEntityType(vars: UpdateEntityTypeMutationVariables) {
+  async updateEntityType(vars: DeprecatedUpdateEntityTypeMutationVariables) {
     return (
       await this.client.request<
-        UpdateEntityTypeMutation,
-        UpdateEntityTypeMutationVariables
-      >(updateEntityType, vars)
-    ).updateEntityType;
+        DeprecatedUpdateEntityTypeMutation,
+        DeprecatedUpdateEntityTypeMutationVariables
+      >(deprecatedUpdateEntityType, vars)
+    ).deprecatedUpdateEntityType;
   }
 
   getPage = async (vars: GetPageQueryVariables) =>

@@ -59,7 +59,7 @@ import { createFileFromLink } from "./file/createFileFromLink";
 import { loggedIn } from "./middlewares/loggedIn";
 import { loggedInAndSignedUp } from "./middlewares/loggedInAndSignedUp";
 import { canAccessAccount } from "./middlewares/canAccessAccount";
-import { updateEntityType } from "./entityType/updateEntityType";
+import { deprecatedUpdateEntityType } from "./entityType/updateEntityType";
 import { deleteLinkedAggregation } from "./linkedAggregation/deleteLinkedAggregation";
 import { updateLinkedAggregationOperation } from "./linkedAggregation/updateLinkedAggregationOperation";
 import { createLinkedAggregation } from "./linkedAggregation/createLinkedAggregation";
@@ -145,7 +145,7 @@ export const resolvers = {
     createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),
     transferEntity: loggedInAndSignedUp(transferEntity),
     updateEntity: loggedInAndSignedUp(updateEntity),
-    updateEntityType: loggedInAndSignedUp(updateEntityType),
+    deprecatedUpdateEntityType: loggedInAndSignedUp(deprecatedUpdateEntityType),
     updatePage: loggedInAndSignedUp(updatePage),
     updatePageContents: loggedInAndSignedUp(updatePageContents),
     joinOrg: loggedInAndSignedUp(joinOrg),

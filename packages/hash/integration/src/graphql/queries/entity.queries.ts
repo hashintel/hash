@@ -89,9 +89,9 @@ export const deprecatedCreateEntityType = gql`
   }
 `;
 
-export const updateEntityType = gql`
-  mutation updateEntityType($entityId: ID!, $schema: JSONObject!) {
-    updateEntityType(entityId: $entityId, schema: $schema) {
+export const deprecatedUpdateEntityType = gql`
+  mutation deprecatedUpdateEntityType($entityId: ID!, $schema: JSONObject!) {
+    deprecatedUpdateEntityType(entityId: $entityId, schema: $schema) {
       entityId
       entityTypeName
       properties
