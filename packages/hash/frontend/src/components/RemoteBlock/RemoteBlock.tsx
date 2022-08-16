@@ -59,21 +59,14 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
     ...graphProperties,
   });
 
-  const hookIdRef = useRef<string | null>(null);
-
   useHookEmbedderService(wrapperRef, {
     callbacks: {
       async hook({ data }) {
         console.log(data);
-        if (
-          data?.type === "text" &&
-          data.path === "$.text" &&
-          (!hookIdRef.current || data.hookId === hookIdRef.current)
-        ) {
+        if (data?.type === "text" && data.path === "$.text") {
           editableRef?.(data.node);
 
           const hookId = data.hookId ?? uuid();
-          hookIdRef.current = hookId;
           return { data: { hookId } };
         }
 

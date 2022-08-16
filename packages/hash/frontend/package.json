@@ -19,7 +19,7 @@
     "@apollo/client": "3.6.9",
     "@blockprotocol/core": "0.0.8",
     "@blockprotocol/graph": "0.0.12",
-    "@blockprotocol/hook": "0.0.1-canary.2",
+    "@blockprotocol/hook": "0.0.1-canary.5",
     "@emotion/cache": "11.7.1",
     "@emotion/react": "11.9.0",
     "@emotion/server": "11.4.0",
