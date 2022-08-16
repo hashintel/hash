@@ -6,7 +6,11 @@ import {
   LinkedAggregation as BpLinkedAggregation,
 } from "@blockprotocol/graph";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
+import {
+  BlockEntity,
+  isTextContainingEntityProperties,
+  isTextProperties,
+} from "@hashintel/hash-shared/entity";
 import {
   useCallback,
   useLayoutEffect,
@@ -56,6 +60,19 @@ type BlockLoaderProps = {
   linkedAggregations: BlockEntity["properties"]["entity"]["linkedAggregations"];
   onBlockLoaded: () => void;
   // shouldSandbox?: boolean;
+};
+
+const removeTextEntities = (properties: {}) => {
+  // @see https://app.asana.com/0/1201095311341924/1202694273052398/f
+  if (isTextProperties(properties)) {
+    return { text: "" };
+  }
+
+  if (isTextContainingEntityProperties(properties)) {
+    return { ...properties, text: "" };
+  }
+
+  return properties;
 };
 
 // const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
@@ -142,7 +159,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       accountId,
       entityId: entityId || "entityId-not-yet-set", // @todo ensure blocks always get sent an entityId
       entityTypeId,
-      properties: entityProperties,
+      properties: removeTextEntities(entityProperties),
     });
 
     return {

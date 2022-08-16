@@ -7,7 +7,16 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 
-export const useAccountPages = (accountId: string) => {
+export type AccountPagesInfo = {
+  data: {
+    title: string;
+    entityId: string;
+    parentPageEntityId?: string | null;
+  }[];
+  loading: boolean;
+};
+
+export const useAccountPages = (accountId: string): AccountPagesInfo => {
   const { data, loading } = useQuery<
     GetAccountPagesTreeQuery,
     GetAccountPagesTreeQueryVariables
