@@ -4,7 +4,11 @@ import { Session } from "@ory/client";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { KratosUserIdentity, publicKratosSdk } from "./ory-kratos";
+import {
+  adminKratosSdk,
+  KratosUserIdentity,
+  publicKratosSdk,
+} from "./ory-kratos";
 import { UserModel } from "../model";
 
 declare global {
@@ -25,31 +29,47 @@ const kratosAfterRegistrationHookHandler =
   (params: {
     graphApi: GraphApi;
   }): RequestHandler<{}, {}, { identity: KratosUserIdentity }> =>
-  (req, res) => {
+  (req, res, next) => {
     const { graphApi } = params;
+
+    const {
+      body: {
+        identity: { id: kratosIdentityId, traits },
+      },
+    } = req;
+
+    // Authenticate the request originates from the kratos server
+    if (!requestHeaderContainsValidKratosApiKey(req)) {
+      res
+        .status(401)
+        .send(
+          'Please provide the kratos API key using a "KRATOS_API_KEY" request header',
+        )
+        .end();
+
+      return;
+    }
+
     void (async () => {
-      const {
-        body: { identity },
-      } = req;
+      try {
+        const { emails } = traits;
 
-      if (!requestHeaderContainsValidKratosApiKey(req)) {
-        res
-          .status(401)
-          .send(
-            'Please provide the kratos API key using a "KRATOS_API_KEY" request header',
-          )
-          .end();
+        await UserModel.createUser(graphApi, {
+          emails,
+          kratosIdentityId,
+        });
+
+        res.status(200).end();
+      } catch (error) {
+        /**
+         * @todo: instead of manually cleaning up after the registration flow,
+         * use a "pre-persist" after registration kratos hook when the following
+         * PR is merged: https://github.com/ory/kratos/pull/2343
+         */
+        await adminKratosSdk.adminDeleteIdentity(kratosIdentityId);
+
+        next(error);
       }
-
-      const { id: kratosIdentityId, traits } = identity;
-      const { emails } = traits;
-
-      await UserModel.createUser(graphApi, {
-        emails,
-        kratosIdentityId,
-      });
-
-      res.status(200).end();
     })();
   };
 
