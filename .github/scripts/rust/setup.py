@@ -110,9 +110,7 @@ def output_matrix(name, crates, **kwargs):
             available_toolchains.append(toml.loads(toolchain_toml.read())["toolchain"]["channel"])
             for additional_toolchain in additional_toolchains:
                 available_toolchains.append(additional_toolchain)
-    available_toolchains = list(set(available_toolchains))
 
-    available_toolchain_combinations = set(itertools.product(crates, available_toolchains))
 
     used_toolchain_combinations = []
     for crate in crates:
@@ -124,12 +122,16 @@ def output_matrix(name, crates, **kwargs):
                     toolchains += additional_toolchains
         used_toolchain_combinations.append(itertools.product([crate], toolchains, repeat=1))
 
+    available_toolchain_combinations = itertools.product(crates, available_toolchains)
+    excluded_toolchain_combinations = set(available_toolchain_combinations).difference(*used_toolchain_combinations)
+
     matrix = dict(
         directory=[str(crate) for crate in crates],
         toolchain=available_toolchains,
         **kwargs,
-        exclude=[dict(directory = str(elem[0]), toolchain=elem[1]) for elem in available_toolchain_combinations.difference(*used_toolchain_combinations)],
+        exclude=[dict(directory=str(elem[0]), toolchain=elem[1]) for elem in excluded_toolchain_combinations],
     )
+    matrix = {k: v for k, v in matrix.items() if v != []}
 
     print(f"::set-output name={name}::{json.dumps(matrix)}")
     print(f"Job matrix for {name}: {json.dumps(matrix, indent=4)}")
