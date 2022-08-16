@@ -51,6 +51,8 @@ import { DataMapEditor } from "./data-map-editor";
 import { mapData, SchemaMap } from "./shared";
 import { useBlockContext } from "../../blocks/page/BlockContext";
 
+// @todo consolidate these properties, e.g. take all entityX, linkX into a single childEntity prop
+// @see https://app.asana.com/0/1200211978612931/1202807842439190/f
 type BlockLoaderProps = {
   accountId: string;
   blockEntityId: string;
