@@ -35,14 +35,14 @@ category = "Deploy"
 description = "Spins up the deployment environment"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment"
 command = "docker"
-args = ["compose", "--env-file", "../.env", "up", "--wait"]
+args = ["compose", "--env-file", "../.env", "up", "--wait", "${@}"]
 
 [tasks.deployment-down]
 category = "Deploy"
 description = "Tears down the deployment environment"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment"
 command = "docker"
-args = ["compose", "--env-file", "../.env", "down"]
+args = ["compose", "--env-file", "../.env", "down", "${@}"]
 
 [tasks.build-docker]
 category = "Deploy"
@@ -50,7 +50,7 @@ description = "Spins up the Graph API as external service"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/../../"
 env = { DOCKER_BUILDKIT = 1 }
 command = "yarn"
-args = ["external-services", "build", "graph"]
+args = ["external-services", "build", "graph", "${@}"]
 dependencies = ["touch-environment"]
 
 [tasks.graph-up]
@@ -58,7 +58,7 @@ category = "Deploy"
 description = "Spins up the Graph API as external service"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/../../"
 command = "yarn"
-args = ["external-services", "up", "--wait", "graph"]
+args = ["external-services", "up", "--wait", "graph", "${@}"]
 dependencies = ["touch-environment"]
 
 [tasks.graph-down]
@@ -66,7 +66,7 @@ category = "Deploy"
 description = "Tears down up the Graph API"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/../../"
 command = "yarn"
-args = ["external-services", "down"]
+args = ["external-services", "down", "${@}"]
 
 [tasks.test-docker]
 run_task = { name = ["graph-up", "test-rest-api", "graph-down"] }
@@ -74,4 +74,4 @@ run_task = { name = ["graph-up", "test-rest-api", "graph-down"] }
 [tasks.test-rest-api]
 # This is a temporary solution until we have e2e tests in place
 command = "yarn"
-args = ["httpyac", "send", "--all", "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/hash_graph/tests/rest-test.http"]
+args = ["httpyac", "send", "--all", "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/hash_graph/tests/rest-test.http", "${@}"]
