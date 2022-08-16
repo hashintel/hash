@@ -60,7 +60,7 @@ jobs:
       fail-fast: false
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.lint) }}
-        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains[needs.setup.outputs.lint]) }}
+        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains[matrix.directory]) }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -109,13 +109,10 @@ jobs:
       fail-fast: false
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.test) }}
-        toolchain:
-          - stable
-          - ${{ needs.setup.outputs.nightly }}
+        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains[matrix.directory]) }}
         profile:
           - development
           - production
-        exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
     env:
       OUTPUT_DIRECTORY: test-results
       RUST_BACKTRACE: 1
@@ -197,8 +194,7 @@ jobs:
       fail-fast: false
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.publish) }}
-        toolchain:
-          - ${{ needs.setup.outputs.nightly }}
+        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains[matrix.directory]) }}
         profile:
           - release
     steps:
