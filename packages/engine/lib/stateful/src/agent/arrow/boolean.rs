@@ -60,7 +60,7 @@ mod tests {
         let boolean_array = BooleanArray::from(bools.clone());
         let any_array = boolean_array.arced();
         let boolean_array = any_array.as_any().downcast_ref::<BooleanArray>().unwrap();
-        let mut col = BooleanColumn::new_non_nullable(&boolean_array);
+        let mut col = BooleanColumn::new_non_nullable(boolean_array);
 
         let mut indices = (0..size).collect::<Vec<_>>();
         indices.shuffle(&mut rng);
@@ -85,7 +85,7 @@ mod tests {
         let boolean_array: BooleanArray = BooleanArray::from(bools.clone());
         let any_array = boolean_array.arced();
         let boolean_array = any_array.as_any().downcast_ref::<BooleanArray>().unwrap();
-        let mut col = BooleanColumn::new_non_nullable(&boolean_array);
+        let mut col = BooleanColumn::new_non_nullable(boolean_array);
 
         let mut indices = (0..size).collect::<Vec<_>>();
         indices.shuffle(&mut rng);

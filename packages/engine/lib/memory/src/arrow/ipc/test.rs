@@ -325,7 +325,7 @@ fn struct_list_roundtrip() {
 
     let array: Arc<dyn Array> = list_array.try_into_arrow().unwrap();
 
-    let record_batch = RecordBatch::new(schema.clone(), Chunk::new(vec![Arc::from(array)]));
+    let record_batch = RecordBatch::new(schema.clone(), Chunk::new(vec![array]));
 
     round_trip(schema, record_batch);
 }

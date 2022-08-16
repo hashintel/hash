@@ -410,7 +410,7 @@ pub mod tests {
         // pop the first element of the slice
         let mut node_meta = &node_meta[1..];
 
-        for child_data in node_data.child_data().as_ref() {
+        for child_data in node_data.child_data() {
             let (child_buffers, new_node_meta) =
                 get_buffer_counts_from_array_data(child_data, node_meta);
             node_meta = new_node_meta;
@@ -642,14 +642,11 @@ pub mod tests {
             &float64_array,
         ];
 
-        let dummy_data_arrays: Vec<ArrayRef> = dummy_data_arrays
+        let dummy_data_arrays = dummy_data_arrays
             .into_iter()
-            .map(|array| Arc::from(array.to_boxed()))
-            .collect();
+            .map(|array| Arc::from(array.to_boxed()));
 
-        for (arrow_array, column_meta) in
-            dummy_data_arrays.into_iter().zip(expected_col_info.iter())
-        {
+        for (arrow_array, column_meta) in dummy_data_arrays.zip(expected_col_info.iter()) {
             let (node_count, buffer_counts, node_mapping) =
                 get_col_hierarchy_from_arrow_array(&arrow_array, expected_node_info.as_slice());
             let buffer_count: usize = buffer_counts.iter().sum();
@@ -760,14 +757,11 @@ pub mod tests {
             &time32_second_array,
         ];
 
-        let dummy_data_arrays: Vec<Arc<dyn Array>> = dummy_data_arrays
+        let dummy_data_arrays = dummy_data_arrays
             .into_iter()
-            .map(|x| Arc::from(x.to_boxed()))
-            .collect();
+            .map(|x| Arc::from(x.to_boxed()));
 
-        for (arrow_array, column_meta) in
-            dummy_data_arrays.into_iter().zip(expected_col_info.iter())
-        {
+        for (arrow_array, column_meta) in dummy_data_arrays.zip(expected_col_info.iter()) {
             let (node_count, buffer_counts, node_mapping) =
                 get_col_hierarchy_from_arrow_array(&arrow_array, expected_node_info.as_slice());
             let buffer_count: usize = buffer_counts.iter().sum();
@@ -861,14 +855,11 @@ pub mod tests {
             &date64_array,
             &date64_array,
         ];
-        let dummy_data_arrays: Vec<Arc<dyn Array>> = dummy_data_arrays
+        let dummy_data_arrays = dummy_data_arrays
             .into_iter()
-            .map(|x| Arc::from(x.to_boxed()))
-            .collect();
+            .map(|x| Arc::from(x.to_boxed()));
 
-        for (arrow_array, column_meta) in
-            dummy_data_arrays.into_iter().zip(expected_col_info.iter())
-        {
+        for (arrow_array, column_meta) in dummy_data_arrays.zip(expected_col_info.iter()) {
             let (node_count, buffer_counts, node_mapping) =
                 get_col_hierarchy_from_arrow_array(&arrow_array, expected_node_info.as_slice());
             let buffer_count: usize = buffer_counts.iter().sum();
@@ -891,7 +882,7 @@ pub mod tests {
         .iter()
         .enumerate()
         .map(|(idx, time_unit)| {
-            let duration_type = D::Duration(time_unit.clone());
+            let duration_type = D::Duration(*time_unit);
             Field::new(&format!("c{}", idx), duration_type, false)
         })
         .collect();
@@ -972,14 +963,11 @@ pub mod tests {
             &duration_millisecond_array,
             &duration_second_array,
         ];
-        let dummy_data_arrays: Vec<Arc<dyn Array>> = dummy_data_arrays
+        let dummy_data_arrays = dummy_data_arrays
             .into_iter()
-            .map(|x| Arc::from(x.to_boxed()))
-            .collect();
+            .map(|x| Arc::from(x.to_boxed()));
 
-        for (arrow_array, column_meta) in
-            dummy_data_arrays.into_iter().zip(expected_col_info.iter())
-        {
+        for (arrow_array, column_meta) in dummy_data_arrays.zip(expected_col_info.iter()) {
             let (node_count, buffer_counts, node_mapping) =
                 get_col_hierarchy_from_arrow_array(&arrow_array, expected_node_info.as_slice());
             let buffer_count: usize = buffer_counts.iter().sum();
@@ -1001,7 +989,7 @@ pub mod tests {
             IntervalUnit::YearMonth,
             IntervalUnit::MonthDayNano,
         ] {
-            let interval_type = D::Interval(interval_unit.clone());
+            let interval_type = D::Interval(interval_unit);
             fields.push(Field::new(
                 &format!("c{}", fields.len()),
                 interval_type,
@@ -1075,16 +1063,12 @@ pub mod tests {
                 .collect::<Vec<_>>(),
         );
 
-        let dummy_data_arrays: Vec<&dyn Array> =
-            vec![&interval_day_time_array, &interval_year_month_array];
-        let dummy_data_arrays: Vec<Arc<dyn Array>> = dummy_data_arrays
+        let dummy_data_arrays = vec![&interval_day_time_array, &interval_year_month_array];
+        let dummy_data_arrays = dummy_data_arrays
             .into_iter()
-            .map(|x| Arc::from(x.to_boxed()))
-            .collect();
+            .map(|x| Arc::from(x.to_boxed()));
 
-        for (arrow_array, column_meta) in
-            dummy_data_arrays.into_iter().zip(expected_col_info.iter())
-        {
+        for (arrow_array, column_meta) in dummy_data_arrays.zip(expected_col_info.iter()) {
             let (node_count, buffer_counts, node_mapping) =
                 get_col_hierarchy_from_arrow_array(&arrow_array, expected_node_info.as_slice());
             let buffer_count: usize = buffer_counts.iter().sum();
@@ -1113,7 +1097,7 @@ pub mod tests {
             ] {
                 fields.push(Field::new(
                     &format!("c{}", fields.len()),
-                    D::Timestamp(time_unit.clone(), time_zone),
+                    D::Timestamp(time_unit, time_zone),
                     false,
                 ));
             }
@@ -1197,14 +1181,11 @@ pub mod tests {
             &timestamp_millisecond_array,
             &timestamp_second_array,
         ];
-        let dummy_data_arrays: Vec<Arc<dyn Array>> = dummy_data_arrays
+        let dummy_data_arrays = dummy_data_arrays
             .into_iter()
-            .map(|x| Arc::from(x.to_boxed()))
-            .collect();
+            .map(|x| Arc::from(x.to_boxed()));
 
-        for (arrow_array, column_meta) in
-            dummy_data_arrays.into_iter().zip(expected_col_info.iter())
-        {
+        for (arrow_array, column_meta) in dummy_data_arrays.zip(expected_col_info.iter()) {
             let (node_count, buffer_counts, node_mapping) =
                 get_col_hierarchy_from_arrow_array(&arrow_array, expected_node_info.as_slice());
             let buffer_count: usize = buffer_counts.iter().sum();
@@ -1290,7 +1271,7 @@ pub mod tests {
             .zip(expected_col_info.iter().zip(expected_node_info.iter()))
         {
             let (node_count, buffer_counts, node_mapping) =
-                get_col_hierarchy_from_arrow_array(&arrow_array, std::slice::from_ref(node_info));
+                get_col_hierarchy_from_arrow_array(arrow_array, std::slice::from_ref(node_info));
             let buffer_count: usize = buffer_counts.iter().sum();
 
             assert_eq!(node_count, column_meta.node_count);
@@ -1365,14 +1346,11 @@ pub mod tests {
         let binary_array = arrow2::array::BinaryArray::<i32>::from([Some(&vec![3u8; 6])]);
 
         let dummy_data_arrays: Vec<&dyn Array> = vec![&string_array, &binary_array];
-        let dummy_data_arrays: Vec<ArrayRef> = dummy_data_arrays
+        let dummy_data_arrays = dummy_data_arrays
             .into_iter()
-            .map(|array| Arc::from(array.to_boxed()))
-            .collect();
+            .map(|array| Arc::from(array.to_boxed()));
 
-        for (arrow_array, column_meta) in
-            dummy_data_arrays.into_iter().zip(expected_col_info.iter())
-        {
+        for (arrow_array, column_meta) in dummy_data_arrays.zip(expected_col_info.iter()) {
             let (node_count, buffer_counts, node_mapping) =
                 get_col_hierarchy_from_arrow_array(&arrow_array, expected_node_info.as_slice());
             let buffer_count: usize = buffer_counts.iter().sum();
@@ -1497,14 +1475,11 @@ pub mod tests {
         let uint32_list: ListArray<i32> = uint32_list.into();
 
         let dummy_data_arrays: Vec<&dyn Array> = vec![&bool_list, &uint32_list];
-        let dummy_data_arrays: Vec<Arc<dyn Array>> = dummy_data_arrays
+        let dummy_data_arrays = dummy_data_arrays
             .into_iter()
-            .map(|x| Arc::from(x.to_boxed()))
-            .collect();
+            .map(|x| Arc::from(x.to_boxed()));
 
-        for (arrow_array, column_meta) in
-            dummy_data_arrays.into_iter().zip(expected_col_info.iter())
-        {
+        for (arrow_array, column_meta) in dummy_data_arrays.zip(expected_col_info.iter()) {
             let (node_count, buffer_counts, node_mapping) =
                 get_col_hierarchy_from_arrow_array(&arrow_array, expected_node_info.as_slice());
             let buffer_count: usize = buffer_counts.iter().sum();
@@ -1639,14 +1614,11 @@ pub mod tests {
         );
 
         let dummy_data_arrays: Vec<&dyn Array> = vec![&struct_c0];
-        let dummy_data_arrays: Vec<ArrayRef> = dummy_data_arrays
+        let dummy_data_arrays = dummy_data_arrays
             .into_iter()
-            .map(|array| Arc::from(array.to_boxed()))
-            .collect();
+            .map(|array| Arc::from(array.to_boxed()));
 
-        for (arrow_array, expected_column_meta) in
-            dummy_data_arrays.into_iter().zip(expected_col_info.iter())
-        {
+        for (arrow_array, expected_column_meta) in dummy_data_arrays.zip(expected_col_info.iter()) {
             let (node_count, buffer_counts, node_mapping) =
                 get_col_hierarchy_from_arrow_array(&arrow_array, expected_node_info.as_slice());
             let buffer_count: usize = buffer_counts.iter().sum();
