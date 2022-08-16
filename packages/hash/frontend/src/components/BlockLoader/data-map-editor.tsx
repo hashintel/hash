@@ -48,46 +48,53 @@ const derivePathsFromObject = (object: {}) =>
 const derivePathsFromSchema = (
   schema: JsonSchema,
   schemaProperties: JsonSchema["properties"],
-  allPathsSoFar: string[] = [],
-): string[] => {
-  if (!schemaProperties) {
-    return allPathsSoFar;
-  }
-  return Object.entries(schemaProperties).reduce(
-    (pathAccumulator, [currentKey, currentSchema]) => {
-      if (!currentSchema) {
-        return pathAccumulator;
-      }
-      if (currentSchema.type === "object") {
-        return pathAccumulator.concat(
-          currentKey,
-          derivePathsFromSchema(
-            schema,
-            currentSchema.properties,
-            allPathsSoFar,
-          ).map((path) => `${currentKey}.${path}`),
-        );
-      }
-      if (
-        currentSchema.type === "array" &&
-        currentSchema.items &&
-        "properties" in currentSchema.items
-      ) {
-        return pathAccumulator.concat(
-          currentKey,
-          `${currentKey}[]`,
-          derivePathsFromSchema(
-            schema,
-            currentSchema.items.properties,
-            allPathsSoFar,
-          ).map((path) => `${currentKey}[].${path}`),
-        );
-      }
+) => {
+  const _derivePathsFromSchema = (
+    _schema: JsonSchema,
+    _schemaProperties: JsonSchema["properties"],
+    allPathsSoFar: string[] = [],
+  ): string[] => {
+    if (!_schemaProperties) {
+      return allPathsSoFar;
+    }
+    return Object.entries(_schemaProperties).reduce(
+      (pathAccumulator, [currentKey, currentSchema]) => {
+        if (!currentSchema) {
+          return pathAccumulator;
+        }
+        if (currentSchema.type === "object") {
+          return pathAccumulator.concat(
+            currentKey,
+            _derivePathsFromSchema(
+              _schema,
+              currentSchema.properties,
+              allPathsSoFar,
+            ).map((path) => `${currentKey}.${path}`),
+          );
+        }
+        if (
+          currentSchema.type === "array" &&
+          currentSchema.items &&
+          "properties" in currentSchema.items
+        ) {
+          return pathAccumulator.concat(
+            currentKey,
+            `${currentKey}[]`,
+            _derivePathsFromSchema(
+              _schema,
+              currentSchema.items.properties,
+              allPathsSoFar,
+            ).map((path) => `${currentKey}[].${path}`),
+          );
+        }
 
-      return pathAccumulator.concat(currentKey);
-    },
-    allPathsSoFar,
-  );
+        return pathAccumulator.concat(currentKey);
+      },
+      allPathsSoFar,
+    );
+  };
+
+  return _derivePathsFromSchema(schema, schemaProperties);
 };
 
 /**
@@ -102,8 +109,11 @@ const schemaByPathParts = (
     throw new Error("Schema has no properties");
   }
 
-  const firstKey = pathParts[0]!;
+  const [firstKey, ...otherParts] = pathParts;
 
+  if (!firstKey) {
+    throw new Error("pathParts array contains no strings");
+  }
   if (!schema.properties[firstKey]) {
     throw new Error("No schema found");
   }
@@ -114,7 +124,7 @@ const schemaByPathParts = (
     return { required, schema: schema.properties[firstKey]! };
   }
 
-  return schemaByPathParts(schema.properties[firstKey]!, pathParts.slice(1));
+  return schemaByPathParts(schema.properties[firstKey]!, otherParts);
 };
 
 /**
