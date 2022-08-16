@@ -172,14 +172,12 @@ export class ProsemirrorManager {
         : [];
 
     /**
-     * Wrap the component node itself (rendered by ComponentView) in the
-     * following:
+     * The structure of this is as follows:
      *
-     *    1. An entity node to store draft ids for the Text entity (if any)
-     *       linked to the block
-     *    2. An entity node to store ids for the entity linked to the block
-     *    3. [Outermost] The block node (rendered by BlockView) which
-     *       provides the surrounding UI
+     * Block node (BlockView) to render the wrapping block UI, i.e, block handle
+     * -> Entity node, which renders no UI, to store the block entity draft id
+     *   -> Entity node, to store the block data entity's draft id
+     *     -> The component node (ComponentView), to render the actual block component
      */
     return this.schema.nodes.block!.create({}, [
       this.schema.nodes.entity!.create(
