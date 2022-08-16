@@ -43,15 +43,8 @@ pub fn read_record_batch(segment: &Segment, schema: Arc<Schema>) -> crate::Resul
 }
 
 /// Loads the Flatbuffers RecordBatch _message_ - i.e. the data in the header (_not_ the data in the
-/// actual columns). You may also be interested in the [`record_batch`] function, which reads an
-/// entire record batch (metadata and all).
-///
-/// Unfortunately, there is some confusing naming here:
-/// - in arrow-rs (i.e. not `arrow2` which is what we use) there are two types: one in `ipc` called
-///   `RecordBatch`, and another in `record_batch` called `RecordBatch`
-///   - ipc RecordBatch refers only to the _header_ - i.e. the data at the start of the batch which
-///     provides all the offsets at which the columns are in the file
-///   - record_batch RecordBatch is what arrow-rs uses to store the entire
+/// actual columns). You may also be interested in the [`read_record_batch`] function, which reads
+/// an entire record batch from the IPC data.
 pub fn read_record_batch_message(
     segment: &Segment,
 ) -> crate::Result<arrow_format::ipc::RecordBatchRef<'_>> {

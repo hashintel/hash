@@ -87,7 +87,7 @@ impl AgentBatch {
 
     /// todo: DOC
     ///
-    /// todo: see if it is possible to only use [`arrow_convert`] and [`arrow2`] (rather than
+    /// todo: see if it is possible to only use [`arrow2_convert`] and [`arrow2`] (rather than
     /// [`arrow`]) to read the schema from the flatbuffers.
     pub fn from_segment(
         segment: Segment,

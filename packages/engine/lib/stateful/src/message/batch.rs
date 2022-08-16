@@ -7,7 +7,7 @@ use arrow_format::ipc::{planus::ReadAsRoot, MessageHeaderRef, MessageRef};
 use memory::{
     arrow::{
         column_with_name_from_record_batch,
-        ipc::{self, calculate_ipc_data_size, write_record_batch_message_header},
+        ipc::{self, calculate_ipc_header_data, write_record_batch_message_header},
         meta::DynamicMetadata,
         record_batch::RecordBatch,
         ArrowBatch,
@@ -97,7 +97,7 @@ impl MessageBatch {
             self.arrow_schema.clone(),
             Chunk::new(vec![Arc::clone(id_column), empty_message_column]),
         );
-        let write_metadata = ipc::calculate_ipc_data_size(&record_batch);
+        let write_metadata = ipc::calculate_ipc_header_data(&record_batch);
 
         // Perform some light bound checks
         // we can't release memory on mac because we can't resize the segment
@@ -215,24 +215,24 @@ impl MessageBatch {
 
         let header = Metaversion::default().to_le_bytes();
 
-        let info = ipc::calculate_ipc_data_size(&record_batch);
+        let header_data = ipc::calculate_ipc_header_data(&record_batch);
 
         let mut metadata = vec![];
-        ipc::write_record_batch_message_header(&mut metadata, &info)?;
+        ipc::write_record_batch_message_header(&mut metadata, &header_data)?;
 
         let mut segment = Segment::from_sizes(
             memory_id,
             0,
             header.len(),
             metadata.len(),
-            info.body_len,
+            header_data.body_len,
             true,
         )?;
         let change = segment.set_metadata(&metadata)?;
         debug_assert!(!change.resized() && !change.shifted());
 
         let data_buffer = segment.get_mut_data_buffer()?;
-        ipc::write_record_batch_body(&record_batch, data_buffer, &info)?;
+        ipc::write_record_batch_body(&record_batch, data_buffer, &header_data)?;
 
         let change = segment.set_header(&header)?;
         debug_assert!(!change.resized() && !change.shifted());
@@ -259,14 +259,14 @@ impl MessageBatch {
             memory_id
         );
 
-        let info = calculate_ipc_data_size(record_batch);
+        let header_data = calculate_ipc_header_data(record_batch);
 
         let mut metadata = vec![];
-        write_record_batch_message_header(&mut metadata, &info)?;
+        write_record_batch_message_header(&mut metadata, &header_data)?;
 
-        let mut body = vec![0; info.body_len];
+        let mut body = vec![0; header_data.body_len];
 
-        ipc::write_record_batch_body(record_batch, &mut body, &info)?;
+        ipc::write_record_batch_body(record_batch, &mut body, &header_data)?;
 
         let segment = Segment::from_batch_buffers(
             memory_id,

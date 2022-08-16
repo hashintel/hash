@@ -15,7 +15,7 @@ use uuid::Uuid;
 use super::read_record_batch;
 use crate::{
     arrow::{
-        ipc::{calculate_ipc_data_size, read_record_batch_message, write_record_batch_to_segment},
+        ipc::{calculate_ipc_header_data, read_record_batch_message, write_record_batch_to_segment},
         record_batch::RecordBatch,
     },
     shared_memory::MemoryId,
@@ -31,7 +31,7 @@ fn round_trip(schema: Arc<Schema>, record_batch: RecordBatch) {
 
     // then check all the metadata
 
-    let metadata = calculate_ipc_data_size(&record_batch);
+    let metadata = calculate_ipc_header_data(&record_batch);
     let record_batch_ref = read_record_batch_message(&segment).unwrap();
 
     let read_nodes = record_batch_ref.nodes().unwrap().unwrap();

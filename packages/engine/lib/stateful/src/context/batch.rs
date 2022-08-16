@@ -6,7 +6,7 @@ use arrow2::datatypes::Schema;
 use memory::{
     arrow::{
         ipc::{
-            self, calculate_ipc_data_size, write_record_batch_body,
+            self, calculate_ipc_header_data, write_record_batch_body,
             write_record_batch_message_header,
         },
         meta,
@@ -61,14 +61,14 @@ impl ContextBatch {
 
         let header = Metaversion::default().to_le_bytes();
 
-        let info = calculate_ipc_data_size(record_batch);
+        let header_data = calculate_ipc_header_data(record_batch);
 
         let mut metadata = vec![];
-        write_record_batch_message_header(&mut metadata, &info)?;
+        write_record_batch_message_header(&mut metadata, &header_data)?;
 
-        let mut body_data = vec![0; info.body_len];
+        let mut body_data = vec![0; header_data.body_len];
 
-        write_record_batch_body(record_batch, &mut body_data, &info)?;
+        write_record_batch_body(record_batch, &mut body_data, &header_data)?;
 
         let segment =
             Segment::from_batch_buffers(memory_id, &[], &header, &metadata, &body_data, false)?;

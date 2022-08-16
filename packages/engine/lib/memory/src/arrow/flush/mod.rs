@@ -21,18 +21,14 @@ pub trait GrowableArrayData: Sized + std::fmt::Debug {
     /// nth item in the array is null or not.
     fn null_buffer(&self) -> Option<&[u8]>;
     /// Returns the nth buffer of this array. We follow the
-    /// [specification](https://arrow.apache.org/docs/format/Columnar.html#dictionary-encoded-layout)
-    /// _except_ that instead of returning the validity bitmap in position zero, we instead return
-    /// this as part of [`GrowableArrayData::null_buffer`]
+    /// [specification](https://arrow.apache.org/docs/format/Columnar.html#buffer-listing-for-each-layout)
+    /// _except_ that we don't return any validity bitmaps/null buffers here (these can be obtained
+    /// instead by calling [`GrowableArrayData::null_buffer`]).
     #[allow(clippy::redundant_allocation)]
     fn buffer(&self, index: usize) -> &[u8];
     /// Arrow stores the null buffer separately from other buffers.
     fn non_null_buffer_count(&self) -> usize;
     /// This returns the data of the child arrays.
-    ///
-    /// todo: reduce number of atomic reference counters (the return type here is a bit awkward
-    /// because we implement [`GrowableArrayData`] for [`Arc<dyn arrow2::Array>`] so we end up
-    /// with [`Arc<Arc<dyn Array>`] in some places).
     fn child_data(&self) -> &[Self];
 }
 

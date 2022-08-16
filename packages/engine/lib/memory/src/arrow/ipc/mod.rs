@@ -27,7 +27,7 @@ pub mod schema;
 pub mod write;
 
 /// Contains code taken from arrow2 (and slightly modified) to allow us to write arrays.
-mod serialize;
+pub(crate) mod serialize;
 
 #[cfg(all(test, not(miri)))]
 mod test;
@@ -38,7 +38,7 @@ pub use write::*;
 
 /// Calculates the number of bytes that the schema occupies.
 ///
-/// For convenience, this is how the Arrow format works (taken from https://wesm.github.io/arrow-site-test)
+/// For convenience, this is how the Arrow format works (taken from <https://wesm.github.io/arrow-site-test>)
 /// ```ignore
 /// <continuation: 0xFFFFFFFF>
 /// <metadata_size: int32>

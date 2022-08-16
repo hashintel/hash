@@ -11,36 +11,13 @@ use crate::{
     shared_memory::{padding::pad_to_8, MemoryId, Metaversion, Segment},
 };
 
-/// Contains the data which [`record_batch_msg_offset`] computes. This struct exists to make it
-/// impossible to call [`write_record_batch_data_to_bytes`] without first computing the necessary
-/// information using [`record_batch_msg_offset`]. Previously we did allow this behaviour, but it
-/// could lead to unsafety.
-pub struct RecordBatchBytes {
-    /// The length (in bytes) of the Arrow columns.
-    pub data_len: usize,
-    /// The data corresponding to the arrow message.
-    pub msg_data: Vec<u8>,
-    /// The total offset calculated.
-    pub offset: i64,
-}
-
-impl RecordBatchBytes {
-    /// Returns [`Self::msg_data`], replacing it with an empty vector.
-    pub fn take_msg_data(&mut self) -> Vec<u8> {
-        let mut empty = Vec::new();
-
-        std::mem::swap(&mut empty, &mut self.msg_data);
-
-        empty
-    }
-}
-
-/// This function computes the number of bytes the data section of the IPC file takes up.
+/// This function computes the header data for the given [`RecordBatch`].
 ///
-/// More documentation can be found in the [`crate::arrow::ipc::serialize`] module.
-///
-/// [RecordBatch]: https://arrow.apache.org/docs/format/Columnar.html#recordbatch-message
-pub fn calculate_ipc_data_size(record_batch: &super::RecordBatch) -> IpcDataMetadata {
+/// There is more
+/// [documentation about record batches](https://arrow.apache.org/docs/format/Columnar.html#recordbatch-message)
+/// in the Arrow specification.
+// Note: more documentation can be found in the [`crate::arrow::ipc::serialize`] module.
+pub fn calculate_ipc_header_data(record_batch: &RecordBatch) -> IpcHeaderData {
     let mut buffers = Vec::new();
     let mut nodes = Vec::new();
 
@@ -57,7 +34,7 @@ pub fn calculate_ipc_data_size(record_batch: &super::RecordBatch) -> IpcDataMeta
         )
     }
 
-    IpcDataMetadata {
+    IpcHeaderData {
         body_len: offset as usize,
         num_rows: if record_batch.columns().is_empty() {
             0
@@ -70,7 +47,7 @@ pub fn calculate_ipc_data_size(record_batch: &super::RecordBatch) -> IpcDataMeta
 }
 
 #[derive(Debug)]
-pub struct IpcDataMetadata {
+pub struct IpcHeaderData {
     /// The length of the body, in bytes
     pub body_len: usize,
     pub num_rows: usize,
@@ -81,7 +58,7 @@ pub struct IpcDataMetadata {
 /// Writes the header of the message to the buffer.
 pub fn write_record_batch_message_header(
     buf: &mut Vec<u8>,
-    metadata: &IpcDataMetadata,
+    metadata: &IpcHeaderData,
 ) -> crate::Result<()> {
     assert_buffer_monotonicity(&metadata.buffers);
 
@@ -110,12 +87,12 @@ pub fn write_record_batch_message_header(
 /// Writes the body section of a record batch to the provided buffer.
 ///
 /// **Important**: callers _must_ ensure that the length of the buffer is equal
-/// to the value provided by [`calculate_ipc_data_size`] (otherwise this
+/// to the value provided by [`calculate_ipc_header_data`] (otherwise this
 /// function will panic).
 pub fn write_record_batch_body(
     record_batch: &RecordBatch,
     buf: &mut [u8],
-    metadata: &IpcDataMetadata,
+    metadata: &IpcHeaderData,
 ) -> crate::Result<()> {
     let mut nodes = vec![];
     let mut buffers = vec![];
@@ -163,19 +140,19 @@ pub fn write_record_batch_to_segment(
 
     let metaversion = Metaversion::default().to_le_bytes();
 
-    let data_metadata = calculate_ipc_data_size(record_batch);
+    let header_data = calculate_ipc_header_data(record_batch);
 
     let schema = schema_to_bytes(schema, &default_ipc_fields(&schema.fields));
 
     let mut metadata = vec![];
-    write_record_batch_message_header(&mut metadata, &data_metadata)?;
+    write_record_batch_message_header(&mut metadata, &header_data)?;
 
     let mut segment = Segment::from_sizes(
         memory_id,
         schema.len(),
         metaversion.len(),
         metadata.len(),
-        data_metadata.body_len,
+        header_data.body_len,
         true,
     )?;
 
@@ -186,8 +163,8 @@ pub fn write_record_batch_to_segment(
 
     // write the data
     let data_buffer = segment.get_mut_data_buffer()?;
-    assert_eq!(data_buffer.len(), data_metadata.body_len);
-    write_record_batch_body(record_batch, data_buffer, &data_metadata)?;
+    assert_eq!(data_buffer.len(), header_data.body_len);
+    write_record_batch_body(record_batch, data_buffer, &header_data)?;
 
     Ok(segment)
 }
