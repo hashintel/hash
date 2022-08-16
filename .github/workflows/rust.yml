@@ -67,7 +67,6 @@ jobs:
       fail-fast: false
       #      matrix: ${{ fromJSON(needs.setup.outputs.lint) }}
       matrix:
-        directory: ["packages/libs/error-stack", "packages/engine"]
         profile: ["development", "production"]
         include:
           - directory: packages/libs/error-stack
