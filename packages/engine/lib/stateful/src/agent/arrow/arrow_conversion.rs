@@ -1,6 +1,6 @@
 use arrow2::datatypes::UnionMode;
 
-/// Converts from an [`arrow::datatypes::datatype::DataType`] to an [`arrow2::datatypes::DataType`].
+/// Converts from an [`arrow::datatypes::DataType`] to an [`arrow2::datatypes::DataType`].
 pub(crate) fn arrow2_datatype_of_arrow_datatype(
     arrow: arrow::datatypes::DataType,
 ) -> arrow2::datatypes::DataType {
