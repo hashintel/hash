@@ -67,7 +67,7 @@ export const createApolloServer = ({
     dataSources: getDataSources,
     context: (ctx): Omit<GraphQLContext, "dataSources"> => ({
       ...ctx,
-      user: ctx.req.user as any,
+      user: ctx.req.user,
       emailTransporter,
       uploadProvider,
       logger: logger.child({ requestId: ctx.res.get("x-hash-request-id") }),

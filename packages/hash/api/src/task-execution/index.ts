@@ -2,7 +2,7 @@ import { DataSource } from "apollo-datasource";
 import { JSONObject } from "blockprotocol";
 import fetch from "node-fetch";
 import { DbAdapter } from "../db";
-import { EntityType, User } from "../model";
+import { EntityType, UserModel } from "../model";
 
 /** @todo: When task scheduling is more mature and we move away from the temporary `hash-task-executor` we should have a single source of */
 //  truth for available tasks, likely importable.
@@ -62,7 +62,7 @@ export const connectToTaskExecutor = (config: Config) => {
  *
  * @todo - This is temporary and should be removed when we extend the EntityType model class to support these actions properly
  */
-export const CachedEntityTypes = async (db: DbAdapter, user: User) => {
+export const CachedEntityTypes = async (db: DbAdapter, user: UserModel) => {
   const streamsWithEntityTypes: Map<string, string> = new Map();
   const dbTypes = await db.getAccountEntityTypes({
     accountId: user.accountId,

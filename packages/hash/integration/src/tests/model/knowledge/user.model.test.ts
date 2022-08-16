@@ -22,6 +22,7 @@ const graphApi = createGraphClient(logger, {
 });
 
 const shortname = "alice";
+const kratosIdentityId = "alice-fake-kratos-id";
 
 describe("User model class", () => {
   beforeAll(async () => {
@@ -34,6 +35,8 @@ describe("User model class", () => {
     createdUser = await UserModel.createUser(graphApi, {
       emails: ["alice@example.com"],
       shortname,
+      preferredName: "Alice",
+      kratosIdentityId,
     });
   });
 
@@ -42,8 +45,24 @@ describe("User model class", () => {
       UserModel.createUser(graphApi, {
         emails: ["bob@example.com"],
         shortname,
+        preferredName: "Bob",
+        kratosIdentityId: "bob-kratos-identity-id",
       }),
-    ).rejects.toThrowError(/already exists/);
+    ).rejects.toThrowError(`"${shortname}" already exists.`);
+  });
+
+  it("cannot create a user with a kratos identity id that is already taken", async () => {
+    await expect(
+      UserModel.createUser(graphApi, {
+        emails: ["bob@example.com"],
+        shortname: "bob",
+        kratosIdentityId,
+      }),
+    ).rejects.toThrowError(`"${kratosIdentityId}" already exists.`);
+  });
+
+  it("can get the account id", () => {
+    expect(createdUser.getAccountId()).toBeDefined();
   });
 
   it("can get a user by its shortname", async () => {
@@ -53,6 +72,16 @@ describe("User model class", () => {
 
     expect(fetchedUser).not.toBeNull();
 
-    expect(fetchedUser!.entityId).toBe(createdUser.entityId);
+    expect(fetchedUser).toEqual(createdUser);
+  });
+
+  it("can get a user by its kratos identity id", async () => {
+    const fetchedUser = await UserModel.getUserByKratosIdentityId(graphApi, {
+      kratosIdentityId,
+    });
+
+    expect(fetchedUser).not.toBeNull();
+
+    expect(fetchedUser).toEqual(createdUser);
   });
 });

@@ -9,11 +9,13 @@ export const createOrg: Resolver<
   MutationCreateOrgArgs
 > = async (_, { org: orgInput, responsibility }, { dataSources, user }) =>
   dataSources.db.transaction(async (client) => {
+    const { graphApi } = dataSources;
     const { shortname, name, orgSize } = orgInput;
 
-    await user
+    /** @todo: potentially deprecate these method calls depending on Graph API transaction implementation */
+    await (user as any)
       .acquireLock(client)
-      .then(() => user.refetchLatestVersion(client));
+      .then(() => (user as any).refetchLatestVersion(client));
 
     await Account.validateShortname(client, shortname);
 
@@ -30,7 +32,7 @@ export const createOrg: Resolver<
 
     await org.acquireLock(client).then(() => org.refetchLatestVersion(client));
 
-    await user.joinOrg(client, {
+    await user.joinOrg(graphApi, {
       updatedByAccountId: user.accountId,
       org,
       responsibility,

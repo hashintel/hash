@@ -36,7 +36,7 @@ export const createLinkedAggregation: Resolver<
         itemsPerPage: operation.itemsPerPage ?? 10,
         pageNumber: operation.pageNumber ?? 1,
       },
-      createdBy: user,
+      createdBy: user as any /** @todo: replace with updated model class */,
     });
 
     return aggregation.toGQLLinkedAggregation(dataSources.db);
