@@ -38,7 +38,9 @@ args = ["hack", "@@split(CARGO_INSTA_TEST_HACK_FLAGS, )", "nextest", "run", "--c
 env = { "INSTA_FORCE_PASS" = "1" }
 
 [tasks.update-snapshots-task-doc]
+# only run on nightly, as backtraces are otherwise not included
+condition = { channels = ["nightly"] }
 extend = "task"
 install_crate = "cargo-insta"
 args = ["test", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_DOC_TEST_FLAGS, )", "--doc", "${@}"]
-env = { "UPDATE_EXPECT" = "1" }
+env = { "UPDATE_EXPECT" = "1", "RUST_BACKTRACE" = "1" }
