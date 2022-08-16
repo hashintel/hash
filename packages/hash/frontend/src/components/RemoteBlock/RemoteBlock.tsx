@@ -187,8 +187,9 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     },
   },
 }) => {
-  const headerRef = useRef<HTMLHeadingElement>(null);
-  const { hookService } = useHookBlockService(headerRef);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const header2Ref = useRef<HTMLHeadingElement>(null);
+  const { hookService } = useHookBlockService(containerRef);
   // const headerHookRef = useHookRef(hookService, "text", "$.text", (node) => {
   //   if (node) {
   //     // eslint-disable-next-line no-param-reassign
@@ -196,7 +197,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   //   }
   // });
 
-  useHook(hookService, headerRef, "text", "$.text", (node) => {
+  useHook(hookService, header2Ref, "text", "$.text", (node) => {
     // eslint-disable-next-line no-param-reassign
     node.innerText = text ?? "";
 
@@ -210,10 +211,16 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   const Header = `h${level}` as any;
 
   return (
-    <Header
-      style={{ fontFamily: "Arial", color: color ?? "black", marginBottom: 0 }}
-      ref={headerRef}
-    />
+    <div ref={containerRef}>
+      <Header
+        style={{
+          fontFamily: "Arial",
+          color: color ?? "black",
+          marginBottom: 0,
+        }}
+        ref={header2Ref}
+      />
+    </div>
   );
 };
 
