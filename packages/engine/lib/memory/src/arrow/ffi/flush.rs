@@ -253,11 +253,11 @@ impl GrowableArrayData for PreparedArrayData<'_> {
     }
 
     fn null_buffer(&self) -> Option<&[u8]> {
-        self.null_buffer.clone()
+        self.null_buffer
     }
 
     fn buffer(&self, index: usize) -> &[u8] {
-        self.buffers[index].clone()
+        self.buffers[index]
     }
 
     fn non_null_buffer_count(&self) -> usize {

@@ -24,7 +24,7 @@ bytemuck = "1.10.0"
 arrow = { version = "10.0.0", default-features = false }
 
 [dev-dependencies]
-arrow2_convert = { git = "https://github.com/teymour-aldridge/arrow2-convert", branch = "escaped-fields", features = [
+arrow2_convert = { git = "https://github.com/DataEngineeringLabs/arrow2-convert", features = [
     "derive",
 ] }
 rand = "0.8.5"

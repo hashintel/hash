@@ -170,7 +170,7 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
                             index: this_buffer_index,
                             offset: this_buffer_offset,
                             padding: new_padding,
-                            buffer: b.clone(),
+                            buffer: b,
                         });
                     } else {
                         // We know all values must be valid.
