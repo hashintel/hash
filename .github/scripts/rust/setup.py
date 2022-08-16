@@ -12,7 +12,7 @@ ALWAYS_RUN_PATTERNS = ["**/rust-toolchain.toml", ".github/**"]
 
 # Toolchains used for the specified crates in addition to the default toolchain (rust-toolchain.toml)
 TOOLCHAINS = {
-    "packages/libs/error-stack": ["1.63"],
+    "packages/libs/error-stack": ["1.61"],
 }
 
 # Try and publish these crates when their version is changed in Cargo.toml
