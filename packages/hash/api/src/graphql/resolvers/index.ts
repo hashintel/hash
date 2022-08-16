@@ -43,7 +43,7 @@ import {
 
 import { me } from "./user/me";
 import { isShortnameTaken } from "./user/isShortnameTaken";
-import { createEntityType } from "./entityType/createEntityType";
+import { deprecatedCreateEntityType } from "./entityType/createEntityType";
 import { SYSTEM_TYPES, SystemType } from "../../types/entityTypes";
 import { entityTypeTypeFields } from "./entityType/entityTypeTypeFields";
 import { entityTypeInheritance } from "./entityType/entityTypeInheritance";
@@ -138,7 +138,7 @@ export const resolvers = {
       updateLinkedAggregationOperation,
     ),
     deleteLinkedAggregation: loggedInAndSignedUp(deleteLinkedAggregation),
-    createEntityType: loggedInAndSignedUp(createEntityType),
+    deprecatedCreateEntityType: loggedInAndSignedUp(deprecatedCreateEntityType),
     createFileFromLink: loggedInAndSignedUp(createFileFromLink),
     createPage: loggedInAndSignedUp(createPage),
     createOrg: loggedInAndSignedUp(createOrg),

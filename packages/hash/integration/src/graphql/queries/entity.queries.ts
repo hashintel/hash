@@ -69,14 +69,14 @@ export const getEntityTypeAllParents = gql`
   }
 `;
 
-export const createEntityType = gql`
-  mutation createEntityType(
+export const deprecatedCreateEntityType = gql`
+  mutation deprecatedCreateEntityType(
     $accountId: ID!
     $description: String
     $name: String!
     $schema: JSONObject!
   ) {
-    createEntityType(
+    deprecatedCreateEntityType(
       accountId: $accountId
       description: $description
       name: $name

@@ -24,14 +24,14 @@ export const getEntityTypeQuery = gql`
     }
   }
 `;
-export const createEntityTypeMutation = gql`
-  mutation createEntityType(
+export const deprecatedCreateEntityTypeMutation = gql`
+  mutation deprecatedCreateEntityType(
     $accountId: ID!
     $description: String
     $name: String!
     $schema: JSONObject
   ) {
-    createEntityType(
+    deprecatedCreateEntityType(
       accountId: $accountId
       description: $description
       name: $name

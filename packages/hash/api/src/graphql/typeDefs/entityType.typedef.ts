@@ -36,7 +36,7 @@ export const entityTypeTypedef = gql`
     """
     Create an entity type
     """
-    createEntityType(
+    deprecatedCreateEntityType(
       accountId: ID!
       """
       The name for the type. Must be unique in the given account.

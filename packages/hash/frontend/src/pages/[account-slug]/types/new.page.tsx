@@ -6,11 +6,11 @@ import { useRouter } from "next/router";
 import { FormEvent, useState } from "react";
 import { tw } from "twind";
 import {
-  CreateEntityTypeMutation,
-  CreateEntityTypeMutationVariables,
+  DeprecatedCreateEntityTypeMutation,
+  DeprecatedCreateEntityTypeMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
-import { createEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
+import { deprecatedCreateEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,
@@ -26,10 +26,10 @@ const Page: NextPageWithLayout = () => {
   const [description, setDescription] = useState("");
 
   const [createEntityType, { loading, error }] = useMutation<
-    CreateEntityTypeMutation,
-    CreateEntityTypeMutationVariables
-  >(createEntityTypeMutation, {
-    onCompleted: ({ createEntityType: entityType }) =>
+    DeprecatedCreateEntityTypeMutation,
+    DeprecatedCreateEntityTypeMutationVariables
+  >(deprecatedCreateEntityTypeMutation, {
+    onCompleted: ({ deprecatedCreateEntityType: entityType }) =>
       router.push(`/${accountId}/types/${entityType.entityId}`),
     refetchQueries: [
       { query: getAccountEntityTypes, variables: { accountId } },
