@@ -15,7 +15,9 @@ use uuid::Uuid;
 use super::read_record_batch;
 use crate::{
     arrow::{
-        ipc::{calculate_ipc_header_data, read_record_batch_message, write_record_batch_to_segment},
+        ipc::{
+            calculate_ipc_header_data, read_record_batch_message, write_record_batch_to_segment,
+        },
         record_batch::RecordBatch,
     },
     shared_memory::MemoryId,
