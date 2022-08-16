@@ -132,9 +132,10 @@ def output_matrix(name, crates, **kwargs):
     for crate in crates:
         toolchain_toml = open(f"{crate}/rust-toolchain.toml", "r")
         toolchains = [toml.loads(toolchain_toml.read())["toolchain"]["channel"]]
-        for pattern, defined_toolchains in TOOLCHAINS.items():
-            if fnmatch(crate, pattern):
-                toolchains += defined_toolchains
+        if name != "lint" and name != "publish": # We only run the specified toolchain on lint/publish
+            for pattern, defined_toolchains in TOOLCHAINS.items():
+                if fnmatch(crate, pattern):
+                    toolchains += defined_toolchains
         used_toolchain_combinations.append(list(itertools.product([str(crate)], toolchains, repeat=1)))
 
     matrix = dict(
