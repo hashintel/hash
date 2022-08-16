@@ -35,7 +35,7 @@ services:
       timeout: 1s
       retries: 5
 
-  migration:
+  migrate:
     build:
       context: ..
       dockerfile: deployment/migrations/Dockerfile
