@@ -7,7 +7,9 @@ import { UnknownBlock } from "./loadRemoteBlock";
 
 type BlockRendererProps = {
   blockSource: UnknownBlock;
-  blockType: BlockMetadata["blockType"] | { entryPoint: undefined };
+  blockType?:
+    | BlockMetadata["blockType"]
+    | { entryPoint: unknown; tagName: unknown };
   properties: UnknownRecord;
   sourceUrl: string;
 };
@@ -18,7 +20,7 @@ export const BlockRenderer: FunctionComponent<BlockRendererProps> = ({
   properties,
   sourceUrl,
 }) => {
-  const entryPoint = blockType.entryPoint;
+  const entryPoint = blockType?.entryPoint ?? "react";
 
   if (entryPoint === "html") {
     if (typeof blockSource !== "string") {
@@ -36,7 +38,7 @@ export const BlockRenderer: FunctionComponent<BlockRendererProps> = ({
         `'custom-element' entryPoint expects parsed source to have 'HTMLElement' as prototype`,
       );
     }
-    if (typeof blockType.tagName !== "string") {
+    if (typeof blockType?.tagName !== "string") {
       throw new Error(
         `Must provide blockType.tagName when entryPoint is 'custom-element'`,
       );
