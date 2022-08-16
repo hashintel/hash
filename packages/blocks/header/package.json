@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.0.12",
-    "@blockprotocol/hook": "0.0.1-canary.5",
+    "@blockprotocol/hook": "0.0.1-canary.10",
     "@rooks/use-fork-ref": "4.11.2"
   },
   "devDependencies": {

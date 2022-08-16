@@ -4,7 +4,7 @@ import {
   EmbedderGraphMessageCallbacks,
 } from "@blockprotocol/graph";
 import { useGraphEmbedderService } from "@blockprotocol/graph/react";
-import { useHookEmbedderService } from "@blockprotocol/hook";
+import { useHookEmbedderService } from "@blockprotocol/hook/react";
 import { FunctionComponent, useEffect, useRef } from "react";
 import { v4 as uuid } from "uuid";
 import { BlockRenderer } from "./blockRenderer";
