@@ -275,7 +275,9 @@ export class ApiClient {
     ).getEntityType;
   }
 
-  async createEntityType(vars: DeprecatedCreateEntityTypeMutationVariables) {
+  async deprecatedCreateEntityType(
+    vars: DeprecatedCreateEntityTypeMutationVariables,
+  ) {
     return (
       await this.client.request<
         DeprecatedCreateEntityTypeMutation,
@@ -284,7 +286,9 @@ export class ApiClient {
     ).deprecatedCreateEntityType;
   }
 
-  async updateEntityType(vars: DeprecatedUpdateEntityTypeMutationVariables) {
+  async deprecatedUpdateEntityType(
+    vars: DeprecatedUpdateEntityTypeMutationVariables,
+  ) {
     return (
       await this.client.request<
         DeprecatedUpdateEntityTypeMutation,
