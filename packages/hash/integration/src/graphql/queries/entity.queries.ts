@@ -34,9 +34,9 @@ export const createEntity = gql`
   }
 `;
 
-export const getEntityType = gql`
-  query getEntityType($entityTypeId: ID!) {
-    getEntityType(entityTypeId: $entityTypeId) {
+export const deprecatedGetEntityType = gql`
+  query deprecatedGetEntityType($entityTypeId: ID!) {
+    deprecatedGetEntityType(entityTypeId: $entityTypeId) {
       entityId
       entityVersionId
       properties
@@ -54,9 +54,9 @@ export const getEntityType = gql`
   }
 `;
 
-export const getEntityTypeAllParents = gql`
-  query getEntityTypeAllParents($entityTypeId: ID!) {
-    getEntityType(entityTypeId: $entityTypeId) {
+export const deprecatedGetEntityTypeAllParents = gql`
+  query deprecatedGetEntityTypeAllParents($entityTypeId: ID!) {
+    deprecatedGetEntityType(entityTypeId: $entityTypeId) {
       entityId
       entityVersionId
       properties

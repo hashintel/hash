@@ -8,7 +8,7 @@ export const entityTypeTypedef = gql`
     - entityTypeId on an Entity of its type)
     Or, by EntityTypeChoice
     """
-    getEntityType(
+    deprecatedGetEntityType(
       entityTypeId: ID
         @deprecated(
           reason: """

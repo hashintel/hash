@@ -47,7 +47,7 @@ import {
   UpdateLinkedAggregationOperationMutationVariables,
   DeleteLinkedAggregationMutation,
   DeleteLinkedAggregationMutationVariables,
-  QueryGetEntityTypeArgs,
+  QueryDeprecatedGetEntityTypeArgs,
   Query,
   GetEntitiesQuery,
   GetEntitiesQueryVariables,
@@ -61,8 +61,8 @@ import {
 import {
   createEntity,
   deprecatedCreateEntityType,
-  getEntityType,
-  getEntityTypeAllParents,
+  deprecatedGetEntityType,
+  deprecatedGetEntityTypeAllParents,
   getUnknownEntity,
   getEntities,
   updateEntity,
@@ -257,22 +257,22 @@ export class ApiClient {
     ).setParentPage;
   }
 
-  async getEntityType(vars: QueryGetEntityTypeArgs) {
+  async deprecatedGetEntityType(vars: QueryDeprecatedGetEntityTypeArgs) {
     return (
       await this.client.request<
-        Pick<Query, "getEntityType">,
-        QueryGetEntityTypeArgs
-      >(getEntityType, vars)
-    ).getEntityType;
+        Pick<Query, "deprecatedGetEntityType">,
+        QueryDeprecatedGetEntityTypeArgs
+      >(deprecatedGetEntityType, vars)
+    ).deprecatedGetEntityType;
   }
 
-  async getEntityTypeAllParents(vars: QueryGetEntityTypeArgs) {
+  async getEntityTypeAllParents(vars: QueryDeprecatedGetEntityTypeArgs) {
     return (
       await this.client.request<
-        Pick<Query, "getEntityType">,
-        QueryGetEntityTypeArgs
-      >(getEntityTypeAllParents, vars)
-    ).getEntityType;
+        Pick<Query, "deprecatedGetEntityType">,
+        QueryDeprecatedGetEntityTypeArgs
+      >(deprecatedGetEntityTypeAllParents, vars)
+    ).deprecatedGetEntityType;
   }
 
   async deprecatedCreateEntityType(

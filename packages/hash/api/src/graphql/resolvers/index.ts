@@ -48,7 +48,7 @@ import { SYSTEM_TYPES, SystemType } from "../../types/entityTypes";
 import { entityTypeTypeFields } from "./entityType/entityTypeTypeFields";
 import { entityTypeInheritance } from "./entityType/entityTypeInheritance";
 import { getAccountEntityTypes } from "./entityType/getAccountEntityTypes";
-import { getEntityType } from "./entityType/getEntityType";
+import { deprecatedGetEntityType } from "./entityType/getEntityType";
 import { createOrgEmailInvitation } from "./org/createOrgEmailInvitation";
 import { getOrgEmailInvitation } from "./org/getOrgEmailInvitation";
 import { getOrgInvitationLink } from "./org/getOrgInvitationLink";
@@ -103,7 +103,7 @@ export const resolvers = {
     getAccountEntityTypes: loggedInAndSignedUp(getAccountEntityTypes),
     entity: loggedInAndSignedUp(entity),
     entities: loggedInAndSignedUp(canAccessAccount(entities)),
-    getEntityType: loggedInAndSignedUp(getEntityType),
+    deprecatedGetEntityType: loggedInAndSignedUp(deprecatedGetEntityType),
     getLink: loggedInAndSignedUp(getLink),
     getLinkedAggregation: loggedInAndSignedUp(getLinkedAggregation),
     page: canAccessAccount(page),

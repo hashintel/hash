@@ -693,7 +693,7 @@ describe("logged in user ", () => {
       entityTypeComponentId = newBlock.data.entityTypeId;
 
       // Get the EntitType that has been created because of the ComponentId
-      const componentIdType = await client.getEntityType({
+      const componentIdType = await client.deprecatedGetEntityType({
         entityTypeId: entityTypeComponentId,
       });
 
@@ -756,7 +756,7 @@ describe("logged in user ", () => {
       const entityId = newBlock.data.entityId;
 
       // Get the EntitType that has been created _previously_ because of the ComponentId
-      const componentIdType = await client.getEntityType({
+      const componentIdType = await client.deprecatedGetEntityType({
         entityTypeId: entityTypeComponentId,
       });
 
@@ -804,7 +804,7 @@ describe("logged in user ", () => {
       });
 
       const subTypeParent = await client
-        .getEntityType({
+        .deprecatedGetEntityType({
           entityTypeId: subType1.entityId,
         })
         .then((entyp) => entyp.parents);
@@ -823,7 +823,7 @@ describe("logged in user ", () => {
       });
 
       const superTypeChldren = await client
-        .getEntityType({
+        .deprecatedGetEntityType({
           entityTypeId: superType.entityId,
         })
         .then((entyp) => entyp.children);

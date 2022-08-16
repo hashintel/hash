@@ -16,9 +16,9 @@ const entityTypeFieldsFragment = gql`
   }
 `;
 
-export const getEntityTypeQuery = gql`
-  query getEntityType($entityTypeId: ID!) {
-    getEntityType(entityTypeId: $entityTypeId) {
+export const deprecatedGetEntityTypeQuery = gql`
+  query deprecatedGetEntityType($entityTypeId: ID!) {
+    deprecatedGetEntityType(entityTypeId: $entityTypeId) {
       entityId
       properties
     }

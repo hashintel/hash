@@ -18,12 +18,12 @@ import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 import {
   EntityTypeChoice,
-  GetComponentEntityTypeQuery,
-  GetComponentEntityTypeQueryVariables,
+  DeprecatedGetComponentEntityTypeQuery,
+  DeprecatedGetComponentEntityTypeQueryVariables,
   GetPageQuery,
   GetPageQueryVariables,
-  GetTextEntityTypeQuery,
-  GetTextEntityTypeQueryVariables,
+  DeprecatedGetTextEntityTypeQuery,
+  DeprecatedGetTextEntityTypeQueryVariables,
   SystemTypeName,
   Text,
   UpdatePageAction,
@@ -33,8 +33,8 @@ import {
 } from "../graphql/apiTypes.gen";
 import { capitalizeComponentName } from "../util";
 import {
-  getComponentEntityType,
-  getTextEntityType,
+  deprecatedGetComponentEntityType,
+  deprecatedGetTextEntityType,
 } from "./graphql/queries/entityType.queries";
 import {
   getPageQuery,
@@ -60,13 +60,14 @@ const ensureEntityTypeForComponent = async (
 
   if (!desiredEntityTypeId) {
     desiredEntityTypeId = await apolloClient
-      .query<GetComponentEntityTypeQuery, GetComponentEntityTypeQueryVariables>(
-        {
-          query: getComponentEntityType,
-          variables: { componentId },
-        },
-      )
-      .then((res) => res.data.getEntityType.entityId)
+      .query<
+        DeprecatedGetComponentEntityTypeQuery,
+        DeprecatedGetComponentEntityTypeQueryVariables
+      >({
+        query: deprecatedGetComponentEntityType,
+        variables: { componentId },
+      })
+      .then((res) => res.data.deprecatedGetEntityType.entityId)
       .catch((err) => {
         if (
           err instanceof ApolloError &&
@@ -520,10 +521,13 @@ export const save = async (
       })
       .then((res) => res.data.page.contents),
     apolloClient
-      .query<GetTextEntityTypeQuery, GetTextEntityTypeQueryVariables>({
-        query: getTextEntityType,
+      .query<
+        DeprecatedGetTextEntityTypeQuery,
+        DeprecatedGetTextEntityTypeQueryVariables
+      >({
+        query: deprecatedGetTextEntityType,
       })
-      .then((res) => res.data.getEntityType.entityId)
+      .then((res) => res.data.deprecatedGetEntityType.entityId)
       .catch(() => {
         throw new Error("Cannot find text entity type id");
       }),
