@@ -24,10 +24,7 @@ jobs:
     outputs:
       lint: ${{ steps.crates.outputs.lint }}
       test: ${{ steps.crates.outputs.test }}
-      bench: ${{ steps.crates.outputs.bench }}
       publish: ${{ steps.crates.outputs.publish }}
-      exclude: ${{ steps.crates.outputs.exclude }}
-      toolchains: ${{ steps.crates.outputs.toolchains }}
       samples: ${{ steps.samples.outputs.samples }}
     steps:
       - name: Checkout source code
@@ -58,9 +55,8 @@ jobs:
     steps:
       - name: print
         run: |
-          echo ${{ fromJSON(needs.setup.outputs) }}
-          echo ${{ fromJSON(needs.setup.outputs.lint) }}
-          echo ${{ fromJSON(needs.setup.outputs.toolchains) }}
+          echo "${{ needs.setup.outputs }}"
+          echo "${{ needs.setup.outputs.test }}"
 
   lint:
     name: lint

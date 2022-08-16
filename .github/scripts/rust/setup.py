@@ -119,8 +119,8 @@ def output_matrix(name, crates, **kwargs):
 
     matrix = dict(
         directory=[str(crate) for crate in crates],
+        **kwargs,
         include=[],
-        **kwargs
     )
 
     for crate in crates:
@@ -139,9 +139,8 @@ def output_matrix(name, crates, **kwargs):
                     })
 
 
-    matrix = json.dumps(matrix)
-    print(f"::set-output name={name}::{matrix}")
-    print(f"{name} = {matrix}")
+    print(f"::set-output name={name}::{json.dumps(matrix)}")
+    print(f"{name} = {json.dumps(matrix, indent=4)}")
 
 
 def main():
