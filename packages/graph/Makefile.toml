@@ -35,14 +35,14 @@ category = "Deploy"
 description = "Spins up the deployment environment"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment"
 command = "docker"
-args = ["compose", "--env-file", "../.env", "up", "--wait", "${@}"]
+args = ["compose", "--env-file", "../.env", "up", "--wait"]
 
 [tasks.deployment-down]
 category = "Deploy"
 description = "Tears down the deployment environment"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment"
 command = "docker"
-args = ["compose", "--env-file", "../.env", "down", "${@}"]
+args = ["compose", "--env-file", "../.env", "down"]
 
 [tasks.build-docker]
 category = "Deploy"
