@@ -183,7 +183,7 @@ impl Report<()> {
 
     /// Returns the hook that was previously set by [`install_debug_hook`]
     ///
-    /// [`install_hook`]: Self::install_debug_hook
+    /// [`install_debug_hook`]: Self::install_debug_hook
     #[cfg(feature = "std")]
     pub(crate) fn with_format_hook<T>(closure: impl FnOnce(&Hooks) -> T) -> T {
         let hook = FMT_HOOK.read().expect("should not be poisoned");
@@ -302,11 +302,11 @@ impl Report<()> {
 impl<T> Report<T> {
     /// Converts the `&Report<T>` to `&Report<()>` without modifying the frame stack.
     ///
-    /// Changing `Report<T>` to `Report<()>` is only used internally for calling [`debug_hook`] and
-    /// [`display_hook`] and is intentionally not exposed.
+    /// Changing `Report<T>` to `Report<()>` is only used internally for calling [`with_debug_hook`]
+    /// and [`with_display_hook`] and is intentionally not exposed.
     ///
-    /// [`debug_hook`]: Self::debug_hook
-    /// [`display_hook`]: Self::display_hook
+    /// [`with_debug_hook`]: Self::with_debug_hook
+    /// [`with_display_hook`]: Self::with_display_hook
     pub(crate) const fn generalized(&self) -> &Report<()> {
         // SAFETY: `Report` is repr(transparent), so it's safe to cast between `Report<A>` and
         //         `Report<B>`

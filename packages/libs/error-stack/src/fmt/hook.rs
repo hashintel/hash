@@ -485,14 +485,15 @@ impl<'a, T> Call<'a, T> {
 type BoxedHook =
     Box<dyn for<'a> Fn(&Frame, HookContext<'a, Frame>) -> Call<'a, Frame> + Send + Sync>;
 
-/// Holds a chain of [`Hook`]s
+/// Holds list of hooks and a fallback.
+///
+/// The fallback is called whenever a hook for a specific type couldn't be found.
 ///
 /// These are used to augment the [`Debug`] and [`Display`] information
 /// of attachments, which are normally not printable.
 ///
-/// [`Hook`]s are added via [`.push()`], which is implemented for functions with the signature:
-/// [`Fn(&T, HookContext<T>) -> Line + Send + Sync + 'static`] and
-/// [`Fn(&T) -> Line + Send + Sync + 'static`]
+/// Hooks are added via [`.insert()`], which will wrap the function in an additional closure.
+/// This closure will downcast the [`Frame`] to the requested type.
 ///
 /// If not set, opaque attachments (added via [`.attach()`]) won't be rendered in the [`Debug`] and
 /// [`Display`] output.
@@ -504,7 +505,8 @@ type BoxedHook =
 /// [`SpanTrace`]: tracing_error::SpanTrace
 /// [`Display`]: core::fmt::Display
 /// [`Debug`]: core::fmt::Debug
-/// [`.push()`]: Hooks::push
+/// [`Frame`]: crate::Frame
+/// [`.insert()`]: Hooks::insert
 #[cfg(feature = "std")]
 #[must_use]
 pub struct Hooks {
@@ -516,7 +518,7 @@ pub struct Hooks {
 impl Hooks {
     /// Create a new instance of `Hooks`
     ///
-    /// Preloaded with [`Builtin`] hooks display [`Backtrace`] and [`SpanTrace`] if those features
+    /// Preloaded with builtin hooks which display [`Backtrace`] and [`SpanTrace`] if those features
     /// have been enabled.
     ///
     /// [`Backtrace`]: std::backtrace::Backtrace
