@@ -49,6 +49,7 @@ import { EntityType as ApiEntityType } from "../../graphql/apiTypes.gen";
 import { useReadonlyMode } from "../../shared/readonly-mode";
 import { DataMapEditor } from "./data-map-editor";
 import { mapData, SchemaMap } from "./shared";
+import { useBlockContext } from "../../blocks/page/BlockContext";
 
 type BlockLoaderProps = {
   accountId: string;
@@ -64,8 +65,6 @@ type BlockLoaderProps = {
   linkedEntities: BlockEntity["properties"]["entity"]["linkedEntities"];
   linkedAggregations: BlockEntity["properties"]["entity"]["linkedAggregations"];
   onBlockLoaded: () => void;
-  showDataMappingUi: boolean;
-  setShowDataMappingUi: (shouldShow: boolean) => void;
   // shouldSandbox?: boolean;
 };
 
@@ -102,8 +101,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   linkedEntities,
   linkedAggregations,
   onBlockLoaded,
-  showDataMappingUi,
-  setShowDataMappingUi,
   // shouldSandbox,
 }) => {
   const { readonlyMode } = useReadonlyMode();
@@ -131,6 +128,8 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     useBlockProtocolUpdateLinkedAggregation(readonlyMode);
 
   const { updateLink } = useBlockProtocolUpdateLink();
+
+  const { showDataMappingUi, setShowDataMappingUi } = useBlockContext();
 
   // Storing these in local storage is a temporary solution – we want them in the db soon
   // Known issue: this hook always sets _some_ value in local storage, so we end up with unnecessary things stored there
@@ -269,7 +268,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     return (
       <DataMapEditor
         close={() => setShowDataMappingUi(false)}
-        key={mapId}
         mapId={mapId}
         schemaMap={schemaMap}
         sourceBlockEntity={{
@@ -279,7 +277,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
         sourceBlockGraph={graphProperties.blockGraph}
         targetSchema={blockSchema}
         transformedTree={graphProperties.blockEntity.properties}
-        updateSchemaMap={setSchemaMap}
+        onSchemaMapChange={setSchemaMap}
       />
     );
   }

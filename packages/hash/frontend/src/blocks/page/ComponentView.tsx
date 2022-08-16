@@ -193,7 +193,7 @@ export class ComponentView implements NodeView<Schema> {
               }}
             >
               <BlockLoader
-                key={entityId}
+                key={entityId} // reset the component state when the entity changes, e.g. to reset the data map state
                 blockEntityId={entityId}
                 blockMetadata={this.block.meta}
                 blockSchema={this.block.schema}
@@ -214,10 +214,6 @@ export class ComponentView implements NodeView<Schema> {
                 linkedEntities={childEntity?.linkedEntities ?? []}
                 linkedAggregations={childEntity?.linkedAggregations ?? []}
                 onBlockLoaded={this.onBlockLoaded}
-                showDataMappingUi={ctx?.showDataMappingUi ?? false}
-                setShowDataMappingUi={(shouldShow: boolean) =>
-                  ctx?.setShowDataMappingUi(shouldShow)
-                }
               />
             </Sentry.ErrorBoundary>
           )}

@@ -29,7 +29,7 @@ type DataMapperProps = {
   sourceBlockGraph: BlockGraph;
   targetSchema: JsonSchema;
   transformedTree: UnknownRecord;
-  updateSchemaMap: Dispatch<SetStateAction<SchemaMap>>;
+  onSchemaMapChange: Dispatch<SetStateAction<SchemaMap>>;
 };
 
 /**
@@ -162,7 +162,7 @@ export const DataMapEditor = ({
   sourceBlockGraph,
   targetSchema,
   transformedTree,
-  updateSchemaMap,
+  onSchemaMapChange,
 }: DataMapperProps): ReactElement => {
   const [showPreview, setShowPreview] = useState(false);
 
@@ -185,7 +185,7 @@ export const DataMapEditor = ({
       sourcePaths,
       targetPaths,
     );
-    updateSchemaMap((map) => ({
+    onSchemaMapChange((map) => ({
       ...map,
       transformations: initialTransformations ?? {},
     }));
@@ -280,7 +280,7 @@ export const DataMapEditor = ({
                     "__nothing"
                   }
                   onChange={(evt) =>
-                    updateSchemaMap((existingMap) => ({
+                    onSchemaMapChange((existingMap) => ({
                       ...(existingMap ?? { mapId }),
                       transformations: {
                         ...existingMap.transformations,
@@ -311,7 +311,7 @@ export const DataMapEditor = ({
                   size="small"
                   value={schemaMap?.transformations?.[targetPath]?.default}
                   onChange={(evt) =>
-                    updateSchemaMap((existingMap) => ({
+                    onSchemaMapChange((existingMap) => ({
                       ...(existingMap ?? { mapId }),
                       transformations: {
                         ...existingMap.transformations,
