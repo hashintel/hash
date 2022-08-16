@@ -251,15 +251,15 @@ export class EditorConnection {
     this.run(GET(`${this.url}/events?${query}`)).then(
       async (stringifiedData) => {
         const data = JSON.parse(stringifiedData) as {
-          actions: EntityStorePluginAction[];
+          actions: EntityStorePluginAction[] | undefined;
           clientIDs: number[];
-          steps: { [key: string]: any }[];
+          steps: { [key: string]: any }[] | undefined;
           store: EntityStore | null;
           version: number;
         };
 
         // pull out all componentIds and ensure they are defined
-        const componentIds = data.actions.reduce((acc, curr) => {
+        const componentIds = data.actions?.reduce((acc, curr) => {
           if (
             curr.type === "updateEntityProperties" &&
             isString(curr.payload.properties.componentId) &&
@@ -296,7 +296,7 @@ export class EditorConnection {
             shouldDispatch = true;
           }
 
-          if (data.actions.length) {
+          if (data.actions?.length) {
             for (const action of data.actions) {
               addEntityStoreAction(this.state.edit, tr, {
                 ...action,
@@ -318,7 +318,7 @@ export class EditorConnection {
 
         let tr: Transaction<Schema> | null = null;
 
-        if (data.steps.length) {
+        if (data.steps?.length) {
           if (!this.state.edit) {
             throw new Error("Cannot receive transaction without state");
           }
