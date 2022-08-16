@@ -189,7 +189,11 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       typeof schemaMap === "object" &&
       Object.keys(schemaMap.transformations ?? {}).length > 0
     ) {
-      blockEntity.properties = mapData(blockEntity, blockGraph, schemaMap);
+      blockEntity.properties = mapData(
+        blockEntity,
+        blockGraph,
+        schemaMap.transformations,
+      );
     }
 
     return {

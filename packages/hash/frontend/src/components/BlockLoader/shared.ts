@@ -1,7 +1,6 @@
-import { JsonObject } from "@blockprotocol/core";
+import { JsonObject, UnknownRecord } from "@blockprotocol/core";
 import { BlockGraph, Entity } from "@blockprotocol/graph";
-import get from "lodash/get";
-import set from "lodash/set";
+import { get, set } from "lodash";
 
 export type SchemaMap = {
   mapId: string;
@@ -31,7 +30,7 @@ const pathWithoutLeadingChars = (jsonPath: JsonPath | string) =>
 export const dataTreeFromEntityGraph = (
   entity: Pick<Entity, "entityId" | "properties">,
   graphFromEntity: BlockGraph,
-  processedEntityProperties: Map<string, JsonObject> = new Map(),
+  processedEntityProperties = new Map<string, Entity<UnknownRecord>>(),
 ) => {
   const entityPropertiesClone = JSON.parse(JSON.stringify(entity.properties));
   const linkGroups = graphFromEntity.linkGroups.filter(
@@ -43,7 +42,7 @@ export const dataTreeFromEntityGraph = (
         `Expected linkGroup.path to be jsonpath, got: ${linkGroup.path}`,
       );
     }
-    const entitiesOnPath = [];
+    const entitiesOnPath: Entity<UnknownRecord>[] = [];
     for (const link of linkGroup.links) {
       const linkedEntity = graphFromEntity.linkedEntities.find(
         ({ entityId }) => entityId === link.destinationEntityId,
@@ -64,7 +63,7 @@ export const dataTreeFromEntityGraph = (
       // @todo handle links with an 'index' set – need to put at correct index (checking array size)
       // @todo detect cyclic graphs and stop resolving – won't be serializable as JSON
       entitiesOnPath.push(
-        processedEntityProperties.get(link.destinationEntityId),
+        processedEntityProperties.get(link.destinationEntityId)!,
       );
     }
 
@@ -86,12 +85,12 @@ export const dataTreeFromEntityGraph = (
  * Given a map from one set of paths to another, transforms a graph rooted at an entity into a single JS object.
  * @param entity the root entity
  * @param graphFromEntity the graph around the entity, expressed in Block Protocol terms, i.e. linkGroups and linkedEntities
- * @param map the SchemaMap used to transform the entity graph to a single JS object
+ * @param transformations the transformations used to transform the entity graph to a single JS object
  */
 export const mapData = (
   entity: Pick<Entity, "entityId" | "properties">,
   graphFromEntity: BlockGraph,
-  { transformations }: SchemaMap,
+  transformations: SchemaMap["transformations"],
 ): JsonObject => {
   const convertedObject: JsonObject = {};
   const sourceTree = dataTreeFromEntityGraph(entity, graphFromEntity);
