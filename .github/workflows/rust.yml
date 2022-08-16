@@ -65,16 +65,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      #      matrix: ${{ fromJSON(needs.setup.outputs.lint) }}
-      matrix:
-        profile: ["development", "production"]
-        include:
-          - directory: packages/libs/error-stack
-            toolchain: nightly-2022-08-08
-          - directory: packages/libs/error-stack
-            toolchain: 1.63
-          - directory: packages/engine
-            toolchain: nightly-2022-08-08
+      matrix: ${{ fromJSON(needs.setup.outputs.lint) }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
