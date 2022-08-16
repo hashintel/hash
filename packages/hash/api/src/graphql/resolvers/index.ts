@@ -241,7 +241,7 @@ export const resolvers = {
     results: linkedAggregationResults,
   },
 
-  EntityType: {
+  DeprecatedEntityType: {
     entityType: entityTypeTypeFields.entityType,
     entityTypeId: entityTypeTypeFields.entityTypeId,
     entityTypeName: entityTypeTypeFields.entityTypeName,
