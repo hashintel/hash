@@ -291,14 +291,16 @@ export const DataMapEditor = ({
                     "__nothing"
                   }
                   onChange={(evt) =>
-                    onSchemaMapChange(produce((draftMap) => {
-                      draftMap.transformations ??= {};
-                      draftMap.transformations[targetPath] ??= {};
-                      draftMap.transformations[targetPath]!.sourceKey =
-                        evt.target.value === "__nothing"
-                          ? undefined
-                          : evt.target.value;
-                    }))
+                    onSchemaMapChange(
+                      produce((draftMap) => {
+                        draftMap.transformations ??= {};
+                        draftMap.transformations[targetPath] ??= {};
+                        draftMap.transformations[targetPath]!.sourceKey =
+                          evt.target.value === "__nothing"
+                            ? undefined
+                            : evt.target.value;
+                      }),
+                    )
                   }
                 >
                   <MenuItem value="__nothing">-----------------</MenuItem>
@@ -316,15 +318,17 @@ export const DataMapEditor = ({
                   size="small"
                   value={schemaMap.transformations?.[targetPath]?.default}
                   onChange={(evt) =>
-                    onSchemaMapChange(produce((draftMap) => {
-                      if (evt.target.value == null) {
-                        return;
-                      }
-                      draftMap.transformations ??= {};
-                      draftMap.transformations[targetPath] ??= {};
-                      draftMap.transformations[targetPath]!.default =
-                        evt.target.value;
-                    }))
+                    onSchemaMapChange(
+                      produce((draftMap) => {
+                        if (evt.target.value == null) {
+                          return;
+                        }
+                        draftMap.transformations ??= {};
+                        draftMap.transformations[targetPath] ??= {};
+                        draftMap.transformations[targetPath]!.default =
+                          evt.target.value;
+                      }),
+                    )
                   }
                 />
               </Box>
