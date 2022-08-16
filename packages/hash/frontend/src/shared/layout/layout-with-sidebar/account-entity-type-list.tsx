@@ -147,7 +147,7 @@ export const AccountEntityTypeList: FunctionComponent<
 
   // todo: handle search server side
   const filteredData = useMemo(() => {
-    let entityTypes = data?.getAccountEntityTypes ?? [];
+    let entityTypes = data?.deprecatedGetAccountEntityTypes ?? [];
 
     if (searchQuery) {
       entityTypes = entityTypes.filter(({ properties }) =>

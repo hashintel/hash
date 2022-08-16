@@ -9,7 +9,7 @@ import {
   DeprecatedCreateEntityTypeMutation,
   DeprecatedCreateEntityTypeMutationVariables,
 } from "../../../graphql/apiTypes.gen";
-import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
+import { deprecatedGetAccountEntityTypes } from "../../../graphql/queries/account.queries";
 import { deprecatedCreateEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
 import {
   getLayoutWithSidebar,
@@ -32,7 +32,7 @@ const Page: NextPageWithLayout = () => {
     onCompleted: ({ deprecatedCreateEntityType: entityType }) =>
       router.push(`/${accountId}/types/${entityType.entityId}`),
     refetchQueries: [
-      { query: getAccountEntityTypes, variables: { accountId } },
+      { query: deprecatedGetAccountEntityTypes, variables: { accountId } },
     ],
   });
 

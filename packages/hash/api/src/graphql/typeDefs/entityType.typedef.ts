@@ -25,7 +25,7 @@ export const entityTypeTypedef = gql`
     - ALL types.
     TODO: replace this with a new aggregateEntityTypes query instead
     """
-    getAccountEntityTypes(
+    deprecatedGetAccountEntityTypes(
       accountId: ID!
       includeAllTypes: Boolean = false
       includeOtherTypesInUse: Boolean = false

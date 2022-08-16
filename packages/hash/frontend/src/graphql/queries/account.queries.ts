@@ -62,13 +62,13 @@ export const getAccountPagesTree = gql`
   }
 `;
 
-export const getAccountEntityTypes = gql`
-  query getAccountEntityTypes(
+export const deprecatedGetAccountEntityTypes = gql`
+  query deprecatedGetAccountEntityTypes(
     $accountId: ID!
     $includeAllTypes: Boolean = false
     $includeOtherTypesInUse: Boolean = false
   ) {
-    getAccountEntityTypes(
+    deprecatedGetAccountEntityTypes(
       accountId: $accountId
       includeAllTypes: $includeAllTypes
       includeOtherTypesInUse: $includeOtherTypesInUse

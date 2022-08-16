@@ -47,7 +47,7 @@ import { deprecatedCreateEntityType } from "./entityType/createEntityType";
 import { SYSTEM_TYPES, SystemType } from "../../types/entityTypes";
 import { entityTypeTypeFields } from "./entityType/entityTypeTypeFields";
 import { entityTypeInheritance } from "./entityType/entityTypeInheritance";
-import { getAccountEntityTypes } from "./entityType/getAccountEntityTypes";
+import { deprecatedGetAccountEntityTypes } from "./entityType/getAccountEntityTypes";
 import { deprecatedGetEntityType } from "./entityType/getEntityType";
 import { createOrgEmailInvitation } from "./org/createOrgEmailInvitation";
 import { getOrgEmailInvitation } from "./org/getOrgEmailInvitation";
@@ -100,7 +100,9 @@ export const resolvers = {
       ) /** @todo: make accessible to admins only (or deprecate) */,
     aggregateEntity: loggedInAndSignedUp(aggregateEntity),
     blocks: loggedInAndSignedUp(blocks),
-    getAccountEntityTypes: loggedInAndSignedUp(getAccountEntityTypes),
+    deprecatedGetAccountEntityTypes: loggedInAndSignedUp(
+      deprecatedGetAccountEntityTypes,
+    ),
     entity: loggedInAndSignedUp(entity),
     entities: loggedInAndSignedUp(canAccessAccount(entities)),
     deprecatedGetEntityType: loggedInAndSignedUp(deprecatedGetEntityType),
