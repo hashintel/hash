@@ -6,7 +6,10 @@ pub mod write;
 /// If and only if debug assertions are enabled (i.e. in debug builds) this function will panic if
 /// the buffers do not increase monotonically. We don't enable this during release builds to
 /// increase performance.
-pub(crate) fn assert_buffer_monotonicity(buffers: &Vec<ipc::Buffer>) {
+pub(crate) fn assert_buffer_monotonicity(
+    #[cfg(debug_assertions)] buffers: &Vec<ipc::Buffer>,
+    #[cfg(not(debug_assertions))] _: &Vec<ipc::Buffer>,
+) {
     #[cfg(debug_assertions)]
     {
         let mut offset = 0;
