@@ -51,7 +51,7 @@ jobs:
   lint:
     name: lint
     needs: setup
-    if: needs.setup.outputs.lint != '[]'
+    if: needs.setup.outputs.lint.directory != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -98,7 +98,7 @@ jobs:
   test:
     name: test
     needs: setup
-    if: needs.setup.outputs.test != '[]'
+    if: needs.setup.outputs.test.directory != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -178,7 +178,7 @@ jobs:
   publish:
     name: publish
     needs: setup
-    if: needs.setup.outputs.publish != '[]'
+    if: needs.setup.outputs.publish.directory != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
