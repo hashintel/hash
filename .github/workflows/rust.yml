@@ -91,19 +91,19 @@ jobs:
 
       - name: Check formatting
         working-directory: ${{ matrix.directory }}
-        run: cargo make format -- --check
+        run: cargo +${{ matrix.toolchain }} make format -- --check
 
       - name: Check clippy
         working-directory: ${{ matrix.directory }}
-        run: cargo make clippy -- -D warnings
+        run: cargo +${{ matrix.toolchain }} make clippy -- -D warnings
 
       - name: Check public documentation
         working-directory: ${{ matrix.directory }}
-        run: cargo make rustdoc --check -D warnings
+        run: cargo +${{ matrix.toolchain }} make rustdoc --check -D warnings
 
       - name: Check private documentation
         working-directory: ${{ matrix.directory }}
-        run: cargo make rustdoc --check -D warnings --document-private-items
+        run: cargo +${{ matrix.toolchain }} make rustdoc --check -D warnings --document-private-items
 
   test:
     name: test
@@ -156,12 +156,12 @@ jobs:
 
       - name: Run tests
         working-directory: ${{ matrix.directory }}
-        run: cargo make --profile ${{ matrix.profile }} test --no-fail-fast
+        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
 
       - name: Run miri
         if: matrix.toolchain != 'stable'
         working-directory: ${{ matrix.directory }}
-        run: cargo make --profile ${{ matrix.profile }} miri --no-fail-fast
+        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} miri --no-fail-fast
 
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
@@ -215,22 +215,22 @@ jobs:
 
       - name: Run tests
         working-directory: ${{ matrix.directory }}
-        run: cargo make --profile ${{ matrix.profile }} test --no-fail-fast
+        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
 
       - name: Login
         run: |
           [[ -n "${{ secrets.CARGO_REGISTRY_TOKEN }}" ]]
-          cargo login "${{ secrets.CARGO_REGISTRY_TOKEN }}"
+          cargo +${{ matrix.toolchain }} login "${{ secrets.CARGO_REGISTRY_TOKEN }}"
 
       - name: Publish (dry run)
         if: github.event_name == 'pull_request'
         working-directory: ${{ matrix.directory }}
-        run: cargo publish --all-features --dry-run
+        run: cargo +${{ matrix.toolchain }} publish --all-features --dry-run
 
       - name: Publish
         if: github.event_name == 'push' && github.ref == 'ref/head/main'
         working-directory: ${{ matrix.directory }}
-        run: cargo publish --all-features
+        run: cargo +${{ matrix.toolchain }} publish --all-features
 
   merging-enabled:
     name: merging enabled
