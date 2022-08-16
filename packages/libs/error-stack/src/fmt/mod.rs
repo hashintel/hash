@@ -145,14 +145,14 @@ use core::{
     mem,
 };
 
-#[cfg(feature = "hooks")]
+#[cfg(feature = "std")]
 pub use hook::HookContext;
 use hook::HookContextImpl;
-#[cfg(feature = "hooks")]
+#[cfg(feature = "std")]
 pub(crate) use hook::Hooks;
-#[cfg(feature = "hooks")]
+#[cfg(feature = "std")]
 pub use hook::{builtin, Call};
-#[cfg(not(feature = "hooks"))]
+#[cfg(not(feature = "std"))]
 pub(crate) use hook::{builtin, Call};
 #[cfg(all(nightly, feature = "experimental"))]
 pub use nightly::DebugDiagnostic;
@@ -793,12 +793,12 @@ fn debug_attachments(
                     return Some(debug.output().clone());
                 }
 
-                #[cfg(feature = "hooks")]
+                #[cfg(feature = "std")]
                 {
                     return Report::with_format_hook(|hooks| hooks.call(frame, ctx.cast()).consume());
                 };
 
-                #[cfg(not(feature = "hooks"))]
+                #[cfg(not(feature = "std"))]
                 {
                     builtin(frame, ctx.cast()).consume()
                 }
@@ -1017,7 +1017,7 @@ fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Ve
 
 impl<C> Debug for Report<C> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "hooks")]
+        #[cfg(feature = "std")]
         if let Some(result) = Report::with_debug_hook(|hook| hook(self.generalized(), fmt)) {
             return result;
         }
@@ -1076,7 +1076,7 @@ impl<C> Debug for Report<C> {
 
 impl<Context> Display for Report<Context> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "hooks")]
+        #[cfg(feature = "std")]
         if let Some(result) = Report::with_display_hook(|hook| hook(self.generalized(), fmt)) {
             return result;
         }

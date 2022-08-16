@@ -79,7 +79,7 @@ impl Report<()> {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/hook__debug_hook.snap"))]
     /// </pre>
-    #[cfg(feature = "hooks")]
+    #[cfg(feature = "std")]
     pub fn install_debug_hook<T: Send + Sync + 'static>(
         hook: impl Fn(&T, &mut HookContext<T>) -> Emit + Send + Sync + 'static,
     ) {
@@ -179,6 +179,7 @@ impl Report<()> {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/hook__fallback_builtin.snap"))]
     /// </pre>
+    #[cfg(feature = "std")]
     pub fn install_debug_hook_fallback(
         hook: impl for<'a> Fn(&Frame, HookContext<'a, Frame>) -> Call<'a, Frame> + Send + Sync + 'static,
     ) {
@@ -189,7 +190,7 @@ impl Report<()> {
     /// Returns the hook that was previously set by [`install_debug_hook`]
     ///
     /// [`install_hook`]: Self::install_debug_hook
-    #[cfg(feature = "hooks")]
+    #[cfg(feature = "std")]
     pub(crate) fn with_format_hook<T>(closure: impl FnOnce(&Hooks) -> T) -> T {
         let hook = FMT_HOOK.read().expect("should not be poisoned");
         closure(&hook)
@@ -231,7 +232,7 @@ impl Report<()> {
     /// # Ok(()) }
     /// ```
     #[deprecated = "use Report::install_hook() instead"]
-    #[cfg(feature = "hooks")]
+    #[cfg(feature = "std")]
     pub fn set_debug_hook<H>(hook: H) -> Result<(), HookAlreadySet>
     where
         H: Fn(&Self, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static,
@@ -245,7 +246,7 @@ impl Report<()> {
     /// Returns the hook that was previously set by [`set_debug_hook`], if any.
     ///
     /// [`set_debug_hook`]: Self::set_debug_hook
-    #[cfg(feature = "hooks")]
+    #[cfg(feature = "std")]
     pub(crate) fn with_debug_hook<T>(closure: impl FnOnce(&FormatterHook) -> T) -> Option<T> {
         let hook = DEBUG_HOOK.read().expect("should not poisoned");
         hook.as_ref().map(|hook| closure(hook))
@@ -283,7 +284,7 @@ impl Report<()> {
     /// # Ok(()) }
     /// ```
     #[deprecated]
-    #[cfg(feature = "hooks")]
+    #[cfg(feature = "std")]
     pub fn set_display_hook<H>(hook: H) -> Result<(), HookAlreadySet>
     where
         H: Fn(&Self, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static,
@@ -297,7 +298,7 @@ impl Report<()> {
     /// Returns the hook that was previously set by [`set_display_hook`], if any.
     ///
     /// [`set_display_hook`]: Self::set_display_hook
-    #[cfg(feature = "hooks")]
+    #[cfg(feature = "std")]
     pub(crate) fn with_display_hook<T>(closure: impl FnOnce(&FormatterHook) -> T) -> Option<T> {
         let hook = DISPLAY_HOOK.read().expect("should not poisoned");
         hook.as_ref().map(|hook| closure(hook))

@@ -1,7 +1,7 @@
 // We allow dead-code here, because some of the functions are only exposed when `feature = "hooks"`
 // we could do cfg for everything, but that gets very messy, instead we only use a subset
-// and enable deadcode on `feature = "hooks"`.
-#![cfg_attr(not(feature = "hooks"), allow(dead_code))]
+// and enable deadcode on `feature = "std"`.
+#![cfg_attr(not(feature = "std"), allow(dead_code))]
 
 use alloc::{boxed::Box, collections::BTreeMap, vec::Vec};
 use core::{
@@ -148,13 +148,13 @@ impl HookContextImpl {
 /// </pre>
 ///
 /// [`Debug`]: core::fmt::Debug
-#[cfg_attr(all(doc, nightly), doc(cfg(feature = "hooks")))]
+#[cfg_attr(all(doc, nightly), doc(cfg(feature = "std")))]
 pub struct HookContext<'a, T> {
     parent: &'a mut HookContextImpl,
     _marker: PhantomData<T>,
 }
 
-#[cfg_attr(all(doc, nightly), doc(cfg(feature = "hooks")))]
+#[cfg_attr(all(doc, nightly), doc(cfg(feature = "std")))]
 impl<T> HookContext<'_, T> {
     /// If [`Debug`] requests, this snippet (which can include line breaks) will be appended to the
     /// main message.
@@ -172,7 +172,7 @@ impl<T> HookContext<'_, T> {
     }
 }
 
-#[cfg_attr(all(doc, nightly), doc(cfg(feature = "hooks")))]
+#[cfg_attr(all(doc, nightly), doc(cfg(feature = "std")))]
 impl<'a, T> HookContext<'a, T> {
     /// Cast the [`HookContext`] to a new type `U`.
     ///
@@ -259,7 +259,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// Values returned are isolated and therefore "bound" to `T`, this means that if two different
     /// [`HookContext`]s that share the same inner value (e.g. same invocation of [`Debug`]) will
     /// return the same value.
-    /// 
+    ///
     /// [`Debug`]: core::fmt::Debug
     pub fn get<U: 'static>(&self) -> Option<&U> {
         self.parent
@@ -501,14 +501,14 @@ type BoxedHook =
 /// [`Display`]: core::fmt::Display
 /// [`Debug`]: core::fmt::Debug
 /// [`.push()`]: Hooks::push
-#[cfg(feature = "hooks")]
+#[cfg(feature = "std")]
 #[must_use]
 pub(crate) struct Hooks {
     inner: Option<BTreeMap<TypeId, BoxedHook>>,
     fallback: Option<BoxedHook>,
 }
 
-#[cfg(feature = "hooks")]
+#[cfg(feature = "std")]
 impl Hooks {
     /// Create a new instance of `Hooks`
     ///

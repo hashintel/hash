@@ -403,7 +403,6 @@
 //!  Feature   | Description                                                    | implies | default
 //! -----------|----------------------------------------------------------------|---------|--------
 //!  `std`     | Enables support for [`Error`] and, on nightly, [`Backtrace`]   |         | enabled
-//!  `hooks`   |Enables the usage of [`set_display_hook`] and [`set_debug_hook`]| `std`   | disabled
 //! `spantrace`| Enables the capturing of [`SpanTrace`]s                        |         | disabled
 //!  `futures` | Provides a [`FutureExt`] adaptor                               |         | disabled
 //! `small`    | Enable optimizations for the memory footprint of [`Report`]    |         | enabled
@@ -452,12 +451,12 @@ mod report;
 mod context;
 mod ext;
 pub mod fmt;
-#[cfg(feature = "hooks")]
+#[cfg(feature = "std")]
 mod hook;
 
 #[doc(inline)]
 pub use self::ext::*;
-#[cfg(feature = "hooks")]
+#[cfg(feature = "std")]
 pub use self::hook::HookAlreadySet;
 pub use self::{
     context::Context,

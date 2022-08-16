@@ -1,4 +1,4 @@
-#![cfg(feature = "hooks")]
+#![cfg(feature = "std")]
 #![cfg_attr(nightly, feature(provide_any))]
 #![cfg_attr(
     all(nightly, feature = "std"),

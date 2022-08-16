@@ -8,7 +8,7 @@ CARGO_MIRI_FLAGS = "--tests --lib"
 CARGO_INSTA_TEST_FLAGS = "--no-fail-fast"
 # The only features that are of relevance are: spantrace, glyph, std, hooks
 # all others do not change the output
-CARGO_INSTA_TEST_HACK_FLAGS = "--workspace --keep-going --feature-powerset --include-features spantrace,glyph,std,hooks,experimental"
+CARGO_INSTA_TEST_HACK_FLAGS = "--workspace --keep-going --feature-powerset --include-features spantrace,glyph,std,experimental"
 
 [env.release]
 CARGO_TEST_HACK_FLAGS = "${CARGO_TEST_HACK_FLAGS_BASE}"

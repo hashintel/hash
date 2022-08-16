@@ -9,7 +9,7 @@
 
 mod common;
 use common::*;
-#[cfg(feature = "hooks")]
+#[cfg(feature = "std")]
 use error_stack::fmt::{Emit, HookContext};
 #[allow(unused_imports)]
 use error_stack::Report;
@@ -285,16 +285,12 @@ fn sources_nested_alternate() {
 
 #[cfg(all(
     nightly,
-    feature = "hooks",
+    feature = "std",
     feature = "spantrace",
     feature = "glyph",
     feature = "experimental"
 ))]
 mod full {
-    //! To be able to set `OnceCell` multiple times we need to run each of them in a separate fork,
-    //! this works without fault in `nextest` you cannot guarantee that this is always the case.
-    //! This is mostly undocumented behavior.
-    //!
     //! Why so many cfg guards?
     //! What was found during initial development of the feature was,
     //! that a complete test of all tests with snapshots on every possible feature combination
