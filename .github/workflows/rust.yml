@@ -60,7 +60,7 @@ jobs:
       fail-fast: false
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.lint) }}
-        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains[matrix.directory]) }}
+        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains)[fromJSON(needs.setup.outputs.lint)]) }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -109,7 +109,7 @@ jobs:
       fail-fast: false
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.test) }}
-        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains[matrix.directory]) }}
+        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains)[fromJSON(needs.setup.outputs.lint)]) }}
         profile:
           - development
           - production
@@ -194,7 +194,7 @@ jobs:
       fail-fast: false
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.publish) }}
-        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains[matrix.directory]) }}
+        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains)[fromJSON(needs.setup.outputs.publish)]) }}
         profile:
           - release
     steps:
