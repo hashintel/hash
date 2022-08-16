@@ -178,6 +178,34 @@ export default class {
     });
   }
 
+  /**
+   * Update a top-level property on an entity.
+   *
+   * @param params.propertyTypeBaseUri - the property type base URI of the property being updated
+   * @param params.value - the updated value of the property
+   * @param params.updatedByAccountId - the account id of the account updating the property value
+   * @returns
+   */
+  async updateProperty(
+    graphApi: GraphApi,
+    params: {
+      propertyTypeBaseUri: string;
+      value: any;
+      updatedByAccountId: string;
+    },
+  ): Promise<EntityModel> {
+    const { updatedByAccountId, propertyTypeBaseUri, value } = params;
+    const updatedProperties = {
+      ...this.properties,
+      [propertyTypeBaseUri]: value,
+    };
+
+    return await this.update(graphApi, {
+      accountId: updatedByAccountId,
+      properties: updatedProperties,
+    });
+  }
+
   async getLatestVersion(graphApi: GraphApi) {
     const { accountId, entityId } = this;
 
