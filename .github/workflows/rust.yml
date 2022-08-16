@@ -51,6 +51,16 @@ jobs:
             echo "::set-output name=samples::10"
           fi
 
+  print:
+    name: print
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: print
+        run: echo ${{ fromJSON(needs.setup.outputs) }}
+          echo ${{ fromJSON(needs.setup.outputs.lint) }}
+          echo ${{ fromJSON(needs.setup.outputs.toolchains) }}
+
   lint:
     name: lint
     needs: setup
