@@ -7,11 +7,14 @@ import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { AxiosError } from "axios";
 import {
   DataTypeModel,
-  emailPropertyType,
   EntityTypeModel,
   PropertyTypeModel,
   shortnamePropertyType,
+  kratosIdentityIdPropertyType,
+  emailPropertyType,
   userEntityType,
+  accountIdPropertyType,
+  preferredNamePropertyType,
 } from "../model";
 import { logger } from "../logger";
 import {
@@ -22,6 +25,9 @@ import {
 const workspacePropertyTypes: PropertyType[] = [
   shortnamePropertyType,
   emailPropertyType,
+  kratosIdentityIdPropertyType,
+  accountIdPropertyType,
+  preferredNamePropertyType,
 ];
 
 const workspaceEntityTypes: EntityType[] = [userEntityType];

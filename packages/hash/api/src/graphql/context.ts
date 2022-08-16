@@ -1,7 +1,7 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { SearchAdapter } from "@hashintel/hash-backend-utils/search/adapter";
 
-import { User } from "../model";
+import { UserModel } from "../model";
 import { DbAdapter } from "../db";
 import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
@@ -24,9 +24,9 @@ export interface GraphQLContext {
   emailTransporter: EmailTransporter;
   uploadProvider: StorageType;
   logger: Logger;
-  user?: Omit<User, "entityType">;
+  user?: UserModel;
 }
 
 export interface LoggedInGraphQLContext extends GraphQLContext {
-  user: User;
+  user: UserModel;
 }

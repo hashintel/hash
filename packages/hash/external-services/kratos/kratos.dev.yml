@@ -37,6 +37,21 @@ selfservice:
       after:
         password:
           hooks:
+            # TODO - This does not block writing to the datastore. Update this
+            # configuration to use a "pre-persist" hook when it is officially
+            # supported by kratos.
+            - hook: web_hook
+              config:
+                url: http://host.docker.internal:5001/kratos-after-registration
+                method: POST
+                body: file:///etc/config/kratos/hooks/after.registration.jsonnet
+                auth:
+                  type: api_key
+                  config:
+                    name: KRATOS_API_KEY
+                    # TODO - figure out how to get this from an environment variable
+                    value: secret
+                    in: header
             - hook: session
 
 log:
