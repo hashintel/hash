@@ -567,7 +567,7 @@ impl Hooks {
 }
 
 mod default {
-    #![cfg_attr(not(feature = "std"), allow(unused_imports))]
+    #![allow(unused_imports)]
 
     #[cfg(any(all(nightly, feature = "std"), feature = "spantrace"))]
     use alloc::format;
