@@ -1,40 +1,83 @@
 # The HASH Graph API
 
-## Running the database
-
-1.  In order to set up the database, first the database has to be started:
+To run the HASH Graph API make sure `cargo-make` is installed:
 
 ```shell
-touch .env.local
-docker-compose -f deployment/docker-compose.yml --env-file .env up
+cargo install cargo-make
 ```
 
-Alternatively, simply run
+## Run the Graph
+
+1.  In order to set up the database, first the database has to be started:
 
 ```shell
 cargo make deployment-up
 ```
 
-1.  (Optional) If starting the database for the first time, the tables have to be generated. From the `migration` directory, run the following command:
-
-```shell
-yarn graph:recreate-db
-```
-
-or
+It's possible to recreate the database by using
 
 ```shell
 cargo make recreate-db
 ```
 
-1.  Then, apply the migrations from the `migration` directory:
+Then, the Graph API can be started:
 
 ```shell
-yarn graph:migrate up
+cargo run
 ```
 
-or
+## Development
+
+In order to build run the following command:
 
 ```shell
-cargo make migrate-up
+cargo make build
 ```
+
+In order to create an optimized build, run:
+
+```shell
+cargo make --profile production build
+```
+
+Please see the list of all possible `cargo make` commands:
+
+```shell
+cargo make --list-all-steps
+```
+
+Every command line argument passed will also be forwarded to the subcommand, e.g. this will not only build the documentation but also open it in the browser:
+
+```shell
+cargo make doc --open
+```
+
+## Test the code
+
+The code base has two test suites: The unit test suite and the integration tests. To run the unit-test suite, simply run the `test` command:
+
+```shell
+cargo make test
+```
+
+For the integration tests, the database needs to be deployed [as specified here](../README.md#running-the-database). Next, the integration test suite can be started:
+
+```shell
+cargo make test-integration
+```
+
+The REST API can be tested as well. Note, that this requires the Graph to run and does not clean up the database after running:
+
+```shell
+cargo make test-rest-api
+```
+
+## Generate OpenAPI client
+
+The HASH Graph produces an OpenAPI Spec while running, which can be used to generate the `@hashintel/hash-graph-client` typescript client. In the `hash_graph` directory run:
+
+```shell
+cargo make generate-openapi-client
+```
+
+Make sure to run this command whenever changes are made to the specification. CI will not pass otherwise.

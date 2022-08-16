@@ -81,7 +81,12 @@ pub struct LoggingArgs {
     /// Log format used for output to stderr.
     #[cfg_attr(
         feature = "clap",
-        clap(long, default_value = "pretty", arg_enum, env = "HASH_LOG_FORMAT")
+        clap(
+            long,
+            default_value = "pretty",
+            arg_enum,
+            env = "HASH_GRAPH_LOG_FORMAT"
+        )
     )]
     pub log_format: LogFormat,
 
@@ -92,7 +97,7 @@ pub struct LoggingArgs {
     /// Logging output folder. The folder is created if it doesn't exist.
     #[cfg_attr(
         feature = "clap",
-        clap(long, default_value = "./log", env = "HASH_LOG_FOLDER")
+        clap(long, default_value = "./log", env = "HASH_GRAPH_LOG_FOLDER")
     )]
     pub log_folder: PathBuf,
 

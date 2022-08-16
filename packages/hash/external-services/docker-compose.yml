@@ -1,4 +1,8 @@
 version: "3.9"
+
+volumes:
+  hash-postgres-data:
+
 services:
   hash-dev-opensearch:
     deploy:
@@ -32,21 +36,66 @@ services:
     #   - ../../../var/external-services/opensearch/data:/usr/share/opensearch/data
 
   postgres:
-    image: postgres:14-alpine
+    image: postgres:14-alpine3.16
     deploy:
       restart_policy:
         condition: on-failure
-    env_file:
-      - ../../../.env
-      - ../../../.env.local
     environment:
-      - PGDATA=/data/pgdata
+      PGDATA: /data/pgdata
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      HASH_KRATOS_PG_USER: "${HASH_KRATOS_PG_USER}"
+      HASH_KRATOS_PG_PASSWORD: "${HASH_KRATOS_PG_PASSWORD}"
+      HASH_KRATOS_PG_DATABASE: "${HASH_KRATOS_PG_DATABASE}"
+      HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
+      HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DATABASE}"
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
-      - ../../../var/external-services/postgres/data:/data
+      - hash-postgres-data:/var/lib/postgresql/data
       - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ./postgres/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh
+      - ./postgres/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --username ${POSTGRES_USER}"]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+    command: -c 'config_file=/etc/postgresql/postgresql.conf'
+
+  graph-migrate:
+    build:
+      context: ../../graph
+      dockerfile: deployment/migrations/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      HASH_GRAPH_PG_MIGRATION_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${HASH_GRAPH_PG_DATABASE}"
+
+  graph:
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      graph-migrate:
+        condition: service_completed_successfully
+    build:
+      dockerfile: deployment/graph/Dockerfile
+      context: ../../graph
+      args:
+        PROFILE: dev
+    environment:
+      HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
+      HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
+      HASH_GRAPH_PG_HOST: "postgres"
+      HASH_GRAPH_PG_PORT: "5432"
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DATABASE}"
+      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
+      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash_graph=trace}"
+    ports:
+      - "${HASH_GRAPH_API_PORT}:4000"
+
   hash-dev-redis:
     deploy:
       restart_policy:
@@ -54,9 +103,11 @@ services:
     image: redis:6.2
     ports:
       - 6379:6379
+
   kratos-migrate:
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     image: oryd/kratos:v0.10.1
     volumes:
       - type: bind
@@ -65,6 +116,7 @@ services:
     environment:
       - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DATABASE}
     command: -c /etc/config/kratos/kratos.dev.yml migrate sql -e --yes
+
   kratos:
     depends_on:
       - kratos-migrate
@@ -86,6 +138,7 @@ services:
       - type: bind
         source: ./kratos
         target: /etc/config/kratos
+
   mailslurper:
     image: oryd/mailslurper:latest-smtps
     ports:

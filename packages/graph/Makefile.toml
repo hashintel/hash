@@ -3,13 +3,7 @@ extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 [tasks.touch-environment]
 private = true
 command = "touch"
-args = ["${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/.env.local"]
-
-
-[tasks.sleep-for-five-seconds]
-private = true
-command = "sleep"
-args = ["5"]
+args = ["${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/../../.env.local"]
 
 [tasks.yarn]
 category = "Deploy"
@@ -18,31 +12,66 @@ command = "yarn"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/migrations"
 
 [tasks.recreate-db]
+run_task = { name = ["recreate-db-task", "migrate-up"] }
+
+[tasks.recreate-db-task]
+private = true
 category = "Deploy"
 description = "Recreates the database"
-command = "yarn"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/migrations"
+command = "yarn"
 args = ["graph:recreate-db"]
 
 [tasks.migrate-up]
 category = "Deploy"
 description = "Runs all migrations"
-command = "yarn"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/migrations"
+env_files = ["../.env"]
+command = "yarn"
 args = ["graph:migrate", "up"]
 
 [tasks.deployment-up]
 category = "Deploy"
 description = "Spins up the deployment environment"
-command = "docker-compose"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment"
-args = ["--env-file", "../.env", "up", "-d"]
-dependencies = ["touch-environment"]
+command = "docker"
+args = ["compose", "--env-file", "../.env", "up", "--wait"]
 
 [tasks.deployment-down]
 category = "Deploy"
 description = "Tears down the deployment environment"
-command = "docker-compose"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/deployment"
-args = ["--env-file", "../.env", "down"]
+command = "docker"
+args = ["compose", "--env-file", "../.env", "down"]
 
+[tasks.build-docker]
+category = "Deploy"
+description = "Spins up the Graph API as external service"
+cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/../../"
+env = { DOCKER_BUILDKIT = 1 }
+command = "yarn"
+args = ["external-services", "build", "graph", "${@}"]
+dependencies = ["touch-environment"]
+
+[tasks.graph-up]
+category = "Deploy"
+description = "Spins up the Graph API as external service"
+cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/../../"
+command = "yarn"
+args = ["external-services", "up", "--wait", "graph", "${@}"]
+dependencies = ["touch-environment"]
+
+[tasks.graph-down]
+category = "Deploy"
+description = "Tears down up the Graph API"
+cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/../../"
+command = "yarn"
+args = ["external-services", "down", "${@}"]
+
+[tasks.test-docker]
+run_task = { name = ["graph-up", "test-rest-api", "graph-down"] }
+
+[tasks.test-rest-api]
+# This is a temporary solution until we have e2e tests in place
+command = "yarn"
+args = ["httpyac", "send", "--all", "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/hash_graph/tests/rest-test.http", "${@}"]

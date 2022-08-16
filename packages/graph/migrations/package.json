@@ -6,8 +6,7 @@
   "license": "AGPL-3.0",
   "scripts": {
     "fix:eslint": "eslint --ext .ts --fix .",
-    "graph:generate-ids": "ts-node postgres/scripts/generate-ids.ts",
-    "graph:migrate": "ts-node node_modules/.bin/node-pg-migrate -d HASH_GRAPH_PG_MIGRATION_URL --envPath ../.env -f ./postgres/migration-config.json",
+    "graph:migrate": "ts-node node_modules/.bin/node-pg-migrate -d HASH_GRAPH_PG_MIGRATION_URL -f ./postgres/migration-config.json",
     "graph:recreate-db": "ts-node postgres/scripts/recreate-graph-db.ts",
     "lint:eslint": "eslint --ext .ts .",
     "lint:tsc": "tsc --noEmit"
@@ -21,6 +20,7 @@
     "pg": "8.7.1",
     "prompts": "2.4.1",
     "ts-node": "10.4.0",
+    "typescript": "4.6.3",
     "yargs": "17.1.1"
   },
   "devDependencies": {
