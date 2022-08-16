@@ -272,7 +272,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     return (
       <DataMapEditor
         close={() => setShowDataMappingUi(false)}
-        mapId={mapId}
         schemaMap={schemaMap}
         sourceBlockEntity={{
           ...graphProperties.blockEntity,

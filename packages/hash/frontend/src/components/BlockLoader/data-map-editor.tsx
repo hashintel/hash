@@ -18,13 +18,13 @@ import {
   Select,
   TextField,
 } from "@hashintel/hash-design-system";
+import produce from "immer";
 import { dataTreeFromEntityGraph, SchemaMap } from "./shared";
 import { DataMapPreview } from "./data-map-editor/data-map-preview";
 
 type DataMapperProps = {
   close: () => void;
-  mapId: string;
-  schemaMap?: SchemaMap;
+  schemaMap: SchemaMap;
   sourceBlockEntity: Entity;
   sourceBlockGraph: BlockGraph;
   targetSchema: JsonSchema;
@@ -166,7 +166,6 @@ const generateInitialTransformations = (
  */
 export const DataMapEditor = ({
   close,
-  mapId,
   schemaMap,
   sourceBlockEntity,
   sourceBlockGraph,
@@ -176,21 +175,20 @@ export const DataMapEditor = ({
 }: DataMapperProps): ReactElement => {
   const [showPreview, setShowPreview] = useState(false);
 
-  const { sourcePaths, sourceTree } = useMemo(() => {
-    const tree = dataTreeFromEntityGraph(sourceBlockEntity, sourceBlockGraph);
-    const paths: string[] = derivePathsFromObject(tree);
-    return {
-      sourceTree: tree,
-      sourcePaths: paths,
-    };
-  }, [sourceBlockEntity, sourceBlockGraph]);
+  const sourceTree = dataTreeFromEntityGraph(
+    sourceBlockEntity,
+    sourceBlockGraph,
+  );
+  const sourcePaths = derivePathsFromObject(sourceTree);
 
   const targetPaths = useMemo(
     () => derivePathsFromSchema(targetSchema, targetSchema.properties),
     [targetSchema],
   );
 
-  if (!schemaMap?.transformations) {
+  if (!schemaMap.transformations) {
+    // This is not great as it updates externally-owned state during render
+    // It should be removed when moving map storage to the db
     const initialTransformations = generateInitialTransformations(
       sourcePaths,
       targetPaths,
@@ -228,17 +226,17 @@ export const DataMapEditor = ({
             py: 1,
           })}
         >
-          <Box width="30%">
+          <Box flex={1}>
             <Typography fontWeight={600} variant="smallTextLabels">
               Target path
             </Typography>
           </Box>
-          <Box width="30%">
+          <Box flex={1}>
             <Typography fontWeight={600} variant="smallTextLabels">
               Source path
             </Typography>
           </Box>
-          <Box width="30%" ml={4}>
+          <Box flex={1} ml={4}>
             <Typography fontWeight={600} variant="smallTextLabels">
               Default
             </Typography>
@@ -263,7 +261,7 @@ export const DataMapEditor = ({
                 borderBottom: `1px solid ${palette.gray[20]}`,
               })}
             >
-              <Box width="30%">
+              <Box flex={1}>
                 <Typography fontWeight={500} variant="smallTextLabels">
                   {targetPath}
                   {required ? "*" : ""}
@@ -282,28 +280,24 @@ export const DataMapEditor = ({
                   {description ?? "No description provided"}
                 </Typography>
               </Box>
-              <Box width="30%">
+              <Box flex={1}>
                 <Select
                   size="small"
                   defaultValue={
-                    schemaMap?.transformations?.[targetPath]?.sourceKey ??
+                    schemaMap.transformations?.[targetPath]?.sourceKey ??
                     "__nothing"
                   }
                   onChange={(evt) =>
-                    onSchemaMapChange((existingMap) => ({
-                      ...(existingMap ?? { mapId }),
-                      transformations: {
-                        ...existingMap.transformations,
-                        [targetPath]: {
-                          default:
-                            existingMap.transformations?.[targetPath]?.default,
-                          sourceKey:
-                            evt.target.value === "__nothing"
-                              ? undefined
-                              : evt.target.value,
-                        },
-                      },
-                    }))
+                    onSchemaMapChange((existingMap) =>
+                      produce(existingMap, (draftMap) => {
+                        draftMap.transformations ??= {};
+                        draftMap.transformations[targetPath] ??= {};
+                        draftMap.transformations[targetPath]!.sourceKey =
+                          evt.target.value === "__nothing"
+                            ? undefined
+                            : evt.target.value;
+                      }),
+                    )
                   }
                 >
                   <MenuItem value="__nothing">-----------------</MenuItem>
@@ -316,26 +310,22 @@ export const DataMapEditor = ({
                   })}
                 </Select>
               </Box>
-              <Box width="30%" ml={4}>
+              <Box flex={1} ml={4}>
                 <TextField
                   size="small"
-                  value={schemaMap?.transformations?.[targetPath]?.default}
+                  value={schemaMap.transformations?.[targetPath]?.default}
                   onChange={(evt) =>
-                    onSchemaMapChange((existingMap) => ({
-                      ...(existingMap ?? { mapId }),
-                      transformations: {
-                        ...existingMap.transformations,
-                        [targetPath]:
-                          evt.target.value != null
-                            ? {
-                                default: evt.target.value,
-                                sourceKey:
-                                  existingMap.transformations?.[targetPath]
-                                    ?.sourceKey,
-                              }
-                            : undefined,
-                      },
-                    }))
+                    onSchemaMapChange((existingMap) =>
+                      produce(existingMap, (draftMap) => {
+                        if (evt.target.value == null) {
+                          return;
+                        }
+                        draftMap.transformations ??= {};
+                        draftMap.transformations[targetPath] ??= {};
+                        draftMap.transformations[targetPath]!.default =
+                          evt.target.value;
+                      }),
+                    )
                   }
                 />
               </Box>
