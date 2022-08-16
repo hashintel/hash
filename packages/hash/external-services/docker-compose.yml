@@ -63,19 +63,29 @@ services:
       retries: 5
     command: -c 'config_file=/etc/postgresql/postgresql.conf'
 
+  migration:
+    build:
+      context: ../../graph
+      dockerfile: deployment/migrations/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      HASH_GRAPH_PG_MIGRATION_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${HASH_GRAPH_PG_DATABASE}"
+
   graph:
     init: true
     depends_on:
       postgres:
         condition: service_healthy
+      migration:
+        condition: service_completed_successfully
     build:
       dockerfile: deployment/graph/Dockerfile
       context: ../../graph
       args:
         PROFILE: dev
     environment:
-      POSTGRES_USER: "${POSTGRES_USER}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
       HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
       HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
       HASH_GRAPH_PG_HOST: "postgres"
@@ -85,15 +95,7 @@ services:
       RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash_graph=trace}"
     ports:
       - "${HASH_GRAPH_API_PORT}:4000"
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget --no-verbose --tries=1 --spider http://localhost:4000/api-doc/openapi.json || exit 1",
-        ]
-      interval: 2s
-      timeout: 2s
-      retries: 5
+
   hash-dev-redis:
     deploy:
       restart_policy:

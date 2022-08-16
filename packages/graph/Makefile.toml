@@ -12,6 +12,10 @@ command = "yarn"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/migrations"
 
 [tasks.recreate-db]
+run_task = { name = ["recreate-db-task", "migrate-up"] }
+
+[tasks.recreate-db-task]
+private = true
 category = "Deploy"
 description = "Recreates the database"
 cwd = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/migrations"

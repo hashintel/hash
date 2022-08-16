@@ -107,7 +107,7 @@ async fn main() -> Result<(), GraphError> {
         .change_context(GraphError)
         .attach_printable_lazy(|| api_address.clone())?;
 
-    tracing::trace!("Listening on {api_address}");
+    tracing::info!("Listening on {api_address}");
     axum::Server::bind(&addr)
         .serve(rest_router.into_make_service())
         .await

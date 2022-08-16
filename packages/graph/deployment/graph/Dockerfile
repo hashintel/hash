@@ -10,20 +10,19 @@ RUN apk add --no-cache gcc musl-dev && \
     rustup show
 
 FROM rust AS builder
-WORKDIR /usr/local/src/graph
+WORKDIR /usr/local/src/hash_graph
 COPY hash_graph .
 ARG PROFILE=production
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
-    --mount=type=cache,target=/app/target \
+    --mount=type=cache,target=/usr/local/src/hash_graph/target \
     cargo install --path bin/hash_graph --profile $PROFILE --all-features --locked
 
-FROM node:18.7.0-alpine3.16 as runtime
-COPY migrations/ /migrations/
-WORKDIR /migrations
-RUN --mount=type=cache,target=/root/.yarn YARN_CACHE_FOLDER=/root/.yarn yarn install
+# Replace with `FROM scratch` when a health check command was added to hash-graph
+FROM alpine:3.16 AS runtime
+COPY --from=builder /usr/local/cargo/bin/hash-graph /
 
-COPY deployment/graph/migrate_and_run.sh /usr/local/bin/migrate_and_run.sh
-COPY --from=builder /usr/local/cargo/bin/hash-graph /usr/local/bin/
+HEALTHCHECK --interval=2s --timeout=1s --retries=5 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:4000/api-doc/openapi.json || exit 1
 
-ENTRYPOINT ["/usr/local/bin/migrate_and_run.sh"]
+ENTRYPOINT ["/hash-graph", "--api-host", "0.0.0.0"]
