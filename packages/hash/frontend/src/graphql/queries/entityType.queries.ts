@@ -1,7 +1,7 @@
 import { gql } from "@apollo/client";
 
 const entityTypeFieldsFragment = gql`
-  fragment EntityTypeFields on EntityType {
+  fragment EntityTypeFields on DeprecatedEntityType {
     accountId
     createdByAccountId
     createdAt

@@ -1,14 +1,13 @@
 import { ApolloError } from "apollo-server-express";
 
-import { ResolverFn, EntityType as GQLEntityType } from "../../apiTypes.gen";
+import { ResolverFn, DeprecatedEntityType } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { EntityType, UnresolvedGQLEntityType } from "../../../model";
 
 const children: ResolverFn<
   Promise<UnresolvedGQLEntityType[]>,
-  GQLEntityType,
-  GraphQLContext,
-  {}
+  DeprecatedEntityType,
+  GraphQLContext
 > = async (params, _, { dataSources: { db } }) => {
   const { entityId: entityTypeId } = params;
 
@@ -31,9 +30,8 @@ const children: ResolverFn<
 
 const parents: ResolverFn<
   Promise<UnresolvedGQLEntityType[]>,
-  GQLEntityType,
-  GraphQLContext,
-  {}
+  DeprecatedEntityType,
+  GraphQLContext
 > = async (params, _, { dataSources: { db } }) => {
   const { entityId: entityTypeId } = params;
 
@@ -56,9 +54,8 @@ const parents: ResolverFn<
 
 const ancestors: ResolverFn<
   Promise<UnresolvedGQLEntityType[]>,
-  GQLEntityType,
-  GraphQLContext,
-  {}
+  DeprecatedEntityType,
+  GraphQLContext
 > = async (params, _, { dataSources: { db } }) => {
   const { entityId: entityTypeId } = params;
 

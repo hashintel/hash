@@ -23,7 +23,7 @@ import {
   PageFieldsFragment,
   SystemTypeName,
   WayToUseHash,
-  EntityType as GQLEntityType,
+  DeprecatedEntityType,
 } from "../graphql/apiTypes.gen";
 
 const logger = new Logger({
@@ -781,7 +781,7 @@ describe("logged in user ", () => {
 
   describe("can create EntityType inheritance relations", () => {
     let superType: Pick<
-      GQLEntityType,
+      DeprecatedEntityType,
       "entityId" | "properties" | "entityTypeName"
     >;
     beforeAll(async () => {
@@ -793,7 +793,7 @@ describe("logged in user ", () => {
     });
 
     let subType1: Pick<
-      GQLEntityType,
+      DeprecatedEntityType,
       "entityId" | "properties" | "entityTypeName"
     >;
     it("can inherit from SuperType", async () => {
@@ -1178,7 +1178,7 @@ describe("logged in user ", () => {
     };
 
     let testEntityType!: Pick<
-      GQLEntityType,
+      DeprecatedEntityType,
       "entityId" | "properties" | "entityTypeName"
     >;
     it("can create an entity type with a valid schema", async () => {
@@ -1259,7 +1259,7 @@ describe("logged in user ", () => {
     });
 
     let subType!: Pick<
-      GQLEntityType,
+      DeprecatedEntityType,
       "entityId" | "properties" | "entityTypeName"
     >;
     it("allows schema that inherits with compatible property types", async () => {
