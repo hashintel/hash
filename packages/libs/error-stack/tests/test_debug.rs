@@ -509,7 +509,7 @@ mod full {
 
         let report = create_report().attach(2u32);
 
-        Report::install_debug_hook::<u32>(|_| Emit::next("unsigned 32bit integer"));
+        Report::install_debug_hook::<u32>(|_, _| Emit::next("unsigned 32bit integer"));
 
         assert_snapshot!(redact(&format!("{report:?}")));
     }

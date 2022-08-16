@@ -206,7 +206,7 @@ impl Report<()> {
     ///   * The errors causes
     ///   * The [`Backtrace`] and [`SpanTrace`] **if captured**
     ///
-    /// [`Debug`]: fmt::Debug
+    /// [`Debug`]: core::fmt::Debug
     /// [`Backtrace`]: std::backtrace::Backtrace
     /// [`SpanTrace`]: tracing_error::SpanTrace
     ///

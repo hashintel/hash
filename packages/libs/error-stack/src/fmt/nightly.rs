@@ -52,6 +52,7 @@ use crate::fmt::{Emit, Snippet};
 /// [`.provide()`]: core::any::Provider::provide
 /// [`.attach()`]: crate::Report::attach
 /// [`Demand`]: core::any::Demand
+/// [`Debug`]: core::fmt::Debug
 /// [RFC 1210]: https://github.com/rust-lang/rfcs/pull/1210
 /// [#31844]: https://github.com/rust-lang/rust/issues/31844
 // TODO: remove experimental flag once specialisation is stabilized or sound or `.attach_provider()`
@@ -81,8 +82,6 @@ impl DebugDiagnostic {
 
     /// Add additional text to the [`DebugDiagnostic`],
     /// this can be chained to create multiple texts entries.
-    ///
-    /// Text is only emitted at the end of extended [`Debug`] (`:#?`)
     #[must_use]
     pub fn add_snippet(mut self, snippet: Snippet) -> Self {
         self.snippets.push(snippet);

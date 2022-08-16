@@ -413,7 +413,8 @@
 //! [`Error`]: std::error::Error
 //! [`Error::provide`]: std::error::Error::provide
 //! [`Backtrace`]: std::backtrace::Backtrace
-//! [`Display`]: std::fmt::Display
+//! [`Display`]: core::fmt::Display
+//! [`Debug`]: core::fmt::Debug
 //! [`SpanTrace`]: tracing_error::SpanTrace
 //! [`smallvec`]: https://docs.rs/smallvec
 #![cfg_attr(not(feature = "std"), no_std)]

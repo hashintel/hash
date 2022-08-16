@@ -50,6 +50,7 @@ impl HookContextImpl {
 /// when alternate mode (`:#?`) has been enabled.
 ///
 /// [`add_snippet()`]: HookContext::add_snippet
+/// [`Debug`]: core::fmt::Debug
 ///
 /// ### Example
 ///
@@ -145,6 +146,8 @@ impl HookContextImpl {
 /// <pre>
 #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__hookcontext_storage.snap"))]
 /// </pre>
+///
+/// [`Debug`]: core::fmt::Debug
 #[cfg_attr(all(doc, nightly), doc(cfg(feature = "hooks")))]
 pub struct HookContext<'a, T> {
     parent: &'a mut HookContextImpl,
@@ -163,6 +166,7 @@ impl<T> HookContext<'_, T> {
     /// rendering without the alternate [`Debug`] output.
     ///
     /// [`alternate()`]: Self::alternate
+    /// [`Debug`]: core::fmt::Debug
     pub fn add_snippet(&mut self, snippet: Snippet) {
         self.parent.snippets.push(snippet)
     }
@@ -255,6 +259,8 @@ impl<T: 'static> HookContext<'_, T> {
     /// Values returned are isolated and therefore "bound" to `T`, this means that if two different
     /// [`HookContext`]s that share the same inner value (e.g. same invocation of [`Debug`]) will
     /// return the same value.
+    /// 
+    /// [`Debug`]: core::fmt::Debug
     pub fn get<U: 'static>(&self) -> Option<&U> {
         self.parent
             .storage
@@ -348,6 +354,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// </pre>
     ///
     /// [`add_snippet()`]: Self::add_snippet
+    /// [`Debug`]: core::fmt::Debug
     pub fn increment(&mut self) -> isize {
         let counter = self.get_mut::<isize>();
 
@@ -492,6 +499,7 @@ type BoxedHook =
 /// [`Backtrace`]: std::backtrace::Backtrace
 /// [`SpanTrace`]: tracing_error::SpanTrace
 /// [`Display`]: core::fmt::Display
+/// [`Debug`]: core::fmt::Debug
 /// [`.push()`]: Hooks::push
 #[cfg(feature = "hooks")]
 #[must_use]
