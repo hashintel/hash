@@ -291,16 +291,14 @@ export const DataMapEditor = ({
                     "__nothing"
                   }
                   onChange={(evt) =>
-                    onSchemaMapChange((existingMap) =>
-                      produce(existingMap, (draftMap) => {
-                        draftMap.transformations ??= {};
-                        draftMap.transformations[targetPath] ??= {};
-                        draftMap.transformations[targetPath]!.sourceKey =
-                          evt.target.value === "__nothing"
-                            ? undefined
-                            : evt.target.value;
-                      }),
-                    )
+                    onSchemaMapChange(produce((draftMap) => {
+                      draftMap.transformations ??= {};
+                      draftMap.transformations[targetPath] ??= {};
+                      draftMap.transformations[targetPath]!.sourceKey =
+                        evt.target.value === "__nothing"
+                          ? undefined
+                          : evt.target.value;
+                    }))
                   }
                 >
                   <MenuItem value="__nothing">-----------------</MenuItem>
