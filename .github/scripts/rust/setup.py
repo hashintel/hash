@@ -19,8 +19,6 @@ PUBLISH_PATTERNS = ["packages/libs/error-stack"]
 # Try and publish these crates when their version is changed in Cargo.toml
 TOOLCHAINS = {
     "packages/libs/error-stack": ["1.63"],
-    "packages/graph/hash_graph**": [],
-    "packages/engine**": [],
 }
 
 
@@ -114,7 +112,6 @@ def output_matrix(name, crates, **kwargs):
     """
     Outputs the job matrix for the given crates
     :param name: The name where the list of crates will be stored to be read by GitHub Actions
-    :param additional: additional matrix elements to include
     :param crates: a list of paths to crates
     """
 
@@ -133,11 +130,12 @@ def output_matrix(name, crates, **kwargs):
 
     used_toolchain_combinations = []
     for crate in crates:
+        toolchain_toml = open(f"{crate}/rust-toolchain.toml", "r")
+        toolchains = [toml.loads(toolchain_toml.read())["toolchain"]["channel"]]
         for pattern, defined_toolchains in TOOLCHAINS.items():
             if fnmatch(crate, pattern):
-                toolchain_toml = open(f"{crate}/rust-toolchain.toml", "r")
-                toolchains = [toml.loads(toolchain_toml.read())["toolchain"]["channel"]] + defined_toolchains
-                used_toolchain_combinations.append(list(itertools.product([str(crate)], toolchains, repeat=1)))
+                toolchains += defined_toolchains
+        used_toolchain_combinations.append(list(itertools.product([str(crate)], toolchains, repeat=1)))
 
     matrix = dict(
         directory=[str(crate) for crate in crates],
