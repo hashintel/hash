@@ -15,9 +15,13 @@ export const adminKratosSdk = new OpenSourceV0alpha2Api(
 );
 
 export type KratosUserIdentityTraits = {
+  shortname: string;
   emails: string[];
 };
 
 export type KratosUserIdentity = Omit<Identity, "traits"> & {
   traits: KratosUserIdentityTraits;
 };
+
+export const kratosUserIdentitySchemaId =
+  "https://hash.ai/schemas/v1/kratos-identity.schema.json";
