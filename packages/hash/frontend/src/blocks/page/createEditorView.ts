@@ -111,7 +111,7 @@ export const createEditorView = (
     view,
     // Reason for adding `_decorations`:
     // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
-    (meta, schema) => (node, editorView, getPos, _decorations) => {
+    (block) => (node, editorView, getPos, _decorations) => {
       if (typeof getPos === "boolean") {
         throw new Error("Invalid config for nodeview");
       }
@@ -121,8 +121,7 @@ export const createEditorView = (
         editorView,
         getPos,
         renderPortal,
-        meta,
-        schema,
+        block,
         manager,
       );
     },

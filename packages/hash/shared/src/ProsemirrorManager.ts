@@ -2,14 +2,12 @@ import { BlockVariant, JsonObject } from "@blockprotocol/core";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorProps, EditorView } from "prosemirror-view";
-import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 
 import { Text, TextProperties } from "./graphql/apiTypes.gen";
 import {
   areComponentsCompatible,
   fetchBlock,
   HashBlock,
-  HashBlockMeta,
   prepareBlockCache,
 } from "./blocks";
 import {
@@ -44,10 +42,7 @@ import { childrenForTextEntity } from "./text";
 
 type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
 
-type ComponentNodeViewFactory = (
-  meta: HashBlockMeta,
-  schema: JsonSchema,
-) => NodeViewFactory;
+type ComponentNodeViewFactory = (block: HashBlock) => NodeViewFactory;
 
 /**
  * Manages the creation and editing of the ProseMirror schema, and utilities around
@@ -66,7 +61,7 @@ export class ProsemirrorManager {
    * new node type in the schema, and create a node view wrapper for you too.
    */
   defineBlock(block: HashBlock) {
-    const { meta, schema } = block;
+    const { meta } = block;
     const { componentId } = meta;
 
     prepareBlockCache(componentId, block);
@@ -102,7 +97,7 @@ export class ProsemirrorManager {
         nodeViews: {
           // Private API
           ...(this.view as any).nodeViews,
-          [componentId]: this.componentNodeViewFactory(meta, schema),
+          [componentId]: this.componentNodeViewFactory(block),
         },
       });
     }
