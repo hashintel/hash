@@ -28,6 +28,7 @@ export type GithubPrOverviewProps = {
   reviews: GithubReviewEntityType["properties"][];
   events: GithubIssueEventEntityType["properties"][];
   reset: () => void;
+  readonly: boolean;
 };
 
 const PRStatus: FunctionComponent<{
@@ -85,6 +86,7 @@ export const GithubPrOverview: FunctionComponent<GithubPrOverviewProps> = ({
   reviews,
   events,
   reset,
+  readonly,
 }) => {
   const uniqueReviewers = uniqBy(
     reviews.map(({ user }) => {
@@ -118,7 +120,12 @@ export const GithubPrOverview: FunctionComponent<GithubPrOverviewProps> = ({
           onClick={reset}
           rounded
           size="large"
-          sx={{ position: "absolute", right: 2, top: 2 }}
+          sx={{
+            position: "absolute",
+            right: 2,
+            top: 2,
+            display: readonly ? "none" : "block",
+          }}
         >
           <CloseIcon />
         </IconButton>
