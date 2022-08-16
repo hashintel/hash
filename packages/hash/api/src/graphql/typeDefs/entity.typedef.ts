@@ -1,6 +1,6 @@
 import { gql } from "apollo-server-express";
 
-export const entityTypedef = gql`
+export const deprecatedEntityTypedef = gql`
   interface Entity {
     # These fields are repeated everywhere they're used because
     # (a) GQL requires it - https://github.com/graphql/graphql-spec/issues/533

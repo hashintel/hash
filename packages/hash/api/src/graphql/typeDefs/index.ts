@@ -2,7 +2,7 @@ import { gql } from "apollo-server-express";
 
 import { accountTypedef } from "./account.typedef";
 import { blockTypedef } from "./block.typedef";
-import { entityTypedef } from "./entity.typedef";
+import { deprecatedEntityTypedef } from "./entity.typedef";
 import { linkTypedef } from "./link.typedef";
 import { entityTypeTypedef } from "./entityType.typedef";
 import { orgEmailInvitationTypedef } from "./orgEmailInvitation.typedef";
@@ -42,7 +42,12 @@ const baseSchema = gql`
   }
 `;
 
-const ontology = [dataTypeTypedef, propertyTypeTypedef, linkTypeTypedef];
+const ontology = [
+  dataTypeTypedef,
+  propertyTypeTypedef,
+  linkTypeTypedef,
+  entityTypeTypedef,
+];
 
 // This needs to be called 'schema' to be picked up by codegen -
 // It could alternatively be a default export.
@@ -51,7 +56,7 @@ export const schema = [
   baseSchema,
   blockTypedef,
   embedTypeDef,
-  entityTypedef,
+  deprecatedEntityTypedef,
   linkTypedef,
   aggregationTypedef,
   entityTypeTypedef,
