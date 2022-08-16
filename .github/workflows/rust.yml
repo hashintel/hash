@@ -69,9 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        directory: ${{ fromJSON(needs.setup.outputs.lint) }}
-        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains)[fromJSON(needs.setup.outputs.lint)] }}
+      matrix: ${{ fromJSON(needs.setup.outputs.lint) }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -118,13 +116,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        directory: ${{ fromJSON(needs.setup.outputs.test) }}
-        toolchain:
-          - nightly
-        profile:
-          - development
-          - production
+      matrix: ${{ fromJSON(needs.setup.outputs.test) }}
     env:
       OUTPUT_DIRECTORY: test-results
       RUST_BACKTRACE: 1
@@ -204,12 +196,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        directory: ${{ fromJSON(needs.setup.outputs.publish) }}
-        toolchain:
-          - nightly
-        profile:
-          - release
+      matrix: ${{ fromJSON(needs.setup.outputs.publish) }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3

@@ -109,49 +109,39 @@ def filter_for_publishable_crates(crates):
     return [crate for crate in crates for pattern in PUBLISH_PATTERNS if fnmatch(crate, pattern)]
 
 
-def output_toolchains_by_crate(crates):
+def output_matrix(name, crates, **kwargs):
     """
-    Outputs a list of toolchains by crate. For this, `TOOLCHAINS` and `rust-toolchain.toml` is used
+    Outputs the job matrix for the given crates
+    :param name: The name where the list of crates will be stored to be read by GitHub Actions
+    :param additional: additional matrix elements to include
     :param crates: a list of paths to crates
     """
 
-    toolchains = {}
+    matrix = dict(
+        directory=[str(crate) for crate in crates],
+        include=[],
+        **kwargs
+    )
+
     for crate in crates:
         for pattern, defined_toolchains in TOOLCHAINS.items():
             if fnmatch(crate, pattern):
                 toolchain_toml = open(f"{crate}/rust-toolchain.toml", "r")
                 additional_toolchain = toml.loads(toolchain_toml.read())["toolchain"]["channel"]
-
-                toolchains[str(crate)] = defined_toolchains + [additional_toolchain]
-
-    toolchains = json.dumps(toolchains)
-    print(f"::set-output name=toolchains::{toolchains}")
-    print(f"toolchains = {toolchains}")
-
-
-def output_exclude(crates):
-    """
-    Prints a exclude statements for a GitHub Action matrix.
-
-    Currently, this only excludes nightly-only crates from running on stable by default
-    :param crates: a list of paths to crates
-    """
-
-    output = json.dumps([dict(toolchain="stable", directory=str(crate)) for crate in filter_for_nightly_only_crates(crates)])
-    print(f"::set-output name=exclude::{output}")
-    print(f"exclude = {output}")
+                matrix["include"].append({
+                    "directory": str(crate),
+                    "toolchain": additional_toolchain
+                })
+                for defined_toolchain in defined_toolchains:
+                    matrix["include"].append({
+                        "directory": str(crate),
+                        "toolchain": defined_toolchain
+                    })
 
 
-def output(name, crates):
-    """
-    Prints crates in a GitHub understandable way defined by name
-    :param name: The name where the list of crates will be stored to be read by GitHub Actions
-    :param crates: a list of crate paths to be outputted
-    """
-
-    output = json.dumps([str(crate) for crate in crates])
-    print(f"::set-output name={name}::{output}")
-    print(f"{name} = {output}")
+    matrix = json.dumps(matrix)
+    print(f"::set-output name={name}::{matrix}")
+    print(f"{name} = {matrix}")
 
 
 def main():
@@ -159,11 +149,9 @@ def main():
     available_crates = find_local_crates()
     changed_crates = list(set(filter_for_changed_crates(diffs, available_crates)))
 
-    output("lint", changed_crates)
-    output("test", changed_crates)
-    output("publish", filter_crates_by_changed_version(diffs, filter_for_publishable_crates(changed_crates)))
-    output_exclude(changed_crates)
-    output_toolchains_by_crate(available_crates)
+    output_matrix("lint", changed_crates)
+    output_matrix("test", changed_crates, profile=["development", "production"])
+    output_matrix("publish", filter_crates_by_changed_version(diffs, filter_for_publishable_crates(changed_crates)), profile=["production"])
 
 
 if __name__ == "__main__":
