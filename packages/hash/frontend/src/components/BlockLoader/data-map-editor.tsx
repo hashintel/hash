@@ -23,7 +23,7 @@ import { dataTreeFromEntityGraph, SchemaMap } from "./shared";
 import { DataMapPreview } from "./data-map-editor/data-map-preview";
 
 type DataMapperProps = {
-  close: () => void;
+  onClose: () => void;
   schemaMap: SchemaMap;
   sourceBlockEntity: Entity;
   sourceBlockGraph: BlockGraph;
@@ -62,33 +62,36 @@ const derivePathsFromSchema = (
         if (!currentSchema) {
           return pathAccumulator;
         }
+
         if (currentSchema.type === "object") {
-          return pathAccumulator.concat(
-            currentKey,
-            _derivePathsFromSchema(
-              _schema,
-              currentSchema.properties,
-              allPathsSoFar,
-            ).map((path) => `${currentKey}.${path}`),
-          );
-        }
-        if (
+          const subObjectKeys = _derivePathsFromSchema(
+            _schema,
+            currentSchema.properties,
+            allPathsSoFar,
+          ).map((path) => `${currentKey}.${path}`);
+
+          pathAccumulator.push(currentKey, ...subObjectKeys);
+        } else if (
           currentSchema.type === "array" &&
           currentSchema.items &&
           "properties" in currentSchema.items
         ) {
-          return pathAccumulator.concat(
+          const arrayObjectsKeys = _derivePathsFromSchema(
+            _schema,
+            currentSchema.items.properties,
+            allPathsSoFar,
+          ).map((path) => `${currentKey}[].${path}`);
+
+          pathAccumulator.push(
             currentKey,
             `${currentKey}[]`,
-            _derivePathsFromSchema(
-              _schema,
-              currentSchema.items.properties,
-              allPathsSoFar,
-            ).map((path) => `${currentKey}[].${path}`),
+            ...arrayObjectsKeys,
           );
+        } else {
+          pathAccumulator.push(currentKey);
         }
 
-        return pathAccumulator.concat(currentKey);
+        return pathAccumulator;
       },
       allPathsSoFar,
     );
@@ -165,7 +168,7 @@ const generateInitialTransformations = (
  * 3. Proper exploration as to how this works in practice and what additional functionality is required.
  */
 export const DataMapEditor = ({
-  close,
+  onClose,
   schemaMap,
   sourceBlockEntity,
   sourceBlockGraph,
@@ -207,7 +210,7 @@ export const DataMapEditor = ({
           top: 8,
           right: 0,
         }}
-        onClick={() => close()}
+        onClick={() => onClose()}
         type="button"
       >
         <FontAwesomeIcon
