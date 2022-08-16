@@ -2,6 +2,7 @@ from fnmatch import fnmatch
 from pathlib import Path
 import re
 import json
+import toml
 
 CWD = Path.cwd()
 
@@ -13,6 +14,13 @@ DISABLE_STABLE_PATTERNS = ["packages/engine**", "packages/graph/hash_graph**"]
 
 # Try and publish these crates when their version is changed in Cargo.toml
 PUBLISH_PATTERNS = ["packages/libs/error-stack"]
+
+# Try and publish these crates when their version is changed in Cargo.toml
+TOOLCHAINS = {
+    "packages/libs/error-stack": ["1.63"],
+    "packages/graph/hash_graph**": [],
+    "packages/engine**": [],
+}
 
 
 def generate_diffs():
@@ -101,6 +109,25 @@ def filter_for_publishable_crates(crates):
     return [crate for crate in crates for pattern in PUBLISH_PATTERNS if fnmatch(crate, pattern)]
 
 
+def output_toolchains_by_crate(crates):
+    """
+    Outputs a list of toolchains by crate. For this, `TOOLCHAINS` and `rust-toolchain.toml` is used
+    :param crates: a list of paths to crates
+    """
+
+    toolchains = {}
+    for crate in crates:
+        for pattern, defined_toolchains in TOOLCHAINS.items():
+            if fnmatch(crate, pattern):
+                toolchain_toml = open(f"{crate}/rust-toolchain.toml", "r")
+                additional_toolchain = toml.loads(toolchain_toml.read())["toolchain"]["channel"]
+
+                toolchains[str(crate)] = defined_toolchains + [additional_toolchain]
+
+    print(f"::set-output name=toolchains::{toolchains}")
+    print(f"toolchains = {toolchains}")
+
+
 def output_exclude(crates):
     """
     Prints a exclude statements for a GitHub Action matrix.
@@ -135,6 +162,7 @@ def main():
     output("test", changed_crates)
     output("publish", filter_crates_by_changed_version(diffs, filter_for_publishable_crates(changed_crates)))
     output_exclude(changed_crates)
+    output_toolchains_by_crate(available_crates)
 
 
 if __name__ == "__main__":

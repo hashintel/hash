@@ -27,8 +27,8 @@ jobs:
       bench: ${{ steps.crates.outputs.bench }}
       publish: ${{ steps.crates.outputs.publish }}
       exclude: ${{ steps.crates.outputs.exclude }}
+      toolchains: ${{ steps.crates.outputs.toolchains }}
       samples: ${{ steps.samples.outputs.samples }}
-      nightly: ${{ steps.toolchains.outputs.nightly }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -41,13 +41,6 @@ jobs:
       - name: Find changed crates
         id: crates
         run: python .github/scripts/rust/setup.py
-
-      - name: Find toolchain
-        id: toolchains
-        run: |
-          nightly=$(cat $(find . -name rust-toolchain.toml) | grep channel | cut -d\" -f2)
-          echo "::set-output name=nightly::$nightly"
-          echo "use toolchains: $(echo $nightly)"
 
       - name: Determine samples
         id: samples
@@ -67,11 +60,7 @@ jobs:
       fail-fast: false
       matrix:
         directory: ${{ fromJSON(needs.setup.outputs.lint) }}
-        toolchain:
-          - ${{ needs.setup.outputs.nightly }}
-        profile:
-          - development
-        exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
+        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains[needs.setup.outputs.lint]) }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
