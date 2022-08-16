@@ -168,7 +168,7 @@ impl<T> HookContext<'_, T> {
     /// [`alternate()`]: Self::alternate
     /// [`Debug`]: core::fmt::Debug
     pub fn add_snippet(&mut self, snippet: Snippet) {
-        self.parent.snippets.push(snippet)
+        self.parent.snippets.push(snippet);
     }
 }
 
@@ -261,6 +261,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// return the same value.
     ///
     /// [`Debug`]: core::fmt::Debug
+    #[must_use]
     pub fn get<U: 'static>(&self) -> Option<&U> {
         self.parent
             .storage
@@ -439,6 +440,7 @@ impl<T: 'static> HookContext<'_, T> {
 ///
 /// This is like a [`Result`] or [`Option`] type, but with different semantics.
 /// The different variants indicate what the state of the hook invocation was.
+#[must_use]
 pub enum Call<'a, T> {
     /// The hook invocation was successful, a value could be found.
     // name TBD
@@ -459,6 +461,8 @@ impl<'a, T> Call<'a, T> {
         }
     }
 
+    // false-positive
+    #[allow(clippy::missing_const_for_fn)]
     pub(crate) fn consume(self) -> Option<Emit> {
         match self {
             Call::Find(emit) => Some(emit),
@@ -503,7 +507,7 @@ type BoxedHook =
 /// [`.push()`]: Hooks::push
 #[cfg(feature = "std")]
 #[must_use]
-pub(crate) struct Hooks {
+pub struct Hooks {
     inner: Option<BTreeMap<TypeId, BoxedHook>>,
     fallback: Option<BoxedHook>,
 }
@@ -528,7 +532,7 @@ impl Hooks {
         &mut self,
         hook: impl Fn(&T, &mut HookContext<T>) -> Emit + Send + Sync + 'static,
     ) {
-        let mut inner = self.inner.get_or_insert_with(BTreeMap::new);
+        let inner = self.inner.get_or_insert_with(BTreeMap::new);
 
         inner.insert(
             TypeId::of::<T>(),
@@ -563,6 +567,8 @@ impl Hooks {
 }
 
 mod default {
+    #![cfg_attr(not(feature = "std"), allow(unused_imports))]
+
     #[cfg(any(all(nightly, feature = "std"), feature = "spantrace"))]
     use alloc::format;
     #[cfg(all(nightly, feature = "std"))]
@@ -621,6 +627,8 @@ mod default {
     /// [`SpanTrace`]: tracing_error::SpanTrace
     // Frame can be unused, if neither backtrace or spantrace are enabled
     #[allow(unused_variables)]
+    // false positive
+    #[allow(clippy::missing_const_for_fn)]
     pub fn builtin<'a>(frame: &Frame, ctx: HookContext<'a, Frame>) -> Call<'a, Frame> {
         #[cfg(all(nightly, feature = "std"))]
         if let Some(bt) = frame.request_ref() {

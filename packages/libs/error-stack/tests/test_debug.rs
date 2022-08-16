@@ -9,8 +9,6 @@
 
 mod common;
 use common::*;
-#[cfg(feature = "std")]
-use error_stack::fmt::{Emit, HookContext};
 #[allow(unused_imports)]
 use error_stack::Report;
 use insta::assert_snapshot;
@@ -311,9 +309,9 @@ mod full {
     //!
     //! There are still some big snapshot tests, which are used evaluate all of the above.
 
-    use error_stack::fmt::Call;
     #[cfg(all(nightly, feature = "experimental"))]
     use error_stack::fmt::DebugDiagnostic;
+    use error_stack::fmt::{Call, Emit};
 
     use super::*;
 

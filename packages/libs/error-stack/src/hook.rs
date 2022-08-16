@@ -1,10 +1,4 @@
-use std::{
-    error::Error,
-    fmt,
-    sync::{RwLock, RwLockReadGuard},
-};
-
-use once_cell::sync::{Lazy, OnceCell};
+use std::{error::Error, fmt, sync::RwLock};
 
 use crate::{
     fmt::{Call, Emit, HookContext, Hooks},

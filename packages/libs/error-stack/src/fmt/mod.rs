@@ -795,8 +795,8 @@ fn debug_attachments(
 
                 #[cfg(feature = "std")]
                 {
-                    return Report::with_format_hook(|hooks| hooks.call(frame, ctx.cast()).consume());
-                };
+                    Report::with_format_hook(|hooks| hooks.call(frame, ctx.cast()).consume())
+                }
 
                 #[cfg(not(feature = "std"))]
                 {
