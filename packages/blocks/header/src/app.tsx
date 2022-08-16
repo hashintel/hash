@@ -49,8 +49,6 @@ export const useHook = <T extends HTMLElement>(
     const existingHook = hookRef.current?.params;
     const node = ref.current;
 
-    console.log(existingHook, service, node, path, type);
-
     if (
       existingHook &&
       existingHook.service === service &&
@@ -65,7 +63,6 @@ export const useHook = <T extends HTMLElement>(
       hookRef.current?.teardown?.().catch() ?? Promise.resolve();
 
     if (node && service) {
-      console.log(service.destroyed);
       const controller = new AbortController();
 
       const reuseId =
@@ -170,14 +167,9 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     },
   },
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLHeadingElement>(null);
-  const { hookService } = useHookBlockService(headerRef);
-  // const headerHookRef = useHookRef(hookService, "text", "$.text", (node) => {
-  //   if (node) {
-  //     // eslint-disable-next-line no-param-reassign
-  //     node.innerText = text ?? "";
-  //   }
-  // });
+  const { hookService } = useHookBlockService(containerRef);
 
   useHook(hookService, headerRef, "text", "$.text", (node) => {
     // eslint-disable-next-line no-param-reassign
@@ -193,9 +185,15 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   const Header = `h${level}` as any;
 
   return (
-    <Header
-      style={{ fontFamily: "Arial", color: color ?? "black", marginBottom: 0 }}
-      ref={headerRef}
-    />
+    <div ref={containerRef}>
+      <Header
+        style={{
+          fontFamily: "Arial",
+          color: color ?? "black",
+          marginBottom: 0,
+        }}
+        ref={headerRef}
+      />
+    </div>
   );
 };
