@@ -3,73 +3,76 @@ source: tests/test_debug.rs
 expression: "redact(&format!(\"{report:?}\"))"
 ---
 Context A
-| @ tests/test_debug.rs:301:10
-| 1
+| @ tests/test_debug.rs:261:10
 | 2
+| 1
 |
 \-> Context A
- |  | @ tests/test_debug.rs:295:10
- |  | 3
+ |  | @ tests/test_debug.rs:255:10
  |  | 4
+ |  | 3
  |  |
  |  \-> Root error
  |      | @ tests/common.rs:147:5
  |      \ 6
  |
  \> Context A
-    | @ tests/test_debug.rs:289:10
-    | 3
+    | @ tests/test_debug.rs:250:10
     | 5
-    | 7
+    | 3
+    |
+    |-> Context A
+    |   | @ tests/test_debug.rs:248:10
+    |   \ 7
     |
     \-> Context A
-     |  | @ tests/test_debug.rs:280:34
-     |  | 8
+     |  | @ tests/test_debug.rs:239:34
      |  | 9
+     |  | 8
      |  |
      |  \-> Root error
      |      \ @ tests/common.rs:147:5
      |
      |> Context A
-     |  | @ tests/test_debug.rs:274:10
-     |  | 8
-     |  | 9
-     |  | 16
-     |  | 10
+     |  | @ tests/test_debug.rs:233:10
      |  | 13
-     |  |
-     |  \-> Root error
-     |      \ @ tests/common.rs:147:5
-     |
-     |> Context A
-     |  | @ tests/test_debug.rs:260:10
-     |  | 8
-     |  | 9
-     |  | 16
      |  | 10
-     |  | 14
-     |  | 15
+     |  | 16
+     |  | 9
+     |  | 8
      |  |
      |  \-> Root error
      |      \ @ tests/common.rs:147:5
      |
      |> Context A
-     |  | @ tests/test_debug.rs:270:10
-     |  | 8
+     |  | @ tests/test_debug.rs:219:10
+     |  | 15
+     |  | 14
+     |  | 10
+     |  | 16
      |  | 9
+     |  | 8
+     |  |
+     |  \-> Root error
+     |      \ @ tests/common.rs:147:5
+     |
+     |> Context A
+     |  | @ tests/test_debug.rs:229:10
      |  | 11
+     |  | 9
+     |  | 8
      |  |
      |  \-> Root error
      |      \ @ tests/common.rs:147:5
      |
      \> Context A
-        | @ tests/test_debug.rs:266:10
-        | 8
-        | 9
+        | @ tests/test_debug.rs:225:10
         | 12
+        | 9
+        | 8
         |
         |-> Context A
-        |   \ @ tests/test_debug.rs:265:10
+        |   \ @ tests/test_debug.rs:224:10
         |
         \-> Root error
             \ @ tests/common.rs:147:5

@@ -1,17 +1,13 @@
-use alloc::vec::Vec;
-#[cfg(any(
-    feature = "hooks",
-    feature = "spantrace",
-    all(nightly, feature = "std")
-))]
-use alloc::{boxed::Box, collections::BTreeMap};
-#[cfg(any(
-    feature = "hooks",
-    feature = "spantrace",
-    all(nightly, feature = "std")
-))]
-use core::any::{Any, TypeId};
-use core::marker::PhantomData;
+// We allow dead-code here, because some of the functions are only exposed when `feature = "hooks"`
+// we could do cfg for everything, but that gets very messy, instead we only use a subset
+// and enable deadcode on `feature = "hooks"`.
+#![cfg_attr(not(feature = "hooks"), allow(dead_code))]
+
+use alloc::{boxed::Box, collections::BTreeMap, vec::Vec};
+use core::{
+    any::{Any, TypeId},
+    marker::PhantomData,
+};
 
 pub use default::builtin;
 
@@ -22,40 +18,13 @@ pub struct HookContextImpl {
     pub(crate) snippets: Vec<Snippet>,
     alternate: bool,
 
-    #[cfg(any(
-        feature = "hooks",
-        feature = "spantrace",
-        all(nightly, feature = "std")
-    ))]
     storage: BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>,
 }
 
 impl HookContextImpl {
-    #[cfg_attr(
-        not(any(
-            feature = "hooks",
-            feature = "spantrace",
-            all(nightly, feature = "std"),
-            feature = "experimental"
-        )),
-        allow(clippy::unused_self)
-    )]
     pub(crate) fn cast<T>(&mut self) -> HookContext<T> {
         HookContext {
-            #[cfg(any(
-                feature = "hooks",
-                feature = "spantrace",
-                all(nightly, feature = "std"),
-                feature = "experimental"
-            ))]
             parent: self,
-            #[cfg(not(any(
-                feature = "hooks",
-                feature = "spantrace",
-                all(nightly, feature = "std"),
-                feature = "experimental"
-            )))]
-            _parent: PhantomData::default(),
             _marker: PhantomData::default(),
         }
     }
@@ -176,24 +145,13 @@ impl HookContextImpl {
 /// <pre>
 #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__hookcontext_storage.snap"))]
 /// </pre>
+#[cfg_attr(all(doc, nightly), doc(cfg(feature = "hooks")))]
 pub struct HookContext<'a, T> {
-    #[cfg(any(
-        feature = "hooks",
-        feature = "spantrace",
-        all(nightly, feature = "std"),
-        feature = "experimental"
-    ))]
     parent: &'a mut HookContextImpl,
     _marker: PhantomData<T>,
-    #[cfg(not(any(
-        feature = "hooks",
-        feature = "spantrace",
-        all(nightly, feature = "std"),
-        feature = "experimental"
-    )))]
-    _parent: PhantomData<&'a ()>,
 }
 
+#[cfg_attr(all(doc, nightly), doc(cfg(feature = "hooks")))]
 impl<T> HookContext<'_, T> {
     /// If [`Debug`] requests, this snippet (which can include line breaks) will be appended to the
     /// main message.
@@ -205,17 +163,12 @@ impl<T> HookContext<'_, T> {
     /// rendering without the alternate [`Debug`] output.
     ///
     /// [`alternate()`]: Self::alternate
-    #[cfg(any(
-        feature = "hooks",
-        feature = "spantrace",
-        all(nightly, feature = "std"),
-        feature = "experimental"
-    ))]
     pub fn add_snippet(&mut self, snippet: Snippet) {
         self.parent.snippets.push(snippet)
     }
 }
 
+#[cfg_attr(all(doc, nightly), doc(cfg(feature = "hooks")))]
 impl<'a, T> HookContext<'a, T> {
     /// Cast the [`HookContext`] to a new type `U`.
     ///
@@ -281,11 +234,6 @@ impl<'a, T> HookContext<'a, T> {
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__hookcontext_cast.snap"))]
     /// </pre>
     #[must_use]
-    #[cfg(any(
-        feature = "hooks",
-        feature = "spantrace",
-        all(nightly, feature = "std"),
-    ))]
     pub fn cast<U>(self) -> HookContext<'a, U> {
         HookContext {
             parent: self.parent,
@@ -295,15 +243,9 @@ impl<'a, T> HookContext<'a, T> {
 
     /// Is the currently requested format the alternate representation?
     /// This corresponds to the output of [`std::fmt::Formatter::alternate`].
-    #[cfg(feature = "hooks")]
     #[must_use]
     pub fn alternate(&self) -> bool {
         self.parent.alternate
-    }
-
-    #[cfg(feature = "hooks")]
-    fn into_impl(self) -> &'a mut HookContextImpl {
-        self.parent
     }
 }
 
@@ -313,8 +255,6 @@ impl<T: 'static> HookContext<'_, T> {
     /// Values returned are isolated and therefore "bound" to `T`, this means that if two different
     /// [`HookContext`]s that share the same inner value (e.g. same invocation of [`Debug`]) will
     /// return the same value.
-    #[cfg(feature = "hooks")]
-    #[must_use]
     pub fn get<U: 'static>(&self) -> Option<&U> {
         self.parent
             .storage
@@ -328,11 +268,6 @@ impl<T: 'static> HookContext<'_, T> {
     /// Values returned are isolated and therefore "bound" to `T`, this means that if two different
     /// [`HookContext`]s that share the same inner value (e.g. same invocation of [`Debug`]) will
     /// return the same value.
-    #[cfg(any(
-        feature = "hooks",
-        feature = "spantrace",
-        all(nightly, feature = "std")
-    ))]
     pub fn get_mut<U: 'static>(&mut self) -> Option<&mut U> {
         self.parent
             .storage
@@ -345,11 +280,6 @@ impl<T: 'static> HookContext<'_, T> {
     ///
     /// The returned value will the previously stored value of the same type `U` scoped over type
     /// `T`, if it existed, did no such value exist it will return [`None`].
-    #[cfg(any(
-        feature = "hooks",
-        feature = "spantrace",
-        all(nightly, feature = "std")
-    ))]
     pub fn insert<U: 'static>(&mut self, value: U) -> Option<U> {
         self.parent
             .storage
@@ -364,7 +294,6 @@ impl<T: 'static> HookContext<'_, T> {
     /// Remove the value of type `U` from the storage of [`HookContext`] if it existed.
     ///
     /// The returned value will be the previously stored value of the same type `U`.
-    #[cfg(feature = "hooks")]
     pub fn remove<U: 'static>(&mut self) -> Option<U> {
         self.parent
             .storage
@@ -419,11 +348,6 @@ impl<T: 'static> HookContext<'_, T> {
     /// </pre>
     ///
     /// [`add_snippet()`]: Self::add_snippet
-    #[cfg(any(
-        feature = "hooks",
-        feature = "spantrace",
-        all(nightly, feature = "std")
-    ))]
     pub fn increment(&mut self) -> isize {
         let counter = self.get_mut::<isize>();
 
@@ -484,7 +408,6 @@ impl<T: 'static> HookContext<'_, T> {
     ///
     /// [`increment()`]: Self::increment
     /// [`add_snippet()`]: Self::add_snippet
-    #[cfg(feature = "hooks")]
     pub fn decrement(&mut self) -> isize {
         let counter = self.get_mut::<isize>();
 
@@ -688,6 +611,8 @@ mod default {
     ///
     /// [`Backtrace`]: std::backtrace::Backtrace
     /// [`SpanTrace`]: tracing_error::SpanTrace
+    // Frame can be unused, if neither backtrace or spantrace are enabled
+    #[allow(unused_variables)]
     pub fn builtin<'a>(frame: &Frame, ctx: HookContext<'a, Frame>) -> Call<'a, Frame> {
         #[cfg(all(nightly, feature = "std"))]
         if let Some(bt) = frame.request_ref() {

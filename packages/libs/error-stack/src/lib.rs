@@ -418,7 +418,7 @@
 //! [`smallvec`]: https://docs.rs/smallvec
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(nightly, feature(provide_any))]
-#![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
+#![cfg_attr(all(doc, nightly), feature(doc_auto_cfg, doc_cfg))]
 #![cfg_attr(
     all(nightly, feature = "std"),
     feature(backtrace, backtrace_frames, error_generic_member_access)
