@@ -46,7 +46,7 @@ impl GrowableArrayData for arrow::array::ArrayData {
     }
 
     fn null_buffer(&self) -> std::option::Option<&[u8]> {
-        dbg!(arrow::array::ArrayData::null_buffer(self).map(arrow::buffer::Buffer::as_slice))
+        arrow::array::ArrayData::null_buffer(self).map(arrow::buffer::Buffer::as_slice)
     }
 
     fn buffer(&self, index: usize) -> &[u8] {

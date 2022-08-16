@@ -1,6 +1,6 @@
 #![allow(clippy::cast_ptr_alignment, clippy::cast_sign_loss)]
 
-use std::sync::Arc;
+use std::{fmt, sync::Arc};
 
 use arrow2::{array::Array, chunk::Chunk, datatypes::Schema};
 use arrow_format::ipc::{planus::ReadAsRoot, MessageHeaderRef, MessageRef};
@@ -42,6 +42,16 @@ pub struct MessageBatch {
     pub batch: ArrowBatch,
     /// Arrow schema with message batch fields.
     arrow_schema: Arc<Schema>,
+}
+
+impl fmt::Debug for MessageBatch {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("MessageBatch")
+            // todo: improve debug representation
+            .field("batch", &"_")
+            .field("arrow_schema", &self.arrow_schema)
+            .finish()
+    }
 }
 
 impl MessageBatch {

@@ -114,19 +114,32 @@ impl BatchPool for MessageBatchPool {
 
     fn remove(&mut self, index: usize) -> Self::Batch {
         let batch_arc = self.batches.remove(index);
-        if let Ok(rw_lock) = Arc::try_unwrap(batch_arc) {
+        let res = Arc::try_unwrap(batch_arc);
+        if let Ok(rw_lock) = res {
             rw_lock.into_inner()
         } else {
-            panic!("Failed to remove Batch at index {index}, other Arcs to the Batch existed")
+            let batch_arc = res.unwrap_err();
+            panic!(
+                "Failed to remove Batch at index {index} - there should be only one strong \
+                 reference to the data (actual reference count: {}).",
+                Arc::strong_count(&batch_arc)
+            )
         }
     }
 
     fn swap_remove(&mut self, index: usize) -> Self::Batch {
         let batch_arc = self.batches.swap_remove(index);
-        if let Ok(rw_lock) = Arc::try_unwrap(batch_arc) {
+        let result = Arc::try_unwrap(batch_arc);
+        if let Ok(rw_lock) = result {
             rw_lock.into_inner()
         } else {
-            panic!("Failed to swap remove Batch at index {index}, other Arcs to the Batch existed")
+            let failure = result.unwrap_err();
+            panic!(
+                "Failed to swap remove Batch at index {index}, other strong references (count: \
+                 {}) to the Batch existed (arc memory address: {})",
+                Arc::strong_count(&failure),
+                Arc::as_ptr(&failure) as usize
+            )
         }
     }
 

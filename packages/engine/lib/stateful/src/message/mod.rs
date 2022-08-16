@@ -39,5 +39,7 @@ pub(crate) use self::{
     outbound::Error as OutboundError,
 };
 
-// System-message recipient
+/// Messages sent to this "agent" are handled internally in the engine (i.e. they are not sent to
+/// another agent). Messages which can be sent to the engine include (amongst other things)
+/// instructions to remove or create agents.
 const SYSTEM_MESSAGE: &str = "hash";
