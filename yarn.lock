@@ -3096,10 +3096,10 @@
     "@blockprotocol/core" "0.0.8"
     lit "^2.2.5"
 
-"@blockprotocol/hook@0.0.1-canary.2":
-  version "0.0.1-canary.2"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/hook/-/hook-0.0.1-canary.2.tgz#269fc91d689e2b126abafe22ac6674787ec19280"
-  integrity sha512-pe38PqEgseK1R44Cw9oEmlMXBbQobtLMGxZfQhNT8e00EaoWEy10nFG3sDRNRifNr+iNw1OcxJpC6Ghnlb6ISw==
+"@blockprotocol/hook@0.0.1-canary.5":
+  version "0.0.1-canary.5"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/hook/-/hook-0.0.1-canary.5.tgz#647b6dbc2fc40b9b0af846727f7596f559e0014a"
+  integrity sha512-zUQnaflY2Xi2q+mK+11u1If8WCoby3/qJ6s392zQssfv263YPIDABV7tap7gdHgL11OI/KiAR1UFVy5k6cX0zA==
   dependencies:
     "@blockprotocol/core" "0.0.8"
 
@@ -5009,6 +5009,11 @@
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/@rjsf/material-ui/-/material-ui-4.1.1.tgz#f4b806f81f5382f7ba5e54332f883186d25b53dc"
   integrity sha512-P+N4HIh7QzF4rtFdgo76p6h4xCzLOPMdHeRpdGnol9z3aAzvUetQvM38NM2Gi32mq8FbJUjZSNm9hQIhQDcelg==
+
+"@rooks/use-fork-ref@4.11.2":
+  version "4.11.2"
+  resolved "https://registry.yarnpkg.com/@rooks/use-fork-ref/-/use-fork-ref-4.11.2.tgz#230fd09b40eb94a5a0b18bf8c93b0fdf24252f0a"
+  integrity sha512-ZOCz6geb63uZNsg4RuZraK1jJp2lgeSyxXEd6dA4v4WgwH+UJponyL4D3+SHGFACHFJ4Hg4JUAiA0Tl5BGoHXg==
 
 "@samverschueren/stream-to-observable@^0.3.0":
   version "0.3.1"
@@ -16035,11 +16040,6 @@ react-lifecycles-compat@^3.0.4:
   version "3.0.4"
   resolved "https://registry.yarnpkg.com/react-lifecycles-compat/-/react-lifecycles-compat-3.0.4.tgz#4f1a273afdfc8f3488a8c516bfda78f872352362"
   integrity sha512-fBASbA6LnOU9dOU2eW7aQ8xmYBSXUIWr+UmF9b1efZBazGNO+rcXT/icdKnYm2pTwcRylVUYwW7H1PHfLekVzA==
-
-react-merge-refs@2.0.1:
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/react-merge-refs/-/react-merge-refs-2.0.1.tgz#a1f8c2dadefa635333e9b91ec59f30b65228b006"
-  integrity sha512-pywF6oouJWuqL26xV3OruRSIqai31R9SdJX/I3gP2q8jLxUnA1IwXcLW8werUHLZOrp4N7YOeQNZrh/BKrHI4A==
 
 react-modal-hook@3.0.0:
   version "3.0.0"
