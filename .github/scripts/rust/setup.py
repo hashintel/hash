@@ -3,6 +3,7 @@ from pathlib import Path
 import re
 import json
 import toml
+import itertools
 
 CWD = Path.cwd()
 
@@ -117,27 +118,33 @@ def output_matrix(name, crates, **kwargs):
     :param crates: a list of paths to crates
     """
 
-    matrix = dict(
-        directory=[str(crate) for crate in crates],
-        **kwargs,
-        include=[],
-    )
+    crates = [str(crate) for crate in crates]
 
+    available_toolchains = []
+    for crate in crates:
+        for pattern, defined_toolchains in TOOLCHAINS.items():
+            toolchain_toml = open(f"{crate}/rust-toolchain.toml", "r")
+            available_toolchains.append(toml.loads(toolchain_toml.read())["toolchain"]["channel"])
+            for defined_toolchain in defined_toolchains:
+                available_toolchains.append(defined_toolchain)
+    available_toolchains = list(set(available_toolchains))
+
+    available_toolchain_combinations = set(itertools.product(crates, available_toolchains))
+
+    used_toolchain_combinations = []
     for crate in crates:
         for pattern, defined_toolchains in TOOLCHAINS.items():
             if fnmatch(crate, pattern):
                 toolchain_toml = open(f"{crate}/rust-toolchain.toml", "r")
-                additional_toolchain = toml.loads(toolchain_toml.read())["toolchain"]["channel"]
-                matrix["include"].append({
-                    "directory": str(crate),
-                    "toolchain": additional_toolchain
-                })
-                for defined_toolchain in defined_toolchains:
-                    matrix["include"].append({
-                        "directory": str(crate),
-                        "toolchain": defined_toolchain
-                    })
+                toolchains = [toml.loads(toolchain_toml.read())["toolchain"]["channel"]] + defined_toolchains
+                used_toolchain_combinations.append(list(itertools.product([str(crate)], toolchains, repeat=1)))
 
+    matrix = dict(
+        directory=[str(crate) for crate in crates],
+        toolchain=available_toolchains,
+        **kwargs,
+        exclude=[dict(directory = elem[0], toolchain=elem[1]) for elem in available_toolchain_combinations.difference(*used_toolchain_combinations)],
+    )
 
     print(f"::set-output name={name}::{json.dumps(matrix)}")
     print(f"{name} = {json.dumps(matrix, indent=4)}")
@@ -151,6 +158,7 @@ def main():
     output_matrix("lint", changed_crates)
     output_matrix("test", changed_crates, profile=["development", "production"])
     output_matrix("publish", filter_crates_by_changed_version(diffs, filter_for_publishable_crates(changed_crates)), profile=["production"])
+
 
 
 if __name__ == "__main__":
