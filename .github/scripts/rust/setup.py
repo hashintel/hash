@@ -10,16 +10,13 @@ CWD = Path.cwd()
 # All jobs for all crates will run if any of these paths change
 ALWAYS_RUN_PATTERNS = ["**/rust-toolchain.toml", ".github/**"]
 
-# Exclude the stable channel for these crates
-DISABLE_STABLE_PATTERNS = ["packages/engine**", "packages/graph/hash_graph**"]
-
-# Try and publish these crates when their version is changed in Cargo.toml
-PUBLISH_PATTERNS = ["packages/libs/error-stack"]
-
-# Try and publish these crates when their version is changed in Cargo.toml
+# Toolchains used for the specified crates in addition to the default toolchain (rust-toolchain.toml)
 TOOLCHAINS = {
     "packages/libs/error-stack": ["1.63"],
 }
+
+# Try and publish these crates when their version is changed in Cargo.toml
+PUBLISH_PATTERNS = ["packages/libs/error-stack"]
 
 
 def generate_diffs():
@@ -90,15 +87,6 @@ def filter_crates_by_changed_version(diffs, crates):
     return [crate for diff in diffs for crate in crates if crate_version_changed(crate, diff)]
 
 
-def filter_for_nightly_only_crates(crates):
-    """
-    Returns the crates which only supports the nightly compiler
-    :param crates: a list of paths to crates
-    :return: a list of crate paths
-    """
-    return [crate for crate in crates for pattern in DISABLE_STABLE_PATTERNS if fnmatch(crate, pattern)]
-
-
 def filter_for_publishable_crates(crates):
     """
     Returns the crates which are allowed to be published
@@ -115,38 +103,36 @@ def output_matrix(name, crates, **kwargs):
     :param crates: a list of paths to crates
     """
 
-    crates = [str(crate) for crate in crates]
-
     available_toolchains = []
     for crate in crates:
-        for pattern, defined_toolchains in TOOLCHAINS.items():
-            toolchain_toml = open(f"{crate}/rust-toolchain.toml", "r")
+        for pattern, additional_toolchains in TOOLCHAINS.items():
+            toolchain_toml = open(crate/"rust-toolchain.toml", "r")
             available_toolchains.append(toml.loads(toolchain_toml.read())["toolchain"]["channel"])
-            for defined_toolchain in defined_toolchains:
-                available_toolchains.append(defined_toolchain)
+            for additional_toolchain in additional_toolchains:
+                available_toolchains.append(additional_toolchain)
     available_toolchains = list(set(available_toolchains))
 
     available_toolchain_combinations = set(itertools.product(crates, available_toolchains))
 
     used_toolchain_combinations = []
     for crate in crates:
-        toolchain_toml = open(f"{crate}/rust-toolchain.toml", "r")
+        toolchain_toml = open(crate/"rust-toolchain.toml", "r")
         toolchains = [toml.loads(toolchain_toml.read())["toolchain"]["channel"]]
-        if name != "lint" and name != "publish": # We only run the specified toolchain on lint/publish
-            for pattern, defined_toolchains in TOOLCHAINS.items():
+        if name != "lint" and name != "publish": # We only run the default toolchain on lint/publish (rust-toolchain.toml)
+            for pattern, additional_toolchains in TOOLCHAINS.items():
                 if fnmatch(crate, pattern):
-                    toolchains += defined_toolchains
-        used_toolchain_combinations.append(list(itertools.product([str(crate)], toolchains, repeat=1)))
+                    toolchains += additional_toolchains
+        used_toolchain_combinations.append(itertools.product([crate], toolchains, repeat=1))
 
     matrix = dict(
         directory=[str(crate) for crate in crates],
         toolchain=available_toolchains,
         **kwargs,
-        exclude=[dict(directory = elem[0], toolchain=elem[1]) for elem in available_toolchain_combinations.difference(*used_toolchain_combinations)],
+        exclude=[dict(directory = str(elem[0]), toolchain=elem[1]) for elem in available_toolchain_combinations.difference(*used_toolchain_combinations)],
     )
 
     print(f"::set-output name={name}::{json.dumps(matrix)}")
-    print(f"{name} = {json.dumps(matrix, indent=4)}")
+    print(f"Job matrix for {name}: {json.dumps(matrix, indent=4)}")
 
 
 def main():
@@ -157,7 +143,6 @@ def main():
     output_matrix("lint", changed_crates)
     output_matrix("test", changed_crates, profile=["development", "production"])
     output_matrix("publish", filter_crates_by_changed_version(diffs, filter_for_publishable_crates(changed_crates)), profile=["production"])
-
 
 
 if __name__ == "__main__":
