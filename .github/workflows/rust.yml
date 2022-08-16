@@ -51,7 +51,7 @@ jobs:
   lint:
     name: lint
     needs: setup
-    if: needs.setup.outputs.lint.directory != '[]'
+    if: needs.setup.outputs.lint['directory'] != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -85,20 +85,23 @@ jobs:
 
       - name: Check clippy
         working-directory: ${{ matrix.directory }}
+        if: always()
         run: cargo +${{ matrix.toolchain }} make clippy -- -D warnings
 
       - name: Check public documentation
         working-directory: ${{ matrix.directory }}
+        if: always()
         run: cargo +${{ matrix.toolchain }} make rustdoc --check -D warnings
 
       - name: Check private documentation
         working-directory: ${{ matrix.directory }}
+        if: always()
         run: cargo +${{ matrix.toolchain }} make rustdoc --check -D warnings --document-private-items
 
   test:
     name: test
     needs: setup
-    if: needs.setup.outputs.test.directory != '[]'
+    if: needs.setup.outputs.test['directory'] != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -178,7 +181,7 @@ jobs:
   publish:
     name: publish
     needs: setup
-    if: needs.setup.outputs.publish.directory != '[]'
+    if: needs.setup.outputs.publish['directory'] != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -205,7 +208,7 @@ jobs:
 
       - name: Run tests
         working-directory: ${{ matrix.directory }}
-        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
+        run: cargo +${{ matrix.toolchain }} make test --no-fail-fast
 
       - name: Login
         run: |

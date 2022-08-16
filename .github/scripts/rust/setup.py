@@ -142,7 +142,7 @@ def main():
 
     output_matrix("lint", changed_crates)
     output_matrix("test", changed_crates, profile=["development", "production"])
-    output_matrix("publish", filter_crates_by_changed_version(diffs, filter_for_publishable_crates(changed_crates)), profile=["production"])
+    output_matrix("publish", filter_crates_by_changed_version(diffs, filter_for_publishable_crates(changed_crates)))
 
 
 if __name__ == "__main__":
