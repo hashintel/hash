@@ -1,7 +1,7 @@
 use arrow2::{array::ArrayRef, datatypes::UnionMode};
 
 // only used in tests (at the moment)
-/// As per https://arrow.apache.org/docs/format/Columnar.html#buffer-listing-for-each-layout
+/// As per <https://arrow.apache.org/docs/format/Columnar.html#buffer-listing-for-each-layout>
 #[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn buffer_count_of_arrow_array(array: &ArrayRef) -> usize {
     match array.data_type() {
