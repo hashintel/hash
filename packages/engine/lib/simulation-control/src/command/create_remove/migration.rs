@@ -1513,7 +1513,7 @@ pub(super) mod test {
             &agent_schema,
             MemoryId::new(experiment_id.as_uuid()),
         )?;
-        println!("Thru JSON took: {} us", now.elapsed().as_micros());
+        println!("JSON took: {} us", now.elapsed().as_micros());
         assert!(agents.num_agents() > 1);
         assert_eq!(new_json_agents, json_agents);
         Ok(())
@@ -1596,7 +1596,7 @@ pub(super) mod test {
             &schema,
             MemoryId::new(experiment_id.as_uuid()),
         )?;
-        println!("Thru JSON took: {} us", now.elapsed().as_micros());
+        println!("JSON took: {} us", now.elapsed().as_micros());
         assert!(agents.num_agents() > 1);
         json_agents.iter_mut().for_each(|v| {
             v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
@@ -1691,7 +1691,7 @@ pub(super) mod test {
             &schema,
             MemoryId::new(experiment_id.as_uuid()),
         )?;
-        println!("Thru JSON took: {} us", now.elapsed().as_micros());
+        println!("JSON took: {} us", now.elapsed().as_micros());
         assert!(agents.num_agents() > 1);
 
         json_agents.iter_mut().for_each(|v| {
