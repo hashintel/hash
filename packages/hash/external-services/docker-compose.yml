@@ -80,6 +80,8 @@ services:
       - DSN=postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DATABASE}
       - LOG_LEVEL=trace
     command: serve -c /etc/config/kratos/kratos.dev.yml --dev --watch-courier
+    extra_hosts:
+      - host.docker.internal:host-gateway
     volumes:
       - type: bind
         source: ./kratos
