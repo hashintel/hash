@@ -149,7 +149,7 @@ jobs:
         run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
 
       - name: Run miri
-        if: ${{ startsWith(matrix.toolchain, "nightly" }}
+        if: ${{ startsWith(matrix.toolchain, "nightly") }}
         working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} miri --no-fail-fast
 
