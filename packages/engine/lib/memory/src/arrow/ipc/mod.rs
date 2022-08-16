@@ -29,7 +29,7 @@ pub mod write;
 /// Contains code taken from arrow2 (and slightly modified) to allow us to write arrays.
 mod serialize;
 
-#[cfg(test)]
+#[cfg(all(test, not(miri)))]
 mod test;
 
 pub use read::*;
