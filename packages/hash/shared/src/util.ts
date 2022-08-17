@@ -135,7 +135,6 @@ export const topologicalSort = <T>(edges: [T, T][]) => {
  * @param key is the name of the id property on the element, used to strongly type the code
  * @param reference is the name of the parent reference property on the element
  * @param recursive is the name of the property that deals with children of an element. This will be populated with the tree structure.
- *
  */
 export const treeFromParentReferences = <
   Element extends {
@@ -150,7 +149,7 @@ export const treeFromParentReferences = <
   reference: Ref,
   recursive: Rec,
 ) => {
-  /* eslint-disable @typescript-eslint/no-unnecessary-condition -- */
+  /* eslint-disable @typescript-eslint/no-unnecessary-condition -- @todo investigate why element[reference] / existingParent[recursive] are always truthy */
 
   const topologicallySorted = topologicalSort(
     elements
