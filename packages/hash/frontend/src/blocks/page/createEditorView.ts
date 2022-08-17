@@ -11,6 +11,7 @@ import { EditorConnection } from "./collab/EditorConnection";
 import { ComponentView } from "./ComponentView";
 import { createErrorPlugin } from "./createErrorPlugin";
 import { createFormatPlugins } from "./createFormatPlugins";
+import { createPlaceholderPlugin } from "./createPlaceholderPlugin/createPlaceholderPlugin";
 import { createSuggester } from "./createSuggester/createSuggester";
 import { MentionView } from "./MentionView/MentionView";
 import styles from "./style.module.css";
@@ -36,6 +37,7 @@ export const createEditorView = (
   const plugins: Plugin<unknown, Schema>[] = [
     ...createFormatPlugins(renderPortal),
     createSuggester(renderPortal, () => manager, accountId),
+    createPlaceholderPlugin(renderPortal),
     errorPlugin,
   ];
 
