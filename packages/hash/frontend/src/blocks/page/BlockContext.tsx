@@ -2,6 +2,8 @@ import { createContext, useContext } from "react";
 
 type BlockContextType = {
   id: string;
+  showDataMappingUi: boolean;
+  setShowDataMappingUi: (shouldShow: boolean) => void;
   error: boolean;
   setError: (error: boolean) => void;
 };
@@ -12,7 +14,7 @@ export const useBlockContext = () => {
   const blockContext = useContext(BlockContext);
 
   if (!blockContext) {
-    throw new Error("no BlockViewContext value has been provided");
+    throw new Error("no BlockContext value has been provided");
   }
 
   return blockContext;

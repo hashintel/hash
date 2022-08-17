@@ -1,4 +1,4 @@
-import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
+import { HashBlock } from "@hashintel/hash-shared/blocks";
 import {
   BlockEntity,
   getBlockChildEntity,
@@ -91,7 +91,7 @@ export class ComponentView implements NodeView<Schema> {
     private readonly editorView: EditorView<Schema>,
     private readonly getPos: () => number | undefined,
     private readonly renderPortal: RenderPortal,
-    private readonly meta: HashBlockMeta,
+    private readonly block: HashBlock,
     private readonly manager: ProsemirrorManager,
   ) {
     this.dom.setAttribute("data-dom", "true");
@@ -151,7 +151,7 @@ export class ComponentView implements NodeView<Schema> {
      */
     if (
       isComponentNode(node) &&
-      componentNodeToId(node) === this.meta.componentId
+      componentNodeToId(node) === this.block.meta.componentId
     ) {
       const entity = this.getDraftBlockEntity();
 
@@ -166,7 +166,7 @@ export class ComponentView implements NodeView<Schema> {
       const childEntity = getChildEntity(entity);
 
       const beforeCapture = (scope: Sentry.Scope) => {
-        scope.setTag("block", this.meta.componentId);
+        scope.setTag("block", this.block.meta.componentId);
       };
 
       const onRetry = () => {
@@ -193,9 +193,10 @@ export class ComponentView implements NodeView<Schema> {
               }}
             >
               <BlockLoader
+                key={entityId} // reset the component state when the entity changes, e.g. to reset the data map state
                 blockEntityId={entityId}
-                entityType={childEntity?.entityType}
-                blockMetadata={this.meta}
+                blockMetadata={this.block.meta}
+                blockSchema={this.block.schema}
                 // @todo uncomment this when sandbox is fixed
                 // shouldSandbox={!this.editable}
                 editableRef={this.editableRef}
@@ -203,6 +204,7 @@ export class ComponentView implements NodeView<Schema> {
                 accountId={childEntity?.accountId!}
                 entityId={childEntity?.entityId!}
                 entityTypeId={childEntity?.entityTypeId!}
+                entityType={childEntity?.entityType}
                 entityProperties={
                   childEntity && "properties" in childEntity
                     ? childEntity.properties

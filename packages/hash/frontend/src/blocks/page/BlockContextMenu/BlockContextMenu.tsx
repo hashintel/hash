@@ -12,6 +12,7 @@ import {
   faArrowRight,
   faGear,
   faLink,
+  faMap,
   faRefresh,
 } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -37,13 +38,21 @@ type BlockContextMenuProps = {
   openConfigMenu: () => void;
   popupState: PopupState;
   canSwap: boolean;
+  toggleShowDataMappingUi: () => void;
 };
 
 const BlockContextMenu: ForwardRefRenderFunction<
   HTMLDivElement,
   BlockContextMenuProps
 > = (
-  { blockEntity, deleteBlock, openConfigMenu, popupState, canSwap },
+  {
+    blockEntity,
+    deleteBlock,
+    openConfigMenu,
+    popupState,
+    canSwap,
+    toggleShowDataMappingUi,
+  },
   ref,
 ) => {
   const { data: users } = useUsers();
@@ -84,6 +93,12 @@ const BlockContextMenu: ForwardRefRenderFunction<
           url.hash = getBlockDomId(entityId!);
           void navigator.clipboard.writeText(url.toString());
         },
+      },
+      {
+        key: "map-data",
+        title: "Map data",
+        icon: <FontAwesomeIcon icon={faMap} />,
+        onClick: () => toggleShowDataMappingUi(),
       },
       {
         key: "configure",
@@ -139,6 +154,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
     popupState,
     canSwap,
     compatibleBlocks,
+    toggleShowDataMappingUi,
   ]);
 
   useKey(["Escape"], () => {
