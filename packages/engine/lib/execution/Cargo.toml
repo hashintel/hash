@@ -16,7 +16,7 @@ futures = "0.3.21"
 glob = "0.3.0"
 kdtree = "0.6.0"
 lazy_static = "1.4.0"
-nng = { version = "1.0.1", default-features = false }
+nng = { version = "1.0.1" }
 rand = "0.8.5"
 rayon = "1.5.3"
 serde = { version = "1.0.138", features = ["derive"] }
@@ -29,5 +29,3 @@ v8 = "0.45.0"
 json_comments = "0.2.1"
 
 [features]
-default = ["build-nng"]
-build-nng = ["nng/build-nng"]
