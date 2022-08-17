@@ -5,7 +5,7 @@ import { GraphApi } from "../graph";
 import { UserModel } from "../model";
 import { adminKratosSdk, KratosUserIdentityTraits } from "./ory-kratos";
 
-/** @todo shortname and fullName is currenlty unused,
+/** @todo shortname and fullName is currently unused,
       these need to be added to the UserModel creation step. */
 type DevelopmentUser = {
   email: string;
