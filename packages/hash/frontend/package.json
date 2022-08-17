@@ -19,7 +19,7 @@
     "@apollo/client": "3.6.9",
     "@blockprotocol/core": "0.0.8",
     "@blockprotocol/graph": "0.0.12",
-    "@blockprotocol/hook": "0.0.1-canary.10",
+    "@blockprotocol/hook": "0.0.1",
     "@emoji-mart/data": "1.0.5",
     "@emoji-mart/react": "1.0.1",
     "@emotion/cache": "11.7.1",
