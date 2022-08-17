@@ -17,18 +17,16 @@ export const mapUserModelToGQL = async (
   user: UserModel,
 ): Promise<UnresolvedGQLUser> => {
   return {
-    accountId: user.accountId,
+    accountId: user.getAccountId(),
     id: user.entityId,
     entityId: user.entityId,
     entityVersionId: user.version,
     entityTypeId: "" /** @todo: deprecate this field */,
     entityTypeVersionId: user.entityTypeModel.schema.$id,
     entityTypeName: user.entityTypeModel.schema.title,
-    properties: {
-      shortname: user.getShortname(),
-      preferredName: user.getPreferredName(),
-      emails: await user.getQualifiedEmails(),
-    },
+    shortname: user.getShortname(),
+    preferredName: user.getPreferredName(),
+    emails: await user.getQualifiedEmails(),
     entityVersionCreatedAt:
       new Date().toISOString() /** @todo: stop hardcoding this */,
     createdAt: new Date().toISOString() /** @todo: stop hardcoding this */,

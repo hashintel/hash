@@ -191,7 +191,6 @@ export const resolvers = {
   },
 
   Org: {
-    properties: entityFields.properties,
     ...orgLinkedEntities,
   },
 

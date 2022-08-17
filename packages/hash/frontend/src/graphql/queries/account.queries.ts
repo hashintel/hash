@@ -16,21 +16,17 @@ export const getAccounts = gql`
             accountId
           }
         }
-        properties {
-          shortname
-          preferredName
-          emails {
-            address
-            primary
-            verified
-          }
+        shortname
+        preferredName
+        emails {
+          address
+          primary
+          verified
         }
       }
       ... on Org {
-        properties {
-          shortname
-          name
-        }
+        shortname
+        name
       }
     }
   }
