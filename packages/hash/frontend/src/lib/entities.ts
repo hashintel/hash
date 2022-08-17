@@ -446,15 +446,18 @@ export const convertApiEntityTypesToBpEntityTypes = (
  * @see https://blockprotocol.org/docs/spec/graph-service-specification#json-schema-extensions
  */
 export const guessEntityName = (entity: JsonObject) => {
-  const { name, preferredName, displayName, title, shortname, legalName } =
+  const { name, preferredName, displayName, title, shortname, ...rest } =
     isParsedJsonObject(entity.properties) ? entity.properties : entity;
+  const valueForKeyContainingName = Object.entries(rest).find(([key]) =>
+    key.toLowerCase().includes("name"),
+  )?.[1];
   return (
     name ??
     preferredName ??
     displayName ??
     title ??
     shortname ??
-    legalName ??
+    valueForKeyContainingName ??
     entity.entityId ??
     "Entity"
   ).toString();
