@@ -239,7 +239,7 @@ class Batch:
                 # Convert `any`-type array of JSON values to array of JSON strings
                 # for Arrow serialization as a string column.
                 py_col = [json.dumps(elem) for elem in col]
-            elif isinstance(col[0], pa.ArrayValue):
+            elif isinstance(col[0], pa.Scalar):
                 # Shallow-loaded column; can be modified in place
                 continue
             else:
