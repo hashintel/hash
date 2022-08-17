@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/block-header",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Write titles, sub-titles, and section headings in four different sizes",
   "repository": {
@@ -19,7 +19,9 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.12"
+    "@blockprotocol/graph": "0.0.12",
+    "@blockprotocol/hook": "0.0.1",
+    "@rooks/use-fork-ref": "4.11.2"
   },
   "devDependencies": {
     "block-scripts": "0.0.14",
