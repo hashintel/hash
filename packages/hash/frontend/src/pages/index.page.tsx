@@ -18,11 +18,6 @@ const Page: NextPageWithLayout = () => {
       return;
     }
 
-    if (user) {
-      // Temporarily redirect logged in user to their account page
-      void router.push(`/${user.accountId}`);
-    }
-
     if (!kratosSession) {
       void router.push("/login");
     }
