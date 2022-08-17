@@ -1,4 +1,8 @@
-import { findComponentNodes } from "@hashintel/hash-shared/prosemirror";
+import { paragraphBlock } from "@hashintel/hash-shared/blocks";
+import {
+  componentNodeToId,
+  findComponentNodes,
+} from "@hashintel/hash-shared/prosemirror";
 import { Schema } from "prosemirror-model";
 import { Plugin, PluginKey } from "prosemirror-state";
 import { Decoration, DecorationSet } from "prosemirror-view";
@@ -35,10 +39,15 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
       decorations(state) {
         const firstNode = state.selection.$anchor.node(1);
 
-        const focused = placeholderPluginKey.getState(state)?.focused;
+        const componentId = firstNode
+          ? componentNodeToId(findComponentNodes(firstNode)[0]!)
+          : null;
 
-        /** @todo show placeholder only for paragraphs */
+        const focused = placeholderPluginKey.getState(state)?.focused;
+        const isParagraph = componentId === paragraphBlock;
+
         const showPlaceholder =
+          isParagraph &&
           firstNode &&
           findComponentNodes(firstNode)[0]?.childCount === 0 &&
           focused;
@@ -52,10 +61,8 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
         const placeholderDecoration = Decoration.widget(widgetPos, () => {
           /**
            * @todo when focus changes, the old placeholder blinks for a moment
-           * @ask could this be related with https://prosemirror.net/docs/ref/#view.Decoration^widget
-           * It is recommended that you delay rendering the widget by passing a function
-           * that will be called when the widget is actually drawn in a view,
-           * but you can also directly pass a DOM node.
+           * this could be related with the focused state changing true-false, or
+           * @see https://prosemirror.net/docs/ref/#view.Decoration^widget
            *  */
           const mountNode = document.createElement("div");
 

@@ -231,8 +231,11 @@ export const fetchBlock = async (
   return await promise;
 };
 
+export const paragraphBlock =
+  "https://blockprotocol.org/blocks/@hash/paragraph";
+
 const textBlocks = new Set([
-  "https://blockprotocol.org/blocks/@hash/paragraph",
+  paragraphBlock,
   "https://blockprotocol.org/blocks/@hash/header",
   "https://blockprotocol.org/blocks/@hash/callout",
 ]);

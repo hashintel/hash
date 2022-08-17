@@ -1,4 +1,4 @@
-import { HashBlock } from "@hashintel/hash-shared/blocks";
+import { HashBlock, paragraphBlock } from "@hashintel/hash-shared/blocks";
 import {
   BlockEntity,
   getBlockChildEntity,
@@ -274,8 +274,7 @@ export class ComponentView implements NodeView<Schema> {
       );
     }
 
-    const paragraphTypeUrl = "https://blockprotocol.org/blocks/@hash/paragraph";
-    const isParagraph = this.node.type.name === paragraphTypeUrl;
+    const isParagraph = this.node.type.name === paragraphBlock;
     const isTheOnlyChild = this.editorView.state.doc.childCount === 1;
     const isEmpty = this.node.content.size === 0;
 
