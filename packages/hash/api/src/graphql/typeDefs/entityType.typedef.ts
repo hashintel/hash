@@ -1,6 +1,6 @@
 import { gql } from "apollo-server-express";
 
-export const entityTypeTypedef = gql`
+export const deprecatedEntityTypeTypedef = gql`
   extend type Query {
     """
     Get an entity type by its fixed id, which is:

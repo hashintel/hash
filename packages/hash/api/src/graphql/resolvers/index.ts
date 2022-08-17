@@ -90,6 +90,13 @@ import {
   updateLinkType,
 } from "./ontology/link-type";
 
+import {
+  createEntityType,
+  getAllLatestEntityTypes,
+  getEntityType,
+  updateEntityType,
+} from "./ontology/entity-type";
+
 export const resolvers = {
   Query: {
     // Logged in and signed up users only
@@ -128,6 +135,8 @@ export const resolvers = {
     getPropertyType,
     getAllLatestLinkTypes,
     getLinkType,
+    getAllLatestEntityTypes,
+    getEntityType,
   },
 
   Mutation: {
@@ -171,6 +180,8 @@ export const resolvers = {
     updatePropertyType,
     createLinkType,
     updateLinkType,
+    createEntityType,
+    updateEntityType,
   },
 
   JSONObject: JSONObjectResolver,
