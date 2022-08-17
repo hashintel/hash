@@ -1,6 +1,6 @@
 import { gql } from "@apollo/client";
 
-export const getLinkType = gql`
+export const getLinkTypeQuery = gql`
   query getLinkType($linkTypeVersionedUri: String!) {
     getLinkType(linkTypeVersionedUri: $linkTypeVersionedUri) {
       linkTypeVersionedUri
@@ -10,7 +10,7 @@ export const getLinkType = gql`
   }
 `;
 
-export const getAllLatestLinkTypes = gql`
+export const getAllLatestLinkTypesQuery = gql`
   query getAllLatestLinkTypes {
     getAllLatestLinkTypes {
       linkTypeVersionedUri
@@ -20,7 +20,7 @@ export const getAllLatestLinkTypes = gql`
   }
 `;
 
-export const createLinkType = gql`
+export const createLinkTypeMutation = gql`
   mutation createLinkType($accountId: ID!, $linkType: LinkType!) {
     createLinkType(accountId: $accountId, linkType: $linkType) {
       linkTypeVersionedUri
@@ -30,7 +30,7 @@ export const createLinkType = gql`
   }
 `;
 
-export const updateLinkType = gql`
+export const updateLinkTypeMutation = gql`
   mutation updateLinkType(
     $accountId: ID!
     $linkTypeVersionedUri: String!

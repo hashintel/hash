@@ -1,6 +1,6 @@
 import { gql } from "@apollo/client";
 
-export const getPropertyType = gql`
+export const getPropertyTypeQuery = gql`
   query getPropertyType($propertyTypeVersionedUri: String!) {
     getPropertyType(propertyTypeVersionedUri: $propertyTypeVersionedUri) {
       propertyTypeVersionedUri
@@ -10,7 +10,7 @@ export const getPropertyType = gql`
   }
 `;
 
-export const getAllLatestPropertyTypes = gql`
+export const getAllLatestPropertyTypesQuery = gql`
   query getAllLatestPropertyTypes {
     getAllLatestPropertyTypes {
       propertyTypeVersionedUri
@@ -20,7 +20,7 @@ export const getAllLatestPropertyTypes = gql`
   }
 `;
 
-export const createPropertyType = gql`
+export const createPropertyTypeMutation = gql`
   mutation createPropertyType($accountId: ID!, $propertyType: PropertyType!) {
     createPropertyType(accountId: $accountId, propertyType: $propertyType) {
       propertyTypeVersionedUri
@@ -30,7 +30,7 @@ export const createPropertyType = gql`
   }
 `;
 
-export const updatePropertyType = gql`
+export const updatePropertyTypeMutation = gql`
   mutation updatePropertyType(
     $accountId: ID!
     $propertyTypeVersionedUri: String!
