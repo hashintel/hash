@@ -10,8 +10,8 @@ generates:
       noSchemaStitching: true
   ./src/graphql/apiTypes.gen.ts:
     documents:
-      - ../shared/src/queries/*.ts
-      - ./src/collab/graphql/queries/*.ts
+      - ../shared/src/queries/**/*.ts
+      - ./src/collab/graphql/queries/**/*.ts
     hooks:
       afterOneFileWrite:
         - prettier --write
