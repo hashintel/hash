@@ -82,11 +82,6 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
   }, [graphProperties.blockEntity, graphService]);
 
   useEffect(() => {
-    onBlockLoaded?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
     if (graphService) {
       graphService.blockGraph({ data: graphProperties.blockGraph });
     }
