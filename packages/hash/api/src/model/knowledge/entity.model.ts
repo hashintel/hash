@@ -179,6 +179,34 @@ export default class {
   }
 
   /**
+   * Update multiple top-level properties on an entity.
+   *
+   * @param params.updatedProperties - an array of the properties being updated
+   * @param params.updatedByAccountId - the account id of the account updating the property value
+   * @returns
+   */
+  async updateProperties(
+    graphApi: GraphApi,
+    params: {
+      updatedByAccountId: string;
+      updatedProperties: { propertyTypeBaseUri: string; value: any }[];
+    },
+  ): Promise<EntityModel> {
+    const { updatedProperties, updatedByAccountId } = params;
+
+    return await this.update(graphApi, {
+      accountId: updatedByAccountId,
+      properties: updatedProperties.reduce(
+        (prev, { propertyTypeBaseUri, value }) => ({
+          ...prev,
+          [propertyTypeBaseUri]: value,
+        }),
+        this.properties,
+      ),
+    });
+  }
+
+  /**
    * Update a top-level property on an entity.
    *
    * @param params.propertyTypeBaseUri - the property type base URI of the property being updated
@@ -195,14 +223,10 @@ export default class {
     },
   ): Promise<EntityModel> {
     const { updatedByAccountId, propertyTypeBaseUri, value } = params;
-    const updatedProperties = {
-      ...this.properties,
-      [propertyTypeBaseUri]: value,
-    };
 
-    return await this.update(graphApi, {
-      accountId: updatedByAccountId,
-      properties: updatedProperties,
+    return await this.updateProperties(graphApi, {
+      updatedByAccountId,
+      updatedProperties: [{ propertyTypeBaseUri, value }],
     });
   }
 
