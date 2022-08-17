@@ -10,6 +10,8 @@ pub fn reset_index_col(behavior_index_col_index: usize) -> Result<StateColumn> {
     })))
 }
 
+/// This struct is responsible to resetting the value of the behaviour id index column to 0 (_not_
+/// the behaviour list).
 pub struct ResetIndexCol {
     behavior_index_col_index: usize,
 }

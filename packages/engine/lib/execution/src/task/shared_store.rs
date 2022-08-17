@@ -29,6 +29,46 @@ impl TaskSharedStore {
     pub fn context(&self) -> &SharedContext {
         &self.context
     }
+
+    /// Obtains the write proxies and group indices from [`TaskSharedStore`], returning an error if
+    /// this fails.
+    ///
+    /// Note: we have a specific enum (rather than putting this into a big ball-of-mud enum, because
+    /// we can handle the error if it fails).
+    pub fn get_write_proxies(
+        self: &mut TaskSharedStore,
+    ) -> Result<(&mut StateWriteProxy, Vec<usize>), GetWriteProxiesError> {
+        let (proxy, group_indices) = match &mut self.state {
+            SharedState::None | SharedState::Read(_) => {
+                return Err(GetWriteProxiesError::StateNotWritable);
+            }
+            SharedState::Write(state) => {
+                let indices = (0..state.agent_pool().len()).collect();
+                (state, indices)
+            }
+            SharedState::Partial(partial) => match partial {
+                PartialSharedState::Read(_) => {
+                    return Err(GetWriteProxiesError::StateNotWritable);
+                }
+                PartialSharedState::Write(state) => {
+                    let indices = state.group_indices.clone();
+                    (&mut state.state_proxy, indices)
+                }
+            },
+        };
+        Ok((proxy, group_indices))
+    }
+}
+
+/// An error encountered when calling [`TaskSharedStore::get_write_proxies`].
+pub enum GetWriteProxiesError {
+    StateNotWritable,
+}
+
+impl From<GetWriteProxiesError> for crate::runner::JavaScriptError {
+    fn from(_: GetWriteProxiesError) -> crate::runner::JavaScriptError {
+        crate::runner::JavaScriptError::Unique("cannot obtain the state as writable".to_owned())
+    }
 }
 
 /// Partial write access to the agent pool and message pool.

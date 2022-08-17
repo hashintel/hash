@@ -1358,6 +1358,10 @@ impl<'s> ThreadLocalRunner<'s> {
         Ok(())
     }
 
+    /// "Flushes" the changes which the JavaScript code made. This involves collecting a list of all
+    /// the changes, which we then use to modify the underlying arrow arrays.
+    ///
+    /// See also the [`memory::arrow::flush`] module for more information.
     fn flush(
         &mut self,
         scope: &mut v8::HandleScope<'s>,
@@ -1365,19 +1369,9 @@ impl<'s> ThreadLocalRunner<'s> {
         shared_store: &mut TaskSharedStore,
         return_val: Object<'s>,
     ) -> Result<()> {
-        let (proxy, group_indices) = match &mut shared_store.state {
-            SharedState::None | SharedState::Read(_) => return Ok(()),
-            SharedState::Write(state) => {
-                let indices = (0..state.agent_pool().len()).collect();
-                (state, indices)
-            }
-            SharedState::Partial(partial) => match partial {
-                PartialSharedState::Read(_) => return Ok(()),
-                PartialSharedState::Write(state) => {
-                    let indices = state.group_indices.clone();
-                    (&mut state.state_proxy, indices)
-                }
-            },
+        let (proxy, group_indices) = match shared_store.get_write_proxies() {
+            Ok(t) => t,
+            Err(_) => return Ok(()),
         };
 
         let state = self
@@ -1609,6 +1603,10 @@ impl<'s> ThreadLocalRunner<'s> {
         Option<Vec<String>>,
     )> {
         tracing::debug!("Calling JS run_task");
+
+        // if the shared_store contains outdated data, then we must reload it here
+        Self::reload_data_if_necessary(&mut shared_store)?;
+
         let return_val: Value<'s> =
             call_js_function(scope, self.embedded.run_task, self.this, args)
                 .map_err(|err| Error::V8(format!("Could not run run_task Function: {err}")))?;
@@ -1634,7 +1632,7 @@ impl<'s> ThreadLocalRunner<'s> {
                     ))
                 })?;
 
-        // Only flushes if state writable
+        // Only flushes if the state is writable
         self.flush(scope, sim_id, &mut shared_store, return_val)?;
 
         let next_task_msg = TargetedRunnerTaskMsg {
@@ -1649,6 +1647,18 @@ impl<'s> ThreadLocalRunner<'s> {
         };
 
         Ok((next_task_msg, user_warnings, logs))
+    }
+
+    /// Reloads the data in the shared_store if necessary.
+    fn reload_data_if_necessary(shared_store: &mut TaskSharedStore) -> Result<()> {
+        let (write_proxies, _) = match shared_store.get_write_proxies() {
+            Ok(t) => t,
+            Err(_) => return Ok(()),
+        };
+        write_proxies.maybe_reload().map_err(|_| {
+            JavaScriptError::Unique("could not reload batches (this is a bug)".to_string())
+        })?;
+        Ok(())
     }
 
     fn ctx_batch_sync(

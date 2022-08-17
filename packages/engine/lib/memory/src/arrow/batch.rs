@@ -190,6 +190,7 @@ impl ArrowBatch {
         //       that automatically means it was mapped again in this
         //       process.
         self.segment.persist_metaversion(persisted);
+
         tracing::debug!(
             "Flush metaversions: {before:?}, {persisted:?}, {:?}",
             self.segment.read_persisted_metaversion()
@@ -225,9 +226,11 @@ impl ArrowBatch {
         if self.is_persisted() {
             Ok(self.record_batch_unchecked())
         } else {
-            Err(Error::from(
-                "Loaded record batch is older than persisted one",
-            ))
+            Err(Error::from(format!(
+                "Loaded record batch is older than persisted one (loaded: {:?}, persisted: {:?})",
+                self.loaded_metaversion(),
+                self.segment.read_persisted_metaversion()
+            )))
         }
     }
 

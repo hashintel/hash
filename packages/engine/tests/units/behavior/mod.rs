@@ -1,4 +1,4 @@
-crate::run_test!(multiple_runners, #[ignore = "unimplemented: Multiple runners are currently not supported"]);
+crate::run_test!(multiple_runners);
 
 mod js {
     crate::run_test!(composability, JavaScript);
