@@ -25,7 +25,7 @@ type Inputs = {
   responsibility?: string;
 };
 
-export const AccountSetup: FunctionComponent<AccountSetupFormProps> = ({
+export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
   onSubmit: setupAccount,
   loading,
   errorMessage,
