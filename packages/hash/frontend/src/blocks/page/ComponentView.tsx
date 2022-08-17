@@ -273,6 +273,17 @@ export class ComponentView implements NodeView<Schema> {
         }),
       );
     }
+
+    const paragraphTypeUrl = "https://blockprotocol.org/blocks/@hash/paragraph";
+    const isParagraph = this.node.type.name === paragraphTypeUrl;
+    const isTheOnlyChild = this.editorView.state.doc.childCount === 1;
+    const isEmpty = this.node.content.size === 0;
+
+    const shouldFocusOnLoad = isParagraph && isTheOnlyChild && isEmpty;
+
+    if (shouldFocusOnLoad) {
+      this.editorView.focus();
+    }
   };
 
   private editableRef = (editableNode: HTMLElement | null) => {

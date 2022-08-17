@@ -33,8 +33,6 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
     },
     props: {
       decorations(state) {
-        const pos = state.selection.$anchor.posAtIndex(0, 1);
-
         const firstNode = state.selection.$anchor.node(1);
 
         const focused = placeholderPluginKey.getState(state)?.focused;
@@ -49,7 +47,9 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
         // eslint-disable-next-line no-restricted-syntax
         if (!showPlaceholder) return DecorationSet.create(state.doc, []);
 
-        const placeholderDecoration = Decoration.widget(pos, () => {
+        const widgetPos = state.selection.$anchor.posAtIndex(0, 1);
+
+        const placeholderDecoration = Decoration.widget(widgetPos, () => {
           /**
            * @todo when focus changes, the old placeholder blinks for a moment
            * @ask could this be related with https://prosemirror.net/docs/ref/#view.Decoration^widget
