@@ -100,7 +100,7 @@ export const Breadcrumbs = ({
       }
     >
       {items.map((item, index) => {
-        if (item && "submenu" in item) {
+        if ("submenu" in item) {
           return <SubMenu items={item.submenu} defaultIcon={defaultIcon} />;
         }
 

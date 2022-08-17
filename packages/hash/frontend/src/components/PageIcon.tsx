@@ -77,7 +77,7 @@ export const PageIcon = ({
           }}
           disabled={readonly || updateEntityLoading}
         >
-          {data?.page?.properties?.icon || (
+          {data?.page.properties.icon || (
             <FontAwesomeIcon
               icon={faFile}
               sx={(theme) => ({
