@@ -33,8 +33,6 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
     },
     props: {
       decorations(state) {
-        const decorations: Decoration[] = [];
-
         const pos = state.selection.$anchor.posAtIndex(0, 1);
 
         const firstNode = state.selection.$anchor.node(1);
@@ -42,33 +40,32 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
         const focused = placeholderPluginKey.getState(state)?.focused;
 
         /** @todo show placeholder only for paragraphs */
-        const shouldShowPlaceholder =
+        const showPlaceholder =
           firstNode &&
           findComponentNodes(firstNode)[0]?.childCount === 0 &&
           focused;
 
-        if (shouldShowPlaceholder) {
-          const placeholderDecoration = Decoration.widget(pos, () => {
-            /**
-             * @todo when focus changes, the old placeholder blinks for a moment
-             * @ask could this be related with https://prosemirror.net/docs/ref/#view.Decoration^widget
-             * It is recommended that you delay rendering the widget by passing a function
-             * that will be called when the widget is actually drawn in a view,
-             * but you can also directly pass a DOM node.
-             *  */
-            const mountNode = document.createElement("div");
-
-            renderPortal(<Placeholder />, mountNode);
-
-            return mountNode;
-          });
-
-          decorations.push(placeholderDecoration);
-        }
-
         /** @todo pass generic to DecorationSet properly */
         // eslint-disable-next-line no-restricted-syntax
-        return DecorationSet.create(state.doc, decorations);
+        if (!showPlaceholder) return DecorationSet.create(state.doc, []);
+
+        const placeholderDecoration = Decoration.widget(pos, () => {
+          /**
+           * @todo when focus changes, the old placeholder blinks for a moment
+           * @ask could this be related with https://prosemirror.net/docs/ref/#view.Decoration^widget
+           * It is recommended that you delay rendering the widget by passing a function
+           * that will be called when the widget is actually drawn in a view,
+           * but you can also directly pass a DOM node.
+           *  */
+          const mountNode = document.createElement("div");
+
+          renderPortal(<Placeholder />, mountNode);
+
+          return mountNode;
+        });
+
+        // eslint-disable-next-line no-restricted-syntax
+        return DecorationSet.create(state.doc, [placeholderDecoration]);
       },
       handleDOMEvents: {
         blur(view) {
@@ -76,6 +73,9 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
           return false;
         },
         focus(view) {
+          // this if prevents rendering `Placeholder` on readonly mode
+          if (!view.editable) return false;
+
           view.dispatch(view.state.tr.setMeta(placeholderPluginKey, true));
           return false;
         },
