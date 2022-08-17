@@ -203,7 +203,7 @@ async fn build_api_response_maps(
             let messages = snapshot.message_map.get_msg_refs(handler);
             if !messages.is_empty() {
                 let messages = handlers::gather_requests(&reader, messages)?;
-                futs.push(handlers::run_custom_message_handler(handler, messages))
+                futs.push_back(handlers::run_custom_message_handler(handler, messages))
             }
             Ok(())
         })?;

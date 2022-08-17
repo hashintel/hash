@@ -193,7 +193,7 @@ impl Packages {
 
         pkgs.into_iter().for_each(|mut package| {
             let cpu_bound = package.cpu_bound();
-            futs.push(if cpu_bound {
+            futs.push_back(if cpu_bound {
                 tokio::task::spawn_blocking(move || {
                     let res = block_on(package.run());
                     (package, res)
@@ -301,7 +301,7 @@ impl Packages {
             let snapshot_clone = snapshot_arc.clone();
 
             let cpu_bound = package.cpu_bound();
-            futs.push(if cpu_bound {
+            futs.push_back(if cpu_bound {
                 let current_span = Span::current();
                 tokio::task::spawn_blocking(move || {
                     let package_span = {
@@ -408,7 +408,7 @@ impl Packages {
             let context = context.clone();
 
             let cpu_bound = pkg.cpu_bound();
-            futs.push(if cpu_bound {
+            futs.push_back(if cpu_bound {
                 let current_span = Span::current();
                 tokio::task::spawn_blocking(move || {
                     let package_span = {
