@@ -166,7 +166,7 @@ jobs:
         if: matrix.directory == 'packages/engine'
         uses: actions/setup-python@v2
         with:
-          python-version: "3.7"
+          python-version: "3.9"
 
       - name: Run tests
         working-directory: ${{ matrix.directory }}
