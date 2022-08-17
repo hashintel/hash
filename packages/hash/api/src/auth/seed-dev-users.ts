@@ -71,14 +71,10 @@ export const seedDevUsers = async ({
         emails,
         kratosIdentityId,
       });
-
-      logger.info(
-        `Development user identity has been created, email = "${email}" password = "${devPassword}".`,
-      );
-    } else {
-      logger.info(
-        `Development user available, email = "${email}" password = "${devPassword}".`,
-      );
     }
+
+    logger.info(
+      `Development user available, email = "${email}" password = "${devPassword}".`,
+    );
   }
 };
