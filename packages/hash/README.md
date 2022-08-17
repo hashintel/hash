@@ -102,12 +102,12 @@ You can delete this directory when containers are stopped for a ‘hard reset’
 
 ## User authentication
 
-Our login and signup flows rely on emails with links or authentication codes.
-By default, the API server uses `DummyEmailTransporter` which simulates email sending for local development and testing.
-You will find authentication codes in `var/api/dummy-email-transporter/email-dumps.yml` and in the terminal output.
-If you chose to run the backend and frontend separately, it will be in the backend terminal.
+Development users are seeded when the HASH API is started, these users are `alice@example.com` and `bob@example.com`.
+You'll be able to sign in to these users with the password `password`.
 
-After you have run `yarn seed-data`, you will be able to log in as either `alice@example.com` or `bob@example.com`.
+## Sending emails
+
+By default, the API server uses `DummyEmailTransporter` which simulates email sending for local development and testing.
 
 To use `AwsSesEmailTransporter` instead, set `export HASH_EMAIL_TRANSPORTER=aws_ses` in your terminal before running the app.
 Note that you will need valid AWS credentials for this email transporter to work.
