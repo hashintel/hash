@@ -233,7 +233,7 @@ export const fetchBlock = async (
 
 const textBlocks = new Set([
   "https://blockprotocol.org/blocks/@hash/paragraph",
-  "http://localhost:63282",
+  "https://blockprotocol.org/blocks/@hash/header",
   "https://blockprotocol.org/blocks/@hash/callout",
 ]);
 
