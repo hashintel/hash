@@ -59,10 +59,6 @@ const derivePathsFromSchema = (
     }
     return Object.entries(_schemaProperties).reduce(
       (pathAccumulator, [currentKey, currentSchema]) => {
-        if (!currentSchema) {
-          return pathAccumulator;
-        }
-
         if (currentSchema.type === "object") {
           const subObjectKeys = _derivePathsFromSchema(
             _schema,
@@ -140,10 +136,6 @@ const generateInitialTransformations = (
   const matchingKeys = sourcePaths.filter((sourcePath) =>
     targetPaths.includes(sourcePath),
   );
-
-  if (!matchingKeys) {
-    return undefined;
-  }
 
   return matchingKeys.reduce<NonNullable<SchemaMap["transformations"]>>(
     (obj, key) => {
@@ -320,7 +312,7 @@ export const DataMapEditor = ({
                   onChange={(evt) =>
                     onSchemaMapChange(
                       produce((draftMap) => {
-                        if (evt.target.value == null) {
+                        if (!evt.target.value) {
                           return;
                         }
                         draftMap.transformations ??= {};
