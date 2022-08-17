@@ -1,5 +1,5 @@
 import { ApolloError } from "apollo-server-errors";
-import { User } from "../../../model";
+import { UserModel } from "../../../model";
 import { ResolverFn, User as GQLUser } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { UnresolvedGQLEntity } from "../../../model/entity.model";
@@ -9,19 +9,22 @@ export const memberOf: ResolverFn<
   GQLUser,
   GraphQLContext,
   {}
-> = async ({ entityId }, _, { dataSources }) => {
-  const user = await User.getUserById(dataSources.db, { entityId });
+> = async ({ entityId }, _, { dataSources: { graphApi } }) => {
+  const user = await UserModel.getUserByEntityId(graphApi, { entityId });
 
   if (!user) {
-    const msg = `User with entityId ${entityId} not found in datastore`;
+    const msg = `User with entityId ${entityId} not found in graph`;
     throw new ApolloError(msg, "NOT_FOUND");
   }
 
-  const orgMemberships = await user.getOrgMemberships(dataSources.db);
+  return [];
 
-  return orgMemberships.map((orgMembership) =>
-    orgMembership.toGQLUnknownEntity(),
-  );
+  /** @todo: bring back org memberships */
+  // const orgMemberships = await user.getOrgMemberships(dataSources.db);
+
+  // return orgMemberships.map((orgMembership) =>
+  //   orgMembership.toGQLUnknownEntity(),
+  // );
 };
 
 export const userLinkedEntities = {
