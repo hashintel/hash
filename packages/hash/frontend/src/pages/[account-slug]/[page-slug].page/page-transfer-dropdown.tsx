@@ -1,10 +1,4 @@
-import {
-  ChangeEvent,
-  useEffect,
-  useState,
-  VFC,
-  VoidFunctionComponent,
-} from "react";
+import { ChangeEvent, useEffect, useState, FunctionComponent } from "react";
 import { useRouter } from "next/router";
 import { useMutation, useQuery } from "@apollo/client";
 
@@ -24,7 +18,10 @@ type AccountSelectProps = {
   value: string;
 };
 
-export const AccountSelect: VFC<AccountSelectProps> = ({ onChange, value }) => {
+export const AccountSelect: FunctionComponent<AccountSelectProps> = ({
+  onChange,
+  value,
+}) => {
   const { data } = useQuery<GetAccountsQuery>(getAccounts);
 
   return (
@@ -56,7 +53,7 @@ type PageTransferDropdownType = {
   setPageState: (state: "normal" | "transferring") => void;
 };
 
-export const PageTransferDropdown: VoidFunctionComponent<
+export const PageTransferDropdown: FunctionComponent<
   PageTransferDropdownType
 > = ({ pageEntityId, accountId, setPageState }) => {
   const router = useRouter();

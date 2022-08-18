@@ -1,8 +1,7 @@
-import { VFC, useRef, useMemo } from "react";
+import { FunctionComponent, useRef, useMemo } from "react";
 import {
   Box,
   Typography,
-  Menu,
   Divider,
   ListItemText,
   ListItemAvatar,
@@ -14,22 +13,24 @@ import {
   bindTrigger,
   bindMenu,
 } from "material-ui-popup-state/hooks";
-import { Avatar, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Avatar, Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { useUser } from "../../../components/hooks/useUser";
+import { useLogout } from "../../../components/hooks/useLogout";
 import { Button, MenuItem } from "../../ui";
 import { useRouteAccountInfo } from "../../routing";
-import { useLogoutFlow } from "../../../components/hooks/useLogoutFlow";
 
 type WorkspaceSwitcherProps = {};
 
-export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
+export const WorkspaceSwitcher: FunctionComponent<
+  WorkspaceSwitcherProps
+> = () => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popupState = usePopupState({
     variant: "popover",
     popupId: "workspace-switcher-menu",
   });
   const { user } = useUser();
-  const { logout } = useLogoutFlow();
+  const { logout } = useLogout();
   const { accountId } = useRouteAccountInfo();
 
   const activeWorkspace = useMemo(() => {

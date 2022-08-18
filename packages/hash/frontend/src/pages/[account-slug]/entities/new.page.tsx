@@ -1,20 +1,21 @@
+import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
+
 import { useEffect, useMemo, useState } from "react";
 import { tw } from "twind";
 
 import { useRouter } from "next/router";
 
-import { BlockProtocolCreateEntitiesFunction } from "blockprotocol";
 import { SimpleEntityEditor } from "./shared/simple-entity-editor";
 
-import { UnknownEntity } from "../../../graphql/apiTypes.gen";
-import { useBlockProtocolCreateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateEntitities";
+import { useBlockProtocolCreateEntity } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateEntity";
 import { useBlockProtocolAggregateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../shared/layout";
-import { useAccountEntityTypes } from "../../../components/hooks/useAccountEntityTypes";
+import { useGetAllEntityTypes } from "../../../components/hooks/useGetAllEntityTypes";
 import { useRouteAccountInfo } from "../../../shared/routing";
+import { parseEntityIdentifier } from "../../../lib/entities";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -26,25 +27,31 @@ const Page: NextPageWithLayout = () => {
     entityTypeId,
   );
 
-  const { createEntities } = useBlockProtocolCreateEntities();
-  const { aggregateEntities } = useBlockProtocolAggregateEntities();
+  const { createEntity } = useBlockProtocolCreateEntity(accountId);
+  const { aggregateEntities } = useBlockProtocolAggregateEntities(accountId);
 
-  const createAndNavigateToFirstEntity: BlockProtocolCreateEntitiesFunction = (
-    args,
-  ) => {
-    return createEntities(args)
-      .then((res) => {
-        void router.push(
-          `/${accountId}/entities/${(res[0] as UnknownEntity).entityId}`,
-        );
-        return res;
-      })
-      .catch((err) => {
-        // eslint-disable-next-line no-console -- TODO: consider using logger
-        console.error(`Error creating entity: ${err.message}`);
-        throw err;
-      });
-  };
+  const createAndNavigateToFirstEntity: EmbedderGraphMessageCallbacks["createEntity"] =
+    (args) => {
+      return createEntity(args)
+        .then(({ data }) => {
+          if (!data) {
+            throw new Error("No data returned from createEntity call");
+          }
+          const {
+            accountId: createdEntityAccountId,
+            entityId: createdEntityEntityId,
+          } = parseEntityIdentifier(data.entityId);
+          void router.push(
+            `/${createdEntityAccountId}/entities/${createdEntityEntityId}`,
+          );
+          return { data };
+        })
+        .catch((err) => {
+          // eslint-disable-next-line no-console -- TODO: consider using logger
+          console.error(`Error creating entity: ${err.message}`);
+          throw err;
+        });
+    };
 
   useEffect(() => {
     if (
@@ -55,7 +62,7 @@ const Page: NextPageWithLayout = () => {
     }
   }, [router.query.entityTypeId, selectedTypeId]);
 
-  const { data } = useAccountEntityTypes(accountId, true);
+  const { data } = useGetAllEntityTypes(accountId);
 
   const typeOptions = data?.getAccountEntityTypes;
   const selectedType = useMemo(() => {
@@ -81,19 +88,22 @@ const Page: NextPageWithLayout = () => {
         >
           {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
           <option disabled value="none" />
-          {(typeOptions ?? []).map((type) => (
-            <option key={type.entityId} value={type.entityId}>
-              {type.properties.title}
-            </option>
-          ))}
+          {[...(typeOptions ?? [])]
+            .sort((a, b) =>
+              a.properties.title.localeCompare(b.properties.title),
+            )
+            .map((type) => (
+              <option key={type.entityId} value={type.entityId}>
+                {type.properties.title}
+              </option>
+            ))}
         </select>
       </div>
       <div>
         {selectedType && (
           <SimpleEntityEditor
-            accountId={accountId}
             aggregateEntities={aggregateEntities}
-            createEntities={createAndNavigateToFirstEntity}
+            createEntity={createAndNavigateToFirstEntity}
             entityTypeId={selectedTypeId!}
             schema={selectedType.properties}
           />

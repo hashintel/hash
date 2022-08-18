@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import { FunctionComponent, KeyboardEvent, useRef } from "react";
 import { tw } from "twind";
 
 type TagsInputProps = {
@@ -10,7 +10,7 @@ type TagsInputProps = {
   delimiters?: string[];
 };
 
-export const TagsInput: React.VFC<TagsInputProps> = ({
+export const TagsInput: FunctionComponent<TagsInputProps> = ({
   minHeight,
   tags,
   setTags,
@@ -20,7 +20,7 @@ export const TagsInput: React.VFC<TagsInputProps> = ({
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleKeyDown = (evt: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (evt: KeyboardEvent<HTMLInputElement>) => {
     if (!inputRef.current) return;
     const text = inputRef.current.value;
 

@@ -1,4 +1,4 @@
-import { VoidFunctionComponent, ChangeEvent } from "react";
+import { FunctionComponent, ChangeEvent } from "react";
 import { formatDistance } from "date-fns";
 import { Box } from "@mui/material";
 
@@ -11,7 +11,7 @@ type VersionDropdownProps = {
   }[];
 };
 
-export const VersionDropdown: VoidFunctionComponent<VersionDropdownProps> = ({
+export const VersionDropdown: FunctionComponent<VersionDropdownProps> = ({
   onChange,
   value,
   versions,

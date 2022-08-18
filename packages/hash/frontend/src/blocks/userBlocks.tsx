@@ -1,34 +1,35 @@
 import {
   createContext,
   Dispatch,
-  FC,
+  FunctionComponent,
+  ReactNode,
   SetStateAction,
   useContext,
   useEffect,
   useMemo,
   useState,
 } from "react";
-import { fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { fetchBlock } from "@hashintel/hash-shared/blocks";
 
 import { useCachedDefaultState } from "../components/hooks/useDefaultState";
-import { BlocksMetaMap } from "./page/createEditorView";
+import { BlocksMap } from "./page/createEditorView";
 
 interface UserBlocksContextState {
-  value: BlocksMetaMap;
-  setValue: Dispatch<SetStateAction<BlocksMetaMap>>;
+  value: BlocksMap;
+  setValue: Dispatch<SetStateAction<BlocksMap>>;
   blockFetchFailed: boolean;
 }
 
 /** @private enforces use of custom provider */
 const UserBlocksContext = createContext<UserBlocksContextState | null>(null);
 
-export const UserBlocksProvider: FC<{ value: BlocksMetaMap }> = ({
-  value: initialUserBlocks,
-  children,
-}) => {
+export const UserBlocksProvider: FunctionComponent<{
+  value: BlocksMap;
+  children?: ReactNode;
+}> = ({ value: initialUserBlocks, children }) => {
   const [value, setValue] = useCachedDefaultState(
     initialUserBlocks,
-    "hash-workspace-user-blocks",
+    "hash-workspace-user-blocks-v2",
     (nextInitialItems, prevInitialItems) => {
       return { ...prevInitialItems, ...nextInitialItems };
     },
@@ -59,15 +60,13 @@ export const UserBlocksProvider: FC<{ value: BlocksMetaMap }> = ({
             return response.json();
           })
           .then(async (responseData) => {
-            const apiProvidedBlocksMetaMap: BlocksMetaMap = {};
+            const apiProvidedBlocksMap: BlocksMap = {};
             for (const { componentId } of responseData.results) {
-              apiProvidedBlocksMetaMap[componentId] = await fetchBlockMeta(
-                componentId,
-              );
+              apiProvidedBlocksMap[componentId] = await fetchBlock(componentId);
             }
 
             setValue((prevValue) => {
-              return { ...prevValue, ...apiProvidedBlocksMetaMap };
+              return { ...prevValue, ...apiProvidedBlocksMap };
             });
           })
           .catch((error) => {

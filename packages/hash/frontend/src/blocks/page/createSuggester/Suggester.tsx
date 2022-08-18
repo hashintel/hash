@@ -1,5 +1,5 @@
-import { Box, SxProps, Theme } from "@mui/material";
-import React, { ReactElement, useEffect, useRef, useState } from "react";
+import { Box, SxProps, Theme, Typography } from "@mui/material";
+import { ReactElement, useState } from "react";
 import { useKey } from "rooks";
 import { tw } from "twind";
 import { SpinnerIcon } from "../../../shared/icons";
@@ -25,7 +25,7 @@ export const Suggester = <T,>({
   renderItem,
   error,
   sx = [],
-}: SuggesterProps<T>): ReactElement => {
+}: SuggesterProps<T>) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   // reset selected index if it exceeds the options available
@@ -42,13 +42,6 @@ export const Suggester = <T,>({
     setSelectedIndex(index);
   });
 
-  // scroll the selected option into view
-  const selectedRef = useRef<HTMLLIElement>(null);
-  useEffect(
-    () => selectedRef.current?.scrollIntoView({ block: "nearest" }),
-    [selectedIndex],
-  );
-
   useKey(["Enter"], (event) => {
     event.preventDefault();
 
@@ -62,15 +55,12 @@ export const Suggester = <T,>({
     <Box
       sx={[
         ({ palette }) => ({
-          position: "absolute",
           width: "340px",
           maxHeight: 400,
           borderRadius: "6px",
           boxShadow:
             "0px 20px 41px rgba(61, 78, 133, 0.07), 0px 16px 25px rgba(61, 78, 133, 0.0531481), 0px 12px 12px rgba(61, 78, 133, 0.0325), 0px 2px 3.13px rgba(61, 78, 133, 0.02)",
-          borderWidth: `1px`,
-          borderStyle: "solid",
-          borderColor: palette.gray[20],
+          border: `1px solid ${palette.gray[20]}`,
           display: "grid",
           gridTemplateRows: "1fr auto",
           overflow: "hidden",
@@ -85,11 +75,20 @@ export const Suggester = <T,>({
             <SpinnerIcon className={tw`h-3 w-3 text-gray-500 animate-spin`} />
           </li>
         )}
-        {options.map((option, index) => (
-          /* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */
+        {options.length === 0 && (
           <Box
             component="li"
-            ref={index === selectedIndex ? selectedRef : undefined}
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            py={1.5}
+          >
+            <Typography>No results</Typography>
+          </Box>
+        )}
+        {options.map((option, index) => (
+          <Box
+            component="li"
             key={itemKey(option)}
             sx={({ palette }) => ({
               backgroundColor:

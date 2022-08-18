@@ -1,14 +1,16 @@
+import { HashBlock } from "@hashintel/hash-shared/blocks";
 import {
-  blockComponentRequiresText,
-  BlockMeta,
-} from "@hashintel/hash-shared/blockMeta";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
+  BlockEntity,
+  getBlockChildEntity,
+  isTextEntity,
+} from "@hashintel/hash-shared/entity";
 import {
   DraftEntity,
   EntityStore,
   isDraftBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
 import {
+  addEntityStoreAction,
   entityStorePluginState,
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
@@ -16,11 +18,19 @@ import {
   componentNodeToId,
   isComponentNode,
 } from "@hashintel/hash-shared/prosemirror";
+import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
+import { textBlockNodeToEntityProperties } from "@hashintel/hash-shared/text";
 import * as Sentry from "@sentry/nextjs";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { TextSelection, Transaction } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
 import { ErrorBlock } from "../../components/ErrorBlock/ErrorBlock";
+import { BlockContext } from "./BlockContext";
+import {
+  SuggesterAction,
+  suggesterPluginKey,
+} from "./createSuggester/createSuggester";
 import { RenderPortal } from "./usePortals";
 
 /**
@@ -65,47 +75,32 @@ export const componentViewTargetSelector = "div[data-target=true]";
  *    The node type name is the id of the block component (i.e. its URI).
  */
 export class ComponentView implements NodeView<Schema> {
-  dom: HTMLDivElement = document.createElement("div");
-  contentDOM: HTMLElement | undefined = undefined;
-  editable: boolean;
+  public readonly dom = document.createElement("div");
+  public readonly contentDOM = document.createElement("div");
 
-  private target = createComponentViewTarget();
+  private readonly target = createComponentViewTarget();
 
-  private readonly componentId: string;
-  private readonly sourceName: string;
+  private readonly unsubscribe: Function;
 
   private store: EntityStore;
-  private unsubscribe: Function;
+
+  private wasSuggested = false;
 
   constructor(
     private node: ProsemirrorNode<Schema>,
-    public editorView: EditorView<Schema>,
-    public getPos: () => number,
-    private renderPortal: RenderPortal,
-    private meta: BlockMeta,
+    private readonly editorView: EditorView<Schema>,
+    private readonly getPos: () => number | undefined,
+    private readonly renderPortal: RenderPortal,
+    private readonly block: HashBlock,
+    private readonly manager: ProsemirrorManager,
   ) {
-    const { componentMetadata, componentSchema } = meta;
-    const { source } = componentMetadata;
-
-    if (!source) {
-      throw new Error("Cannot create new block for component missing a source");
-    }
-
-    this.sourceName = source;
-    this.componentId = componentMetadata.componentId;
-
     this.dom.setAttribute("data-dom", "true");
-
-    this.editable = blockComponentRequiresText(componentSchema);
-
-    if (this.editable) {
-      this.contentDOM = document.createElement("div");
-      this.contentDOM.setAttribute("data-contentDOM", "true");
-      this.contentDOM.style.display = "none";
-      this.dom.appendChild(this.contentDOM);
-    }
-
+    this.contentDOM.setAttribute("data-contentDOM", "true");
+    this.contentDOM.style.display = "none";
+    this.dom.appendChild(this.contentDOM);
     this.dom.appendChild(this.target);
+
+    this.dom.contentEditable = "false";
 
     this.store = entityStorePluginState(editorView.state).store;
     this.unsubscribe = subscribeToEntityStore(this.editorView, (store) => {
@@ -113,18 +108,54 @@ export class ComponentView implements NodeView<Schema> {
       this.update(this.node);
     });
 
+    /**
+     * If this block was inserted by the suggester, we may want to update the
+     * cursor to within this block once its loaded, if it turns out to be a
+     * text block, so we "remember" that the block was inserted by the suggester.
+     * However, we also want to clear the suggester state as we have "claimed"
+     * the suggested position, and it makes it less likely the cursor will
+     * accidentally be claimed by the wrong block if something changes block
+     * positions in unexpected ways.
+     *
+     * @note This is cleared in `onBlockLoaded` if the cursor isn't claimed in
+     *       time
+     */
+    this.wasSuggested =
+      suggesterPluginKey.getState(this.editorView.state)
+        ?.suggestedBlockPosition === this.getPos();
+
+    if (this.wasSuggested) {
+      this.editorView.dispatch(
+        this.editorView.state.tr.setMeta(suggesterPluginKey, {
+          type: "suggestedBlock",
+          payload: { position: null },
+        } as SuggesterAction),
+      );
+    }
+
     this.update(this.node);
   }
 
   update(node: ProsemirrorNode<Schema>) {
     this.node = node;
 
-    if (isComponentNode(node) && componentNodeToId(node) === this.componentId) {
-      const blockDraftId: string = this.editorView.state.doc
-        .resolve(this.getPos())
-        .node(2).attrs.draftId;
+    /**
+     * Prosemirror will sometimes call `update` on your `NodeView` with a new
+     * node to see if it is compatible with your `NdoeView`, so that it can be
+     * reused. If you return `false` from the `update` function, it will call
+     * `destroy` on your `NodeView` and create a new one instead. So this means
+     * in theory we could get `update` called with a component node representing
+     * a different component. We need to guard against that.
+     *
+     * @see https://prosemirror.net/docs/ref/#view.NodeView.update
+     */
+    if (
+      isComponentNode(node) &&
+      componentNodeToId(node) === this.block.meta.componentId
+    ) {
+      const entity = this.getDraftBlockEntity();
 
-      const entity = this.store.draft[blockDraftId]!;
+      const blockDraftId = entity?.draftId;
 
       // @todo handle entity id not being defined
       const entityId = entity.entityId ?? "";
@@ -135,7 +166,7 @@ export class ComponentView implements NodeView<Schema> {
       const childEntity = getChildEntity(entity);
 
       const beforeCapture = (scope: Sentry.Scope) => {
-        scope.setTag("block", this.componentId);
+        scope.setTag("block", this.block.meta.componentId);
       };
 
       const onRetry = () => {
@@ -144,31 +175,51 @@ export class ComponentView implements NodeView<Schema> {
       };
 
       this.renderPortal(
-        <Sentry.ErrorBoundary
-          beforeCapture={beforeCapture}
-          fallback={(props) => <ErrorBlock {...props} onRetry={onRetry} />}
-        >
-          <BlockLoader
-            sourceUrl={this.sourceName}
-            blockEntityId={entityId}
-            shouldSandbox={!this.editable}
-            editableRef={this.editable ? this.editableRef : undefined}
-            // @todo these asserted non-null fields do not definitely exist when the block is first loaded
-            accountId={childEntity?.accountId!}
-            entityId={childEntity?.entityId!}
-            entityTypeId={childEntity?.entityTypeId!}
-            entityTypeVersionId={childEntity?.entityVersionId!}
-            entityProperties={
-              childEntity && "properties" in childEntity
-                ? childEntity.properties
-                : BLANK_PROPERTIES
-            }
-            linkGroups={childEntity?.linkGroups ?? []}
-            linkedEntities={childEntity?.linkedEntities ?? []}
-            linkedAggregations={childEntity?.linkedAggregations ?? []}
-          />
-        </Sentry.ErrorBoundary>,
+        <BlockContext.Consumer>
+          {(ctx) => (
+            <Sentry.ErrorBoundary
+              beforeCapture={beforeCapture}
+              fallback={(props) => (
+                <ErrorBlock
+                  {...props}
+                  onRetry={() => {
+                    ctx?.setError(false);
+                    onRetry();
+                  }}
+                />
+              )}
+              onError={() => {
+                ctx?.setError(true);
+              }}
+            >
+              <BlockLoader
+                key={entityId} // reset the component state when the entity changes, e.g. to reset the data map state
+                blockEntityId={entityId}
+                blockMetadata={this.block.meta}
+                blockSchema={this.block.schema}
+                // @todo uncomment this when sandbox is fixed
+                // shouldSandbox={!this.editable}
+                editableRef={this.editableRef}
+                // @todo these asserted non-null fields do not definitely exist when the block is first loaded
+                accountId={childEntity?.accountId!}
+                entityId={childEntity?.entityId!}
+                entityTypeId={childEntity?.entityTypeId!}
+                entityType={childEntity?.entityType}
+                entityProperties={
+                  childEntity && "properties" in childEntity
+                    ? childEntity.properties
+                    : BLANK_PROPERTIES
+                }
+                linkGroups={childEntity?.linkGroups ?? []}
+                linkedEntities={childEntity?.linkedEntities ?? []}
+                linkedAggregations={childEntity?.linkedAggregations ?? []}
+                onBlockLoaded={this.onBlockLoaded}
+              />
+            </Sentry.ErrorBoundary>
+          )}
+        </BlockContext.Consumer>,
         this.target,
+        blockDraftId,
       );
 
       return true;
@@ -177,20 +228,119 @@ export class ComponentView implements NodeView<Schema> {
     }
   }
 
-  editableRef = (editableNode: HTMLElement) => {
-    if (
-      this.contentDOM &&
-      editableNode &&
-      !editableNode.contains(this.contentDOM)
-    ) {
-      editableNode.appendChild(this.contentDOM);
-      this.contentDOM.style.display = "";
+  private getDraftBlockEntity() {
+    const draftId = this.getBlockDraftId();
+    const entity = this.store.draft[draftId];
+
+    if (!entity || !isDraftBlockEntity(entity)) {
+      throw new Error("Component view can't find block entity");
+    }
+
+    return entity;
+  }
+
+  private isNodeInDoc() {
+    return typeof this.getPos() === "number";
+  }
+
+  private mustGetPos() {
+    if (!this.isNodeInDoc()) {
+      throw new Error("Component has been removed from doc");
+    }
+
+    return this.getPos()!;
+  }
+
+  private getBlockDraftId() {
+    return this.editorView.state.doc.resolve(this.mustGetPos()).node(2).attrs
+      .draftId;
+  }
+
+  private onBlockLoaded = () => {
+    /**
+     * After two calls to setImmediate, we know the block will have had the
+     * chance to initiate an editable section and thereby claim the cursor if
+     * inserted via the suggester. If it hasn't happened in that time, we want
+     * to expire the opportunity to claim the cursor.
+     *
+     * @todo find a better way of knowing there's been the opportunity for
+     *       this which doesn't depend on timing
+     */
+    if (this.wasSuggested) {
+      setImmediate(() =>
+        setImmediate(() => {
+          this.wasSuggested = false;
+        }),
+      );
     }
   };
 
+  private editableRef = (editableNode: HTMLElement | null) => {
+    const state = this.editorView.state;
+    let tr: Transaction<Schema> | null = null;
+
+    if (editableNode && this.isNodeInDoc()) {
+      const childEntity = getBlockChildEntity(
+        this.getBlockDraftId(),
+        this.store,
+      );
+
+      if (!childEntity || !isComponentNode(this.node)) {
+        throw new Error("Block not ready to become editable");
+      }
+
+      if (!isTextEntity(childEntity)) {
+        tr ??= state.tr;
+
+        addEntityStoreAction(state, tr, {
+          type: "updateEntityProperties",
+          payload: {
+            draftId: childEntity.draftId,
+            properties: {
+              text: this.manager.createNewLegacyTextLink(
+                state,
+                tr,
+                childEntity.accountId,
+                textBlockNodeToEntityProperties(this.node),
+              ),
+            },
+            merge: true,
+          },
+        });
+      }
+
+      if (!editableNode.contains(this.contentDOM)) {
+        editableNode.appendChild(this.contentDOM);
+        this.contentDOM.style.display = "";
+      }
+
+      this.dom.removeAttribute("contentEditable");
+
+      if (this.wasSuggested) {
+        tr ??= state.tr;
+        tr.setSelection(
+          TextSelection.create<Schema>(state.doc, this.mustGetPos() + 1),
+        );
+
+        this.wasSuggested = false;
+      }
+    } else {
+      this.destroyEditableRef();
+    }
+
+    if (tr) {
+      this.editorView.dispatch(tr);
+    }
+  };
+
+  private destroyEditableRef() {
+    this.dom.contentEditable = "false";
+    this.contentDOM.style.display = "none";
+    this.dom.appendChild(this.contentDOM);
+  }
+
   destroy() {
-    this.dom.remove();
-    this.renderPortal(null, this.target);
+    this.destroyEditableRef();
     this.unsubscribe();
   }
 
@@ -199,7 +349,7 @@ export class ComponentView implements NodeView<Schema> {
       event.preventDefault();
     }
 
-    return !blockComponentRequiresText(this.meta.componentSchema);
+    return this.dom.contentEditable === "false";
   }
 
   // This condition is designed to check that the event isn’t coming from React-handled code.
@@ -223,11 +373,8 @@ export class ComponentView implements NodeView<Schema> {
 
     const targetIsContentDom = event.target === this.contentDOM;
 
-    const handledByReact =
-      event.type === "childList"
-        ? targetIsOutsideContentDOM
-        : targetIsOutsideContentDOM || targetIsContentDom;
-
-    return handledByReact;
+    return event.type === "childList"
+      ? targetIsOutsideContentDOM
+      : targetIsOutsideContentDOM || targetIsContentDom;
   }
 }

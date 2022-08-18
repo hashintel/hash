@@ -1,11 +1,9 @@
 import { QueryHookOptions, useQuery } from "@apollo/client";
 import * as Sentry from "@sentry/nextjs";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
-import { Session } from "@ory/client";
 import { meQuery } from "../../graphql/queries/user.queries";
 import { MeQuery } from "../../graphql/apiTypes.gen";
-import { oryKratosClient } from "../../pages/shared/ory-kratos";
 
 /**
  * Returns an object containing:
@@ -17,21 +15,12 @@ import { oryKratosClient } from "../../pages/shared/ory-kratos";
  * loading: a boolean to check if the api call is still loading
  */
 export const useUser = (options?: Omit<QueryHookOptions, "errorPolicy">) => {
-  const {
-    data: meQueryResponseData,
-    refetch: refetchUser,
-    loading: loadingUser,
-  } = useQuery<MeQuery>(meQuery, {
+  const { data, refetch, loading } = useQuery<MeQuery>(meQuery, {
     ...options,
     errorPolicy: "all",
   });
 
-  const { me: user } = meQueryResponseData || {};
-
-  /** @todo: store this in a react context if we have a use for it long-term */
-  const [kratosSession, setKratosSession] = useState<Session>();
-  const [loadingKratosSession, setLoadingKratosSession] =
-    useState<boolean>(true);
+  const user = data?.me;
 
   useEffect(() => {
     Sentry.configureScope((scope) => {
@@ -47,22 +36,6 @@ export const useUser = (options?: Omit<QueryHookOptions, "errorPolicy">) => {
     });
   }, [user]);
 
-  const fetchKratosIdentity = async () => {
-    setLoadingKratosSession(true);
-
-    const session = await oryKratosClient
-      .toSession()
-      .then(({ data }) => data)
-      .catch(() => undefined);
-
-    setKratosSession(session);
-    setLoadingKratosSession(false);
-  };
-
-  useEffect(() => {
-    void fetchKratosIdentity();
-  }, []);
-
   /**
    * @todo add method to manually update user cache after
    * a query/mutation returns the updated User object.
@@ -72,10 +45,5 @@ export const useUser = (options?: Omit<QueryHookOptions, "errorPolicy">) => {
   //   client.writeQuery();
   // };
 
-  return {
-    user,
-    kratosSession,
-    refetch: () => Promise.all([refetchUser(), fetchKratosIdentity()]),
-    loading: loadingUser || loadingKratosSession,
-  };
+  return { user, refetch, loading };
 };
