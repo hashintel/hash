@@ -15,9 +15,9 @@ import {
 } from "material-ui-popup-state/hooks";
 import { Avatar, Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { useUser } from "../../../components/hooks/useUser";
-import { useLogout } from "../../../components/hooks/useLogout";
 import { Button, MenuItem } from "../../ui";
 import { useRouteAccountInfo } from "../../routing";
+import { useLogoutFlow } from "../../../components/hooks/useLogoutFlow";
 
 type WorkspaceSwitcherProps = {};
 
@@ -30,7 +30,7 @@ export const WorkspaceSwitcher: FunctionComponent<
     popupId: "workspace-switcher-menu",
   });
   const { user } = useUser();
-  const { logout } = useLogout();
+  const { logout } = useLogoutFlow();
   const { accountId } = useRouteAccountInfo();
 
   const activeWorkspace = useMemo(() => {
