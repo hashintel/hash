@@ -1,7 +1,6 @@
 import { EntityType, GraphApi } from "@hashintel/hash-graph-client";
 
 import { EntityTypeModel, PropertyTypeModel, LinkTypeModel } from "../index";
-import { NIL_UUID } from "../util";
 
 type EntityTypeModelConstructorArgs = {
   accountId?: string;
@@ -49,13 +48,18 @@ export default class {
    */
   static async getAllLatest(
     graphApi: GraphApi,
-    params: { accountId: string },
+    _params: { accountId: string },
   ): Promise<EntityTypeModel[]> {
     /** @todo: get all latest entity types in specified account */
-    const { data: schemas } = await graphApi.getLatestEntityTypes();
+    const { data: persistedEntityTypes } =
+      await graphApi.getLatestEntityTypes();
 
-    return schemas.map(
-      (schema) => new EntityTypeModel({ schema, accountId: params.accountId }),
+    return persistedEntityTypes.map(
+      (persistedEntityType) =>
+        new EntityTypeModel({
+          schema: persistedEntityType.inner,
+          accountId: persistedEntityType.identifier.createdBy,
+        }),
     );
   }
 
@@ -72,12 +76,14 @@ export default class {
     },
   ): Promise<EntityTypeModel> {
     const { versionedUri } = params;
-    const { data: schema } = await graphApi.getEntityType(versionedUri);
+    const { data: persistedEntityType } = await graphApi.getEntityType(
+      versionedUri,
+    );
 
-    /** @todo: retrieve accountId from `graphApi.getEntityType` response */
-    const accountId = NIL_UUID;
-
-    return new EntityTypeModel({ schema, accountId });
+    return new EntityTypeModel({
+      schema: persistedEntityType.inner,
+      accountId: persistedEntityType.identifier.createdBy,
+    });
   }
 
   /**
