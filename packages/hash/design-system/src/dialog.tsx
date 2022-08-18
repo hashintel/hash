@@ -1,14 +1,14 @@
-import { Popover as MuiPopover, PopoverProps } from "@mui/material";
 import { FunctionComponent } from "react";
+import { Dialog as MuiDialog, DialogProps } from "@mui/material";
 import { useScrollLock } from "./use-scroll-lock";
 
 /**
  * Custom Popover re-implementing MUI's troublesome scroll-lock mechanism.
  */
-export const Popover: FunctionComponent<PopoverProps> = ({
+export const Dialog: FunctionComponent<DialogProps> = ({
   disableScrollLock = false,
   ...props
 }) => {
   useScrollLock(!disableScrollLock && props.open);
-  return <MuiPopover disableScrollLock {...props} />;
+  return <MuiDialog disableScrollLock {...props} />;
 };
