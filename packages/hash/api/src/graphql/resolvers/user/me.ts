@@ -1,10 +1,10 @@
 import { ResolverFn } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
-import { UnresolvedGQLEntity } from "../../../model";
+import { mapUserModelToGQL, UnresolvedGQLUser } from "./util";
 
 export const me: ResolverFn<
-  UnresolvedGQLEntity,
+  UnresolvedGQLUser,
   {},
   LoggedInGraphQLContext,
   {}
-> = async (_, __, { user }) => user.toGQLUnknownEntity();
+> = async (_, __, { user }) => mapUserModelToGQL(user);

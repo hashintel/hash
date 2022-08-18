@@ -140,7 +140,7 @@ const main = async () => {
   app.use(json({ limit: "16mb" }));
 
   // Set up authentication related middeware and routes
-  setupAuth(app);
+  setupAuth({ app, graphApi, logger });
 
   // Create an email transporter
   const emailTransporter =
