@@ -80,6 +80,7 @@ impl HookContextImpl {
 /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 /// # }
 /// #
+/// # #[cfg(nightly)]
 /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap")].assert_eq(&render(format!("{report:#?}")));
 /// #
 /// # stringify!(
@@ -137,6 +138,7 @@ impl HookContextImpl {
 /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 /// # }
 /// #
+/// # #[cfg(nightly)]
 /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_storage.snap")].assert_eq(&render(format!("{report:?}")));
 /// #
 /// # stringify!(
@@ -217,6 +219,7 @@ impl<'a, T> HookContext<'a, T> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
+    /// # #[cfg(nightly)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_cast.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// # stringify!(
@@ -333,6 +336,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
+    /// # #[cfg(nightly)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_increment.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// # stringify!(
@@ -395,6 +399,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
+    /// # #[cfg(nightly)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_decrement.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// # stringify!(
