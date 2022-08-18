@@ -2,7 +2,7 @@ import { useQuery } from "@apollo/client";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
 import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
-import { iconButtonClasses, Tooltip } from "@mui/material";
+import { iconButtonClasses, SxProps, Theme, Tooltip } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import {
   GetPageInfoQuery,
@@ -27,6 +27,7 @@ interface PageIconProps {
   readonly?: boolean;
   size?: SizeVariant;
   hasDarkBg?: boolean;
+  sx?: SxProps<Theme>;
 }
 
 export const PageIcon = ({
@@ -36,6 +37,7 @@ export const PageIcon = ({
   readonly,
   size = "medium",
   hasDarkBg,
+  sx = [],
 }: PageIconProps) => {
   const popupState = usePopupState({
     variant: "popover",
@@ -59,22 +61,27 @@ export const PageIcon = ({
       <Tooltip title="Change icon" placement="bottom">
         <IconButton
           {...bindTrigger(popupState)}
-          sx={({ palette }) => {
-            const background = hasDarkBg ? palette.gray[40] : palette.gray[30];
+          sx={[
+            ({ palette }) => {
+              const background = hasDarkBg
+                ? palette.gray[40]
+                : palette.gray[30];
 
-            return {
-              width: sizes.container,
-              height: sizes.container,
-              fontSize: sizes.font,
-              ...(popupState.isOpen && {
-                background,
-              }),
-              "&:focus-visible, &:hover": {
-                background,
-              },
-              [`&.${iconButtonClasses.disabled}`]: { color: "unset" },
-            };
-          }}
+              return {
+                width: sizes.container,
+                height: sizes.container,
+                fontSize: sizes.font,
+                ...(popupState.isOpen && {
+                  background,
+                }),
+                "&:focus-visible, &:hover": {
+                  background,
+                },
+                [`&.${iconButtonClasses.disabled}`]: { color: "unset" },
+              };
+            },
+            ...(Array.isArray(sx) ? sx : [sx]),
+          ]}
           disabled={readonly || updateEntityLoading}
         >
           {data?.page?.properties?.icon || (

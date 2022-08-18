@@ -97,17 +97,10 @@ const CustomContent = forwardRef((props: TreeItemContentProps, ref) => {
         accountId={accountId}
         entityId={nodeId}
         size="small"
+        sx={{ mr: "6px" }}
       />
 
-      <Link
-        noLinkStyle
-        tabIndex={-1}
-        sx={{
-          flex: 1,
-          ml: "6px",
-        }}
-        href={url}
-      >
+      <Link noLinkStyle tabIndex={-1} sx={{ flex: 1 }} href={url}>
         <Typography
           variant="smallTextLabels"
           className="page-title"
