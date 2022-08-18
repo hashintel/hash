@@ -1,4 +1,4 @@
-import { paragraphBlock } from "@hashintel/hash-shared/blocks";
+import { paragraphBlockComponentId } from "@hashintel/hash-shared/blocks";
 import {
   componentNodeToId,
   findComponentNodes,
@@ -46,7 +46,7 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
         );
 
         const isFocused = placeholderPluginKey.getState(state)?.focused;
-        const isParagraph = componentId === paragraphBlock;
+        const isParagraph = componentId === paragraphBlockComponentId;
         const isEmpty = findComponentNodes(firstNode)[0]?.childCount === 0;
 
         const showPlaceholder = isParagraph && isEmpty && isFocused;
