@@ -3,12 +3,12 @@ source: tests/test_debug.rs
 expression: "redact(&format!(\"{report:?}\"))"
 ---
 Context A
-| @ tests/test_debug.rs:261:10
+| @ tests/test_debug.rs:259:10
 | 2
 | 1
 |
 \-> Context A
- |  | @ tests/test_debug.rs:255:10
+ |  | @ tests/test_debug.rs:253:10
  |  | 4
  |  | 3
  |  |
@@ -19,16 +19,16 @@ Context A
  |      \ spantrace with 2 frames (1)
  |
  \> Context A
-    | @ tests/test_debug.rs:250:10
+    | @ tests/test_debug.rs:248:10
     | 5
     | 3
     |
     |-> Context A
-    |   | @ tests/test_debug.rs:248:10
+    |   | @ tests/test_debug.rs:246:10
     |   \ 7
     |
     \-> Context A
-     |  | @ tests/test_debug.rs:239:34
+     |  | @ tests/test_debug.rs:237:34
      |  | 9
      |  | 8
      |  |
@@ -38,7 +38,7 @@ Context A
      |      \ spantrace with 2 frames (2)
      |
      |> Context A
-     |  | @ tests/test_debug.rs:233:10
+     |  | @ tests/test_debug.rs:231:10
      |  | 13
      |  | 10
      |  | 16
@@ -51,7 +51,7 @@ Context A
      |      \ spantrace with 2 frames (3)
      |
      |> Context A
-     |  | @ tests/test_debug.rs:219:10
+     |  | @ tests/test_debug.rs:217:10
      |  | 15
      |  | 14
      |  | 10
@@ -65,7 +65,7 @@ Context A
      |      \ spantrace with 2 frames (4)
      |
      |> Context A
-     |  | @ tests/test_debug.rs:229:10
+     |  | @ tests/test_debug.rs:227:10
      |  | 11
      |  | 9
      |  | 8
@@ -76,13 +76,13 @@ Context A
      |      \ spantrace with 2 frames (5)
      |
      \> Context A
-        | @ tests/test_debug.rs:225:10
+        | @ tests/test_debug.rs:223:10
         | 12
         | 9
         | 8
         |
         |-> Context A
-        |   \ @ tests/test_debug.rs:224:10
+        |   \ @ tests/test_debug.rs:222:10
         |
         \-> Root error
             | @ tests/common.rs:147:5

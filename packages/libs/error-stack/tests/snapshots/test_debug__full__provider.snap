@@ -14,7 +14,7 @@ Root error
 ├╴Test
 ├╴backtrace with [n] frames (2)
 ├╴spantrace with 2 frames (2)
-╰╴1 additional attachment
+╰╴1 additional opaque attachment
 
 Root error
 ├╴tests/common.rs:147:5
@@ -23,7 +23,7 @@ Root error
 ├╴Test
 ├╴backtrace with [n] frames (3)
 ├╴spantrace with 2 frames (3)
-╰╴2 additional attachments
+╰╴2 additional opaque attachments
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

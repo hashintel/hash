@@ -1,13 +1,16 @@
 use std::{error::Error, fmt, sync::RwLock};
 
 use crate::{
-    fmt::{Call, Emit, HookContext, Hooks},
+    fmt::{Emit, HookContext, Hooks},
     Frame, Report, Result,
 };
 
 type FormatterHook = Box<dyn Fn(&Report<()>, &mut fmt::Formatter<'_>) -> fmt::Result + Send + Sync>;
 
-static FMT_HOOK: RwLock<Hooks> = RwLock::new(Hooks::new());
+static FMT_HOOK: RwLock<Hooks> = RwLock::new(Hooks {
+    inner: None,
+    fallback: None,
+});
 static DEBUG_HOOK: RwLock<Option<FormatterHook>> = RwLock::new(None);
 static DISPLAY_HOOK: RwLock<Option<FormatterHook>> = RwLock::new(None);
 
@@ -97,7 +100,7 @@ impl Report<()> {
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::{
-    ///     fmt::{Call, Emit},
+    ///     fmt::Emit,
     ///     report, Report,
     /// };
     ///
@@ -106,7 +109,7 @@ impl Report<()> {
     /// // This will remove all formatting for `Backtrace` and `SpanTrace`!
     /// // The example after this once calls `builtin()`, which makes sure that we always print
     /// // `Backtrace` and `SpanTrace`.
-    /// Report::install_debug_hook_fallback(|_, _| Call::Find(Emit::next("unknown")));
+    /// Report::install_debug_hook_fallback(|_, _| Some(Emit::next("unknown")));
     ///
     /// let report =
     ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("O no, try again"));
@@ -137,16 +140,13 @@ impl Report<()> {
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::{fmt, report, Report};
-    /// use error_stack::fmt::{Call, Emit};
+    /// use error_stack::fmt::Emit;
     ///
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook_fallback(|val, ctx| {
     ///     // first run all builtin hooks to make sure that we print backtrace and spantrace
-    ///     match fmt::builtin(val, ctx) {
-    ///         Call::Miss(_) => Call::Find(Emit::next("unknown")),
-    ///         Call::Find(emit) => Call::Find(emit),
-    ///     }
+    ///     Some(fmt::builtin(val, ctx).unwrap_or(Emit::next("unknown")))
     /// });
     ///
     /// let report =
@@ -175,7 +175,10 @@ impl Report<()> {
     /// </pre>
     #[cfg(feature = "std")]
     pub fn install_debug_hook_fallback(
-        hook: impl for<'a> Fn(&Frame, HookContext<'a, Frame>) -> Call<'a, Frame> + Send + Sync + 'static,
+        hook: impl for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Option<Emit>
+        + Send
+        + Sync
+        + 'static,
     ) {
         let mut lock = FMT_HOOK.write().expect("should not be poisoned");
         lock.fallback(hook);

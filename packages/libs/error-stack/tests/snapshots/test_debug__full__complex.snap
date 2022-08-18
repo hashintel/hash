@@ -3,7 +3,7 @@ source: tests/test_debug.rs
 expression: "redact(&format!(\"{report:?}\"))"
 ---
 Context A
-├╴tests/test_debug.rs:500:14
+├╴tests/test_debug.rs:494:14
 ├╴Printable A
 │
 ╰┬▶ Root error
@@ -18,7 +18,7 @@ Context A
  │  ├╴Test
  │  ├╴backtrace with [n] frames (2)
  │  ├╴spantrace with 2 frames (2)
- │  ╰╴1 additional attachment
+ │  ╰╴1 additional opaque attachment
  │
  ╰▶ Root error
     ├╴tests/common.rs:147:5
@@ -26,7 +26,7 @@ Context A
     ├╴Test
     ├╴backtrace with [n] frames (3)
     ├╴spantrace with 2 frames (3)
-    ╰╴3 additional attachments
+    ╰╴3 additional opaque attachments
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

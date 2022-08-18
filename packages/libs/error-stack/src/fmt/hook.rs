@@ -22,7 +22,7 @@ pub struct HookContextImpl {
 }
 
 impl HookContextImpl {
-    pub(crate) fn cast<T>(&mut self) -> HookContext<T> {
+    pub(crate) fn cast<T>(&mut self) -> HookContext<'_, T> {
         HookContext {
             parent: self,
             _marker: PhantomData::default(),
@@ -149,6 +149,7 @@ impl HookContextImpl {
 ///
 /// [`Debug`]: core::fmt::Debug
 #[cfg_attr(all(doc, nightly), doc(cfg(feature = "std")))]
+#[repr(transparent)]
 pub struct HookContext<'a, T> {
     parent: &'a mut HookContextImpl,
     _marker: PhantomData<T>,
@@ -191,22 +192,14 @@ impl<'a, T> HookContext<'a, T> {
     /// use std::io::ErrorKind;
     ///
     /// use error_stack::{fmt, fmt::Emit, Report};
-    /// use error_stack::fmt::Call;
     ///
     /// struct Value(u64);
     ///
     /// Report::install_debug_hook_fallback(|frame, ctx| {
-    ///     fmt::builtin(frame, ctx)
-    ///         .or_else(|ctx| match frame.downcast_ref::<Value>() {
-    ///             None => Call::Miss(ctx),
-    ///             Some(_) => {
-    ///                 // the inner value of `Value` is always `u64`,
-    ///                 // we therefore only "mask" u64 and want to use the same incremental value.
-    ///                 let mut ctx = ctx.cast::<u64>();
-    ///                 Call::Find(Emit::next(format!("{} (Value)", ctx.increment())))
-    ///             }
-    ///         })
-    ///         .cast()
+    ///     fmt::builtin(frame, ctx).or_else(|| frame.is::<Value>().then(|| {
+    ///         let ctx = ctx.cast::<u64>();
+    ///         Emit::next(format!("{} (Value)", ctx.increment()))
+    ///     }))
     /// });
     ///
     /// Report::install_debug_hook::<u64>(|_, ctx| Emit::next(format!("{}", ctx.increment())));
@@ -238,11 +231,10 @@ impl<'a, T> HookContext<'a, T> {
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__hookcontext_cast.snap"))]
     /// </pre>
     #[must_use]
-    pub fn cast<U>(self) -> HookContext<'a, U> {
-        HookContext {
-            parent: self.parent,
-            _marker: PhantomData::default(),
-        }
+    pub fn cast<U>(&mut self) -> &mut HookContext<'a, U> {
+        // SAFETY: `HookContext` is marked as repr(transparent) and the generic is only used inside
+        // of the `PhantomData`
+        unsafe { &mut *(self as *mut HookContext<T>).cast::<HookContext<U>>() }
     }
 
     /// Is the currently requested format the alternate representation?
@@ -436,54 +428,9 @@ impl<T: 'static> HookContext<'_, T> {
     }
 }
 
-/// The return type of every hook.
-///
-/// This is like a [`Result`] or [`Option`] type, but with different semantics.
-/// The different variants indicate what the state of the hook invocation was.
-#[must_use]
-pub enum Call<'a, T> {
-    /// The hook invocation was successful, a value could be found.
-    // name TBD
-    Find(Emit),
-    /// The hook invocation was unsuccessful, because it was unable to be called for type `T`,
-    /// returns the ownership of the [`HookContext`], that the function could have used to store
-    /// data or emit [`Snippet`]s
-    // name TBD
-    Miss(HookContext<'a, T>),
-}
-
-impl<'a, T> Call<'a, T> {
-    /// Cast the inner [`HookContext`], if present to `U`, corresponds to [`HookContext::cast`]
-    pub fn cast<U>(self) -> Call<'a, U> {
-        match self {
-            Call::Find(emit) => Call::Find(emit),
-            Call::Miss(ctx) => Call::Miss(ctx.cast()),
-        }
-    }
-
-    // false-positive
-    #[allow(clippy::missing_const_for_fn)]
-    pub(crate) fn consume(self) -> Option<Emit> {
-        match self {
-            Call::Find(emit) => Some(emit),
-            Call::Miss(_) => None,
-        }
-    }
-
-    /// Execute the closure provided, if the current variant is [`Call::Miss`], with the
-    /// [`HookContext`] it currently holds.
-    ///
-    /// The closure must return [`Call`], but is able to cast [`HookContext`] to any type.
-    pub fn or_else<U>(self, closure: impl FnOnce(HookContext<T>) -> Call<U>) -> Call<'a, U> {
-        match self {
-            Call::Find(emit) => Call::Find(emit),
-            Call::Miss(ctx) => closure(ctx.cast()),
-        }
-    }
-}
-
-type BoxedHook =
-    Box<dyn for<'a> Fn(&Frame, HookContext<'a, Frame>) -> Call<'a, Frame> + Send + Sync>;
+type BoxedHook = Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Emit + Send + Sync>;
+type BoxedFallbackHook =
+    Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Option<Emit> + Send + Sync>;
 
 /// Holds a chain of [`Hook`]s
 ///
@@ -508,56 +455,46 @@ type BoxedHook =
 #[cfg(feature = "std")]
 #[must_use]
 pub struct Hooks {
-    inner: Option<BTreeMap<TypeId, BoxedHook>>,
-    fallback: Option<BoxedHook>,
+    // TODO: Remove `Option` when const `BTreeMap::new` is stabilized
+    pub(crate) inner: Option<BTreeMap<TypeId, BoxedHook>>,
+    pub(crate) fallback: Option<BoxedFallbackHook>,
 }
 
 #[cfg(feature = "std")]
 impl Hooks {
-    /// Create a new instance of `Hooks`
-    ///
-    /// Preloaded with [`Builtin`] hooks display [`Backtrace`] and [`SpanTrace`] if those features
-    /// have been enabled.
-    ///
-    /// [`Backtrace`]: std::backtrace::Backtrace
-    /// [`SpanTrace`]: tracing_error::SpanTrace
-    pub(crate) const fn new() -> Self {
-        Self {
-            inner: None,
-            fallback: None,
-        }
-    }
-
     pub(crate) fn insert<T: Send + Sync + 'static>(
         &mut self,
-        hook: impl Fn(&T, &mut HookContext<T>) -> Emit + Send + Sync + 'static,
+        hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) -> Emit + Send + Sync + 'static,
     ) {
         let inner = self.inner.get_or_insert_with(BTreeMap::new);
 
         inner.insert(
             TypeId::of::<T>(),
-            Box::new(move |frame: &Frame, ctx: HookContext<Frame>| {
-                // SAFETY: `.unwrap()` never fails here, because `Hooks` guarantees the function
-                // will never be called on an object which cannot be downcast.
+            Box::new(move |frame, ctx| {
+                // `.unwrap()` never fails here, because `Hooks` guarantees the function will never
+                // be called on an object which cannot be downcast.
                 let frame = frame.downcast_ref::<T>().unwrap();
 
-                Call::Find(hook(frame, &mut ctx.cast()))
+                hook(frame, ctx.cast())
             }),
         );
     }
 
     pub(crate) fn fallback(
         &mut self,
-        hook: impl for<'a> Fn(&Frame, HookContext<'a, Frame>) -> Call<'a, Frame> + Send + Sync + 'static,
+        hook: impl for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Option<Emit>
+        + Send
+        + Sync
+        + 'static,
     ) {
         self.fallback = Some(Box::new(hook));
     }
 
-    pub(crate) fn call<'a>(&self, frame: &Frame, ctx: HookContext<'a, Frame>) -> Call<'a, Frame> {
+    pub(crate) fn call<'a>(&self, frame: &Frame, ctx: &mut HookContext<'a, Frame>) -> Option<Emit> {
         let ty = Frame::type_id(frame);
 
         if let Some(hook) = self.inner.as_ref().and_then(|map| map.get(&ty)) {
-            (hook)(frame, ctx)
+            Some((hook)(frame, ctx))
         } else if let Some(fallback) = self.fallback.as_ref() {
             (fallback)(frame, ctx)
         } else {
@@ -578,7 +515,7 @@ mod default {
     use tracing_error::SpanTrace;
 
     use crate::{
-        fmt::{hook::HookContext, Call, Emit, Snippet},
+        fmt::{hook::HookContext, Emit, Snippet},
         Frame,
     };
 
@@ -629,22 +566,22 @@ mod default {
     #[allow(unused_variables)]
     // false positive
     #[allow(clippy::missing_const_for_fn)]
-    pub fn builtin<'a>(frame: &Frame, ctx: HookContext<'a, Frame>) -> Call<'a, Frame> {
+    pub fn builtin<'a>(frame: &Frame, ctx: &mut HookContext<'a, Frame>) -> Option<Emit> {
         #[cfg(all(nightly, feature = "std"))]
         if let Some(bt) = frame.request_ref() {
-            return Call::Find(backtrace(bt, &mut ctx.cast()));
+            return Some(backtrace(bt, ctx.cast()));
         }
 
         #[cfg(all(feature = "spantrace", not(nightly)))]
         if let Some(st) = frame.downcast_ref() {
-            return Call::Find(spantrace(st, &mut ctx.cast()));
+            return Some(spantrace(st, ctx.cast()));
         }
 
         #[cfg(all(feature = "spantrace", nightly))]
         if let Some(st) = frame.request_ref() {
-            return Call::Find(spantrace(st, &mut ctx.cast()));
+            return Some(spantrace(st, ctx.cast()));
         }
 
-        Call::Miss(ctx)
+        None
     }
 }

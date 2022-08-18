@@ -3,20 +3,20 @@ source: tests/test_debug.rs
 expression: "redact(&format!(\"{report:#?}\"))"
 ---
 Context B
-├╴tests/test_debug.rs:398:14
+├╴tests/test_debug.rs:392:14
 ├╴Printable C
 │
 ├─▶ Context A
-│   ├╴tests/test_debug.rs:395:14
+│   ├╴tests/test_debug.rs:389:14
 │   ├╴Printable B
-│   ╰╴1 additional attachment
+│   ╰╴1 additional opaque attachment
 │
 ╰─▶ Root error
     ├╴tests/common.rs:147:5
     ├╴Printable A
     ├╴backtrace with [n] frames (1)
     ├╴spantrace with 2 frames (1)
-    ╰╴2 additional attachments
+    ╰╴2 additional opaque attachments
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
