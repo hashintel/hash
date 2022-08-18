@@ -10,7 +10,7 @@ import {
   shortnameMinimumLength,
   UserModel,
 } from "../../../model";
-import { MutationUpdateUserArgs, Resolver } from "../../apiTypes.gen";
+import { MutationUpdateUserArgs, ResolverFn } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { mapUserModelToGQL, UnresolvedGQLUser } from "./util";
 
@@ -42,7 +42,7 @@ const validateShortname = async (graphApi: GraphApi, shortname: string) => {
   }
 };
 
-export const updateUser: Resolver<
+export const updateUser: ResolverFn<
   Promise<UnresolvedGQLUser>,
   {},
   LoggedInGraphQLContext,
