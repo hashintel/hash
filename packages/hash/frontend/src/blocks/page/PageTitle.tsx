@@ -1,12 +1,11 @@
+import { Typography } from "@mui/material";
 import {
   ChangeEventHandler,
   FocusEventHandler,
   KeyboardEventHandler,
-  useEffect,
-  useState,
+  useRef,
   FunctionComponent,
 } from "react";
-import { tw } from "twind";
 import { useBlockProtocolUpdateEntity } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
 import { rewriteEntityIdentifier } from "../../lib/entities";
 
@@ -31,14 +30,25 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
   // TODO: Display update error once expected UX is discussed
   const { updateEntity, updateEntityLoading } =
     useBlockProtocolUpdateEntity(true);
-  const [inputValue, setInputValue] = useState<string>(value);
 
-  useEffect(() => {
-    setInputValue(value);
-  }, [value]);
+  const titleValueRef = useRef(value);
 
-  const handleInputChange: ChangeEventHandler<HTMLInputElement> = (event) => {
-    setInputValue(event.currentTarget.value);
+  const handleInputChange: ChangeEventHandler<HTMLHeadingElement> = (event) => {
+    const { currentTarget } = event;
+    titleValueRef.current = currentTarget.textContent || "";
+
+    /**
+     * this prevents two issues
+     * 1 - when user pastes styled stuff into title
+     * other way of achieving this is implementing https://htmldom.dev/paste-as-plain-text/
+     * this looks like working well for now on all browser.
+     * we can switch to paste-as-plain-text later if we decide this solution is not enough
+     * 2 - firefox & safari renders a `br` tag when user clears the editable area,
+     * which prevents css selector `:empty` from working. This removes the `br` as well
+     */
+    if (currentTarget?.children.length) {
+      currentTarget.innerText = currentTarget.textContent || "";
+    }
   };
 
   const handleInputKeyDown: KeyboardEventHandler<HTMLInputElement> = (
@@ -50,13 +60,13 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
   };
 
   const handleInputBlur: FocusEventHandler<HTMLInputElement> = () => {
-    const valueToSave = cleanUpTitle(inputValue);
+    const valueToSave = cleanUpTitle(titleValueRef.current);
     if (valueToSave === value) {
       return;
     }
 
     if (!isValidPageTitle(valueToSave)) {
-      setInputValue(value);
+      titleValueRef.current = value;
       return;
     }
 
@@ -70,16 +80,32 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
 
   // TODO: Assign appropriate a11y attributes
   return (
-    <input
-      placeholder="A title for the page"
-      disabled={updateEntityLoading}
-      onChange={handleInputChange}
+    <Typography
+      component="h1"
+      variant="h2"
+      contentEditable
       onKeyDown={handleInputKeyDown}
       onBlur={handleInputBlur}
-      className={tw`border-none font-medium text-2xl w-full py-0.5 -mx-1 px-1 mt-px ${
-        updateEntityLoading ? "opacity-50" : undefined
-      }`}
-      value={inputValue}
-    />
+      onInput={handleInputChange}
+      sx={{
+        "*": {
+          /**
+           * this overrides `b` and `i` tag styles
+           * even if user marks them via keyboard shortcuts
+           */
+          fontWeight: "inherit !important",
+          fontStyle: "inherit !important",
+        },
+        width: "100%",
+        outline: "none",
+        opacity: updateEntityLoading ? 0.5 : undefined,
+        ":empty:before": {
+          content: "'Untitled'",
+          opacity: 0.3,
+        },
+      }}
+    >
+      {value}
+    </Typography>
   );
 };
