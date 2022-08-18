@@ -119,7 +119,7 @@ impl Frame {
         })
     }
 
-    /// Return the `TypeId` of the hel context or attachment.
+    /// Return the `TypeId` of the held context or attachment.
     pub(crate) fn type_id(&self) -> TypeId {
         FrameImpl::type_id(&*self.frame)
     }
