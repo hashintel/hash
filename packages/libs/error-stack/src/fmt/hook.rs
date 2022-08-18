@@ -15,14 +15,14 @@ use crate::fmt::{Emit, Frame, Snippet};
 
 #[derive(Default)]
 pub struct HookContextImpl {
-    pub(crate) snippets: Vec<Snippet>,
+    pub(crate) snippets: Vec<String>,
     alternate: bool,
 
     storage: BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>,
 }
 
 impl HookContextImpl {
-    pub(crate) fn cast<T>(&mut self) -> HookContext<'_, T> {
+    pub(crate) fn as_hook_context<T>(&mut self) -> HookContext<'_, T> {
         HookContext {
             parent: self,
             _marker: PhantomData::default(),
@@ -168,8 +168,8 @@ impl<T> HookContext<'_, T> {
     ///
     /// [`alternate()`]: Self::alternate
     /// [`Debug`]: core::fmt::Debug
-    pub fn add_snippet(&mut self, snippet: Snippet) {
-        self.parent.snippets.push(snippet);
+    pub fn add_snippet(&mut self, snippet: impl Into<String>) {
+        self.parent.snippets.push(snippet.into());
     }
 }
 
@@ -315,14 +315,15 @@ impl<T: 'static> HookContext<'_, T> {
     /// use error_stack::fmt::Emit;
     /// use error_stack::Report;
     ///
+    /// struct Suggestion(&'static str);
     ///
-    /// Report::install_debug_hook::<()>(|_, ctx| {
-    ///     Emit::next(format!("{}", ctx.increment()))
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
+    ///     Emit::next(format!("Suggestion {}: {val}", ctx.increment()))
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-    ///     .attach(())
-    ///     .attach(());
+    ///     .attach(Suggestion("Use a file you can read next time!"))
+    ///     .attach(Suggestion("Don't press any random keys!"));
     ///
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
@@ -378,11 +379,13 @@ impl<T: 'static> HookContext<'_, T> {
     ///
     /// use error_stack::{fmt::Emit, Report};
     ///
-    /// Report::install_debug_hook::<()>(|_, ctx| Emit::next(format!("{}", ctx.decrement())));
+    /// struct Suggestion(&'static str);
+    ///
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| Emit::next(format!("Suggestion {}: {val}", ctx.decrement())));
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-    ///     .attach(())
-    ///     .attach(());
+    ///     .attach(Suggestion("Use a file you can read next time!"))
+    ///     .attach(Suggestion("Don't press any random keys!"));
     ///
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
@@ -455,8 +458,8 @@ type BoxedFallbackHook =
 /// [`Frame`]: crate::Frame
 /// [`.insert()`]: Hooks::insert
 #[cfg(feature = "std")]
-#[must_use]
-pub struct Hooks {
+#[allow(clippy::redundant_pub_crate)]
+pub(crate) struct Hooks {
     // TODO: Remove `Option` when const `BTreeMap::new` is stabilized
     pub(crate) inner: Option<BTreeMap<TypeId, BoxedHook>>,
     pub(crate) fallback: Option<BoxedFallbackHook>,
@@ -539,7 +542,7 @@ mod default {
     }
 
     #[cfg(feature = "spantrace")]
-    fn spantrace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) -> Emit {
+    fn span_trace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) -> Emit {
         let idx = ctx.increment();
 
         let mut span = 0;
@@ -576,12 +579,12 @@ mod default {
 
         #[cfg(all(feature = "spantrace", not(nightly)))]
         if let Some(st) = frame.downcast_ref() {
-            return Some(spantrace(st, ctx.cast()));
+            return Some(span_trace(st, ctx.cast()));
         }
 
         #[cfg(all(feature = "spantrace", nightly))]
         if let Some(st) = frame.request_ref() {
-            return Some(spantrace(st, ctx.cast()));
+            return Some(span_trace(st, ctx.cast()));
         }
 
         None

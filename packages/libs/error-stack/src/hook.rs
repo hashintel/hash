@@ -20,6 +20,10 @@ static DISPLAY_HOOK: RwLock<Option<FormatterHook>> = RwLock::new(None);
 /// set.
 #[derive(Debug, Copy, Clone)]
 #[non_exhaustive]
+#[deprecated(
+    version = "0.2.0",
+    note = "`Report::install_debug_hook()` and `Report::install_display_hook()` are infallible"
+)]
 pub struct HookAlreadySet;
 
 impl fmt::Display for HookAlreadySet {
@@ -188,7 +192,7 @@ impl Report<()> {
     ///
     /// [`install_debug_hook`]: Self::install_debug_hook
     #[cfg(feature = "std")]
-    pub(crate) fn with_format_hook<T>(closure: impl FnOnce(&Hooks) -> T) -> T {
+    pub(crate) fn get_debug_format_hook<T>(closure: impl FnOnce(&Hooks) -> T) -> T {
         let hook = FMT_HOOK.read().expect("should not be poisoned");
         closure(&hook)
     }
@@ -207,6 +211,11 @@ impl Report<()> {
     /// [`Debug`]: core::fmt::Debug
     /// [`Backtrace`]: std::backtrace::Backtrace
     /// [`SpanTrace`]: tracing_error::SpanTrace
+    ///
+    /// # Note
+    ///
+    /// Since `0.2` this will overwrite the previous hook (if set) instead of returning
+    /// [`HookAlreadySet`].
     ///
     /// # Errors
     ///
@@ -228,7 +237,7 @@ impl Report<()> {
     /// assert_eq!(format!("{report:?}"), "custom debug implementation");
     /// # Ok(()) }
     /// ```
-    #[deprecated = "use Report::install_hook() instead"]
+    #[deprecated(version = "0.2.0", note = "use Report::install_debug_hook() instead")]
     #[cfg(feature = "std")]
     pub fn set_debug_hook<H>(hook: H) -> Result<(), HookAlreadySet>
     where
@@ -244,7 +253,7 @@ impl Report<()> {
     ///
     /// [`set_debug_hook`]: Self::set_debug_hook
     #[cfg(feature = "std")]
-    pub(crate) fn with_debug_hook<T>(closure: impl FnOnce(&FormatterHook) -> T) -> Option<T> {
+    pub(crate) fn get_debug_hook<T>(closure: impl FnOnce(&FormatterHook) -> T) -> Option<T> {
         let hook = DEBUG_HOOK.read().expect("should not poisoned");
         hook.as_ref().map(|hook| closure(hook))
     }
@@ -259,6 +268,11 @@ impl Report<()> {
     /// (`"{:#}"`) and it exists, its direct cause.
     ///
     /// [`Display`]: fmt::Display
+    ///
+    /// # Note
+    ///
+    /// Since `0.2` this will overwrite the previous hook (if set) instead of returning
+    /// [`HookAlreadySet`].
     ///
     /// # Errors
     ///
@@ -296,7 +310,7 @@ impl Report<()> {
     ///
     /// [`set_display_hook`]: Self::set_display_hook
     #[cfg(feature = "std")]
-    pub(crate) fn with_display_hook<T>(closure: impl FnOnce(&FormatterHook) -> T) -> Option<T> {
+    pub(crate) fn get_display_hook<T>(closure: impl FnOnce(&FormatterHook) -> T) -> Option<T> {
         let hook = DISPLAY_HOOK.read().expect("should not poisoned");
         hook.as_ref().map(|hook| closure(hook))
     }

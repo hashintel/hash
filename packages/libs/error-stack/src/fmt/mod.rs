@@ -240,39 +240,6 @@ impl Emit {
     }
 }
 
-/// [`Snippet`] is text that is going to be added to the initial rendering of the tree.
-///
-/// [`Snippet`]s are usually values that could be very long or detailed and are unable to fit into
-/// the tree correctly.
-/// They can either force output or only be output if the alternate representation
-/// (`:#?`) has been requested.
-///
-/// A [`Snippet`] is able to contain newlines.
-#[derive(Debug, Clone)]
-#[must_use]
-pub enum Snippet {
-    /// A regular snippet, which is only output if the alternate representation has been requested
-    Regular(String),
-    /// A forced snippet, which is always output, even if the alternate representation was not
-    /// requested. Handle with care!
-    ///
-    /// This should only be used for things like Backtraces, which are useful on exit, not further
-    /// introspection via the alternate representation.
-    Force(String),
-}
-
-impl Snippet {
-    /// Create a new regular snippet
-    pub fn regular<T: Into<String>>(snippet: T) -> Self {
-        Self::Regular(snippet.into())
-    }
-
-    /// Create a new forced snippet
-    pub fn force<T: Into<String>>(snippet: T) -> Self {
-        Self::Force(snippet.into())
-    }
-}
-
 #[derive(Debug, Copy, Clone)]
 enum Symbol {
     // special, used to indicate location
@@ -787,7 +754,7 @@ fn debug_attachments(
                 #[cfg(all(nightly, feature = "experimental"))]
                 if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
                     for snippet in debug.snippets() {
-                        ctx.cast::<()>().add_snippet(snippet.clone());
+                        ctx.as_hook_context::<DebugDiagnostic>().add_snippet(snippet.clone());
                     }
 
                     return Some(debug.output().clone());
@@ -795,12 +762,12 @@ fn debug_attachments(
 
                 #[cfg(feature = "std")]
                 {
-                    Report::with_format_hook(|hooks| hooks.call(frame, &mut ctx.cast()))
+                    Report::get_debug_format_hook(|hooks| hooks.call(frame, &mut ctx.as_hook_context()))
                 }
 
                 #[cfg(not(feature = "std"))]
                 {
-                    builtin(frame, &mut ctx.cast())
+                    builtin(frame, &mut ctx.as_hook_context())
                 }
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
@@ -1018,7 +985,7 @@ fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Ve
 impl<C> Debug for Report<C> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "std")]
-        if let Some(result) = Report::with_debug_hook(|hook| hook(self.generalized(), fmt)) {
+        if let Some(result) = Report::get_debug_hook(|hook| hook(self.generalized(), fmt)) {
             return result;
         }
 
@@ -1049,16 +1016,7 @@ impl<C> Debug for Report<C> {
 
         // only output detailed information (like backtraces), if alternate mode is enabled, or the
         // snippet has been forced.
-        let suffix = ctx
-            .snippets
-            .into_iter()
-            .filter_map(|snippet| match snippet {
-                Snippet::Regular(snippet) if fmt.alternate() => Some(snippet),
-                Snippet::Regular(_) => None,
-                Snippet::Force(snippet) => Some(snippet),
-            })
-            .collect::<Vec<_>>()
-            .join("\n\n");
+        let suffix = ctx.snippets.join("\n\n");
 
         if !suffix.is_empty() {
             // 44 is the size for the separation.
@@ -1077,7 +1035,7 @@ impl<C> Debug for Report<C> {
 impl<Context> Display for Report<Context> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "std")]
-        if let Some(result) = Report::with_display_hook(|hook| hook(self.generalized(), fmt)) {
+        if let Some(result) = Report::get_display_hook(|hook| hook(self.generalized(), fmt)) {
             return result;
         }
 

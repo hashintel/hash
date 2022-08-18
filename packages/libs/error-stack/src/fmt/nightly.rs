@@ -59,7 +59,7 @@ use crate::fmt::{Emit, Snippet};
 //  is introduced.
 pub struct DebugDiagnostic {
     output: Emit,
-    snippets: Vec<Snippet>,
+    snippets: Vec<String>,
 }
 
 impl DebugDiagnostic {
@@ -83,7 +83,7 @@ impl DebugDiagnostic {
     /// Add additional text to the [`DebugDiagnostic`],
     /// this can be chained to create multiple texts entries.
     #[must_use]
-    pub fn add_snippet(mut self, snippet: Snippet) -> Self {
+    pub fn add_snippet(mut self, snippet: impl Into<String>) -> Self {
         self.snippets.push(snippet);
         self
     }
@@ -92,7 +92,7 @@ impl DebugDiagnostic {
         &self.output
     }
 
-    pub(crate) fn snippets(&self) -> &[Snippet] {
+    pub(crate) fn snippets(&self) -> &[String] {
         &self.snippets
     }
 }
