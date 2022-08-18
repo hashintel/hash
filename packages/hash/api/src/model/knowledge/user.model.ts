@@ -471,6 +471,7 @@ export default class extends EntityModel {
   }
 
   isAccountSignupComplete(): boolean {
+    /** @todo: check they have a verified email address */
     return !!this.getShortname() && !!this.getPreferredName();
   }
 }
