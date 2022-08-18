@@ -231,6 +231,7 @@ impl Report<()> {
     ///
     /// use error_stack::{report, Report};
     ///
+    /// #[allow(deprecated)]
     /// # fn main() -> Result<(), Report<error_stack::HookAlreadySet>> {
     /// # #[allow(deprecated)]
     /// Report::set_debug_hook(|_, fmt| write!(fmt, "custom debug implementation"))?;
@@ -289,6 +290,7 @@ impl Report<()> {
     ///
     /// use error_stack::{report, Report};
     ///
+    /// #[allow(deprecated)]
     /// # fn main() -> Result<(), Report<error_stack::HookAlreadySet>> {
     /// # #[allow(deprecated)]
     /// Report::set_display_hook(|_, fmt| write!(fmt, "custom display implementation"))?;

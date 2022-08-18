@@ -1,5 +1,5 @@
 <b>invalid input parameter</b>
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/fmt/hook.rs:13:14</span>
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/fmt/hook.rs:16:14</span>
 <span style='color:#a00'>├</span><span style='color:#a00'>╴</span>2
 <span style='color:#a00'>├</span><span style='color:#a00'>╴</span>3
 <span style='color:#a00'>╰</span><span style='color:#a00'>╴</span>backtrace with [n] frames (1)
@@ -8,8 +8,3 @@
 
 Backtrace No. 1
   [redacted]
-
-
-u64 has been encountered
-
-u64 has been encountered

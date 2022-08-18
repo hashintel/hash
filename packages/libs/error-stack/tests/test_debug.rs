@@ -12,67 +12,10 @@ use common::*;
 #[allow(unused_imports)]
 use error_stack::Report;
 use insta::assert_snapshot;
-use once_cell::sync::Lazy;
-use regex::Regex;
 #[cfg(feature = "spantrace")]
 use tracing_error::ErrorLayer;
 #[cfg(feature = "spantrace")]
 use tracing_subscriber::layer::SubscriberExt;
-
-static RE_BACKTRACE_FRAME: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"(backtrace with )\d+( frames \(\d+\))"#).unwrap());
-
-fn redact(value: &str) -> String {
-    let mut extra = false;
-    let mut redact = false;
-    let mut notify = false;
-
-    value
-        .lines()
-        .filter_map(|line| {
-            // backtraces can be of different lengths depending on the OS and machine and co.
-            // this replaces the amount with `[n]`.
-            if !extra && RE_BACKTRACE_FRAME.is_match(line) {
-                let line = RE_BACKTRACE_FRAME.replace_all(line, "$1[n]$2").into_owned();
-                return Some(line);
-            }
-
-            if line.starts_with(&"━".repeat(40)) {
-                extra = true;
-            }
-
-            if extra && (line.starts_with("Backtrace No.") | line.starts_with("Span Trace No.")) {
-                redact = true;
-                notify = true;
-
-                return Some(line.to_owned());
-            }
-
-            if redact {
-                // the line is redacted
-                if line.starts_with("  ") {
-                    if notify {
-                        notify = false;
-                        return Some("   [redacted]".to_owned());
-                    }
-
-                    return None;
-                } else {
-                    redact = false;
-                    notify = false;
-                }
-            }
-
-            Some(line.to_owned())
-        })
-        .fold(String::new(), |mut acc, line| {
-            acc.push('\n');
-            acc.push_str(&line);
-            acc
-        })
-        .trim_start_matches('\n')
-        .to_owned()
-}
 
 #[cfg(feature = "spantrace")]
 fn setup_tracing() {
@@ -113,8 +56,6 @@ fn setup() {
 }
 
 fn snap_suffix() -> String {
-    setup();
-
     #[allow(unused_mut)]
     let mut suffix: Vec<&'static str> = vec![];
 
@@ -152,10 +93,27 @@ pub fn create_report() -> Report<RootError> {
     capture_error(func_a)
 }
 
-/// This is taken from the rstest pattern https://insta.rs/docs/patterns/
-fn set_snapshot_suffix() -> impl Drop {
+fn prepare(suffix: bool) -> impl Drop {
+    setup();
+
     let mut settings = insta::Settings::clone_current();
-    settings.set_snapshot_suffix(snap_suffix());
+    if suffix {
+        settings.set_snapshot_suffix(snap_suffix());
+    }
+
+    settings.add_filter(
+        r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*",
+        "Backtrace No. $1\n  [redacted]",
+    );
+    settings.add_filter(
+        r"Span Trace No\. (\d+)\n(?:  .*\n)*  .*",
+        "Span Trace No. $1\n  [redacted]",
+    );
+    settings.add_filter(
+        r"backtrace with (\d+) frames \((\d+)\)",
+        "backtrace with [n] frames ($2)",
+    );
+
     settings.bind_to_scope()
 }
 
@@ -265,20 +223,20 @@ fn create_sources_nested() -> Report<ContextA> {
 /// and demonstrates that the rendering algorithm works at arbitrary depth.
 #[test]
 fn sources_nested() {
-    let _guard = set_snapshot_suffix();
+    let _guard = prepare(true);
 
     let report = create_sources_nested();
 
-    assert_snapshot!(redact(&format!("{report:?}")));
+    assert_snapshot!(format!("{report:?}"));
 }
 
 #[test]
 fn sources_nested_alternate() {
-    let _guard = set_snapshot_suffix();
+    let _guard = prepare(true);
 
     let report = create_sources_nested();
 
-    assert_snapshot!(redact(&format!("{report:#?}")));
+    assert_snapshot!(format!("{report:#?}"));
 }
 
 #[cfg(all(
@@ -319,7 +277,7 @@ mod full {
     /// nightly
     #[test]
     fn provider() {
-        setup();
+        let _guard = prepare(false);
 
         let mut report = create_report().attach_printable(PrintableA(0));
         report.extend_one({
@@ -335,14 +293,14 @@ mod full {
             report.attach(AttachmentA(2)).attach_printable("Test")
         });
 
-        assert_snapshot!(redact(&format!("{report:?}")));
+        assert_snapshot!(format!("{report:?}"));
     }
 
     /// The provider API extension via `DebugDiagnostic` is only available under experimental and
     /// nightly
     #[test]
     fn provider_ext() {
-        setup();
+        let _guard = prepare(false);
 
         let mut report = create_report().attach_printable(PrintableA(0));
         report.extend_one({
@@ -358,12 +316,12 @@ mod full {
             report.attach(AttachmentA(2)).attach_printable("Test")
         });
 
-        assert_snapshot!(redact(&format!("{report:#?}")));
+        assert_snapshot!(format!("{report:#?}"));
     }
 
     #[test]
     fn linear() {
-        setup();
+        let _guard = prepare(false);
 
         let report = create_report()
             .attach_printable(PrintableA(0))
@@ -375,12 +333,12 @@ mod full {
             .change_context(ContextB(0))
             .attach_printable("Printable C");
 
-        assert_snapshot!(redact(&format!("{report:?}")));
+        assert_snapshot!(format!("{report:?}"));
     }
 
     #[test]
     fn linear_ext() {
-        setup();
+        let _guard = prepare(false);
 
         let report = create_report()
             .attach_printable(PrintableA(0))
@@ -392,7 +350,7 @@ mod full {
             .change_context(ContextB(0))
             .attach_printable("Printable C");
 
-        assert_snapshot!(redact(&format!("{report:#?}")));
+        assert_snapshot!(format!("{report:#?}"));
     }
 
     /// Generate the `Debug` for
@@ -412,7 +370,7 @@ mod full {
     /// This should demonstrate that we're able to generate with multiple groups at the same time.
     #[test]
     fn sources() {
-        setup();
+        let _guard = prepare(false);
 
         let mut root1 = create_report().attach_printable(PrintableA(1));
         let root2 = create_report().attach_printable(PrintableB(2));
@@ -426,7 +384,7 @@ mod full {
             .change_context(ContextA(2))
             .attach(AttachmentB(2));
 
-        assert_snapshot!(redact(&format!("{report:?}")));
+        assert_snapshot!(format!("{report:?}"));
     }
 
     /// Generate the `Debug` for:
@@ -449,7 +407,7 @@ mod full {
     /// context, are still handled gracefully.
     #[test]
     fn sources_transparent() {
-        setup();
+        let _guard = prepare(false);
 
         let report = {
             let mut report = create_report().attach_printable(PrintableA(1));
@@ -468,12 +426,12 @@ mod full {
                 .attach(AttachmentB(2))
         };
 
-        assert_snapshot!(redact(&format!("{report:?}")));
+        assert_snapshot!(format!("{report:?}"));
     }
 
     #[test]
     fn complex() {
-        setup();
+        let _guard = prepare(false);
 
         let mut report = create_report().attach_printable(PrintableA(0));
         report.extend_one({
@@ -494,23 +452,23 @@ mod full {
             .change_context(ContextA(2))
             .attach_printable(PrintableA(2));
 
-        assert_snapshot!(redact(&format!("{report:?}")));
+        assert_snapshot!(format!("{report:?}"));
     }
 
     #[test]
     fn hook() {
-        setup();
+        let _guard = prepare(false);
 
         let report = create_report().attach(2u32);
 
         Report::install_debug_hook::<u32>(|_, _| Emit::next("unsigned 32bit integer"));
 
-        assert_snapshot!(redact(&format!("{report:?}")));
+        assert_snapshot!(format!("{report:?}"));
     }
 
     #[test]
     fn hook_context() {
-        setup();
+        let _guard = prepare(false);
 
         let report = create_report().attach(2u32);
 
@@ -518,35 +476,35 @@ mod full {
             Emit::next(format!("unsigned 32bit integer (No. {})", ctx.increment()))
         });
 
-        assert_snapshot!(redact(&format!("{report:?}")));
+        assert_snapshot!(format!("{report:?}"));
     }
 
     #[test]
     fn hook_multiple() {
-        setup();
+        let _guard = prepare(false);
 
         let report = create_report().attach(1u32).attach(2u64);
 
         Report::install_debug_hook::<u32>(|_, _| Emit::next("unsigned 32bit integer"));
         Report::install_debug_hook::<u64>(|_, _| Emit::next("unsigned 64bit integer"));
 
-        assert_snapshot!(redact(&format!("{report:?}")));
+        assert_snapshot!(format!("{report:?}"));
     }
 
     #[test]
     fn hook_fallback() {
-        setup();
+        let _guard = prepare(false);
 
         let report = create_report().attach(1u32);
 
         Report::install_debug_hook_fallback(|_, _| Some(Emit::next("unknown")));
 
-        assert_snapshot!(redact(&format!("{report:?}")));
+        assert_snapshot!(format!("{report:?}"));
     }
 
     #[test]
     fn hook_defer() {
-        setup();
+        let _guard = prepare(false);
 
         let report = create_report() //
             .attach(1u32)
@@ -557,12 +515,12 @@ mod full {
         Report::install_debug_hook::<u32>(|_, _| Emit::defer("u32"));
         Report::install_debug_hook::<u64>(|_, _| Emit::next("u64"));
 
-        assert_snapshot!(redact(&format!("{report:?}")));
+        assert_snapshot!(format!("{report:?}"));
     }
 
     #[test]
     fn hook_decr() {
-        setup();
+        let _guard = prepare(false);
 
         let report = create_report() //
             .attach(1u32)
@@ -571,12 +529,12 @@ mod full {
 
         Report::install_debug_hook::<u32>(|_, ctx| Emit::next(format!("{}", ctx.decrement())));
 
-        assert_snapshot!(redact(&format!("{report:?}")));
+        assert_snapshot!(format!("{report:?}"));
     }
 
     #[test]
     fn hook_incr() {
-        setup();
+        let _guard = prepare(false);
 
         let report = create_report() //
             .attach(1u32)
@@ -585,6 +543,6 @@ mod full {
 
         Report::install_debug_hook::<u32>(|_, ctx| Emit::next(format!("{}", ctx.increment())));
 
-        assert_snapshot!(redact(&format!("{report:?}")));
+        assert_snapshot!(format!("{report:?}"));
     }
 }

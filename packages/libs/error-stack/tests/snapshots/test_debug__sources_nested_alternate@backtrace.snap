@@ -1,14 +1,14 @@
 ---
 source: tests/test_debug.rs
-expression: "redact(&format!(\"{report:#?}\"))"
+expression: "format!(\"{report:#?}\")"
 ---
 Context A
-| @ tests/test_debug.rs:259:10
+| @ tests/test_debug.rs:217:10
 | 2
 | 1
 |
 \-> Context A
- |  | @ tests/test_debug.rs:253:10
+ |  | @ tests/test_debug.rs:211:10
  |  | 4
  |  | 3
  |  |
@@ -18,16 +18,16 @@ Context A
  |      \ backtrace with [n] frames (1)
  |
  \> Context A
-    | @ tests/test_debug.rs:248:10
+    | @ tests/test_debug.rs:206:10
     | 5
     | 3
     |
     |-> Context A
-    |   | @ tests/test_debug.rs:246:10
+    |   | @ tests/test_debug.rs:204:10
     |   \ 7
     |
     \-> Context A
-     |  | @ tests/test_debug.rs:237:34
+     |  | @ tests/test_debug.rs:195:34
      |  | 9
      |  | 8
      |  |
@@ -36,7 +36,7 @@ Context A
      |      \ backtrace with [n] frames (2)
      |
      |> Context A
-     |  | @ tests/test_debug.rs:231:10
+     |  | @ tests/test_debug.rs:189:10
      |  | 13
      |  | 10
      |  | 16
@@ -48,7 +48,7 @@ Context A
      |      \ backtrace with [n] frames (3)
      |
      |> Context A
-     |  | @ tests/test_debug.rs:217:10
+     |  | @ tests/test_debug.rs:175:10
      |  | 15
      |  | 14
      |  | 10
@@ -61,7 +61,7 @@ Context A
      |      \ backtrace with [n] frames (4)
      |
      |> Context A
-     |  | @ tests/test_debug.rs:227:10
+     |  | @ tests/test_debug.rs:185:10
      |  | 11
      |  | 9
      |  | 8
@@ -71,13 +71,13 @@ Context A
      |      \ backtrace with [n] frames (5)
      |
      \> Context A
-        | @ tests/test_debug.rs:223:10
+        | @ tests/test_debug.rs:181:10
         | 12
         | 9
         | 8
         |
         |-> Context A
-        |   \ @ tests/test_debug.rs:222:10
+        |   \ @ tests/test_debug.rs:180:10
         |
         \-> Root error
             | @ tests/common.rs:147:5
@@ -86,24 +86,25 @@ Context A
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Backtrace No. 1
-   [redacted]
+  [redacted]
 
 
 Backtrace No. 2
-   [redacted]
+  [redacted]
 
 
 Backtrace No. 3
-   [redacted]
+  [redacted]
 
 
 Backtrace No. 4
-   [redacted]
+  [redacted]
 
 
 Backtrace No. 5
-   [redacted]
+  [redacted]
 
 
 Backtrace No. 6
-   [redacted]
+  [redacted]
+

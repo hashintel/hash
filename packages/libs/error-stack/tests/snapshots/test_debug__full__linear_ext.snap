@@ -1,28 +1,28 @@
 ---
 source: tests/test_debug.rs
-expression: "redact(&format!(\"{report:#?}\"))"
+expression: "format!(\"{report:#?}\")"
 ---
 Context B
-├╴tests/test_debug.rs:392:14
+├╴tests/test_debug.rs:350:14
 ├╴Printable C
 │
 ├─▶ Context A
-│   ├╴tests/test_debug.rs:389:14
+│   ├╴tests/test_debug.rs:347:14
 │   ├╴Printable B
 │   ╰╴1 additional opaque attachment
 │
 ╰─▶ Root error
     ├╴tests/common.rs:147:5
     ├╴Printable A
-    ├╴backtrace with [n] frames (1)
     ├╴spantrace with 2 frames (1)
+    ├╴backtrace with [n] frames (1)
     ╰╴2 additional opaque attachments
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Backtrace No. 1
-   [redacted]
+  [redacted]
 
 
 Span Trace No. 1
-   [redacted]
+  [redacted]

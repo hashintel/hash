@@ -27,8 +27,7 @@
 //! Hook functions need to be [`Fn`] and **not** [`FnMut`], which means they are unable to directly
 //! mutate state outside of the closure.
 //! You can still achieve mutable state outside of the scope of your closure through interior
-//! mutability.
-//! [`Mutex`], [`RwLock`], and atomics are often used for that exact purpose.
+//! mutability, e.g. by using the [`std::sync`] module like [`Mutex`], [`RwLock`], and [`atomic`]s.
 //!
 //! The type a hook will be called for is determined by the type of the first argument.
 //! This type can either be specified at the closure level or when calling
@@ -57,6 +56,8 @@
 //! // `HookContext` always has a type parameter, which needs to be the same as the type of the
 //! // value, we use `HookContext` here as storage, to store values specific to this hook.
 //! // Here we make use of the auto-incrementing feature.
+//! // The incrementation is type specific, meaning that `ctx.increment()` for the `u32` hook will
+//! // not influence the counter of the `u64` or `u16` hook.
 //! Report::install_debug_hook::<u32>(|_, ctx| Emit::next(format!("u32 value {}", ctx.increment())));
 //!
 //! // we do not need to make use of the context, to either store a value for the duration of the
@@ -126,6 +127,7 @@
 //! [`Backtrace`]: std::backtrace::Backtrace
 //! [`SpanTrace`]: tracing_error::SpanTrace
 //! [`error_stack::fmt::builtin`]: crate::fmt::builtin
+//! [`atomic`]: std::atomic
 
 mod hook;
 #[cfg(all(nightly, feature = "experimental"))]

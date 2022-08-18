@@ -459,6 +459,7 @@ mod hook;
 #[doc(inline)]
 pub use self::ext::*;
 #[cfg(feature = "std")]
+#[allow(deprecated)]
 pub use self::hook::HookAlreadySet;
 pub use self::{
     context::Context,

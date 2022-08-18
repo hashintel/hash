@@ -1,7 +1,7 @@
 <b>invalid input parameter</b>
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/fmt/hook.rs:14:14</span>
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>0
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>1
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/fmt/hook.rs:15:14</span>
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Suggestion 0: Use a file you can read next time!
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Suggestion 1: Don&#39;t press any random keys!
 <span style='color:#a00'>╰</span><span style='color:#a00'>╴</span>backtrace with [n] frames (1)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
