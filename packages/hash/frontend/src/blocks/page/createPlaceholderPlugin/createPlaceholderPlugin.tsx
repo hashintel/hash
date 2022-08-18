@@ -39,22 +39,19 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
       decorations(state) {
         const firstNode = state.selection.$anchor.node(1);
 
+        if (!firstNode) return;
+
         const componentId = firstNode
           ? componentNodeToId(findComponentNodes(firstNode)[0]!)
           : null;
 
-        const focused = placeholderPluginKey.getState(state)?.focused;
+        const isFocused = placeholderPluginKey.getState(state)?.focused;
         const isParagraph = componentId === paragraphBlock;
+        const isEmpty = findComponentNodes(firstNode)[0]?.childCount === 0;
 
-        const showPlaceholder =
-          isParagraph &&
-          firstNode &&
-          findComponentNodes(firstNode)[0]?.childCount === 0 &&
-          focused;
+        const showPlaceholder = isParagraph && isEmpty && isFocused;
 
-        /** @todo pass generic to DecorationSet properly */
-        // eslint-disable-next-line no-restricted-syntax
-        if (!showPlaceholder) return DecorationSet.create(state.doc, []);
+        if (!showPlaceholder) return;
 
         const widgetPos = state.selection.$anchor.posAtIndex(0, 1);
 
@@ -71,6 +68,7 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
           return mountNode;
         });
 
+        /** @todo pass generic to DecorationSet properly */
         // eslint-disable-next-line no-restricted-syntax
         return DecorationSet.create(state.doc, [placeholderDecoration]);
       },
