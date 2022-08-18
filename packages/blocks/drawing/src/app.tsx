@@ -1,12 +1,16 @@
-import React, {
+import {
   useState,
   useCallback,
   useRef,
   useEffect,
   useLayoutEffect,
+  SyntheticEvent,
 } from "react";
 
-import { BlockComponent, useGraphBlockService } from "@blockprotocol/graph";
+import {
+  BlockComponent,
+  useGraphBlockService,
+} from "@blockprotocol/graph/react";
 import { TDDocument, Tldraw, TldrawApp } from "@tldraw/tldraw";
 import { Resizable, ResizeCallbackData } from "react-resizable";
 import {
@@ -44,7 +48,7 @@ const BASE_HEIGHT = 500;
 // via file upload method) as opposed to the current approach of storing in JSON.
 
 export const App: BlockComponent<BlockEntityProperties> = ({
-  graph: { blockEntity },
+  graph: { blockEntity, readonly: graphReadOnly },
 }) => {
   const blockRef = useRef<HTMLDivElement>(null);
   const { graphService } = useGraphBlockService(blockRef);
@@ -115,7 +119,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
       serializedDocument: isValidSerializedDocument(remoteSerializedDocument)
         ? remoteSerializedDocument
         : prev.serializedDocument,
-      readOnly: remoteReadOnly,
+      readOnly: graphReadOnly || remoteReadOnly,
     }));
   }, [
     remoteDarkMode,
@@ -123,11 +127,14 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     remoteWidth,
     remoteSerializedDocument,
     remoteReadOnly,
+    graphReadOnly,
   ]);
 
   const updateRemoteData = useCallback(
     (newData: Partial<BlockEntityProperties>) => {
       if (!rTldrawApp.current) return;
+      if (graphReadOnly) return;
+
       const properties = {
         serializedDocument:
           newData.serializedDocument ??
@@ -146,7 +153,13 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         },
       });
     },
-    [localState.height, localState.width, graphService, entityId],
+    [
+      localState.height,
+      localState.width,
+      graphService,
+      entityId,
+      graphReadOnly,
+    ],
   );
 
   const handleMount = useCallback(
@@ -204,22 +217,28 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     }
   }, [localState.serializedDocument, entityId, localState.darkMode]);
 
-  const updateDimensions = useCallback((_, { size }: ResizeCallbackData) => {
-    setLocalState((prev) => ({
-      ...prev,
-      width: size.width,
-      height: size.height,
-    }));
-  }, []);
+  const updateDimensions = useCallback(
+    (_: SyntheticEvent, { size }: ResizeCallbackData) => {
+      setLocalState((prev) => ({
+        ...prev,
+        width: size.width,
+        height: size.height,
+      }));
+    },
+    [],
+  );
 
   const updateRemoteDimensions = useCallback(
-    (_, { size }: ResizeCallbackData) => {
+    (_: SyntheticEvent, { size }: ResizeCallbackData) => {
+      if (graphReadOnly) {
+        return;
+      }
       updateRemoteData({
         width: size.width,
         height: size.height,
       });
     },
-    [updateRemoteData],
+    [updateRemoteData, graphReadOnly],
   );
 
   return (

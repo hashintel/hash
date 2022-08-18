@@ -1,4 +1,4 @@
-import React, { VFC } from "react";
+import { ChangeEvent, FunctionComponent } from "react";
 import { tw } from "twind";
 import Loader from "../svgs/loader";
 
@@ -8,14 +8,16 @@ type UploadMediaFormProps = {
   onUrlConfirm: () => void;
   loading: boolean;
   type: "image" | "video";
+  readonly?: boolean;
 };
 
-export const UploadMediaForm: VFC<UploadMediaFormProps> = ({
+export const UploadMediaForm: FunctionComponent<UploadMediaFormProps> = ({
   loading,
   onFileChoose,
   onUrlChange,
   onUrlConfirm,
   type,
+  readonly,
 }) => {
   /**
    * @todo This should throw some kind of error if an invalid media is passed
@@ -46,7 +48,6 @@ export const UploadMediaForm: VFC<UploadMediaFormProps> = ({
         className={tw`mb-0`}
         onSubmit={(event) => {
           event.preventDefault();
-
           onUrlConfirm();
         }}
       >
@@ -57,34 +58,40 @@ export const UploadMediaForm: VFC<UploadMediaFormProps> = ({
             onChange={(event) => onUrlChange(event.target.value)}
             type="url"
             placeholder={`Enter ${capitalisedType} URL`}
+            disabled={readonly}
           />
         </div>
         <div>
           <label>
             <div
-              className={tw`my-4 bg-gray-50 border-2 border-dashed border-gray-200 py-4 text-sm text-gray-400 cursor-pointer`}
+              className={tw`my-4 bg-gray-50 border-2 border-dashed border-gray-200 py-4 text-sm text-gray-400 ${
+                !readonly ? "cursor-pointer" : ""
+              }`}
             >
               Choose a File. <br /> (or Drop it Here)
             </div>
 
             <input
               className={tw`hidden`}
+              disabled={readonly}
               type="file"
               accept={`${type}/*`}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+              onChange={(event: ChangeEvent<HTMLInputElement>) =>
                 onFilesChoose(event.target.files)
               }
             />
           </label>
         </div>
         <div className={tw`mt-4`}>
-          <button
-            className={tw`bg-blue-400 rounded-sm hover:bg-blue-500 focus:bg-blue-600 py-1 text-white w-full flex items-center justify-center`}
-            type="submit"
-          >
-            {loading && <Loader />}
-            Embed {capitalisedType}
-          </button>
+          {!readonly && (
+            <button
+              className={tw`bg-blue-400 rounded-sm hover:bg-blue-500 focus:bg-blue-600 py-1 text-white w-full flex items-center justify-center`}
+              type="submit"
+            >
+              {loading && <Loader />}
+              Embed {capitalisedType}
+            </button>
+          )}
         </div>
         <div className={tw`text-sm text-gray-400 mt-4`}>
           Works with web-supported {type} formats

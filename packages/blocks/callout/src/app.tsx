@@ -1,32 +1,45 @@
-import { BlockComponent } from "blockprotocol/react";
-import React, { RefCallback } from "react";
+import {
+  BlockComponent,
+  useGraphBlockService,
+} from "@blockprotocol/graph/react";
+import { RefCallback, useRef } from "react";
 
 import { EmojiIcon } from "./emoji-icon";
 
 type BlockEntityProperties = {
-  editableRef?: RefCallback<HTMLElement>;
   icon?: string;
   text?: string;
+  editableRef?: RefCallback<HTMLElement>;
 };
 
 export const App: BlockComponent<BlockEntityProperties> = ({
-  editableRef,
-  icon = "📢",
-  text,
-  entityId,
-  updateEntities,
+  graph: {
+    blockEntity: { entityId, properties },
+  },
+  ...others
 }) => {
+  const editableRef = (others as any).editableRef as
+    | RefCallback<HTMLDivElement>
+    | undefined;
+  const { icon = "📢", text } = properties;
+
+  const blockRef = useRef<HTMLDivElement>(null);
+  const { graphService } = useGraphBlockService(blockRef);
+
   const handleIconChange = (newIcon: string | undefined): void => {
     if (!entityId) {
       return;
     }
 
-    void updateEntities?.([
-      {
+    void graphService?.updateEntity({
+      data: {
         entityId,
-        data: { icon: newIcon ?? null },
+        properties: {
+          ...properties,
+          icon: newIcon ?? null,
+        },
       },
-    ]);
+    });
   };
 
   return (
@@ -39,6 +52,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         background: "#f9fafc",
         border: "1px solid #dee7f3",
       }}
+      ref={blockRef}
     >
       <EmojiIcon
         disabled={typeof entityId !== "string"}

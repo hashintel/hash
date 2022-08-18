@@ -1,6 +1,6 @@
-import * as React from "react";
 import { tw } from "twind";
 import { EntityType } from "@blockprotocol/graph";
+import { FunctionComponent } from "react";
 
 type EntityTypeDropdownProps = {
   onChange?: (entityTypeId?: string) => void;
@@ -8,9 +8,11 @@ type EntityTypeDropdownProps = {
   options: EntityType[];
 };
 
-export const EntityTypeDropdown: React.VoidFunctionComponent<
-  EntityTypeDropdownProps
-> = ({ onChange, value, options }) => {
+export const EntityTypeDropdown: FunctionComponent<EntityTypeDropdownProps> = ({
+  onChange,
+  value,
+  options,
+}) => {
   return (
     <select
       onChange={(event) => onChange?.(event.target.value)}
