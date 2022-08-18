@@ -15303,14 +15303,7 @@ oembed-providers@1.0.20220105:
   resolved "https://registry.yarnpkg.com/oembed-providers/-/oembed-providers-1.0.20220105.tgz#cb105e4082a35af24076bf4403de99bfd12b045b"
   integrity sha512-LR88ow2SdLxy71H3TBsp/Ze7PfEoMiVBM29GmJbQVvjfU2rzBFwdRBQp1yuFMTQZ409vCweUdtMnQ9yxiVT1Dw==
 
-on-finished@^2.3.0:
-  version "2.4.1"
-  resolved "https://registry.yarnpkg.com/on-finished/-/on-finished-2.4.1.tgz#58c8c44116e54845ad57f14ab10b03533184ac3f"
-  integrity sha512-oVlzkg3ENAhCk2zdv7IJwd/QUD4z2RxRwpkcGY8psCVcCYZNq4wYnVWALHM+brtuJjePWiYF/ClmuDr8Ch5+kg==
-  dependencies:
-    ee-first "1.1.1"
-
-on-finished@~2.3.0:
+on-finished@^2.3.0, on-finished@~2.3.0:
   version "2.3.0"
   resolved "https://registry.yarnpkg.com/on-finished/-/on-finished-2.3.0.tgz#20f1336481b083cd75337992a16971aa2d906947"
   integrity sha1-IPEzZIGwg811M3mSoWlxqi2QaUc=
