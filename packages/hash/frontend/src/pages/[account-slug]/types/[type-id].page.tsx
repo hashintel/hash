@@ -1,9 +1,11 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import pluralize from "pluralize";
 import { useQuery } from "@apollo/client";
 import { useRouter } from "next/router";
 
-import { tw } from "twind";
+import { Box, styled } from "@mui/material";
+import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import {
   GetEntityTypeQuery,
   GetEntityTypeQueryVariables,
@@ -22,6 +24,21 @@ import {
 } from "../../../shared/layout";
 import { Button, Link } from "../../../shared/ui";
 import { useRouteAccountInfo } from "../../../shared/routing";
+import {
+  TopContextBar,
+  TOP_CONTEXT_BAR_HEIGHT,
+} from "../../shared/top-context-bar";
+import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
+
+const Container = styled("div")(({ theme }) => ({
+  display: "grid",
+  gridTemplateColumns: "1fr minmax(65ch, 1200px) 1fr",
+  padding: theme.spacing(7, 10),
+
+  "& > *": {
+    gridColumn: "2",
+  },
+}));
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -33,6 +50,7 @@ const Page: NextPageWithLayout = () => {
   const { updateEntityType } = useBlockProtocolUpdateEntityType();
   const { aggregateEntityTypes } =
     useBlockProtocolAggregateEntityTypes(accountId);
+  const pageHeaderRef = useRef<HTMLElement>();
 
   /** @see https://json-schema.org/understanding-json-schema/structuring.html#json-pointer */
   const subSchemaReference =
@@ -108,39 +126,89 @@ const Page: NextPageWithLayout = () => {
     [schema$id, subSchemaReference],
   );
 
+  const scrollToTop = () => {
+    if (!pageHeaderRef.current) return;
+    pageHeaderRef.current.scrollIntoView({
+      behavior: "smooth",
+    });
+  };
+
+  const crumbs = !schema
+    ? []
+    : [
+        {
+          title: schema.title,
+          href: `/${accountId}/types/${typeId}`,
+          id: typeId,
+        },
+      ];
+
   if (!data) {
-    return <h1>Loading...</h1>;
+    return (
+      <Container>
+        <h1>Loading...</h1>
+      </Container>
+    );
   }
 
   return (
     <>
-      <div className={tw`mb-12`}>
-        <div className={tw`mb-8`}>
-          <h1>
-            <strong>{pluralize(schema.title)} in account</strong>
-          </h1>
-          <AccountEntityOfTypeList
-            accountId={accountId}
-            entityTypeId={typeId}
-          />
-        </div>
+      <Box
+        sx={({ zIndex, palette }) => ({
+          position: "sticky",
+          top: 0,
+          zIndex: zIndex.appBar,
+          backgroundColor: palette.white,
+        })}
+      >
+        <TopContextBar
+          crumbs={crumbs}
+          defaultCrumbIcon={<FontAwesomeIcon icon={faAsterisk} />}
+          scrollToTop={scrollToTop}
+        />
+      </Box>
+      <Container>
+        <Box
+          ref={pageHeaderRef}
+          sx={{
+            mb: 6,
+            scrollMarginTop: HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT,
+          }}
+        >
+          <Box
+            sx={{
+              mb: 4,
+            }}
+          >
+            <h1>
+              <strong>{pluralize(schema.title)} in account</strong>
+            </h1>
+            <AccountEntityOfTypeList
+              accountId={accountId}
+              entityTypeId={typeId}
+            />
+          </Box>
 
-        <Button href={`/${accountId}/entities/new?entityTypeId=${typeId}`}>
-          New {schema.title}
-        </Button>
-      </div>
-      <SchemaEditor
-        aggregateEntityTypes={aggregateEntityTypes}
-        entityTypeId={data.getEntityType.entityId}
-        schema={schema}
-        GoToSchemaElement={schemaSelectElement}
-        subSchemaReference={subSchemaReference}
-        updateEntityType={updateEntityType}
-      />
+          <Button href={`/${accountId}/entities/new?entityTypeId=${typeId}`}>
+            New {schema.title}
+          </Button>
+        </Box>
+        <SchemaEditor
+          aggregateEntityTypes={aggregateEntityTypes}
+          entityTypeId={data.getEntityType.entityId}
+          schema={schema}
+          GoToSchemaElement={schemaSelectElement}
+          subSchemaReference={subSchemaReference}
+          updateEntityType={updateEntityType}
+        />
+      </Container>
     </>
   );
 };
 
-Page.getLayout = getLayoutWithSidebar;
+Page.getLayout = (page) =>
+  getLayoutWithSidebar(page, {
+    fullWidth: true,
+  });
 
 export default Page;

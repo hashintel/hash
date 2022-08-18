@@ -210,7 +210,9 @@ pub async fn run_test_suite(
                     log_folder: output.join("log"),
                     log_level: *log_level,
                     output_folder: output,
-                    output_location: OutputLocation::File("output.log".into()),
+                    output_location: OutputLocation::File {
+                        path: "output.log".into(),
+                    },
                     start_timeout,
                     wait_timeout,
                     js_runner_initial_heap_constraint: None,

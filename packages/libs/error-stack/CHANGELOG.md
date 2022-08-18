@@ -8,6 +8,7 @@ All notable changes to `error-stack` will be documented in this file.
 
 - Use `Provider` API from `core::any` ([#697](https://github.com/hashintel/hash/pull/697))
 - Hide `futures-core` feature ([#695](https://github.com/hashintel/hash/pull/695))
+- Set the MSRV to 1.63 ([#944](https://github.com/hashintel/hash/pull/944))
 
 ### Features
 
