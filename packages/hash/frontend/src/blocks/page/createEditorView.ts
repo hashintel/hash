@@ -12,6 +12,7 @@ import { ComponentView } from "./ComponentView";
 import { createErrorPlugin } from "./createErrorPlugin";
 import { createFormatPlugins } from "./createFormatPlugins";
 import { createSuggester } from "./createSuggester/createSuggester";
+import { focusPageTitlePlugin } from "./focusPageTitlePlugin";
 import { MentionView } from "./MentionView/MentionView";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
@@ -37,6 +38,7 @@ export const createEditorView = (
     ...createFormatPlugins(renderPortal),
     createSuggester(renderPortal, () => manager, accountId),
     errorPlugin,
+    focusPageTitlePlugin,
   ];
 
   const state = createProseMirrorState({ accountId, plugins });

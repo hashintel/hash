@@ -81,6 +81,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
   // TODO: Assign appropriate a11y attributes
   return (
     <Typography
+      id="hash-page-title"
       component="h1"
       variant="h2"
       contentEditable
