@@ -33,6 +33,7 @@ export const useBlockProtocolAggregateEntityTypes = (
           ],
         };
       }
+
       const response = await aggregateEntityTypesInDb({
         query: deprecatedGetAccountEntityTypes,
         variables: {
@@ -57,7 +58,7 @@ export const useBlockProtocolAggregateEntityTypes = (
         };
       }
 
-      const responseData = response.data.getAccountEntityTypes;
+      const responseData = response.data.deprecatedGetAccountEntityTypes;
 
       return {
         data: {

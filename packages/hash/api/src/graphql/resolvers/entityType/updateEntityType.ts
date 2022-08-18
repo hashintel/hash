@@ -12,11 +12,7 @@ export const deprecatedUpdateEntityType: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationDeprecatedUpdateEntityTypeArgs
-> = async (
-  _,
-  { accountId, entityId, schema },
-  { dataSources: { db }, user },
-) => {
+> = async (_, { entityId, schema }, { dataSources: { db }, user }) => {
   return await db.transaction(async (conn) => {
     const entityType = await EntityType.getEntityType(conn, {
       entityTypeId: entityId,

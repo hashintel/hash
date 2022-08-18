@@ -7,7 +7,8 @@ import { EntityType, UnresolvedGQLEntityType } from "../../../model";
 const children: ResolverFn<
   Promise<UnresolvedGQLEntityType[]>,
   DeprecatedEntityType,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async (params, _, { dataSources: { db } }) => {
   const { entityId: entityTypeId } = params;
 
@@ -31,7 +32,8 @@ const children: ResolverFn<
 const parents: ResolverFn<
   Promise<UnresolvedGQLEntityType[]>,
   DeprecatedEntityType,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async (params, _, { dataSources: { db } }) => {
   const { entityId: entityTypeId } = params;
 
@@ -55,7 +57,8 @@ const parents: ResolverFn<
 const ancestors: ResolverFn<
   Promise<UnresolvedGQLEntityType[]>,
   DeprecatedEntityType,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async (params, _, { dataSources: { db } }) => {
   const { entityId: entityTypeId } = params;
 

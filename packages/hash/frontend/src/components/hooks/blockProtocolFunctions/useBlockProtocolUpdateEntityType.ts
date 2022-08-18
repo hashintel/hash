@@ -62,7 +62,7 @@ export const useBlockProtocolUpdateEntityType = (
         }
         return {
           data: convertApiEntityTypeToBpEntityType(
-            responseData.updateEntityType,
+            responseData.deprecatedUpdateEntityType,
           ),
         };
       },
