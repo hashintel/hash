@@ -41,9 +41,9 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
 
         if (!firstNode) return;
 
-        const componentId = firstNode
-          ? componentNodeToId(findComponentNodes(firstNode)[0]!)
-          : null;
+        const componentId = componentNodeToId(
+          findComponentNodes(firstNode)[0]!,
+        );
 
         const isFocused = placeholderPluginKey.getState(state)?.focused;
         const isParagraph = componentId === paragraphBlock;
