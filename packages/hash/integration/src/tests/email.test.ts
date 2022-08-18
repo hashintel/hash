@@ -7,8 +7,8 @@ if (process.env.HASH_DEV_INTEGRATION_EMAIL) {
   const to = process.env.HASH_DEV_INTEGRATION_EMAIL;
   it("can send an email", async () => {
     const emailTransporter = new AwsSesEmailTransporter({
-      from: `${getRequiredEnv("WORKSPACE_EMAIL_SENDER_NAME")} <${getRequiredEnv(
-        "WORKSPACE_EMAIL_ADDRESS",
+      from: `${getRequiredEnv("SYSTEM_EMAIL_SENDER_NAME")} <${getRequiredEnv(
+        "SYSTEM_EMAIL_ADDRESS",
       )}>`,
       region: getAwsRegion(),
       subjectPrefix: "[INTEGRATION TESTS] ",

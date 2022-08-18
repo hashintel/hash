@@ -16,7 +16,6 @@ import {
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createOrgs, createUsers } from "./accounts";
 import { SystemTypeName } from "../graphql/apiTypes.gen";
-import { createEntityTypes } from "./entityTypes";
 
 export {};
 
@@ -47,13 +46,13 @@ void (async () => {
 
   // Get the system org - it's already been created as part of db migration
   const systemOrg = await Org.getOrgByShortname(db, {
-    shortname: getRequiredEnv("WORKSPACE_ACCOUNT_SHORTNAME"),
+    shortname: getRequiredEnv("SYSTEM_ACCOUNT_SHORTNAME"),
   });
 
   if (!systemOrg) {
     throw new Error(`
       No org with shortname '${getRequiredEnv(
-        "WORKSPACE_ACCOUNT_SHORTNAME",
+        "SYSTEM_ACCOUNT_SHORTNAME",
       )}' found.
       Has the db migration been run?
       Has the system account name been changed?
@@ -63,11 +62,6 @@ void (async () => {
   const [users, _orgs] = await Promise.all([
     createUsers(db)(systemOrg),
     createOrgs(db),
-  ]);
-
-  await createEntityTypes(db)([
-    systemOrg.accountId,
-    ...users.map((user) => user.accountId),
   ]);
 
   const results = new Map<string, Entity>();
@@ -375,7 +369,7 @@ void (async () => {
         "c1",
         {
           properties: {
-            name: "Example Org",
+            name: "Example Company",
             url: "https://example.com",
           },
           entityTypeId: newTypeIds.Company!,
@@ -395,12 +389,6 @@ void (async () => {
           properties: {
             email: "alice@example.com",
             name: "Alice Alison",
-            employer: {
-              __linkedData: {
-                entityTypeId: newTypeIds.Company!,
-                entityId: results.get("c1")!.entityId,
-              },
-            },
           },
           accountId: user.accountId,
           createdByAccountId: user.entityId,
@@ -413,12 +401,6 @@ void (async () => {
           properties: {
             email: "bob@example.com",
             name: "Bob Bobson",
-            employer: {
-              __linkedData: {
-                entityTypeId: newTypeIds.Company!,
-                entityId: results.get("c1")!.entityId,
-              },
-            },
           },
           entityTypeId: newTypeIds.Person!,
           accountId: user.accountId,
