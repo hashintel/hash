@@ -18,7 +18,7 @@ const graphApi = createGraphClient(
   logger,
 );
 
-const accountId = { accountId: "00000000-0000-0000-0000-000000000000" };
+const accountId = "00000000-0000-0000-0000-000000000000";
 
 describe("Link type CRU", () => {
   const linkType = ($id: string): LinkType => {
@@ -34,14 +34,14 @@ describe("Link type CRU", () => {
   let createdLinkType: LinkTypeModel;
   it("can create a link type", async () => {
     createdLinkType = await LinkTypeModel.create(graphApi, {
-      ...accountId,
+      accountId,
       schema: linkType(createdLinkType$id),
     });
   });
 
   it("can read a link type", async () => {
     const fetchedLinkType = await LinkTypeModel.get(graphApi, {
-      ...accountId,
+      accountId,
       versionedUri: createdLinkType$id,
     });
 
@@ -53,7 +53,7 @@ describe("Link type CRU", () => {
   it("can update a link type", async () => {
     await createdLinkType
       .update(graphApi, {
-        ...accountId,
+        accountId,
         schema: {
           ...linkType(updated$id),
           title: updatedTitle,
@@ -63,7 +63,9 @@ describe("Link type CRU", () => {
   });
 
   it("can read all latest link types", async () => {
-    const allLinkTypes = await LinkTypeModel.getAllLatest(graphApi, accountId);
+    const allLinkTypes = await LinkTypeModel.getAllLatest(graphApi, {
+      accountId,
+    });
 
     const newlyUpdated = allLinkTypes.find(
       (lt) => lt.schema.$id === updated$id,
