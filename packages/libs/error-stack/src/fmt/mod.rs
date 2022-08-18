@@ -164,12 +164,14 @@ use owo_colors::{OwoColorize, Stream::Stdout, Style as OwOStyle};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
-/// Modify the behaviour, with which `Line`s returned from hook invocations are rendered.
+/// Modify the behaviour, with which text returned from hook invocations are rendered.
 ///
-/// Lines can either be emitted immediately as the [`Emit::Next`] line, or defer the via
-/// [`Emit::Defer`] until the end of the current "group".
-/// [`Emit::Defer`] does not modify the order of frames, only emits them after all [`Emit::Next`]
-/// frames in the order they were added in.
+/// Text can either be emitted immediately as the [`Emit::Next`] line, or deferred the via
+/// [`Emit::Defer`] until the end of the current stack, a stack is a list of attachments until a
+/// frame, which has more than a single source.
+///
+/// Hooks that emit [`Emit::Defer`] are reversed when rendered, meaning that when `A`, `B`, and `C`
+/// use [`Emit::Defer`], they will be rendered in the order: `C`, `B`, `A`.
 ///
 /// # Example
 ///
@@ -212,7 +214,7 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// ```
 ///
 /// <pre>
-#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__emit.snap"))]
+#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap"))]
 /// </pre>
 #[derive(Debug, Clone)]
 #[must_use]
@@ -793,7 +795,7 @@ fn debug_attachments(
         next.len() + defer.len() + loc.as_ref().map_or(0, |_| 1) + opaque.as_ref().map_or(0, |_| 1);
     let lines = next
         .into_iter()
-        .chain(defer.into_iter())
+        .chain(defer.into_iter().rev())
         .map(|emit| match emit {
             Emit::Defer(value) | Emit::Next(value) => value,
         })

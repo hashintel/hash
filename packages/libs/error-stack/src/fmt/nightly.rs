@@ -34,7 +34,7 @@ use crate::fmt::{Emit, Snippet};
 /// ```
 ///
 /// <pre>
-#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__debugdiagnostic.snap"))]
+#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__debugdiagnostic.snap"))]
 /// </pre>
 ///
 /// # Implementation Notes

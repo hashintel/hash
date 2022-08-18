@@ -78,7 +78,7 @@ impl Report<()> {
     /// ```
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/hook__debug_hook.snap"))]
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook.snap"))]
     /// </pre>
     #[cfg(feature = "std")]
     pub fn install_debug_hook<T: Send + Sync + 'static>(
@@ -137,7 +137,7 @@ impl Report<()> {
     /// ```
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/hook__fallback.snap"))]
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback.snap"))]
     /// </pre>
     ///
     /// ```
@@ -175,7 +175,7 @@ impl Report<()> {
     /// ```
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/hook__fallback_builtin.snap"))]
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback_builtin.snap"))]
     /// </pre>
     #[cfg(feature = "std")]
     pub fn install_debug_hook_fallback(
