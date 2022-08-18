@@ -1,5 +1,5 @@
+import { JsonObject } from "@blockprotocol/core";
 import { DataSource } from "apollo-datasource";
-import { JSONObject } from "blockprotocol";
 
 export type SearchHit = {
   /** The ID of the document matching the query.  */
@@ -9,7 +9,7 @@ export type SearchHit = {
   /** The score attributed to the match. A number in the interval [0, 1]. */
   score: number;
   /** The content of the document. */
-  document: JSONObject;
+  document: JsonObject;
 };
 
 export type SearchResult = {
