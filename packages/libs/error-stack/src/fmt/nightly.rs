@@ -56,11 +56,13 @@ use crate::fmt::Emit;
 /// [#31844]: https://github.com/rust-lang/rust/issues/31844
 // TODO: remove experimental flag once specialisation is stabilized or sound or `.attach_provider()`
 //  is introduced.
+#[cfg(feature = "experimental")]
 pub struct DebugDiagnostic {
     output: Emit,
     snippets: Vec<String>,
 }
 
+#[cfg(feature = "experimental")]
 impl DebugDiagnostic {
     /// The diagnostic is going to be emitted immediately once encountered in the frame stack.
     pub fn next<T: Into<String>>(output: T) -> Self {

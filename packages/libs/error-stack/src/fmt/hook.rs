@@ -561,19 +561,27 @@ mod default {
     // false positive
     #[allow(clippy::missing_const_for_fn)]
     pub fn builtin<'a>(frame: &Frame, ctx: &mut HookContext<'a, Frame>) -> Option<Emit> {
-        #[cfg(all(nightly, feature = "std"))]
-        if let Some(bt) = frame.request_ref() {
-            return Some(backtrace(bt, ctx.cast()));
+        // we're only able to use `request_ref` in nightly, because the Provider API hasn't been
+        // stabilized yet.
+        #[cfg(nightly)]
+        {
+            #[cfg(feature = "std")]
+            if let Some(bt) = frame.request_ref() {
+                return Some(backtrace(bt, ctx.cast()));
+            }
+
+            #[cfg(feature = "spantrace")]
+            if let Some(st) = frame.request_ref() {
+                return Some(span_trace(st, ctx.cast()));
+            }
         }
 
-        #[cfg(all(feature = "spantrace", not(nightly)))]
-        if let Some(st) = frame.downcast_ref() {
-            return Some(span_trace(st, ctx.cast()));
-        }
-
-        #[cfg(all(feature = "spantrace", nightly))]
-        if let Some(st) = frame.request_ref() {
-            return Some(span_trace(st, ctx.cast()));
+        #[cfg(not(nightly))]
+        {
+            #[cfg(feature = "spantrace")]
+            if let Some(st) = frame.downcast_ref() {
+                return Some(span_trace(st, ctx.cast()));
+            }
         }
 
         None
