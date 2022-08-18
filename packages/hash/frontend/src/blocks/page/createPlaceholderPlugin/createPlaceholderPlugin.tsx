@@ -68,8 +68,6 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
           return mountNode;
         });
 
-        /** @todo pass generic to DecorationSet properly */
-        // eslint-disable-next-line no-restricted-syntax
         return DecorationSet.create(state.doc, [placeholderDecoration]);
       },
       handleDOMEvents: {
