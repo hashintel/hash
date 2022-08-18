@@ -4,9 +4,12 @@ import {
   EmbedderGraphMessageCallbacks,
 } from "@blockprotocol/graph";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 
 import { getEntity } from "@hashintel/hash-shared/queries/entity.queries";
+import { Box, styled } from "@mui/material";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
+import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { SimpleEntityEditor } from "./shared/simple-entity-editor";
 
 import {
@@ -29,12 +32,28 @@ import {
 } from "../../../shared/layout";
 import { BlockBasedEntityEditor } from "./[entity-id].page/block-based-entity-editor";
 import { useRouteAccountInfo } from "../../../shared/routing";
+import {
+  TopContextBar,
+  TOP_CONTEXT_BAR_HEIGHT,
+} from "../../shared/top-context-bar";
+import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
+
+const Container = styled("div")(({ theme }) => ({
+  display: "grid",
+  gridTemplateColumns: "1fr minmax(65ch, 1200px) 1fr",
+  padding: theme.spacing(7, 10),
+
+  "& > *": {
+    gridColumn: "2",
+  },
+}));
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const { query } = router;
   const { accountId } = useRouteAccountInfo();
   const entityId = query["entity-id"] as string;
+  const pageHeaderRef = useRef<HTMLElement>();
 
   const { data, refetch } = useQuery<GetEntityQuery, GetEntityQueryVariables>(
     getEntity,
@@ -79,38 +98,85 @@ const Page: NextPageWithLayout = () => {
     };
   }, [entity]);
 
+  const scrollToTop = () => {
+    if (!pageHeaderRef.current) return;
+    pageHeaderRef.current.scrollIntoView({
+      behavior: "smooth",
+    });
+  };
+
+  const crumbs = !entity
+    ? []
+    : [
+        {
+          title: entity.entityType.properties.title,
+          href: entity.entityType.properties.$id,
+          id: entityId,
+        },
+        {
+          title: guessEntityName(entity),
+          href: `/${accountId}/entities/${entityId}`,
+          id: entityId,
+        },
+      ];
+
   return (
     <>
-      <header>
-        <h1>
-          <strong>
-            {entity ? `Editing '${guessEntityName(entity)}'` : "Loading..."}
-          </strong>
-        </h1>
-      </header>
-      <div>
-        {entity && (
-          <SimpleEntityEditor
-            aggregateEntities={aggregateEntities}
-            blockGraph={blockGraph}
-            createLink={createLink}
-            deleteLink={deleteLink}
-            entityId={rewriteEntityIdentifier({
-              accountId,
-              entityId,
-            })}
-            updateEntity={updateAndNavigateToFirstEntity}
-            entityProperties={entity.properties}
-            refetchEntity={refetch}
-            schema={entity.entityType.properties}
-          />
-        )}
-      </div>
+      <Box
+        sx={({ zIndex, palette }) => ({
+          position: "sticky",
+          top: 0,
+          zIndex: zIndex.appBar,
+          backgroundColor: palette.white,
+        })}
+      >
+        <TopContextBar
+          crumbs={crumbs}
+          defaultCrumbIcon={<FontAwesomeIcon icon={faAsterisk} />}
+          scrollToTop={scrollToTop}
+        />
+      </Box>
+      <Container>
+        <Box
+          ref={pageHeaderRef}
+          sx={{
+            scrollMarginTop: HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT,
+          }}
+          component="header"
+        >
+          <h1>
+            <strong>
+              {entity ? `Editing '${guessEntityName(entity)}'` : "Loading..."}
+            </strong>
+          </h1>
+        </Box>
+        <Box>
+          {entity && (
+            <SimpleEntityEditor
+              aggregateEntities={aggregateEntities}
+              blockGraph={blockGraph}
+              createLink={createLink}
+              deleteLink={deleteLink}
+              entityId={rewriteEntityIdentifier({
+                accountId,
+                entityId,
+              })}
+              updateEntity={updateAndNavigateToFirstEntity}
+              entityProperties={entity.properties}
+              refetchEntity={refetch}
+              schema={entity.entityType.properties}
+            />
+          )}
+        </Box>
+      </Container>
     </>
   );
 };
 
-Page.getLayout = getLayoutWithSidebar;
+Page.getLayout = (page) =>
+  getLayoutWithSidebar(page, {
+    fullWidth: true,
+  });
 
 const BlockBasedEntityPage: NextPageWithLayout = () => {
   const router = useRouter();

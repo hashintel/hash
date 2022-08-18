@@ -53,6 +53,7 @@ export const usePortals = () => {
     setPortals(blankPortals);
   }, []);
 
+  // Group the portals by the block they belong to
   const groupedPortals = Array.from(portals.entries()).reduce(
     (obj, portal) => {
       const id = portal[1].id;

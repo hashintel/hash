@@ -104,6 +104,7 @@ export const pageTypedef = gql`
     pageEntityId: String!
     summary: String
     title: String!
+    icon: String
   }
 
   type EntityRef {
@@ -168,6 +169,7 @@ export const pageTypedef = gql`
     # just make it JSON for now for testing purposes
     contents: [JSONObject!]
     title: String
+    icon: String
     summary: String
     archived: Boolean
   }
