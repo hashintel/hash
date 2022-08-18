@@ -1,0 +1,25 @@
+---
+objectId: 2f3e8d88-0205-4043-f46f-0ba3191t4626
+title: Links
+description: Links between different entities represent the relationships and connections between them.
+slug: links
+tags: ["Graphs"]
+---
+
+## Links between entities
+
+Links between entities reflect a relationship or other type of connection between them.
+
+For example, a `Person` entity may be considered linked to a `Political Party` entity if they have donated to them, or stood for an election on their behalf.
+
+Entities may have one or more links to entities of any number of types. For example, a `Person` may be linked to more than one `Political Party`. They may also be linked to more than just a `Political Party`. They may have a `Sports Team`, links to many other `Person` entities, and a day job linking them to an employer `Company` entity as well.
+
+## Link types
+
+Links have [types](https://hash.ai/glossary/types). Not all links imply the same thing. We infer meaning through links from their types. A link may indicate current membership, or former membership. It may indicate a positive relationship or a negative one.
+
+## Directed links
+
+Links may be directed or undirected. Directed links imply that a relationship between two entities is not 'equal' -- for example, two entities may have a `Mother` `<>` `Child` relationship. In this case one entity is the literal parent of another, and it is impossible for the reverse to be true. Similarly, two entities `Boss` and `Employee` may be connected by a directional link that conveys the power dynamic governing their relationship.
+
+Undirected links may either be _bidirectional_ (equally mirrored) or their nature may not yet be known.

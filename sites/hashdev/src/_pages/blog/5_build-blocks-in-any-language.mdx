@@ -22,13 +22,13 @@ The purpose of the Block Protocol is to provide a standardized interface for any
 
 Although the UI is basic, the dropdowns are particularly important for this block: they select the type of entities to fetch and make available for each row. For example, selecting the `Person` Entity Type in row one will load a collection of `Person` entities from the embedding application, allowing cells within row one to aggregate on them. In terms familiar to F# developers, Entity Types can be thought of as user-defined _domain types_ which are declared from the Embedding Application.
 
-Read more about Entities, Entity Types and embedding applications in the Block Protocol [specification](https://blockprotocol.org/spec).
+Read more about Entities, Entity Types and embedding applications in the Block Protocol [specification](https://blockprotocol.org/docs/spec).
 
 ## Implementing the Block Protocol in F\#
 
 The Block Protocol defines a communication standard which allows blocks to create, read, update, and delete data. With this use case, we will end up with a block which can be used to explore the structured data in an embedding application.
 
-The is possible because of the Block Protocol [Graph Service](https://blockprotocol.org/spec/graph-service-specification). This service allows querying against Entities, Entity Types, and Links. For example, we can request to fetch all Entity Types from the Embedding Application and use those for the row dropdowns shown above. Once an Entity Type has been selected, all relevant Entities of that type can be requested, loaded, and made available for cell expressions.
+The is possible because of the Block Protocol [Graph Service](https://blockprotocol.org/docs/spec/graph-service-specification). This service allows querying against Entities, Entity Types, and Links. For example, we can request to fetch all Entity Types from the Embedding Application and use those for the row dropdowns shown above. Once an Entity Type has been selected, all relevant Entities of that type can be requested, loaded, and made available for cell expressions.
 
 To implement the Block Protocol in a language other than JavaScript or TypeScript:
 
@@ -85,7 +85,7 @@ let BlockProtocolInitMessage () =
 
 There's not much to this message, for now it's mostly a declaration of existence the block makes to the embedding application. The message does, however, expect a response: the `initResponse` message.
 
-In order to properly explain the response to this initial message, it's helpful to look at how the Graph Service [specification](https://blockprotocol.org/spec/graph-service-specification) can be typed.
+In order to properly explain the response to this initial message, it's helpful to look at how the Graph Service [specification](https://blockprotocol.org/docs/spec/graph-service-specification) can be typed.
 
 ### Block Protocol Graph Service types
 
@@ -492,4 +492,4 @@ if all goes well. Otherwise, the raw value of the cell is shown.
 
 We've seen how the Block Protocol isn't tied to JavaScript, TypeScript, or React, and how you can build a block with your favorite JavaScript transpilation source—F#, in my case! There's no need to change the way you write frontend code. The Elmish component doesn't have any special knowledge about the Block Protocol, for example, and relies instead on a couple of asynchronous functions which disguise a simple way of communicating through DOM events.
 
-You can browse the full source code for the calculation block [on GitHub](https://github.com/hashdeps/calculation-table-block). If you feel inspired to build a block without TypeScript, we'd love to [hear from you on Discord](https://hash.ai/discord). And to learn more about the technical details of the Block Protocol, take a look at the [specification](https://blockprotocol.org/spec).
+You can browse the full source code for the calculation block [on GitHub](https://github.com/hashdeps/calculation-table-block). If you feel inspired to build a block without TypeScript, we'd love to [hear from you on Discord](https://hash.ai/discord). And to learn more about the technical details of the Block Protocol, take a look at the [specification](https://blockprotocol.org/docs/spec).

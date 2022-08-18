@@ -1,7 +1,10 @@
-import { VFC } from "react";
+import { FunctionComponent } from "react";
 import { SvgIcon, SvgIconProps } from "@mui/material";
 
-export const DiscordIcon: VFC<SvgIconProps> = ({ sx = [], ...props }) => (
+export const DiscordIcon: FunctionComponent<SvgIconProps> = ({
+  sx = [],
+  ...props
+}) => (
   <SvgIcon
     {...props}
     viewBox="0 0 18 21"

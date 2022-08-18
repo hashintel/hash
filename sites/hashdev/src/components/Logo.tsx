@@ -1,11 +1,10 @@
 import Image from "next/image";
-import { ComponentProps, VFC } from "react";
+import { ComponentProps, FunctionComponent } from "react";
 import { Link } from "./Link";
 
-export const Logo: VFC<Omit<ComponentProps<typeof Link>, "href">> = ({
-  sx = [],
-  ...props
-}) => (
+export const Logo: FunctionComponent<
+  Omit<ComponentProps<typeof Link>, "href">
+> = ({ sx = [], ...props }) => (
   <Link
     href="/"
     sx={[
