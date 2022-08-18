@@ -123,10 +123,10 @@ const main = async () => {
   const taskExecutor = connectToTaskExecutor(taskExecutorConfig);
 
   // Connect to the Graph API
-  const graphApi = createGraphClient(
-    { host: graphApiHost, port: graphApiPort },
-    logger,
-  );
+  const graphApi = createGraphClient(logger, {
+    host: graphApiHost,
+    port: graphApiPort,
+  });
 
   await ensureWorkspaceTypesExist({ graphApi, logger });
 
@@ -181,7 +181,9 @@ const main = async () => {
     });
     shutdown.addCleanup("OpenSearch", async () => search!.close());
   }
+
   const apolloServer = createApolloServer({
+    graphApi,
     search,
     cache: redis,
     taskExecutor,

@@ -76,6 +76,19 @@ import {
 } from "./taskExecutor";
 import { getLink } from "./link/getLink";
 import { getLinkedAggregation } from "./linkedAggregation/getLinkedAggregation";
+import { getAllLatestDataTypes, getDataType } from "./ontology/data-type";
+import {
+  createPropertyType,
+  getAllLatestPropertyTypes,
+  getPropertyType,
+  updatePropertyType,
+} from "./ontology/property-type";
+import {
+  createLinkType,
+  getAllLatestLinkTypes,
+  getLinkType,
+  updateLinkType,
+} from "./ontology/link-type";
 
 export const resolvers = {
   Query: {
@@ -105,6 +118,14 @@ export const resolvers = {
     isShortnameTaken,
     embedCode,
     pageSearchResultConnection,
+    // Ontology
+    /** @todo add auth gate for the following endpoints. */
+    getAllLatestDataTypes,
+    getDataType,
+    getAllLatestPropertyTypes,
+    getPropertyType,
+    getAllLatestLinkTypes,
+    getLinkType,
   },
 
   Mutation: {
@@ -142,6 +163,12 @@ export const resolvers = {
     executeGithubCheckTask,
     executeGithubDiscoverTask: loggedInAndSignedUp(executeGithubDiscoverTask),
     executeGithubReadTask: loggedInAndSignedUp(executeGithubReadTask),
+    // Ontology
+    /** @todo add auth gate for the following endpoints. */
+    createPropertyType,
+    updatePropertyType,
+    createLinkType,
+    updateLinkType,
   },
 
   JSONObject: JSONObjectResolver,
