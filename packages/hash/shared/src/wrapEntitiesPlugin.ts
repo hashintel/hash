@@ -1,3 +1,4 @@
+import { entityStorePluginState } from "@hashintel/hash-shared/entityStorePlugin";
 import { mapValues } from "lodash";
 import { Command } from "prosemirror-commands";
 import { keymap } from "prosemirror-keymap";
@@ -6,9 +7,12 @@ import {
   EditorState,
   NodeSelection,
   Plugin,
+  TextSelection,
   Transaction,
 } from "prosemirror-state";
 import { Mapping } from "prosemirror-transform";
+import { getBlockChildEntity, isTextEntity } from "./entity";
+import { isComponentNode, isEntityNode } from "./prosemirror";
 
 type WrapperNodes = [number, ProsemirrorNode<Schema>[]];
 type WrapperNodesList = WrapperNodes[];
@@ -62,8 +66,8 @@ const ensureEntitiesAreWrapped = (
       /**
        * In the event that a block is not fully wrapped (i.e. is _not_ a block node), we provide a fallback
        *    in case wrapperNodes were not provided.
-       * We need to ensure that the layers match those provided in ProsemirrorSchemaManager
-       * @see ProsemirrorSchemaManager, createRemoteBlock
+       * We need to ensure that the layers match those provided in ProsemirrorManager
+       * @see ProsemirrorManager, createRemoteBlock
        * @todo this should never happen, can we remove it?
        */
       const defaultWrappers = [{ type: schema.nodes.block! }];
@@ -144,6 +148,8 @@ const prepareCommandForWrappedEntities =
     // I think this ought to be a map
     const wrappers: WrapperNodesList = [];
 
+    const { store } = entityStorePluginState(state);
+
     /**
      * First we apply changes to the transaction to unwrap blocks
      */
@@ -152,28 +158,54 @@ const prepareCommandForWrappedEntities =
         return true;
       }
 
-      if (node.isTextblock) {
-        const range = getRangeForNodeAtMappedPosition(pos, node, tr);
+      if (isComponentNode(node)) {
+        const blockNode = state.doc.resolve(pos).node(1);
+        const blockEntityNode = blockNode?.firstChild;
 
-        if (!range) {
-          throw new Error("Cannot unwrap");
+        if (!blockEntityNode || !isEntityNode(blockEntityNode)) {
+          throw new Error("Unexpected structure");
         }
 
-        const wrapperNodes: ProsemirrorNode<Schema>[] = [];
+        if (blockEntityNode.attrs.draftId) {
+          const childEntity = getBlockChildEntity(
+            blockEntityNode.attrs.draftId,
+            store,
+          );
 
-        const $originalStart = state.doc.resolve(pos);
+          const selection: TextSelection | null =
+            (state.selection as any) instanceof TextSelection
+              ? state.selection
+              : null;
+          const cursorPos = selection?.$cursor?.pos;
 
-        for (let depth = $originalStart.depth; depth > 0; depth--) {
-          /**
-           * The order of wrapperNodes will be the parent order of the
-           * replacement wrappers, and as we're traversing up, we need to add
-           * to the start of the array
-           */
-          wrapperNodes.unshift($originalStart.node(depth));
+          const inNode =
+            typeof cursorPos === "number" &&
+            cursorPos >= pos &&
+            cursorPos < pos + node.nodeSize;
+
+          if (inNode || (childEntity && isTextEntity(childEntity))) {
+            const range = getRangeForNodeAtMappedPosition(pos, node, tr);
+
+            if (!range) {
+              throw new Error("Cannot unwrap");
+            }
+
+            const wrapperNodes: ProsemirrorNode<Schema>[] = [];
+            const $originalStart = state.doc.resolve(pos);
+
+            for (let depth = $originalStart.depth; depth > 0; depth--) {
+              /**
+               * The order of wrapperNodes will be the parent order of the
+               * replacement wrappers, and as we're traversing up, we need to add
+               * to the start of the array
+               */
+              wrapperNodes.unshift($originalStart.node(depth));
+            }
+
+            wrappers.push([pos, wrapperNodes]);
+            tr.lift(range, 0);
+          }
         }
-
-        wrappers.push([pos, wrapperNodes]);
-        tr.lift(range, 0);
       }
 
       return false;

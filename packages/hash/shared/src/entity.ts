@@ -2,12 +2,15 @@ import {
   DraftEntity,
   EntityStore,
   EntityStoreType,
-  isBlockEntity,
   isDraftBlockEntity,
   isDraftEntity,
   isEntity,
 } from "./entityStore";
-import { PageFieldsFragment, Text } from "./graphql/apiTypes.gen";
+import {
+  PageFieldsFragment,
+  Text,
+  TextProperties,
+} from "./graphql/apiTypes.gen";
 import {
   DistributiveOmit,
   DistributivePick,
@@ -30,10 +33,15 @@ export type BlockEntity = DistributiveOmit<ContentsEntity, "properties"> & {
   };
 };
 
+// @todo make this more robust
+export const isTextProperties =
+  (properties: {}): properties is TextProperties => "tokens" in properties;
+
 // @todo make this more robust, checking system type name of entity type
 export const isTextEntity = (
   entity: EntityStoreType | DraftEntity,
-): entity is Text => "properties" in entity && "tokens" in entity.properties;
+): entity is Text =>
+  "properties" in entity && isTextProperties(entity.properties);
 
 export const isDraftTextEntity = (
   entity: DraftEntity,
@@ -42,18 +50,22 @@ export const isDraftTextEntity = (
 /**
  * @deprecated
  */
-type LegacyLink<Type extends EntityStoreType | DraftEntity = EntityStoreType> =
-  {
-    /**
-     * @deprecated
-     */
-    data: Type;
+export type LegacyLink<
+  Type extends EntityStoreType | DraftEntity = EntityStoreType,
+> = {
+  /**
+   * @deprecated
+   */
+  data: Type;
 
-    /**
-     * @deprecated
-     */
-    __linkedData: {};
+  /**
+   * @deprecated
+   */
+  __linkedData: {
+    entityTypeId?: string;
+    entityId?: string;
   };
+};
 
 /**
  * @deprecated
@@ -68,6 +80,10 @@ const isLegacyLink = (data: unknown): data is LegacyLink => {
   );
 };
 
+/**
+ * @todo this can be used when a text entity could exist on any property
+ * @deprecated
+ */
 export const isTextContainingEntityProperties = (
   entityProperties: unknown,
 ): entityProperties is { text: LegacyLink<Text> } => {
@@ -79,7 +95,10 @@ export const isTextContainingEntityProperties = (
   );
 };
 
-// @todo use in more places
+/**
+ * @todo this can be used when a text entity could exist on any property
+ * @deprecated
+ */
 export const isDraftTextContainingEntityProperties = (
   entityProperties: unknown,
 ): entityProperties is { text: LegacyLink<DraftEntity<Text>> } => {
@@ -90,85 +109,53 @@ export const isDraftTextContainingEntityProperties = (
 };
 
 /**
- * @todo reduce duplication
+ * @todo this will need to change when we remove legacy links
  */
-export const getTextEntityFromDraftBlock = (
-  draftBlockId: string,
-  entityStore: EntityStore,
-): DraftEntity<Text> | null => {
-  const blockEntity = entityStore.draft[draftBlockId];
-
-  if (!isDraftBlockEntity(blockEntity)) {
-    throw new Error("Can only get text entity from block entity");
+export const getEntityChildEntity = (
+  draftId: string,
+  draftEntityStore: EntityStore["draft"],
+) => {
+  const entity = draftEntityStore[draftId];
+  if (!entity) {
+    throw new Error("invariant: missing entity");
   }
 
-  const blockPropertiesEntityDraftId = blockEntity.properties.entity.draftId;
-  const blockPropertiesEntity = entityStore.draft[blockPropertiesEntityDraftId];
-
-  if (!blockPropertiesEntity) {
-    throw new Error("invariant: missing block entity");
-  }
-
-  if (isTextEntity(blockPropertiesEntity)) {
-    return blockPropertiesEntity;
-  }
-
-  if (isTextContainingEntityProperties(blockPropertiesEntity.properties)) {
-    // @todo look into why this was using entityId
-    const linkEntity = blockPropertiesEntity.properties.text.data;
+  if (isTextContainingEntityProperties(entity.properties)) {
+    const linkEntity = entity.properties.text.data;
 
     if (!isDraftEntity(linkEntity)) {
       throw new Error("Expected linked entity to be draft");
     }
 
-    const textEntity = entityStore.draft[linkEntity.draftId];
+    const textEntity = draftEntityStore[linkEntity.draftId];
 
-    if (!textEntity || !isTextEntity(textEntity)) {
+    if (!textEntity) {
       throw new Error("Missing text entity from draft store");
     }
 
     return textEntity;
   }
 
-  return null;
+  return entity;
 };
 
 /**
- * @todo reduce duplication
+ * @todo this will need to change when we remove legacy links
  */
-export const getTextEntityFromSavedBlock = (
-  blockId: string,
+export const getBlockChildEntity = (
+  draftBlockId: string,
   entityStore: EntityStore,
-): Text | null => {
-  const blockEntity = entityStore.saved[blockId];
+): DraftEntity | null => {
+  const blockEntity = entityStore.draft[draftBlockId];
 
-  if (!isBlockEntity(blockEntity)) {
+  if (!isDraftBlockEntity(blockEntity)) {
     throw new Error("Can only get text entity from block entity");
   }
 
-  const blockPropertiesEntityDraftId = blockEntity.properties.entity.entityId;
-  const blockPropertiesEntity = entityStore.saved[blockPropertiesEntityDraftId];
-
-  if (!blockPropertiesEntity) {
-    throw new Error("invariant: missing block entity");
-  }
-
-  if (isTextEntity(blockPropertiesEntity)) {
-    return blockPropertiesEntity;
-  }
-
-  if (isTextContainingEntityProperties(blockPropertiesEntity.properties)) {
-    return blockPropertiesEntity.properties.text.data;
-  }
-
-  return null;
-};
-
-export const blockEntityIdExists = (entities: BlockEntity[]) => {
-  const ids = new Set(entities.map((block) => block.entityId));
-
-  return (blockEntityId: string | null): blockEntityId is string =>
-    !!blockEntityId && ids.has(blockEntityId);
+  return getEntityChildEntity(
+    blockEntity.properties.entity.draftId,
+    entityStore.draft,
+  );
 };
 
 /**

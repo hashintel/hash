@@ -1,37 +1,19 @@
-import { BlockMetadata, BlockVariant } from "blockprotocol";
-import { JsonSchema } from "@hashintel/hash-shared/json-utils";
+import { BlockMetadata, BlockVariant } from "@blockprotocol/core";
+import { JsonSchema } from "./json-utils";
 
 /** @todo: might need refactor: https://github.com/hashintel/dev/pull/206#discussion_r723210329 */
 // eslint-disable-next-line global-require
 const fetch = (globalThis as any).fetch ?? require("node-fetch");
 
-/**
- * @todo think about removing this
- */
-export interface BlockConfig extends BlockMetadata {
+export interface HashBlockMeta extends BlockMetadata {
   componentId: string;
   variants: NonNullable<BlockMetadata["variants"]>;
 }
 
-/**
- * @deprecated
- * @todo remove this
- */
-export type Block = {
-  entityId: string;
-  versionId: string;
-  accountId: string;
-  entity: Record<any, any>;
-  componentId: string;
-  componentMetadata: BlockConfig;
-  componentSchema: JsonSchema;
+export type HashBlock = {
+  meta: HashBlockMeta;
+  schema: JsonSchema;
 };
-
-/**
- * @deprecated
- * @todo remove this
- */
-export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
 
 /**
  * The cache is designed to store promises, not resolved values, in order to
@@ -41,7 +23,7 @@ export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
  * @deprecated in favor of react context "blockMeta" (which is not the final
  *   solution either)
  */
-const blockCache = new Map<string, Promise<BlockMeta>>();
+const blockCache = new Map<string, Promise<HashBlock>>();
 
 export const componentIdToUrl = (componentId: string) =>
   componentId.replace(/\/$/, "");
@@ -119,8 +101,8 @@ const transformBlockConfig = ({
 }: {
   componentId: string;
   metadata: BlockMetadata;
-  schema: BlockMeta["componentSchema"];
-}): BlockConfig => {
+  schema: HashBlock["schema"];
+}): HashBlockMeta => {
   const defaultProperties =
     schema.default &&
     typeof schema.default === "object" &&
@@ -143,7 +125,7 @@ const transformBlockConfig = ({
       ...variant,
       // the Block Protocol API is returning absolute URLs for icons, but this might be from elsewhere
       icon: deriveAbsoluteUrl({ baseUrl, path: variant.icon }),
-      name: variant.name ?? variant.displayName, // fallback to handle deprecated 'variant[].displayName' field
+      name: variant.name,
     }));
 
   return {
@@ -157,11 +139,26 @@ const transformBlockConfig = ({
   };
 };
 
+export const prepareBlockCache = (
+  componentId: string,
+  block: HashBlock | Promise<HashBlock>,
+) => {
+  if (typeof window !== "undefined") {
+    const key = componentIdToUrl(componentId);
+    if (!blockCache.has(key)) {
+      blockCache.set(
+        key,
+        Promise.resolve().then(() => block),
+      );
+    }
+  }
+};
+
 // @todo deal with errors, loading, abort etc.
-export const fetchBlockMeta = async (
+export const fetchBlock = async (
   componentId: string,
   options?: { bustCache: boolean },
-): Promise<BlockMeta> => {
+): Promise<HashBlock> => {
   const baseUrl = componentIdToUrl(componentId);
 
   if (options?.bustCache) {
@@ -175,6 +172,7 @@ export const fetchBlockMeta = async (
     const metadataUrl = `${baseUrl}/block-metadata.json`;
     let metadata: BlockMetadata;
     try {
+      // @todo needs validation
       metadata = await (await fetch(metadataUrl)).json();
     } catch (err) {
       blockCache.delete(baseUrl);
@@ -185,13 +183,12 @@ export const fetchBlockMeta = async (
       );
     }
 
-    const schemaPath = metadata.schema;
-
     // schema urls may be absolute, as blocks may rely on schemas they do not define
-    let schema: BlockMeta["componentSchema"];
+    let schema: HashBlock["schema"];
     let schemaUrl;
     try {
-      schemaUrl = deriveAbsoluteUrl({ baseUrl, path: schemaPath });
+      schemaUrl = deriveAbsoluteUrl({ baseUrl, path: metadata.schema });
+      // @todo needs validation
       schema = schemaUrl ? await (await fetch(schemaUrl)).json() : {};
     } catch (err) {
       blockCache.delete(baseUrl);
@@ -217,26 +214,68 @@ export const fetchBlockMeta = async (
       );
     }
 
-    const result: BlockMeta = {
-      componentMetadata: transformBlockConfig({
+    const result: HashBlock = {
+      meta: transformBlockConfig({
         metadata,
         schema,
         componentId: baseUrl,
       }),
-      componentSchema: schema,
+      schema,
     };
 
     return result;
   })();
 
-  if (typeof window !== "undefined") {
-    blockCache.set(baseUrl, promise);
-  }
+  prepareBlockCache(baseUrl, promise);
 
   return await promise;
 };
 
-export const blockComponentRequiresText = (
-  componentSchema: BlockMeta["componentSchema"],
+const textBlocks = new Set([
+  "https://blockprotocol.org/blocks/@hash/paragraph",
+  "https://blockprotocol.org/blocks/@hash/header",
+  "https://blockprotocol.org/blocks/@hash/callout",
+]);
+
+/**
+ * Default blocks loaded for every user.
+ *
+ * @todo allow users to configure their own default block list, and store in db.
+ *    this should be a list of additions and removals from this default list,
+ *    to allow us to add new default blocks that show up for all users.
+ *    we currently store this in localStorage - see UserBlockProvider.
+ */
+export const defaultBlocks = [
+  ...Array.from(textBlocks),
+  "https://blockprotocol.org/blocks/@hash/person",
+  "https://blockprotocol.org/blocks/@hash/image",
+  "https://blockprotocol.org/blocks/@hash/table",
+  "https://blockprotocol.org/blocks/@hash/divider",
+  "https://blockprotocol.org/blocks/@hash/embed",
+  "https://blockprotocol.org/blocks/@hash/code",
+  "https://blockprotocol.org/blocks/@hash/video",
+];
+
+/**
+ * This is used to work out if the block is one of our hardcoded text blocks,
+ * which is used to know if the block is compatible for switching from one
+ * text block to another
+ */
+const isHashTextBlock = (componentId: string) => textBlocks.has(componentId);
+
+/**
+ * In some places, we need to know if the current component and a target
+ * component we're trying to switch to are compatible, in order to know whether
+ * to share existing properties or whether to enabling switching. This does that
+ * by checking IDs are the same (i.e, they're variants of the same block) or
+ * if we've hardcoded support for switching (i.e, they're HASH text blocks)
+ */
+export const areComponentsCompatible = (
+  currentComponentId: string | null = null,
+  targetComponentId: string | null = null,
 ) =>
-  !!componentSchema.properties && "editableRef" in componentSchema.properties;
+  currentComponentId &&
+  targetComponentId &&
+  (currentComponentId === targetComponentId ||
+    (isHashTextBlock(currentComponentId) &&
+      isHashTextBlock(targetComponentId)));
