@@ -36,7 +36,6 @@ export const mapUserModelToGQL = async (
     createdByAccountId: "" /** @todo: stop hardcoding this */,
     visibility:
       Visibility.Public /** @todo: potentially deprecate or stop hardcoding this */,
-    metadataId: "" /** @todo: deprecate this */,
   };
 };
 
