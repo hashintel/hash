@@ -311,7 +311,7 @@ mod full {
 
     #[cfg(all(nightly, feature = "experimental"))]
     use error_stack::fmt::DebugDiagnostic;
-    use error_stack::fmt::{Call, Emit};
+    use error_stack::fmt::Emit;
 
     use super::*;
 
@@ -539,7 +539,7 @@ mod full {
 
         let report = create_report().attach(1u32);
 
-        Report::install_debug_hook_fallback(|_, _| Call::Find(Emit::next("unknown")));
+        Report::install_debug_hook_fallback(|_, _| Some(Emit::next("unknown")));
 
         assert_snapshot!(redact(&format!("{report:?}")));
     }

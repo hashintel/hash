@@ -146,14 +146,14 @@ use core::{
 };
 
 #[cfg(feature = "std")]
+pub use hook::builtin;
+#[cfg(not(feature = "std"))]
+pub(crate) use hook::builtin;
+#[cfg(feature = "std")]
 pub use hook::HookContext;
 use hook::HookContextImpl;
 #[cfg(feature = "std")]
 pub(crate) use hook::Hooks;
-#[cfg(feature = "std")]
-pub use hook::{builtin, Call};
-#[cfg(not(feature = "std"))]
-pub(crate) use hook::{builtin, Call};
 #[cfg(all(nightly, feature = "experimental"))]
 pub use nightly::DebugDiagnostic;
 #[cfg(feature = "glyph")]
@@ -795,12 +795,12 @@ fn debug_attachments(
 
                 #[cfg(feature = "std")]
                 {
-                    Report::with_format_hook(|hooks| hooks.call(frame, ctx.cast()).consume())
+                    Report::with_format_hook(|hooks| hooks.call(frame, &mut ctx.cast()))
                 }
 
                 #[cfg(not(feature = "std"))]
                 {
-                    builtin(frame, ctx.cast()).consume()
+                    builtin(frame, &mut ctx.cast())
                 }
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
