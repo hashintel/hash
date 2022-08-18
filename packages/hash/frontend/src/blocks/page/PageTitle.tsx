@@ -96,7 +96,8 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
       id="hash-page-title"
       component="h1"
       variant="h2"
-      contentEditable
+      contentEditable={!updateEntityLoading}
+      suppressContentEditableWarning
       onKeyDown={handleInputKeyDown}
       onBlur={handleInputBlur}
       onInput={handleInputChange}
