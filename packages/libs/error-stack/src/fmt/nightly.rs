@@ -2,8 +2,7 @@ use alloc::{string::String, vec, vec::Vec};
 
 use crate::fmt::Emit;
 
-/// `nightly` experimental type, which is used during the formatting of [`Debug`] context via the
-/// [`Provider`] api.
+/// Helper for attaching information to a [`Report`].
 ///
 /// # Example
 ///
