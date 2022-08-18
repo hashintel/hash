@@ -1,7 +1,9 @@
 """
 Setup script for the Rust GitHub Actions.
 
-It wil generated the output used for filling the matrix argument on the different jobs.
+The output of this will be used as arguments for the GitHub Actions matrix.
+
+see: https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
 """
 
 import re
