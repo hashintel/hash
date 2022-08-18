@@ -19,12 +19,23 @@ type BlockHandleProps = {
   entityStore: EntityStore;
   onMouseDown: () => void;
   onClick: () => void;
+  toggleShowDataMappingUi: () => void;
 };
 
 const BlockHandle: ForwardRefRenderFunction<
   HTMLDivElement,
   BlockHandleProps
-> = ({ deleteBlock, draftId, entityStore, onMouseDown, onClick }, ref) => {
+> = (
+  {
+    deleteBlock,
+    draftId,
+    entityStore,
+    onMouseDown,
+    onClick,
+    toggleShowDataMappingUi,
+  },
+  ref,
+) => {
   const { readonlyMode } = useReadonlyMode();
   const contextMenuPopupState = usePopupState({
     variant: "popover",
@@ -105,6 +116,7 @@ const BlockHandle: ForwardRefRenderFunction<
         openConfigMenu={configMenuPopupState.open}
         popupState={contextMenuPopupState}
         canSwap={!blockContext.error}
+        toggleShowDataMappingUi={toggleShowDataMappingUi}
       />
 
       <BlockConfigMenu

@@ -17,6 +17,7 @@ import { CollabPositionIndicators } from "./CollabPositionIndicators";
 import styles from "./style.module.css";
 
 import { RenderPortal } from "./usePortals";
+import { BlockContext } from "./BlockContext";
 import { BlockHandle } from "./BlockHandle";
 import { InsertBlock } from "./InsertBlock";
 import { BlockHighlight } from "./BlockHighlight";
@@ -216,49 +217,58 @@ export class BlockView implements NodeView<Schema> {
     const blockDraftId = this.getBlockDraftId();
 
     this.renderPortal(
-      <BlockViewContext.Provider value={this}>
-        <CollabPositionIndicators blockEntityId={blockEntityId} />
-        <BlockHighlight blockEntityId={blockEntityId} />
-        <BlockHandle
-          deleteBlock={this.deleteBlock}
-          entityStore={this.store}
-          draftId={blockDraftId}
-          ref={this.blockHandleRef}
-          onMouseDown={() => {
-            /**
-             * We only want to allow dragging from the drag handle
-             * so we set a flag which we can use to indicate
-             * whether a drag was initiated from the drag handle
-             *
-             * @todo we may not need this – we may be able to get
-             *       it from the event
-             */
-            this.allowDragging = true;
+      <BlockContext.Consumer>
+        {(ctx) => {
+          return (
+            <BlockViewContext.Provider value={this}>
+              <CollabPositionIndicators blockEntityId={blockEntityId} />
+              <BlockHighlight blockEntityId={blockEntityId} />
+              <BlockHandle
+                deleteBlock={this.deleteBlock}
+                entityStore={this.store}
+                draftId={blockDraftId}
+                ref={this.blockHandleRef}
+                onMouseDown={() => {
+                  /**
+                   * We only want to allow dragging from the drag handle
+                   * so we set a flag which we can use to indicate
+                   * whether a drag was initiated from the drag handle
+                   *
+                   * @todo we may not need this – we may be able to get
+                   *       it from the event
+                   */
+                  this.allowDragging = true;
 
-            this.dragging = true;
-            this.dom.classList.add(styles["Block--dragging"]!);
+                  this.dragging = true;
+                  this.dom.classList.add(styles["Block--dragging"]!);
 
-            const { tr } = this.editorView.state;
+                  const { tr } = this.editorView.state;
 
-            /**
-             * By triggering a selection of the node, we can ensure
-             * that the whole node is re-ordered when drag & drop
-             * starts
-             */
-            tr.setSelection(
-              NodeSelection.create<Schema>(
-                this.editorView.state.doc,
-                this.getPos(),
-              ),
-            );
+                  /**
+                   * By triggering a selection of the node, we can ensure
+                   * that the whole node is re-ordered when drag & drop
+                   * starts
+                   */
+                  tr.setSelection(
+                    NodeSelection.create<Schema>(
+                      this.editorView.state.doc,
+                      this.getPos(),
+                    ),
+                  );
 
-            this.editorView.dispatch(tr);
+                  this.editorView.dispatch(tr);
 
-            this.update(this.node);
-          }}
-          onClick={this.onDragEnd}
-        />
-      </BlockViewContext.Provider>,
+                  this.update(this.node);
+                }}
+                onClick={this.onDragEnd}
+                toggleShowDataMappingUi={() =>
+                  ctx?.setShowDataMappingUi(!ctx.showDataMappingUi)
+                }
+              />
+            </BlockViewContext.Provider>
+          );
+        }}
+      </BlockContext.Consumer>,
       this.selectContainer,
       blockDraftId ?? undefined,
     );
