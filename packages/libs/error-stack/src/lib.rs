@@ -195,6 +195,8 @@
 //! bound on the attachment: [`Display`] and [`Debug`]. Depending on the function used, printing the
 //! [`Report`] will also use the [`Display`] and [`Debug`] traits to describe the attachment:
 //!
+//! This outputs something like:
+//!
 //! <pre>
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/lib__suggestion.snap"))]
 //! </pre>

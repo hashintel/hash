@@ -16,7 +16,7 @@ fn debug() {
     Report::set_debug_hook(|_report, fmt| fmt.write_str("debug hook")).expect("Unable to set hook");
     assert_eq!(format!("{:?}", create_report()), "debug hook");
 
-    Report::set_debug_hook(|_, _| Ok(())).expect("Able to overwrite hook");
+    Report::set_debug_hook(|_, _| Ok(())).expect("Could not set the hook twice");
     assert_eq!(format!("{:?}", create_report()), "")
 }
 
@@ -27,6 +27,6 @@ fn display() {
         .expect("Unable to set hook");
     assert_eq!(create_report().to_string(), "display hook");
 
-    Report::set_display_hook(|_, _| Ok(())).expect("Able to overwrite hook");
+    Report::set_display_hook(|_, _| Ok(())).expect("Could not set the hook twice");
     assert_eq!(create_report().to_string(), "")
 }
