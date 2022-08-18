@@ -15,7 +15,7 @@ export const adminKratosSdk = new OpenSourceV0alpha2Api(
 );
 
 export type KratosUserIdentityTraits = {
-  shortname: string;
+  shortname?: string;
   emails: string[];
 };
 
@@ -23,5 +23,17 @@ export type KratosUserIdentity = Omit<Identity, "traits"> & {
   traits: KratosUserIdentityTraits;
 };
 
-export const kratosUserIdentitySchemaId =
-  "https://hash.ai/schemas/v1/kratos-identity.schema.json";
+export const createKratosIdentity = async (params: {
+  traits: KratosUserIdentityTraits;
+}): Promise<KratosUserIdentity> => {
+  const { traits } = params;
+
+  const { data: kratosUserIdentity } = await adminKratosSdk.adminCreateIdentity(
+    {
+      schema_id: "default",
+      traits,
+    },
+  );
+
+  return kratosUserIdentity;
+};
