@@ -127,7 +127,7 @@
 //! [`Backtrace`]: std::backtrace::Backtrace
 //! [`SpanTrace`]: tracing_error::SpanTrace
 //! [`error_stack::fmt::builtin`]: crate::fmt::builtin
-//! [`atomic`]: std::atomic
+//! [`atomic`]: std::sync::atomic
 
 mod hook;
 #[cfg(all(nightly, feature = "experimental"))]
