@@ -3,7 +3,7 @@
 // and enable deadcode on `feature = "std"`.
 #![cfg_attr(not(feature = "std"), allow(dead_code))]
 
-use alloc::{boxed::Box, collections::BTreeMap, vec::Vec};
+use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
 use core::{
     any::{Any, TypeId},
     marker::PhantomData,
@@ -60,7 +60,7 @@ impl HookContextImpl {
 /// use error_stack::{fmt::{Emit, Snippet}, Report};
 ///
 /// Report::install_debug_hook::<u64>(|val, ctx| {
-///     ctx.add_snippet(Snippet::regular("u64 has been encountered"));
+///     ctx.attach_snippet(Snippet::regular("u64 has been encountered"));
 ///     Emit::next(val.to_string())
 /// });
 ///
@@ -168,7 +168,7 @@ impl<T> HookContext<'_, T> {
     ///
     /// [`alternate()`]: Self::alternate
     /// [`Debug`]: core::fmt::Debug
-    pub fn add_snippet(&mut self, snippet: impl Into<String>) {
+    pub fn attach_snippet(&mut self, snippet: impl Into<String>) {
         self.parent.snippets.push(snippet.into());
     }
 }
@@ -528,7 +528,7 @@ mod default {
     fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Emit {
         let idx = ctx.increment();
 
-        ctx.add_snippet(Snippet::force(format!(
+        ctx.attach_snippet(Snippet::force(format!(
             "Backtrace No. {}\n{}",
             idx + 1,
             backtrace
@@ -551,7 +551,7 @@ mod default {
             true
         });
 
-        ctx.add_snippet(Snippet::force(format!(
+        ctx.attach_snippet(Snippet::force(format!(
             "Span Trace No. {}\n{}",
             idx + 1,
             spantrace

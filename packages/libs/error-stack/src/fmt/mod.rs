@@ -53,7 +53,8 @@
 //!     Report
 //! };
 //!
-//! // this will never be called, because the a hook after this one has already "taken ownership" of `u64`
+//! // This hook will never be called, because a later invocation of `install_debug_hook` overwrites
+//! // the hook for the type `u64`.
 //! Report::install_debug_hook::<u64>(|_, _| Emit::next("will never be called"));
 //!
 //! // `HookContext` always has a type parameter, which needs to be the same as the type of the
@@ -68,7 +69,9 @@
 //! Report::install_debug_hook::<u16>(|_, ctx| {
 //!     // we set a value, which will be removed on non-alternate views
 //!     // and is going to be appended to the actual return value.
-//!     ctx.add_snippet(Snippet::regular("Look! I was rendered from a `u16`"));
+//!     if ctx.alternate() {
+//!         ctx.attach_snippet("Look! I was rendered from a `u16`");
+//!     }
 //!     Emit::next("For more information, look down below")
 //!  });
 //!
@@ -754,7 +757,7 @@ fn debug_attachments(
                 #[cfg(all(nightly, feature = "experimental"))]
                 if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
                     for snippet in debug.snippets() {
-                        ctx.as_hook_context::<DebugDiagnostic>().add_snippet(snippet.clone());
+                        ctx.as_hook_context::<DebugDiagnostic>().attach_snippet(snippet.clone());
                     }
 
                     return Some(debug.output().clone());
