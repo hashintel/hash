@@ -48,7 +48,6 @@ import { ensureWorkspaceTypesExist } from "./graph/workspace-types";
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
 const main = async () => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let tracker: Tracker | undefined;
   if (process.env.HASH_TELEMETRY_ENABLED === "true") {
     logger.info("Starting [Snowplow] telemetry");

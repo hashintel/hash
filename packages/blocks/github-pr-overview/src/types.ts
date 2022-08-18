@@ -1,9 +1,4 @@
-import {
-  BlockProtocolAggregateEntityTypesFunction,
-  BlockProtocolEntity,
-  BlockProtocolEntityType,
-} from "blockprotocol";
-import { BlockState } from "./app";
+import { Entity } from "@blockprotocol/graph";
 
 export function isDefined<T>(val: T | undefined | null): val is T {
   return val !== undefined && val !== null;
@@ -15,65 +10,41 @@ export const enum GITHUB_ENTITY_TYPES {
   IssueEvent,
 }
 
+export enum BlockState {
+  Loading = "loading",
+  Error = "error",
+  Selector = "selector",
+  Overview = "overview",
+}
+
+export type LocalState = {
+  blockState: BlockState;
+  selectedPullRequestIdentifier?: PullRequestIdentifier;
+  githubEntityTypeIds?: { [key in GITHUB_ENTITY_TYPES]: string };
+  allPrs?: Map<string, GithubPullRequestEntityType>;
+  pullRequest?: GithubPullRequestEntityType;
+  reviews: GithubReviewEntityType["properties"][];
+  events: GithubIssueEventEntityType["properties"][];
+  infoMessage: string;
+};
+
+type Action<S, T = undefined> = T extends undefined
+  ? { type: S }
+  : {
+      type: S;
+      payload: T;
+    };
+
+export type Actions =
+  | Action<"UPDATE_STATE", Partial<LocalState>>
+  | Action<"RESET_SELECTED_PR">;
+
 export type PullRequestIdentifier = {
   repository: string;
   number: number;
 };
 
-export const getGithubEntityTypes = (
-  aggregateEntityTypes: BlockProtocolAggregateEntityTypesFunction,
-  accountId: string | null | undefined,
-  numPages: number,
-  setGithubEntityTypeIds: (x: any) => void,
-  setBlockState: (x: any) => void,
-) => {
-  const promises = Array(numPages)
-    .fill(undefined)
-    .map((_, pageNumber) =>
-      /** @todo - These should be links to a PR entity really */
-      aggregateEntityTypes({
-        accountId,
-        operation: {
-          pageNumber,
-        },
-      }),
-    );
-
-  Promise.all(promises)
-    .then((entityTypesResults) => {
-      const entityTypes: BlockProtocolEntityType[] = entityTypesResults.flatMap(
-        (entityTypeResult) => entityTypeResult.results,
-      );
-
-      const pullRequestTypeId = entityTypes.find(
-        (entityType) => entityType.title === "GithubPullRequest",
-      )?.entityTypeId;
-      const reviewTypeId = entityTypes.find(
-        (entityType) => entityType.title === "GithubReview",
-      )?.entityTypeId;
-      const issueEventTypeId = entityTypes.find(
-        (entityType) => entityType.title === "GithubIssueEvent",
-      )?.entityTypeId;
-
-      if (pullRequestTypeId && reviewTypeId && issueEventTypeId) {
-        const githubTypeIds: {
-          [key in GITHUB_ENTITY_TYPES]: string;
-        } = {
-          [GITHUB_ENTITY_TYPES.PullRequest]: pullRequestTypeId,
-          [GITHUB_ENTITY_TYPES.Review]: reviewTypeId,
-          [GITHUB_ENTITY_TYPES.IssueEvent]: issueEventTypeId,
-        };
-        setGithubEntityTypeIds(githubTypeIds);
-      } else {
-        setBlockState(BlockState.Error);
-      }
-    })
-    .catch((err) => {
-      throw err;
-    });
-};
-
-export interface GithubPullRequest extends BlockProtocolEntity {
+export type GithubPullRequestEntityType = Entity<{
   repository?: string;
   url?: null | string;
   id?: null | number;
@@ -337,9 +308,9 @@ export interface GithubPullRequest extends BlockProtocolEntity {
   };
   draft?: null | boolean;
   [k: string]: unknown;
-}
+}>;
 
-export interface GithubReview extends BlockProtocolEntity {
+export type GithubReviewEntityType = Entity<{
   repository?: string;
   id?: null | number;
   node_id?: null | string;
@@ -384,9 +355,9 @@ export interface GithubReview extends BlockProtocolEntity {
   commit_id?: null | string;
   author_association?: null | string;
   [k: string]: unknown;
-}
+}>;
 
-export interface GithubIssueEvent extends BlockProtocolEntity {
+export type GithubIssueEventEntityType = Entity<{
   repository?: string;
   id?: null | number;
   node_id?: null | string;
@@ -453,4 +424,4 @@ export interface GithubIssueEvent extends BlockProtocolEntity {
     [k: string]: unknown;
   };
   [k: string]: unknown;
-}
+}>;

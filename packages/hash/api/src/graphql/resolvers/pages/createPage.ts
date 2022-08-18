@@ -1,8 +1,8 @@
-import { MutationCreatePageArgs, Resolver } from "../../apiTypes.gen";
+import { MutationCreatePageArgs, ResolverFn } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { Page, UnresolvedGQLEntity } from "../../../model";
 
-export const createPage: Resolver<
+export const createPage: ResolverFn<
   Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,

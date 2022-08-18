@@ -7,7 +7,7 @@ import {
 } from "../../../model";
 import {
   PageProperties as GQLPageProperties,
-  Resolver,
+  ResolverFn,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 
@@ -18,14 +18,15 @@ import { GraphQLContext } from "../../context";
  *
  * @deprecated
  */
-export const pageProperties: Resolver<
+export const pageProperties: ResolverFn<
   Promise<
     Omit<GQLPageProperties, "contents"> & {
       contents: UnresolvedGQLUnknownEntity[] | null;
     }
   >,
   UnresolvedGQLPage,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async ({ accountId, entityId }, _, { dataSources }, info) => {
   const { db } = dataSources;
   const page = await Page.getPageById(db, { accountId, entityId });
@@ -59,5 +60,6 @@ export const pageProperties: Resolver<
           block.toGQLUnknownEntity(),
         )
       : null,
+    pageEntityId: entityId,
   };
 };

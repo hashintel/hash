@@ -1,9 +1,9 @@
 import { MockBlockDock } from "mock-block-dock";
+import { FunctionComponent } from "react";
 
 const CalcBlock = require("calculation-block").default;
 
-// eslint-disable-next-line import/no-default-export
-export default () => (
+export const CalculationBlock: FunctionComponent = () => (
   <>
     <div
       style={{

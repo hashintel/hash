@@ -2,12 +2,12 @@ import { ApolloError } from "apollo-server-express";
 
 import {
   MutationCreateUserWithOrgEmailInvitationArgs,
-  Resolver,
+  ResolverFn,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { User, UnresolvedGQLEntity, Org } from "../../../model";
 
-export const createUserWithOrgEmailInvitation: Resolver<
+export const createUserWithOrgEmailInvitation: ResolverFn<
   Promise<UnresolvedGQLEntity>,
   {},
   GraphQLContext,

@@ -1,10 +1,9 @@
-import { VFC } from "react";
+import { FunctionComponent } from "react";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import {
   Box,
   ListItemIcon,
   ListItemText,
-  Menu,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -14,7 +13,7 @@ import {
   faQuestionCircle,
   IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { MenuItem } from "../../../ui";
 
 export type SortType = "asc" | "desc" | "recent" | "most_used" | "least_used";
@@ -60,11 +59,9 @@ const menuItems: {
   // },
 ];
 
-export const SortActionsDropdown: VFC<SortActionsDropdownProps> = ({
-  setSortType,
-  activeSortType,
-  popupState,
-}) => {
+export const SortActionsDropdown: FunctionComponent<
+  SortActionsDropdownProps
+> = ({ setSortType, activeSortType, popupState }) => {
   return (
     <Menu {...bindMenu(popupState)}>
       <Box

@@ -1,4 +1,4 @@
-import React from "react";
+import { FunctionComponent, ReactNode } from "react";
 import { Box, useTheme, useMediaQuery } from "@mui/material";
 
 import { useLogoutFlow } from "../../../components/hooks/useLogoutFlow";
@@ -9,7 +9,7 @@ import { ActionsDropdown } from "./actions-dropdown";
 import { Button, Link } from "../../ui";
 import { HashAlphaNavIcon } from "../../icons";
 
-const Nav: React.FC = ({ children }) => (
+const Nav: FunctionComponent<{ children?: ReactNode }> = ({ children }) => (
   <Box
     component="nav"
     sx={{
@@ -25,7 +25,7 @@ const Nav: React.FC = ({ children }) => (
 
 export const HEADER_HEIGHT = 54;
 
-export const PageHeader: React.VFC = () => {
+export const PageHeader: FunctionComponent = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 

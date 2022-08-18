@@ -1,4 +1,4 @@
-import { JSONObject } from "blockprotocol";
+import { JsonObject } from "@blockprotocol/core";
 import { Client, ClientOptions, errors } from "@opensearch-project/opensearch";
 import { DataSource } from "apollo-datasource";
 
@@ -217,7 +217,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
         index: hit._index as string,
         id: hit._id as string,
         score: hit._score as number,
-        document: hit._source as JSONObject,
+        document: hit._source as JsonObject,
       }),
     );
 
@@ -325,7 +325,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
         index: hit._index as string,
         id: hit._id as string,
         score: hit._score as number,
-        document: hit._source as JSONObject,
+        document: hit._source as JsonObject,
       }),
     );
 
@@ -388,7 +388,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
         index: hit._index as string,
         id: hit._id as string,
         score: hit._score as number,
-        document: hit._source as JSONObject,
+        document: hit._source as JsonObject,
       }),
     );
 

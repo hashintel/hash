@@ -1,0 +1,32 @@
+---
+objectId: 5f7f8d88-0205-4043-f46f-0ba3791t4616
+title: Data Types
+description: "Data types describe a space of possible values through the specification of constraints"
+slug: data-types
+tags: ["Graphs", "Standards"]
+---
+
+## What are data types?
+
+**Data types** describe a space of possible valid [values](https://hash.ai/glossary/values). For instance, the _string_ value `foo` might be an instance of a `Text` data type, or a _float_ value of `0.6` might be an instance of a `Number` data type.
+
+Data types describe their possible values by specifying _constraints_. For an instance of a value to be _valid_, it must satisfy the constraints expressed on the associated data type.
+
+Data types consist of the following:
+
+- a **required** `uri`, which is a globally unique identifier, where the data type’s definition can be accessed (in most cases this will be a URL)
+- a **required** `name`, which should generally be a non-pluralized short description of the data type (for example: “Number” not “Numbers”)
+- **optionally** a `description` to further explain the semantic meaning of the data type
+- a **required** definition of its possible value
+
+### Top-level data types in HASH
+
+The [Block Protocol](https://hash.ai/glossary/block-protocol) specifies a set of primitive top-level data types, which we use in [HASH](https://hash.ai/).
+
+These can be considered the least restrictive value spaces:
+
+- `Text`
+- `Number`
+- `Boolean`
+- `Null`
+- `Object`

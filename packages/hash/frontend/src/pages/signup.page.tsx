@@ -1,7 +1,8 @@
-import React, { useEffect, FormEventHandler, useState, useMemo } from "react";
+import { useEffect, FormEventHandler, useState, useMemo } from "react";
 import { useRouter } from "next/router";
 import { SelfServiceRegistrationFlow } from "@ory/client";
-import { Typography, Container, Box, TextField } from "@mui/material";
+import { Typography, Container, Box } from "@mui/material";
+import { TextField } from "@hashintel/hash-design-system";
 import { AxiosError } from "axios";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";

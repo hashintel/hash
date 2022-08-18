@@ -1,12 +1,12 @@
 import { ApolloError } from "apollo-server-errors";
 import {
   MutationCreateLinkedAggregationArgs,
-  Resolver,
+  ResolverFn,
 } from "../../apiTypes.gen";
 import { Entity, UnresolvedGQLLinkedAggregation } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 
-export const createLinkedAggregation: Resolver<
+export const createLinkedAggregation: ResolverFn<
   Promise<UnresolvedGQLLinkedAggregation>,
   {},
   LoggedInGraphQLContext,

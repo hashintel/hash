@@ -1,80 +1,75 @@
-import { useApolloClient, useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client";
 
-import {
-  BlockProtocolEntityType,
-  BlockProtocolUpdateEntityTypesFunction,
-} from "blockprotocol";
+import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
 import { useCallback } from "react";
 import {
   UpdateEntityTypeMutation,
   UpdateEntityTypeMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 import { updateEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
+import { convertApiEntityTypeToBpEntityType } from "../../../lib/entities";
 
-export const useBlockProtocolUpdateEntityType = (): {
-  updateEntityTypes: BlockProtocolUpdateEntityTypesFunction;
-  updateEntityTypesLoading: boolean;
-  updateEntityTypesError: any;
+export const useBlockProtocolUpdateEntityType = (
+  readonly?: boolean,
+): {
+  updateEntityType: EmbedderGraphMessageCallbacks["updateEntityType"];
 } => {
-  const apolloClient = useApolloClient();
+  const [runUpdateEntityTypeMutation] = useMutation<
+    UpdateEntityTypeMutation,
+    UpdateEntityTypeMutationVariables
+  >(updateEntityTypeMutation);
 
-  // temporary hack to refetch page data after a mutation.
-  // TODO: make caching of entities outside of GraphQL schema work
-  // so that updates to those entities are reflected w/o doing this
-  const onCompleted = () =>
-    apolloClient.reFetchObservableQueries().catch((err: any) =>
-      // eslint-disable-next-line no-console -- TODO: consider using logger
-      console.error("Error when refetching all active queries: ", err),
-    );
-
-  const [
-    runUpdateEntityTypeMutation,
-    { loading: updateEntityTypesLoading, error: updateEntityTypesError },
-  ] = useMutation<UpdateEntityTypeMutation, UpdateEntityTypeMutationVariables>(
-    updateEntityTypeMutation,
-    {
-      onCompleted,
-    },
-  );
-
-  const updateEntityTypes: BlockProtocolUpdateEntityTypesFunction = useCallback(
-    async (actions) => {
-      const results: BlockProtocolEntityType[] = [];
-      // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
-      for (const { accountId, entityTypeId, schema } of actions) {
-        if (!accountId) {
-          throw new Error("updateEntityTypes needs to be passed an accountId");
+  const updateEntityType: EmbedderGraphMessageCallbacks["updateEntityType"] =
+    useCallback(
+      async ({ data }) => {
+        if (readonly) {
+          return {
+            errors: [
+              {
+                code: "FORBIDDEN",
+                message: "Operation can't be carried out in readonly mode",
+              },
+            ],
+          };
         }
-
-        const variables: UpdateEntityTypeMutationVariables = {
-          entityId: entityTypeId,
-          accountId,
-          schema,
-        };
-        const { data, errors } = await runUpdateEntityTypeMutation({
-          variables,
-        });
 
         if (!data) {
-          throw new Error(
-            errors?.[0]!.message || "Could not update entity type",
-          );
+          return {
+            errors: [
+              {
+                code: "INVALID_INPUT",
+                message: "'data' must be provided for updateEntityType",
+              },
+            ],
+          };
         }
 
-        results.push({
-          accountId: data.updateEntityType.accountId,
-          entityTypeId: data.updateEntityType.entityId,
-          ...data.updateEntityType.properties,
+        const { entityTypeId, schema } = data;
+
+        const { data: responseData } = await runUpdateEntityTypeMutation({
+          variables: { entityId: entityTypeId, schema },
         });
-      }
-      return results;
-    },
-    [runUpdateEntityTypeMutation],
-  );
+
+        if (!responseData) {
+          return {
+            errors: [
+              {
+                code: "INVALID_INPUT",
+                message: "Error calling updateEntityType",
+              },
+            ],
+          };
+        }
+        return {
+          data: convertApiEntityTypeToBpEntityType(
+            responseData.updateEntityType,
+          ),
+        };
+      },
+      [runUpdateEntityTypeMutation, readonly],
+    );
 
   return {
-    updateEntityTypes,
-    updateEntityTypesLoading,
-    updateEntityTypesError,
+    updateEntityType,
   };
 };

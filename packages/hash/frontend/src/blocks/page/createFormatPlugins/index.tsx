@@ -8,8 +8,8 @@ import {
   PluginKey,
 } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import React from "react";
 import { tw } from "twind";
+import { createRef } from "react";
 import { RenderPortal } from "../usePortals";
 import { ensureMounted } from "../../../lib/dom";
 import { MarksTooltip } from "./MarksTooltip";
@@ -38,7 +38,7 @@ const linkPluginKey = new PluginKey<LinkPluginState, Schema>("linkPlugin");
 export function createFormatPlugins(renderPortal: RenderPortal) {
   let timeout: NodeJS.Timeout;
 
-  const linkModalRef = React.createRef<HTMLDivElement>();
+  const linkModalRef = createRef<HTMLDivElement>();
 
   const marksTooltip = new Plugin<MarksTooltipState, Schema>({
     key: markPluginKey,
@@ -102,6 +102,13 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
           const dragging = !!editorView.dragging;
 
           const state = view.state;
+
+          /**
+           * Hide tooltip if in read-only mode
+           */
+          if (!view.editable) {
+            return;
+          }
 
           /**
            * We don't always want to display a format tooltip – i.e, when

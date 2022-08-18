@@ -1,12 +1,12 @@
 import { ApolloError } from "apollo-server-errors";
 import { set } from "lodash";
-import { Resolver, Entity as GQLEntity, LinkGroup } from "../../apiTypes.gen";
+import { Entity as GQLEntity, LinkGroup, ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { Entity, Link } from "../../../model";
 import { DbClient } from "../../../db";
 import { DbUnknownEntity } from "../../../db/adapter";
 
-export const DEFAULT_LINK_DEPTH = 2;
+export const DEFAULT_LINK_DEPTH = 1;
 
 export const DEFAULT_AGGREGATE_LINK_DEPTH = 1;
 
@@ -14,7 +14,7 @@ export const DEFAULT_AGGREGATE_LINK_DEPTH = 1;
  * Data structure for collecting the outgoing links
  */
 type LinkGroupsObject = {
-  [sourceEntityId: string]: {
+  [sourceAccountAndEntityId: `${string}*${string}`]: {
     [sourceEntityVersionId: string]: {
       [stringifiedPath: string]: Link[];
     };
@@ -35,8 +35,10 @@ export const linkHasSameDestinationAs = (linkA: Link) => (linkB: Link) =>
 const addEntityOutgoingLinks =
   (client: DbClient, linkGroupsObject: LinkGroupsObject, depth: number) =>
   async (entity: Entity) => {
+    const { accountId, entityId, entityVersionId } = entity;
+
     const existingGroups =
-      linkGroupsObject?.[entity.entityId]?.[entity.entityVersionId];
+      linkGroupsObject?.[`${accountId}*${entityId}`]?.[entityVersionId];
 
     let outgoingLinks: Link[];
 
@@ -45,17 +47,17 @@ const addEntityOutgoingLinks =
     } else {
       outgoingLinks = await entity.getOutgoingLinks(client);
 
-      const { entityId, entityVersionId } = entity;
-
       for (const outgoingLink of outgoingLinks) {
         const { stringifiedPath } = outgoingLink;
 
         const existingLinks =
-          linkGroupsObject?.[entityId]?.[entityVersionId]?.[stringifiedPath];
+          linkGroupsObject?.[`${accountId}*${entityId}`]?.[entityVersionId]?.[
+            stringifiedPath
+          ];
 
         set(
           linkGroupsObject,
-          [entityId, entityVersionId, stringifiedPath],
+          [`${accountId}*${entityId}`, entityVersionId, stringifiedPath],
           (existingLinks ?? []).concat([outgoingLink]),
         );
       }
@@ -140,12 +142,13 @@ const mapLinkGroupsObjectToGQLLinkGroups = (
   linkGroupsObj: LinkGroupsObject,
 ): LinkGroup[] =>
   Object.entries(linkGroupsObj)
-    .map(([sourceEntityId, linkGroupsObjBySourceEntityId]) =>
+    .map(([sourceAccountAndEntityId, linkGroupsObjBySourceEntityId]) =>
       Object.entries(linkGroupsObjBySourceEntityId).map(
         ([sourceEntityVersionId, linkGroupsObjBySourceEntityVersionId]) =>
           Object.entries(linkGroupsObjBySourceEntityVersionId).map(
             ([path, links]): LinkGroup => ({
-              sourceEntityId,
+              sourceAccountId: sourceAccountAndEntityId.split("*")[0]!,
+              sourceEntityId: sourceAccountAndEntityId.split("*")[1]!,
               sourceEntityVersionId,
               path,
               links: links.map((link) => link.toUnresolvedGQLLink()),
@@ -155,10 +158,11 @@ const mapLinkGroupsObjectToGQLLinkGroups = (
     )
     .flat(2);
 
-export const linkGroups: Resolver<
+export const linkGroups: ResolverFn<
   GQLEntity["linkGroups"],
   DbUnknownEntity,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async (sourceEntity, _, { dataSources }) => {
   const source = await Entity.getEntity(dataSources.db, {
     accountId: sourceEntity.accountId,

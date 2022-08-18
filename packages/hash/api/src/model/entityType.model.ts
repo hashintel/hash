@@ -1,7 +1,7 @@
+import { JsonObject } from "@blockprotocol/core";
 import { ApolloError } from "apollo-server-express";
 import url from "url";
 import fetch from "node-fetch";
-import { JSONObject } from "blockprotocol";
 import { merge } from "lodash";
 import { JSONSchema7 } from "json-schema";
 
@@ -40,7 +40,7 @@ export type EntityTypeConstructorArgs = {
   entityId: string;
   entityVersionId: string;
   accountId: string;
-  properties: JSONObject;
+  properties: JsonObject;
   metadata: EntityTypeMeta;
   createdByAccountId: string;
   createdAt: Date;
@@ -176,7 +176,7 @@ class __EntityType {
       createdByAccountId: string;
       description?: string;
       name: string;
-      schema?: JSONObject;
+      schema?: JsonObject;
     },
   ): Promise<EntityType> {
     const { accountId, createdByAccountId, description, name } = params;
@@ -207,7 +207,6 @@ class __EntityType {
   async update(
     client: DbClient,
     params: {
-      accountId: string;
       createdByAccountId: string;
       schema: Record<string, any>;
       updatedByAccountId: string;
@@ -289,7 +288,17 @@ class __EntityType {
 
   static async getAccountEntityTypes(
     client: DbClient,
-    params: { accountId: string; includeOtherTypesInUse?: boolean | null },
+    params: {
+      accountId: string;
+      /**
+       * This makes the query return ALL types in the system.
+       * This doesn't make sense for a method called 'getAccountEntityTypes',
+       * but is a temporary stopgap to introduce the feature while the API is being rebuilt.
+       * @todo replace this function with a proper aggregateEntityTypes
+       */
+      includeAllTypes?: boolean | null;
+      includeOtherTypesInUse?: boolean | null;
+    },
   ) {
     const dbTypes = await client.getAccountEntityTypes(params);
 
@@ -377,7 +386,6 @@ class __EntityType {
         ...this.properties,
         $id: this.schema$idWithFrontendDomain,
       },
-      metadataId: this.entityId,
       createdAt: this.createdAt.toISOString(),
       entityVersionCreatedAt: this.updatedAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),

@@ -1,4 +1,3 @@
-import * as React from "react";
 import TreeItem, {
   TreeItemProps,
   useTreeItem,
@@ -8,18 +7,18 @@ import TreeItem, {
 // import clsx from "clsx";
 import { Box, Tooltip, Typography } from "@mui/material";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
-import {
-  faChevronRight,
-  faEllipsis,
-  faFile,
-} from "@fortawesome/free-solid-svg-icons";
+import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { forwardRef, MouseEvent, Ref } from "react";
+import { PageIcon } from "../../../../components/PageIcon";
 import { Link } from "../../../ui";
 import { PageMenu } from "./page-menu";
+import { useRouteAccountInfo } from "../../../routing";
 
 // tweaked the example at https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
-const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
+const CustomContent = forwardRef((props: TreeItemContentProps, ref) => {
   const { label, nodeId, expandable, url, depth } = props;
+  const { accountId } = useRouteAccountInfo();
   const popupState = usePopupState({
     variant: "popover",
     popupId: "page-menu",
@@ -29,13 +28,13 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
     useTreeItem(nodeId);
 
   const handleMouseDown = (
-    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+    event: MouseEvent<HTMLDivElement, globalThis.MouseEvent>,
   ) => {
     preventSelection(event);
   };
 
   const handleExpansionClick = (
-    event: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+    event: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>,
   ) => {
     handleExpansion(event);
   };
@@ -44,7 +43,7 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
     <Box
       tabIndex={0}
       onMouseDown={handleMouseDown}
-      ref={ref as React.Ref<HTMLDivElement>}
+      ref={ref as Ref<HTMLDivElement>}
       sx={({ palette }) => ({
         display: "flex",
         alignItems: "center",
@@ -92,19 +91,20 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
       >
         <FontAwesomeIcon icon={faChevronRight} />
       </IconButton>
-      <FontAwesomeIcon
-        icon={faFile}
-        sx={{
-          fontSize: 16,
-          mr: 1.25,
-          color: ({ palette }) => palette.gray[40],
-        }}
+
+      <PageIcon
+        hasDarkBg={selected}
+        accountId={accountId}
+        entityId={nodeId}
+        size="small"
       />
+
       <Link
         noLinkStyle
         tabIndex={-1}
         sx={{
           flex: 1,
+          ml: "6px",
         }}
         href={url}
       >
@@ -144,7 +144,7 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
             color: [selected ? palette.gray[40] : "transparent"],
             "&:focus-visible, &:hover": {
               backgroundColor: palette.gray[selected ? 40 : 30],
-              color: palette.gray[selected ? 50 : 40],
+              color: `${palette.gray[selected ? 50 : 40]} !important`,
             },
           })}
         >

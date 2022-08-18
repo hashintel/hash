@@ -1,4 +1,4 @@
-import { VoidFunctionComponent } from "react";
+import { FunctionComponent } from "react";
 
 import { useRouter } from "next/router";
 import { Box, Drawer, Tooltip } from "@mui/material";
@@ -16,7 +16,7 @@ import { useRouteAccountInfo, useRoutePageInfo } from "../../routing";
 
 export const SIDEBAR_WIDTH = 260;
 
-export const PageSidebar: VoidFunctionComponent = () => {
+export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
   const { accountId } = useRouteAccountInfo();
@@ -36,6 +36,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
           width: SIDEBAR_WIDTH,
         },
       }}
+      data-testid="page-sidebar"
     >
       <Box
         sx={{

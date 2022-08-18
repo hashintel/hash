@@ -1,5 +1,5 @@
 import { ApolloError } from "apollo-server-express";
-import { Resolver, EntityType as GQLEntityType } from "../../apiTypes.gen";
+import { ResolverFn, EntityType as GQLEntityType } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { EntityType, UnresolvedGQLEntityType } from "../../../model";
 import { EntityTypeTypeFields } from "../../../db/adapter";
@@ -22,7 +22,7 @@ const getEntityTypeType = async (dataSources: GraphQLContext["dataSources"]) =>
 /**
  * Get the entityType of an EntityType, i.e. the "EntityType" EntityType
  */
-const entityType: Resolver<
+const entityType: ResolverFn<
   Omit<
     GQLEntityType["entityType"],
     | EntityTypeTypeFields
@@ -31,7 +31,8 @@ const entityType: Resolver<
     | "linkedAggregations"
   >,
   EntityTypeMaybeTypeFields,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async (gqlEntityType, __, { dataSources }) => {
   if (gqlEntityType.entityType) {
     return gqlEntityType.entityType;
@@ -42,10 +43,11 @@ const entityType: Resolver<
 /**
  * Get the entityTypeId of an EntityType, i.e. the entityId of the "EntityType" EntityType.
  */
-const entityTypeId: Resolver<
+const entityTypeId: ResolverFn<
   GQLEntityType["entityTypeId"],
   EntityTypeMaybeTypeFields,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async (gqlEntityType, __, { dataSources }) => {
   if (gqlEntityType.entityType) {
     return gqlEntityType.entityType.entityId;
@@ -59,10 +61,11 @@ const entityTypeId: Resolver<
 /**
  * Get the entityTypeName of an EntityType, i.e. the name of the "EntityType" EntityType.
  */
-const entityTypeName: Resolver<
+const entityTypeName: ResolverFn<
   GQLEntityType["entityTypeName"],
   EntityTypeMaybeTypeFields,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async (gqlEntityType, __, { dataSources }): Promise<string> => {
   if (gqlEntityType.entityType) {
     return gqlEntityType.entityType.properties.title;
@@ -78,10 +81,11 @@ const entityTypeName: Resolver<
 /**
  * Get the entityTypeVersionId of an EntityType, i.e. the entityVersionId of the "EntityType" EntityType.
  */
-const entityTypeVersionId: Resolver<
+const entityTypeVersionId: ResolverFn<
   GQLEntityType["entityTypeVersionId"],
   EntityTypeMaybeTypeFields,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async (gqlEntityType, __, { dataSources }) => {
   if (gqlEntityType.entityType) {
     return gqlEntityType.entityType.entityVersionId;

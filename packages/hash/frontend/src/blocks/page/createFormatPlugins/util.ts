@@ -1,3 +1,4 @@
+import { isComponentNode } from "@hashintel/hash-shared/prosemirror";
 import { InputRule } from "prosemirror-inputrules";
 import { ProsemirrorNode, Mark, Schema } from "prosemirror-model";
 import { EditorState, TextSelection } from "prosemirror-state";
@@ -12,9 +13,12 @@ export const selectionContainsText = (state: EditorState<Schema>) => {
     if (containsText) {
       return false;
     }
-
-    if (node.isTextblock) {
-      containsText = true;
+    if (isComponentNode(node)) {
+      node.content.descendants((childNode) => {
+        if (childNode.isInline) {
+          containsText = true;
+        }
+      });
       return false;
     }
 

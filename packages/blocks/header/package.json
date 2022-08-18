@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/block-header",
-  "version": "0.1.1",
+  "version": "0.2.1",
   "private": true,
   "description": "Write titles, sub-titles, and section headings in four different sizes",
   "repository": {
@@ -19,25 +19,30 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "blockprotocol": "0.0.10"
+    "@blockprotocol/graph": "0.0.12",
+    "@blockprotocol/hook": "0.0.1",
+    "@rooks/use-fork-ref": "4.11.2"
   },
   "devDependencies": {
-    "block-scripts": "0.0.13",
-    "eslint": "8.13.0",
-    "mock-block-dock": "0.0.10",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "typescript": "4.6.3"
+    "block-scripts": "0.0.14",
+    "eslint": "8.20.0",
+    "mock-block-dock": "0.0.20",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "4.7.4"
   },
   "peerDependencies": {
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "block-scripts": {
     "devPort": 9090,
     "servePort": 63282
   },
   "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
     "displayName": "Heading",
     "icon": "public/h1.svg",
     "image": "public/preview.svg",
@@ -48,6 +53,6 @@
         "color": "black"
       }
     ],
-    "protocol": "0.1"
+    "protocol": "0.2"
   }
 }

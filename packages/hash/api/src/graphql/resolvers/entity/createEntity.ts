@@ -1,8 +1,8 @@
-import { MutationCreateEntityArgs, Resolver } from "../../apiTypes.gen";
+import { MutationCreateEntityArgs, ResolverFn } from "../../apiTypes.gen";
 import { Entity, UnresolvedGQLEntity } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 
-export const createEntity: Resolver<
+export const createEntity: ResolverFn<
   Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,

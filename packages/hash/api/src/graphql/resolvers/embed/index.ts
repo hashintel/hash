@@ -2,7 +2,12 @@ import fetch from "node-fetch";
 import { ApolloError } from "apollo-server-errors";
 
 import oEmbedData from "oembed-providers/providers.json";
-import { Embed, Maybe, QueryEmbedCodeArgs, Resolver } from "../../apiTypes.gen";
+import {
+  Embed,
+  Maybe,
+  QueryEmbedCodeArgs,
+  ResolverFn,
+} from "../../apiTypes.gen";
 
 import { GraphQLContext } from "../../context";
 
@@ -84,7 +89,7 @@ async function getEmbedResponse({
   );
 }
 
-export const embedCode: Resolver<
+export const embedCode: ResolverFn<
   Promise<Embed>,
   {},
   GraphQLContext,

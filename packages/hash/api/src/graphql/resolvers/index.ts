@@ -1,4 +1,4 @@
-import GraphQLJSON from "graphql-type-json";
+import { JSONObjectResolver } from "graphql-scalars";
 
 import { Entity } from "../apiTypes.gen";
 
@@ -171,8 +171,7 @@ export const resolvers = {
     updateLinkType,
   },
 
-  JSONObject: GraphQLJSON,
-  TextToken: GraphQLJSON,
+  JSONObject: JSONObjectResolver,
 
   Block: {
     properties:

@@ -19,8 +19,11 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  word-break: break-all;
   margin: 30px 0;
+  word-break: break-word;
+  white-space: pre-wrap;
+  outline: none !important;
+  position: relative;
 }
 
 /**
@@ -39,25 +42,23 @@
   align-items: center;
 }
 
-.Block__UI select {
-  padding: 0.25rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.Block__Handle {
-  background-image: url("/drag-icon.png");
-  height: 20px;
-  width: 20px;
-  border-radius: 50%;
-  margin-right: 10px;
-  background-size: contain;
-  cursor: pointer;
-}
-
 .Block__Content {
   flex: 1;
   height: 100%;
+}
+
+.Block__InsertBlock {
+  width: calc(100% - 36px);
   max-width: 1200px;
-  overflow-x: auto;
+  position: absolute;
+  height: 30px;
+  margin-left: 36px;
+}
+
+.Block__InsertBlock__Bottom {
+  top: 100%;
+}
+
+.Block__InsertBlock__Top {
+  bottom: 100%;
 }

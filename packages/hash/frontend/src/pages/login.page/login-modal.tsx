@@ -1,10 +1,11 @@
-import React, {
-  VoidFunctionComponent,
+import {
+  FunctionComponent,
   useEffect,
   useReducer,
   useMemo,
   useCallback,
   useState,
+  Reducer,
 } from "react";
 import { useRouter } from "next/router";
 
@@ -95,7 +96,7 @@ function reducer(state: State, action: Actions): State {
   }
 }
 
-export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
+export const LoginModal: FunctionComponent<LoginModalProps> = ({
   show,
   onClose,
   onLoggedIn,
@@ -110,7 +111,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
       syntheticLoading,
     },
     dispatch,
-  ] = useReducer<React.Reducer<State, Actions>>(reducer, initialState);
+  ] = useReducer<Reducer<State, Actions>>(reducer, initialState);
   const { invitationInfo, invitationInfoLoading } = useGetInvitationInfo();
   const router = useRouter();
   const [requestedLoginCodeForDefault, setRequestedLoginCodeForDefault] =

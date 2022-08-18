@@ -3,7 +3,7 @@
 require("setimmediate");
 
 import { ApolloProvider } from "@apollo/client/react";
-import { useEffect, useState } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import withTwindApp from "@twind/next/app";
 import { ModalProvider } from "react-modal-hook";
@@ -23,6 +23,7 @@ import {
   RouteAccountInfoProvider,
   RoutePageInfoProvider,
 } from "../shared/routing";
+import { ReadonlyModeProvider } from "../shared/readonly-mode";
 
 export const apolloClient = createApolloClient();
 
@@ -33,7 +34,7 @@ type AppProps = {
   Component: NextPageWithLayout;
 } & NextAppProps;
 
-const App: React.VoidFunctionComponent<AppProps> = ({
+const App: FunctionComponent<AppProps> = ({
   Component,
   pageProps,
   emotionCache = clientSideEmotionCache,
@@ -79,7 +80,9 @@ const App: React.VoidFunctionComponent<AppProps> = ({
           <ModalProvider>
             <RouteAccountInfoProvider>
               <RoutePageInfoProvider>
-                {getLayout(<Component {...pageProps} />)}
+                <ReadonlyModeProvider>
+                  {getLayout(<Component {...pageProps} />)}
+                </ReadonlyModeProvider>
               </RoutePageInfoProvider>
             </RouteAccountInfoProvider>
           </ModalProvider>

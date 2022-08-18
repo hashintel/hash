@@ -1,10 +1,12 @@
 import { performance } from "perf_hooks";
 
 import {
-  ApolloServer,
-  defaultPlaygroundOptions,
-  makeExecutableSchema,
-} from "apollo-server-express";
+  ApolloServerPluginLandingPageGraphQLPlayground,
+  ApolloServerPluginLandingPageDisabled,
+} from "apollo-server-core";
+import { ApolloServer } from "apollo-server-express";
+import { makeExecutableSchema } from "@graphql-tools/schema";
+
 import { StatsD } from "hot-shots";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { SearchAdapter } from "@hashintel/hash-backend-utils/search/adapter";
@@ -70,18 +72,20 @@ export const createApolloServer = ({
       user: ctx.req.user,
       emailTransporter,
       uploadProvider,
-      logger: logger.child({ requestId: ctx.res.get("x-hash-request-id") }),
+      logger: logger.child({
+        requestId: ctx.res.get("x-hash-request-id") ?? "",
+      }),
     }),
     // @todo: we may want to disable introspection at some point for production
     introspection: true,
     debug: true, // required for stack traces to be captured
     plugins: [
       {
-        requestDidStart: (ctx) => {
+        requestDidStart: async (ctx) => {
           ctx.logger = ctx.context.logger as Logger;
           const startedAt = performance.now();
           return {
-            didResolveOperation: (didResolveOperationCtx) => {
+            didResolveOperation: async (didResolveOperationCtx) => {
               if (didResolveOperationCtx.operationName) {
                 statsd?.increment(didResolveOperationCtx.operationName, [
                   "graphql",
@@ -126,13 +130,11 @@ export const createApolloServer = ({
           };
         },
       },
+      process.env.NODE_ENV === "production"
+        ? ApolloServerPluginLandingPageDisabled()
+        : ApolloServerPluginLandingPageGraphQLPlayground({
+            settings: { "request.credentials": "include" },
+          }),
     ],
-    playground: {
-      ...defaultPlaygroundOptions,
-      settings: {
-        ...defaultPlaygroundOptions.settings,
-        "request.credentials": "include",
-      },
-    },
   });
 };

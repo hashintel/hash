@@ -1,7 +1,7 @@
 import { SxProps, Theme } from "@mui/material";
 import Box from "@mui/material/Box";
 import MuiModal, { ModalProps as MuiModalProps } from "@mui/material/Modal";
-import React from "react";
+import { FunctionComponent } from "react";
 
 import { useScrollLock } from "@hashintel/hash-design-system";
 
@@ -25,7 +25,7 @@ type ModalProps = MuiModalProps & {
   contentStyle?: SxProps<Theme>;
 };
 
-export const Modal: React.FC<ModalProps> = ({
+export const Modal: FunctionComponent<ModalProps> = ({
   open,
   children,
   disableScrollLock = false,

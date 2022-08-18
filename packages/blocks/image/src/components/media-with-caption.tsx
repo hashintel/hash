@@ -1,4 +1,4 @@
-import React, { VFC } from "react";
+import { FunctionComponent } from "react";
 import { tw } from "twind";
 import Pencil from "../svgs/pencil";
 import { ResizeImageBlock } from "./resize-image-block";
@@ -9,6 +9,7 @@ type MediaWithCaptionProps = {
   onCaptionChange: (caption: string) => void;
   onCaptionConfirm: () => void;
   onReset: () => void;
+  readonly?: boolean;
   type: "image" | "video";
 } & (
   | {
@@ -21,12 +22,13 @@ type MediaWithCaptionProps = {
     }
 );
 
-export const MediaWithCaption: VFC<MediaWithCaptionProps> = ({
+export const MediaWithCaption: FunctionComponent<MediaWithCaptionProps> = ({
   caption,
   src,
   onCaptionChange,
   onCaptionConfirm,
   onReset,
+  readonly,
   ...props
 }) => {
   const captionNode = (
@@ -35,6 +37,7 @@ export const MediaWithCaption: VFC<MediaWithCaptionProps> = ({
       className={tw`focus:outline-none text-center mt-3`}
       type="text"
       value={caption}
+      disabled={readonly}
       onChange={(event) => onCaptionChange(event.target.value)}
       onBlur={onCaptionConfirm}
     />
@@ -64,13 +67,15 @@ export const MediaWithCaption: VFC<MediaWithCaptionProps> = ({
           {captionNode}
         </div>
       )}
-      <button
-        type="button"
-        onClick={onReset}
-        className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm self-start`}
-      >
-        <Pencil />
-      </button>
+      {!readonly && (
+        <button
+          type="button"
+          onClick={onReset}
+          className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm self-start`}
+        >
+          <Pencil />
+        </button>
+      )}
     </div>
   );
 };

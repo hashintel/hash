@@ -1,10 +1,10 @@
 import { ApolloError } from "apollo-server-errors";
-import { MutationJoinOrgArgs, Resolver } from "../../apiTypes.gen";
+import { MutationJoinOrgArgs, ResolverFn } from "../../apiTypes.gen";
 import { Org, OrgEmailInvitation } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 import { mapUserModelToGQL, UnresolvedGQLUser } from "./util";
 
-export const joinOrg: Resolver<
+export const joinOrg: ResolverFn<
   Promise<UnresolvedGQLUser>,
   {},
   LoggedInGraphQLContext,

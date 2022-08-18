@@ -11,11 +11,6 @@
       {
         "paths": [
           {
-            "name": "@mui/material",
-            "importNames": ["Link"],
-            "message": "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility."
-          },
-          {
             "name": "next",
             "importNames": ["Link"],
             "message": "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility."
@@ -36,14 +31,14 @@
               "Chip",
               "Popover",
               "TextField",
-              "Select"
+              "Select",
+              "Dialog",
+              "Menu",
+              "Link",
+              "Button",
+              "MenuItem"
             ],
-            "message": "Please use the custom wrapper component in '@hashintel/hash-design-system' instead."
-          },
-          {
-            "name": "@mui/material",
-            "importNames": ["Button", "MenuItem"],
-            "message": "Please use the custom wrapper component in src/shared/ui instead."
+            "message": "Please use the custom wrapper component from src/shared/ui for Link, Button and MenuItem and from '@hashintel/hash-design-system' for every other component."
           }
         ]
       }

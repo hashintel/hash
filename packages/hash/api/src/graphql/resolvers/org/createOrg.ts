@@ -1,8 +1,8 @@
-import { MutationCreateOrgArgs, Resolver } from "../../apiTypes.gen";
+import { MutationCreateOrgArgs, ResolverFn } from "../../apiTypes.gen";
 import { Account, UnresolvedGQLEntity, Org } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 
-export const createOrg: Resolver<
+export const createOrg: ResolverFn<
   Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,

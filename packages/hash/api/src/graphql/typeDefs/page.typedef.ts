@@ -65,10 +65,6 @@ export const pageTypedef = gql`
     """
     history: [EntityVersion!]
     """
-    The metadata ID of the entity. This is shared across all versions of the same entity.
-    """
-    metadataId: ID!
-    """
     The outgoing links of the entity.
     """
     linkGroups: [LinkGroup!]!
@@ -102,8 +98,13 @@ export const pageTypedef = gql`
         The page "contents" are no longer stored in the properties of a page. Use the page's "contents" or "linkGroups" field resolvers instead.
         """
       )
+    """
+    The entityId of the page this is the properties of
+    """
+    pageEntityId: String!
     summary: String
     title: String!
+    icon: String
   }
 
   type EntityRef {
@@ -168,6 +169,7 @@ export const pageTypedef = gql`
     # just make it JSON for now for testing purposes
     contents: [JSONObject!]
     title: String
+    icon: String
     summary: String
     archived: Boolean
   }
