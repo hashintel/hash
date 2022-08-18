@@ -23,7 +23,6 @@ import {
 import setupAuth from "./auth";
 import { RedisCache } from "./cache";
 import { createCollabApp } from "./collab/collabApp";
-import { PostgresAdapter, setupCronJobs } from "./db";
 import {
   AwsSesEmailTransporter,
   DummyEmailTransporter,
@@ -91,8 +90,6 @@ const main = async () => {
   const app = express();
   app.use(cors(CORS_CONFIG));
 
-  const pgHost = getRequiredEnv("HASH_PG_HOST");
-  const pgPort = parseInt(getRequiredEnv("HASH_PG_PORT"), 10);
   const redisHost = getRequiredEnv("HASH_REDIS_HOST");
   const redisPort = parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10);
   const taskExecutorHost = getRequiredEnv("HASH_TASK_EXECUTOR_HOST");
@@ -101,22 +98,7 @@ const main = async () => {
     10,
   );
 
-  await Promise.all([
-    waitOnResource(`tcp:${pgHost}:${pgPort}`, logger),
-    waitOnResource(`tcp:${redisHost}:${redisPort}`, logger),
-  ]);
-
-  // Connect to the database
-  const pgConfig = {
-    host: pgHost,
-    user: getRequiredEnv("HASH_PG_USER"),
-    password: getRequiredEnv("HASH_PG_PASSWORD"),
-    database: getRequiredEnv("HASH_PG_DATABASE"),
-    port: pgPort,
-    maxPoolSize: 10, // @todo: needs tuning
-  };
-  const db = new PostgresAdapter(pgConfig, logger, statsd);
-  shutdown.addCleanup("Postgres", async () => db.close());
+  await waitOnResource(`tcp:${redisHost}:${redisPort}`, logger);
 
   // Connect to Redis
   const redis = new RedisCache(logger, {
@@ -142,15 +124,7 @@ const main = async () => {
   app.use(json({ limit: "16mb" }));
 
   // Set up authentication related middeware and routes
-  setupAuth(
-    app,
-    { secret: getRequiredEnv("SESSION_SECRET") },
-    { ...pgConfig, maxPoolSize: 10 },
-    db,
-  );
-
-  // Set up cron jobs
-  setupCronJobs(db, logger);
+  setupAuth(app);
 
   // Create an email transporter
   const emailTransporter =
@@ -192,7 +166,6 @@ const main = async () => {
     shutdown.addCleanup("OpenSearch", async () => search!.close());
   }
   const apolloServer = createApolloServer({
-    db,
     search,
     cache: redis,
     taskExecutor,
