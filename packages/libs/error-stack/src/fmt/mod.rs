@@ -30,8 +30,8 @@
 //! mutability.
 //! [`Mutex`], [`RwLock`], and atomics are often used for that exact purpose.
 //!
-//! The type a hook will be called for, is determined by the type of the first argument.
-//! This type can either be specified at the closure level, or when calling
+//! The type a hook will be called for is determined by the type of the first argument.
+//! This type can either be specified at the closure level or when calling
 //! [`Report::install_debug_hook`].
 //! This type needs to be `'static`, [`Send`], and [`Sync`].
 //!
