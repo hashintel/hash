@@ -1,18 +1,16 @@
 import { ApolloError, ForbiddenError } from "apollo-server-express";
 
-import { Account, User } from "../../../model";
-import { MutationUpdateUserArgs, Resolver } from "../../apiTypes.gen";
+import { Account, User, UnresolvedGQLEntity } from "../../../model";
+import { MutationUpdateUserArgs, ResolverFn } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
-import { mapUserModelToGQL, UnresolvedGQLUser } from "./util";
 
-export const updateUser: Resolver<
-  Promise<UnresolvedGQLUser>,
+export const updateUser: ResolverFn<
+  Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,
   MutationUpdateUserArgs
 > = async (_, { userEntityId, properties }, { dataSources, user }) =>
   dataSources.db.transaction(async (client) => {
-    const { graphApi } = dataSources;
     /** @todo: allow HASH admins to bypass this */
 
     if (userEntityId !== user.entityId) {
@@ -29,7 +27,7 @@ export const updateUser: Resolver<
     }
 
     if (shortname) {
-      if (user.getShortname() === shortname && !preferredName) {
+      if (user.properties.shortname === shortname && !preferredName) {
         throw new ApolloError(
           `User with entityId '${user.entityId}' already has the shortname '${shortname}'`,
           "NO_OP",
@@ -38,14 +36,14 @@ export const updateUser: Resolver<
 
       await Account.validateShortname(client, shortname);
 
-      await user.updateShortname(graphApi, {
+      await user.updateShortname(client, {
         updatedByAccountId: user.accountId,
         updatedShortname: shortname,
       });
     }
 
     if (preferredName) {
-      if (user.getPreferredName() === preferredName) {
+      if (user.properties.preferredName === preferredName) {
         throw new ApolloError(
           `User with entityId '${user.entityId}' already has the preferredName '${preferredName}'`,
           "NO_OP",
@@ -59,25 +57,25 @@ export const updateUser: Resolver<
         );
       }
 
-      await user.updatePreferredName(graphApi, {
+      await user.updatePreferredName(client, {
         updatedByAccountId: user.accountId,
         updatedPreferredName: preferredName,
       });
     }
 
     if (usingHow) {
-      if (user.getInfoProvidedAtSignup().usingHow === usingHow) {
+      if (user.properties.infoProvidedAtSignup.usingHow === usingHow) {
         throw new ApolloError(
           `User with entityId '${user.entityId}' already indicated how they are using HASH '${usingHow}'`,
           "NO_OP",
         );
       }
 
-      await user.updateInfoProvidedAtSignup(graphApi, {
+      await user.updateInfoProvidedAtSignup(client, {
         updatedByAccountId: user.accountId,
         updatedInfo: { usingHow },
       });
     }
 
-    return mapUserModelToGQL(user);
+    return user.toGQLUnknownEntity();
   });

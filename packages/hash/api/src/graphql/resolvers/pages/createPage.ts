@@ -1,8 +1,8 @@
-import { MutationCreatePageArgs, Resolver } from "../../apiTypes.gen";
+import { MutationCreatePageArgs, ResolverFn } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { Page, UnresolvedGQLEntity } from "../../../model";
 
-export const createPage: Resolver<
+export const createPage: ResolverFn<
   Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,
@@ -10,7 +10,7 @@ export const createPage: Resolver<
 > = async (_, { accountId, properties }, { dataSources: { db }, user }) => {
   const page = await Page.createPage(db, {
     accountId,
-    createdBy: user as any /** @todo: replace with updated model class */,
+    createdBy: user,
     properties,
   });
 

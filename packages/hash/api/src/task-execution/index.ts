@@ -1,8 +1,8 @@
+import { JsonObject } from "@blockprotocol/core";
 import { DataSource } from "apollo-datasource";
-import { JSONObject } from "blockprotocol";
 import fetch from "node-fetch";
 import { DbAdapter } from "../db";
-import { EntityType, UserModel } from "../model";
+import { EntityType, User } from "../model";
 
 /** @todo: When task scheduling is more mature and we move away from the temporary `hash-task-executor` we should have a single source of */
 //  truth for available tasks, likely importable.
@@ -62,7 +62,7 @@ export const connectToTaskExecutor = (config: Config) => {
  *
  * @todo - This is temporary and should be removed when we extend the EntityType model class to support these actions properly
  */
-export const CachedEntityTypes = async (db: DbAdapter, user: UserModel) => {
+export const CachedEntityTypes = async (db: DbAdapter, user: User) => {
   const streamsWithEntityTypes: Map<string, string> = new Map();
   const dbTypes = await db.getAccountEntityTypes({
     accountId: user.accountId,
@@ -82,7 +82,7 @@ export const CachedEntityTypes = async (db: DbAdapter, user: UserModel) => {
       return entityTypeId;
     },
 
-    createNew: async (entityTypeName: string, jsonSchema?: JSONObject) => {
+    createNew: async (entityTypeName: string, jsonSchema?: JsonObject) => {
       const { entityId } = await EntityType.create(db, {
         /** @todo should this be a param on the graphql endpoint */
         accountId: user.accountId,

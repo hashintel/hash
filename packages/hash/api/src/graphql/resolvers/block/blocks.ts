@@ -1,9 +1,9 @@
 import { Entity, UnresolvedGQLEntity } from "../../../model";
 
-import { QueryBlocksArgs, Resolver } from "../../apiTypes.gen";
+import { QueryBlocksArgs, ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 
-export const blocks: Resolver<
+export const blocks: ResolverFn<
   Promise<UnresolvedGQLEntity[]>,
   {},
   GraphQLContext,

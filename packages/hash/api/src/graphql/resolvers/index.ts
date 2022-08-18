@@ -1,4 +1,4 @@
-import GraphQLJSON from "graphql-type-json";
+import { JSONObjectResolver } from "graphql-scalars";
 
 import { Entity } from "../apiTypes.gen";
 
@@ -32,7 +32,9 @@ import { updateUser } from "./user/updateUser";
 import { createOrg } from "./org/createOrg";
 import { orgLinkedEntities } from "./org/linkedEntities";
 import { accountSignupComplete } from "./user/accountSignupComplete";
+import { verifyEmail } from "./user/verifyEmail";
 import { sendLoginCode } from "./user/sendLoginCode";
+import { loginWithLoginCode } from "./user/loginWithLoginCode";
 import { userLinkedEntities } from "./user/linkedEntities";
 import { orgMembershipLinkedEntities } from "./orgMembership/linkedEntities";
 import { embedCode } from "./embed";
@@ -41,6 +43,7 @@ import {
   getImpliedEntityVersion,
 } from "./entity/impliedHistory";
 
+import { logout } from "./user/logout";
 import { me } from "./user/me";
 import { isShortnameTaken } from "./user/isShortnameTaken";
 import { createEntityType } from "./entityType/createEntityType";
@@ -76,19 +79,6 @@ import {
 } from "./taskExecutor";
 import { getLink } from "./link/getLink";
 import { getLinkedAggregation } from "./linkedAggregation/getLinkedAggregation";
-import { getAllLatestDataTypes, getDataType } from "./ontology/data-type";
-import {
-  createPropertyType,
-  getAllLatestPropertyTypes,
-  getPropertyType,
-  updatePropertyType,
-} from "./ontology/property-type";
-import {
-  createLinkType,
-  getAllLatestLinkTypes,
-  getLinkType,
-  updateLinkType,
-} from "./ontology/link-type";
 
 export const resolvers = {
   Query: {
@@ -118,14 +108,6 @@ export const resolvers = {
     isShortnameTaken,
     embedCode,
     pageSearchResultConnection,
-    // Ontology
-    /** @todo add auth gate for the following endpoints. */
-    getAllLatestDataTypes,
-    getDataType,
-    getAllLatestPropertyTypes,
-    getPropertyType,
-    getAllLatestLinkTypes,
-    getLinkType,
   },
 
   Mutation: {
@@ -153,26 +135,22 @@ export const resolvers = {
     setParentPage: loggedInAndSignedUp(setParentPage),
     // Logged in users only
     updateUser: loggedIn(updateUser),
+    logout: loggedIn(logout),
     // Any user
     createUser,
     createUserWithOrgEmailInvitation,
+    verifyEmail,
     sendLoginCode,
+    loginWithLoginCode,
     // Task execution
     executeDemoTask,
     executeGithubSpecTask,
     executeGithubCheckTask,
     executeGithubDiscoverTask: loggedInAndSignedUp(executeGithubDiscoverTask),
     executeGithubReadTask: loggedInAndSignedUp(executeGithubReadTask),
-    // Ontology
-    /** @todo add auth gate for the following endpoints. */
-    createPropertyType,
-    updatePropertyType,
-    createLinkType,
-    updateLinkType,
   },
 
-  JSONObject: GraphQLJSON,
-  TextToken: GraphQLJSON,
+  JSONObject: JSONObjectResolver,
 
   Block: {
     properties:
@@ -188,6 +166,7 @@ export const resolvers = {
 
   User: {
     accountSignupComplete,
+    properties: entityFields.properties,
     ...userLinkedEntities,
   },
 

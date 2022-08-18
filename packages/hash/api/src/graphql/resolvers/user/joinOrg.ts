@@ -1,23 +1,20 @@
 import { ApolloError } from "apollo-server-errors";
-import { MutationJoinOrgArgs, Resolver } from "../../apiTypes.gen";
-import { Org, OrgEmailInvitation } from "../../../model";
+import { MutationJoinOrgArgs, ResolverFn } from "../../apiTypes.gen";
+import { UnresolvedGQLEntity, Org, OrgEmailInvitation } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
-import { mapUserModelToGQL, UnresolvedGQLUser } from "./util";
 
-export const joinOrg: Resolver<
-  Promise<UnresolvedGQLUser>,
+export const joinOrg: ResolverFn<
+  Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,
   MutationJoinOrgArgs
 > = async (_, args, { dataSources, user }) =>
   dataSources.db.transaction(async (client) => {
     const { orgEntityId, verification, responsibility } = args;
-    const { graphApi } = dataSources;
 
-    /** @todo: potentially deprecate these method calls depending on Graph API transaction implementation */
-    await (user as any).acquireLock(client);
+    await user.acquireLock(client);
 
-    await (user as any).refetchLatestVersion(client);
+    await user.refetchLatestVersion(client);
 
     const org = await Org.getOrgById(client, { entityId: orgEntityId });
 
@@ -47,7 +44,7 @@ export const joinOrg: Resolver<
 
     /** @todo: verify the invitation hasn't expired */
 
-    await user.joinOrg(graphApi, {
+    await user.joinOrg(client, {
       updatedByAccountId: user.accountId,
       org,
       responsibility,
@@ -55,15 +52,14 @@ export const joinOrg: Resolver<
 
     await invitation.use(client, user.accountId);
 
-    /** @todo: potentially deprecate this depending on re-implemented invitation flow */
     if (invitation instanceof OrgEmailInvitation) {
       const { inviteeEmailAddress } = invitation.properties;
-      const existingUserEmail = (user as any).getEmail(inviteeEmailAddress);
+      const existingUserEmail = user.getEmail(inviteeEmailAddress);
 
       // If the user doesn't have an email with the inviteeEmailAddress...
       if (!existingUserEmail) {
         // ...we can create it.
-        await (user as any).addEmailAddress(client, {
+        await user.addEmailAddress(client, {
           updatedByAccountId: user.accountId,
           email: {
             address: inviteeEmailAddress,
@@ -74,12 +70,12 @@ export const joinOrg: Resolver<
         // If the user has an email with the inviteeEmailAddress that isn't verified...
       } else if (!existingUserEmail.verified) {
         // ...we can verify it.
-        await (user as any).verifyExistingEmailAddress(client, {
+        await user.verifyExistingEmailAddress(client, {
           updatedByAccountId: user.accountId,
           emailAddress: inviteeEmailAddress,
         });
       }
     }
 
-    return mapUserModelToGQL(user);
+    return user.toGQLUnknownEntity();
   });

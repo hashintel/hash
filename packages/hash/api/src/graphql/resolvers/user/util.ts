@@ -1,44 +1,6 @@
 import { ApolloError } from "apollo-server-express";
-import { User as GQLUser, Visibility } from "../../apiTypes.gen";
-import { UserModel, User, VerificationCode } from "../../../model";
 import { DbClient } from "../../../db";
-
-type GQLUserExternalResolvers =
-  | "accountSignupComplete"
-  | "memberOf"
-  | "entityType"
-  | "linkGroups"
-  | "linkedEntities"
-  | "linkedAggregations";
-
-export type UnresolvedGQLUser = Omit<GQLUser, GQLUserExternalResolvers>;
-
-export const mapUserModelToGQL = async (
-  user: UserModel,
-): Promise<UnresolvedGQLUser> => {
-  return {
-    accountId: user.accountId,
-    id: user.entityId,
-    entityId: user.entityId,
-    entityVersionId: user.version,
-    entityTypeId: "" /** @todo: deprecate this field */,
-    entityTypeVersionId: user.entityTypeModel.schema.$id,
-    entityTypeName: user.entityTypeModel.schema.title,
-    properties: {
-      shortname: user.getShortname(),
-      preferredName: user.getPreferredName(),
-      emails: await user.getQualifiedEmails(),
-    },
-    entityVersionCreatedAt:
-      new Date().toISOString() /** @todo: stop hardcoding this */,
-    createdAt: new Date().toISOString() /** @todo: stop hardcoding this */,
-    updatedAt: new Date().toISOString() /** @todo: stop hardcoding this */,
-    createdByAccountId: "" /** @todo: stop hardcoding this */,
-    visibility:
-      Visibility.Public /** @todo: potentially deprecate or stop hardcoding this */,
-    metadataId: "" /** @todo: deprecate this */,
-  };
-};
+import { User, VerificationCode } from "../../../model";
 
 export const verifyVerificationCode =
   (client: DbClient) =>

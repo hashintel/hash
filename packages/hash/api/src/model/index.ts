@@ -1,7 +1,3 @@
-// The following import order prevents dependency cycles from occurring.
-// The name of these default imports define the name of the model classes
-// when accessed from outside of this module.
-
 import EntityType from "./entityType.model";
 import VerificationCode from "./verificationCode.model";
 import Entity from "./entity.model";
@@ -17,32 +13,6 @@ import Page from "./page.model";
 import Block from "./block.model";
 import Link from "./link.model";
 import Aggregation from "./aggregation.model";
-import DataTypeModel from "./ontology/data-type.model";
-import PropertyTypeModel from "./ontology/property-type.model";
-import LinkTypeModel from "./ontology/link-type.model";
-import EntityTypeModel from "./ontology/entity-type.model";
-import EntityModel from "./knowledge/entity.model";
-import UserModel from "./knowledge/user.model";
-
-export * from "./ontology/data-type.model";
-export { DataTypeModel };
-
-export * from "./ontology/property-type.model";
-export { PropertyTypeModel };
-
-export * from "./ontology/link-type.model";
-export { LinkTypeModel };
-
-export * from "./ontology/entity-type.model";
-export { EntityTypeModel };
-
-export * from "./knowledge/entity.model";
-export { EntityModel };
-
-export * from "./knowledge/user.model";
-export { UserModel };
-
-/** @todo: deprecate legacy model classes */
 
 export * from "./entityType.model";
 export { EntityType };
@@ -56,6 +26,7 @@ export { Link };
 export * from "./aggregation.model";
 export { Aggregation };
 
+// Import in order of inheritance
 export * from "./entity.model";
 export { Entity };
 

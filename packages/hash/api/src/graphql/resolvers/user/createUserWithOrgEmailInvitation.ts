@@ -2,17 +2,21 @@ import { ApolloError } from "apollo-server-express";
 
 import {
   MutationCreateUserWithOrgEmailInvitationArgs,
-  Resolver,
+  ResolverFn,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { User, UnresolvedGQLEntity, Org } from "../../../model";
 
-export const createUserWithOrgEmailInvitation: Resolver<
+export const createUserWithOrgEmailInvitation: ResolverFn<
   Promise<UnresolvedGQLEntity>,
   {},
   GraphQLContext,
   MutationCreateUserWithOrgEmailInvitationArgs
-> = async (_, { orgEntityId, invitationEmailToken }, { dataSources }) =>
+> = async (
+  _,
+  { orgEntityId, invitationEmailToken },
+  { dataSources, passport },
+) =>
   dataSources.db.transaction(async (client) => {
     const org = await Org.getOrgById(client, { entityId: orgEntityId });
 
@@ -62,6 +66,8 @@ export const createUserWithOrgEmailInvitation: Resolver<
         emails: [{ address: email, primary: true, verified: true }],
         infoProvidedAtSignup: {},
       }));
+
+    await passport.login(user, {});
 
     return user.toGQLUnknownEntity();
   });

@@ -1,3 +1,4 @@
+import { JsonObject } from "@blockprotocol/core";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { produce } from "immer";
 import {
@@ -11,7 +12,7 @@ import { exactlyOne } from "../../../util";
 import {
   EntityDefinition,
   MutationUpdatePageContentsArgs,
-  Resolver,
+  ResolverFn,
   SwapBlockData,
   UpdateEntity,
   UpdatePageAction,
@@ -72,7 +73,7 @@ class PlaceholderResultsMap {
 
 // @todo these actions need to be processed in order to ensure placeholders
 // work as expected
-export const updatePageContents: Resolver<
+export const updatePageContents: ResolverFn<
   Promise<
     {
       page: UnresolvedGQLEntity;
@@ -120,7 +121,7 @@ export const updatePageContents: Resolver<
 
       return await Entity.createEntityWithLinks(client, {
         accountId: entityAccountId,
-        user: user as any /** @todo: replace with updated model class */,
+        user,
         entityDefinition,
       });
     };
@@ -233,8 +234,7 @@ export const updatePageContents: Resolver<
             } else if (blockComponentId) {
               block = await Block.createBlock(client, {
                 blockData,
-                createdBy:
-                  user as any /** @todo: replace with updated model class */,
+                createdBy: user,
                 accountId: user.accountId,
                 properties: {
                   componentId: blockComponentId,
@@ -293,6 +293,18 @@ export const updatePageContents: Resolver<
         .map(async (updateEntity) => {
           return Entity.updateProperties(client, {
             ...updateEntity,
+            // @todo remove this when legacy links are removed
+            properties: produce(
+              updateEntity.properties as JsonObject,
+              (draftProperties: any) => {
+                if (draftProperties?.text?.__linkedData?.entityId) {
+                  draftProperties.text.__linkedData.entityId =
+                    placeholderResults.get(
+                      draftProperties.text.__linkedData.entityId,
+                    );
+                }
+              },
+            ),
             updatedByAccountId: user.accountId,
           });
         }),

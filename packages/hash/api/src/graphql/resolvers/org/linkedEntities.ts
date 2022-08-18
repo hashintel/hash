@@ -1,16 +1,17 @@
 import { ApolloError } from "apollo-server-errors";
 import { Org } from "../../../model";
-import { Resolver, Org as GQLOrg } from "../../apiTypes.gen";
+import { ResolverFn, Org as GQLOrg } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { UnresolvedGQLEntity } from "../../../model/entity.model";
 
 const notFoundMsg = (entityId: string) =>
   `Org with entityId ${entityId} not found in datastore`;
 
-const invitationLinks: Resolver<
+const invitationLinks: ResolverFn<
   Promise<UnresolvedGQLEntity[]>,
   GQLOrg,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async ({ entityId }, _, { dataSources }) => {
   const org = await Org.getOrgById(dataSources.db, { entityId });
 
@@ -23,10 +24,11 @@ const invitationLinks: Resolver<
   return invitations.map((invitation) => invitation.toGQLUnknownEntity());
 };
 
-const memberships: Resolver<
+const memberships: ResolverFn<
   Promise<UnresolvedGQLEntity[]>,
   GQLOrg,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async ({ entityId }, _, { dataSources }) => {
   const org = await Org.getOrgById(dataSources.db, { entityId });
 
@@ -41,10 +43,11 @@ const memberships: Resolver<
   );
 };
 
-const emailInvitations: Resolver<
+const emailInvitations: ResolverFn<
   Promise<UnresolvedGQLEntity[]>,
   GQLOrg,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async ({ entityId }, _, { dataSources }) => {
   const org = await Org.getOrgById(dataSources.db, { entityId });
 

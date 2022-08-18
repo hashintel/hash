@@ -2,11 +2,11 @@ import { cloneDeep } from "lodash";
 import { ApolloError } from "apollo-server-express";
 
 import {
-  Resolver,
   ImpliedEntityHistory,
   ImpliedEntityVersion,
   QueryGetImpliedEntityHistoryArgs,
   QueryGetImpliedEntityVersionArgs,
+  ResolverFn,
 } from "../../apiTypes.gen";
 import { LinkedDataDefinition } from "../util";
 import { GraphQLContext } from "../../context";
@@ -56,7 +56,7 @@ const findLink = (params: {
   );
 };
 
-export const getImpliedEntityHistory: Resolver<
+export const getImpliedEntityHistory: ResolverFn<
   Promise<ImpliedEntityHistory>,
   {},
   GraphQLContext,
@@ -258,7 +258,7 @@ const hydrateRootSubgraph = async (
   return entityVersionIdEntityMap.get(rootEntityVersionId)!;
 };
 
-export const getImpliedEntityVersion: Resolver<
+export const getImpliedEntityVersion: ResolverFn<
   Promise<UnresolvedGQLEntity>,
   {},
   GraphQLContext,

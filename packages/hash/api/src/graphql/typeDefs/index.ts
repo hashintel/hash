@@ -18,9 +18,6 @@ import { orgMembershipTypedef } from "./orgMembership.typedef";
 import { aggregationTypedef } from "./aggregation.typedef";
 import { pagePaginationTypedef } from "./paginationConnections.typedef";
 import { executeTaskTypedef } from "./taskExecution.typedef";
-import { dataTypeTypedef } from "./ontology/data-type.typedef";
-import { propertyTypeTypedef } from "./ontology/property-type.typedef";
-import { linkTypeTypedef } from "./ontology/link-type.typedef";
 
 const baseSchema = gql`
   scalar Date
@@ -41,8 +38,6 @@ const baseSchema = gql`
     setHealth: Boolean!
   }
 `;
-
-const ontology = [dataTypeTypedef, propertyTypeTypedef, linkTypeTypedef];
 
 // This needs to be called 'schema' to be picked up by codegen -
 // It could alternatively be a default export.
@@ -66,5 +61,4 @@ export const schema = [
   userTypedef,
   fileTypedef,
   executeTaskTypedef,
-  ...ontology,
 ];

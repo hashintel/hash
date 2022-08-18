@@ -16,17 +16,14 @@ export const canAccessAccount: ResolverMiddleware<
   LoggedInGraphQLContext
 > = (next) =>
   loggedInAndSignedUp(async (_, args, ctx, info) => {
-    const {
-      user,
-      dataSources: { graphApi },
-    } = ctx;
     let isAllowed = false;
-    if (user.accountId === args.accountId) {
+    if (ctx.user.accountId === args.accountId) {
       isAllowed = true;
     } else {
-      isAllowed = await user.isMemberOfOrg(graphApi, {
-        orgEntityId: args.accountId,
-      });
+      isAllowed = await ctx.user.isMemberOfOrg(
+        ctx.dataSources.db,
+        args.accountId,
+      );
     }
     if (!isAllowed) {
       throw new ForbiddenError(

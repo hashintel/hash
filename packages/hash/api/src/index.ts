@@ -23,6 +23,7 @@ import {
 import setupAuth from "./auth";
 import { RedisCache } from "./cache";
 import { createCollabApp } from "./collab/collabApp";
+import { PostgresAdapter, setupCronJobs } from "./db";
 import {
   AwsSesEmailTransporter,
   DummyEmailTransporter,
@@ -42,13 +43,10 @@ import { setupStorageProviders } from "./storage/storage-provider-lookup";
 import { getAwsRegion } from "./lib/aws-config";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { connectToTaskExecutor } from "./task-execution";
-import { createGraphClient } from "./graph";
-import { ensureWorkspaceTypesExist } from "./graph/workspace-types";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
 const main = async () => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let tracker: Tracker | undefined;
   if (process.env.HASH_TELEMETRY_ENABLED === "true") {
     logger.info("Starting [Snowplow] telemetry");
@@ -93,6 +91,8 @@ const main = async () => {
   const app = express();
   app.use(cors(CORS_CONFIG));
 
+  const pgHost = getRequiredEnv("HASH_PG_HOST");
+  const pgPort = parseInt(getRequiredEnv("HASH_PG_PORT"), 10);
   const redisHost = getRequiredEnv("HASH_REDIS_HOST");
   const redisPort = parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10);
   const taskExecutorHost = getRequiredEnv("HASH_TASK_EXECUTOR_HOST");
@@ -101,13 +101,22 @@ const main = async () => {
     10,
   );
 
-  const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");
-  const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10);
-
   await Promise.all([
+    waitOnResource(`tcp:${pgHost}:${pgPort}`, logger),
     waitOnResource(`tcp:${redisHost}:${redisPort}`, logger),
-    waitOnResource(`tcp:${graphApiHost}:${graphApiPort}`, logger),
   ]);
+
+  // Connect to the database
+  const pgConfig = {
+    host: pgHost,
+    user: getRequiredEnv("HASH_PG_USER"),
+    password: getRequiredEnv("HASH_PG_PASSWORD"),
+    database: getRequiredEnv("HASH_PG_DATABASE"),
+    port: pgPort,
+    maxPoolSize: 10, // @todo: needs tuning
+  };
+  const db = new PostgresAdapter(pgConfig, logger, statsd);
+  shutdown.addCleanup("Postgres", async () => db.close());
 
   // Connect to Redis
   const redis = new RedisCache(logger, {
@@ -123,14 +132,6 @@ const main = async () => {
   };
   const taskExecutor = connectToTaskExecutor(taskExecutorConfig);
 
-  // Connect to the Graph API
-  const graphApi = createGraphClient(logger, {
-    host: graphApiHost,
-    port: graphApiPort,
-  });
-
-  await ensureWorkspaceTypesExist({ graphApi, logger });
-
   // Set sensible default security headers: https://www.npmjs.com/package/helmet
   // Temporarily disable contentSecurityPolicy for the GraphQL playground
   // Longer-term we can set rules which allow only the playground to load
@@ -141,7 +142,15 @@ const main = async () => {
   app.use(json({ limit: "16mb" }));
 
   // Set up authentication related middeware and routes
-  setupAuth({ app, graphApi, logger });
+  setupAuth(
+    app,
+    { secret: getRequiredEnv("SESSION_SECRET") },
+    { ...pgConfig, maxPoolSize: 10 },
+    db,
+  );
+
+  // Set up cron jobs
+  setupCronJobs(db, logger);
 
   // Create an email transporter
   const emailTransporter =
@@ -159,8 +168,8 @@ const main = async () => {
         })
       : new AwsSesEmailTransporter({
           from: `${getRequiredEnv(
-            "WORKSPACE_EMAIL_SENDER_NAME",
-          )} <${getRequiredEnv("WORKSPACE_EMAIL_ADDRESS")}>`,
+            "SYSTEM_EMAIL_SENDER_NAME",
+          )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
           region: getAwsRegion(),
           subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
         });
@@ -182,9 +191,8 @@ const main = async () => {
     });
     shutdown.addCleanup("OpenSearch", async () => search!.close());
   }
-
   const apolloServer = createApolloServer({
-    graphApi,
+    db,
     search,
     cache: redis,
     taskExecutor,

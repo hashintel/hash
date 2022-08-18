@@ -1,12 +1,12 @@
 import { ApolloError, ForbiddenError } from "apollo-server-errors";
 import {
   MutationCreateOrgEmailInvitationArgs,
-  Resolver,
+  ResolverFn,
 } from "../../apiTypes.gen";
 import { UnresolvedGQLEntity, Org, OrgEmailInvitation } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 
-export const createOrgEmailInvitation: Resolver<
+export const createOrgEmailInvitation: ResolverFn<
   Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,
@@ -17,7 +17,6 @@ export const createOrgEmailInvitation: Resolver<
   { emailTransporter, dataSources, user },
 ) =>
   dataSources.db.transaction(async (client) => {
-    const { graphApi } = dataSources;
     const org = await Org.getOrgById(client, { entityId: orgEntityId });
 
     if (!org) {
@@ -25,7 +24,7 @@ export const createOrgEmailInvitation: Resolver<
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
-    if (!(await user.isMemberOfOrg(graphApi, { orgEntityId: org.entityId }))) {
+    if (!(await user.isMemberOfOrg(client, org.entityId))) {
       throw new ForbiddenError(
         `User with entityId ${user.entityId} is not a member of the org with entityId ${org.entityId}`,
       );
@@ -50,11 +49,7 @@ export const createOrgEmailInvitation: Resolver<
     const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
       client,
       emailTransporter,
-      {
-        org,
-        inviter: user as any /** @todo: replace with updated model class */,
-        inviteeEmailAddress,
-      },
+      { org, inviter: user, inviteeEmailAddress },
     );
 
     return emailInvitation.toGQLUnknownEntity();
