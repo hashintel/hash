@@ -1,6 +1,6 @@
 use alloc::{string::String, vec, vec::Vec};
 
-use crate::fmt::{Emit, Snippet};
+use crate::fmt::Emit;
 
 /// `nightly` experimental type, which is used during the formatting of [`Debug`] context via the
 /// [`Provider`] api.
@@ -26,7 +26,7 @@ use crate::fmt::{Emit, Snippet};
 /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 /// # }
 /// #
-/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__debugdiagnostic.snap")].assert_eq(&render(format!("{report:?}")));
+/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__debugdiagnostic.snap")].assert_eq(&render(format!("{report:?}")));
 /// #
 /// # stringify!(
 /// println!("{report:?}");
@@ -83,8 +83,8 @@ impl DebugDiagnostic {
     /// Add additional text to the [`DebugDiagnostic`],
     /// this can be chained to create multiple texts entries.
     #[must_use]
-    pub fn add_snippet(mut self, snippet: impl Into<String>) -> Self {
-        self.snippets.push(snippet);
+    pub fn attach_snippet(mut self, snippet: impl Into<String>) -> Self {
+        self.snippets.push(snippet.into());
         self
     }
 

@@ -38,18 +38,15 @@
 //! The function must return a value of type [`Emit`], which decides *when* a value is going to be
 //! emitted during printing, refer to the documentation of [`Emit`] for further information.
 //!
-//! Fallback functions must return [`Call`], which is similar to the [`Result`] and [`Option`] type,
-//! [`Call::Find`] is returned if a value for a [`Frame`] could be found, otherwise it must return
-//! [`Call::Miss`], with the [`HookContext<T>`] which has been specified in the arguments.
-//! This ensures that the [`HookContext<T>`] is never cloned and all guarantees are held in place by
-//! the compiler.
+//! Fallback functions must return [`Option`], which indicates whether a fallback was able to find a
+//! value for the specified [`Frame`].
 //!
 //! ## Example
 //!
 //! ```rust
 //! use std::io::{Error, ErrorKind};
 //! use error_stack::{
-//!     fmt::{Emit, Snippet},
+//!     fmt::{Emit},
 //!     Report
 //! };
 //!
@@ -97,13 +94,13 @@
 //! #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 //! # }
 //! #
-//! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__doc.snap")].assert_eq(&render(format!("{report:?}")));
+//! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__doc.snap")].assert_eq(&render(format!("{report:?}")));
 //! #
 //! # stringify!(
 //! println!("{report:?}");
 //! # );
 //!
-//! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt_doc_alt.snap")].assert_eq(&render(format!("{report:#?}")));
+//! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt_doc_alt.snap")].assert_eq(&render(format!("{report:#?}")));
 //! #
 //! # stringify!(
 //! println!("{report:#?}");
@@ -112,13 +109,13 @@
 //! ### `println!("{report:?}")`
 //!
 //! <pre>
-#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__doc.snap"))]
+#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__doc.snap"))]
 //! </pre>
 //!
 //! ### `println!("{report:#?}")`
 //!
 //! <pre>
-#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt_doc_alt.snap"))]
+#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt_doc_alt.snap"))]
 //! </pre>
 //!
 //!
@@ -206,7 +203,7 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 /// # }
 /// #
-/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__emit.snap")].assert_eq(&render(format!("{report:?}")));
+/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap")].assert_eq(&render(format!("{report:?}")));
 /// #
 /// # stringify!(
 /// println!("{report:?}");

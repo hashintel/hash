@@ -21,17 +21,19 @@ static DISPLAY_HOOK: RwLock<Option<FormatterHook>> = RwLock::new(None);
 #[derive(Debug, Copy, Clone)]
 #[non_exhaustive]
 #[deprecated(
-    version = "0.2.0",
+    since = "0.2.0",
     note = "`Report::install_debug_hook()` and `Report::install_display_hook()` are infallible"
 )]
 pub struct HookAlreadySet;
 
+#[allow(deprecated)]
 impl fmt::Display for HookAlreadySet {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.write_str("Hook can only be set once")
     }
 }
 
+#[allow(deprecated)]
 impl Error for HookAlreadySet {}
 
 impl Report<()> {
@@ -70,7 +72,7 @@ impl Report<()> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/hook__debug_hook.snap")].assert_eq(&render(format!("{report:?}")));
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// # stringify!(
     /// println!("{report:?}");
@@ -129,7 +131,7 @@ impl Report<()> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/hook__fallback.snap")].assert_eq(&render(format!("{report:?}")));
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// # stringify!(
     /// println!("{report:?}");
@@ -167,7 +169,7 @@ impl Report<()> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/hook__fallback_builtin.snap")].assert_eq(&render(format!("{report:?}")));
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback_builtin.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// # stringify!(
     /// println!("{report:?}");
@@ -237,8 +239,9 @@ impl Report<()> {
     /// assert_eq!(format!("{report:?}"), "custom debug implementation");
     /// # Ok(()) }
     /// ```
-    #[deprecated(version = "0.2.0", note = "use Report::install_debug_hook() instead")]
+    #[deprecated(since = "0.2.0", note = "use Report::install_debug_hook() instead")]
     #[cfg(feature = "std")]
+    #[allow(deprecated)]
     pub fn set_debug_hook<H>(hook: H) -> Result<(), HookAlreadySet>
     where
         H: Fn(&Self, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static,
@@ -296,6 +299,7 @@ impl Report<()> {
     /// ```
     #[deprecated]
     #[cfg(feature = "std")]
+    #[allow(deprecated)]
     pub fn set_display_hook<H>(hook: H) -> Result<(), HookAlreadySet>
     where
         H: Fn(&Self, &mut fmt::Formatter) -> fmt::Result + Send + Sync + 'static,

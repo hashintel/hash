@@ -187,7 +187,7 @@
 //! #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 //! # }
 //! #
-//! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/lib__suggestion.snap")].assert_eq(&render(format!("{report:?}")));
+//! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/lib__suggestion.snap")].assert_eq(&render(format!("{report:?}")));
 //! ```
 //!
 //! As seen above, there are ways on attaching more information to the [`Report`]: [`attach`] and
@@ -198,7 +198,7 @@
 //! This outputs something like:
 //!
 //! <pre>
-#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/lib__suggestion.snap"))]
+#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/lib__suggestion.snap"))]
 //! </pre>
 //!
 //! The `Suggestion` passed to [`attach`] shown as an opaque attachment. The message passed to

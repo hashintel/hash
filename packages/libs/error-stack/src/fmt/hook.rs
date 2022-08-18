@@ -11,7 +11,7 @@ use core::{
 
 pub use default::builtin;
 
-use crate::fmt::{Emit, Frame, Snippet};
+use crate::fmt::{Emit, Frame};
 
 #[derive(Default)]
 pub struct HookContextImpl {
@@ -37,19 +37,17 @@ impl HookContextImpl {
 /// Optional context used to carry information across hook invocations.
 ///
 /// `HookContext` has two fundamental use-cases:
-/// 1) Emitting [`Snippet`]s
+/// 1) Emitting Snippets
 /// 2) Storage
 ///
-/// ## Emitting [`Snippet`]s
+/// ## Emitting Snippets
 ///
 /// A [`Debug`] backtrace consists of two different sections, a rendered tree of objects and
 /// additional text/information that is too large to fit into the tree.
 ///
-/// [`Snippet`]s can be added to the current output via [`add_snippet()`],
-/// depending on the type of the snippet, these text fragments are either always outputted, or just
-/// when alternate mode (`:#?`) has been enabled.
+/// Snippets can be added to the current output via [`attach_snippet()`].
 ///
-/// [`add_snippet()`]: HookContext::add_snippet
+/// [`attach_snippet()`]: HookContext::attach_snippet
 /// [`Debug`]: core::fmt::Debug
 ///
 /// ### Example
@@ -57,10 +55,13 @@ impl HookContextImpl {
 /// ```rust
 /// use std::io::ErrorKind;
 ///
-/// use error_stack::{fmt::{Emit, Snippet}, Report};
+/// use error_stack::{fmt::{Emit}, Report};
 ///
 /// Report::install_debug_hook::<u64>(|val, ctx| {
-///     ctx.attach_snippet(Snippet::regular("u64 has been encountered"));
+///     if ctx.alternate() {
+///         ctx.attach_snippet("u64 has been encountered");
+///     }
+///     
 ///     Emit::next(val.to_string())
 /// });
 ///
@@ -79,7 +80,7 @@ impl HookContextImpl {
 /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 /// # }
 /// #
-/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__hookcontext_emit.snap")].assert_eq(&render(format!("{report:#?}")));
+/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap")].assert_eq(&render(format!("{report:#?}")));
 /// #
 /// # stringify!(
 /// println!("{report:#?}");
@@ -136,7 +137,7 @@ impl HookContextImpl {
 /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 /// # }
 /// #
-/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__hookcontext_storage.snap")].assert_eq(&render(format!("{report:?}")));
+/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_storage.snap")].assert_eq(&render(format!("{report:?}")));
 /// #
 /// # stringify!(
 /// println!("{report:?}");
@@ -157,14 +158,10 @@ pub struct HookContext<'a, T> {
 
 #[cfg_attr(all(doc, nightly), doc(cfg(feature = "std")))]
 impl<T> HookContext<'_, T> {
-    /// If [`Debug`] requests, this snippet (which can include line breaks) will be appended to the
+    /// This snippet (which can include line breaks) will be appended to the
     /// main message.
     ///
-    /// A hook can force the append of a snippet by using [`Snippet::Force`],
-    /// [`Snippet::Regular`] will only be appended if [`alternate()`] is requested.
-    ///
-    /// This is useful for dense information like backtraces, or span traces, which are omitted when
-    /// rendering without the alternate [`Debug`] output.
+    /// This is useful for dense information like backtraces, or span traces.
     ///
     /// [`alternate()`]: Self::alternate
     /// [`Debug`]: core::fmt::Debug
@@ -220,7 +217,7 @@ impl<'a, T> HookContext<'a, T> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__hookcontext_cast.snap")].assert_eq(&render(format!("{report:?}")));
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_cast.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// # stringify!(
     /// println!("{report:?}");
@@ -304,7 +301,7 @@ impl<T: 'static> HookContext<'_, T> {
     }
 
     /// One of the most common interactions with [`HookContext`] is a counter to reference previous
-    /// frames or the content emitted during [`add_snippet()`].
+    /// frames or the content emitted during [`attach_snippet()`].
     ///
     /// This is a utility method, which uses the other primitive methods provided to automatically
     /// increment a counter, if the counter wasn't initialized this method will return `0`.
@@ -336,7 +333,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__hookcontext_increment.snap")].assert_eq(&render(format!("{report:?}")));
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_increment.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// # stringify!(
     /// println!("{report:?}");
@@ -347,7 +344,7 @@ impl<T: 'static> HookContext<'_, T> {
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_increment.snap"))]
     /// </pre>
     ///
-    /// [`add_snippet()`]: Self::add_snippet
+    /// [`attach_snippet()`]: Self::attach_snippet
     /// [`Debug`]: core::fmt::Debug
     pub fn increment(&mut self) -> isize {
         let counter = self.get_mut::<isize>();
@@ -368,7 +365,7 @@ impl<T: 'static> HookContext<'_, T> {
     }
 
     /// One of the most common interactions with [`HookContext`] is a counter
-    /// to reference previous frames or the content emitted during [`add_snippet()`].
+    /// to reference previous frames or the content emitted during [`attach_snippet()`].
     ///
     /// This is a utility method, which uses the other primitive method provided to automatically
     /// decrement a counter, if the counter wasn't initialized this method will return `-1` to stay
@@ -398,7 +395,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/snapshots/fmt__hookcontext_decrement.snap")].assert_eq(&render(format!("{report:?}")));
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_decrement.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// # stringify!(
     /// println!("{report:?}");
@@ -410,7 +407,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// </pre>
     ///
     /// [`increment()`]: Self::increment
-    /// [`add_snippet()`]: Self::add_snippet
+    /// [`attach_snippet()`]: Self::attach_snippet
     pub fn decrement(&mut self) -> isize {
         let counter = self.get_mut::<isize>();
 
@@ -520,7 +517,7 @@ mod default {
     use tracing_error::SpanTrace;
 
     use crate::{
-        fmt::{hook::HookContext, Emit, Snippet},
+        fmt::{hook::HookContext, Emit},
         Frame,
     };
 
@@ -528,11 +525,7 @@ mod default {
     fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Emit {
         let idx = ctx.increment();
 
-        ctx.attach_snippet(Snippet::force(format!(
-            "Backtrace No. {}\n{}",
-            idx + 1,
-            backtrace
-        )));
+        ctx.attach_snippet(format!("Backtrace No. {}\n{}", idx + 1, backtrace));
 
         Emit::Defer(format!(
             "backtrace with {} frames ({})",
@@ -551,11 +544,7 @@ mod default {
             true
         });
 
-        ctx.attach_snippet(Snippet::force(format!(
-            "Span Trace No. {}\n{}",
-            idx + 1,
-            spantrace
-        )));
+        ctx.attach_snippet(format!("Span Trace No. {}\n{}", idx + 1, spantrace));
 
         Emit::Defer(format!("spantrace with {span} frames ({})", idx + 1))
     }
