@@ -57,6 +57,18 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
     if (event.key === "Enter" || event.key === "Escape") {
       event.currentTarget.blur();
     }
+
+    if (event.key === "ArrowDown") {
+      const { anchorOffset, type } = window.getSelection() || {};
+
+      const isCaret = type === "Caret";
+      const isCaretAtEnd = anchorOffset === titleValueRef?.current.length;
+
+      if (isCaret && isCaretAtEnd) {
+        /** @todo focus to first block in the editor */
+        alert("focus to first block");
+      }
+    }
   };
 
   const handleInputBlur: FocusEventHandler<HTMLInputElement> = () => {
