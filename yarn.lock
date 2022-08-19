@@ -3096,6 +3096,13 @@
     "@blockprotocol/core" "0.0.8"
     lit "^2.2.5"
 
+"@blockprotocol/hook@0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/hook/-/hook-0.0.1.tgz#e98e0ec0453d64891cebaf9721369b7405a04b8e"
+  integrity sha512-t2g0cImU3Tt5HgjLc8VSvxWKE/F6uCsAmtgY8yevwFHIF+QiLZoP3URiILL97QxH1QIrk7kid5hsJlw0wzHVRQ==
+  dependencies:
+    "@blockprotocol/core" "0.0.8"
+
 "@cspotcode/source-map-consumer@0.8.0":
   version "0.8.0"
   resolved "https://registry.yarnpkg.com/@cspotcode/source-map-consumer/-/source-map-consumer-0.8.0.tgz#33bf4b7b39c178821606f669bbc447a6a629786b"
@@ -5002,6 +5009,11 @@
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/@rjsf/material-ui/-/material-ui-4.1.1.tgz#f4b806f81f5382f7ba5e54332f883186d25b53dc"
   integrity sha512-P+N4HIh7QzF4rtFdgo76p6h4xCzLOPMdHeRpdGnol9z3aAzvUetQvM38NM2Gi32mq8FbJUjZSNm9hQIhQDcelg==
+
+"@rooks/use-fork-ref@4.11.2":
+  version "4.11.2"
+  resolved "https://registry.yarnpkg.com/@rooks/use-fork-ref/-/use-fork-ref-4.11.2.tgz#230fd09b40eb94a5a0b18bf8c93b0fdf24252f0a"
+  integrity sha512-ZOCz6geb63uZNsg4RuZraK1jJp2lgeSyxXEd6dA4v4WgwH+UJponyL4D3+SHGFACHFJ4Hg4JUAiA0Tl5BGoHXg==
 
 "@samverschueren/stream-to-observable@^0.3.0":
   version "0.3.1"

@@ -24,11 +24,8 @@ jobs:
     outputs:
       lint: ${{ steps.crates.outputs.lint }}
       test: ${{ steps.crates.outputs.test }}
-      bench: ${{ steps.crates.outputs.bench }}
       publish: ${{ steps.crates.outputs.publish }}
-      exclude: ${{ steps.crates.outputs.exclude }}
       samples: ${{ steps.samples.outputs.samples }}
-      nightly: ${{ steps.toolchains.outputs.nightly }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -42,13 +39,6 @@ jobs:
         id: crates
         run: python .github/scripts/rust/setup.py
 
-      - name: Find toolchain
-        id: toolchains
-        run: |
-          nightly=$(cat $(find . -name rust-toolchain.toml) | grep channel | cut -d\" -f2)
-          echo "::set-output name=nightly::$nightly"
-          echo "use toolchains: $(echo $nightly)"
-
       - name: Determine samples
         id: samples
         run: |
@@ -61,17 +51,11 @@ jobs:
   lint:
     name: lint
     needs: setup
-    if: needs.setup.outputs.lint != '[]'
+    if: needs.setup.outputs.lint != '{}'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        directory: ${{ fromJSON(needs.setup.outputs.lint) }}
-        toolchain:
-          - ${{ needs.setup.outputs.nightly }}
-        profile:
-          - development
-        exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
+      matrix: ${{ fromJSON(needs.setup.outputs.lint) }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -97,36 +81,31 @@ jobs:
 
       - name: Check formatting
         working-directory: ${{ matrix.directory }}
-        run: cargo make format -- --check
+        run: cargo +${{ matrix.toolchain }} make format -- --check
 
       - name: Check clippy
         working-directory: ${{ matrix.directory }}
-        run: cargo make clippy -- -D warnings
+        if: always()
+        run: cargo +${{ matrix.toolchain }} make clippy -- -D warnings
 
       - name: Check public documentation
         working-directory: ${{ matrix.directory }}
-        run: cargo make rustdoc --check -D warnings
+        if: always()
+        run: cargo +${{ matrix.toolchain }} make rustdoc --check -D warnings
 
       - name: Check private documentation
         working-directory: ${{ matrix.directory }}
-        run: cargo make rustdoc --check -D warnings --document-private-items
+        if: always()
+        run: cargo +${{ matrix.toolchain }} make rustdoc --check -D warnings --document-private-items
 
   test:
     name: test
     needs: setup
-    if: needs.setup.outputs.test != '[]'
+    if: needs.setup.outputs.test != '{}'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        directory: ${{ fromJSON(needs.setup.outputs.test) }}
-        toolchain:
-          - stable
-          - ${{ needs.setup.outputs.nightly }}
-        profile:
-          - development
-          - production
-        exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
+      matrix: ${{ fromJSON(needs.setup.outputs.test) }}
     env:
       OUTPUT_DIRECTORY: test-results
       RUST_BACKTRACE: 1
@@ -170,12 +149,12 @@ jobs:
 
       - name: Run tests
         working-directory: ${{ matrix.directory }}
-        run: cargo make --profile ${{ matrix.profile }} test --no-fail-fast
+        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
 
       - name: Run miri
-        if: matrix.toolchain != 'stable'
+        if: ${{ startsWith(matrix.toolchain, 'nightly') }}
         working-directory: ${{ matrix.directory }}
-        run: cargo make --profile ${{ matrix.profile }} miri --no-fail-fast
+        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} miri --no-fail-fast
 
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
@@ -202,16 +181,11 @@ jobs:
   publish:
     name: publish
     needs: setup
-    if: needs.setup.outputs.publish != '[]'
+    if: needs.setup.outputs.publish != '{}'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        directory: ${{ fromJSON(needs.setup.outputs.publish) }}
-        toolchain:
-          - ${{ needs.setup.outputs.nightly }}
-        profile:
-          - release
+      matrix: ${{ fromJSON(needs.setup.outputs.publish) }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -234,7 +208,7 @@ jobs:
 
       - name: Run tests
         working-directory: ${{ matrix.directory }}
-        run: cargo make --profile ${{ matrix.profile }} test --no-fail-fast
+        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
 
       - name: Login
         run: |
@@ -244,12 +218,12 @@ jobs:
       - name: Publish (dry run)
         if: github.event_name == 'pull_request'
         working-directory: ${{ matrix.directory }}
-        run: cargo publish --all-features --dry-run
+        run: cargo +${{ matrix.toolchain }} publish --all-features --dry-run
 
       - name: Publish
         if: github.event_name == 'push' && github.ref == 'ref/head/main'
         working-directory: ${{ matrix.directory }}
-        run: cargo publish --all-features
+        run: cargo +${{ matrix.toolchain }} publish --all-features
 
   merging-enabled:
     name: merging enabled
