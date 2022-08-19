@@ -54,7 +54,7 @@ export const seedDevUsers = async ({
       .catch((error: AxiosError) => {
         if (error.response?.status === 409) {
           // The user already exists on 409 CONFLICT, which is fine
-          return Promise.resolve(null);
+          return null;
         } else {
           logger.warn(
             `Could not create development user identity, email = "${email}".`,
