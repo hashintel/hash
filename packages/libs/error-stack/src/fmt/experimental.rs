@@ -57,8 +57,7 @@ use crate::fmt::Emit;
 /// [`Report`]: crate::Report
 /// [RFC 1210]: https://github.com/rust-lang/rfcs/pull/1210
 /// [#31844]: https://github.com/rust-lang/rust/issues/31844
-// TODO: remove experimental flag once specialisation is stabilized or sound or `.attach_provider()`
-//  is introduced.
+// TODO: remove experimental flag once specialisation is stabilized or sound
 #[cfg(feature = "experimental")]
 pub struct DebugDiagnostic {
     output: Emit,
