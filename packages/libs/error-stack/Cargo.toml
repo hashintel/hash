@@ -46,7 +46,7 @@ futures = ["dep:pin-project", "dep:futures-core"]
 small = ["dep:smallvec"]
 glyph = ["dep:owo-colors"]
 experimental = []
-hooks = []
+hooks = ["std"]
 
 [package.metadata.docs.rs]
 all-features = true

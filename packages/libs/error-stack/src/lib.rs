@@ -141,7 +141,7 @@
 //! [`Report::attach()`] and [`Report::attach_printable()`]:
 //!
 //! ```rust
-//! # // we only test on nightly, therefore report is unused (so is render)
+//! # // we only test the snapshot on nightly, therefore report is unused (so is render)
 //! # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 //! # use std::{fs, path::Path};
 //! # use error_stack::{Context, IntoReport, Report, ResultExt};
@@ -454,7 +454,10 @@ mod report;
 
 mod context;
 mod ext;
+#[cfg(feature = "std")]
 pub mod fmt;
+#[cfg(not(feature = "std"))]
+pub(crate) mod fmt;
 #[cfg(feature = "std")]
 mod hook;
 

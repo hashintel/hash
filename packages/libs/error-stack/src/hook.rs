@@ -37,15 +37,16 @@ impl fmt::Display for HookAlreadySet {
 impl Error for HookAlreadySet {}
 
 impl Report<()> {
-    /// Can be used to globally set a [`Debug`] format hook, for a specific type `T`, this hook
-    /// will be called on every [`Debug`] call, if an attachment with the same type has been found.
+    /// Can be used to globally set a [`Debug`] format hook, for a specific type `T`.
+    ///
+    /// This hook will be called on every [`Debug`] call, if an attachment with the same type has been found.
     ///
     /// [`Debug`]: core::fmt::Debug
     ///
     /// # Example
     ///
     /// ```
-    /// # // we only test on nightly, therefore report is unused (so is render)
+    /// # // we only test the snapshot on nightly, therefore report is unused (so is render)
     /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::{Error, ErrorKind};
     ///
@@ -82,6 +83,8 @@ impl Report<()> {
     /// # );
     /// ```
     ///
+    /// Which will result in something like:
+    ///
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook.snap"))]
     /// </pre>
@@ -106,7 +109,7 @@ impl Report<()> {
     /// # Example
     ///
     /// ```
-    /// # // we only test on nightly, therefore report is unused (so is render)
+    /// # // we only test the snapshot on nightly, therefore report is unused (so is render)
     /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::{Error, ErrorKind};
     ///
@@ -144,12 +147,14 @@ impl Report<()> {
     /// # );
     /// ```
     ///
+    /// Which will result in something like:
+    ///
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback.snap"))]
     /// </pre>
     ///
     /// ```
-    /// # // we only test on nightly, therefore report is unused (so is render)
+    /// # // we only test the snapshot on nightly, therefore report is unused (so is render)
     /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::{Error, ErrorKind};
     ///
@@ -184,6 +189,8 @@ impl Report<()> {
     /// println!("{report:?}");
     /// # );
     /// ```
+    ///
+    /// Which will result in something like:
     ///
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback_builtin.snap"))]
