@@ -114,7 +114,7 @@ Unfortunately, Apple currently doesn't provide a way to resize shared-memory all
 export OS_MEMORY_ALLOC_OVERRIDE=250000000
 ```
 
-If you want to run Python behaviors, you will need a copy of the open basic linear algebra subroutines (`brew install openblas` - if you do not have Homebrew installed, this is easily done from [its website](https://brew.sh)) - this is currently necessary to install `scipy`.
+If you want to run Python behaviors, you will need a copy of the open basic linear algebra subroutines (`brew install openblas` - if you do not have Homebrew installed, this is easily done from [its website](https://brew.sh)) - this is currently necessary to install `scipy`. You may also need to install a Fortran compiler (`brew install gfortran`).
 
 ### Possible Dependencies and Debugging
 
