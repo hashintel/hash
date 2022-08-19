@@ -1,6 +1,6 @@
 ---
 source: tests/test_debug.rs
-expression: "redact(&format!(\"{report:?}\"))"
+expression: "format!(\"{report:?}\")"
 ---
 Root error
 ├╴tests/common.rs:147:5
