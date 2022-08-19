@@ -7,7 +7,7 @@ use crate::fmt::Emit;
 /// # Example
 ///
 /// ```
-/// # // we only test on nightly, therefore report is unused (so is render)
+/// # // we only test the snapshot on nightly, therefore report is unused (so is render)
 /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::{Error, ErrorKind};
 ///
@@ -31,6 +31,8 @@ use crate::fmt::Emit;
 /// #
 /// println!("{report:?}");
 /// ```
+///
+/// Which will result in something like:
 ///
 /// <pre>
 #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__debugdiagnostic.snap"))]
