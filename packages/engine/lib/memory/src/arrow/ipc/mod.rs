@@ -1,6 +1,6 @@
-//! This file handles writing Arrow data as raw bytes. We would use the types which [`arrow`]
-//! (arrow2 not arrow-rs) provides, except that they do not provide a way to write the different
-//! components of a message to seperate sections.
+//! This file handles writing Arrow data as raw bytes. We would use the types which [`arrow2`]
+//! provides, except that they do not provide a way to write the different components of a message
+//! to seperate sections.
 //!
 //! IMPORTANT: do not feed the items in this module untrusted data (it might be ok, but they haven't
 //! been explicitly designed to do so).
@@ -8,11 +8,6 @@
 //! Note that "length" is used somewhat ambigously - sometimes we are referring to the number of
 //! _elements_ in an array, but sometimes to the number of _bytes_. If anything is unclear please
 //! update the naming of items and/or their documentation.
-//!
-//! Although this module contains an unfortunately large amount of code (especially when compared
-//! to how much it contained before we migrated to `arrow2`), this is difficult to avoid as `arrow2`
-//! has a lot more structure than `arrow`. If `arrow` is the tyranny of structurelessness, `arrow2`
-//! is the tyranny of structure.
 //!
 //! # Further reading
 //! - [This explanation of the IPC format](https://wesm.github.io/arrow-site-test/format/IPC.html)

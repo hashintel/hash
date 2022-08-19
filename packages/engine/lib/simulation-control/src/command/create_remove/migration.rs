@@ -591,11 +591,10 @@ impl<'a> BufferActions<'a> {
                     // next_bit_index <= bit_capacity as we've only removed bits
 
                     // MOVE ACTIONS
-                    range_actions
-                        .copy()
-                        .iter()
-                        .try_for_each::<_, Result<()>>(|(j, v)| {
-                            let src_buffer = agent_batches[*j].get_buffer(buffer_index)?;
+                    range_actions.copy().iter().try_for_each::<_, Result<()>>(
+                        |(current_agent_batch_index, v)| {
+                            let src_buffer = agent_batches[*current_agent_batch_index]
+                                .get_buffer(buffer_index)?;
 
                             v.iter().for_each(|range| {
                                 if src_buffer.is_empty() {
@@ -611,14 +610,15 @@ impl<'a> BufferActions<'a> {
                                 cur_length += range.len;
                             });
                             Ok(())
-                        })?;
+                        },
+                    )?;
 
                     // CREATE ACTIONS
-                    if let Some(ad) = &new_agents {
+                    if let Some(agent_data) = &new_agents {
                         let maybe_buffer = if i == 0 {
-                            ad.null_buffer()
+                            agent_data.null_buffer()
                         } else {
-                            Some(ad.buffer(i - 1))
+                            Some(agent_data.buffer(i - 1))
                         };
 
                         if let Some(buffer) = maybe_buffer.as_ref() {
@@ -767,42 +767,44 @@ impl<'a> BufferActions<'a> {
                         range_actions
                             .copy_mut()
                             .iter_mut()
-                            .try_for_each::<_, Result<()>>(|(j, ranges)| {
-                                // TODO: SAFETY
-                                let src_buffer = unsafe {
-                                    agent_batches[*j]
-                                        .get_buffer(buffer_index)?
-                                        .align_to::<i32>()
-                                        .1
-                                };
-                                ranges.iter_mut().for_each(|range| {
-                                    let first_offset = src_buffer[range.index];
-                                    let last_offset = src_buffer[range.next_index()];
-                                    let offset_diff = last_offset_value - first_offset;
-                                    (range.index + 1..=range.index + range.len).for_each(|k| {
-                                        let new_offset = src_buffer[k] + offset_diff;
-                                        // Assumes little endian
-                                        // TODO: SAFETY
-                                        let slice = unsafe {
-                                            std::slice::from_raw_parts(
-                                                &new_offset as *const i32 as *const _,
-                                                mem::size_of::<Offset>(),
-                                            )
-                                        };
-                                        move_bytes.extend_from_slice(slice);
-                                    });
-                                    let added_unit_count = last_offset - first_offset;
-                                    last_offset_value += added_unit_count;
-                                    next_offset_index += range.len;
+                            .try_for_each::<_, Result<()>>(
+                                |(current_agent_batch_index, ranges)| {
+                                    // TODO: SAFETY
+                                    let src_buffer = unsafe {
+                                        agent_batches[*current_agent_batch_index]
+                                            .get_buffer(buffer_index)?
+                                            .align_to::<i32>()
+                                            .1
+                                    };
+                                    ranges.iter_mut().for_each(|range| {
+                                        let first_offset = src_buffer[range.index];
+                                        let last_offset = src_buffer[range.next_index()];
+                                        let offset_diff = last_offset_value - first_offset;
+                                        (range.index + 1..=range.index + range.len).for_each(|k| {
+                                            let new_offset = src_buffer[k] + offset_diff;
+                                            // Assumes little endian
+                                            // TODO: SAFETY
+                                            let slice = unsafe {
+                                                std::slice::from_raw_parts(
+                                                    &new_offset as *const i32 as *const _,
+                                                    mem::size_of::<Offset>(),
+                                                )
+                                            };
+                                            move_bytes.extend_from_slice(slice);
+                                        });
+                                        let added_unit_count = last_offset - first_offset;
+                                        last_offset_value += added_unit_count;
+                                        next_offset_index += range.len;
 
-                                    // Update the range value here, so next access is in the right
-                                    // place
-                                    range.index = first_offset as usize;
-                                    range.len = (added_unit_count) as usize;
-                                    total_move_len += range.len;
-                                });
-                                Ok(())
-                            })?;
+                                        // Update the range value here, so next access is in the
+                                        // right place
+                                        range.index = first_offset as usize;
+                                        range.len = (added_unit_count) as usize;
+                                        total_move_len += range.len;
+                                    });
+                                    Ok(())
+                                },
+                            )?;
 
                         range_actions.copy.0 = total_move_len;
 
@@ -815,8 +817,8 @@ impl<'a> BufferActions<'a> {
                     };
 
                     // CREATE ACTIONS
-                    let create_actions = new_agents.as_ref().map(|ad| {
-                        let buffer = &ad.buffer(i - 1);
+                    let create_actions = new_agents.as_ref().map(|agent_data| {
+                        let buffer = &agent_data.buffer(i - 1);
 
                         let src_buffer: &[i32] = cast_slice(buffer);
 
@@ -924,11 +926,10 @@ impl<'a> BufferActions<'a> {
                         let mut move_bytes: Vec<u8> =
                             Vec::with_capacity(range_actions.copy.0 * unit_byte_size);
 
-                        range_actions
-                            .copy()
-                            .iter()
-                            .try_for_each::<_, Result<()>>(|(j, v)| {
-                                let src_buffer = agent_batches[*j].get_buffer(buffer_index)?;
+                        range_actions.copy().iter().try_for_each::<_, Result<()>>(
+                            |(current_agent_batch_index, v)| {
+                                let src_buffer = agent_batches[*current_agent_batch_index]
+                                    .get_buffer(buffer_index)?;
                                 v.iter().for_each(|range| {
                                     let from = range.index * unit_byte_size;
                                     let to = range.next_index() * unit_byte_size;
@@ -936,7 +937,8 @@ impl<'a> BufferActions<'a> {
                                     move_bytes.extend_from_slice(slice);
                                 });
                                 Ok(())
-                            })?;
+                            },
+                        )?;
 
                         let move_bytes_len = move_bytes.len();
                         debug_assert_eq!(move_bytes_len, range_actions.copy.0 * unit_byte_size);
@@ -952,8 +954,8 @@ impl<'a> BufferActions<'a> {
                     };
 
                     // CREATE ACTIONS
-                    let create_actions = new_agents.map(|ad| {
-                        let buffer = &ad.buffer(i - 1);
+                    let create_actions = new_agents.map(|agent_data| {
+                        let buffer = &agent_data.buffer(i - 1);
 
                         let src_buffer = cast_slice(buffer);
                         range_actions
