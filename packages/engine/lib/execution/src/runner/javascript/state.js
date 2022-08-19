@@ -197,6 +197,9 @@ export const gen_group_state = (agent_schema, getters) => {
 
     const skip = Object.create(null);
     skip.agent_id = true;
+    // TODO: improve the handling of this
+    // (see https://app.asana.com/0/1199548034582004/1202815168504002/f for details)
+    skip["_PRIVATE_7_behavior_ids"] = true;
     const agent_changes = this.__agent_batch.flush_changes(schema.agent, skip);
 
     // Convert message objects to JSON before flushing message batch.
