@@ -132,9 +132,9 @@
 //! [`error_stack::fmt::builtin`]: crate::fmt::builtin
 //! [`atomic`]: std::sync::atomic
 
+#[cfg(feature = "experimental")]
+mod experimental;
 mod hook;
-#[cfg(all(nightly, feature = "experimental"))]
-mod nightly;
 
 use alloc::{
     borrow::ToOwned,
@@ -150,6 +150,8 @@ use core::{
     mem,
 };
 
+#[cfg(feature = "experimental")]
+pub use experimental::DebugDiagnostic;
 #[cfg(feature = "std")]
 pub use hook::builtin;
 #[cfg(not(feature = "std"))]
@@ -159,8 +161,6 @@ pub use hook::HookContext;
 use hook::HookContextImpl;
 #[cfg(feature = "std")]
 pub(crate) use hook::Hooks;
-#[cfg(all(nightly, feature = "experimental"))]
-pub use nightly::DebugDiagnostic;
 #[cfg(feature = "glyph")]
 use owo_colors::{OwoColorize, Stream::Stdout, Style as OwOStyle};
 
