@@ -113,33 +113,30 @@ impl BatchPool for MessageBatchPool {
     }
 
     fn remove(&mut self, index: usize) -> Self::Batch {
-        let batch_arc = self.batches.remove(index);
-        let res = Arc::try_unwrap(batch_arc);
-        if let Ok(rw_lock) = res {
-            rw_lock.into_inner()
-        } else {
-            let batch_arc = res.unwrap_err();
-            panic!(
-                "Failed to remove Batch at index {index} - there should be only one strong \
-                 reference to the data (actual reference count: {}).",
-                Arc::strong_count(&batch_arc)
-            )
+        match Arc::try_unwrap(self.batches.remove(index)) {
+            Ok(rw_lock) => rw_lock.into_inner(),
+            Err(batch_arc) => {
+                let batch_arc = Arc::try_unwrap(batch_arc).unwrap_err();
+                panic!(
+                    "Failed to remove Batch at index {index} - there should be only one strong \
+                     reference to the data (actual reference count: {}).",
+                    Arc::strong_count(&batch_arc)
+                )
+            }
         }
     }
 
     fn swap_remove(&mut self, index: usize) -> Self::Batch {
-        let batch_arc = self.batches.swap_remove(index);
-        let result = Arc::try_unwrap(batch_arc);
-        if let Ok(rw_lock) = result {
-            rw_lock.into_inner()
-        } else {
-            let failure = result.unwrap_err();
-            panic!(
-                "Failed to swap remove Batch at index {index}, other strong references (count: \
-                 {}) to the Batch existed (arc memory address: {})",
-                Arc::strong_count(&failure),
-                Arc::as_ptr(&failure) as usize
-            )
+        match Arc::try_unwrap(self.batches.swap_remove(index)) {
+            Ok(rw_lock) => rw_lock.into_inner(),
+            Err(batch_arc) => {
+                panic!(
+                    "Failed to swap remove Batch at index {index}, more than one strong reference \
+                     (count: {}) to the Batch existed (arc memory address: {})",
+                    Arc::strong_count(&batch_arc),
+                    Arc::as_ptr(&batch_arc) as usize
+                )
+            }
         }
     }
 
