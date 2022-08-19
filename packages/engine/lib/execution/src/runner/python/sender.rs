@@ -321,18 +321,18 @@ fn shared_store_to_fbs<'f>(
     let (agent_batches, msg_batches, indices) = match &shared_store.state {
         SharedState::None => (vec![], vec![], vec![]),
         SharedState::Read(state) => {
-            let a: Vec<_> = state
+            let agents: Vec<_> = state
                 .agent_pool()
                 .batches_iter()
                 .map(|agent_batch| batch_to_fbs(fbb, agent_batch.batch.segment()))
                 .collect();
-            let m: Vec<_> = state
+            let messages: Vec<_> = state
                 .message_pool()
                 .batches_iter()
                 .map(|message_batch| batch_to_fbs(fbb, message_batch.batch.segment()))
                 .collect();
-            let indices = (0..a.len()).collect();
-            (a, m, indices)
+            let indices = (0..agents.len()).collect();
+            (agents, messages, indices)
         }
         SharedState::Write(state) => {
             let a: Vec<_> = state
@@ -351,31 +351,31 @@ fn shared_store_to_fbs<'f>(
         SharedState::Partial(partial) => match partial {
             PartialSharedState::Read(partial) => {
                 let state = &partial.state_proxy;
-                let a: Vec<_> = state
+                let agents: Vec<_> = state
                     .agent_pool()
                     .batches_iter()
                     .map(|agent_batch| batch_to_fbs(fbb, agent_batch.batch.segment()))
                     .collect();
-                let m: Vec<_> = state
+                let messages: Vec<_> = state
                     .message_pool()
                     .batches_iter()
                     .map(|message_batch| batch_to_fbs(fbb, message_batch.batch.segment()))
                     .collect();
-                (a, m, partial.group_indices.clone())
+                (agents, messages, partial.group_indices.clone())
             }
             PartialSharedState::Write(partial) => {
                 let state = &partial.state_proxy;
-                let a: Vec<_> = state
+                let agents: Vec<_> = state
                     .agent_pool()
                     .batches_iter()
                     .map(|agent_batch| batch_to_fbs(fbb, agent_batch.batch.segment()))
                     .collect();
-                let m: Vec<_> = state
+                let messages: Vec<_> = state
                     .message_pool()
                     .batches_iter()
                     .map(|message_batch| batch_to_fbs(fbb, message_batch.batch.segment()))
                     .collect();
-                (a, m, partial.group_indices.clone())
+                (agents, messages, partial.group_indices.clone())
             }
         },
     };
