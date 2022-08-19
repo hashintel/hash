@@ -128,6 +128,15 @@ export const createFlowErrorHandler =
     }
 
     switch (err.response?.status) {
+      case 404:
+        if (process.env.NODE_ENV === "development") {
+          /**
+           * In development a flow may have disappeared because we re-seeded
+           * the database. Let's hadnle this gracefully.
+           */
+          return;
+        }
+        break;
       case 410:
         // The flow expired, let's request a new one.
         setFlow(undefined);
