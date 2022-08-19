@@ -151,7 +151,6 @@ impl HookContextImpl {
 /// </pre>
 ///
 /// [`Debug`]: core::fmt::Debug
-#[cfg_attr(all(doc, nightly), doc(cfg(feature = "std")))]
 #[repr(transparent)]
 pub struct HookContext<'a, T> {
     parent: &'a mut HookContextImpl,
