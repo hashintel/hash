@@ -32,32 +32,6 @@ pub trait GrowableArrayData: Sized + std::fmt::Debug {
     fn child_data(&self) -> &[Self];
 }
 
-impl GrowableArrayData for arrow::array::ArrayData {
-    fn len(&self) -> usize {
-        arrow::array::ArrayData::len(self)
-    }
-
-    fn null_count(&self) -> usize {
-        arrow::array::ArrayData::null_count(self)
-    }
-
-    fn null_buffer(&self) -> std::option::Option<&[u8]> {
-        arrow::array::ArrayData::null_buffer(self).map(arrow::buffer::Buffer::as_slice)
-    }
-
-    fn buffer(&self, index: usize) -> &[u8] {
-        self.buffers()[index].as_slice()
-    }
-
-    fn non_null_buffer_count(&self) -> usize {
-        self.buffers().len()
-    }
-
-    fn child_data(&self) -> &[arrow::array::ArrayData] {
-        arrow::array::ArrayData::child_data(self)
-    }
-}
-
 /// The info required about an Arrow column in order to grow it
 pub trait GrowableColumn<D: GrowableArrayData>: Sized {
     fn index(&self) -> usize;
