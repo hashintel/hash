@@ -144,11 +144,11 @@ export default class extends EntityModel {
 
   static shortnameIsInvalid(shortname: string): boolean {
     return (
-      UserModel.shortnameContainsInvalidCharacter(shortname) ||
-      UserModel.shortnameIsRestricted(shortname) ||
       shortname.length < shortnameMinimumLength ||
       shortname.length > shortnameMaximumLength ||
-      shortname[0] === "-"
+      shortname[0] === "-" ||
+      UserModel.shortnameContainsInvalidCharacter(shortname) ||
+      UserModel.shortnameIsRestricted(shortname)
     );
   }
 
