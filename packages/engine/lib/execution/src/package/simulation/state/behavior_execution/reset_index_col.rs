@@ -10,6 +10,8 @@ pub fn reset_index_col(behavior_index_col_index: usize) -> Result<StateColumn> {
     })))
 }
 
+/// This struct resets the value of the behavior index column to the first behavior in the behavior
+/// list.
 pub struct ResetIndexCol {
     behavior_index_col_index: usize,
 }
