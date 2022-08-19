@@ -25,14 +25,12 @@ export const createEntityType: ResolverFn<
     accountId: accountId ?? user.getAccountId(),
     schema: entityType,
   }).catch((err: AxiosError) => {
-    if (err.response?.status === 409) {
-      throw new ApolloError(
-        `Entity type with the same URI already exists. [URI=${entityType.$id}]`,
-        "CREATION_ERROR",
-      );
-    }
+    const msg =
+      err.response?.status === 409
+        ? `Entity type with the same URI already exists. [URI=${entityType.$id}]`
+        : `Couldn't create entity type.`;
 
-    throw new ApolloError(`Couldn't create entity type.`, "CREATION_ERROR");
+    throw new ApolloError(msg, "CREATION_ERROR");
   });
 
   return entityTypeModelToGQL(createdEntityTypeModel);
@@ -105,13 +103,12 @@ export const updateEntityType: ResolverFn<
       schema: updatedEntityType,
     })
     .catch((err: AxiosError) => {
-      if (err.response?.status === 409) {
-        throw new ApolloError(
-          `Entity type URI doesn't exist, unable to update. [URI=${entityTypeVersionedUri}]`,
-          "CREATION_ERROR",
-        );
-      }
-      throw new ApolloError(`Couldn't update entity type.`, "CREATION_ERROR");
+      const msg =
+        err.response?.status === 409
+          ? `Entity type URI doesn't exist, unable to update. [URI=${entityTypeVersionedUri}]`
+          : `Couldn't update entity type.`;
+
+      throw new ApolloError(msg, "CREATION_ERROR");
     });
 
   return entityTypeModelToGQL(updatedEntityTypeModel);
