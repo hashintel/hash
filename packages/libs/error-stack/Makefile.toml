@@ -1,12 +1,14 @@
 extend = { path = "../../../.github/scripts/rust/Makefile.toml" }
 
 [env]
-CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default --optional-deps eyre,anyhow"
+CARGO_CLIPPY_HACK_FLAGS_BASE = "--workspace --feature-powerset --exclude-features default --optional-deps eyre,anyhow"
+CARGO_CLIPPY_HACK_FLAGS = "${CARGO_CLIPPY_HACK_FLAGS_BASE} --group-features anyhow,eyre --group-features spantrace,futures,small"
 CARGO_TEST_HACK_FLAGS_BASE = "--workspace --feature-powerset --exclude-features default --optional-deps eyre,anyhow"
 CARGO_TEST_HACK_FLAGS = "${CARGO_TEST_HACK_FLAGS_BASE} --group-features anyhow,eyre --group-features spantrace,futures,small"
 CARGO_MIRI_FLAGS = "--tests --lib"
 
 [env.release]
+CARGO_CLIPPY_HACK_FLAGS = "${CARGO_CLIPPY_HACK_FLAGS_BASE}"
 CARGO_TEST_HACK_FLAGS = "${CARGO_TEST_HACK_FLAGS_BASE}"
 
 [tasks.test-task]
