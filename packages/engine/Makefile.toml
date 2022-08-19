@@ -24,7 +24,7 @@ args = ["build", "-p", "memory", "--profile", "${CARGO_MAKE_CARGO_PROFILE}"]
 condition = { env_true = ["CARGO_MAKE_CI"] }
 private = true
 command = "bash"
-args = ["lib/execution/src/runner/python/setup.sh", "python3.9"]
+args = ["lib/execution/src/runner/python/setup.sh", "python3.10"]
 dependencies = ["build-test-deps"]
 
 [tasks.run-integrations]
