@@ -178,7 +178,7 @@ use crate::{
 ///         # #[cfg(all(nightly, feature = "std"))]
 ///         for backtrace in err.request_ref::<std::backtrace::Backtrace>() {
 ///             println!("Backtrace: {backtrace}");
-///         }   
+///         }
 ///
 ///         # #[cfg(all(nightly, feature = "spantrace"))]
 ///         for spantrace in err.request_ref::<tracing_error::SpanTrace>() {
