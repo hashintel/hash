@@ -76,13 +76,12 @@ impl IntoRecordBatch for &[&Agent] {
     fn to_agent_batch(&self, schema: &AgentSchema) -> Result<RecordBatch> {
         let mut cols = Vec::with_capacity(schema.arrow.fields.len());
 
-        for field in schema.arrow.fields.clone() {
-            // If `name` isn't cloned, Rust wants schema to have longer lifetime. - DOES IT?
-            let name = field.name.clone();
+        for field in &schema.arrow.fields {
+            let name = field.name.as_str();
 
             let vals: Vec<serde_json::Value> = self
                 .iter()
-                .map(|agent: &&Agent| agent.get_as_json(name.as_str()))
+                .map(|agent: &&Agent| agent.get_as_json(name))
                 .collect::<Result<_>>()?;
 
             // If use `match` instead of `if`, Rust infers that
@@ -117,7 +116,7 @@ impl IntoRecordBatch for &[&Agent] {
             } else if matches!(
                 schema
                     .field_spec_map
-                    .get_field_spec(&RootFieldKey::new(name))?
+                    .get_field_spec(&RootFieldKey::new(name.to_string()))?
                     .inner
                     .field_type
                     .variant,
