@@ -4,8 +4,17 @@ export const propertyTypeTypedef = gql`
   scalar PropertyType
 
   type PersistedPropertyType {
+    """
+    The specific versioned URI of the property type
+    """
     propertyTypeVersionedUri: String!
+    """
+    The user who created the property type
+    """
     createdBy: ID!
+    """
+    The property type
+    """
     schema: PropertyType!
     # TODO: we might need something like
     # "referencedDataTypes: [PersistedDataType!]"

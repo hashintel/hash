@@ -4,8 +4,17 @@ export const dataTypeTypedef = gql`
   scalar DataType
 
   type PersistedDataType {
+    """
+    The specific versioned URI of the data type
+    """
     dataTypeVersionedUri: String!
+    """
+    The user who created the data type
+    """
     createdBy: ID!
+    """
+    The data type
+    """
     schema: DataType!
   }
 

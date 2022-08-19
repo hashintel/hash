@@ -4,8 +4,17 @@ export const entityTypeTypedef = gql`
   scalar EntityType
 
   type PersistedEntityType {
+    """
+    The specific versioned URI of the entity type
+    """
     entityTypeVersionedUri: String!
+    """
+    The user who created the entity type
+    """
     createdBy: ID!
+    """
+    The entity type
+    """
     schema: EntityType!
     # TODO: we might need something like
     # "referencedPropertyTypes: [PersistedPropertyType!]"
