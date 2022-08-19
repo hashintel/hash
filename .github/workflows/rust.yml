@@ -206,14 +206,13 @@ jobs:
           cargo quickinstall cargo-hack --version 0.5.15
           cargo quickinstall cargo-nextest --version 0.9.28
 
-      - name: Run tests
-        working-directory: ${{ matrix.directory }}
-        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
-      
       - name: Run lints
         working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} clippy -- -D warnings
 
+      - name: Run tests
+        working-directory: ${{ matrix.directory }}
+        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
 
       - name: Login
         run: |
