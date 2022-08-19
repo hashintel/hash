@@ -1027,7 +1027,13 @@ impl<C> Debug for Report<C> {
 
         // only output detailed information (like backtraces), if alternate mode is enabled, or the
         // snippet has been forced.
-        let suffix = ctx.snippets.join("\n\n");
+        let suffix = ctx
+            .snippets
+            .into_iter()
+            // remove all trailing newlines for a more uniform look
+            .map(|snippet| snippet.trim_end_matches("\n").to_owned())
+            .collect::<Vec<_>>()
+            .join("\n\n");
 
         if !suffix.is_empty() {
             // 44 is the size for the separation.
