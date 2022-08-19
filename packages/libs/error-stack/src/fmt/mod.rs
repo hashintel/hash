@@ -1,8 +1,6 @@
 //! Implementation of formatting, to enable colors and the use of box-drawing characters use the
 //! `glyph` feature.
 //!
-//! This is inspired by the [miette](https://docs.rs/miette/latest/miette/index.html)-crate.
-//!
 //! # Hooks
 //!
 //! The format implementation (especially the [`Debug`] implementation),
