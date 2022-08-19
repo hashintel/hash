@@ -56,11 +56,6 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
         const widgetPos = state.selection.$anchor.posAtIndex(0, 1);
 
         const placeholderDecoration = Decoration.widget(widgetPos, () => {
-          /**
-           * @todo when focus changes, the old placeholder blinks for a moment
-           * this could be related with the focused state changing true-false, or
-           * @see https://prosemirror.net/docs/ref/#view.Decoration^widget
-           *  */
           const mountNode = document.createElement("div");
 
           renderPortal(<Placeholder />, mountNode);
@@ -79,7 +74,16 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
           // this if prevents rendering `Placeholder` on readonly mode
           if (!view.editable) return false;
 
-          view.dispatch(view.state.tr.setMeta(placeholderPluginKey, true));
+          /**
+           * After two calls to setImmediate, Decoration.widget updates to it's new position,
+           * and we wait until it updates to prevent blinking of placeholder in wrong position.
+           */
+          setImmediate(() => {
+            setImmediate(() => {
+              view.dispatch(view.state.tr.setMeta(placeholderPluginKey, true));
+            });
+          });
+
           return false;
         },
       },
