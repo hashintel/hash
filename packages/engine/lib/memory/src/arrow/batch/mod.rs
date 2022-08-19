@@ -100,7 +100,6 @@ impl ArrowBatch {
 
     /// Reload record batch (without checking metaversions).
     pub fn reload_record_batch(&mut self) -> Result<()> {
-        tracing::debug!("reloading record batch");
         debug_assert!(
             self.segment().validate_markers().is_ok(),
             "Can't reload record batch; see validate_markers"

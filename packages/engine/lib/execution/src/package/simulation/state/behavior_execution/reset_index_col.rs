@@ -19,7 +19,6 @@ pub struct ResetIndexCol {
 
 impl IntoArrowChange for ResetIndexCol {
     fn get_arrow_change(&self, range: std::ops::Range<usize>) -> memory::Result<ColumnChange> {
-        trace!("resetting index column");
         let num_agents = range.end - range.start;
 
         // new_buffer delegates to a method that zeroes the memory so we don't need to initialize
