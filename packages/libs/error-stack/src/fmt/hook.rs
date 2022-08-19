@@ -9,7 +9,7 @@ use core::{
     marker::PhantomData,
 };
 
-pub use default::builtin;
+pub use default::builtin_debug_hook_fallback;
 
 use crate::fmt::{Emit, Frame};
 
@@ -198,7 +198,7 @@ impl<'a, T> HookContext<'a, T> {
     /// struct Value(u64);
     ///
     /// Report::install_debug_hook_fallback(|frame, ctx| {
-    ///     fmt::builtin(frame, ctx).or_else(|| frame.is::<Value>().then(|| {
+    ///     fmt::b(frame, ctx).or_else(|| frame.is::<Value>().then(|| {
     ///         let ctx = ctx.cast::<u64>();
     ///         Emit::next(format!("{} (Value)", ctx.increment()))
     ///     }))
@@ -507,7 +507,7 @@ impl Hooks {
         } else if let Some(fallback) = self.fallback.as_ref() {
             (fallback)(frame, ctx)
         } else {
-            builtin(frame, ctx)
+            builtin_debug_hook_fallback(frame, ctx)
         }
     }
 }

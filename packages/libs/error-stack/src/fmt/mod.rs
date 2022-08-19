@@ -20,7 +20,7 @@
 //!
 //! > **Caution:** Overwriting the fallback **will** remove the builtin formatting for types like
 //! > [`Backtrace`] and [`SpanTrace`], you can mitigate this by calling
-//! > [`error_stack::fmt::builtin`] in your fallback code.
+//! > [`error_stack::fmt::builtin_debug_hook_fallback`] in your fallback code.
 //!
 //! Hook functions need to be [`Fn`] and **not** [`FnMut`], which means they are unable to directly
 //! mutate state outside of the closure.
@@ -124,7 +124,7 @@
 //! [`RwLock`]: std::sync::RwLock
 //! [`Backtrace`]: std::backtrace::Backtrace
 //! [`SpanTrace`]: tracing_error::SpanTrace
-//! [`error_stack::fmt::builtin`]: crate::fmt::builtin
+//! [`error_stack::fmt::builtin_debug_hook_fallback`]: crate::fmt::builtin_debug_hook_fallback
 //! [`atomic`]: std::sync::atomic
 // This makes sure that `Emit` isn't regarded as dead-code even though it isn't exported on no-std.
 // This just simplifies maintenance, as otherwise we would be in cfg hell.
@@ -149,10 +149,10 @@ use core::{
 };
 
 #[cfg(feature = "std")]
-pub use hook::builtin;
+pub use hook::builtin_debug_hook_fallback;
 #[cfg(not(feature = "std"))]
 #[allow(clippy::redundant_pub_crate)]
-pub(crate) use hook::builtin;
+pub(crate) use hook::builtin_debug_hook_fallback;
 #[cfg(feature = "std")]
 pub use hook::HookContext;
 use hook::HookContextImpl;
@@ -784,7 +784,7 @@ fn debug_attachments(
 
                 #[cfg(not(feature = "std"))]
                 {
-                    builtin(frame, &mut ctx.as_hook_context())
+                    builtin_debug_hook_fallback(frame, &mut ctx.as_hook_context())
                 }
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
@@ -792,7 +792,8 @@ fn debug_attachments(
             }
         })
         .inspect(|value| {
-            // increase the opaque counter, if we're unable to determine the actual value of the frame
+            // increase the opaque counter, if we're unable to determine the actual value of the
+            // frame
             if value.is_none() {
                 opaque.increase();
             }

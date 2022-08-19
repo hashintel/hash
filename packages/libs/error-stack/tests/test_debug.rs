@@ -545,4 +545,23 @@ mod full {
 
         assert_snapshot!(format!("{report:?}"));
     }
+
+    #[test]
+    fn hook_alternate() {
+        let _guard = prepare(false);
+
+        let mut report = create_report().attach(2u64);
+
+        Report::install_debug_hook::<u64>(|_, ctx| {
+            if ctx.alternate() {
+                ctx.attach_snippet("Snippet");
+            }
+
+            Emit::next("Empty")
+        });
+
+        assert_snapshot!("norm", format!("{report:?}"));
+
+        assert_snapshot!("alt", format!("{report:#?}"));
+    }
 }

@@ -120,7 +120,7 @@ impl Report<()> {
     /// struct Suggestion(&'static str);
     ///
     /// // This will remove all formatting for `Backtrace` and `SpanTrace`!
-    /// // The example after this once calls `builtin()`, which makes sure that we always print
+    /// // The example after this once calls `builtin_debug_hook_fallback()`, which makes sure that we always print
     /// // `Backtrace` and `SpanTrace`.
     /// Report::install_debug_hook_fallback(|_, _| Some(Emit::next("unknown")));
     ///
@@ -162,7 +162,7 @@ impl Report<()> {
     ///
     /// Report::install_debug_hook_fallback(|val, ctx| {
     ///     // first run all builtin hooks to make sure that we print backtrace and spantrace
-    ///     Some(fmt::builtin(val, ctx).unwrap_or(Emit::next("unknown")))
+    ///     Some(fmt::builtin_debug_hook_fallback(val, ctx).unwrap_or(Emit::next("unknown")))
     /// });
     ///
     /// let report =
