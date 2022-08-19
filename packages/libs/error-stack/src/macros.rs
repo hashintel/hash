@@ -192,7 +192,9 @@ macro_rules! report {
 /// ```
 #[macro_export]
 macro_rules! bail {
-    ($err:expr $(,)?) => {{ return $crate::Result::Err($crate::report!($err)) }};
+    ($err:expr $(,)?) => {{
+        return $crate::Result::Err($crate::report!($err));
+    }};
 }
 
 /// Ensures `$cond` is met, otherwise return an error.

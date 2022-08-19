@@ -5,9 +5,9 @@
 //!
 //! The format implementation (especially the [`Debug`] implementation),
 //! can be easily extended using hooks.
-//! Hooks are functions of the signature `Fn(&T, &mut HookContext<T>) -> Emit`, they provide an easy
-//! and ergonomic way to partially modify the format and enable the output of types that are not
-//! necessarily added via `.attach_printable()` or are unable to implement [`Display`].
+//! Hooks are functions of the signature `Fn(&T, &mut HookContext<T>) -> Emit`, they provide an
+//! easy and ergonomic way to partially modify the format and enable the output of types that are
+//! not necessarily added via `.attach_printable()` or are unable to implement [`Display`].
 //!
 //! Hooks can be attached through the central hooking mechanism which `error-stack`
 //! provides via [`Report::install_debug_hook`].
@@ -220,6 +220,7 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// </pre>
 #[derive(Debug, Clone)]
 #[must_use]
+#[non_exhaustive]
 pub enum Emit {
     /// Line is going to be emitted after all immediate lines have been emitted from the current
     /// stack.
@@ -346,8 +347,8 @@ enum Position {
 }
 
 /// The display of content is using an instruction style architecture,
-/// where we first render every indentation and action as an [`Instruction`], these instructions are
-/// a lot easier to reason about and enable better manipulation of the stream of data.
+/// where we first render every indentation and action as an [`Instruction`], these instructions
+/// are a lot easier to reason about and enable better manipulation of the stream of data.
 ///
 /// Once generation of all data is done, it is interpreted as a String, with glyphs and color added
 /// (if supported and enabled).
@@ -384,8 +385,8 @@ enum Instruction {
     },
 }
 
-/// Minimized instruction, which looses information about what it represents and converts it to only
-/// symbols, this then is output instead.
+/// Minimized instruction, which looses information about what it represents and converts it to
+/// only symbols, this then is output instead.
 enum PreparedInstruction<'a> {
     Symbol(&'a Symbol),
     Symbols(&'a [Symbol]),
@@ -669,7 +670,7 @@ fn partition<'a>(stack: &'a [&'a Frame]) -> (Vec<(&'a Frame, Vec<&'a Frame>)>, V
     (result, queue)
 }
 
-fn debug_context(frame: &Frame, context: &dyn Context, alternate: bool) -> (Lines, Line) {
+fn debug_context(frame: &Frame, context: &dyn Context) -> (Lines, Line) {
     let loc = frame.location();
     let context = context
         .to_string()
@@ -706,11 +707,7 @@ fn debug_context(frame: &Frame, context: &dyn Context, alternate: bool) -> (Line
 
     let loc = Line::new()
         .push(Instruction::Value {
-            value: if alternate {
-                format!("{loc:?}")
-            } else {
-                loc.to_string()
-            },
+            value: loc.to_string(),
             style: Style::new().gray(),
         })
         .push(Instruction::Symbol(Symbol::Location));
@@ -761,7 +758,18 @@ fn debug_attachments(
                 #[cfg(all(nightly, feature = "unstable"))]
                 if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
                     for snippet in debug.snippets() {
-                        ctx.as_hook_context::<DebugDiagnostic>().attach_snippet(snippet.clone());
+                        ctx.as_hook_context::<DebugDiagnostic>()
+                            .attach_snippet(snippet.clone());
+                    }
+
+                    return Some(debug.output().clone());
+                }
+
+                #[cfg(all(not(nightly), feature = "unstable"))]
+                if let Some(debug) = frame.downcast_ref::<DebugDiagnostic>() {
+                    for snippet in debug.snippets() {
+                        ctx.as_hook_context::<DebugDiagnostic>()
+                            .attach_snippet(snippet.clone());
                     }
 
                     return Some(debug.output().clone());
@@ -769,7 +777,9 @@ fn debug_attachments(
 
                 #[cfg(feature = "std")]
                 {
-                    Report::get_debug_format_hook(|hooks| hooks.call(frame, &mut ctx.as_hook_context()))
+                    Report::get_debug_format_hook(|hooks| {
+                        hooks.call(frame, &mut ctx.as_hook_context())
+                    })
                 }
 
                 #[cfg(not(feature = "std"))]
@@ -781,8 +791,8 @@ fn debug_attachments(
                 Some(attachment.to_string()).map(Emit::Next)
             }
         })
-        // increase the opaque counter if we're unable to determine the actual value of the frame
         .inspect(|value| {
+            // increase the opaque counter, if we're unable to determine the actual value of the frame
             if value.is_none() {
                 opaque.increase();
             }
@@ -814,8 +824,8 @@ fn debug_attachments(
                 .collect::<Vec<_>>()
         });
 
-    // indentation for every first line, use `Instruction::Attachment`, otherwise use minimal indent
-    // omit that indent when we're the last value
+    // indentation for every first line, use `Instruction::Attachment`, otherwise use minimal
+    // indent omit that indent when we're the last value
     loc.into_iter()
         .map(|line| line.into_lines().into_vec())
         .chain(lines)
@@ -946,14 +956,10 @@ fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Ve
             // each "paket" on the stack is made up of a head (guaranteed to be a `Context`) and
             // `n` attachments.
             // The attachments are rendered as direct descendants of the parent context
-            let (head, loc) = debug_context(
-                head,
-                match head.kind() {
-                    FrameKind::Context(c) => c,
-                    FrameKind::Attachment(_) => unreachable!(),
-                },
-                ctx.alternate(),
-            );
+            let (head, loc) = debug_context(head, match head.kind() {
+                FrameKind::Context(c) => c,
+                FrameKind::Attachment(_) => unreachable!(),
+            });
 
             // reverse all attachments, to make it more logical relative to the attachment order
             body.reverse();
@@ -996,7 +1002,7 @@ impl<C> Debug for Report<C> {
             return result;
         }
 
-        let mut ctx = HookContextImpl::default();
+        let mut ctx = HookContextImpl::new(fmt.alternate());
 
         let mut lines = self
             .current_frames()

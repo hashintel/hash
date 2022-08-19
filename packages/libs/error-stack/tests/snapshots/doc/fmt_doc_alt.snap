@@ -11,3 +11,5 @@
 
 Backtrace No. 1
   [redacted]
+
+Look! I was rendered from a `u16`

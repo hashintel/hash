@@ -22,15 +22,19 @@ pub struct HookContextImpl {
 }
 
 impl HookContextImpl {
+    pub(crate) fn new(alternate: bool) -> Self {
+        Self {
+            snippets: Vec::new(),
+            alternate,
+            storage: BTreeMap::new(),
+        }
+    }
+
     pub(crate) fn as_hook_context<T>(&mut self) -> HookContext<'_, T> {
         HookContext {
             parent: self,
             _marker: PhantomData::default(),
         }
-    }
-
-    pub(crate) const fn alternate(&self) -> bool {
-        self.alternate
     }
 }
 
