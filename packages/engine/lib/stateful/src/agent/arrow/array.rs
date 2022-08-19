@@ -125,7 +125,7 @@ impl IntoRecordBatch for &[&Agent] {
                 // Any-type (JSON string) column
                 json_vals_to_any_type_col(vals, field.data_type())?
             } else {
-                json_vals_to_col(vals, &field, field.is_nullable)?
+                json_vals_to_col(vals, field, field.is_nullable)?
             };
             cols.push(col);
         }
