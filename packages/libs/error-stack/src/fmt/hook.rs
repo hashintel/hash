@@ -198,7 +198,7 @@ impl<'a, T> HookContext<'a, T> {
     /// struct Value(u64);
     ///
     /// Report::install_debug_hook_fallback(|frame, ctx| {
-    ///     fmt::b(frame, ctx).or_else(|| frame.is::<Value>().then(|| {
+    ///     fmt::builtin_debug_hook_fallback(frame, ctx).or_else(|| frame.is::<Value>().then(|| {
     ///         let ctx = ctx.cast::<u64>();
     ///         Emit::next(format!("{} (Value)", ctx.increment()))
     ///     }))
@@ -563,7 +563,10 @@ mod default {
     /// [`SpanTrace`]: tracing_error::SpanTrace
     // Frame can be unused, if neither backtrace or spantrace are enabled
     #[allow(unused_variables)]
-    pub fn builtin_debug_hook_fallback<'a>(frame: &Frame, ctx: &mut HookContext<'a, Frame>) -> Option<Emit> {
+    pub fn builtin_debug_hook_fallback<'a>(
+        frame: &Frame,
+        ctx: &mut HookContext<'a, Frame>,
+    ) -> Option<Emit> {
         // we're only able to use `request_ref` in nightly, because the Provider API hasn't been
         // stabilized yet.
         #[cfg(nightly)]

@@ -550,7 +550,7 @@ mod full {
     fn hook_alternate() {
         let _guard = prepare(false);
 
-        let mut report = create_report().attach(2u64);
+        let report = create_report().attach(2u64);
 
         Report::install_debug_hook::<u64>(|_, ctx| {
             if ctx.alternate() {
