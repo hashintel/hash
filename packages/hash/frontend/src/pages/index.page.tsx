@@ -18,11 +18,6 @@ const Page: NextPageWithLayout = () => {
       return;
     }
 
-    if (user) {
-      // Temporarily redirect logged in user to their account page
-      void router.push(`/${user.accountId}`);
-    }
-
     if (!kratosSession) {
       void router.push("/login");
     }
@@ -31,7 +26,8 @@ const Page: NextPageWithLayout = () => {
   /** @todo: remove session developer information */
   return (
     <Container sx={{ pt: 10 }}>
-      <Typography variant="h1" gutterBottom>
+      {user && <Typography variant="h1">Hi {user.preferredName}!</Typography>}
+      <Typography variant="h2" gutterBottom>
         {kratosSession
           ? "You have a kratos session"
           : "You don't have a kratos session"}

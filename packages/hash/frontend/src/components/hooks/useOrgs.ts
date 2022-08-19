@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
-import { GetAccountsQuery, OrgProperties } from "../../graphql/apiTypes.gen";
+import { GetAccountsQuery, Org } from "../../graphql/apiTypes.gen";
 import { getAccounts } from "../../graphql/queries/account.queries";
 
 /**
@@ -20,11 +20,11 @@ export const useOrgs = (): {
     }
 
     return data.accounts
-      .filter((account) => !("preferredName" in account.properties))
+      .filter((account) => !("preferredName" in account))
       .map((account) => ({
         entityId: account.entityId,
-        shortname: account.properties.shortname!,
-        name: (account.properties as OrgProperties).name,
+        shortname: account.shortname!,
+        name: (account as unknown as Org).name,
       }));
   }, [data]);
 

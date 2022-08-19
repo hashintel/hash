@@ -28,7 +28,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
   });
 
   const userPrimaryEmail = useMemo(() => {
-    const primaryEmail = user.properties.emails.find((email) => email.primary);
+    const primaryEmail = user.emails.find((email) => email.primary);
 
     return primaryEmail?.address;
   }, [user]);
@@ -46,7 +46,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
               }}
               mb={0.5}
             >
-              <strong>{user.properties.preferredName}</strong>
+              <strong>{user.preferredName}</strong>
             </Typography>
             {userPrimaryEmail && (
               <Typography
@@ -79,7 +79,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
               sx={{ height: "32px", width: "32px", borderRadius: "100%" }}
             />
           ) : (
-            <Avatar size={32} title={user?.properties.preferredName ?? "U"} />
+            <Avatar size={32} title={user?.preferredName ?? "U"} />
           )}
         </HeaderIconButton>
       </Tooltip>
@@ -113,7 +113,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
               fontWeight: 500,
             })}
           >
-            {user.properties.preferredName}
+            {user.preferredName}
           </Typography>
           {userPrimaryEmail && (
             <Typography

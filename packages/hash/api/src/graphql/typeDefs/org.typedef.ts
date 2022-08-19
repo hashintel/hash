@@ -2,13 +2,15 @@ import { gql } from "apollo-server-express";
 
 export const orgTypedef = gql`
   type Org implements Entity {
-    properties: OrgProperties!
-
     memberships: [OrgMembership!]!
 
     invitationLinks: [OrgInvitationLink!]!
 
     emailInvitations: [OrgEmailInvitation!]!
+
+    shortname: String
+
+    name: String!
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
@@ -88,11 +90,6 @@ export const orgTypedef = gql`
     ELEVEN_TO_FIFTY
     FIFTY_ONE_TO_TWO_HUNDRED_AND_FIFTY
     TWO_HUNDRED_AND_FIFTY_PLUS
-  }
-
-  type OrgProperties {
-    shortname: String
-    name: String!
   }
 
   input CreateOrgInput {

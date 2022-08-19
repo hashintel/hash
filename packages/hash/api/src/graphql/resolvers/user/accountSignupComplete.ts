@@ -1,4 +1,5 @@
-import { User } from "../../../model";
+import { ApolloError } from "apollo-server-errors";
+import { UserModel } from "../../../model";
 import { ResolverFn, User as GQLUser } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 
@@ -7,4 +8,13 @@ export const accountSignupComplete: ResolverFn<
   GQLUser,
   GraphQLContext,
   {}
-> = async ({ properties }) => User.isAccountSignupComplete(properties);
+> = async ({ entityId }, _, { dataSources: { graphApi } }) => {
+  const userModel = await UserModel.getUserByEntityId(graphApi, { entityId });
+
+  if (!userModel) {
+    const msg = `User with entityId ${entityId} not found in graph`;
+    throw new ApolloError(msg, "NOT_FOUND");
+  }
+
+  return userModel.isAccountSignupComplete();
+};

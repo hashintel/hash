@@ -26,6 +26,17 @@
               "recovery": { "via": "email" }
             }
           }
+        },
+        "shortname": {
+          "type": "string",
+          "title": "Shortname",
+          "ory.sh/kratos": {
+            "credentials": {
+              "password": {
+                "identifier": true
+              }
+            }
+          }
         }
       },
       "required": ["emails"],

@@ -4,6 +4,7 @@ import { ensureWorkspaceTypesExist } from "@hashintel/hash-api/src/graph/workspa
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { UserModel } from "@hashintel/hash-api/src/model";
+import { createKratosIdentity } from "@hashintel/hash-api/src/auth/ory-kratos";
 
 jest.setTimeout(60000);
 
@@ -22,7 +23,6 @@ const graphApi = createGraphClient(logger, {
 });
 
 const shortname = "alice";
-const kratosIdentityId = "alice-fake-kratos-id";
 
 describe("User model class", () => {
   beforeAll(async () => {
@@ -31,31 +31,27 @@ describe("User model class", () => {
 
   let createdUser: UserModel;
 
+  let kratosIdentityId: string;
+
   it("can create a user", async () => {
+    const identity = await createKratosIdentity({
+      traits: {
+        emails: ["alice@example.com"],
+      },
+    });
+
+    kratosIdentityId = identity.id;
+
     createdUser = await UserModel.createUser(graphApi, {
       emails: ["alice@example.com"],
-      shortname,
-      preferredName: "Alice",
       kratosIdentityId,
     });
-  });
-
-  it("cannot create a user with a shortname that is already taken", async () => {
-    await expect(
-      UserModel.createUser(graphApi, {
-        emails: ["bob@example.com"],
-        shortname,
-        preferredName: "Bob",
-        kratosIdentityId: "bob-kratos-identity-id",
-      }),
-    ).rejects.toThrowError(`"${shortname}" already exists.`);
   });
 
   it("cannot create a user with a kratos identity id that is already taken", async () => {
     await expect(
       UserModel.createUser(graphApi, {
         emails: ["bob@example.com"],
-        shortname: "bob",
         kratosIdentityId,
       }),
     ).rejects.toThrowError(`"${kratosIdentityId}" already exists.`);
@@ -63,6 +59,20 @@ describe("User model class", () => {
 
   it("can get the account id", () => {
     expect(createdUser.getAccountId()).toBeDefined();
+  });
+
+  it("can update the shortname of a user", async () => {
+    createdUser = await createdUser.updateShortname(graphApi, {
+      updatedByAccountId: createdUser.getAccountId(),
+      updatedShortname: shortname,
+    });
+  });
+
+  it("can update the preferred name of a user", async () => {
+    createdUser = await createdUser.updatePreferredName(graphApi, {
+      updatedByAccountId: createdUser.getAccountId(),
+      updatedPreferredName: "Alice",
+    });
   });
 
   it("can get a user by its shortname", async () => {

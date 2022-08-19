@@ -37,14 +37,14 @@ export const WorkspaceSwitcher: FunctionComponent<
     let accountName = "";
 
     if (user && accountId === user.accountId) {
-      accountName = user.properties.preferredName || user.properties.shortname!;
+      accountName = user.preferredName || user.shortname!;
     } else {
       const activeOrg = user?.memberOf.find(
         ({ org }) => org.accountId === accountId,
       )?.org;
 
       if (activeOrg) {
-        accountName = activeOrg.properties.name;
+        accountName = activeOrg.name;
       }
     }
 
@@ -61,15 +61,15 @@ export const WorkspaceSwitcher: FunctionComponent<
         key: user.accountId,
         url: `/${user.accountId}`,
         title: "My personal workspace",
-        subText: `@${user.properties.shortname ?? "user"}`,
-        avatarTitle: user.properties.preferredName ?? "U",
+        subText: `@${user.shortname ?? "user"}`,
+        avatarTitle: user.preferredName ?? "U",
       },
       ...user.memberOf.map(({ org }) => ({
         key: org.accountId,
         url: `/${org.accountId}`,
-        title: org.properties.name,
+        title: org.name,
         subText: `${org.memberships.length} members`,
-        avatarTitle: org.properties.name,
+        avatarTitle: org.name,
       })),
     ];
   }, [user]);
@@ -130,7 +130,7 @@ export const WorkspaceSwitcher: FunctionComponent<
             href={url}
           >
             <ListItemAvatar>
-              <Avatar size={34} title={user?.properties.preferredName ?? "U"} />
+              <Avatar size={34} title={user?.preferredName ?? "U"} />
             </ListItemAvatar>
             <ListItemText
               primary={title}

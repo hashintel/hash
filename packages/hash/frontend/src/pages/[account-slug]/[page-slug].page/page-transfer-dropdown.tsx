@@ -40,7 +40,7 @@ export const AccountSelect: FunctionComponent<AccountSelectProps> = ({
     >
       {data?.accounts.map((account) => (
         <option key={account.entityId} value={account.entityId}>
-          {account.properties.shortname}
+          {account.shortname}
         </option>
       ))}
     </Box>
