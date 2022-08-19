@@ -34,7 +34,7 @@ impl HookContextImpl {
     }
 }
 
-/// Optional context used to carry information across hook invocations.
+/// Carrier for contextual information used across hook invocations.
 ///
 /// `HookContext` has two fundamental use-cases:
 /// 1) Emitting Snippets
@@ -234,7 +234,8 @@ impl<'a, T> HookContext<'a, T> {
         unsafe { &mut *(self as *mut HookContext<T>).cast::<HookContext<U>>() }
     }
 
-    /// Is the currently requested format the alternate representation?
+    /// Returns if the currently requested format should render the alternate representation.
+    ///
     /// This corresponds to the output of [`std::fmt::Formatter::alternate`].
     #[must_use]
     pub fn alternate(&self) -> bool {
@@ -551,18 +552,14 @@ mod default {
         Emit::Defer(format!("spantrace with {span} frames ({})", idx + 1))
     }
 
-    /// Builtin hooks
-    ///
-    /// This provides defaults for common attachments that are automatically created
+    /// Fallback for common attachments that are automatically created
     /// by `error_stack`, like [`Backtrace`] and [`SpanTrace`]
     ///
     /// [`Backtrace`]: std::backtrace::Backtrace
     /// [`SpanTrace`]: tracing_error::SpanTrace
     // Frame can be unused, if neither backtrace or spantrace are enabled
     #[allow(unused_variables)]
-    // false positive
-    #[allow(clippy::missing_const_for_fn)]
-    pub fn builtin<'a>(frame: &Frame, ctx: &mut HookContext<'a, Frame>) -> Option<Emit> {
+    pub fn builtin_debug_hook_fallback<'a>(frame: &Frame, ctx: &mut HookContext<'a, Frame>) -> Option<Emit> {
         // we're only able to use `request_ref` in nightly, because the Provider API hasn't been
         // stabilized yet.
         #[cfg(nightly)]

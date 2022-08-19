@@ -15,7 +15,7 @@
 //! You can also provide a fallback function, which is called whenever a hook hasn't been added for
 //! a specific type of attachment.
 //! The fallback function needs to have a signature of
-//! `Fn(&Frame, HookContext<'a, T>) -> Call<'a, Frame>`
+//! `Fn(&Frame, &mut HookContext<T>) -> Option<Emit>`
 //! and can be set via [`Report::install_debug_hook_fallback`].
 //!
 //! > **Caution:** Overwriting the fallback **will** remove the builtin formatting for types like
