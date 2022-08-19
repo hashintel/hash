@@ -269,17 +269,15 @@ pub fn init_logger<P: AsRef<Path>>(
             );
             std::process::exit(1);
         }
-    } else {
-        if let Err(e) = fs::create_dir(log_folder) {
-            eprintln!(
-                "Could not create the log folder. Please try creating the folder `{}` in the \
-                 directory from which you are running the engine.
-                 Note: the specific error the engine encountered is `{:?}`",
-                log_folder.display(),
-                e
-            );
-            std::process::exit(1)
-        }
+    } else if let Err(e) = fs::create_dir(log_folder) {
+        eprintln!(
+            "Could not create the log folder. Please try creating the folder `{}` in the \
+             directory from which you are running the engine.
+             Note: the specific error the engine encountered is `{:?}`",
+            log_folder.display(),
+            e
+        );
+        std::process::exit(1)
     }
 
     let json_file_appender =
