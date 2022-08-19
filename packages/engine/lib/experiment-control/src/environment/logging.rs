@@ -258,10 +258,10 @@ pub fn init_logger<P: AsRef<Path>>(
         ),
     };
 
-    if !Path::new(log_folder).exists() {
+    if !log_folder.exists() {
         fs::create_dir(log_folder).expect("could not create the log folder");
     }
-    if !Path::new(log_folder).is_dir() {
+    if !log_folder.is_dir() {
         eprintln!(
             "The provided log folder is not a directory (it is probably a file). Note that the \
              default name of the log folder is `log`, so if you have a file named `log` in the \
