@@ -6,24 +6,23 @@ import {
   MutationCreateLinkTypeArgs,
   MutationUpdateLinkTypeArgs,
   QueryGetLinkTypeArgs,
-  Resolver,
+  ResolverFn,
 } from "../../apiTypes.gen";
-import { GraphQLContext } from "../../context";
+import { LoggedInGraphQLContext } from "../../context";
 import { LinkTypeModel } from "../../../model";
-import { nilUuid } from "../../../model/util";
 import { linkTypeModelToGQL } from "./model-mapping";
 
-export const createLinkType: Resolver<
+export const createLinkType: ResolverFn<
   Promise<PersistedLinkType>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   MutationCreateLinkTypeArgs
-> = async (_, params, { dataSources }) => {
+> = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
   const { accountId, linkType } = params;
 
   const createdLinkTypeModel = await LinkTypeModel.create(graphApi, {
-    accountId,
+    accountId: accountId ?? user.getAccountId(),
     schema: linkType,
   }).catch((err: AxiosError) => {
     if (err.response?.status === 409) {
@@ -38,17 +37,16 @@ export const createLinkType: Resolver<
   return linkTypeModelToGQL(createdLinkTypeModel);
 };
 
-export const getAllLatestLinkTypes: Resolver<
+export const getAllLatestLinkTypes: ResolverFn<
   Promise<PersistedLinkType[]>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   {}
-> = async (_, __, { dataSources }) => {
+> = async (_, __, { dataSources, user }) => {
   const { graphApi } = dataSources;
 
   const allLatestLinkTypeModels = await LinkTypeModel.getAllLatest(graphApi, {
-    /** @todo Replace with User from the request */
-    accountId: nilUuid,
+    accountId: user.getAccountId(),
   }).catch((err: AxiosError) => {
     throw new ApolloError(
       `Unable to retrieve all latest link types. ${err.response?.data}`,
@@ -61,10 +59,10 @@ export const getAllLatestLinkTypes: Resolver<
   );
 };
 
-export const getLinkType: Resolver<
+export const getLinkType: ResolverFn<
   Promise<PersistedLinkType>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   QueryGetLinkTypeArgs
 > = async (_, { linkTypeVersionedUri }, { dataSources }) => {
   const { graphApi } = dataSources;
@@ -81,12 +79,12 @@ export const getLinkType: Resolver<
   return linkTypeModelToGQL(linkTypeModel);
 };
 
-export const updateLinkType: Resolver<
+export const updateLinkType: ResolverFn<
   Promise<PersistedLinkType>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   MutationUpdateLinkTypeArgs
-> = async (_, params, { dataSources }) => {
+> = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
   const { accountId, linkTypeVersionedUri, newLinkType } = params;
 
@@ -101,7 +99,7 @@ export const updateLinkType: Resolver<
 
   const updatedLinkTypeModel = await linkTypeModel
     .update(graphApi, {
-      accountId,
+      accountId: accountId ?? user.getAccountId(),
       schema: newLinkType,
     })
     .catch((err: AxiosError) => {

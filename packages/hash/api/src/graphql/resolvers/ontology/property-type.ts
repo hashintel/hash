@@ -6,24 +6,23 @@ import {
   MutationCreatePropertyTypeArgs,
   MutationUpdatePropertyTypeArgs,
   QueryGetPropertyTypeArgs,
-  Resolver,
+  ResolverFn,
 } from "../../apiTypes.gen";
-import { GraphQLContext } from "../../context";
+import { LoggedInGraphQLContext } from "../../context";
 import { PropertyTypeModel } from "../../../model";
-import { nilUuid } from "../../../model/util";
 import { propertyTypeModelToGQL } from "./model-mapping";
 
-export const createPropertyType: Resolver<
+export const createPropertyType: ResolverFn<
   Promise<PersistedPropertyType>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   MutationCreatePropertyTypeArgs
-> = async (_, params, { dataSources }) => {
+> = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
   const { accountId, propertyType } = params;
 
   const createdPropertyTypeModel = await PropertyTypeModel.create(graphApi, {
-    accountId,
+    accountId: accountId ?? user.getAccountId(),
     schema: propertyType,
   }).catch((err: AxiosError) => {
     if (err.response?.status === 409) {
@@ -39,19 +38,18 @@ export const createPropertyType: Resolver<
   return propertyTypeModelToGQL(createdPropertyTypeModel);
 };
 
-export const getAllLatestPropertyTypes: Resolver<
+export const getAllLatestPropertyTypes: ResolverFn<
   Promise<PersistedPropertyType[]>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   {}
-> = async (_, __, { dataSources }) => {
+> = async (_, __, { dataSources, user }) => {
   const { graphApi } = dataSources;
 
   const allLatestPropertyTypeModels = await PropertyTypeModel.getAllLatest(
     graphApi,
     {
-      /** @todo Replace with User from the request */
-      accountId: nilUuid,
+      accountId: user.getAccountId(),
     },
   ).catch((err: AxiosError) => {
     throw new ApolloError(
@@ -65,10 +63,10 @@ export const getAllLatestPropertyTypes: Resolver<
   );
 };
 
-export const getPropertyType: Resolver<
+export const getPropertyType: ResolverFn<
   Promise<PersistedPropertyType>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   QueryGetPropertyTypeArgs
 > = async (_, { propertyTypeVersionedUri }, { dataSources }) => {
   const { graphApi } = dataSources;
@@ -85,12 +83,12 @@ export const getPropertyType: Resolver<
   return propertyTypeModelToGQL(propertyTypeModel);
 };
 
-export const updatePropertyType: Resolver<
+export const updatePropertyType: ResolverFn<
   Promise<PersistedPropertyType>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   MutationUpdatePropertyTypeArgs
-> = async (_, params, { dataSources }) => {
+> = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
   const { accountId, propertyTypeVersionedUri, updatedPropertyType } = params;
 
@@ -105,7 +103,7 @@ export const updatePropertyType: Resolver<
 
   const updatedPropertyTypeModel = await propertyTypeModel
     .update(graphApi, {
-      accountId,
+      accountId: accountId ?? user.getAccountId(),
       schema: updatedPropertyType,
     })
     .catch((err: AxiosError) => {

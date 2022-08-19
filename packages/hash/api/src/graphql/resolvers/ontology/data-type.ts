@@ -4,24 +4,22 @@ import { AxiosError } from "axios";
 import {
   PersistedDataType,
   QueryGetDataTypeArgs,
-  Resolver,
+  ResolverFn,
 } from "../../apiTypes.gen";
-import { GraphQLContext } from "../../context";
+import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 import { DataTypeModel } from "../../../model";
-import { nilUuid } from "../../../model/util";
 import { dataTypeModelToGQL } from "./model-mapping";
 
-export const getAllLatestDataTypes: Resolver<
+export const getAllLatestDataTypes: ResolverFn<
   Promise<PersistedDataType[]>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   {}
-> = async (_, __, { dataSources }) => {
+> = async (_, __, { dataSources, user }) => {
   const { graphApi } = dataSources;
 
   const allLatestDataTypeModels = await DataTypeModel.getAllLatest(graphApi, {
-    /** @todo Replace with User from the request */
-    accountId: nilUuid,
+    accountId: user.getAccountId(),
   }).catch((err: AxiosError) => {
     throw new ApolloError(
       `Unable to retrieve all latest data types. ${err.response?.data}`,
@@ -34,7 +32,7 @@ export const getAllLatestDataTypes: Resolver<
   );
 };
 
-export const getDataType: Resolver<
+export const getDataType: ResolverFn<
   Promise<PersistedDataType>,
   {},
   GraphQLContext,
