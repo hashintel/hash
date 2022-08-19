@@ -86,15 +86,13 @@ pub enum Error {
 
 impl From<shared_memory::ShmemError> for Error {
     fn from(e: shared_memory::ShmemError) -> Self {
-        if cfg!(target_os = "macos") {
-            if matches!(e, shared_memory::ShmemError::UnknownOsError(22)) {
-                tracing::error!(
-                    "Have you set the `OS_MEMORY_ALLOC_OVERRIDE` variable (consult the engine \
-                     README.md file if you are unsure on what this means)? If in doubt you can \
-                     just enter `export OS_MEMORY_ALLOC_OVERRIDE=25000000` into your shell and \
-                     try re-running the engine."
-                );
-            }
+        if cfg!(target_os = "macos") && matches!(e, shared_memory::ShmemError::UnknownOsError(22)) {
+            tracing::error!(
+                "Have you set the `OS_MEMORY_ALLOC_OVERRIDE` variable (consult the engine \
+                 README.md file if you are unsure on what this means)? If in doubt you can just \
+                 enter `export OS_MEMORY_ALLOC_OVERRIDE=25000000` into your shell and try \
+                 re-running the engine."
+            );
         }
         Error::SharedMemory(e)
     }
