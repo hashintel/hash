@@ -3,10 +3,9 @@ import { AxiosError } from "axios";
 
 import { GraphApi } from "../graph";
 import { UserModel } from "../model";
-import { adminKratosSdk, KratosUserIdentityTraits } from "./ory-kratos";
+import { workspaceAccountId } from "../model/util";
+import { createKratosIdentity } from "./ory-kratos";
 
-/** @todo shortname and fullName is currently unused,
-      these need to be added to the UserModel creation step. */
 type DevelopmentUser = {
   email: string;
   shortname: string;
@@ -17,12 +16,12 @@ const devUsers: readonly DevelopmentUser[] = [
   {
     email: "alice@example.com",
     shortname: "alice",
-    preferredName: "Alice Alison",
+    preferredName: "Alice",
   },
   {
     email: "bob@example.com",
-    shortname: "bob",
-    preferredName: "Bob Bobson",
+    shortname: "bob01",
+    preferredName: "Bob",
   },
 ] as const;
 
@@ -35,41 +34,45 @@ export const ensureDevUsersAreSeeded = async ({
   graphApi: GraphApi;
   logger: Logger;
 }) => {
-  for (const { email } of devUsers) {
-    const maybeNewIdentity = await adminKratosSdk
-      .adminCreateIdentity({
-        schema_id: "default",
-        traits: <KratosUserIdentityTraits>{
-          emails: [email],
-        },
-        credentials: {
-          password: {
-            config: {
-              password: devPassword,
-            },
+  for (const { email, shortname, preferredName } of devUsers) {
+    const maybeNewIdentity = await createKratosIdentity({
+      traits: { emails: [email] },
+      credentials: {
+        password: {
+          config: {
+            password: devPassword,
           },
         },
-      })
-      .then(async (response) => response.data)
-      .catch((error: AxiosError) => {
-        if (error.response?.status === 409) {
-          // The user already exists on 409 CONFLICT, which is fine
-          return null;
-        } else {
-          logger.warn(
-            `Could not create development user identity, email = "${email}".`,
-          );
-          return Promise.reject(error);
-        }
-      });
+      },
+    }).catch((error: AxiosError) => {
+      if (error.response?.status === 409) {
+        // The user already exists on 409 CONFLICT, which is fine
+        return null;
+      } else {
+        logger.warn(
+          `Could not create development user identity, email = "${email}".`,
+        );
+        return Promise.reject(error);
+      }
+    });
 
     if (maybeNewIdentity !== null) {
       const { traits, id: kratosIdentityId } = maybeNewIdentity;
-      const { emails } = traits as KratosUserIdentityTraits;
-      // @todo use `shortname` and `fullName` when creating the Graph user entity.
-      await UserModel.createUser(graphApi, {
+      const { emails } = traits;
+
+      let user = await UserModel.createUser(graphApi, {
         emails,
         kratosIdentityId,
+      });
+
+      user = await user.updateShortname(graphApi, {
+        updatedByAccountId: workspaceAccountId,
+        updatedShortname: shortname,
+      });
+
+      user = await user.updatePreferredName(graphApi, {
+        updatedByAccountId: workspaceAccountId,
+        updatedPreferredName: preferredName,
       });
     }
 
