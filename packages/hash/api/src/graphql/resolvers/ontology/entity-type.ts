@@ -58,9 +58,7 @@ export const getAllLatestEntityTypes: ResolverFn<
     );
   });
 
-  return allLatestEntityTypeModels.map((entityTypeModel) =>
-    entityTypeModelToGQL(entityTypeModel),
-  );
+  return allLatestEntityTypeModels.map(entityTypeModelToGQL);
 };
 
 export const getEntityType: ResolverFn<

@@ -58,9 +58,7 @@ export const getAllLatestPropertyTypes: ResolverFn<
     );
   });
 
-  return allLatestPropertyTypeModels.map((propertyTypeModel) =>
-    propertyTypeModelToGQL(propertyTypeModel),
-  );
+  return allLatestPropertyTypeModels.map(propertyTypeModelToGQL);
 };
 
 export const getPropertyType: ResolverFn<

@@ -27,9 +27,7 @@ export const getAllLatestDataTypes: ResolverFn<
     );
   });
 
-  return allLatestDataTypeModels.map((dataTypeModel) =>
-    dataTypeModelToGQL(dataTypeModel),
-  );
+  return allLatestDataTypeModels.map(dataTypeModelToGQL);
 };
 
 export const getDataType: ResolverFn<
