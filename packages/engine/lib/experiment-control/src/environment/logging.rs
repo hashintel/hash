@@ -258,10 +258,7 @@ pub fn init_logger<P: AsRef<Path>>(
         ),
     };
 
-    if !log_folder.exists() {
-        fs::create_dir(log_folder).expect("could not create the log folder");
-    }
-    if !log_folder.is_dir() {
+    if log_folder.exists() && !log_folder.is_dir() {
         eprintln!(
             "The provided log folder is not a directory (it is probably a file). Note that the \
              default name of the log folder is `log`, so if you have a file named `log` in the \
@@ -270,6 +267,17 @@ pub fn init_logger<P: AsRef<Path>>(
              different directory to write log output to."
         );
         std::process::exit(1);
+    }
+    if !log_folder.exists() {
+        if let Err(e) = fs::create_dir(log_folder) {
+            eprintln!(
+                "Could not create the log folder. Please try creating the folder `{}` in the \
+                 directory from which you are running the engine.
+                 Note: the specific error the engine encountered is `{:?}`",
+                log_folder, e
+            );
+            std::process::exit(1)
+        }
     }
 
     let json_file_appender =
