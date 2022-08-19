@@ -209,6 +209,11 @@ jobs:
       - name: Run tests
         working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
+      
+      - name: Run lints
+        working-directory: ${{ matrix.directory }}
+        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} lint -- -D warnings
+
 
       - name: Login
         run: |
