@@ -36,7 +36,7 @@ ansi-to-html = "0.1.0"
 once_cell = "1.13.0"
 
 [build-dependencies]
-rustc_version = "0.2.3"
+rustc_version = "0.4"
 
 [features]
 default = ["std", "small"]
