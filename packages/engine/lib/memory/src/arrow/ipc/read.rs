@@ -1,4 +1,4 @@
-//! This file loads data from memory into
+//! This file ccontains items to read IPC data.
 
 use std::sync::Arc;
 

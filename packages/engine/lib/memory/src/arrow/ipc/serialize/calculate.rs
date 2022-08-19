@@ -15,6 +15,8 @@ use arrow_format::ipc;
 
 use crate::{arrow::ipc::serialize::assert_buffer_monotonicity, shared_memory::padding::pad_to_8};
 
+/// This function has been modified to never write any data, and instead only compute the data
+/// necessary to write the IPC header message (i.e. body length in bytes, buffers and nodes).
 fn write_primitive<T: NativeType>(
     array: &PrimitiveArray<T>,
     buffers: &mut Vec<ipc::Buffer>,
@@ -39,6 +41,8 @@ fn write_primitive<T: NativeType>(
     )
 }
 
+/// This function has been modified to never write any data, and instead only compute the data
+/// necessary to write the IPC header message (i.e. body length in bytes, buffers and nodes).
 fn write_boolean(
     array: &BooleanArray,
     buffers: &mut Vec<ipc::Buffer>,
@@ -63,6 +67,8 @@ fn write_boolean(
 }
 
 #[allow(clippy::too_many_arguments)]
+/// This function has been modified to never write any data, and instead only compute the data
+/// necessary to write the IPC header message (i.e. body length in bytes, buffers and nodes).
 fn write_generic_binary<O: Offset>(
     validity: Option<&Bitmap>,
     offsets: &[O],
@@ -96,6 +102,8 @@ fn write_generic_binary<O: Offset>(
     );
 }
 
+/// This function has been modified to never write any data, and instead only compute the data
+/// necessary to write the IPC header message (i.e. body length in bytes, buffers and nodes).
 fn write_binary<O: Offset>(
     array: &BinaryArray<O>,
     buffers: &mut Vec<ipc::Buffer>,
@@ -114,6 +122,8 @@ fn write_binary<O: Offset>(
     );
 }
 
+/// This function has been modified to never write any data, and instead only compute the data
+/// necessary to write the IPC header message (i.e. body length in bytes, buffers and nodes).
 fn write_utf8<O: Offset>(
     array: &Utf8Array<O>,
     buffers: &mut Vec<ipc::Buffer>,
@@ -132,6 +142,8 @@ fn write_utf8<O: Offset>(
     );
 }
 
+/// This function has been modified to never write any data, and instead only compute the data
+/// necessary to write the IPC header message (i.e. body length in bytes, buffers and nodes).
 fn write_fixed_size_binary(
     array: &FixedSizeBinaryArray,
     buffers: &mut Vec<ipc::Buffer>,
@@ -151,6 +163,8 @@ fn write_fixed_size_binary(
     debug_assert!(*arrow_data_len > start);
 }
 
+/// This function has been modified to never write any data, and instead only compute the data
+/// necessary to write the IPC header message (i.e. body length in bytes, buffers and nodes).
 fn write_list<O: Offset>(
     array: &ListArray<O>,
     buffers: &mut Vec<ipc::Buffer>,
@@ -191,6 +205,8 @@ fn write_list<O: Offset>(
     );
 }
 
+/// This function has been modified to never write any data, and instead only compute the data
+/// necessary to write the IPC header message (i.e. body length in bytes, buffers and nodes).
 pub fn write_struct(
     array: &StructArray,
     buffers: &mut Vec<ipc::Buffer>,
@@ -218,6 +234,8 @@ pub fn write_struct(
     });
 }
 
+/// This function has been modified to never write any data, and instead only compute the data
+/// necessary to write the IPC header message (i.e. body length in bytes, buffers and nodes).
 pub fn write_union(
     array: &UnionArray,
     buffers: &mut Vec<ipc::Buffer>,
@@ -249,6 +267,8 @@ pub fn write_union(
     });
 }
 
+/// This function has been modified to never write any data, and instead only compute the data
+/// necessary to write the IPC header message (i.e. body length in bytes, buffers and nodes).
 fn write_map(
     array: &MapArray,
     buffers: &mut Vec<ipc::Buffer>,
@@ -289,6 +309,8 @@ fn write_map(
     );
 }
 
+/// This function has been modified to never write any data, and instead only compute the data
+/// necessary to write the IPC header message (i.e. body length in bytes, buffers and nodes).
 fn write_fixed_size_list(
     array: &FixedSizeListArray,
     buffers: &mut Vec<ipc::Buffer>,
@@ -316,6 +338,8 @@ fn write_fixed_size_list(
 
 // use `write_keys` to either write keys or values
 #[allow(clippy::too_many_arguments)]
+/// This function has been modified to never write any data, and instead only compute the data
+/// necessary to write the IPC header message (i.e. body length in bytes, buffers and nodes).
 pub(super) fn write_dictionary<K: DictionaryKey>(
     array: &DictionaryArray<K>,
     buffers: &mut Vec<ipc::Buffer>,
@@ -348,6 +372,9 @@ pub(super) fn write_dictionary<K: DictionaryKey>(
 }
 
 /// Writes an [`Array`] to `arrow_data`
+///
+/// This function has been modified to never write any data, and instead only compute the data
+/// necessary to write the IPC header message (i.e. body length in bytes, buffers and nodes).
 pub fn write(
     array: &dyn Array,
     buffers: &mut Vec<ipc::Buffer>,
@@ -481,6 +508,7 @@ pub fn write(
 }
 
 #[inline]
+/// This function has been taken, unmodified from [`arrow2`]
 fn pad_buffer_to_8(buffer: &mut usize, length: usize) {
     let pad_len = pad_to_8(length);
     *buffer += pad_len;
@@ -501,6 +529,8 @@ fn write_bytes(
     buffers.push(finish_buffer(arrow_data_len, start, offset));
 }
 
+/// This function has been modified to never write any data, and instead only compute the data
+/// necessary to write the IPC header message (i.e. body length in bytes, buffers and nodes).
 fn write_bitmap(
     bitmap: Option<&Bitmap>,
     length: usize,
@@ -532,6 +562,9 @@ fn write_bitmap(
 
 /// writes `bytes` to `arrow_data` updating `buffers` and `offset` and guaranteeing a 8 byte
 /// boundary.
+///
+/// This function has been modified to never write any data, and instead only compute the data
+/// necessary to write the IPC header message (i.e. body length in bytes, buffers and nodes).
 fn write_buffer<T: NativeType>(
     buffer: &[T],
     buffers: &mut Vec<ipc::Buffer>,
@@ -546,6 +579,8 @@ fn write_buffer<T: NativeType>(
 }
 
 #[inline]
+/// This function has been modified to never write any data, and instead only compute the data
+/// necessary to write the IPC header message (i.e. body length in bytes, buffers and nodes).
 fn _write_buffer_from_iter<T: NativeType, I: TrustedLen<Item = T>>(
     buffer: I,
     arrow_data_len: &mut usize,
@@ -562,6 +597,8 @@ fn _write_buffer_from_iter<T: NativeType, I: TrustedLen<Item = T>>(
     }
 }
 
+/// This function has been modified to never write any data, and instead only compute the data
+/// necessary to write the IPC header message (i.e. body length in bytes, buffers and nodes).
 fn _write_buffer<T: NativeType>(buffer: &[T], arrow_data_len: &mut usize, is_little_endian: bool) {
     if is_little_endian == cfg!(target_endian = "little") {
         // in native endianess we can use the bytes directly.
@@ -574,6 +611,9 @@ fn _write_buffer<T: NativeType>(buffer: &[T], arrow_data_len: &mut usize, is_lit
 
 /// writes `bytes` to `arrow_data` updating `buffers` and `offset` and guaranteeing a 8 byte
 /// boundary.
+///
+/// This function has been modified to never write any data, and instead only compute the data
+/// necessary to write the IPC header message (i.e. body length in bytes, buffers and nodes).
 #[inline]
 fn write_buffer_from_iter<T: NativeType, I: TrustedLen<Item = T>>(
     buffer: I,
@@ -589,6 +629,8 @@ fn write_buffer_from_iter<T: NativeType, I: TrustedLen<Item = T>>(
     buffers.push(finish_buffer(arrow_data_len, start, offset));
 }
 
+/// This function has been modified to never write any data, and instead only compute the data
+/// necessary to write the IPC header message (i.e. body length in bytes, buffers and nodes).
 fn finish_buffer(arrow_data_len: &mut usize, start: usize, offset: &mut i64) -> ipc::Buffer {
     let buffer_len = (*arrow_data_len - start) as i64;
 

@@ -16,9 +16,7 @@ use arrow2::io::ipc::write::{default_ipc_fields, schema_to_bytes};
 
 use super::record_batch::RecordBatch;
 
-pub mod offset;
 pub mod read;
-pub mod schema;
 pub mod write;
 
 /// Contains code taken from arrow2 (and slightly modified) to allow us to write arrays.
@@ -28,7 +26,6 @@ pub(crate) mod serialize;
 mod test;
 
 pub use read::*;
-pub use schema::*;
 pub use write::*;
 
 /// Calculates the number of bytes that the schema occupies.
