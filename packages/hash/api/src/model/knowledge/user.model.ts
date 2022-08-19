@@ -5,11 +5,16 @@ import {
   EntityTypeModel,
   UserModel,
 } from "..";
-import { adminKratosSdk, KratosUserIdentity } from "../../auth/ory-kratos";
+import {
+  adminKratosSdk,
+  KratosUserIdentity,
+  KratosUserIdentityTraits,
+} from "../../auth/ory-kratos";
 import {
   generateSchemaBaseUri,
   generateWorkspaceEntityTypeSchema,
   generateWorkspacePropertyTypeSchema,
+  RESTRICTED_SHORTNAMES,
   workspaceAccountId,
   workspaceTypesNamespaceUri,
 } from "../util";
@@ -48,6 +53,9 @@ export const preferredNamePropertyType = generateWorkspacePropertyTypeSchema({
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
+export const shortnameMinimumLength = 4;
+export const shortnameMaximumLength = 24;
+
 export const shortnameBaseUri = generateSchemaBaseUri({
   namespaceUri: workspaceTypesNamespaceUri,
   kind: "propertyType",
@@ -84,8 +92,6 @@ type UserModelCreateParams = Omit<
 > & {
   emails: string[];
   kratosIdentityId: string;
-  shortname?: string;
-  preferredName?: string;
 };
 
 // Generate the schema for the user entity type
@@ -126,6 +132,45 @@ const userEntityTypeVersionedUri = userEntityType.$id;
  * @class {@link UserModel}
  */
 export default class extends EntityModel {
+  static ALLOWED_SHORTNAME_CHARS = /^[a-zA-Z0-9-_]+$/;
+
+  static shortnameContainsInvalidCharacter(shortname: string): boolean {
+    return !!shortname.search(UserModel.ALLOWED_SHORTNAME_CHARS);
+  }
+
+  static shortnameIsRestricted(shortname: string): boolean {
+    return RESTRICTED_SHORTNAMES.includes(shortname);
+  }
+
+  static shortnameIsInvalid(shortname: string): boolean {
+    return (
+      shortname.length < shortnameMinimumLength ||
+      shortname.length > shortnameMaximumLength ||
+      shortname[0] === "-" ||
+      UserModel.shortnameContainsInvalidCharacter(shortname) ||
+      UserModel.shortnameIsRestricted(shortname)
+    );
+  }
+
+  /**
+   * Get a workspace user entity by their entityId.
+   *
+   * @param params.entityId - the entityId of the user
+   */
+  static async getUserByEntityId(
+    graphApi: GraphApi,
+    params: { entityId: string },
+  ): Promise<UserModel | null> {
+    const { entityId } = params;
+
+    const entityModel = await EntityModel.getLatest(graphApi, {
+      accountId: workspaceAccountId,
+      entityId,
+    });
+
+    return new UserModel(entityModel);
+  }
+
   /**
    * Get a workspace user entity by their shortname.
    *
@@ -149,6 +194,13 @@ export default class extends EntityModel {
       .find((user) => user.getShortname() === params.shortname);
 
     return matchingUser ?? null;
+  }
+
+  static async shortnameIsTaken(
+    graphApi: GraphApi,
+    params: { shortname: string },
+  ) {
+    return (await UserModel.getUserByShortname(graphApi, params)) !== null;
   }
 
   /**
@@ -187,14 +239,12 @@ export default class extends EntityModel {
    *
    * @param params.emails - the emails of the user
    * @param params.kratosIdentityId - the kratos identity id of the user
-   * @param params.shortname - the shortname of the user
-   * @param params.preferredName - the preferred name of the user
    */
   static async createUser(
     graphApi: GraphApi,
     params: UserModelCreateParams,
   ): Promise<UserModel> {
-    const { emails, shortname, preferredName, kratosIdentityId } = params;
+    const { emails, kratosIdentityId } = params;
 
     const existingUserWithKratosIdentityId =
       await UserModel.getUserByKratosIdentityId(graphApi, {
@@ -207,30 +257,14 @@ export default class extends EntityModel {
       );
     }
 
-    // if setting a shortname, ensure it's unique across all workspace users
-    if (shortname) {
-      const existingUserWithShortname = await UserModel.getUserByShortname(
-        graphApi,
-        { shortname },
-      );
-
-      if (existingUserWithShortname) {
-        throw new Error(
-          `A user entity with shortname "${shortname}" already exists.`,
-        );
-      }
-
-      /** @todo: also ensure shortname is unique amongst orgs */
-    }
-
     const { data: userAccountId } = await graphApi.createAccountId();
 
     const properties: object = {
       [emailBaseUri]: emails,
-      [shortnameBaseUri]: shortname,
       [kratosIdentityIdBaseUri]: kratosIdentityId,
       [accountIdBaseUri]: userAccountId,
-      [preferredNameBaseUri]: preferredName,
+      [shortnameBaseUri]: undefined,
+      [preferredNameBaseUri]: undefined,
     };
 
     const entityTypeModel = await UserModel.getUserEntityType(graphApi);
@@ -262,6 +296,31 @@ export default class extends EntityModel {
     );
 
     return kratosIdentity;
+  }
+
+  async updateKratosIdentityTraits(
+    updatedTraits: Partial<KratosUserIdentityTraits>,
+  ) {
+    const {
+      id: kratosIdentityId,
+      traits: currentKratosTraits,
+      schema_id,
+      state,
+    } = await this.getKratosIdentity();
+
+    /** @todo: figure out why the `state` can be undefined */
+    if (!state) {
+      throw new Error("Previous user identity state is undefined");
+    }
+
+    await adminKratosSdk.adminUpdateIdentity(kratosIdentityId, {
+      schema_id,
+      state,
+      traits: {
+        ...currentKratosTraits,
+        ...updatedTraits,
+      },
+    });
   }
 
   async getQualifiedEmails(): Promise<QualifiedEmail[]> {
@@ -300,23 +359,77 @@ export default class extends EntityModel {
   }
 
   async updateShortname(
-    _graphApi: GraphApi,
-    _params: { updatedByAccountId: string; updatedShortname: string },
-  ) {
-    /** @todo: re-implement this method */
-    throw new Error("user.updateShortname is not yet re-implemented");
+    graphApi: GraphApi,
+    params: { updatedByAccountId: string; updatedShortname: string },
+  ): Promise<UserModel> {
+    const { updatedByAccountId, updatedShortname } = params;
+
+    if (UserModel.shortnameIsInvalid(updatedShortname)) {
+      throw new Error(`The shortname "${updatedShortname}" is invalid`);
+    }
+
+    if (
+      UserModel.shortnameIsRestricted(updatedShortname) ||
+      (await UserModel.shortnameIsTaken(graphApi, {
+        shortname: updatedShortname,
+      }))
+    ) {
+      throw new Error(
+        `A user entity with shortname "${updatedShortname}" already exists.`,
+      );
+    }
+
+    /** @todo: also ensure shortname is unique amongst orgs */
+
+    const previousShortname = this.getShortname();
+
+    const updatedUser = await this.updateProperty(graphApi, {
+      propertyTypeBaseUri: shortnameBaseUri,
+      value: updatedShortname,
+      updatedByAccountId,
+    }).then((updatedEntity) => new UserModel(updatedEntity));
+
+    await this.updateKratosIdentityTraits({
+      shortname: updatedShortname,
+    }).catch(async (error) => {
+      // If an error occurred updating the entity, set the property to have the previous shortname
+      await this.updateProperty(graphApi, {
+        propertyTypeBaseUri: shortnameBaseUri,
+        value: previousShortname,
+        updatedByAccountId,
+      });
+
+      return Promise.reject(error);
+    });
+
+    return updatedUser;
   }
 
   getPreferredName(): string | undefined {
     return (this.properties as any)[preferredNameBaseUri];
   }
 
+  static preferredNameIsInvalid(preferredName: string) {
+    return preferredName === "";
+  }
+
   async updatePreferredName(
-    _graphApi: GraphApi,
-    _params: { updatedByAccountId: string; updatedPreferredName: string },
+    graphApi: GraphApi,
+    params: { updatedByAccountId: string; updatedPreferredName: string },
   ) {
-    /** @todo: re-implement this method */
-    throw new Error("user.updatePreferredName is not yet re-implemented");
+    const { updatedByAccountId, updatedPreferredName } = params;
+
+    if (UserModel.preferredNameIsInvalid(updatedPreferredName)) {
+      throw new Error(`Preferred name "${updatedPreferredName}" is invalid.`);
+    }
+
+    const updatedEntity = await this.updateProperty(graphApi, {
+      propertyTypeBaseUri: preferredNameBaseUri,
+      value: updatedPreferredName,
+      updatedByAccountId,
+    });
+
+    return new UserModel(updatedEntity);
   }
 
   getKratosIdentityId(): string {
@@ -358,6 +471,7 @@ export default class extends EntityModel {
   }
 
   isAccountSignupComplete(): boolean {
+    /** @todo: check they have a verified email address */
     return !!this.getShortname() && !!this.getPreferredName();
   }
 }

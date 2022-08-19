@@ -72,8 +72,10 @@ export const createFlowErrorHandler =
           return;
         }
         case "session_already_available":
-          // User is already signed in, let's redirect them home!
-          await router.push("/");
+          // User is already signed in, if we're in the login flow let's redirect them home!
+          if (flowType === "login") {
+            await router.push("/");
+          }
           return;
         case "session_refresh_required": {
           // We need to re-authenticate to perform this action
@@ -126,6 +128,17 @@ export const createFlowErrorHandler =
     }
 
     switch (err.response?.status) {
+      case 404:
+        if (process.env.NODE_ENV === "development") {
+          /**
+           * In development a flow may have disappeared because we re-seeded
+           * the database. Let's handle this gracefully by resetting the flow.
+           */
+          setFlow(undefined);
+          await router.push(`/${flowType}`);
+          return;
+        }
+        break;
       case 410:
         // The flow expired, let's request a new one.
         setFlow(undefined);

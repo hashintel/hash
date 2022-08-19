@@ -19,19 +19,15 @@ const userFieldsFragment = gql`
         memberships {
           entityId
         }
-        properties {
-          name
-        }
+        name
       }
     }
-    properties {
-      shortname
-      preferredName
-      emails {
-        address
-        primary
-        verified
-      }
+    shortname
+    preferredName
+    emails {
+      address
+      primary
+      verified
     }
   }
 `;

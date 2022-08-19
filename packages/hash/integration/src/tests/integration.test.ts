@@ -493,7 +493,7 @@ describe("logged in user ", () => {
 
     expect(await existingUser.isMemberOfOrg(db, bobOrg.entityId)).toBe(true);
 
-    const { emails } = gqlUser.properties;
+    const { emails } = gqlUser;
 
     const addedEmail = emails.find(
       ({ address }) => address === inviteeEmailAddress,

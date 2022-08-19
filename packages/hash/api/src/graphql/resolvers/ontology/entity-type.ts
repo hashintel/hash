@@ -6,24 +6,23 @@ import {
   MutationCreateEntityTypeArgs,
   MutationUpdateEntityTypeArgs,
   QueryGetEntityTypeArgs,
-  Resolver,
+  ResolverFn,
 } from "../../apiTypes.gen";
-import { GraphQLContext } from "../../context";
+import { LoggedInGraphQLContext } from "../../context";
 import { EntityTypeModel } from "../../../model";
-import { nilUuid } from "../../../model/util";
 import { entityTypeModelToGQL } from "./model-mapping";
 
-export const createEntityType: Resolver<
+export const createEntityType: ResolverFn<
   Promise<PersistedEntityType>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   MutationCreateEntityTypeArgs
-> = async (_, params, { dataSources }) => {
+> = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
   const { accountId, entityType } = params;
 
   const createdEntityTypeModel = await EntityTypeModel.create(graphApi, {
-    accountId,
+    accountId: accountId ?? user.getAccountId(),
     schema: entityType,
   }).catch((err: AxiosError) => {
     if (err.response?.status === 409) {
@@ -39,19 +38,18 @@ export const createEntityType: Resolver<
   return entityTypeModelToGQL(createdEntityTypeModel);
 };
 
-export const getAllLatestEntityTypes: Resolver<
+export const getAllLatestEntityTypes: ResolverFn<
   Promise<PersistedEntityType[]>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   {}
-> = async (_, __, { dataSources }) => {
+> = async (_, __, { dataSources, user }) => {
   const { graphApi } = dataSources;
 
   const allLatestEntityTypeModels = await EntityTypeModel.getAllLatest(
     graphApi,
     {
-      /** @todo Replace with User from the request */
-      accountId: nilUuid,
+      accountId: user.getAccountId(),
     },
   ).catch((err: AxiosError) => {
     throw new ApolloError(
@@ -65,10 +63,10 @@ export const getAllLatestEntityTypes: Resolver<
   );
 };
 
-export const getEntityType: Resolver<
+export const getEntityType: ResolverFn<
   Promise<PersistedEntityType>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   QueryGetEntityTypeArgs
 > = async (_, { entityTypeVersionedUri }, { dataSources }) => {
   const { graphApi } = dataSources;
@@ -85,12 +83,12 @@ export const getEntityType: Resolver<
   return entityTypeModelToGQL(entityTypeModel);
 };
 
-export const updateEntityType: Resolver<
+export const updateEntityType: ResolverFn<
   Promise<PersistedEntityType>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   MutationUpdateEntityTypeArgs
-> = async (_, params, { dataSources }) => {
+> = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
   const { accountId, entityTypeVersionedUri, updatedEntityType } = params;
 
@@ -105,7 +103,7 @@ export const updateEntityType: Resolver<
 
   const updatedEntityTypeModel = await entityTypeModel
     .update(graphApi, {
-      accountId,
+      accountId: accountId ?? user.getAccountId(),
       schema: updatedEntityType,
     })
     .catch((err: AxiosError) => {

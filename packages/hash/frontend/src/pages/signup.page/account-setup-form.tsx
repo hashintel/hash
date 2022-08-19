@@ -7,7 +7,7 @@ import { useShortnameInput } from "../../components/hooks/useShortnameInput";
 import { InfoIcon, SpinnerIcon, LogoIcon } from "../../shared/icons";
 import { InvitationInfo, ORG_ROLES } from "../shared/auth-utils";
 
-type AccountSetupProps = {
+type AccountSetupFormProps = {
   onSubmit: (details: {
     shortname: string;
     preferredName: string;
@@ -25,7 +25,7 @@ type Inputs = {
   responsibility?: string;
 };
 
-export const AccountSetup: FunctionComponent<AccountSetupProps> = ({
+export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
   onSubmit: setupAccount,
   loading,
   errorMessage,

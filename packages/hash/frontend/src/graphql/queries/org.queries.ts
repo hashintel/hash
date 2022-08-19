@@ -13,9 +13,7 @@ export const createOrg = gql`
       entityTypeVersionId
       entityTypeName
       visibility
-      properties {
-        shortname
-      }
+      shortname
       invitationLinks {
         entityId
         properties {
@@ -38,12 +36,10 @@ export const joinOrg = gql`
       responsibility: $responsibility
     ) {
       entityId
-      properties {
-        emails {
-          address
-          verified
-          primary
-        }
+      emails {
+        address
+        verified
+        primary
       }
     }
   }
@@ -81,15 +77,11 @@ export const getOrgEmailInvitation = gql`
       }
       org {
         entityId
-        properties {
-          name
-        }
+        name
       }
       inviter {
         entityId
-        properties {
-          preferredName
-        }
+        preferredName
       }
     }
   }
@@ -105,9 +97,7 @@ export const getOrgInvitationLink = gql`
 
       org {
         entityId
-        properties {
-          name
-        }
+        name
       }
     }
   }

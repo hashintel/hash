@@ -39,9 +39,7 @@ export const useUser = (options?: Omit<QueryHookOptions, "errorPolicy">) => {
       if (!user && sentryUser) {
         scope.setUser(null);
       } else if (user && sentryUser?.id !== user.entityId) {
-        const primaryEmail = user.properties.emails.find(
-          (email) => email.primary,
-        );
+        const primaryEmail = user.emails.find((email) => email.primary);
         Sentry.setUser({ id: user.entityId, email: primaryEmail?.address });
       }
     });

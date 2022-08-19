@@ -128,15 +128,14 @@ export const resolvers = {
     embedCode,
     pageSearchResultConnection,
     // Ontology
-    /** @todo add auth gate for the following endpoints. */
-    getAllLatestDataTypes,
-    getDataType,
-    getAllLatestPropertyTypes,
-    getPropertyType,
-    getAllLatestLinkTypes,
-    getLinkType,
-    getAllLatestEntityTypes,
-    getEntityType,
+    getAllLatestDataTypes: loggedInAndSignedUp(getAllLatestDataTypes),
+    getDataType: loggedInAndSignedUp(getDataType),
+    getAllLatestPropertyTypes: loggedInAndSignedUp(getAllLatestPropertyTypes),
+    getPropertyType: loggedInAndSignedUp(getPropertyType),
+    getAllLatestLinkTypes: loggedInAndSignedUp(getAllLatestLinkTypes),
+    getLinkType: loggedInAndSignedUp(getLinkType),
+    getAllLatestEntityTypes: loggedInAndSignedUp(getAllLatestEntityTypes),
+    getEntityType: loggedInAndSignedUp(getEntityType),
   },
 
   Mutation: {
@@ -175,13 +174,12 @@ export const resolvers = {
     executeGithubDiscoverTask: loggedInAndSignedUp(executeGithubDiscoverTask),
     executeGithubReadTask: loggedInAndSignedUp(executeGithubReadTask),
     // Ontology
-    /** @todo add auth gate for the following endpoints. */
-    createPropertyType,
-    updatePropertyType,
-    createLinkType,
-    updateLinkType,
-    createEntityType,
-    updateEntityType,
+    createPropertyType: loggedInAndSignedUp(createPropertyType),
+    updatePropertyType: loggedInAndSignedUp(updatePropertyType),
+    createLinkType: loggedInAndSignedUp(createLinkType),
+    updateLinkType: loggedInAndSignedUp(updateLinkType),
+    createEntityType: loggedInAndSignedUp(createEntityType),
+    updateEntityType: loggedInAndSignedUp(updateEntityType),
   },
 
   JSONObject: JSONObjectResolver,
@@ -204,7 +202,6 @@ export const resolvers = {
   },
 
   Org: {
-    properties: entityFields.properties,
     ...orgLinkedEntities,
   },
 

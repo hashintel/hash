@@ -1,83 +1,106 @@
-import { ApolloError, ForbiddenError } from "apollo-server-express";
+import {
+  ApolloError,
+  ForbiddenError,
+  UserInputError,
+} from "apollo-server-express";
+import { GraphApi } from "../../../graph";
 
-import { Account, User } from "../../../model";
+import {
+  shortnameMaximumLength,
+  shortnameMinimumLength,
+  UserModel,
+} from "../../../model";
 import { MutationUpdateUserArgs, ResolverFn } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { mapUserModelToGQL, UnresolvedGQLUser } from "./util";
+
+export const ALLOWED_SHORTNAME_CHARS = /^[a-zA-Z0-9-_]+$/;
+
+const validateShortname = async (graphApi: GraphApi, shortname: string) => {
+  if (UserModel.shortnameContainsInvalidCharacter(shortname)) {
+    throw new UserInputError(
+      "Shortname may only contain letters, numbers, - or _",
+    );
+  }
+  if (shortname[0] === "-") {
+    throw new UserInputError("Shortname cannot start with '-'");
+  }
+
+  if (
+    UserModel.shortnameIsRestricted(shortname) ||
+    (await UserModel.shortnameIsTaken(graphApi, { shortname }))
+  ) {
+    throw new ApolloError(`Shortname ${shortname} taken`, "NAME_TAKEN");
+  }
+
+  /** @todo: enable admins to have a shortname under 4 characters */
+  if (shortname.length < shortnameMinimumLength) {
+    throw new UserInputError("Shortname must be at least 4 characters long.");
+  }
+  if (shortname.length > shortnameMaximumLength) {
+    throw new UserInputError("Shortname cannot be longer than 24 characters");
+  }
+};
 
 export const updateUser: ResolverFn<
   Promise<UnresolvedGQLUser>,
   {},
   LoggedInGraphQLContext,
   MutationUpdateUserArgs
-> = async (_, { userEntityId, properties }, { dataSources, user }) =>
-  dataSources.db.transaction(async (client) => {
-    const { graphApi } = dataSources;
-    /** @todo: allow HASH admins to bypass this */
+> = async (
+  _,
+  { userEntityId, properties },
+  { dataSources: { graphApi }, user },
+) => {
+  /** @todo: run this mutation in a transaction */
 
-    if (userEntityId !== user.entityId) {
-      throw new ForbiddenError("You can only update your own user properties");
-    }
+  /** @todo: allow HASH admins to bypass this */
+  if (userEntityId !== user.entityId) {
+    throw new ForbiddenError("You can only update your own user properties");
+  }
 
-    const { shortname, preferredName, usingHow } = properties;
+  let updatedUser = user;
 
-    if (!shortname && !preferredName && !usingHow) {
+  const { shortname, preferredName } = properties;
+
+  if (
+    shortname !== undefined &&
+    shortname !== null &&
+    user.getShortname() !== shortname
+  ) {
+    await validateShortname(graphApi, shortname);
+
+    updatedUser = await updatedUser.updateShortname(graphApi, {
+      updatedByAccountId: user.accountId,
+      updatedShortname: shortname,
+    });
+  }
+
+  if (
+    preferredName !== undefined &&
+    preferredName !== null &&
+    user.getPreferredName() !== preferredName
+  ) {
+    if (UserModel.preferredNameIsInvalid(preferredName)) {
       throw new ApolloError(
-        "An updated 'shortname', 'preferredName' or 'usingHow' value  must be provided to update a user",
-        "NO_OP",
+        `The preferredName '${preferredName}' is invalid`,
+        "PREFERRED_NAME_INVALID",
       );
     }
 
-    if (shortname) {
-      if (user.getShortname() === shortname && !preferredName) {
-        throw new ApolloError(
-          `User with entityId '${user.entityId}' already has the shortname '${shortname}'`,
-          "NO_OP",
-        );
-      }
+    updatedUser = await updatedUser.updatePreferredName(graphApi, {
+      updatedByAccountId: user.accountId,
+      updatedPreferredName: preferredName,
+    });
+  }
 
-      await Account.validateShortname(client, shortname);
+  /** @todo: store how a user indicated they are using HASH */
+  // if (usingHow) {
+  //   await user.updateInfoProvidedAtSignup(graphApi, {
+  //     updatedByAccountId: user.accountId,
+  //     updatedInfo: { usingHow },
+  //   });
+  // }
 
-      await user.updateShortname(graphApi, {
-        updatedByAccountId: user.accountId,
-        updatedShortname: shortname,
-      });
-    }
-
-    if (preferredName) {
-      if (user.getPreferredName() === preferredName) {
-        throw new ApolloError(
-          `User with entityId '${user.entityId}' already has the preferredName '${preferredName}'`,
-          "NO_OP",
-        );
-      }
-
-      if (!User.preferredNameIsValid(preferredName)) {
-        throw new ApolloError(
-          `The preferredName '${preferredName}' is invalid`,
-          "PREFERRED_NAME_INVALID",
-        );
-      }
-
-      await user.updatePreferredName(graphApi, {
-        updatedByAccountId: user.accountId,
-        updatedPreferredName: preferredName,
-      });
-    }
-
-    if (usingHow) {
-      if (user.getInfoProvidedAtSignup().usingHow === usingHow) {
-        throw new ApolloError(
-          `User with entityId '${user.entityId}' already indicated how they are using HASH '${usingHow}'`,
-          "NO_OP",
-        );
-      }
-
-      await user.updateInfoProvidedAtSignup(graphApi, {
-        updatedByAccountId: user.accountId,
-        updatedInfo: { usingHow },
-      });
-    }
-
-    return mapUserModelToGQL(user);
-  });
+  return mapUserModelToGQL(updatedUser);
+};

@@ -1,6 +1,13 @@
-import { useEffect, FormEventHandler, useState, useMemo } from "react";
+import {
+  useEffect,
+  FormEventHandler,
+  useState,
+  useMemo,
+  FunctionComponent,
+} from "react";
 import { useRouter } from "next/router";
 import { SelfServiceRegistrationFlow } from "@ory/client";
+import { useMutation } from "@apollo/client";
 import { Typography, Container, Box } from "@mui/material";
 import { TextField } from "@hashintel/hash-design-system";
 import { AxiosError } from "axios";
@@ -13,8 +20,17 @@ import {
   oryKratosClient,
 } from "./shared/ory-kratos";
 import { Button } from "../shared/ui";
+import { useUser } from "../components/hooks/useUser";
+import { AccountSetupForm } from "./signup.page/account-setup-form";
 
-const SignupPage: NextPageWithLayout = () => {
+import {
+  UpdateUserMutation,
+  UpdateUserMutationVariables,
+} from "../graphql/apiTypes.gen";
+import { updateUser as updateUserMutation } from "../graphql/queries/user.queries";
+import { parseGraphQLError } from "./shared/auth-utils";
+
+const KratosRegistrationFlowForm: FunctionComponent = () => {
   const router = useRouter();
 
   // The "flow" represents a registration process and contains
@@ -125,7 +141,7 @@ const SignupPage: NextPageWithLayout = () => {
   );
 
   return (
-    <Container sx={{ pt: 10 }}>
+    <>
       <Typography variant="h1" gutterBottom>
         Create an account
       </Typography>
@@ -177,6 +193,83 @@ const SignupPage: NextPageWithLayout = () => {
           Already have an account? Log in
         </Button>
       </Box>
+    </>
+  );
+};
+
+const KratosVerificationFlowForm: FunctionComponent = () => {
+  return null;
+};
+
+const SignupPage: NextPageWithLayout = () => {
+  const router = useRouter();
+
+  const { user, kratosSession: _kratosSession, refetch } = useUser();
+
+  const [invitationInfo] = useState<null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>();
+
+  const [updateUser, { loading: updateUserLoading }] = useMutation<
+    UpdateUserMutation,
+    UpdateUserMutationVariables
+  >(updateUserMutation, {
+    onCompleted: async ({ updateUser: updatedUser }) => {
+      await refetch();
+
+      if (updatedUser.accountSignupComplete) {
+        void router.push("/");
+      }
+    },
+    onError: ({ graphQLErrors }) => {
+      if (!graphQLErrors.length) return;
+      const { message } = parseGraphQLError([...graphQLErrors]);
+      setErrorMessage(message);
+    },
+  });
+
+  const handleAccountSetupSubmit =
+    (userEntityId: string) =>
+    async (params: {
+      shortname: string;
+      preferredName: string;
+      responsibility?: string;
+    }) => {
+      const { shortname, preferredName } = params;
+
+      await updateUser({
+        variables: {
+          userEntityId,
+          properties: { shortname, preferredName },
+        },
+      });
+
+      /** @todo: set responsibility at org if in org invitation flow */
+    };
+
+  /** @todo: un-comment this to actually check whether the email is verified */
+  // const userHasVerifiedEmail =
+  //   kratosSession?.identity.verifiable_addresses?.find(
+  //     ({ verified }) => verified,
+  //   ) !== undefined;
+  const userHasVerifiedEmail = true;
+
+  return (
+    <Container sx={{ pt: 10 }}>
+      {user ? (
+        userHasVerifiedEmail ? (
+          <AccountSetupForm
+            onSubmit={handleAccountSetupSubmit(user.entityId)}
+            loading={updateUserLoading}
+            errorMessage={errorMessage}
+            email={user.emails[0]!.address}
+            invitationInfo={invitationInfo}
+          />
+        ) : (
+          <KratosVerificationFlowForm />
+        )
+      ) : (
+        <KratosRegistrationFlowForm />
+      )}
     </Container>
   );
 };
