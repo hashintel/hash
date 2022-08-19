@@ -104,6 +104,7 @@
 //! println!("{report:?}");
 //! # );
 //!
+//! # #[cfg(nightly)]
 //! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt_doc_alt.snap")].assert_eq(&render(format!("{report:#?}")));
 //! #
 //! # stringify!(
