@@ -195,8 +195,8 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
                     array_data.non_null_buffer_count(),
                     "Number of buffers in metadata does not match actual number of buffers"
                 );
-                // todo: when adding datatypes with no null buffer (the null datatype), then
-                // this   convention does not work
+                // TODO: when adding datatypes with no null buffer (the null datatype), then this
+                //   convention does not work
                 (0..meta.buffer_counts[i] - 1).for_each(|j| {
                     let buffer = array_data.buffer(j);
                     let new_len = buffer.len();
