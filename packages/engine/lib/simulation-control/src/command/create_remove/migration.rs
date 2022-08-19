@@ -1470,7 +1470,6 @@ pub(super) mod test {
             copy: vec![],
             create: vec![],
         };
-        let now = std::time::Instant::now();
 
         // Remove indices should be less than the length
         debug_assert!(batch_index.map_or(true, |index| {
@@ -1489,7 +1488,6 @@ pub(super) mod test {
             None,
         )?;
         buffer_actions.flush(&mut pool[0])?;
-        println!("Migration took: {} us", now.elapsed().as_micros());
 
         let empty_message_batch = MessageBatch::empty_from_agent_batch(
             &pool[0],
@@ -1504,7 +1502,7 @@ pub(super) mod test {
             &msg_schema,
             MemoryId::new(experiment_id.as_uuid()),
         )?;
-        let now = std::time::Instant::now();
+
         // Do on JSON
         let mut json_agents = (&agents_clone, &new_empty_message_batch).to_agent_states(None)?;
         remove_indices.iter().rev().for_each(|i| {
@@ -1515,7 +1513,7 @@ pub(super) mod test {
             &agent_schema,
             MemoryId::new(experiment_id.as_uuid()),
         )?;
-        println!("JSON took: {} us", now.elapsed().as_micros());
+
         assert!(agents.num_agents() > 1);
         assert_eq!(new_json_agents, json_agents);
         Ok(())
@@ -1556,7 +1554,6 @@ pub(super) mod test {
                 .map(|i| CreateAction { val: i })
                 .collect(),
         };
-        let now = std::time::Instant::now();
         // Remove indices should be less than the length
         debug_assert!(batch_index.map_or(true, |index| {
             row_actions
@@ -1574,7 +1571,6 @@ pub(super) mod test {
             Some(create_agents.batch.record_batch()?),
         )?;
         buffer_actions.flush(&mut pool[0])?;
-        println!("Migration took: {} us", now.elapsed().as_micros());
 
         let empty_message_batch = MessageBatch::empty_from_agent_batch(
             &pool[0],
@@ -1589,7 +1585,6 @@ pub(super) mod test {
             &msg_schema,
             MemoryId::new(experiment_id.as_uuid()),
         )?;
-        let now = std::time::Instant::now();
         // Do on JSON
         let mut json_agents = (&agents_clone, &new_empty_message_batch).to_agent_states(None)?;
         json_agents.append(&mut json_create_agents);
@@ -1598,7 +1593,7 @@ pub(super) mod test {
             &schema,
             MemoryId::new(experiment_id.as_uuid()),
         )?;
-        println!("JSON took: {} us", now.elapsed().as_micros());
+
         assert!(agents.num_agents() > 1);
         json_agents.iter_mut().for_each(|v| {
             v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
@@ -1682,7 +1677,6 @@ pub(super) mod test {
             &msg_schema,
             MemoryId::new(experiment_id.as_uuid()),
         )?;
-        let now = std::time::Instant::now();
         // Do on JSON
         let mut json_agents = (&agents_clone, &new_empty_message_batch).to_agent_states(None)?;
         select_indices
@@ -1693,7 +1687,7 @@ pub(super) mod test {
             &schema,
             MemoryId::new(experiment_id.as_uuid()),
         )?;
-        println!("JSON took: {} us", now.elapsed().as_micros());
+
         assert!(agents.num_agents() > 1);
 
         json_agents.iter_mut().for_each(|v| {
@@ -1760,7 +1754,6 @@ pub(super) mod test {
                 .map(|i| CreateAction { val: i })
                 .collect(),
         };
-        let now = std::time::Instant::now();
         // Remove indices should be less than the length
         debug_assert!(batch_index.map_or(true, |index| {
             row_actions
@@ -1778,7 +1771,6 @@ pub(super) mod test {
             Some(create_agents.batch.record_batch()?),
         )?;
         buffer_actions.flush(&mut pool[0])?;
-        println!("Migration took: {} us", now.elapsed().as_micros());
 
         let empty_message_batch = MessageBatch::empty_from_agent_batch(
             &pool[0],
@@ -1793,7 +1785,6 @@ pub(super) mod test {
             &msg_schema,
             MemoryId::new(experiment_id.as_uuid()),
         )?;
-        let now = std::time::Instant::now();
         // Do on JSON
         let mut json_agents = (&agents_clone, &new_empty_message_batch).to_agent_states(None)?;
         remove_indices.iter().rev().for_each(|i| {
@@ -1808,7 +1799,7 @@ pub(super) mod test {
             &schema,
             MemoryId::new(experiment_id.as_uuid()),
         )?;
-        println!("JSON took: {} us", now.elapsed().as_micros());
+
         assert!(agents.num_agents() > 1);
 
         new_json_agents.iter_mut().for_each(|v| {
