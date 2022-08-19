@@ -22,13 +22,7 @@ rayon = "1.5.3"
 serde = { version = "1.0.138", features = ["derive"] }
 serde_json = "1.0.82"
 thiserror = "1.0.31"
-tokio = { version = "1.19.2", features = [
-    "macros",
-    "rt",
-    "sync",
-    "process",
-    "time",
-] }
+tokio = { version = "1.19.2", features = ["macros", "rt", "sync", "process", "time"] }
 tracing = "0.1.35"
 uuid = "1.1.2"
 v8 = "0.45.0"
