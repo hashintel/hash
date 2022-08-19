@@ -128,6 +128,9 @@
 //! [`SpanTrace`]: tracing_error::SpanTrace
 //! [`error_stack::fmt::builtin`]: crate::fmt::builtin
 //! [`atomic`]: std::sync::atomic
+// This makes sure that `Emit` isn't regarded as dead-code even though it isn't exported on no-std.
+// This just simplifies maintenance, as otherwise we would be in cfg hell.
+#![cfg_attr(not(feature = "std"), allow(dead_code))]
 
 mod hook;
 #[cfg(feature = "unstable")]
@@ -150,6 +153,7 @@ use core::{
 #[cfg(feature = "std")]
 pub use hook::builtin;
 #[cfg(not(feature = "std"))]
+#[allow(clippy::redundant_pub_crate)]
 pub(crate) use hook::builtin;
 #[cfg(feature = "std")]
 pub use hook::HookContext;

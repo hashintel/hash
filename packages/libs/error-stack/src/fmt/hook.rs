@@ -158,7 +158,6 @@ pub struct HookContext<'a, T> {
     _marker: PhantomData<T>,
 }
 
-#[cfg_attr(all(doc, nightly), doc(cfg(feature = "std")))]
 impl<T> HookContext<'_, T> {
     /// This snippet (which can include line breaks) will be appended to the
     /// main message.
@@ -172,7 +171,6 @@ impl<T> HookContext<'_, T> {
     }
 }
 
-#[cfg_attr(all(doc, nightly), doc(cfg(feature = "std")))]
 impl<'a, T> HookContext<'a, T> {
     /// Cast the [`HookContext`] to a new type `U`.
     ///
