@@ -63,7 +63,11 @@ export const updateUser: ResolverFn<
 
   const { shortname, preferredName } = properties;
 
-  if (shortname && user.getShortname() !== shortname) {
+  if (
+    shortname !== undefined &&
+    shortname !== null &&
+    user.getShortname() !== shortname
+  ) {
     await validateShortname(graphApi, shortname);
 
     updatedUser = await updatedUser.updateShortname(graphApi, {
@@ -72,7 +76,11 @@ export const updateUser: ResolverFn<
     });
   }
 
-  if (preferredName && user.getPreferredName() !== preferredName) {
+  if (
+    preferredName !== undefined &&
+    preferredName !== null &&
+    user.getPreferredName() !== preferredName
+  ) {
     if (UserModel.preferredNameIsInvalid(preferredName)) {
       throw new ApolloError(
         `The preferredName '${preferredName}' is invalid`,
