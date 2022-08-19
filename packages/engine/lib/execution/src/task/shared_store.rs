@@ -67,7 +67,7 @@ pub enum GetWriteProxiesError {
 
 impl From<GetWriteProxiesError> for crate::runner::JavaScriptError {
     fn from(_: GetWriteProxiesError) -> crate::runner::JavaScriptError {
-        crate::runner::JavaScriptError::Unique("cannot obtain the state as writable".to_owned())
+        crate::runner::JavaScriptError::from("cannot obtain the state as writable")
     }
 }
 

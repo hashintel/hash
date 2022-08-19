@@ -1359,7 +1359,7 @@ impl<'s> ThreadLocalRunner<'s> {
     }
 
     /// "Flushes" the changes which the JavaScript code made. This involves collecting a list of all
-    /// the changes, which we then use to modify the underlying arrow arrays.
+    /// the changes, which we then use to modify the underlying Arrow arrays.
     ///
     /// See also the [`memory::arrow::flush`] module for more information.
     fn flush(
@@ -1655,9 +1655,9 @@ impl<'s> ThreadLocalRunner<'s> {
             Ok(t) => t,
             Err(_) => return Ok(()),
         };
-        write_proxies.maybe_reload().map_err(|_| {
-            JavaScriptError::Unique("could not reload batches (this is a bug)".to_string())
-        })?;
+        write_proxies
+            .maybe_reload()
+            .map_err(|_| JavaScriptError::from("could not reload batches (this is a bug)"))?;
         Ok(())
     }
 
