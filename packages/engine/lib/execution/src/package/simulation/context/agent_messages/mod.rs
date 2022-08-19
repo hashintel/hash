@@ -127,6 +127,8 @@ impl ContextPackage for AgentMessages {
         > = MutableListArray::new_from(
             loc_builder,
             DataType::List(Box::new(Field::new(
+                // todo: use a better field name for this
+                // Asana task: https://app.asana.com/0/1199548034582004/1202829751949507/f
                 "item",
                 DataType::FixedSizeList(Box::new(Field::new("item", DataType::UInt32, true)), 3),
                 true,
