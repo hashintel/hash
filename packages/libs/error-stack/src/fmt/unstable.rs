@@ -58,13 +58,13 @@ use crate::fmt::Emit;
 /// [RFC 1210]: https://github.com/rust-lang/rfcs/pull/1210
 /// [#31844]: https://github.com/rust-lang/rust/issues/31844
 // TODO: remove experimental flag once specialisation is stabilized or sound
-#[cfg(feature = "experimental")]
+#[cfg(feature = "unstable")]
 pub struct DebugDiagnostic {
     output: Emit,
     snippets: Vec<String>,
 }
 
-#[cfg(feature = "experimental")]
+#[cfg(feature = "unstable")]
 impl DebugDiagnostic {
     /// The diagnostic is going to be emitted immediately once encountered in the frame stack.
     pub fn next<T: Into<String>>(output: T) -> Self {

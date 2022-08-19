@@ -413,6 +413,10 @@
 //!  `anyhow`  | Provides conversion from [`anyhow::Error`] to [`Report`]       |         | disabled
 //!   `eyre`   | Provides conversion from [`eyre::Report`] to [`Report`]        |         | disabled
 //!   `glyph`  | Provide color and use of box drawing characters in [`Debug`] output |    | enabled
+//! `unstable` | Enables unstable features, which do not follow semver[^unstable] |  | disabled
+//!
+//! [^unstable]: unstable features may be removed in **any** future version without notice.
+//!     They exist to gauge interest towards features that may be stablized in the future.
 //!
 //! [`set_display_hook`]: Report::set_display_hook
 //! [`set_debug_hook`]: Report::set_debug_hook

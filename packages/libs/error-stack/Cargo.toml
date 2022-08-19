@@ -45,7 +45,7 @@ spantrace = ["dep:tracing-error"]
 futures = ["dep:pin-project", "dep:futures-core"]
 small = ["dep:smallvec"]
 glyph = ["dep:owo-colors"]
-experimental = []
+unstable = []
 hooks = ["std"]
 
 [package.metadata.docs.rs]

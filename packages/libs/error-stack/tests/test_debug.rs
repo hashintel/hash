@@ -244,7 +244,7 @@ fn sources_nested_alternate() {
     feature = "std",
     feature = "spantrace",
     feature = "glyph",
-    feature = "experimental"
+    feature = "unstable"
 ))]
 mod full {
     //! Why so many cfg guards?
@@ -267,7 +267,7 @@ mod full {
     //!
     //! There are still some big snapshot tests, which are used evaluate all of the above.
 
-    #[cfg(all(nightly, feature = "experimental"))]
+    #[cfg(all(nightly, feature = "unstable"))]
     use error_stack::fmt::DebugDiagnostic;
     use error_stack::fmt::Emit;
 

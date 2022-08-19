@@ -129,9 +129,9 @@
 //! [`error_stack::fmt::builtin`]: crate::fmt::builtin
 //! [`atomic`]: std::sync::atomic
 
-#[cfg(feature = "experimental")]
-mod experimental;
 mod hook;
+#[cfg(feature = "unstable")]
+mod unstable;
 
 use alloc::{
     borrow::ToOwned,
@@ -147,8 +147,6 @@ use core::{
     mem,
 };
 
-#[cfg(feature = "experimental")]
-pub use experimental::DebugDiagnostic;
 #[cfg(feature = "std")]
 pub use hook::builtin;
 #[cfg(not(feature = "std"))]
@@ -160,6 +158,8 @@ use hook::HookContextImpl;
 pub(crate) use hook::Hooks;
 #[cfg(feature = "glyph")]
 use owo_colors::{OwoColorize, Stream::Stdout, Style as OwOStyle};
+#[cfg(feature = "unstable")]
+pub use unstable::DebugDiagnostic;
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
@@ -756,7 +756,7 @@ fn debug_attachments(
         .map(|frame| match frame.kind() {
             FrameKind::Context(_) => unreachable!(),
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
-                #[cfg(all(nightly, feature = "experimental"))]
+                #[cfg(all(nightly, feature = "unstable"))]
                 if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
                     for snippet in debug.snippets() {
                         ctx.as_hook_context::<DebugDiagnostic>().attach_snippet(snippet.clone());
