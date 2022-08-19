@@ -75,6 +75,7 @@ fn round_trip(schema: Arc<Schema>, record_batch: RecordBatch) {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 /// Tests that we can serialize a single column and then read it.
 fn simple_roundtrip() {
     let schema = Arc::new(Schema {
@@ -92,6 +93,7 @@ fn simple_roundtrip() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn integer_roundtrip() {
     let schema = Arc::new(Schema {
         fields: vec![Field::new("field1", DataType::UInt32, false)],
@@ -108,6 +110,7 @@ fn integer_roundtrip() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn fixed_sized_list_roundtrip() {
     let schema = Arc::new(Schema {
         fields: vec![Field::new(
@@ -129,6 +132,7 @@ fn fixed_sized_list_roundtrip() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn utf8_roundrip() {
     let schema = Arc::new(Schema {
         fields: vec![Field::new("field1", DataType::Utf8, false)],
@@ -146,6 +150,7 @@ fn utf8_roundrip() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn list_roundtrip() {
     let schema = Arc::new(Schema {
         fields: vec![Field::new(
@@ -175,6 +180,7 @@ fn list_roundtrip() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn fixed_size_binary_roundrip() {
     let schema = Arc::new(Schema {
         fields: vec![Field::new("field1", DataType::FixedSizeBinary(5), false)],
@@ -198,6 +204,7 @@ fn fixed_size_binary_roundrip() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn single_fixed_size_binary_roundtrip() {
     let schema = Arc::new(Schema {
         fields: vec![Field::new("field1", DataType::FixedSizeBinary(16), false)],
@@ -218,6 +225,7 @@ fn single_fixed_size_binary_roundtrip() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn multiple_columns() {
     let schema = Arc::new(Schema {
         fields: vec![
@@ -269,6 +277,7 @@ pub struct StructWithFields {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn struct_list_roundtrip() {
     let schema = Arc::new(Schema {
         fields: vec![Field::new(

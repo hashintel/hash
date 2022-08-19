@@ -42,7 +42,7 @@ impl BooleanColumn {
     }
 }
 
-#[cfg(all(test, not(miri)))]
+#[cfg(test)]
 mod tests {
     use arrow2::array::BooleanArray;
     use rand::{prelude::SliceRandom, Rng};
@@ -50,6 +50,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn unset() {
         let mut rng = rand::thread_rng();
         let unset = 40;
@@ -76,6 +77,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn set() {
         let mut rng = rand::thread_rng();
         let size = 200;
