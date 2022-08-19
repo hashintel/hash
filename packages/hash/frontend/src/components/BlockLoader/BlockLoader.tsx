@@ -58,7 +58,7 @@ type BlockLoaderProps = {
   blockEntityId: string;
   blockMetadata: HashBlockMeta;
   blockSchema: JsonSchema;
-  editableRef: unknown;
+  editableRef: (node: HTMLElement | null) => void;
   entityId: string;
   entityType?: Pick<ApiEntityType, "entityId" | "properties">;
   entityTypeId: string;
