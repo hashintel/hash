@@ -119,13 +119,12 @@ export const resolvers = {
     embedCode,
     pageSearchResultConnection,
     // Ontology
-    /** @todo add auth gate for the following endpoints. */
-    getAllLatestDataTypes,
-    getDataType,
-    getAllLatestPropertyTypes,
-    getPropertyType,
-    getAllLatestLinkTypes,
-    getLinkType,
+    getAllLatestDataTypes: loggedInAndSignedUp(getAllLatestDataTypes),
+    getDataType: loggedInAndSignedUp(getDataType),
+    getAllLatestPropertyTypes: loggedInAndSignedUp(getAllLatestPropertyTypes),
+    getPropertyType: loggedInAndSignedUp(getPropertyType),
+    getAllLatestLinkTypes: loggedInAndSignedUp(getAllLatestLinkTypes),
+    getLinkType: loggedInAndSignedUp(getLinkType),
   },
 
   Mutation: {
@@ -164,11 +163,10 @@ export const resolvers = {
     executeGithubDiscoverTask: loggedInAndSignedUp(executeGithubDiscoverTask),
     executeGithubReadTask: loggedInAndSignedUp(executeGithubReadTask),
     // Ontology
-    /** @todo add auth gate for the following endpoints. */
-    createPropertyType,
-    updatePropertyType,
-    createLinkType,
-    updateLinkType,
+    createPropertyType: loggedInAndSignedUp(createPropertyType),
+    updatePropertyType: loggedInAndSignedUp(updatePropertyType),
+    createLinkType: loggedInAndSignedUp(createLinkType),
+    updateLinkType: loggedInAndSignedUp(updateLinkType),
   },
 
   JSONObject: JSONObjectResolver,
