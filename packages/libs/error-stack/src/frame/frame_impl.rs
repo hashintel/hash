@@ -26,7 +26,7 @@ pub(super) unsafe trait FrameImpl: Send + Sync + 'static {
     /// Returns the [`TypeId`] of this `Frame`.
     ///
     /// It's guaranteed, that `*dyn FrameImpl` can be cast to a pointer to the type returned by
-    /// `type_id`.  
+    /// `type_id`.
     fn type_id(&self) -> TypeId;
 
     /// Returns the location where this `Frame` was created.
