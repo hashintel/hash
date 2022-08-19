@@ -132,8 +132,10 @@ export const createFlowErrorHandler =
         if (process.env.NODE_ENV === "development") {
           /**
            * In development a flow may have disappeared because we re-seeded
-           * the database. Let's hadnle this gracefully.
+           * the database. Let's handle this gracefully by resetting the flow.
            */
+          setFlow(undefined);
+          await router.push(`/${flowType}`);
           return;
         }
         break;
