@@ -92,7 +92,7 @@ def _format_behavior_error(behavior_name, exc_info):
 
 def _postprocess(agent_state):
     msgs = agent_state.messages
-    if msgs:
+    if msgs is not None:
         for m in msgs:
             # Types are checked here because flush might not happen until
             # several Python behaviors later (due to behavior chaining)
