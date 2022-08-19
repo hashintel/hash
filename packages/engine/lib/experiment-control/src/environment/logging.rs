@@ -274,7 +274,8 @@ pub fn init_logger<P: AsRef<Path>>(
                 "Could not create the log folder. Please try creating the folder `{}` in the \
                  directory from which you are running the engine.
                  Note: the specific error the engine encountered is `{:?}`",
-                log_folder, e
+                log_folder.display(),
+                e
             );
             std::process::exit(1)
         }
