@@ -1,7 +1,7 @@
 use std::{
     convert::Infallible,
     fmt::{Display, Formatter},
-    io,
+    fs, io,
     path::{Path, PathBuf},
     str::FromStr,
 };
@@ -257,6 +257,20 @@ pub fn init_logger<P: AsRef<Path>>(
             None,
         ),
     };
+
+    if !Path::new(log_folder).exists() {
+        fs::create_dir(log_folder).expect("could not create the log folder");
+    }
+    if !Path::new(log_folder).is_dir() {
+        eprintln!(
+            "The provided log folder is not a directory (it is probably a file). Note that the \
+             default name of the log folder is `log`, so if you have a file named `log` in the \
+             current directory and you have selected `log` as the directory to save the engine \
+             logs, please move the file named `log` to a different directory, or choose a \
+             different directory to write log output to."
+        );
+        std::process::exit(1);
+    }
 
     let json_file_appender =
         tracing_appender::rolling::never(log_folder, format!("{log_file_name}.json"));
