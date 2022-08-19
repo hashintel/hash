@@ -108,21 +108,13 @@ Depending on your needs, different dependencies are required. Building this proj
 
 #### For all macs
 
-Unfortunately, Apple currently doesn't provide a way to resize shared-memory
-allocations. To work around this, allocations need to be sufficiently big such
-that they will not need to be resized. This can be done by setting the
-`OS_MEMORY_ALLOC_OVERRIDE` environment variable. A reasonable starting value
-might be `250000000`, but it is heavily dependent on the memory-requirements of
-your simulation. This can be done using the command line
+Unfortunately, Apple currently doesn't provide a way to resize shared-memory allocations. To work around this, allocations need to be sufficiently big such that they will not need to be resized. This can be done by setting the `OS_MEMORY_ALLOC_OVERRIDE` environment variable. A reasonable starting value might be `250000000`, but it is heavily dependent on the memory-requirements of your simulation. This can be done using the command line
 
 ```sh
 export OS_MEMORY_ALLOC_OVERRIDE=250000000
 ```
 
-If you want to run Python behaviors, you will need a copy of the open basic
-linear algebra subroutines (`brew install openblas` - if you do not have
-Homebrew installed, this is easily done from [its website](https://brew.sh)) -
-this is currently necessary to install `scipy`.
+If you want to run Python behaviors, you will need a copy of the open basic linear algebra subroutines (`brew install openblas` - if you do not have Homebrew installed, this is easily done from [its website](https://brew.sh)) - this is currently necessary to install `scipy`.
 
 ### Possible Dependencies and Debugging
 
