@@ -10,19 +10,19 @@ import { adminKratosSdk, KratosUserIdentityTraits } from "./ory-kratos";
 type DevelopmentUser = {
   email: string;
   shortname: string;
-  fullName: string;
+  preferredName: string;
 };
 
 const devUsers: readonly DevelopmentUser[] = [
   {
     email: "alice@example.com",
     shortname: "alice",
-    fullName: "Alice Alison",
+    preferredName: "Alice Alison",
   },
   {
     email: "bob@example.com",
     shortname: "bob",
-    fullName: "Bob Bobson",
+    preferredName: "Bob Bobson",
   },
 ] as const;
 
