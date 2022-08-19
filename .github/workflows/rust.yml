@@ -212,7 +212,7 @@ jobs:
       
       - name: Run lints
         working-directory: ${{ matrix.directory }}
-        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} lint -- -D warnings
+        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} clippy -- -D warnings
 
 
       - name: Login
