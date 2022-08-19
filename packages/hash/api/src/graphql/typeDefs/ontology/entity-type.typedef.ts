@@ -51,7 +51,7 @@ export const entityTypeTypedef = gql`
       """
       accountId refers to the account to update the entity type in.
       """
-      accountId: ID!
+      accountId: ID
       """
       The entity type versioned $id to update.
       """
