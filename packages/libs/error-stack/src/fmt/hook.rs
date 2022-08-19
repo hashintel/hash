@@ -181,10 +181,11 @@ impl<'a, T> HookContext<'a, T> {
     /// types the values stored in [`HookContext<T>`] will be separated from values in
     /// [`HookContext<U>`].
     ///
-    /// Most user-facing should never need to use this function, as function hooks are only able to
-    /// get a mutable reference to [`HookContext`].
-    /// This is not the case for a fallback function, which receives the context as value,
-    /// allowing for "dynamic" recasting.
+    /// In most situations this functions isn't needed, as it transparently casts between different
+    /// partitions of the storage. Only hooks that share storage with hooks of different types
+    /// should need to use this function.
+    ///
+    /// This function is also particularly useful when implementing generic fallbacks.
     ///
     /// ### Example
     ///
