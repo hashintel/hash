@@ -28,7 +28,7 @@ const devUsers: readonly DevelopmentUser[] = [
 
 const devPassword = "password";
 
-export const seedDevUsers = async ({
+export const ensureDevUsersAreSeeded = async ({
   graphApi,
   logger,
 }: {

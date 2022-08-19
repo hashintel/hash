@@ -44,7 +44,7 @@ import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { connectToTaskExecutor } from "./task-execution";
 import { createGraphClient } from "./graph";
 import { ensureWorkspaceTypesExist } from "./graph/workspace-types";
-import { seedDevUsers } from "./auth/seed-dev-users";
+import { ensureDevUsersAreSeeded } from "./auth/seed-dev-users";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -144,7 +144,7 @@ const main = async () => {
   setupAuth({ app, graphApi, logger });
 
   if (isDevEnv) {
-    await seedDevUsers({ graphApi, logger });
+    await ensureDevUsersAreSeeded({ graphApi, logger });
   }
 
   // Create an email transporter
