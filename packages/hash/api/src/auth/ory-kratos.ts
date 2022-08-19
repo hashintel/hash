@@ -1,5 +1,8 @@
-import { AdminCreateIdentityBody, Configuration, Identity } from "@ory/client";
-import { V0alpha2Api as OpenSourceV0alpha2Api } from "@ory/kratos-client";
+import { Configuration, Identity } from "@ory/client";
+import {
+  V0alpha2Api as OpenSourceV0alpha2Api,
+  AdminCreateIdentityBody,
+} from "@ory/kratos-client";
 import { getRequiredEnv } from "../util";
 
 const publicUrl = getRequiredEnv("ORY_KRATOS_PUBLIC_URL");
@@ -28,12 +31,10 @@ export const createKratosIdentity = async (
     traits: KratosUserIdentityTraits;
   },
 ): Promise<KratosUserIdentity> => {
-  const { traits } = params;
-
   const { data: kratosUserIdentity } = await adminKratosSdk.adminCreateIdentity(
     {
       schema_id: "default",
-      traits,
+      ...params,
     },
   );
 
