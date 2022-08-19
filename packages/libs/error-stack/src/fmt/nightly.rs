@@ -54,6 +54,7 @@ use crate::fmt::Emit;
 /// [`.attach()`]: crate::Report::attach
 /// [`Demand`]: core::any::Demand
 /// [`Debug`]: core::fmt::Debug
+/// [`Report`]: crate::Report
 /// [RFC 1210]: https://github.com/rust-lang/rfcs/pull/1210
 /// [#31844]: https://github.com/rust-lang/rust/issues/31844
 // TODO: remove experimental flag once specialisation is stabilized or sound or `.attach_provider()`
