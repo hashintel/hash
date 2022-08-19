@@ -4,6 +4,7 @@ use super::util::bit_util;
 
 // `n_bits` 0 bits, possibly followed by more 0 bits for padding.
 // todo: we can remove this by using the (less error-prone) `MutableBitmap` instead
+// Asana task: https://app.asana.com/0/1199548034582004/1202829751949518/f
 pub fn new_zero_bits<T: Integer + Clone>(n_bits: usize) -> Vec<T> {
     let n_bytes = bit_util::ceil(n_bits, 8);
 
