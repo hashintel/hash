@@ -63,7 +63,7 @@ if uname -s | grep -q Darwin && uname -p | grep -q arm ; then
   python -m pip install -r "${SCRIPT_DIR}/m1-requirements.txt"
   git clone https://github.com/hashintel/pynng
   cd pynng
-  pip3 install -e .
+  python -m pip install .
   cd ..
   rm -rf pynng
 else
