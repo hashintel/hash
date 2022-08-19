@@ -261,16 +261,20 @@ impl Packages {
                     })
                     .map(Arc::clone);
                 if let Ok(col) = &col {
-                    debug_assert_eq!(arrow_field.data_type(), col.data_type(), "the datatype for {} does not match the schema", arrow_field.name);
-                    if col.len() != num_agents {
-                        panic!(
-                            r#"the length ({}) of the column "{}" does not equal the number of agents \
-                             ({num_agents}). {:#?}"#,
-                            col.len(),
-                            arrow_field.name,
-                            col
-                        )
-                    }
+                    debug_assert_eq!(
+                        arrow_field.data_type(),
+                        col.data_type(),
+                        "the datatype for {} does not match the schema",
+                        arrow_field.name
+                    );
+                    assert_eq!(
+                        col.len(),
+                        num_agents,
+                        r#"the length ({}) of the column "{}" does not equal the number of agents ({num_agents}). {:#?}"#,
+                        col.len(),
+                        arrow_field.name,
+                        col
+                    );
                 }
                 col
             })
