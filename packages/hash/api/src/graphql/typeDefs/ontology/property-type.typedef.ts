@@ -11,11 +11,11 @@ export const propertyTypeTypedef = gql`
     """
     The user who created the property type
     """
-    createdBy: ID!
+    accountId: ID!
     """
     The property type
     """
-    schema: PropertyType!
+    propertyType: PropertyType!
     # TODO: we might need something like
     # "referencedDataTypes: [PersistedDataType!]"
     # for us to retrieve all referenced data types, and one for referenced property types as well.

@@ -11,11 +11,11 @@ export const dataTypeTypedef = gql`
     """
     The user who created the data type
     """
-    createdBy: ID!
+    accountId: ID!
     """
     The data type
     """
-    schema: DataType!
+    dataType: DataType!
   }
 
   extend type Query {

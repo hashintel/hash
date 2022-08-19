@@ -11,11 +11,11 @@ export const linkTypeTypedef = gql`
     """
     The user who created the link type
     """
-    createdBy: ID!
+    accountId: ID!
     """
     The link type
     """
-    schema: LinkType!
+    linkType: LinkType!
   }
 
   extend type Query {

@@ -14,31 +14,31 @@ import {
 export const dataTypeModelToGQL = (
   dataType: DataTypeModel,
 ): PersistedDataType => ({
-  createdBy: dataType.accountId,
+  accountId: dataType.accountId,
   dataTypeVersionedUri: dataType.schema.$id,
-  schema: dataType.schema,
+  dataType: dataType.schema,
 });
 
 export const propertyTypeModelToGQL = (
   propertyType: PropertyTypeModel,
 ): PersistedPropertyType => ({
-  createdBy: propertyType.accountId,
+  accountId: propertyType.accountId,
   propertyTypeVersionedUri: propertyType.schema.$id,
-  schema: propertyType.schema,
+  propertyType: propertyType.schema,
 });
 
 export const linkTypeModelToGQL = (
   linkType: LinkTypeModel,
 ): PersistedLinkType => ({
-  createdBy: linkType.accountId,
+  accountId: linkType.accountId,
   linkTypeVersionedUri: linkType.schema.$id,
-  schema: linkType.schema,
+  linkType: linkType.schema,
 });
 
 export const entityTypeModelToGQL = (
   entityType: EntityTypeModel,
 ): PersistedEntityType => ({
-  createdBy: entityType.accountId,
+  accountId: entityType.accountId,
   entityTypeVersionedUri: entityType.schema.$id,
-  schema: entityType.schema,
+  entityType: entityType.schema,
 });

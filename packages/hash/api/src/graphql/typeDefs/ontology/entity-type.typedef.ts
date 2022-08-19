@@ -11,11 +11,11 @@ export const entityTypeTypedef = gql`
     """
     The user who created the entity type
     """
-    createdBy: ID!
+    accountId: ID!
     """
     The entity type
     """
-    schema: EntityType!
+    entityType: EntityType!
     # TODO: we might need something like
     # "referencedPropertyTypes: [PersistedPropertyType!]"
   }
