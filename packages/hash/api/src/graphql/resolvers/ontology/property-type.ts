@@ -25,14 +25,12 @@ export const createPropertyType: ResolverFn<
     accountId: accountId ?? user.getAccountId(),
     schema: propertyType,
   }).catch((err: AxiosError) => {
-    if (err.response?.status === 409) {
-      throw new ApolloError(
-        `Property type with the same URI already exists. [URI=${propertyType.$id}]`,
-        "CREATION_ERROR",
-      );
-    }
+    const msg =
+      err.response?.status === 409
+        ? `Property type with the same URI already exists. [URI=${propertyType.$id}]`
+        : `Couldn't create property type.`;
 
-    throw new ApolloError(`Couldn't create property type.`, "CREATION_ERROR");
+    throw new ApolloError(msg, "CREATION_ERROR");
   });
 
   return propertyTypeModelToGQL(createdPropertyTypeModel);
@@ -58,9 +56,7 @@ export const getAllLatestPropertyTypes: ResolverFn<
     );
   });
 
-  return allLatestPropertyTypeModels.map((propertyTypeModel) =>
-    propertyTypeModelToGQL(propertyTypeModel),
-  );
+  return allLatestPropertyTypeModels.map(propertyTypeModelToGQL);
 };
 
 export const getPropertyType: ResolverFn<
@@ -107,13 +103,12 @@ export const updatePropertyType: ResolverFn<
       schema: updatedPropertyType,
     })
     .catch((err: AxiosError) => {
-      if (err.response?.status === 409) {
-        throw new ApolloError(
-          `Property type URI doesn't exist, unable to update. [URI=${propertyTypeVersionedUri}]`,
-          "CREATION_ERROR",
-        );
-      }
-      throw new ApolloError(`Couldn't update property type.`, "CREATION_ERROR");
+      const msg =
+        err.response?.status === 409
+          ? `Property type URI doesn't exist, unable to update. [URI=${propertyTypeVersionedUri}]`
+          : `Couldn't update property type.`;
+
+      throw new ApolloError(msg, "CREATION_ERROR");
     });
 
   return propertyTypeModelToGQL(updatedPropertyTypeModel);

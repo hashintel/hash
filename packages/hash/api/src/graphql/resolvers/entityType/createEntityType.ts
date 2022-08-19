@@ -1,12 +1,15 @@
-import { MutationCreateEntityTypeArgs, ResolverFn } from "../../apiTypes.gen";
+import {
+  MutationDeprecatedCreateEntityTypeArgs,
+  ResolverFn,
+} from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { EntityType, UnresolvedGQLEntityType } from "../../../model";
 
-export const createEntityType: ResolverFn<
+export const deprecatedCreateEntityType: ResolverFn<
   Promise<UnresolvedGQLEntityType>,
   {},
   LoggedInGraphQLContext,
-  MutationCreateEntityTypeArgs
+  MutationDeprecatedCreateEntityTypeArgs
 > = async (
   _,
   { accountId, description, name, schema },

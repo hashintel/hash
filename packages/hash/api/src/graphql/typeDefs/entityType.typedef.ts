@@ -1,6 +1,6 @@
 import { gql } from "apollo-server-express";
 
-export const entityTypeTypedef = gql`
+export const deprecatedEntityTypeTypedef = gql`
   extend type Query {
     """
     Get an entity type by its fixed id, which is:
@@ -8,7 +8,7 @@ export const entityTypeTypedef = gql`
     - entityTypeId on an Entity of its type)
     Or, by EntityTypeChoice
     """
-    getEntityType(
+    deprecatedGetEntityType(
       entityTypeId: ID
         @deprecated(
           reason: """
@@ -16,8 +16,7 @@ export const entityTypeTypedef = gql`
           """
         )
       choice: EntityTypeChoice
-    ): EntityType!
-
+    ): DeprecatedEntityType!
     """
     Get all EntityTypes belonging to an account.
     Optionally include:
@@ -25,18 +24,18 @@ export const entityTypeTypedef = gql`
     - ALL types.
     TODO: replace this with a new aggregateEntityTypes query instead
     """
-    getAccountEntityTypes(
+    deprecatedGetAccountEntityTypes(
       accountId: ID!
       includeAllTypes: Boolean = false
       includeOtherTypesInUse: Boolean = false
-    ): [EntityType!]!
+    ): [DeprecatedEntityType!]!
   }
 
   extend type Mutation {
     """
     Create an entity type
     """
-    createEntityType(
+    deprecatedCreateEntityType(
       accountId: ID!
       """
       The name for the type. Must be unique in the given account.
@@ -50,12 +49,12 @@ export const entityTypeTypedef = gql`
       The schema definition for the entity type, in JSON Schema.
       """
       schema: JSONObject
-    ): EntityType!
+    ): DeprecatedEntityType!
 
     """
     Update an entity type
     """
-    updateEntityType(
+    deprecatedUpdateEntityType(
       """
       The fixed id of the entityType to update, i.e. its entityId
       """
@@ -64,7 +63,7 @@ export const entityTypeTypedef = gql`
       The schema definition for the entity type, in JSON Schema format.
       """
       schema: JSONObject!
-    ): EntityType!
+    ): DeprecatedEntityType!
   }
 
   enum SystemTypeName {
@@ -83,7 +82,7 @@ export const entityTypeTypedef = gql`
   """
   A schema describing and validating a specific type of entity
   """
-  type EntityType implements Entity {
+  type DeprecatedEntityType implements Entity {
     """
     The shape of the entity, expressed as a JSON Schema
     https://json-schema.org/
@@ -143,7 +142,7 @@ export const entityTypeTypedef = gql`
     """
     The full entityType definition
     """
-    entityType: EntityType!
+    entityType: DeprecatedEntityType!
     """
     The version timeline of the entity.
     """
@@ -166,16 +165,16 @@ export const entityTypeTypedef = gql`
     Retrieve all EntityTypes that are children of
     the current EntityType.
     """
-    children: [EntityType!]
+    children: [DeprecatedEntityType!]
     """
     Retrieve all EntityTypes that are parents of
     the current EntityType.
     """
-    parents: [EntityType!]
+    parents: [DeprecatedEntityType!]
 
     """
     Retrieve all ancestors of the current Entity Type (resolving the parents, parents' parents and so forth)
     """
-    ancestors: [EntityType!]
+    ancestors: [DeprecatedEntityType!]
   }
 `;

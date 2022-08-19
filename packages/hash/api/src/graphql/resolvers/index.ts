@@ -43,12 +43,12 @@ import {
 
 import { me } from "./user/me";
 import { isShortnameTaken } from "./user/isShortnameTaken";
-import { createEntityType } from "./entityType/createEntityType";
+import { deprecatedCreateEntityType } from "./entityType/createEntityType";
 import { SYSTEM_TYPES, SystemType } from "../../types/entityTypes";
 import { entityTypeTypeFields } from "./entityType/entityTypeTypeFields";
 import { entityTypeInheritance } from "./entityType/entityTypeInheritance";
-import { getAccountEntityTypes } from "./entityType/getAccountEntityTypes";
-import { getEntityType } from "./entityType/getEntityType";
+import { deprecatedGetAccountEntityTypes } from "./entityType/getAccountEntityTypes";
+import { deprecatedGetEntityType } from "./entityType/getEntityType";
 import { createOrgEmailInvitation } from "./org/createOrgEmailInvitation";
 import { getOrgEmailInvitation } from "./org/getOrgEmailInvitation";
 import { getOrgInvitationLink } from "./org/getOrgInvitationLink";
@@ -59,7 +59,7 @@ import { createFileFromLink } from "./file/createFileFromLink";
 import { loggedIn } from "./middlewares/loggedIn";
 import { loggedInAndSignedUp } from "./middlewares/loggedInAndSignedUp";
 import { canAccessAccount } from "./middlewares/canAccessAccount";
-import { updateEntityType } from "./entityType/updateEntityType";
+import { deprecatedUpdateEntityType } from "./entityType/updateEntityType";
 import { deleteLinkedAggregation } from "./linkedAggregation/deleteLinkedAggregation";
 import { updateLinkedAggregationOperation } from "./linkedAggregation/updateLinkedAggregationOperation";
 import { createLinkedAggregation } from "./linkedAggregation/createLinkedAggregation";
@@ -90,6 +90,13 @@ import {
   updateLinkType,
 } from "./ontology/link-type";
 
+import {
+  createEntityType,
+  getAllLatestEntityTypes,
+  getEntityType,
+  updateEntityType,
+} from "./ontology/entity-type";
+
 export const resolvers = {
   Query: {
     // Logged in and signed up users only
@@ -100,10 +107,12 @@ export const resolvers = {
       ) /** @todo: make accessible to admins only (or deprecate) */,
     aggregateEntity: loggedInAndSignedUp(aggregateEntity),
     blocks: loggedInAndSignedUp(blocks),
-    getAccountEntityTypes: loggedInAndSignedUp(getAccountEntityTypes),
+    deprecatedGetAccountEntityTypes: loggedInAndSignedUp(
+      deprecatedGetAccountEntityTypes,
+    ),
     entity: loggedInAndSignedUp(entity),
     entities: loggedInAndSignedUp(canAccessAccount(entities)),
-    getEntityType: loggedInAndSignedUp(getEntityType),
+    deprecatedGetEntityType: loggedInAndSignedUp(deprecatedGetEntityType),
     getLink: loggedInAndSignedUp(getLink),
     getLinkedAggregation: loggedInAndSignedUp(getLinkedAggregation),
     page: canAccessAccount(page),
@@ -125,6 +134,8 @@ export const resolvers = {
     getPropertyType: loggedInAndSignedUp(getPropertyType),
     getAllLatestLinkTypes: loggedInAndSignedUp(getAllLatestLinkTypes),
     getLinkType: loggedInAndSignedUp(getLinkType),
+    getAllLatestEntityTypes: loggedInAndSignedUp(getAllLatestEntityTypes),
+    getEntityType: loggedInAndSignedUp(getEntityType),
   },
 
   Mutation: {
@@ -137,14 +148,14 @@ export const resolvers = {
       updateLinkedAggregationOperation,
     ),
     deleteLinkedAggregation: loggedInAndSignedUp(deleteLinkedAggregation),
-    createEntityType: loggedInAndSignedUp(createEntityType),
+    deprecatedCreateEntityType: loggedInAndSignedUp(deprecatedCreateEntityType),
     createFileFromLink: loggedInAndSignedUp(createFileFromLink),
     createPage: loggedInAndSignedUp(createPage),
     createOrg: loggedInAndSignedUp(createOrg),
     createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),
     transferEntity: loggedInAndSignedUp(transferEntity),
     updateEntity: loggedInAndSignedUp(updateEntity),
-    updateEntityType: loggedInAndSignedUp(updateEntityType),
+    deprecatedUpdateEntityType: loggedInAndSignedUp(deprecatedUpdateEntityType),
     updatePage: loggedInAndSignedUp(updatePage),
     updatePageContents: loggedInAndSignedUp(updatePageContents),
     joinOrg: loggedInAndSignedUp(joinOrg),
@@ -167,6 +178,8 @@ export const resolvers = {
     updatePropertyType: loggedInAndSignedUp(updatePropertyType),
     createLinkType: loggedInAndSignedUp(createLinkType),
     updateLinkType: loggedInAndSignedUp(updateLinkType),
+    createEntityType: loggedInAndSignedUp(createEntityType),
+    updateEntityType: loggedInAndSignedUp(updateEntityType),
   },
 
   JSONObject: JSONObjectResolver,
@@ -236,7 +249,7 @@ export const resolvers = {
     results: linkedAggregationResults,
   },
 
-  EntityType: {
+  DeprecatedEntityType: {
     entityType: entityTypeTypeFields.entityType,
     entityTypeId: entityTypeTypeFields.entityTypeId,
     entityTypeName: entityTypeTypeFields.entityTypeName,

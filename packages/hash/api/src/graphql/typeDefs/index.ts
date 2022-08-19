@@ -4,7 +4,7 @@ import { accountTypedef } from "./account.typedef";
 import { blockTypedef } from "./block.typedef";
 import { entityTypedef } from "./entity.typedef";
 import { linkTypedef } from "./link.typedef";
-import { entityTypeTypedef } from "./entityType.typedef";
+import { deprecatedEntityTypeTypedef } from "./entityType.typedef";
 import { orgEmailInvitationTypedef } from "./orgEmailInvitation.typedef";
 import { orgInvitationLinkTypedef } from "./orgInvitationLink.typedef";
 import { orgTypedef } from "./org.typedef";
@@ -21,6 +21,7 @@ import { executeTaskTypedef } from "./taskExecution.typedef";
 import { dataTypeTypedef } from "./ontology/data-type.typedef";
 import { propertyTypeTypedef } from "./ontology/property-type.typedef";
 import { linkTypeTypedef } from "./ontology/link-type.typedef";
+import { entityTypeTypedef } from "./ontology/entity-type.typedef";
 
 const baseSchema = gql`
   scalar Date
@@ -42,7 +43,12 @@ const baseSchema = gql`
   }
 `;
 
-const ontology = [dataTypeTypedef, propertyTypeTypedef, linkTypeTypedef];
+const ontology = [
+  dataTypeTypedef,
+  propertyTypeTypedef,
+  linkTypeTypedef,
+  entityTypeTypedef,
+];
 
 // This needs to be called 'schema' to be picked up by codegen -
 // It could alternatively be a default export.
@@ -54,7 +60,7 @@ export const schema = [
   entityTypedef,
   linkTypedef,
   aggregationTypedef,
-  entityTypeTypedef,
+  deprecatedEntityTypeTypedef,
   impliedHistoryTypedef,
   orgEmailInvitationTypedef,
   orgInvitationLinkTypedef,

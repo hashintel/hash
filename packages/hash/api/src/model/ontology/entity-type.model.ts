@@ -8,7 +8,7 @@ import { EntityTypeModel, PropertyTypeModel, LinkTypeModel } from "../index";
 import { incrementVersionedId } from "../util";
 
 export type EntityTypeModelConstructorParams = {
-  accountId?: string;
+  accountId: string;
   schema: EntityType;
 };
 
@@ -21,7 +21,7 @@ export type EntityTypeModelCreateParams = {
  * @class {@link EntityTypeModel}
  */
 export default class {
-  accountId?: string;
+  accountId: string;
 
   schema: EntityType;
 

@@ -23,7 +23,7 @@ import {
   PageFieldsFragment,
   SystemTypeName,
   WayToUseHash,
-  EntityType as GQLEntityType,
+  DeprecatedEntityType,
 } from "../graphql/apiTypes.gen";
 
 const logger = new Logger({
@@ -693,7 +693,7 @@ describe("logged in user ", () => {
       entityTypeComponentId = newBlock.data.entityTypeId;
 
       // Get the EntitType that has been created because of the ComponentId
-      const componentIdType = await client.getEntityType({
+      const componentIdType = await client.deprecatedGetEntityType({
         entityTypeId: entityTypeComponentId,
       });
 
@@ -756,7 +756,7 @@ describe("logged in user ", () => {
       const entityId = newBlock.data.entityId;
 
       // Get the EntitType that has been created _previously_ because of the ComponentId
-      const componentIdType = await client.getEntityType({
+      const componentIdType = await client.deprecatedGetEntityType({
         entityTypeId: entityTypeComponentId,
       });
 
@@ -781,11 +781,11 @@ describe("logged in user ", () => {
 
   describe("can create EntityType inheritance relations", () => {
     let superType: Pick<
-      GQLEntityType,
+      DeprecatedEntityType,
       "entityId" | "properties" | "entityTypeName"
     >;
     beforeAll(async () => {
-      superType = await client.createEntityType({
+      superType = await client.deprecatedCreateEntityType({
         accountId: existingUser.accountId,
         name: "Supertype",
         schema: {},
@@ -793,18 +793,18 @@ describe("logged in user ", () => {
     });
 
     let subType1: Pick<
-      GQLEntityType,
+      DeprecatedEntityType,
       "entityId" | "properties" | "entityTypeName"
     >;
     it("can inherit from SuperType", async () => {
-      subType1 = await client.createEntityType({
+      subType1 = await client.deprecatedCreateEntityType({
         accountId: existingUser.accountId,
         name: "Subtype1",
         schema: { allOf: [{ $ref: superType.properties.$id }] },
       });
 
       const subTypeParent = await client
-        .getEntityType({
+        .deprecatedGetEntityType({
           entityTypeId: subType1.entityId,
         })
         .then((entyp) => entyp.parents);
@@ -816,14 +816,14 @@ describe("logged in user ", () => {
 
     it("can get all children of supertype", async () => {
       // new subType
-      const subType2 = await client.createEntityType({
+      const subType2 = await client.deprecatedCreateEntityType({
         accountId: existingUser.accountId,
         name: "Subtype2",
         schema: { allOf: [{ $ref: superType.properties.$id }] },
       });
 
       const superTypeChldren = await client
-        .getEntityType({
+        .deprecatedGetEntityType({
           entityTypeId: superType.entityId,
         })
         .then((entyp) => entyp.children);
@@ -1178,11 +1178,11 @@ describe("logged in user ", () => {
     };
 
     let testEntityType!: Pick<
-      GQLEntityType,
+      DeprecatedEntityType,
       "entityId" | "properties" | "entityTypeName"
     >;
     it("can create an entity type with a valid schema", async () => {
-      testEntityType = await client.createEntityType({
+      testEntityType = await client.deprecatedCreateEntityType({
         accountId: existingUser.accountId,
         ...validSchemaInput,
       });
@@ -1194,7 +1194,7 @@ describe("logged in user ", () => {
 
     it("enforces uniqueness of schema name in account", async () => {
       await expect(
-        client.createEntityType({
+        client.deprecatedCreateEntityType({
           accountId: existingUser.accountId,
           ...validSchemaInput,
         }),
@@ -1204,7 +1204,7 @@ describe("logged in user ", () => {
     it("rejects entity types with invalid JSON schemas", async () => {
       const schemaName = "Invalid schema entity type";
       await expect(
-        client.createEntityType({
+        client.deprecatedCreateEntityType({
           accountId: existingUser.accountId,
           schema: {
             properties: [],
@@ -1214,7 +1214,7 @@ describe("logged in user ", () => {
       ).rejects.toThrowError(/properties must be object/);
 
       await expect(
-        client.createEntityType({
+        client.deprecatedCreateEntityType({
           accountId: existingUser.accountId,
           schema: {
             properties: {
@@ -1226,7 +1226,7 @@ describe("logged in user ", () => {
       ).rejects.toThrowError(/testField must be object,boolean/);
 
       await expect(
-        client.createEntityType({
+        client.deprecatedCreateEntityType({
           accountId: existingUser.accountId,
           schema: {
             invalidKeyword: true,
@@ -1239,7 +1239,7 @@ describe("logged in user ", () => {
     it("rejects schema that inherits with incompatible property types", async () => {
       const schemaName = "Schema invalid property inheritance";
       await expect(
-        client.createEntityType({
+        client.deprecatedCreateEntityType({
           accountId: existingUser.accountId,
           schema: {
             allOf: [
@@ -1259,13 +1259,13 @@ describe("logged in user ", () => {
     });
 
     let subType!: Pick<
-      GQLEntityType,
+      DeprecatedEntityType,
       "entityId" | "properties" | "entityTypeName"
     >;
     it("allows schema that inherits with compatible property types", async () => {
       const schemaName = "Schema valid property inheritance";
 
-      subType = await client.createEntityType({
+      subType = await client.deprecatedCreateEntityType({
         accountId: existingUser.accountId,
         schema: {
           allOf: [
@@ -1285,7 +1285,7 @@ describe("logged in user ", () => {
     it("rejects schema that inherits with incompatible property types deeper than top level", async () => {
       const schemaName = "Schema invalid property inheritance";
       await expect(
-        client.createEntityType({
+        client.deprecatedCreateEntityType({
           accountId: existingUser.accountId,
           schema: {
             allOf: [
@@ -1307,7 +1307,7 @@ describe("logged in user ", () => {
     it("can get inheritance chain of a EntityType", async () => {
       const schemaName = "ThreeLayerType";
 
-      const entityType = await client.createEntityType({
+      const entityType = await client.deprecatedCreateEntityType({
         accountId: existingUser.accountId,
         schema: {
           allOf: [
@@ -1348,7 +1348,7 @@ describe("logged in user ", () => {
     };
 
     it("can update an entity type's schema", async () => {
-      const entityType = await client.createEntityType({
+      const entityType = await client.deprecatedCreateEntityType({
         accountId: existingUser.accountId,
         ...validSchemaInput,
       });
@@ -1358,7 +1358,7 @@ describe("logged in user ", () => {
 
       const newDescription = "Now this is updated";
 
-      const updatedEntityType = await client.updateEntityType({
+      const updatedEntityType = await client.deprecatedUpdateEntityType({
         entityId: entityType.entityId,
         schema: {
           ...validSchemaInput.schema,

@@ -1,10 +1,12 @@
 import {
   DataTypeModel,
+  EntityTypeModel,
   LinkTypeModel,
   PropertyTypeModel,
 } from "../../../model";
 import {
   PersistedDataType,
+  PersistedEntityType,
   PersistedLinkType,
   PersistedPropertyType,
 } from "../../apiTypes.gen";
@@ -12,23 +14,31 @@ import {
 export const dataTypeModelToGQL = (
   dataType: DataTypeModel,
 ): PersistedDataType => ({
-  createdBy: dataType.accountId,
+  accountId: dataType.accountId,
   dataTypeVersionedUri: dataType.schema.$id,
-  schema: dataType.schema,
+  dataType: dataType.schema,
 });
 
 export const propertyTypeModelToGQL = (
   propertyType: PropertyTypeModel,
 ): PersistedPropertyType => ({
-  createdBy: propertyType.accountId,
+  accountId: propertyType.accountId,
   propertyTypeVersionedUri: propertyType.schema.$id,
-  schema: propertyType.schema,
+  propertyType: propertyType.schema,
 });
 
 export const linkTypeModelToGQL = (
   linkType: LinkTypeModel,
 ): PersistedLinkType => ({
-  createdBy: linkType.accountId,
+  accountId: linkType.accountId,
   linkTypeVersionedUri: linkType.schema.$id,
-  schema: linkType.schema,
+  linkType: linkType.schema,
+});
+
+export const entityTypeModelToGQL = (
+  entityType: EntityTypeModel,
+): PersistedEntityType => ({
+  accountId: entityType.accountId,
+  entityTypeVersionedUri: entityType.schema.$id,
+  entityType: entityType.schema,
 });

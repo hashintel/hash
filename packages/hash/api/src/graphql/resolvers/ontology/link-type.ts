@@ -25,13 +25,12 @@ export const createLinkType: ResolverFn<
     accountId: accountId ?? user.getAccountId(),
     schema: linkType,
   }).catch((err: AxiosError) => {
-    if (err.response?.status === 409) {
-      throw new ApolloError(
-        `Link type with the same URI already exists. [URI=${linkType.$id}]`,
-        "CREATION_ERROR",
-      );
-    }
-    throw new ApolloError(`Couldn't create link type`, "CREATION_ERROR");
+    const msg =
+      err.response?.status === 409
+        ? `Link type with the same URI already exists. [URI=${linkType.$id}]`
+        : `Couldn't create link type.`;
+
+    throw new ApolloError(msg, "CREATION_ERROR");
   });
 
   return linkTypeModelToGQL(createdLinkTypeModel);
@@ -103,13 +102,12 @@ export const updateLinkType: ResolverFn<
       schema: newLinkType,
     })
     .catch((err: AxiosError) => {
-      if (err.response?.status === 409) {
-        throw new ApolloError(
-          `Link type URI doesn't exist, unable to update. [URI=${linkTypeVersionedUri}]`,
-          "CREATION_ERROR",
-        );
-      }
-      throw new ApolloError(`Couldn't update link type.`, "CREATION_ERROR");
+      const msg =
+        err.response?.status === 409
+          ? `Link type URI doesn't exist, unable to update. [URI=${linkTypeVersionedUri}]`
+          : `Couldn't update link type.`;
+
+      throw new ApolloError(msg, "CREATION_ERROR");
     });
 
   return linkTypeModelToGQL(updatedLinkTypeModel);

@@ -7,10 +7,7 @@ import { JSONSchema7 } from "json-schema";
 
 import { EntityExternalResolvers, EntityType } from ".";
 import { DbClient } from "../db";
-import {
-  EntityType as GQLEntityType,
-  Visibility,
-} from "../graphql/apiTypes.gen";
+import { DeprecatedEntityType, Visibility } from "../graphql/apiTypes.gen";
 import { EntityTypeMeta, EntityTypeTypeFields } from "../db/adapter";
 import { SystemType } from "../types/entityTypes";
 import {
@@ -29,7 +26,10 @@ export type JSONSchema = JSONSchema7;
  * We handle the various entityType fields for an entityType in separate field resolvers,
  * to allow consumers to recursively request the entityType of an entityType, and so on.
  */
-type EntityTypeWithoutTypeFields = Omit<GQLEntityType, EntityTypeTypeFields>;
+type EntityTypeWithoutTypeFields = Omit<
+  DeprecatedEntityType,
+  EntityTypeTypeFields
+>;
 
 export type UnresolvedGQLEntityType = Omit<
   EntityTypeWithoutTypeFields,

@@ -3,10 +3,10 @@ import { useMutation } from "@apollo/client";
 import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
 import { useCallback } from "react";
 import {
-  UpdateEntityTypeMutation,
-  UpdateEntityTypeMutationVariables,
+  DeprecatedUpdateEntityTypeMutation,
+  DeprecatedUpdateEntityTypeMutationVariables,
 } from "../../../graphql/apiTypes.gen";
-import { updateEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
+import { deprecatedUpdateEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
 import { convertApiEntityTypeToBpEntityType } from "../../../lib/entities";
 
 export const useBlockProtocolUpdateEntityType = (
@@ -15,9 +15,9 @@ export const useBlockProtocolUpdateEntityType = (
   updateEntityType: EmbedderGraphMessageCallbacks["updateEntityType"];
 } => {
   const [runUpdateEntityTypeMutation] = useMutation<
-    UpdateEntityTypeMutation,
-    UpdateEntityTypeMutationVariables
-  >(updateEntityTypeMutation);
+    DeprecatedUpdateEntityTypeMutation,
+    DeprecatedUpdateEntityTypeMutationVariables
+  >(deprecatedUpdateEntityTypeMutation);
 
   const updateEntityType: EmbedderGraphMessageCallbacks["updateEntityType"] =
     useCallback(
@@ -62,7 +62,7 @@ export const useBlockProtocolUpdateEntityType = (
         }
         return {
           data: convertApiEntityTypeToBpEntityType(
-            responseData.updateEntityType,
+            responseData.deprecatedUpdateEntityType,
           ),
         };
       },

@@ -4,9 +4,18 @@ export const linkTypeTypedef = gql`
   scalar LinkType
 
   type PersistedLinkType {
+    """
+    The specific versioned URI of the link type
+    """
     linkTypeVersionedUri: String!
-    createdBy: ID!
-    schema: LinkType!
+    """
+    The user who created the link type
+    """
+    accountId: ID!
+    """
+    The link type
+    """
+    linkType: LinkType!
   }
 
   extend type Query {

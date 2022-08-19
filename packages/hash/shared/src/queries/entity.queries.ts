@@ -2,7 +2,7 @@ import gql from "graphql-tag";
 import { linkFieldsFragment } from "./link.queries";
 
 const minimalEntityTypeFieldsFragment = gql`
-  fragment MinimalEntityTypeFields on EntityType {
+  fragment MinimalEntityTypeFields on DeprecatedEntityType {
     entityId
     properties
   }

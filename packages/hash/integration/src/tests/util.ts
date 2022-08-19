@@ -27,10 +27,10 @@ import {
   GetPageQuery,
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
-  CreateEntityTypeMutation,
-  CreateEntityTypeMutationVariables,
-  UpdateEntityTypeMutation,
-  UpdateEntityTypeMutationVariables,
+  DeprecatedCreateEntityTypeMutation,
+  DeprecatedCreateEntityTypeMutationVariables,
+  DeprecatedUpdateEntityTypeMutation,
+  DeprecatedUpdateEntityTypeMutationVariables,
   CreateOrgEmailInvitationMutationVariables,
   CreateOrgEmailInvitationMutation,
   CreateUserWithOrgEmailInvitationMutationVariables,
@@ -47,7 +47,7 @@ import {
   UpdateLinkedAggregationOperationMutationVariables,
   DeleteLinkedAggregationMutation,
   DeleteLinkedAggregationMutationVariables,
-  QueryGetEntityTypeArgs,
+  QueryDeprecatedGetEntityTypeArgs,
   Query,
   GetEntitiesQuery,
   GetEntitiesQueryVariables,
@@ -60,13 +60,13 @@ import {
 } from "../graphql/apiTypes.gen";
 import {
   createEntity,
-  createEntityType,
-  getEntityType,
-  getEntityTypeAllParents,
+  deprecatedCreateEntityType,
+  deprecatedGetEntityType,
+  deprecatedGetEntityTypeAllParents,
   getUnknownEntity,
   getEntities,
   updateEntity,
-  updateEntityType,
+  deprecatedUpdateEntityType,
   getEntityAndLinks,
 } from "../graphql/queries/entity.queries";
 import {
@@ -257,40 +257,44 @@ export class ApiClient {
     ).setParentPage;
   }
 
-  async getEntityType(vars: QueryGetEntityTypeArgs) {
+  async deprecatedGetEntityType(vars: QueryDeprecatedGetEntityTypeArgs) {
     return (
       await this.client.request<
-        Pick<Query, "getEntityType">,
-        QueryGetEntityTypeArgs
-      >(getEntityType, vars)
-    ).getEntityType;
+        Pick<Query, "deprecatedGetEntityType">,
+        QueryDeprecatedGetEntityTypeArgs
+      >(deprecatedGetEntityType, vars)
+    ).deprecatedGetEntityType;
   }
 
-  async getEntityTypeAllParents(vars: QueryGetEntityTypeArgs) {
+  async getEntityTypeAllParents(vars: QueryDeprecatedGetEntityTypeArgs) {
     return (
       await this.client.request<
-        Pick<Query, "getEntityType">,
-        QueryGetEntityTypeArgs
-      >(getEntityTypeAllParents, vars)
-    ).getEntityType;
+        Pick<Query, "deprecatedGetEntityType">,
+        QueryDeprecatedGetEntityTypeArgs
+      >(deprecatedGetEntityTypeAllParents, vars)
+    ).deprecatedGetEntityType;
   }
 
-  async createEntityType(vars: CreateEntityTypeMutationVariables) {
+  async deprecatedCreateEntityType(
+    vars: DeprecatedCreateEntityTypeMutationVariables,
+  ) {
     return (
       await this.client.request<
-        CreateEntityTypeMutation,
-        CreateEntityTypeMutationVariables
-      >(createEntityType, vars)
-    ).createEntityType;
+        DeprecatedCreateEntityTypeMutation,
+        DeprecatedCreateEntityTypeMutationVariables
+      >(deprecatedCreateEntityType, vars)
+    ).deprecatedCreateEntityType;
   }
 
-  async updateEntityType(vars: UpdateEntityTypeMutationVariables) {
+  async deprecatedUpdateEntityType(
+    vars: DeprecatedUpdateEntityTypeMutationVariables,
+  ) {
     return (
       await this.client.request<
-        UpdateEntityTypeMutation,
-        UpdateEntityTypeMutationVariables
-      >(updateEntityType, vars)
-    ).updateEntityType;
+        DeprecatedUpdateEntityTypeMutation,
+        DeprecatedUpdateEntityTypeMutationVariables
+      >(deprecatedUpdateEntityType, vars)
+    ).deprecatedUpdateEntityType;
   }
 
   getPage = async (vars: GetPageQueryVariables) =>
