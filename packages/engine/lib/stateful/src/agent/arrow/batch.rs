@@ -86,7 +86,6 @@ impl AgentBatch {
     }
 
     /// todo: DOC
-    ///
     // todo: see if it is possible to only use [`arrow2_convert`] and [`arrow2`] (rather than
     // [`arrow`]) to read the schema from the flatbuffers.
     // Asana task: https://app.asana.com/0/1199548034582004/1202829751949513/f
