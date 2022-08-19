@@ -34,7 +34,7 @@ class AgentState:
         if field == "messages":
             messages = self.__dict__["__msgs"][idx]
             if not self.__dict__["__msgs_native"][idx]:
-                if messages:
+                if messages is not None:
                     for message in messages:
                         message["data"] = json.loads(message["data"])
                 self.__dict__["__msgs_native"][idx] = True
@@ -175,7 +175,7 @@ class GroupState:
         group_msgs = self.__msg_batch.cols["messages"]
         for i_agent, agent_msgs in enumerate(group_msgs):
             if self.__msgs_native[i_agent]:
-                if agent_msgs:
+                if agent_msgs is not None:
                     for msg in agent_msgs:
                         # When sending a remove-agent message, `data` may be empty to remove self
                         if "data" in msg:
