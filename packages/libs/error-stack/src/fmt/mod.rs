@@ -100,16 +100,12 @@
 //! # #[cfg(nightly)]
 //! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__doc.snap")].assert_eq(&render(format!("{report:?}")));
 //! #
-//! # stringify!(
 //! println!("{report:?}");
-//! # );
 //!
 //! # #[cfg(nightly)]
 //! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt_doc_alt.snap")].assert_eq(&render(format!("{report:#?}")));
 //! #
-//! # stringify!(
 //! println!("{report:#?}");
-//! # );
 //! ```
 //! ### `println!("{report:?}")`
 //!
@@ -214,9 +210,7 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// # #[cfg(nightly)]
 /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap")].assert_eq(&render(format!("{report:?}")));
 /// #
-/// # stringify!(
 /// println!("{report:?}");
-/// # );
 /// ```
 ///
 /// <pre>
