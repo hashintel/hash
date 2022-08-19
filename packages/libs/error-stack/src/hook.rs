@@ -46,7 +46,7 @@ impl Report<()> {
     ///
     /// ```
     /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly, allow(dead_code, unused_variables, unused_imports)))]
+    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::{
@@ -107,7 +107,7 @@ impl Report<()> {
     ///
     /// ```
     /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly, allow(dead_code, unused_variables, unused_imports)))]
+    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::{
@@ -150,7 +150,7 @@ impl Report<()> {
     ///
     /// ```
     /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly, allow(dead_code, unused_variables, unused_imports)))]
+    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::{fmt, report, Report};

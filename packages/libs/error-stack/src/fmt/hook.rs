@@ -54,7 +54,7 @@ impl HookContextImpl {
 ///
 /// ```rust
 /// # // we only test on nightly, therefore report is unused (so is render)
-/// # #![cfg_attr(not(nightly, allow(dead_code, unused_variables, unused_imports)))]
+/// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::ErrorKind;
 ///
 /// use error_stack::{fmt::{Emit}, Report};
@@ -109,7 +109,7 @@ impl HookContextImpl {
 /// ### Example
 /// ```rust
 /// # // we only test on nightly, therefore report is unused (so is render)
-/// # #![cfg_attr(not(nightly, allow(dead_code, unused_variables, unused_imports)))]
+/// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::ErrorKind;
 ///
 /// use error_stack::{fmt::Emit, Report};
@@ -193,7 +193,7 @@ impl<'a, T> HookContext<'a, T> {
     ///
     /// ```rust
     /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly, allow(dead_code, unused_variables, unused_imports)))]
+    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
     /// use error_stack::{fmt, fmt::Emit, Report};
@@ -317,7 +317,7 @@ impl<T: 'static> HookContext<'_, T> {
     ///
     /// ```rust
     /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly, allow(dead_code, unused_variables, unused_imports)))]
+    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
     /// use error_stack::fmt::Emit;
@@ -385,7 +385,7 @@ impl<T: 'static> HookContext<'_, T> {
     ///
     /// ```rust
     /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly, allow(dead_code, unused_variables, unused_imports)))]
+    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
     /// use error_stack::{fmt::Emit, Report};
