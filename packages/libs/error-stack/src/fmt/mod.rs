@@ -1,5 +1,5 @@
 //! Implementation of formatting, to enable colors and the use of box-drawing characters use the
-//! `glyph` feature.
+//! `pretty-print` feature.
 //!
 //! # Hooks
 //!
@@ -158,7 +158,7 @@ pub use hook::HookContext;
 use hook::HookContextImpl;
 #[cfg(feature = "std")]
 pub(crate) use hook::Hooks;
-#[cfg(feature = "glyph")]
+#[cfg(feature = "pretty-print")]
 use owo_colors::{OwoColorize, Stream::Stdout, Style as OwOStyle};
 #[cfg(feature = "unstable")]
 pub use unstable::DebugDiagnostic;
@@ -263,7 +263,7 @@ enum Symbol {
     Space,
 }
 
-#[cfg(feature = "glyph")]
+#[cfg(feature = "pretty-print")]
 impl Display for Symbol {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
@@ -280,7 +280,7 @@ impl Display for Symbol {
     }
 }
 
-#[cfg(not(feature = "glyph"))]
+#[cfg(not(feature = "pretty-print"))]
 impl Display for Symbol {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
@@ -295,7 +295,7 @@ impl Display for Symbol {
     }
 }
 
-/// Small compatability layer between owocolors regardless if we use glyph or not
+/// Small compatability layer between owocolors regardless if we use pretty-print or not
 #[derive(Debug, Copy, Clone)]
 struct Style {
     bold: bool,
@@ -321,7 +321,7 @@ impl Style {
     }
 }
 
-#[cfg(feature = "glyph")]
+#[cfg(feature = "pretty-print")]
 impl From<Style> for OwOStyle {
     fn from(val: Style) -> Self {
         let mut this = Self::new();
@@ -349,7 +349,7 @@ enum Position {
 /// where we first render every indentation and action as an [`Instruction`], these instructions are
 /// a lot easier to reason about and enable better manipulation of the stream of data.
 ///
-/// Once generation of all data is done, it is interpreted as a String, with glyphs or color added
+/// Once generation of all data is done, it is interpreted as a String, with glyphs and color added
 /// (if supported and enabled).
 #[derive(Debug)]
 enum Instruction {
@@ -514,7 +514,7 @@ impl Instruction {
     }
 }
 
-#[cfg(feature = "glyph")]
+#[cfg(feature = "pretty-print")]
 impl Display for Instruction {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         match self.prepare() {
@@ -536,7 +536,7 @@ impl Display for Instruction {
     }
 }
 
-#[cfg(not(feature = "glyph"))]
+#[cfg(not(feature = "pretty-print"))]
 impl Display for Instruction {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         match self.prepare() {

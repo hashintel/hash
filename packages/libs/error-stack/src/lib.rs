@@ -412,7 +412,7 @@
 //! `small`    | Enable optimizations for the memory footprint of [`Report`]    |         | enabled
 //!  `anyhow`  | Provides conversion from [`anyhow::Error`] to [`Report`]       |         | disabled
 //!   `eyre`   | Provides conversion from [`eyre::Report`] to [`Report`]        |         | disabled
-//!   `glyph`  | Provide color and use of box drawing characters in [`Debug`] output |    | enabled
+//! `pretty-print` | Provide color and use of box drawing characters in [`Debug`] output | | enabled
 //! `unstable` | Enables unstable features, which do not follow semver[^unstable] |  | disabled
 //!
 //! [^unstable]: unstable features may be removed in **any** future version without notice.

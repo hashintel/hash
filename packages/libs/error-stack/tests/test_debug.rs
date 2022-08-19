@@ -41,12 +41,12 @@ fn setup_backtrace() {
     std::env::set_var("RUST_LIB_BACKTRACE", "1");
 }
 
-#[cfg(feature = "glyph")]
+#[cfg(feature = "pretty-print")]
 fn setup_color() {
     owo_colors::set_override(false);
 }
 
-#[cfg(not(feature = "glyph"))]
+#[cfg(not(feature = "pretty-print"))]
 fn setup_color() {}
 
 fn setup() {
@@ -69,9 +69,9 @@ fn snap_suffix() -> String {
         suffix.push("backtrace");
     }
 
-    #[cfg(feature = "glyph")]
+    #[cfg(feature = "pretty-print")]
     {
-        suffix.push("glyph");
+        suffix.push("pretty-print");
     }
 
     suffix.join("-")
@@ -243,7 +243,7 @@ fn sources_nested_alternate() {
     nightly,
     feature = "std",
     feature = "spantrace",
-    feature = "glyph",
+    feature = "pretty-print",
     feature = "unstable"
 ))]
 mod full {
