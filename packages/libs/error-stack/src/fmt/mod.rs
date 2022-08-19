@@ -1029,7 +1029,7 @@ impl<C> Debug for Report<C> {
             .snippets
             .into_iter()
             // remove all trailing newlines for a more uniform look
-            .map(|snippet| snippet.trim_end_matches("\n").to_owned())
+            .map(|snippet| snippet.trim_end_matches('\n').to_owned())
             .collect::<Vec<_>>()
             .join("\n\n");
 
