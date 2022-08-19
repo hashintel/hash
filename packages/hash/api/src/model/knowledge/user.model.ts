@@ -146,9 +146,9 @@ export default class extends EntityModel {
     return (
       UserModel.shortnameContainsInvalidCharacter(shortname) ||
       UserModel.shortnameIsRestricted(shortname) ||
-      shortname[0] === "-" ||
       shortname.length < shortnameMinimumLength ||
-      shortname.length > shortnameMaximumLength
+      shortname.length > shortnameMaximumLength ||
+      shortname[0] === "-"
     );
   }
 
