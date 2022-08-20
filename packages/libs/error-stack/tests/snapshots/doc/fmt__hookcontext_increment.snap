@@ -1,0 +1,10 @@
+<b>invalid input parameter</b>
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/fmt/hook.rs:17:14</span>
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Suggestion 0: Use a file you can read next time!
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Suggestion 1: Don&#39;t press any random keys!
+<span style='color:#a00'>╰</span><span style='color:#a00'>╴</span>backtrace with [n] frames (1)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Backtrace No. 1
+  [redacted]
