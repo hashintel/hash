@@ -1,9 +1,6 @@
 #![cfg(feature = "spantrace")]
 #![cfg_attr(nightly, feature(provide_any))]
-#![cfg_attr(
-    all(nightly, feature = "std"),
-    feature(backtrace, error_generic_member_access)
-)]
+#![cfg_attr(all(nightly, feature = "std"), feature(error_generic_member_access))]
 
 mod common;
 
