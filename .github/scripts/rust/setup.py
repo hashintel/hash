@@ -132,17 +132,17 @@ def output_matrix(name, crates, **kwargs):
     :param crates: a list of paths to crates
     """
 
-    available_toolchains = []
+    available_toolchains = set()
     for crate in crates:
         with open(
             crate / "rust-toolchain.toml", "r", encoding="UTF-8"
         ) as toolchain_toml:
-            available_toolchains.append(
+            available_toolchains.add(
                 toml.loads(toolchain_toml.read())["toolchain"]["channel"]
             )
         for pattern, additional_toolchains in TOOLCHAINS.items():
             for additional_toolchain in additional_toolchains:
-                available_toolchains.append(additional_toolchain)
+                available_toolchains.add(additional_toolchain)
 
     used_toolchain_combinations = []
     for crate in crates:
@@ -168,7 +168,7 @@ def output_matrix(name, crates, **kwargs):
 
     matrix = dict(
         directory=[str(crate) for crate in crates],
-        toolchain=available_toolchains,
+        toolchain=list(available_toolchains),
         **kwargs,
         exclude=[
             dict(directory=str(elem[0]), toolchain=elem[1])
