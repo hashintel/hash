@@ -1,0 +1,27 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:?}\")"
+---
+Context B
+├╴tests/test_debug.rs:338:14
+├╴Printable C
+│
+├─▶ Context A
+│   ├╴tests/test_debug.rs:335:14
+│   ├╴Printable B
+│   ╰╴1 additional opaque attachment
+│
+╰─▶ Root error
+    ├╴tests/common.rs:147:5
+    ├╴Printable A
+    ├╴spantrace with 2 frames (1)
+    ├╴backtrace with [n] frames (1)
+    ╰╴2 additional opaque attachments
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Backtrace No. 1
+  [redacted]
+
+Span Trace No. 1
+  [redacted]
