@@ -20,7 +20,7 @@ All notable changes to `error-stack` will be documented in this file.
 - Add support for related errors and multiple error sources ([#747](https://github.com/hashintel/hash/pull/747))
 - New output for [Debug](https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html) ([#794](https://github.com/hashintel/hash/pull/794))
 - New hook interface for [Debug](https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html) ([#794](https://github.com/hashintel/hash/pull/794))
-- `Report::set_debug_hook`, `Report::set_display_hook` no longer return an error ([#794](https://github.com/hashintel/hash/pull/794))
+- `Report::set_debug_hook` and `Report::set_display_hook` no longer return an error ([#794](https://github.com/hashintel/hash/pull/794))
 
 ### Deprecations
 
