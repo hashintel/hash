@@ -227,7 +227,6 @@ impl<C> Report<C> {
     where
         C: Context,
     {
-        #[allow(unused_mut)]
         let frame = Frame::from_context(context, Location::caller(), Box::new([]));
 
         #[cfg(all(nightly, feature = "std"))]
