@@ -3,7 +3,7 @@ source: tests/test_debug.rs
 expression: "format!(\"{report:?}\")"
 ---
 Context A
-├╴tests/test_debug.rs:465:18
+├╴tests/test_debug.rs:462:18
 ├╴1 additional opaque attachment
 │
 ╰┬▶ Root error

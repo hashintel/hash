@@ -3,12 +3,12 @@ source: tests/test_debug.rs
 expression: "format!(\"{report:?}\")"
 ---
 Context A
-├╴tests/test_debug.rs:217:10
+├╴tests/test_debug.rs:214:10
 ├╴2
 ├╴1
 │
 ╰┬▶ Context A
- │  ├╴tests/test_debug.rs:211:10
+ │  ├╴tests/test_debug.rs:208:10
  │  ├╴4
  │  ├╴3
  │  │
@@ -18,16 +18,16 @@ Context A
  │      ╰╴spantrace with 2 frames (1)
  │
  ╰▶ Context A
-    ├╴tests/test_debug.rs:206:10
+    ├╴tests/test_debug.rs:203:10
     ├╴5
     ├╴3
     │
     ├─▶ Context A
-    │   ├╴tests/test_debug.rs:204:10
+    │   ├╴tests/test_debug.rs:201:10
     │   ╰╴7
     │
     ╰┬▶ Context A
-     │  ├╴tests/test_debug.rs:195:34
+     │  ├╴tests/test_debug.rs:192:34
      │  ├╴9
      │  ├╴8
      │  │
@@ -36,7 +36,7 @@ Context A
      │      ╰╴spantrace with 2 frames (2)
      │
      ├▶ Context A
-     │  ├╴tests/test_debug.rs:189:10
+     │  ├╴tests/test_debug.rs:186:10
      │  ├╴13
      │  ├╴10
      │  ├╴16
@@ -48,7 +48,7 @@ Context A
      │      ╰╴spantrace with 2 frames (3)
      │
      ├▶ Context A
-     │  ├╴tests/test_debug.rs:175:10
+     │  ├╴tests/test_debug.rs:172:10
      │  ├╴15
      │  ├╴14
      │  ├╴10
@@ -61,7 +61,7 @@ Context A
      │      ╰╴spantrace with 2 frames (4)
      │
      ├▶ Context A
-     │  ├╴tests/test_debug.rs:185:10
+     │  ├╴tests/test_debug.rs:182:10
      │  ├╴11
      │  ├╴9
      │  ├╴8
@@ -71,13 +71,13 @@ Context A
      │      ╰╴spantrace with 2 frames (5)
      │
      ╰▶ Context A
-        ├╴tests/test_debug.rs:181:10
+        ├╴tests/test_debug.rs:178:10
         ├╴12
         ├╴9
         ├╴8
         │
         ├─▶ Context A
-        │   ╰╴tests/test_debug.rs:180:10
+        │   ╰╴tests/test_debug.rs:177:10
         │
         ╰─▶ Root error
             ├╴tests/common.rs:147:5
