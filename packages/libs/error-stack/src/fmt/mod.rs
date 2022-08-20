@@ -286,12 +286,10 @@ impl Display for Symbol {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Self::Location => f.write_str("at "),
-            Self::Vertical | Self::VerticalRight => f.write_str("|"),
-            Self::Horizontal | Self::HorizontalDown => f.write_str("-"),
+            Self::Vertical | Self::VerticalRight | Self::CurveRight => f.write_str("|"),
+            Self::Horizontal | Self::HorizontalDown | Self::HorizontalLeft => f.write_str("-"),
             Self::ArrowRight => f.write_str(">"),
-            Self::CurveRight => f.write_str(r"\"),
-            // `Self::HorizontalLeft` is erased for readability
-            Self::Space | Self::HorizontalLeft => f.write_str(" "),
+            Self::Space => f.write_str(" "),
         }
     }
 }
@@ -394,9 +392,9 @@ enum PreparedInstruction<'a> {
 }
 
 impl Instruction {
-    /// Reason for allow:
-    /// > This is just a big statement to convert to a prepared instruction, there
-    /// isn't really any logic here
+    // Reason for allow:
+    // > This is just a big statement to convert to a prepared instruction, there
+    // isn't really any logic here
     #[allow(clippy::too_many_lines)]
     fn prepare(&self) -> PreparedInstruction {
         match self {
@@ -687,19 +685,6 @@ fn debug_context(frame: &Frame, context: &dyn Context) -> (Lines, Line) {
                 Line::new().push(Instruction::Value {
                     value,
                     style: Style::new(),
-                })
-            }
-        })
-        .enumerate()
-        .map(|(idx, line)| {
-            if idx == 0 {
-                line
-            } else {
-                line.push(Instruction::Indent {
-                    group: false,
-                    visible: true,
-                    spacing: true,
-                    minimal: true,
                 })
             }
         })

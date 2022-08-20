@@ -7,8 +7,8 @@ Context B
 ├╴Printable C
 │
 ├─▶ A multiline
-│   │ context that might have
-│   │ a bit more info
+│   context that might have
+│   a bit more info
 │   ├╴tests/test_debug.rs:377:14
 │   ├╴Printable B
 │   ╰╴1 additional opaque attachment
