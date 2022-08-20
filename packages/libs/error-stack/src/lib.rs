@@ -1,5 +1,15 @@
 //! A context-aware error library with arbitrary attached user data.
 //!
+//! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
+//! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
+//! [![rust-version](https://img.shields.io/badge/Rust-1.63.0/nightly--2022--08--08-blue)][rust-version]
+//! [![discord](https://img.shields.io/discord/840573247803097118)][discord]
+//!
+//! [crates.io]: https://crates.io/crates/error-stack
+//! [libs.rs]: https://lib.rs/crates/error-stack
+//! [rust-version]: https://www.rust-lang.org
+//! [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_error-stack
+//!
 //! # Overview
 //!
 //! `error-stack` is an error-handling library centered around the idea of building a [`Report`] of
