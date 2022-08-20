@@ -95,36 +95,7 @@ fn main() -> Result<(), ExperimentError> {
 
 This will most likely result in an error and print
 
-<pre>
-Error: <span style="font-weight:bold;">Experiment error: Could not run experiment</span>
-<span style="color:red;">├</span><span style="color:red;">╴</span><span style="filter: contrast(70%) brightness(190%);color:dimgray;">examples/demo.rs:54:18</span>
-<span style="color:red;">├</span><span style="color:red;">╴</span>Unable to set up experiments
-<span style="color:red;">│</span>
-<span style="color:red;">├</span><span style="color:red;">─</span><span style="color:red;">▶</span><span style="color:red;"> </span><span style="font-weight:bold;">invalid experiment description</span>
-<span style="color:red;">│</span><span style="color:red;"> </span><span style="color:red;"> </span><span style="color:red;"> </span><span style="color:red;">├</span><span style="color:red;">╴</span><span style="filter: contrast(70%) brightness(190%);color:dimgray;">examples/demo.rs:24:10</span>
-<span style="color:red;">│</span><span style="color:red;"> </span><span style="color:red;"> </span><span style="color:red;"> </span><span style="color:red;">╰</span><span style="color:red;">╴</span>Experiment 2 could not be parsed
-<span style="color:red;">│</span>
-<span style="color:red;">╰</span><span style="color:red;">─</span><span style="color:red;">▶</span><span style="color:red;"> </span><span style="font-weight:bold;">invalid digit found in string</span>
-<span style="color:red;"> </span><span style="color:red;"> </span><span style="color:red;"> </span><span style="color:red;"> </span><span style="color:red;">├</span><span style="color:red;">╴</span><span style="filter: contrast(70%) brightness(190%);color:dimgray;">examples/demo.rs:22:10</span>
-<span style="color:red;"> </span><span style="color:red;"> </span><span style="color:red;"> </span><span style="color:red;"> </span><span style="color:red;">├</span><span style="color:red;">╴</span>&quot;3o&quot; could not be parsed as experiment
-<span style="color:red;"> </span><span style="color:red;"> </span><span style="color:red;"> </span><span style="color:red;"> </span><span style="color:red;">╰</span><span style="color:red;">╴</span>backtrace with 28 frames (1)
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Backtrace No. 1
-<span style="color: gray; font-style: italic"><5 internal calls></span>
-   6: demo::parse_experiment
-             at ./examples/demo.rs:20:17
-   7: demo::start_experiments::{{closure}}
-             at ./examples/demo.rs:52:30
-<span style="color: gray; font-style: italic"><16 internal calls></span>
-  24: demo::start_experiments
-             at ./examples/demo.rs:44:23
-  25: demo::main
-             at ./examples/demo.rs:67:5
-<span style="color: gray; font-style: italic"><13 internal calls></span>
-</pre>
-
+![](assets/full.png)
 
 Please see the [documentation] for a full description.
 
