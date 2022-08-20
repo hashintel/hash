@@ -1,7 +1,7 @@
+use alloc::boxed::Box;
 #[cfg(not(feature = "small"))]
-use alloc::vec;
-use alloc::{boxed::Box, string::ToString, vec::Vec};
-use core::{fmt, fmt::Write, marker::PhantomData, panic::Location};
+use alloc::{vec, vec::Vec};
+use core::{fmt, marker::PhantomData, panic::Location};
 #[cfg(all(nightly, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(feature = "std")]
@@ -16,7 +16,7 @@ use crate::context::temporary_provider;
 use crate::iter::{RequestRef, RequestValue};
 use crate::{
     iter::{Frames, FramesMut},
-    AttachmentKind, Context, Frame, FrameKind,
+    Context, Frame,
 };
 
 /// Contains a [`Frame`] stack consisting of [`Context`]s and attachments.
@@ -613,117 +613,6 @@ impl<T: Context> Report<T> {
                 reported to https://github.com/hashintel/hash/issues/new"
             );
         })
-    }
-}
-
-impl<Context> fmt::Display for Report<Context> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "hooks")]
-        if let Some(display_hook) = Report::display_hook() {
-            return display_hook(self.generalized(), fmt);
-        }
-
-        for (index, frame) in self
-            .frames()
-            .filter_map(|frame| match frame.kind() {
-                FrameKind::Context(context) => Some(context.to_string()),
-                FrameKind::Attachment(_) => None,
-            })
-            .enumerate()
-        {
-            if index == 0 {
-                fmt::Display::fmt(&frame, fmt)?;
-                if !fmt.alternate() {
-                    break;
-                }
-            } else {
-                write!(fmt, ": {frame}")?;
-            }
-        }
-
-        Ok(())
-    }
-}
-
-impl<Context> fmt::Debug for Report<Context> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "hooks")]
-        if let Some(debug_hook) = Report::debug_hook() {
-            return debug_hook(self.generalized(), fmt);
-        }
-
-        #[cfg(all(nightly, feature = "std"))]
-        let backtrace = self.request_ref::<Backtrace>().next();
-
-        #[cfg(all(nightly, feature = "spantrace"))]
-        let spantrace = self.request_ref::<SpanTrace>().next();
-
-        #[cfg(all(not(nightly), feature = "spantrace"))]
-        let spantrace = self.downcast_ref::<SpanTrace>();
-
-        if fmt.alternate() {
-            let mut debug = fmt.debug_struct("Report");
-            debug.field("frames", &self.frames());
-            #[cfg(all(nightly, feature = "std"))]
-            debug.field("backtrace", &backtrace);
-            #[cfg(feature = "spantrace")]
-            debug.field("span_trace", &spantrace);
-            debug.finish()
-        } else {
-            let mut context_idx = -1;
-            let mut attachments: Vec<_> = Vec::new();
-            let mut opaque_attachments = 0;
-            for frame in self.frames() {
-                match frame.kind() {
-                    FrameKind::Context(context) => {
-                        if context_idx == -1 {
-                            write!(fmt, "{context}")?;
-                        } else {
-                            if context_idx == 0 {
-                                fmt.write_str("\n\nCaused by:")?;
-                            }
-                            write!(fmt, "\n   {context_idx}: {context}")?;
-                        }
-                        write!(fmt, "\n             at {}", frame.location())?;
-
-                        #[allow(clippy::iter_with_drain)] // We re-use the vector
-                        for attachment in attachments.drain(..) {
-                            write!(fmt, "\n      - {attachment}")?;
-                        }
-                        if opaque_attachments > 0 {
-                            write!(
-                                fmt,
-                                "\n      - {opaque_attachments} additional opaque attachment"
-                            )?;
-                            if opaque_attachments > 1 {
-                                fmt.write_char('s')?;
-                            }
-                            opaque_attachments = 0;
-                        }
-
-                        context_idx += 1;
-                    }
-                    FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                        attachments.push(attachment);
-                    }
-                    FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
-                        opaque_attachments += 1;
-                    }
-                }
-            }
-
-            #[cfg(all(nightly, feature = "std"))]
-            if let Some(backtrace) = backtrace {
-                write!(fmt, "\n\nStack backtrace:\n{backtrace}")?;
-            }
-
-            #[cfg(feature = "spantrace")]
-            if let Some(span_trace) = spantrace {
-                write!(fmt, "\n\nSpan trace:\n{span_trace}")?;
-            }
-
-            Ok(())
-        }
     }
 }
 
