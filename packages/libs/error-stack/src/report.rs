@@ -159,11 +159,9 @@ use crate::{
 /// }
 /// ```
 ///
-/// Get the attached backtrace and spantrace:
+/// Get the attached [`Backtrace`] and [`SpanTrace`]:
 ///
 /// ```should_panic
-/// # #![cfg_attr(nightly, feature(backtrace))]
-///
 /// use error_stack::{IntoReport, ResultExt, Result};
 ///
 /// # #[allow(unused_variables)]
