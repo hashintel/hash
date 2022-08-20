@@ -445,7 +445,7 @@
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(
     all(nightly, feature = "std"),
-    feature(backtrace, backtrace_frames, error_generic_member_access)
+    feature(backtrace_frames, error_generic_member_access)
 )]
 #![warn(
     missing_docs,
