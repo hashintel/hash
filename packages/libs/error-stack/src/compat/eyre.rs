@@ -8,7 +8,9 @@ use crate::{compat::IntoReportCompat, Context, Report, Result};
 
 /// A [`Context`] wrapper for [`eyre::Report`].
 ///
-/// It provides the [`eyre::Report`] and [`Backtrace`] if it was captured.
+/// It provides the [`eyre::Report`] and forwards the [`Demand`] to [`Error::provide`].
+///
+/// [`Error::provide`]: std::error::Error::provide
 #[repr(transparent)]
 pub struct EyreContext(EyreReport);
 

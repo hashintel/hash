@@ -8,7 +8,9 @@ use crate::{compat::IntoReportCompat, Context, Report, Result};
 
 /// A [`Context`] wrapper for [`anyhow::Error`].
 ///
-/// It provides the [`anyhow::Error`] and [`Backtrace`] if it was captured.
+/// It provides the [`anyhow::Error`] and forwards the [`Demand`] to [`Error::provide`].
+///
+/// [`Error::provide`]: std::error::Error::provide
 #[repr(transparent)]
 pub struct AnyhowContext(AnyhowError);
 
