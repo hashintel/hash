@@ -39,7 +39,7 @@ once_cell = "1.13.0"
 rustc_version = "0.4"
 
 [features]
-default = ["std", "small"]
+default = ["std", "small", "pretty-print"]
 std = ["anyhow?/std"]
 spantrace = ["dep:tracing-error"]
 futures = ["dep:pin-project", "dep:futures-core"]
