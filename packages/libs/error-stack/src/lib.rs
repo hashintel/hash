@@ -337,14 +337,11 @@
 //!
 //! ### Automatic Backtraces
 //!
-//! When on a nightly compiler, [`Report`] will use the [`Backtrace`] from the base [`Context`] if
+//! When on a Rust 1.65 or later, [`Report`] will use the [`Backtrace`] from the base [`Context`] if
 //! it exists, or it will try to capture one. Unlike some other approaches, this does not require
 //! the user modifying their custom error types to be aware of backtraces, and doesn't require
 //! manual implementations to forward calls down any wrapped errors that are often needed with other
 //! approaches.
-//!
-//! Using the `backtrace` crate instead of `std::backtrace` is a considered feature to support
-//! backtraces on non-nightly channels and can be prioritized depending on demand.
 //!
 //! ### No-Std compatible
 //!
