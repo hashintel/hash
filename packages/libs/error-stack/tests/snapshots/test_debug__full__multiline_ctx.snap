@@ -3,13 +3,13 @@ source: tests/test_debug.rs
 expression: "format!(\"{report:#?}\")"
 ---
 Context B
-├╴tests/test_debug.rs:380:14
+├╴tests/test_debug.rs:377:14
 ├╴Printable C
 │
 ├─▶ A multiline
 │   context that might have
 │   a bit more info
-│   ├╴tests/test_debug.rs:377:14
+│   ├╴tests/test_debug.rs:374:14
 │   ├╴Printable B
 │   ╰╴1 additional opaque attachment
 │
