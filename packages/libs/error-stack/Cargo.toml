@@ -40,13 +40,14 @@ rustc_version = "0.4"
 
 [features]
 default = ["std", "small", "pretty-print"]
-std = ["anyhow?/std"]
-spantrace = ["dep:tracing-error"]
+
 futures = ["dep:pin-project", "dep:futures-core"]
-small = ["dep:smallvec"]
-pretty-print = ["dep:owo-colors"]
-unstable = []
 hooks = ["std"]
+pretty-print = ["dep:owo-colors"]
+small = ["dep:smallvec"]
+spantrace = ["dep:tracing-error"]
+std = ["anyhow?/std"]
+unstable = []
 
 [package.metadata.docs.rs]
 all-features = true
