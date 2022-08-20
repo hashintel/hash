@@ -267,6 +267,11 @@ mod full {
     //!
     //! There are still some big snapshot tests, which are used evaluate all of the above.
 
+    use std::{
+        error::Error,
+        fmt::{Display, Formatter},
+    };
+
     #[cfg(all(nightly, feature = "unstable"))]
     use error_stack::fmt::DebugDiagnostic;
     use error_stack::fmt::Emit;
@@ -349,6 +354,41 @@ mod full {
             .attach(AttachmentB)
             .change_context(ContextB(0))
             .attach_printable("Printable C");
+
+        assert_snapshot!(format!("{report:#?}"));
+    }
+
+    #[derive(Debug)]
+    struct ContextC;
+
+    impl Display for ContextC {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            f.write_str("A multiline\ncontext that might have\na bit more info")
+        }
+    }
+
+    impl Error for ContextC {}
+
+    #[test]
+    fn multiline_ctx() {
+        let _guard = prepare(false);
+
+        let report = create_report()
+            .change_context(ContextC)
+            .attach_printable(PrintableB(0))
+            .attach(AttachmentB)
+            .change_context(ContextB(0))
+            .attach_printable("Printable C");
+
+        assert_snapshot!(format!("{report:#?}"));
+    }
+
+    #[test]
+    fn multiline() {
+        let _guard = prepare(false);
+
+        let report = create_report()
+            .attach_printable("A multiline\nattachment\nthat might have some\nadditional info");
 
         assert_snapshot!(format!("{report:#?}"));
     }
