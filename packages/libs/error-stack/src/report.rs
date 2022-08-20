@@ -233,15 +233,13 @@ impl<C> Report<C> {
         let backtrace = core::any::request_ref::<Backtrace>(&frame)
             .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
             .is_none()
-            .then(Backtrace::capture)
-            .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured);
+            .then(Backtrace::capture);
 
         #[cfg(all(nightly, feature = "spantrace"))]
         let span_trace = core::any::request_ref::<SpanTrace>(&frame)
             .filter(|span_trace| span_trace.status() == SpanTraceStatus::CAPTURED)
             .is_none()
-            .then(SpanTrace::capture)
-            .filter(|span_trace| span_trace.status() == SpanTraceStatus::CAPTURED);
+            .then(SpanTrace::capture);
 
         #[cfg(all(not(nightly), feature = "spantrace"))]
         let span_trace = Some(SpanTrace::capture());
@@ -250,12 +248,14 @@ impl<C> Report<C> {
         let mut report = Self::from_frame(frame);
 
         #[cfg(all(nightly, feature = "std"))]
-        if let Some(backtrace) = backtrace {
+        if let Some(backtrace) =
+            backtrace.filter(|bt| matches!(bt.status(), BacktraceStatus::Captured))
+        {
             report = report.attach(backtrace);
         }
 
         #[cfg(feature = "spantrace")]
-        if let Some(span_trace) = span_trace {
+        if let Some(span_trace) = span_trace.filter(|st| st.status() == SpanTraceStatus::CAPTURED) {
             report = report.attach(span_trace);
         }
 
