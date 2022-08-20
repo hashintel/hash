@@ -8,6 +8,7 @@ use core::{
     any::{Any, TypeId},
     marker::PhantomData,
 };
+use std::sync::Arc;
 
 pub use default::builtin_debug_hook_fallback;
 
@@ -438,6 +439,8 @@ impl<T: 'static> HookContext<'_, T> {
 
 type BoxedHook = Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Emit + Send + Sync>;
 type BoxedFallbackHook =
+    Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Vec<Emit> + Send + Sync>;
+type BoxedRequestHook =
     Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Option<Emit> + Send + Sync>;
 
 /// Holds list of hooks and a fallback.
@@ -465,8 +468,9 @@ type BoxedFallbackHook =
 #[cfg(feature = "std")]
 #[allow(clippy::redundant_pub_crate)]
 pub(crate) struct Hooks {
+    pub(crate) request: Option<Vec<BoxedRequestHook>>,
     // TODO: Remove `Option` when const `BTreeMap::new` is stabilized
-    pub(crate) inner: Option<BTreeMap<TypeId, BoxedHook>>,
+    pub(crate) downcast: Option<BTreeMap<TypeId, BoxedHook>>,
     pub(crate) fallback: Option<BoxedFallbackHook>,
 }
 
@@ -476,18 +480,25 @@ impl Hooks {
         &mut self,
         hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) -> Emit + Send + Sync + 'static,
     ) {
-        let inner = self.inner.get_or_insert_with(BTreeMap::new);
+        let downcast = self.downcast.get_or_insert_with(BTreeMap::new);
+        let request = self.request.get_or_insert_with(Vec::new);
 
-        inner.insert(
+        let h = Arc::new(hook);
+        let h_downcast = h.clone();
+        downcast.insert(
             TypeId::of::<T>(),
             Box::new(move |frame, ctx| {
                 // `.unwrap()` never fails here, because `Hooks` guarantees the function will never
                 // be called on an object which cannot be downcast.
                 let frame = frame.downcast_ref::<T>().unwrap();
 
-                hook(frame, ctx.cast())
+                h_downcast(frame, ctx.cast())
             }),
         );
+
+        request.push(Box::new(move |frame, ctx| {
+            frame.request_ref::<T>().map(|val| h(val, ctx.cast()))
+        }))
     }
 
     pub(crate) fn fallback(
@@ -500,15 +511,29 @@ impl Hooks {
         self.fallback = Some(Box::new(hook));
     }
 
-    pub(crate) fn call<'a>(&self, frame: &Frame, ctx: &mut HookContext<'a, Frame>) -> Option<Emit> {
+    pub(crate) fn call<'a>(&self, frame: &Frame, ctx: &mut HookContext<'a, Frame>) -> Vec<Emit> {
         let ty = Frame::type_id(frame);
 
-        if let Some(hook) = self.inner.as_ref().and_then(|map| map.get(&ty)) {
-            Some((hook)(frame, ctx))
-        } else if let Some(fallback) = self.fallback.as_ref() {
-            (fallback)(frame, ctx)
+        let emit = self
+            .downcast
+            .as_ref()
+            .and_then(|map| map.get(&ty).map(|hook| hook(frame, ctx)))
+            .iter()
+            .chain(
+                self.request
+                    .iter()
+                    .flatten()
+                    .filter_map(|hook| hook(frame, ctx)),
+            )
+            .collect();
+
+        if emit.is_empty() {
+            self.fallback.as_ref().map_or_else(
+                || builtin_debug_hook_fallback(frame, ctx),
+                |fallback| fallback(frame, ctx),
+            )
         } else {
-            builtin_debug_hook_fallback(frame, ctx)
+            emit
         }
     }
 }
@@ -567,7 +592,7 @@ mod default {
     pub fn builtin_debug_hook_fallback<'a>(
         frame: &Frame,
         ctx: &mut HookContext<'a, Frame>,
-    ) -> Option<Emit> {
+    ) -> Vec<Emit> {
         // we're only able to use `request_ref` in nightly, because the Provider API hasn't been
         // stabilized yet.
         #[cfg(nightly)]

@@ -147,6 +147,7 @@ use core::{
     fmt::{Debug, Display, Formatter},
     mem,
 };
+use std::iter::once;
 
 #[cfg(feature = "std")]
 pub use hook::builtin_debug_hook_fallback;
@@ -737,9 +738,8 @@ fn debug_attachments(
     // evaluate all frames to their respective values, will call all hooks with the current context
     let (next, defer): (Vec<_>, _) = frames
         .into_iter()
-        .map(|frame| match frame.kind() {
-            FrameKind::Context(_) => unreachable!(),
-            FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
+        .flat_map(|frame| match frame.kind() {
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
                 #[cfg(all(nightly, feature = "unstable"))]
                 if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
                     for snippet in debug.snippets() {
@@ -747,7 +747,7 @@ fn debug_attachments(
                             .attach_snippet(snippet.clone());
                     }
 
-                    return Some(debug.output().clone());
+                    return vec![debug.output().clone()];
                 }
 
                 #[cfg(all(not(nightly), feature = "unstable"))]
@@ -757,7 +757,7 @@ fn debug_attachments(
                             .attach_snippet(snippet.clone());
                     }
 
-                    return Some(debug.output().clone());
+                    return vec![debug.output().clone()];
                 }
 
                 #[cfg(feature = "std")]
@@ -773,7 +773,7 @@ fn debug_attachments(
                 }
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                Some(attachment.to_string()).map(Emit::Next)
+                vec![Emit::Next(attachment.to_string())]
             }
         })
         .inspect(|value| {
@@ -942,7 +942,7 @@ fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Ve
             // each "paket" on the stack is made up of a head (guaranteed to be a `Context`) and
             // `n` attachments.
             // The attachments are rendered as direct descendants of the parent context
-            let (head, loc) = debug_context(head, match head.kind() {
+            let (head_ctx, loc) = debug_context(head, match head.kind() {
                 FrameKind::Context(c) => c,
                 FrameKind::Attachment(_) => unreachable!(),
             });
@@ -953,10 +953,9 @@ fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Ve
                 Some(loc),
                 ctx,
                 (len == 1 && sources.is_empty()) || idx > 0,
-                body,
+                once(ctx).chain(body).collect(),
             );
-
-            head.then(body)
+            head_ctx.then(body)
         })
         .collect();
 
