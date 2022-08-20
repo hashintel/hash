@@ -442,14 +442,21 @@ mod frame;
 pub mod iter;
 mod macros;
 mod report;
+mod result;
 
 mod context;
-mod ext;
+pub mod ext;
 #[cfg(feature = "hooks")]
 mod hook;
 
 #[doc(inline)]
-pub use self::ext::*;
+#[cfg(feature = "futures")]
+pub use self::ext::{future::FutureExt, stream::StreamExt};
+#[doc(inline)]
+pub use self::ext::{
+    iter::IteratorExt,
+    result::{IntoReport, ResultExt},
+};
 #[cfg(feature = "hooks")]
 pub use self::hook::HookAlreadySet;
 pub use self::{
@@ -457,6 +464,7 @@ pub use self::{
     frame::{AttachmentKind, Frame, FrameKind},
     macros::*,
     report::Report,
+    result::Result,
 };
 
 #[cfg(test)]
