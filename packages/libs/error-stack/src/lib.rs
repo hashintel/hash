@@ -1,5 +1,15 @@
 //! A context-aware error library with arbitrary attached user data.
 //!
+//! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
+//! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
+//! [![rust-version](https://img.shields.io/badge/Rust-1.63.0/nightly--2022--08--08-blue)][rust-version]
+//! [![discord](https://img.shields.io/discord/840573247803097118)][discord]
+//!
+//! [crates.io]: https://crates.io/crates/error-stack
+//! [libs.rs]: https://lib.rs/crates/error-stack
+//! [rust-version]: https://www.rust-lang.org
+//! [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_error-stack
+//!
 //! # Overview
 //!
 //! `error-stack` is an error-handling library centered around the idea of building a [`Report`] of
@@ -141,7 +151,8 @@
 //! [`Report::attach()`] and [`Report::attach_printable()`]:
 //!
 //! ```rust
-//! # #![cfg_attr(not(feature = "std"), allow(dead_code, unused_variables, unused_imports))]
+//! # // we only test the snapshot on nightly, therefore report is unused (so is render)
+//! # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 //! # use std::{fs, path::Path};
 //! # use error_stack::{Context, IntoReport, Report, ResultExt};
 //! # pub type Config = String;
@@ -156,7 +167,6 @@
 //! # #[derive(Debug, PartialEq)]
 //! struct Suggestion(&'static str);
 //!
-//! # #[cfg(all(not(miri), feature = "std"))] {
 //! fn parse_config(path: impl AsRef<Path>) -> Result<Config, Report<ParseConfigError>> {
 //!     let path = path.as_ref();
 //!
@@ -176,7 +186,20 @@
 //! # #[cfg(nightly)]
 //! # assert_eq!(report.request_ref::<String>().next().unwrap(), "Could not read file \"test.txt\"");
 //! # assert!(report.contains::<ParseConfigError>());
+//! #
+//! # owo_colors::set_override(true);
+//! # fn render(value: String) -> String {
+//! #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+//! #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+//! #
+//! #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+//! #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+//! #
+//! #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 //! # }
+//! #
+//! # #[cfg(nightly)]
+//! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/lib__suggestion.snap")].assert_eq(&render(format!("{report:?}")));
 //! ```
 //!
 //! As seen above, there are ways on attaching more information to the [`Report`]: [`attach`] and
@@ -184,16 +207,11 @@
 //! bound on the attachment: [`Display`] and [`Debug`]. Depending on the function used, printing the
 //! [`Report`] will also use the [`Display`] and [`Debug`] traits to describe the attachment:
 //!
-//! ```text
-//! Could not parse configuration file
-//!              at main.rs:9:10
-//!       - Could not read file "config.json"
-//!       - 1 additional opaque attachment
+//! This outputs something like:
 //!
-//! Caused by:
-//!    0: No such file or directory (os error 2)
-//!              at main.rs:7:10
-//! ```
+//! <pre>
+#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/lib__suggestion.snap"))]
+//! </pre>
 //!
 //! The `Suggestion` passed to [`attach`] shown as an opaque attachment. The message passed to
 //! [`attach_printable`] however is printed next to the [`Context`] where it was attached to.
@@ -399,12 +417,18 @@
 //!  Feature   | Description                                                    | implies | default
 //! -----------|----------------------------------------------------------------|---------|--------
 //!  `std`     | Enables support for [`Error`] and, on nightly, [`Backtrace`]   |         | enabled
-//!  `hooks`   |Enables the usage of [`set_display_hook`] and [`set_debug_hook`]| `std`   | disabled
 //! `spantrace`| Enables the capturing of [`SpanTrace`]s                        |         | disabled
 //!  `futures` | Provides a [`FutureExt`] adaptor                               |         | disabled
 //! `small`    | Enable optimizations for the memory footprint of [`Report`]    |         | enabled
 //!  `anyhow`  | Provides conversion from [`anyhow::Error`] to [`Report`]       |         | disabled
 //!   `eyre`   | Provides conversion from [`eyre::Report`] to [`Report`]        |         | disabled
+//! `pretty-print` | Provide color[^color] and use of unicode in [`Debug`] output |     | enabled
+//! `unstable` | Enables unstable features, which do not follow semver[^unstable] |  | disabled
+//!
+//! [^color]: error-stack supports the [`NO_COLOR`](http://no-color.org/)
+//!     and `FORCE_COLOR` environment variables through the [owo-colors crate](https://crates.io/crates/owo-colors)
+//! [^unstable]: unstable features may be removed in **any** future version without notice.
+//!     They exist to gauge interest towards features that may be stablized in the future.
 //!
 //! [`set_display_hook`]: Report::set_display_hook
 //! [`set_debug_hook`]: Report::set_debug_hook
@@ -412,7 +436,8 @@
 //! [`Error`]: std::error::Error
 //! [`Error::provide`]: std::error::Error::provide
 //! [`Backtrace`]: std::backtrace::Backtrace
-//! [`Display`]: std::fmt::Display
+//! [`Display`]: core::fmt::Display
+//! [`Debug`]: core::fmt::Debug
 //! [`SpanTrace`]: tracing_error::SpanTrace
 //! [`smallvec`]: https://docs.rs/smallvec
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -445,12 +470,17 @@ mod report;
 
 mod context;
 mod ext;
-#[cfg(feature = "hooks")]
+#[cfg(feature = "std")]
+pub mod fmt;
+#[cfg(not(feature = "std"))]
+mod fmt;
+#[cfg(feature = "std")]
 mod hook;
 
 #[doc(inline)]
 pub use self::ext::*;
-#[cfg(feature = "hooks")]
+#[cfg(feature = "std")]
+#[allow(deprecated)]
 pub use self::hook::HookAlreadySet;
 pub use self::{
     context::Context,

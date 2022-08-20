@@ -1,0 +1,128 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:#?}\")"
+---
+Context A
+├╴tests/test_debug.rs:217:10
+├╴2
+├╴1
+│
+╰┬▶ Context A
+ │  ├╴tests/test_debug.rs:211:10
+ │  ├╴4
+ │  ├╴3
+ │  │
+ │  ╰─▶ Root error
+ │      ├╴tests/common.rs:147:5
+ │      ├╴6
+ │      ├╴spantrace with 2 frames (1)
+ │      ╰╴backtrace with [n] frames (1)
+ │
+ ╰▶ Context A
+    ├╴tests/test_debug.rs:206:10
+    ├╴5
+    ├╴3
+    │
+    ├─▶ Context A
+    │   ├╴tests/test_debug.rs:204:10
+    │   ╰╴7
+    │
+    ╰┬▶ Context A
+     │  ├╴tests/test_debug.rs:195:34
+     │  ├╴9
+     │  ├╴8
+     │  │
+     │  ╰─▶ Root error
+     │      ├╴tests/common.rs:147:5
+     │      ├╴spantrace with 2 frames (2)
+     │      ╰╴backtrace with [n] frames (2)
+     │
+     ├▶ Context A
+     │  ├╴tests/test_debug.rs:189:10
+     │  ├╴13
+     │  ├╴10
+     │  ├╴16
+     │  ├╴9
+     │  ├╴8
+     │  │
+     │  ╰─▶ Root error
+     │      ├╴tests/common.rs:147:5
+     │      ├╴spantrace with 2 frames (3)
+     │      ╰╴backtrace with [n] frames (3)
+     │
+     ├▶ Context A
+     │  ├╴tests/test_debug.rs:175:10
+     │  ├╴15
+     │  ├╴14
+     │  ├╴10
+     │  ├╴16
+     │  ├╴9
+     │  ├╴8
+     │  │
+     │  ╰─▶ Root error
+     │      ├╴tests/common.rs:147:5
+     │      ├╴spantrace with 2 frames (4)
+     │      ╰╴backtrace with [n] frames (4)
+     │
+     ├▶ Context A
+     │  ├╴tests/test_debug.rs:185:10
+     │  ├╴11
+     │  ├╴9
+     │  ├╴8
+     │  │
+     │  ╰─▶ Root error
+     │      ├╴tests/common.rs:147:5
+     │      ├╴spantrace with 2 frames (5)
+     │      ╰╴backtrace with [n] frames (5)
+     │
+     ╰▶ Context A
+        ├╴tests/test_debug.rs:181:10
+        ├╴12
+        ├╴9
+        ├╴8
+        │
+        ├─▶ Context A
+        │   ╰╴tests/test_debug.rs:180:10
+        │
+        ╰─▶ Root error
+            ├╴tests/common.rs:147:5
+            ├╴spantrace with 2 frames (6)
+            ╰╴backtrace with [n] frames (6)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Backtrace No. 1
+  [redacted]
+
+Span Trace No. 1
+  [redacted]
+
+Backtrace No. 2
+  [redacted]
+
+Span Trace No. 2
+  [redacted]
+
+Backtrace No. 3
+  [redacted]
+
+Span Trace No. 3
+  [redacted]
+
+Backtrace No. 4
+  [redacted]
+
+Span Trace No. 4
+  [redacted]
+
+Backtrace No. 5
+  [redacted]
+
+Span Trace No. 5
+  [redacted]
+
+Backtrace No. 6
+  [redacted]
+
+Span Trace No. 6
+  [redacted]
