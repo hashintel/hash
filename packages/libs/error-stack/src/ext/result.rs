@@ -2,7 +2,7 @@
 
 use core::fmt;
 
-use crate::{Context, Report};
+use crate::{Context, Report, Result};
 
 /// Extension trait for [`Result`][core::result::Result] to provide context information on
 /// [`Report`]s.
