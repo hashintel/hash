@@ -200,10 +200,18 @@ impl<'a, T> HookContext<'a, T> {
     /// struct Value(u64);
     ///
     /// Report::install_debug_hook_fallback(|frame, ctx| {
-    ///     fmt::builtin_debug_hook_fallback(frame, ctx).or_else(|| frame.is::<Value>().then(|| {
-    ///         let ctx = ctx.cast::<u64>();
-    ///         Emit::next(format!("{} (Value)", ctx.increment()))
-    ///     }))
+    ///     let builtin = fmt::builtin_debug_hook_fallback(frame, ctx);
+    ///
+    ///     if builtin.is_empty() {
+    ///         frame.is::<Value>().then(|| {
+    ///             let ctx = ctx.cast::<u64>();
+    ///             Emit::next(format!("{} (Value)", ctx.increment()))
+    ///         })
+    ///         .into_iter()
+    ///         .collect::<Vec<_>>()
+    ///     } else {
+    ///         builtin
+    ///     }
     /// });
     ///
     /// Report::install_debug_hook::<u64>(|_, ctx| Emit::next(format!("{}", ctx.increment())));
@@ -468,7 +476,8 @@ type BoxedRequestHook =
 #[cfg(feature = "std")]
 #[allow(clippy::redundant_pub_crate)]
 pub(crate) struct Hooks {
-    pub(crate) request: Option<Vec<(TypeId, BoxedRequestHook)>>,
+    #[cfg(nightly)]
+    pub(crate) request: Vec<(TypeId, BoxedRequestHook)>,
     // TODO: Remove `Option` when const `BTreeMap::new` is stabilized
     pub(crate) downcast: Option<BTreeMap<TypeId, BoxedHook>>,
     pub(crate) fallback: Option<BoxedFallbackHook>,
@@ -482,8 +491,6 @@ impl Hooks {
     ) {
         let type_id = TypeId::of::<T>();
         let downcast = self.downcast.get_or_insert_with(BTreeMap::new);
-        let request = self.request.get_or_insert_with(Vec::new);
-
         let hook = Arc::new(hook);
 
         downcast.insert(
@@ -501,13 +508,17 @@ impl Hooks {
             }),
         );
 
-        let request_hook =
-            Box::new(move |frame, ctx| frame.request_ref::<T>().map(|val| hook(val, ctx.cast())));
+        #[cfg(nightly)]
+        {
+            let request_hook = Box::new(move |frame: &Frame, ctx: &mut HookContext<Frame>| {
+                frame.request_ref::<T>().map(|val| hook(val, ctx.cast()))
+            });
 
-        if let Some(hook) = request.iter_mut().find(|(id, _)| *id == type_id) {
-            *hook = (type_id, request_hook);
-        } else {
-            request.push((type_id, request_hook));
+            if let Some(hook) = self.request.iter_mut().find(|(id, _)| *id == type_id) {
+                *hook = (type_id, request_hook);
+            } else {
+                self.request.push((type_id, request_hook));
+            }
         }
     }
 
@@ -521,26 +532,38 @@ impl Hooks {
     pub(crate) fn call<'a>(&self, frame: &Frame, ctx: &mut HookContext<'a, Frame>) -> Vec<Emit> {
         let ty = Frame::type_id(frame);
 
-        let emit: Vec<_> = self
+        let downcast = self
             .downcast
             .as_ref()
-            .and_then(|map| map.get(&ty).map(|hook| hook(frame, ctx)))
-            .into_iter()
-            .chain(
-                self.request
-                    .iter()
-                    .flatten()
-                    .filter_map(|hook| hook(frame, ctx)),
-            )
-            .collect();
+            .and_then(|map| map.get(&ty).map(|hook| hook(frame, ctx)));
 
-        if emit.is_empty() {
-            self.fallback.as_ref().map_or_else(
-                || builtin_debug_hook_fallback(frame, ctx),
-                |fallback| fallback(frame, ctx),
-            )
-        } else {
-            emit
+        #[cfg(not(nightly))]
+        {
+            if let Some(downcast) = downcast {
+                vec![downcast]
+            } else if let Some(fallback) = self.fallback.as_ref() {
+                fallback(frame, ctx)
+            } else {
+                builtin_debug_hook_fallback(frame, ctx)
+            }
+        }
+
+        #[cfg(nightly)]
+        {
+            let result: Vec<_> = downcast
+                .into_iter()
+                .chain(self.request.iter().filter_map(|(_, hook)| hook(frame, ctx)))
+                .collect();
+
+            if result.is_empty() {
+                if let Some(fallback) = self.fallback.as_ref() {
+                    fallback(frame, ctx)
+                } else {
+                    builtin_debug_hook_fallback(frame, ctx)
+                }
+            } else {
+                result
+            }
         }
     }
 }
@@ -604,25 +627,29 @@ mod default {
         // stabilized yet.
         #[cfg(nightly)]
         {
+            let mut emit = vec![];
+
             #[cfg(feature = "std")]
             if let Some(bt) = frame.request_ref() {
-                return Some(backtrace(bt, ctx.cast()));
+                emit.push(backtrace(bt, ctx.cast()));
             }
 
             #[cfg(feature = "spantrace")]
             if let Some(st) = frame.request_ref() {
-                return Some(span_trace(st, ctx.cast()));
+                emit.push(span_trace(st, ctx.cast()));
             }
+
+            emit
         }
 
         #[cfg(not(nightly))]
         {
             #[cfg(feature = "spantrace")]
             if let Some(st) = frame.downcast_ref() {
-                return Some(span_trace(st, ctx.cast()));
+                return vec![span_trace(st, ctx.cast())];
             }
-        }
 
-        None
+            None
+        }
     }
 }

@@ -8,7 +8,8 @@ use crate::{
 type FormatterHook = Box<dyn Fn(&Report<()>, &mut fmt::Formatter<'_>) -> fmt::Result + Send + Sync>;
 
 static FMT_HOOK: RwLock<Hooks> = RwLock::new(Hooks {
-    request: None,
+    #[cfg(nightly)]
+    request: Vec::new(),
     downcast: None,
     fallback: None,
 });
@@ -123,7 +124,7 @@ impl Report<()> {
     /// // This will remove all formatting for `Backtrace` and `SpanTrace`!
     /// // The example after this once calls `builtin_debug_hook_fallback()`, which makes sure that we always print
     /// // `Backtrace` and `SpanTrace`.
-    /// Report::install_debug_hook_fallback(|_, _| Some(Emit::next("unknown")));
+    /// Report::install_debug_hook_fallback(|_, _| vec![Emit::next("unknown")]);
     ///
     /// let report =
     ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("O no, try again"));
@@ -163,7 +164,13 @@ impl Report<()> {
     ///
     /// Report::install_debug_hook_fallback(|val, ctx| {
     ///     // first run all builtin hooks to make sure that we print backtrace and spantrace
-    ///     Some(fmt::builtin_debug_hook_fallback(val, ctx).unwrap_or(Emit::next("unknown")))
+    ///     let builtin = fmt::builtin_debug_hook_fallback(val, ctx);
+    ///
+    ///     if builtin.is_empty() {
+    ///         vec![Emit::next("unknown")]
+    ///     } else {
+    ///         builtin
+    ///     }
     /// });
     ///
     /// let report =
@@ -193,10 +200,7 @@ impl Report<()> {
     /// </pre>
     #[cfg(feature = "std")]
     pub fn install_debug_hook_fallback(
-        hook: impl for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Option<Emit>
-        + Send
-        + Sync
-        + 'static,
+        hook: impl for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Vec<Emit> + Send + Sync + 'static,
     ) {
         let mut lock = FMT_HOOK.write().expect("should not be poisoned");
         lock.fallback(hook);

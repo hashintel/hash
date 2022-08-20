@@ -738,7 +738,7 @@ fn debug_attachments(
     // evaluate all frames to their respective values, will call all hooks with the current context
     let (next, defer): (Vec<_>, _) = frames
         .into_iter()
-        .flat_map(|frame| match frame.kind() {
+        .map(|frame| match frame.kind() {
             FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
                 #[cfg(all(nightly, feature = "unstable"))]
                 if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
@@ -779,7 +779,7 @@ fn debug_attachments(
         .inspect(|value| {
             // increase the opaque counter, if we're unable to determine the actual value of the
             // frame
-            if value.is_none() {
+            if value.is_empty() {
                 opaque.increase();
             }
         })
@@ -953,7 +953,7 @@ fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Ve
                 Some(loc),
                 ctx,
                 (len == 1 && sources.is_empty()) || idx > 0,
-                once(ctx).chain(body).collect(),
+                once(head).chain(body).collect(),
             );
             head_ctx.then(body)
         })
