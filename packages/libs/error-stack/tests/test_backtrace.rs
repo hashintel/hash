@@ -1,5 +1,5 @@
 #![cfg(all(feature = "std", nightly))]
-#![feature(provide_any, backtrace, backtrace_frames, error_generic_member_access)]
+#![feature(provide_any, backtrace_frames, error_generic_member_access)]
 
 mod common;
 
