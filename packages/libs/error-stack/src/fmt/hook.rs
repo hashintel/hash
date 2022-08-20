@@ -67,7 +67,7 @@ impl HookContextImpl {
 ///     if ctx.alternate() {
 ///         ctx.attach_snippet("u64 has been encountered");
 ///     }
-///     
+///
 ///     Emit::next(val.to_string())
 /// });
 ///

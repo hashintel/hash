@@ -869,30 +869,30 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
             };
 
             lines
-            .into_iter()
-            .enumerate()
-            .map(|(idx, line)| {
-                if idx == 0 {
-                    line.push(Instruction::Group { position })
-                } else {
-                    line.push(Instruction::Indent {
-                        group: true,
-                        visible: !matches!(position, Position::Last),
-                        spacing: true,
-                        minimal: false,
-                    })
-                }
-            })
-            .collect::<Lines>()
-            // add a buffer line for readability
-            .before(
-                Line::new().push(Instruction::Indent {
-                    group: idx != 0,
-                    visible: true,
-                    spacing: false,
-                    minimal: false,
+                .into_iter()
+                .enumerate()
+                .map(|(idx, line)| {
+                    if idx == 0 {
+                        line.push(Instruction::Group { position })
+                    } else {
+                        line.push(Instruction::Indent {
+                            group: true,
+                            visible: !matches!(position, Position::Last),
+                            spacing: true,
+                            minimal: false,
+                        })
+                    }
                 })
-            )
+                .collect::<Lines>()
+                .before(
+                    // add a buffer line for readability
+                    Line::new().push(Instruction::Indent {
+                        group: idx != 0,
+                        visible: true,
+                        spacing: false,
+                        minimal: false,
+                    }),
+                )
         })
         .collect::<Vec<_>>();
 
@@ -977,9 +977,11 @@ fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Ve
 
     let sources = sources
         .iter()
-        // if the group is "transparent" (has no context), it will return all it's parents rendered
-        // this is why we must first flat_map.
-        .flat_map(|source| debug_frame(source, ctx, &prefix))
+        .flat_map(
+            // if the group is "transparent" (has no context), it will return all it's parents
+            // rendered this is why we must first flat_map.
+            |source| debug_frame(source, ctx, &prefix),
+        )
         .collect::<Vec<_>>();
 
     // if there is no context, this is considered a "transparent" group,
@@ -1033,8 +1035,10 @@ impl<C> Debug for Report<C> {
         let suffix = ctx
             .snippets
             .into_iter()
-            // remove all trailing newlines for a more uniform look
-            .map(|snippet| snippet.trim_end_matches('\n').to_owned())
+            .map(
+                // remove all trailing newlines for a more uniform look
+                |snippet| snippet.trim_end_matches('\n').to_owned(),
+            )
             .collect::<Vec<_>>()
             .join("\n\n");
 
