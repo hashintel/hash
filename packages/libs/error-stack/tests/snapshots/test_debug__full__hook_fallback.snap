@@ -1,0 +1,9 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:?}\")"
+---
+Root error
+├╴tests/common.rs:147:5
+├╴unknown
+├╴unknown
+╰╴unknown
