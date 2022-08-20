@@ -285,7 +285,7 @@ impl Display for Symbol {
 impl Display for Symbol {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Location => f.write_str("@ "),
+            Self::Location => f.write_str("at "),
             Self::Vertical | Self::VerticalRight => f.write_str("|"),
             Self::Horizontal | Self::HorizontalDown => f.write_str("-"),
             Self::ArrowRight => f.write_str(">"),
@@ -1043,7 +1043,15 @@ impl<C> Debug for Report<C> {
             lines.reserve(44 + suffix.len());
 
             lines.push_str("\n\n");
-            lines.push_str(&"━".repeat(40));
+            #[cfg(feature = "pretty-print")]
+            {
+                lines.push_str(&"━".repeat(40));
+            }
+            #[cfg(not(feature = "pretty-print"))]
+            {
+                lines.push_str(&"=".repeat(40));
+            }
+
             lines.push_str("\n\n");
             lines.push_str(&suffix);
         }
