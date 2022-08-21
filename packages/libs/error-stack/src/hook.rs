@@ -89,7 +89,7 @@ impl Report<()> {
     /// </pre>
     ///
     /// ```
-    /// #![cfg(nightly)]
+    /// # #![cfg(nightly)]
     /// #![feature(error_generic_member_access, provide_any)]
     ///
     /// use std::any::Demand;

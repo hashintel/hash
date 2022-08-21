@@ -764,12 +764,12 @@ fn debug_attachments(
 
                 #[cfg(all(nightly, feature = "unstable"))]
                 if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
-                    for snippet in debug.snippets() {
+                    for snippet in debug.snippets().to_vec() {
                         ctx.as_hook_context::<DebugDiagnostic>()
-                            .attach_snippet(snippet.clone());
+                            .attach_snippet(snippet);
                     }
 
-                    return debug.emit().iter().cloned().collect::<Vec<_>>();
+                    return debug.emit().to_vec();
                 }
 
                 #[cfg(all(not(nightly), feature = "unstable"))]
@@ -779,7 +779,7 @@ fn debug_attachments(
                             .attach_snippet(snippet.clone());
                     }
 
-                    return debug.emit().into_iter().cloned().collect::<Vec<_>>();
+                    return debug.emit().to_vec();
                 }
 
                 #[cfg(feature = "std")]
