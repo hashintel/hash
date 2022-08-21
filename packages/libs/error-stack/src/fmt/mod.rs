@@ -54,21 +54,22 @@
 //!     fmt::{Emit},
 //!     Report
 //! };
+//! use error_stack::fmt::Trace;
 //!
 //! // This hook will never be called, because a later invocation of `install_debug_hook` overwrites
 //! // the hook for the type `u64`.
-//! Report::install_debug_hook::<u64>(|_, _| Emit::next("will never be called"));
+//! Report::install_debug_hook::<u64>(|_, _| Trace::next("will never be called"));
 //!
 //! // `HookContext` always has a type parameter, which needs to be the same as the type of the
 //! // value, we use `HookContext` here as storage, to store values specific to this hook.
 //! // Here we make use of the auto-incrementing feature.
 //! // The incrementation is type specific, meaning that `ctx.increment()` for the `u32` hook will
 //! // not influence the counter of the `u64` or `u16` hook.
-//! Report::install_debug_hook::<u32>(|_, ctx| Emit::next(format!("u32 value {}", ctx.increment())));
+//! Report::install_debug_hook::<u32>(|_, ctx| Trace::next(format!("u32 value {}", ctx.increment())));
 //!
 //! // we do not need to make use of the context, to either store a value for the duration of the
 //! // rendering, or to render additional text, which is why we omit the parameter.
-//! Report::install_debug_hook::<u64>(|val, _| Emit::next(format!("u64 value ({val})")));
+//! Report::install_debug_hook::<u64>(|val, _| Trace::next(format!("u64 value ({val})")));
 //!
 //! Report::install_debug_hook::<u16>(|_, ctx| {
 //!     // we set a value, which will be removed on non-alternate views
@@ -76,12 +77,13 @@
 //!     if ctx.alternate() {
 //!         ctx.attach_snippet("Look! I was rendered from a `u16`");
 //!     }
-//!     Emit::next("For more information, look down below")
+//!
+//!     Trace::next("For more information, look down below")
 //!  });
 //!
 //! // you can use arbitrary values as arguments, just make sure that you won't repeat them.
 //! // here we use [`Emit::defer`], this means that this value will be put at the end of the group.
-//! Report::install_debug_hook::<String>(|val, _| Emit::defer(val));
+//! Report::install_debug_hook::<String>(|val, _| Trace::defer(val));
 //!
 //! let report = Report::new(Error::from(ErrorKind::InvalidInput))
 //!     .attach(2u64)
@@ -180,9 +182,9 @@ pub use unstable::DebugDiagnostic;
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
 #[must_use]
-struct Diagnostic(Vec<Emit>);
+pub struct Trace(Vec<Emit>);
 
-impl Diagnostic {
+impl Trace {
     fn new(emit: Emit) -> Self {
         Self(vec![emit])
     }
@@ -214,9 +216,13 @@ impl Diagnostic {
     pub fn push(&mut self, value: Emit) {
         self.push(value);
     }
+
+    pub(crate) fn into_inner(self) -> Vec<Emit> {
+        self.0
+    }
 }
 
-impl Extend<Emit> for Diagnostic {
+impl Extend<Emit> for Trace {
     fn extend<T: IntoIterator<Item = Emit>>(&mut self, iter: T) {
         self.0.extend(iter);
     }
@@ -242,9 +248,10 @@ impl Extend<Emit> for Diagnostic {
 ///     fmt::Emit,
 ///     Report
 /// };
+/// use error_stack::fmt::Trace;
 ///
-/// Report::install_debug_hook::<u64>(|val, _| Emit::next(format!("u64: {val}")));
-/// Report::install_debug_hook::<u32>(|val, _| Emit::defer(format!("u32: {val}")));
+/// Report::install_debug_hook::<u64>(|val, _| Trace::next(format!("u64: {val}")));
+/// Report::install_debug_hook::<u32>(|val, _| Trace::defer(format!("u32: {val}")));
 ///
 /// let report = Report::new(Error::from(ErrorKind::InvalidInput))
 ///     .attach(1u64)
@@ -275,7 +282,7 @@ impl Extend<Emit> for Diagnostic {
 /// <pre>
 #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap"))]
 /// </pre>
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialOrd, PartialEq)]
 #[must_use]
 #[non_exhaustive]
 pub enum Emit {
@@ -808,6 +815,15 @@ fn debug_attachments(
                 vec![Emit::Next(attachment.to_string())]
             }
         })
+        .map(|emit| {
+            // convert into `Opaque` attachment, this is why we don't use `filter_map`,
+            // as we would loose the ability to count opaque lines
+            if emit.contains(&Emit::Hidden) {
+                vec![]
+            } else {
+                emit
+            }
+        })
         .enumerate()
         .flat_map(|(idx, value)| {
             // increase the opaque counter, if we're unable to determine the actual value of the
@@ -829,6 +845,7 @@ fn debug_attachments(
         .into_iter()
         .chain(defer.into_iter().rev())
         .map(|emit| match emit {
+            Emit::Hidden => unreachable!(),
             Emit::Defer(value) | Emit::Next(value) => value,
         })
         .map(|value| {

@@ -11,7 +11,7 @@ use core::{
 
 pub use default::builtin_debug_hook_fallback;
 
-use crate::fmt::{Emit, Frame};
+use crate::fmt::{Emit, Frame, Trace};
 
 #[derive(Default)]
 pub struct HookContextImpl {
@@ -62,13 +62,14 @@ impl HookContextImpl {
 /// use std::io::ErrorKind;
 ///
 /// use error_stack::{fmt::{Emit}, Report};
+/// use error_stack::fmt::Trace;
 ///
 /// Report::install_debug_hook::<u64>(|val, ctx| {
 ///     if ctx.alternate() {
 ///         ctx.attach_snippet("u64 has been encountered");
 ///     }
 ///
-///     Emit::next(val.to_string())
+///     Trace::next(val.to_string())
 /// });
 ///
 /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -115,6 +116,7 @@ impl HookContextImpl {
 /// use std::io::ErrorKind;
 ///
 /// use error_stack::{fmt::Emit, Report};
+/// use error_stack::fmt::Trace;
 ///
 ///
 /// Report::install_debug_hook::<u64>(|val, ctx| {
@@ -126,7 +128,7 @@ impl HookContextImpl {
 ///
 ///     ctx.insert(acc);
 ///
-///     Emit::next(format!("{val} (acc: {acc}, div: {div})"))
+///     Trace::next(format!("{val} (acc: {acc}, div: {div})"))
 /// });
 ///
 /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -195,6 +197,7 @@ impl<'a, T> HookContext<'a, T> {
     /// use std::io::ErrorKind;
     ///
     /// use error_stack::{fmt, fmt::Emit, Report};
+    /// use error_stack::fmt::Trace;
     ///
     /// struct Value(u64);
     ///
@@ -213,7 +216,7 @@ impl<'a, T> HookContext<'a, T> {
     ///     }
     /// });
     ///
-    /// Report::install_debug_hook::<u64>(|_, ctx| Emit::next(format!("{}", ctx.increment())));
+    /// Report::install_debug_hook::<u64>(|_, ctx| Trace::next(format!("{}", ctx.increment())));
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
     ///     .attach(1u64)
@@ -325,13 +328,13 @@ impl<T: 'static> HookContext<'_, T> {
     /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
-    /// use error_stack::fmt::Emit;
+    /// use error_stack::fmt::{Emit, Trace};
     /// use error_stack::Report;
     ///
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     Emit::next(format!("Suggestion {}: {val}", ctx.increment()))
+    ///     Trace::next(format!("Suggestion {}: {val}", ctx.increment()))
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -392,10 +395,11 @@ impl<T: 'static> HookContext<'_, T> {
     /// use std::io::ErrorKind;
     ///
     /// use error_stack::{fmt::Emit, Report};
+    /// use error_stack::fmt::Trace;
     ///
     /// struct Suggestion(&'static str);
     ///
-    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| Emit::next(format!("Suggestion {}: {val}", ctx.decrement())));
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| Trace::next(format!("Suggestion {}: {val}", ctx.decrement())));
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
     ///     .attach(Suggestion("Use a file you can read next time!"))
@@ -445,7 +449,7 @@ impl<T: 'static> HookContext<'_, T> {
 }
 
 type BoxedHook =
-    Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Option<Emit> + Send + Sync>;
+    Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Option<Trace> + Send + Sync>;
 type BoxedFallbackHook =
     Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Vec<Emit> + Send + Sync>;
 
@@ -483,7 +487,7 @@ pub(crate) struct Hooks {
 impl Hooks {
     pub(crate) fn insert<T: Send + Sync + 'static>(
         &mut self,
-        hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) -> Emit + Send + Sync + 'static,
+        hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) -> Trace + Send + Sync + 'static,
     ) {
         let type_id = TypeId::of::<T>();
 
@@ -526,6 +530,7 @@ impl Hooks {
             .inner
             .iter()
             .filter_map(|(_, hook)| hook(frame, ctx))
+            .flat_map(|trace| trace.into_inner())
             .collect();
 
         if result.is_empty() {
@@ -555,7 +560,7 @@ mod default {
     #[cfg(feature = "unstable")]
     use crate::fmt::DebugDiagnostic;
     use crate::{
-        fmt::{hook::HookContext, Emit},
+        fmt::{hook::HookContext, Emit, Trace},
         Frame,
     };
 
@@ -600,7 +605,7 @@ mod default {
     }
 
     #[cfg(all(not(nightly), feature = "unstable"))]
-    fn debug_diagnostic(frame: &Frame, ctx: &mut HookContext<Frame>) {
+    fn debug_diagnostic(frame: &Frame, ctx: &mut HookContext<Frame>) -> Vec<Emit> {
         let ctx = ctx.cast::<DebugDiagnostic>();
 
         let mut emit = vec![];
@@ -646,38 +651,38 @@ mod default {
         // stabilized yet.
         #[cfg(nightly)]
         {
-            let mut emit = vec![];
+            let mut trace = vec![];
 
             #[cfg(feature = "std")]
             if let Some(bt) = frame.request_ref() {
-                emit.push(backtrace(bt, ctx.cast()));
+                trace.push(backtrace(bt, ctx.cast()));
             }
 
             #[cfg(feature = "spantrace")]
             if let Some(st) = frame.request_ref() {
-                emit.push(span_trace(st, ctx.cast()));
+                trace.push(span_trace(st, ctx.cast()));
             }
 
             #[cfg(feature = "unstable")]
             {
-                emit.extend(debug_diagnostic(frame, ctx));
+                trace.extend(debug_diagnostic(frame, ctx));
             }
 
-            emit
+            trace
         }
 
         #[cfg(not(nightly))]
         {
-            let mut emit = vec![];
+            let mut trace = vec![];
 
             #[cfg(feature = "spantrace")]
             if let Some(st) = frame.downcast_ref() {
-                emit.push(span_trace(st, ctx.cast()));
+                trace.push(span_trace(st, ctx.cast()));
             }
 
             #[cfg(feature = "unstable")]
             {
-                emit.extend(debug_diagnostic(frame, ctx));
+                trace.extend(debug_diagnostic(frame, ctx));
             }
 
             vec![]

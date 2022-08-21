@@ -1,7 +1,7 @@
 use std::{error::Error, fmt, sync::RwLock};
 
 use crate::{
-    fmt::{Emit, HookContext, Hooks},
+    fmt::{Emit, HookContext, Hooks, Trace},
     Frame, Report, Result,
 };
 
@@ -55,11 +55,12 @@ impl Report<()> {
     ///     fmt::{Emit},
     ///     report, Report,
     /// };
+    /// use error_stack::fmt::Trace;
     ///
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|val, _| {
-    ///     Emit::Next(format!("Suggestion: {}", val.0))
+    ///     Trace::next(format!("Suggestion: {}", val.0))
     /// });
     ///
     /// let report =
@@ -96,14 +97,15 @@ impl Report<()> {
     /// use std::error::Error;
     /// use std::fmt::{Display, Formatter};
     /// use error_stack::{fmt::Emit, Report, report};
+    /// use error_stack::fmt::Trace;
     ///
     /// struct Suggestion(&'static str);
     ///
     /// #[derive(Debug)]
     /// struct ErrorCode(u64);
     ///
-    /// Report::install_debug_hook::<Suggestion>(|val, _| Emit::Next(format!("Suggestion: {}", val.0)));
-    /// Report::install_debug_hook::<ErrorCode>(|val, _| Emit::next(format!("Error Code: {}", val.0)));
+    /// Report::install_debug_hook::<Suggestion>(|val, _| Trace::next(format!("Suggestion: {}", val.0)));
+    /// Report::install_debug_hook::<ErrorCode>(|val, _| Trace::next(format!("Error Code: {}", val.0)));
     ///
     /// #[derive(Debug)]
     /// struct UserError {
@@ -149,7 +151,7 @@ impl Report<()> {
     /// </pre>
     #[cfg(feature = "std")]
     pub fn install_debug_hook<T: Send + Sync + 'static>(
-        hook: impl Fn(&T, &mut HookContext<T>) -> Emit + Send + Sync + 'static,
+        hook: impl Fn(&T, &mut HookContext<T>) -> Trace + Send + Sync + 'static,
     ) {
         let mut lock = FMT_HOOK.write().expect("should not be poisoned");
         lock.insert(hook);
@@ -273,10 +275,13 @@ impl Report<()> {
     ///     fmt::{builtin_debug_hook_fallback, Emit},
     ///     report, Report,
     /// };
+    /// use error_stack::fmt::Trace;
+    ///
+    /// struct ErrorCode(u64);
     ///
     /// #[derive(Debug)]
     /// struct UserError {
-    ///     code: u64,
+    ///     code: ErrorCode,
     /// }
     ///
     /// impl Display for UserError {
@@ -287,9 +292,9 @@ impl Report<()> {
     ///
     /// impl Error for UserError {}
     ///
-    /// // this will never called, because we **do not** provide `u64` in `UserError`
+    /// // this will never called, because we **do not** provide `ErrorCode` in `UserError`
     /// // we instead use fallback to provide better diagnostics.
-    /// Report::install_debug_hook::<u64>(|_, _| Emit::next("a random u64 value"));
+    /// Report::install_debug_hook::<ErrorCode>(|_, _| Trace::next("Error Code"));
     ///
     /// Report::install_debug_hook_fallback(|frame, ctx| {
     ///     // add additional attachments, but only if we're a context of type `UserError`
