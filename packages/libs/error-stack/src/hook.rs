@@ -89,6 +89,7 @@ impl Report<()> {
     /// </pre>
     ///
     /// ```
+    /// #![cfg(nightly)]
     /// #![feature(error_generic_member_access, provide_any)]
     ///
     /// use std::any::Demand;
@@ -260,6 +261,68 @@ impl Report<()> {
     ///
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback_builtin.snap"))]
+    /// </pre>
+    ///
+    /// ```
+    /// use std::{
+    ///     error::Error,
+    ///     fmt::{Display, Formatter},
+    /// };
+    ///
+    /// use error_stack::{
+    ///     fmt::{builtin_debug_hook_fallback, Emit},
+    ///     report, Report,
+    /// };
+    ///
+    /// #[derive(Debug)]
+    /// struct UserError {
+    ///     code: u64,
+    /// }
+    ///
+    /// impl Display for UserError {
+    ///     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    ///         f.write_str("Invalid user input")
+    ///     }
+    /// }
+    ///
+    /// impl Error for UserError {}
+    ///
+    /// // this will never called, because we **do not** provide `u64` in `UserError`
+    /// // we instead use fallback to provide better diagnostics.
+    /// Report::install_debug_hook::<u64>(|_, _| Emit::next("a random u64 value"));
+    ///
+    /// Report::install_debug_hook_fallback(|frame, ctx| {
+    ///     // add additional attachments, but only if we're a context of type `UserError`
+    ///     if let Some(error) = frame.downcast_ref::<UserError>() {
+    ///         vec![Emit::next(format!("Error Code: {}", error.code))]
+    ///     } else {
+    ///         builtin_debug_hook_fallback(frame, ctx)
+    ///     }
+    /// });
+    ///
+    /// let report = report!(UserError {code: 420});
+    ///
+    /// # owo_colors::set_override(true);
+    /// # fn render(value: String) -> String {
+    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #
+    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #
+    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// # }
+    /// #
+    /// # #[cfg(nightly)]
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback_context.snap")].assert_eq(&render(format!("{report:?}")));
+    /// #
+    /// println!("{report:?}");
+    /// ```
+    ///
+    /// Which will result in something like:
+    ///
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback_context.snap"))]
     /// </pre>
     #[cfg(feature = "std")]
     pub fn install_debug_hook_fallback(
