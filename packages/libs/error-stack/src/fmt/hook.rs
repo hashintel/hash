@@ -445,11 +445,10 @@ impl<T: 'static> HookContext<'_, T> {
     }
 }
 
-type BoxedHook = Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Emit + Send + Sync>;
+type BoxedHook =
+    Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Option<Emit> + Send + Sync>;
 type BoxedFallbackHook =
     Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Vec<Emit> + Send + Sync>;
-type BoxedRequestHook =
-    Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Option<Emit> + Send + Sync>;
 
 /// Holds list of hooks and a fallback.
 ///
@@ -476,10 +475,8 @@ type BoxedRequestHook =
 #[cfg(feature = "std")]
 #[allow(clippy::redundant_pub_crate)]
 pub(crate) struct Hooks {
-    #[cfg(nightly)]
-    pub(crate) request: Vec<(TypeId, BoxedRequestHook)>,
-    // TODO: Remove `Option` when const `BTreeMap::new` is stabilized
-    pub(crate) downcast: Option<BTreeMap<TypeId, BoxedHook>>,
+    // We use `Vec`, instead of `HashMap` or `BTreeMap` so that the ordering stays consistent
+    pub(crate) inner: Vec<(TypeId, BoxedHook)>,
     pub(crate) fallback: Option<BoxedFallbackHook>,
 }
 
@@ -490,35 +487,26 @@ impl Hooks {
         hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) -> Emit + Send + Sync + 'static,
     ) {
         let type_id = TypeId::of::<T>();
-        let downcast = self.downcast.get_or_insert_with(BTreeMap::new);
-        let hook = Arc::new(hook);
 
-        downcast.insert(
-            type_id,
-            Box::new({
-                let hook = hook.clone();
-
-                move |frame, ctx| {
-                    // `.unwrap()` never fails here, because `Hooks` guarantees the function will
-                    // never be called on an object which cannot be downcast.
-                    let frame = frame.downcast_ref::<T>().unwrap();
-
-                    hook(frame, ctx.cast())
-                }
-            }),
-        );
-
-        #[cfg(nightly)]
-        {
-            let request_hook = Box::new(move |frame: &Frame, ctx: &mut HookContext<Frame>| {
-                frame.request_ref::<T>().map(|val| hook(val, ctx.cast()))
-            });
-
-            if let Some(hook) = self.request.iter_mut().find(|(id, _)| *id == type_id) {
-                *hook = (type_id, request_hook);
-            } else {
-                self.request.push((type_id, request_hook));
+        let boxed_hook = Box::new(move |frame: &Frame, ctx: &mut HookContext<Frame>| {
+            #[cfg(nightly)]
+            {
+                frame
+                    .request_ref::<T>()
+                    .or_else(|| frame.request_value::<T>().as_ref())
+                    .map(|val| hook(val, ctx.cast()))
             }
+
+            #[not(cfg(nightly))]
+            {
+                frame.downcast_ref::<T>().map(|val| hook(val, ctx.cast()))
+            }
+        });
+
+        if let Some(hook) = self.inner.iter_mut().find(|(id, _)| *id == type_id) {
+            *hook = (type_id, boxed_hook);
+        } else {
+            self.inner.push((type_id, boxed_hook));
         }
     }
 
@@ -530,40 +518,20 @@ impl Hooks {
     }
 
     pub(crate) fn call<'a>(&self, frame: &Frame, ctx: &mut HookContext<'a, Frame>) -> Vec<Emit> {
-        let ty = Frame::type_id(frame);
+        let result: Vec<_> = self
+            .inner
+            .iter()
+            .filter_map(|(_, hook)| hook(frame, ctx))
+            .collect();
 
-        let downcast = self
-            .downcast
-            .as_ref()
-            .and_then(|map| map.get(&ty).map(|hook| hook(frame, ctx)));
-
-        #[cfg(not(nightly))]
-        {
-            if let Some(downcast) = downcast {
-                vec![downcast]
-            } else if let Some(fallback) = self.fallback.as_ref() {
+        if result.is_empty() {
+            if let Some(fallback) = self.fallback.as_ref() {
                 fallback(frame, ctx)
             } else {
                 builtin_debug_hook_fallback(frame, ctx)
             }
-        }
-
-        #[cfg(nightly)]
-        {
-            let result: Vec<_> = downcast
-                .into_iter()
-                .chain(self.request.iter().filter_map(|(_, hook)| hook(frame, ctx)))
-                .collect();
-
-            if result.is_empty() {
-                if let Some(fallback) = self.fallback.as_ref() {
-                    fallback(frame, ctx)
-                } else {
-                    builtin_debug_hook_fallback(frame, ctx)
-                }
-            } else {
-                result
-            }
+        } else {
+            result
         }
     }
 }

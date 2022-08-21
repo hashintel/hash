@@ -8,9 +8,7 @@ use crate::{
 type FormatterHook = Box<dyn Fn(&Report<()>, &mut fmt::Formatter<'_>) -> fmt::Result + Send + Sync>;
 
 static FMT_HOOK: RwLock<Hooks> = RwLock::new(Hooks {
-    #[cfg(nightly)]
-    request: Vec::new(),
-    downcast: None,
+    inner: Vec::new(),
     fallback: None,
 });
 static DEBUG_HOOK: RwLock<Option<FormatterHook>> = RwLock::new(None);
