@@ -89,7 +89,7 @@ use crate::fmt::Emit;
 ///
 /// let report = report!(UserError {
 ///     code: 420,
-///     reason: "You typed `Enter` one too many times".to_owned()
+///     reason: "You pressed `Enter` too many times".to_owned()
 /// });
 ///
 /// # owo_colors::set_override(true);
