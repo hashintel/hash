@@ -751,13 +751,25 @@ fn debug_attachments(
         .map(|frame| match frame.kind() {
             FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
                 #[cfg(all(nightly, feature = "unstable"))]
+                if let Some(debug) = frame.request_value::<DebugDiagnostic>() {
+                    let (emit, snippets) = debug.into_parts();
+
+                    for snippet in snippets {
+                        ctx.as_hook_context::<DebugDiagnostic>()
+                            .attach_snippet(snippet);
+                    }
+
+                    return emit;
+                }
+
+                #[cfg(all(nightly, feature = "unstable"))]
                 if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
                     for snippet in debug.snippets() {
                         ctx.as_hook_context::<DebugDiagnostic>()
                             .attach_snippet(snippet.clone());
                     }
 
-                    return vec![debug.output().clone()];
+                    return debug.emit().into_iter().cloned().collect::<Vec<_>>();
                 }
 
                 #[cfg(all(not(nightly), feature = "unstable"))]
@@ -767,7 +779,7 @@ fn debug_attachments(
                             .attach_snippet(snippet.clone());
                     }
 
-                    return vec![debug.output().clone()];
+                    return debug.emit().into_iter().cloned().collect::<Vec<_>>();
                 }
 
                 #[cfg(feature = "std")]

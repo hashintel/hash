@@ -622,7 +622,7 @@ mod default {
                 return vec![span_trace(st, ctx.cast())];
             }
 
-            None
+            vec![]
         }
     }
 }

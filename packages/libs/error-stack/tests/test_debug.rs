@@ -265,6 +265,7 @@ mod full {
     //! There are still some big snapshot tests, which are used evaluate all of the above.
 
     use std::{
+        any::Demand,
         error::Error,
         fmt::{Display, Formatter},
     };
@@ -600,5 +601,78 @@ mod full {
         assert_snapshot!("norm", format!("{report:?}"));
 
         assert_snapshot!("alt", format!("{report:#?}"));
+    }
+
+    #[derive(Debug)]
+    struct ContextD {
+        code: usize,
+        reason: &'static str,
+    }
+
+    impl Display for ContextD {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            f.write_str("Context D")
+        }
+    }
+
+    impl Error for ContextD {
+        fn provide<'a>(&'a self, req: &mut Demand<'a>) {
+            req.provide_ref(&self.code);
+            req.provide_ref(&self.reason);
+        }
+    }
+
+    #[test]
+    fn hook_provider() {
+        let _guard = prepare(false);
+
+        let report = create_report().change_context(ContextD {
+            code: 420,
+            reason: "Invalid User Input",
+        });
+
+        Report::install_debug_hook::<usize>(|val, _| Emit::next(format!("usize: {val}")));
+        Report::install_debug_hook::<&'static str>(|val, _| {
+            Emit::next(format!("&'static str: {val}"))
+        });
+
+        assert_snapshot!(format!("{report:?}"));
+    }
+
+    #[derive(Debug)]
+    struct ContextE {
+        code: usize,
+        reason: &'static str,
+    }
+
+    impl Display for ContextE {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            f.write_str("Context E")
+        }
+    }
+
+    impl Error for ContextE {
+        fn provide<'a>(&'a self, req: &mut Demand<'a>) {
+            req.provide_ref(&self.code);
+            req.provide_ref(&self.reason);
+            req.provide_value(|| DebugDiagnostic::next("Context E Attachment"));
+        }
+    }
+
+    #[test]
+    fn hook_provider_diagnostic() {
+        let _guard = prepare(false);
+
+        let report = create_report().change_context(ContextE {
+            code: 420,
+            reason: "Invalid User Input",
+        });
+
+        Report::install_debug_hook::<usize>(|val, _| Emit::next(format!("usize: {val}")));
+        Report::install_debug_hook::<&'static str>(|val, _| {
+            Emit::next(format!("&'static str: {val}"))
+        });
+
+        assert_snapshot!(format!("{report:?}"));
     }
 }

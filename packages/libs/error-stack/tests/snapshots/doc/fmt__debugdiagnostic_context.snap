@@ -1,0 +1,10 @@
+<b>Invalid user input</b>
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/fmt/unstable.rs:46:14</span>
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Error Code: 420
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Reason: You typed `Enter` one too many times
+<span style='color:#a00'>╰</span><span style='color:#a00'>╴</span>backtrace with [n] frames (1)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Backtrace No. 1
+  [redacted]
