@@ -179,6 +179,49 @@ pub use unstable::DebugDiagnostic;
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
+#[must_use]
+struct Diagnostic(Vec<Emit>);
+
+impl Diagnostic {
+    fn new(emit: Emit) -> Self {
+        Self(vec![emit])
+    }
+
+    pub fn hidden() -> Self {
+        Self::new(Emit::Hidden)
+    }
+
+    pub fn next<T: Into<String>>(value: T) -> Self {
+        Self::new(Emit::next(value))
+    }
+
+    pub fn defer<T: Into<String>>(value: T) -> Self {
+        Self::new(Emit::defer(value))
+    }
+
+    pub fn attach_next<T: Into<String>>(mut self, value: T) -> Self {
+        self.push(Emit::next(value));
+
+        self
+    }
+
+    pub fn attach_defer<T: Into<String>>(mut self, value: T) -> Self {
+        self.push(Emit::defer(value));
+
+        self
+    }
+
+    pub fn push(&mut self, value: Emit) {
+        self.push(value);
+    }
+}
+
+impl Extend<Emit> for Diagnostic {
+    fn extend<T: IntoIterator<Item = Emit>>(&mut self, iter: T) {
+        self.0.extend(iter);
+    }
+}
+
 /// Modify the behaviour, with which text returned from hook invocations are rendered.
 ///
 /// Text can either be emitted immediately as the [`Emit::Next`] line, or deferred the via
@@ -243,6 +286,7 @@ pub enum Emit {
     /// Going to be emitted immediately as the next line in the chain of
     /// attachments and contexts.
     Next(String),
+    Hidden,
 }
 
 impl Emit {
