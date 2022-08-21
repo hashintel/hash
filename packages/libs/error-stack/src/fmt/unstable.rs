@@ -60,27 +60,36 @@ use crate::fmt::Emit;
 // TODO: remove experimental flag once specialisation is stabilized or sound
 #[cfg(feature = "unstable")]
 pub struct DebugDiagnostic {
-    output: Emit,
+    emit: Vec<Emit>,
     snippets: Vec<String>,
 }
 
 #[cfg(feature = "unstable")]
 impl DebugDiagnostic {
     /// The diagnostic is going to be emitted immediately once encountered in the frame stack.
+    #[must_use]
     pub fn next<T: Into<String>>(output: T) -> Self {
         Self {
-            output: Emit::Next(output.into()),
+            emit: vec![Emit::Next(output.into())],
             snippets: vec![],
         }
     }
 
     /// The diagnostic is going to be deferred until the end of the group of the current frame
     /// stack.
+    #[must_use]
     pub fn defer<T: Into<String>>(output: T) -> Self {
         Self {
-            output: Emit::Defer(output.into()),
+            emit: vec![Emit::Defer(output.into())],
             snippets: vec![],
         }
+    }
+
+    /// Attach an additional emit statement to the diagnostic
+    #[must_use]
+    pub fn attach_emit(mut self, output: Emit) -> Self {
+        self.emit.push(output);
+        self
     }
 
     /// Add additional text to the [`DebugDiagnostic`],
@@ -91,8 +100,8 @@ impl DebugDiagnostic {
         self
     }
 
-    pub(crate) const fn output(&self) -> &Emit {
-        &self.output
+    pub(crate) fn emit(&self) -> &[Emit] {
+        &self.emit
     }
 
     pub(crate) fn snippets(&self) -> &[String] {
