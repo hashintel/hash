@@ -12,10 +12,11 @@
 //! Hooks can be attached through the central hooking mechanism which `error-stack`
 //! provides via [`Report::install_debug_hook`].
 //!
-//! Hooks are called for contexts which implement [`Provider`] and attachments which are added
-//! via [`.attach()`].
-//! For contexts and values that can be requested using [`.request_ref()`] and [`.request_value()`],
-//! the rendering order is determined by the order of [`Report::install_debug_hook`] calls.
+//! Hooks are called for contexts which provide additional values through [`Error::provide`] or
+//! [`Context::provide`] and attachments which are added via [`.attach()`].
+//! For contexts and values, that can be requested using [`Frame.request_ref()`] and
+//! [`Frame.request_value()`], the rendering order is determined by the order of
+//! [`Report::install_debug_hook`] calls.
 //!
 //! You can also provide a fallback function, which is called whenever a hook hasn't been added for
 //! a specific type of attachment.
@@ -134,8 +135,10 @@
 //! [`atomic`]: std::sync::atomic
 //! [`Provider`]: core::any::Provider
 //! [`.attach()`]: Report::attach
-//! [`.request_ref()`]: Frame::request_ref
-//! [`.request_value()`]: Frame::request_value
+//! [`Frame.request_ref()`]: Frame::request_ref
+//! [`Frame.request_value()`]: Frame::request_value
+//! [`Error::provide`]: std::error::Error::provide
+//! [`Context::provide`]: crate::Context::provide
 // This makes sure that `Emit` isn't regarded as dead-code even though it isn't exported on no-std.
 // This just simplifies maintenance, as otherwise we would be in cfg hell.
 #![cfg_attr(not(feature = "std"), allow(dead_code))]
