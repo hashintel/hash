@@ -1,6 +1,6 @@
-<b>invalid input parameter</b>
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/hook.rs:28:5</span>
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>unknown
+<b>Invalid user input</b>
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/hook.rs:29:14</span>
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Suggestion: Try better next time!
 <span style='color:#a00'>╰</span><span style='color:#a00'>╴</span>backtrace with [n] frames (1)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

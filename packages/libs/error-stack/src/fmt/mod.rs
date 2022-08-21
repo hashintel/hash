@@ -7,16 +7,21 @@
 //! can be easily extended using hooks.
 //! Hooks are functions of the signature `Fn(&T, &mut HookContext<T>) -> Emit`, they provide an
 //! easy and ergonomic way to partially modify the format and enable the output of types that are
-//! not necessarily added via `.attach_printable()` or are unable to implement [`Display`].
+//! not necessarily added via [`.attach_printable()`] or are unable to implement [`Display`].
 //!
 //! Hooks can be attached through the central hooking mechanism which `error-stack`
 //! provides via [`Report::install_debug_hook`].
 //!
+//! Hooks are called for contexts which implement [`Provider`] and attachments which are added
+//! via [`.attach()`].
+//! For contexts and values that can be requested using [`.request_ref()`] and [`.request_value()`],
+//! the rendering order is determined by the order of [`Report::install_debug_hook`] calls.
+//!
 //! You can also provide a fallback function, which is called whenever a hook hasn't been added for
 //! a specific type of attachment.
 //! The fallback function needs to have a signature of
-//! `Fn(&Frame, &mut HookContext<T>) -> Option<Emit>`
-//! and can be set via [`Report::install_debug_hook_fallback`].
+//! `Fn(&Frame, &mut HookContext<T>) -> Vec<Emit>` and can be set via
+//! [`Report::install_debug_hook_fallback`].
 //!
 //! > **Caution:** Overwriting the fallback **will** remove the builtin formatting for types like
 //! > [`Backtrace`] and [`SpanTrace`], you can mitigate this by calling
@@ -105,13 +110,14 @@
 //! #
 //! println!("{report:#?}");
 //! ```
-//! ### `println!("{report:?}")`
+//!
+//! The output of `println!("{report:?}")`:
 //!
 //! <pre>
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__doc.snap"))]
 //! </pre>
 //!
-//! ### `println!("{report:#?}")`
+//! The output of `println!("{report:#?}")`:
 //!
 //! <pre>
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt_doc_alt.snap"))]
@@ -126,6 +132,10 @@
 //! [`SpanTrace`]: tracing_error::SpanTrace
 //! [`error_stack::fmt::builtin_debug_hook_fallback`]: crate::fmt::builtin_debug_hook_fallback
 //! [`atomic`]: std::sync::atomic
+//! [`Provider`]: core::any::Provider
+//! [`.attach()`]: Report::attach
+//! [`.request_ref()`]: Frame::request_ref
+//! [`.request_value()`]: Frame::request_value
 // This makes sure that `Emit` isn't regarded as dead-code even though it isn't exported on no-std.
 // This just simplifies maintenance, as otherwise we would be in cfg hell.
 #![cfg_attr(not(feature = "std"), allow(dead_code))]
@@ -145,9 +155,9 @@ use alloc::{
 use core::{
     fmt,
     fmt::{Debug, Display, Formatter},
+    iter::once,
     mem,
 };
-use std::iter::once;
 
 #[cfg(feature = "std")]
 pub use hook::builtin_debug_hook_fallback;
@@ -776,14 +786,16 @@ fn debug_attachments(
                 vec![Emit::Next(attachment.to_string())]
             }
         })
-        .inspect(|value| {
+        .enumerate()
+        .flat_map(|(idx, value)| {
             // increase the opaque counter, if we're unable to determine the actual value of the
-            // frame
-            if value.is_empty() {
+            // frame, this skips `Context`, as they are still emitted as the title.
+            if idx > 0 && value.is_empty() {
                 opaque.increase();
             }
+
+            value
         })
-        .flatten()
         .partition(|f| matches!(f, Emit::Next(_)));
 
     let opaque = opaque.render();

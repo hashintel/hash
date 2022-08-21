@@ -8,7 +8,6 @@ use core::{
     any::{Any, TypeId},
     marker::PhantomData,
 };
-use std::sync::Arc;
 
 pub use default::builtin_debug_hook_fallback;
 
@@ -454,14 +453,14 @@ type BoxedFallbackHook =
 ///
 /// The fallback is called whenever a hook for a specific type couldn't be found.
 ///
-/// These are used to augment the [`Debug`] and [`Display`] information
-/// of attachments, which are normally not printable.
+/// These are used to augment the [`Debug`] information of attachments and contexts, which are
+/// normally not printable.
 ///
 /// Hooks are added via [`.insert()`], which will wrap the function in an additional closure.
-/// This closure will downcast the [`Frame`] to the requested type.
+/// This closure will downcast/request the [`Frame`] to the requested type.
 ///
-/// If not set, opaque attachments (added via [`.attach()`]) won't be rendered in the [`Debug`] and
-/// [`Display`] output.
+/// If not set, opaque attachments (added via [`.attach()`]) won't be rendered in the [`Debug`]
+/// output.
 ///
 /// The default implementation provides supports for [`Backtrace`] and [`SpanTrace`],
 /// if their necessary features have been enabled.
@@ -493,11 +492,16 @@ impl Hooks {
             {
                 frame
                     .request_ref::<T>()
-                    .or_else(|| frame.request_value::<T>().as_ref())
                     .map(|val| hook(val, ctx.cast()))
+                    .or_else(|| {
+                        frame
+                            .request_value::<T>()
+                            .as_ref()
+                            .map(|val| hook(val, ctx.cast()))
+                    })
             }
 
-            #[not(cfg(nightly))]
+            #[cfg(not(nightly))]
             {
                 frame.downcast_ref::<T>().map(|val| hook(val, ctx.cast()))
             }
@@ -541,6 +545,7 @@ mod default {
 
     #[cfg(any(all(nightly, feature = "std"), feature = "spantrace"))]
     use alloc::format;
+    use alloc::{vec, vec::Vec};
     #[cfg(all(nightly, feature = "std"))]
     use std::backtrace::Backtrace;
 
@@ -586,7 +591,7 @@ mod default {
     /// [`Backtrace`]: std::backtrace::Backtrace
     /// [`SpanTrace`]: tracing_error::SpanTrace
     // Frame can be unused, if neither backtrace or spantrace are enabled
-    #[allow(unused_variables)]
+    #[allow(unused_variables, unused_mut)]
     pub fn builtin_debug_hook_fallback<'a>(
         frame: &Frame,
         ctx: &mut HookContext<'a, Frame>,

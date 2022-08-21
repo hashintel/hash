@@ -534,7 +534,7 @@ mod full {
 
         let report = create_report().attach(1u32);
 
-        Report::install_debug_hook_fallback(|_, _| Some(Emit::next("unknown")));
+        Report::install_debug_hook_fallback(|_, _| vec![Emit::next("unknown")]);
 
         assert_snapshot!(format!("{report:?}"));
     }

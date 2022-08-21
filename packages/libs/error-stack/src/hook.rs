@@ -87,6 +87,57 @@ impl Report<()> {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook.snap"))]
     /// </pre>
+    ///
+    /// ```
+    /// #![feature(error_generic_member_access, provide_any)]
+    ///
+    /// use std::any::Demand;
+    /// use std::error::Error;
+    /// use std::fmt::{Display, Formatter};
+    /// use error_stack::{fmt::Emit, Report, report};
+    /// struct Suggestion(&'static str);
+    ///
+    /// Report::install_debug_hook::<Suggestion>(|val, _| Emit::Next(format!("Suggestion: {}", val.0)));
+    ///
+    /// #[derive(Debug)]
+    /// struct UserError;
+    ///
+    /// impl Display for UserError {
+    ///     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    ///         f.write_str("Invalid user input")
+    ///     }
+    /// }
+    ///
+    /// impl Error for UserError {
+    ///  fn provide<'a>(&'a self, req: &mut Demand<'a>) {
+    ///    req.provide_value(|| Suggestion("Try better next time!"));
+    ///  }
+    /// }
+    ///
+    /// let report = report!(UserError);
+    ///
+    /// # owo_colors::set_override(true);
+    /// # fn render(value: String) -> String {
+    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #
+    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #
+    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// # }
+    /// #
+    /// # #[cfg(nightly)]
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook_provide.snap")].assert_eq(&render(format!("{report:?}")));
+    /// #
+    /// println!("{report:?}");
+    /// ```
+    ///
+    /// Which will result in something like:
+    ///
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook.snap"))]
+    /// </pre>
     #[cfg(feature = "std")]
     pub fn install_debug_hook<T: Send + Sync + 'static>(
         hook: impl Fn(&T, &mut HookContext<T>) -> Emit + Send + Sync + 'static,
@@ -111,18 +162,21 @@ impl Report<()> {
     /// # // we only test the snapshot on nightly, therefore report is unused (so is render)
     /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::{Error, ErrorKind};
-    ///
-    /// use error_stack::{
-    ///     fmt::Emit,
-    ///     report, Report,
-    /// };
+    /// use error_stack::{fmt::Emit, FrameKind, report, Report};
     ///
     /// struct Suggestion(&'static str);
     ///
     /// // This will remove all formatting for `Backtrace` and `SpanTrace`!
     /// // The example after this once calls `builtin_debug_hook_fallback()`, which makes sure that we always print
     /// // `Backtrace` and `SpanTrace`.
-    /// Report::install_debug_hook_fallback(|_, _| vec![Emit::next("unknown")]);
+    /// Report::install_debug_hook_fallback(|frame, _| {
+    ///     // skip printing "unknown" if the frame is actually a context.
+    ///     if matches!(frame.kind(), FrameKind::Context(_)) {
+    ///         vec![]
+    ///     } else {
+    ///         vec![Emit::next("unknown")]
+    ///     }
+    /// });
     ///
     /// let report =
     ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("O no, try again"));
@@ -155,16 +209,19 @@ impl Report<()> {
     /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::{Error, ErrorKind};
     ///
-    /// use error_stack::{fmt, report, Report};
+    /// use error_stack::{fmt, report, Report, FrameKind};
     /// use error_stack::fmt::Emit;
     ///
     /// struct Suggestion(&'static str);
     ///
-    /// Report::install_debug_hook_fallback(|val, ctx| {
+    /// Report::install_debug_hook_fallback(|frame, ctx| {
     ///     // first run all builtin hooks to make sure that we print backtrace and spantrace
-    ///     let builtin = fmt::builtin_debug_hook_fallback(val, ctx);
+    ///     let builtin = fmt::builtin_debug_hook_fallback(frame, ctx);
     ///
-    ///     if builtin.is_empty() {
+    ///     // make sure that we only print unknown when the frame is *not* a context
+    ///     // otherwise we would print the `Context` header value and an additional attachment
+    ///     // of value unknown.
+    ///     if builtin.is_empty() && !matches!(frame.kind(), FrameKind::Context(_)) {
     ///         vec![Emit::next("unknown")]
     ///     } else {
     ///         builtin
