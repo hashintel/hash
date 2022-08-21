@@ -1,7 +1,11 @@
 // We allow dead-code here, because some of the functions are only exposed when `feature = "hooks"`
 // we could do cfg for everything, but that gets very messy, instead we only use a subset
 // and enable deadcode on `feature = "std"`.
-#![cfg_attr(not(feature = "std"), allow(dead_code, unreachable_pub))]
+#![cfg_attr(not(feature = "std"), allow(dead_code))]
+// We allow `unreachable_pub` on no-std, because in that case we do not export (`pub`) the
+// structures contained in here, but still use them, otherwise we would need to have two redundant
+// implementation: `pub(crate)` and `pub`, which is silly.
+#![cfg_attr(not(feature = "std"), allow(unreachable_pub))]
 
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
 use core::{
