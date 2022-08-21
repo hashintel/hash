@@ -95,12 +95,19 @@ impl Report<()> {
     /// use std::error::Error;
     /// use std::fmt::{Display, Formatter};
     /// use error_stack::{fmt::Emit, Report, report};
+    ///
     /// struct Suggestion(&'static str);
     ///
+    /// #[derive(Debug)]
+    /// struct ErrorCode(u64);
+    ///
     /// Report::install_debug_hook::<Suggestion>(|val, _| Emit::Next(format!("Suggestion: {}", val.0)));
+    /// Report::install_debug_hook::<ErrorCode>(|val, _| Emit::next(format!("Error Code: {}", val.0)));
     ///
     /// #[derive(Debug)]
-    /// struct UserError;
+    /// struct UserError {
+    ///     code: ErrorCode
+    /// }
     ///
     /// impl Display for UserError {
     ///     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -111,10 +118,11 @@ impl Report<()> {
     /// impl Error for UserError {
     ///  fn provide<'a>(&'a self, req: &mut Demand<'a>) {
     ///    req.provide_value(|| Suggestion("Try better next time!"));
+    ///    req.provide_ref(&self.code);
     ///  }
     /// }
     ///
-    /// let report = report!(UserError);
+    /// let report = report!(UserError {code: ErrorCode(420)});
     ///
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
@@ -136,7 +144,7 @@ impl Report<()> {
     /// Which will result in something like:
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook.snap"))]
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook_provide.snap"))]
     /// </pre>
     #[cfg(feature = "std")]
     pub fn install_debug_hook<T: Send + Sync + 'static>(
