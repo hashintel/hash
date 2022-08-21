@@ -752,50 +752,13 @@ fn debug_attachments(
     let (next, defer): (Vec<_>, _) = frames
         .into_iter()
         .map(|frame| match frame.kind() {
+            #[cfg(feature = "std")]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
-                #[cfg(all(nightly, feature = "unstable"))]
-                if let Some(debug) = frame.request_value::<DebugDiagnostic>() {
-                    let (emit, snippets) = debug.into_parts();
-
-                    for snippet in snippets {
-                        ctx.as_hook_context::<DebugDiagnostic>()
-                            .attach_snippet(snippet);
-                    }
-
-                    return emit;
-                }
-
-                #[cfg(all(nightly, feature = "unstable"))]
-                if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
-                    for snippet in debug.snippets().to_vec() {
-                        ctx.as_hook_context::<DebugDiagnostic>()
-                            .attach_snippet(snippet);
-                    }
-
-                    return debug.emit().to_vec();
-                }
-
-                #[cfg(all(not(nightly), feature = "unstable"))]
-                if let Some(debug) = frame.downcast_ref::<DebugDiagnostic>() {
-                    for snippet in debug.snippets() {
-                        ctx.as_hook_context::<DebugDiagnostic>()
-                            .attach_snippet(snippet.clone());
-                    }
-
-                    return debug.emit().to_vec();
-                }
-
-                #[cfg(feature = "std")]
-                {
-                    Report::get_debug_format_hook(|hooks| {
-                        hooks.call(frame, &mut ctx.as_hook_context())
-                    })
-                }
-
-                #[cfg(not(feature = "std"))]
-                {
-                    builtin_debug_hook_fallback(frame, &mut ctx.as_hook_context())
-                }
+                Report::get_debug_format_hook(|hooks| hooks.call(frame, &mut ctx.as_hook_context()))
+            }
+            #[cfg(not(feature = "std"))]
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
+                builtin_debug_hook_fallback(frame, &mut ctx.as_hook_context())
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                 vec![Emit::Next(attachment.to_string())]

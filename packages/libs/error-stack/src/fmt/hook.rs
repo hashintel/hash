@@ -552,6 +552,8 @@ mod default {
     #[cfg(feature = "spantrace")]
     use tracing_error::SpanTrace;
 
+    #[cfg(feature = "unstable")]
+    use crate::fmt::DebugDiagnostic;
     use crate::{
         fmt::{hook::HookContext, Emit},
         Frame,
@@ -568,6 +570,50 @@ mod default {
             backtrace.frames().len(),
             idx + 1
         ))
+    }
+
+    #[cfg(all(nightly, feature = "unstable"))]
+    fn debug_diagnostic(frame: &Frame, ctx: &mut HookContext<Frame>) -> Vec<Emit> {
+        let ctx = ctx.cast::<DebugDiagnostic>();
+
+        let mut emit = vec![];
+
+        if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
+            for snippet in debug.snippets() {
+                ctx.attach_snippet(snippet);
+            }
+
+            emit.extend(debug.emit().to_vec());
+        }
+
+        if let Some(debug) = frame.request_value::<DebugDiagnostic>() {
+            let (debug_emit, snippets) = debug.into_parts();
+
+            for snippet in snippets {
+                ctx.attach_snippet(snippet);
+            }
+
+            emit.extend(debug_emit);
+        }
+
+        emit
+    }
+
+    #[cfg(all(not(nightly), feature = "unstable"))]
+    fn debug_diagnostic(frame: &Frame, ctx: &mut HookContext<Frame>) {
+        let ctx = ctx.cast::<DebugDiagnostic>();
+
+        let mut emit = vec![];
+
+        if let Some(debug) = frame.downcast_ref::<DebugDiagnostic>() {
+            for snippet in debug.snippets() {
+                ctx.attach_snippet(snippet);
+            }
+
+            emit.extend(debug.emit().to_vec());
+        }
+
+        emit
     }
 
     #[cfg(feature = "spantrace")]
@@ -612,14 +658,26 @@ mod default {
                 emit.push(span_trace(st, ctx.cast()));
             }
 
+            #[cfg(feature = "unstable")]
+            {
+                emit.extend(debug_diagnostic(frame, ctx));
+            }
+
             emit
         }
 
         #[cfg(not(nightly))]
         {
+            let mut emit = vec![];
+
             #[cfg(feature = "spantrace")]
             if let Some(st) = frame.downcast_ref() {
-                return vec![span_trace(st, ctx.cast())];
+                emit.push(span_trace(st, ctx.cast()));
+            }
+
+            #[cfg(feature = "unstable")]
+            {
+                emit.extend(debug_diagnostic(frame, ctx));
             }
 
             vec![]
