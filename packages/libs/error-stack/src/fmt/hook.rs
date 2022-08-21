@@ -14,7 +14,7 @@ pub use default::builtin_debug_hook_fallback;
 use crate::fmt::{Emit, Frame};
 
 #[derive(Default)]
-pub struct HookContextImpl {
+pub(crate) struct HookContextImpl {
     pub(crate) snippets: Vec<String>,
     alternate: bool,
 
