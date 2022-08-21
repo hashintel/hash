@@ -172,7 +172,7 @@ impl DebugDiagnostic {
         &self.snippets
     }
 
-    pub(crate) fn into_parts(self) -> (Vec<Emit>, Vec<String>) {
+    pub(crate) const fn into_parts(self) -> (Vec<Emit>, Vec<String>) {
         (self.emit, self.snippets)
     }
 }

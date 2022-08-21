@@ -769,7 +769,7 @@ fn debug_attachments(
                             .attach_snippet(snippet.clone());
                     }
 
-                    return debug.emit().into_iter().cloned().collect::<Vec<_>>();
+                    return debug.emit().iter().cloned().collect::<Vec<_>>();
                 }
 
                 #[cfg(all(not(nightly), feature = "unstable"))]
