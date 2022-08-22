@@ -67,7 +67,9 @@ pub struct DebugDiagnostic {
 
 #[cfg(feature = "unstable")]
 impl DebugDiagnostic {
-    /// Create a new DebugDiagnostic
+    /// Create a new [`DebugDiagnostic`]
+    #[must_use]
+    #[cfg_attr(not(feature = "std"), allow(dead_code))]
     pub fn new(diagnostic: Vec<Emit>) -> Self {
         Self {
             output: diagnostic,
@@ -78,6 +80,7 @@ impl DebugDiagnostic {
     /// Add additional text to the [`DebugDiagnostic`],
     /// this can be chained to create multiple texts entries.
     #[must_use]
+    #[cfg_attr(not(feature = "std"), allow(dead_code))]
     pub fn attach_snippet(mut self, snippet: impl Into<String>) -> Self {
         self.snippets.push(snippet.into());
         self

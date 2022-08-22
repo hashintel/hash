@@ -581,11 +581,11 @@ mod default {
     /// [`SpanTrace`]: tracing_error::SpanTrace
     // Frame can be unused, if neither backtrace or spantrace are enabled
     #[allow(unused_variables)]
-    #[allow(unused_mut)]
     pub fn builtin_debug_hook_fallback<'a>(
         frame: &Frame,
         ctx: &mut HookContext<'a, Frame>,
     ) -> Vec<Emit> {
+        #[allow(unused_mut)]
         let mut emit = vec![];
 
         // we're only able to use `request_ref` in nightly, because the Provider API hasn't been
