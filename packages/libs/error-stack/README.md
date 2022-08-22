@@ -8,7 +8,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-[![rust-version](https://img.shields.io/badge/Rust-1.63.0-orange)][rust-version]
+[![rust-version](https://img.shields.io/badge/Rust-1.63.0/nightly--2022--08--19-blue)][rust-version]
 [![documentation](https://img.shields.io/docsrs/error-stack)][documentation]
 [![license](https://img.shields.io/crates/l/error-stack)][license]
 [![discord](https://img.shields.io/discord/840573247803097118)][discord]
@@ -95,33 +95,6 @@ fn main() -> Result<(), ExperimentError> {
 
 This will most likely result in an error and print
 
-```text
-Error: Experiment error: Could not run experiment
-             at examples/demo.rs:54:18
-      - Unable to set up experiments
-
-Caused by:
-   0: invalid experiment description
-             at examples/demo.rs:24:10
-      - Experiment 2 could not be parsed
-   1: invalid digit found in string
-             at examples/demo.rs:22:10
-      - "3o" could not be parsed as experiment
-
-```
+![](assets/full.png)
 
 Please see the [documentation] for a full description.
-
-## Troubleshooting
-
-### Emacs [rust-mode](https://github.com/rust-lang/rust-mode) workaround
-
-Due to [rust-lang/rust-mode#452](https://github.com/rust-lang/rust-mode/issues/452), errors messages are improperly parsed. As a result, the error messages show incorrect highlighting but also yield an incorrect hyperlink.
-
-The one workaround is to modify the regular expression used to format the string and create a hyperlink.
-
-```emacs-lisp
-(setq cargo-compilation-regexps
-      '("\\(?:at\\|',\\) \\(\\([^:\s]+\\):\\([0-9]+\\)\\)"
-        2 3 nil nil 1))
-```
