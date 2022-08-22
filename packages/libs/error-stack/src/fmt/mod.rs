@@ -282,7 +282,7 @@ impl Diagnostics {
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_empty.snap"))]
     /// </pre>
     pub fn empty() -> Self {
-        Diagnostics(Vec::new())
+        Self(Vec::new())
     }
 
     /// Add a new line which is going to be emitted immediately.
@@ -425,6 +425,8 @@ impl Diagnostics {
         self
     }
 
+    // false-positive
+    #[allow(clippy::missing_const_for_fn)]
     fn into_inner(self) -> Vec<Emit> {
         self.0
     }
@@ -1019,7 +1021,7 @@ fn debug_attachments(
                 Diagnostics::next(attachment.to_string())
             }
         })
-        .map(|value| {
+        .flat_map(|value| {
             // increase the opaque counter, if we're unable to determine the actual value of the
             // frame
             if value.is_empty() {
@@ -1028,7 +1030,6 @@ fn debug_attachments(
 
             value.into_inner()
         })
-        .flatten()
         .partition(|f| matches!(f, Emit::Next(_)));
 
     let opaque = opaque.render();
