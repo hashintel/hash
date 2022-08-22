@@ -130,8 +130,7 @@
 //! [`SpanTrace`]: tracing_error::SpanTrace
 //! [`error_stack::fmt::builtin_debug_hook_fallback`]: crate::fmt::builtin_debug_hook_fallback
 //! [`atomic`]: std::sync::atomic
-// This makes sure that `Diagnostics` isn't regarded as dead-code even though it isn't exported on
-// no-std. This just simplifies maintenance, as otherwise we would be in cfg hell.
+// This makes sure that `Emit` isn't regarded as dead-code even though it isn't exported on
 #![cfg_attr(not(feature = "std"), allow(dead_code))]
 // Makes sure that `Diagnostics` isn't regarded as unreachable even though it isn't exported on
 // no-std. Simplifies maintenance as we don't need to special case the visibility modifier.
