@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use arrow::datatypes::Schema;
+use arrow2::datatypes::Schema;
 use memory::arrow::{meta, meta::StaticMetadata};
 
 use crate::{error::Result, field::FieldSpecMap};

@@ -5,8 +5,8 @@ use std::{
     sync::Arc,
 };
 
-use arrow::array::Array;
-use arrow::{
+use arrow2::array::Array;
+use arrow2::{
     array::{FixedSizeListArray, ListArray, UInt32Array},
     datatypes::Schema,
 };

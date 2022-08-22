@@ -525,7 +525,7 @@ macro_rules! match_native_column {
 impl NativeState {
     pub fn from_column_set(
         columns: &HashSet<String>,
-        schema: &Arc<arrow::datatypes::Schema>,
+        schema: &Arc<arrow2::datatypes::Schema>,
         agent_batch: &AgentBatch,
     ) -> Result<NativeState> {
         let mut state = NativeState::default();

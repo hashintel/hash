@@ -1,5 +1,5 @@
 /// Internal representation of Arrow `Buffer` Message with padding included
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Buffer {
     /// Offset from data_buffer start (beginning of first column)
     pub offset: usize,

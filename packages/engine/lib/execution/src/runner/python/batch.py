@@ -64,6 +64,11 @@ def verify_markers(markers, mem):
 def parse_any_type_fields(metadata):
     any_type_fields = set()
 
+    # arrow2 serializes empty dictionaries as None (rather than `{}`, as arrow
+    # did)
+    if metadata is None:
+        return any_type_fields
+
     field_names = metadata.get("any_type_fields")
 
     if field_names:
