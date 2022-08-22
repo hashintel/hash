@@ -1,7 +1,7 @@
 use std::{error::Error, fmt, sync::RwLock};
 
 use crate::{
-    fmt::{Diagnostics, HookContext, Hooks},
+    fmt::{Emit, HookContext, Hooks},
     Frame, Report, Result,
 };
 
@@ -54,12 +54,12 @@ impl Report<()> {
     /// use error_stack::{
     ///     report, Report,
     /// };
-    /// use error_stack::fmt::Diagnostics;
+    /// use error_stack::fmt::Emit;
     ///
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|val, _| {
-    ///     Diagnostics::next(format!("Suggestion: {}", val.0))
+    ///     vec![Emit::next(format!("Suggestion: {}", val.0))]
     /// });
     ///
     /// let report =
@@ -89,7 +89,7 @@ impl Report<()> {
     /// </pre>
     #[cfg(feature = "std")]
     pub fn install_debug_hook<T: Send + Sync + 'static>(
-        hook: impl Fn(&T, &mut HookContext<T>) -> Diagnostics + Send + Sync + 'static,
+        hook: impl Fn(&T, &mut HookContext<T>) -> Vec<Emit> + Send + Sync + 'static,
     ) {
         let mut lock = FMT_HOOK.write().expect("should not be poisoned");
         lock.insert(hook);
@@ -113,7 +113,7 @@ impl Report<()> {
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::{
-    ///     fmt::Diagnostics,
+    ///     fmt::Emit,
     ///     report, Report,
     /// };
     ///
@@ -122,7 +122,7 @@ impl Report<()> {
     /// // This will remove all formatting for `Backtrace` and `SpanTrace`!
     /// // The example after this once calls `builtin_debug_hook_fallback()`, which makes sure that we always print
     /// // `Backtrace` and `SpanTrace`.
-    /// Report::install_debug_hook_fallback(|_, _| Diagnostics::next("unknown"));
+    /// Report::install_debug_hook_fallback(|_, _| vec![Emit::next("unknown")]);
     ///
     /// let report =
     ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("O no, try again"));
@@ -155,14 +155,19 @@ impl Report<()> {
     /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::{Error, ErrorKind};
     ///
-    /// use error_stack::{fmt, report, Report};
-    /// use error_stack::fmt::Diagnostics;
+    /// use error_stack::{fmt::{self, Emit}, report, Report};
     ///
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook_fallback(|val, ctx| {
     ///     // first run all builtin hooks to make sure that we print backtrace and spantrace
-    ///     fmt::builtin_debug_hook_fallback(val, ctx).or_else(|| Diagnostics::next("unknown"))
+    ///     let builtin = fmt::builtin_debug_hook_fallback(val, ctx);
+    ///
+    ///     if builtin.is_empty() {
+    ///         vec![Emit::next("unknown")]
+    ///     } else {
+    ///         builtin
+    ///     }
     /// });
     ///
     /// let report =
@@ -192,10 +197,7 @@ impl Report<()> {
     /// </pre>
     #[cfg(feature = "std")]
     pub fn install_debug_hook_fallback(
-        hook: impl for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Diagnostics
-        + Send
-        + Sync
-        + 'static,
+        hook: impl for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Vec<Emit> + Send + Sync + 'static,
     ) {
         let mut lock = FMT_HOOK.write().expect("should not be poisoned");
         lock.fallback(hook);

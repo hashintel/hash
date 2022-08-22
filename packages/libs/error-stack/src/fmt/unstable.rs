@@ -1,6 +1,6 @@
 use alloc::{string::String, vec, vec::Vec};
 
-use crate::fmt::Diagnostics;
+use crate::fmt::Emit;
 
 /// Helper for attaching information to a [`Report`].
 ///
@@ -12,10 +12,10 @@ use crate::fmt::Diagnostics;
 /// use std::io::{Error, ErrorKind};
 ///
 /// use error_stack::{fmt::DebugDiagnostic, report};
-/// use error_stack::fmt::Diagnostics;
+/// use error_stack::fmt::Emit;
 ///
 /// let report = report!(Error::from(ErrorKind::InvalidInput)) //
-///     .attach(DebugDiagnostic::new(Diagnostics::next("Hello!")));
+///     .attach(DebugDiagnostic::new(vec![Emit::next("Hello!")]));
 ///
 /// # owo_colors::set_override(true);
 /// # fn render(value: String) -> String {
@@ -61,14 +61,14 @@ use crate::fmt::Diagnostics;
 // TODO: remove experimental flag once specialisation is stabilized or sound
 #[cfg(feature = "unstable")]
 pub struct DebugDiagnostic {
-    output: Diagnostics,
+    output: Vec<Emit>,
     snippets: Vec<String>,
 }
 
 #[cfg(feature = "unstable")]
 impl DebugDiagnostic {
     /// Create a new DebugDiagnostic
-    pub fn new(diagnostic: Diagnostics) -> Self {
+    pub fn new(diagnostic: Vec<Emit>) -> Self {
         Self {
             output: diagnostic,
             snippets: vec![],
@@ -83,7 +83,7 @@ impl DebugDiagnostic {
         self
     }
 
-    pub(crate) const fn output(&self) -> &Diagnostics {
+    pub(crate) fn output(&self) -> &[Emit] {
         &self.output
     }
 

@@ -15,7 +15,7 @@ use core::{
 
 pub use default::builtin_debug_hook_fallback;
 
-use crate::fmt::{Diagnostics, Frame};
+use crate::fmt::{Emit, Frame};
 
 #[derive(Default)]
 pub(crate) struct HookContextImpl {
@@ -66,14 +66,14 @@ impl HookContextImpl {
 /// use std::io::ErrorKind;
 ///
 /// use error_stack::Report;
-/// use error_stack::fmt::Diagnostics;
+/// use error_stack::fmt::Emit;
 ///
 /// Report::install_debug_hook::<u64>(|val, ctx| {
 ///     if ctx.alternate() {
 ///         ctx.attach_snippet("u64 has been encountered");
 ///     }
 ///
-///     Diagnostics::next(val.to_string())
+///     vec![Emit::next(val.to_string())]
 /// });
 ///
 /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -120,7 +120,7 @@ impl HookContextImpl {
 /// use std::io::ErrorKind;
 ///
 /// use error_stack::Report;
-/// use error_stack::fmt::Diagnostics;
+/// use error_stack::fmt::Emit;
 ///
 ///
 /// Report::install_debug_hook::<u64>(|val, ctx| {
@@ -132,7 +132,7 @@ impl HookContextImpl {
 ///
 ///     ctx.insert(acc);
 ///
-///     Diagnostics::next(format!("{val} (acc: {acc}, div: {div})"))
+///     vec![Emit::next(format!("{val} (acc: {acc}, div: {div})"))]
 /// });
 ///
 /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -200,23 +200,27 @@ impl<'a, T> HookContext<'a, T> {
     /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
-    /// use error_stack::{fmt, fmt::Diagnostics, Report};
+    /// use error_stack::{fmt::{self, Emit}, Report};
     ///
     /// struct Value(u64);
     ///
     /// Report::install_debug_hook_fallback(|frame, ctx| {
-    ///     fmt::builtin_debug_hook_fallback(frame, ctx).or_else(|| {
+    ///     let builtin = fmt::builtin_debug_hook_fallback(frame, ctx);
+    ///
+    ///     if builtin.is_empty() {
     ///         frame
     ///             .is::<Value>()
     ///             .then(|| {
     ///                 let ctx = ctx.cast::<u64>();
-    ///                 Diagnostics::next(format!("{} (Value)", ctx.increment()))
+    ///                 vec![Emit::next(format!("{} (Value)", ctx.increment()))]
     ///             })
     ///             .unwrap_or_default()
-    ///     })
+    ///     } else {
+    ///         builtin
+    ///     }
     /// });
     ///
-    /// Report::install_debug_hook::<u64>(|_, ctx| Diagnostics::next(format!("{}", ctx.increment())));
+    /// Report::install_debug_hook::<u64>(|_, ctx| vec![Emit::next(format!("{}", ctx.increment()))]);
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
     ///     .attach(1u64)
@@ -328,13 +332,13 @@ impl<T: 'static> HookContext<'_, T> {
     /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
-    /// use error_stack::fmt::Diagnostics;
+    /// use error_stack::fmt::Emit;
     /// use error_stack::Report;
     ///
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     Diagnostics::next(format!("Suggestion {}: {val}", ctx.increment()))
+    ///     vec![Emit::next(format!("Suggestion {}: {val}", ctx.increment()))]
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -394,12 +398,12 @@ impl<T: 'static> HookContext<'_, T> {
     /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
-    /// use error_stack::{fmt::Diagnostics, Report};
+    /// use error_stack::{fmt::Emit, Report};
     ///
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     Diagnostics::next(format!("Suggestion {}: {val}", ctx.decrement()))
+    ///     vec![Emit::next(format!("Suggestion {}: {val}", ctx.decrement()))]
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -450,9 +454,7 @@ impl<T: 'static> HookContext<'_, T> {
 }
 
 type BoxedHook =
-    Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Diagnostics + Send + Sync>;
-type BoxedFallbackHook =
-    Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Diagnostics + Send + Sync>;
+    Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Vec<Emit> + Send + Sync>;
 
 /// Holds list of hooks and a fallback.
 ///
@@ -481,14 +483,14 @@ type BoxedFallbackHook =
 pub(crate) struct Hooks {
     // TODO: Remove `Option` when const `BTreeMap::new` is stabilized
     pub(crate) inner: Option<BTreeMap<TypeId, BoxedHook>>,
-    pub(crate) fallback: Option<BoxedFallbackHook>,
+    pub(crate) fallback: Option<BoxedHook>,
 }
 
 #[cfg(feature = "std")]
 impl Hooks {
     pub(crate) fn insert<T: Send + Sync + 'static>(
         &mut self,
-        hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) -> Diagnostics + Send + Sync + 'static,
+        hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) -> Vec<Emit> + Send + Sync + 'static,
     ) {
         let inner = self.inner.get_or_insert_with(BTreeMap::new);
 
@@ -506,15 +508,12 @@ impl Hooks {
 
     pub(crate) fn fallback(
         &mut self,
-        hook: impl for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Diagnostics
-        + Send
-        + Sync
-        + 'static,
+        hook: impl for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Vec<Emit> + Send + Sync + 'static,
     ) {
         self.fallback = Some(Box::new(hook));
     }
 
-    pub(crate) fn call<'a>(&self, frame: &Frame, ctx: &mut HookContext<'a, Frame>) -> Diagnostics {
+    pub(crate) fn call<'a>(&self, frame: &Frame, ctx: &mut HookContext<'a, Frame>) -> Vec<Emit> {
         let ty = Frame::type_id(frame);
 
         if let Some(hook) = self.inner.as_ref().and_then(|map| map.get(&ty)) {
@@ -532,6 +531,7 @@ mod default {
 
     #[cfg(any(all(nightly, feature = "std"), feature = "spantrace"))]
     use alloc::format;
+    use alloc::{vec, vec::Vec};
     #[cfg(all(nightly, feature = "std"))]
     use std::backtrace::Backtrace;
 
@@ -539,25 +539,25 @@ mod default {
     use tracing_error::SpanTrace;
 
     use crate::{
-        fmt::{hook::HookContext, Diagnostics},
+        fmt::{hook::HookContext, Emit},
         Frame,
     };
 
     #[cfg(all(nightly, feature = "std"))]
-    fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Diagnostics {
+    fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Vec<Emit> {
         let idx = ctx.increment();
 
         ctx.attach_snippet(format!("Backtrace No. {}\n{}", idx + 1, backtrace));
 
-        Diagnostics::defer(format!(
+        vec![Emit::defer(format!(
             "backtrace with {} frames ({})",
             backtrace.frames().len(),
             idx + 1
-        ))
+        ))]
     }
 
     #[cfg(feature = "spantrace")]
-    fn span_trace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) -> Diagnostics {
+    fn span_trace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) -> Vec<Emit> {
         let idx = ctx.increment();
 
         let mut span = 0;
@@ -568,7 +568,10 @@ mod default {
 
         ctx.attach_snippet(format!("Span Trace No. {}\n{}", idx + 1, spantrace));
 
-        Diagnostics::defer(format!("spantrace with {span} frames ({})", idx + 1))
+        vec![Emit::defer(format!(
+            "spantrace with {span} frames ({})",
+            idx + 1
+        ))]
     }
 
     /// Fallback for common attachments that are automatically created
@@ -581,8 +584,8 @@ mod default {
     pub fn builtin_debug_hook_fallback<'a>(
         frame: &Frame,
         ctx: &mut HookContext<'a, Frame>,
-    ) -> Diagnostics {
-        let mut diag = Diagnostics::empty();
+    ) -> Vec<Emit> {
+        let mut emit = vec![];
 
         // we're only able to use `request_ref` in nightly, because the Provider API hasn't been
         // stabilized yet.
@@ -590,12 +593,12 @@ mod default {
         {
             #[cfg(feature = "std")]
             if let Some(bt) = frame.request_ref() {
-                diag = diag.append(backtrace(bt, ctx.cast()));
+                emit.append(&mut backtrace(bt, ctx.cast()));
             }
 
             #[cfg(feature = "spantrace")]
             if let Some(st) = frame.request_ref() {
-                diag = diag.append(span_trace(st, ctx.cast()));
+                emit.append(&mut span_trace(st, ctx.cast()));
             }
         }
 
@@ -603,10 +606,10 @@ mod default {
         {
             #[cfg(feature = "spantrace")]
             if let Some(st) = frame.downcast_ref() {
-                diag = diag.append(span_trace(st, ctx.cast()));
+                emit.append(&mut span_trace(st, ctx.cast()));
             }
         }
 
-        diag
+        emit
     }
 }

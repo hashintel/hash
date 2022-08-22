@@ -46,43 +46,50 @@
 //! # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 //! use std::io::{Error, ErrorKind};
 //! use error_stack::Report;
-//! use error_stack::fmt::Diagnostics;
+//! use error_stack::fmt::Emit;
+//!
+//! struct ErrorCode(u64);
+//! struct Suggestion(&'static str);
+//! struct Warning(&'static str);
+//! struct Info(&'static str);
 //!
 //! // This hook will never be called, because a later invocation of `install_debug_hook` overwrites
 //! // the hook for the type `u64`.
-//! Report::install_debug_hook::<u64>(|_, _| Diagnostics::next("will never be called"));
+//! Report::install_debug_hook::<ErrorCode>(|_, _| vec![Emit::next("will never be called")]);
 //!
 //! // `HookContext` always has a type parameter, which needs to be the same as the type of the
 //! // value, we use `HookContext` here as storage, to store values specific to this hook.
 //! // Here we make use of the auto-incrementing feature.
-//! // The incrementation is type specific, meaning that `ctx.increment()` for the `u32` hook will
-//! // not influence the counter of the `u64` or `u16` hook.
-//! Report::install_debug_hook::<u32>(|_, ctx| Diagnostics::next(format!("u32 value {}", ctx.increment())));
+//! // The incrementation is type specific, meaning that `ctx.increment()` for the `Suggestion` hook
+//! // will not influence the counter of the `ErrorCode` or `Warning` hook.
+//! Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| vec![Emit::next(format!("Suggestion {}: {val}", ctx.increment() + 1))]);
 //!
 //! // we do not need to make use of the context, to either store a value for the duration of the
 //! // rendering, or to render additional text, which is why we omit the parameter.
-//! Report::install_debug_hook::<u64>(|val, _| Diagnostics::next(format!("u64 value ({val})")));
+//! Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| vec![Emit::next(format!("Error ({val})"))]);
 //!
-//! Report::install_debug_hook::<u16>(|_, ctx| {
+//! Report::install_debug_hook::<Warning>(|Warning(val), ctx| {
+//!     let idx = ctx.increment() + 1;
+//!
 //!     // we set a value, which will be removed on non-alternate views
 //!     // and is going to be appended to the actual return value.
 //!     if ctx.alternate() {
-//!         ctx.attach_snippet("Look! I was rendered from a `u16`");
+//!         ctx.attach_snippet(format!("Warning {idx}:\n  {val}"));
 //!     }
 //!
-//!     Diagnostics::next("For more information, look down below")
+//!     vec![Emit::next(format!("Warning ({idx}) occurred"))]
 //!  });
 //!
 //! // you can use arbitrary values as arguments, just make sure that you won't repeat them.
 //! // here we use [`Diagnostics::defer`], this means that this value will be put at the end of the group.
-//! Report::install_debug_hook::<String>(|val, _| Diagnostics::defer(val));
+//! Report::install_debug_hook::<Info>(|Info(val), _| vec![Emit::defer(format!("Info: {val}"))]);
 //!
 //! let report = Report::new(Error::from(ErrorKind::InvalidInput))
-//!     .attach(2u64)
-//!     .attach("This is going to be at the end".to_owned())
-//!     .attach(3u32)
-//!     .attach(3u32)
-//!     .attach(4u16);
+//!     .attach(ErrorCode(404))
+//!     .attach(Info("This is going to be at the end"))
+//!     .attach(Suggestion("Try to be connected to the internet."))
+//!     .attach(Suggestion("Try better next time!"))
+//!     .attach(Warning("Unable to fetch resource"));
 //!
 //! # owo_colors::set_override(true);
 //! # fn render(value: String) -> String {
@@ -174,11 +181,7 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// stack, a stack is a list of attachments until a frame which has more than a single source.
 ///
 /// Deferred lines are reversed when rendered, meaning that when `A`, `B`, and `C` have been added
-/// by **any** hook via [`.defer()`] or [`.add_defer()`], they will be rendered in the order: `C`,
-/// `B`, `A`.
-///
-/// [`.defer()`]: Self::defer
-/// [`.add_defer()`]: Self::add_defer
+/// by **any** hook, they will be rendered in the order: `C`, `B`, `A`.
 ///
 /// # Example
 ///
@@ -187,7 +190,7 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::{Error, ErrorKind};
 ///
-/// use error_stack::{fmt::Diagnostics, Report};
+/// use error_stack::{fmt::Emit, Report};
 ///
 /// struct Warning(&'static str);
 /// struct ErrorCode(u64);
@@ -195,15 +198,15 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// struct Secret(&'static str);
 ///
 /// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| {
-///     Diagnostics::next(format!("Error Code: {val}"))
+///     vec![Emit::next(format!("Error Code: {val}"))]
 /// });
 /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
-///     Diagnostics::defer(format!("Suggestion: {val}"))
+///     vec![Emit::defer(format!("Suggestion: {val}"))]
 /// });
 /// Report::install_debug_hook::<Warning>(|Warning(val), _| {
-///     Diagnostics::next("Abnormal program execution detected").add(format!("Warning: {val}"))
+///     vec![Emit::next("Abnormal program execution detected"), Emit::next(format!("Warning: {val}"))]
 /// });
-/// Report::install_debug_hook::<Secret>(|_, _| Diagnostics::empty());
+/// Report::install_debug_hook::<Secret>(|_, _| vec![]);
 ///
 /// let report = Report::new(Error::from(ErrorKind::InvalidInput))
 ///     .attach(ErrorCode(404))
@@ -235,58 +238,20 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// <pre>
 #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap"))]
 /// </pre>
+#[derive(Debug, Clone, PartialOrd, PartialEq)]
 #[must_use]
-#[derive(Debug, Clone, PartialOrd, PartialEq, Default)]
-pub struct Diagnostics(Vec<Emit>);
+#[non_exhaustive]
+pub enum Emit {
+    /// Line is going to be emitted after all immediate lines have been emitted from the current
+    /// stack.
+    /// This means that deferred lines will always be last in a group.
+    Defer(String),
+    /// Going to be emitted immediately as the next line in the chain of
+    /// attachments and contexts.
+    Next(String),
+}
 
-impl Diagnostics {
-    /// Create a new empty instance
-    ///
-    /// Returning this without adding any line via [`.add()`] or [`.add_defer()`] will skip the
-    /// returned hook or fallback invocation, effectively ignoring the value returned.
-    ///
-    /// [`.add()`]: Self::add
-    /// [`.add_defer()`]: Self::add_defer
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
-    /// use std::io;
-    ///
-    /// use error_stack::{fmt::Diagnostics, Report};
-    ///
-    /// struct Suggestion(&'static str);
-    ///
-    /// Report::install_debug_hook::<Suggestion>(|_, _| Diagnostics::empty());
-    ///
-    /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput));
-    ///
-    /// # owo_colors::set_override(true);
-    /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
-    /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
-    /// #
-    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
-    /// # }
-    /// #
-    /// # #[cfg(nightly)]
-    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_empty.snap")].assert_eq(&render(format!("{report:?}")));
-    /// #
-    /// println!("{report:?}");
-    /// ```
-    ///
-    /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_empty.snap"))]
-    /// </pre>
-    pub const fn empty() -> Self {
-        Self(Vec::new())
-    }
-
+impl Emit {
     /// Add a new line which is going to be emitted immediately.
     ///
     /// # Example
@@ -296,14 +261,15 @@ impl Diagnostics {
     /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io;
     ///
-    /// use error_stack::{fmt::Diagnostics, Report};
+    /// use error_stack::{fmt::Emit, Report};
     ///
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
-    ///     Diagnostics::empty()
-    ///         .add(format!("Suggestion: {val}"))
-    ///         .add("Sorry for the inconvenience!")
+    ///     vec![
+    ///         Emit::next(format!("Suggestion: {val}")),
+    ///         Emit::next("Sorry for the inconvenience!")
+    ///     ]
     /// });
     ///
     /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
@@ -329,20 +295,11 @@ impl Diagnostics {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap"))]
     /// </pre>
-    pub fn add(mut self, line: impl Into<String>) -> Self {
-        self.0.push(Emit::next(line));
-
-        self
+    pub fn next<T: Into<String>>(line: T) -> Self {
+        Self::Next(line.into())
     }
 
-    /// Create a new instance with a line that is emitted immediately.
-    ///
-    /// This call is equivalent to: `Diagnostics::empty().add(line)`
-    pub fn next(line: impl Into<String>) -> Self {
-        Self::empty().add(line)
-    }
-
-    /// Add a new line, which is going to be deferred until the end of the current stack.
+    /// Create a new line, which is going to be deferred until the end of the current stack.
     ///
     /// A stack are all attachments until a [`Context`] is encountered in the frame stack,
     /// lines added via this function are going to be emitted at the end, in reversed direction to
@@ -357,16 +314,16 @@ impl Diagnostics {
     /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io;
     ///
-    /// use error_stack::{fmt::Diagnostics, Report};
+    /// use error_stack::{fmt::Emit, Report};
     ///
     /// struct ErrorCode(u64);
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
-    ///     Diagnostics::empty().add_defer(format!("Suggestion: {val}"))
+    ///     vec![Emit::defer(format!("Suggestion: {val}"))]
     /// });
     /// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| {
-    ///     Diagnostics::next(format!("Error Code: {val}"))
+    ///     vec![Emit::next(format!("Error Code: {val}"))]
     /// });
     ///
     /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
@@ -395,107 +352,7 @@ impl Diagnostics {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add_defer.snap"))]
     /// </pre>
-    pub fn add_defer(mut self, line: impl Into<String>) -> Self {
-        self.0.push(Emit::defer(line));
-
-        self
-    }
-
-    /// Create a new instance with a line that is going to be deferred.
-    ///
-    /// This call is equivalent to: `Diagnostics::empty().add_defer(line)`
-    pub fn defer(line: impl Into<String>) -> Self {
-        Self::empty().add_defer(line)
-    }
-
-    /// Append another `Diagnostics` to the current one.
-    ///
-    /// This will move all emitted messages from the other `Diagnostics` into the current one.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use error_stack::fmt::Diagnostics;
-    ///
-    /// let a = Diagnostics::empty().add("A").add("B");
-    /// let b = Diagnostics::empty().add("C").add("D");
-    ///
-    /// assert_eq!(
-    ///     a.append(b),
-    ///     Diagnostics::empty().add("A").add("B").add("C").add("D")
-    /// );
-    /// ```
-    pub fn append(mut self, mut other: Self) -> Self {
-        self.0.append(&mut other.0);
-
-        self
-    }
-
-    // false-positive
-    #[allow(clippy::missing_const_for_fn)]
-    fn into_inner(self) -> Vec<Emit> {
-        self.0
-    }
-
-    /// Returns `true` if the `Diagnostics` contains no elements.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use error_stack::fmt::Diagnostics;
-    ///
-    /// let empty = Diagnostics::empty();
-    ///
-    /// assert!(empty.is_empty());
-    /// ```
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    /// Execute the function provided if there are no elements in the current `Diagnostics`.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use error_stack::fmt::Diagnostics;
-    ///
-    /// let a = Diagnostics::empty().or_else(|| Diagnostics::next("A"));
-    /// let b = Diagnostics::next("A").or_else(|| Diagnostics::next("B"));
-    ///
-    /// assert_eq!(a, b);
-    /// ```
-    pub fn or_else(self, f: impl FnOnce() -> Self) -> Self {
-        if self.is_empty() { f() } else { self }
-    }
-}
-
-#[derive(Debug, Clone, PartialOrd, PartialEq)]
-#[must_use]
-#[non_exhaustive]
-enum Emit {
-    /// Line is going to be emitted after all immediate lines have been emitted from the current
-    /// stack.
-    /// This means that deferred lines will always be last in a group.
-    Defer(String),
-    /// Going to be emitted immediately as the next line in the chain of
-    /// attachments and contexts.
-    Next(String),
-}
-
-impl Emit {
-    /// Create a new [`Next`] line, which is emitted immediately in the tree.
-    ///
-    /// [`Next`]: Self::Next
-    fn next<T: Into<String>>(line: T) -> Self {
-        Self::Next(line.into())
-    }
-
-    /// Create a new [`Defer`] line, which is deferred until the end of the current chain of
-    /// attachments and contexts.
-    ///
-    /// [`Defer`]: Self::Defer
-    fn defer<T: Into<String>>(line: T) -> Self {
+    pub fn defer<T: Into<String>>(line: T) -> Self {
         Self::Defer(line.into())
     }
 }
@@ -999,7 +856,7 @@ fn debug_attachments(
                             .attach_snippet(snippet.clone());
                     }
 
-                    return debug.output().clone();
+                    return debug.output().to_vec();
                 }
 
                 #[cfg(all(not(nightly), feature = "unstable"))]
@@ -1009,7 +866,7 @@ fn debug_attachments(
                             .attach_snippet(snippet.clone());
                     }
 
-                    return debug.output().clone();
+                    return debug.output().to_vec();
                 }
 
                 #[cfg(feature = "std")]
@@ -1025,7 +882,7 @@ fn debug_attachments(
                 }
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                Diagnostics::next(attachment.to_string())
+                vec![Emit::next(attachment.to_string())]
             }
         })
         .flat_map(|value| {
@@ -1035,7 +892,7 @@ fn debug_attachments(
                 opaque.increase();
             }
 
-            value.into_inner()
+            value
         })
         .partition(|f| matches!(f, Emit::Next(_)));
 
