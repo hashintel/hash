@@ -32,12 +32,9 @@
 //! [`Report::install_debug_hook`].
 //! This type needs to be `'static`, [`Send`], and [`Sync`].
 //!
-//! The function must return a value of type [`Diagnostics`], which decides *when* a value is going
-//! to be emitted during printing, refer to the documentation of [`Diagnostics`] for further
+//! The hook function must return [`Vec<Emit>`], which decides what is going
+//! to be emitted during printing, refer to the documentation of [`Emit`] for further
 //! information.
-//!
-//! Fallback functions must return [`Diagnostics`], if they return an empty [`Diagnostics`] they
-//! indicate that no fallback was found.
 //!
 //! ## Example
 //!

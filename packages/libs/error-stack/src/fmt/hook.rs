@@ -580,7 +580,8 @@ mod default {
     /// [`Backtrace`]: std::backtrace::Backtrace
     /// [`SpanTrace`]: tracing_error::SpanTrace
     // Frame can be unused, if neither backtrace or spantrace are enabled
-    #[allow(unused_variables, unused_mut)]
+    #[allow(unused_variables)]
+    #[allow(unused_mut)]
     pub fn builtin_debug_hook_fallback<'a>(
         frame: &Frame,
         ctx: &mut HookContext<'a, Frame>,
