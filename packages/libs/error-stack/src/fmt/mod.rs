@@ -5,8 +5,8 @@
 //!
 //! The format implementation (especially the [`Debug`] implementation),
 //! can be easily extended using hooks.
-//! Hooks are functions of the signature `Fn(&T, &mut HookContext<T>) -> Emit`, they provide an
-//! easy and ergonomic way to partially modify the format and enable the output of types that are
+//! Hooks are functions of the signature `Fn(&T, &mut HookContext<T>) -> Diagnostics`, they provide
+//! an easy and ergonomic way to partially modify the format and enable the output of types that are
 //! not necessarily added via `.attach_printable()` or are unable to implement [`Display`].
 //!
 //! Hooks can be attached through the central hooking mechanism which `error-stack`
@@ -15,7 +15,7 @@
 //! You can also provide a fallback function, which is called whenever a hook hasn't been added for
 //! a specific type of attachment.
 //! The fallback function needs to have a signature of
-//! `Fn(&Frame, &mut HookContext<T>) -> Option<Emit>`
+//! `Fn(&Frame, &mut HookContext<T>) -> Diagnostics`
 //! and can be set via [`Report::install_debug_hook_fallback`].
 //!
 //! > **Caution:** Overwriting the fallback **will** remove the builtin formatting for types like
@@ -32,11 +32,12 @@
 //! [`Report::install_debug_hook`].
 //! This type needs to be `'static`, [`Send`], and [`Sync`].
 //!
-//! The function must return a value of type [`Emit`], which decides *when* a value is going to be
-//! emitted during printing, refer to the documentation of [`Emit`] for further information.
+//! The function must return a value of type [`Diagnostics`], which decides *when* a value is going
+//! to be emitted during printing, refer to the documentation of [`Diagnostics`] for further
+//! information.
 //!
-//! Fallback functions must return [`Option`], which indicates whether a fallback was able to find a
-//! value for the specified [`Frame`].
+//! Fallback functions must return [`Diagnostics`], if they return an empty [`Diagnostics`] they
+//! indicate that no fallback was found.
 //!
 //! ## Example
 //!
@@ -73,7 +74,7 @@
 //!  });
 //!
 //! // you can use arbitrary values as arguments, just make sure that you won't repeat them.
-//! // here we use [`Emit::defer`], this means that this value will be put at the end of the group.
+//! // here we use [`Diagnostics::defer`], this means that this value will be put at the end of the group.
 //! Report::install_debug_hook::<String>(|val, _| Diagnostics::defer(val));
 //!
 //! let report = Report::new(Error::from(ErrorKind::InvalidInput))
@@ -125,11 +126,11 @@
 //! [`SpanTrace`]: tracing_error::SpanTrace
 //! [`error_stack::fmt::builtin_debug_hook_fallback`]: crate::fmt::builtin_debug_hook_fallback
 //! [`atomic`]: std::sync::atomic
-// This makes sure that `Emit` isn't regarded as dead-code even though it isn't exported on no-std.
-// This just simplifies maintenance, as otherwise we would be in cfg hell.
+// This makes sure that `Diagnostics` isn't regarded as dead-code even though it isn't exported on
+// no-std. This just simplifies maintenance, as otherwise we would be in cfg hell.
 #![cfg_attr(not(feature = "std"), allow(dead_code))]
-// Makes sure that `Emit` isn't regarded as unreachable even though it isn't exported on no-std.
-// Simplifies maintenance as we don't need to special case the visibility modifier.
+// Makes sure that `Diagnostics` isn't regarded as unreachable even though it isn't exported on
+// no-std. Simplifies maintenance as we don't need to special case the visibility modifier.
 #![cfg_attr(not(feature = "std"), allow(unreachable_pub))]
 
 mod hook;

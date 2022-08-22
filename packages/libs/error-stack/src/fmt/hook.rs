@@ -539,7 +539,7 @@ mod default {
     use tracing_error::SpanTrace;
 
     use crate::{
-        fmt::{hook::HookContext, Diagnostics, Emit},
+        fmt::{hook::HookContext, Diagnostics},
         Frame,
     };
 
