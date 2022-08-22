@@ -14,6 +14,7 @@ import { EditorConnection } from "./collab/EditorConnection";
 import { BlocksMap, createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
 import { useReadonlyMode } from "../../shared/readonly-mode";
+import { usePageContext } from "./PageContext";
 
 type PageBlockProps = {
   blocks: BlocksMap;
@@ -48,6 +49,8 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   const routeHash = router.asPath.split("#")[1] ?? "";
   const { readonlyMode } = useReadonlyMode();
 
+  const { setEditorView } = usePageContext();
+
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not
    * responsible for setting the contents of the prosemirror document
@@ -69,6 +72,8 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       blocks,
     );
 
+    setEditorView(view);
+
     prosemirrorSetup.current = {
       view,
       connection: connection ?? null,
@@ -85,7 +90,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       prosemirrorSetup.current = null;
       connection?.close();
     };
-  }, [accountId, blocks, entityId, renderPortal, readonlyMode]);
+  }, [accountId, blocks, entityId, renderPortal, readonlyMode, setEditorView]);
 
   return (
     <UserBlocksProvider value={blocks}>

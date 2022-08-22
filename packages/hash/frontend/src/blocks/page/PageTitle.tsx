@@ -8,6 +8,8 @@ import {
 } from "react";
 import { useBlockProtocolUpdateEntity } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
 import { rewriteEntityIdentifier } from "../../lib/entities";
+import { usePageContext } from "./PageContext";
+import { focusEditorBeginning } from "./utils";
 
 type PageTitleProps = {
   accountId: string;
@@ -30,6 +32,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
   // TODO: Display update error once expected UX is discussed
   const { updateEntity, updateEntityLoading } =
     useBlockProtocolUpdateEntity(true);
+  const { editorView } = usePageContext();
 
   const titleValueRef = useRef(value);
 
@@ -65,8 +68,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
       const isCaretAtEnd = anchorOffset === titleValueRef?.current.length;
 
       if (isCaret && isCaretAtEnd) {
-        /** @todo focus to first block in the editor */
-        alert("focus to first block");
+        focusEditorBeginning(editorView);
       }
     }
   };

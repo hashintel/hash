@@ -17,6 +17,7 @@ import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPos
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
 import { PageBlock } from "../../blocks/page/PageBlock";
+import { PageContextProvider } from "../../blocks/page/PageContext";
 import { PageTitle } from "../../blocks/page/PageTitle";
 import {
   AccountPagesInfo,
@@ -281,54 +282,56 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
           <link rel="icon" type="image/png" href="/favicon.png" />
         )}
       </Head>
-      <Box
-        sx={({ zIndex, palette }) => ({
-          position: "sticky",
-          top: 0,
-          zIndex: zIndex.appBar,
-          backgroundColor: palette.white,
-        })}
-      >
-        <TopContextBar
-          crumbs={generateCrumbsFromPages({
-            pages: accountPages,
-            pageId: data.page.entityId,
-            accountId,
-          })}
-          scrollToTop={scrollToTop}
-        />
-        <PageNotificationBanner />
-      </Box>
 
-      <Container>
-        <Box display="flex">
-          <PageIcon
-            accountId={accountId}
-            entityId={pageEntityId}
-            versionId={versionId}
-            sx={{
-              mr: 3,
-            }}
+      <PageContextProvider>
+        <Box
+          sx={({ zIndex, palette }) => ({
+            position: "sticky",
+            top: 0,
+            zIndex: zIndex.appBar,
+            backgroundColor: palette.white,
+          })}
+        >
+          <TopContextBar
+            crumbs={generateCrumbsFromPages({
+              pages: accountPages,
+              pageId: data.page.entityId,
+              accountId,
+            })}
+            scrollToTop={scrollToTop}
           />
-          <Box flex={1}>
-            <Box
-              component="header"
-              ref={pageHeaderRef}
+          <PageNotificationBanner />
+        </Box>
+
+        <Container>
+          <Box display="flex">
+            <PageIcon
+              accountId={accountId}
+              entityId={pageEntityId}
+              versionId={versionId}
               sx={{
-                scrollMarginTop: HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT,
+                mr: 3,
               }}
-            >
-              <PageTitle
-                value={title}
-                accountId={accountId}
-                entityId={pageEntityId}
-              />
-              {/* 
+            />
+            <Box flex={1}>
+              <Box
+                component="header"
+                ref={pageHeaderRef}
+                sx={{
+                  scrollMarginTop: HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT,
+                }}
+              >
+                <PageTitle
+                  value={title}
+                  accountId={accountId}
+                  entityId={pageEntityId}
+                />
+                {/* 
             Commented out Version Dropdown and Transfer Page buttons.
             They will most likely be added back when new designs 
             for them have been added
           */}
-              {/* <div className={tw`mr-4`}>
+                {/* <div className={tw`mr-4`}>
             <label>Version</label>
             <div>
               <VersionDropdown
@@ -352,17 +355,18 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
               />
             </div>
           </div> */}
+              </Box>
+              <CollabPositionProvider value={collabPositions}>
+                <PageBlock
+                  accountId={accountId}
+                  blocks={blocksMap}
+                  entityId={pageEntityId}
+                />
+              </CollabPositionProvider>
             </Box>
-            <CollabPositionProvider value={collabPositions}>
-              <PageBlock
-                accountId={accountId}
-                blocks={blocksMap}
-                entityId={pageEntityId}
-              />
-            </CollabPositionProvider>
           </Box>
-        </Box>
-      </Container>
+        </Container>
+      </PageContextProvider>
     </>
   );
 };
