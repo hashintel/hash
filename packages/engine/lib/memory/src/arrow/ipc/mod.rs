@@ -1,4 +1,4 @@
-//! This file handles writing Arrow data as raw bytes. We would use the types which [`arrow2`]
+//! This module handles writing Arrow data as raw bytes. We would use the types which [`arrow2`]
 //! provides, except that they do not provide a way to write the different components of a message
 //! to seperate sections.
 //!
