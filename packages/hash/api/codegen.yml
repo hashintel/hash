@@ -28,6 +28,7 @@ generates:
         DataType: "@hashintel/hash-graph-client#DataType"
         PropertyType: "@hashintel/hash-graph-client#PropertyType"
         LinkType: "@hashintel/hash-graph-client#LinkType"
+        EntityType: "@hashintel/hash-graph-client#EntityType"
         TextToken: "@hashintel/hash-shared/graphql/types#TextToken"
         Date: string
         UnknownEntityProperties: "@hashintel/hash-shared/graphql/types#UnknownEntityProperties"
