@@ -251,6 +251,8 @@ impl Diagnostics {
     /// # Example
     ///
     /// ```rust
+    /// # // we only test on nightly, therefore report is unused (so is render)
+    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io;
     ///
     /// use error_stack::{fmt::Diagnostics, Report};
@@ -290,6 +292,8 @@ impl Diagnostics {
     /// # Example
     ///
     /// ```rust
+    /// # // we only test on nightly, therefore report is unused (so is render)
+    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io;
     ///
     /// use error_stack::{fmt::Diagnostics, Report};
@@ -349,6 +353,8 @@ impl Diagnostics {
     /// # Example
     ///
     /// ```rust
+    /// # // we only test on nightly, therefore report is unused (so is render)
+    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io;
     ///
     /// use error_stack::{fmt::Diagnostics, Report};
@@ -442,6 +448,7 @@ impl Diagnostics {
     ///
     /// assert!(empty.is_empty());
     /// ```
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
