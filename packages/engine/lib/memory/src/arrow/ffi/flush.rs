@@ -5,13 +5,14 @@
     clippy::missing_safety_doc
 )]
 
-use arrow::util::bit_util;
+use std::sync::Arc;
 
 use crate::{
     arrow::{
         ffi::{ArrowArray, CSegment},
         flush::{GrowableArrayData, GrowableBatch, GrowableColumn},
         meta,
+        util::bit_util,
     },
     shared_memory::Segment,
     Error, Result,
@@ -32,6 +33,11 @@ pub struct Changes {
 }
 
 #[no_mangle]
+/// This function handles the flushing of the changes in question into the shared-memory
+/// [`Segment`]. Underneath the hood, it calls [`GrowableBatch::flush_changes`] (specifically, the
+/// implementation of this for [`PreparedBatch`]).
+///
+/// This function is called from inside our Python code responsible for interacting with Arrow.
 unsafe extern "C" fn flush_changes(
     c_segment: *mut CSegment,
     dynamic_meta: *mut meta::DynamicMetadata,
@@ -53,7 +59,7 @@ unsafe extern "C" fn flush_changes(
                 node_into_prepared_array_data(arrow_array, static_meta_ref, node_index)?;
             Ok(PreparedColumn {
                 index: column_index,
-                data: prepared_array_data,
+                data: Arc::new(prepared_array_data),
             })
         })
         .collect::<Result<_>>()
@@ -229,7 +235,7 @@ unsafe fn node_into_prepared_array_data(
     Ok((prepared, next_node_index))
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PreparedArrayData<'a> {
     inner: *const ArrowArray,
     child_data: Vec<PreparedArrayData<'a>>,
@@ -265,7 +271,7 @@ impl GrowableArrayData for PreparedArrayData<'_> {
 
 pub struct PreparedColumn<'a> {
     index: usize,
-    data: PreparedArrayData<'a>,
+    data: Arc<PreparedArrayData<'a>>,
 }
 
 impl<'a> GrowableColumn<PreparedArrayData<'a>> for PreparedColumn<'a> {

@@ -5,7 +5,7 @@ mod outbound;
 
 use std::{collections::HashMap, fmt, sync::Arc};
 
-use arrow::datatypes::Schema;
+use arrow2::datatypes::Schema;
 use stateful::{
     agent::AgentSchema,
     field::PackageId,
