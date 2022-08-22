@@ -44,6 +44,15 @@ export type AggregateDataTypeMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
+export type GetDataTypeRequest = Pick<DataTypeResponse, "dataTypeVersionedUri">;
+
+export type GetDataTypeMessageCallback = MessageCallback<
+  GetDataTypeRequest,
+  null,
+  DataTypeResponse,
+  ReadOrModifyResourceError
+>;
+
 /* Property type CRU */
 
 export type PropertyTypeResponse = Response<"propertyType", PropertyType>;
@@ -65,6 +74,15 @@ export type AggregatePropertyTypeMessageCallback = MessageCallback<
   AggregatePropertyTypesRequest,
   null,
   AggregateResult<PropertyTypeResponse>,
+  ReadOrModifyResourceError
+>;
+
+export type GetPropertyTypeRequest = Pick<PropertyTypeResponse, "propertyType">;
+
+export type GetPropertyTypeMessageCallback = MessageCallback<
+  GetPropertyTypeRequest,
+  null,
+  PropertyTypeResponse,
   ReadOrModifyResourceError
 >;
 
@@ -104,6 +122,15 @@ export type AggregateEntityTypeMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
+export type GetEntityTypeRequest = Pick<EntityTypeResponse, "entityType">;
+
+export type GetEntityTypeMessageCallback = MessageCallback<
+  GetEntityTypeRequest,
+  null,
+  EntityTypeResponse,
+  ReadOrModifyResourceError
+>;
+
 export type UpdateEntityTypeRequest = {
   entityTypeVersionedUri: string;
   entityType: EntityType;
@@ -137,6 +164,15 @@ export type AggregateLinkTypeMessageCallback = MessageCallback<
   AggregateLinkTypesRequest,
   null,
   AggregateResult<LinkTypeResponse>,
+  ReadOrModifyResourceError
+>;
+
+export type GetLinkTypeRequest = Pick<LinkTypeResponse, "linkType">;
+
+export type GetLinkTypeMessageCallback = MessageCallback<
+  GetLinkTypeRequest,
+  null,
+  LinkTypeResponse,
   ReadOrModifyResourceError
 >;
 
