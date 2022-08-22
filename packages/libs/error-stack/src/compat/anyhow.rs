@@ -1,17 +1,16 @@
-use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::any::Demand;
-use core::{fmt, panic::Location};
-#[cfg(all(nightly, feature = "std"))]
-use std::backtrace::{Backtrace, BacktraceStatus};
+use core::fmt;
 
 use anyhow::Error as AnyhowError;
 
-use crate::{compat::IntoReportCompat, Context, Frame, Report, Result};
+use crate::{compat::IntoReportCompat, Context, Report, Result};
 
 /// A [`Context`] wrapper for [`anyhow::Error`].
 ///
-/// It provides the [`anyhow::Error`] and [`Backtrace`] if it was captured.
+/// It provides the [`anyhow::Error`] and forwards the [`Demand`] to [`Error::provide`].
+///
+/// [`Error::provide`]: std::error::Error::provide
 #[repr(transparent)]
 pub struct AnyhowContext(AnyhowError);
 
@@ -54,22 +53,6 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
         match self {
             Ok(t) => Ok(t),
             Err(anyhow) => {
-                // we cannot use `Report::new()` directly, due to the fact that it captures traces,
-                // regardless of the fact if anyhow already provided one.
-
-                // only capture a backtrace if needed, otherwise the anyhow context provides one
-                #[cfg(all(nightly, feature = "std"))]
-                let backtrace = anyhow
-                    .request_ref::<Backtrace>()
-                    .filter(|bt| matches!(bt.status(), BacktraceStatus::Captured))
-                    .is_none()
-                    .then(Backtrace::capture)
-                    .filter(|bt| matches!(bt.status(), BacktraceStatus::Captured));
-
-                #[cfg(feature = "spantrace")]
-                let spantrace = Some(tracing_error::SpanTrace::capture())
-                    .filter(|st| st.status() == tracing_error::SpanTraceStatus::CAPTURED);
-
                 #[cfg(feature = "std")]
                 let sources = anyhow
                     .chain()
@@ -77,22 +60,8 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
                     .map(ToString::to_string)
                     .collect::<alloc::vec::Vec<_>>();
 
-                #[allow(unused_mut)]
-                let mut report = Report::from_frame(Frame::from_context(
-                    AnyhowContext(anyhow),
-                    Location::caller(),
-                    Box::new([]),
-                ));
-
-                #[cfg(all(nightly, feature = "std"))]
-                if let Some(backtrace) = backtrace {
-                    report = report.attach(backtrace);
-                }
-
-                #[cfg(feature = "spantrace")]
-                if let Some(spantrace) = spantrace {
-                    report = report.attach(spantrace);
-                }
+                #[cfg_attr(not(feature = "std"), allow(unused_mut))]
+                let mut report = Report::new(AnyhowContext(anyhow));
 
                 #[cfg(feature = "std")]
                 for source in sources {
