@@ -10,8 +10,6 @@ use std::process::ExitCode;
 #[cfg(feature = "spantrace")]
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
-#[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
-use crate::context::temporary_provider;
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
 use crate::{
@@ -227,53 +225,39 @@ impl<C> Report<C> {
     where
         C: Context,
     {
-        #[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
-        let provider = temporary_provider(&context);
+        let frame = Frame::from_context(context, Location::caller(), Box::new([]));
 
         #[cfg(all(nightly, feature = "std"))]
-        let backtrace = if core::any::request_ref(&provider)
-            .filter(|backtrace: &&Backtrace| backtrace.status() == BacktraceStatus::Captured)
-            .is_some()
-        {
-            None
-        } else {
-            Some(Backtrace::capture())
-        };
+        let backtrace = core::any::request_ref::<Backtrace>(&frame)
+            .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
+            .is_none()
+            .then(Backtrace::capture);
 
         #[cfg(all(nightly, feature = "spantrace"))]
-        let span_trace = if core::any::request_ref(&provider)
-            .filter(|span_trace: &&SpanTrace| span_trace.status() == SpanTraceStatus::CAPTURED)
-            .is_some()
-        {
-            None
-        } else {
-            Some(SpanTrace::capture())
-        };
+        let span_trace = core::any::request_ref::<SpanTrace>(&frame)
+            .filter(|span_trace| span_trace.status() == SpanTraceStatus::CAPTURED)
+            .is_none()
+            .then(SpanTrace::capture);
+
         #[cfg(all(not(nightly), feature = "spantrace"))]
         let span_trace = Some(SpanTrace::capture());
 
-        // Context will be moved in the next statement, so we need to drop the temporary provider
-        // first.
-        #[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
-        drop(provider);
-
-        let frame = Frame::from_context(context, Location::caller(), Box::new([]));
         #[allow(unused_mut)]
-        let mut this = Self::from_frame(frame);
+        let mut report = Self::from_frame(frame);
 
         #[cfg(all(nightly, feature = "std"))]
         if let Some(backtrace) =
             backtrace.filter(|bt| matches!(bt.status(), BacktraceStatus::Captured))
         {
-            this = this.attach(backtrace);
+            report = report.attach(backtrace);
         }
 
         #[cfg(feature = "spantrace")]
         if let Some(span_trace) = span_trace.filter(|st| st.status() == SpanTraceStatus::CAPTURED) {
-            this = this.attach(span_trace);
+            report = report.attach(span_trace);
         }
 
-        this
+        report
     }
 
     #[allow(missing_docs)]

@@ -469,9 +469,10 @@ mod frame;
 pub mod iter;
 mod macros;
 mod report;
+mod result;
 
 mod context;
-mod ext;
+pub mod ext;
 #[cfg(feature = "std")]
 pub mod fmt;
 #[cfg(not(feature = "std"))]
@@ -480,7 +481,13 @@ mod fmt;
 mod hook;
 
 #[doc(inline)]
-pub use self::ext::*;
+#[cfg(feature = "futures")]
+pub use self::ext::{future::FutureExt, stream::StreamExt};
+#[doc(inline)]
+pub use self::ext::{
+    iter::IteratorExt,
+    result::{IntoReport, ResultExt},
+};
 #[cfg(feature = "std")]
 #[allow(deprecated)]
 pub use self::hook::HookAlreadySet;
@@ -489,6 +496,7 @@ pub use self::{
     frame::{AttachmentKind, Frame, FrameKind},
     macros::*,
     report::Report,
+    result::Result,
 };
 
 #[cfg(test)]
