@@ -48,6 +48,7 @@ export type GraphMessageCallbacks = Omit<
 > &
   OntologyCallbacks;
 
+/** @todo Consider if we should move this out of the page and into the hooks directory. */
 export const useBlockProtocolFunctionsWithOntology = (
   accountId: string,
 ): GraphMessageCallbacks => {
