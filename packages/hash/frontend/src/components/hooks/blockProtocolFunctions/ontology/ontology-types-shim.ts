@@ -7,36 +7,40 @@ import {
   LinkType,
   PropertyType,
   EntityType,
+  DataType,
 } from "@hashintel/hash-graph-client";
+
+/* Shared types */
 
 type Response<N extends string, T> = {
   [_ in `${N}VersionedUri`]: string;
 } & { [_ in N]: T };
 
-/* Link type CRU */
-
-export type LinkTypeResponse = Response<"linkType", LinkType>;
-
-export type CreateLinkTypeRequest = {
-  linkType: LinkType;
+export type AggregateResult<T> = {
+  results: T[];
 };
 
-export type CreateLinkTypeMessageCallback = MessageCallback<
-  CreateLinkTypeRequest,
+/* Data type CRU */
+
+export type DataTypeResponse = Response<"dataType", DataType>;
+
+export type CreateDataTypeRequest = {
+  dataType: DataType;
+};
+
+export type CreateDataTypeMessageCallback = MessageCallback<
+  CreateDataTypeRequest,
   null,
-  LinkTypeResponse,
+  DataTypeResponse,
   CreateResourceError
 >;
 
-export type UpdateLinkTypeRequest = {
-  linkTypeVersionedUri: string;
-  linkType: LinkType;
-};
+export type AggregateDataTypesRequest = {};
 
-export type UpdateLinkTypeMessageCallback = MessageCallback<
-  UpdateLinkTypeRequest,
+export type AggregateDataTypeMessageCallback = MessageCallback<
+  AggregateDataTypesRequest,
   null,
-  LinkTypeResponse,
+  AggregateResult<DataTypeResponse>,
   ReadOrModifyResourceError
 >;
 
@@ -53,6 +57,15 @@ export type CreatePropertyTypeMessageCallback = MessageCallback<
   null,
   PropertyTypeResponse,
   CreateResourceError
+>;
+
+export type AggregatePropertyTypesRequest = {};
+
+export type AggregatePropertyTypeMessageCallback = MessageCallback<
+  AggregatePropertyTypesRequest,
+  null,
+  AggregateResult<PropertyTypeResponse>,
+  ReadOrModifyResourceError
 >;
 
 export type UpdatePropertyTypeRequest = {
@@ -82,6 +95,15 @@ export type CreateEntityTypeMessageCallback = MessageCallback<
   CreateResourceError
 >;
 
+export type AggregateEntityTypesRequest = {};
+
+export type AggregateEntityTypeMessageCallback = MessageCallback<
+  AggregateEntityTypesRequest,
+  null,
+  AggregateResult<EntityTypeResponse>,
+  ReadOrModifyResourceError
+>;
+
 export type UpdateEntityTypeRequest = {
   entityTypeVersionedUri: string;
   entityType: EntityType;
@@ -91,5 +113,41 @@ export type UpdateEntityTypeMessageCallback = MessageCallback<
   UpdateEntityTypeRequest,
   null,
   EntityTypeResponse,
+  ReadOrModifyResourceError
+>;
+
+/* Link type CRU */
+
+export type LinkTypeResponse = Response<"linkType", LinkType>;
+
+export type CreateLinkTypeRequest = {
+  linkType: LinkType;
+};
+
+export type CreateLinkTypeMessageCallback = MessageCallback<
+  CreateLinkTypeRequest,
+  null,
+  LinkTypeResponse,
+  CreateResourceError
+>;
+
+export type AggregateLinkTypesRequest = {};
+
+export type AggregateLinkTypeMessageCallback = MessageCallback<
+  AggregateLinkTypesRequest,
+  null,
+  AggregateResult<LinkTypeResponse>,
+  ReadOrModifyResourceError
+>;
+
+export type UpdateLinkTypeRequest = {
+  linkTypeVersionedUri: string;
+  linkType: LinkType;
+};
+
+export type UpdateLinkTypeMessageCallback = MessageCallback<
+  UpdateLinkTypeRequest,
+  null,
+  LinkTypeResponse,
   ReadOrModifyResourceError
 >;
