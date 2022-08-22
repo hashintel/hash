@@ -1,30 +1,12 @@
 import { useMutation } from "@apollo/client";
-import { MessageCallback } from "@blockprotocol/core";
-import { EntityType } from "@hashintel/hash-graph-client";
 
-import { ReadOrModifyResourceError } from "@blockprotocol/graph";
 import { useCallback } from "react";
 import {
   CreateEntityTypeMutation,
   CreateEntityTypeMutationVariables,
 } from "../../../../graphql/apiTypes.gen";
 import { createEntityTypeMutation } from "../../../../graphql/queries/ontology/entity-type.queries";
-
-export type EntityTypeResponse = {
-  entityTypeVersionedUri: string;
-  entityType: EntityType;
-};
-
-export type EntityTypeRequest = {
-  entityType: EntityTypeResponse["entityType"];
-};
-
-export type CreateEntityTypeMessageCallback = MessageCallback<
-  EntityTypeRequest,
-  null,
-  EntityTypeResponse,
-  ReadOrModifyResourceError
->;
+import { CreateEntityTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolCreateEntityType = (
   accountId: string,

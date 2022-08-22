@@ -1,30 +1,12 @@
 import { useMutation } from "@apollo/client";
-import { MessageCallback } from "@blockprotocol/core";
-import { PropertyType } from "@hashintel/hash-graph-client";
-
-import { ReadOrModifyResourceError } from "@blockprotocol/graph";
 import { useCallback } from "react";
+
 import {
   CreatePropertyTypeMutation,
   CreatePropertyTypeMutationVariables,
 } from "../../../../graphql/apiTypes.gen";
 import { createPropertyTypeMutation } from "../../../../graphql/queries/ontology/property-type.queries";
-
-export type PropertyTypeResponse = {
-  propertyTypeVersionedUri: string;
-  propertyType: PropertyType;
-};
-
-export type PropertyTypeRequest = {
-  propertyType: PropertyTypeResponse["propertyType"];
-};
-
-export type CreatePropertyTypeMessageCallback = MessageCallback<
-  PropertyTypeRequest,
-  null,
-  PropertyTypeResponse,
-  ReadOrModifyResourceError
->;
+import { CreatePropertyTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolCreatePropertyType = (
   accountId: string,

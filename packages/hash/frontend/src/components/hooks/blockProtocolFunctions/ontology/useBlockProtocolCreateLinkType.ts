@@ -1,30 +1,12 @@
 import { useMutation } from "@apollo/client";
-import { MessageCallback } from "@blockprotocol/core";
-import { LinkType } from "@hashintel/hash-graph-client";
-
-import { ReadOrModifyResourceError } from "@blockprotocol/graph";
 import { useCallback } from "react";
+
 import {
   CreateLinkTypeMutation,
   CreateLinkTypeMutationVariables,
 } from "../../../../graphql/apiTypes.gen";
 import { createLinkTypeMutation } from "../../../../graphql/queries/ontology/link-type.queries";
-
-export type LinkTypeResponse = {
-  linkTypeVersionedUri: string;
-  linkType: LinkType;
-};
-
-export type LinkTypeRequest = {
-  linkType: LinkTypeResponse["linkType"];
-};
-
-export type CreateLinkTypeMessageCallback = MessageCallback<
-  LinkTypeRequest,
-  null,
-  LinkTypeResponse,
-  ReadOrModifyResourceError
->;
+import { CreateLinkTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolCreateLinkType = (
   accountId: string,
