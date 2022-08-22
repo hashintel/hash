@@ -2,6 +2,10 @@
 // we could do cfg for everything, but that gets very messy, instead we only use a subset
 // and enable deadcode on `feature = "std"`.
 #![cfg_attr(not(feature = "std"), allow(dead_code))]
+// We allow `unreachable_pub` on no-std, because in that case we do not export (`pub`) the
+// structures contained in here, but still use them, otherwise we would need to have two redundant
+// implementation: `pub(crate)` and `pub`.
+#![cfg_attr(not(feature = "std"), allow(unreachable_pub))]
 
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
 use core::{
@@ -14,7 +18,7 @@ pub use default::builtin_debug_hook_fallback;
 use crate::fmt::{Emit, Frame};
 
 #[derive(Default)]
-pub struct HookContextImpl {
+pub(crate) struct HookContextImpl {
     pub(crate) snippets: Vec<String>,
     alternate: bool,
 
