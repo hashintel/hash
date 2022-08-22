@@ -9,10 +9,18 @@ import Component from "./index";
 
 const node = document.getElementById("app");
 
+const paragraphProperties = {
+  text: "Hello World!",
+};
+
 const App = () => (
-  <MockBlockDock>
-    <Component entityId="test-para-1" text="Hello World!" />
-  </MockBlockDock>
+  <MockBlockDock
+    blockDefinition={{ ReactComponent: Component }}
+    blockEntity={{
+      entityId: "test-para-1",
+      properties: paragraphProperties,
+    }}
+  />
 );
 
 render(<App />, node);
