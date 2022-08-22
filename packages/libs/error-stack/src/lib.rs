@@ -337,11 +337,13 @@
 //!
 //! ### Automatic Backtraces
 //!
-//! When on a Rust 1.65 or later, [`Report`] will use the [`Backtrace`] from the base [`Context`] if
-//! it exists, or it will try to capture one. Unlike some other approaches, this does not require
-//! the user modifying their custom error types to be aware of backtraces, and doesn't require
-//! manual implementations to forward calls down any wrapped errors that are often needed with other
-//! approaches.
+//! When on a Rust 1.65 or later, [`Report`] will try to capture a [`Backtrace`] if `RUST_BACKTRACE`
+//! or `RUST_BACKTRACE_LIB` is set. If on a nightly toolchain, it will use the [`Backtrace`]
+//! if provided by the base [`Context`], and will try to capture one otherwise.
+//!
+//! Unlike some other approaches, this does not require the user modifying their custom error types
+//! to be aware of backtraces, and doesn't require manual implementations to forward calls down any
+//! wrapped errors.
 //!
 //! ### No-Std compatible
 //!
