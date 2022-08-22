@@ -55,13 +55,17 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
 
         const widgetPos = state.selection.$anchor.posAtIndex(0, 1);
 
-        const placeholderDecoration = Decoration.widget(widgetPos, () => {
-          const mountNode = document.createElement("div");
+        const placeholderDecoration = Decoration.widget(
+          widgetPos,
+          () => {
+            const mountNode = document.createElement("div");
 
-          renderPortal(<Placeholder />, mountNode);
+            renderPortal(<Placeholder />, mountNode);
 
-          return mountNode;
-        });
+            return mountNode;
+          },
+          { key: "placeholder-deco" },
+        );
 
         return DecorationSet.create(state.doc, [placeholderDecoration]);
       },
