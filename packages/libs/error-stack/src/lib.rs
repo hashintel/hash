@@ -449,10 +449,12 @@
 )]
 #![warn(
     missing_docs,
+    unreachable_pub,
     clippy::pedantic,
     clippy::nursery,
     clippy::undocumented_unsafe_blocks
 )]
+#![allow(clippy::redundant_pub_crate)] // This would otherwise clash with `unreachable_pub`
 #![allow(clippy::missing_errors_doc)] // This is an error handling library producing Results, not Errors
 #![allow(clippy::module_name_repetitions)]
 #![cfg_attr(

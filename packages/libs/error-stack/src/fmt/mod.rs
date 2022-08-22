@@ -129,6 +129,9 @@
 // This makes sure that `Emit` isn't regarded as dead-code even though it isn't exported on no-std.
 // This just simplifies maintenance, as otherwise we would be in cfg hell.
 #![cfg_attr(not(feature = "std"), allow(dead_code))]
+// Makes sure that `Emit` isn't regarded as unreachable even though it isn't exported on no-std.
+// Simplifies maintenance as we don't need to special case the visibility modifier.
+#![cfg_attr(not(feature = "std"), allow(unreachable_pub))]
 
 mod hook;
 #[cfg(feature = "unstable")]
