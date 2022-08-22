@@ -235,7 +235,7 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap"))]
 /// </pre>
 #[must_use]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialOrd, PartialEq, Default)]
 pub struct Diagnostics(Vec<Emit>);
 
 impl Diagnostics {
@@ -302,7 +302,8 @@ impl Diagnostics {
     ///         .add("Sorry for the inconvenience!")
     /// });
     ///
-    /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput));
+    /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
+    ///     .attach(Suggestion("Try better next time"));
     ///
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
@@ -326,7 +327,7 @@ impl Diagnostics {
     /// </pre>
     /// ```
     pub fn add(mut self, line: impl Into<String>) -> Self {
-        self.0.push(Emit::Next(line.into()));
+        self.0.push(Emit::next(line));
 
         self
     }
@@ -338,8 +339,60 @@ impl Diagnostics {
         Self::empty().add(line)
     }
 
+    /// Add a new line, which is going to be deferred until the end of the current stack.
+    ///
+    /// A stack are all attachments until a [`Context`] is encountered in the frame stack,
+    /// lines added via this function are going to be emitted at the end, in reversed direction to
+    /// the attachments that added them
+    ///
+    /// [`Context`]: crate::Context
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use std::io;
+    ///
+    /// use error_stack::{fmt::Diagnostics, Report};
+    ///
+    /// struct ErrorCode(u64);
+    /// struct Suggestion(&'static str);
+    ///
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
+    ///     Diagnostics::empty().add_defer(format!("Suggestion: {val}"))
+    /// });
+    /// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| {
+    ///     Diagnostics::next(format!("Error Code: {val}"))
+    /// });
+    ///
+    /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
+    ///     .attach(Suggestion("Try better next time!"))
+    ///     .attach(ErrorCode(404))
+    ///     .attach(Suggestion("Try to use a different shell!"))
+    ///     .attach(ErrorCode(405));
+    ///
+    /// # owo_colors::set_override(true);
+    /// # fn render(value: String) -> String {
+    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #
+    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #
+    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// # }
+    /// #
+    /// # #[cfg(nightly)]
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add_defer.snap")].assert_eq(&render(format!("{report:?}")));
+    /// #
+    /// println!("{report:?}");
+    /// ```
+    ///
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add_defer.snap"))]
+    /// </pre>
+    /// ```
     pub fn add_defer(mut self, line: impl Into<String>) -> Self {
-        self.0.push(Emit::Defer(line.into()));
+        self.0.push(Emit::defer(line));
 
         self
     }
@@ -351,26 +404,66 @@ impl Diagnostics {
         Self::empty().add_defer(line)
     }
 
+    /// Append another `Diagnostics` to the current one.
+    ///
+    /// This will move all emitted messages from the other `Diagnostics` into the current one.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use error_stack::fmt::Diagnostics;
+    ///
+    /// let a = Diagnostics::empty().add("A").add("B");
+    /// let b = Diagnostics::empty().add("C").add("D");
+    ///
+    /// assert_eq!(
+    ///     a.append(b),
+    ///     Diagnostics::empty().add("A").add("B").add("C").add("D")
+    /// );
+    /// ```
     pub fn append(mut self, mut other: Self) -> Self {
         self.0.append(&mut other.0);
 
         self
     }
 
-    pub(crate) fn into_inner(self) -> Vec<Emit> {
+    fn into_inner(self) -> Vec<Emit> {
         self.0
     }
 
+    /// Returns `true` if the `Diagnostics` contains no elements.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use error_stack::fmt::Diagnostics;
+    ///
+    /// let empty = Diagnostics::empty();
+    ///
+    /// assert!(empty.is_empty());
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
+    /// Execute the function provided if there are no elements in the current `Diagnostics`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use error_stack::fmt::Diagnostics;
+    ///
+    /// let a = Diagnostics::empty().or_else(|| Diagnostics::next("A"));
+    /// let b = Diagnostics::next("A").or_else(|| Diagnostics::next("B"));
+    ///
+    /// assert_eq!(a, b);
+    /// ```
     pub fn or_else(self, f: impl FnOnce() -> Self) -> Self {
         if self.is_empty() { f() } else { self }
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialOrd, PartialEq)]
 #[must_use]
 #[non_exhaustive]
 enum Emit {

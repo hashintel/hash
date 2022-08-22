@@ -15,7 +15,7 @@ use core::{
 
 pub use default::builtin_debug_hook_fallback;
 
-use crate::fmt::{Diagnostics, Emit, Frame};
+use crate::fmt::{Diagnostics, Frame};
 
 #[derive(Default)]
 pub(crate) struct HookContextImpl {
@@ -65,14 +65,15 @@ impl HookContextImpl {
 /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::ErrorKind;
 ///
-/// use error_stack::{fmt::{Emit}, Report};
+/// use error_stack::Report;
+/// use error_stack::fmt::Diagnostics;
 ///
 /// Report::install_debug_hook::<u64>(|val, ctx| {
 ///     if ctx.alternate() {
 ///         ctx.attach_snippet("u64 has been encountered");
 ///     }
 ///
-///     Emit::next(val.to_string())
+///     Diagnostics::next(val.to_string())
 /// });
 ///
 /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -118,7 +119,8 @@ impl HookContextImpl {
 /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::ErrorKind;
 ///
-/// use error_stack::{fmt::Emit, Report};
+/// use error_stack::Report;
+/// use error_stack::fmt::Diagnostics;
 ///
 ///
 /// Report::install_debug_hook::<u64>(|val, ctx| {
@@ -130,7 +132,7 @@ impl HookContextImpl {
 ///
 ///     ctx.insert(acc);
 ///
-///     Emit::next(format!("{val} (acc: {acc}, div: {div})"))
+///     Diagnostics::next(format!("{val} (acc: {acc}, div: {div})"))
 /// });
 ///
 /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -198,18 +200,23 @@ impl<'a, T> HookContext<'a, T> {
     /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
-    /// use error_stack::{fmt, fmt::Emit, Report};
+    /// use error_stack::{fmt, fmt::Diagnostics, Report};
     ///
     /// struct Value(u64);
     ///
     /// Report::install_debug_hook_fallback(|frame, ctx| {
-    ///     fmt::builtin_debug_hook_fallback(frame, ctx).or_else(|| frame.is::<Value>().then(|| {
-    ///         let ctx = ctx.cast::<u64>();
-    ///         Emit::next(format!("{} (Value)", ctx.increment()))
-    ///     }))
+    ///     fmt::builtin_debug_hook_fallback(frame, ctx).or_else(|| {
+    ///         frame
+    ///             .is::<Value>()
+    ///             .then(|| {
+    ///                 let ctx = ctx.cast::<u64>();
+    ///                 Diagnostics::next(format!("{} (Value)", ctx.increment()))
+    ///             })
+    ///             .unwrap_or_default()
+    ///     })
     /// });
     ///
-    /// Report::install_debug_hook::<u64>(|_, ctx| Emit::next(format!("{}", ctx.increment())));
+    /// Report::install_debug_hook::<u64>(|_, ctx| Diagnostics::next(format!("{}", ctx.increment())));
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
     ///     .attach(1u64)
@@ -321,13 +328,13 @@ impl<T: 'static> HookContext<'_, T> {
     /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
-    /// use error_stack::fmt::Emit;
+    /// use error_stack::fmt::Diagnostics;
     /// use error_stack::Report;
     ///
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     Emit::next(format!("Suggestion {}: {val}", ctx.increment()))
+    ///     Diagnostics::next(format!("Suggestion {}: {val}", ctx.increment()))
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -387,11 +394,13 @@ impl<T: 'static> HookContext<'_, T> {
     /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
-    /// use error_stack::{fmt::Emit, Report};
+    /// use error_stack::{fmt::Diagnostics, Report};
     ///
     /// struct Suggestion(&'static str);
     ///
-    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| Emit::next(format!("Suggestion {}: {val}", ctx.decrement())));
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
+    ///     Diagnostics::next(format!("Suggestion {}: {val}", ctx.decrement()))
+    /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
     ///     .attach(Suggestion("Use a file you can read next time!"))
@@ -568,7 +577,7 @@ mod default {
     /// [`Backtrace`]: std::backtrace::Backtrace
     /// [`SpanTrace`]: tracing_error::SpanTrace
     // Frame can be unused, if neither backtrace or spantrace are enabled
-    #[allow(unused_variables)]
+    #[allow(unused_variables, unused_mut)]
     pub fn builtin_debug_hook_fallback<'a>(
         frame: &Frame,
         ctx: &mut HookContext<'a, Frame>,

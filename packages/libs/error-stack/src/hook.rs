@@ -1,7 +1,7 @@
 use std::{error::Error, fmt, sync::RwLock};
 
 use crate::{
-    fmt::{Diagnostics, Emit, HookContext, Hooks},
+    fmt::{Diagnostics, HookContext, Hooks},
     Frame, Report, Result,
 };
 

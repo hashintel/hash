@@ -1,6 +1,6 @@
 use alloc::{string::String, vec, vec::Vec};
 
-use crate::fmt::{Diagnostics, Emit};
+use crate::fmt::Diagnostics;
 
 /// Helper for attaching information to a [`Report`].
 ///
@@ -12,9 +12,10 @@ use crate::fmt::{Diagnostics, Emit};
 /// use std::io::{Error, ErrorKind};
 ///
 /// use error_stack::{fmt::DebugDiagnostic, report};
+/// use error_stack::fmt::Diagnostics;
 ///
 /// let report = report!(Error::from(ErrorKind::InvalidInput)) //
-///     .attach(DebugDiagnostic::next("Hello!"));
+///     .attach(DebugDiagnostic::new(Diagnostics::next("Hello!")));
 ///
 /// # owo_colors::set_override(true);
 /// # fn render(value: String) -> String {
@@ -66,7 +67,7 @@ pub struct DebugDiagnostic {
 
 #[cfg(feature = "unstable")]
 impl DebugDiagnostic {
-    // Create a new DebugDiagnostic
+    /// Create a new DebugDiagnostic
     pub fn new(diagnostic: Diagnostics) -> Self {
         Self {
             output: diagnostic,
