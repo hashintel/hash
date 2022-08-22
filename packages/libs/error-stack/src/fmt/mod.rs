@@ -281,7 +281,6 @@ impl Diagnostics {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_empty.snap"))]
     /// </pre>
-    /// ```
     pub fn empty() -> Self {
         Diagnostics(Vec::new())
     }
@@ -326,7 +325,6 @@ impl Diagnostics {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap"))]
     /// </pre>
-    /// ```
     pub fn add(mut self, line: impl Into<String>) -> Self {
         self.0.push(Emit::next(line));
 
@@ -391,7 +389,6 @@ impl Diagnostics {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add_defer.snap"))]
     /// </pre>
-    /// ```
     pub fn add_defer(mut self, line: impl Into<String>) -> Self {
         self.0.push(Emit::defer(line));
 
