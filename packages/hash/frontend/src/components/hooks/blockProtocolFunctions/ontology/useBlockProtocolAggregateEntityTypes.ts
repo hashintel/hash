@@ -6,17 +6,17 @@ import {
   GetAllLatestEntityTypesQueryVariables,
 } from "../../../../graphql/apiTypes.gen";
 import { getAllLatestEntityTypesQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
-import { AggregateEntityTypeMessageCallback } from "./ontology-types-shim";
+import { AggregateEntityTypesMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolAggregateEntityTypes = (): {
-  aggregateEntityTypes: AggregateEntityTypeMessageCallback;
+  aggregateEntityTypes: AggregateEntityTypesMessageCallback;
 } => {
   const [aggregateEntityTypesQuery] = useLazyQuery<
     GetAllLatestEntityTypesQuery,
     GetAllLatestEntityTypesQueryVariables
   >(getAllLatestEntityTypesQuery);
 
-  const aggregateEntityTypes = useCallback<AggregateEntityTypeMessageCallback>(
+  const aggregateEntityTypes = useCallback<AggregateEntityTypesMessageCallback>(
     async ({ data }) => {
       if (!data) {
         return {

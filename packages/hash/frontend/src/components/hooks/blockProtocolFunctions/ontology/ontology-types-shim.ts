@@ -10,6 +10,23 @@ import {
   DataType,
 } from "@hashintel/hash-graph-client";
 
+export type OntologyCallbacks = {
+  aggregateDataTypes: AggregateDataTypesMessageCallback;
+  getDataType: GetDataTypeMessageCallback;
+  createPropertyType: CreatePropertyTypeMessageCallback;
+  aggregatePropertyTypes: AggregatePropertyTypesMessageCallback;
+  getPropertyType: GetPropertyTypeMessageCallback;
+  updatePropertyType: UpdatePropertyTypeMessageCallback;
+  createEntityType: CreateEntityTypeMessageCallback;
+  aggregateEntityTypes: AggregateEntityTypesMessageCallback;
+  getEntityType: GetEntityTypeMessageCallback;
+  updateEntityType: UpdateEntityTypeMessageCallback;
+  createLinkType: CreateLinkTypeMessageCallback;
+  aggregateLinkTypes: AggregateLinkTypesMessageCallback;
+  getLinkType: GetLinkTypeMessageCallback;
+  updateLinkType: UpdateLinkTypeMessageCallback;
+};
+
 /* Shared types */
 
 type Response<N extends string, T> = {
@@ -24,20 +41,9 @@ export type AggregateResult<T> = {
 
 export type DataTypeResponse = Response<"dataType", DataType>;
 
-export type CreateDataTypeRequest = {
-  dataType: DataType;
-};
-
-export type CreateDataTypeMessageCallback = MessageCallback<
-  CreateDataTypeRequest,
-  null,
-  DataTypeResponse,
-  CreateResourceError
->;
-
 export type AggregateDataTypesRequest = {};
 
-export type AggregateDataTypeMessageCallback = MessageCallback<
+export type AggregateDataTypesMessageCallback = MessageCallback<
   AggregateDataTypesRequest,
   null,
   AggregateResult<DataTypeResponse>,
@@ -70,7 +76,7 @@ export type CreatePropertyTypeMessageCallback = MessageCallback<
 
 export type AggregatePropertyTypesRequest = {};
 
-export type AggregatePropertyTypeMessageCallback = MessageCallback<
+export type AggregatePropertyTypesMessageCallback = MessageCallback<
   AggregatePropertyTypesRequest,
   null,
   AggregateResult<PropertyTypeResponse>,
@@ -115,7 +121,7 @@ export type CreateEntityTypeMessageCallback = MessageCallback<
 
 export type AggregateEntityTypesRequest = {};
 
-export type AggregateEntityTypeMessageCallback = MessageCallback<
+export type AggregateEntityTypesMessageCallback = MessageCallback<
   AggregateEntityTypesRequest,
   null,
   AggregateResult<EntityTypeResponse>,
@@ -160,7 +166,7 @@ export type CreateLinkTypeMessageCallback = MessageCallback<
 
 export type AggregateLinkTypesRequest = {};
 
-export type AggregateLinkTypeMessageCallback = MessageCallback<
+export type AggregateLinkTypesMessageCallback = MessageCallback<
   AggregateLinkTypesRequest,
   null,
   AggregateResult<LinkTypeResponse>,

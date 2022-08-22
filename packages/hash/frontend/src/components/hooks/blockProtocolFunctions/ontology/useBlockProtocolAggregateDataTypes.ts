@@ -6,17 +6,17 @@ import {
   GetAllLatestDataTypesQueryVariables,
 } from "../../../../graphql/apiTypes.gen";
 import { getAllLatestDataTypesQuery } from "../../../../graphql/queries/ontology/data-type.queries";
-import { AggregateDataTypeMessageCallback } from "./ontology-types-shim";
+import { AggregateDataTypesMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolAggregateDataTypes = (): {
-  aggregateDataTypes: AggregateDataTypeMessageCallback;
+  aggregateDataTypes: AggregateDataTypesMessageCallback;
 } => {
   const [aggregateDataTypesQuery] = useLazyQuery<
     GetAllLatestDataTypesQuery,
     GetAllLatestDataTypesQueryVariables
   >(getAllLatestDataTypesQuery);
 
-  const aggregateDataTypes = useCallback<AggregateDataTypeMessageCallback>(
+  const aggregateDataTypes = useCallback<AggregateDataTypesMessageCallback>(
     async ({ data }) => {
       if (!data) {
         return {

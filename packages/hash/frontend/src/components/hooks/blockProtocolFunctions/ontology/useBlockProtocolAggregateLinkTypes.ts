@@ -6,17 +6,17 @@ import {
   GetAllLatestLinkTypesQueryVariables,
 } from "../../../../graphql/apiTypes.gen";
 import { getAllLatestLinkTypesQuery } from "../../../../graphql/queries/ontology/link-type.queries";
-import { AggregateLinkTypeMessageCallback } from "./ontology-types-shim";
+import { AggregateLinkTypesMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolAggregateLinkTypes = (): {
-  aggregateLinkTypes: AggregateLinkTypeMessageCallback;
+  aggregateLinkTypes: AggregateLinkTypesMessageCallback;
 } => {
   const [aggregateLinkTypesQuery] = useLazyQuery<
     GetAllLatestLinkTypesQuery,
     GetAllLatestLinkTypesQueryVariables
   >(getAllLatestLinkTypesQuery);
 
-  const aggregateLinkTypes = useCallback<AggregateLinkTypeMessageCallback>(
+  const aggregateLinkTypes = useCallback<AggregateLinkTypesMessageCallback>(
     async ({ data }) => {
       if (!data) {
         return {

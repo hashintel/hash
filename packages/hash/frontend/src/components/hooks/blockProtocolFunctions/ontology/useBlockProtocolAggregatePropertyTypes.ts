@@ -6,10 +6,10 @@ import {
   GetAllLatestPropertyTypesQueryVariables,
 } from "../../../../graphql/apiTypes.gen";
 import { getAllLatestPropertyTypesQuery } from "../../../../graphql/queries/ontology/property-type.queries";
-import { AggregatePropertyTypeMessageCallback } from "./ontology-types-shim";
+import { AggregatePropertyTypesMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolAggregatePropertyTypes = (): {
-  aggregatePropertyTypes: AggregatePropertyTypeMessageCallback;
+  aggregatePropertyTypes: AggregatePropertyTypesMessageCallback;
 } => {
   const [aggregatePropertyTypesQuery] = useLazyQuery<
     GetAllLatestPropertyTypesQuery,
@@ -17,7 +17,7 @@ export const useBlockProtocolAggregatePropertyTypes = (): {
   >(getAllLatestPropertyTypesQuery);
 
   const aggregatePropertyTypes =
-    useCallback<AggregatePropertyTypeMessageCallback>(
+    useCallback<AggregatePropertyTypesMessageCallback>(
       async ({ data }) => {
         if (!data) {
           return {
