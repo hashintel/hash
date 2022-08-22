@@ -9,27 +9,26 @@ import { getEntityTypeQuery } from "../../../../graphql/queries/ontology/entity-
 import { GetEntityTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolGetEntityType = (): {
-  aggregateEntityTypes: GetEntityTypeMessageCallback;
+  getEntityType: GetEntityTypeMessageCallback;
 } => {
-  const [aggregateEntityTypesQuery] = useLazyQuery<
-    GetEntityTypeQuery,
-    GetEntityTypeQueryVariables
-  >(getEntityTypeQuery);
+  const [getFn] = useLazyQuery<GetEntityTypeQuery, GetEntityTypeQueryVariables>(
+    getEntityTypeQuery,
+  );
 
-  const aggregateEntityTypes = useCallback<GetEntityTypeMessageCallback>(
+  const getEntityType = useCallback<GetEntityTypeMessageCallback>(
     async ({ data }) => {
       if (!data) {
         return {
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "'data' must be provided for aggregateEntityTypes",
+              message: "'data' must be provided for getEntityType",
             },
           ],
         };
       }
 
-      const response = await aggregateEntityTypesQuery({
+      const response = await getFn({
         query: getEntityTypeQuery,
       });
 
@@ -38,7 +37,7 @@ export const useBlockProtocolGetEntityType = (): {
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "Error calling aggregateEntityTypes",
+              message: "Error calling getEntityType",
             },
           ],
         };
@@ -48,8 +47,8 @@ export const useBlockProtocolGetEntityType = (): {
         data: response.data.getEntityType,
       };
     },
-    [aggregateEntityTypesQuery],
+    [getFn],
   );
 
-  return { aggregateEntityTypes };
+  return { getEntityType };
 };

@@ -11,7 +11,7 @@ import { AggregateEntityTypesMessageCallback } from "./ontology-types-shim";
 export const useBlockProtocolAggregateEntityTypes = (): {
   aggregateEntityTypes: AggregateEntityTypesMessageCallback;
 } => {
-  const [aggregateEntityTypesQuery] = useLazyQuery<
+  const [aggregateFn] = useLazyQuery<
     GetAllLatestEntityTypesQuery,
     GetAllLatestEntityTypesQueryVariables
   >(getAllLatestEntityTypesQuery);
@@ -29,7 +29,7 @@ export const useBlockProtocolAggregateEntityTypes = (): {
         };
       }
 
-      const response = await aggregateEntityTypesQuery({
+      const response = await aggregateFn({
         query: getAllLatestEntityTypesQuery,
       });
 
@@ -50,7 +50,7 @@ export const useBlockProtocolAggregateEntityTypes = (): {
         },
       };
     },
-    [aggregateEntityTypesQuery],
+    [aggregateFn],
   );
 
   return { aggregateEntityTypes };

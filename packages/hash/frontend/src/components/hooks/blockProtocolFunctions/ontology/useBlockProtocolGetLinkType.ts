@@ -9,27 +9,26 @@ import { getLinkTypeQuery } from "../../../../graphql/queries/ontology/link-type
 import { GetLinkTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolGetLinkType = (): {
-  aggregateLinkTypes: GetLinkTypeMessageCallback;
+  getLinkType: GetLinkTypeMessageCallback;
 } => {
-  const [aggregateLinkTypesQuery] = useLazyQuery<
-    GetLinkTypeQuery,
-    GetLinkTypeQueryVariables
-  >(getLinkTypeQuery);
+  const [getFn] = useLazyQuery<GetLinkTypeQuery, GetLinkTypeQueryVariables>(
+    getLinkTypeQuery,
+  );
 
-  const aggregateLinkTypes = useCallback<GetLinkTypeMessageCallback>(
+  const getLinkType = useCallback<GetLinkTypeMessageCallback>(
     async ({ data }) => {
       if (!data) {
         return {
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "'data' must be provided for aggregateLinkTypes",
+              message: "'data' must be provided for getLinkType",
             },
           ],
         };
       }
 
-      const response = await aggregateLinkTypesQuery({
+      const response = await getFn({
         query: getLinkTypeQuery,
       });
 
@@ -38,7 +37,7 @@ export const useBlockProtocolGetLinkType = (): {
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "Error calling aggregateLinkTypes",
+              message: "Error calling getLinkType",
             },
           ],
         };
@@ -48,8 +47,8 @@ export const useBlockProtocolGetLinkType = (): {
         data: response.data.getLinkType,
       };
     },
-    [aggregateLinkTypesQuery],
+    [getFn],
   );
 
-  return { aggregateLinkTypes };
+  return { getLinkType };
 };

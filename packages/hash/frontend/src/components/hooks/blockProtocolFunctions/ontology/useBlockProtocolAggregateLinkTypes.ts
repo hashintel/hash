@@ -11,7 +11,7 @@ import { AggregateLinkTypesMessageCallback } from "./ontology-types-shim";
 export const useBlockProtocolAggregateLinkTypes = (): {
   aggregateLinkTypes: AggregateLinkTypesMessageCallback;
 } => {
-  const [aggregateLinkTypesQuery] = useLazyQuery<
+  const [aggregateFn] = useLazyQuery<
     GetAllLatestLinkTypesQuery,
     GetAllLatestLinkTypesQueryVariables
   >(getAllLatestLinkTypesQuery);
@@ -29,7 +29,7 @@ export const useBlockProtocolAggregateLinkTypes = (): {
         };
       }
 
-      const response = await aggregateLinkTypesQuery({
+      const response = await aggregateFn({
         query: getAllLatestLinkTypesQuery,
       });
 
@@ -50,7 +50,7 @@ export const useBlockProtocolAggregateLinkTypes = (): {
         },
       };
     },
-    [aggregateLinkTypesQuery],
+    [aggregateFn],
   );
 
   return { aggregateLinkTypes };

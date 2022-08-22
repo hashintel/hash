@@ -9,27 +9,27 @@ import { getPropertyTypeQuery } from "../../../../graphql/queries/ontology/prope
 import { GetPropertyTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolGetPropertyType = (): {
-  aggregatePropertyTypes: GetPropertyTypeMessageCallback;
+  getPropertyType: GetPropertyTypeMessageCallback;
 } => {
-  const [aggregatePropertyTypesQuery] = useLazyQuery<
+  const [getFn] = useLazyQuery<
     GetPropertyTypeQuery,
     GetPropertyTypeQueryVariables
   >(getPropertyTypeQuery);
 
-  const aggregatePropertyTypes = useCallback<GetPropertyTypeMessageCallback>(
+  const getPropertyType = useCallback<GetPropertyTypeMessageCallback>(
     async ({ data }) => {
       if (!data) {
         return {
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "'data' must be provided for aggregatePropertyTypes",
+              message: "'data' must be provided for getPropertyType",
             },
           ],
         };
       }
 
-      const response = await aggregatePropertyTypesQuery({
+      const response = await getFn({
         query: getPropertyTypeQuery,
       });
 
@@ -38,7 +38,7 @@ export const useBlockProtocolGetPropertyType = (): {
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "Error calling aggregatePropertyTypes",
+              message: "Error calling getPropertyType",
             },
           ],
         };
@@ -48,8 +48,8 @@ export const useBlockProtocolGetPropertyType = (): {
         data: response.data.getPropertyType,
       };
     },
-    [aggregatePropertyTypesQuery],
+    [getFn],
   );
 
-  return { aggregatePropertyTypes };
+  return { getPropertyType };
 };

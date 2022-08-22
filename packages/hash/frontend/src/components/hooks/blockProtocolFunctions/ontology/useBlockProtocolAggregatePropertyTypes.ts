@@ -11,7 +11,7 @@ import { AggregatePropertyTypesMessageCallback } from "./ontology-types-shim";
 export const useBlockProtocolAggregatePropertyTypes = (): {
   aggregatePropertyTypes: AggregatePropertyTypesMessageCallback;
 } => {
-  const [aggregatePropertyTypesQuery] = useLazyQuery<
+  const [aggregateFn] = useLazyQuery<
     GetAllLatestPropertyTypesQuery,
     GetAllLatestPropertyTypesQueryVariables
   >(getAllLatestPropertyTypesQuery);
@@ -30,7 +30,7 @@ export const useBlockProtocolAggregatePropertyTypes = (): {
           };
         }
 
-        const response = await aggregatePropertyTypesQuery({
+        const response = await aggregateFn({
           query: getAllLatestPropertyTypesQuery,
         });
 
@@ -51,7 +51,7 @@ export const useBlockProtocolAggregatePropertyTypes = (): {
           },
         };
       },
-      [aggregatePropertyTypesQuery],
+      [aggregateFn],
     );
 
   return { aggregatePropertyTypes };

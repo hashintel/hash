@@ -9,27 +9,26 @@ import { getDataTypeQuery } from "../../../../graphql/queries/ontology/data-type
 import { GetDataTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolGetDataType = (): {
-  aggregateDataTypes: GetDataTypeMessageCallback;
+  getDataType: GetDataTypeMessageCallback;
 } => {
-  const [aggregateDataTypesQuery] = useLazyQuery<
-    GetDataTypeQuery,
-    GetDataTypeQueryVariables
-  >(getDataTypeQuery);
+  const [getFn] = useLazyQuery<GetDataTypeQuery, GetDataTypeQueryVariables>(
+    getDataTypeQuery,
+  );
 
-  const aggregateDataTypes = useCallback<GetDataTypeMessageCallback>(
+  const getDataType = useCallback<GetDataTypeMessageCallback>(
     async ({ data }) => {
       if (!data) {
         return {
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "'data' must be provided for aggregateDataTypes",
+              message: "'data' must be provided for getDataType",
             },
           ],
         };
       }
 
-      const response = await aggregateDataTypesQuery({
+      const response = await getFn({
         query: getDataTypeQuery,
       });
 
@@ -38,7 +37,7 @@ export const useBlockProtocolGetDataType = (): {
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "Error calling aggregateDataTypes",
+              message: "Error calling getDataType",
             },
           ],
         };
@@ -48,8 +47,8 @@ export const useBlockProtocolGetDataType = (): {
         data: response.data.getDataType,
       };
     },
-    [aggregateDataTypesQuery],
+    [getFn],
   );
 
-  return { aggregateDataTypes };
+  return { getDataType };
 };

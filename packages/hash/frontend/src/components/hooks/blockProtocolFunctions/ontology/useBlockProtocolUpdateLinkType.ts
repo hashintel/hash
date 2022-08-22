@@ -2,24 +2,24 @@ import { useMutation } from "@apollo/client";
 import { useCallback } from "react";
 
 import {
-  UpdatePropertyTypeMutation,
-  UpdatePropertyTypeMutationVariables,
+  UpdateLinkTypeMutation,
+  UpdateLinkTypeMutationVariables,
 } from "../../../../graphql/apiTypes.gen";
-import { updatePropertyTypeMutation } from "../../../../graphql/queries/ontology/property-type.queries";
-import { UpdatePropertyTypeMessageCallback } from "./ontology-types-shim";
+import { updateLinkTypeMutation } from "../../../../graphql/queries/ontology/link-type.queries";
+import { UpdateLinkTypeMessageCallback } from "./ontology-types-shim";
 
-export const useBlockProtocolUpdatePropertyType = (
+export const useBlockProtocolUpdateLinkType = (
   accountId: string,
   readonly?: boolean,
 ): {
-  updatePropertyType: UpdatePropertyTypeMessageCallback;
+  updateLinkType: UpdateLinkTypeMessageCallback;
 } => {
   const [updateFn] = useMutation<
-    UpdatePropertyTypeMutation,
-    UpdatePropertyTypeMutationVariables
-  >(updatePropertyTypeMutation);
+    UpdateLinkTypeMutation,
+    UpdateLinkTypeMutationVariables
+  >(updateLinkTypeMutation);
 
-  const updatePropertyType: UpdatePropertyTypeMessageCallback = useCallback(
+  const updateLinkType: UpdateLinkTypeMessageCallback = useCallback(
     async ({ data }) => {
       if (readonly) {
         return {
@@ -43,12 +43,12 @@ export const useBlockProtocolUpdatePropertyType = (
         };
       }
 
-      const { propertyTypeVersionedUri, propertyType } = data;
+      const { linkTypeVersionedUri, linkType } = data;
       const { data: responseData } = await updateFn({
         variables: {
           accountId,
-          propertyTypeVersionedUri,
-          updatedPropertyType: propertyType,
+          linkTypeVersionedUri,
+          updatedLinkType: linkType,
         },
       });
 
@@ -65,9 +65,9 @@ export const useBlockProtocolUpdatePropertyType = (
 
       return {
         data: {
-          propertyTypeVersionedUri:
-            responseData.updatePropertyType.propertyTypeVersionedUri,
-          propertyType: responseData.updatePropertyType.propertyType,
+          linkTypeVersionedUri:
+            responseData.updateLinkType.linkTypeVersionedUri,
+          linkType: responseData.updateLinkType.linkType,
         },
       };
     },
@@ -75,6 +75,6 @@ export const useBlockProtocolUpdatePropertyType = (
   );
 
   return {
-    updatePropertyType,
+    updateLinkType,
   };
 };
