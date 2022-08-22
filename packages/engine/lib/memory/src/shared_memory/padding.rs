@@ -46,6 +46,8 @@
 
 #![allow(clippy::cast_sign_loss)]
 
+use crate::arrow::util::alignment::ALIGNMENT;
+
 #[must_use]
 pub(crate) fn _get_static_buffer_length(len: usize) -> usize {
     len + pad_to_sys_align(len)
@@ -124,9 +126,9 @@ pub(crate) fn _maybe_new_dynamic_length(
 // prefetcher optimizations
 #[must_use]
 const fn pad_to_sys_align(len: usize) -> usize {
-    match len % arrow::alloc::ALIGNMENT {
+    match len % ALIGNMENT {
         0 => 0,
-        v => arrow::alloc::ALIGNMENT - v,
+        v => ALIGNMENT - v,
     }
 }
 

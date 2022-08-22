@@ -19,7 +19,7 @@ mod task;
 
 use std::sync::Arc;
 
-use arrow::array::Array;
+use arrow2::array::Array;
 use async_trait::async_trait;
 use stateful::{
     context::{ContextColumn, ContextSchema},

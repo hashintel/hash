@@ -1,7 +1,7 @@
 use crate::arrow::meta::BufferType;
 
 /// Internal representation of Arrow `FieldNode` Message
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Node {
     /// Number of value slots (if Node is the base column node, then it is the number of items in
     /// column)

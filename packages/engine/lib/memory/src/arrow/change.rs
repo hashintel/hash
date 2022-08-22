@@ -1,20 +1,20 @@
-use arrow::array::ArrayData;
+use arrow2::array::ArrayRef;
 
 use crate::{arrow::flush::GrowableColumn, Result};
 
-/// When a mutable column is modified not in place, the change is recorded in this format.
+/// When a mutable column is modified (but not in-place) we record the change using this struct.
 pub struct ColumnChange {
-    pub data: ArrayData,
+    pub data: ArrayRef,
     /// Index of column
     pub index: usize,
 }
 
-impl GrowableColumn<ArrayData> for ColumnChange {
+impl GrowableColumn<ArrayRef> for ColumnChange {
     fn index(&self) -> usize {
         self.index
     }
 
-    fn data(&self) -> &ArrayData {
+    fn data(&self) -> &ArrayRef {
         &self.data
     }
 }
