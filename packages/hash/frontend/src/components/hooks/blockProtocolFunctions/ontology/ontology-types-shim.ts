@@ -42,7 +42,6 @@ export type AggregateResult<T> = {
 export type DataTypeResponse = Response<"dataType", DataType>;
 
 export type AggregateDataTypesRequest = {};
-
 export type AggregateDataTypesMessageCallback = MessageCallback<
   AggregateDataTypesRequest,
   null,
@@ -51,7 +50,6 @@ export type AggregateDataTypesMessageCallback = MessageCallback<
 >;
 
 export type GetDataTypeRequest = Pick<DataTypeResponse, "dataTypeVersionedUri">;
-
 export type GetDataTypeMessageCallback = MessageCallback<
   GetDataTypeRequest,
   null,
@@ -66,7 +64,6 @@ export type PropertyTypeResponse = Response<"propertyType", PropertyType>;
 export type CreatePropertyTypeRequest = {
   propertyType: PropertyType;
 };
-
 export type CreatePropertyTypeMessageCallback = MessageCallback<
   CreatePropertyTypeRequest,
   null,
@@ -75,7 +72,6 @@ export type CreatePropertyTypeMessageCallback = MessageCallback<
 >;
 
 export type AggregatePropertyTypesRequest = {};
-
 export type AggregatePropertyTypesMessageCallback = MessageCallback<
   AggregatePropertyTypesRequest,
   null,
@@ -84,7 +80,6 @@ export type AggregatePropertyTypesMessageCallback = MessageCallback<
 >;
 
 export type GetPropertyTypeRequest = Pick<PropertyTypeResponse, "propertyType">;
-
 export type GetPropertyTypeMessageCallback = MessageCallback<
   GetPropertyTypeRequest,
   null,
@@ -96,7 +91,6 @@ export type UpdatePropertyTypeRequest = {
   propertyTypeVersionedUri: string;
   propertyType: PropertyType;
 };
-
 export type UpdatePropertyTypeMessageCallback = MessageCallback<
   UpdatePropertyTypeRequest,
   null,
@@ -111,7 +105,6 @@ export type EntityTypeResponse = Response<"entityType", EntityType>;
 export type EntityTypeRequest = {
   entityType: EntityType;
 };
-
 export type CreateEntityTypeMessageCallback = MessageCallback<
   EntityTypeRequest,
   null,
@@ -120,7 +113,6 @@ export type CreateEntityTypeMessageCallback = MessageCallback<
 >;
 
 export type AggregateEntityTypesRequest = {};
-
 export type AggregateEntityTypesMessageCallback = MessageCallback<
   AggregateEntityTypesRequest,
   null,
@@ -129,7 +121,6 @@ export type AggregateEntityTypesMessageCallback = MessageCallback<
 >;
 
 export type GetEntityTypeRequest = Pick<EntityTypeResponse, "entityType">;
-
 export type GetEntityTypeMessageCallback = MessageCallback<
   GetEntityTypeRequest,
   null,
@@ -141,7 +132,6 @@ export type UpdateEntityTypeRequest = {
   entityTypeVersionedUri: string;
   entityType: EntityType;
 };
-
 export type UpdateEntityTypeMessageCallback = MessageCallback<
   UpdateEntityTypeRequest,
   null,
@@ -156,7 +146,6 @@ export type LinkTypeResponse = Response<"linkType", LinkType>;
 export type CreateLinkTypeRequest = {
   linkType: LinkType;
 };
-
 export type CreateLinkTypeMessageCallback = MessageCallback<
   CreateLinkTypeRequest,
   null,
@@ -165,7 +154,6 @@ export type CreateLinkTypeMessageCallback = MessageCallback<
 >;
 
 export type AggregateLinkTypesRequest = {};
-
 export type AggregateLinkTypesMessageCallback = MessageCallback<
   AggregateLinkTypesRequest,
   null,
@@ -174,7 +162,6 @@ export type AggregateLinkTypesMessageCallback = MessageCallback<
 >;
 
 export type GetLinkTypeRequest = Pick<LinkTypeResponse, "linkType">;
-
 export type GetLinkTypeMessageCallback = MessageCallback<
   GetLinkTypeRequest,
   null,
@@ -186,7 +173,6 @@ export type UpdateLinkTypeRequest = {
   linkTypeVersionedUri: string;
   linkType: LinkType;
 };
-
 export type UpdateLinkTypeMessageCallback = MessageCallback<
   UpdateLinkTypeRequest,
   null,
