@@ -117,7 +117,7 @@ const gen_agent_state = (agent_schema, getters) => {
   AgentState.prototype.get = function (field_name) {
     let value = hash_util.json_deepcopy(this[field_name]);
     if (field_name === "messages" && !value) {
-      return []
+      return [];
     } else {
       return value;
     }
@@ -150,7 +150,7 @@ const gen_agent_state = (agent_schema, getters) => {
     // because arrow2 serializes empty arrays as `null`, if there are no messages, then we
     // need to set the field (because we can't push to null)
     if (!this.__msgs[this.__idx_in_group]) {
-      this.__msgs[this.__idx_in_group] = [new_message]
+      this.__msgs[this.__idx_in_group] = [new_message];
     } else {
       this.__msgs[this.__idx_in_group].push(new_message); // json_stringify(null) === 'null'.
     }
