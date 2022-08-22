@@ -1,7 +1,7 @@
 use std::{error::Error, fmt, sync::RwLock};
 
 use crate::{
-    fmt::{Emit, HookContext, Hooks},
+    fmt::{Diagnostics, Emit, HookContext, Hooks},
     Frame, Report, Result,
 };
 
@@ -52,14 +52,14 @@ impl Report<()> {
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::{
-    ///     fmt::{Emit},
     ///     report, Report,
     /// };
+    /// use error_stack::fmt::Diagnostics;
     ///
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|val, _| {
-    ///     Emit::Next(format!("Suggestion: {}", val.0))
+    ///     Diagnostics::next(format!("Suggestion: {}", val.0))
     /// });
     ///
     /// let report =
@@ -89,7 +89,7 @@ impl Report<()> {
     /// </pre>
     #[cfg(feature = "std")]
     pub fn install_debug_hook<T: Send + Sync + 'static>(
-        hook: impl Fn(&T, &mut HookContext<T>) -> Emit + Send + Sync + 'static,
+        hook: impl Fn(&T, &mut HookContext<T>) -> Diagnostics + Send + Sync + 'static,
     ) {
         let mut lock = FMT_HOOK.write().expect("should not be poisoned");
         lock.insert(hook);
@@ -113,7 +113,7 @@ impl Report<()> {
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::{
-    ///     fmt::Emit,
+    ///     fmt::Diagnostics,
     ///     report, Report,
     /// };
     ///
@@ -122,7 +122,7 @@ impl Report<()> {
     /// // This will remove all formatting for `Backtrace` and `SpanTrace`!
     /// // The example after this once calls `builtin_debug_hook_fallback()`, which makes sure that we always print
     /// // `Backtrace` and `SpanTrace`.
-    /// Report::install_debug_hook_fallback(|_, _| Some(Emit::next("unknown")));
+    /// Report::install_debug_hook_fallback(|_, _| Diagnostics::next("unknown"));
     ///
     /// let report =
     ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("O no, try again"));
@@ -156,13 +156,13 @@ impl Report<()> {
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::{fmt, report, Report};
-    /// use error_stack::fmt::Emit;
+    /// use error_stack::fmt::Diagnostics;
     ///
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook_fallback(|val, ctx| {
     ///     // first run all builtin hooks to make sure that we print backtrace and spantrace
-    ///     Some(fmt::builtin_debug_hook_fallback(val, ctx).unwrap_or(Emit::next("unknown")))
+    ///     fmt::builtin_debug_hook_fallback(val, ctx).or_else(|| Diagnostics::next("unknown"))
     /// });
     ///
     /// let report =
@@ -192,7 +192,7 @@ impl Report<()> {
     /// </pre>
     #[cfg(feature = "std")]
     pub fn install_debug_hook_fallback(
-        hook: impl for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Option<Emit>
+        hook: impl for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Diagnostics
         + Send
         + Sync
         + 'static,

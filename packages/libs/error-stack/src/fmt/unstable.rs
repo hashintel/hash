@@ -1,6 +1,6 @@
 use alloc::{string::String, vec, vec::Vec};
 
-use crate::fmt::Emit;
+use crate::fmt::{Diagnostics, Emit};
 
 /// Helper for attaching information to a [`Report`].
 ///
@@ -60,25 +60,16 @@ use crate::fmt::Emit;
 // TODO: remove experimental flag once specialisation is stabilized or sound
 #[cfg(feature = "unstable")]
 pub struct DebugDiagnostic {
-    output: Emit,
+    output: Diagnostics,
     snippets: Vec<String>,
 }
 
 #[cfg(feature = "unstable")]
 impl DebugDiagnostic {
-    /// The diagnostic is going to be emitted immediately once encountered in the frame stack.
-    pub fn next<T: Into<String>>(output: T) -> Self {
+    // Create a new DebugDiagnostic
+    pub fn new(diagnostic: Diagnostics) -> Self {
         Self {
-            output: Emit::Next(output.into()),
-            snippets: vec![],
-        }
-    }
-
-    /// The diagnostic is going to be deferred until the end of the group of the current frame
-    /// stack.
-    pub fn defer<T: Into<String>>(output: T) -> Self {
-        Self {
-            output: Emit::Defer(output.into()),
+            output: diagnostic,
             snippets: vec![],
         }
     }
@@ -91,7 +82,7 @@ impl DebugDiagnostic {
         self
     }
 
-    pub(crate) const fn output(&self) -> &Emit {
+    pub(crate) const fn output(&self) -> &Diagnostics {
         &self.output
     }
 

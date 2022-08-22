@@ -15,7 +15,7 @@ use core::{
 
 pub use default::builtin_debug_hook_fallback;
 
-use crate::fmt::{Emit, Frame};
+use crate::fmt::{Diagnostics, Emit, Frame};
 
 #[derive(Default)]
 pub(crate) struct HookContextImpl {
@@ -440,9 +440,10 @@ impl<T: 'static> HookContext<'_, T> {
     }
 }
 
-type BoxedHook = Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Emit + Send + Sync>;
+type BoxedHook =
+    Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Diagnostics + Send + Sync>;
 type BoxedFallbackHook =
-    Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Option<Emit> + Send + Sync>;
+    Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Diagnostics + Send + Sync>;
 
 /// Holds list of hooks and a fallback.
 ///
@@ -478,7 +479,7 @@ pub(crate) struct Hooks {
 impl Hooks {
     pub(crate) fn insert<T: Send + Sync + 'static>(
         &mut self,
-        hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) -> Emit + Send + Sync + 'static,
+        hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) -> Diagnostics + Send + Sync + 'static,
     ) {
         let inner = self.inner.get_or_insert_with(BTreeMap::new);
 
@@ -496,7 +497,7 @@ impl Hooks {
 
     pub(crate) fn fallback(
         &mut self,
-        hook: impl for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Option<Emit>
+        hook: impl for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Diagnostics
         + Send
         + Sync
         + 'static,
@@ -504,13 +505,13 @@ impl Hooks {
         self.fallback = Some(Box::new(hook));
     }
 
-    pub(crate) fn call<'a>(&self, frame: &Frame, ctx: &mut HookContext<'a, Frame>) -> Option<Emit> {
+    pub(crate) fn call<'a>(&self, frame: &Frame, ctx: &mut HookContext<'a, Frame>) -> Diagnostics {
         let ty = Frame::type_id(frame);
 
         if let Some(hook) = self.inner.as_ref().and_then(|map| map.get(&ty)) {
-            Some((hook)(frame, ctx))
+            hook(frame, ctx)
         } else if let Some(fallback) = self.fallback.as_ref() {
-            (fallback)(frame, ctx)
+            fallback(frame, ctx)
         } else {
             builtin_debug_hook_fallback(frame, ctx)
         }
@@ -529,17 +530,17 @@ mod default {
     use tracing_error::SpanTrace;
 
     use crate::{
-        fmt::{hook::HookContext, Emit},
+        fmt::{hook::HookContext, Diagnostics, Emit},
         Frame,
     };
 
     #[cfg(all(nightly, feature = "std"))]
-    fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Emit {
+    fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Diagnostics {
         let idx = ctx.increment();
 
         ctx.attach_snippet(format!("Backtrace No. {}\n{}", idx + 1, backtrace));
 
-        Emit::Defer(format!(
+        Diagnostics::defer(format!(
             "backtrace with {} frames ({})",
             backtrace.frames().len(),
             idx + 1
@@ -547,7 +548,7 @@ mod default {
     }
 
     #[cfg(feature = "spantrace")]
-    fn span_trace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) -> Emit {
+    fn span_trace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) -> Diagnostics {
         let idx = ctx.increment();
 
         let mut span = 0;
@@ -558,7 +559,7 @@ mod default {
 
         ctx.attach_snippet(format!("Span Trace No. {}\n{}", idx + 1, spantrace));
 
-        Emit::Defer(format!("spantrace with {span} frames ({})", idx + 1))
+        Diagnostics::defer(format!("spantrace with {span} frames ({})", idx + 1))
     }
 
     /// Fallback for common attachments that are automatically created
@@ -571,19 +572,21 @@ mod default {
     pub fn builtin_debug_hook_fallback<'a>(
         frame: &Frame,
         ctx: &mut HookContext<'a, Frame>,
-    ) -> Option<Emit> {
+    ) -> Diagnostics {
+        let mut diag = Diagnostics::empty();
+
         // we're only able to use `request_ref` in nightly, because the Provider API hasn't been
         // stabilized yet.
         #[cfg(nightly)]
         {
             #[cfg(feature = "std")]
             if let Some(bt) = frame.request_ref() {
-                return Some(backtrace(bt, ctx.cast()));
+                diag = diag.append(backtrace(bt, ctx.cast()));
             }
 
             #[cfg(feature = "spantrace")]
             if let Some(st) = frame.request_ref() {
-                return Some(span_trace(st, ctx.cast()));
+                diag = diag.append(span_trace(st, ctx.cast()));
             }
         }
 
@@ -591,10 +594,10 @@ mod default {
         {
             #[cfg(feature = "spantrace")]
             if let Some(st) = frame.downcast_ref() {
-                return Some(span_trace(st, ctx.cast()));
+                diag = diag.append(span_trace(st, ctx.cast()));
             }
         }
 
-        None
+        diag
     }
 }

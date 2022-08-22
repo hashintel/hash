@@ -44,25 +44,23 @@
 //! # // we only test on nightly, therefore report is unused (so is render)
 //! # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 //! use std::io::{Error, ErrorKind};
-//! use error_stack::{
-//!     fmt::{Emit},
-//!     Report
-//! };
+//! use error_stack::Report;
+//! use error_stack::fmt::Diagnostics;
 //!
 //! // This hook will never be called, because a later invocation of `install_debug_hook` overwrites
 //! // the hook for the type `u64`.
-//! Report::install_debug_hook::<u64>(|_, _| Emit::next("will never be called"));
+//! Report::install_debug_hook::<u64>(|_, _| Diagnostics::next("will never be called"));
 //!
 //! // `HookContext` always has a type parameter, which needs to be the same as the type of the
 //! // value, we use `HookContext` here as storage, to store values specific to this hook.
 //! // Here we make use of the auto-incrementing feature.
 //! // The incrementation is type specific, meaning that `ctx.increment()` for the `u32` hook will
 //! // not influence the counter of the `u64` or `u16` hook.
-//! Report::install_debug_hook::<u32>(|_, ctx| Emit::next(format!("u32 value {}", ctx.increment())));
+//! Report::install_debug_hook::<u32>(|_, ctx| Diagnostics::next(format!("u32 value {}", ctx.increment())));
 //!
 //! // we do not need to make use of the context, to either store a value for the duration of the
 //! // rendering, or to render additional text, which is why we omit the parameter.
-//! Report::install_debug_hook::<u64>(|val, _| Emit::next(format!("u64 value ({val})")));
+//! Report::install_debug_hook::<u64>(|val, _| Diagnostics::next(format!("u64 value ({val})")));
 //!
 //! Report::install_debug_hook::<u16>(|_, ctx| {
 //!     // we set a value, which will be removed on non-alternate views
@@ -70,12 +68,13 @@
 //!     if ctx.alternate() {
 //!         ctx.attach_snippet("Look! I was rendered from a `u16`");
 //!     }
-//!     Emit::next("For more information, look down below")
+//!
+//!     Diagnostics::next("For more information, look down below")
 //!  });
 //!
 //! // you can use arbitrary values as arguments, just make sure that you won't repeat them.
 //! // here we use [`Emit::defer`], this means that this value will be put at the end of the group.
-//! Report::install_debug_hook::<String>(|val, _| Emit::defer(val));
+//! Report::install_debug_hook::<String>(|val, _| Diagnostics::defer(val));
 //!
 //! let report = Report::new(Error::from(ErrorKind::InvalidInput))
 //!     .attach(2u64)
@@ -170,12 +169,15 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
 /// Modify the behaviour, with which text returned from hook invocations are rendered.
 ///
-/// Text can either be emitted immediately as the [`Emit::Next`] line, or deferred the via
-/// [`Emit::Defer`] until the end of the current stack, a stack is a list of attachments until a
-/// frame, which has more than a single source.
+/// Text can either be emitted immediately as next line, or deferred until the end of the current
+/// stack, a stack is a list of attachments until a frame which has more than a single source.
 ///
-/// Hooks that emit [`Emit::Defer`] are reversed when rendered, meaning that when `A`, `B`, and `C`
-/// use [`Emit::Defer`], they will be rendered in the order: `C`, `B`, `A`.
+/// Deferred lines are reversed when rendered, meaning that when `A`, `B`, and `C` have been added
+/// by **any** hook via [`.defer()`] or [`.add_defer()`], they will be rendered in the order: `C`,
+/// `B`, `A`.
+///
+/// [`.defer()`]: Self::defer
+/// [`.add_defer()`]: Self::add_defer
 ///
 /// # Example
 ///
@@ -184,22 +186,33 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::{Error, ErrorKind};
 ///
-/// use error_stack::{
-///     fmt::Emit,
-///     Report
-/// };
+/// use error_stack::{fmt::Diagnostics, Report};
 ///
-/// Report::install_debug_hook::<u64>(|val, _| Emit::next(format!("u64: {val}")));
-/// Report::install_debug_hook::<u32>(|val, _| Emit::defer(format!("u32: {val}")));
+/// struct Warning(&'static str);
+/// struct ErrorCode(u64);
+/// struct Suggestion(&'static str);
+/// struct Secret(&'static str);
+///
+/// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| {
+///     Diagnostics::next(format!("Error Code: {val}"))
+/// });
+/// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
+///     Diagnostics::defer(format!("Suggestion: {val}"))
+/// });
+/// Report::install_debug_hook::<Warning>(|Warning(val), _| {
+///     Diagnostics::next("Abnormal program execution detected").add(format!("Warning: {val}"))
+/// });
+/// Report::install_debug_hook::<Secret>(|_, _| Diagnostics::empty());
 ///
 /// let report = Report::new(Error::from(ErrorKind::InvalidInput))
-///     .attach(1u64)
-///     .attach(2u32)
-///     .attach(3u64)
-///     .attach(4u32)
-///     .attach(5u32)
-///     .attach(6u64)
-///     .attach(7u64);
+///     .attach(ErrorCode(404))
+///     .attach(Suggestion("Do you have a connection to the internet?"))
+///     .attach(ErrorCode(405))
+///     .attach(Warning("Unable to determine environment"))
+///     .attach(Secret("pssst, don't tell anyone else c;"))
+///     .attach(Suggestion("Execute the program from the fish shell"))
+///     .attach(ErrorCode(501))
+///     .attach(Suggestion("Try better next time!"));
 ///
 /// # owo_colors::set_override(true);
 /// # fn render(value: String) -> String {
@@ -221,10 +234,146 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// <pre>
 #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap"))]
 /// </pre>
+#[must_use]
+#[derive(Debug, Clone)]
+pub struct Diagnostics(Vec<Emit>);
+
+impl Diagnostics {
+    /// Create a new empty instance
+    ///
+    /// Returning this without adding any line via [`.add()`] or [`.add_defer()`] will skip the
+    /// returned hook or fallback invocation, effectively ignoring the value returned.
+    ///
+    /// [`.add()`]: Self::add
+    /// [`.add_defer()`]: Self::add_defer
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use std::io;
+    ///
+    /// use error_stack::{fmt::Diagnostics, Report};
+    ///
+    /// struct Suggestion(&'static str);
+    ///
+    /// Report::install_debug_hook::<Suggestion>(|_, _| Diagnostics::empty());
+    ///
+    /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput));
+    ///
+    /// # owo_colors::set_override(true);
+    /// # fn render(value: String) -> String {
+    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #
+    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #
+    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// # }
+    /// #
+    /// # #[cfg(nightly)]
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_empty.snap")].assert_eq(&render(format!("{report:?}")));
+    /// #
+    /// println!("{report:?}");
+    /// ```
+    ///
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_empty.snap"))]
+    /// </pre>
+    /// ```
+    pub fn empty() -> Self {
+        Diagnostics(Vec::new())
+    }
+
+    /// Add a new line which is going to be emitted immediately.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use std::io;
+    ///
+    /// use error_stack::{fmt::Diagnostics, Report};
+    ///
+    /// struct Suggestion(&'static str);
+    ///
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
+    ///     Diagnostics::empty()
+    ///         .add(format!("Suggestion: {val}"))
+    ///         .add("Sorry for the inconvenience!")
+    /// });
+    ///
+    /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput));
+    ///
+    /// # owo_colors::set_override(true);
+    /// # fn render(value: String) -> String {
+    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #
+    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #
+    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// # }
+    /// #
+    /// # #[cfg(nightly)]
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap")].assert_eq(&render(format!("{report:?}")));
+    /// #
+    /// println!("{report:?}");
+    /// ```
+    ///
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap"))]
+    /// </pre>
+    /// ```
+    pub fn add(mut self, line: impl Into<String>) -> Self {
+        self.0.push(Emit::Next(line.into()));
+
+        self
+    }
+
+    /// Create a new instance with a line that is emitted immediately.
+    ///
+    /// This call is equivalent to: `Diagnostics::empty().add(line)`
+    pub fn next(line: impl Into<String>) -> Self {
+        Self::empty().add(line)
+    }
+
+    pub fn add_defer(mut self, line: impl Into<String>) -> Self {
+        self.0.push(Emit::Defer(line.into()));
+
+        self
+    }
+
+    /// Create a new instance with a line that is going to be deferred.
+    ///
+    /// This call is equivalent to: `Diagnostics::empty().add_defer(line)`
+    pub fn defer(line: impl Into<String>) -> Self {
+        Self::empty().add_defer(line)
+    }
+
+    pub fn append(mut self, mut other: Self) -> Self {
+        self.0.append(&mut other.0);
+
+        self
+    }
+
+    pub(crate) fn into_inner(self) -> Vec<Emit> {
+        self.0
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn or_else(self, f: impl FnOnce() -> Self) -> Self {
+        if self.is_empty() { f() } else { self }
+    }
+}
+
 #[derive(Debug, Clone)]
 #[must_use]
 #[non_exhaustive]
-pub enum Emit {
+enum Emit {
     /// Line is going to be emitted after all immediate lines have been emitted from the current
     /// stack.
     /// This means that deferred lines will always be last in a group.
@@ -238,7 +387,7 @@ impl Emit {
     /// Create a new [`Next`] line, which is emitted immediately in the tree.
     ///
     /// [`Next`]: Self::Next
-    pub fn next<T: Into<String>>(line: T) -> Self {
+    fn next<T: Into<String>>(line: T) -> Self {
         Self::Next(line.into())
     }
 
@@ -246,7 +395,7 @@ impl Emit {
     /// attachments and contexts.
     ///
     /// [`Defer`]: Self::Defer
-    pub fn defer<T: Into<String>>(line: T) -> Self {
+    fn defer<T: Into<String>>(line: T) -> Self {
         Self::Defer(line.into())
     }
 }
@@ -750,7 +899,7 @@ fn debug_attachments(
                             .attach_snippet(snippet.clone());
                     }
 
-                    return Some(debug.output().clone());
+                    return debug.output().clone();
                 }
 
                 #[cfg(all(not(nightly), feature = "unstable"))]
@@ -760,7 +909,7 @@ fn debug_attachments(
                             .attach_snippet(snippet.clone());
                     }
 
-                    return Some(debug.output().clone());
+                    return debug.output().clone();
                 }
 
                 #[cfg(feature = "std")]
@@ -776,15 +925,17 @@ fn debug_attachments(
                 }
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                Some(attachment.to_string()).map(Emit::Next)
+                Diagnostics::next(attachment.to_string())
             }
         })
-        .inspect(|value| {
+        .map(|value| {
             // increase the opaque counter, if we're unable to determine the actual value of the
             // frame
-            if value.is_none() {
+            if value.is_empty() {
                 opaque.increase();
             }
+
+            value.into_inner()
         })
         .flatten()
         .partition(|f| matches!(f, Emit::Next(_)));
