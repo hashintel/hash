@@ -1,7 +1,7 @@
 use std::{
     convert::Infallible,
     fmt::{Display, Formatter},
-    io,
+    fs, io,
     path::{Path, PathBuf},
     str::FromStr,
 };
@@ -257,6 +257,28 @@ pub fn init_logger<P: AsRef<Path>>(
             None,
         ),
     };
+
+    if log_folder.exists() {
+        if !log_folder.is_dir() {
+            eprintln!(
+                "The provided log folder is not a directory (it is probably a file). Note that \
+                 the default name of the log folder is `log`, so if you have a file named `log` \
+                 in the current directory and you have selected `log` as the directory to save \
+                 the engine logs, please move the file named `log` to a different directory, or \
+                 choose a different directory to write log output to."
+            );
+            std::process::exit(1);
+        }
+    } else if let Err(e) = fs::create_dir(log_folder) {
+        eprintln!(
+            "Could not create the log folder. Please try creating the folder `{}` in the \
+             directory from which you are running the engine.
+             Note: the specific error the engine encountered is `{:?}`",
+            log_folder.display(),
+            e
+        );
+        std::process::exit(1)
+    }
 
     let json_file_appender =
         tracing_appender::rolling::never(log_folder, format!("{log_file_name}.json"));
