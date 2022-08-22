@@ -10,6 +10,7 @@ mod task;
 
 use std::sync::Arc;
 
+use arrow2::datatypes::Schema;
 use async_trait::async_trait;
 use stateful::{
     agent::AgentBatch,
@@ -114,18 +115,16 @@ impl StatePackageCreator for BehaviorExecutionCreator {
             .get_local_private_scoped_field_spec(BEHAVIOR_IDS_FIELD_NAME)?
             .create_key()?;
 
-        let behavior_ids_col_index = config
-            .agent_schema
-            .arrow
-            .index_of(behavior_ids_col.value())?;
+        let behavior_ids_col_index =
+            index_of(config.agent_schema.arrow.clone(), behavior_ids_col.value())?;
 
         let behavior_index_col = accessor
             .get_local_private_scoped_field_spec(BEHAVIOR_INDEX_FIELD_NAME)?
             .create_key()?;
-        let behavior_index_col_index = config
-            .agent_schema
-            .arrow
-            .index_of(behavior_index_col.value())?;
+        let behavior_index_col_index = index_of(
+            config.agent_schema.arrow.clone(),
+            behavior_index_col.value(),
+        )?;
 
         Ok(Box::new(BehaviorExecution {
             behavior_ids: Arc::clone(self.get_behavior_ids()?),
@@ -137,10 +136,20 @@ impl StatePackageCreator for BehaviorExecutionCreator {
     }
 }
 
+/// Finds the index of the given field in the [`Schema`].
+pub fn index_of(schema: Arc<Schema>, field_name: &str) -> crate::Result<usize> {
+    schema
+        .fields
+        .iter()
+        .enumerate()
+        .find_map(|(index, field)| (field.name == field_name).then_some(index))
+        .ok_or_else(|| Error::ColumnNotFound(field_name.to_string()))
+}
+
 pub struct BehaviorExecution {
     behavior_ids: Arc<BehaviorIds>,
     behavior_ids_col_index: usize,
-    behavior_ids_col_data_types: [arrow::datatypes::DataType; 3],
+    behavior_ids_col_data_types: [arrow2::datatypes::DataType; 3],
     behavior_index_col_index: usize,
     comms: PackageComms,
 }

@@ -90,31 +90,31 @@ impl Context for ErrorA {
 }
 
 #[derive(Debug)]
-#[cfg(all(nightly, feature = "std"))]
+#[cfg(all(rust_1_65, feature = "std"))]
 pub struct ErrorB(pub u32, std::backtrace::Backtrace);
 
-#[cfg(all(nightly, feature = "std"))]
+#[cfg(all(rust_1_65, feature = "std"))]
 impl ErrorB {
     pub fn new(value: u32) -> Self {
         Self(value, std::backtrace::Backtrace::force_capture())
     }
 }
 
-#[cfg(all(nightly, feature = "std"))]
+#[cfg(all(rust_1_65, feature = "std"))]
 impl fmt::Display for ErrorB {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.write_str("Error B")
     }
 }
 
-#[cfg(all(nightly, feature = "std"))]
+#[cfg(all(rust_1_65, feature = "std"))]
 impl std::error::Error for ErrorB {
     fn provide<'a>(&'a self, demand: &mut core::any::Demand<'a>) {
         demand.provide_ref(&self.1);
     }
 }
 
-#[cfg(all(nightly, feature = "std"))]
+#[cfg(all(rust_1_65, feature = "std"))]
 impl ErrorB {
     pub fn backtrace(&self) -> Option<&std::backtrace::Backtrace> {
         Some(&self.1)
@@ -189,7 +189,7 @@ pub fn frame_kinds<E>(report: &Report<E>) -> Vec<FrameKind> {
     report.frames().map(Frame::kind).collect()
 }
 
-#[cfg(all(nightly, feature = "std"))]
+#[cfg(all(rust_1_65, feature = "std"))]
 pub fn supports_backtrace() -> bool {
     static STATE: Lazy<bool> = Lazy::new(|| {
         let bt = std::backtrace::Backtrace::capture();
@@ -218,7 +218,7 @@ pub fn expect_messages<'a>(messages: &[&'a str]) -> Vec<&'a str> {
     // are both added after the `Context` therefore we need to push those layers, then `Context`
     let last = messages.pop().unwrap();
 
-    #[cfg(all(nightly, feature = "std"))]
+    #[cfg(all(rust_1_65, feature = "std"))]
     if supports_backtrace() {
         messages.push("Opaque");
     }
@@ -236,7 +236,7 @@ pub fn expect_messages<'a>(messages: &[&'a str]) -> Vec<&'a str> {
 #[allow(unused_mut)]
 #[allow(clippy::missing_const_for_fn)]
 pub fn expect_count(mut count: usize) -> usize {
-    #[cfg(all(nightly, feature = "std"))]
+    #[cfg(all(rust_1_65, feature = "std"))]
     if supports_backtrace() {
         count += 1;
     }
@@ -320,7 +320,7 @@ macro_rules! assert_kinds {
 
         let mut rhs = rhs.iter();
 
-        #[cfg(all(nightly, feature = "std"))]
+        #[cfg(all(rust_1_65, feature = "std"))]
         if supports_backtrace() {
             assert!(matches!(
                 rhs.next(),

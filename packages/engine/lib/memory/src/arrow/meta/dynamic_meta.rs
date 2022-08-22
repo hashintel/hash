@@ -1,5 +1,5 @@
-use arrow::ipc;
-use flatbuffers::FlatBufferBuilder;
+use arrow_format::ipc;
+use tracing::trace;
 
 use crate::{
     arrow::meta::{Buffer, ColumnDynamicMetadata, Node},
@@ -66,14 +66,16 @@ impl DynamicMetadata {
         }
     }
 
-    /// Constructs the relevant [`DynamicMetadata`] from the given [`arrow::ipc::RecordBatch`]
-    /// message (note: not [`arrow::record_batch::RecordBatch`]).
+    /// Constructs the relevant [`DynamicMetadata`] from the given
+    /// [`arrow_format::ipc::RecordBatchRef`] message.
     pub fn from_record_batch(
-        record_batch: &ipc::RecordBatch<'_>,
+        record_batch: &arrow_format::ipc::RecordBatchRef<'_>,
         data_length: usize,
     ) -> crate::Result<Self> {
+        trace!("started reading dynamic metadata from the RecordBatchRef");
+
         let nodes = record_batch
-            .nodes()
+            .nodes()?
             .ok_or_else(|| Error::ArrowBatch("Missing field nodes".into()))?
             .iter()
             .map(|n| Node {
@@ -83,7 +85,7 @@ impl DynamicMetadata {
             .collect();
 
         let buffers = record_batch
-            .buffers()
+            .buffers()?
             .ok_or_else(|| Error::ArrowBatch("Missing buffers".into()))?;
 
         let buffers: Vec<Buffer> = buffers
@@ -104,8 +106,10 @@ impl DynamicMetadata {
             })
             .collect::<crate::Result<_>>()?;
 
+        trace!("successfully finished reading dynamic metadata from the RecordBatchRef");
+
         Ok(DynamicMetadata {
-            length: record_batch.length() as usize,
+            length: record_batch.length()? as usize,
             data_length,
             nodes,
             buffers,
@@ -115,46 +119,41 @@ impl DynamicMetadata {
     /// Computes the flat_buffers builder from the metadata, using this builder
     /// the metadata of a shared batch can be modified
     pub fn get_flatbuffers(&self) -> crate::Result<Vec<u8>> {
+        let mut builder = arrow_format::ipc::planus::Builder::new();
+
         // TODO: OPTIM: Evaluate, if we want to return the flatbuffer instead to remove the
         // slice-to-vec   conversion.
         // Build Arrow Buffer and FieldNode messages
         let buffers: Vec<ipc::Buffer> = self
             .buffers
             .iter()
-            .map(|b| ipc::Buffer::new(b.offset as i64, b.length as i64))
+            .map(|b| ipc::Buffer {
+                offset: b.offset as i64,
+                length: b.length as i64,
+            })
             .collect();
         let nodes: Vec<ipc::FieldNode> = self
             .nodes
             .iter()
-            .map(|n| ipc::FieldNode::new(n.length as i64, n.null_count as i64))
+            .map(|n| ipc::FieldNode {
+                length: n.length as i64,
+                null_count: n.null_count as i64,
+            })
             .collect();
 
-        let mut fbb = FlatBufferBuilder::new();
-
-        // Copied from `ipc.rs` from function `record_batch_to_bytes`
-        // with some modifications:
-        // - `meta.length` is used instead of `batch.num_rows()` (refers to the same thing)
-        // - `meta.data_length ` is used instead of `arrow_data.len()` (same thing)
-        let buffers = fbb.create_vector(&buffers);
-        let nodes = fbb.create_vector(&nodes);
-
-        let root = {
-            let mut batch_builder = ipc::RecordBatchBuilder::new(&mut fbb);
-            batch_builder.add_length(self.length as i64);
-            batch_builder.add_nodes(nodes);
-            batch_builder.add_buffers(buffers);
-            let b = batch_builder.finish();
-            b.as_union_value()
-        };
-        // create an ipc::Message
-        let mut message = ipc::MessageBuilder::new(&mut fbb);
-        message.add_version(ipc::MetadataVersion::V4);
-        message.add_header_type(ipc::MessageHeader::RecordBatch);
-        message.add_bodyLength(self.data_length as i64);
-        message.add_header(root);
-        let root = message.finish();
-        fbb.finish(root, None);
-        let finished_data = fbb.finished_data();
+        let message = ipc::Message::create(
+            &mut builder,
+            ipc::MetadataVersion::V4,
+            ipc::MessageHeader::RecordBatch(Box::new(ipc::RecordBatch {
+                length: self.length as i64,
+                nodes: Some(nodes),
+                buffers: Some(buffers),
+                compression: None,
+            })),
+            self.data_length as i64,
+            Option::<Vec<arrow_format::ipc::KeyValue>>::None,
+        );
+        let finished_data = builder.finish(message, None);
 
         Ok(finished_data.to_vec())
     }

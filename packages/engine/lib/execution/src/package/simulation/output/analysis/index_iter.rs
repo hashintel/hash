@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use arrow::datatypes::DataType;
+use arrow2::datatypes::DataType;
 use float_cmp::approx_eq;
 use stateful::{
     agent,
