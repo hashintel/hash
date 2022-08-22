@@ -90,7 +90,7 @@ where
 // be implemented on `Error`. For `request`ing a type from `Context`, we need a `Provider`
 // implementation however.
 #[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
-pub fn temporary_provider(context: &impl Context) -> impl Provider + '_ {
+pub(crate) fn temporary_provider(context: &impl Context) -> impl Provider + '_ {
     struct ProviderImpl<'a, C>(&'a C);
     impl<C: Context> Provider for ProviderImpl<'_, C> {
         fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
