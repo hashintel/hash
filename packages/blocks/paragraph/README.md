@@ -1,3 +1,3 @@
 # Paragraph block
 
-https://blockprotocol.org/@hash/paragraph
+A block to display a paragraph of text.
