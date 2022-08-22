@@ -57,10 +57,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "aho-corasick"
-version = "0.7.18"
+name = "ahash"
+version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e37cfd5e7657ada45f742d6e99ca5788580b5c529dc78faf11ece6dc702656f"
+checksum = "fcb51a0695d8f838b1ee009b3fbf66bda078cd64590202a864a8f3e8c4315c47"
 dependencies = [
  "memchr",
 ]
@@ -111,15 +111,24 @@ dependencies = [
 ]
 
 [[package]]
-name = "arrow"
-version = "10.0.0"
+name = "array-init-cursor"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1328dbc6d5d76a08b13df3ac630f61a6a31276d9e9d08eb813e98efa624c2382"
+checksum = "bf7d0a018de4f6aa429b9d33d69edf69072b1c5b1cb8d3e4a5f7ef898fc3eb76"
+
+[[package]]
+name = "arrow"
+version = "20.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c72a69495f06c8abb65b76a87be192a26fa724380d1f292d4e558a32afed9989"
 dependencies = [
+ "ahash",
  "bitflags",
  "chrono",
+ "csv",
  "flatbuffers",
  "half",
+ "hashbrown",
  "hex",
  "indexmap",
  "lazy_static",
@@ -127,9 +136,58 @@ dependencies = [
  "multiversion",
  "num",
  "regex",
+ "regex-syntax",
  "serde",
  "serde_derive",
  "serde_json",
+]
+
+[[package]]
+name = "arrow-format"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "216249afef413d7e9e9b4b543e73b3e371ace3a812380af98f1c871521572cdd"
+dependencies = [
+ "planus",
+ "serde",
+]
+
+[[package]]
+name = "arrow2"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5feafd6df4e3f577529e6aa2b9b7cdb3c9fe8e8f66ebc8dc29abbe71a7e968f0"
+dependencies = [
+ "arrow-format",
+ "bytemuck",
+ "chrono",
+ "either",
+ "hash_hasher",
+ "num-traits",
+ "simdutf8",
+]
+
+[[package]]
+name = "arrow2_convert"
+version = "0.2.0"
+source = "git+https://github.com/DataEngineeringLabs/arrow2-convert#34daca85da505b31ff1b96017602cb0e15d530f1"
+dependencies = [
+ "arrow2",
+ "arrow2_convert_derive",
+ "chrono",
+ "err-derive",
+ "trybuild",
+]
+
+[[package]]
+name = "arrow2_convert_derive"
+version = "0.2.0"
+source = "git+https://github.com/DataEngineeringLabs/arrow2-convert#34daca85da505b31ff1b96017602cb0e15d530f1"
+dependencies = [
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -539,6 +597,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "crunchy"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a81dae078cea95a014a339291cec439d2f232ebe854a9d672b796c6afafa9b7"
+
+[[package]]
 name = "crypto-mac"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -651,6 +715,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "err-derive"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c34a887c8df3ed90498c1c437ce21f211c8e27672921a8ffa293cb8d6d4caa9e"
+dependencies = [
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "rustversion",
+ "syn",
+ "synstructure",
+]
+
+[[package]]
 name = "error-stack"
 version = "0.1.1"
 source = "git+https://github.com/hashintel/hash?rev=5edddb5#5edddb5566f9bd82dcdf9ba3b430759bc6b15dc5"
@@ -672,7 +750,7 @@ checksum = "0206175f82b8d6bf6652ff7d71a1e27fd2e4efde587fd368662814d6ec1d9ce0"
 name = "execution"
 version = "0.0.0"
 dependencies = [
- "arrow",
+ "arrow2",
  "async-trait",
  "flatbuffers",
  "flatbuffers_gen",
@@ -684,6 +762,7 @@ dependencies = [
  "lazy_static",
  "memory",
  "nng",
+ "num",
  "rand 0.8.5",
  "rayon",
  "serde",
@@ -753,9 +832,9 @@ dependencies = [
 
 [[package]]
 name = "flatbuffers"
-version = "2.1.1"
+version = "2.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ea97b4fe4b84e2f2765449bcea21cbdb3ee28cecb88afbf38a0c2e1639f5eb5"
+checksum = "86b428b715fdbdd1c364b84573b5fdc0f84f8e423661b9f398735278bc7f2b6a"
 dependencies = [
  "bitflags",
  "smallvec",
@@ -981,9 +1060,12 @@ dependencies = [
 
 [[package]]
 name = "half"
-version = "1.8.2"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eabb4a44450da02c90444cf74558da904edde8fb4e9035a9a6a4e15445af0bd7"
+checksum = "ad6a9459c9c30b177b925162351f97e7d967c7ea8bab3b8352805327daf45554"
+dependencies = [
+ "crunchy",
+]
 
 [[package]]
 name = "hash_engine"
@@ -1013,6 +1095,12 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
 ]
+
+[[package]]
+name = "hash_hasher"
+version = "2.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74721d007512d0cb3338cd20f0654ac913920061a4c4d0d8708edb3f2a698c0c"
 
 [[package]]
 name = "hashbrown"
@@ -1383,10 +1471,14 @@ dependencies = [
 name = "memory"
 version = "0.0.0"
 dependencies = [
- "arrow",
+ "arrow-format",
+ "arrow2",
+ "arrow2_convert",
+ "bytemuck",
  "flatbuffers",
  "flatbuffers_gen",
  "glob",
+ "num",
  "rand 0.8.5",
  "serde",
  "serde_json",
@@ -1940,8 +2032,6 @@ version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c4eb3267174b8c6c2f654116623910a0fef09c4753f8dd83db29c48a0df988b"
 dependencies = [
- "aho-corasick",
- "memchr",
  "regex-syntax",
 ]
 
@@ -1968,6 +2058,12 @@ checksum = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
 dependencies = [
  "semver",
 ]
+
+[[package]]
+name = "rustversion"
+version = "1.0.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "24c8ad4f0c00e1eb5bc7614d236a7f1300e3dbd76b68cac8e06fb00b015ad8d8"
 
 [[package]]
 name = "ryu"
@@ -2131,11 +2227,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "simdutf8"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f27f6278552951f1f2b8cf9da965d10969b2efdea95a6ec47987ab46edfe263a"
+
+[[package]]
 name = "simulation-control"
 version = "0.0.0"
 dependencies = [
  "arr_macro",
- "arrow",
+ "arrow2",
+ "bytemuck",
  "execution",
  "experiment-structure",
  "futures",
@@ -2209,6 +2312,9 @@ name = "stateful"
 version = "0.0.0"
 dependencies = [
  "arrow",
+ "arrow-format",
+ "arrow2",
+ "arrow2_convert",
  "flatbuffers",
  "lazy_static",
  "memory",
@@ -2322,6 +2428,18 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "synstructure"
+version = "0.12.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f36bdaa60a83aca3921b5259d5400cbf5e90fc51931376a9bd4a0eb79aa7210f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+ "unicode-xid",
 ]
 
 [[package]]
@@ -2472,6 +2590,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "toml"
+version = "0.5.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d82e1a7758622a465f8cee077614c73484dac5b836c02ff6a40d5d1010324d7"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "tracing"
 version = "0.1.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2592,6 +2719,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "trybuild"
+version = "1.0.63"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "764b9e244b482a9b81bde596aa37aa6f1347bf8007adab25e59f901b32b4e0a0"
+dependencies = [
+ "glob",
+ "once_cell",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "termcolor",
+ "toml",
+]
+
+[[package]]
 name = "typenum"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2626,6 +2768,12 @@ checksum = "854cbdc4f7bc6ae19c820d44abdc3277ac3e1b2b93db20a636825d9322fb60e6"
 dependencies = [
  "tinyvec",
 ]
+
+[[package]]
+name = "unicode-xid"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "957e51f3646910546462e67d5f7599b9e4fb8acdd304b087a6494730f9eebf04"
 
 [[package]]
 name = "universal-hash"

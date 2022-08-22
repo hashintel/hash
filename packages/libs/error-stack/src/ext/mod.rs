@@ -1,13 +1,10 @@
-#[cfg(feature = "futures")]
-pub mod future;
-pub mod iter;
-mod result;
-#[cfg(feature = "futures")]
-pub mod stream;
+//! Extension traits for foreign types.
 
 #[cfg(feature = "futures")]
-pub use self::{future::FutureExt, stream::StreamExt};
-pub use self::{
-    iter::IteratorExt,
-    result::{IntoReport, Result, ResultExt},
-};
+pub mod future;
+// false positive, is imported in `lib.rs`
+#[allow(unreachable_pub)]
+pub mod iter;
+pub mod result;
+#[cfg(feature = "futures")]
+pub mod stream;

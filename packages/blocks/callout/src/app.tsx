@@ -2,29 +2,37 @@ import {
   BlockComponent,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
-import { RefCallback, useRef } from "react";
+import { useHookBlockService, useHook } from "@blockprotocol/hook/react";
+import { useRef } from "react";
 
 import { EmojiIcon } from "./emoji-icon";
 
 type BlockEntityProperties = {
   icon?: string;
   text?: string;
-  editableRef?: RefCallback<HTMLElement>;
 };
 
 export const App: BlockComponent<BlockEntityProperties> = ({
   graph: {
     blockEntity: { entityId, properties },
   },
-  ...others
 }) => {
-  const editableRef = (others as any).editableRef as
-    | RefCallback<HTMLDivElement>
-    | undefined;
+  const editableRef = useRef<HTMLDivElement>(null);
   const { icon = "📢", text } = properties;
 
   const blockRef = useRef<HTMLDivElement>(null);
   const { graphService } = useGraphBlockService(blockRef);
+  const { hookService } = useHookBlockService(blockRef);
+
+  useHook(hookService, editableRef, "text", "$.text", (node) => {
+    // eslint-disable-next-line no-param-reassign
+    node.innerText = text ?? "";
+
+    return () => {
+      // eslint-disable-next-line no-param-reassign
+      node.innerText = "";
+    };
+  });
 
   const handleIconChange = (newIcon: string | undefined): void => {
     if (!entityId) {
@@ -65,9 +73,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
           paddingLeft: "1.5em",
         }}
         ref={editableRef}
-      >
-        {editableRef ? undefined : text}
-      </div>
+      />
     </div>
   );
 };
