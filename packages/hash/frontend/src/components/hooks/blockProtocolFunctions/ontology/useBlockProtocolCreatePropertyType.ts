@@ -37,7 +37,7 @@ export const useBlockProtocolCreatePropertyType = (
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "'data' must be provided for createEntityType",
+              message: "'data' must be provided for createPropertyType",
             },
           ],
         };
@@ -56,7 +56,7 @@ export const useBlockProtocolCreatePropertyType = (
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "Error calling createEntityType",
+              message: "Error calling createPropertyType",
             },
           ],
         };

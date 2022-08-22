@@ -37,7 +37,7 @@ export const useBlockProtocolUpdatePropertyType = (
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "'data' must be provided for updateEntityType",
+              message: "'data' must be provided for updatePropertyType",
             },
           ],
         };
@@ -57,7 +57,7 @@ export const useBlockProtocolUpdatePropertyType = (
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "Error calling updateEntityType",
+              message: "Error calling updatePropertyType",
             },
           ],
         };
