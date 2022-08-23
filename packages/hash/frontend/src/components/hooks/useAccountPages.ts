@@ -13,7 +13,12 @@ export type AccountPage = {
   parentPageEntityId: string | null;
 };
 
-export const useAccountPages = (accountId: string) => {
+export type AccountPagesInfo = {
+  data: AccountPage[];
+  loading: boolean;
+};
+
+export const useAccountPages = (accountId: string): AccountPagesInfo => {
   const { data, loading } = useQuery<
     GetAccountPagesTreeQuery,
     GetAccountPagesTreeQueryVariables

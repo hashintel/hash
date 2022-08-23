@@ -64,6 +64,11 @@ def verify_markers(markers, mem):
 def parse_any_type_fields(metadata):
     any_type_fields = set()
 
+    # arrow2 serializes empty dictionaries as None (rather than `{}`, as arrow
+    # did)
+    if metadata is None:
+        return any_type_fields
+
     field_names = metadata.get("any_type_fields")
 
     if field_names:
@@ -239,7 +244,7 @@ class Batch:
                 # Convert `any`-type array of JSON values to array of JSON strings
                 # for Arrow serialization as a string column.
                 py_col = [json.dumps(elem) for elem in col]
-            elif isinstance(col[0], pa.ArrayValue):
+            elif isinstance(col[0], pa.Scalar):
                 # Shallow-loaded column; can be modified in place
                 continue
             else:

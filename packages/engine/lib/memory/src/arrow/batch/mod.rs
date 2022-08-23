@@ -1,20 +1,21 @@
 use std::sync::Arc;
 
-use arrow::{
-    array::{ArrayData, ArrayRef},
-    record_batch::RecordBatch,
-};
+use arrow2::array::ArrayRef;
+use tracing::trace;
 
+use super::record_batch::RecordBatch;
 use crate::{
     arrow::{
         change::ColumnChange,
         flush::GrowableBatch,
-        load,
+        ipc,
         meta::{self, DynamicMetadata},
     },
     error::{Error, Result},
     shared_memory::{Metaversion, Segment},
 };
+
+pub mod columns;
 
 /// Batch with Arrow data that can be accessed as an Arrow record batch
 pub struct ArrowBatch {
@@ -103,32 +104,35 @@ impl ArrowBatch {
             self.segment().validate_markers().is_ok(),
             "Can't reload record batch; see validate_markers"
         );
-        let record_batch_message = load::record_batch_message(&self.segment)?;
 
         // The record batch was loaded at least once before, since this struct has a `RecordBatch`
         // field, and the Arrow schema doesn't change, so we can reuse it.
         let schema = self.record_batch.schema();
-        self.record_batch = load::record_batch(&self.segment, record_batch_message, schema)?;
+        self.record_batch = ipc::read_record_batch(&self.segment, schema)?;
         Ok(())
     }
 
     /// Reload record batch and dynamic metadata (without checking metaversions).
     pub fn reload_record_batch_and_dynamic_meta(&mut self) -> Result<()> {
+        tracing::trace!("reloading record batch and dynamic metadata");
         debug_assert!(
             self.segment().validate_markers().is_ok(),
             "Can't reload record batch; see validate_markers"
         );
-        let record_batch_message = load::record_batch_message(&self.segment)?;
+
+        // The record batch was loaded at least once before, since this struct has a `RecordBatch`
+        // field, and the Arrow schema doesn't change, so we can reuse it.
+        let schema = self.record_batch.schema();
+        self.record_batch = ipc::read_record_batch(&self.segment, schema)?;
+
+        let record_batch_message = ipc::read_record_batch_message(&self.segment)?;
         let dynamic_meta = DynamicMetadata::from_record_batch(
             &record_batch_message,
             self.segment().get_data_buffer()?.len(),
         )?;
 
-        // The record batch was loaded at least once before, since this struct has a `RecordBatch`
-        // field, and the Arrow schema doesn't change, so we can reuse it.
-        let schema = self.record_batch.schema();
-        self.record_batch = load::record_batch(&self.segment, record_batch_message, schema)?;
         *self.dynamic_meta_mut() = dynamic_meta;
+        tracing::trace!("finished reloading record batch and dynamic metadata");
         Ok(())
     }
 
@@ -190,6 +194,7 @@ impl ArrowBatch {
         //       that automatically means it was mapped again in this
         //       process.
         self.segment.persist_metaversion(persisted);
+
         tracing::debug!(
             "Flush metaversions: {before:?}, {persisted:?}, {:?}",
             self.segment.read_persisted_metaversion()
@@ -225,9 +230,11 @@ impl ArrowBatch {
         if self.is_persisted() {
             Ok(self.record_batch_unchecked())
         } else {
-            Err(Error::from(
-                "Loaded record batch is older than persisted one",
-            ))
+            Err(Error::from(format!(
+                "Loaded record batch is older than persisted one (loaded: {:?}, persisted: {:?})",
+                self.loaded_metaversion(),
+                self.segment.read_persisted_metaversion()
+            )))
         }
     }
 
@@ -314,21 +321,32 @@ impl ArrowBatch {
     /// and/or memory is reloaded and the loaded metaversion is mutated to be the persisted one.
     pub fn maybe_reload(&mut self) -> Result<()> {
         if !self.is_persisted() {
+            trace!(
+                "batch was not persisted, started reloading ArrowBatch (with id {})",
+                self.segment().id()
+            );
+
             let persisted = self.segment.read_persisted_metaversion();
 
             if self.loaded_metaversion.memory() < persisted.memory() {
+                trace!("reloading shared memory segment");
                 self.segment_mut().reload()?;
             }
+
             self.reload_record_batch_and_dynamic_meta()?;
 
             self.loaded_metaversion = persisted;
             debug_assert!(self.is_persisted());
+            trace!(
+                "finished reloading ArrowBatch (with id {})",
+                self.segment().id()
+            );
         }
         Ok(())
     }
 }
 
-impl GrowableBatch<ArrayData, ColumnChange> for ArrowBatch {
+impl GrowableBatch<ArrayRef, ColumnChange> for ArrowBatch {
     fn static_meta(&self) -> &meta::StaticMetadata {
         &self.static_meta
     }
@@ -348,13 +366,4 @@ impl GrowableBatch<ArrayData, ColumnChange> for ArrowBatch {
     fn segment_mut(&mut self) -> &mut Segment {
         &mut self.segment
     }
-}
-
-pub fn column_with_name<'a>(record_batch: &'a RecordBatch, name: &str) -> Result<&'a ArrayRef> {
-    let (index, _) = record_batch
-        .schema()
-        .column_with_name(name)
-        .ok_or_else(|| Error::ColumnNotFound(name.into()))?;
-
-    Ok(record_batch.column(index))
 }

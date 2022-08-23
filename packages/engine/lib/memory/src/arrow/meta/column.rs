@@ -1,5 +1,8 @@
 use crate::{
-    arrow::meta::{Buffer, Node, NodeMapping},
+    arrow::{
+        meta::{Buffer, Node, NodeMapping},
+        util::bit_util,
+    },
     shared_memory::padding,
 };
 
@@ -64,7 +67,7 @@ impl ColumnDynamicMetadataBuilder {
     }
 
     pub fn add_static_bit_buffer(&mut self, num_elements: usize) {
-        let buf_len = arrow::util::bit_util::ceil(num_elements, 8);
+        let buf_len = bit_util::ceil(num_elements, 8);
         let buf_padding = padding::get_static_buffer_pad(buf_len);
         self.add_buffer(buf_len, buf_padding);
     }

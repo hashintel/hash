@@ -100,7 +100,7 @@ impl Frame {
     /// Downcasts this frame if the held context or attachment is the same as `T`.
     #[must_use]
     pub fn downcast_ref<T: Send + Sync + 'static>(&self) -> Option<&T> {
-        (TypeId::of::<T>() == FrameImpl::type_id(&*self.frame)).then(|| {
+        (TypeId::of::<T>() == Self::type_id(self)).then(|| {
             // SAFETY: just checked whether we are pointing to the correct type, and we can rely on
             // that check for memory safety because we have implemented `FrameImpl` for all types;
             // no other impls can exist as they would conflict with our impl.
@@ -111,12 +111,17 @@ impl Frame {
     /// Downcasts this frame if the held context or attachment is the same as `T`.
     #[must_use]
     pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
-        (TypeId::of::<T>() == FrameImpl::type_id(&*self.frame)).then(|| {
+        (TypeId::of::<T>() == Self::type_id(self)).then(|| {
             // SAFETY: just checked whether we are pointing to the correct type, and we can rely on
             // that check for memory safety because we have implemented `FrameImpl` for all types;
             // no other impls can exist as they would conflict with our impl.
             unsafe { &mut *(self.frame.as_mut() as *mut dyn FrameImpl).cast::<T>() }
         })
+    }
+
+    /// Return the `TypeId` of the held context or attachment.
+    pub(crate) fn type_id(&self) -> TypeId {
+        FrameImpl::type_id(&*self.frame)
     }
 }
 

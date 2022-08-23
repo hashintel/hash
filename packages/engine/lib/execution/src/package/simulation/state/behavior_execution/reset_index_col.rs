@@ -1,4 +1,4 @@
-use arrow::{array::ArrayData, datatypes::DataType};
+use arrow2::array::PrimitiveArray;
 use memory::arrow::{new_buffer, ColumnChange, IntoArrowChange};
 use stateful::state::StateColumn;
 
@@ -10,6 +10,8 @@ pub fn reset_index_col(behavior_index_col_index: usize) -> Result<StateColumn> {
     })))
 }
 
+/// This struct resets the value of the behavior index column to the first behavior in the behavior
+/// list.
 pub struct ResetIndexCol {
     behavior_index_col_index: usize,
 }
@@ -22,10 +24,7 @@ impl IntoArrowChange for ResetIndexCol {
         let data = new_buffer::<BehaviorIndexInnerDataType>(num_agents);
 
         // Indices
-        let data = ArrayData::builder(DataType::Float64)
-            .len(num_agents)
-            .add_buffer(data.into())
-            .build()?;
+        let data = PrimitiveArray::<BehaviorIndexInnerDataType>::from_vec(data).arced();
 
         Ok(ColumnChange {
             data,

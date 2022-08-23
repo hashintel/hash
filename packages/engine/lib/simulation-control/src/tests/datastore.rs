@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 
-use arrow::array::{Array, BooleanBuilder, FixedSizeListBuilder};
 use execution::package::experiment::ExperimentId;
 use rand::Rng;
 use stateful::{
@@ -109,23 +108,4 @@ pub fn uuid_v4_len() {
     let uuid = ExperimentId::generate();
     let bytes = uuid.as_bytes();
     assert_eq!(bytes.len(), UUID_V4_LEN);
-}
-
-#[test]
-fn test_print_boolean_array() -> Result<()> {
-    let boolean_builder = BooleanBuilder::new(100);
-    let mut fixed_size_list_builder = FixedSizeListBuilder::new(boolean_builder, 3);
-
-    for _ in 0..10 {
-        fixed_size_list_builder
-            .values()
-            .append_slice(&[true, false, false])?;
-        fixed_size_list_builder.append(true)?;
-    }
-
-    let array = fixed_size_list_builder.finish();
-    dbg!(&array.data_ref().child_data()[0].buffers()[0]);
-    dbg!(&array.value(3).data_ref());
-    // 0100 1001 | 1001 0010 | 0010 0100 | 0000 1001
-    Ok(())
 }

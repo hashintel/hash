@@ -1,15 +1,13 @@
 import { Box, Tooltip, Typography } from "@mui/material";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
-import {
-  faChevronRight,
-  faEllipsis,
-  faFile,
-} from "@fortawesome/free-solid-svg-icons";
+import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { CSSProperties, forwardRef, Ref, useState } from "react";
 import { DraggableAttributes } from "@dnd-kit/core";
+import { PageIcon } from "../../../../components/PageIcon";
 import { Link } from "../../../ui";
 import { PageMenu } from "./page-menu";
+import { useRouteAccountInfo } from "../../../routing";
 
 export interface PageTreeItemProps {
   id: string;
@@ -51,6 +49,8 @@ export const PageTreeItem = forwardRef(
     ref,
   ) => {
     const [hovered, setHovered] = useState(false);
+
+    const { accountId } = useRouteAccountInfo();
 
     const popupState = usePopupState({
       variant: "popover",
@@ -106,19 +106,20 @@ export const PageTreeItem = forwardRef(
           >
             <FontAwesomeIcon icon={faChevronRight} />
           </IconButton>
-          <FontAwesomeIcon
-            icon={faFile}
-            sx={{
-              fontSize: 16,
-              mr: 1.25,
-              color: ({ palette }) => palette.gray[40],
-            }}
+
+          <PageIcon
+            hasDarkBg={selected}
+            accountId={accountId}
+            entityId={id}
+            size="small"
           />
+
           <Link
             noLinkStyle
             tabIndex={-1}
             sx={{
               flex: 1,
+              marginLeft: 0.75,
             }}
             href={url}
           >

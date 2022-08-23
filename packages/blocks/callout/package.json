@@ -19,7 +19,8 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.12"
+    "@blockprotocol/graph": "0.0.12",
+    "@blockprotocol/hook": "0.0.1"
   },
   "devDependencies": {
     "block-scripts": "0.0.14",
