@@ -2,7 +2,7 @@ use alloc::boxed::Box;
 #[cfg(not(feature = "small"))]
 use alloc::{vec, vec::Vec};
 use core::{fmt, marker::PhantomData, panic::Location};
-#[cfg(all(nightly, feature = "std"))]
+#[cfg(all(rust_1_65, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(feature = "std")]
 use std::process::ExitCode;
@@ -233,6 +233,9 @@ impl<C> Report<C> {
             .is_none()
             .then(Backtrace::capture);
 
+        #[cfg(all(rust_1_65, not(nightly), feature = "std"))]
+        let backtrace = Some(Backtrace::capture());
+
         #[cfg(all(nightly, feature = "spantrace"))]
         let span_trace = core::any::request_ref::<SpanTrace>(&frame)
             .filter(|span_trace| span_trace.status() == SpanTraceStatus::CAPTURED)
@@ -245,7 +248,7 @@ impl<C> Report<C> {
         #[allow(unused_mut)]
         let mut report = Self::from_frame(frame);
 
-        #[cfg(all(nightly, feature = "std"))]
+        #[cfg(all(rust_1_65, feature = "std"))]
         if let Some(backtrace) =
             backtrace.filter(|bt| matches!(bt.status(), BacktraceStatus::Captured))
         {
