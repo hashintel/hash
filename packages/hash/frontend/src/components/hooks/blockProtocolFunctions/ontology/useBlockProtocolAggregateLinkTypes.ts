@@ -29,6 +29,7 @@ export const useBlockProtocolAggregateLinkTypes = (): {
         };
       }
 
+      /** @todo Add filtering to this aggregate query. */
       const response = await aggregateFn({
         query: getAllLatestLinkTypesQuery,
       });

@@ -29,6 +29,7 @@ export const useBlockProtocolAggregateDataTypes = (): {
         };
       }
 
+      /** @todo Add filtering to this aggregate query. */
       const response = await aggregateFn({
         query: getAllLatestDataTypesQuery,
       });
