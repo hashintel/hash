@@ -145,7 +145,7 @@ jobs:
         if: matrix.directory == 'packages/engine'
         uses: actions/setup-python@v2
         with:
-          python-version: "3.7"
+          python-version: "3.10"
 
       - name: Run tests
         working-directory: ${{ matrix.directory }}
@@ -208,7 +208,7 @@ jobs:
 
       - name: Run lints
         working-directory: ${{ matrix.directory }}
-        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} clippy -- -D warnings
+        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} lint
 
       - name: Run tests
         working-directory: ${{ matrix.directory }}

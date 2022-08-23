@@ -1,6 +1,6 @@
 use std::fmt;
 
-use arrow::{datatypes::DataType, error::ArrowError};
+use arrow2::datatypes::DataType;
 use thiserror::Error as ThisError;
 
 #[derive(Debug)]
@@ -30,7 +30,7 @@ pub enum Error {
     Unique(String),
 
     #[error("Arrow Error: {0}")]
-    Arrow(#[from] ArrowError),
+    Arrow(arrow2::error::Error),
 
     #[error("Invalid Arrow object downcast. Field name: {name}")]
     InvalidArrowDowncast { name: String },
@@ -82,6 +82,9 @@ pub enum Error {
 
     #[error("No column found in batch with name: {0}")]
     ColumnNotFound(String),
+
+    #[error("Planus arrow error: {0}")]
+    PlanusArrowError(#[from] arrow_format::ipc::planus::Error),
 }
 
 impl From<shared_memory::ShmemError> for Error {
@@ -107,5 +110,12 @@ impl From<&str> for Error {
 impl From<String> for Error {
     fn from(s: String) -> Self {
         Error::Unique(s)
+    }
+}
+
+// todo: revert this before merging (here for debugging)
+impl From<arrow2::error::Error> for Error {
+    fn from(e: arrow2::error::Error) -> Self {
+        panic!("{:?}", e);
     }
 }

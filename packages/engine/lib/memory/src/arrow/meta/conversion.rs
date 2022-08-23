@@ -1,17 +1,18 @@
 use std::sync::Arc;
 
-use arrow::datatypes::{DataType, Field, IntervalUnit, Schema, TimeUnit};
+use arrow2::datatypes::{DataType, Field, IntervalUnit, Schema, TimeUnit};
 
 use crate::{
     arrow::meta::{self, BufferType, NodeMapping},
     error::{Error, Result},
 };
 
+/// These are the Apache Arrow datatypes the engine can process.
 enum SupportedDataTypes {
     Boolean,
     Utf8,
     Binary,
-    FixedSizeBinary(i32),
+    FixedSizeBinary(usize),
 
     Int8,
     Int16,
@@ -37,7 +38,7 @@ enum SupportedDataTypes {
     Duration(TimeUnit),
 
     List(Box<SupportedDataTypes>),
-    FixedSizeList(Box<SupportedDataTypes>, i32),
+    FixedSizeList(Box<SupportedDataTypes>, usize),
     Struct(Vec<Field>),
 }
 
@@ -87,77 +88,108 @@ impl TryFrom<DataType> for SupportedDataTypes {
     }
 }
 
+pub(crate) struct ColumnHeirarchy {
+    pub(crate) column_indices: Vec<meta::Column>,
+    pub(crate) padding_meta: Vec<bool>,
+    pub(crate) node_meta: Vec<meta::NodeStatic>,
+}
+
 /// Column hierarchy is the mapping from column index to buffer and node indices.
 /// This also returns information about which buffers are growable
 // TODO: Move this to `column`
-pub(crate) fn schema_to_column_hierarchy(
-    schema: Arc<Schema>,
-) -> (Vec<meta::Column>, Vec<bool>, Vec<meta::NodeStatic>) {
+pub(crate) fn schema_to_column_hierarchy(schema: Arc<Schema>) -> ColumnHeirarchy {
     let mut padding_meta = vec![];
     let mut node_meta = vec![];
-    let column_indices =
-        schema
-            .fields()
-            .iter()
-            .fold((vec![], 0, 0), |mut accum, field| {
-                let (
-                    node_count,
-                    buffer_count,
-                    buffer_counts,
-                    mut padding,
-                    mut data,
-                    root_node_mapping,
-                ) = data_type_to_metadata(
-                    &SupportedDataTypes::try_from((*field.data_type()).clone()).unwrap(),
-                    false,
-                    1,
-                );
+    let column_indices = schema
+        .fields
+        .iter()
+        .fold((vec![], 0, 0), |mut accum, field| {
+            let DataTypeMetadata {
+                node_count,
+                buffer_count,
+                buffer_counts,
+                mut padding,
+                mut data,
+                node_mapping: root_node_mapping,
+            } = data_type_to_metadata(
+                &SupportedDataTypes::try_from((*field.data_type()).clone()).unwrap(),
+                false,
+                1,
+            );
 
-                padding_meta.append(&mut padding);
-                node_meta.append(&mut data);
-                // Nullable fields have the same buffer count as non-nullable
-                // see `write_array_data` in `ipc.rs`. This means we don't have to check
-                // for this here.
-                accum.0.push(meta::Column {
-                    node_start: accum.1,
-                    node_count,
-                    root_node_mapping,
-                    buffer_start: accum.2,
-                    buffer_counts,
-                    buffer_count,
-                });
-                accum.1 += node_count;
-                accum.2 += buffer_count;
-                accum
-            })
-            .0;
+            padding_meta.append(&mut padding);
+            node_meta.append(&mut data);
+            // Nullable fields have the same buffer count as non-nullable
+            // see `write_array_data` in `ipc.rs`. This means we don't have to check
+            // for this here.
+            accum.0.push(meta::Column {
+                node_start: accum.1,
+                node_count,
+                root_node_mapping,
+                buffer_start: accum.2,
+                buffer_counts,
+                buffer_count,
+            });
+            accum.1 += node_count;
+            accum.2 += buffer_count;
+            accum
+        })
+        .0;
 
-    (column_indices, padding_meta, node_meta)
+    ColumnHeirarchy {
+        column_indices,
+        padding_meta,
+        node_meta,
+    }
+}
+
+pub struct DataTypeMetadata {
+    node_count: usize,
+    buffer_count: usize,
+    buffer_counts: Vec<usize>,
+    padding: Vec<bool>,
+    data: Vec<meta::NodeStatic>,
+    node_mapping: NodeMapping,
+}
+
+impl DataTypeMetadata {
+    pub fn new(
+        node_count: usize,
+        buffer_count: usize,
+        buffer_counts: Vec<usize>,
+        padding: Vec<bool>,
+        data: Vec<meta::NodeStatic>,
+        node_mapping: NodeMapping,
+    ) -> Self {
+        Self {
+            node_count,
+            buffer_count,
+            buffer_counts,
+            padding,
+            data,
+            node_mapping,
+        }
+    }
 }
 
 // `data_type_to_metadata` is a recursive function which helps
 // calculate every buffer count for every node for every column.
 // The `is_parent_growable` parameter is required because for example
 // a column with elements of type `Vec<[u64; 3]>` has the inner node for
-// `[u64; 3]` data be growable due to `Vec` being growable, even though
+// `[u64; 3]` data is growable due to `Vec` being growable, even though
 // `[u64; 3]` itself if fixed-size.
 
-/// Knowing the data type, can help us calculate the node and offset buffer counts in a column
+/// Recursively computes all the information in [`DataTypeMetadata`] for the provided data type (one
+/// of the [`SupportedDataTypes`]).
+///
+/// Knowing the data type can help us calculate the node and offset buffer counts in a column
 #[allow(clippy::too_many_lines)]
 #[must_use]
-// TODO: Make return type a struct
 fn data_type_to_metadata(
     data_type: &SupportedDataTypes,
     is_parent_growable: bool,
     multiplier: usize,
-) -> (
-    usize,
-    usize,
-    Vec<usize>,
-    Vec<bool>,
-    Vec<meta::NodeStatic>,
-    NodeMapping,
-) {
+) -> DataTypeMetadata {
     type D = SupportedDataTypes;
     match data_type {
         D::Utf8 | D::Binary => {
@@ -167,7 +199,7 @@ fn data_type_to_metadata(
             let offsets = BufferType::Offset;
             let binary = BufferType::Data { unit_byte_size: 1 };
             let node_meta = meta::NodeStatic::new(multiplier, vec![bit_map, offsets, binary]);
-            (
+            DataTypeMetadata::new(
                 1,
                 3,
                 vec![3],
@@ -176,7 +208,7 @@ fn data_type_to_metadata(
                 NodeMapping::empty(),
             )
         }
-        D::FixedSizeBinary(size) => (
+        D::FixedSizeBinary(size) => DataTypeMetadata::new(
             1,
             2,
             vec![2],
@@ -192,21 +224,27 @@ fn data_type_to_metadata(
             NodeMapping::empty(),
         ),
         D::List(ref list_data_type) => {
-            let (n, buffer_count, mut b, mut p, mut c, node_mapping) =
-                data_type_to_metadata(list_data_type, true, 1);
+            let DataTypeMetadata {
+                node_count,
+                buffer_count,
+                buffer_counts: mut child_buffer_counts,
+                mut padding,
+                mut data,
+                node_mapping,
+            } = data_type_to_metadata(list_data_type, true, 1);
             let mut buffer_counts = vec![2];
-            buffer_counts.append(&mut b);
+            buffer_counts.append(&mut child_buffer_counts);
             let mut padding_meta = vec![is_parent_growable, is_parent_growable];
-            padding_meta.append(&mut p);
+            padding_meta.append(&mut padding);
             let mut node_meta = vec![meta::NodeStatic::new(multiplier, vec![
                 BufferType::BitMap {
                     is_null_bitmap: true,
                 },
                 BufferType::Offset,
             ])];
-            node_meta.append(&mut c);
-            (
-                n + 1,
+            node_meta.append(&mut data);
+            DataTypeMetadata::new(
+                node_count + 1,
                 buffer_count + 2,
                 buffer_counts,
                 padding_meta,
@@ -215,20 +253,26 @@ fn data_type_to_metadata(
             )
         }
         D::FixedSizeList(ref list_data_type, size) => {
-            let (n, buffer_count, mut b, mut p, mut c, node_mapping) =
-                data_type_to_metadata(list_data_type, is_parent_growable, *size as usize);
+            let DataTypeMetadata {
+                node_count,
+                buffer_count,
+                buffer_counts: mut child_buffer_counts,
+                mut padding,
+                mut data,
+                node_mapping,
+            } = data_type_to_metadata(list_data_type, is_parent_growable, *size as usize);
             let mut buffer_counts = vec![1];
-            buffer_counts.append(&mut b);
+            buffer_counts.append(&mut child_buffer_counts);
             let mut padding_meta = vec![is_parent_growable];
-            padding_meta.append(&mut p);
+            padding_meta.append(&mut padding);
             let mut node_meta = vec![meta::NodeStatic::new(multiplier, vec![
                 BufferType::BitMap {
                     is_null_bitmap: true,
                 },
             ])];
-            node_meta.append(&mut c);
-            (
-                n + 1,
+            node_meta.append(&mut data);
+            DataTypeMetadata::new(
+                node_count + 1,
                 buffer_count + 1,
                 buffer_counts,
                 padding_meta,
@@ -236,7 +280,7 @@ fn data_type_to_metadata(
                 NodeMapping::singleton(node_mapping),
             )
         }
-        D::Boolean => (
+        D::Boolean => DataTypeMetadata::new(
             1,
             2,
             vec![2],
@@ -272,13 +316,13 @@ fn data_type_to_metadata(
         D::Date32 => data_type_metadata(is_parent_growable, multiplier, 4),
         D::Date64 => data_type_metadata(is_parent_growable, multiplier, 8),
 
-        D::Interval(arrow::datatypes::IntervalUnit::YearMonth) => {
+        D::Interval(arrow2::datatypes::IntervalUnit::YearMonth) => {
             data_type_metadata(is_parent_growable, multiplier, 4)
         }
-        D::Interval(arrow::datatypes::IntervalUnit::DayTime) => {
+        D::Interval(arrow2::datatypes::IntervalUnit::DayTime) => {
             data_type_metadata(is_parent_growable, multiplier, 8)
         }
-        D::Interval(arrow::datatypes::IntervalUnit::MonthDayNano) => {
+        D::Interval(arrow2::datatypes::IntervalUnit::MonthDayNano) => {
             data_type_metadata(is_parent_growable, multiplier, 16)
         }
 
@@ -296,20 +340,26 @@ fn data_type_to_metadata(
             ])];
             let mut child_node_mappings = Vec::with_capacity(fields.len());
             for field in fields {
-                let (n, child_buffer_count, mut b, mut p, mut c, node_mapping) =
-                    data_type_to_metadata(
-                        &D::try_from((*field.data_type()).clone()).unwrap(),
-                        is_parent_growable,
-                        1,
-                    );
-                node_count += n;
+                let DataTypeMetadata {
+                    node_count: child_node_count,
+                    buffer_count: child_buffer_count,
+                    buffer_counts: mut child_buffer_counts,
+                    padding: mut child_padding,
+                    data: mut child_data,
+                    node_mapping: child_node_mapping,
+                } = data_type_to_metadata(
+                    &D::try_from((*field.data_type()).clone()).unwrap(),
+                    is_parent_growable,
+                    1,
+                );
+                node_count += child_node_count;
                 buffer_count += child_buffer_count;
-                buffer_counts.append(&mut b);
-                buffer_is_growable_values.append(&mut p);
-                node_meta.append(&mut c);
-                child_node_mappings.push(node_mapping);
+                buffer_counts.append(&mut child_buffer_counts);
+                buffer_is_growable_values.append(&mut child_padding);
+                node_meta.append(&mut child_data);
+                child_node_mappings.push(child_node_mapping);
             }
-            (
+            DataTypeMetadata::new(
                 node_count,
                 buffer_count,
                 buffer_counts,
@@ -321,20 +371,12 @@ fn data_type_to_metadata(
     }
 }
 
-// TODO: Make return type a struct
 fn data_type_metadata(
     is_parent_growable: bool,
     multiplier: usize,
     unit_byte_size: usize,
-) -> (
-    usize,
-    usize,
-    Vec<usize>,
-    Vec<bool>,
-    Vec<meta::NodeStatic>,
-    NodeMapping,
-) {
-    (
+) -> DataTypeMetadata {
+    DataTypeMetadata::new(
         1,
         2,
         vec![2],
@@ -351,33 +393,36 @@ fn data_type_metadata(
 
 #[cfg(test)]
 pub mod tests {
-    use std::collections::HashMap;
+    use std::{collections::BTreeMap, sync::Arc};
 
-    use arrow::{
-        array::{Array, ArrayRef},
+    use arrow2::{
+        array::{
+            Array, ArrayRef, ListArray, MutableBooleanArray, MutableListArray,
+            MutablePrimitiveArray, TryPush,
+        },
         datatypes::{IntervalUnit, TimeUnit},
     };
 
     use super::*;
+    use crate::arrow::flush::GrowableArrayData;
 
     type D = DataType;
-    type ArrowArrayData = arrow::array::ArrayData;
 
-    fn get_dummy_metadata() -> HashMap<String, String> {
+    fn get_dummy_metadata() -> BTreeMap<String, String> {
         [("Key".to_string(), "Value".to_string())]
             .iter()
             .cloned()
             .collect()
     }
 
-    fn get_num_nodes_from_array_data(data: &ArrowArrayData) -> usize {
+    fn get_num_nodes_from_array_data(data: &ArrayRef) -> usize {
         data.child_data().iter().fold(0, |total_children, child| {
             total_children + get_num_nodes_from_array_data(child)
         }) + 1
     }
 
     fn get_buffer_counts_from_array_data<'a>(
-        node_data: &ArrowArrayData,
+        node_data: &ArrayRef,
         node_meta: &'a [meta::NodeStatic],
     ) -> (Vec<usize>, &'a [meta::NodeStatic]) {
         // check current node's bitmap, node_meta is created by pre-order traversal so ordering
@@ -390,11 +435,12 @@ pub mod tests {
         });
 
         // for some nodes we add an additional buffer to the metadata that is present in the
-        // underlying memory layout but isn't exposed within ArrowArrayData
+        // underlying memory layout but isn't exposed within ArrayRef
+        // crate::arrow::array_buffer_count::buffer_count_of_arrow_array(node_data)
         let mut buffers = if has_null_bitmap {
-            vec![node_data.buffers().len() + 1]
+            vec![crate::arrow::array_buffer_count::buffer_count_of_arrow_array(node_data) + 1]
         } else {
-            vec![node_data.buffers().len()]
+            vec![crate::arrow::array_buffer_count::buffer_count_of_arrow_array(node_data)]
         };
 
         // pop the first element of the slice
@@ -412,7 +458,7 @@ pub mod tests {
         (buffers, node_meta)
     }
 
-    fn get_node_mapping_from_array_data(data: &ArrowArrayData) -> NodeMapping {
+    fn get_node_mapping_from_array_data(data: &ArrayRef) -> NodeMapping {
         if data.child_data().is_empty() {
             NodeMapping::empty()
         } else {
@@ -428,24 +474,27 @@ pub mod tests {
     // Extracts column hierarchy metadata from the Arrow Array data for a given FieldNode, and its
     // children
     fn get_col_hierarchy_from_arrow_array(
-        arrow_array: &dyn Array,
+        arrow_array: &ArrayRef,
         node_infos: &[meta::NodeStatic],
     ) -> (usize, Vec<usize>, NodeMapping) {
-        let node_count = get_num_nodes_from_array_data(arrow_array.data_ref());
-        let (buffer_counts, _) =
-            get_buffer_counts_from_array_data(arrow_array.data_ref(), node_infos);
-        let node_mapping = get_node_mapping_from_array_data(arrow_array.data_ref());
+        let node_count = get_num_nodes_from_array_data(arrow_array);
+        let (buffer_counts, _) = get_buffer_counts_from_array_data(arrow_array, node_infos);
+        let node_mapping = get_node_mapping_from_array_data(arrow_array);
 
         (node_count, buffer_counts, node_mapping)
     }
 
     #[test]
     fn bool_dtype_schema_to_col_hierarchy() {
-        let schema = Schema::new_with_metadata(
-            vec![Field::new("c0", D::Boolean, false)],
-            get_dummy_metadata(),
-        );
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let schema = Schema {
+            fields: vec![Field::new("c0", D::Boolean, false)],
+            metadata: get_dummy_metadata(),
+        };
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
 
@@ -470,19 +519,26 @@ pub mod tests {
             },
         ])];
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
-        // Now check that the extracted column metadata for the schema matches the underlying Arrow
-        // array's metadata once created
+        // Now check that the extracted column metadata for the schema matches the underlying
+        // Arrow array's metadata once created
 
         // set up dummy data column, entries don't matter as we're only interested in the structure,
-        let bool_array = arrow::array::BooleanArray::from(vec![true, true, true, true, true]);
+        let bool_array = arrow2::array::BooleanArray::from(
+            vec![true, true, true, true, true]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
 
         for (arrow_array, column_meta) in [bool_array].iter().zip(expected_col_info.iter()) {
-            let (node_count, buffer_counts, node_mapping) =
-                get_col_hierarchy_from_arrow_array(arrow_array, expected_node_info.as_slice());
+            let (node_count, buffer_counts, node_mapping) = get_col_hierarchy_from_arrow_array(
+                &Arc::from(arrow_array.to_boxed()),
+                expected_node_info.as_slice(),
+            );
             let buffer_count: usize = buffer_counts.iter().sum();
 
             assert_eq!(node_count, column_meta.node_count);
@@ -506,9 +562,16 @@ pub mod tests {
             Field::new("c9", D::Float32, false),
             Field::new("c10", D::Float64, false),
         ];
-        let schema = Schema::new_with_metadata(fields.clone(), get_dummy_metadata());
+        let schema = Schema {
+            fields: fields.clone(),
+            metadata: get_dummy_metadata(),
+        };
 
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
 
@@ -541,24 +604,74 @@ pub mod tests {
             })
             .collect();
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
-        // Now check that the extracted column metadata for the schema matches the underlying Arrow
-        // array's metadata once created
+        // Now check that the extracted column metadata for the schema matches the underlying
+        // Arrow array's metadata once created
 
         // set up dummy data columns
-        let int8_array = arrow::array::Int8Array::from(vec![1, 2, 3, 4, 5, 6]);
-        let int16_array = arrow::array::Int16Array::from(vec![1, 2, 3, 4, 5, 6]);
-        let int32_array = arrow::array::Int32Array::from(vec![1, 2, 3, 4, 5, 6]);
-        let int64_array = arrow::array::Int64Array::from(vec![1, 2, 3, 4, 5, 6]);
-        let uint8_array = arrow::array::UInt8Array::from(vec![1, 2, 3, 4, 5, 6]);
-        let uint16_array = arrow::array::UInt16Array::from(vec![1, 2, 3, 4, 5, 6]);
-        let uint32_array = arrow::array::UInt32Array::from(vec![1, 2, 3, 4, 5, 6]);
-        let uint64_array = arrow::array::UInt64Array::from(vec![1, 2, 3, 4, 5, 6]);
-        let float32_array = arrow::array::Float32Array::from(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
-        let float64_array = arrow::array::Float64Array::from(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+        let int8_array = arrow2::array::Int8Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
+        let int16_array = arrow2::array::Int16Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
+        let int32_array = arrow2::array::Int32Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
+        let int64_array = arrow2::array::Int64Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
+        let uint8_array = arrow2::array::UInt8Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
+        let uint16_array = arrow2::array::UInt16Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
+        let uint32_array = arrow2::array::UInt32Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
+        let uint64_array = arrow2::array::UInt64Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
+        let float32_array = arrow2::array::Float32Array::from(
+            vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
+        let float64_array = arrow2::array::Float64Array::from(
+            vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
 
         let dummy_data_arrays: Vec<&dyn Array> = vec![
             &int8_array,
@@ -573,11 +686,13 @@ pub mod tests {
             &float64_array,
         ];
 
-        for (arrow_array, column_meta) in
-            dummy_data_arrays.into_iter().zip(expected_col_info.iter())
-        {
+        let dummy_data_arrays = dummy_data_arrays
+            .into_iter()
+            .map(|array| Arc::from(array.to_boxed()));
+
+        for (arrow_array, column_meta) in dummy_data_arrays.zip(expected_col_info.iter()) {
             let (node_count, buffer_counts, node_mapping) =
-                get_col_hierarchy_from_arrow_array(arrow_array, expected_node_info.as_slice());
+                get_col_hierarchy_from_arrow_array(&arrow_array, expected_node_info.as_slice());
             let buffer_count: usize = buffer_counts.iter().sum();
 
             assert_eq!(node_count, column_meta.node_count);
@@ -608,8 +723,15 @@ pub mod tests {
             fields.push(Field::new(&format!("c{}", fields.len()), time_unit, false));
         }
 
-        let schema = Schema::new_with_metadata(fields.clone(), get_dummy_metadata());
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let schema = Schema {
+            fields: fields.clone(),
+            metadata: get_dummy_metadata(),
+        };
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
 
@@ -642,22 +764,39 @@ pub mod tests {
             })
             .collect();
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
         // Now check that the extracted column metadata for the schema matches the underlying Arrow
         // array's metadata once created
 
         // set up dummy data columns, entries don't matter as we're only interested in the
         // structure, Arrow stores time data as i32 or i64's
-        let time64_nanosecond_array =
-            arrow::array::Time64NanosecondArray::from(vec![1, 2, 3, 4, 5, 6]);
-        let time64_microsecond_array =
-            arrow::array::Time64MicrosecondArray::from(vec![1, 2, 3, 4, 5, 6]);
-        let time32_millisecond_array =
-            arrow::array::Time32MillisecondArray::from(vec![1, 2, 3, 4, 5, 6]);
-        let time32_second_array = arrow::array::Time32SecondArray::from(vec![1, 2, 3, 4, 5, 6]);
+        let time64_nanosecond_array = arrow2::array::Int64Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
+        let time64_microsecond_array = arrow2::array::Int64Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
+        let time32_millisecond_array = arrow2::array::Int32Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
+        let time32_second_array = arrow2::array::Int32Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
 
         let dummy_data_arrays: Vec<&dyn Array> = vec![
             &time64_nanosecond_array,
@@ -666,11 +805,13 @@ pub mod tests {
             &time32_second_array,
         ];
 
-        for (arrow_array, column_meta) in
-            dummy_data_arrays.into_iter().zip(expected_col_info.iter())
-        {
+        let dummy_data_arrays = dummy_data_arrays
+            .into_iter()
+            .map(|x| Arc::from(x.to_boxed()));
+
+        for (arrow_array, column_meta) in dummy_data_arrays.zip(expected_col_info.iter()) {
             let (node_count, buffer_counts, node_mapping) =
-                get_col_hierarchy_from_arrow_array(arrow_array, expected_node_info.as_slice());
+                get_col_hierarchy_from_arrow_array(&arrow_array, expected_node_info.as_slice());
             let buffer_count: usize = buffer_counts.iter().sum();
 
             assert_eq!(node_count, column_meta.node_count);
@@ -696,8 +837,15 @@ pub mod tests {
             fields.push(Field::new(&format!("c{}", fields.len()), date_dtype, false));
         }
 
-        let schema = Schema::new_with_metadata(fields.clone(), get_dummy_metadata());
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let schema = Schema {
+            fields: fields.clone(),
+            metadata: get_dummy_metadata(),
+        };
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
 
@@ -730,17 +878,27 @@ pub mod tests {
             })
             .collect();
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
         // Now check that the extracted column metadata for the schema matches the underlying Arrow
         // array's metadata once created
 
         // set up dummy data columns, entries don't matter as we're only interested in the
         // structure, Arrow stores date data as i32 or i64's
-        let date32_array = arrow::array::Date32Array::from(vec![1, 2, 3, 4, 5, 6]);
-        let date64_array = arrow::array::Date64Array::from(vec![1, 2, 3, 4, 5, 6]);
+        let date32_array = arrow2::array::Int32Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
+        let date64_array = arrow2::array::Int64Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
 
         let dummy_data_arrays: Vec<&dyn Array> = vec![
             &date32_array,
@@ -749,12 +907,13 @@ pub mod tests {
             &date64_array,
             &date64_array,
         ];
+        let dummy_data_arrays = dummy_data_arrays
+            .into_iter()
+            .map(|x| Arc::from(x.to_boxed()));
 
-        for (arrow_array, column_meta) in
-            dummy_data_arrays.into_iter().zip(expected_col_info.iter())
-        {
+        for (arrow_array, column_meta) in dummy_data_arrays.zip(expected_col_info.iter()) {
             let (node_count, buffer_counts, node_mapping) =
-                get_col_hierarchy_from_arrow_array(arrow_array, expected_node_info.as_slice());
+                get_col_hierarchy_from_arrow_array(&arrow_array, expected_node_info.as_slice());
             let buffer_count: usize = buffer_counts.iter().sum();
 
             assert_eq!(node_count, column_meta.node_count);
@@ -775,13 +934,20 @@ pub mod tests {
         .iter()
         .enumerate()
         .map(|(idx, time_unit)| {
-            let duration_type = D::Duration(time_unit.clone());
+            let duration_type = D::Duration(*time_unit);
             Field::new(&format!("c{}", idx), duration_type, false)
         })
         .collect();
 
-        let schema = Schema::new_with_metadata(fields.clone(), get_dummy_metadata());
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let schema = Schema {
+            fields: fields.clone(),
+            metadata: get_dummy_metadata(),
+        };
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
 
@@ -813,22 +979,39 @@ pub mod tests {
             })
             .collect();
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
         // Now check that the extracted column metadata for the schema matches the underlying Arrow
         // array's metadata once created
 
         // set up dummy data columns, entries don't matter as we're only interested in the
         // structure, Arrow stores duration data as i64's
-        let duration_nanosecond_array =
-            arrow::array::DurationNanosecondArray::from(vec![1, 2, 3, 4, 5, 6]);
-        let duration_microsecond_array =
-            arrow::array::DurationMicrosecondArray::from(vec![1, 2, 3, 4, 5, 6]);
-        let duration_millisecond_array =
-            arrow::array::DurationMillisecondArray::from(vec![1, 2, 3, 4, 5, 6]);
-        let duration_second_array = arrow::array::DurationSecondArray::from(vec![1, 2, 3, 4, 5, 6]);
+        let duration_nanosecond_array = arrow2::array::Int64Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
+        let duration_microsecond_array = arrow2::array::Int64Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
+        let duration_millisecond_array = arrow2::array::Int64Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
+        let duration_second_array = arrow2::array::Int64Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
 
         let dummy_data_arrays: Vec<&dyn Array> = vec![
             &duration_nanosecond_array,
@@ -836,12 +1019,13 @@ pub mod tests {
             &duration_millisecond_array,
             &duration_second_array,
         ];
+        let dummy_data_arrays = dummy_data_arrays
+            .into_iter()
+            .map(|x| Arc::from(x.to_boxed()));
 
-        for (arrow_array, column_meta) in
-            dummy_data_arrays.into_iter().zip(expected_col_info.iter())
-        {
+        for (arrow_array, column_meta) in dummy_data_arrays.zip(expected_col_info.iter()) {
             let (node_count, buffer_counts, node_mapping) =
-                get_col_hierarchy_from_arrow_array(arrow_array, expected_node_info.as_slice());
+                get_col_hierarchy_from_arrow_array(&arrow_array, expected_node_info.as_slice());
             let buffer_count: usize = buffer_counts.iter().sum();
 
             assert_eq!(node_count, column_meta.node_count);
@@ -861,7 +1045,7 @@ pub mod tests {
             IntervalUnit::YearMonth,
             IntervalUnit::MonthDayNano,
         ] {
-            let interval_type = D::Interval(interval_unit.clone());
+            let interval_type = D::Interval(interval_unit);
             fields.push(Field::new(
                 &format!("c{}", fields.len()),
                 interval_type,
@@ -876,8 +1060,15 @@ pub mod tests {
             })
         }
 
-        let schema = Schema::new_with_metadata(fields.clone(), get_dummy_metadata());
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let schema = Schema {
+            fields: fields.clone(),
+            metadata: get_dummy_metadata(),
+        };
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
 
@@ -910,28 +1101,36 @@ pub mod tests {
             })
             .collect();
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
         // Now check that the extracted column metadata for the schema matches the underlying Arrow
         // array's metadata once created
 
         // set up dummy data columns, entries don't matter as we're only interested in the
         // structure, Arrow stores interval data as i32 and i64's
-        let interval_day_time_array =
-            arrow::array::IntervalDayTimeArray::from(vec![1, 2, 3, 4, 5, 6]);
-        let interval_year_month_array =
-            arrow::array::IntervalYearMonthArray::from(vec![1, 2, 3, 4, 5, 6]);
+        let interval_day_time_array = arrow2::array::Int64Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
+        let interval_year_month_array = arrow2::array::Int64Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
 
-        let dummy_data_arrays: Vec<&dyn Array> =
-            vec![&interval_day_time_array, &interval_year_month_array];
+        let dummy_data_arrays = vec![&interval_day_time_array, &interval_year_month_array];
+        let dummy_data_arrays = dummy_data_arrays
+            .into_iter()
+            .map(|x| Arc::from(x.to_boxed()));
 
-        for (arrow_array, column_meta) in
-            dummy_data_arrays.into_iter().zip(expected_col_info.iter())
-        {
+        for (arrow_array, column_meta) in dummy_data_arrays.zip(expected_col_info.iter()) {
             let (node_count, buffer_counts, node_mapping) =
-                get_col_hierarchy_from_arrow_array(arrow_array, expected_node_info.as_slice());
+                get_col_hierarchy_from_arrow_array(&arrow_array, expected_node_info.as_slice());
             let buffer_count: usize = buffer_counts.iter().sum();
 
             assert_eq!(node_count, column_meta.node_count);
@@ -958,14 +1157,21 @@ pub mod tests {
             ] {
                 fields.push(Field::new(
                     &format!("c{}", fields.len()),
-                    D::Timestamp(time_unit.clone(), time_zone),
+                    D::Timestamp(time_unit, time_zone),
                     false,
                 ));
             }
         }
 
-        let schema = Schema::new_with_metadata(fields.clone(), get_dummy_metadata());
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let schema = Schema {
+            fields: fields.clone(),
+            metadata: Default::default(),
+        };
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
 
@@ -996,33 +1202,42 @@ pub mod tests {
 
         let expected_buffer_info = vec![false; fields.len() * num_buffers];
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
         // Now check that the extracted column metadata for the schema matches the underlying Arrow
         // array's metadata once created
 
         // set up dummy data columns, entries don't matter as we're only interested in the
         // structure, Arrow stores timestamp data as  i64's
-        let timestamp_microsecond_array =
-            arrow::array::TimestampMicrosecondArray::from(vec![1, 2, 3, 4, 5, 6]);
-        let timestamp_millisecond_array =
-            arrow::array::TimestampMillisecondArray::from(vec![1, 2, 3, 4, 5, 6]);
+        let timestamp_microsecond_array = arrow2::array::Int64Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
+        let timestamp_millisecond_array = arrow2::array::Int64Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
 
         // our version of arrow is missing calls to the macro to create the arrays from vec's
-        let mut timestamp_nanosecond_buffer_builder =
-            arrow::array::TimestampNanosecondBuilder::new(6);
-        timestamp_nanosecond_buffer_builder
-            .append_values(&[1, 2, 3, 4, 5, 6], &[true; 6])
-            .unwrap();
-        let timestamp_nanosecond_array = timestamp_nanosecond_buffer_builder.finish();
+        let timestamp_nanosecond_array = arrow2::array::Int64Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
 
-        let mut timestamp_second_buffer_builder = arrow::array::TimestampSecondBuilder::new(6);
-        timestamp_second_buffer_builder
-            .append_values(&[1, 2, 3, 4, 5, 6], &[true; 6])
-            .unwrap();
-        let timestamp_second_array = timestamp_second_buffer_builder.finish();
+        let timestamp_second_array = arrow2::array::Int64Array::from(
+            vec![1, 2, 3, 4, 5, 6]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
 
         let dummy_data_arrays: Vec<&dyn Array> = vec![
             &timestamp_nanosecond_array,
@@ -1030,12 +1245,13 @@ pub mod tests {
             &timestamp_millisecond_array,
             &timestamp_second_array,
         ];
+        let dummy_data_arrays = dummy_data_arrays
+            .into_iter()
+            .map(|x| Arc::from(x.to_boxed()));
 
-        for (arrow_array, column_meta) in
-            dummy_data_arrays.into_iter().zip(expected_col_info.iter())
-        {
+        for (arrow_array, column_meta) in dummy_data_arrays.zip(expected_col_info.iter()) {
             let (node_count, buffer_counts, node_mapping) =
-                get_col_hierarchy_from_arrow_array(arrow_array, expected_node_info.as_slice());
+                get_col_hierarchy_from_arrow_array(&arrow_array, expected_node_info.as_slice());
             let buffer_count: usize = buffer_counts.iter().sum();
 
             assert_eq!(node_count, column_meta.node_count);
@@ -1055,8 +1271,15 @@ pub mod tests {
             .map(|(idx, &size)| Field::new(&format!("c{}", idx), D::FixedSizeBinary(size), false))
             .collect();
 
-        let schema = Schema::new_with_metadata(fields.clone(), get_dummy_metadata());
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let schema = Schema {
+            fields: fields.clone(),
+            metadata: get_dummy_metadata(),
+        };
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
 
@@ -1091,28 +1314,32 @@ pub mod tests {
             })
             .collect();
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
         // Now check that the extracted column metadata for the schema matches the underlying Arrow
         // array's metadata once created
 
         // set up dummy data columns, entries don't matter as we're only interested in the
         // structure,
-        let dummy_data_arrays = fixed_sizes.into_iter().map(|size| {
-            let mut fixed_size_binary_builder = arrow::array::FixedSizeBinaryBuilder::new(6, size);
-            fixed_size_binary_builder
-                .append_value(&vec![3u8; size as usize])
-                .unwrap();
-            fixed_size_binary_builder.finish()
-        });
+        let dummy_data_arrays = vec![
+            arrow2::array::FixedSizeBinaryArray::from([Some([3u8; 2])]),
+            arrow2::array::FixedSizeBinaryArray::from([Some([3u8; 3])]),
+            arrow2::array::FixedSizeBinaryArray::from([Some([3u8; 6])]),
+            arrow2::array::FixedSizeBinaryArray::from([Some([3u8; 8])]),
+        ];
+        let dummy_data_arrays: Vec<ArrayRef> = dummy_data_arrays
+            .into_iter()
+            .map(|array| Arc::from(array.to_boxed()))
+            .collect();
 
-        for (arrow_array, (column_meta, node_info)) in
-            dummy_data_arrays.zip(expected_col_info.iter().zip(expected_node_info.iter()))
+        for (arrow_array, (column_meta, node_info)) in dummy_data_arrays
+            .iter()
+            .zip(expected_col_info.iter().zip(expected_node_info.iter()))
         {
             let (node_count, buffer_counts, node_mapping) =
-                get_col_hierarchy_from_arrow_array(&arrow_array, std::slice::from_ref(node_info));
+                get_col_hierarchy_from_arrow_array(arrow_array, std::slice::from_ref(node_info));
             let buffer_count: usize = buffer_counts.iter().sum();
 
             assert_eq!(node_count, column_meta.node_count);
@@ -1128,9 +1355,16 @@ pub mod tests {
             Field::new("c0", D::Utf8, false),
             Field::new("c1", D::Binary, false),
         ];
-        let schema = Schema::new_with_metadata(fields.clone(), get_dummy_metadata());
+        let schema = Schema {
+            fields: fields.clone(),
+            metadata: get_dummy_metadata(),
+        };
 
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
 
@@ -1165,36 +1399,39 @@ pub mod tests {
             })
             .collect();
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
         // Now check that the extracted column metadata for the schema matches the underlying Arrow
         // array's metadata once created
 
         // set up dummy data columns, entries don't matter as we're only interested in the
         // structure,
-        let mut string_builder = arrow::array::StringBuilder::new(6);
-        for string in ["one", "two", "three", "four", "five", "six"] {
-            string_builder.append_value(string).unwrap();
-        }
-        let string_array = string_builder.finish();
+        let string_array = arrow2::array::Utf8Array::<i32>::from(
+            ["one", "two", "three", "four", "five", "six"]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
 
-        let mut binary_builder = arrow::array::BinaryBuilder::new(6);
-        binary_builder.append_value(&vec![3u8; 6]).unwrap();
-        let binary_array = binary_builder.finish();
+        let binary_array = arrow2::array::BinaryArray::<i32>::from([Some(&vec![3u8; 6])]);
 
         let dummy_data_arrays: Vec<&dyn Array> = vec![&string_array, &binary_array];
+        let dummy_data_arrays = dummy_data_arrays
+            .into_iter()
+            .map(|array| Arc::from(array.to_boxed()));
 
-        for (arrow_array, column_meta) in
-            dummy_data_arrays.into_iter().zip(expected_col_info.iter())
-        {
+        for (arrow_array, column_meta) in dummy_data_arrays.zip(expected_col_info.iter()) {
             let (node_count, buffer_counts, node_mapping) =
-                get_col_hierarchy_from_arrow_array(arrow_array, expected_node_info.as_slice());
+                get_col_hierarchy_from_arrow_array(&arrow_array, expected_node_info.as_slice());
             let buffer_count: usize = buffer_counts.iter().sum();
 
             assert_eq!(node_count, column_meta.node_count);
-            assert_eq!(buffer_count, column_meta.buffer_count);
+            assert_eq!(
+                buffer_count, column_meta.buffer_count,
+                "unexpected buffer count for {arrow_array:?}"
+            );
             assert_eq!(buffer_counts, column_meta.buffer_counts);
             assert_eq!(node_mapping, column_meta.root_node_mapping);
         }
@@ -1215,9 +1452,16 @@ pub mod tests {
             ),
         ];
 
-        let schema = Schema::new_with_metadata(fields.clone(), get_dummy_metadata());
+        let schema = Schema {
+            fields: fields.clone(),
+            metadata: get_dummy_metadata(),
+        };
 
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
 
@@ -1280,50 +1524,47 @@ pub mod tests {
             ]),
         ];
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
-        // Now check that the extracted column metadata for the schema matches the underlying Arrow
-        // array's metadata once created
+        // Now check that the extracted column metadata for the schema matches the underlying
+        // Arrow array's metadata once created
 
         // set up dummy data columns, entries don't matter as we're only interested in the
         // structure,
-        let capacity = 6;
-        let bool_builder = arrow::array::BooleanBuilder::new(capacity);
-        let mut bool_list_builder = arrow::array::ListBuilder::new(bool_builder);
+        let mut bool_list: MutableListArray<i32, MutableBooleanArray> = MutableListArray::new();
         for _ in 0..4 {
-            for val in vec![true; capacity] {
-                bool_list_builder.values().append_value(val).unwrap();
-            }
-            bool_list_builder.append(true).unwrap();
+            bool_list.try_push(Some(vec![Some(true); 6])).unwrap();
         }
-        let bool_list = bool_list_builder.finish();
+        let bool_list: ListArray<i32> = bool_list.into();
 
-        let uint32_builder = arrow::array::UInt32Builder::new(capacity);
-        let mut uint32_list_builder = arrow::array::ListBuilder::new(uint32_builder);
+        let mut uint32_list: MutableListArray<i32, MutablePrimitiveArray<u32>> =
+            MutableListArray::new();
         for _ in 0..4 {
-            for val in 0..capacity {
-                uint32_list_builder
-                    .values()
-                    .append_value(val as u32)
-                    .unwrap();
+            let mut data = vec![];
+            for val in 0..6 {
+                data.push(Some(val))
             }
-            uint32_list_builder.append(true).unwrap();
+            uint32_list.try_push(Some(data)).unwrap();
         }
-        let uint32_list = uint32_list_builder.finish();
+        let uint32_list: ListArray<i32> = uint32_list.into();
 
         let dummy_data_arrays: Vec<&dyn Array> = vec![&bool_list, &uint32_list];
+        let dummy_data_arrays = dummy_data_arrays
+            .into_iter()
+            .map(|x| Arc::from(x.to_boxed()));
 
-        for (arrow_array, column_meta) in
-            dummy_data_arrays.into_iter().zip(expected_col_info.iter())
-        {
+        for (arrow_array, column_meta) in dummy_data_arrays.zip(expected_col_info.iter()) {
             let (node_count, buffer_counts, node_mapping) =
-                get_col_hierarchy_from_arrow_array(arrow_array, expected_node_info.as_slice());
+                get_col_hierarchy_from_arrow_array(&arrow_array, expected_node_info.as_slice());
             let buffer_count: usize = buffer_counts.iter().sum();
 
             assert_eq!(node_count, column_meta.node_count);
-            assert_eq!(buffer_count, column_meta.buffer_count);
+            assert_eq!(
+                buffer_count, column_meta.buffer_count,
+                "{arrow_array:?} had an unexpected number of buffers"
+            );
             assert_eq!(buffer_counts, column_meta.buffer_counts);
             assert_eq!(node_mapping, column_meta.root_node_mapping);
         }
@@ -1343,9 +1584,16 @@ pub mod tests {
             Field::new("c1", D::Struct(vec![]), false),
         ];
 
-        let schema = Schema::new_with_metadata(fields, get_dummy_metadata());
+        let schema = Schema {
+            fields,
+            metadata: get_dummy_metadata(),
+        };
 
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         let expected_col_info = vec![
             // "c0"
@@ -1408,51 +1656,64 @@ pub mod tests {
             }]),
         ];
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
         // Now check that the extracted column metadata for the schema matches the underlying Arrow
         // array's metadata once created
 
         // set up dummy data columns, entries don't matter as we're only interested in the
         // structure,
-        let mut string_builder = arrow::array::StringBuilder::new(6);
-        for string in ["one", "two", "three", "four", "five", "six"] {
-            string_builder.append_value(string).unwrap();
-        }
-        let string_array = string_builder.finish();
-
-        let bool_array = arrow::array::BooleanArray::from(vec![true, true, true, true, true, true]);
-
-        let struct_c0 = arrow::array::StructArray::from(vec![
-            (
-                Field::new("a", D::Utf8, false),
-                Arc::new(string_array) as ArrayRef,
-            ),
-            (
-                Field::new("b", D::Boolean, false),
-                Arc::new(bool_array) as ArrayRef,
-            ),
-        ]);
-
-        let struct_c1 = arrow::array::StructArray::from(
-            ArrowArrayData::builder(D::Struct(vec![])).build().unwrap(),
+        let string_array = arrow2::array::Utf8Array::<i32>::from(
+            ["one", "two", "three", "four", "five", "six"]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
         );
 
-        let dummy_data_arrays: Vec<&dyn Array> = vec![&struct_c0, &struct_c1];
+        let bool_array = arrow2::array::BooleanArray::from(
+            vec![true, true, true, true, true, true]
+                .into_iter()
+                .map(Some)
+                .collect::<Vec<_>>(),
+        );
 
-        for (arrow_array, column_meta) in
-            dummy_data_arrays.into_iter().zip(expected_col_info.iter())
-        {
+        let fields = vec![
+            Field::new("a", D::Utf8, false),
+            Field::new("b", D::Boolean, false),
+        ];
+
+        let struct_c0 = arrow2::array::StructArray::new(
+            DataType::Struct(fields),
+            vec![
+                Arc::new(string_array) as ArrayRef,
+                Arc::new(bool_array) as ArrayRef,
+            ],
+            None,
+        );
+
+        let dummy_data_arrays: Vec<&dyn Array> = vec![&struct_c0];
+        let dummy_data_arrays = dummy_data_arrays
+            .into_iter()
+            .map(|array| Arc::from(array.to_boxed()));
+
+        for (arrow_array, expected_column_meta) in dummy_data_arrays.zip(expected_col_info.iter()) {
             let (node_count, buffer_counts, node_mapping) =
-                get_col_hierarchy_from_arrow_array(arrow_array, expected_node_info.as_slice());
+                get_col_hierarchy_from_arrow_array(&arrow_array, expected_node_info.as_slice());
             let buffer_count: usize = buffer_counts.iter().sum();
 
-            assert_eq!(node_count, column_meta.node_count);
-            assert_eq!(buffer_count, column_meta.buffer_count);
-            assert_eq!(buffer_counts, column_meta.buffer_counts);
-            assert_eq!(node_mapping, column_meta.root_node_mapping);
+            assert_eq!(node_count, expected_column_meta.node_count);
+            assert_eq!(
+                buffer_count, expected_column_meta.buffer_count,
+                "{arrow_array:?} had an unexpected number of buffers"
+            );
+            assert_eq!(
+                buffer_counts, expected_column_meta.buffer_counts,
+                "note: the actual buffer counts are on the left, and the expected ones are on the \
+                 right"
+            );
+            assert_eq!(node_mapping, expected_column_meta.root_node_mapping);
         }
     }
 }

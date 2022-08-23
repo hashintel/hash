@@ -17,9 +17,10 @@ use crate::fmt::Emit;
 /// use std::io::{Error, ErrorKind};
 ///
 /// use error_stack::{fmt::DebugDiagnostic, report};
+/// use error_stack::fmt::Emit;
 ///
 /// let report = report!(Error::from(ErrorKind::InvalidInput)) //
-///     .attach(DebugDiagnostic::next("Hello!"));
+///     .attach(DebugDiagnostic::new(vec![Emit::next("Hello!")]));
 ///
 /// # owo_colors::set_override(true);
 /// # fn render(value: String) -> String {
@@ -124,27 +125,18 @@ use crate::fmt::Emit;
 // TODO: remove experimental flag once specialisation is stabilized or sound
 #[cfg(feature = "unstable")]
 pub struct DebugDiagnostic {
-    emit: Vec<Emit>,
+    output: Vec<Emit>,
     snippets: Vec<String>,
 }
 
 #[cfg(feature = "unstable")]
 impl DebugDiagnostic {
-    /// The diagnostic is going to be emitted immediately once encountered in the frame stack.
+    /// Create a new [`DebugDiagnostic`]
     #[must_use]
-    pub fn next<T: Into<String>>(output: T) -> Self {
+    #[cfg_attr(not(feature = "std"), allow(dead_code))]
+    pub fn new(diagnostic: Vec<Emit>) -> Self {
         Self {
-            emit: vec![Emit::Next(output.into())],
-            snippets: vec![],
-        }
-    }
-
-    /// The diagnostic is going to be deferred until the end of the group of the current frame
-    /// stack.
-    #[must_use]
-    pub fn defer<T: Into<String>>(output: T) -> Self {
-        Self {
-            emit: vec![Emit::Defer(output.into())],
+            output: diagnostic,
             snippets: vec![],
         }
     }
@@ -159,13 +151,14 @@ impl DebugDiagnostic {
     /// Add additional text to the [`DebugDiagnostic`],
     /// this can be chained to create multiple texts entries.
     #[must_use]
+    #[cfg_attr(not(feature = "std"), allow(dead_code))]
     pub fn attach_snippet(mut self, snippet: impl Into<String>) -> Self {
         self.snippets.push(snippet.into());
         self
     }
 
-    pub(crate) fn emit(&self) -> &[Emit] {
-        &self.emit
+    pub(crate) fn output(&self) -> &[Emit] {
+        &self.output
     }
 
     pub(crate) fn snippets(&self) -> &[String] {

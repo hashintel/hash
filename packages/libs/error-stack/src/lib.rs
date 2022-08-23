@@ -337,14 +337,13 @@
 //!
 //! ### Automatic Backtraces
 //!
-//! When on a nightly compiler, [`Report`] will use the [`Backtrace`] from the base [`Context`] if
-//! it exists, or it will try to capture one. Unlike some other approaches, this does not require
-//! the user modifying their custom error types to be aware of backtraces, and doesn't require
-//! manual implementations to forward calls down any wrapped errors that are often needed with other
-//! approaches.
+//! When on a Rust 1.65 or later, [`Report`] will try to capture a [`Backtrace`] if `RUST_BACKTRACE`
+//! or `RUST_BACKTRACE_LIB` is set. If on a nightly toolchain, it will use the [`Backtrace`]
+//! if provided by the base [`Context`], and will try to capture one otherwise.
 //!
-//! Using the `backtrace` crate instead of `std::backtrace` is a considered feature to support
-//! backtraces on non-nightly channels and can be prioritized depending on demand.
+//! Unlike some other approaches, this does not require the user modifying their custom error types
+//! to be aware of backtraces, and doesn't require manual implementations to forward calls down any
+//! wrapped errors.
 //!
 //! ### No-Std compatible
 //!
@@ -427,6 +426,7 @@
 //!
 //! [^color]: error-stack supports the [`NO_COLOR`](http://no-color.org/)
 //!     and `FORCE_COLOR` environment variables through the [owo-colors crate](https://crates.io/crates/owo-colors)
+//!
 //! [^unstable]: unstable features may be removed in **any** future version without notice.
 //!     They exist to gauge interest towards features that may be stablized in the future.
 //!
@@ -449,10 +449,12 @@
 )]
 #![warn(
     missing_docs,
+    unreachable_pub,
     clippy::pedantic,
     clippy::nursery,
     clippy::undocumented_unsafe_blocks
 )]
+#![allow(clippy::redundant_pub_crate)] // This would otherwise clash with `unreachable_pub`
 #![allow(clippy::missing_errors_doc)] // This is an error handling library producing Results, not Errors
 #![allow(clippy::module_name_repetitions)]
 #![cfg_attr(
@@ -467,9 +469,10 @@ mod frame;
 pub mod iter;
 mod macros;
 mod report;
+mod result;
 
 mod context;
-mod ext;
+pub mod ext;
 #[cfg(feature = "std")]
 pub mod fmt;
 #[cfg(not(feature = "std"))]
@@ -478,7 +481,13 @@ mod fmt;
 mod hook;
 
 #[doc(inline)]
-pub use self::ext::*;
+#[cfg(feature = "futures")]
+pub use self::ext::{future::FutureExt, stream::StreamExt};
+#[doc(inline)]
+pub use self::ext::{
+    iter::IteratorExt,
+    result::{IntoReport, ResultExt},
+};
 #[cfg(feature = "std")]
 #[allow(deprecated)]
 pub use self::hook::HookAlreadySet;
@@ -487,6 +496,7 @@ pub use self::{
     frame::{AttachmentKind, Frame, FrameKind},
     macros::*,
     report::Report,
+    result::Result,
 };
 
 #[cfg(test)]
