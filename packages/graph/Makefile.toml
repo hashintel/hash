@@ -69,7 +69,7 @@ command = "yarn"
 args = ["external-services", "down", "${@}"]
 
 [tasks.test-docker]
-run_task = { name = ["graph-up", "test-rest-api", "graph-down"] }
+run_task = { name = ["yarn", "graph-up", "test-rest-api", "graph-down"] }
 
 [tasks.test-rest-api]
 # This is a temporary solution until we have e2e tests in place
