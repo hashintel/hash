@@ -4,7 +4,9 @@ mod link_type;
 mod property_type;
 mod read;
 
-use crate::ontology::types::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
+use type_system::{uri::VersionedUri, DataType, PropertyType};
+
+use crate::ontology::types::{EntityType, LinkType};
 
 /// Provides an abstraction over elements of the Type System stored in the Database.
 ///

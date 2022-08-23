@@ -3,13 +3,11 @@ use std::{collections::HashMap, fmt};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::{FromSql, ToSql};
+use type_system::uri::{BaseUri, VersionedUri};
 use utoipa::Component;
 use uuid::Uuid;
 
-use crate::ontology::{
-    types::uri::{BaseUri, VersionedUri},
-    AccountId,
-};
+use crate::ontology::AccountId;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, Component, FromSql, ToSql)]
 #[repr(transparent)]

@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::ontology::types::uri::{BaseUri, VersionedUri};
+use type_system::uri::{BaseUri, VersionedUri};
 
 #[derive(Debug)]
 pub enum ValidationError {

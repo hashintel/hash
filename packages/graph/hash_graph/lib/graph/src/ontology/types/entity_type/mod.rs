@@ -2,19 +2,14 @@ mod links;
 
 use std::collections::{HashMap, HashSet};
 
-use error_stack::{ensure, Result};
+use error_stack::Result;
 use serde::{Deserialize, Serialize};
-
-use crate::ontology::types::{
-    entity_type::links::{Links, ValueOrMaybeOrderedArray},
-    error::ValidationError,
-    property_type::PropertyTypeReference,
-    serde_shared::{
-        array::ValueOrArray,
-        object::{Object, ValidateUri},
-    },
+use type_system::{
     uri::{BaseUri, VersionedUri},
+    Object, PropertyTypeReference, ValidateUri, ValidationError, ValueOrArray,
 };
+
+use crate::ontology::types::entity_type::links::{Links, ValueOrMaybeOrderedArray};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -38,15 +33,15 @@ impl EntityTypeReference {
 }
 
 impl ValidateUri for EntityTypeReference {
-    fn validate_uri(&self, base_uri: &BaseUri) -> Result<(), ValidationError> {
-        ensure!(
-            base_uri == self.uri().base_uri(),
-            ValidationError::BaseUriMismatch {
+    fn validate_uri(&self, base_uri: &BaseUri) -> std::result::Result<(), ValidationError> {
+        if base_uri == self.uri().base_uri() {
+            Ok(())
+        } else {
+            Err(ValidationError::BaseUriMismatch {
                 base_uri: base_uri.clone(),
-                versioned_uri: self.uri().clone()
-            }
-        );
-        Ok(())
+                versioned_uri: self.uri().clone(),
+            })
+        }
     }
 }
 
@@ -132,7 +127,9 @@ impl EntityType {
             default,
             examples,
             property_object: Object::new(properties, required)?,
-            links: Links::new(links, required_links)?,
+            // TODO: this is clearly incorrect but the validation error is missing from the type
+            //  system package
+            links: Links::new(links, required_links).map_err(|_| ValidationError::EmptyOneOf)?,
         })
     }
 
@@ -206,6 +203,8 @@ impl EntityType {
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
+
+    use type_system::PropertyTypeReference;
 
     use super::*;
 

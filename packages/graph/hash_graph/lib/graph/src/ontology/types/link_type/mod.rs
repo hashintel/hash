@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
-
-use crate::ontology::types::uri::VersionedUri;
+use type_system::uri::VersionedUri;
 
 /// Will serialize as a constant value `"linkType"`
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

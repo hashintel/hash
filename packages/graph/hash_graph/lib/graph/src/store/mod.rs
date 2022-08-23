@@ -9,6 +9,7 @@ use std::fmt;
 
 use async_trait::async_trait;
 use error_stack::{Context, Result};
+use type_system::{uri::VersionedUri, DataType, PropertyType};
 
 pub use self::{
     error::{BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError},
@@ -18,7 +19,7 @@ pub use self::{
 use crate::{
     knowledge::{Entity, EntityId, Link, Links, PersistedEntity, PersistedEntityIdentifier},
     ontology::{
-        types::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType},
+        types::{EntityType, LinkType},
         AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
         PersistedOntologyIdentifier, PersistedPropertyType,
     },

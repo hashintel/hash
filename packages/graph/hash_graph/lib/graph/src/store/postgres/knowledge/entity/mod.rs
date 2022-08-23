@@ -3,11 +3,12 @@ mod read;
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use tokio_postgres::GenericClient;
+use type_system::uri::VersionedUri;
 use uuid::Uuid;
 
 use crate::{
     knowledge::{Entity, EntityId, PersistedEntityIdentifier},
-    ontology::{types::uri::VersionedUri, AccountId},
+    ontology::AccountId,
     store::{
         error::EntityDoesNotExist, AsClient, EntityStore, InsertionError, PostgresStore,
         UpdateError,

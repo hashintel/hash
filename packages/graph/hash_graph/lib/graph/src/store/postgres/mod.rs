@@ -9,6 +9,10 @@ use error_stack::{IntoReport, Report, Result, ResultExt};
 use postgres_types::ToSql;
 use serde::Serialize;
 use tokio_postgres::GenericClient;
+use type_system::{
+    uri::{BaseUri, VersionedUri},
+    DataTypeReference, PropertyType, PropertyTypeReference,
+};
 use uuid::Uuid;
 
 pub use self::pool::{AsClient, PostgresStorePool};
@@ -16,11 +20,7 @@ use super::error::LinkActivationError;
 use crate::{
     knowledge::{Entity, EntityId, LinkStatus, PersistedEntityIdentifier},
     ontology::{
-        types::{
-            uri::{BaseUri, VersionedUri},
-            DataTypeReference, EntityType, EntityTypeReference, PropertyType,
-            PropertyTypeReference,
-        },
+        types::{EntityType, EntityTypeReference},
         AccountId, PersistedOntologyIdentifier,
     },
     store::{
@@ -73,7 +73,7 @@ where
                         WHERE base_uri = $1
                     );
                 "#,
-                &[&base_uri],
+                &[&base_uri.to_string()],
             )
             .await
             .into_report()
@@ -100,7 +100,7 @@ where
                         WHERE base_uri = $1 AND version = $2
                     );
                 "#,
-                &[uri.base_uri(), &version],
+                &[&uri.base_uri().to_string(), &version],
             )
             .await
             .into_report()
@@ -176,7 +176,7 @@ where
                     VALUES ($1, $2, $3)
                     RETURNING version_id;
                 "#,
-                &[uri.base_uri(), &version, &version_id],
+                &[&uri.base_uri().to_string(), &version, &version_id],
             )
             .await
             .into_report()
@@ -201,7 +201,7 @@ where
                     VALUES ($1)
                     RETURNING base_uri;
                 "#,
-                &[&base_uri],
+                &[&base_uri.to_string()],
             )
             .await
             .into_report()
@@ -636,7 +636,7 @@ where
                     FROM ids
                     WHERE base_uri = $1 AND version = $2;
                 "#,
-                &[uri.base_uri(), &version],
+                &[&uri.base_uri().to_string(), &version],
             )
             .await
             .into_report()

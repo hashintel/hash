@@ -1,10 +1,10 @@
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use tokio_postgres::GenericClient;
+use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::{
     knowledge::{EntityId, Links, Outgoing},
-    ontology::types::uri::{BaseUri, VersionedUri},
     store::{
         crud,
         query::{LinkQuery, OntologyVersion},
@@ -33,7 +33,11 @@ async fn single_by_source_entity_id(
         .into_iter()
         .map(|row| {
             (
-                VersionedUri::new(row.get(0), row.get::<_, i64>(1) as u32),
+                VersionedUri::new(
+                    &BaseUri::new(row.get(0)).expect("Invalid BaseUri"),
+                    row.get::<_, i64>(1) as u32,
+                )
+                .expect("Failed to construct VersionedUri"),
                 Outgoing::Single(row.get(2)),
             )
         }))
@@ -63,7 +67,7 @@ async fn multi_by_source_entity_id(
         .attach_printable(source_entity_id)?
         .into_iter()
         .map(|row| (
-            VersionedUri::new(row.get(0), row.get::<_, i64>(1) as u32),
+            VersionedUri::new(&BaseUri::new(row.get(0)).expect("Invalid BaseUri"), row.get::<_, i64>(1) as u32).expect("Failed to construct VersionedUri"),
             Outgoing::Multiple(row.get(2))
         )))
 }
@@ -79,7 +83,7 @@ async fn by_source_entity_id(
 
 async fn by_link_type_by_source_entity_id(
     client: &(impl GenericClient + Sync),
-    link_type_uri: &BaseUri,
+    link_type_base_uri: &BaseUri,
     link_type_version: u32,
     source_entity_id: EntityId,
 ) -> Result<Vec<Links>, QueryError> {
@@ -108,13 +112,13 @@ async fn by_link_type_by_source_entity_id(
             SELECT link_type_version_id, NULL AS single_link, target_entity_ids AS multi_link
             FROM multi_links
             "#,
-            &[&source_entity_id, link_type_uri, &i64::from(link_type_version)],
+            &[&source_entity_id, &link_type_base_uri.to_string(), &i64::from(link_type_version)],
         )
         .await
         .into_report()
         .change_context(QueryError)
         .attach_printable(source_entity_id)
-        .attach_printable(link_type_uri.clone())?;
+        .attach_printable(link_type_base_uri.clone())?;
 
     let val: (Option<EntityId>, Option<Vec<EntityId>>) = (link.get(1), link.get(2));
     let outgoing = match val {
@@ -123,12 +127,13 @@ async fn by_link_type_by_source_entity_id(
         _ => {
             return Err(Report::new(QueryError)
                 .attach_printable(source_entity_id)
-                .attach_printable(link_type_uri.clone()));
+                .attach_printable(link_type_base_uri.clone()));
         }
     };
     Ok(vec![Links::new(
         [(
-            VersionedUri::new(link_type_uri.to_string(), link_type_version),
+            VersionedUri::new(link_type_base_uri, link_type_version)
+                .expect("Failed to construct VersionedUri"),
             outgoing,
         )]
         .into(),

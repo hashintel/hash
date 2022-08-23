@@ -8,20 +8,12 @@
 //!
 //! [`store`]: crate::store
 
-pub mod uri;
-
-mod data_type;
 mod entity_type;
 mod link_type;
-mod property_type;
 
 pub use crate::ontology::types::{
-    data_type::{DataType, DataTypeReference},
     entity_type::{EntityType, EntityTypeReference},
     link_type::LinkType,
-    property_type::{PropertyType, PropertyTypeReference},
 };
 
 pub mod error;
-
-mod serde_shared;

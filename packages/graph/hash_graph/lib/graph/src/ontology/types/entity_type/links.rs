@@ -1,13 +1,12 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-
-use crate::ontology::types::{
-    entity_type::EntityTypeReference,
-    error::ValidationError,
-    serde_shared::{array::Array, object::ValidateUri},
+use type_system::{
     uri::{BaseUri, VersionedUri},
+    Array, ValidateUri, ValidationError,
 };
+
+use crate::ontology::types::entity_type::EntityTypeReference;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -62,7 +61,7 @@ impl<T> ValueOrMaybeOrderedArray<T> {
 }
 
 impl<T: ValidateUri> ValidateUri for ValueOrMaybeOrderedArray<T> {
-    fn validate_uri(&self, base_uri: &BaseUri) -> error_stack::Result<(), ValidationError> {
+    fn validate_uri(&self, base_uri: &BaseUri) -> Result<(), ValidationError> {
         match self {
             Self::Value(value) => value.validate_uri(base_uri),
             Self::Array(array) => array.array().items().validate_uri(base_uri),
@@ -93,9 +92,9 @@ pub struct Links {
 }
 
 impl TryFrom<LinksRepr> for Links {
-    type Error = ValidationError;
+    type Error = crate::ontology::types::error::ValidationError;
 
-    fn try_from(links: LinksRepr) -> Result<Self, ValidationError> {
+    fn try_from(links: LinksRepr) -> Result<Self, crate::ontology::types::error::ValidationError> {
         let links = Self { repr: links };
         links.validate()?;
         Ok(links)
@@ -125,16 +124,20 @@ impl Links {
     pub fn new(
         links: HashMap<VersionedUri, ValueOrMaybeOrderedArray<EntityTypeReference>>,
         required: Vec<VersionedUri>,
-    ) -> Result<Self, ValidationError> {
+    ) -> Result<Self, crate::ontology::types::error::ValidationError> {
         let entity_type = Self::new_unchecked(links, required);
         entity_type.validate()?;
         Ok(entity_type)
     }
 
-    fn validate(&self) -> Result<(), ValidationError> {
+    fn validate(&self) -> Result<(), crate::ontology::types::error::ValidationError> {
         for link in self.required() {
             if !self.links().contains_key(link) {
-                return Err(ValidationError::MissingRequiredLink(link.clone()));
+                return Err(
+                    crate::ontology::types::error::ValidationError::MissingRequiredLink(
+                        link.clone(),
+                    ),
+                );
             }
         }
         Ok(())
@@ -158,16 +161,16 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::ontology::types::serde_shared::tests::{
-        check, check_deserialization, check_invalid_json,
+    use crate::ontology::tests::{
+        check, check_deserialization, check_invalid_json, StringTypeStruct,
     };
 
     // TODO - write some tests for validation of Link schemas, although most testing happens on
     //  entity types
 
     mod maybe_ordered_array {
+
         use super::*;
-        use crate::ontology::types::serde_shared::tests::StringTypeStruct;
 
         #[test]
         fn unordered() -> Result<(), serde_json::Error> {
@@ -244,7 +247,6 @@ mod tests {
         use serde_json::json;
 
         use super::*;
-        use crate::ontology::types::serde_shared::tests::{check, StringTypeStruct};
 
         #[test]
         fn value() -> Result<(), serde_json::Error> {
