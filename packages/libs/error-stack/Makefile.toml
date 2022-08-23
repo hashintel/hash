@@ -9,6 +9,7 @@ CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --exclude-features defau
 CARGO_MIRI_FLAGS = "--tests --lib"
 CARGO_INSTA_TEST_FLAGS = "--no-fail-fast"
 CARGO_RUSTDOC_HACK_FLAGS = ""
+CARGO_DOC_HACK_FLAGS = ""
 # The only features that are of relevance are: spantrace, pretty-print, std, hooks
 # all others do not change the output
 CARGO_INSTA_TEST_HACK_FLAGS = "--keep-going --feature-powerset --include-features spantrace,pretty-print,std,unstable --ignore-unknown-features"
@@ -78,6 +79,10 @@ run_task = [
     { name = ["doc-task"], condition = { env_true = ["CARGO_MAKE_CRATE_IS_WORKSPACE"] } },
     { name = ["doc-task-subcrate"] },
 ]
+
+[tasks.doc-task-subcrate]
+env = { CARGO_DOC_FLAGS = "--all-features" }
+run_task = { name = ["doc-task"] }
 
 # Snapshot Tests
 # ==============
