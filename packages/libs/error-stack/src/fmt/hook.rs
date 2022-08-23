@@ -65,20 +65,30 @@ impl HookContextImpl {
 /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::ErrorKind;
 ///
-/// use error_stack::Report;
-/// use error_stack::fmt::Emit;
+/// use error_stack::{fmt::Emit, Report};
 ///
-/// Report::install_debug_hook::<u64>(|val, ctx| {
+/// struct Error {
+///     code: usize,
+///     reason: &'static str,
+/// }
+///
+/// Report::install_debug_hook::<Error>(|Error { code, reason }, ctx| {
 ///     if ctx.alternate() {
-///         ctx.attach_snippet("u64 has been encountered");
+///         ctx.attach_snippet(format!("Error {code}:\n  {reason}"));
 ///     }
 ///
-///     vec![Emit::next(val.to_string())]
+///     vec![Emit::next(format!("Error {code}"))]
 /// });
 ///
 /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-///     .attach(2u64)
-///     .attach(3u64);
+///     .attach(Error {
+///         code: 404,
+///         reason: "Not Found - Server cannot find requested resource",
+///     })
+///     .attach(Error {
+///         code: 405,
+///         reason: "Bad Request - Server cannot or will not process request",
+///     });
 ///
 /// # owo_colors::set_override(true);
 /// # fn render(value: String) -> String {
@@ -114,16 +124,17 @@ impl HookContextImpl {
 /// any arbitrary data of any type, and even data of multiple types at the same time.
 ///
 /// ### Example
+///
 /// ```rust
 /// # // we only test on nightly, therefore report is unused (so is render)
 /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::ErrorKind;
 ///
-/// use error_stack::Report;
-/// use error_stack::fmt::Emit;
+/// use error_stack::{fmt::Emit, Report};
 ///
+/// struct Computation(u64);
 ///
-/// Report::install_debug_hook::<u64>(|val, ctx| {
+/// Report::install_debug_hook::<Computation>(|Computation(val), ctx| {
 ///     let mut acc = ctx.get::<u64>().copied().unwrap_or(0);
 ///     acc += *val;
 ///
@@ -132,12 +143,14 @@ impl HookContextImpl {
 ///
 ///     ctx.insert(acc);
 ///
-///     vec![Emit::next(format!("{val} (acc: {acc}, div: {div})"))]
+///     vec![Emit::next(format!(
+///         "Computation for {val} (acc = {acc}, div = {div})"
+///     ))]
 /// });
 ///
 /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-///     .attach(2u64)
-///     .attach(3u64);
+///     .attach(Computation(2))
+///     .attach(Computation(3));
 ///
 /// # owo_colors::set_override(true);
 /// # fn render(value: String) -> String {
