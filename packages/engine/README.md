@@ -101,9 +101,9 @@ Depending on your needs, different dependencies are required. Building this proj
         git checkout $latestTag
         ```
 
-- Python [3.7.x] is required for Python initialization or Python behaviors.
+- Python [3.x >= 3.8] is required for Python initialization or Python behaviors. We strongly recommend using Python 3.10, as this is the version which we presently test hEngine against.
 
-  - Python installation guidance from [their website](https://www.python.org/downloads/)
+  - Python installation can be found on [the Python website](https://www.python.org/downloads/)
 
 ### macOS Developer Specific Instructions
 
