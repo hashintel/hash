@@ -2,6 +2,7 @@ use std::{env, fmt, mem, path::Path};
 
 use glob::GlobError;
 use shared_memory::{Shmem, ShmemConf};
+use tracing::trace;
 use uuid::Uuid;
 
 use crate::{
@@ -102,21 +103,45 @@ impl fmt::Display for MemoryId {
 }
 
 /// Clean up generated shared memory segments associated with a given `MemoryId`.
+///
+/// If debug assertions are enabled, this function will panic if there are any shared-memory
+/// segments left to clear up. This is because macOS does not store a reference to the shared-memory
+/// segments (anywhere!) - the only one we have is the one we receive when we first create the
+/// shared-memory segment. As such, we should consider it a bug if the shared-memory segments have
+/// not been cleaned up before the experiment has completed (obviously it is still useful to have
+/// this function as a safety fallback for operating systems which provide a list of all the
+/// shared-memory segments in use).
 pub fn cleanup_by_base_id(id: Uuid) -> Result<()> {
-    // TODO: macOS does not store the shared memory FDs at `/dev/shm/`. Maybe it's not storing
-    //   FDs at all. Find out if they are stored somewhere and remove them instead, otherwise we
-    //   have to figure out a way to remove them without relying on the file-system.
     let shm_files = glob::glob(&format!("/dev/shm/{}_*", MemoryId::prefix(id)))
         .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
+
+    #[cfg(debug_assertions)]
+    let mut not_deallocated = Vec::new();
 
     for path in shm_files {
         if let Err(err) = path
             .map_err(GlobError::into_error)
+            .map(|path| {
+                #[cfg(debug_assertions)]
+                not_deallocated.push(path.display().to_string());
+                path
+            })
             .and_then(std::fs::remove_file)
         {
             tracing::warn!("Could not remove shared memory file: {err}");
         }
     }
+
+    #[cfg(debug_assertions)]
+    {
+        if !not_deallocated.is_empty() {
+            panic!(
+                "the following shared memory segments were not deallocated at the end of the \
+                 experiment: {not_deallocated:?}"
+            )
+        }
+    }
+
     Ok(())
 }
 
@@ -146,6 +171,32 @@ pub struct Segment {
     pub data: Shmem,
     pub size: usize,
     include_terminal_padding: bool,
+}
+
+impl fmt::Debug for Segment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Segment")
+            .field("id (note: not a field)", &self.data.get_os_id())
+            .field("size", &self.size)
+            .field("include_terminal_padding", &self.include_terminal_padding)
+            .finish()
+    }
+}
+
+impl Drop for Segment {
+    fn drop(&mut self) {
+        if self.data.is_owner() {
+            trace!(
+                "unlinking shared memory segment {} (as `is_owner`=true)",
+                self.id()
+            );
+        } else {
+            trace!(
+                "dropping shared memory segment {} (as `is_owner=false`)",
+                self.id()
+            )
+        }
+    }
 }
 
 // Memory layout:
@@ -208,11 +259,6 @@ impl Segment {
     /// Get the ID of the shared memory segment
     pub fn id(&self) -> &str {
         self.data.get_os_id()
-    }
-
-    // TODO: UNUSED: Needs triage
-    pub fn unmap(self) {
-        self.data.unmap()
     }
 
     pub fn shared_memory(
