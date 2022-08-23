@@ -239,7 +239,7 @@ pub enum Emit {
     /// Line is going to be emitted after all immediate lines have been emitted from the current
     /// stack.
     /// This means that deferred lines will always be last in a group.
-    #[cfg(any(feature = "std", feature = "spantrace"))]
+    #[cfg_attr(any(feature = "std", feature = "spantrace"), allow(dead_code))]
     Defer(String),
     /// Going to be emitted immediately as the next line in the chain of
     /// attachments and contexts.
@@ -347,7 +347,7 @@ impl Emit {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add_defer.snap"))]
     /// </pre>
-    #[cfg(any(feature = "std", feature = "spantrace"))]
+    #[cfg_attr(any(feature = "std", feature = "spantrace"), allow(dead_code))]
     pub fn defer<T: Into<String>>(line: T) -> Self {
         Self::Defer(line.into())
     }
