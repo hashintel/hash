@@ -18,4 +18,4 @@ proc-macro = true
 [dependencies]
 
 [dev-dependencies]
-error-stack = "0.1.1"
+error-stack = { path = ".." }
