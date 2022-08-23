@@ -5,7 +5,7 @@
 //!
 //! The format implementation (especially the [`Debug`] implementation),
 //! can be easily extended using hooks.
-//! Hooks are functions of the signature `Fn(&T, &mut HookContext<T>) -> Diagnostics`, they provide
+//! Hooks are functions of the signature `Fn(&T, &mut HookContext<T>) -> Vec<Emit>`, they provide
 //! an easy and ergonomic way to partially modify the format and enable the output of types that are
 //! not necessarily added via `.attach_printable()` or are unable to implement [`Display`].
 //!
@@ -15,7 +15,7 @@
 //! You can also provide a fallback function, which is called whenever a hook hasn't been added for
 //! a specific type of attachment.
 //! The fallback function needs to have a signature of
-//! `Fn(&Frame, &mut HookContext<T>) -> Diagnostics`
+//! `Fn(&Frame, &mut HookContext<T>) -> Vec<Emit>`
 //! and can be set via [`Report::install_debug_hook_fallback`].
 //!
 //! > **Caution:** Overwriting the fallback **will** remove the builtin formatting for types like
@@ -78,7 +78,7 @@
 //!  });
 //!
 //! // you can use arbitrary values as arguments, just make sure that you won't repeat them.
-//! // here we use [`Diagnostics::defer`], this means that this value will be put at the end of the group.
+//! // here we use [`Emit::defer`], this means that this value will be put at the end of the group.
 //! Report::install_debug_hook::<Info>(|Info(val), _| vec![Emit::defer(format!("Info: {val}"))]);
 //!
 //! let report = Report::new(Error::from(ErrorKind::InvalidInput))

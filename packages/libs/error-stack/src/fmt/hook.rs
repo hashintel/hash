@@ -200,32 +200,31 @@ impl<'a, T> HookContext<'a, T> {
     /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
-    /// use error_stack::{fmt::{self, Emit}, Report};
+    /// use error_stack::{
+    ///     fmt::Emit,
+    ///     Report,
+    /// };
     ///
-    /// struct Value(u64);
+    /// struct Warning(&'static str);
+    /// struct Error(&'static str);
     ///
-    /// Report::install_debug_hook_fallback(|frame, ctx| {
-    ///     let builtin = fmt::builtin_debug_hook_fallback(frame, ctx);
-    ///
-    ///     if builtin.is_empty() {
-    ///         frame
-    ///             .is::<Value>()
-    ///             .then(|| {
-    ///                 let ctx = ctx.cast::<u64>();
-    ///                 vec![Emit::next(format!("{} (Value)", ctx.increment()))]
-    ///             })
-    ///             .unwrap_or_default()
-    ///     } else {
-    ///         builtin
-    ///     }
+    /// Report::install_debug_hook::<Error>(|Error(frame), ctx| {
+    ///     vec![Emit::next(format!(
+    ///         "[{}] [ERROR] {frame}",
+    ///         ctx.increment() + 1
+    ///     ))]
+    /// });
+    /// Report::install_debug_hook::<Warning>(|Warning(frame), ctx| {
+    ///     vec![Emit::next(format!(
+    ///         "[{}] [WARN] {frame}",
+    ///         ctx.cast::<Error>().increment() + 1
+    ///     ))]
     /// });
     ///
-    /// Report::install_debug_hook::<u64>(|_, ctx| vec![Emit::next(format!("{}", ctx.increment()))]);
-    ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-    ///     .attach(1u64)
-    ///     .attach(Value(2u64))
-    ///     .attach(3u64);
+    ///     .attach(Error("Unable to reach remote host"))
+    ///     .attach(Warning("Disk nearly full"))
+    ///     .attach(Error("Cannot resolve example.com: Unknown host"));
     ///
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
