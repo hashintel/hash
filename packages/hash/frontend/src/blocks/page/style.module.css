@@ -43,6 +43,7 @@
 }
 
 .Block__Content {
+  position: relative;
   flex: 1;
   height: 100%;
 }

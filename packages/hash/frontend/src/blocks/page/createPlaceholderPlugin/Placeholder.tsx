@@ -15,6 +15,8 @@ const Container = styled(Typography)(({ theme }) => ({
   position: "absolute",
   display: "flex",
   color: theme.palette.gray[60],
+  left: 0,
+  top: 0,
 }));
 
 export const Placeholder = () => {
