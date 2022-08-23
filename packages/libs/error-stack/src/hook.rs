@@ -1,7 +1,7 @@
 use std::{error::Error, fmt, sync::RwLock};
 
 use crate::{
-    fmt::{Emit, HookContext, Hooks, Trace},
+    fmt::{Emit, HookContext, Hooks},
     Frame, Report, Result,
 };
 
@@ -96,15 +96,14 @@ impl Report<()> {
     /// use std::error::Error;
     /// use std::fmt::{Display, Formatter};
     /// use error_stack::{fmt::Emit, Report, report};
-    /// use error_stack::fmt::Trace;
     ///
     /// struct Suggestion(&'static str);
     ///
     /// #[derive(Debug)]
     /// struct ErrorCode(u64);
     ///
-    /// Report::install_debug_hook::<Suggestion>(|val, _| Trace::next(format!("Suggestion: {}", val.0)));
-    /// Report::install_debug_hook::<ErrorCode>(|val, _| Trace::next(format!("Error Code: {}", val.0)));
+    /// Report::install_debug_hook::<Suggestion>(|val, _| vec![Emit::next(format!("Suggestion: {}", val.0))]);
+    /// Report::install_debug_hook::<ErrorCode>(|val, _| vec![Emit::next(format!("Error Code: {}", val.0))]);
     ///
     /// #[derive(Debug)]
     /// struct UserError {
@@ -172,7 +171,7 @@ impl Report<()> {
     /// # // we only test the snapshot on nightly, therefore report is unused (so is render)
     /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::{Error, ErrorKind};
-    /// use error_stack::{fmt::Emit, FrameKind, report, Report};
+    /// use error_stack::{fmt::Emit, report, Report};
     ///
     /// struct Suggestion(&'static str);
     ///
@@ -218,7 +217,7 @@ impl Report<()> {
     ///
     /// Report::install_debug_hook_fallback(|frame, ctx| {
     ///     // first run all builtin hooks to make sure that we print backtrace and spantrace
-    ///     let builtin = fmt::builtin_debug_hook_fallback(val, ctx);
+    ///     let builtin = fmt::builtin_debug_hook_fallback(frame, ctx);
     ///
     ///     if builtin.is_empty() {
     ///         vec![Emit::next("unknown")]
@@ -263,8 +262,8 @@ impl Report<()> {
     ///     fmt::{builtin_debug_hook_fallback, Emit},
     ///     report, Report,
     /// };
-    /// use error_stack::fmt::Trace;
     ///
+    /// #[derive(Debug)]
     /// struct ErrorCode(u64);
     ///
     /// #[derive(Debug)]
@@ -282,18 +281,18 @@ impl Report<()> {
     ///
     /// // this will never called, because we **do not** provide `ErrorCode` in `UserError`
     /// // we instead use fallback to provide better diagnostics.
-    /// Report::install_debug_hook::<ErrorCode>(|_, _| Trace::next("Error Code"));
+    /// Report::install_debug_hook::<ErrorCode>(|_, _| vec![Emit::next("Error Code")]);
     ///
     /// Report::install_debug_hook_fallback(|frame, ctx| {
     ///     // add additional attachments, but only if we're a context of type `UserError`
     ///     if let Some(error) = frame.downcast_ref::<UserError>() {
-    ///         vec![Emit::next(format!("Error Code: {}", error.code))]
+    ///         vec![Emit::next(format!("Error Code: {}", error.code.0))]
     ///     } else {
     ///         builtin_debug_hook_fallback(frame, ctx)
     ///     }
     /// });
     ///
-    /// let report = report!(UserError {code: 420});
+    /// let report = report!(UserError {code: ErrorCode(404)});
     ///
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {

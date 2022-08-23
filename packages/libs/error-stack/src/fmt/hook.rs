@@ -15,7 +15,7 @@ use core::{
 
 pub use default::builtin_debug_hook_fallback;
 
-use crate::fmt::{Emit, Frame, Trace};
+use crate::fmt::{Emit, Frame};
 
 #[derive(Default)]
 pub(crate) struct HookContextImpl {
@@ -131,7 +131,6 @@ impl HookContextImpl {
 /// use std::io::ErrorKind;
 ///
 /// use error_stack::{fmt::Emit, Report};
-/// use error_stack::fmt::Trace;
 ///
 /// struct Computation(u64);
 ///
@@ -345,7 +344,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
-    /// use error_stack::fmt::{Emit, Trace};
+    /// use error_stack::fmt::Emit;
     /// use error_stack::Report;
     ///
     /// struct Suggestion(&'static str);
@@ -412,7 +411,6 @@ impl<T: 'static> HookContext<'_, T> {
     /// use std::io::ErrorKind;
     ///
     /// use error_stack::{fmt::Emit, Report};
-    /// use error_stack::fmt::Trace;
     ///
     /// struct Suggestion(&'static str);
     ///
@@ -520,11 +518,15 @@ impl Hooks {
                             .as_ref()
                             .map(|val| hook(val, ctx.cast()))
                     })
+                    .unwrap_or_default()
             }
 
             #[cfg(not(nightly))]
             {
-                frame.downcast_ref::<T>().map(|val| hook(val, ctx.cast()))
+                frame
+                    .downcast_ref::<T>()
+                    .map(|val| hook(val, ctx.cast()))
+                    .unwrap_or_default()
             }
         });
 
@@ -546,8 +548,7 @@ impl Hooks {
         let result: Vec<_> = self
             .inner
             .iter()
-            .filter_map(|(_, hook)| hook(frame, ctx))
-            .flat_map(|trace| trace.into_inner())
+            .flat_map(|(_, hook)| hook(frame, ctx))
             .collect();
 
         if result.is_empty() {
@@ -574,10 +575,8 @@ mod default {
     #[cfg(feature = "spantrace")]
     use tracing_error::SpanTrace;
 
-    #[cfg(feature = "unstable")]
-    use crate::fmt::DebugDiagnostic;
     use crate::{
-        fmt::{hook::HookContext, Emit, Trace},
+        fmt::{hook::HookContext, Emit},
         Frame,
     };
 
@@ -592,50 +591,6 @@ mod default {
             backtrace.frames().len(),
             idx + 1
         ))]
-    }
-
-    #[cfg(all(nightly, feature = "unstable"))]
-    fn debug_diagnostic(frame: &Frame, ctx: &mut HookContext<Frame>) -> Vec<Emit> {
-        let ctx = ctx.cast::<DebugDiagnostic>();
-
-        let mut emit = vec![];
-
-        if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
-            for snippet in debug.snippets() {
-                ctx.attach_snippet(snippet);
-            }
-
-            emit.extend(debug.emit().to_vec());
-        }
-
-        if let Some(debug) = frame.request_value::<DebugDiagnostic>() {
-            let (debug_emit, snippets) = debug.into_parts();
-
-            for snippet in snippets {
-                ctx.attach_snippet(snippet);
-            }
-
-            emit.extend(debug_emit);
-        }
-
-        emit
-    }
-
-    #[cfg(all(not(nightly), feature = "unstable"))]
-    fn debug_diagnostic(frame: &Frame, ctx: &mut HookContext<Frame>) -> Vec<Emit> {
-        let ctx = ctx.cast::<DebugDiagnostic>();
-
-        let mut emit = vec![];
-
-        if let Some(debug) = frame.downcast_ref::<DebugDiagnostic>() {
-            for snippet in debug.snippets() {
-                ctx.attach_snippet(snippet);
-            }
-
-            emit.extend(debug.emit().to_vec());
-        }
-
-        emit
     }
 
     #[cfg(feature = "spantrace")]
@@ -674,8 +629,6 @@ mod default {
         // stabilized yet.
         #[cfg(nightly)]
         {
-            let mut trace = vec![];
-
             #[cfg(feature = "std")]
             if let Some(bt) = frame.request_ref() {
                 emit.append(&mut backtrace(bt, ctx.cast()));
@@ -685,18 +638,15 @@ mod default {
             if let Some(st) = frame.request_ref() {
                 emit.append(&mut span_trace(st, ctx.cast()));
             }
-
-            trace
         }
 
         #[cfg(not(nightly))]
         {
-            let mut trace = vec![];
-
             #[cfg(feature = "spantrace")]
             if let Some(st) = frame.downcast_ref() {
                 emit.append(&mut span_trace(st, ctx.cast()));
             }
+        }
 
         emit
     }

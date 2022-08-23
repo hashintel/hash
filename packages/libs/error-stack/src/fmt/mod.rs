@@ -163,7 +163,6 @@ use core::{
 #[cfg(feature = "std")]
 pub use hook::builtin_debug_hook_fallback;
 #[cfg(not(feature = "std"))]
-#[allow(clippy::redundant_pub_crate)]
 pub(crate) use hook::builtin_debug_hook_fallback;
 #[cfg(feature = "std")]
 pub use hook::HookContext;
@@ -172,57 +171,8 @@ use hook::HookContextImpl;
 pub(crate) use hook::Hooks;
 #[cfg(feature = "pretty-print")]
 use owo_colors::{OwoColorize, Stream::Stdout, Style as OwOStyle};
-#[cfg(feature = "unstable")]
-pub use unstable::DebugDiagnostic;
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
-
-#[must_use]
-pub struct Trace(Vec<Emit>);
-
-impl Trace {
-    fn new(emit: Emit) -> Self {
-        Self(vec![emit])
-    }
-
-    pub fn hidden() -> Self {
-        Self::new(Emit::Hidden)
-    }
-
-    pub fn next<T: Into<String>>(value: T) -> Self {
-        Self::new(Emit::next(value))
-    }
-
-    pub fn defer<T: Into<String>>(value: T) -> Self {
-        Self::new(Emit::defer(value))
-    }
-
-    pub fn attach_next<T: Into<String>>(mut self, value: T) -> Self {
-        self.push(Emit::next(value));
-
-        self
-    }
-
-    pub fn attach_defer<T: Into<String>>(mut self, value: T) -> Self {
-        self.push(Emit::defer(value));
-
-        self
-    }
-
-    pub fn push(&mut self, value: Emit) {
-        self.push(value);
-    }
-
-    pub(crate) fn into_inner(self) -> Vec<Emit> {
-        self.0
-    }
-}
-
-impl Extend<Emit> for Trace {
-    fn extend<T: IntoIterator<Item = Emit>>(&mut self, iter: T) {
-        self.0.extend(iter);
-    }
-}
 
 /// Modify the behaviour, with which text returned from hook invocations are rendered.
 ///
@@ -299,7 +249,6 @@ pub enum Emit {
     /// Going to be emitted immediately as the next line in the chain of
     /// attachments and contexts.
     Next(String),
-    Hidden,
 }
 
 impl Emit {
@@ -346,6 +295,7 @@ impl Emit {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap"))]
     /// </pre>
+    #[cfg_attr(not(feature = "std"), allow(dead_code))]
     pub fn next<T: Into<String>>(line: T) -> Self {
         Self::Next(line.into())
     }
@@ -896,8 +846,6 @@ fn debug_attachments(
     let mut opaque = Opaque::new();
 
     // evaluate all frames to their respective values, will call all hooks with the current context
-    // TODO: THIS IS INTENTIONALLY BROKEN AFTER MERGE
-    // (I just don't want to deal with this in the GitHub UI)
     let (next, defer): (Vec<_>, _) = frames
         .into_iter()
         .map(|frame| match frame.kind() {
@@ -913,62 +861,11 @@ fn debug_attachments(
                 vec![Emit::Next(attachment.to_string())]
             }
         })
-        .map(|emit| {
-            // convert into `Opaque` attachment, this is why we don't use `filter_map`,
-            // as we would loose the ability to count opaque lines
-            if emit.contains(&Emit::Hidden) {
-                vec![]
-            } else {
-                emit
-            }
-        })
         .enumerate()
         .flat_map(|(idx, value)| {
             // increase the opaque counter, if we're unable to determine the actual value of the
-            // frame, this skips `Context`, as they are still emitted as the title.
-            if idx > 0 && value.is_empty() {
-            FrameKind::Context(_) => unreachable!(),
-            FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
-                #[cfg(all(nightly, feature = "unstable"))]
-                if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
-                    for snippet in debug.snippets() {
-                        ctx.as_hook_context::<DebugDiagnostic>()
-                            .attach_snippet(snippet.clone());
-                    }
-
-                    return debug.output().to_vec();
-                }
-
-                #[cfg(all(not(nightly), feature = "unstable"))]
-                if let Some(debug) = frame.downcast_ref::<DebugDiagnostic>() {
-                    for snippet in debug.snippets() {
-                        ctx.as_hook_context::<DebugDiagnostic>()
-                            .attach_snippet(snippet.clone());
-                    }
-
-                    return debug.output().to_vec();
-                }
-
-                #[cfg(feature = "std")]
-                {
-                    Report::get_debug_format_hook(|hooks| {
-                        hooks.call(frame, &mut ctx.as_hook_context())
-                    })
-                }
-
-                #[cfg(not(feature = "std"))]
-                {
-                    builtin_debug_hook_fallback(frame, &mut ctx.as_hook_context())
-                }
-            }
-            FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                vec![Emit::next(attachment.to_string())]
-            }
-        })
-        .flat_map(|value| {
-            // increase the opaque counter, if we're unable to determine the actual value of the
             // frame
-            if value.is_empty() {
+            if idx > 0 && value.is_empty() {
                 opaque.increase();
             }
 
@@ -985,7 +882,6 @@ fn debug_attachments(
         .into_iter()
         .chain(defer.into_iter().rev())
         .map(|emit| match emit {
-            Emit::Hidden => unreachable!(),
             Emit::Defer(value) | Emit::Next(value) => value,
         })
         .map(|value| {
