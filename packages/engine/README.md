@@ -12,33 +12,34 @@
 
 ## Table of Contents
 
-- [Issue Tracking](#issue-tracking)
-- [Additional Documentation](#additional-documentation)
-- [Questions & Support](#questions--support)
-- [The State of Development](#the-state-of-development)
-- [Building and Testing](#building-and-testing)
-  - [Required dependencies](#required-dependencies)
-  - [Optional dependencies](#optional-dependencies)
-  - [macOS Developer Specific Instructions](#macos-developer-specific-instructions)
-    - [For all macs](#for-all-macs)
-  - [Possible Dependencies and Debugging](#possible-dependencies-and-debugging)
-  - [Project Setup / Building](#project-setup--building)
-  - [Running for development](#running-for-development)
-- [Quick Start Guide](#quick-start-guide)
-- [Usage](#usage)
-  - [CLI Arguments and Options](#cli-arguments-and-options)
-  - [Run a simulation](#run-a-simulation)
-  - [Simulation Inputs](#simulation-inputs)
-    - [Behavior keys](#behavior-keys)
-  - [Simulation Outputs](#simulation-outputs)
-    - [JSON-State [`json_state.json`]](#json-state-json_statejson)
-    - [Analysis [`analysis_outputs.json`]](#analysis-analysis_outputsjson)
-  - [Logging](#logging)
-- [Main Concepts](#main-concepts)
-- [The Project Layout](#the-project-layout)
-  - [The CLI](#the-cli)
-  - [The Engine Process(es)](#the-engine-processes)
-- [Contributors](#contributors)
+- [hEngine](#hengine)
+  - [Table of Contents](#table-of-contents)
+  - [Issue Tracking](#issue-tracking)
+  - [Additional Documentation](#additional-documentation)
+  - [Questions & Support](#questions--support)
+  - [The State of Development](#the-state-of-development)
+  - [Building and Testing](#building-and-testing)
+    - [Required dependencies](#required-dependencies)
+    - [Optional dependencies](#optional-dependencies)
+    - [macOS Developer Specific Instructions](#macos-developer-specific-instructions)
+    - [Possible Dependencies and Debugging](#possible-dependencies-and-debugging)
+    - [Project Setup / Building](#project-setup--building)
+    - [Running for development](#running-for-development)
+  - [Quick Start Guide](#quick-start-guide)
+  - [Usage](#usage)
+    - [CLI Arguments and Options](#cli-arguments-and-options)
+    - [Run a simulation](#run-a-simulation)
+    - [Simulation Inputs](#simulation-inputs)
+      - [Behavior keys](#behavior-keys)
+    - [Simulation Outputs](#simulation-outputs)
+      - [JSON-State [`json_state.json`]](#json-state-json_statejson)
+      - [Analysis [`analysis_outputs.json`]](#analysis-analysis_outputsjson)
+    - [Logging](#logging)
+  - [Main Concepts](#main-concepts)
+  - [The Project Layout](#the-project-layout)
+    - [The CLI](#the-cli)
+    - [The Engine Process(es)](#the-engine-processes)
+  - [Contributors](#contributors)
 
 ## Issue Tracking
 
@@ -105,8 +106,6 @@ Depending on your needs, different dependencies are required. Building this proj
   - Python installation guidance from [their website](https://www.python.org/downloads/)
 
 ### macOS Developer Specific Instructions
-
-#### For all macs
 
 Unfortunately, Apple currently doesn't provide a way to resize shared-memory allocations. To work around this, allocations need to be sufficiently big such that they will not need to be resized. This can be done by setting the `OS_MEMORY_ALLOC_OVERRIDE` environment variable. A reasonable starting value might be `250000000`, but it is heavily dependent on the memory-requirements of your simulation. This can be done using the command line
 
