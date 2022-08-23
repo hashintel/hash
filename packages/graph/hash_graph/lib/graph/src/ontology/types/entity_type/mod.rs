@@ -212,7 +212,7 @@ mod tests {
         let entity_type: EntityType =
             serde_json::from_value(schema.clone()).expect("invalid schema");
         assert_eq!(
-            serde_json::to_value(entity_type.clone()).expect("could not serialize"),
+            serde_json::to_value(entity_type.clone()).expect("Could not serialize"),
             *schema,
             "{entity_type:#?}"
         );
