@@ -107,35 +107,13 @@ Depending on your needs, different dependencies are required. Building this proj
 
 ### macOS Developer Specific Instructions
 
-#### For all macs
-
-Unfortunately, Apple currently doesn't provide a way to resize shared-memory allocations. To work around this allocations need to be sufficiently big such that they will not need to be resized. This can be done by setting the `OS_MEMORY_ALLOC_OVERRIDE` environment variable. A reasonable starting value might be `250000000`, but it is heavily dependent on the memory-requirements of your simulation. This can be done using the command line
+Unfortunately, Apple currently doesn't provide a way to resize shared-memory allocations. To work around this, allocations need to be sufficiently big such that they will not need to be resized. This can be done by setting the `OS_MEMORY_ALLOC_OVERRIDE` environment variable. A reasonable starting value might be `250000000`, but it is heavily dependent on the memory-requirements of your simulation. This can be done using the command line
 
 ```sh
 export OS_MEMORY_ALLOC_OVERRIDE=250000000
 ```
 
-If you see an error containing `Stateful(Memory(SharedMemory(UnknownOsError(22))))`, you may find that increasing the value of the `OS_MEMORY_ALLOC_OVERRIDE` environment variable may help.
-
-#### For ARM-Based Macs
-
-On ARM-Based Macs, the `macos` `target_os` has some added complications for development.
-
-Due to limitations in Cargo at the moment we can't properly check if it's being built _on_ an ARM Mac (rather than _for_ an ARM Mac). Due to this it's necessary to:
-
-- _Disable_ the `hash_engine_lib/build-nng` feature by passing `--no-default-features` to any cargo commands such as `cargo build`
-
-  At the moment the project only seems to be compiling if you use the `x86_64-apple-darwin` target. This has some added complexity, especially due to the fact that rustc fails to link 'fat-binaries' in certain scenarios.
-
-- It's necessary to acquire an x86 version of `nng`. Currently, the easiest known way to do this is through:
-
-  - Creating a homebrew installation under Rosetta, [an example guide is here](https://stackoverflow.com/questions/64882584/how-to-run-the-homebrew-installer-under-rosetta-2-on-m1-macbook)
-
-  - Using the x86 brew to install `nng` (which will then install an x86 version). This should result in an nng installation at: `/usr/local/Cellar/nng/1.5.2`
-
-- It's then necessary to set the `NNG_PATH` environment variable
-
-  - The command is likely to be: `export NNG_PATH=/usr/local/Cellar/nng/1.5.2`
+If you want to run Python behaviors, you will need a copy of the open basic linear algebra subroutines (`brew install openblas` - if you do not have Homebrew installed, this is easily done from [its website](https://brew.sh)) - this is currently necessary to install `scipy`. You may also need to install a Fortran compiler (`brew install gfortran`).
 
 ### Possible Dependencies and Debugging
 
