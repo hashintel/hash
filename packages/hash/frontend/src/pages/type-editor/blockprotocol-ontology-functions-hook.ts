@@ -1,3 +1,11 @@
+/**
+ * This file contains the Block Protocol callbacks that HASH provides to blocks
+ * using the GraphQL API.
+ *
+ * The intention is that the contents of this file will replace the existing set
+ * of functions provided to blocks, but for now the added operations are mostly
+ * relevant for the type editors.
+ */
 import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
 import { OntologyCallbacks } from "../../components/hooks/blockProtocolFunctions/ontology/ontology-types-shim";
 
