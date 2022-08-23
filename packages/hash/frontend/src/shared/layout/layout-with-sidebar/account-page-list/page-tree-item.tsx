@@ -10,7 +10,7 @@ import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
 import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { forwardRef, MouseEvent, Ref } from "react";
-import { PageIcon } from "../../../../components/PageIcon";
+import { PageIconButton } from "../../../../components/PageIconButton";
 import { Link } from "../../../ui";
 import { PageMenu } from "./page-menu";
 import { useRouteAccountInfo } from "../../../routing";
@@ -92,7 +92,7 @@ const CustomContent = forwardRef((props: TreeItemContentProps, ref) => {
         <FontAwesomeIcon icon={faChevronRight} />
       </IconButton>
 
-      <PageIcon
+      <PageIconButton
         hasDarkBg={selected}
         accountId={accountId}
         entityId={nodeId}
