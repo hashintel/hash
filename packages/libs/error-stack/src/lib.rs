@@ -422,13 +422,10 @@
 //!  `anyhow`  | Provides conversion from [`anyhow::Error`] to [`Report`]       |         | disabled
 //!   `eyre`   | Provides conversion from [`eyre::Report`] to [`Report`]        |         | disabled
 //! `pretty-print` | Provide color[^color] and use of unicode in [`Debug`] output |     | enabled
-//! `unstable` | Enables unstable features, which do not follow semver[^unstable] |  | disabled
 //!
 //! [^color]: error-stack supports the [`NO_COLOR`](http://no-color.org/)
 //!     and `FORCE_COLOR` environment variables through the [owo-colors crate](https://crates.io/crates/owo-colors)
 //!
-//! [^unstable]: unstable features may be removed in **any** future version without notice.
-//!     They exist to gauge interest towards features that may be stablized in the future.
 //!
 //! [`set_display_hook`]: Report::set_display_hook
 //! [`set_debug_hook`]: Report::set_debug_hook
