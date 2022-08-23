@@ -61,8 +61,8 @@ impl HookContextImpl {
 /// ### Example
 ///
 /// ```rust
-/// # // we only test on nightly, therefore report is unused (so is render)
-/// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+/// # // we only test on rust 1.65, therefore report is unused (so is render)
+/// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::ErrorKind;
 ///
 /// use error_stack::{fmt::Emit, Report};
@@ -101,7 +101,7 @@ impl HookContextImpl {
 /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 /// # }
 /// #
-/// # #[cfg(nightly)]
+/// # #[cfg(rust_1_65)]
 /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap")].assert_eq(&render(format!("{report:#?}")));
 /// #
 /// println!("{report:#?}");
@@ -126,8 +126,8 @@ impl HookContextImpl {
 /// ### Example
 ///
 /// ```rust
-/// # // we only test on nightly, therefore report is unused (so is render)
-/// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+/// # // we only test on rust 1.65, therefore report is unused (so is render)
+/// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::ErrorKind;
 ///
 /// use error_stack::{fmt::Emit, Report};
@@ -163,7 +163,7 @@ impl HookContextImpl {
 /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 /// # }
 /// #
-/// # #[cfg(nightly)]
+/// # #[cfg(rust_1_65)]
 /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_storage.snap")].assert_eq(&render(format!("{report:?}")));
 /// #
 /// println!("{report:?}");
@@ -209,8 +209,8 @@ impl<'a, T> HookContext<'a, T> {
     /// ### Example
     ///
     /// ```rust
-    /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test on rust 1.65, therefore report is unused (so is render)
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
     /// use error_stack::{
@@ -250,7 +250,7 @@ impl<'a, T> HookContext<'a, T> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # #[cfg(nightly)]
+    /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_cast.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// println!("{report:?}");
@@ -340,8 +340,8 @@ impl<T: 'static> HookContext<'_, T> {
     /// increment a counter, if the counter wasn't initialized this method will return `0`.
     ///
     /// ```rust
-    /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test on rust 1.65, therefore report is unused (so is render)
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
     /// use error_stack::fmt::Emit;
@@ -368,7 +368,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # #[cfg(nightly)]
+    /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_increment.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// println!("{report:?}");
@@ -406,8 +406,8 @@ impl<T: 'static> HookContext<'_, T> {
     /// consistent with [`increment()`].
     ///
     /// ```rust
-    /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test on rust 1.65, therefore report is unused (so is render)
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
     /// use error_stack::{fmt::Emit, Report};
@@ -433,7 +433,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # #[cfg(nightly)]
+    /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_decrement.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// println!("{report:?}");
@@ -566,10 +566,10 @@ impl Hooks {
 mod default {
     #![allow(unused_imports)]
 
-    #[cfg(any(all(nightly, feature = "std"), feature = "spantrace"))]
+    #[cfg(any(all(rust_1_65, feature = "std"), feature = "spantrace"))]
     use alloc::format;
     use alloc::{vec, vec::Vec};
-    #[cfg(all(nightly, feature = "std"))]
+    #[cfg(all(rust_1_65, feature = "std"))]
     use std::backtrace::Backtrace;
 
     #[cfg(feature = "spantrace")]
@@ -580,7 +580,7 @@ mod default {
         Frame,
     };
 
-    #[cfg(all(nightly, feature = "std"))]
+    #[cfg(all(rust_1_65, feature = "std"))]
     fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Vec<Emit> {
         let idx = ctx.increment();
 
@@ -629,7 +629,7 @@ mod default {
         // stabilized yet.
         #[cfg(nightly)]
         {
-            #[cfg(feature = "std")]
+            #[cfg(all(rust_1_65, feature = "std"))]
             if let Some(bt) = frame.request_ref() {
                 emit.append(&mut backtrace(bt, ctx.cast()));
             }
@@ -642,6 +642,11 @@ mod default {
 
         #[cfg(not(nightly))]
         {
+            #[cfg(all(rust_1_65, feature = "std"))]
+            if let Some(bt) = frame.downcast_ref() {
+                emit.append(&mut backtrace(bt, ctx.cast()));
+            }
+
             #[cfg(feature = "spantrace")]
             if let Some(st) = frame.downcast_ref() {
                 emit.append(&mut span_trace(st, ctx.cast()));

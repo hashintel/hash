@@ -45,8 +45,8 @@
 //! ## Example
 //!
 //! ```rust
-//! # // we only test on nightly, therefore report is unused (so is render)
-//! # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+//! # // we only test on rust 1.65, therefore report is unused (so is render)
+//! # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
 //! use std::io::{Error, ErrorKind};
 //! use error_stack::Report;
 //! use error_stack::fmt::Emit;
@@ -105,12 +105,12 @@
 //! #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 //! # }
 //! #
-//! # #[cfg(nightly)]
+//! # #[cfg(rust_1_65)]
 //! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__doc.snap")].assert_eq(&render(format!("{report:?}")));
 //! #
 //! println!("{report:?}");
 //!
-//! # #[cfg(nightly)]
+//! # #[cfg(rust_1_65)]
 //! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt_doc_alt.snap")].assert_eq(&render(format!("{report:#?}")));
 //! #
 //! println!("{report:#?}");
@@ -184,8 +184,8 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// # Example
 ///
 /// ```rust
-/// # // we only test on nightly, therefore report is unused (so is render)
-/// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+/// # // we only test on rust 1.65, therefore report is unused (so is render)
+/// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::{Error, ErrorKind};
 ///
 /// use error_stack::{fmt::Emit, Report};
@@ -227,7 +227,7 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 /// # }
 /// #
-/// # #[cfg(nightly)]
+/// # #[cfg(rust_1_65)]
 /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap")].assert_eq(&render(format!("{report:?}")));
 /// #
 /// println!("{report:?}");
@@ -256,8 +256,8 @@ impl Emit {
     /// # Example
     ///
     /// ```rust
-    /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test on rust 1.65, therefore report is unused (so is render)
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io;
     ///
     /// use error_stack::{fmt::Emit, Report};
@@ -285,7 +285,7 @@ impl Emit {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # #[cfg(nightly)]
+    /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// println!("{report:?}");
@@ -310,8 +310,8 @@ impl Emit {
     /// # Example
     ///
     /// ```rust
-    /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test on rust 1.65, therefore report is unused (so is render)
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io;
     ///
     /// use error_stack::{fmt::Emit, Report};
@@ -343,7 +343,7 @@ impl Emit {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # #[cfg(nightly)]
+    /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add_defer.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// println!("{report:?}");
