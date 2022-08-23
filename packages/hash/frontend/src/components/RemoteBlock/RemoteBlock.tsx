@@ -121,10 +121,7 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
     throw err;
   }
 
-  const propsToInject: BlockGraphProperties<Record<string, any>> & {
-    editableRef: any;
-  } = {
-    editableRef,
+  const propsToInject: BlockGraphProperties<Record<string, any>> = {
     graph: graphProperties,
   };
 
