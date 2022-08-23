@@ -61,7 +61,7 @@ run_task = [
 ]
 
 [tasks.rustdoc-task-subcrate]
-env = { CARGO_RUSTDOC_FLAGS = "--all-features" }
+env = { CARGO_RUSTDOC_FLAGS = "--all-features -- -Z unstable-options" }
 run_task = { name = ["rustdoc-task"] }
 
 [tasks.doc]
