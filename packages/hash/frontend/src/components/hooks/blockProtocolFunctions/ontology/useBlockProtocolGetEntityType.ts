@@ -13,6 +13,10 @@ export const useBlockProtocolGetEntityType = (): {
 } => {
   const [getFn] = useLazyQuery<GetEntityTypeQuery, GetEntityTypeQueryVariables>(
     getEntityTypeQuery,
+    {
+      /** @todo reconsider caching. This is done for testing/demo purposes. */
+      fetchPolicy: "no-cache",
+    },
   );
 
   const getEntityType = useCallback<GetEntityTypeMessageCallback>(

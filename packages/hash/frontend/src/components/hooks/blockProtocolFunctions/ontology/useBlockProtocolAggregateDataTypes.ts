@@ -14,7 +14,9 @@ export const useBlockProtocolAggregateDataTypes = (): {
   const [aggregateFn] = useLazyQuery<
     GetAllLatestDataTypesQuery,
     GetAllLatestDataTypesQueryVariables
-  >(getAllLatestDataTypesQuery);
+  >(getAllLatestDataTypesQuery, {
+    fetchPolicy: "no-cache",
+  });
 
   const aggregateDataTypes = useCallback<AggregateDataTypesMessageCallback>(
     async ({ data }) => {

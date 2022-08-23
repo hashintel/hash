@@ -13,6 +13,10 @@ export const useBlockProtocolGetLinkType = (): {
 } => {
   const [getFn] = useLazyQuery<GetLinkTypeQuery, GetLinkTypeQueryVariables>(
     getLinkTypeQuery,
+    {
+      /** @todo reconsider caching. This is done for testing/demo purposes. */
+      fetchPolicy: "no-cache",
+    },
   );
 
   const getLinkType = useCallback<GetLinkTypeMessageCallback>(

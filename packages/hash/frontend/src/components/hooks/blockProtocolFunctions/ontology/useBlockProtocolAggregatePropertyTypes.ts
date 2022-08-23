@@ -14,7 +14,10 @@ export const useBlockProtocolAggregatePropertyTypes = (): {
   const [aggregateFn] = useLazyQuery<
     GetAllLatestPropertyTypesQuery,
     GetAllLatestPropertyTypesQueryVariables
-  >(getAllLatestPropertyTypesQuery);
+  >(getAllLatestPropertyTypesQuery, {
+    /** @todo reconsider caching. This is done for testing/demo purposes. */
+    fetchPolicy: "no-cache",
+  });
 
   const aggregatePropertyTypes =
     useCallback<AggregatePropertyTypesMessageCallback>(

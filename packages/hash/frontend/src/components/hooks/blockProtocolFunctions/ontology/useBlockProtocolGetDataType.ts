@@ -13,6 +13,10 @@ export const useBlockProtocolGetDataType = (): {
 } => {
   const [getFn] = useLazyQuery<GetDataTypeQuery, GetDataTypeQueryVariables>(
     getDataTypeQuery,
+    {
+      /** @todo reconsider caching. This is done for testing/demo purposes. */
+      fetchPolicy: "no-cache",
+    },
   );
 
   const getDataType = useCallback<GetDataTypeMessageCallback>(

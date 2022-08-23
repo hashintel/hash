@@ -14,7 +14,10 @@ export const useBlockProtocolAggregateLinkTypes = (): {
   const [aggregateFn] = useLazyQuery<
     GetAllLatestLinkTypesQuery,
     GetAllLatestLinkTypesQueryVariables
-  >(getAllLatestLinkTypesQuery);
+  >(getAllLatestLinkTypesQuery, {
+    /** @todo reconsider caching. This is done for testing/demo purposes. */
+    fetchPolicy: "no-cache",
+  });
 
   const aggregateLinkTypes = useCallback<AggregateLinkTypesMessageCallback>(
     async ({ data }) => {
