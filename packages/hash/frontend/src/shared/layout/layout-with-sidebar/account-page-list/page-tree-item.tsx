@@ -41,6 +41,9 @@ const CustomContent = forwardRef((props: TreeItemContentProps, ref) => {
 
   return (
     <Box
+      component={Link}
+      noLinkStyle
+      href={url}
       tabIndex={0}
       onMouseDown={handleMouseDown}
       ref={ref as Ref<HTMLDivElement>}
@@ -91,40 +94,32 @@ const CustomContent = forwardRef((props: TreeItemContentProps, ref) => {
       >
         <FontAwesomeIcon icon={faChevronRight} />
       </IconButton>
-
       <PageIconButton
         hasDarkBg={selected}
         accountId={accountId}
         entityId={nodeId}
         size="small"
       />
-
-      <Link
-        noLinkStyle
-        tabIndex={-1}
-        sx={{
-          flex: 1,
+      <Typography
+        variant="smallTextLabels"
+        className="page-title"
+        sx={({ palette }) => ({
           ml: "6px",
-        }}
-        href={url}
+          display: "block",
+          color: palette.gray[70],
+          fontWeight: 400,
+          py: 1,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          flex: 1,
+          ...(selected && {
+            color: palette.gray[90],
+          }),
+        })}
       >
-        <Typography
-          variant="smallTextLabels"
-          className="page-title"
-          sx={({ palette }) => ({
-            display: "block",
-            color: palette.gray[70],
-            fontWeight: 400,
-            py: 1,
-
-            ...(selected && {
-              color: palette.gray[90],
-            }),
-          })}
-        >
-          {label}
-        </Typography>
-      </Link>
+        {label}
+      </Typography>
       <Tooltip
         title="Add subpages, delete, duplicate and more"
         componentsProps={{
@@ -141,6 +136,7 @@ const CustomContent = forwardRef((props: TreeItemContentProps, ref) => {
           unpadded
           className="page-menu-trigger"
           sx={({ palette }) => ({
+            ml: "auto",
             color: [selected ? palette.gray[40] : "transparent"],
             "&:focus-visible, &:hover": {
               backgroundColor: palette.gray[selected ? 40 : 30],
