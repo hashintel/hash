@@ -7,17 +7,17 @@
 
 mod common;
 
-#[cfg(all(nightly, feature = "std"))]
+#[cfg(all(rust_1_65, feature = "std"))]
 use std::backtrace::Backtrace;
 #[cfg(feature = "eyre")]
 use std::sync::Once;
-#[cfg(all(nightly, feature = "std", feature = "eyre"))]
+#[cfg(all(rust_1_65, feature = "std", feature = "eyre"))]
 use std::{backtrace::BacktraceStatus, error::Error, ops::Deref};
 
 use common::*;
 use error_stack::compat::IntoReportCompat;
 
-#[cfg(all(nightly, feature = "std", feature = "eyre"))]
+#[cfg(all(rust_1_65, feature = "std", feature = "eyre"))]
 fn has_backtrace<E: Deref<Target = dyn Error + Send + Sync>>(err: &Result<(), E>) -> bool {
     err.as_ref()
         .unwrap_err()
@@ -27,7 +27,7 @@ fn has_backtrace<E: Deref<Target = dyn Error + Send + Sync>>(err: &Result<(), E>
         .is_some()
 }
 
-#[cfg(all(nightly, feature = "std"))]
+#[cfg(all(rust_1_65, feature = "std"))]
 fn remove_backtrace_context(messages: &mut Vec<String>) {
     // anyhow/eyre has a backtrace, this means we don't add it ourselves,
     // therefore we need to remove the context (if it supports backtrace)
@@ -53,7 +53,7 @@ fn anyhow() {
     // Backtrace from anyhow cannot be captured currently until `Error::provide` is implemented.
     // Previously, `backtrace` was a function on `Error`, but this was removed, so it has to be
     // provided by the Provider API.
-    #[cfg(all(nightly, feature = "std"))]
+    #[cfg(all(rust_1_65, feature = "std"))]
     remove_backtrace_context(&mut report_messages);
 
     let anyhow_report = anyhow.into_report().unwrap_err();
@@ -61,7 +61,7 @@ fn anyhow() {
     #[allow(unused_mut)]
     let mut anyhow_messages = messages(&anyhow_report);
 
-    #[cfg(all(nightly, feature = "std"))]
+    #[cfg(all(rust_1_65, feature = "std"))]
     remove_backtrace_context(&mut anyhow_messages);
 
     for (anyhow, error_stack) in anyhow_messages.into_iter().rev().zip(report_messages) {
@@ -97,7 +97,7 @@ fn anyhow_provider() {
 }
 
 #[test]
-#[cfg(all(nightly, feature = "std", feature = "anyhow"))]
+#[cfg(all(rust_1_65, feature = "std", feature = "anyhow"))]
 fn anyhow_backtrace() {
     let error = ErrorB::new(0);
     let error_backtrace = error.backtrace().expect("No backtrace captured");
@@ -191,7 +191,7 @@ fn eyre() {
     #[allow(unused_mut)]
     let mut swap = false;
 
-    #[cfg(all(nightly, feature = "std"))]
+    #[cfg(all(rust_1_65, feature = "std"))]
     {
         if has_backtrace(&eyre) {
             remove_backtrace_context(&mut report_messages);
