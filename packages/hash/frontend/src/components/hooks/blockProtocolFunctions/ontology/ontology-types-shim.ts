@@ -37,6 +37,15 @@ export type OntologyCallbacks = {
 
 /* Shared types */
 
+/**
+ * Create Response object from the name and type of an ontology type kind.
+ * This exists to reduce repetition in the types.
+ *
+ * For example turning
+ *   Response<"dataType", DataType>
+ * into
+ *   { dataTypeVersionedUri: string; dataType: DataType }
+ */
 type Response<N extends string, T> = {
   [_ in `${N}VersionedUri`]: string;
 } & { [_ in N]: T };
