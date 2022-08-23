@@ -38,16 +38,15 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
     props: {
       decorations(state) {
         const firstNode = state.selection.$anchor.node(1);
+        const componentNode = firstNode && findComponentNodes(firstNode)[0];
 
-        if (!firstNode) return;
+        if (!componentNode) return;
 
-        const componentId = componentNodeToId(
-          findComponentNodes(firstNode)[0]!,
-        );
+        const componentId = componentNodeToId(componentNode);
 
         const isFocused = placeholderPluginKey.getState(state)?.focused;
         const isParagraph = componentId === paragraphBlockComponentId;
-        const isEmpty = findComponentNodes(firstNode)[0]?.childCount === 0;
+        const isEmpty = componentNode.childCount === 0;
 
         const showPlaceholder = isParagraph && isEmpty && isFocused;
 
