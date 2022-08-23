@@ -1,7 +1,5 @@
 #[cfg(nightly)]
 use core::any::Demand;
-#[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
-use core::any::Provider;
 use core::fmt;
 
 use crate::Report;
@@ -80,24 +78,6 @@ where
     fn from(context: C) -> Self {
         Self::new(context)
     }
-}
-
-/// Turns a [`Context`] into a temporary [`Provider`].
-///
-/// To enable the usage of the [`Provider`] trait without implementing [`Provider`] for [`Context`]
-/// this function wraps a reference to a [`Context`] inside of a [`Provider`]
-// We can't implement `Provider` on Context as `Error` will implement `Provider` and `Context` will
-// be implemented on `Error`. For `request`ing a type from `Context`, we need a `Provider`
-// implementation however.
-#[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
-pub(crate) fn temporary_provider(context: &impl Context) -> impl Provider + '_ {
-    struct ProviderImpl<'a, C>(&'a C);
-    impl<C: Context> Provider for ProviderImpl<'_, C> {
-        fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-            self.0.provide(demand);
-        }
-    }
-    ProviderImpl(context)
 }
 
 #[cfg(feature = "std")]
