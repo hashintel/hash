@@ -26,6 +26,4 @@ clap = { version = "3.2.17", features = ["derive"], optional = true }
 json_comments = "0.2.1"
 
 [features]
-default = ["build-nng"]
-build-nng = ["execution/build-nng"]
 clap = ["dep:clap"]

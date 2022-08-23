@@ -27,7 +27,5 @@ tracing-subscriber = { version = "0.3.14", features = ["env-filter", "json"] }
 tracing-texray = { version = "0.1.2", optional = true }
 
 [features]
-default = ["build-nng"]
-build-nng = ["simulation-control/build-nng", "nano/build-nng"]
 texray = ["dep:tracing-texray"]
 clap = ["dep:clap", "simulation-control/clap"]
