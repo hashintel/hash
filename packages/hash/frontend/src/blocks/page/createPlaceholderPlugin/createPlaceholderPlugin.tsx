@@ -1,11 +1,8 @@
-import { paragraphBlockComponentId } from "@hashintel/hash-shared/blocks";
-import {
-  componentNodeToId,
-  findComponentNodes,
-} from "@hashintel/hash-shared/prosemirror";
+import { findComponentNodes } from "@hashintel/hash-shared/prosemirror";
 import { Schema } from "prosemirror-model";
 import { Plugin, PluginKey } from "prosemirror-state";
 import { Decoration, DecorationSet } from "prosemirror-view";
+import { isParagraphNode } from "../../utils";
 import { RenderPortal } from "../usePortals";
 import { Placeholder } from "./Placeholder";
 
@@ -42,10 +39,9 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
 
         if (!componentNode) return;
 
-        const componentId = componentNodeToId(componentNode);
-
         const isFocused = placeholderPluginKey.getState(state)?.focused;
-        const isParagraph = componentId === paragraphBlockComponentId;
+        const isParagraph = isParagraphNode(componentNode);
+
         const isEmpty = componentNode.childCount === 0;
 
         const showPlaceholder = isParagraph && isEmpty && isFocused;

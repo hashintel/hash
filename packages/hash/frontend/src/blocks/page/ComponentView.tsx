@@ -1,7 +1,4 @@
-import {
-  HashBlock,
-  paragraphBlockComponentId,
-} from "@hashintel/hash-shared/blocks";
+import { HashBlock } from "@hashintel/hash-shared/blocks";
 import {
   BlockEntity,
   getBlockChildEntity,
@@ -29,6 +26,7 @@ import { TextSelection, Transaction } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
 import { ErrorBlock } from "../../components/ErrorBlock/ErrorBlock";
+import { isParagraphNode } from "../utils";
 import { BlockContext } from "./BlockContext";
 import {
   SuggesterAction,
@@ -277,7 +275,8 @@ export class ComponentView implements NodeView<Schema> {
       );
     }
 
-    const isParagraph = this.node.type.name === paragraphBlockComponentId;
+    const isParagraph = isParagraphNode(this.node);
+
     const isTheOnlyChild = this.editorView.state.doc.childCount === 1;
     const isEmpty = this.node.content.size === 0;
 
