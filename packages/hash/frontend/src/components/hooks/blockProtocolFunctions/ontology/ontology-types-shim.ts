@@ -1,3 +1,11 @@
+/**
+ * This file contains new type system function signatures used to augment the
+ * existing set of Block Protocol.
+ *
+ * These signatures will eventually make their way into the @blockprotocol/graph
+ * package and be removed from here.
+ */
+
 import { MessageCallback } from "@blockprotocol/core";
 import {
   CreateResourceError,

@@ -24,7 +24,7 @@ generates:
       skipTypename: true
       scalars:
         # TODO Switch out this direct dependency on the HASH Graph SDK with
-        #   the BlockProtocol type system package when ready
+        #   the Block Protocol type system package when ready
         DataType: "@hashintel/hash-graph-client#DataType"
         PropertyType: "@hashintel/hash-graph-client#PropertyType"
         LinkType: "@hashintel/hash-graph-client#LinkType"
