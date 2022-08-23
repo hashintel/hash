@@ -20,6 +20,9 @@ run_task = [
     { name = ["test-each-feature", "test-default-features", "test-all-features"] },
 ]
 
+[tasks.test-task]
+dependencies = ["install-rust-src"]
+
 [tasks.test-each-feature]
 env = { CARGO_TEST_HACK_FLAGS = "--workspace --each-feature", CARGO_TEST_FLAGS = "" }
 run_task = { name = ["test-task-lib"] }
