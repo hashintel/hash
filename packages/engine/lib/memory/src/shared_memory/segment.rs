@@ -353,15 +353,15 @@ impl Segment {
     /// # Panics
     ///
     /// If the metaversion wasn't written properly when the batch was created or the part of memory
-    /// with the metaversion was deallocated later, this might fail to read the metaversion.
+    /// containing the metaversion was incorrectly deallocated (or we incorrectly tried to read the
+    /// metaversion), this function might fail to read the metaversion.
     pub fn read_persisted_metaversion(&self) -> Metaversion {
         self.try_read_persisted_metaversion()
             .expect("Could not read metaversion")
     }
 
-    /// Same as [`read_persisted_metaversion()`] but return a `Result` instead of panicking.
-    ///
-    /// [`read_persisted_metaversion()`]: Self::read_persisted_metaversion
+    /// Same as [`Segment::read_persisted_metaversion`] but returns a [`Result`] instead of
+    /// panicking.
     pub fn try_read_persisted_metaversion(&self) -> Result<Metaversion> {
         let header = self.get_header()?;
         let n_header_bytes = header.len();
@@ -386,7 +386,7 @@ impl Segment {
             .expect("Could not set metaversion")
     }
 
-    /// Same as [`persist_metaversion()`] but return a `Result` instead of panicking.
+    /// Same as [`persist_metaversion()`] but returns a `Result` instead of panicking.
     ///
     /// [`persist_metaversion()`]: Self::persist_metaversion
     pub fn try_persist_metaversion(&mut self, metaversion: Metaversion) -> Result<()> {

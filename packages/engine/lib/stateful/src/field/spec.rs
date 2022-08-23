@@ -1,6 +1,6 @@
 use std::fmt;
 
-use arrow::datatypes::{DataType, Field};
+use arrow2::datatypes::{DataType, Field};
 
 use crate::{
     agent::AgentStateField,

@@ -1,12 +1,13 @@
-use arrow::{array::ArrayData, buffer::Buffer, util::bit_util};
-
 use crate::{
-    arrow::meta,
+    arrow::{meta, util::bit_util},
     error::Result,
     shared_memory::{padding, BufferChange, Segment},
 };
 
-/// The info required about Arrow array data in order to grow it
+mod arrow2_growable_array_data;
+
+/// This is an interface which provides a way to extract the data we need about an Arrow array
+/// in order to be able to grow it.
 ///
 /// Can be implemented by ArrayData, ArrayDataRef, Python FFI array data.
 pub trait GrowableArrayData: Sized + std::fmt::Debug {
@@ -14,38 +15,21 @@ pub trait GrowableArrayData: Sized + std::fmt::Debug {
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
+    /// Returns the number of items which are null in the given array.
     fn null_count(&self) -> usize;
+    /// This returns a bitmap, where the nth bit of the returned data specifies whether or not the
+    /// nth item in the array is null or not.
     fn null_buffer(&self) -> Option<&[u8]>;
+    /// Returns the nth buffer of this array. We follow the
+    /// [specification](https://arrow.apache.org/docs/format/Columnar.html#buffer-listing-for-each-layout)
+    /// _except_ that we don't return any validity bitmaps/null buffers here (these can be obtained
+    /// instead by calling [`GrowableArrayData::null_buffer`]).
+    #[allow(clippy::redundant_allocation)]
     fn buffer(&self, index: usize) -> &[u8];
     /// Arrow stores the null buffer separately from other buffers.
     fn non_null_buffer_count(&self) -> usize;
+    /// This returns the data of the child arrays.
     fn child_data(&self) -> &[Self];
-}
-
-impl GrowableArrayData for ArrayData {
-    fn len(&self) -> usize {
-        ArrayData::len(self)
-    }
-
-    fn null_count(&self) -> usize {
-        ArrayData::null_count(self)
-    }
-
-    fn null_buffer(&self) -> Option<&[u8]> {
-        ArrayData::null_buffer(self).map(Buffer::as_slice)
-    }
-
-    fn buffer(&self, index: usize) -> &[u8] {
-        self.buffers()[index].as_slice()
-    }
-
-    fn non_null_buffer_count(&self) -> usize {
-        self.buffers().len()
-    }
-
-    fn child_data(&self) -> &[Self] {
-        ArrayData::child_data(self)
-    }
 }
 
 /// The info required about an Arrow column in order to grow it
@@ -68,13 +52,12 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
     fn static_meta(&self) -> &meta::StaticMetadata;
     fn dynamic_meta(&self) -> &meta::DynamicMetadata;
     fn dynamic_meta_mut(&mut self) -> &mut meta::DynamicMetadata;
-    // TODO: Change to `segment` after creating CSegment in py FFI
     fn segment(&self) -> &Segment;
-    // TODO: segment_mut?
     fn segment_mut(&mut self) -> &mut Segment;
 
-    /// Persist all queued changes to memory, empty the queue and increment the persisted
-    /// metaversion.
+    /// Persists all queued changes to memory, empties the queue and increments the
+    /// [`crate::shared_memory::Metaversion`] of the persisted data (i.e. the data in the
+    /// shared-memory [`Segment`]).
     ///
     /// Calculates all moves, copies and resizes required to persist the changes.
     ///
@@ -152,7 +135,7 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
                         next_buffer_offset,
                     );
                     // Safety: A null buffer is always followed by another buffer
-                    if let Some(b) = array_data.null_buffer() {
+                    if let Some(b) = array_data.null_buffer().as_ref() {
                         buffer_actions.push(meta::BufferAction::Ref {
                             index: this_buffer_index,
                             offset: this_buffer_offset,
@@ -179,13 +162,14 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
                 }
 
                 // Go over offset/data buffers (these are not null buffers)
-                // Have to do `meta.buffer_counts[i] - 1` because the null buffer is separate
+                // Have to do `meta.buffer_counts[i] - 1` because the null buffer is
+                // separate
                 debug_assert_eq!(
                     meta.buffer_counts[i] - 1,
                     array_data.non_null_buffer_count(),
                     "Number of buffers in metadata does not match actual number of buffers"
                 );
-                // todo: when adding datatypes with no null buffer (the null datatype), then this
+                // TODO: when adding datatypes with no null buffer (the null datatype), then this
                 //   convention does not work
                 (0..meta.buffer_counts[i] - 1).for_each(|j| {
                     let buffer = array_data.buffer(j);
@@ -287,7 +271,7 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
                     dynamic_meta.buffers[index].padding = padding;
                     dynamic_meta.buffers[index].length = buffer.len();
                     self.segment_mut()
-                        .overwrite_in_data_buffer_unchecked_nonoverlapping(offset, buffer)
+                        .overwrite_in_data_buffer_unchecked_nonoverlapping(offset, buffer.as_ref())
                 }
             })?;
 
@@ -317,7 +301,7 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
 
 /// Add an action for buffer(s) whose data is not changed but might have to be moved
 fn push_non_modify_actions(
-    buffer_actions: &mut Vec<meta::BufferAction<'_>>,
+    buffer_actions: &mut Vec<meta::BufferAction>,
     first_index: usize,
     last_index: usize,
     mut this_buffer_offset: usize,
@@ -349,6 +333,9 @@ fn push_non_modify_actions(
     this_buffer_offset
 }
 
+/// This function performs a depth-first pre-order (i.e. it searches first the root node and then
+/// all the subtrees from left-to-right) traversal of the nodes (this is as per the
+/// [Arrow specification](https://arrow.apache.org/docs/format/Columnar.html)).
 fn gather_array_datas_depth_first<D: GrowableArrayData>(data: &D) -> Vec<&D> {
     let mut ret = vec![data];
     // Depth-first get all nodes

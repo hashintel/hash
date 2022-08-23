@@ -3,6 +3,8 @@
 pub(crate) mod array;
 pub(crate) mod boolean;
 
+/// todo: should this be in [`memory::arrow`] rather than here?
+pub(crate) mod arrow_conversion;
 mod batch;
 mod iterator;
 mod pool;

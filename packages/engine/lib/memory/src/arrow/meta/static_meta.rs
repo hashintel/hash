@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use arrow::datatypes::Schema;
+use arrow2::datatypes::Schema;
 
 use super::conversion::schema_to_column_hierarchy;
 use crate::arrow::meta::{Column, DynamicMetadata, NodeStatic};

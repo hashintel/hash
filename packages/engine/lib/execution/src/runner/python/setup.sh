@@ -47,7 +47,28 @@ echo "Running $(python --version) from $(which python)"
 
 echo "Installing python dependencies"
 python -m pip install --upgrade pip
-python -m pip install -r "${SCRIPT_DIR}/requirements.txt"
+if uname -s | grep -q Darwin && uname -p | grep -q arm ; then
+  if ! brew --prefix openblas ; then
+    echo "You are on an Arm64 (M1/M2 apple processor) - please install the open
+    basic linear algebra subroutines (run `brew install openblas` - if you have
+    not yet installed Homebrew, you can do so from https://brew.sh/)"
+  fi
+  # fixes an assertion that would otherwise happen (due to someone changing a
+  # version API to return an integer rather than a string)
+  export SYSTEM_VERSION_COMPAT=1
+  export CC=clang
+  export CXX=clang++
+  export PKG_CONFIG_PATH="/opt/homebrew/opt/openblas/lib/pkgconfig"
+  python -m pip install wheel
+  python -m pip install -r "${SCRIPT_DIR}/m1-requirements.txt"
+  git clone https://github.com/hashintel/pynng
+  cd pynng
+  python -m pip install .
+  cd ..
+  rm -rf pynng
+else
+  python -m pip install -r "${SCRIPT_DIR}/requirements.txt"
+fi
 
 echo "Running setup.py"
 # Also compile Cython. Can be done either after

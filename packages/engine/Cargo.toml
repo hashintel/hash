@@ -24,6 +24,4 @@ tracing = "0.1.35"
 tracing-subscriber = { version = "0.3.14", features = ["env-filter", "json"] }
 
 [features]
-default = ["build-nng"]
-build-nng = ["orchestrator/build-nng", "experiment-control/build-nng", "execution/build-nng"]
 texray = ["orchestrator/texray", "experiment-control/texray"]

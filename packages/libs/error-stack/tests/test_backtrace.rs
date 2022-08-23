@@ -1,5 +1,8 @@
-#![cfg(all(feature = "std", nightly))]
-#![feature(provide_any, backtrace_frames, error_generic_member_access)]
+#![cfg(all(rust_1_65, feature = "std"))]
+#![cfg_attr(
+    nightly,
+    feature(provide_any, backtrace_frames, error_generic_member_access)
+)]
 
 mod common;
 
@@ -13,6 +16,7 @@ fn captured() {
     std::env::set_var("RUST_LIB_BACKTRACE", "1");
 
     let report = create_report();
+    #[cfg(nightly)]
     assert_eq!(report.request_ref::<Backtrace>().count(), 1);
     let backtrace = report
         .request_ref::<Backtrace>()
@@ -26,6 +30,7 @@ fn captured_deprecated() {
     std::env::set_var("RUST_LIB_BACKTRACE", "1");
 
     let report = create_report();
+    #[cfg(nightly)]
     assert_eq!(report.request_ref::<Backtrace>().count(), 1);
     #[allow(deprecated)]
     let backtrace = report.backtrace().expect("No backtrace captured");
@@ -33,6 +38,7 @@ fn captured_deprecated() {
 }
 
 #[test]
+#[cfg(nightly)]
 fn provided() {
     let error = ErrorB::new(10);
     let error_backtrace = error.backtrace().expect("No backtrace captured");
