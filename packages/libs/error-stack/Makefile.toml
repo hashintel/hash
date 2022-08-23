@@ -1,8 +1,5 @@
 extend = { path = "../../../.github/scripts/rust/Makefile.toml" }
 
-#[config.modify_core_tasks]
-#private = true
-
 [env]
 CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default"
 CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default"
@@ -20,6 +17,7 @@ run_task = [
     { name = ["test-task"], condition = { profiles = ["release"] } },
     { name = ["test-each-feature", "test-default-features", "test-all-features"] },
 ]
+dependencies = ["install-rust-src"]
 
 [tasks.test-each-feature]
 env = { CARGO_TEST_HACK_FLAGS = "--workspace --each-feature", CARGO_TEST_FLAGS = "" }
@@ -33,8 +31,6 @@ run_task = { name = ["test-task-lib"] }
 env = { CARGO_TEST_HACK_FLAGS = "--workspace", CARGO_TEST_FLAGS = "--all-features" }
 run_task = { name = ["test-task"] }
 
-[tasks.test-task]
-dependencies = ["install-rust-src"]
 
 # Required for UI tests
 [tasks.install-rust-src]
