@@ -143,8 +143,6 @@
 #![cfg_attr(not(feature = "std"), allow(unreachable_pub))]
 
 mod hook;
-#[cfg(feature = "unstable")]
-mod unstable;
 
 use alloc::{
     borrow::ToOwned,
