@@ -80,9 +80,30 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
                     .instrument(sim_span)
                     .await?;
             }
-            ExperimentControl::PauseSim(sim_short_id) => self.pause_sim_run(sim_short_id).await?,
-            ExperimentControl::ResumeSim(sim_short_id) => self.resume_sim_run(sim_short_id).await?,
-            ExperimentControl::StopSim(sim_short_id) => self.stop_sim_run(sim_short_id).await?,
+            ExperimentControl::PauseSim { sim_id, span_id } => {
+                let sim_span = environment::examine(tracing::info_span!(
+                    parent: span_id,
+                    "sim",
+                    id = &sim_id.as_u32()
+                ));
+                self.pause_sim_run(sim_id).instrument(sim_span).await?
+            }
+            ExperimentControl::ResumeSim { sim_id, span_id } => {
+                let sim_span = environment::examine(tracing::info_span!(
+                    parent: span_id,
+                    "sim",
+                    id = &sim_id.as_u32()
+                ));
+                self.resume_sim_run(sim_id).instrument(sim_span).await?
+            }
+            ExperimentControl::StopSim { sim_id, span_id } => {
+                let sim_span = environment::examine(tracing::info_span!(
+                    parent: span_id,
+                    "sim",
+                    id = &sim_id.as_u32()
+                ));
+                self.stop_sim_run(sim_id).instrument(sim_span).await?
+            }
         }
         Ok(())
     }
