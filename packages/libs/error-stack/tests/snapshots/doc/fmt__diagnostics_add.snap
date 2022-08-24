@@ -1,0 +1,10 @@
+<b>invalid input parameter</b>
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/fmt/mod.rs:19:14</span>
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Suggestion: Try better next time
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Sorry for the inconvenience!
+<span style='color:#a00'>╰</span><span style='color:#a00'>╴</span>backtrace with [n] frames (1)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Backtrace No. 1
+  [redacted]

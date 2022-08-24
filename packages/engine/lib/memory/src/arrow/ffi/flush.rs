@@ -7,6 +7,8 @@
 
 use std::sync::Arc;
 
+use tracing::error;
+
 use crate::{
     arrow::{
         ffi::{ArrowArray, CSegment},
@@ -66,7 +68,7 @@ unsafe extern "C" fn flush_changes(
     {
         Ok(v) => v,
         Err(why) => {
-            println!("Error in `flush_changes`: {:?}", &why);
+            error!("Error in `flush_changes`: {:?}", &why);
             return ERROR_FLAG;
         }
     };
@@ -75,7 +77,7 @@ unsafe extern "C" fn flush_changes(
     let loaded_metaversion = match segment.try_read_persisted_metaversion() {
         Ok(v) => v,
         Err(err) => {
-            println!("Could not read metaversions in `flush_changes`: {err:?}");
+            error!("Could not read metaversions in `flush_changes`: {err:?}");
             return ERROR_FLAG;
         }
     };
@@ -118,7 +120,7 @@ unsafe extern "C" fn flush_changes(
         match segment.try_persist_metaversion(metaversion) {
             Ok(v) => v,
             Err(err) => {
-                println!("Could not write metaversion in `flush_changes`: {err:?}");
+                error!("Could not write metaversion in `flush_changes`: {err:?}");
                 return ERROR_FLAG;
             }
         };
