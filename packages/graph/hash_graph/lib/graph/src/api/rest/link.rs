@@ -47,7 +47,7 @@ impl RoutedResource for LinkResource {
 #[derive(Serialize, Deserialize, Component)]
 #[serde(rename_all = "camelCase")]
 struct CreateLinkRequest {
-    target_entity: EntityId,
+    target_entity_id: EntityId,
     #[component(value_type = String)]
     link_type_uri: VersionedUri,
     account_id: AccountId,
@@ -70,13 +70,13 @@ struct CreateLinkRequest {
     )
 )]
 async fn create_link<P: StorePool + Send>(
-    source_entity: Path<EntityId>,
+    source_entity_id: Path<EntityId>,
     body: Json<CreateLinkRequest>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Link>, StatusCode> {
-    let Path(source_entity) = source_entity;
+    let Path(source_entity_id) = source_entity_id;
     let Json(CreateLinkRequest {
-        target_entity,
+        target_entity_id,
         link_type_uri,
         account_id,
     }) = body;
@@ -86,7 +86,7 @@ async fn create_link<P: StorePool + Send>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let link = Link::new(source_entity, target_entity, link_type_uri);
+    let link = Link::new(source_entity_id, target_entity_id, link_type_uri);
 
     store
         .create_link(&link, account_id)
@@ -137,7 +137,7 @@ async fn get_entity_links<P: StorePool + Send>(
 #[derive(Serialize, Deserialize, Component)]
 #[serde(rename_all = "camelCase")]
 struct InactivateLinkRequest {
-    target_entity: EntityId,
+    target_entity_id: EntityId,
     #[component(value_type = String)]
     link_type_uri: VersionedUri,
 }
@@ -159,13 +159,13 @@ struct InactivateLinkRequest {
     ),
 )]
 async fn inactivate_link<P: StorePool + Send>(
-    source_entity: Path<EntityId>,
+    source_entity_id: Path<EntityId>,
     body: Json<InactivateLinkRequest>,
     pool: Extension<Arc<P>>,
 ) -> Result<StatusCode, StatusCode> {
-    let Path(source_entity) = source_entity;
+    let Path(source_entity_id) = source_entity_id;
     let Json(InactivateLinkRequest {
-        target_entity,
+        target_entity_id,
         link_type_uri,
     }) = body;
 
@@ -175,7 +175,11 @@ async fn inactivate_link<P: StorePool + Send>(
     })?;
 
     store
-        .inactivate_link(&Link::new(source_entity, target_entity, link_type_uri))
+        .inactivate_link(&Link::new(
+            source_entity_id,
+            target_entity_id,
+            link_type_uri,
+        ))
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not inactivate link");

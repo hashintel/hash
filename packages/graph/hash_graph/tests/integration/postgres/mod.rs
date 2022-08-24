@@ -310,24 +310,24 @@ impl DatabaseApi<'_> {
 
     async fn create_link(
         &mut self,
-        source_entity: EntityId,
-        target_entity: EntityId,
+        source_entity_id: EntityId,
+        target_entity_id: EntityId,
         link_type_uri: VersionedUri,
     ) -> Result<(), InsertionError> {
-        let link = Link::new(source_entity, target_entity, link_type_uri);
+        let link = Link::new(source_entity_id, target_entity_id, link_type_uri);
         self.store.create_link(&link, self.account_id).await
     }
 
     pub async fn get_link_target(
         &self,
-        source_entity: EntityId,
+        source_entity_id: EntityId,
         link_type_uri: VersionedUri,
     ) -> Result<Outgoing, QueryError> {
         Ok(self
             .store
             .get_links(
                 &LinkQuery::new()
-                    .by_source_entity_id(source_entity)
+                    .by_source_entity_id(source_entity_id)
                     .by_link_types(|link_types| {
                         link_types
                             .by_uri(link_type_uri.base_uri())
@@ -341,10 +341,10 @@ impl DatabaseApi<'_> {
             .clone())
     }
 
-    pub async fn get_entity_links(&self, source_entity: EntityId) -> Result<Links, QueryError> {
+    pub async fn get_entity_links(&self, source_entity_id: EntityId) -> Result<Links, QueryError> {
         Ok(self
             .store
-            .get_links(&LinkQuery::new().by_source_entity_id(source_entity))
+            .get_links(&LinkQuery::new().by_source_entity_id(source_entity_id))
             .await?
             .pop()
             .expect("No links found"))
@@ -352,11 +352,11 @@ impl DatabaseApi<'_> {
 
     async fn remove_link(
         &mut self,
-        source_entity: EntityId,
-        target_entity: EntityId,
+        source_entity_id: EntityId,
+        target_entity_id: EntityId,
         link_type_uri: VersionedUri,
     ) -> Result<(), LinkActivationError> {
-        let link = Link::new(source_entity, target_entity, link_type_uri);
+        let link = Link::new(source_entity_id, target_entity_id, link_type_uri);
         self.store.inactivate_link(&link).await
     }
 }

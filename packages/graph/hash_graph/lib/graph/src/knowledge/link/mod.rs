@@ -13,8 +13,8 @@ use crate::ontology::types::uri::VersionedUri;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
 #[serde(rename_all = "camelCase")]
 pub struct Link {
-    source_entity: EntityId,
-    target_entity: EntityId,
+    source_entity_id: EntityId,
+    target_entity_id: EntityId,
     #[component(value_type = String)]
     link_type_uri: VersionedUri,
 }
@@ -22,25 +22,25 @@ pub struct Link {
 impl Link {
     #[must_use]
     pub const fn new(
-        source_entity: EntityId,
-        target_entity: EntityId,
+        source_entity_id: EntityId,
+        target_entity_id: EntityId,
         link_type_uri: VersionedUri,
     ) -> Self {
         Self {
-            source_entity,
-            target_entity,
+            source_entity_id,
+            target_entity_id,
             link_type_uri,
         }
     }
 
     #[must_use]
     pub const fn source_entity(&self) -> EntityId {
-        self.source_entity
+        self.source_entity_id
     }
 
     #[must_use]
     pub const fn target_entity(&self) -> EntityId {
-        self.target_entity
+        self.target_entity_id
     }
 
     #[must_use]

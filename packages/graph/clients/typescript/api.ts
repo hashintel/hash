@@ -130,7 +130,7 @@ export interface CreateLinkRequest {
    * @type {string}
    * @memberof CreateLinkRequest
    */
-  targetEntity: string;
+  targetEntityId: string;
 }
 /**
  *
@@ -347,7 +347,7 @@ export interface InactivateLinkRequest {
    * @type {string}
    * @memberof InactivateLinkRequest
    */
-  targetEntity: string;
+  targetEntityId: string;
 }
 /**
  * A Link between a source and a target entity identified by [`EntityId`]s.
@@ -366,13 +366,13 @@ export interface Link {
    * @type {string}
    * @memberof Link
    */
-  sourceEntity: string;
+  sourceEntityId: string;
   /**
    *
    * @type {string}
    * @memberof Link
    */
-  targetEntity: string;
+  targetEntityId: string;
 }
 /**
  * Specifies the structure of a Link Type
