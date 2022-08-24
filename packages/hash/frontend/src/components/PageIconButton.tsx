@@ -1,5 +1,9 @@
-import { IconButton } from "@hashintel/hash-design-system";
+import {
+  fontAwesomeIconClasses,
+  IconButton,
+} from "@hashintel/hash-design-system";
 import { iconButtonClasses, Tooltip } from "@mui/material";
+import { SystemStyleObject } from "@mui/system/styleFunctionSx/styleFunctionSx";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { MouseEventHandler } from "react";
 import { rewriteEntityIdentifier } from "../lib/entities";
@@ -49,14 +53,20 @@ export const PageIconButton = ({
           sx={({ palette }) => {
             const background = hasDarkBg ? palette.gray[40] : palette.gray[30];
 
+            const hoverState: SystemStyleObject = {
+              background,
+              ...(hasDarkBg && {
+                [`.${fontAwesomeIconClasses.icon}`]: {
+                  color: palette.gray[50],
+                },
+              }),
+
+              // ""
+            };
             return {
               p: 0,
-              ...(popupState.isOpen && {
-                background,
-              }),
-              "&:focus-visible, &:hover": {
-                background,
-              },
+              ...(popupState.isOpen && hoverState),
+              "&:focus-visible, &:hover": hoverState,
               [`&.${iconButtonClasses.disabled}`]: { color: "unset" },
             };
           }}
