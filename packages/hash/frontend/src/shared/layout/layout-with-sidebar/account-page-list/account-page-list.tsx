@@ -13,13 +13,11 @@ import {
   useSensor,
   useSensors,
   UniqueIdentifier,
-  DropAnimation,
   MeasuringStrategy,
   DragMoveEvent,
   DragOverEvent,
   DragEndEvent,
   DragStartEvent,
-  defaultDropAnimation,
 } from "@dnd-kit/core";
 import Box from "@mui/material/Box";
 import { useAccountPages } from "../../../../components/hooks/useAccountPages";
@@ -34,15 +32,6 @@ import { TreeElement, orderItems, getProjection } from "./utilities";
 type AccountPageListProps = {
   accountId: string;
   currentPageEntityId?: string;
-};
-
-const dropAnimationConfig: DropAnimation = {
-  sideEffects({ active }) {
-    active.node.animate([{ opacity: 1 }, { opacity: 1 }], {
-      duration: defaultDropAnimation.duration,
-      easing: defaultDropAnimation.easing,
-    });
-  },
 };
 
 const measuringConfig = {
@@ -249,7 +238,11 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
               ),
             )}
 
-            <DragOverlay dropAnimation={dropAnimationConfig} />
+            <DragOverlay
+              dropAnimation={{
+                duration: 0,
+              }}
+            />
           </Box>
         </NavLink>
       </SortableContext>
