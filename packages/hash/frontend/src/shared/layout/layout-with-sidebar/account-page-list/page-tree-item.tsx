@@ -22,7 +22,7 @@ export interface PageTreeItemProps {
   createSubPage: (parentPageEntityId: string) => Promise<boolean | undefined>;
   archivePage: (accountId: string, pageEntityId: string) => Promise<void>;
   onCollapse?: () => void;
-  isDragging?: boolean;
+  isSorting?: boolean;
   attributes?: DraggableAttributes;
   listeners?: Record<string, Function>;
   style?: CSSProperties;
@@ -44,7 +44,7 @@ export const PageTreeItem = forwardRef(
       expanded,
       collapsed,
       disabled,
-      isDragging,
+      isSorting,
       style,
       attributes,
       listeners,
@@ -64,8 +64,8 @@ export const PageTreeItem = forwardRef(
     return !collapsed ? (
       <Box
         ref={wrapperRef}
-        onMouseEnter={() => !isDragging && setHovered(true)}
-        onMouseLeave={() => !isDragging && setHovered(false)}
+        onMouseEnter={() => !isSorting && setHovered(true)}
+        onMouseLeave={() => !isSorting && setHovered(false)}
       >
         <Box
           tabIndex={0}
@@ -74,10 +74,10 @@ export const PageTreeItem = forwardRef(
             display: "flex",
             alignItems: "center",
             borderRadius: "4px",
-            transition: transitions.create(["padding-left", "transform"], {
-              duration: isDragging ? 200 : 0,
+            transition: `${transitions.create("padding-left", {
+              duration: 200,
               easing: "ease",
-            }),
+            })}, ${style?.transition}`,
             paddingLeft: `${16 * depth + 8}px`,
             paddingRight: 0.5,
             backgroundColor: selected

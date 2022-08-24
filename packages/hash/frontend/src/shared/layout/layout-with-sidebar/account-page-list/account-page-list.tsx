@@ -57,6 +57,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     [],
   );
   const [items, setItems] = useState<TreeElement[]>([]);
+  const [itemIds, setItemIds] = useState<string[]>([]);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
   const [offsetLeft, setOffsetLeft] = useState(0);
@@ -94,6 +95,10 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       setItems(orderItems(data, expandedPageIds));
     }
   }, [data, expandedPageIds, loading]);
+
+  useMemo(() => {
+    setItemIds(items.map((item) => item.entityId));
+  }, [items]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -200,10 +205,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       onDragCancel={handleDragCancel}
       measuring={measuringConfig}
     >
-      <SortableContext
-        items={items.map((x) => x.entityId)}
-        strategy={verticalListSortingStrategy}
-      >
+      <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
         <NavLink
           title="Pages"
           endAdornmentProps={{

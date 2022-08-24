@@ -1,19 +1,28 @@
 import { FunctionComponent, CSSProperties } from "react";
-import { useSortable, AnimateLayoutChanges } from "@dnd-kit/sortable";
+import {
+  useSortable,
+  AnimateLayoutChanges,
+  defaultAnimateLayoutChanges,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { PageTreeItem, PageTreeItemProps } from "./page-tree-item";
 
-const animateLayoutChanges: AnimateLayoutChanges = ({
-  isSorting,
-  wasDragging,
-}) => !(isSorting || wasDragging);
+const animateLayoutChanges: AnimateLayoutChanges = (args) => {
+  const { isSorting, isDragging, wasDragging } = args;
+
+  if (isSorting || isDragging || wasDragging) {
+    return defaultAnimateLayoutChanges(args);
+  }
+
+  return true;
+};
 
 export const AccountPageListItem: FunctionComponent<PageTreeItemProps> = ({
   id,
   ...props
 }) => {
   const {
-    active,
+    isSorting,
     attributes,
     listeners,
     setDraggableNodeRef,
@@ -37,7 +46,7 @@ export const AccountPageListItem: FunctionComponent<PageTreeItemProps> = ({
       wrapperRef={setDroppableNodeRef}
       attributes={attributes}
       listeners={listeners}
-      isDragging={!!active}
+      isSorting={isSorting}
       style={style}
       {...props}
     />
