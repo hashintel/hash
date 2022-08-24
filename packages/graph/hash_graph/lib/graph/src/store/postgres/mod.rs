@@ -73,7 +73,7 @@ where
                         WHERE base_uri = $1
                     );
                 "#,
-                &[&base_uri.to_string()],
+                &[&base_uri.as_str()],
             )
             .await
             .into_report()
@@ -100,7 +100,7 @@ where
                         WHERE base_uri = $1 AND version = $2
                     );
                 "#,
-                &[&uri.base_uri().to_string(), &version],
+                &[&uri.base_uri().as_str(), &version],
             )
             .await
             .into_report()
@@ -176,7 +176,7 @@ where
                     VALUES ($1, $2, $3)
                     RETURNING version_id;
                 "#,
-                &[&uri.base_uri().to_string(), &version, &version_id],
+                &[&uri.base_uri().as_str(), &version, &version_id],
             )
             .await
             .into_report()
@@ -201,7 +201,7 @@ where
                     VALUES ($1)
                     RETURNING base_uri;
                 "#,
-                &[&base_uri.to_string()],
+                &[&base_uri.as_str()],
             )
             .await
             .into_report()
@@ -636,7 +636,7 @@ where
                     FROM ids
                     WHERE base_uri = $1 AND version = $2;
                 "#,
-                &[&uri.base_uri().to_string(), &version],
+                &[&uri.base_uri().as_str(), &version],
             )
             .await
             .into_report()

@@ -111,7 +111,7 @@ async fn by_link_type_by_source_entity_id(
             SELECT link_type_version_id, NULL AS single_link, target_entity_ids AS multi_link
             FROM multi_links
             "#,
-            &[&source_entity_id, &link_type_base_uri.to_string(), &i64::from(link_type_version)],
+            &[&source_entity_id, &link_type_base_uri.as_str(), &i64::from(link_type_version)],
         )
         .await
         .into_report()
