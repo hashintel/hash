@@ -75,7 +75,7 @@ export const PageTreeItem = forwardRef(
             alignItems: "center",
             borderRadius: "4px",
             transition: transitions.create(["padding-left", "transform"], {
-              duration: 200,
+              duration: isDragging ? 200 : 0,
               easing: "ease",
             }),
             paddingLeft: `${16 * depth + 8}px`,
