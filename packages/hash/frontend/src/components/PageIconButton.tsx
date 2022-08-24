@@ -1,6 +1,7 @@
 import { IconButton } from "@hashintel/hash-design-system";
 import { iconButtonClasses, Tooltip } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
+import { MouseEventHandler } from "react";
 import { rewriteEntityIdentifier } from "../lib/entities";
 
 import { EmojiPicker } from "./EmojiPicker/EmojiPicker";
@@ -14,6 +15,7 @@ interface PageIconButtonProps {
   readonly?: boolean;
   size?: SizeVariant;
   hasDarkBg?: boolean;
+  onClick?: MouseEventHandler<HTMLButtonElement>;
 }
 
 export const PageIconButton = ({
@@ -23,6 +25,7 @@ export const PageIconButton = ({
   readonly,
   size = "medium",
   hasDarkBg,
+  onClick,
 }: PageIconButtonProps) => {
   const popupState = usePopupState({
     variant: "popover",
@@ -32,11 +35,17 @@ export const PageIconButton = ({
   const { updateEntity, updateEntityLoading } =
     useBlockProtocolUpdateEntity(true);
 
+  const trigger = bindTrigger(popupState);
+
   return (
     <>
       <Tooltip title="Change icon" placement="bottom">
         <IconButton
-          {...bindTrigger(popupState)}
+          {...trigger}
+          onClick={(event) => {
+            onClick?.(event);
+            trigger.onClick(event);
+          }}
           sx={({ palette }) => {
             const background = hasDarkBg ? palette.gray[40] : palette.gray[30];
 
