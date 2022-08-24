@@ -11,6 +11,7 @@ use crate::ontology::types::uri::VersionedUri;
 ///
 /// The link is described by a link type [`VersionedUri`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
+#[serde(rename_all = "camelCase")]
 pub struct Link {
     source_entity: EntityId,
     target_entity: EntityId,
@@ -67,6 +68,7 @@ pub enum Outgoing {
 
 /// A collection of links that originate from the same source entity.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
+#[serde(rename_all = "camelCase")]
 pub struct Links {
     #[serde(flatten)]
     outgoing: HashMap<VersionedUri, Outgoing>,

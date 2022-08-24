@@ -360,19 +360,19 @@ export interface Link {
    * @type {string}
    * @memberof Link
    */
-  link_type_uri: string;
+  linkTypeUri: string;
   /**
    *
    * @type {string}
    * @memberof Link
    */
-  source_entity: string;
+  sourceEntity: string;
   /**
    *
    * @type {string}
    * @memberof Link
    */
-  target_entity: string;
+  targetEntity: string;
 }
 /**
  * Specifies the structure of a Link Type
