@@ -1,8 +1,10 @@
-import { findComponentNodes } from "@hashintel/hash-shared/prosemirror";
+import {
+  findComponentNodes,
+  isParagraphNode,
+} from "@hashintel/hash-shared/prosemirror";
 import { Schema } from "prosemirror-model";
 import { Plugin, PluginKey } from "prosemirror-state";
 import { Decoration, DecorationSet } from "prosemirror-view";
-import { isParagraphNode } from "../../utils";
 import { RenderPortal } from "../usePortals";
 import { Placeholder } from "./Placeholder";
 

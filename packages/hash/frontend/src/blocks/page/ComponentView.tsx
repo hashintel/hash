@@ -17,6 +17,7 @@ import {
 import {
   componentNodeToId,
   isComponentNode,
+  isParagraphNode,
 } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { textBlockNodeToEntityProperties } from "@hashintel/hash-shared/text";
@@ -26,7 +27,6 @@ import { TextSelection, Transaction } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
 import { ErrorBlock } from "../../components/ErrorBlock/ErrorBlock";
-import { isParagraphNode } from "../utils";
 import { BlockContext } from "./BlockContext";
 import {
   SuggesterAction,
