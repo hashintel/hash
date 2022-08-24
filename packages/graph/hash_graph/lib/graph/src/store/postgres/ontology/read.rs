@@ -1,12 +1,12 @@
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{IntoReport, Result, ResultExt, StreamExt as _};
 use futures::{StreamExt, TryStreamExt};
 use serde::Deserialize;
 use tokio_postgres::{GenericClient, RowStream};
 
 use crate::{
     ontology::{
-        types::{uri::BaseUri, DataType, EntityType, LinkType, PropertyType},
+        types::{DataType, EntityType, LinkType, PropertyType},
         AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
         PersistedOntologyIdentifier, PersistedPropertyType,
     },
@@ -56,26 +56,19 @@ impl PersistedOntologyType for PersistedEntityType {
     }
 }
 
-async fn by_uri_by_version<T: OntologyDatabaseType>(
+async fn all<T: OntologyDatabaseType>(
     client: &(impl GenericClient + Sync),
-    uri: &BaseUri,
-    version: u32,
 ) -> Result<RowStream, QueryError> {
     client
         .query_raw(
             &format!(
                 r#"
                 SELECT schema, created_by
-                FROM {}
-                WHERE version_id = (
-                    SELECT version_id
-                    FROM ids
-                    WHERE base_uri = $1 AND version = $2
-                )
+                FROM {};
                 "#,
                 T::table()
             ),
-            parameter_list([uri, &i64::from(version)]),
+            parameter_list([]),
         )
         .await
         .into_report()
@@ -103,6 +96,24 @@ async fn by_latest_version<T: OntologyDatabaseType>(
         .change_context(QueryError)
 }
 
+fn apply_filter<T: OntologyDatabaseType>(element: T, query: &OntologyQuery<'_, T>) -> Option<T> {
+    let uri = element.versioned_uri();
+
+    if let Some(base_uri) = query.uri() {
+        if uri.base_uri() != base_uri {
+            return None;
+        }
+    }
+
+    if let Some(OntologyVersion::Exact(version)) = query.version() {
+        if uri.version() != version {
+            return None;
+        }
+    }
+
+    Some(element)
+}
+
 #[async_trait]
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
@@ -112,31 +123,27 @@ where
     type Query<'q> = OntologyQuery<'q, T::Inner>;
 
     async fn read<'query>(&self, query: &Self::Query<'query>) -> Result<Vec<T>, QueryError> {
-        let row_stream = match (query.uri(), query.version()) {
-            (Some(uri), Some(OntologyVersion::Exact(version))) => {
-                by_uri_by_version::<T::Inner>(self.as_client(), uri, version).await?
-            }
-            (None, Some(OntologyVersion::Latest)) => {
-                by_latest_version::<T::Inner>(self.as_client()).await?
-            }
-            _ => todo!(),
+        let row_stream = if let Some(OntologyVersion::Latest) = query.version() {
+            by_latest_version::<T::Inner>(self.as_client()).await?
+        } else {
+            all::<T::Inner>(self.as_client()).await?
         };
 
         row_stream
-            .map(|row_result| {
-                let row = row_result.into_report().change_context(QueryError)?;
-
+            .map(IntoReport::into_report)
+            .change_context(QueryError)
+            .try_filter_map(|row| async move {
                 let element: T::Inner = serde_json::from_value(row.get(0))
                     .into_report()
                     .change_context(QueryError)?;
 
-                let uri = element.versioned_uri().clone();
                 let account_id: AccountId = row.get(1);
 
-                Ok(T::new(
-                    element,
-                    PersistedOntologyIdentifier::new(uri, account_id),
-                ))
+                Ok(apply_filter(element, query).map(|element| {
+                    let uri = element.versioned_uri();
+                    let identifier = PersistedOntologyIdentifier::new(uri.clone(), account_id);
+                    T::new(element, identifier)
+                }))
             })
             .try_collect()
             .await

@@ -14,7 +14,7 @@ impl fmt::Display for InsertionError {
 
 impl Context for InsertionError {}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[must_use]
 pub struct QueryError;
 
