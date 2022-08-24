@@ -74,10 +74,10 @@ export const PageTreeItem = forwardRef(
             display: "flex",
             alignItems: "center",
             borderRadius: "4px",
-            transition: `${transitions.create("padding-left", {
+            transition: transitions.create(["padding-left", "transform"], {
               duration: 200,
               easing: "ease",
-            })}, ${style?.transition}`,
+            }),
             paddingLeft: `${16 * depth + 8}px`,
             paddingRight: 0.5,
             backgroundColor: selected
