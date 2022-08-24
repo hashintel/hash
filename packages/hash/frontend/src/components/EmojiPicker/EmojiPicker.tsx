@@ -25,6 +25,10 @@ export const EmojiPicker = ({
       }}
       elevation={4}
       sx={{ mt: 1 }}
+      onClick={(evt) => {
+        evt.preventDefault();
+        evt.stopPropagation();
+      }}
     >
       <Picker
         autoFocus
