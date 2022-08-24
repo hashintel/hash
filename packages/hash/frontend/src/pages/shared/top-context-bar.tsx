@@ -34,40 +34,6 @@ export const TopContextBar = ({
           scrollToTop={scrollToTop}
         />
       </Box>
-
-      {/*<Box*/}
-      {/*  ml="auto"*/}
-      {/*  alignItems="center"*/}
-      {/*  sx={({ palette }) => ({*/}
-      {/*    display: readonlyMode ? "none" : "flex",*/}
-      {/*    "& > *": {*/}
-      {/*      color: palette.gray[50],*/}
-      {/*      "&:hover": {*/}
-      {/*        color: palette.gray[70],*/}
-      {/*      },*/}
-      {/*    },*/}
-      {/*  })}*/}
-      {/*>*/}
-      {/*  <Button variant="tertiary_quiet" size="xs">*/}
-      {/*    <Typography variant="smallTextLabels" whiteSpace="nowrap">*/}
-      {/*      <Box component="strong">0</Box> comments*/}
-      {/*    </Typography>*/}
-      {/*  </Button>*/}
-
-      {/*  <Button variant="tertiary_quiet" size="xs">*/}
-      {/*    Share*/}
-      {/*  </Button>*/}
-      {/*  <Button*/}
-      {/*    variant="tertiary_quiet"*/}
-      {/*    size="xs"*/}
-      {/*    startIcon={<FontAwesomeIcon icon={faClockRotateLeft} />}*/}
-      {/*  >*/}
-      {/*    v2.3.1*/}
-      {/*  </Button>*/}
-      {/*  <IconButton>*/}
-      {/*    <FontAwesomeIcon icon={faEllipsisVertical} />*/}
-      {/*  </IconButton>*/}
-      {/*</Box>*/}
     </Box>
   );
 };
