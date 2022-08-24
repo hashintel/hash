@@ -69,11 +69,18 @@ impl RecordBatch {
     /// Retrieves the column at the provided index in the [`RecordBatch`]. This function will panic
     /// if the requested index cannot be found. [`RecordBatch::try_column`] will return [`None`]
     /// instead of panicking.
+    // this is necessary, because GrowableArrayData is implemented for Box<dyn Array> but not
+    // &dyn Array
+    #[allow(clippy::borrowed_box)]
     pub fn column(&self, index: usize) -> &Box<dyn Array> {
         &self.columns[index]
     }
 
-    /// Retrieve
+    /// Attempt to retrieve a column, returning `None` if the column at the provided index could not
+    /// be found.
+    // this is necessary, because GrowableArrayData is implemented for Box<dyn Array> but not
+    // &dyn Array
+    #[allow(clippy::borrowed_box)]
     pub fn try_column(&self, index: usize) -> Option<&Box<dyn Array>> {
         self.columns.get(index)
     }

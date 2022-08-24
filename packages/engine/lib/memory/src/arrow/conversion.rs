@@ -316,7 +316,7 @@ fn utf8_to_json_vals(col: &dyn Array) -> Result<Vec<Value>> {
     Ok(json_vals)
 }
 
-pub fn json_utf8_json_vals(col: &Box<dyn Array>) -> Result<Vec<Value>> {
+pub fn json_utf8_json_vals(col: &dyn Array) -> Result<Vec<Value>> {
     let array = col.as_any().downcast_ref::<Utf8Array<i32>>().unwrap();
     let mut json_vals: Vec<Value> = Vec::with_capacity(array.len());
     for i_val in 0..array.len() {
