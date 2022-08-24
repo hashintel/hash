@@ -1,9 +1,13 @@
+[workspace]
+members = [".", "macros"]
+default-members = ["."]
+
 [package]
 name = "error-stack"
 version = "0.1.1"
 authors = ["HASH"]
 edition = "2021"
-rust-version = "1.61.0"
+rust-version = "1.63.0"
 license = "MIT"
 description = "A context-aware error-handling library that supports arbitrary attached user data"
 documentation = "https://docs.rs/error-stack"
@@ -19,6 +23,7 @@ futures-core = { version = "0.3", optional = true, default-features = false }
 smallvec = { version = "1", optional = true, default_features = false, features = ['union'] }
 anyhow = { version = "1", default-features = false, optional = true }
 eyre = { version = "0.6", default-features = false, optional = true }
+error-stack-macros = { path = "macros" }
 
 owo-colors = { version = "3.4.0", default-features = false, optional = true, features = ['supports-colors'] }
 

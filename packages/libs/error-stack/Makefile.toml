@@ -1,27 +1,84 @@
 extend = { path = "../../../.github/scripts/rust/Makefile.toml" }
 
 [env]
-CARGO_CLIPPY_HACK_FLAGS_BASE = "--workspace --feature-powerset --exclude-features default --optional-deps eyre,anyhow"
-CARGO_CLIPPY_HACK_FLAGS = "${CARGO_CLIPPY_HACK_FLAGS_BASE} --group-features anyhow,eyre --group-features spantrace,futures,small"
-CARGO_TEST_HACK_FLAGS_BASE = "--workspace --feature-powerset --exclude-features default --optional-deps eyre,anyhow"
-CARGO_TEST_HACK_FLAGS = "${CARGO_TEST_HACK_FLAGS_BASE} --group-features anyhow,eyre --group-features spantrace,futures,small"
+CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default"
+CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default"
 CARGO_MIRI_FLAGS = "--tests --lib"
 CARGO_INSTA_TEST_FLAGS = "--no-fail-fast"
+CARGO_RUSTDOC_HACK_FLAGS = ""
+CARGO_DOC_HACK_FLAGS = ""
 # The only features that are of relevance are: spantrace, pretty-print, std, hooks
 # all others do not change the output
-CARGO_INSTA_TEST_HACK_FLAGS = "--workspace --keep-going --feature-powerset --include-features spantrace,pretty-print,std,unstable"
+CARGO_INSTA_TEST_HACK_FLAGS = "--keep-going --feature-powerset --include-features spantrace,pretty-print,std,unstable --ignore-unknown-features"
 
-[env.release]
-CARGO_CLIPPY_HACK_FLAGS = "${CARGO_CLIPPY_HACK_FLAGS_BASE}"
-CARGO_TEST_HACK_FLAGS = "${CARGO_TEST_HACK_FLAGS_BASE}"
 
-[tasks.test-task]
+[tasks.test]
+run_task = [
+    { name = ["test-task"], condition = { profiles = ["release"] } },
+    { name = ["test-each-feature", "test-default-features", "test-all-features"] },
+]
 dependencies = ["install-rust-src"]
+
+[tasks.test-each-feature]
+env = { CARGO_TEST_HACK_FLAGS = "--workspace --each-feature", CARGO_TEST_FLAGS = "" }
+run_task = { name = ["test-task-lib"] }
+
+[tasks.test-default-features]
+env = { CARGO_TEST_HACK_FLAGS = "--workspace", CARGO_TEST_FLAGS = "" }
+run_task = { name = ["test-task-lib"] }
+
+[tasks.test-all-features]
+env = { CARGO_TEST_HACK_FLAGS = "--workspace", CARGO_TEST_FLAGS = "--all-features" }
+run_task = { name = ["test-task"] }
+
 
 # Required for UI tests
 [tasks.install-rust-src]
 private = true
 install_crate = { rustup_component_name = "rust-src" }
+
+
+[tasks.clippy]
+run_task = [
+    { name = ["clippy-task"], condition = { profiles = ["release"] } },
+    { name = ["clippy-each-feature", "clippy-default-features", "clippy-all-features"] },
+]
+
+[tasks.clippy-each-feature]
+env = { CARGO_CLIPPY_HACK_FLAGS = "--workspace --each-feature", CARGO_CLIPPY_FLAGS = "" }
+run_task = { name = ["clippy-task"] }
+
+[tasks.clippy-default-features]
+env = { CARGO_CLIPPY_HACK_FLAGS = "--workspace", CARGO_CLIPPY_FLAGS = "" }
+run_task = { name = ["clippy-task"] }
+
+[tasks.clippy-all-features]
+env = { CARGO_CLIPPY_HACK_FLAGS = "--workspace", CARGO_CLIPPY_FLAGS = "--all-features" }
+run_task = { name = ["clippy-task"] }
+
+
+
+[tasks.rustdoc]
+workspace = true
+run_task = [
+    { name = ["rustdoc-task"], condition = { env_true = ["CARGO_MAKE_CRATE_IS_WORKSPACE"] } },
+    { name = ["rustdoc-task-subcrate"] },
+]
+
+[tasks.rustdoc-task-subcrate]
+env = { CARGO_RUSTDOC_FLAGS = "--all-features -- -Z unstable-options" }
+run_task = { name = ["rustdoc-task"] }
+
+[tasks.doc]
+workspace = true
+run_task = [
+    { name = ["doc-task"], condition = { env_true = ["CARGO_MAKE_CRATE_IS_WORKSPACE"] } },
+    { name = ["doc-task-subcrate"] },
+]
+
+[tasks.doc-task-subcrate]
+env = { CARGO_DOC_FLAGS = "--all-features" }
+run_task = { name = ["doc-task"] }
 
 # Snapshot Tests
 # ==============

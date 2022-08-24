@@ -1,10 +1,10 @@
 <b>invalid input parameter</b>
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/fmt/mod.rs:40:14</span>
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>u64 value (2)
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>u32 value 0
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>u32 value 1
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>For more information, look down below
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>This is going to be at the end
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/fmt/mod.rs:46:14</span>
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Error (404)
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Suggestion 1: Try to be connected to the internet.
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Suggestion 2: Try better next time!
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Warning (1) occurred
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Info: This is going to be at the end
 <span style='color:#a00'>╰</span><span style='color:#a00'>╴</span>backtrace with [n] frames (1)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -12,4 +12,5 @@
 Backtrace No. 1
   [redacted]
 
-Look! I was rendered from a `u16`
+Warning 1:
+  Unable to fetch resource
