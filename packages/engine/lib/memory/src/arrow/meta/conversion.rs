@@ -414,12 +414,14 @@ pub mod tests {
             .collect()
     }
 
+    #[allow(clippy::borrowed_box)]
     fn get_num_nodes_from_array_data(data: &Box<dyn Array>) -> usize {
         data.child_data().iter().fold(0, |total_children, child| {
             total_children + get_num_nodes_from_array_data(child)
         }) + 1
     }
 
+    #[allow(clippy::borrowed_box)]
     fn get_buffer_counts_from_array_data<'a>(
         node_data: &Box<dyn Array>,
         node_meta: &'a [meta::NodeStatic],
@@ -457,6 +459,7 @@ pub mod tests {
         (buffers, node_meta)
     }
 
+    #[allow(clippy::borrowed_box)]
     fn get_node_mapping_from_array_data(data: &Box<dyn Array>) -> NodeMapping {
         if data.child_data().is_empty() {
             NodeMapping::empty()
@@ -472,6 +475,7 @@ pub mod tests {
 
     // Extracts column hierarchy metadata from the Arrow Array data for a given FieldNode, and its
     // children
+    #[allow(clippy::borrowed_box)]
     fn get_col_hierarchy_from_arrow_array(
         arrow_array: &Box<dyn Array>,
         node_infos: &[meta::NodeStatic],
