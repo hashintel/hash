@@ -7,6 +7,7 @@ use crate::{
     error::{Error, Result},
 };
 
+/// These are the Apache Arrow datatypes the engine can process.
 enum SupportedDataTypes {
     Boolean,
     Utf8,
@@ -87,52 +88,88 @@ impl TryFrom<DataType> for SupportedDataTypes {
     }
 }
 
+pub(crate) struct ColumnHeirarchy {
+    pub(crate) column_indices: Vec<meta::Column>,
+    pub(crate) padding_meta: Vec<bool>,
+    pub(crate) node_meta: Vec<meta::NodeStatic>,
+}
+
 /// Column hierarchy is the mapping from column index to buffer and node indices.
 /// This also returns information about which buffers are growable
 // TODO: Move this to `column`
-pub(crate) fn schema_to_column_hierarchy(
-    schema: Arc<Schema>,
-) -> (Vec<meta::Column>, Vec<bool>, Vec<meta::NodeStatic>) {
+pub(crate) fn schema_to_column_hierarchy(schema: Arc<Schema>) -> ColumnHeirarchy {
     let mut padding_meta = vec![];
     let mut node_meta = vec![];
-    let column_indices =
-        schema
-            .fields
-            .iter()
-            .fold((vec![], 0, 0), |mut accum, field| {
-                let (
-                    node_count,
-                    buffer_count,
-                    buffer_counts,
-                    mut padding,
-                    mut data,
-                    root_node_mapping,
-                ) = data_type_to_metadata(
-                    &SupportedDataTypes::try_from((*field.data_type()).clone()).unwrap(),
-                    false,
-                    1,
-                );
+    let column_indices = schema
+        .fields
+        .iter()
+        .fold((vec![], 0, 0), |mut accum, field| {
+            let DataTypeMetadata {
+                node_count,
+                buffer_count,
+                buffer_counts,
+                mut padding,
+                mut data,
+                node_mapping: root_node_mapping,
+            } = data_type_to_metadata(
+                &SupportedDataTypes::try_from((*field.data_type()).clone()).unwrap(),
+                false,
+                1,
+            );
 
-                padding_meta.append(&mut padding);
-                node_meta.append(&mut data);
-                // Nullable fields have the same buffer count as non-nullable
-                // see `write_array_data` in `ipc.rs`. This means we don't have to check
-                // for this here.
-                accum.0.push(meta::Column {
-                    node_start: accum.1,
-                    node_count,
-                    root_node_mapping,
-                    buffer_start: accum.2,
-                    buffer_counts,
-                    buffer_count,
-                });
-                accum.1 += node_count;
-                accum.2 += buffer_count;
-                accum
-            })
-            .0;
+            padding_meta.append(&mut padding);
+            node_meta.append(&mut data);
+            // Nullable fields have the same buffer count as non-nullable
+            // see `write_array_data` in `ipc.rs`. This means we don't have to check
+            // for this here.
+            accum.0.push(meta::Column {
+                node_start: accum.1,
+                node_count,
+                root_node_mapping,
+                buffer_start: accum.2,
+                buffer_counts,
+                buffer_count,
+            });
+            accum.1 += node_count;
+            accum.2 += buffer_count;
+            accum
+        })
+        .0;
 
-    (column_indices, padding_meta, node_meta)
+    ColumnHeirarchy {
+        column_indices,
+        padding_meta,
+        node_meta,
+    }
+}
+
+pub struct DataTypeMetadata {
+    node_count: usize,
+    buffer_count: usize,
+    buffer_counts: Vec<usize>,
+    padding: Vec<bool>,
+    data: Vec<meta::NodeStatic>,
+    node_mapping: NodeMapping,
+}
+
+impl DataTypeMetadata {
+    pub fn new(
+        node_count: usize,
+        buffer_count: usize,
+        buffer_counts: Vec<usize>,
+        padding: Vec<bool>,
+        data: Vec<meta::NodeStatic>,
+        node_mapping: NodeMapping,
+    ) -> Self {
+        Self {
+            node_count,
+            buffer_count,
+            buffer_counts,
+            padding,
+            data,
+            node_mapping,
+        }
+    }
 }
 
 // `data_type_to_metadata` is a recursive function which helps
@@ -142,28 +179,17 @@ pub(crate) fn schema_to_column_hierarchy(
 // `[u64; 3]` data is growable due to `Vec` being growable, even though
 // `[u64; 3]` itself if fixed-size.
 
+/// Recursively computes all the information in [`DataTypeMetadata`] for the provided data type (one
+/// of the [`SupportedDataTypes`]).
+///
 /// Knowing the data type can help us calculate the node and offset buffer counts in a column
 #[allow(clippy::too_many_lines)]
 #[must_use]
-// TODO: Make return type a struct
 fn data_type_to_metadata(
     data_type: &SupportedDataTypes,
     is_parent_growable: bool,
     multiplier: usize,
-) -> (
-    // node count
-    usize,
-    // buffer count
-    usize,
-    // buffer counts
-    Vec<usize>,
-    // padding
-    Vec<bool>,
-    // data
-    Vec<meta::NodeStatic>,
-    // root_node_mapping
-    NodeMapping,
-) {
+) -> DataTypeMetadata {
     type D = SupportedDataTypes;
     match data_type {
         D::Utf8 | D::Binary => {
@@ -173,7 +199,7 @@ fn data_type_to_metadata(
             let offsets = BufferType::Offset;
             let binary = BufferType::Data { unit_byte_size: 1 };
             let node_meta = meta::NodeStatic::new(multiplier, vec![bit_map, offsets, binary]);
-            (
+            DataTypeMetadata::new(
                 1,
                 3,
                 vec![3],
@@ -182,7 +208,7 @@ fn data_type_to_metadata(
                 NodeMapping::empty(),
             )
         }
-        D::FixedSizeBinary(size) => (
+        D::FixedSizeBinary(size) => DataTypeMetadata::new(
             1,
             2,
             vec![2],
@@ -198,21 +224,27 @@ fn data_type_to_metadata(
             NodeMapping::empty(),
         ),
         D::List(ref list_data_type) => {
-            let (n, buffer_count, mut b, mut p, mut c, node_mapping) =
-                data_type_to_metadata(list_data_type, true, 1);
+            let DataTypeMetadata {
+                node_count,
+                buffer_count,
+                buffer_counts: mut child_buffer_counts,
+                mut padding,
+                mut data,
+                node_mapping,
+            } = data_type_to_metadata(list_data_type, true, 1);
             let mut buffer_counts = vec![2];
-            buffer_counts.append(&mut b);
+            buffer_counts.append(&mut child_buffer_counts);
             let mut padding_meta = vec![is_parent_growable, is_parent_growable];
-            padding_meta.append(&mut p);
+            padding_meta.append(&mut padding);
             let mut node_meta = vec![meta::NodeStatic::new(multiplier, vec![
                 BufferType::BitMap {
                     is_null_bitmap: true,
                 },
                 BufferType::Offset,
             ])];
-            node_meta.append(&mut c);
-            (
-                n + 1,
+            node_meta.append(&mut data);
+            DataTypeMetadata::new(
+                node_count + 1,
                 buffer_count + 2,
                 buffer_counts,
                 padding_meta,
@@ -221,20 +253,26 @@ fn data_type_to_metadata(
             )
         }
         D::FixedSizeList(ref list_data_type, size) => {
-            let (n, buffer_count, mut b, mut p, mut c, node_mapping) =
-                data_type_to_metadata(list_data_type, is_parent_growable, *size as usize);
+            let DataTypeMetadata {
+                node_count,
+                buffer_count,
+                buffer_counts: mut child_buffer_counts,
+                mut padding,
+                mut data,
+                node_mapping,
+            } = data_type_to_metadata(list_data_type, is_parent_growable, *size as usize);
             let mut buffer_counts = vec![1];
-            buffer_counts.append(&mut b);
+            buffer_counts.append(&mut child_buffer_counts);
             let mut padding_meta = vec![is_parent_growable];
-            padding_meta.append(&mut p);
+            padding_meta.append(&mut padding);
             let mut node_meta = vec![meta::NodeStatic::new(multiplier, vec![
                 BufferType::BitMap {
                     is_null_bitmap: true,
                 },
             ])];
-            node_meta.append(&mut c);
-            (
-                n + 1,
+            node_meta.append(&mut data);
+            DataTypeMetadata::new(
+                node_count + 1,
                 buffer_count + 1,
                 buffer_counts,
                 padding_meta,
@@ -242,7 +280,7 @@ fn data_type_to_metadata(
                 NodeMapping::singleton(node_mapping),
             )
         }
-        D::Boolean => (
+        D::Boolean => DataTypeMetadata::new(
             1,
             2,
             vec![2],
@@ -302,20 +340,26 @@ fn data_type_to_metadata(
             ])];
             let mut child_node_mappings = Vec::with_capacity(fields.len());
             for field in fields {
-                let (n, child_buffer_count, mut b, mut p, mut c, node_mapping) =
-                    data_type_to_metadata(
-                        &D::try_from((*field.data_type()).clone()).unwrap(),
-                        is_parent_growable,
-                        1,
-                    );
-                node_count += n;
+                let DataTypeMetadata {
+                    node_count: child_node_count,
+                    buffer_count: child_buffer_count,
+                    buffer_counts: mut child_buffer_counts,
+                    padding: mut child_padding,
+                    data: mut child_data,
+                    node_mapping: child_node_mapping,
+                } = data_type_to_metadata(
+                    &D::try_from((*field.data_type()).clone()).unwrap(),
+                    is_parent_growable,
+                    1,
+                );
+                node_count += child_node_count;
                 buffer_count += child_buffer_count;
-                buffer_counts.append(&mut b);
-                buffer_is_growable_values.append(&mut p);
-                node_meta.append(&mut c);
-                child_node_mappings.push(node_mapping);
+                buffer_counts.append(&mut child_buffer_counts);
+                buffer_is_growable_values.append(&mut child_padding);
+                node_meta.append(&mut child_data);
+                child_node_mappings.push(child_node_mapping);
             }
-            (
+            DataTypeMetadata::new(
                 node_count,
                 buffer_count,
                 buffer_counts,
@@ -327,20 +371,12 @@ fn data_type_to_metadata(
     }
 }
 
-// TODO: Make return type a struct
 fn data_type_metadata(
     is_parent_growable: bool,
     multiplier: usize,
     unit_byte_size: usize,
-) -> (
-    usize,
-    usize,
-    Vec<usize>,
-    Vec<bool>,
-    Vec<meta::NodeStatic>,
-    NodeMapping,
-) {
-    (
+) -> DataTypeMetadata {
+    DataTypeMetadata::new(
         1,
         2,
         vec![2],
@@ -454,7 +490,11 @@ pub mod tests {
             fields: vec![Field::new("c0", D::Boolean, false)],
             metadata: get_dummy_metadata(),
         };
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
 
@@ -479,9 +519,9 @@ pub mod tests {
             },
         ])];
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
         // Now check that the extracted column metadata for the schema matches the underlying
         // Arrow array's metadata once created
@@ -527,7 +567,11 @@ pub mod tests {
             metadata: get_dummy_metadata(),
         };
 
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
 
@@ -560,9 +604,9 @@ pub mod tests {
             })
             .collect();
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
         // Now check that the extracted column metadata for the schema matches the underlying
         // Arrow array's metadata once created
@@ -683,7 +727,11 @@ pub mod tests {
             fields: fields.clone(),
             metadata: get_dummy_metadata(),
         };
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
 
@@ -716,9 +764,9 @@ pub mod tests {
             })
             .collect();
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
         // Now check that the extracted column metadata for the schema matches the underlying Arrow
         // array's metadata once created
@@ -793,7 +841,11 @@ pub mod tests {
             fields: fields.clone(),
             metadata: get_dummy_metadata(),
         };
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
 
@@ -826,9 +878,9 @@ pub mod tests {
             })
             .collect();
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
         // Now check that the extracted column metadata for the schema matches the underlying Arrow
         // array's metadata once created
@@ -891,7 +943,11 @@ pub mod tests {
             fields: fields.clone(),
             metadata: get_dummy_metadata(),
         };
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
 
@@ -923,9 +979,9 @@ pub mod tests {
             })
             .collect();
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
         // Now check that the extracted column metadata for the schema matches the underlying Arrow
         // array's metadata once created
@@ -1008,7 +1064,11 @@ pub mod tests {
             fields: fields.clone(),
             metadata: get_dummy_metadata(),
         };
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
 
@@ -1041,9 +1101,9 @@ pub mod tests {
             })
             .collect();
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
         // Now check that the extracted column metadata for the schema matches the underlying Arrow
         // array's metadata once created
@@ -1107,7 +1167,11 @@ pub mod tests {
             fields: fields.clone(),
             metadata: Default::default(),
         };
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
 
@@ -1138,9 +1202,9 @@ pub mod tests {
 
         let expected_buffer_info = vec![false; fields.len() * num_buffers];
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
         // Now check that the extracted column metadata for the schema matches the underlying Arrow
         // array's metadata once created
@@ -1211,7 +1275,11 @@ pub mod tests {
             fields: fields.clone(),
             metadata: get_dummy_metadata(),
         };
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
 
@@ -1246,9 +1314,9 @@ pub mod tests {
             })
             .collect();
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
         // Now check that the extracted column metadata for the schema matches the underlying Arrow
         // array's metadata once created
@@ -1292,7 +1360,11 @@ pub mod tests {
             metadata: get_dummy_metadata(),
         };
 
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
 
@@ -1327,9 +1399,9 @@ pub mod tests {
             })
             .collect();
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
         // Now check that the extracted column metadata for the schema matches the underlying Arrow
         // array's metadata once created
@@ -1385,7 +1457,11 @@ pub mod tests {
             metadata: get_dummy_metadata(),
         };
 
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
 
@@ -1448,9 +1524,9 @@ pub mod tests {
             ]),
         ];
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
         // Now check that the extracted column metadata for the schema matches the underlying
         // Arrow array's metadata once created
@@ -1513,7 +1589,11 @@ pub mod tests {
             metadata: get_dummy_metadata(),
         };
 
-        let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(Arc::new(schema));
 
         let expected_col_info = vec![
             // "c0"
@@ -1576,9 +1656,9 @@ pub mod tests {
             }]),
         ];
 
-        assert_eq!(column_info, expected_col_info);
-        assert_eq!(buffer_info, expected_buffer_info);
-        assert_eq!(node_info, expected_node_info);
+        assert_eq!(column_indices, expected_col_info);
+        assert_eq!(padding_meta, expected_buffer_info);
+        assert_eq!(node_meta, expected_node_info);
 
         // Now check that the extracted column metadata for the schema matches the underlying Arrow
         // array's metadata once created

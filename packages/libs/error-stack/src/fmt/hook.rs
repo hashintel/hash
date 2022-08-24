@@ -65,19 +65,30 @@ impl HookContextImpl {
 /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::ErrorKind;
 ///
-/// use error_stack::{fmt::{Emit}, Report};
+/// use error_stack::{fmt::Emit, Report};
 ///
-/// Report::install_debug_hook::<u64>(|val, ctx| {
+/// struct Error {
+///     code: usize,
+///     reason: &'static str,
+/// }
+///
+/// Report::install_debug_hook::<Error>(|Error { code, reason }, ctx| {
 ///     if ctx.alternate() {
-///         ctx.attach_snippet("u64 has been encountered");
+///         ctx.attach_snippet(format!("Error {code}:\n  {reason}"));
 ///     }
 ///
-///     Emit::next(val.to_string())
+///     vec![Emit::next(format!("Error {code}"))]
 /// });
 ///
 /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-///     .attach(2u64)
-///     .attach(3u64);
+///     .attach(Error {
+///         code: 404,
+///         reason: "Not Found - Server cannot find requested resource",
+///     })
+///     .attach(Error {
+///         code: 405,
+///         reason: "Bad Request - Server cannot or will not process request",
+///     });
 ///
 /// # owo_colors::set_override(true);
 /// # fn render(value: String) -> String {
@@ -113,6 +124,7 @@ impl HookContextImpl {
 /// any arbitrary data of any type, and even data of multiple types at the same time.
 ///
 /// ### Example
+///
 /// ```rust
 /// # // we only test on nightly, therefore report is unused (so is render)
 /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
@@ -120,8 +132,9 @@ impl HookContextImpl {
 ///
 /// use error_stack::{fmt::Emit, Report};
 ///
+/// struct Computation(u64);
 ///
-/// Report::install_debug_hook::<u64>(|val, ctx| {
+/// Report::install_debug_hook::<Computation>(|Computation(val), ctx| {
 ///     let mut acc = ctx.get::<u64>().copied().unwrap_or(0);
 ///     acc += *val;
 ///
@@ -130,12 +143,14 @@ impl HookContextImpl {
 ///
 ///     ctx.insert(acc);
 ///
-///     Emit::next(format!("{val} (acc: {acc}, div: {div})"))
+///     vec![Emit::next(format!(
+///         "Computation for {val} (acc = {acc}, div = {div})"
+///     ))]
 /// });
 ///
 /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-///     .attach(2u64)
-///     .attach(3u64);
+///     .attach(Computation(2))
+///     .attach(Computation(3));
 ///
 /// # owo_colors::set_override(true);
 /// # fn render(value: String) -> String {
@@ -198,23 +213,31 @@ impl<'a, T> HookContext<'a, T> {
     /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
-    /// use error_stack::{fmt, fmt::Emit, Report};
+    /// use error_stack::{
+    ///     fmt::Emit,
+    ///     Report,
+    /// };
     ///
-    /// struct Value(u64);
+    /// struct Warning(&'static str);
+    /// struct Error(&'static str);
     ///
-    /// Report::install_debug_hook_fallback(|frame, ctx| {
-    ///     fmt::builtin_debug_hook_fallback(frame, ctx).or_else(|| frame.is::<Value>().then(|| {
-    ///         let ctx = ctx.cast::<u64>();
-    ///         Emit::next(format!("{} (Value)", ctx.increment()))
-    ///     }))
+    /// Report::install_debug_hook::<Error>(|Error(frame), ctx| {
+    ///     vec![Emit::next(format!(
+    ///         "[{}] [ERROR] {frame}",
+    ///         ctx.increment() + 1
+    ///     ))]
+    /// });
+    /// Report::install_debug_hook::<Warning>(|Warning(frame), ctx| {
+    ///     vec![Emit::next(format!(
+    ///         "[{}] [WARN] {frame}",
+    ///         ctx.cast::<Error>().increment() + 1
+    ///     ))]
     /// });
     ///
-    /// Report::install_debug_hook::<u64>(|_, ctx| Emit::next(format!("{}", ctx.increment())));
-    ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-    ///     .attach(1u64)
-    ///     .attach(Value(2u64))
-    ///     .attach(3u64);
+    ///     .attach(Error("Unable to reach remote host"))
+    ///     .attach(Warning("Disk nearly full"))
+    ///     .attach(Error("Cannot resolve example.com: Unknown host"));
     ///
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
@@ -327,7 +350,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     Emit::next(format!("Suggestion {}: {val}", ctx.increment()))
+    ///     vec![Emit::next(format!("Suggestion {}: {val}", ctx.increment()))]
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -391,7 +414,9 @@ impl<T: 'static> HookContext<'_, T> {
     ///
     /// struct Suggestion(&'static str);
     ///
-    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| Emit::next(format!("Suggestion {}: {val}", ctx.decrement())));
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
+    ///     vec![Emit::next(format!("Suggestion {}: {val}", ctx.decrement()))]
+    /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
     ///     .attach(Suggestion("Use a file you can read next time!"))
@@ -440,9 +465,8 @@ impl<T: 'static> HookContext<'_, T> {
     }
 }
 
-type BoxedHook = Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Emit + Send + Sync>;
-type BoxedFallbackHook =
-    Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Option<Emit> + Send + Sync>;
+type BoxedHook =
+    Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Vec<Emit> + Send + Sync>;
 
 /// Holds list of hooks and a fallback.
 ///
@@ -471,14 +495,14 @@ type BoxedFallbackHook =
 pub(crate) struct Hooks {
     // TODO: Remove `Option` when const `BTreeMap::new` is stabilized
     pub(crate) inner: Option<BTreeMap<TypeId, BoxedHook>>,
-    pub(crate) fallback: Option<BoxedFallbackHook>,
+    pub(crate) fallback: Option<BoxedHook>,
 }
 
 #[cfg(feature = "std")]
 impl Hooks {
     pub(crate) fn insert<T: Send + Sync + 'static>(
         &mut self,
-        hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) -> Emit + Send + Sync + 'static,
+        hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) -> Vec<Emit> + Send + Sync + 'static,
     ) {
         let inner = self.inner.get_or_insert_with(BTreeMap::new);
 
@@ -496,21 +520,18 @@ impl Hooks {
 
     pub(crate) fn fallback(
         &mut self,
-        hook: impl for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Option<Emit>
-        + Send
-        + Sync
-        + 'static,
+        hook: impl for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Vec<Emit> + Send + Sync + 'static,
     ) {
         self.fallback = Some(Box::new(hook));
     }
 
-    pub(crate) fn call<'a>(&self, frame: &Frame, ctx: &mut HookContext<'a, Frame>) -> Option<Emit> {
+    pub(crate) fn call<'a>(&self, frame: &Frame, ctx: &mut HookContext<'a, Frame>) -> Vec<Emit> {
         let ty = Frame::type_id(frame);
 
         if let Some(hook) = self.inner.as_ref().and_then(|map| map.get(&ty)) {
-            Some((hook)(frame, ctx))
+            hook(frame, ctx)
         } else if let Some(fallback) = self.fallback.as_ref() {
-            (fallback)(frame, ctx)
+            fallback(frame, ctx)
         } else {
             builtin_debug_hook_fallback(frame, ctx)
         }
@@ -522,6 +543,7 @@ mod default {
 
     #[cfg(any(all(nightly, feature = "std"), feature = "spantrace"))]
     use alloc::format;
+    use alloc::{vec, vec::Vec};
     #[cfg(all(nightly, feature = "std"))]
     use std::backtrace::Backtrace;
 
@@ -534,20 +556,20 @@ mod default {
     };
 
     #[cfg(all(nightly, feature = "std"))]
-    fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Emit {
+    fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Vec<Emit> {
         let idx = ctx.increment();
 
         ctx.attach_snippet(format!("Backtrace No. {}\n{}", idx + 1, backtrace));
 
-        Emit::Defer(format!(
+        vec![Emit::defer(format!(
             "backtrace with {} frames ({})",
             backtrace.frames().len(),
             idx + 1
-        ))
+        ))]
     }
 
     #[cfg(feature = "spantrace")]
-    fn span_trace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) -> Emit {
+    fn span_trace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) -> Vec<Emit> {
         let idx = ctx.increment();
 
         let mut span = 0;
@@ -558,7 +580,10 @@ mod default {
 
         ctx.attach_snippet(format!("Span Trace No. {}\n{}", idx + 1, spantrace));
 
-        Emit::Defer(format!("spantrace with {span} frames ({})", idx + 1))
+        vec![Emit::defer(format!(
+            "spantrace with {span} frames ({})",
+            idx + 1
+        ))]
     }
 
     /// Fallback for common attachments that are automatically created
@@ -571,19 +596,22 @@ mod default {
     pub fn builtin_debug_hook_fallback<'a>(
         frame: &Frame,
         ctx: &mut HookContext<'a, Frame>,
-    ) -> Option<Emit> {
+    ) -> Vec<Emit> {
+        #[allow(unused_mut)]
+        let mut emit = vec![];
+
         // we're only able to use `request_ref` in nightly, because the Provider API hasn't been
         // stabilized yet.
         #[cfg(nightly)]
         {
             #[cfg(feature = "std")]
             if let Some(bt) = frame.request_ref() {
-                return Some(backtrace(bt, ctx.cast()));
+                emit.append(&mut backtrace(bt, ctx.cast()));
             }
 
             #[cfg(feature = "spantrace")]
             if let Some(st) = frame.request_ref() {
-                return Some(span_trace(st, ctx.cast()));
+                emit.append(&mut span_trace(st, ctx.cast()));
             }
         }
 
@@ -591,10 +619,10 @@ mod default {
         {
             #[cfg(feature = "spantrace")]
             if let Some(st) = frame.downcast_ref() {
-                return Some(span_trace(st, ctx.cast()));
+                emit.append(&mut span_trace(st, ctx.cast()));
             }
         }
 
-        None
+        emit
     }
 }

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use arrow2::datatypes::Schema;
 
-use super::conversion::schema_to_column_hierarchy;
+use super::conversion::{schema_to_column_hierarchy, ColumnHeirarchy};
 use crate::arrow::meta::{Column, DynamicMetadata, NodeStatic};
 
 /// Static metadata remains constant for a simulation run.
@@ -84,7 +84,11 @@ impl StaticMetadata {
     }
 
     pub fn from_schema(schema: Arc<Schema>) -> Self {
-        let (indices, padding, data) = schema_to_column_hierarchy(schema);
-        Self::new(indices, padding, data)
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(schema);
+        Self::new(column_indices, padding_meta, node_meta)
     }
 }
