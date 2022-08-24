@@ -23,7 +23,7 @@ tracing = "0.1.35"
 tracing-appender = "0.2.2"
 tracing-error = "0.2.0"
 tracing-subscriber = { version = "0.3.14", features = ["env-filter", "json"] }
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "d984952" }
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "c0a430d" }
 uuid = { version = "1.1.2", features = ["v4", "serde"] }
 utoipa = { git = "https://github.com/juhaku/utoipa", rev = "031073f", features = ["uuid"] }
 include_dir = "0.7.2"

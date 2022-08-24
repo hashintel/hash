@@ -3,7 +3,7 @@ use error_stack::{IntoReport, Result, ResultExt, StreamExt as _};
 use futures::{StreamExt, TryStreamExt};
 use serde::Deserialize;
 use tokio_postgres::{GenericClient, RowStream};
-use type_system::{uri::BaseUri, DataType, PropertyType};
+use type_system::{DataType, PropertyType};
 
 use crate::{
     ontology::{

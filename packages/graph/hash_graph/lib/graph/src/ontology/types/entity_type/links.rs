@@ -92,9 +92,9 @@ pub struct Links {
 }
 
 impl TryFrom<LinksRepr> for Links {
-    type Error = crate::ontology::types::error::ValidationError;
+    type Error = ValidationError;
 
-    fn try_from(links: LinksRepr) -> Result<Self, crate::ontology::types::error::ValidationError> {
+    fn try_from(links: LinksRepr) -> Result<Self, ValidationError> {
         let links = Self { repr: links };
         links.validate()?;
         Ok(links)
@@ -124,20 +124,16 @@ impl Links {
     pub fn new(
         links: HashMap<VersionedUri, ValueOrMaybeOrderedArray<EntityTypeReference>>,
         required: Vec<VersionedUri>,
-    ) -> Result<Self, crate::ontology::types::error::ValidationError> {
+    ) -> Result<Self, ValidationError> {
         let entity_type = Self::new_unchecked(links, required);
         entity_type.validate()?;
         Ok(entity_type)
     }
 
-    fn validate(&self) -> Result<(), crate::ontology::types::error::ValidationError> {
+    fn validate(&self) -> Result<(), ValidationError> {
         for link in self.required() {
             if !self.links().contains_key(link) {
-                return Err(
-                    crate::ontology::types::error::ValidationError::MissingRequiredLink(
-                        link.clone(),
-                    ),
-                );
+                return Err(ValidationError::MissingRequiredLink(link.clone()));
             }
         }
         Ok(())

@@ -15,5 +15,3 @@ pub use crate::ontology::types::{
     entity_type::{EntityType, EntityTypeReference},
     link_type::LinkType,
 };
-
-pub mod error;

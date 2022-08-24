@@ -23,18 +23,16 @@ async fn insert() {
         .expect("could not seed database");
 
     let person_type_uri = VersionedUri::new(
-        &BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/person/")
+        BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/person/".to_owned())
             .expect("couldn't construct Base URI"),
         1,
-    )
-    .expect("couldn't construct Versioned URI");
+    );
 
     let link_type_uri = VersionedUri::new(
-        &BaseUri::new("https://blockprotocol.org/@alice/types/link-type/friend-of/")
+        BaseUri::new("https://blockprotocol.org/@alice/types/link-type/friend-of/".to_owned())
             .expect("couldn't construct Base URI"),
         1,
-    )
-    .expect("couldn't construct Versioned URI");
+    );
 
     let person_a_identifier = api
         .create_entity(&person_a, person_type_uri.clone())
@@ -83,25 +81,24 @@ async fn get_entity_links() {
         .expect("could not seed database");
 
     let person_type_uri = VersionedUri::new(
-        &BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/person/")
+        BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/person/".to_owned())
             .expect("couldn't construct Base URI"),
         1,
-    )
-    .expect("couldn't construct Versioned URI");
+    );
 
     let friend_link_type_uri = VersionedUri::new(
-        &BaseUri::new("https://blockprotocol.org/@alice/types/link-type/friend-of/")
+        BaseUri::new("https://blockprotocol.org/@alice/types/link-type/friend-of/".to_owned())
             .expect("couldn't construct Base URI"),
         1,
-    )
-    .expect("couldn't construct Versioned URI");
+    );
 
     let acquaintance_link_type_uri = VersionedUri::new(
-        &BaseUri::new("https://blockprotocol.org/@alice/types/link-type/acquaintance-of/")
-            .expect("couldn't construct Base URI"),
+        BaseUri::new(
+            "https://blockprotocol.org/@alice/types/link-type/acquaintance-of/".to_owned(),
+        )
+        .expect("couldn't construct Base URI"),
         1,
-    )
-    .expect("couldn't construct Versioned URI");
+    );
 
     let person_a_identifier = api
         .create_entity(&person_a, person_type_uri.clone())
@@ -170,18 +167,16 @@ async fn remove_link() {
         .expect("could not seed database");
 
     let person_type_uri = VersionedUri::new(
-        &BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/person/")
+        BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/person/".to_owned())
             .expect("couldn't construct Base URI"),
         1,
-    )
-    .expect("couldn't construct Versioned URI");
+    );
 
     let link_type_uri = VersionedUri::new(
-        &BaseUri::new("https://blockprotocol.org/@alice/types/link-type/friend-of/")
+        BaseUri::new("https://blockprotocol.org/@alice/types/link-type/friend-of/".to_owned())
             .expect("couldn't construct Base URI"),
         1,
-    )
-    .expect("couldn't construct Versioned URI");
+    );
 
     let person_a_identifier = api
         .create_entity(&person_a, person_type_uri.clone())
