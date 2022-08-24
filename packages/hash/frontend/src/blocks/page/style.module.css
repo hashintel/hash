@@ -43,6 +43,7 @@
 }
 
 .Block__Content {
+  /* This is relative because `placeholderPlugin` is rendered absolutely, and wrapped by this  */
   position: relative;
   flex: 1;
   height: 100%;
