@@ -68,9 +68,9 @@ jobs:
           override: true
 
       - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
-          working-directory: ${{ matrix.directory }}
+          workspace: ${{ matrix.directory }}
 
       - name: Install tools
         shell: bash
@@ -128,9 +128,9 @@ jobs:
           key: ${{ hashFiles('**/yarn.lock') }}
 
       - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
-          working-directory: ${{ matrix.directory }}
+          workspace: ${{ matrix.directory }}
           key: ${{ matrix.profile }}
 
       - name: Install tools
