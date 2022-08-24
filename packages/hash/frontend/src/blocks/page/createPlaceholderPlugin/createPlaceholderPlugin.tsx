@@ -10,7 +10,10 @@ import { Placeholder } from "./Placeholder";
 
 interface PlaceholderPluginState {
   focused: boolean;
+  editable: boolean;
 }
+
+const defaultState = { focused: false, editable: true };
 
 const placeholderPluginKey = new PluginKey<PlaceholderPluginState, Schema>(
   "placeholderPlugin",
@@ -21,18 +24,30 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
     key: placeholderPluginKey,
     state: {
       init() {
-        return { focused: false };
+        return defaultState;
       },
       apply(tr, state) {
-        const focused = tr.getMeta(placeholderPluginKey);
+        const partialState = tr.getMeta(placeholderPluginKey);
 
-        // return the old state if transaction does not have focused meta
-        if (focused === undefined) {
-          return state;
-        }
-
-        return { focused };
+        return partialState ? { ...state, ...partialState } : state;
       },
+    },
+    view(view) {
+      const update = () => {
+        const { editable } =
+          placeholderPluginKey.getState(view.state) ?? defaultState;
+
+        if (view.editable !== editable) {
+          view.dispatch(
+            view.state.tr.setMeta(placeholderPluginKey, {
+              editable: view.editable,
+            }),
+          );
+        }
+      };
+
+      update();
+      return {};
     },
     props: {
       decorations(state) {
@@ -41,12 +56,16 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
 
         if (!componentNode) return;
 
-        const isFocused = placeholderPluginKey.getState(state)?.focused;
+        const pluginState =
+          placeholderPluginKey.getState(state) ?? defaultState;
+        const isFocused = pluginState.focused;
+        const isEditable = pluginState.editable;
         const isParagraph = isParagraphNode(componentNode);
 
         const isEmpty = componentNode.childCount === 0;
 
-        const showPlaceholder = isParagraph && isEmpty && isFocused;
+        const showPlaceholder =
+          isParagraph && isEmpty && isFocused && isEditable;
 
         if (!showPlaceholder) return;
 
@@ -72,20 +91,21 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
       },
       handleDOMEvents: {
         blur(view) {
-          view.dispatch(view.state.tr.setMeta(placeholderPluginKey, false));
+          view.dispatch(
+            view.state.tr.setMeta(placeholderPluginKey, { focused: false }),
+          );
           return false;
         },
         focus(view) {
-          // this if prevents rendering `Placeholder` on readonly mode
-          if (!view.editable) return false;
-
           /**
            * After two calls to setImmediate, Decoration.widget updates to it's new position,
            * and we wait until it updates to prevent blinking of placeholder in wrong position.
            */
           setImmediate(() => {
             setImmediate(() => {
-              view.dispatch(view.state.tr.setMeta(placeholderPluginKey, true));
+              view.dispatch(
+                view.state.tr.setMeta(placeholderPluginKey, { focused: true }),
+              );
             });
           });
 
