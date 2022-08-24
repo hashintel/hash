@@ -6,7 +6,7 @@ use crate::{
 #[tokio::test]
 async fn insert() {
     let person_et =
-        serde_json::from_str(entity_type::PERSON_V1).expect("Could not parse entity type");
+        serde_json::from_str(entity_type::PERSON_V1).expect("could not parse entity type");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -17,32 +17,32 @@ async fn insert() {
             [],
         )
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     api.create_entity_type(&person_et)
         .await
-        .expect("Could not create entity type");
+        .expect("could not create entity type");
 }
 
 #[tokio::test]
 async fn query() {
     let organization_et =
-        serde_json::from_str(entity_type::ORGANIZATION_V1).expect("Could not parse entity type");
+        serde_json::from_str(entity_type::ORGANIZATION_V1).expect("could not parse entity type");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
         .seed([data_type::TEXT_V1], [property_type::NAME_V1], [], [])
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     api.create_entity_type(&organization_et)
         .await
-        .expect("Could not create entity type");
+        .expect("could not create entity type");
 
     let entity_type = api
         .get_entity_type(organization_et.id())
         .await
-        .expect("Could not get entity type");
+        .expect("could not get entity type");
 
     assert_eq!(entity_type.inner, organization_et);
 }
@@ -50,9 +50,9 @@ async fn query() {
 #[tokio::test]
 async fn update() {
     let page_et_v1 =
-        serde_json::from_str(entity_type::PAGE_V1).expect("Could not parse entity type");
+        serde_json::from_str(entity_type::PAGE_V1).expect("could not parse entity type");
     let page_et_v2 =
-        serde_json::from_str(entity_type::PAGE_V2).expect("Could not parse entity type");
+        serde_json::from_str(entity_type::PAGE_V2).expect("could not parse entity type");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -67,15 +67,15 @@ async fn update() {
             [entity_type::PERSON_V1, entity_type::BLOCK_V1],
         )
         .await
-        .expect("Could not seed database:");
+        .expect("could not seed database:");
 
     api.create_entity_type(&page_et_v1)
         .await
-        .expect("Could not create entity type");
+        .expect("could not create entity type");
 
     api.update_entity_type(&page_et_v2)
         .await
-        .expect("Could not update entity type");
+        .expect("could not update entity type");
 
     assert_ne!(page_et_v1, page_et_v2);
     assert_ne!(page_et_v1.id(), page_et_v2.id());

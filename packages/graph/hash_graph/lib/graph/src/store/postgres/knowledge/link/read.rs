@@ -34,10 +34,10 @@ async fn single_by_source_entity_id(
         .map(|row| {
             (
                 VersionedUri::new(
-                    &BaseUri::new(row.get(0)).expect("Invalid BaseUri"),
+                    &BaseUri::new(row.get(0)).expect("invalid BaseUri"),
                     row.get::<_, i64>(1) as u32,
                 )
-                .expect("Failed to construct VersionedUri"),
+                .expect("failed to construct VersionedUri"),
                 Outgoing::Single(row.get(2)),
             )
         }))
@@ -67,7 +67,7 @@ async fn multi_by_source_entity_id(
         .attach_printable(source_entity_id)?
         .into_iter()
         .map(|row| (
-            VersionedUri::new(&BaseUri::new(row.get(0)).expect("Invalid BaseUri"), row.get::<_, i64>(1) as u32).expect("Failed to construct VersionedUri"),
+            VersionedUri::new(&BaseUri::new(row.get(0)).expect("invalid BaseUri"), row.get::<_, i64>(1) as u32).expect("failed to construct VersionedUri"),
             Outgoing::Multiple(row.get(2))
         )))
 }
@@ -133,7 +133,7 @@ async fn by_link_type_by_source_entity_id(
     Ok(vec![Links::new(
         [(
             VersionedUri::new(link_type_base_uri, link_type_version)
-                .expect("Failed to construct VersionedUri"),
+                .expect("failed to construct VersionedUri"),
             outgoing,
         )]
         .into(),

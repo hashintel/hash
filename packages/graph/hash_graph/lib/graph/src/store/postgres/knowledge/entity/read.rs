@@ -84,10 +84,10 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
                 let created_by: AccountId = row.get(5);
 
                 let type_versioned_uri = VersionedUri::new(
-                    &BaseUri::new(&type_base_uri).expect("Invalid BaseUri"),
+                    &BaseUri::new(&type_base_uri).expect("invalid BaseUri"),
                     type_version as u32,
                 )
-                .expect("Failed to construct VersionedUri");
+                .expect("failed to construct VersionedUri");
                 Ok(PersistedEntity::new(
                     entity,
                     entity_id,

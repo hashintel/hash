@@ -8,8 +8,8 @@ use crate::{
 
 #[tokio::test]
 async fn insert() {
-    let person_a = serde_json::from_str(entity::PERSON_A_V1).expect("Could not parse entity");
-    let person_b = serde_json::from_str(entity::PERSON_B_V1).expect("Could not parse entity");
+    let person_a = serde_json::from_str(entity::PERSON_A_V1).expect("could not parse entity");
+    let person_b = serde_json::from_str(entity::PERSON_B_V1).expect("could not parse entity");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -20,31 +20,31 @@ async fn insert() {
             [entity_type::PERSON_V1],
         )
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     let person_type_uri = VersionedUri::new(
         &BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/person/")
-            .expect("Couldn't construct Base URI"),
+            .expect("couldn't construct Base URI"),
         1,
     )
-    .expect("Couldn't construct Versioned URI");
+    .expect("couldn't construct Versioned URI");
 
     let link_type_uri = VersionedUri::new(
         &BaseUri::new("https://blockprotocol.org/@alice/types/link-type/friend-of/")
-            .expect("Couldn't construct Base URI"),
+            .expect("couldn't construct Base URI"),
         1,
     )
-    .expect("Couldn't construct Versioned URI");
+    .expect("couldn't construct Versioned URI");
 
     let person_a_identifier = api
         .create_entity(&person_a, person_type_uri.clone())
         .await
-        .expect("Could not create entity");
+        .expect("could not create entity");
 
     let person_b_identifier = api
         .create_entity(&person_b, person_type_uri.clone())
         .await
-        .expect("Could not create entity");
+        .expect("could not create entity");
 
     api.create_link(
         person_a_identifier.entity_id(),
@@ -52,12 +52,12 @@ async fn insert() {
         link_type_uri.clone(),
     )
     .await
-    .expect("Could not create link");
+    .expect("could not create link");
 
     let link_target = api
         .get_link_target(person_a_identifier.entity_id(), link_type_uri.clone())
         .await
-        .expect("Could not fetch link");
+        .expect("could not fetch link");
 
     assert_eq!(
         link_target,
@@ -67,9 +67,9 @@ async fn insert() {
 
 #[tokio::test]
 async fn get_entity_links() {
-    let person_a = serde_json::from_str(entity::PERSON_A_V1).expect("Could not parse entity");
-    let person_b = serde_json::from_str(entity::PERSON_B_V1).expect("Could not parse entity");
-    let person_c = serde_json::from_str(entity::PERSON_C_V1).expect("Could not parse entity");
+    let person_a = serde_json::from_str(entity::PERSON_A_V1).expect("could not parse entity");
+    let person_b = serde_json::from_str(entity::PERSON_B_V1).expect("could not parse entity");
+    let person_c = serde_json::from_str(entity::PERSON_C_V1).expect("could not parse entity");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -80,43 +80,43 @@ async fn get_entity_links() {
             [entity_type::PERSON_V1],
         )
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     let person_type_uri = VersionedUri::new(
         &BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/person/")
-            .expect("Couldn't construct Base URI"),
+            .expect("couldn't construct Base URI"),
         1,
     )
-    .expect("Couldn't construct Versioned URI");
+    .expect("couldn't construct Versioned URI");
 
     let friend_link_type_uri = VersionedUri::new(
         &BaseUri::new("https://blockprotocol.org/@alice/types/link-type/friend-of/")
-            .expect("Couldn't construct Base URI"),
+            .expect("couldn't construct Base URI"),
         1,
     )
-    .expect("Couldn't construct Versioned URI");
+    .expect("couldn't construct Versioned URI");
 
     let acquaintance_link_type_uri = VersionedUri::new(
         &BaseUri::new("https://blockprotocol.org/@alice/types/link-type/acquaintance-of/")
-            .expect("Couldn't construct Base URI"),
+            .expect("couldn't construct Base URI"),
         1,
     )
-    .expect("Couldn't construct Versioned URI");
+    .expect("couldn't construct Versioned URI");
 
     let person_a_identifier = api
         .create_entity(&person_a, person_type_uri.clone())
         .await
-        .expect("Could not create entity");
+        .expect("could not create entity");
 
     let person_b_identifier = api
         .create_entity(&person_b, person_type_uri.clone())
         .await
-        .expect("Could not create entity");
+        .expect("could not create entity");
 
     let person_c_identifier = api
         .create_entity(&person_c, person_type_uri.clone())
         .await
-        .expect("Could not create entity");
+        .expect("could not create entity");
 
     let _a_b_link = api
         .create_link(
@@ -125,7 +125,7 @@ async fn get_entity_links() {
             friend_link_type_uri.clone(),
         )
         .await
-        .expect("Could not create link");
+        .expect("could not create link");
 
     let _a_c_link = api
         .create_link(
@@ -134,12 +134,12 @@ async fn get_entity_links() {
             acquaintance_link_type_uri.clone(),
         )
         .await
-        .expect("Could not create link");
+        .expect("could not create link");
 
     let links_from_source = api
         .get_entity_links(person_a_identifier.entity_id())
         .await
-        .expect("Could not fetch link");
+        .expect("could not fetch link");
 
     assert!(
         links_from_source
@@ -155,8 +155,8 @@ async fn get_entity_links() {
 
 #[tokio::test]
 async fn remove_link() {
-    let person_a = serde_json::from_str(entity::PERSON_A_V1).expect("Could not parse entity");
-    let person_b = serde_json::from_str(entity::PERSON_B_V1).expect("Could not parse entity");
+    let person_a = serde_json::from_str(entity::PERSON_A_V1).expect("could not parse entity");
+    let person_b = serde_json::from_str(entity::PERSON_B_V1).expect("could not parse entity");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -167,31 +167,31 @@ async fn remove_link() {
             [entity_type::PERSON_V1],
         )
         .await
-        .expect("Could not seed database");
+        .expect("could not seed database");
 
     let person_type_uri = VersionedUri::new(
         &BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/person/")
-            .expect("Couldn't construct Base URI"),
+            .expect("couldn't construct Base URI"),
         1,
     )
-    .expect("Couldn't construct Versioned URI");
+    .expect("couldn't construct Versioned URI");
 
     let link_type_uri = VersionedUri::new(
         &BaseUri::new("https://blockprotocol.org/@alice/types/link-type/friend-of/")
-            .expect("Couldn't construct Base URI"),
+            .expect("couldn't construct Base URI"),
         1,
     )
-    .expect("Couldn't construct Versioned URI");
+    .expect("couldn't construct Versioned URI");
 
     let person_a_identifier = api
         .create_entity(&person_a, person_type_uri.clone())
         .await
-        .expect("Could not create entity");
+        .expect("could not create entity");
 
     let person_b_identifier = api
         .create_entity(&person_b, person_type_uri.clone())
         .await
-        .expect("Could not create entity");
+        .expect("could not create entity");
 
     let _a_b_link = api
         .create_link(
@@ -200,7 +200,7 @@ async fn remove_link() {
             link_type_uri.clone(),
         )
         .await
-        .expect("Could not create link");
+        .expect("could not create link");
 
     api.remove_link(
         person_a_identifier.entity_id(),
@@ -208,7 +208,7 @@ async fn remove_link() {
         link_type_uri.clone(),
     )
     .await
-    .expect("Could not remove link");
+    .expect("could not remove link");
 
     let _ = api
         .get_link_target(person_a_identifier.entity_id(), link_type_uri)

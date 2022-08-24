@@ -212,7 +212,7 @@ mod tests {
         let entity_type: EntityType =
             serde_json::from_value(schema.clone()).expect("invalid schema");
         assert_eq!(
-            serde_json::to_value(entity_type.clone()).expect("Could not serialize"),
+            serde_json::to_value(entity_type.clone()).expect("could not serialize"),
             *schema,
             "{entity_type:#?}"
         );
@@ -225,7 +225,7 @@ mod tests {
     ) {
         let expected_property_type_references = uris
             .into_iter()
-            .map(|uri| VersionedUri::from_str(uri).expect("Invalid URI"))
+            .map(|uri| VersionedUri::from_str(uri).expect("invalid URI"))
             .collect::<HashSet<_>>();
 
         let property_type_references = entity_type
@@ -246,8 +246,8 @@ mod tests {
             .into_iter()
             .map(|(link_type_uri, entity_type_uri)| {
                 (
-                    VersionedUri::from_str(link_type_uri).expect("Invalid URI"),
-                    VersionedUri::from_str(entity_type_uri).expect("Invalid URI"),
+                    VersionedUri::from_str(link_type_uri).expect("invalid URI"),
+                    VersionedUri::from_str(entity_type_uri).expect("invalid URI"),
                 )
             })
             .collect::<HashMap<_, _>>();

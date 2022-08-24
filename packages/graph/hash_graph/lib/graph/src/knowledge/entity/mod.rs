@@ -127,7 +127,7 @@ mod tests {
         let entity: Entity = serde_json::from_value(json_value.clone()).expect("invalid entity");
 
         assert_eq!(
-            serde_json::to_value(entity.clone()).expect("Could not serialize"),
+            serde_json::to_value(entity.clone()).expect("could not serialize"),
             json_value,
             "{entity:#?}"
         );
