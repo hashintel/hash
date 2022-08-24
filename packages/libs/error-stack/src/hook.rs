@@ -89,9 +89,15 @@ impl Report<()> {
     /// </pre>
     ///
     /// ```
-    /// # #![cfg(nightly)]
+    /// # // this is a lot of boilerplate, if you find a better way, please change this!
+    /// # // with #![cfg(nightly)] docsrs will complain that there's no main in non-nightly
+    /// # #![cfg_attr(nightly, feature(error_generic_member_access, provide_any))]
+    /// # const _: &'static str = r#"
     /// #![feature(error_generic_member_access, provide_any)]
+    /// # "#;
     ///
+    /// # #[cfg(nightly)]
+    /// # mod nightly {
     /// use std::any::Demand;
     /// use std::error::Error;
     /// use std::fmt::{Display, Formatter};
@@ -102,8 +108,6 @@ impl Report<()> {
     /// #[derive(Debug)]
     /// struct ErrorCode(u64);
     ///
-    /// Report::install_debug_hook::<Suggestion>(|val, _| vec![Emit::next(format!("Suggestion: {}", val.0))]);
-    /// Report::install_debug_hook::<ErrorCode>(|val, _| vec![Emit::next(format!("Error Code: {}", val.0))]);
     ///
     /// #[derive(Debug)]
     /// struct UserError {
@@ -123,6 +127,10 @@ impl Report<()> {
     ///  }
     /// }
     ///
+    /// # pub fn main() {
+    /// Report::install_debug_hook::<Suggestion>(|val, _| vec![Emit::next(format!("Suggestion: {}", val.0))]);
+    /// Report::install_debug_hook::<ErrorCode>(|val, _| vec![Emit::next(format!("Error Code: {}", val.0))]);
+    ///
     /// let report = report!(UserError {code: ErrorCode(420)});
     ///
     /// # owo_colors::set_override(true);
@@ -139,6 +147,12 @@ impl Report<()> {
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook_provide.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// println!("{report:?}");
+    /// # }
+    /// # }
+    /// # #[cfg(not(nightly))]
+    /// # fn main() {}
+    /// # #[cfg(nightly)]
+    /// # fn main() {nightly::main()}
     /// ```
     ///
     /// Which will result in something like:
