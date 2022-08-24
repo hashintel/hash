@@ -119,12 +119,12 @@ pub struct NewSimulationRun {
 }
 
 #[derive(Clone)]
+#[non_exhaustive]
 pub struct DatastoreSimulationPayload {
     pub agent_batch_schema: Arc<AgentSchema>,
     pub message_batch_schema: Arc<Schema>,
     pub context_batch_schema: Arc<Schema>,
     pub shared_store: Weak<SharedStore>,
-    _private: (),
 }
 
 impl DatastoreSimulationPayload {
@@ -139,7 +139,6 @@ impl DatastoreSimulationPayload {
             message_batch_schema,
             context_batch_schema,
             shared_store,
-            _private: (),
         }
     }
 }

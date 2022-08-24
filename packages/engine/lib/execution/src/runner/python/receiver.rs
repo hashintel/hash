@@ -20,7 +20,7 @@ fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> PythonResult<nng::M
     // Build the SharedContext Flatbuffer Batch objects and collect their offsets in a vec
     let shared_context = {
         let upgraded = init.shared_context.upgrade();
-        shared_ctx_to_fbs(&mut fbb, &upgraded.unwrap().as_ref())
+        shared_ctx_to_fbs(&mut fbb, upgraded.unwrap().as_ref())
     };
 
     // Build the Flatbuffer Package objects and collect their offsets in a vec
