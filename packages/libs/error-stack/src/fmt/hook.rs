@@ -545,20 +545,20 @@ impl Hooks {
     }
 
     pub(crate) fn call<'a>(&self, frame: &Frame, ctx: &mut HookContext<'a, Frame>) -> Vec<Emit> {
-        let result: Vec<_> = self
+        let emits: Vec<_> = self
             .inner
             .iter()
             .flat_map(|(_, hook)| hook(frame, ctx))
             .collect();
 
-        if result.is_empty() {
+        if emits.is_empty() {
             if let Some(fallback) = self.fallback.as_ref() {
                 fallback(frame, ctx)
             } else {
                 builtin_debug_hook_fallback(frame, ctx)
             }
         } else {
-            result
+            emits
         }
     }
 }
@@ -617,7 +617,7 @@ mod default {
     /// [`Backtrace`]: std::backtrace::Backtrace
     /// [`SpanTrace`]: tracing_error::SpanTrace
     // Frame can be unused, if neither backtrace or spantrace are enabled
-    #[allow(unused_variables, unused_mut)]
+    #[allow(unused_variables)]
     pub fn builtin_debug_hook_fallback<'a>(
         frame: &Frame,
         ctx: &mut HookContext<'a, Frame>,

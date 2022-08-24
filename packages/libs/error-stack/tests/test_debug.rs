@@ -240,8 +240,7 @@ fn sources_nested_alternate() {
     nightly,
     feature = "std",
     feature = "spantrace",
-    feature = "pretty-print",
-    feature = "unstable"
+    feature = "pretty-print"
 ))]
 mod full {
     //! Why so many cfg guards?

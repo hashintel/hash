@@ -138,6 +138,9 @@
 //! [`error_stack::fmt::builtin_debug_hook_fallback`]: crate::fmt::builtin_debug_hook_fallback
 //! [`atomic`]: std::sync::atomic
 //! [`Error::provide`]: std::error::Error::provide
+//! [`Frame.request_value()`]: Frame::request_value
+//! [`Frame.request_ref()`]: Frame::request_ref
+//! [`.attach()`]: Report::attach
 // Makes sure that `Emit` isn't regarded as unreachable even though it isn't exported on
 // no-std. Simplifies maintenance as we don't need to special case the visibility modifier.
 #![cfg_attr(not(feature = "std"), allow(unreachable_pub))]
