@@ -1,9 +1,9 @@
-use arrow2::{array::ArrayRef, datatypes::UnionMode};
+use arrow2::{array::Array, datatypes::UnionMode};
 
 // only used in tests (at the moment)
 /// As per <https://arrow.apache.org/docs/format/Columnar.html#buffer-listing-for-each-layout>
 #[cfg_attr(not(test), allow(dead_code))]
-pub(crate) fn buffer_count_of_arrow_array(array: &ArrayRef) -> usize {
+pub(crate) fn buffer_count_of_arrow_array(array: &Box<dyn Array>) -> usize {
     match array.data_type() {
         arrow2::datatypes::DataType::Null => 0,
         // primitive arrays

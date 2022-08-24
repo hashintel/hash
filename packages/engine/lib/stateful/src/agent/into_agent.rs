@@ -169,7 +169,7 @@ fn set_states_messages(states: &mut [Agent], messages: &RecordBatch) -> Result<(
 // https://llvm.org/doxygen/LoopUnswitch_8cpp_source.html
 
 // TODO: Why doesn't this work:
-// fn downcast_col<T>(col: &ArrayRef) -> Result<&T, Error> {
+// fn downcast_col<T>(col: &Box<dyn Array>) -> Result<&T, Error> {
 //     col.as_any().downcast_ref::<T>().ok_or(Error::InvalidArrowDowncast)
 // }
 // This works: https://docs.rs/arrow/1.0.1/src/arrow/array/cast.rs.html

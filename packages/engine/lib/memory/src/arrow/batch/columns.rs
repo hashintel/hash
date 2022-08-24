@@ -1,17 +1,17 @@
 //! This module contains code to access the columns in the batch.s
 
-use arrow2::array::ArrayRef;
+use arrow2::array::Array;
 
 use super::super::record_batch::RecordBatch;
 use crate::error::{Error, Result};
 
 /// Finds the column in a given [`RecordBatch`] (provided that it exists) and returns a
-/// reference ([`ArrayRef`]) to the column (returns an error otherwise) with the same lifetime as
-/// the [`RecordBatch`].
+/// reference ([`Box<dyn Array>`]) to the column (returns an error otherwise) with the same lifetime
+/// as the [`RecordBatch`].
 pub fn column_with_name_from_record_batch<'a>(
     record_batch: &'a RecordBatch,
     name: &str,
-) -> Result<&'a ArrayRef> {
+) -> Result<&'a Box<dyn Array>> {
     let index = record_batch
         .schema()
         .fields

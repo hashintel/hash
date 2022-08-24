@@ -136,12 +136,15 @@ pub fn from_json(
     messages: Option<Vec<serde_json::Value>>,
 ) -> Result<RecordBatch> {
     let agent_count = ids.len();
-    let ids = Arc::new(get_agent_id_array(ids)?);
+    let ids = get_agent_id_array(ids)?;
 
-    let messages: Arc<dyn Array> = messages.map_or_else(
-        || Ok(Arc::new(MessageArray::new(agent_count))),
-        |values| MessageArray::from_json(values).map(Arc::new),
+    let messages: Box<dyn Array> = messages.map_or_else(
+        || Ok(Box::new(MessageArray::new(agent_count))),
+        |values| MessageArray::from_json(values).map(Box::new),
     )?;
 
-    Ok(RecordBatch::new(schema, Chunk::new(vec![ids, messages])))
+    Ok(RecordBatch::new(
+        schema,
+        Chunk::new(vec![ids.boxed(), messages]),
+    ))
 }
