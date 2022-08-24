@@ -214,7 +214,7 @@ pub trait DataTypeStore:
     /// - if the account referred to by `created_by` does not exist.
     /// - if the [`BaseUri`] of the `data_type` already exist.
     ///
-    /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
+    /// [`BaseUri`]: type_system::uri::BaseUri
     async fn create_data_type(
         &mut self,
         data_type: &DataType,
@@ -257,7 +257,7 @@ pub trait PropertyTypeStore:
     /// - if the account referred to by `created_by` does not exist.
     /// - if the [`BaseUri`] of the `property_type` already exists.
     ///
-    /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
+    /// [`BaseUri`]: type_system::uri::BaseUri
     async fn create_property_type(
         &mut self,
         property_type: &PropertyType,
@@ -300,7 +300,7 @@ pub trait EntityTypeStore:
     /// - if the account referred to by `created_by` does not exist.
     /// - if the [`BaseUri`] of the `entity_type` already exist.
     ///
-    /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
+    /// [`BaseUri`]: type_system::uri::BaseUri
     async fn create_entity_type(
         &mut self,
         entity_type: &EntityType,
@@ -343,7 +343,7 @@ pub trait LinkTypeStore:
     /// - if the account referred to by `created_by` does not exist.
     /// - if the [`BaseUri`] of the `property_type` already exists.
     ///
-    /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
+    /// [`BaseUri`]: type_system::uri::BaseUri
     async fn create_link_type(
         &mut self,
         link_type: &LinkType,

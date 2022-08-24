@@ -88,7 +88,7 @@ pub struct PersistedEntityType {
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use std::fmt::Debug;
 
     use serde::{Deserialize, Serialize};
