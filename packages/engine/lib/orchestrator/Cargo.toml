@@ -24,7 +24,5 @@ tracing = "0.1.35"
 tokio = "1.19.2"
 
 [features]
-default = ["build-nng"]
-build-nng = ["experiment-control/build-nng"]
 texray = ["experiment-control/texray"]
 clap = ["dep:clap", "experiment-control/clap"]

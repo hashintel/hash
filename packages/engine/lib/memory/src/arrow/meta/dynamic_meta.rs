@@ -6,10 +6,14 @@ use crate::{
     Error,
 };
 
-/// Dynamic metadata is metadata specific to a shared batch.
+/// Dynamic metadata is metadata specific to a shared batch (the difference between
+/// [`DynamicMetadata`] and [`StaticMetadata`] is that the
+/// dynamic metadata changes as the Arrow arrays are mutated, whereas the static metadata does not).
 ///
 /// It contains the Nodes and Buffers that are also in the metadata buffer of a shared batch. This
-/// metadata can be modified and later used to overwrite shared batch Arrow metadata
+/// metadata can be modified and later used to overwrite shared batch Arrow metadata.
+///
+/// [`StaticMetadata`]: crate::arrow::meta::StaticMetadata
 #[derive(Debug, Clone)]
 pub struct DynamicMetadata {
     /// Agent count i.e. row count

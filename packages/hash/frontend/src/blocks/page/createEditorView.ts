@@ -150,7 +150,9 @@ export const createEditorView = (
   const blocksArray = Object.values(blocks);
 
   const paragraphBlock = blocksArray.find(
-    (block) => block.meta.name === "@hashintel/block-paragraph",
+    (block) =>
+      block.meta.componentId ===
+      "https://blockprotocol.org/blocks/@hash/paragraph",
   );
 
   if (!paragraphBlock) {

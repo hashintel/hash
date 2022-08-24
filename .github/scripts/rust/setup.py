@@ -27,7 +27,7 @@ TOOLCHAINS = {
 }
 
 # Try and publish these crates when their version is changed in Cargo.toml
-PUBLISH_PATTERNS = ["packages/libs/error-stack"]
+PUBLISH_PATTERNS = ["packages/libs/error-stack**"]
 
 
 def generate_diffs():
@@ -48,10 +48,13 @@ def find_local_crates():
     `cargo-make` will run the sub-crate automatically.
     :return: a list of crate paths
     """
-    all_crates = [path.relative_to(CWD).parent for path in CWD.rglob("Cargo.toml")]
+    return [path.relative_to(CWD).parent for path in CWD.rglob("Cargo.toml")]
+
+
+def filter_parent_crates(crates):
     checked_crates = []
-    for crate in all_crates:
-        if not any(path in crate.parents for path in all_crates):
+    for crate in crates:
+        if not any(path in crate.parents for path in crates):
             checked_crates.append(crate)
     return checked_crates
 
@@ -185,10 +188,11 @@ def output_matrix(name, crates, **kwargs):
 def main():
     diffs = generate_diffs()
     available_crates = find_local_crates()
-    changed_crates = list(set(filter_for_changed_crates(diffs, available_crates)))
+    changed_crates = filter_for_changed_crates(diffs, available_crates)
+    changed_parent_crates = filter_parent_crates(changed_crates)
 
-    output_matrix("lint", changed_crates)
-    output_matrix("test", changed_crates, profile=["development", "production"])
+    output_matrix("lint", changed_parent_crates)
+    output_matrix("test", changed_parent_crates, profile=["development", "production"])
     output_matrix(
         "publish",
         filter_crates_by_changed_version(
