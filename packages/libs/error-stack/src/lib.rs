@@ -426,6 +426,7 @@
 //!
 //! [^color]: error-stack supports the [`NO_COLOR`](http://no-color.org/)
 //!     and `FORCE_COLOR` environment variables through the [owo-colors crate](https://crates.io/crates/owo-colors)
+//!
 //! [^unstable]: unstable features may be removed in **any** future version without notice.
 //!     They exist to gauge interest towards features that may be stablized in the future.
 //!

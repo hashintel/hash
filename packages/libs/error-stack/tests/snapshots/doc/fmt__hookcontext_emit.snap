@@ -1,7 +1,7 @@
 <b>invalid input parameter</b>
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/fmt/hook.rs:18:14</span>
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>2
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>3
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/fmt/hook.rs:23:14</span>
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Error 404
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Error 405
 <span style='color:#a00'>╰</span><span style='color:#a00'>╴</span>backtrace with [n] frames (1)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -9,6 +9,8 @@
 Backtrace No. 1
   [redacted]
 
-u64 has been encountered
+Error 404:
+  Not Found - Server cannot find requested resource
 
-u64 has been encountered
+Error 405:
+  Bad Request - Server cannot or will not process request
