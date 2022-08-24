@@ -5,7 +5,7 @@
 //! UUID and a random number appended to it.
 //!
 //! This module provides an FFI interface containing `CSegment` as a representation of `Segment`
-//! and the [`load_shmem`] and [`free_memory`] functions.
+//! and the `load_shmem` and `free_memory` functions (in `ffi`).
 
 pub mod padding;
 

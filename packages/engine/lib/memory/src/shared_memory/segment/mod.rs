@@ -1,9 +1,7 @@
-use std::{env, fmt, mem, path::Path};
+use std::{env, fmt, mem};
 
-use glob::GlobError;
 use shared_memory::{Shmem, ShmemConf};
 use tracing::trace;
-use uuid::Uuid;
 
 use crate::{
     error::{Error, Result},
@@ -15,158 +13,27 @@ use crate::{
     },
 };
 
-pub struct Buffers<'a> {
-    schema: &'a [u8],
-    header: &'a [u8],
-    meta: &'a [u8],
-    data: &'a [u8],
-}
+pub mod buffers;
+pub mod cleanup;
+pub mod memory_id;
 
-impl<'a> Buffers<'a> {
-    #[inline]
-    pub fn schema(&self) -> &'a [u8] {
-        self.schema
-    }
+pub use buffers::Buffers;
+pub use cleanup::cleanup_by_base_id;
+pub use memory_id::MemoryId;
 
-    #[inline]
-    pub fn header(&self) -> &'a [u8] {
-        self.header
-    }
-
-    #[inline]
-    pub fn meta(&self) -> &'a [u8] {
-        self.meta
-    }
-
-    #[inline]
-    pub fn data(&self) -> &'a [u8] {
-        self.data
-    }
-}
-
-/// An identifier for a shared memory [`Segment`].
+/// A thin wrapper around a shared memory segment. Shared memory provides a way for multiple
+/// processes to all access a common region of memory (usually the operating system would prohibit
+/// processes from accessing the memory of another process directly).
 ///
-/// Holds a UUID and a random suffix. The UUID can be reused for different [`Segment`]s and can all
-/// be cleaned up by calling [`cleanup_by_base_id`].
-#[derive(Debug, PartialEq, Eq)]
-pub struct MemoryId {
-    id: Uuid,
-    suffix: u16,
-}
-
-impl MemoryId {
-    /// Creates a new identifier from the provided [`Uuid`].
-    ///
-    /// This will generate a suffix and ensures, that the shared memory segment does not already
-    /// exists at */dev/shm/*.
-    pub fn new(id: Uuid) -> Self {
-        loop {
-            let memory_id = Self {
-                id,
-                suffix: rand::random::<u16>(),
-            };
-            if !Path::new(&format!("/dev/shm/{memory_id}")).exists() {
-                return memory_id;
-            }
-        }
-    }
-
-    /// Returns the base id used to create this `MemoryId`.
-    pub fn base_id(&self) -> Uuid {
-        self.id
-    }
-
-    /// Returns the prefix used for the identifier.
-    fn prefix(id: Uuid) -> String {
-        if cfg!(target_os = "macos") {
-            // We need to_string otherwise it's not truncated when formatting
-            let id = id.as_simple().to_string();
-            // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
-            format!("shm_{id:.20}")
-        } else {
-            let id = id.as_simple();
-            format!("shm_{id}")
-        }
-    }
-}
-
-impl fmt::Display for MemoryId {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let prefix = Self::prefix(self.base_id());
-        if cfg!(target_os = "macos") {
-            // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
-            write!(fmt, "{}_{:.7}", prefix, self.suffix)
-        } else {
-            write!(fmt, "{}_{}", prefix, self.suffix)
-        }
-    }
-}
-
-/// Clean up generated shared memory segments associated with a given `MemoryId`.
+/// We use shared memory in hEngine to store data which is shared between agents (for example, we
+/// have a batch which stores all the messages each agent has sent/received, one for agent state,
+/// and one for storing arbitrary shared data).
 ///
-/// If debug assertions are enabled, this function will panic if there are any shared-memory
-/// segments left to clear up. This is because macOS does not store a reference to the shared-memory
-/// segments (anywhere!) - the only one we have is the one we receive when we first create the
-/// shared-memory segment. As such, we should consider it a bug if the shared-memory segments have
-/// not been cleaned up before the experiment has completed (obviously it is still useful to have
-/// this function as a safety fallback for operating systems which provide a list of all the
-/// shared-memory segments in use).
-pub fn cleanup_by_base_id(id: Uuid) -> Result<()> {
-    let shm_files = glob::glob(&format!("/dev/shm/{}_*", MemoryId::prefix(id)))
-        .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
-
-    #[cfg(debug_assertions)]
-    let mut not_deallocated = Vec::new();
-
-    for path in shm_files {
-        if let Err(err) = path
-            .map_err(GlobError::into_error)
-            .map(|path| {
-                #[cfg(debug_assertions)]
-                not_deallocated.push(path.display().to_string());
-                path
-            })
-            .and_then(std::fs::remove_file)
-        {
-            tracing::warn!("Could not remove shared memory file: {err}");
-        }
-    }
-
-    #[cfg(debug_assertions)]
-    {
-        if !not_deallocated.is_empty() {
-            panic!(
-                "the following shared memory segments were not deallocated at the end of the \
-                 experiment: {not_deallocated:?}"
-            )
-        }
-    }
-
-    Ok(())
-}
-
-/// A memory-mapped shared memory segment.
-///
-/// Includes tools to work with internal structure.
-///
-/// # Internal Buffers
-///
-/// There are 4 main buffers contained in the shared memory which are:
-///
-///   1) Schema describing the layout of the data (could be an Arrow schema for example)
-///   2) Header data
-///   3) Meta data
-///   4) Data
-///
-/// At the beginning of the shared memory segment there is another small, fixed-size buffer which
-/// contains the markers to the four buffers above. This offset buffer can be read with
-/// `Memory::markers`. If one buffer is not needed, it's size can be set to `0`.
-// TODO: Do we need header data **and** meta data? The header is currently only used for storing the
-//       metaversion. If we rename these buffers it would be clearer:
-//         - `Markers` should be called `SegmentHeader` or `Header`
-//         - `Metaversion` could be confused with "Meta data version", maybe `SegmentVersion` or
-//           just `Version`? It also should live inside of `SegmentHeader`
-//         - Remove the old "Header data"
+/// **Important:** to avoid memory leaks, it is essential that all shared memory segments are
+/// deallocated promptly once they are no longer required (they are not automatically freed by the
+/// operating system - even on process exit!) If a [`Segment`] is dropped (and it created the
+/// shared-memory segment) it will be automatically deleted so it is essential that all created
+/// segments are eventually [`Drop`]ped.
 pub struct Segment {
     pub data: Shmem,
     pub size: usize,
@@ -595,6 +462,8 @@ impl Segment {
 
 #[cfg(all(test, not(miri)))]
 pub mod tests {
+    use uuid::Uuid;
+
     use super::*;
 
     #[test]
