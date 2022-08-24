@@ -1,6 +1,6 @@
 [package]
 name = "error-stack-macros"
-version = "0.0.0"
+version = "0.0.0-draft"
 authors = ["HASH"]
 edition = "2021"
 rust-version = "1.63.0"
@@ -18,4 +18,4 @@ proc-macro = true
 [dependencies]
 
 [dev-dependencies]
-error-stack = { path = ".." }
+error-stack = { version = "0.1.1", default-features = false }
