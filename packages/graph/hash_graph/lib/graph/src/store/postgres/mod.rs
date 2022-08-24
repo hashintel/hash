@@ -9,6 +9,10 @@ use error_stack::{IntoReport, Report, Result, ResultExt};
 use postgres_types::ToSql;
 use serde::Serialize;
 use tokio_postgres::GenericClient;
+use type_system::{
+    uri::{BaseUri, VersionedUri},
+    DataTypeReference, PropertyType, PropertyTypeReference,
+};
 use uuid::Uuid;
 
 pub use self::pool::{AsClient, PostgresStorePool};
@@ -16,11 +20,7 @@ use super::error::LinkActivationError;
 use crate::{
     knowledge::{Entity, EntityId, LinkStatus, PersistedEntityIdentifier},
     ontology::{
-        types::{
-            uri::{BaseUri, VersionedUri},
-            DataTypeReference, EntityType, EntityTypeReference, PropertyType,
-            PropertyTypeReference,
-        },
+        types::{EntityType, EntityTypeReference},
         AccountId, PersistedOntologyIdentifier,
     },
     store::{
@@ -60,7 +60,7 @@ where
     ///
     /// - if checking for the [`BaseUri`] failed.
     ///
-    /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
+    /// [`BaseUri`]: type_system::uri::BaseUri
     async fn contains_base_uri(&self, base_uri: &BaseUri) -> Result<bool, QueryError> {
         Ok(self
             .client
@@ -73,7 +73,7 @@ where
                         WHERE base_uri = $1
                     );
                 "#,
-                &[&base_uri],
+                &[&base_uri.as_str()],
             )
             .await
             .into_report()
@@ -100,7 +100,7 @@ where
                         WHERE base_uri = $1 AND version = $2
                     );
                 "#,
-                &[uri.base_uri(), &version],
+                &[&uri.base_uri().as_str(), &version],
             )
             .await
             .into_report()
@@ -176,7 +176,7 @@ where
                     VALUES ($1, $2, $3)
                     RETURNING version_id;
                 "#,
-                &[uri.base_uri(), &version, &version_id],
+                &[&uri.base_uri().as_str(), &version, &version_id],
             )
             .await
             .into_report()
@@ -192,7 +192,7 @@ where
     ///
     /// - if inserting the [`BaseUri`] failed.
     ///
-    /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
+    /// [`BaseUri`]: type_system::uri::BaseUri
     async fn insert_base_uri(&self, base_uri: &BaseUri) -> Result<(), InsertionError> {
         self.as_client()
             .query_one(
@@ -201,7 +201,7 @@ where
                     VALUES ($1)
                     RETURNING base_uri;
                 "#,
-                &[&base_uri],
+                &[&base_uri.as_str()],
             )
             .await
             .into_report()
@@ -244,7 +244,7 @@ where
     ///
     /// - If the [`BaseUri`] already exists
     ///
-    /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
+    /// [`BaseUri`]: type_system::uri::BaseUri
     async fn create<T>(
         &self,
         database_type: &T,
@@ -298,7 +298,7 @@ where
     ///
     /// - If the [`BaseUri`] does not already exist
     ///
-    /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
+    /// [`BaseUri`]: type_system::uri::BaseUri
     async fn update<T>(
         &self,
         database_type: &T,
@@ -636,7 +636,7 @@ where
                     FROM ids
                     WHERE base_uri = $1 AND version = $2;
                 "#,
-                &[uri.base_uri(), &version],
+                &[&uri.base_uri().as_str(), &version],
             )
             .await
             .into_report()

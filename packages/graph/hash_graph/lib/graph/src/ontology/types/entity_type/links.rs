@@ -1,13 +1,12 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-
-use crate::ontology::types::{
-    entity_type::EntityTypeReference,
-    error::ValidationError,
-    serde_shared::{array::Array, object::ValidateUri},
+use type_system::{
     uri::{BaseUri, VersionedUri},
+    Array, ValidateUri, ValidationError,
 };
+
+use crate::ontology::types::entity_type::EntityTypeReference;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -62,7 +61,7 @@ impl<T> ValueOrMaybeOrderedArray<T> {
 }
 
 impl<T: ValidateUri> ValidateUri for ValueOrMaybeOrderedArray<T> {
-    fn validate_uri(&self, base_uri: &BaseUri) -> error_stack::Result<(), ValidationError> {
+    fn validate_uri(&self, base_uri: &BaseUri) -> Result<(), ValidationError> {
         match self {
             Self::Value(value) => value.validate_uri(base_uri),
             Self::Array(array) => array.array().items().validate_uri(base_uri),
@@ -158,16 +157,16 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::ontology::types::serde_shared::tests::{
-        check, check_deserialization, check_invalid_json,
+    use crate::ontology::tests::{
+        check, check_deserialization, check_invalid_json, StringTypeStruct,
     };
 
     // TODO - write some tests for validation of Link schemas, although most testing happens on
     //  entity types
 
     mod maybe_ordered_array {
+
         use super::*;
-        use crate::ontology::types::serde_shared::tests::StringTypeStruct;
 
         #[test]
         fn unordered() -> Result<(), serde_json::Error> {
@@ -244,7 +243,6 @@ mod tests {
         use serde_json::json;
 
         use super::*;
-        use crate::ontology::types::serde_shared::tests::{check, StringTypeStruct};
 
         #[test]
         fn value() -> Result<(), serde_json::Error> {

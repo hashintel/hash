@@ -3,10 +3,11 @@ use chrono::{DateTime, Utc};
 use error_stack::{IntoReport, Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
 use tokio_postgres::{GenericClient, RowStream};
+use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::{
     knowledge::{EntityId, PersistedEntity},
-    ontology::{types::uri::VersionedUri, AccountId},
+    ontology::AccountId,
     store::{
         crud,
         postgres::parameter_list,
@@ -82,7 +83,10 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
                 let type_version: i64 = row.get(4);
                 let created_by: AccountId = row.get(5);
 
-                let type_versioned_uri = VersionedUri::new(type_base_uri, type_version as u32);
+                let type_versioned_uri = VersionedUri::new(
+                    BaseUri::new(type_base_uri).expect("invalid BaseUri"),
+                    type_version as u32,
+                );
                 Ok(PersistedEntity::new(
                     entity,
                     entity_id,
