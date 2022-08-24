@@ -238,11 +238,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
               ),
             )}
 
-            <DragOverlay
-              dropAnimation={{
-                duration: 0,
-              }}
-            />
+            <DragOverlay dropAnimation={null} />
           </Box>
         </NavLink>
       </SortableContext>
