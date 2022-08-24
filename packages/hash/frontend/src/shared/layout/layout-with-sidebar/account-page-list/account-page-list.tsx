@@ -24,6 +24,8 @@ import {
 import Box from "@mui/material/Box";
 import { useAccountPages } from "../../../../components/hooks/useAccountPages";
 import { useCreatePage } from "../../../../components/hooks/useCreatePage";
+import { useCreateSubPage } from "../../../../components/hooks/useCreateSubPage";
+import { useArchivePage } from "../../../../components/hooks/useArchivePage";
 import { NavLink } from "../nav-link";
 import { AccountPageListItem } from "./account-page-list-item";
 import { useReorderPage } from "../../../../components/hooks/useReorderPage";
@@ -54,10 +56,13 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   accountId,
 }) => {
   const { data } = useAccountPages(accountId);
-  const { createUntitledPage } = useCreatePage(accountId);
-  const { reorderPage } = useReorderPage(accountId);
+  const { createUntitledPage, loading: createUntitledPageLoading } =
+    useCreatePage(accountId);
+  const { createSubPage, loading: createSubpageLoading } =
+    useCreateSubPage(accountId);
+  const { reorderPage, loading: reorderLoading } = useReorderPage(accountId);
+  const { archivePage, loading: archivePageLoading } = useArchivePage();
 
-  const [loading, setLoading] = useState(false);
   const [expandedPageIds, setExpandedPageIds] = useLocalstorageState<string[]>(
     "hash-expanded-sidebar-pages",
     [],
@@ -67,20 +72,23 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
   const [offsetLeft, setOffsetLeft] = useState(0);
 
+  const loading =
+    createUntitledPageLoading ||
+    createSubpageLoading ||
+    reorderLoading ||
+    archivePageLoading;
+
   // @todo handle loading/error states properly
   const addPage = useCallback(async () => {
     if (loading) {
       return;
     }
 
-    setLoading(true);
     try {
       await createUntitledPage();
     } catch (err) {
       // eslint-disable-next-line no-console -- TODO: consider using logger
       console.error("Could not create page: ", err);
-    } finally {
-      setLoading(false);
     }
   }, [createUntitledPage, loading]);
 
@@ -93,9 +101,10 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   };
 
   useMemo(() => {
-    setItems(orderItems(data, expandedPageIds));
-    setLoading(false);
-  }, [data, expandedPageIds]);
+    if (!loading) {
+      setItems(orderItems(data, expandedPageIds));
+    }
+  }, [data, expandedPageIds, loading]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -176,13 +185,11 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
         const newItems = orderItems(sortedItems, expandedPageIds);
 
-        setLoading(true);
         setItems(newItems);
         reorderPage(active.id.toString(), parentPageEntityId, newIndex).catch(
           () => {
             // fallback to previous state when the request fails
             setItems(orderItems(data, expandedPageIds));
-            setLoading(false);
           },
         );
       }
@@ -235,6 +242,8 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
                   expandable={expandable}
                   expanded={expanded}
                   collapsed={collapsed}
+                  createSubPage={createSubPage}
+                  archivePage={archivePage}
                   disabled={loading}
                 />
               ),

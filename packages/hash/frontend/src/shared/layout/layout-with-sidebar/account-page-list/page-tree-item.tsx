@@ -19,6 +19,8 @@ export interface PageTreeItemProps {
   expandable: boolean;
   collapsed: boolean;
   disabled: boolean;
+  createSubPage: (parentPageEntityId: string) => Promise<boolean | undefined>;
+  archivePage: (accountId: string, pageEntityId: string) => Promise<void>;
   onCollapse?: () => void;
   isDragging?: boolean;
   attributes?: DraggableAttributes;
@@ -36,6 +38,8 @@ export const PageTreeItem = forwardRef(
       url,
       depth,
       selected,
+      createSubPage,
+      archivePage,
       onCollapse,
       expanded,
       collapsed,
@@ -170,7 +174,12 @@ export const PageTreeItem = forwardRef(
               </IconButton>
             </Box>
           </Tooltip>
-          <PageMenu popupState={popupState} entityId={id} />
+          <PageMenu
+            entityId={id}
+            popupState={popupState}
+            createSubPage={createSubPage}
+            archivePage={archivePage}
+          />
         </Box>
       </Box>
     ) : null;

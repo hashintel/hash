@@ -13,6 +13,8 @@ export const accountPages: ResolverFn<
   });
 
   return pages
-    .sort((a, b) => (a.properties.index > b.properties.index ? 1 : -1))
+    .sort((a, b) =>
+      !a.properties.index || a.properties.index > b.properties.index ? 1 : -1,
+    )
     .map((page) => page.toGQLUnknownEntity());
 };

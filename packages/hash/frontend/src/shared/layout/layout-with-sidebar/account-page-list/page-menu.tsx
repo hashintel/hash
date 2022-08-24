@@ -4,24 +4,24 @@ import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import { faArchive, faLink } from "@fortawesome/free-solid-svg-icons";
 import { faFileAlt } from "@fortawesome/free-regular-svg-icons";
 import { Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { useArchivePage } from "../../../../components/hooks/useArchivePage";
 import { useRouteAccountInfo } from "../../../routing";
-import { useCreatePage } from "../../../../components/hooks/useCreatePage";
 import { MenuItem } from "../../../ui";
 
 type PageMenuProps = {
   popupState: PopupState;
   entityId: string;
+  createSubPage: (parentPageEntityId: string) => Promise<boolean | undefined>;
+  archivePage: (accountId: string, pageEntityId: string) => Promise<void>;
 };
 
 export const PageMenu: FunctionComponent<PageMenuProps> = ({
   popupState,
   entityId,
+  createSubPage,
+  archivePage,
 }) => {
   const [copied, setCopied] = useState(false);
   const { accountId } = useRouteAccountInfo();
-  const { createSubPage } = useCreatePage(accountId);
-  const { archivePage } = useArchivePage();
 
   // Commented out menu items whose functionality have not been
   // implemented yet

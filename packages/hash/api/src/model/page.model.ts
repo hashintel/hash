@@ -96,20 +96,35 @@ class __Page extends Entity {
       .map((page) => page.properties.index)
       .sort();
 
+    const getClosestIndex = (
+      indexArray: string[],
+      currIndex: number,
+      forward: boolean,
+    ): string | null => {
+      if (!indexArray[currIndex]) {
+        const newIndex = currIndex + (forward ? 1 : -1);
+
+        return newIndex >= 0 && newIndex < indexArray.length
+          ? getClosestIndex(indexArray, newIndex, forward)
+          : null;
+      }
+
+      return indexArray[currIndex] || null;
+    };
+
     if (index !== null) {
-      const before = (index !== 0 && sortedChildrenIndexes[index - 1]) || null;
-      const after =
-        (index !== sortedChildrenIndexes.length &&
-          sortedChildrenIndexes[index]) ||
-        null;
+      const before = getClosestIndex(sortedChildrenIndexes, index - 1, false);
+      const after = getClosestIndex(sortedChildrenIndexes, index, true);
 
       return generateKeyBetween(before, after);
     }
 
     return generateKeyBetween(
-      (sortedChildrenIndexes.length &&
-        sortedChildrenIndexes[sortedChildrenIndexes.length - 1]) ||
-        null,
+      getClosestIndex(
+        sortedChildrenIndexes,
+        sortedChildrenIndexes.length - 1,
+        false,
+      ),
       null,
     );
   }
