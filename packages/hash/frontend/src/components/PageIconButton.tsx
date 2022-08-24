@@ -8,7 +8,10 @@ import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { MouseEventHandler } from "react";
 import { rewriteEntityIdentifier } from "../lib/entities";
 
-import { EmojiPicker } from "./EmojiPicker/EmojiPicker";
+import {
+  EmojiPicker,
+  EmojiPickerPopoverProps,
+} from "./EmojiPicker/EmojiPicker";
 import { useBlockProtocolUpdateEntity } from "./hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
 import { PageIcon, SizeVariant } from "./PageIcon";
 
@@ -20,6 +23,7 @@ interface PageIconButtonProps {
   size?: SizeVariant;
   hasDarkBg?: boolean;
   onClick?: MouseEventHandler<HTMLButtonElement>;
+  popoverProps?: EmojiPickerPopoverProps;
 }
 
 export const PageIconButton = ({
@@ -30,6 +34,7 @@ export const PageIconButton = ({
   size = "medium",
   hasDarkBg,
   onClick,
+  popoverProps,
 }: PageIconButtonProps) => {
   const popupState = usePopupState({
     variant: "popover",
@@ -81,6 +86,7 @@ export const PageIconButton = ({
         </IconButton>
       </Tooltip>
       <EmojiPicker
+        popoverProps={popoverProps}
         popupState={popupState}
         onEmojiSelect={(emoji) => {
           void updateEntity({

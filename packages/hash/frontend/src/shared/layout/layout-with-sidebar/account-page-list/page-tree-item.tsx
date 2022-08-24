@@ -15,6 +15,11 @@ import { useRouteAccountInfo } from "../../../routing";
 import { Link } from "../../../ui";
 import { PageMenu } from "./page-menu";
 
+const stopEvent = (event: MouseEvent) => {
+  event.preventDefault();
+  event.stopPropagation();
+};
+
 // tweaked the example at https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
 const CustomContent = forwardRef(
   (props: TreeItemContentProps, ref): ReactElement => {
@@ -37,8 +42,7 @@ const CustomContent = forwardRef(
     const handleExpansionClick = (
       event: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>,
     ) => {
-      event.stopPropagation();
-      event.preventDefault();
+      stopEvent(event);
       handleExpansion(event);
     };
 
@@ -103,10 +107,8 @@ const CustomContent = forwardRef(
           accountId={accountId}
           entityId={nodeId}
           size="small"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-          }}
+          onClick={stopEvent}
+          popoverProps={{ onClick: stopEvent }}
         />
         <Typography
           variant="smallTextLabels"

@@ -1,16 +1,28 @@
 import Picker from "@emoji-mart/react";
 import { Popover } from "@hashintel/hash-design-system";
+import { PopoverProps } from "@mui/material";
 import { BaseEmoji } from "emoji-mart";
 import { bindPopover, PopupState } from "material-ui-popup-state/core";
+
+export type EmojiPickerPopoverProps = Omit<
+  PopoverProps,
+  | keyof ReturnType<typeof bindPopover>
+  | "anchorOrigin"
+  | "transformOrigin"
+  | "elevation"
+  | "sx"
+>;
 
 interface EmojiPickerProps {
   onEmojiSelect: (emoji: BaseEmoji) => void;
   popupState: PopupState;
+  popoverProps?: EmojiPickerPopoverProps;
 }
 
 export const EmojiPicker = ({
   onEmojiSelect,
   popupState,
+  popoverProps,
 }: EmojiPickerProps) => {
   return (
     <Popover
@@ -25,10 +37,7 @@ export const EmojiPicker = ({
       }}
       elevation={4}
       sx={{ mt: 1 }}
-      onClick={(evt) => {
-        evt.preventDefault();
-        evt.stopPropagation();
-      }}
+      {...(popoverProps ?? {})}
     >
       <Picker
         autoFocus
