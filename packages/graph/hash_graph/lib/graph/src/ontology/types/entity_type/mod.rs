@@ -127,9 +127,7 @@ impl EntityType {
             default,
             examples,
             property_object: Object::new(properties, required)?,
-            // TODO: this is clearly incorrect but the validation error is missing from the type
-            //  system package
-            links: Links::new(links, required_links).map_err(|_| ValidationError::EmptyOneOf)?,
+            links: Links::new(links, required_links)?,
         })
     }
 
