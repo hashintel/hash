@@ -117,7 +117,7 @@ async fn by_link_type_by_source_entity_id(
         .into_report()
         .change_context(QueryError)
         .attach_printable(source_entity_id)
-        .attach_printable(link_type_base_uri.clone())?;
+        .attach_printable_lazy(|| link_type_base_uri.clone())?;
 
     let val: (Option<EntityId>, Option<Vec<EntityId>>) = (link.get(1), link.get(2));
     let outgoing = match val {
