@@ -60,7 +60,7 @@ where
     ///
     /// - if checking for the [`BaseUri`] failed.
     ///
-    /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
+    /// [`BaseUri`]: type_system::uri::BaseUri
     async fn contains_base_uri(&self, base_uri: &BaseUri) -> Result<bool, QueryError> {
         Ok(self
             .client
@@ -192,7 +192,7 @@ where
     ///
     /// - if inserting the [`BaseUri`] failed.
     ///
-    /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
+    /// [`BaseUri`]: type_system::uri::BaseUri
     async fn insert_base_uri(&self, base_uri: &BaseUri) -> Result<(), InsertionError> {
         self.as_client()
             .query_one(
@@ -244,7 +244,7 @@ where
     ///
     /// - If the [`BaseUri`] already exists
     ///
-    /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
+    /// [`BaseUri`]: type_system::uri::BaseUri
     async fn create<T>(
         &self,
         database_type: &T,
@@ -298,7 +298,7 @@ where
     ///
     /// - If the [`BaseUri`] does not already exist
     ///
-    /// [`BaseUri`]: crate::ontology::types::uri::BaseUri
+    /// [`BaseUri`]: type_system::uri::BaseUri
     async fn update<T>(
         &self,
         database_type: &T,
