@@ -64,8 +64,8 @@ export const PageTreeItem = forwardRef(
     return !collapsed ? (
       <Box
         ref={wrapperRef}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        onMouseEnter={() => !isDragging && setHovered(true)}
+        onMouseLeave={() => !isDragging && setHovered(false)}
       >
         <Box
           tabIndex={0}
@@ -82,7 +82,7 @@ export const PageTreeItem = forwardRef(
             paddingRight: 0.5,
             backgroundColor: selected
               ? palette.gray[30]
-              : hovered || isDragging
+              : hovered
               ? palette.gray[20]
               : "none",
           })}
@@ -133,8 +133,7 @@ export const PageTreeItem = forwardRef(
                 display: "block",
                 fontWeight: 400,
                 py: 1,
-                color:
-                  palette.gray[selected || hovered || isDragging ? 90 : 70],
+                color: palette.gray[selected || hovered ? 90 : 70],
               })}
             >
               {title}
@@ -158,7 +157,7 @@ export const PageTreeItem = forwardRef(
                 size="medium"
                 unpadded
                 sx={({ palette }) => ({
-                  opacity: selected || hovered || isDragging ? 1 : 0,
+                  opacity: selected || hovered ? 1 : 0,
                   color: palette.gray[40],
                   "&:focus-visible, &:hover": {
                     backgroundColor: palette.gray[selected ? 40 : 30],

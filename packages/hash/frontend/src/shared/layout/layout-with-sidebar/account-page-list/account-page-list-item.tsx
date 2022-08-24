@@ -13,8 +13,8 @@ export const AccountPageListItem: FunctionComponent<PageTreeItemProps> = ({
   ...props
 }) => {
   const {
+    active,
     attributes,
-    isDragging,
     listeners,
     setDraggableNodeRef,
     setDroppableNodeRef,
@@ -37,7 +37,7 @@ export const AccountPageListItem: FunctionComponent<PageTreeItemProps> = ({
       wrapperRef={setDroppableNodeRef}
       attributes={attributes}
       listeners={listeners}
-      isDragging={isDragging}
+      isDragging={!!active}
       style={style}
       {...props}
     />
