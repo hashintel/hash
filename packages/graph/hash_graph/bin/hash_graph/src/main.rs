@@ -37,7 +37,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     let text = DataType::new(
         VersionedUri::new(
             BaseUri::new(
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text".to_owned(),
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
             )
             .expect("failed to construct base URI"),
             1,
@@ -51,7 +51,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     let number = DataType::new(
         VersionedUri::new(
             BaseUri::new(
-                "https://blockprotocol.org/@blockprotocol/types/data-type/number".to_owned(),
+                "https://blockprotocol.org/@blockprotocol/types/data-type/number/".to_owned(),
             )
             .expect("failed to construct base URI"),
             1,
@@ -65,7 +65,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     let boolean = DataType::new(
         VersionedUri::new(
             BaseUri::new(
-                "https://blockprotocol.org/@blockprotocol/types/data-type/boolean".to_owned(),
+                "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/".to_owned(),
             )
             .expect("failed to construct base URI"),
             1,
@@ -79,7 +79,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     let null = DataType::new(
         VersionedUri::new(
             BaseUri::new(
-                "https://blockprotocol.org/@blockprotocol/types/data-type/null".to_owned(),
+                "https://blockprotocol.org/@blockprotocol/types/data-type/null/".to_owned(),
             )
             .expect("failed to construct base URI"),
             1,
@@ -93,7 +93,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     let object = DataType::new(
         VersionedUri::new(
             BaseUri::new(
-                "https://blockprotocol.org/@blockprotocol/types/data-type/object".to_owned(),
+                "https://blockprotocol.org/@blockprotocol/types/data-type/object/".to_owned(),
             )
             .expect("failed to construct base URI"),
             1,
@@ -107,7 +107,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     let empty_list = DataType::new(
         VersionedUri::new(
             BaseUri::new(
-                "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list".to_owned(),
+                "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/".to_owned(),
             )
             .expect("failed to construct base URI"),
             1,
