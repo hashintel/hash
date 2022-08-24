@@ -3,7 +3,7 @@ import {
   IconButton,
 } from "@hashintel/hash-design-system";
 import { iconButtonClasses, Tooltip } from "@mui/material";
-import { SystemStyleObject } from "@mui/system/styleFunctionSx/styleFunctionSx";
+import { SystemStyleObject } from "@mui/system";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { MouseEventHandler } from "react";
 import { rewriteEntityIdentifier } from "../lib/entities";
