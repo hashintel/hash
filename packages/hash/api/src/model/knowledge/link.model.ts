@@ -149,7 +149,7 @@ export default class {
   }
 
   /**
-   * Makes a link inactive.
+   * Make a link inactive.
    */
   async inactivate(graphApi: GraphApi): Promise<void> {
     await graphApi.inactivateLink(this.sourceEntity.entityId, {
