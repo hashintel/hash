@@ -2,6 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { Box, Container } from "@mui/material";
 import { TextField } from "@hashintel/hash-design-system";
+import init, {
+  DataType,
+  isValidPropertyType,
+  isVersionedUri,
+  VersionedUri,
+} from "@blockprotocol/type-system-web";
 
 import { Button } from "../../shared/ui";
 import { useUser } from "../../components/hooks/useUser";
@@ -13,6 +19,7 @@ import {
   AggregateLinkTypesMessageCallback,
   AggregatePropertyTypesMessageCallback,
 } from "../../components/hooks/blockProtocolFunctions/ontology/ontology-types-shim";
+import { PropertyType } from "packages/graph/clients/typescript/api";
 
 /**
  * This component is an example usage of the new functions.
@@ -20,7 +27,7 @@ import {
  */
 const ExampleUsage = ({ accountId }: { accountId: string }) => {
   const [content, setContent] = useState<string>();
-  const [propertyUri, setPropertyUri] = useState<string>(
+  const [propertyUri, setPropertyUri] = useState<VersionedUri>(
     "https://blockprotocol.org/@alice/types/property-type/new-name/v/1",
   );
 
@@ -42,6 +49,19 @@ const ExampleUsage = ({ accountId }: { accountId: string }) => {
       },
     [setContent],
   );
+
+  const myPropertyType: PropertyType = {
+    kind: "propertyType",
+    $id: propertyUri,
+    title: "Name",
+    oneOf: [
+      {
+        $ref: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+      },
+    ],
+  };
+
+  isValidPropertyType(myPropertyType);
 
   const createPropertyType = useCallback(() => {
     void (async () => {
@@ -127,19 +147,28 @@ const Page: NextPageWithLayout = () => {
   const router = useRouter();
   // The user is important to allow using Block Protocol functions
   // such as: `const functions = useBlockProtocolFunctionsWithOntology(user.accountId);`
-  const { user, loading, kratosSession } = useUser();
+  const { user, loading: loadingUser, kratosSession } = useUser();
+  const [loadingTypeSystem, setLoadingTypeSystem] = useState(true);
 
   useEffect(() => {
-    if (loading) {
+    if (loadingTypeSystem) {
+      init().then(() => {
+        setLoadingTypeSystem(false);
+      });
+    }
+  }, [loadingTypeSystem, setLoadingTypeSystem]);
+
+  useEffect(() => {
+    if (loadingUser) {
       return;
     }
 
     if (!kratosSession && !user) {
       void router.push("/login");
     }
-  }, [loading, router, user, kratosSession]);
+  }, [loadingUser, router, user, kratosSession]);
 
-  return loading || !user ? (
+  return loadingUser || !user || loadingTypeSystem ? (
     <Container sx={{ pt: 10 }}>Loading...</Container>
   ) : (
     <Container sx={{ pt: 10 }}>

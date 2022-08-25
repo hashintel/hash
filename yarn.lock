@@ -3110,6 +3110,10 @@
   dependencies:
     "@blockprotocol/core" "0.0.8"
 
+"@blockprotocol/type-system-web@https://gitpkg.now.sh/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?main":
+  version "0.0.1"
+  resolved "https://gitpkg.now.sh/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?main#7ca1b516849055c809d4f4273102ad5ac0732662"
+
 "@cloudamqp/amqp-client@^2.0.3":
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/@cloudamqp/amqp-client/-/amqp-client-2.0.3.tgz#f14db3e988fd8adbf7357bc954e4372498e92e3a"
