@@ -70,7 +70,7 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
-          workspace: ${{ matrix.directory }}
+          workspaces: ${{ matrix.directory }}
 
       - name: Install tools
         shell: bash
@@ -130,7 +130,7 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
-          workspace: ${{ matrix.directory }}
+          workspaces: ${{ matrix.directory }}
           key: ${{ matrix.profile }}
 
       - name: Install tools
