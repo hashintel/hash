@@ -1,3 +1,4 @@
+import clsx from "clsx";
 import { forwardRef } from "react";
 import { SvgIcon, SvgIconProps } from "@mui/material";
 import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
@@ -5,6 +6,10 @@ import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 type FontAwesomeIconProps = {
   icon: IconDefinition;
 } & SvgIconProps;
+
+export const fontAwesomeIconClasses = {
+  icon: "FontAwesomeIcon",
+};
 
 // gotten from https://mui.com/components/icons/#font-awesome
 export const FontAwesomeIcon = forwardRef<
@@ -31,6 +36,10 @@ export const FontAwesomeIcon = forwardRef<
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
       {...otherProps}
+      classes={{
+        ...(otherProps.classes ?? {}),
+        root: clsx(fontAwesomeIconClasses.icon, otherProps.classes?.root),
+      }}
     >
       {typeof svgPathData === "string" ? (
         <path d={svgPathData} />

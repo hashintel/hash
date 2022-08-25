@@ -34,7 +34,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   entityId,
 }) => {
   const root = useRef<HTMLDivElement>(null);
-  const [portals, renderPortal] = usePortals();
+  const [portals, renderPortal, clearPortals] = usePortals();
   const [debugging] = useLocalstorageState<
     { restartCollabButton?: boolean } | boolean
   >("hash.internal.debugging", false);
@@ -81,16 +81,24 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     };
 
     if (readonlyMode) {
-      prosemirrorSetup.current.manager.setReadonlyMode();
+      manager.setReadonlyMode();
     }
 
     return () => {
-      // @todo how does this work with portals?
-      node.innerHTML = "";
+      clearPortals();
+      view.destroy();
+      connection.close();
       prosemirrorSetup.current = null;
-      connection?.close();
     };
-  }, [accountId, blocks, entityId, renderPortal, readonlyMode, setEditorView]);
+  }, [
+    accountId,
+    blocks,
+    entityId,
+    renderPortal,
+    readonlyMode,
+    clearPortals,
+    setEditorView,
+  ]);
 
   return (
     <UserBlocksProvider value={blocks}>

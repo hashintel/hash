@@ -25,6 +25,7 @@ import {
 } from "../../components/hooks/useAccountPages";
 import { useArchivePage } from "../../components/hooks/useArchivePage";
 import { PageIcon } from "../../components/PageIcon";
+import { PageIconButton } from "../../components/PageIconButton";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import {
   GetPageInfoQuery,
@@ -305,14 +306,13 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
 
         <Container>
           <Box display="flex">
-            <PageIcon
+            <PageIconButton
               accountId={accountId}
               entityId={pageEntityId}
               versionId={versionId}
-              sx={{
-                mr: 3,
-              }}
+              sx={{ mr: 3, alignSelf: "flex-start" }}
             />
+
             <Box flex={1}>
               <Box
                 component="header"

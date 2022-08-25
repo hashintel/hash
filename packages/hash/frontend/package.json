@@ -37,6 +37,7 @@
     "@mui/icons-material": "5.4.2",
     "@mui/lab": "5.0.0-alpha.71",
     "@mui/material": "5.4.3",
+    "@mui/system": "5.5.1",
     "@rjsf/core": "4.1.1",
     "@rjsf/material-ui": "4.1.1",
     "@sentry/nextjs": "7.10.0",
