@@ -29,6 +29,7 @@ export const createEditorView = (
   accountId: string,
   pageEntityId: string,
   blocks: BlocksMap,
+  readonly: boolean,
 ) => {
   let manager: ProsemirrorManager;
 
@@ -105,6 +106,7 @@ export const createEditorView = (
     },
     dispatchTransaction: (tr) =>
       connection?.dispatchTransaction(tr, connection?.state.version ?? 0),
+    editable: () => !readonly,
   });
 
   manager = new ProsemirrorManager(
