@@ -1,8 +1,9 @@
 import {
-  PropertyType,
   GraphApi,
   UpdatePropertyTypeRequest,
 } from "@hashintel/hash-graph-client";
+
+import { PropertyType } from "@blockprotocol/type-system-web";
 
 import { PropertyTypeModel } from "../index";
 import { incrementVersionedId } from "../util";
@@ -62,7 +63,11 @@ export default class {
     return persistedPropertyTypes.map(
       (persistedPropertyType) =>
         new PropertyTypeModel({
-          schema: persistedPropertyType.inner,
+          /**
+           * @todo and a warning, these type casts are here to satisfy the type system package.
+           *   we should consider if we can improve this. The invariant is withheld when receiving data.
+           */
+          schema: persistedPropertyType.inner as PropertyType,
           accountId: persistedPropertyType.identifier.createdBy,
         }),
     );
@@ -86,7 +91,11 @@ export default class {
     );
 
     return new PropertyTypeModel({
-      schema: persistedPropertyType.inner,
+      /**
+       * @todo and a warning, these type casts are here to satisfy the type system package.
+       *   we should consider if we can improve this. The invariant is withheld when receiving data.
+       */
+      schema: persistedPropertyType.inner as PropertyType,
       accountId: persistedPropertyType.identifier.createdBy,
     });
   }
@@ -117,7 +126,11 @@ export default class {
     );
 
     return new PropertyTypeModel({
-      schema: updateArguments.schema,
+      /**
+       * @todo and a warning, these type casts are here to satisfy the type system package.
+       *   we should consider if we can improve this. The invariant is withheld when receiving data.
+       */
+      schema: updateArguments.schema as PropertyType,
       accountId: identifier.createdBy,
     });
   }

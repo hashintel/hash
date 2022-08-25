@@ -24,6 +24,7 @@ export const propertyTypeModelToGQL = (
 ): PersistedPropertyType => ({
   accountId: propertyType.accountId,
   propertyTypeVersionedUri: propertyType.schema.$id,
+  /** @todo and a warning, these type casts are here to satisfy the type system package */
   propertyType: propertyType.schema,
 });
 

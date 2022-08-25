@@ -1,8 +1,6 @@
-import {
-  DataType,
-  GraphApi,
-  UpdateDataTypeRequest,
-} from "@hashintel/hash-graph-client";
+import { GraphApi, UpdateDataTypeRequest } from "@hashintel/hash-graph-client";
+
+import { DataType } from "@blockprotocol/type-system-web";
 
 import { DataTypeModel } from "../index";
 import { incrementVersionedId } from "../util";
@@ -65,7 +63,11 @@ export default class {
     return persistedDataTypes.map(
       (persistedDataType) =>
         new DataTypeModel({
-          schema: persistedDataType.inner,
+          /**
+           * @todo and a warning, these type casts are here to satisfy the type system package.
+           *   we should consider if we can improve this. The invariant is withheld when receiving data.
+           */
+          schema: persistedDataType.inner as DataType,
           accountId: persistedDataType.identifier.createdBy,
         }),
     );
@@ -89,7 +91,11 @@ export default class {
     );
 
     return new DataTypeModel({
-      schema: persistedDataType.inner,
+      /**
+       * @todo and a warning, these type casts are here to satisfy the type system package.
+       *   we should consider if we can improve this. The invariant is withheld when receiving data.
+       */
+      schema: persistedDataType.inner as DataType,
       accountId: persistedDataType.identifier.createdBy,
     });
   }
@@ -122,7 +128,11 @@ export default class {
     const { data: identifier } = await graphApi.updateDataType(updateArguments);
 
     return new DataTypeModel({
-      schema: updateArguments.schema,
+      /**
+       * @todo and a warning, these type casts are here to satisfy the type system package.
+       *   we should consider if we can improve this. The invariant is withheld when receiving data.
+       */
+      schema: updateArguments.schema as DataType,
       accountId: identifier.createdBy,
     });
   }
