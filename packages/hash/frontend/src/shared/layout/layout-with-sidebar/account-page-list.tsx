@@ -126,7 +126,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         sx={{
           mx: 0.75,
         }}
-        {...(currentPageEntityId && { selected: currentPageEntityId })}
+        selected={currentPageEntityId ?? ""}
         expanded={expanded}
         onNodeToggle={handleToggle}
         onNodeSelect={handleSelect}
