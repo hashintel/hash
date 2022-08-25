@@ -236,7 +236,10 @@ fn inbound_to_nng(
 
             let package_config = pkgs_to_fbs(fbb, &msg.packages)?;
 
-            let shared_ctx = shared_ctx_to_fbs(fbb, &msg.datastore.shared_store);
+            let shared_ctx = {
+                let shared_ctx = msg.datastore.shared_store.upgrade().unwrap();
+                shared_ctx_to_fbs(fbb, shared_ctx.as_ref())
+            };
             let agent_schema_bytes =
                 schema_to_stream_bytes(&msg.datastore.agent_batch_schema.arrow);
             let msg_schema_bytes = schema_to_stream_bytes(&msg.datastore.message_batch_schema);

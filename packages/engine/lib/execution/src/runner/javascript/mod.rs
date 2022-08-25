@@ -850,7 +850,13 @@ impl<'s> ThreadLocalRunner<'s> {
 
     pub fn new(scope: &mut v8::HandleScope<'s>, init: &ExperimentInitRunnerMsg) -> Result<Self> {
         let embedded = Embedded::import_common_js_files(scope)?;
-        let datasets = Self::load_datasets(scope, &init.shared_context)?;
+        let datasets = {
+            let upgraded = init.shared_context.upgrade().expect(
+                "failed to obtain access to the shared store (this is a bug: it should not be \
+                 possible for the ExperimentController to be dropped before a Javascript runner)",
+            );
+            Self::load_datasets(scope, upgraded.as_ref())?
+        };
 
         let pkg_config = &init.package_config.0;
         let pkg_fns = v8::Array::new(scope, pkg_config.len() as i32);
