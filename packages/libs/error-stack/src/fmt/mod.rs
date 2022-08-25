@@ -13,9 +13,9 @@
 //! provides via [`Report::install_debug_hook`].
 //!
 //! Hooks are called for contexts which provide additional values through [`Error::provide`] or
-//! [`Context::provide`] and attachments which are added via [`.attach()`].
-//! For contexts and values, that can be requested using [`Frame.request_ref()`] and
-//! [`Frame.request_value()`], the rendering order is determined by the order of
+//! [`Context::provide`] and attachments which are added via [`Report::attach`].
+//! For contexts and values, that can be requested using [`Frame::request_ref`] and
+//! [`Frame::request_value`], the rendering order is determined by the order of
 //! [`Report::install_debug_hook`] calls.
 //!
 //! You can also provide a fallback function, which is called whenever a hook hasn't been added for
@@ -57,7 +57,7 @@
 //! struct Info(&'static str);
 //!
 //! // This hook will never be called, because a later invocation of `install_debug_hook` overwrites
-//! // the hook for the type `u64`.
+//! // the hook for the type `ErrorCode`.
 //! Report::install_debug_hook::<ErrorCode>(|_, _| vec![Emit::next("will never be called")]);
 //!
 //! // `HookContext` always has a type parameter, which needs to be the same as the type of the
@@ -128,7 +128,6 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt_doc_alt.snap"))]
 //! </pre>
 //!
-//!
 //! [`Display`]: core::fmt::Display
 //! [`Debug`]: core::fmt::Debug
 //! [`Mutex`]: std::sync::Mutex
@@ -138,9 +137,6 @@
 //! [`error_stack::fmt::builtin_debug_hook_fallback`]: crate::fmt::builtin_debug_hook_fallback
 //! [`atomic`]: std::sync::atomic
 //! [`Error::provide`]: std::error::Error::provide
-//! [`Frame.request_value()`]: Frame::request_value
-//! [`Frame.request_ref()`]: Frame::request_ref
-//! [`.attach()`]: Report::attach
 // Makes sure that `Emit` isn't regarded as unreachable even though it isn't exported on
 // no-std. Simplifies maintenance as we don't need to special case the visibility modifier.
 #![cfg_attr(not(feature = "std"), allow(unreachable_pub))]

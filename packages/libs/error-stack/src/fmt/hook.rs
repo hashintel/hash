@@ -493,7 +493,9 @@ type BoxedHook =
 #[cfg(feature = "std")]
 #[allow(clippy::redundant_pub_crate)]
 pub(crate) struct Hooks {
-    // We use `Vec`, instead of `HashMap` or `BTreeMap` so that the ordering stays consistent
+    // We use `Vec`, instead of `HashMap` or `BTreeMap`, so that ordering is consistent with the
+    // insertion order of types.
+    // Overwrites will not append, but instead will replace the current position in the `Vec<>`
     pub(crate) inner: Vec<(TypeId, BoxedHook)>,
     pub(crate) fallback: Option<BoxedHook>,
 }
@@ -530,6 +532,8 @@ impl Hooks {
             }
         });
 
+        // Find if there's already a slot for the type, if present replace, otherwise append a new
+        // entry.
         if let Some(hook) = self.inner.iter_mut().find(|(id, _)| *id == type_id) {
             *hook = (type_id, boxed_hook);
         } else {
