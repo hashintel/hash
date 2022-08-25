@@ -18,7 +18,7 @@ import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions"
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
 import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageContextProvider } from "../../blocks/page/PageContext";
-import { PageTitle } from "../../blocks/page/PageTitle";
+import { PageTitle } from "../../blocks/page/PageTitle/PageTitle";
 import {
   AccountPagesInfo,
   useAccountPages,

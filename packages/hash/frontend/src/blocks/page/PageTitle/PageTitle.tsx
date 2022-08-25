@@ -6,22 +6,16 @@ import {
   useRef,
   FunctionComponent,
 } from "react";
-import { useBlockProtocolUpdateEntity } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
-import { rewriteEntityIdentifier } from "../../lib/entities";
-import { usePageContext } from "./PageContext";
-import { focusEditorBeginning } from "./utils";
+import { useBlockProtocolUpdateEntity } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
+import { rewriteEntityIdentifier } from "../../../lib/entities";
+import { usePageContext } from "../PageContext";
+import { cleanUpTitle, focusEditorBeginning, isValidPageTitle } from "./utils";
 
 type PageTitleProps = {
   accountId: string;
   entityId: string;
   value: string;
 };
-
-// TODO: Improve page title validation and use it when creating pages.
-// Alternatively, we can validate on server-side only and handle mutation errors.
-const isValidPageTitle = (value: string): boolean => Boolean(value.length);
-const cleanUpTitle = (value: string): string =>
-  value.trim().replace(/\s+/g, " ");
 
 // TODO: Add read-only mode based on page permissions
 export const PageTitle: FunctionComponent<PageTitleProps> = ({
