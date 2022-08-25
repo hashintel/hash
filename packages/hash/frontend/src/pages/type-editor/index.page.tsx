@@ -47,7 +47,6 @@ const ExampleUsage = ({ accountId }: { accountId: string }) => {
   const createPropertyType = useCallback(() => {
     void (async () => {
       if (isVersionedUri(propertyUri)) {
-        // now propertyUri is typed as VersionedUri from the type system
         await functions
           .createPropertyType({
             data: {
