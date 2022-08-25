@@ -106,6 +106,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
           fontWeight: "inherit !important",
           fontStyle: "inherit !important",
         },
+        lineHeight: 1.23,
         width: "100%",
         outline: "none",
         opacity: updateEntityLoading ? 0.5 : undefined,
