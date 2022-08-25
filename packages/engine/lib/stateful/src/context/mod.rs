@@ -20,7 +20,7 @@ mod schema;
 
 use std::sync::Arc;
 
-use arrow2::{array::ArrayRef, chunk::Chunk};
+use arrow2::{array::Array, chunk::Chunk};
 use memory::{arrow::record_batch::RecordBatch, shared_memory::MemoryId};
 
 pub use self::{
@@ -63,7 +63,7 @@ impl Context {
     /// note: if you are not sure what Arrow is, have a look at [memory::arrow]'s documentation
     /// which provides some useful resources.
     pub fn from_columns(
-        cols: Chunk<ArrayRef>,
+        cols: Chunk<Box<dyn Array>>,
         context_schema: &ContextSchema,
         memory_id: MemoryId,
     ) -> Result<Context> {

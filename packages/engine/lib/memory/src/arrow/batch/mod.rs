@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use arrow2::array::ArrayRef;
+use arrow2::array::Array;
 use tracing::trace;
 
 use super::record_batch::RecordBatch;
@@ -346,7 +346,7 @@ impl ArrowBatch {
     }
 }
 
-impl GrowableBatch<ArrayRef, ColumnChange> for ArrowBatch {
+impl GrowableBatch<Box<dyn Array>, ColumnChange> for ArrowBatch {
     fn static_meta(&self) -> &meta::StaticMetadata {
         &self.static_meta
     }
