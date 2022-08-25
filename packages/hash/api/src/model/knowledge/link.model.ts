@@ -43,8 +43,10 @@ export default class {
    * Create a link between a source and a target entity using a specific link
    * type.
    *
-   * @param params.accountId the accountId of the account creating the entity
-   * @param params.schema an `Entity`
+   * @param params.accountId the accountId of the account creating the link
+   * @param params.sourceEntity the source entity of the link
+   * @param params.linkTypeModel the Link Type of the link
+   * @param params.targetEntity the target entity of the link
    */
   static async create(
     graphApi: GraphApi,
@@ -83,7 +85,13 @@ export default class {
     });
   }
 
-  static async getAll(
+  /**
+   * Get all outgoing links of a source entity.
+   *
+   * @param params.accountId the accountId of the account creating the link
+   * @param params.sourceEntity the source entity of the link
+   */
+  static async getAllOutgoing(
     graphApi: GraphApi,
     { sourceEntity }: { sourceEntity: EntityModel },
   ): Promise<LinkModel[]> {
@@ -117,6 +125,13 @@ export default class {
     );
   }
 
+  /**
+   * Get the target of a specific link on a source entity.
+   *
+   * @param params.accountId the accountId of the account creating the link
+   * @param params.sourceEntity the source entity of the link
+   * @param params.linkTypeModel the Link Type of the link
+   */
   static async get(
     graphApi: GraphApi,
     {
@@ -125,7 +140,9 @@ export default class {
     }: { sourceEntity: EntityModel; linkTypeModel: LinkTypeModel },
   ): Promise<LinkModel | null> {
     /** @todo use structural querying for this client-side fetch */
-    const links = (await LinkModel.getAll(graphApi, { sourceEntity })).filter(
+    const links = (
+      await LinkModel.getAllOutgoing(graphApi, { sourceEntity })
+    ).filter(
       (link) => link.linkTypeModel.schema.$id === linkTypeModel.schema.$id,
     );
     /** @todo the may return an array of links whe nwe support 1:N links. */

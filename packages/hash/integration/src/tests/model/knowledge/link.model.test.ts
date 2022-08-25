@@ -113,7 +113,7 @@ describe("Link model class", () => {
   });
 
   it("can get all entity links", async () => {
-    const allLinks = await LinkModel.getAll(graphApi, {
+    const allLinks = await LinkModel.getAllOutgoing(graphApi, {
       sourceEntity,
     });
 
