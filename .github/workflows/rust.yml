@@ -228,9 +228,9 @@ jobs:
         run: cargo +${{ matrix.toolchain }} publish --all-features --dry-run
 
       - name: Publish
-        if: github.event_name == 'push' && github.ref == 'refs/head/main'
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         working-directory: ${{ matrix.directory }}
-        run: cargo +${{ matrix.toolchain }} publish --all-features --dry-run
+        run: cargo +${{ matrix.toolchain }} publish --all-features
 
   merging-enabled:
     name: merging enabled
