@@ -19,7 +19,7 @@ serde-aux = "3.1.0"
 thiserror = "1.0.31"
 tracing = "0.1.35"
 uuid = { version = "1.1.2", features = ["v4", "serde"] }
-arrow2_convert = { git = "https://github.com/teymour-aldridge/arrow2-convert", branch="update-arrow2", features = [
+arrow2_convert = { git = "https://github.com/DataEngineeringLabs/arrow2-convert", features = [
     "derive",
 ] }
 arrow = "20.0.0"
