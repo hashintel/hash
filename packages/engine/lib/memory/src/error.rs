@@ -1,6 +1,6 @@
 use std::fmt;
 
-use arrow::{datatypes::DataType, error::ArrowError};
+use arrow2::datatypes::DataType;
 use thiserror::Error as ThisError;
 
 #[derive(Debug)]
@@ -30,7 +30,7 @@ pub enum Error {
     Unique(String),
 
     #[error("Arrow Error: {0}")]
-    Arrow(#[from] ArrowError),
+    Arrow(arrow2::error::Error),
 
     #[error("Invalid Arrow object downcast. Field name: {name}")]
     InvalidArrowDowncast { name: String },
@@ -45,7 +45,7 @@ pub enum Error {
     Serde(#[from] serde_json::Error),
 
     #[error("Shared memory error: {0}")]
-    SharedMemory(#[from] shared_memory::ShmemError),
+    SharedMemory(shared_memory::ShmemError),
 
     #[error("Arrow RecordBatch message error: {0}")]
     ArrowBatch(String),
@@ -82,6 +82,23 @@ pub enum Error {
 
     #[error("No column found in batch with name: {0}")]
     ColumnNotFound(String),
+
+    #[error("Planus arrow error: {0}")]
+    PlanusArrowError(#[from] arrow_format::ipc::planus::Error),
+}
+
+impl From<shared_memory::ShmemError> for Error {
+    fn from(e: shared_memory::ShmemError) -> Self {
+        if cfg!(target_os = "macos") && matches!(e, shared_memory::ShmemError::UnknownOsError(22)) {
+            tracing::error!(
+                "Have you set the `OS_MEMORY_ALLOC_OVERRIDE` variable (consult the engine \
+                 README.md file if you are unsure on what this means)? If in doubt you can just \
+                 enter `export OS_MEMORY_ALLOC_OVERRIDE=25000000` into your shell and try \
+                 re-running the engine."
+            );
+        }
+        Error::SharedMemory(e)
+    }
 }
 
 impl From<&str> for Error {
@@ -93,5 +110,12 @@ impl From<&str> for Error {
 impl From<String> for Error {
     fn from(s: String) -> Self {
         Error::Unique(s)
+    }
+}
+
+// todo: revert this before merging (here for debugging)
+impl From<arrow2::error::Error> for Error {
+    fn from(e: arrow2::error::Error) -> Self {
+        panic!("{:?}", e);
     }
 }

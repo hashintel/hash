@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import { tw } from "twind";
 import { ColumnInstance } from "react-table";
 import { v4 as uuid } from "uuid";
@@ -19,7 +19,7 @@ type SortFieldsWithId = (NonNullable<
   id: string;
 })[];
 
-export const SortDetail: React.VFC<SortDetailProps> = ({
+export const SortDetail: FunctionComponent<SortDetailProps> = ({
   columns,
   onSort,
   multiSort,

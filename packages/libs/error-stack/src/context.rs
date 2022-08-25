@@ -1,9 +1,7 @@
+#[cfg(nightly)]
+use core::any::Demand;
 use core::fmt;
 
-#[cfg(nightly)]
-use crate::provider::Demand;
-#[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
-use crate::provider::Provider;
 use crate::Report;
 
 /// Defines the current context of a [`Report`].
@@ -47,7 +45,7 @@ use crate::Report;
 /// # #[cfg(all(feature = "std", not(miri)))]
 /// pub fn read_file(path: &str) -> Result<String, io::Error> {
 ///     // Creates a `Report` from `io::Error`, the current context is `io::Error`
-///     fs::read_to_string(path).report()
+///     fs::read_to_string(path).into_report()
 /// }
 ///
 /// pub fn parse_config(path: &str) -> Result<Config, ConfigError> {
@@ -63,7 +61,6 @@ use crate::Report;
 /// # #[cfg(all(feature = "std", not(miri)))]
 /// # assert!(err.contains::<io::Error>());
 /// # assert!(err.contains::<ConfigError>());
-/// # assert_eq!(err.frames().count(), 2);
 /// ```
 pub trait Context: fmt::Display + fmt::Debug + Send + Sync + 'static {
     /// Provide values which can then be requested by [`Report`].
@@ -83,30 +80,10 @@ where
     }
 }
 
-/// Turns a [`Context`] into a temporary [`Provider`].
-///
-/// To enable the usage of the [`Provider`] trait without implementing [`Provider`] for [`Context`]
-/// this function wraps a reference to a [`Context`] inside of a [`Provider`]
-// We can't implement `Provider` on Context as `Error` will implement `Provider` and `Context` will
-// be implemented on `Error`. For `request`ing a type from `Context`, we need a `Provider`
-// implementation however.
-#[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
-pub fn temporary_provider(context: &impl Context) -> impl Provider + '_ {
-    struct ProviderImpl<'a, C>(&'a C);
-    impl<C: Context> Provider for ProviderImpl<'_, C> {
-        fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-            self.0.provide(demand);
-        }
-    }
-    ProviderImpl(context)
-}
-
 #[cfg(feature = "std")]
 impl<C: std::error::Error + Send + Sync + 'static> Context for C {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        if let Some(backtrace) = self.backtrace() {
-            demand.provide_ref(backtrace);
-        }
+        std::error::Error::provide(self, demand);
     }
 }

@@ -37,13 +37,10 @@ unsafe extern "C" fn load_shmem(id: *const u8, len: u64) -> *mut CSegment {
 #[no_mangle]
 // Free memory and drop Memory object
 unsafe extern "C" fn free_memory(c_memory: *mut CSegment) {
-    Box::from_raw((*c_memory).segment as *mut Segment);
+    drop(Box::from_raw((*c_memory).segment as *mut Segment));
 }
 
-// Hack to get a compile-time error if the Raw File
-// descriptor is of an unexpected size
-fn _size_check() {
-    unsafe {
-        std::mem::transmute::<RawFd, i32>(0);
-    }
-}
+const _: () = assert!(
+    std::mem::size_of::<RawFd>() == 4,
+    "RawFd must be 4 bytes in size"
+);

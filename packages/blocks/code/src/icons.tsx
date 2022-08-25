@@ -1,5 +1,3 @@
-import React from "react";
-
 export const CopyIcon = ({ size = 14 }) => {
   return (
     <svg

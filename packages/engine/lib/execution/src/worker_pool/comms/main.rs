@@ -1,7 +1,8 @@
-use simulation_structure::SimulationShortId;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
-use crate::{worker_pool::comms::message::EngineToWorkerPoolMsg, Result};
+use crate::{
+    package::simulation::SimulationId, worker_pool::comms::message::EngineToWorkerPoolMsg, Result,
+};
 
 // TODO: move span out of msg?
 pub struct MainMsgRecv {
@@ -14,7 +15,7 @@ pub struct MainMsgSendBase {
 
 #[derive(Clone)]
 pub struct MainMsgSend {
-    _sim_id: SimulationShortId, // TODO: field never read, delete?
+    _sim_id: SimulationId, // TODO: field never read, delete?
     inner: UnboundedSender<EngineToWorkerPoolMsg>,
 }
 
@@ -32,7 +33,7 @@ impl MainMsgSend {
 }
 
 impl MainMsgSendBase {
-    pub fn sender_with_sim_id(&self, sim_id: SimulationShortId) -> MainMsgSend {
+    pub fn sender_with_sim_id(&self, sim_id: SimulationId) -> MainMsgSend {
         MainMsgSend {
             _sim_id: sim_id,
             inner: self.inner.clone(),

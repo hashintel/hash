@@ -1,4 +1,4 @@
-import { useMemo, VFC } from "react";
+import { useMemo, FunctionComponent } from "react";
 import { tw } from "twind";
 import ArticleIcon from "@mui/icons-material/Article";
 
@@ -18,9 +18,10 @@ type SearchableItem = {
   name: string;
   entityId: string;
   type: "user" | "page";
+  isActiveOrgMember?: boolean;
 };
 
-export const MentionSuggester: VFC<MentionSuggesterProps> = ({
+export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   search = "",
   onChange,
   accountId,
@@ -36,6 +37,7 @@ export const MentionSuggester: VFC<MentionSuggesterProps> = ({
       name: account.name,
       entityId: account.entityId,
       type: "user",
+      isActiveOrgMember: account.isActiveOrgMember,
     }));
 
     const iterablePages: Array<SearchableItem> = pages.map((page) => ({
@@ -44,14 +46,25 @@ export const MentionSuggester: VFC<MentionSuggesterProps> = ({
       type: "page",
     }));
 
-    const searchData: Array<SearchableItem> = [
-      ...iterableAccounts,
-      ...iterablePages,
-    ];
-
-    return fuzzySearchBy(searchData, search, (option) =>
+    const peopleSearch = fuzzySearchBy(iterableAccounts, search, (option) =>
       [option.shortname, option.name].map((str) => str ?? "").join(" "),
+    ).sort((a, b) => {
+      if (a.isActiveOrgMember && !b.isActiveOrgMember) {
+        return -1;
+      }
+      if (!a.isActiveOrgMember && b.isActiveOrgMember) {
+        return 1;
+      }
+      return 0;
+    });
+
+    const pagesSearch = fuzzySearchBy(
+      iterablePages,
+      search,
+      (option) => option.name,
     );
+
+    return [...peopleSearch, ...pagesSearch];
   }, [search, users, pages]);
 
   return (

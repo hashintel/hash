@@ -14,7 +14,7 @@ import {
 import { SxProps, Theme } from "@mui/system";
 import clsx from "clsx";
 import { useRouter } from "next/router";
-import { useState, VFC } from "react";
+import { useState, FunctionComponent } from "react";
 import { Button } from "./Button";
 import { FaIcon } from "./icons/FaIcon";
 import { FontAwesomeIcon } from "./icons/FontAwesomeIcon";
@@ -51,7 +51,7 @@ const NAV_BUTTON_STYLES: SxProps<Theme> = {
   },
 };
 
-const DesktopNav: VFC = () => {
+const DesktopNav: FunctionComponent = () => {
   const router = useRouter();
 
   return (
@@ -122,10 +122,10 @@ const DesktopNav: VFC = () => {
   );
 };
 
-const MobileNavButton: VFC<{ open: boolean; onOpenToggle: () => void }> = ({
-  open,
-  onOpenToggle,
-}) => (
+const MobileNavButton: FunctionComponent<{
+  open: boolean;
+  onOpenToggle: () => void;
+}> = ({ open, onOpenToggle }) => (
   <IconButton
     sx={{
       ml: "auto",
@@ -142,10 +142,10 @@ const MobileNavButton: VFC<{ open: boolean; onOpenToggle: () => void }> = ({
   </IconButton>
 );
 
-const MobileNav: VFC<{ open: boolean; onMenuClose: () => void }> = ({
-  open,
-  onMenuClose,
-}) => {
+const MobileNav: FunctionComponent<{
+  open: boolean;
+  onMenuClose: () => void;
+}> = ({ open, onMenuClose }) => {
   const router = useRouter();
   return (
     <>
@@ -262,7 +262,7 @@ const MobileNav: VFC<{ open: boolean; onMenuClose: () => void }> = ({
   );
 };
 
-export const Navbar: VFC = () => {
+export const Navbar: FunctionComponent = () => {
   const theme = useTheme();
   const mobileNav = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileNavOpen, setMobileNavOpen] = useState(false);

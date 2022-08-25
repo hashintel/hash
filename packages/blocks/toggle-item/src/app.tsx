@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { BlockComponent } from "blockprotocol/react";
 
@@ -62,7 +62,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
       >
         <summary>
           <input
-            // @todo Replace input elements with editableRef when it's possible to use multiple ones in the same block.
+            // @todo Replace input elements with hook service when it's possible to use multiple ones in the same block.
             //       https://app.asana.com/0/1200211978612931/1202183033435672
             defaultValue={title}
             type="text"
@@ -79,7 +79,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         </summary>
         <textarea
           ref={contentRef}
-          // @todo Replace input element with editableRef when it's possible to use multiple ones in the same block.
+          // @todo Replace input element with hook service when it's possible to use multiple ones in the same block.
           //       https://app.asana.com/0/1200211978612931/1202183033435672
           defaultValue={currentContent}
           placeholder="Your detailed content"

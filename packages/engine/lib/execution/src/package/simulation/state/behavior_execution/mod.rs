@@ -10,6 +10,7 @@ mod task;
 
 use std::sync::Arc;
 
+use arrow2::datatypes::Schema;
 use async_trait::async_trait;
 use stateful::{
     agent::AgentBatch,
@@ -34,11 +35,11 @@ use self::{
 use crate::{
     package::simulation::{
         state::{StatePackage, StatePackageCreator, StatePackageName, StateTask},
-        Comms, Package, PackageComms, PackageCreator, PackageCreatorConfig, PackageInitConfig,
+        Package, PackageComms, PackageCreator, PackageCreatorConfig, PackageInitConfig,
         PackageName, PackageTask,
     },
     runner::Language,
-    task::{ActiveTask as _, TaskSharedStoreBuilder},
+    task::{ActiveTask, TaskSharedStoreBuilder},
     Error, Result,
 };
 
@@ -53,7 +54,7 @@ pub struct BehaviorExecutionCreator {
 }
 
 impl BehaviorExecutionCreator {
-    pub fn new<C: Comms>(config: &PackageInitConfig) -> Result<Self> {
+    pub fn new(config: &PackageInitConfig) -> Result<Self> {
         // TODO: Packages shouldn't have to set the source
         let package_id = PackageName::State(StatePackageName::BehaviorExecution).get_id()?;
         let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Package(package_id));
@@ -90,42 +91,6 @@ impl PackageCreator for BehaviorExecutionCreator {
         let msg = exp_init_message(self.get_behavior_ids()?, self.get_behavior_map()?)?;
         Ok(serde_json::to_value(msg)?)
     }
-}
-
-impl<C: Comms> StatePackageCreator<C> for BehaviorExecutionCreator {
-    fn create(
-        &self,
-        config: &PackageCreatorConfig,
-        _init_config: &PackageInitConfig,
-        comms: PackageComms<C>,
-        accessor: FieldSpecMapAccessor,
-    ) -> Result<Box<dyn StatePackage>> {
-        let behavior_ids_col_data_types = fields::id_column_data_types();
-        let behavior_ids_col = accessor
-            .get_local_private_scoped_field_spec(BEHAVIOR_IDS_FIELD_NAME)?
-            .create_key()?;
-
-        let behavior_ids_col_index = config
-            .agent_schema
-            .arrow
-            .index_of(behavior_ids_col.value())?;
-
-        let behavior_index_col = accessor
-            .get_local_private_scoped_field_spec(BEHAVIOR_INDEX_FIELD_NAME)?
-            .create_key()?;
-        let behavior_index_col_index = config
-            .agent_schema
-            .arrow
-            .index_of(behavior_index_col.value())?;
-
-        Ok(Box::new(BehaviorExecution {
-            behavior_ids: Arc::clone(self.get_behavior_ids()?),
-            behavior_ids_col_index,
-            behavior_ids_col_data_types,
-            behavior_index_col_index,
-            comms,
-        }))
-    }
 
     fn get_state_field_specs(
         &self,
@@ -137,17 +102,61 @@ impl<C: Comms> StatePackageCreator<C> for BehaviorExecutionCreator {
     }
 }
 
-pub struct BehaviorExecution<C> {
-    behavior_ids: Arc<BehaviorIds>,
-    behavior_ids_col_index: usize,
-    behavior_ids_col_data_types: [arrow::datatypes::DataType; 3],
-    behavior_index_col_index: usize,
-    comms: PackageComms<C>,
+impl StatePackageCreator for BehaviorExecutionCreator {
+    fn create(
+        &self,
+        config: &PackageCreatorConfig,
+        _init_config: &PackageInitConfig,
+        comms: PackageComms,
+        accessor: FieldSpecMapAccessor,
+    ) -> Result<Box<dyn StatePackage>> {
+        let behavior_ids_col_data_types = fields::id_column_data_types();
+        let behavior_ids_col = accessor
+            .get_local_private_scoped_field_spec(BEHAVIOR_IDS_FIELD_NAME)?
+            .create_key()?;
+
+        let behavior_ids_col_index =
+            index_of(config.agent_schema.arrow.clone(), behavior_ids_col.value())?;
+
+        let behavior_index_col = accessor
+            .get_local_private_scoped_field_spec(BEHAVIOR_INDEX_FIELD_NAME)?
+            .create_key()?;
+        let behavior_index_col_index = index_of(
+            config.agent_schema.arrow.clone(),
+            behavior_index_col.value(),
+        )?;
+
+        Ok(Box::new(BehaviorExecution {
+            behavior_ids: Arc::clone(self.get_behavior_ids()?),
+            behavior_ids_col_index,
+            behavior_ids_col_data_types,
+            behavior_index_col_index,
+            comms,
+        }))
+    }
 }
 
-impl<C: Send> Package for BehaviorExecution<C> {}
+/// Finds the index of the given field in the [`Schema`].
+pub fn index_of(schema: Arc<Schema>, field_name: &str) -> crate::Result<usize> {
+    schema
+        .fields
+        .iter()
+        .enumerate()
+        .find_map(|(index, field)| (field.name == field_name).then_some(index))
+        .ok_or_else(|| Error::ColumnNotFound(field_name.to_string()))
+}
 
-impl<C> BehaviorExecution<C> {
+pub struct BehaviorExecution {
+    behavior_ids: Arc<BehaviorIds>,
+    behavior_ids_col_index: usize,
+    behavior_ids_col_data_types: [arrow2::datatypes::DataType; 3],
+    behavior_index_col_index: usize,
+    comms: PackageComms,
+}
+
+impl Package for BehaviorExecution {}
+
+impl BehaviorExecution {
     /// Iterates over all "behaviors" fields of agents and writes them into their "behaviors" field.
     /// This fixation guarantees that all behaviors that were there in the beginning of behavior
     /// execution will be executed accordingly
@@ -156,7 +165,7 @@ impl<C> BehaviorExecution<C> {
         agent_proxies: &mut PoolWriteProxy<AgentBatch>,
     ) -> Result<()> {
         let behavior_ids = chain::gather_behavior_chains(
-            &agent_proxies.batches(),
+            &agent_proxies.batches_iter().collect::<Vec<_>>(),
             &self.behavior_ids,
             self.behavior_ids_col_data_types.clone(),
             self.behavior_ids_col_index,
@@ -177,8 +186,11 @@ impl<C> BehaviorExecution<C> {
     }
 
     /// Iterate over languages of first behaviors to choose first language runner to send task to
-    fn get_first_lang(&self, agent_batches: &[&AgentBatch]) -> Result<Option<Language>> {
-        for agent_pool in agent_batches.iter() {
+    fn get_first_lang<'a>(
+        &self,
+        agent_batches: &mut impl Iterator<Item = &'a AgentBatch>,
+    ) -> Result<Option<Language>> {
+        for agent_pool in agent_batches {
             for agent_behaviors in
                 chain::behavior_list_bytes_iter(agent_pool.batch.record_batch()?)?
             {
@@ -203,14 +215,14 @@ impl<C> BehaviorExecution<C> {
     }
 }
 
-impl<C: Comms> BehaviorExecution<C> {
+impl BehaviorExecution {
     /// Sends out behavior execution commands to workers
     async fn begin_execution(
         &mut self,
         state_proxy: StateWriteProxy,
         context: &Context,
         lang: Language,
-    ) -> Result<C::ActiveTask> {
+    ) -> Result<ActiveTask> {
         let shared_store = TaskSharedStoreBuilder::new()
             .write_state(state_proxy)?
             .read_context(context)?
@@ -225,7 +237,7 @@ impl<C: Comms> BehaviorExecution<C> {
 }
 
 #[async_trait]
-impl<C: Comms> StatePackage for BehaviorExecution<C> {
+impl StatePackage for BehaviorExecution {
     async fn run(&mut self, state: &mut State, context: &Context) -> Result<()> {
         tracing::trace!("Running BehaviorExecution");
         let mut state_proxy = state.write()?;
@@ -245,7 +257,7 @@ impl<C: Comms> StatePackage for BehaviorExecution<C> {
         //       (instead of reading behavior ids in Rust) or by returning the first language from
         //       fix_behavior_chains.
         state_proxy.maybe_reload()?;
-        let lang = match self.get_first_lang(&state_proxy.agent_pool().batches())? {
+        let lang = match self.get_first_lang(&mut state_proxy.agent_pool().batches_iter())? {
             Some(lang) => lang,
             None => {
                 tracing::warn!("No behaviors were found to execute");

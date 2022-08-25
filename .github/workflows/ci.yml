@@ -6,7 +6,7 @@ jobs:
     name: Linting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: ./.github/actions/warm-up-repo
 
@@ -125,7 +125,7 @@ jobs:
     name: Backend integration tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: ./.github/actions/warm-up-repo
 
@@ -137,8 +137,8 @@ jobs:
       - name: Launch external services
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file external-services/docker-compose.yml build
-          docker-compose --file external-services/docker-compose.yml up --detach
+          docker-compose --file packages/hash/external-services/docker-compose.yml build
+          docker-compose --file packages/hash/external-services/docker-compose.yml up --detach
 
       - name: Seed data
         if: ${{ success() || failure() }}
@@ -159,7 +159,7 @@ jobs:
       - name: Show external services logs
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
+          docker-compose --file packages/hash/external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
 
       - name: Show backend logs
         if: ${{ success() || failure() }}
@@ -180,9 +180,19 @@ jobs:
     name: Playwright tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+
+      - uses: actions/cache@v3
+        with:
+          path: packages/hash/frontend/.next/cache
+          key: ${{ runner.os }}-frontend-next-cache-${{ hashFiles('yarn.lock') }}-${{ hashFiles('packages/hash/frontend/**') }}
+          restore-keys: |
+            ${{ runner.os }}-frontend-next-cache-${{ hashFiles('yarn.lock') }}-
+            ${{ runner.os }}-frontend-next-cache
 
       - uses: ./.github/actions/warm-up-repo
+        with:
+          playwright-deps: chrome firefox
 
       - name: Create temp files and folders
         run: |
@@ -192,8 +202,8 @@ jobs:
       - name: Launch external services
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file external-services/docker-compose.yml build
-          docker-compose --file external-services/docker-compose.yml up --detach
+          docker-compose --file packages/hash/external-services/docker-compose.yml build
+          docker-compose --file packages/hash/external-services/docker-compose.yml up --detach
 
       - name: Seed data
         if: ${{ success() || failure() }}
@@ -213,9 +223,6 @@ jobs:
           yarn workspace @hashintel/hash-frontend start 2>&1 | tee var/logs/frontend.log & ## ampersand enables background mode
           yarn wait-on --timeout 30000 http://0.0.0.0:3000
 
-      - run: yarn playwright install-deps chrome firefox
-        if: ${{ success() || failure() }}
-
       - name: Run Playwright tests
         if: ${{ success() || failure() }}
         run: |
@@ -224,7 +231,7 @@ jobs:
       - name: Show external services logs
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
+          docker-compose --file packages/hash/external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
           cat var/logs/external-services.log
 
       - name: Show backend logs
@@ -257,7 +264,7 @@ jobs:
     name: Unit tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: ./.github/actions/warm-up-repo
 

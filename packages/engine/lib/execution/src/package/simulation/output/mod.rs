@@ -13,22 +13,26 @@
 pub mod analysis;
 pub mod json_state;
 
+pub mod persistence;
+
+mod buffers;
+mod creator;
 mod message;
 mod name;
+mod parts;
 mod task;
 
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use stateful::{
-    context::Context,
-    field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
-    global::Globals,
-    state::State,
-};
+use stateful::{context::Context, field::FieldSpecMapAccessor, global::Globals, state::State};
 use tracing::Span;
 
-pub use self::{message::OutputTaskMessage, name::OutputPackageName, task::OutputTask};
+pub(crate) use self::parts::OutputPartBuffer;
+pub use self::{
+    buffers::OutputBuffers, creator::OutputPackageCreators, message::OutputTaskMessage,
+    name::OutputPackageName, task::OutputTask,
+};
 use crate::{
     package::simulation::{
         output::{analysis::AnalysisOutput, json_state::JsonStateOutput},
@@ -51,13 +55,13 @@ pub trait OutputPackage: Package + MaybeCpuBound {
     fn span(&self) -> Span;
 }
 
-pub trait OutputPackageCreator<C>: PackageCreator {
+pub trait OutputPackageCreator: PackageCreator {
     /// Create the package.
     fn create(
         &self,
         config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
-        system: PackageComms<C>,
+        system: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn OutputPackage>>;
 
@@ -68,15 +72,5 @@ pub trait OutputPackageCreator<C>: PackageCreator {
         globals: &Globals,
     ) -> Result<serde_json::Value> {
         Ok(serde_json::Value::Null)
-    }
-
-    #[allow(unused_variables)]
-    fn get_state_field_specs(
-        &self,
-        config: &PackageInitConfig,
-        globals: &Globals,
-        field_spec_map_builder: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
-        Ok(vec![])
     }
 }

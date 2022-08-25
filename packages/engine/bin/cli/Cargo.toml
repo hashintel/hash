@@ -6,18 +6,18 @@ edition = "2021"
 description = "The hEngine Command line interface"
 
 [dependencies]
-hash_engine_lib = { path = "../..", default-features = false }
 execution = { path = "../../lib/execution", default-features = false }
+experiment-structure = { path = "../../lib/experiment-structure", default-features = false, features = ["clap"] }
+experiment-control = { path = "../../lib/experiment-control", default-features = false, features = ["clap"] }
 orchestrator = { path = "../../lib/orchestrator", default-features = false, features = ["clap"] }
 
-error-stack = { version = "0.1.1", features = ["spantrace"] }
+# TODO: Change to `version = "0.2"` as soon as it's released
+error-stack = { git = "https://github.com/hashintel/hash", rev = "5edddb5", features = ["spantrace"] }
 
-clap = { version = "3.0.0", features = ["cargo", "derive", "env"] }
-serde = { version = "1.0.111", features = ["derive"] }
-tokio = "1.18.2"
-uuid = { version = "0.8.1", features = ["v4", "serde"] }
+clap = { version = "3.2.17", features = ["cargo", "derive", "env"] }
+serde = { version = "1.0.138", features = ["derive"] }
+tokio = "1.19.2"
+uuid = { version = "1.1.2", features = ["v4", "serde"] }
 
 [features]
-default = ["build-nng"]
-texray = ["hash_engine_lib/texray"]
-build-nng = ["hash_engine_lib/build-nng"]
+texray = ["experiment-control/texray"]

@@ -32,7 +32,10 @@ const formatGetEventsResponse = (
   instance: Instance,
   data: Exclude<ReturnType<Instance["getEvents"]>, boolean>,
 ) => ({
-  version: instance.version,
+  version:
+    "nextVersion" in data && typeof data.nextVersion === "number"
+      ? data.nextVersion
+      : instance.version,
   steps: data.steps.map((step) => step.toJSON()),
   clientIDs: data.clientIDs,
   store: data.store,
@@ -286,6 +289,14 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
           baselinePositions: instance.extractPositions(userInfo.entityId),
           userIdToExclude: userInfo.entityId,
           response,
+        });
+
+        // This connection times out after 5 seconds.
+        // No content is returned, such that the consumer doesn't receive
+        // misguiding data.
+        response.setTimeout(5000, () => {
+          response.status(204);
+          response.end();
         });
       } catch (error) {
         next(error);

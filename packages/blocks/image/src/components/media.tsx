@@ -6,15 +6,15 @@
  * @see https://app.asana.com/0/1200211978612931/1201906715110980/f
  * @todo Deduplicate this file
  */
+import { useGraphBlockService } from "@blockprotocol/graph/react";
 import {
   Entity,
   Link,
   LinkGroup,
   BlockGraphProperties,
-  useGraphBlockService,
   UpdateEntityData,
 } from "@blockprotocol/graph";
-import React, {
+import {
   Dispatch,
   SetStateAction,
   useCallback,
@@ -22,7 +22,7 @@ import React, {
   useMemo,
   useRef,
   useState,
-  VoidFunctionComponent,
+  FunctionComponent,
 } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { ErrorAlert } from "./error-alert";
@@ -124,7 +124,7 @@ const isSingleTargetLink = (link: Link): link is Link => "linkId" in link;
 /**
  * @todo Rewrite the state here to use a reducer, instead of batched updates
  */
-export const Media: VoidFunctionComponent<
+export const Media: FunctionComponent<
   BlockGraphProperties<MediaEntityProperties> & {
     mediaType: "image" | "video";
   }
@@ -136,6 +136,7 @@ export const Media: VoidFunctionComponent<
         properties: { url, initialCaption, initialWidth },
       },
       blockGraph,
+      readonly,
     },
     mediaType,
   } = props;
@@ -230,6 +231,9 @@ export const Media: VoidFunctionComponent<
 
   const handleImageUpload = useCallback(
     (imageProp: { url: string } | { file: FileList[number] }) => {
+      if (readonly) {
+        return;
+      }
       if (
         !loading &&
         entityId &&
@@ -295,6 +299,7 @@ export const Media: VoidFunctionComponent<
       graphService,
       loading,
       mediaType,
+      readonly,
       updateData,
     ],
   );
@@ -312,6 +317,9 @@ export const Media: VoidFunctionComponent<
   };
 
   const resetComponent = () => {
+    if (readonly) {
+      return;
+    }
     unstable_batchedUpdates(() => {
       setLoading(false);
       setErrorString(null);
@@ -334,6 +342,7 @@ export const Media: VoidFunctionComponent<
           onReset={resetComponent}
           width={draftWidth}
           type={mediaType}
+          readonly={readonly}
         />
       ) : (
         <>
@@ -349,6 +358,7 @@ export const Media: VoidFunctionComponent<
             onUrlChange={(nextDraftUrl) => setDraftUrl(nextDraftUrl)}
             loading={loading}
             type={mediaType}
+            readonly={readonly}
           />
         </>
       )}

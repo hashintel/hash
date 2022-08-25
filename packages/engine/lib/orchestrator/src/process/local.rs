@@ -6,12 +6,12 @@ use std::{
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, ResultExt};
-use hash_engine_lib::{
-    experiment::controller::run::cleanup_experiment,
-    proto::EngineMsg,
-    utils::{LogFormat, LogLevel, OutputLocation},
+use execution::package::experiment::ExperimentId;
+use experiment_control::{
+    comms::EngineMsg,
+    controller::run::cleanup_experiment,
+    environment::{LogFormat, LogLevel, OutputLocation},
 };
-use simulation_structure::ExperimentId;
 
 use crate::{process, OrchestratorError, Result};
 
@@ -102,7 +102,7 @@ impl process::Process for LocalProcess {
             .child
             .wait()
             .await
-            .report()
+            .into_report()
             .change_context(OrchestratorError::from(
                 "Could not wait for the process to exit",
             ))?)
@@ -209,7 +209,7 @@ impl process::Command for LocalCommand {
         }
         debug!("Running `{cmd:?}`");
 
-        let child = cmd.spawn().report().change_context_lazy(|| {
+        let child = cmd.spawn().into_report().change_context_lazy(|| {
             OrchestratorError::from(format!("Could not run command: {process_path:?}"))
         })?;
         debug!("Spawned local engine process for experiment");

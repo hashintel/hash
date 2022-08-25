@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use arrow::datatypes::Schema;
-use memory::arrow::{meta, meta::conversion::HashStaticMeta};
+use arrow2::datatypes::Schema;
+use memory::arrow::{meta, meta::StaticMetadata};
 
 use crate::{error::Result, field::FieldSpecMap};
 
@@ -14,14 +14,14 @@ use crate::{error::Result, field::FieldSpecMap};
 #[derive(Clone, Debug)]
 pub struct AgentSchema {
     pub arrow: Arc<Schema>,
-    pub static_meta: Arc<meta::Static>,
+    pub static_meta: Arc<meta::StaticMetadata>,
     pub field_spec_map: Arc<FieldSpecMap>,
 }
 
 impl AgentSchema {
     pub fn new(field_spec_map: FieldSpecMap) -> Result<Self> {
         let arrow_schema = Arc::new(field_spec_map.create_arrow_schema()?);
-        let static_meta = arrow_schema.get_static_metadata();
+        let static_meta = StaticMetadata::from_schema(arrow_schema.clone());
 
         Ok(Self {
             arrow: arrow_schema,

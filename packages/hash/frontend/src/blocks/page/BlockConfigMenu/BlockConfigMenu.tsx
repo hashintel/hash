@@ -1,3 +1,4 @@
+import { JsonObject, JsonValue } from "@blockprotocol/core";
 import { useKey } from "rooks";
 import { get } from "lodash";
 
@@ -8,9 +9,8 @@ import {
   useEffect,
   useRef,
   useState,
-  VoidFunctionComponent,
+  FunctionComponent,
 } from "react";
-import { JSONObject, JSONValue } from "blockprotocol";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 import { bindPopover, PopupState } from "material-ui-popup-state/hooks";
@@ -40,12 +40,12 @@ const resolvePropertySchema = (
  * This is a temporary implementation of 'provide an input based on a property schema'
  * We will need a more comprehensive implementation for the full entity editor
  */
-const ConfigurationInput: VoidFunctionComponent<{
+const ConfigurationInput: FunctionComponent<{
   name: string;
   onChange: (value: any) => void;
   rootSchema: JsonSchema;
   propertySchema: JsonSchema;
-  value?: JSONValue | null;
+  value?: JsonValue | null;
 }> = ({ name, onChange, propertySchema, rootSchema, value }) => {
   const resolvedPropertySchema = propertySchema.$ref
     ? resolvePropertySchema(propertySchema.$ref, rootSchema)
@@ -74,7 +74,7 @@ const ConfigurationInput: VoidFunctionComponent<{
   /**
    * Keep track of the previous externally-provided value, in case the entity is updated while the menu is open.
    */
-  const previousValue = useRef<JSONValue | undefined>(undefined);
+  const previousValue = useRef<JsonValue | undefined>(undefined);
   useEffect(() => {
     previousValue.current = value;
   });
@@ -172,7 +172,7 @@ type BlockConfigMenuProps = {
   blockSchema?: JsonSchema | null;
   closeMenu: () => void;
   popupState: PopupState;
-  updateConfig: (propertiesToUpdate: JSONObject) => void;
+  updateConfig: (propertiesToUpdate: JsonObject) => void;
 };
 
 /**
@@ -180,7 +180,7 @@ type BlockConfigMenuProps = {
  * Useful for when the block doesn't provide the UI to do so itself.
  * Only the properties listed in the block's schema as 'configProperties' are shown.
  */
-export const BlockConfigMenu: VoidFunctionComponent<BlockConfigMenuProps> = ({
+export const BlockConfigMenu: FunctionComponent<BlockConfigMenuProps> = ({
   anchorRef,
   blockEntity,
   blockSchema,
@@ -193,7 +193,7 @@ export const BlockConfigMenu: VoidFunctionComponent<BlockConfigMenuProps> = ({
   const configProperties = extractConfigPropertySchemas(blockSchema ?? {});
 
   const entityData = blockEntity?.properties.entity.properties as
-    | JSONObject
+    | JsonObject
     | undefined;
 
   if (anchorRef && typeof anchorRef === "function") {

@@ -21,7 +21,6 @@ use futures::{
     stream::{FuturesUnordered, StreamExt},
 };
 use rand::prelude::SliceRandom;
-use simulation_structure::SimulationShortId;
 use stateful::field::PackageId;
 use tokio::{pin, task::JoinHandle};
 use tracing::{Instrument, Span};
@@ -48,7 +47,7 @@ pub use self::{
     handler::WorkerPoolHandler,
 };
 use crate::{
-    package::simulation::PackageTask,
+    package::simulation::{PackageTask, SimulationId},
     runner::comms::{ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase, NewSimulationRun},
     task::{Task, TaskDistributionConfig, TaskId, TaskSharedStore},
     worker::{SyncPayload, Worker, WorkerConfig, WorkerTask},
@@ -302,7 +301,7 @@ impl WorkerPool {
     async fn handle_worker_msg(
         &mut self,
         worker_index: WorkerIndex,
-        sim_id: SimulationShortId,
+        sim_id: SimulationId,
         worker_msg: WorkerToWorkerPoolMsg,
     ) -> Result<()> {
         match worker_msg {
@@ -407,7 +406,7 @@ impl WorkerPool {
     /// TODO: DOC
     fn new_worker_subtasks(
         &self,
-        sim_id: SimulationShortId,
+        sim_id: SimulationId,
         task_id: TaskId,
         package_id: PackageId,
         shared_store: TaskSharedStore,

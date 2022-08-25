@@ -19,7 +19,7 @@
 //! [`WorkerPool`]: crate::worker_pool::WorkerPool
 //! [`Language`]: crate::runner::Language
 
-#![feature(map_try_insert, is_sorted)]
+#![feature(map_try_insert, is_sorted, once_cell)]
 
 mod error;
 pub mod package;

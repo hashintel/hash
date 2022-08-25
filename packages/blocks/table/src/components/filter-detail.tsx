@@ -1,4 +1,10 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import {
+  FunctionComponent,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { tw } from "twind";
 import { v4 as uuid } from "uuid";
 import { ColumnInstance } from "react-table";
@@ -59,7 +65,7 @@ type FilterDetailProps = {
   multiFilter: AggregateOperationInput["multiFilter"];
 };
 
-export const FilterDetail: React.VFC<FilterDetailProps> = ({
+export const FilterDetail: FunctionComponent<FilterDetailProps> = ({
   columns,
   onFilter,
   multiFilter,

@@ -1,7 +1,7 @@
 use crate::arrow::meta::BufferType;
 
 /// Internal representation of Arrow `FieldNode` Message
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Node {
     /// Number of value slots (if Node is the base column node, then it is the number of items in
     /// column)
@@ -41,7 +41,12 @@ impl NodeMapping {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+/// Contains data which does not change about a node, such as how many buffers it has, and of what
+/// type those buffers are.
+///
+/// Note: there is a one-to-one correspondence between a [`NodeStatic`] and each Arrow array (i.e.
+/// we create one [`NodeStatic`] for each Arrow array).
 pub struct NodeStatic {
     /// 1 if is row-level or other buffers point to a non-fixed-size list,
     /// > 1 if direct child of fixed size list

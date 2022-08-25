@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use arrow::array::UInt32Array;
+use arrow2::array::UInt32Array;
 
 use super::{state::StateSnapshot, Error, Result, SimSchema};
 use crate::datastore::batch::{AgentBatch, MessageBatch};

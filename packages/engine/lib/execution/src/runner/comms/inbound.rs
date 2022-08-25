@@ -1,9 +1,8 @@
 //! TODO: DOC
 use std::fmt;
 
-use simulation_structure::SimulationShortId;
-
 use crate::{
+    package::simulation::SimulationId,
     runner::comms::{NewSimulationRun, RunnerTaskMessage, StateInterimSync},
     task::TaskId,
     worker::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
@@ -57,6 +56,6 @@ impl fmt::Debug for InboundToRunnerMsgPayload {
 /// TODO: DOC
 // TODO: UNUSED: Needs triage
 pub struct InboundToRunnerMsg {
-    pub sim_id: SimulationShortId,
+    pub sim_id: SimulationId,
     pub payload: InboundToRunnerMsgPayload,
 }

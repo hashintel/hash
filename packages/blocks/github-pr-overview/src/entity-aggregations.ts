@@ -1,261 +1,295 @@
-import {
-  BlockProtocolAggregateEntitiesFunction,
-  BlockProtocolAggregateEntitiesResult,
-} from "blockprotocol";
+import { GraphBlockHandler } from "@blockprotocol/graph";
 import { uniqBy } from "lodash";
-import { BlockState } from "./app";
 
 import {
-  GithubIssueEvent,
-  GithubPullRequest,
+  GithubIssueEventEntityType,
+  GithubPullRequestEntityType,
   PullRequestIdentifier,
-  GithubReview,
+  GithubReviewEntityType,
   isDefined,
+  GITHUB_ENTITY_TYPES,
 } from "./types";
 
-const ITEMS_PER_PAGE = 100;
+const ITEMS_PER_PAGE = 500;
 
-export const getPrs = (
+export const getGitHubEntityTypes = async (
+  aggregateEntityTypes: GraphBlockHandler["aggregateEntityTypes"],
+  numItems: number = ITEMS_PER_PAGE,
+): Promise<{
+  [key in GITHUB_ENTITY_TYPES]: string;
+}> => {
+  const response = await aggregateEntityTypes({
+    data: {
+      operation: {
+        pageNumber: 1,
+        itemsPerPage: numItems,
+      },
+    },
+  });
+
+  if (response.errors || !response.data) {
+    throw new Error("An error occured while fetching events");
+  }
+  const entityTypes = response.data.results;
+
+  const pullRequestTypeId = entityTypes.find(
+    (entityType) => entityType.schema.title === "GithubPullRequest",
+  )?.entityTypeId;
+  const reviewTypeId = entityTypes.find(
+    (entityType) => entityType.schema.title === "GithubReview",
+  )?.entityTypeId;
+  const issueEventTypeId = entityTypes.find(
+    (entityType) => entityType.schema.title === "GithubIssueEvent",
+  )?.entityTypeId;
+
+  if (pullRequestTypeId && reviewTypeId && issueEventTypeId) {
+    const githubTypeIds: {
+      [key in GITHUB_ENTITY_TYPES]: string;
+    } = {
+      [GITHUB_ENTITY_TYPES.PullRequest]: pullRequestTypeId,
+      [GITHUB_ENTITY_TYPES.Review]: reviewTypeId,
+      [GITHUB_ENTITY_TYPES.IssueEvent]: issueEventTypeId,
+    };
+    return githubTypeIds;
+  } else {
+    throw new Error("An error occured while fetching Github Entity Types");
+  }
+};
+
+export const getPrs = async (
   githubPullRequestTypeId: string,
-  aggregateEntities?: BlockProtocolAggregateEntitiesFunction,
-  accountId?: string | null,
-  pageNumber?: number,
+  aggregateEntities: GraphBlockHandler["aggregateEntities"],
+  numItems: number = ITEMS_PER_PAGE,
   selectedPullRequest?: PullRequestIdentifier,
-): Promise<BlockProtocolAggregateEntitiesResult<GithubPullRequest> | void> => {
-  if (!aggregateEntities) {
-    return new Promise<void>(() => {});
-  }
-
-  const res = aggregateEntities({
-    accountId,
-    operation: {
-      entityTypeId: githubPullRequestTypeId,
-      pageNumber,
-      itemsPerPage: ITEMS_PER_PAGE,
-      multiFilter: {
-        operator: "AND",
-        filters:
-          selectedPullRequest !== undefined
-            ? [
-                {
-                  field: "html_url",
-                  operator: "CONTAINS",
-                  value: `${selectedPullRequest.repository}/pull/${selectedPullRequest.number}`,
-                },
-              ]
-            : [],
-      },
-      multiSort: [
-        {
-          field: "url",
-          desc: true,
+): Promise<GithubPullRequestEntityType[]> => {
+  const response = await aggregateEntities({
+    data: {
+      operation: {
+        entityTypeId: githubPullRequestTypeId,
+        pageNumber: 1,
+        itemsPerPage: numItems,
+        multiFilter: {
+          operator: "AND",
+          filters:
+            selectedPullRequest !== undefined
+              ? [
+                  {
+                    field: "properties.html_url",
+                    operator: "CONTAINS",
+                    value: `${selectedPullRequest.repository}/pull/${selectedPullRequest.number}`,
+                  },
+                ]
+              : [],
         },
-      ],
-    },
-  });
-
-  return res;
-};
-
-export const collectPrsAndSetState = (
-  githubPullRequestTypeId: string,
-  aggregateEntities: BlockProtocolAggregateEntitiesFunction | undefined,
-  accountId: string | null | undefined,
-  numPages: number,
-  setState: (x: any) => void,
-  setBlockState: (x: any) => void,
-) => {
-  const promises = Array(numPages)
-    .fill(undefined)
-    .map((_, pageNumber) =>
-      getPrs(githubPullRequestTypeId, aggregateEntities, accountId, pageNumber),
-    );
-
-  Promise.all(promises)
-    .then((entitiesResults) => {
-      const entities: GithubPullRequest[] = entitiesResults
-        .flatMap((entityResult) => entityResult?.results)
-        .filter(isDefined);
-
-      const pullRequests = uniqBy(entities, "id");
-
-      const mappedPullRequests = new Map();
-
-      for (const pullRequest of pullRequests) {
-        const pullRequestId = `${pullRequest.repository}/${pullRequest.number}`;
-        mappedPullRequests.set(pullRequestId, pullRequest);
-      }
-
-      setState(mappedPullRequests);
-      if (mappedPullRequests.size === 0) {
-        setBlockState(BlockState.Error);
-      }
-    })
-    .catch((err) => {
-      throw err;
-    });
-};
-
-const getReviews = (
-  githubReviewTypeId: string,
-  aggregateEntities: BlockProtocolAggregateEntitiesFunction | undefined,
-  accountId: string | null | undefined,
-  pageNumber: number | undefined,
-  selectedPullRequest: PullRequestIdentifier,
-): Promise<BlockProtocolAggregateEntitiesResult<GithubReview> | void> => {
-  if (!aggregateEntities) {
-    return new Promise<void>(() => {});
-  }
-
-  const res = aggregateEntities({
-    accountId,
-    operation: {
-      entityTypeId: githubReviewTypeId,
-      pageNumber,
-      itemsPerPage: ITEMS_PER_PAGE,
-      multiFilter: {
-        operator: "AND",
-        filters: [
+        multiSort: [
           {
-            field: "html_url",
-            operator: "CONTAINS",
-            value: `${selectedPullRequest.repository}/pull/${selectedPullRequest.number}`,
+            field: "properties.url",
+            desc: true,
           },
         ],
       },
-      multiSort: [
-        {
-          field: "pull_request_url",
-          desc: true,
-        },
-        {
-          field: "submitted_at",
-          desc: false,
-        },
-      ],
     },
   });
 
-  return res;
-};
-
-export const collectReviewsAndSetState = (
-  githubReviewTypeId: string,
-  aggregateEntities: BlockProtocolAggregateEntitiesFunction | undefined,
-  accountId: string | null | undefined,
-  numPages: number,
-  setState: (x: any) => void,
-  selectedPullRequest: PullRequestIdentifier,
-) => {
-  const promises = Array(numPages)
-    .fill(undefined)
-    .map((_, pageNumber) =>
-      getReviews(
-        githubReviewTypeId,
-        aggregateEntities,
-        accountId,
-        pageNumber,
-        selectedPullRequest,
-      ),
-    );
-
-  Promise.all(promises)
-    .then((entitiesResults) => {
-      const entities: GithubReview[] = entitiesResults
-        .flatMap((entityResult) => entityResult?.results)
-        .filter(isDefined);
-
-      const reviews = uniqBy(entities, "id");
-
-      setState(reviews);
-    })
-    .catch((err) => {
-      throw err;
-    });
-};
-
-const getPrEvents = (
-  githubIssueEventTypeId: string,
-  aggregateEntities: BlockProtocolAggregateEntitiesFunction | undefined,
-  accountId: string | null | undefined,
-  pageNumber: number | undefined,
-  selectedPullRequest: PullRequestIdentifier,
-): Promise<BlockProtocolAggregateEntitiesResult<GithubIssueEvent> | void> => {
-  if (!aggregateEntities) {
-    return new Promise<void>(() => {});
+  if (response.errors || !response.data) {
+    throw new Error("An error occured while fetching events");
   }
+  const entities: GithubPullRequestEntityType[] =
+    response.data.results.filter(isDefined);
 
-  const res = aggregateEntities({
-    accountId,
-    operation: {
-      entityTypeId: githubIssueEventTypeId,
-      pageNumber,
-      itemsPerPage: ITEMS_PER_PAGE,
-      multiFilter: {
-        operator: "AND",
-        filters: [
+  return uniqBy(entities, "properties.id");
+};
+
+export const getPrReviews = async (
+  selectedPullRequest: PullRequestIdentifier,
+  githubReviewTypeId: string,
+  aggregateEntities: GraphBlockHandler["aggregateEntities"],
+  numItems: number = ITEMS_PER_PAGE,
+) => {
+  const response = await aggregateEntities({
+    data: {
+      operation: {
+        entityTypeId: githubReviewTypeId,
+        pageNumber: 1,
+        itemsPerPage: numItems,
+        multiFilter: {
+          operator: "AND",
+          filters: [
+            {
+              field: "properties.html_url",
+              operator: "CONTAINS",
+              value: `${selectedPullRequest.repository}/pull/${selectedPullRequest.number}`,
+            },
+          ],
+        },
+        multiSort: [
           {
-            field: "issue.pull_request",
-            operator: "IS_NOT_EMPTY",
+            field: "properties.pull_request_url",
+            desc: true,
           },
           {
-            field: "issue.html_url",
-            operator: "CONTAINS",
-            value: `${selectedPullRequest.repository}/pull/${selectedPullRequest.number}`,
+            field: "properties.submitted_at",
+            desc: false,
           },
         ],
       },
-      multiSort: [
-        {
-          field: "issue.html_url",
-          desc: true,
-        },
-        {
-          field: "created_at",
-          desc: false,
-        },
-      ],
     },
   });
 
-  return res;
+  if (response.errors || !response.data) {
+    throw new Error("An error occured while fetching reviews");
+  }
+  const entities: GithubReviewEntityType[] =
+    response.data.results.filter(isDefined);
+
+  return uniqBy(entities, "properties.id");
 };
 
-export const collectPrEventsAndSetState = (
-  githubIssueEventTypeId: string,
-  aggregateEntities: BlockProtocolAggregateEntitiesFunction | undefined,
-  accountId: string | null | undefined,
-  numPages: number,
-  setState: (x: any) => void,
+export const getPrEvents = async (
   selectedPullRequest: PullRequestIdentifier,
-) => {
-  const promises = Array(numPages)
-    .fill(undefined)
-    .map((_, pageNumber) =>
-      /** @todo - These should be links to a PR entity really */
-      getPrEvents(
-        githubIssueEventTypeId,
-        aggregateEntities,
-        accountId,
-        pageNumber,
-        selectedPullRequest,
-      ),
+  githubIssueEventTypeId: string,
+  aggregateEntities: GraphBlockHandler["aggregateEntities"],
+  numItems: number = ITEMS_PER_PAGE,
+): Promise<GithubIssueEventEntityType[]> => {
+  /** @todo - These should be links to a PR entity really */
+  const response = await aggregateEntities({
+    data: {
+      operation: {
+        entityTypeId: githubIssueEventTypeId,
+        pageNumber: 1,
+        itemsPerPage: numItems,
+        multiFilter: {
+          operator: "AND",
+          filters: [
+            {
+              field: "properties.issue.pull_request",
+              operator: "IS_NOT_EMPTY",
+            },
+            {
+              field: "properties.issue.html_url",
+              operator: "CONTAINS",
+              value: `${selectedPullRequest.repository}/pull/${selectedPullRequest.number}`,
+            },
+          ],
+        },
+        multiSort: [
+          {
+            field: "properties.issue.html_url",
+            desc: true,
+          },
+          {
+            field: "properties.created_at",
+            desc: false,
+          },
+        ],
+      },
+    },
+  });
+
+  if (response.errors || !response.data) {
+    throw new Error("An error occured while fetching events");
+  }
+  const entities: GithubIssueEventEntityType[] = response.data.results.filter(
+    (entity: GithubIssueEventEntityType) =>
+      isDefined(entity.properties.issue?.pull_request),
+  );
+
+  return uniqBy(entities, "properties.id");
+};
+
+/**
+ * Fetches github entity types and all pull requests.
+ * @param initialEntityTypes
+ * @param aggregateEntityTypes
+ * @param aggregateEntities
+ * @returns
+ */
+export const getEntityTypeIdsAndPrs = async (
+  initialEntityTypes: { [key in GITHUB_ENTITY_TYPES]: string } | undefined,
+  aggregateEntityTypes: GraphBlockHandler["aggregateEntityTypes"],
+  aggregateEntities: GraphBlockHandler["aggregateEntities"],
+): Promise<{
+  entityTypeIds: { [key in GITHUB_ENTITY_TYPES]: string };
+  prs: Map<string, GithubPullRequestEntityType>;
+}> => {
+  try {
+    let githubEntityTypeIds = initialEntityTypes;
+
+    // Fetch github entity types if they aren't present
+    if (!initialEntityTypes) {
+      githubEntityTypeIds = await getGitHubEntityTypes(({ data }) =>
+        aggregateEntityTypes({ data }),
+      );
+    }
+
+    const prs = await getPrs(
+      githubEntityTypeIds![GITHUB_ENTITY_TYPES.PullRequest],
+      ({ data }) => aggregateEntities({ data }),
     );
 
-  Promise.all(promises)
-    .then((entitiesResults) => {
-      const entities: GithubIssueEvent[] = entitiesResults
-        .flatMap((entityResult) => entityResult?.results)
-        .filter(isDefined)
-        .filter(
-          (entity: GithubIssueEvent) => isDefined(entity.issue?.pull_request), // We only want events for pull requests, not general issues
-        );
+    const mappedPullRequests = new Map();
 
-      const events = uniqBy(entities, "id");
+    for (const pullRequest of prs) {
+      const pullRequestId = `${pullRequest.properties.repository}/${pullRequest.properties.number}`;
+      mappedPullRequests.set(pullRequestId, pullRequest);
+    }
 
-      setState(events);
+    return { entityTypeIds: githubEntityTypeIds!, prs: mappedPullRequests };
+  } catch (err) {
+    throw new Error(
+      "An error occured while fetching entityTypes and initial PRs",
+    );
+  }
+};
+
+/**
+ * Fetched the events and reviews associated with a pullrequest id including
+ * the pull request details
+ * @param selectedPullRequestId
+ * @param githubEntityTypeIds
+ * @param aggregateEntities
+ * @returns
+ */
+export const getPrDetails = (
+  selectedPullRequestId: PullRequestIdentifier,
+  githubEntityTypeIds: { [key in GITHUB_ENTITY_TYPES]: string },
+  aggregateEntities: GraphBlockHandler["aggregateEntities"],
+): Promise<{
+  pullRequest: GithubPullRequestEntityType;
+  reviews: GithubReviewEntityType["properties"][];
+  events: GithubIssueEventEntityType["properties"][];
+}> => {
+  return Promise.all([
+    getPrs(
+      githubEntityTypeIds[GITHUB_ENTITY_TYPES.PullRequest],
+      ({ data }) => aggregateEntities({ data }),
+      1,
+      selectedPullRequestId,
+    ),
+    getPrReviews(
+      selectedPullRequestId,
+      githubEntityTypeIds[GITHUB_ENTITY_TYPES.Review],
+      async ({ data }) => await aggregateEntities({ data }),
+    ),
+    getPrEvents(
+      selectedPullRequestId,
+      githubEntityTypeIds[GITHUB_ENTITY_TYPES.IssueEvent],
+      ({ data }) => aggregateEntities({ data }),
+    ),
+  ])
+    .then(([pullRequests, reviews, events]) => {
+      const pullRequest = pullRequests?.[0];
+      if (!pullRequest) {
+        throw new Error("An error occured while fetching PR info");
+      }
+
+      return {
+        pullRequest,
+        reviews: reviews.map((review) => ({ ...review.properties })),
+        events: events.map((event) => ({ ...event.properties })),
+      };
     })
-    .catch((err) => {
-      throw err;
+    .catch((_) => {
+      throw new Error("An error occured while fetching PR info");
     });
 };

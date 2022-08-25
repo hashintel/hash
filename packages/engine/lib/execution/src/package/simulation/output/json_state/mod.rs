@@ -84,12 +84,12 @@ impl OutputPackage for JsonState {
 
 pub struct JsonStateCreator;
 
-impl<C> OutputPackageCreator<C> for JsonStateCreator {
+impl OutputPackageCreator for JsonStateCreator {
     fn create(
         &self,
         config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
-        _comms: PackageComms<C>,
+        _comms: PackageComms,
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn OutputPackage>> {
         let value = config

@@ -1,5 +1,5 @@
-import React, { CSSProperties, useMemo, useRef } from "react";
-import { BlockComponent } from "@blockprotocol/graph";
+import { CSSProperties, useMemo, useRef } from "react";
+import { BlockComponent } from "@blockprotocol/graph/react";
 import DOMPurify from "dompurify";
 
 import { MailIcon } from "./icons/mail-icon";

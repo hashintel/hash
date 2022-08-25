@@ -1,6 +1,6 @@
 import { ApolloError } from "apollo-server-express";
 
-import { MutationUpdateEntityArgs, Resolver } from "../../apiTypes.gen";
+import { MutationUpdateEntityArgs, ResolverFn } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import {
   Entity,
@@ -8,7 +8,7 @@ import {
   UpdatePropertiesPayload,
 } from "../../../model";
 
-export const updateEntity: Resolver<
+export const updateEntity: ResolverFn<
   Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,

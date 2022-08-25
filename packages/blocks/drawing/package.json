@@ -22,21 +22,21 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.8",
+    "@blockprotocol/graph": "0.0.12",
     "@tldraw/tldraw": "1.16.0",
     "@types/react-resizable": "1.7.4",
     "react-resizable": "^3.0.4"
   },
   "devDependencies": {
-    "block-scripts": "0.0.10",
+    "block-scripts": "0.0.14",
     "mobx": "6.5.0",
-    "mock-block-dock": "0.0.15",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2"
+    "mock-block-dock": "0.0.20",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "peerDependencies": {
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "block-scripts": {
     "devPort": 9090,

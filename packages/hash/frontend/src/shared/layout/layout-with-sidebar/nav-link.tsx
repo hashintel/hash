@@ -1,4 +1,4 @@
-import { useState, FC } from "react";
+import { useState, FunctionComponent, ReactNode } from "react";
 import { faAdd, faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { Box, Typography, Collapse, Tooltip } from "@mui/material";
 import {
@@ -9,6 +9,7 @@ import {
 import { Link } from "../../ui";
 
 type NavLinkProps = {
+  children?: ReactNode;
   title: string;
   endAdornmentProps: {
     tooltipTitle: string;
@@ -17,7 +18,7 @@ type NavLinkProps = {
   } & IconButtonProps;
 };
 
-export const NavLink: FC<NavLinkProps> = ({
+export const NavLink: FunctionComponent<NavLinkProps> = ({
   title,
   children,
   endAdornmentProps,
@@ -55,63 +56,63 @@ export const NavLink: FC<NavLinkProps> = ({
         sx={({ palette }) => ({
           display: "flex",
           alignItems: "center",
-          borderRadius: "4px",
-          py: 1,
-          pl: 1.5,
-          pr: 0.75,
-          mx: 0.5,
+          justifyContent: "space-between",
+          mx: 0.75,
+          mt: 2,
           "&:hover": {
+            cursor: "pointer",
             backgroundColor: palette.gray[20],
-
             "& .expand-button": {
-              color: palette.gray[80],
+              color: palette.gray[60],
 
               "&:hover": {
                 backgroundColor: palette.gray[30],
                 color: palette.gray[80],
               },
             },
-
-            "& .end-adornment-button": {
-              backgroundColor: palette.gray[30],
-              color: palette.gray[80],
-
-              "&:hover": {
-                backgroundColor: palette.gray[40],
-                color: palette.gray[80],
-              },
-            },
           },
         })}
       >
-        <Typography
-          variant="smallCaps"
-          sx={({ palette }) => ({
-            mr: 1.4,
-            color: palette.gray[50],
-          })}
-        >
-          {title}
-        </Typography>
-        <IconButton
-          size="xs"
-          unpadded
-          rounded
-          className="expand-button"
-          sx={({ palette }) => ({
-            mr: "auto",
-            color: palette.gray[40],
-          })}
+        <Box
+          sx={{
+            display: "flex",
+            width: "100%",
+            alignItems: "center",
+            borderRadius: "4px",
+            py: 0.5,
+            pl: 1.5,
+            pr: 0.75,
+          }}
           onClick={() => setExpanded((prev) => !prev)}
         >
-          <FontAwesomeIcon
-            sx={({ transitions }) => ({
-              transform: expanded ? `rotate(90deg)` : "none",
-              transition: transitions.create("transform"),
+          <Typography
+            variant="smallCaps"
+            sx={({ palette }) => ({
+              mr: 0.5,
+              color: palette.gray[50],
             })}
-            icon={faChevronRight}
-          />
-        </IconButton>
+          >
+            {title}
+          </Typography>
+          <IconButton
+            size="xs"
+            unpadded
+            rounded
+            className="expand-button"
+            sx={({ palette }) => ({
+              mr: "auto",
+              color: palette.gray[40],
+            })}
+          >
+            <FontAwesomeIcon
+              sx={({ transitions }) => ({
+                transform: expanded ? `rotate(90deg)` : "none",
+                transition: transitions.create("transform"),
+              })}
+              icon={faChevronRight}
+            />
+          </IconButton>
+        </Box>
         <Tooltip title={endAdornmentTooltipTitle}>
           {endAdornmentHref ? (
             <Link tabIndex={-1} href={endAdornmentHref} noLinkStyle>

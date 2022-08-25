@@ -1,7 +1,16 @@
 import { gql } from "@apollo/client";
 
-export const getPageTitleQuery = gql`
-  query getPageTitle($accountId: ID!, $entityId: ID!, $versionId: ID) {
+const pagePropertiesFieldsFragment = gql`
+  fragment PagePropertyFields on PageProperties {
+    title
+    archived
+    pageEntityId
+    icon
+  }
+`;
+
+export const getPageInfoQuery = gql`
+  query getPageInfo($accountId: ID!, $entityId: ID!, $versionId: ID) {
     page(
       accountId: $accountId
       entityId: $entityId
@@ -9,10 +18,11 @@ export const getPageTitleQuery = gql`
     ) {
       entityId
       properties {
-        title
+        ...PagePropertyFields
       }
     }
   }
+  ${pagePropertiesFieldsFragment}
 `;
 
 export const updatePage = gql`
@@ -28,6 +38,10 @@ export const updatePage = gql`
     ) {
       accountId
       entityId
+      properties {
+        ...PagePropertyFields
+      }
     }
   }
+  ${pagePropertiesFieldsFragment}
 `;

@@ -1,4 +1,4 @@
-import React, { MouseEventHandler, VoidFunctionComponent } from "react";
+import { MouseEventHandler, FunctionComponent } from "react";
 
 export interface EmojiIconProps {
   disabled?: boolean;
@@ -8,7 +8,7 @@ export interface EmojiIconProps {
 
 const variants = ["📢", "💡", "🤔", "👉", "📣", "📌", "🚧"];
 
-export const EmojiIcon: VoidFunctionComponent<EmojiIconProps> = ({
+export const EmojiIcon: FunctionComponent<EmojiIconProps> = ({
   disabled,
   onChange,
   value,

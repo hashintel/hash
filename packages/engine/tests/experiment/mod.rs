@@ -10,9 +10,13 @@ use std::{
 };
 
 use error_stack::{bail, ensure, IntoReport, Report, ResultExt};
-use execution::{package::experiment::ExperimentName, runner::Language};
-use hash_engine_lib::utils::{LogFormat, LogLevel, OutputLocation};
-use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
+use execution::{
+    package::experiment::{ExperimentId, ExperimentName},
+    runner::Language,
+};
+use experiment_control::environment::{LogFormat, LogLevel, OutputLocation};
+use experiment_structure::{ExperimentType, Manifest};
+use orchestrator::{ExperimentConfig, Server};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
 use tracing_subscriber::fmt::time::Uptime;
@@ -206,7 +210,9 @@ pub async fn run_test_suite(
                     log_folder: output.join("log"),
                     log_level: *log_level,
                     output_folder: output,
-                    output_location: OutputLocation::File("output.log".into()),
+                    output_location: OutputLocation::File {
+                        path: "output.log".into(),
+                    },
                     start_timeout,
                     wait_timeout,
                     js_runner_initial_heap_constraint: None,
@@ -316,7 +322,7 @@ pub async fn run_test<P: AsRef<Path>>(
     let project_path = project_path.as_ref();
 
     let nng_listen_url = {
-        let uuid = uuid::Uuid::new_v4();
+        let uuid = ExperimentId::generate();
         if let Some(language) = language {
             format!("ipc://integration-test-suite-{project_name}-{language}-{uuid}")
         } else {
@@ -339,8 +345,8 @@ pub async fn run_test<P: AsRef<Path>>(
     let output_base_directory = experiment
         .config
         .output_folder
-        .join(experiment_run.base.name.as_str())
-        .join(experiment_run.base.id.to_string());
+        .join(experiment_run.name().as_str())
+        .join(experiment_run.id().to_string());
 
     let now = Instant::now();
     experiment
@@ -373,10 +379,10 @@ fn parse_file<T: DeserializeOwned, P: AsRef<Path>>(path: P) -> Result<T, TestErr
     let path = path.as_ref();
     serde_json::from_reader(BufReader::new(
         File::open(path)
-            .report()
+            .into_report()
             .change_context_lazy(|| TestError::parse_error(path))?,
     ))
-    .report()
+    .into_report()
     .change_context_lazy(|| TestError::parse_error(path))
 }
 
@@ -476,7 +482,7 @@ impl ExpectedOutput {
         for (step, expected_states) in json_state {
             let step = step
                 .parse::<usize>()
-                .report()
+                .into_report()
                 .change_context_lazy(|| TestError::invalid_step(step.clone()))?;
             let result_states = agent_states
                 .get(step)

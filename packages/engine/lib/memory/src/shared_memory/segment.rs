@@ -47,7 +47,7 @@ impl<'a> Buffers<'a> {
 ///
 /// Holds a UUID and a random suffix. The UUID can be reused for different [`Segment`]s and can all
 /// be cleaned up by calling [`cleanup_by_base_id`].
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct MemoryId {
     id: Uuid,
     suffix: u16,
@@ -64,7 +64,7 @@ impl MemoryId {
                 id,
                 suffix: rand::random::<u16>(),
             };
-            if !Path::new(&format!("/dev/shm/{id}")).exists() {
+            if !Path::new(&format!("/dev/shm/{memory_id}")).exists() {
                 return memory_id;
             }
         }
@@ -79,11 +79,11 @@ impl MemoryId {
     fn prefix(id: Uuid) -> String {
         if cfg!(target_os = "macos") {
             // We need to_string otherwise it's not truncated when formatting
-            let id = id.to_simple_ref().to_string();
+            let id = id.as_simple().to_string();
             // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
             format!("shm_{id:.20}")
         } else {
-            let id = id.to_simple_ref();
+            let id = id.as_simple();
             format!("shm_{id}")
         }
     }
@@ -353,15 +353,15 @@ impl Segment {
     /// # Panics
     ///
     /// If the metaversion wasn't written properly when the batch was created or the part of memory
-    /// with the metaversion was deallocated later, this might fail to read the metaversion.
+    /// containing the metaversion was incorrectly deallocated (or we incorrectly tried to read the
+    /// metaversion), this function might fail to read the metaversion.
     pub fn read_persisted_metaversion(&self) -> Metaversion {
         self.try_read_persisted_metaversion()
             .expect("Could not read metaversion")
     }
 
-    /// Same as [`read_persisted_metaversion()`] but return a `Result` instead of panicking.
-    ///
-    /// [`read_persisted_metaversion()`]: Self::read_persisted_metaversion
+    /// Same as [`Segment::read_persisted_metaversion`] but returns a [`Result`] instead of
+    /// panicking.
     pub fn try_read_persisted_metaversion(&self) -> Result<Metaversion> {
         let header = self.get_header()?;
         let n_header_bytes = header.len();
@@ -386,7 +386,7 @@ impl Segment {
             .expect("Could not set metaversion")
     }
 
-    /// Same as [`persist_metaversion()`] but return a `Result` instead of panicking.
+    /// Same as [`persist_metaversion()`] but returns a `Result` instead of panicking.
     ///
     /// [`persist_metaversion()`]: Self::persist_metaversion
     pub fn try_persist_metaversion(&mut self, metaversion: Metaversion) -> Result<()> {

@@ -7,7 +7,10 @@ mod writer;
 
 use std::sync::Arc;
 
-use arrow::datatypes::DataType;
+use arrow2::{
+    array::ListArray,
+    datatypes::{DataType, Field},
+};
 use async_trait::async_trait;
 use futures::{stream::FuturesOrdered, StreamExt};
 use stateful::{
@@ -38,12 +41,12 @@ const CPU_BOUND: bool = false;
 
 pub struct ApiRequestsCreator;
 
-impl<C> ContextPackageCreator<C> for ApiRequestsCreator {
+impl ContextPackageCreator for ApiRequestsCreator {
     fn create(
         &self,
         config: &PackageCreatorConfig,
         _init_config: &PackageInitConfig,
-        _comms: PackageComms<C>,
+        _comms: PackageComms,
         _state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {
@@ -104,7 +107,7 @@ impl ContextPackage for ApiRequests {
         let _entered = run_span.entered(); // The rest of this is sync so this is fine
 
         let agent_pool = state_proxy.agent_pool();
-        let batches = agent_pool.batches();
+        let batches = agent_pool.batches_iter().collect::<Vec<_>>();
         let responses_per_agent = agent::arrow::agent_id_iter(&batches)?
             .map(move |agent_id| {
                 let mut ext_responses = vec![];
@@ -132,18 +135,16 @@ impl ContextPackage for ApiRequests {
         &self,
         num_agents: usize,
         context_schema: &ContextSchema,
-    ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow::array::Array>)>> {
-        let from_builder = Box::new(arrow::array::StringBuilder::new(1024));
-        let type_builder = Box::new(arrow::array::StringBuilder::new(1024));
-        let data_builder = Box::new(arrow::array::StringBuilder::new(1024));
-
+    ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow2::array::Array>)>> {
         let field_key = self
             .context_field_spec_accessor
             .get_local_hidden_scoped_field_spec(API_RESPONSES_FIELD_NAME)?
             .create_key()?;
         let arrow_fields = context_schema
             .arrow
-            .field_with_name(field_key.value())
+            .fields
+            .iter()
+            .find(|field| field.name == field_key.value())
             .map(|field| {
                 if let DataType::List(inner_field) = field.data_type() {
                     if let DataType::Struct(sub_fields) = inner_field.data_type() {
@@ -151,22 +152,20 @@ impl ContextPackage for ApiRequests {
                     }
                 }
                 unreachable!()
-            })?
+            })
+            .ok_or_else(|| Error::ColumnNotFound(field_key.value().to_string()))?
             .clone();
 
-        let api_response_builder = arrow::array::StructBuilder::new(arrow_fields, vec![
-            from_builder,
-            type_builder,
-            data_builder,
-        ]);
-        let mut api_response_list_builder = arrow::array::ListBuilder::new(api_response_builder);
+        let api_response_list: ListArray<i32> = ListArray::new_null(
+            DataType::List(Box::new(Field::new(
+                "item",
+                DataType::Struct(arrow_fields),
+                true,
+            ))),
+            num_agents,
+        );
 
-        (0..num_agents).try_for_each(|_| api_response_list_builder.append(true))?;
-
-        Ok(vec![(
-            field_key,
-            Arc::new(api_response_list_builder.finish()),
-        )])
+        Ok(vec![(field_key, api_response_list.arced())])
     }
 
     fn span(&self) -> Span {
@@ -203,7 +202,7 @@ async fn build_api_response_maps(
             let messages = snapshot.message_map.get_msg_refs(handler);
             if !messages.is_empty() {
                 let messages = handlers::gather_requests(&reader, messages)?;
-                futs.push(handlers::run_custom_message_handler(handler, messages))
+                futs.push_back(handlers::run_custom_message_handler(handler, messages))
             }
             Ok(())
         })?;

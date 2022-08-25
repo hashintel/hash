@@ -33,7 +33,7 @@ pub enum Error {
     OutboundMessageParse(#[from] crate::message::OutboundError),
 
     #[error("Arrow Error: {0}")]
-    Arrow(#[from] arrow::error::ArrowError),
+    Arrow(#[from] arrow2::error::Error),
 
     #[error("Failed to read Arrow Schema from buffer")]
     ArrowSchemaRead,
@@ -67,6 +67,9 @@ pub enum Error {
 
     #[error("Unable to read IPC message as record batch")]
     InvalidRecordBatchIpcMessage,
+
+    #[error("Unable to read flatbuffers: {0}")]
+    Planus(#[from] arrow_format::ipc::planus::Error),
 }
 
 impl From<&str> for Error {

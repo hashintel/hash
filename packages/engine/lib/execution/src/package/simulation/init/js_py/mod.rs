@@ -16,28 +16,28 @@ use crate::{
             InitPackage, InitPackageCreator, InitTask, InitTaskMessage, InitialState,
             InitialStateName,
         },
-        Comms, MaybeCpuBound, Package, PackageComms, PackageCreator, PackageCreatorConfig,
+        MaybeCpuBound, Package, PackageComms, PackageCreator, PackageCreatorConfig,
         PackageInitConfig, PackageTask,
     },
-    task::{ActiveTask, TaskMessage, TaskSharedStore},
+    task::{TaskMessage, TaskSharedStore},
     Error, Result,
 };
 
-pub struct JsPyInit<C> {
+pub struct JsPyInit {
     initial_state: InitialState,
-    comms: PackageComms<C>,
+    comms: PackageComms,
 }
 
-impl<C> MaybeCpuBound for JsPyInit<C> {
+impl MaybeCpuBound for JsPyInit {
     fn cpu_bound(&self) -> bool {
         false
     }
 }
 
-impl<C: Send> Package for JsPyInit<C> {}
+impl Package for JsPyInit {}
 
 #[async_trait]
-impl<C: Comms> InitPackage for JsPyInit<C> {
+impl InitPackage for JsPyInit {
     async fn run(&mut self) -> Result<Vec<Agent>> {
         let task = match &self.initial_state.name {
             InitialStateName::InitPy => InitTask::PyInitTask(PyInitTask {
@@ -80,12 +80,12 @@ impl PackageCreator for JsPyInitCreator {
     //   here instead of inside `PyInitTask` and `JsInitTask`
 }
 
-impl<C: Comms> InitPackageCreator<C> for JsPyInitCreator {
+impl InitPackageCreator for JsPyInitCreator {
     fn create(
         &self,
         _config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
-        comms: PackageComms<C>,
+        comms: PackageComms,
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn InitPackage>> {
         match &init_config.initial_state.name {
@@ -93,13 +93,11 @@ impl<C: Comms> InitPackageCreator<C> for JsPyInitCreator {
                 initial_state: init_config.initial_state.clone(),
                 comms,
             })),
-            name => {
-                return Err(Error::from(format!(
-                    "Trying to create a JS/Python init package but the initial state source \
-                     didn't end in '.js' or '.py': {:?}",
-                    name
-                )));
-            }
+            name => Err(Error::from(format!(
+                "Trying to create a JS/Python init package but the initial state source didn't \
+                 end in '.js' or '.py': {:?}",
+                name
+            ))),
         }
     }
 }

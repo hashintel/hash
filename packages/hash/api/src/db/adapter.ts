@@ -363,7 +363,6 @@ export interface DbClient {
    *    The unique name should be under "title"
    */
   updateEntityType(params: {
-    accountId: string; // @todo: can we remove this?
     entityId: string;
     updatedByAccountId: string;
     entityVersionId?: string;
@@ -693,10 +692,12 @@ export interface DbClient {
 
   /**
    * Get entity types associated with a given accountId.
-   * Optionally include other types the account uses.
+   * Optionally include other types the account uses, OR all other types
+   * @todo replace this with aggregateEntityTypes
    * */
   getAccountEntityTypes(params: {
     accountId: string;
+    includeAllTypes?: boolean | null;
     includeOtherTypesInUse?: boolean | null;
   }): Promise<EntityType[]>;
 

@@ -1,7 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { tw } from "twind";
 
-import { BlockComponent, useGraphBlockService } from "@blockprotocol/graph";
+import {
+  BlockComponent,
+  useGraphBlockService,
+} from "@blockprotocol/graph/react";
 
 import { CopyIcon } from "./icons";
 import { languages, LanguageType } from "./utils";
@@ -14,7 +17,7 @@ type BlockEntityProperties = {
 };
 
 export const App: BlockComponent<BlockEntityProperties> = ({
-  graph: { blockEntity },
+  graph: { blockEntity, readonly },
 }) => {
   const {
     entityId,
@@ -49,6 +52,9 @@ export const App: BlockComponent<BlockEntityProperties> = ({
       Pick<BlockEntityProperties, "caption" | "language" | "content">
     >,
   ) => {
+    if (readonly) {
+      return;
+    }
     setLocalData({
       ...localData,
       ...newData,
@@ -56,6 +62,9 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   };
 
   const updateRemoteData = (properties: BlockEntityProperties) => {
+    if (readonly) {
+      return;
+    }
     void graphService?.updateEntity({
       data: {
         entityId,
@@ -151,13 +160,15 @@ export const App: BlockComponent<BlockEntityProperties> = ({
               <span className={tw`mr-1`}>{copied ? "Copied" : "Copy"}</span>{" "}
               <CopyIcon />
             </button>
-            <button
-              type="button"
-              className={tw`bg-black bg-opacity-10 hover:bg-opacity-20 px-2 py-1 rounded-md`}
-              onClick={handleCaptionButtonClick}
-            >
-              Caption
-            </button>
+            {!readonly && (
+              <button
+                type="button"
+                className={tw`bg-black bg-opacity-10 hover:bg-opacity-20 px-2 py-1 rounded-md`}
+                onClick={handleCaptionButtonClick}
+              >
+                Caption
+              </button>
+            )}
           </div>
         </div>
         <Editor
@@ -166,6 +177,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
           language={localData.language}
           editorRef={editorRef}
           onBlur={() => updateRemoteData(localData)}
+          readonly={!!readonly}
         />
       </div>
       <input

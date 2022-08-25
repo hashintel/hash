@@ -1,4 +1,4 @@
-import React, { useCallback, VFC } from "react";
+import { useCallback, FunctionComponent } from "react";
 import { tw } from "twind";
 
 type PaginationProps = {
@@ -10,7 +10,7 @@ type PaginationProps = {
   isFetching: boolean;
 };
 
-export const Pagination: VFC<PaginationProps> = ({
+export const Pagination: FunctionComponent<PaginationProps> = ({
   pageCount,
   pageNumber,
   pageSize,

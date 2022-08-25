@@ -26,7 +26,7 @@ To run HASH locally, please follow these steps:
     ## ≥ 2.17
     
     node --version
-    ## ≥ 16.13
+    ## ≥ 16.15
     
     yarn --version
     ## ≥ 1.16
@@ -57,6 +57,14 @@ To run HASH locally, please follow these steps:
     ```
 
     It will be used for storing locally defined environment variables (the ones we don’t want to store in git).
+
+1.  Ensure Docker is running.
+    If you are on Windows or macOS, you should see app icon in the system tray or the menu bar.
+    Alternatively, you can use this command to check Docker:
+
+    ```sh
+    docker run hello-world
+    ```
 
 1.  Launch external services (Postgres, Redis and OpenSearch) as Docker containers:
 
@@ -139,6 +147,14 @@ See https://blockprotocol.org/docs/developing-blocks
 
 ## Testing
 
+### Debug mode
+
+Some parts of the UI designed to help with development/debugging are hidden. You can display these elements by running the following in your browser console.
+
+```js
+localStorage["hash.internal.debugging"] = "true";
+```
+
 ### Backend integration tests
 
 Backend integration tests are located in [packages/hash/integration](./packages/hash/integration) folder.
@@ -220,16 +236,10 @@ Your tests will be less wired to the implementation details and thus be closer t
 
 ## Code quality
 
-We perform automated linting and formatting checks on pull requests using GitHub Actions. You may
-also run these checks using the git hooks provided in [./hooks](./hooks). To install these hooks,
-run:
+We perform automated linting and formatting checks on pull requests using GitHub Actions.
+When a pull request is created or updated, GitHub Action will run those checks. This includes ESLint, TSC, Prettier, Markdownlint, rustfmt, and a few other tools. Some checks may be skipped depending on the files that have been changed in the pull request.
 
-```sh
-yarn install-hooks
-```
-
-This installs the hooks into your `.git/hooks` directory as symlinks to the corresponding script in
-`./hooks`.
+First-time contributors need to wait for a maintainer to manually launch the checks.
 
 ## Monorepo
 
@@ -254,18 +264,18 @@ The below `package.json` file outlines the minimum requirements a package has to
     "postinstall": "yarn build"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "5.17.0",
-    "@typescript-eslint/parser": "5.17.0",
-    "eslint": "^7.32.0",
-    "eslint-config-airbnb": "^19.0.4",
-    "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-import": "^2.25.4",
-    "eslint-plugin-jest": "^26.1.0",
-    "eslint-plugin-jsx-a11y": "^6.5.1",
-    "eslint-plugin-react": "^7.28.0",
-    "eslint-plugin-react-hooks": "^4.3.0",
+    "@typescript-eslint/eslint-plugin": "5.30.7",
+    "@typescript-eslint/parser": "5.30.7",
+    "eslint": "8.20.0",
+    "eslint-config-airbnb": "19.0.4",
+    "eslint-config-prettier": "8.5.0",
+    "eslint-plugin-import": "2.26.0",
+    "eslint-plugin-jest": "26.6.0",
+    "eslint-plugin-jsx-a11y": "6.6.1",
+    "eslint-plugin-react": "7.30.1",
+    "eslint-plugin-react-hooks": "4.6.0",
     "rimraf": "3.2.0",
-    "typescript": "4.6.2"
+    "typescript": "4.7.4"
   }
 }
 ```
@@ -390,6 +400,7 @@ If the service should report metrics to a StatsD server, the following variables
 - `NEXT_PUBLIC_API_ORIGIN`: The origin that the API service can be reached on (default: `http://localhost:5001`)
 - `SESSION_SECRET`: The secret used to sign login sessions (default: `secret`)
 - `LOG_LEVEL`: the level of runtime logs that should be omitted, either set to `debug`, `info`, `warn`, `error` (default: `info`)
+- `NEXT_PUBLIC_BLOCK_PROTOCOL_API_KEY`: the api key for fetching blocks from [BP Hub](https://blockprotocol.org/hub).
 
 ## Contributors
 
@@ -400,7 +411,7 @@ HASH's development is being led by various employees of _[HASH](https://hash.dev
 - Alfie Mountfield
 - Ben Werner
 - Ciaran Morinan
-- Maggie Appleton
+- Luís Bettencourt
 - Nate Higgins
 - Valentino Ugbala
 

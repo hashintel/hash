@@ -159,7 +159,7 @@ impl Message {
     ) -> Result<(), Error> {
         if value.get("data").is_none() {
             if let Some(obj) = value.as_object_mut() {
-                let agent_id = state.agent_id.clone();
+                let agent_id = state.agent_id;
                 match serde_json::to_value(payload::RemoveAgentData { agent_id }) {
                     Ok(value) => {
                         obj.insert(String::from("data"), value);
@@ -212,15 +212,10 @@ impl Message {
     /// serdes missing variant error
     fn ensure_is_valid_hash_engine_message(value: &serde_json::Value) -> Result<(), Error> {
         // message is intended for hash already, so only ensure type
-        if let Some(serde_json::Value::String(kind /* is a &String */)) = value.get("type") {
+        if let Some(serde_json::Value::String(kind)) = value.get("type") {
             // since all keys stored inside the system message types are lower case, we should also
             // lowercase the kind here too
-            let kind: &String = &kind.to_ascii_lowercase();
-            // contains needs a &str, our type is a &String, so
-            // 1. *&String -> String
-            // 2. *String -> &str
-            // 3. (wrap in a temp ref, for std::borrow::Borrow), thus &**
-            if is_system_message(&**kind) {
+            if is_system_message(&kind.to_ascii_lowercase()) {
                 return Ok(());
             }
             // otherwise throw an error
@@ -228,7 +223,7 @@ impl Message {
             // string for our error. I'm sure as an optimization in the future seeing as how an
             // error is the end of life for message preprocessing we can just take it by value
             // instead.
-            return Err(Error::InvalidMessageType(Some(kind.to_string())));
+            return Err(Error::InvalidMessageType(Some(kind.to_owned())));
         }
         Err(Error::InvalidMessageType(None))
     }
@@ -253,7 +248,7 @@ impl Message {
     ///
     /// This function will panic if `value` is not a valid JSON array.
     /// TODO: Make sure this function is named as unchecekd to prevent unknown panics
-    pub(in crate) fn from_json_array_with_state(
+    pub(crate) fn from_json_array_with_state(
         value: serde_json::Value,
         agent_state: &Agent,
     ) -> Result<Vec<Message>, Error> {

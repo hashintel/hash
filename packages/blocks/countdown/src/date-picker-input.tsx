@@ -1,5 +1,5 @@
-import React, {
-  FC,
+import {
+  FunctionComponent,
   forwardRef,
   HTMLAttributes,
   MutableRefObject,
@@ -7,7 +7,9 @@ import React, {
 } from "react";
 import DatePicker, { ReactDatePickerProps } from "react-datepicker";
 
-const CalenderIcon: FC<{ onClick: () => void }> = ({ onClick }) => {
+const CalenderIcon: FunctionComponent<{ onClick: () => void }> = ({
+  onClick,
+}) => {
   return (
     <svg
       width="17"
@@ -106,17 +108,20 @@ const CustomTimeInput = forwardRef<HTMLInputElement, CustomTimeInputProps>(
 type DatePickerInputProps = {
   displayTime: boolean;
   setDisplayTime: (val: boolean) => void;
+  readonly: boolean;
 } & ReactDatePickerProps<never, boolean>;
 
 export const DatePickerInput = forwardRef<DatePicker, DatePickerInputProps>(
-  ({ displayTime, setDisplayTime, ...props }, ref) => {
+  ({ displayTime, setDisplayTime, readonly, ...props }, ref) => {
     return (
       <div>
         <DatePicker
           ref={ref}
           placeholderText="Select a date"
+          disabled={readonly}
           dateFormat={displayTime ? "MMM d, yyyy h:mm aa" : "MMM d, yyyy"}
           {...props}
+          readOnly={readonly}
           customInput={<CustomInput displayTime={displayTime} />}
           customTimeInput={
             <CustomTimeInput

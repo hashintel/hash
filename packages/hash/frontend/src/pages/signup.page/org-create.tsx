@@ -1,4 +1,10 @@
-import React, { ChangeEvent, useMemo, VFC, useState } from "react";
+import {
+  ChangeEvent,
+  useMemo,
+  FunctionComponent,
+  useState,
+  Fragment,
+} from "react";
 import { useForm, Controller, RegisterOptions } from "react-hook-form";
 import { tw } from "twind";
 import { useMutation } from "@apollo/client";
@@ -13,7 +19,7 @@ import { PictureIcon, SpinnerIcon } from "../../shared/icons";
 import { ORG_ROLES, ORG_SIZES } from "../shared/auth-utils";
 import { createOrg as createOrgMutation } from "../../graphql/queries/org.queries";
 import { useShortnameInput } from "../../components/hooks/useShortnameInput";
-// import { useFileUpload } from "../../../hooks/useFileUpload";
+// import { useBlockProtocolFileUpload } from "../../../hooks/useBlockProtocolFileUpload";
 
 type OrgCreateProps = {
   // accountId: string;
@@ -96,7 +102,7 @@ const getInitials = (name: string) => {
   if (initials.length > 1) return initials[0]![0]! + initials[1]![0]!;
 };
 
-export const OrgCreate: VFC<OrgCreateProps> = ({
+export const OrgCreate: FunctionComponent<OrgCreateProps> = ({
   // accountId,
   onCreateOrgSuccess,
 }) => {
@@ -183,7 +189,6 @@ export const OrgCreate: VFC<OrgCreateProps> = ({
     <div className={tw`flex flex-col items-center`}>
       <h1 className={tw`text-3xl font-bold mb-12`}>Create a team workspace</h1>
       <div className={tw`text-center mb-6`}>
-        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
         <label className={tw`flex flex-col cursor-pointer`}>
           {avatarImg ? (
             <img
@@ -220,7 +225,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({
             index,
           ) => {
             return (
-              <React.Fragment key={name}>
+              <Fragment key={name}>
                 <Controller
                   control={control}
                   name={name}
@@ -271,7 +276,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({
                 {index !== FORM_INPUTS.length - 1 && (
                   <div className={tw`mb-6`} />
                 )}
-              </React.Fragment>
+              </Fragment>
             );
           },
         )}

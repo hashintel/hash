@@ -53,7 +53,7 @@ export const createUsers =
 
 /**
  * Create additional orgs we might want as dummy/seed data
- * The HASH org is now created as part of migration, as it doubles up as the 'system' account.
+ * The HASH org is not created as part of migration, as it doubles up as the 'system' account.
  */
 export const createOrgs = async (db: DbAdapter): Promise<Org[]> => {
   const orgs: { properties: DbOrgProperties; createdByAccountId: string }[] =

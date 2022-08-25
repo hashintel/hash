@@ -1,17 +1,17 @@
-import { useState } from "react";
+import { FunctionComponent, useState } from "react";
 import { faBell } from "@fortawesome/free-solid-svg-icons";
-import { Box, ListItemText, Menu, Typography, useTheme } from "@mui/material";
+import { Box, ListItemText, Typography, useTheme } from "@mui/material";
 import {
   usePopupState,
   bindMenu,
   bindTrigger,
 } from "material-ui-popup-state/hooks";
 
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
-export const NotificationsDropdown: React.FC = () => {
+export const NotificationsDropdown: FunctionComponent = () => {
   const theme = useTheme();
   const [notificationsLength] = useState(3);
   const hasNotifications = !!notificationsLength;

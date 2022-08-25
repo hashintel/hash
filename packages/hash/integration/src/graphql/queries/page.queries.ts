@@ -37,7 +37,6 @@ const linkedAggregationsFragment = gql`
       pageCount
     }
     results {
-      id
       entityVersionId
       entityId
       accountId
@@ -109,6 +108,7 @@ const pageFieldsFragment = gql`
     }
     properties {
       __typename
+      pageEntityId
       archived
       summary
       title
@@ -146,6 +146,7 @@ export const getAccountPagesTree = gql`
       entityId
       properties {
         title
+        pageEntityId
       }
       parentPageEntityId
     }

@@ -1,4 +1,4 @@
-import { VoidFunctionComponent } from "react";
+import { FunctionComponent } from "react";
 
 import { useRouter } from "next/router";
 import { Box, Drawer, Tooltip } from "@mui/material";
@@ -16,7 +16,7 @@ import { useRouteAccountInfo, useRoutePageInfo } from "../../routing";
 
 export const SIDEBAR_WIDTH = 260;
 
-export const PageSidebar: VoidFunctionComponent = () => {
+export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
   const { accountId } = useRouteAccountInfo();
@@ -36,11 +36,13 @@ export const PageSidebar: VoidFunctionComponent = () => {
           width: SIDEBAR_WIDTH,
         },
       }}
+      data-testid="page-sidebar"
     >
       <Box
         sx={{
           mx: 0.75,
           py: 0.5,
+          pt: 0.5,
           display: "flex",
           alignItems: "center",
         }}
@@ -49,7 +51,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
           <WorkspaceSwitcher />
         </Box>
         <Tooltip title="Collapse Sidebar">
-          <IconButton size="large" onClick={closeSidebar}>
+          <IconButton size="medium" onClick={closeSidebar}>
             <SidebarToggleIcon />
           </IconButton>
         </Tooltip>
@@ -80,7 +82,6 @@ export const PageSidebar: VoidFunctionComponent = () => {
         href="/"
         tooltipTitle="Pages you’ve recently visited"
       /> */}
-      <Box sx={{ mb: 1.5 }} />
 
       <Box
         sx={{

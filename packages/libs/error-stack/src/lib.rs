@@ -1,5 +1,15 @@
 //! A context-aware error library with arbitrary attached user data.
 //!
+//! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
+//! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
+//! [![rust-version](https://img.shields.io/badge/Rust-1.63.0/nightly--2022--08--19-blue)][rust-version]
+//! [![discord](https://img.shields.io/discord/840573247803097118)][discord]
+//!
+//! [crates.io]: https://crates.io/crates/error-stack
+//! [libs.rs]: https://lib.rs/crates/error-stack
+//! [rust-version]: https://www.rust-lang.org
+//! [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_error-stack
+//!
 //! # Overview
 //!
 //! `error-stack` is an error-handling library centered around the idea of building a [`Report`] of
@@ -71,14 +81,13 @@
 //! // As can be seen, it's possible to call `IntoReport::report` to easily create a `Report` from
 //! // an `io::Error`
 //! fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
-//!     let content = fs::read_to_string(path).report()?;
+//!     let content = fs::read_to_string(path).into_report()?;
 //!
 //!     # const _: &str = stringify! {
 //!     ...
 //!     # }; Ok(content)
 //! }
 //! # let report = read_file("test.txt").unwrap_err();
-//! # assert_eq!(report.frames().count(), 1);
 //! # assert!(report.contains::<io::Error>());
 //! # }
 //! ```
@@ -121,7 +130,7 @@
 //! // For clarification, this example is not using `error_stack::Result`.
 //! fn parse_config(path: impl AsRef<Path>) -> Result<Config, ParseConfigError> {
 //!     let content = fs::read_to_string(path.as_ref())
-//!         .report()
+//!         .into_report()
 //!         .change_context(ParseConfigError)?;
 //!
 //!     # const _: &str = stringify! {
@@ -129,7 +138,6 @@
 //!     # }; Ok(content)
 //! }
 //! # let report = parse_config("test.txt").unwrap_err();
-//! # assert_eq!(report.frames().count(), 2);
 //! # assert!(report.contains::<io::Error>());
 //! # assert!(report.contains::<ParseConfigError>());
 //! # }
@@ -143,7 +151,8 @@
 //! [`Report::attach()`] and [`Report::attach_printable()`]:
 //!
 //! ```rust
-//! # #![cfg_attr(not(feature = "std"), allow(dead_code, unused_variables, unused_imports))]
+//! # // we only test the snapshot on nightly, therefore report is unused (so is render)
+//! # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 //! # use std::{fs, path::Path};
 //! # use error_stack::{Context, IntoReport, Report, ResultExt};
 //! # pub type Config = String;
@@ -158,12 +167,11 @@
 //! # #[derive(Debug, PartialEq)]
 //! struct Suggestion(&'static str);
 //!
-//! # #[cfg(all(not(miri), feature = "std"))] {
 //! fn parse_config(path: impl AsRef<Path>) -> Result<Config, Report<ParseConfigError>> {
 //!     let path = path.as_ref();
 //!
 //!     let content = fs::read_to_string(path)
-//!         .report()
+//!         .into_report()
 //!         .change_context(ParseConfigError::new())
 //!         .attach(Suggestion("Use a file you can read next time!"))
 //!         .attach_printable_lazy(|| format!("Could not read file {path:?}"))?;
@@ -171,7 +179,6 @@
 //!     Ok(content)
 //! }
 //! # let report = parse_config("test.txt").unwrap_err();
-//! # assert_eq!(report.frames().count(), 4);
 //! # assert!(report.contains::<std::io::Error>());
 //! # assert_eq!(report.downcast_ref::<Suggestion>().unwrap(), &Suggestion("Use a file you can read next time!"));
 //! # #[cfg(nightly)]
@@ -179,7 +186,20 @@
 //! # #[cfg(nightly)]
 //! # assert_eq!(report.request_ref::<String>().next().unwrap(), "Could not read file \"test.txt\"");
 //! # assert!(report.contains::<ParseConfigError>());
+//! #
+//! # owo_colors::set_override(true);
+//! # fn render(value: String) -> String {
+//! #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+//! #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+//! #
+//! #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+//! #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+//! #
+//! #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 //! # }
+//! #
+//! # #[cfg(nightly)]
+//! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/lib__suggestion.snap")].assert_eq(&render(format!("{report:?}")));
 //! ```
 //!
 //! As seen above, there are ways on attaching more information to the [`Report`]: [`attach`] and
@@ -187,16 +207,11 @@
 //! bound on the attachment: [`Display`] and [`Debug`]. Depending on the function used, printing the
 //! [`Report`] will also use the [`Display`] and [`Debug`] traits to describe the attachment:
 //!
-//! ```text
-//! Could not parse configuration file
-//!              at main.rs:9:10
-//!       - Could not read file "config.json"
-//!       - 1 additional opaque attachment
+//! This outputs something like:
 //!
-//! Caused by:
-//!    0: No such file or directory (os error 2)
-//!              at main.rs:7:10
-//! ```
+//! <pre>
+#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/lib__suggestion.snap"))]
+//! </pre>
 //!
 //! The `Suggestion` passed to [`attach`] shown as an opaque attachment. The message passed to
 //! [`attach_printable`] however is printed next to the [`Context`] where it was attached to.
@@ -204,6 +219,54 @@
 //! [`attach_printable`]: Report::attach_printable
 //! [`Display`]: core::fmt::Display
 //! [`Debug`]: core::fmt::Debug
+//!
+//! ### Multiple Errors
+//!
+//! [`Report`] supports the combination and propagation of multiple errors natively.
+//! This is useful in cases like parallel processing where multiple errors might happen
+//! independently from each other, in these use-cases you are able to use the implementations of
+//! [`Extend`] and [`extend_one()`] and are able to propagate all errors instead of just a single
+//! one.
+//!
+//! [`extend_one()`]: Report::extend_one
+//!
+//! ```rust
+//! # #![cfg_attr(not(feature = "std"), allow(dead_code, unused_variables, unused_imports))]
+//! # use std::{fs, path::Path};
+//! # use error_stack::{IntoReport, Report};
+//! # pub type Config = String;
+//!
+//! fn parse_configs(paths: &[impl AsRef<Path>]) -> Result<Vec<Config>, Report<std::io::Error>> {
+//!     let mut configs = Vec::new();
+//!     let mut error: Option<Report<std::io::Error>> = None;
+//!
+//!     for path in paths {
+//!         let path = path.as_ref();
+//!
+//!         match fs::read_to_string(path).into_report() {
+//!             Ok(ok) => {
+//!                 configs.push(ok);
+//!             }
+//!             Err(err) => {
+//!                 if let Some(error) = error.as_mut() {
+//!                     error.extend_one(err);
+//!                 } else {
+//!                     error = Some(err);
+//!                 }
+//!             }
+//!         }
+//!     }
+//!
+//!     if let Some(error) = error {
+//!         return Err(error);
+//!     }
+//!
+//!     Ok(configs)
+//! }
+//!
+//! # let report = parse_configs(&["test.txt", "test2.txt", "test3.txt"]).unwrap_err();
+//! # assert!(report.contains::<std::io::Error>());
+//! ```
 //!
 //! # In-Depth Explanation
 //!
@@ -274,14 +337,13 @@
 //!
 //! ### Automatic Backtraces
 //!
-//! When on a nightly compiler, [`Report`] will use the [`Backtrace`] from the base [`Context`] if
-//! it exists, or it will try to capture one. Unlike some other approaches, this does not require
-//! the user modifying their custom error types to be aware of backtraces, and doesn't require
-//! manual implementations to forward calls down any wrapped errors that are often needed with other
-//! approaches.
+//! When on a Rust 1.65 or later, [`Report`] will try to capture a [`Backtrace`] if `RUST_BACKTRACE`
+//! or `RUST_BACKTRACE_LIB` is set. If on a nightly toolchain, it will use the [`Backtrace`]
+//! if provided by the base [`Context`], and will try to capture one otherwise.
 //!
-//! Using the `backtrace` crate instead of `std::backtrace` is a considered feature to support
-//! backtraces on non-nightly channels and can be prioritized depending on demand.
+//! Unlike some other approaches, this does not require the user modifying their custom error types
+//! to be aware of backtraces, and doesn't require manual implementations to forward calls down any
+//! wrapped errors.
 //!
 //! ### No-Std compatible
 //!
@@ -292,19 +354,14 @@
 //!
 //! This crate uses the [`Provider` API] to provide arbitrary data. This can be done either by
 //! [`attach`]ing them to a [`Report`] or by providing it directly when implementing [`Context`].
-//! The blanket implementation of [`Context`] for [`Error`] will provide the [`Backtrace`] to be
-//! requested later.
+//! The blanket implementation of [`Context`] for [`Error`] will provide any data provided by
+//! [`Error::provide`].
 //!
 //! To request a provided type, [`Report::request_ref`] or [`Report::request_value`] are used. Both
 //! return an iterator of all provided values with the specified type. The value, which was provided
 //! most recently will be returned first.
 //!
-//! **Currently, the API has not yet landed in `core::any`, thus in the meantime it has been
-//! included in the library implementation and is available at [`error_stack::provider`]. Using it
-//! requires a nightly compiler.**
-//!
 //! [`attach`]: Report::attach
-//! [`error_stack::provider`]: crate::provider
 //! [`Provider` API]: https://rust-lang.github.io/rfcs/3192-dyno.html
 //!
 //! ### Macros for Convenience
@@ -359,26 +416,45 @@
 //!  Feature   | Description                                                    | implies | default
 //! -----------|----------------------------------------------------------------|---------|--------
 //!  `std`     | Enables support for [`Error`] and, on nightly, [`Backtrace`]   |         | enabled
-//!  `hooks`   |Enables the usage of [`set_display_hook`] and [`set_debug_hook`]| `std`   | disabled
 //! `spantrace`| Enables the capturing of [`SpanTrace`]s                        |         | disabled
 //!  `futures` | Provides a [`FutureExt`] adaptor                               |         | disabled
+//! `small`    | Enable optimizations for the memory footprint of [`Report`]    |         | enabled
+//!  `anyhow`  | Provides conversion from [`anyhow::Error`] to [`Report`]       |         | disabled
+//!   `eyre`   | Provides conversion from [`eyre::Report`] to [`Report`]        |         | disabled
+//! `pretty-print` | Provide color[^color] and use of unicode in [`Debug`] output |     | enabled
+//! `unstable` | Enables unstable features, which do not follow semver[^unstable] |  | disabled
+//!
+//! [^color]: error-stack supports the [`NO_COLOR`](http://no-color.org/)
+//!     and `FORCE_COLOR` environment variables through the [owo-colors crate](https://crates.io/crates/owo-colors)
+//!
+//! [^unstable]: unstable features may be removed in **any** future version without notice.
+//!     They exist to gauge interest towards features that may be stablized in the future.
 //!
 //! [`set_display_hook`]: Report::set_display_hook
 //! [`set_debug_hook`]: Report::set_debug_hook
 //!
 //! [`Error`]: std::error::Error
+//! [`Error::provide`]: std::error::Error::provide
 //! [`Backtrace`]: std::backtrace::Backtrace
+//! [`Display`]: core::fmt::Display
+//! [`Debug`]: core::fmt::Debug
 //! [`SpanTrace`]: tracing_error::SpanTrace
-
+//! [`smallvec`]: https://docs.rs/smallvec
 #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(nightly, feature(provide_any))]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
-#![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
+#![cfg_attr(
+    all(nightly, feature = "std"),
+    feature(backtrace_frames, error_generic_member_access)
+)]
 #![warn(
     missing_docs,
+    unreachable_pub,
     clippy::pedantic,
     clippy::nursery,
     clippy::undocumented_unsafe_blocks
 )]
+#![allow(clippy::redundant_pub_crate)] // This would otherwise clash with `unreachable_pub`
 #![allow(clippy::missing_errors_doc)] // This is an error handling library producing Results, not Errors
 #![allow(clippy::module_name_repetitions)]
 #![cfg_attr(
@@ -388,27 +464,54 @@
 
 extern crate alloc;
 
+pub mod compat;
 mod frame;
 pub mod iter;
 mod macros;
 mod report;
+mod result;
 
 mod context;
-mod ext;
-#[cfg(feature = "hooks")]
+pub mod ext;
+#[cfg(feature = "std")]
+pub mod fmt;
+#[cfg(not(feature = "std"))]
+mod fmt;
+#[cfg(feature = "std")]
 mod hook;
-#[cfg(nightly)]
-pub mod provider;
-#[cfg(test)]
-pub(crate) mod test_helper;
 
 #[doc(inline)]
-pub use self::ext::*;
-#[cfg(feature = "hooks")]
+#[cfg(feature = "futures")]
+pub use self::ext::{future::FutureExt, stream::StreamExt};
+#[doc(inline)]
+pub use self::ext::{
+    iter::IteratorExt,
+    result::{IntoReport, ResultExt},
+};
+#[cfg(feature = "std")]
+#[allow(deprecated)]
 pub use self::hook::HookAlreadySet;
 pub use self::{
     context::Context,
     frame::{AttachmentKind, Frame, FrameKind},
     macros::*,
     report::Report,
+    result::Result,
 };
+
+#[cfg(test)]
+mod tests {
+    #![allow(dead_code)]
+
+    use crate::Report;
+
+    const fn test_send<T: Send>() {}
+    const fn test_sync<T: Sync>() {}
+    const fn test_static<T: 'static>() {}
+
+    const fn report() {
+        test_send::<Report<()>>();
+        test_sync::<Report<()>>();
+        test_static::<Report<()>>();
+    }
+}

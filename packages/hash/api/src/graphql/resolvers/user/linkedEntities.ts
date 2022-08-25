@@ -1,13 +1,14 @@
 import { ApolloError } from "apollo-server-errors";
 import { User } from "../../../model";
-import { Resolver, User as GQLUser } from "../../apiTypes.gen";
+import { ResolverFn, User as GQLUser } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { UnresolvedGQLEntity } from "../../../model/entity.model";
 
-export const memberOf: Resolver<
+export const memberOf: ResolverFn<
   Promise<UnresolvedGQLEntity[]>,
   GQLUser,
-  GraphQLContext
+  GraphQLContext,
+  {}
 > = async ({ entityId }, _, { dataSources }) => {
   const user = await User.getUserById(dataSources.db, { entityId });
 

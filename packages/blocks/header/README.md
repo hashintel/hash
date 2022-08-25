@@ -1,3 +1,3 @@
 # Header block
 
-https://blockprotocol.org/@hash/header
+A block to display heading text.

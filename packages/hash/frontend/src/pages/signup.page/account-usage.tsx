@@ -1,4 +1,4 @@
-import React, { useState, VFC } from "react";
+import { useState, FunctionComponent } from "react";
 import { tw } from "twind";
 
 import { WayToUseHash } from "../../graphql/apiTypes.gen";
@@ -25,7 +25,7 @@ const USAGE_OPTIONS = [
   },
 ] as const;
 
-export const AccountUsage: VFC<AccountUsageProps> = ({
+export const AccountUsage: FunctionComponent<AccountUsageProps> = ({
   updateWayToUseHash,
   loading,
   errorMessage,

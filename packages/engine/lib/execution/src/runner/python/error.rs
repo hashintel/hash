@@ -1,8 +1,7 @@
-use simulation_structure::SimulationShortId;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
-use crate::runner::comms::InboundToRunnerMsgPayload;
+use crate::{package::simulation::SimulationId, runner::comms::InboundToRunnerMsgPayload};
 
 pub type PythonResult<T, E = PythonError> = std::result::Result<T, E>;
 
@@ -18,7 +17,7 @@ pub enum PythonError {
     Spawn(std::io::Error),
 
     #[error("Couldn't send inbound message to runner: {0}")]
-    InboundSend(#[from] SendError<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>),
+    InboundSend(#[from] SendError<(Option<SimulationId>, InboundToRunnerMsgPayload)>),
 
     #[error("Couldn't send message {0:?} to Python process: {1:?}")]
     NngSend(nng::Message, nng::Error),

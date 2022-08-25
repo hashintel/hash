@@ -97,7 +97,7 @@ impl<'de> Deserialize<'de> for AxisBoundary {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Debug, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WrappingBehavior {
     /// Agents crossing the border re-enter on the other side
@@ -263,7 +263,7 @@ impl Default for WrappingBehavior {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Debug, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WrappingPreset {
     Spherical,
@@ -272,7 +272,7 @@ pub enum WrappingPreset {
     Reflection,
 }
 
-#[derive(Clone, Copy, PartialEq, Debug, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DistanceFunction {
     /// The distance function associated with the L-1 norm

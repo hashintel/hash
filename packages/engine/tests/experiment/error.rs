@@ -5,7 +5,8 @@ use serde_json::Value;
 
 pub type Result<T, C = TestContext> = error_stack::Result<T, C>;
 
-// TODO: Split the enum into multiple structs, so each function have a well defined boundary like
+// TODO: Split the enum into multiple structs, so that each function has a well defined boundary
+// such as
 //   `-> Result<_, Report<ExperimentSetup>>`
 //   see https://app.asana.com/0/1199548034582004/1202369328773771/f
 #[derive(Debug)]
@@ -66,7 +67,11 @@ impl TestError {
         Self::ParseError { path: path.into() }
     }
 
-    pub fn unexpected_output_value(path: String, actual: Value, expected: Value) -> Self {
+    /// Note that as for the test to pass `expected` ⊆ `actual`, the first
+    /// argument to this function should be the expected value (what should be
+    /// the subset) and the second argument the actual value (what should be the
+    /// superset).
+    pub fn unexpected_output_value(path: String, expected: Value, actual: Value) -> Self {
         Self::UnexpectedOutputValue {
             path,
             actual,
@@ -141,3 +146,19 @@ impl fmt::Display for TestError {
 }
 
 impl Error for TestError {}
+
+#[test]
+#[cfg(test)]
+fn check_test_error_output() {
+    let e = TestError::unexpected_output_value(
+        "for_test".to_string(),
+        Value::Bool(true),
+        Value::Bool(false),
+    );
+
+    let res = format!("{}", e);
+    assert_eq!(
+        res,
+        "Unexpected output value at \"for_test\": expected `true`, got `false`"
+    );
+}

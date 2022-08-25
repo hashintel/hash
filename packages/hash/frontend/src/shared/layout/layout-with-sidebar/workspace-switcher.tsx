@@ -1,8 +1,7 @@
-import { VFC, useRef, useMemo } from "react";
+import { FunctionComponent, useRef, useMemo } from "react";
 import {
   Box,
   Typography,
-  Menu,
   Divider,
   ListItemText,
   ListItemAvatar,
@@ -14,7 +13,7 @@ import {
   bindTrigger,
   bindMenu,
 } from "material-ui-popup-state/hooks";
-import { Avatar, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Avatar, Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { useUser } from "../../../components/hooks/useUser";
 import { useLogout } from "../../../components/hooks/useLogout";
 import { Button, MenuItem } from "../../ui";
@@ -22,7 +21,9 @@ import { useRouteAccountInfo } from "../../routing";
 
 type WorkspaceSwitcherProps = {};
 
-export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
+export const WorkspaceSwitcher: FunctionComponent<
+  WorkspaceSwitcherProps
+> = () => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popupState = usePopupState({
     variant: "popover",
@@ -82,17 +83,18 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
           fullWidth
           sx={({ spacing }) => ({
             backgroundColor: "transparent",
-            padding: spacing(1.5, 2, 1.5, 2.25),
+            padding: spacing(1, 1.25),
+            minHeight: 0,
             justifyContent: "flex-start",
             textAlign: "left",
           })}
           {...bindTrigger(popupState)}
         >
-          <Avatar size={24} title={activeWorkspace.name} />
+          <Avatar size={22} title={activeWorkspace.name} />
           <Typography
             sx={{
               pr: 1,
-              pl: 1,
+              pl: 1.25,
               overflowX: "hidden",
               whiteSpace: "nowrap",
               textOverflow: "ellipsis",
@@ -115,7 +117,6 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
         {...bindMenu(popupState)}
         MenuListProps={{
           sx: {
-            paddingTop: "10px",
             paddingBottom: "6px",
           },
         }}

@@ -1,4 +1,4 @@
-import * as React from "react";
+import { FunctionComponent } from "react";
 import { Box, BoxProps } from "@mui/material";
 
 interface AvatarProps extends BoxProps {
@@ -7,7 +7,7 @@ interface AvatarProps extends BoxProps {
   src?: string;
 }
 
-export const Avatar: React.VFC<AvatarProps> = ({
+export const Avatar: FunctionComponent<AvatarProps> = ({
   title,
   size = 20,
   src,
@@ -49,6 +49,7 @@ export const Avatar: React.VFC<AvatarProps> = ({
           sx={{
             color: ({ palette }) => palette.common.white,
             fontSize: size / 2,
+            fontWeight: 700,
             lineHeight: 1,
           }}
         >

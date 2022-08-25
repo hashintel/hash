@@ -15,20 +15,19 @@
 pub mod behavior_execution;
 pub mod topology;
 
+mod creator;
 mod message;
 mod name;
 mod task;
 
 use async_trait::async_trait;
-use stateful::{
-    context::Context,
-    field::{FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
-    global::Globals,
-    state::State,
-};
+use stateful::{context::Context, field::FieldSpecMapAccessor, state::State};
 use tracing::Span;
 
-pub use self::{message::StateTaskMessage, name::StatePackageName, task::StateTask};
+pub use self::{
+    creator::StatePackageCreators, message::StateTaskMessage, name::StatePackageName,
+    task::StateTask,
+};
 use crate::{
     package::simulation::{
         Package, PackageComms, PackageCreator, PackageCreatorConfig, PackageInitConfig,
@@ -43,23 +42,13 @@ pub trait StatePackage: Package {
     fn span(&self) -> Span;
 }
 
-pub trait StatePackageCreator<C>: PackageCreator {
+pub trait StatePackageCreator: PackageCreator {
     /// Create the package.
     fn create(
         &self,
         config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
-        comms: PackageComms<C>,
+        comms: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn StatePackage>>;
-
-    #[allow(unused_variables)]
-    fn get_state_field_specs(
-        &self,
-        config: &PackageInitConfig,
-        globals: &Globals,
-        field_spec_map_builder: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
-        Ok(vec![])
-    }
 }

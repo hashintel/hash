@@ -1,15 +1,14 @@
 use std::collections::HashSet;
 
-use arrow::{
-    array::{self, Array, FixedSizeListArray, StringArray},
-    datatypes::Field,
-    record_batch::RecordBatch,
+use arrow2::{
+    array::{self, Array, FixedSizeListArray, Utf8Array},
+    datatypes::{Field, Schema},
 };
-use memory::arrow::{col_to_json_vals, json_utf8_json_vals};
+use memory::arrow::{col_to_json_vals, json_utf8_json_vals, record_batch::RecordBatch};
 
 use crate::{
     agent::{
-        arrow::PREVIOUS_INDEX_FIELD_KEY, Agent, AgentBatch, AgentName, AgentSchema,
+        arrow::PREVIOUS_INDEX_FIELD_KEY, field::AgentId, Agent, AgentBatch, AgentName, AgentSchema,
         AgentStateField, IsRequired, BUILTIN_FIELDS,
     },
     field::{FieldScope, FieldTypeVariant, UUID_V4_LEN},
@@ -102,20 +101,20 @@ impl IntoAgents for RecordBatch {
             })
             .unwrap_or_else(|| {
                 self.schema()
-                    .metadata()
+                    .metadata
                     .get("any_type_fields")
-                    .expect("Should always contain `any_type_fields` in metadata")
+                    .expect("The key `any_type_fields` should always exist in the metadata")
                     .split(',')
                     .map(|v| v.to_string())
                     .collect()
             });
 
-        for (i_field, field) in agents.schema().fields().iter().enumerate() {
+        for (i_field, field) in agents.schema().fields.iter().enumerate() {
             // TODO: remove the need for this
-            if BUILTIN_FIELDS.contains(&field.name().as_str()) {
+            if BUILTIN_FIELDS.contains(&field.name.as_str()) {
                 continue; // Skip builtins, because they were already
             } // set in `set_states_builtins`.
-            if any_types.contains(field.name()) {
+            if any_types.contains(&field.name) {
                 // We need to use "from_str" and not "to_value" when converting to serde_json::Value
                 set_states_serialized(&mut states, agents, i_field, field)?;
             } else {
@@ -176,7 +175,7 @@ fn set_states_messages(states: &mut [Agent], messages: &RecordBatch) -> Result<(
 // This works: https://docs.rs/arrow/1.0.1/src/arrow/array/cast.rs.html
 
 fn get_i_col(field: AgentStateField, record_batch: &RecordBatch) -> Result<Option<usize>> {
-    match record_batch.schema().column_with_name(field.name()) {
+    match schema_column_with_name(record_batch.schema().as_ref(), field.name()) {
         Some((i, _)) => Ok(Some(i)),
         None => {
             if field.is_required() {
@@ -188,23 +187,33 @@ fn get_i_col(field: AgentStateField, record_batch: &RecordBatch) -> Result<Optio
     }
 }
 
+// todo: move this near "column_with_name" and then also rename that function to make it all clearer
+/// Carries out a linear search to find the requested field on the schema.
+pub fn schema_column_with_name(schema: &Schema, name: &str) -> Option<(usize, Field)> {
+    schema.fields.iter().enumerate().find_map(|(i, field)| {
+        if field.name == name {
+            Some((i, field.clone()))
+        } else {
+            None
+        }
+    })
+}
+
 fn set_states_agent_id(states: &mut [Agent], record_batch: &RecordBatch) -> Result<()> {
     let field = AgentStateField::AgentId;
     if let Some(i_col) = get_i_col(field, record_batch)? {
         let array = record_batch
             .column(i_col)
             .as_any()
-            .downcast_ref::<arrow::array::FixedSizeBinaryArray>()
+            .downcast_ref::<arrow2::array::FixedSizeBinaryArray>()
             .ok_or(Error::InvalidArrowDowncast {
                 name: "agent_id".into(),
             })?;
 
-        debug_assert_eq!(array.value_length(), UUID_V4_LEN as i32);
+        debug_assert_eq!(array.size(), UUID_V4_LEN);
 
         for (i_state, state) in states.iter_mut().enumerate() {
-            let value = array.value(i_state);
-            let uuid = uuid::Uuid::from_slice(value)?;
-            state.agent_id = uuid.to_hyphenated().to_string();
+            state.agent_id = AgentId::from_slice(array.value(i_state))?;
         }
     }
     Ok(())
@@ -213,10 +222,9 @@ fn set_states_agent_id(states: &mut [Agent], record_batch: &RecordBatch) -> Resu
 fn set_states_agent_name(states: &mut [Agent], record_batch: &RecordBatch) -> Result<()> {
     let field = AgentStateField::AgentName;
     if let Some(i_col) = get_i_col(field.clone(), record_batch)? {
-        let array = record_batch
-            .column(i_col)
+        let array = record_batch.columns()[i_col]
             .as_any()
-            .downcast_ref::<StringArray>()
+            .downcast_ref::<Utf8Array<i32>>()
             .ok_or(Error::InvalidArrowDowncast {
                 name: field.name().into(),
             })?;
@@ -235,10 +243,9 @@ fn set_states_agent_name(states: &mut [Agent], record_batch: &RecordBatch) -> Re
 fn set_states_shape(states: &mut [Agent], record_batch: &RecordBatch) -> Result<()> {
     let field = AgentStateField::Shape;
     if let Some(i_col) = get_i_col(field.clone(), record_batch)? {
-        let array = record_batch
-            .column(i_col)
+        let array = record_batch.columns()[i_col]
             .as_any()
-            .downcast_ref::<StringArray>()
+            .downcast_ref::<Utf8Array<i32>>()
             .ok_or(Error::InvalidArrowDowncast {
                 name: field.name().into(),
             })?;
@@ -260,7 +267,7 @@ fn set_states_color(states: &mut [Agent], record_batch: &RecordBatch) -> Result<
         let array = record_batch
             .column(i_col)
             .as_any()
-            .downcast_ref::<StringArray>()
+            .downcast_ref::<Utf8Array<i32>>()
             .ok_or(Error::InvalidArrowDowncast {
                 name: field.name().into(),
             })?;
@@ -331,7 +338,7 @@ macro_rules! set_states_opt_f64_gen {
                 let array = record_batch
                     .column(i_col)
                     .as_any()
-                    .downcast_ref::<arrow::array::Float64Array>()
+                    .downcast_ref::<arrow2::array::Float64Array>()
                     .ok_or(Error::InvalidArrowDowncast {
                         name: $field.name().into(),
                     })?;
@@ -357,7 +364,7 @@ fn set_states_hidden(states: &mut [Agent], record_batch: &RecordBatch) -> Result
         let array = record_batch
             .column(i_col)
             .as_any()
-            .downcast_ref::<arrow::array::BooleanArray>()
+            .downcast_ref::<arrow2::array::BooleanArray>()
             .ok_or(Error::InvalidArrowDowncast {
                 name: field.name().into(),
             })?;
@@ -370,9 +377,7 @@ fn set_states_hidden(states: &mut [Agent], record_batch: &RecordBatch) -> Result
 }
 
 fn set_states_previous_index(states: &mut [Agent], record_batch: &RecordBatch) -> Result<()> {
-    let index = record_batch
-        .schema()
-        .column_with_name(PREVIOUS_INDEX_FIELD_KEY)
+    let index = schema_column_with_name(record_batch.schema().as_ref(), PREVIOUS_INDEX_FIELD_KEY)
         .map(|v| v.0);
     if let Some(i_col) = index {
         let vec2_array = record_batch
@@ -434,10 +439,10 @@ fn set_states_custom(
     // https://docs.rs/arrow/1.0.1/src/arrow/datatypes.rs.html#1539-1544
     // ---> i_field == i_col
     let col = record_batch.column(i_field);
-    let vals = col_to_json_vals(col, field.data_type())?;
+    let vals = col_to_json_vals(col.as_ref(), field.data_type())?;
     for (i_val, val) in vals.into_iter().enumerate() {
         if col.null_count() == 0 || col.is_valid(i_val) {
-            states[i_val].custom.insert(field.name().clone(), val); // i_val == i_state
+            states[i_val].custom.insert(field.name.clone(), val); // i_val == i_state
         }
     }
     Ok(())
@@ -455,7 +460,7 @@ fn set_states_serialized(
     let vals = json_utf8_json_vals(col)?;
     for (i_val, val) in vals.into_iter().enumerate() {
         if col.null_count() == 0 || col.is_valid(i_val) {
-            states[i_val].custom.insert(field.name().clone(), val); // i_val == i_state
+            states[i_val].custom.insert(field.name.clone(), val); // i_val == i_state
         }
     }
     Ok(())

@@ -4,6 +4,7 @@
 mod macros;
 
 mod analyzer;
+mod buffer;
 mod config;
 mod index_iter;
 mod output;
@@ -20,6 +21,7 @@ use tracing::Span;
 
 use self::analyzer::Analyzer;
 pub use self::{
+    buffer::AnalysisBuffer,
     config::AnalysisOutputConfig,
     output::{AnalysisFinalOutput, AnalysisOutput, AnalysisSingleOutput},
 };
@@ -80,12 +82,12 @@ pub(self) fn get_analysis_source(sim_packages: &[SimPackageArgs]) -> Result<Stri
 
 pub struct AnalysisCreator;
 
-impl<C> OutputPackageCreator<C> for AnalysisCreator {
+impl OutputPackageCreator for AnalysisCreator {
     fn create(
         &self,
         config: &PackageCreatorConfig,
         init_config: &PackageInitConfig,
-        _comms: PackageComms<C>,
+        _comms: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn OutputPackage>> {
         // TODO, look at reworking signatures and package creation to make ownership clearer and

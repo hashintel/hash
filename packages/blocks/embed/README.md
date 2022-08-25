@@ -1,3 +1,3 @@
 # Embed block
 
-https://blockprotocol.org/@hash/embed
+A block to embed content from third-party sites.

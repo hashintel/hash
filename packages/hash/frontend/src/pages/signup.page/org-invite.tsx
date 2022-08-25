@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import React, { VFC, useState, useMemo } from "react";
+import { FunctionComponent, useState, useMemo } from "react";
 import { tw } from "twind";
 import {
   CreateOrgEmailInvitationMutation,
@@ -22,7 +22,7 @@ const isValidEmail = (email: string) => {
   return EMAIL_REGEX.test(email);
 };
 
-export const OrgInvite: VFC<OrgInviteProps> = ({
+export const OrgInvite: FunctionComponent<OrgInviteProps> = ({
   navigateToHome,
   createOrgInfo,
 }) => {

@@ -1,19 +1,17 @@
 use std::collections::HashMap;
 
-use simulation_structure::SimulationShortId;
-
-use crate::{worker_pool::WorkerAllocation, Error, Result};
+use crate::{package::simulation::SimulationId, worker_pool::WorkerAllocation, Error, Result};
 
 #[derive(Default)]
 pub struct SimulationRuns {
     // Associates a simulation run with the workers available to it
-    worker_allocations: HashMap<SimulationShortId, WorkerAllocation>,
+    worker_allocations: HashMap<SimulationId, WorkerAllocation>,
 }
 
 impl SimulationRuns {
     pub fn push(
         &mut self,
-        sim_id: SimulationShortId,
+        sim_id: SimulationId,
         worker_allocation: WorkerAllocation,
     ) -> Result<()> {
         self.worker_allocations
@@ -22,7 +20,7 @@ impl SimulationRuns {
         Ok(())
     }
 
-    pub fn get_worker_allocation(&self, id: SimulationShortId) -> Result<&WorkerAllocation> {
+    pub fn get_worker_allocation(&self, id: SimulationId) -> Result<&WorkerAllocation> {
         self.worker_allocations
             .get(&id)
             .ok_or(Error::MissingSimulationWithId(id))

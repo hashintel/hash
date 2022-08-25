@@ -1,8 +1,10 @@
 //! Low-level interface to [`AgentBatch`].
 
-pub(in crate) mod array;
-pub(in crate) mod boolean;
+pub(crate) mod array;
+pub(crate) mod boolean;
 
+/// todo: should this be in [`memory::arrow`] rather than here?
+pub(crate) mod arrow_conversion;
 mod batch;
 mod iterator;
 mod pool;

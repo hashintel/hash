@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { BlockComponent } from "blockprotocol/react";
 
 type BlockEntityProperties = {
@@ -62,7 +62,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   }, [laps, start]);
 
   const update = useCallback(
-    (laps_data, start_data) => {
+    (laps_data: number[], start_data: Date | null) => {
       setLocalLaps(laps_data);
       setLocalStart(start_data);
       if (updateEntities) {

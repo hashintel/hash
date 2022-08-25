@@ -1,15 +1,30 @@
-import React, { RefCallback } from "react";
-
-import { BlockComponent } from "blockprotocol/react";
+import { useRef } from "react";
+import { BlockComponent } from "@blockprotocol/graph/react";
+import { useHook, useHookBlockService } from "@blockprotocol/hook/react";
 
 type BlockEntityProperties = {
-  editableRef?: RefCallback<HTMLElement>;
   text?: string;
 };
 
 export const App: BlockComponent<BlockEntityProperties> = ({
-  editableRef,
-  text,
+  graph: {
+    blockEntity: {
+      properties: { text },
+    },
+  },
 }) => {
-  return editableRef ? <p ref={editableRef} /> : <p>{text}</p>;
+  const ref = useRef<HTMLHeadingElement>(null);
+  const { hookService } = useHookBlockService(ref);
+
+  useHook(hookService, ref, "text", "$.text", (node) => {
+    // eslint-disable-next-line no-param-reassign
+    node.innerText = text ?? "";
+
+    return () => {
+      // eslint-disable-next-line no-param-reassign
+      node.innerText = "";
+    };
+  });
+
+  return <p ref={ref} />;
 };
