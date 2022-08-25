@@ -1,8 +1,4 @@
-import {
-  DataType,
-  PropertyType,
-  VersionedUri,
-} from "@blockprotocol/type-system-web";
+import { DataType, PropertyType } from "@blockprotocol/type-system-web";
 /** @todo migrate the below types to the type system package types. */
 import { EntityType, LinkType } from "@hashintel/hash-graph-client";
 
