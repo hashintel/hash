@@ -70,7 +70,6 @@ pub enum Outgoing {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
 #[serde(rename_all = "camelCase")]
 pub struct Links {
-    #[serde(flatten)]
     outgoing: HashMap<VersionedUri, Outgoing>,
 }
 
