@@ -104,8 +104,7 @@ export const createEditorView = (
         );
       },
     },
-    dispatchTransaction: (tr) =>
-      connection?.dispatchTransaction(tr, connection?.state.version ?? 0),
+    dispatchTransaction: (tr) => connection?.dispatchTransaction(tr),
     editable: () => !readonly,
   });
 

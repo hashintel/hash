@@ -47,7 +47,7 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
       };
 
       update();
-      return {};
+      return { update };
     },
     props: {
       decorations(state) {

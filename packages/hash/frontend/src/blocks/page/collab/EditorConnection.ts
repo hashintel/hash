@@ -3,9 +3,9 @@ import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import {
   addEntityStoreAction,
   disableEntityStoreTransactionInterpretation,
+  EntityStorePluginAction,
   entityStorePluginState,
   TrackedAction,
-  EntityStorePluginAction,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { isString } from "lodash";
@@ -133,17 +133,34 @@ export class EditorConnection {
         this.state = new State(null, null, 0);
         this.close();
         break;
-      case "update":
+      case "update": {
+        let currentState: EditorState<Schema>;
+
         if (!this.state.edit) {
-          throw new Error("Cannot apply transaction without state to apply to");
-        }
-        if (action.transaction) {
-          newEditState = this.state.edit.apply(action.transaction);
+          if (
+            !action.transaction?.docChanged &&
+            this.state.version === 0 &&
+            this.state.comm === "start"
+          ) {
+            currentState = this.view.state;
+            nextVersion = 0;
+          } else {
+            throw new Error(
+              "Cannot apply transaction without state to apply to",
+            );
+          }
         } else {
-          newEditState = this.state.edit;
+          currentState = this.state.edit;
+          nextVersion = action.version;
         }
-        nextVersion = action.version;
+
+        if (action.transaction) {
+          newEditState = currentState.apply(action.transaction);
+        } else {
+          newEditState = currentState;
+        }
         break;
+      }
     }
 
     if (newEditState) {
@@ -186,8 +203,8 @@ export class EditorConnection {
     this.poll();
   }
 
-  dispatchTransaction = (transaction: Transaction<Schema>, version: number) => {
-    this.dispatch({ type: "update", transaction, version });
+  dispatchTransaction = (transaction: Transaction<Schema>) => {
+    this.dispatch({ type: "update", transaction, version: this.state.version });
   };
 
   // Load the document from the server and start up
