@@ -108,7 +108,7 @@ export const generateSchemaVersionedUri = (params: {
   kind: SchemaKind;
   title: string;
   version?: number;
-}) => `${generateSchemaBaseUri(params)}/v/${params.version ?? 1}`;
+}) => `${generateSchemaBaseUri(params)}/v/${params.version ?? 1}` as const;
 
 const primitiveDataTypeTitles = [
   "Text",
@@ -150,7 +150,7 @@ export const generateWorkspacePropertyTypeSchema = (params: {
     namespaceUri: workspaceTypesNamespaceUri,
     title: params.title,
     kind: "propertyType",
-  }) as VersionedUri /** @todo remove this cast */,
+  }),
   kind: "propertyType",
   title: params.title,
   oneOf: params.possibleValues.map(({ array, primitiveDataType }) =>
