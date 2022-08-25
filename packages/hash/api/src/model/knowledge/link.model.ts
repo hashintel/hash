@@ -82,4 +82,38 @@ export default class {
       ...fetchedParams,
     });
   }
+
+  static async getAll(
+    graphApi: GraphApi,
+    { sourceEntity }: { sourceEntity: EntityModel },
+  ): Promise<LinkModel[]> {
+    const { data: entityLinks } = await graphApi.getEntityLinks(
+      sourceEntity.entityId,
+    );
+
+    return Promise.all(
+      Object.entries(entityLinks.outgoing)
+        /**
+         * when target entity id is a list, that means the link has many targets.
+         * This is not supported yet
+         * @todo support 1:N links
+         * */
+        .filter(([_, targetEntityId]) => typeof targetEntityId === "string")
+        .map(
+          async ([linkTypeUri, targetEntityId]) =>
+            new LinkModel({
+              accountId: sourceEntity.entityId,
+              linkTypeModel: await LinkTypeModel.get(graphApi, {
+                versionedUri: linkTypeUri,
+              }),
+              sourceEntity,
+              targetEntity: await EntityModel.getLatest(graphApi, {
+                /** @todo figure out what account ID we use here */
+                accountId: sourceEntity.accountId,
+                entityId: targetEntityId,
+              }),
+            }),
+        ),
+    );
+  }
 }

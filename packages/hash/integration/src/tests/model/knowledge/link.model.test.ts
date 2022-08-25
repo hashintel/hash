@@ -84,4 +84,15 @@ describe("Link model class", () => {
       targetEntity,
     });
   });
+
+  it("can get all entity links", async () => {
+    const allLinks = await LinkModel.getAll(graphApi, {
+      sourceEntity,
+    });
+
+    expect(allLinks).toHaveLength(1);
+    expect(allLinks[0]?.sourceEntity).toEqual(sourceEntity);
+    expect(allLinks[0]?.linkTypeModel).toEqual(knowsLinkType);
+    expect(allLinks[0]?.targetEntity).toEqual(targetEntity);
+  });
 });
