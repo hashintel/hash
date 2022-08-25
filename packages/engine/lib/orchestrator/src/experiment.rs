@@ -399,7 +399,7 @@ impl Experiment {
         }
 
         debug!("Performing cleanup");
-        // we run this in a separate process because it might panic (in debug builds), and we would
+        // we run this in a separate task because it might panic (in debug builds), and we would
         // still like the debug output from tracing in that case
         let join_handle = tokio::task::spawn(async move {
             engine_process

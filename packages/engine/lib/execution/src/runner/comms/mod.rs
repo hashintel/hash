@@ -119,7 +119,6 @@ pub struct NewSimulationRun {
 }
 
 #[derive(Clone)]
-#[non_exhaustive]
 pub struct DatastoreSimulationPayload {
     pub agent_batch_schema: Arc<AgentSchema>,
     pub message_batch_schema: Arc<Schema>,

@@ -851,7 +851,10 @@ impl<'s> ThreadLocalRunner<'s> {
     pub fn new(scope: &mut v8::HandleScope<'s>, init: &ExperimentInitRunnerMsg) -> Result<Self> {
         let embedded = Embedded::import_common_js_files(scope)?;
         let datasets = {
-            let upgraded = init.shared_context.upgrade().unwrap();
+            let upgraded = init.shared_context.upgrade().expect(
+                "failed to obtain access to the shared store (this is a bug: it should not be \
+                 possible for the ExperimentController to be dropped before a Javascript runner)",
+            );
             Self::load_datasets(scope, upgraded.as_ref())?
         };
 
