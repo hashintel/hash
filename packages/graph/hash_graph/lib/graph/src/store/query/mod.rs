@@ -1,6 +1,11 @@
 mod knowledge;
 mod ontology;
 
+use std::sync::Arc;
+
+use async_trait::async_trait;
+use error_stack::Result;
+use futures::{future::BoxFuture, stream::iter, FutureExt, StreamExt};
 use serde::{Deserialize, Serialize};
 
 pub use self::{
@@ -10,6 +15,7 @@ pub use self::{
         PropertyTypeQuery,
     },
 };
+use crate::store::QueryError;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -47,7 +53,7 @@ fn compare(lhs: &Literal, rhs: &Literal) -> bool {
 impl TryFrom<serde_json::Value> for Literal {
     type Error = ();
 
-    fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
+    fn try_from(value: serde_json::Value) -> std::result::Result<Self, Self::Error> {
         use serde_json::Value;
 
         Ok(match value {
@@ -62,7 +68,7 @@ impl TryFrom<serde_json::Value> for Literal {
                 values
                     .into_iter()
                     .map(TryFrom::try_from)
-                    .collect::<Result<Vec<_>, _>>()?,
+                    .collect::<std::result::Result<Vec<_>, _>>()?,
             ),
             Value::Object(_) => todo!(),
         })
@@ -95,49 +101,80 @@ pub enum Expression {
     Field(Identifier),
 }
 
-pub trait Resolve {
-    fn resolve_path(&self, path: &Path) -> Literal;
-}
-
-#[allow(clippy::missing_panics_doc, reason = "Error handling needs to be done")]
-pub fn resolve(
-    expr: &Expression,
-    resolver: &impl Resolve,
-    current_path: &mut Vec<PathSegment>,
-) -> Literal {
-    match expr {
-        Expression::Eq(expressions) => Literal::Bool(expressions.windows(2).all(|expression| {
-            compare(
-                &resolve(&expression[0], resolver, current_path),
-                &resolve(&expression[1], resolver, current_path),
-            )
-        })),
-        Expression::Ne(expressions) => Literal::Bool(expressions.windows(2).any(|expression| {
-            !compare(
-                &resolve(&expression[0], resolver, current_path),
-                &resolve(&expression[1], resolver, current_path),
-            )
-        })),
-        Expression::All(expressions) => Literal::Bool(expressions.iter().all(|expression| {
-            match resolve(expression, resolver, current_path) {
-                Literal::Bool(bool) => bool,
-                literal => panic!("Not a boolean: {literal:?}"),
+impl Expression {
+    pub fn evaluate<'a, R>(&'a self, resolver: &'a mut R) -> BoxFuture<Literal>
+    where
+        R: PathResolver + Send + Sync,
+    {
+        async move {
+            match self {
+                Expression::Eq(expressions) => {
+                    for expression in expressions.windows(2) {
+                        if !compare(
+                            &expression[0].evaluate(resolver).await,
+                            &expression[1].evaluate(resolver).await,
+                        ) {
+                            return Literal::Bool(false);
+                        }
+                    }
+                    Literal::Bool(true)
+                }
+                Expression::Ne(expressions) => {
+                    for expression in expressions.windows(2) {
+                        if compare(
+                            &expression[0].evaluate(resolver).await,
+                            &expression[1].evaluate(resolver).await,
+                        ) {
+                            return Literal::Bool(false);
+                        }
+                    }
+                    Literal::Bool(true)
+                }
+                Expression::All(expressions) => {
+                    for expression in expressions {
+                        match expression.evaluate(resolver).await {
+                            literal @ Literal::Bool(false) => return literal,
+                            literal => panic!("Not a boolean: {literal:?}"),
+                        }
+                    }
+                    Literal::Bool(true)
+                }
+                Expression::Any(expressions) => {
+                    for expression in expressions {
+                        match expression.evaluate(resolver).await {
+                            literal @ Literal::Bool(true) => return literal,
+                            literal => panic!("Not a boolean: {literal:?}"),
+                        }
+                    }
+                    Literal::Bool(false)
+                }
+                Expression::Literal(literal) => literal.clone(),
+                Expression::Path(path) => resolver.resolve(path).await,
+                Expression::Field(_identifier) => todo!(),
             }
-        })),
-        Expression::Any(expressions) => Literal::Bool(expressions.iter().any(|expression| {
-            match resolve(expression, resolver, current_path) {
-                Literal::Bool(bool) => bool,
-                literal => panic!("Not a boolean: {literal:?}"),
-            }
-        })),
-        Expression::Literal(literal) => literal.clone(),
-        Expression::Path(path) => resolver.resolve_path(path),
-        Expression::Field(_identifier) => todo!(),
+        }
+        .boxed()
     }
 }
 
-impl Resolve for Literal {
-    fn resolve_path(&self, path: &Path) -> Literal {
+#[async_trait]
+pub trait ExpressionResolver {
+    type Record;
+
+    async fn resolve(
+        self: Arc<Self>,
+        expression: &Expression,
+    ) -> Result<Vec<Self::Record>, QueryError>;
+}
+
+#[async_trait]
+pub trait PathResolver {
+    async fn resolve(&self, path: &Path) -> Literal;
+}
+
+#[async_trait]
+impl PathResolver for Literal {
+    async fn resolve(&self, path: &Path) -> Literal {
         match self {
             Literal::List(values) => match path.segments.as_slice() {
                 [] => panic!("Path is empty"),
@@ -150,9 +187,11 @@ impl Resolve for Literal {
                     if segments.is_empty() {
                         literal.clone()
                     } else {
-                        literal.resolve_path(&Path {
-                            segments: segments.to_vec(),
-                        })
+                        literal
+                            .resolve(&Path {
+                                segments: segments.to_vec(),
+                            })
+                            .await
                     }
                 }
             },
