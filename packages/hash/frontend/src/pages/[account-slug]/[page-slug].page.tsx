@@ -24,6 +24,7 @@ import {
 } from "../../components/hooks/useAccountPages";
 import { useArchivePage } from "../../components/hooks/useArchivePage";
 import { PageIcon } from "../../components/PageIcon";
+import { PageIconButton } from "../../components/PageIconButton";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import {
   GetPageInfoQuery,
@@ -309,7 +310,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
             scrollMarginTop: HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT,
           }}
         >
-          <PageIcon
+          <PageIconButton
             accountId={accountId}
             entityId={pageEntityId}
             versionId={versionId}
