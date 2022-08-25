@@ -64,8 +64,14 @@ export default class {
       (persistedDataType) =>
         new DataTypeModel({
           /**
-           * @todo and a warning, these type casts are here to satisfy the type system package.
-           *   we should consider if we can improve this. The invariant is withheld when receiving data.
+           * @todo and a warning, these type casts are here to compensate for
+           *   the differences between the Graph API package and the
+           *   type system package.
+           *
+           *   The type system package can be considered the source of truth in
+           *   terms of the shape of values returned from the API, but the API
+           *   client is unable to be given as type package types - it generates
+           *   its own types.
            */
           schema: persistedDataType.inner as DataType,
           accountId: persistedDataType.identifier.createdBy,
@@ -92,8 +98,14 @@ export default class {
 
     return new DataTypeModel({
       /**
-       * @todo and a warning, these type casts are here to satisfy the type system package.
-       *   we should consider if we can improve this. The invariant is withheld when receiving data.
+       * @todo and a warning, these type casts are here to compensate for
+       *   the differences between the Graph API package and the
+       *   type system package.
+       *
+       *   The type system package can be considered the source of truth in
+       *   terms of the shape of values returned from the API, but the API
+       *   client is unable to be given as type package types - it generates
+       *   its own types.
        */
       schema: persistedDataType.inner as DataType,
       accountId: persistedDataType.identifier.createdBy,
@@ -129,8 +141,14 @@ export default class {
 
     return new DataTypeModel({
       /**
-       * @todo and a warning, these type casts are here to satisfy the type system package.
-       *   we should consider if we can improve this. The invariant is withheld when receiving data.
+       * @todo and a warning, these type casts are here to compensate for
+       *   the differences between the Graph API package and the
+       *   type system package.
+       *
+       *   The type system package can be considered the source of truth in
+       *   terms of the shape of values returned from the API, but the API
+       *   client is unable to be given as type package types - it generates
+       *   its own types.
        */
       schema: updateArguments.schema as DataType,
       accountId: identifier.createdBy,
