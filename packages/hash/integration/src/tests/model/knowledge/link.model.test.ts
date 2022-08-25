@@ -31,9 +31,11 @@ const entityType$id = "https://link~example.com/entity-type/v/1";
 
 describe("Link model class", () => {
   let testType: EntityTypeModel;
+  let friendsLinkType: LinkTypeModel;
   let knowsLinkType: LinkTypeModel;
   let sourceEntity: EntityModel;
-  let targetEntity: EntityModel;
+  let targetEntityFriend: EntityModel;
+  let targetEntityAcquaintance: EntityModel;
 
   beforeAll(async () => {
     testType = await EntityTypeModel.create(graphApi, {
@@ -58,6 +60,22 @@ describe("Link model class", () => {
         },
       }),
 
+      LinkTypeModel.create(graphApi, {
+        accountId,
+        schema: {
+          $id: "https://link~example.com/link-types/acquaintance/v/1",
+          kind: "linkType",
+          title: "Acquaintance",
+          description: "Acquaintance",
+        },
+      }),
+
+      EntityModel.create(graphApi, {
+        accountId,
+        entityTypeModel: testType,
+        properties: {},
+      }),
+
       EntityModel.create(graphApi, {
         accountId,
         entityTypeModel: testType,
@@ -71,17 +89,26 @@ describe("Link model class", () => {
       }),
     ]);
 
-    knowsLinkType = results[0];
-    sourceEntity = results[1];
-    targetEntity = results[2];
+    friendsLinkType = results[0];
+    knowsLinkType = results[1];
+    sourceEntity = results[2];
+    targetEntityFriend = results[3];
+    targetEntityAcquaintance = results[4];
   });
 
   it("can link entities", async () => {
     await LinkModel.create(graphApi, {
       accountId,
       sourceEntity,
+      linkTypeModel: friendsLinkType,
+      targetEntity: targetEntityFriend,
+    });
+
+    await LinkModel.create(graphApi, {
+      accountId,
+      sourceEntity,
       linkTypeModel: knowsLinkType,
-      targetEntity,
+      targetEntity: targetEntityAcquaintance,
     });
   });
 
@@ -90,9 +117,25 @@ describe("Link model class", () => {
       sourceEntity,
     });
 
-    expect(allLinks).toHaveLength(1);
-    expect(allLinks[0]?.sourceEntity).toEqual(sourceEntity);
-    expect(allLinks[0]?.linkTypeModel).toEqual(knowsLinkType);
-    expect(allLinks[0]?.targetEntity).toEqual(targetEntity);
+    expect(allLinks).toHaveLength(2);
+
+    const targetEntities = allLinks.map((link) => link.targetEntity);
+    expect(targetEntities).toContainEqual(targetEntityFriend);
+    expect(targetEntities).toContainEqual(targetEntityAcquaintance);
+
+    const linkTypes = allLinks.map((link) => link.linkTypeModel);
+    expect(linkTypes).toContainEqual(friendsLinkType);
+    expect(linkTypes).toContainEqual(knowsLinkType);
+  });
+
+  it("can get a single entity link", async () => {
+    const link = await LinkModel.get(graphApi, {
+      sourceEntity,
+      linkTypeModel: friendsLinkType,
+    });
+
+    expect(link!.sourceEntity).toEqual(sourceEntity);
+    expect(link!.linkTypeModel).toEqual(friendsLinkType);
+    expect(link!.targetEntity).toEqual(targetEntityFriend);
   });
 });

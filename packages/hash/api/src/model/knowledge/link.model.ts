@@ -116,4 +116,19 @@ export default class {
         ),
     );
   }
+
+  static async get(
+    graphApi: GraphApi,
+    {
+      sourceEntity,
+      linkTypeModel,
+    }: { sourceEntity: EntityModel; linkTypeModel: LinkTypeModel },
+  ): Promise<LinkModel | null> {
+    /** @todo use structural querying for this client-side fetch */
+    const links = (await LinkModel.getAll(graphApi, { sourceEntity })).filter(
+      (link) => link.linkTypeModel.schema.$id === linkTypeModel.schema.$id,
+    );
+    /** @todo the may return an array of links whe nwe support 1:N links. */
+    return links[0] ? links[0] : null;
+  }
 }
