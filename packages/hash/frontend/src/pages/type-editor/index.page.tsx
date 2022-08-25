@@ -2,12 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { Box, Container } from "@mui/material";
 import { TextField } from "@hashintel/hash-design-system";
-import init, {
-  DataType,
-  isValidPropertyType,
-  isVersionedUri,
-  VersionedUri,
-} from "@blockprotocol/type-system-web";
+import init, { isVersionedUri } from "@blockprotocol/type-system-web";
 
 import { Button } from "../../shared/ui";
 import { useUser } from "../../components/hooks/useUser";
@@ -19,7 +14,6 @@ import {
   AggregateLinkTypesMessageCallback,
   AggregatePropertyTypesMessageCallback,
 } from "../../components/hooks/blockProtocolFunctions/ontology/ontology-types-shim";
-import { PropertyType } from "packages/graph/clients/typescript/api";
 
 /**
  * This component is an example usage of the new functions.
@@ -27,7 +21,7 @@ import { PropertyType } from "packages/graph/clients/typescript/api";
  */
 const ExampleUsage = ({ accountId }: { accountId: string }) => {
   const [content, setContent] = useState<string>();
-  const [propertyUri, setPropertyUri] = useState<VersionedUri>(
+  const [propertyUri, setPropertyUri] = useState<string>(
     "https://blockprotocol.org/@alice/types/property-type/new-name/v/1",
   );
 
@@ -50,42 +44,32 @@ const ExampleUsage = ({ accountId }: { accountId: string }) => {
     [setContent],
   );
 
-  const myPropertyType: PropertyType = {
-    kind: "propertyType",
-    $id: propertyUri,
-    title: "Name",
-    oneOf: [
-      {
-        $ref: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-      },
-    ],
-  };
-
-  isValidPropertyType(myPropertyType);
-
   const createPropertyType = useCallback(() => {
     void (async () => {
-      await functions
-        .createPropertyType({
-          data: {
-            propertyType: {
-              kind: "propertyType",
-              $id: propertyUri,
-              title: "Name",
-              oneOf: [
-                {
-                  $ref: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                },
-              ],
+      if (isVersionedUri(propertyUri)) {
+        // now propertyUri is typed as VersionedUri from the type system
+        await functions
+          .createPropertyType({
+            data: {
+              propertyType: {
+                kind: "propertyType",
+                $id: propertyUri,
+                title: "Name",
+                oneOf: [
+                  {
+                    $ref: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  },
+                ],
+              },
             },
-          },
-        })
-        .then((result) => {
-          setContent(JSON.stringify(result.data ?? {}, null, 2));
-        })
-        .catch((error) => {
-          setContent(JSON.stringify(error ?? {}, null, 2));
-        });
+          })
+          .then((result) => {
+            setContent(JSON.stringify(result.data ?? {}, null, 2));
+          })
+          .catch((error) => {
+            setContent(JSON.stringify(error ?? {}, null, 2));
+          });
+      }
     })();
   }, [functions, propertyUri, setContent]);
 
@@ -152,9 +136,11 @@ const Page: NextPageWithLayout = () => {
 
   useEffect(() => {
     if (loadingTypeSystem) {
-      init().then(() => {
-        setLoadingTypeSystem(false);
-      });
+      void (async () => {
+        await init().then(() => {
+          setLoadingTypeSystem(false);
+        });
+      })();
     }
   }, [loadingTypeSystem, setLoadingTypeSystem]);
 
