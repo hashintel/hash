@@ -31,8 +31,8 @@ const entityType$id = "https://link~example.com/entity-type/v/1";
 
 describe("Link model class", () => {
   let testType: EntityTypeModel;
-  let friendsLinkType: LinkTypeModel;
-  let knowsLinkType: LinkTypeModel;
+  let linkTypeFriend: LinkTypeModel;
+  let linkTypeAcquaintance: LinkTypeModel;
   let sourceEntity: EntityModel;
   let targetEntityFriend: EntityModel;
   let targetEntityAcquaintance: EntityModel;
@@ -55,8 +55,8 @@ describe("Link model class", () => {
         schema: {
           $id: "https://link~example.com/link-types/friends-with/v/1",
           kind: "linkType",
-          title: "Friends with",
-          description: "A friendship",
+          title: "Friends",
+          description: "Friend of",
         },
       }),
 
@@ -66,7 +66,7 @@ describe("Link model class", () => {
           $id: "https://link~example.com/link-types/acquaintance/v/1",
           kind: "linkType",
           title: "Acquaintance",
-          description: "Acquaintance",
+          description: "Acquainted with",
         },
       }),
 
@@ -89,25 +89,27 @@ describe("Link model class", () => {
       }),
     ]);
 
-    friendsLinkType = results[0];
-    knowsLinkType = results[1];
+    linkTypeFriend = results[0];
+    linkTypeAcquaintance = results[1];
     sourceEntity = results[2];
     targetEntityFriend = results[3];
     targetEntityAcquaintance = results[4];
   });
 
+  let friendLink: LinkModel;
+  let acquaintanceLink: LinkModel;
   it("can link entities", async () => {
-    await LinkModel.create(graphApi, {
+    friendLink = await LinkModel.create(graphApi, {
       accountId,
       sourceEntity,
-      linkTypeModel: friendsLinkType,
+      linkTypeModel: linkTypeFriend,
       targetEntity: targetEntityFriend,
     });
 
-    await LinkModel.create(graphApi, {
+    acquaintanceLink = await LinkModel.create(graphApi, {
       accountId,
       sourceEntity,
-      linkTypeModel: knowsLinkType,
+      linkTypeModel: linkTypeAcquaintance,
       targetEntity: targetEntityAcquaintance,
     });
   });
@@ -118,24 +120,29 @@ describe("Link model class", () => {
     });
 
     expect(allLinks).toHaveLength(2);
-
-    const targetEntities = allLinks.map((link) => link.targetEntity);
-    expect(targetEntities).toContainEqual(targetEntityFriend);
-    expect(targetEntities).toContainEqual(targetEntityAcquaintance);
-
-    const linkTypes = allLinks.map((link) => link.linkTypeModel);
-    expect(linkTypes).toContainEqual(friendsLinkType);
-    expect(linkTypes).toContainEqual(knowsLinkType);
+    expect(allLinks).toContainEqual(friendLink);
+    expect(allLinks).toContainEqual(acquaintanceLink);
   });
 
   it("can get a single entity link", async () => {
     const link = await LinkModel.get(graphApi, {
       sourceEntity,
-      linkTypeModel: friendsLinkType,
+      linkTypeModel: linkTypeFriend,
     });
 
     expect(link!.sourceEntity).toEqual(sourceEntity);
-    expect(link!.linkTypeModel).toEqual(friendsLinkType);
+    expect(link!.linkTypeModel).toEqual(linkTypeFriend);
     expect(link!.targetEntity).toEqual(targetEntityFriend);
+  });
+
+  it("can inactivate an active link", async () => {
+    await acquaintanceLink.inactivate(graphApi);
+
+    const result = await LinkModel.get(graphApi, {
+      sourceEntity,
+      linkTypeModel: linkTypeAcquaintance,
+    });
+
+    expect(result).toBeNull();
   });
 });

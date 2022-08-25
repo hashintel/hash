@@ -98,7 +98,6 @@ export default class {
     const { data: entityLinks } = await graphApi.getEntityLinks(
       sourceEntity.entityId,
     );
-
     return Promise.all(
       Object.entries(entityLinks.outgoing)
         /**
@@ -110,7 +109,7 @@ export default class {
         .map(
           async ([linkTypeUri, targetEntityId]) =>
             new LinkModel({
-              accountId: sourceEntity.entityId,
+              accountId: sourceEntity.accountId,
               linkTypeModel: await LinkTypeModel.get(graphApi, {
                 versionedUri: linkTypeUri,
               }),
@@ -147,5 +146,15 @@ export default class {
     );
     /** @todo the may return an array of links whe nwe support 1:N links. */
     return links[0] ? links[0] : null;
+  }
+
+  /**
+   * Makes a link inactive.
+   */
+  async inactivate(graphApi: GraphApi): Promise<void> {
+    await graphApi.inactivateLink(this.sourceEntity.entityId, {
+      linkTypeUri: this.linkTypeModel.schema.$id,
+      targetEntityId: this.targetEntity.entityId,
+    });
   }
 }
