@@ -3,6 +3,11 @@ import { arrayMove } from "@dnd-kit/sortable";
 import { groupBy } from "lodash";
 import { AccountPage } from "../../../../components/hooks/useAccountPages";
 
+export interface PageList {
+  treeList: TreeElement[];
+  flatList: TreeElement[];
+}
+
 export interface TreeElement extends AccountPage {
   parentId: string;
   depth: number;
@@ -10,49 +15,60 @@ export interface TreeElement extends AccountPage {
   expanded: boolean;
   expandable: boolean;
   collapsed: boolean;
+  children?: TreeElement[];
 }
 
-const recursiveOrder = (
+const getRecursivePageList = (
   groupedPages: { [id: string]: AccountPage[] },
   id: string,
   expandedIds: string[],
   depth = 0,
   collapsed = false,
-): TreeElement[] => {
-  const emptyList: TreeElement[] = [];
+): PageList => {
+  const emptyTreeList = [] as TreeElement[];
+  const emptyList: PageList = {
+    treeList: emptyTreeList,
+    flatList: emptyTreeList,
+  };
+
   return (
     groupedPages[id]?.reduce((prev, page, index) => {
       const expanded = expandedIds.includes(page.entityId);
-      const children = recursiveOrder(
+      const children = getRecursivePageList(
         groupedPages,
         page.entityId,
         expandedIds,
         depth + 1,
         collapsed || !expanded,
       );
-      const expandable = !!children.length;
+      const expandable = !!children.treeList.length;
 
-      return [
-        ...prev,
-        ...[
+      const item = {
+        ...page,
+        depth,
+        index,
+        parentId: page.parentPageEntityId,
+        expanded,
+        expandable,
+        collapsed,
+      } as TreeElement;
+
+      return {
+        treeList: [
+          ...prev.treeList,
           {
-            ...page,
-            depth,
-            index,
-            parentId: page.parentPageEntityId,
-            expanded,
-            expandable,
-            collapsed,
+            ...item,
+            children: children.treeList,
           } as TreeElement,
-          ...children,
         ],
-      ];
+        flatList: [...prev.flatList, item, ...children.flatList],
+      };
     }, emptyList) || emptyList
   );
 };
 
-export const orderItems = (pages: AccountPage[], expandedIds: string[]) =>
-  recursiveOrder(
+export const getPageList = (pages: AccountPage[], expandedIds: string[]) =>
+  getRecursivePageList(
     groupBy(pages, (page) => page.parentPageEntityId),
     "null",
     expandedIds,

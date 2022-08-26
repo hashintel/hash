@@ -20,14 +20,18 @@ import {
   DragStartEvent,
 } from "@dnd-kit/core";
 import Box from "@mui/material/Box";
-import { useAccountPages } from "../../../../components/hooks/useAccountPages";
+import {
+  AccountPage,
+  useAccountPages,
+} from "../../../../components/hooks/useAccountPages";
 import { useCreatePage } from "../../../../components/hooks/useCreatePage";
 import { useCreateSubPage } from "../../../../components/hooks/useCreateSubPage";
 import { useArchivePage } from "../../../../components/hooks/useArchivePage";
 import { NavLink } from "../nav-link";
 import { AccountPageListItem } from "./account-page-list-item";
 import { useReorderPage } from "../../../../components/hooks/useReorderPage";
-import { TreeElement, orderItems, getProjection } from "./utilities";
+import { TreeElement, getProjection, getPageList } from "./utilities";
+import { Collapse } from "@mui/material";
 
 type AccountPageListProps = {
   accountId: string;
@@ -45,6 +49,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   accountId,
 }) => {
   const { data } = useAccountPages(accountId);
+
   const { createUntitledPage, loading: createUntitledPageLoading } =
     useCreatePage(accountId);
   const { createSubPage, loading: createSubpageLoading } =
@@ -56,8 +61,9 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     "hash-expanded-sidebar-pages",
     [],
   );
-  const [items, setItems] = useState<TreeElement[]>([]);
-  const [itemIds, setItemIds] = useState<string[]>([]);
+
+  const [pagesTreeList, setPagesTreeList] = useState<TreeElement[]>([]);
+  const [pagesFlatList, setPagesFlatList] = useState<TreeElement[]>([]);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
   const [offsetLeft, setOffsetLeft] = useState(0);
@@ -90,15 +96,20 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     );
   };
 
-  useMemo(() => {
-    if (!loading) {
-      setItems(orderItems(data, expandedPageIds));
-    }
-  }, [data, expandedPageIds, loading]);
+  const setSortableList = (
+    list: AccountPage[],
+    expandedPageIdList: string[],
+  ) => {
+    const { treeList, flatList } = getPageList(list, expandedPageIdList);
+    setPagesTreeList(treeList);
+    setPagesFlatList(flatList);
+  };
 
   useMemo(() => {
-    setItemIds(items.map((item) => item.entityId));
-  }, [items]);
+    if (!loading) {
+      setSortableList(data, expandedPageIds);
+    }
+  }, [data, expandedPageIds, loading]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -110,7 +121,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
   const projected =
     activeId && overId
-      ? getProjection(items, activeId, overId, offsetLeft, 16)
+      ? getProjection(pagesFlatList, activeId, overId, offsetLeft, 16)
       : null;
 
   const resetState = () => {
@@ -124,11 +135,9 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     active: { id: activeItemId },
   }: DragStartEvent) => {
     if (expandedPageIds.findIndex((id) => id === activeItemId) > -1) {
-      setItems(
-        orderItems(
-          data,
-          expandedPageIds.filter((id) => id !== activeItemId),
-        ),
+      setSortableList(
+        data,
+        expandedPageIds.filter((id) => id !== activeItemId),
       );
     }
     setActiveId(activeItemId);
@@ -151,7 +160,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     if (projected && over) {
       const { depth, parentPageEntityId } = projected;
 
-      const clonedItems = [...items] as TreeElement[];
+      const clonedItems = [...pagesFlatList] as TreeElement[];
 
       const overIndex = clonedItems.findIndex(
         ({ entityId }) => entityId === over.id,
@@ -177,21 +186,64 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           .filter((item) => item.parentPageEntityId === parentPageEntityId)
           .findIndex((item) => item.entityId === activeId);
 
-        const newItems = orderItems(sortedItems, expandedPageIds);
-
-        setItems(newItems);
+        setSortableList(sortedItems, expandedPageIds);
         reorderPage(active.id.toString(), parentPageEntityId, newIndex).catch(
           () => {
             // fallback to previous state when the request fails
-            setItems(orderItems(data, expandedPageIds));
+            setSortableList(data, expandedPageIds);
           },
         );
+      } else {
+        setSortableList(data, expandedPageIds);
       }
     }
   };
 
   const handleDragCancel = () => {
     resetState();
+  };
+
+  const renderGroupCollapsibleItems = (itemsArray: TreeElement[]) => {
+    return itemsArray.map(
+      ({
+        entityId,
+        title,
+        depth,
+        expandable,
+        expanded,
+        collapsed,
+        children,
+      }) => {
+        const item = (
+          <AccountPageListItem
+            key={entityId}
+            title={title}
+            id={entityId}
+            url={`/${accountId}/${entityId}`}
+            depth={entityId === activeId && projected ? projected.depth : depth}
+            onCollapse={expandable ? () => handleToggle(entityId) : undefined}
+            selected={currentPageEntityId === entityId}
+            expandable={expandable}
+            expanded={expanded}
+            collapsed={collapsed}
+            createSubPage={createSubPage}
+            archivePage={archivePage}
+            disabled={loading}
+          />
+        );
+
+        return (
+          <Box key={entityId}>
+            {item}
+            {children ? (
+              <Collapse key={`${entityId}-children`} in={expanded}>
+                {renderGroupCollapsibleItems(children)}
+              </Collapse>
+            ) : null}
+          </Box>
+        );
+      },
+    );
   };
 
   return (
@@ -205,7 +257,10 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       onDragCancel={handleDragCancel}
       measuring={measuringConfig}
     >
-      <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+      <SortableContext
+        items={pagesFlatList.map((item) => item.entityId)}
+        strategy={verticalListSortingStrategy}
+      >
         <NavLink
           title="Pages"
           endAdornmentProps={{
@@ -216,29 +271,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           }}
         >
           <Box sx={{ marginX: 0.75 }}>
-            {items.map(
-              ({ entityId, title, depth, expandable, expanded, collapsed }) => (
-                <AccountPageListItem
-                  key={entityId}
-                  title={title}
-                  id={entityId}
-                  url={`/${accountId}/${entityId}`}
-                  depth={
-                    entityId === activeId && projected ? projected.depth : depth
-                  }
-                  onCollapse={
-                    expandable ? () => handleToggle(entityId) : undefined
-                  }
-                  selected={currentPageEntityId === entityId}
-                  expandable={expandable}
-                  expanded={expanded}
-                  collapsed={collapsed}
-                  createSubPage={createSubPage}
-                  archivePage={archivePage}
-                  disabled={loading}
-                />
-              ),
-            )}
+            {renderGroupCollapsibleItems(pagesTreeList)}
 
             <DragOverlay dropAnimation={null} />
           </Box>

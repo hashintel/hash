@@ -61,7 +61,7 @@ export const PageTreeItem = forwardRef(
       popupId: "page-menu",
     });
 
-    return !collapsed ? (
+    return collapsed && isSorting ? null : (
       <Box
         ref={wrapperRef}
         onMouseEnter={() => !isSorting && setHovered(true)}
@@ -181,6 +181,6 @@ export const PageTreeItem = forwardRef(
           />
         </Box>
       </Box>
-    ) : null;
+    );
   },
 );

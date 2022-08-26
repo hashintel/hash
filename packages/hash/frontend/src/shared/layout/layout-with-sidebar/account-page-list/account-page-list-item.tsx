@@ -10,7 +10,11 @@ import { PageTreeItem, PageTreeItemProps } from "./page-tree-item";
 const animateLayoutChanges: AnimateLayoutChanges = (args) => {
   const { isSorting, isDragging, wasDragging } = args;
 
-  if (isSorting || isDragging || wasDragging) {
+  if (wasDragging) {
+    return false;
+  }
+
+  if (isSorting || isDragging) {
     return defaultAnimateLayoutChanges(args);
   }
 
