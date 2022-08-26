@@ -5,8 +5,8 @@
 use arrow2::{
     self,
     array::{
-        Array, ArrayRef, BinaryArray, BooleanArray, FixedSizeBinaryArray, FixedSizeListArray,
-        ListArray, PrimitiveArray, StructArray, Utf8Array,
+        Array, BinaryArray, BooleanArray, FixedSizeBinaryArray, FixedSizeListArray, ListArray,
+        PrimitiveArray, StructArray, Utf8Array,
     },
     datatypes::{PhysicalType, PrimitiveType},
 };
@@ -14,7 +14,7 @@ use bytemuck::cast_slice;
 
 use super::GrowableArrayData;
 
-impl GrowableArrayData for ArrayRef {
+impl GrowableArrayData for Box<dyn Array> {
     fn len(&self) -> usize {
         Array::len(self.as_ref())
     }

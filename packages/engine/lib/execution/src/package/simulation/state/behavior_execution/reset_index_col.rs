@@ -24,7 +24,7 @@ impl IntoArrowChange for ResetIndexCol {
         let data = new_buffer::<BehaviorIndexInnerDataType>(num_agents);
 
         // Indices
-        let data = PrimitiveArray::<BehaviorIndexInnerDataType>::from_vec(data).arced();
+        let data = PrimitiveArray::<BehaviorIndexInnerDataType>::from_vec(data).boxed();
 
         Ok(ColumnChange {
             data,

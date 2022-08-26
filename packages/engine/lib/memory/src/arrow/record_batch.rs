@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use arrow2::{
-    array::ArrayRef,
+    array::Array,
     chunk::Chunk,
     datatypes::Schema,
     io::ipc::{write::default_ipc_fields, IpcSchema},
@@ -14,14 +14,14 @@ pub struct RecordBatch {
     /// The schema which describes the columns in this [`RecordBatch`].
     schema: Arc<Schema>,
     /// The underlying columns. Each column stores the data for a specific field.
-    columns: Chunk<ArrayRef>,
+    columns: Chunk<Box<dyn Array>>,
 }
 
 impl RecordBatch {
     /// Creates a new [`RecordBatch`]
     ///
     /// When compiled in debug mode, this struct will check that the [`RecordBatch`] is well-formed.
-    pub fn new(schema: Arc<Schema>, columns: Chunk<ArrayRef>) -> Self {
+    pub fn new(schema: Arc<Schema>, columns: Chunk<Box<dyn Array>>) -> Self {
         #[cfg(debug_assertions)]
         {
             for (i, (field, array)) in schema.fields.iter().zip(columns.iter()).enumerate() {
@@ -62,19 +62,26 @@ impl RecordBatch {
     }
 
     /// Returns a reference to the columns in the RecordBatch.
-    pub fn columns(&self) -> &[ArrayRef] {
+    pub fn columns(&self) -> &[Box<dyn Array>] {
         self.columns.as_ref()
     }
 
     /// Retrieves the column at the provided index in the [`RecordBatch`]. This function will panic
     /// if the requested index cannot be found. [`RecordBatch::try_column`] will return [`None`]
     /// instead of panicking.
-    pub fn column(&self, index: usize) -> &ArrayRef {
+    // this is necessary, because GrowableArrayData is implemented for Box<dyn Array> but not
+    // &dyn Array
+    #[allow(clippy::borrowed_box)]
+    pub fn column(&self, index: usize) -> &Box<dyn Array> {
         &self.columns[index]
     }
 
-    /// Retrieve
-    pub fn try_column(&self, index: usize) -> Option<&ArrayRef> {
+    /// Attempt to retrieve a column, returning `None` if the column at the provided index could not
+    /// be found.
+    // this is necessary, because GrowableArrayData is implemented for Box<dyn Array> but not
+    // &dyn Array
+    #[allow(clippy::borrowed_box)]
+    pub fn try_column(&self, index: usize) -> Option<&Box<dyn Array>> {
         self.columns.get(index)
     }
 }

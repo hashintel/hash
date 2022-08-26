@@ -137,7 +137,7 @@ pub fn agent_name_as_array(
         .ok_or_else(|| Error::ColumnNotFound(column_name.into()))?;
 
     Ok(ColumnChange {
-        data: Into::<Utf8Array<i32>>::into(builder).arced(),
+        data: Into::<Utf8Array<i32>>::into(builder).boxed(),
         index,
     })
 }

@@ -35,7 +35,7 @@ pub struct AgentMessage {
     r#data: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[repr(transparent)]
 /// note: this struct is `#[repr(transparent)]`, as this is required for us to be able to
 /// convert `&ListArray` to `&OutboundArray`
@@ -49,6 +49,10 @@ pub(crate) struct MessageArray(pub ListArray<i32>);
 impl Array for MessageArray {
     fn as_any(&self) -> &dyn std::any::Any {
         self.0.as_any()
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        Array::as_any_mut(&mut self.0)
     }
 
     fn len(&self) -> usize {
