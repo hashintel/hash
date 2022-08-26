@@ -18,14 +18,9 @@ import {
   workspaceAccountId,
   workspaceTypesNamespaceUri,
 } from "../util";
+import { AccountUtil } from "./account.util";
 
 type QualifiedEmail = { address: string; verified: boolean; primary: boolean };
-
-// Generate the schema for the shortname property type
-export const shortnamePropertyType = generateWorkspacePropertyTypeSchema({
-  title: "Shortname",
-  possibleValues: [{ primitiveDataType: "Text" }],
-});
 
 // Generate the schema for the email property type
 export const emailPropertyType = generateWorkspacePropertyTypeSchema({
@@ -33,7 +28,7 @@ export const emailPropertyType = generateWorkspacePropertyTypeSchema({
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
-// Generate the schema for the shortname property type
+// Generate the schema for the kratos identity property type
 export const kratosIdentityIdPropertyType = generateWorkspacePropertyTypeSchema(
   {
     title: "Kratos Identity ID",
@@ -41,25 +36,10 @@ export const kratosIdentityIdPropertyType = generateWorkspacePropertyTypeSchema(
   },
 );
 
-// Generate the schema for the shortname property type
-export const accountIdPropertyType = generateWorkspacePropertyTypeSchema({
-  title: "Account ID",
-  possibleValues: [{ primitiveDataType: "Text" }],
-});
-
-// Generate the schema for the shortname property type
+// Generate the schema for the preferred name property type
 export const preferredNamePropertyType = generateWorkspacePropertyTypeSchema({
   title: "Preferred Name",
   possibleValues: [{ primitiveDataType: "Text" }],
-});
-
-export const shortnameMinimumLength = 4;
-export const shortnameMaximumLength = 24;
-
-export const shortnameBaseUri = generateSchemaBaseUri({
-  namespaceUri: workspaceTypesNamespaceUri,
-  kind: "propertyType",
-  title: shortnamePropertyType.title,
 });
 
 export const emailBaseUri = generateSchemaBaseUri({
@@ -72,12 +52,6 @@ export const kratosIdentityIdBaseUri = generateSchemaBaseUri({
   namespaceUri: workspaceTypesNamespaceUri,
   kind: "propertyType",
   title: kratosIdentityIdPropertyType.title,
-});
-
-export const accountIdBaseUri = generateSchemaBaseUri({
-  namespaceUri: workspaceTypesNamespaceUri,
-  kind: "propertyType",
-  title: accountIdPropertyType.title,
 });
 
 export const preferredNameBaseUri = generateSchemaBaseUri({
@@ -99,8 +73,8 @@ export const userEntityType = generateWorkspaceEntityTypeSchema({
   title: "User",
   properties: [
     {
-      baseUri: shortnameBaseUri,
-      versionedUri: shortnamePropertyType.$id,
+      baseUri: AccountUtil.shortnameBaseUri,
+      versionedUri: AccountUtil.shortnamePropertyType.$id,
     },
     {
       baseUri: emailBaseUri,
@@ -114,8 +88,8 @@ export const userEntityType = generateWorkspaceEntityTypeSchema({
       required: true,
     },
     {
-      baseUri: accountIdBaseUri,
-      versionedUri: accountIdPropertyType.$id,
+      baseUri: AccountUtil.accountIdBaseUri,
+      versionedUri: AccountUtil.accountIdPropertyType.$id,
       required: true,
     },
     {
@@ -144,8 +118,8 @@ export default class extends EntityModel {
 
   static shortnameIsInvalid(shortname: string): boolean {
     return (
-      shortname.length < shortnameMinimumLength ||
-      shortname.length > shortnameMaximumLength ||
+      shortname.length < AccountUtil.shortnameMinimumLength ||
+      shortname.length > AccountUtil.shortnameMaximumLength ||
       shortname[0] === "-" ||
       UserModel.shortnameContainsInvalidCharacter(shortname) ||
       UserModel.shortnameIsRestricted(shortname)
@@ -268,8 +242,8 @@ export default class extends EntityModel {
     const properties: object = {
       [emailBaseUri]: emails,
       [kratosIdentityIdBaseUri]: kratosIdentityId,
-      [accountIdBaseUri]: userAccountId,
-      [shortnameBaseUri]: undefined,
+      [AccountUtil.accountIdBaseUri]: userAccountId,
+      [AccountUtil.shortnameBaseUri]: undefined,
       [preferredNameBaseUri]: undefined,
     };
 
@@ -361,7 +335,7 @@ export default class extends EntityModel {
   }
 
   getShortname(): string | undefined {
-    return (this.properties as any)[shortnameBaseUri];
+    return (this.properties as any)[AccountUtil.shortnameBaseUri];
   }
 
   async updateShortname(
@@ -390,7 +364,7 @@ export default class extends EntityModel {
     const previousShortname = this.getShortname();
 
     const updatedUser = await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: shortnameBaseUri,
+      propertyTypeBaseUri: AccountUtil.shortnameBaseUri,
       value: updatedShortname,
       updatedByAccountId,
     }).then((updatedEntity) => new UserModel(updatedEntity));
@@ -400,7 +374,7 @@ export default class extends EntityModel {
     }).catch(async (error) => {
       // If an error occurred updating the entity, set the property to have the previous shortname
       await this.updateProperty(graphApi, {
-        propertyTypeBaseUri: shortnameBaseUri,
+        propertyTypeBaseUri: AccountUtil.shortnameBaseUri,
         value: previousShortname,
         updatedByAccountId,
       });
@@ -443,7 +417,7 @@ export default class extends EntityModel {
   }
 
   getAccountId(): string {
-    return (this.properties as any)[accountIdBaseUri];
+    return (this.properties as any)[AccountUtil.accountIdBaseUri];
   }
 
   getInfoProvidedAtSignup(): any {

@@ -9,11 +9,10 @@ import {
   DataTypeModel,
   EntityTypeModel,
   PropertyTypeModel,
-  shortnamePropertyType,
+  AccountUtil,
   kratosIdentityIdPropertyType,
   emailPropertyType,
   userEntityType,
-  accountIdPropertyType,
   preferredNamePropertyType,
 } from "../model";
 import { logger } from "../logger";
@@ -23,10 +22,10 @@ import {
 } from "../model/util";
 
 const workspacePropertyTypes: PropertyType[] = [
-  shortnamePropertyType,
+  AccountUtil.shortnamePropertyType,
   emailPropertyType,
   kratosIdentityIdPropertyType,
-  accountIdPropertyType,
+  AccountUtil.accountIdPropertyType,
   preferredNamePropertyType,
 ];
 

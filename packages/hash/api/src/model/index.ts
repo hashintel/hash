@@ -40,6 +40,8 @@ export { EntityTypeModel };
 export * from "./knowledge/entity.model";
 export { EntityModel };
 
+export * from "./knowledge/account.util";
+
 export * from "./knowledge/user.model";
 export { UserModel };
 
