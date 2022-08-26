@@ -1,9 +1,10 @@
-import { Typography } from "@mui/material";
+import { TextareaAutosize } from "@mui/material";
 import {
   ChangeEventHandler,
   FocusEventHandler,
   KeyboardEventHandler,
-  useRef,
+  useEffect,
+  useState,
   FunctionComponent,
 } from "react";
 import { useBlockProtocolUpdateEntity } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
@@ -26,55 +27,46 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
   // TODO: Display update error once expected UX is discussed
   const { updateEntity, updateEntityLoading } =
     useBlockProtocolUpdateEntity(true);
+  const [inputValue, setInputValue] = useState<string>(value);
   const { editorView } = usePageContext();
 
-  const titleValueRef = useRef(value);
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
 
-  const handleInputChange: ChangeEventHandler<HTMLHeadingElement> = (event) => {
-    const { currentTarget } = event;
-    titleValueRef.current = currentTarget.textContent || "";
-
-    /**
-     * this prevents two issues
-     * 1 - when user pastes styled stuff into title
-     * other way of achieving this is implementing https://htmldom.dev/paste-as-plain-text/
-     * this looks like working well for now on all browser.
-     * we can switch to paste-as-plain-text later if we decide this solution is not enough
-     * 2 - firefox & safari renders a `br` tag when user clears the editable area,
-     * which prevents css selector `:empty` from working. This removes the `br` as well
-     */
-    if (currentTarget?.children.length) {
-      currentTarget.innerText = currentTarget.textContent || "";
-    }
-  };
-
-  const handleInputKeyDown: KeyboardEventHandler<HTMLInputElement> = (
+  const handleInputChange: ChangeEventHandler<HTMLTextAreaElement> = (
     event,
   ) => {
-    if (event.key === "Enter" || event.key === "Escape") {
-      event.currentTarget.blur();
+    setInputValue(event.currentTarget.value);
+  };
+
+  const handleInputKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (
+    event,
+  ) => {
+    const { currentTarget, key } = event;
+    if (key === "Enter" || key === "Escape") {
+      currentTarget.blur();
     }
 
-    if (event.key === "ArrowDown") {
-      const { anchorOffset, type } = window.getSelection() || {};
+    if (key === "ArrowDown") {
+      const isCaret =
+        currentTarget.selectionStart === currentTarget.selectionEnd;
+      const isAtEnd = currentTarget.selectionEnd === inputValue.length;
 
-      const isCaret = type === "Caret";
-      const isCaretAtEnd = anchorOffset === titleValueRef?.current.length;
-
-      if (isCaret && isCaretAtEnd) {
+      if (isCaret && isAtEnd) {
         focusEditorBeginning(editorView);
       }
     }
   };
 
-  const handleInputBlur: FocusEventHandler<HTMLInputElement> = () => {
-    const valueToSave = cleanUpTitle(titleValueRef.current);
+  const handleInputBlur: FocusEventHandler<HTMLTextAreaElement> = () => {
+    const valueToSave = cleanUpTitle(inputValue);
     if (valueToSave === value) {
       return;
     }
 
     if (!isValidPageTitle(valueToSave)) {
-      titleValueRef.current = value;
+      setInputValue(value);
       return;
     }
 
@@ -88,35 +80,25 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
 
   // TODO: Assign appropriate a11y attributes
   return (
-    <Typography
+    <TextareaAutosize
       id="hash-page-title"
-      component="h1"
-      variant="h2"
-      contentEditable={!updateEntityLoading}
-      suppressContentEditableWarning
+      placeholder="Untitled"
+      disabled={updateEntityLoading}
+      onChange={handleInputChange}
       onKeyDown={handleInputKeyDown}
       onBlur={handleInputBlur}
-      onInput={handleInputChange}
-      sx={{
-        "*": {
-          /**
-           * this overrides `b` and `i` tag styles
-           * even if user marks them via keyboard shortcuts
-           */
-          fontWeight: "inherit !important",
-          fontStyle: "inherit !important",
-        },
-        lineHeight: 1.23,
+      style={{
         width: "100%",
         outline: "none",
+        border: "none",
+        resize: "none",
+        fontFamily: "Open Sauce Two",
+        fontSize: "var(--step-4)",
+        fontWeight: 500,
+        lineHeight: 1.23,
         opacity: updateEntityLoading ? 0.5 : undefined,
-        ":empty:before": {
-          content: "'Untitled'",
-          opacity: 0.3,
-        },
       }}
-    >
-      {value}
-    </Typography>
+      value={inputValue}
+    />
   );
 };

@@ -13,8 +13,9 @@ export const focusPageTitlePlugin = new Plugin<any, Schema>({
 
       /** @todo `posAtIndex === 1` only works if first item is a text block, fix this */
       if (posAtIndex === 1) {
-        const pageTitle =
-          document.querySelector<HTMLHeadingElement>("h1#hash-page-title");
+        const pageTitle = document.querySelector<HTMLTextAreaElement>(
+          "textarea#hash-page-title",
+        );
 
         pageTitle?.focus();
 
