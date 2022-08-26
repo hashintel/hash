@@ -13,10 +13,12 @@ export const focusEditorBeginning = (view?: EditorView<Schema>) => {
   const newSelection = Selection.atStart(state.doc);
 
   const tr = state.tr.setSelection(newSelection);
+  view.dispatch(tr);
 
-  const newState = state.apply(tr);
-  view.updateState(newState);
-
+  /**
+   * if we don't wait with setImmediate here, new view selection does not work correctly,
+   * and we land focus on 2nd node instead of 1st on editor
+   * */
   setImmediate(() => {
     view.focus();
   });
