@@ -23,10 +23,10 @@ generates:
       noSchemaStitching: true
       skipTypename: true
       scalars:
+        DataType: "@blockprotocol/type-system-web#DataType"
+        PropertyType: "@blockprotocol/type-system-web#PropertyType"
         # TODO Switch out this direct dependency on the HASH Graph SDK with
         #   the Block Protocol type system package when ready
-        DataType: "@hashintel/hash-graph-client#DataType"
-        PropertyType: "@hashintel/hash-graph-client#PropertyType"
         LinkType: "@hashintel/hash-graph-client#LinkType"
         EntityType: "@hashintel/hash-graph-client#EntityType"
         TextToken: "@hashintel/hash-shared/graphql/types#TextToken"

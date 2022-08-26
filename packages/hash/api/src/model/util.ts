@@ -1,9 +1,7 @@
-import {
-  EntityType,
-  PropertyType,
-  DataType,
-  LinkType,
-} from "@hashintel/hash-graph-client";
+import { DataType, PropertyType } from "@blockprotocol/type-system-web";
+/** @todo migrate the below types to the type system package types. */
+import { EntityType, LinkType } from "@hashintel/hash-graph-client";
+
 import slugify from "slugify";
 import { getRequiredEnv } from "../util";
 
@@ -106,7 +104,7 @@ export const generateSchemaVersionedUri = (params: {
   kind: SchemaKind;
   title: string;
   version?: number;
-}) => `${generateSchemaBaseUri(params)}/v/${params.version ?? 1}`;
+}) => `${generateSchemaBaseUri(params)}/v/${params.version ?? 1}` as const;
 
 const primitiveDataTypeTitles = [
   "Text",
@@ -166,7 +164,7 @@ export const generateWorkspacePropertyTypeSchema = (params: {
       : {
           $ref: primitiveDataTypeVersionedUris[primitiveDataType],
         },
-  ),
+  ) as any /** @todo remove this cast */,
 });
 
 /**

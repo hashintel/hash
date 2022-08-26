@@ -2,7 +2,7 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
-import { PropertyType } from "@hashintel/hash-graph-client/";
+import { PropertyType } from "@blockprotocol/type-system-web";
 import {
   DataTypeModel,
   PropertyTypeModel,
@@ -26,7 +26,8 @@ const graphApi = createGraphClient(logger, {
 
 const accountId = "00000000-0000-0000-0000-000000000000";
 
-const textDataType$id = "https://property-type~example.com/data-type/v/1";
+const textDataType$id =
+  "https://property-type~example.com/data-type/v/1" as const;
 
 beforeAll(async () => {
   await DataTypeModel.create(graphApi, {
@@ -41,7 +42,7 @@ beforeAll(async () => {
 });
 
 describe("Property type CRU", () => {
-  const propertyType = ($id: string): PropertyType => {
+  const propertyType = ($id: PropertyType["$id"]): PropertyType => {
     return {
       $id,
       kind: "propertyType",
