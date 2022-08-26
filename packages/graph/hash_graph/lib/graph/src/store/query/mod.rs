@@ -1,11 +1,9 @@
 mod knowledge;
 mod ontology;
 
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use error_stack::Result;
-use futures::{future::BoxFuture, stream::iter, FutureExt, StreamExt};
+use futures::{future::BoxFuture, FutureExt};
 use serde::{Deserialize, Serialize};
 
 pub use self::{
@@ -102,6 +100,7 @@ pub enum Expression {
 }
 
 impl Expression {
+    #[allow(clippy::missing_panics_doc, reason = "TODO: Apply error handling")]
     pub fn evaluate<'a, R>(&'a self, resolver: &'a mut R) -> BoxFuture<Literal>
     where
         R: PathResolver + Send + Sync,
@@ -161,10 +160,7 @@ impl Expression {
 pub trait ExpressionResolver {
     type Record;
 
-    async fn resolve(
-        self: Arc<Self>,
-        expression: &Expression,
-    ) -> Result<Vec<Self::Record>, QueryError>;
+    async fn resolve(&mut self, expression: &Expression) -> Result<Vec<Self::Record>, QueryError>;
 }
 
 #[async_trait]

@@ -1,17 +1,15 @@
-use std::{collections::HashMap, sync::Arc};
-
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
 use tokio_postgres::{GenericClient, RowStream};
-use type_system::{uri::BaseUri, DataType};
+use type_system::DataType;
 
 use crate::{
     ontology::{AccountId, PersistedDataType, PersistedOntologyIdentifier},
     store::{
         postgres::parameter_list,
         query::{Expression, ExpressionResolver, Literal, Path, PathResolver},
-        AsClient, PostgresStore, QueryError,
+        QueryError,
     },
 };
 
@@ -95,10 +93,7 @@ impl<'con, C: GenericClient + Sync> PostgresDataTypeResolver<'con, C> {
 impl<C: GenericClient + Sync> ExpressionResolver for PostgresDataTypeResolver<'_, C> {
     type Record = PersistedDataType;
 
-    async fn resolve(
-        self: Arc<Self>,
-        expression: &Expression,
-    ) -> Result<Vec<Self::Record>, QueryError> {
+    async fn resolve(&mut self, expression: &Expression) -> Result<Vec<Self::Record>, QueryError> {
         let client = &self.client;
         self.read_data_types()
             .await?

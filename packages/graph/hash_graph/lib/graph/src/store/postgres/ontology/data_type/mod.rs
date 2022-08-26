@@ -1,22 +1,16 @@
 mod read;
 
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
-use futures::{StreamExt, TryStreamExt};
-use tokio_postgres::{GenericClient, RowStream};
+use tokio_postgres::GenericClient;
 use type_system::DataType;
 
 use crate::{
     ontology::{AccountId, PersistedDataType, PersistedOntologyIdentifier},
     store::{
         crud::Read,
-        postgres::{
-            ontology::{data_type::read::PostgresDataTypeResolver, OntologyDatabaseType},
-            parameter_list,
-        },
-        query::{Expression, ExpressionResolver, Literal, Path},
+        postgres::ontology::data_type::read::PostgresDataTypeResolver,
+        query::{Expression, ExpressionResolver},
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
 };
@@ -74,23 +68,6 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     }
 }
 
-async fn read_data_types(client: &(impl GenericClient + Sync)) -> Result<RowStream, QueryError> {
-    client
-        .query_raw(
-            r#"
-            SELECT schema, created_by, MAX(version) OVER (PARTITION by base_uri) = version as latest
-            FROM data_types
-            INNER JOIN ids
-	        ON data_types.version_id = ids.version_id
-            ORDER BY base_uri, version DESC;
-            "#,
-            parameter_list([]),
-        )
-        .await
-        .into_report()
-        .change_context(QueryError)
-}
-
 #[async_trait]
 impl<C: AsClient> Read<PersistedDataType> for PostgresStore<C> {
     type Query<'q> = Expression;
@@ -99,7 +76,7 @@ impl<C: AsClient> Read<PersistedDataType> for PostgresStore<C> {
         &self,
         query: &Self::Query<'query>,
     ) -> Result<Vec<PersistedDataType>, QueryError> {
-        let mut resolver = Arc::new(PostgresDataTypeResolver::new(self.as_client()));
+        let mut resolver = PostgresDataTypeResolver::new(self.as_client());
         resolver.resolve(query).await
     }
 }
