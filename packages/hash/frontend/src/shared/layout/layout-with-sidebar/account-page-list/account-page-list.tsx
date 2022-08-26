@@ -30,7 +30,7 @@ import { useArchivePage } from "../../../../components/hooks/useArchivePage";
 import { NavLink } from "../nav-link";
 import { AccountPageListItem } from "./account-page-list-item";
 import { useReorderPage } from "../../../../components/hooks/useReorderPage";
-import { TreeElement, getProjection, getPageList } from "./utilities";
+import { TreeElement, getProjection, getPageList } from "./utils";
 import { Collapse } from "@mui/material";
 
 type AccountPageListProps = {
