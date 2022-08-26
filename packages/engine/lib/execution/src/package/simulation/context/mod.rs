@@ -52,7 +52,7 @@ pub trait ContextPackage: Package + MaybeCpuBound {
         &self,
         num_agents: usize,
         context_schema: &ContextSchema,
-    ) -> Result<Vec<(RootFieldKey, Arc<dyn Array>)>>;
+    ) -> Result<Vec<(RootFieldKey, Box<dyn Array>)>>;
 
     fn span(&self) -> Span;
 }

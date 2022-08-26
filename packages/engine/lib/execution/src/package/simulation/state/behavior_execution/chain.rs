@@ -148,7 +148,7 @@ impl IntoArrowChange for ChainList {
 
         // Fixed-length lists
         let child_data =
-            FixedSizeListArray::new(self.data_types[1].clone(), child_data.as_arc(), None);
+            FixedSizeListArray::new(self.data_types[1].clone(), child_data.as_box(), None);
 
         debug_assert_eq!(child_data.len(), num_behavior_ids);
 
@@ -156,10 +156,10 @@ impl IntoArrowChange for ChainList {
         let data = ListArray::from_data(
             self.data_types[0].clone(),
             offsets.into(),
-            child_data.arced(),
+            child_data.boxed(),
             None,
         )
-        .arced();
+        .boxed();
 
         debug_assert_eq!(data.len(), num_agents);
 

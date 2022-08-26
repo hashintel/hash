@@ -397,8 +397,7 @@ pub mod tests {
 
     use arrow2::{
         array::{
-            Array, ArrayRef, ListArray, MutableBooleanArray, MutableListArray,
-            MutablePrimitiveArray, TryPush,
+            Array, ListArray, MutableBooleanArray, MutableListArray, MutablePrimitiveArray, TryPush,
         },
         datatypes::{IntervalUnit, TimeUnit},
     };
@@ -415,14 +414,16 @@ pub mod tests {
             .collect()
     }
 
-    fn get_num_nodes_from_array_data(data: &ArrayRef) -> usize {
+    #[allow(clippy::borrowed_box)]
+    fn get_num_nodes_from_array_data(data: &Box<dyn Array>) -> usize {
         data.child_data().iter().fold(0, |total_children, child| {
             total_children + get_num_nodes_from_array_data(child)
         }) + 1
     }
 
+    #[allow(clippy::borrowed_box)]
     fn get_buffer_counts_from_array_data<'a>(
-        node_data: &ArrayRef,
+        node_data: &Box<dyn Array>,
         node_meta: &'a [meta::NodeStatic],
     ) -> (Vec<usize>, &'a [meta::NodeStatic]) {
         // check current node's bitmap, node_meta is created by pre-order traversal so ordering
@@ -435,7 +436,7 @@ pub mod tests {
         });
 
         // for some nodes we add an additional buffer to the metadata that is present in the
-        // underlying memory layout but isn't exposed within ArrayRef
+        // underlying memory layout but isn't exposed within Box<dyn Array>
         // crate::arrow::array_buffer_count::buffer_count_of_arrow_array(node_data)
         let mut buffers = if has_null_bitmap {
             vec![crate::arrow::array_buffer_count::buffer_count_of_arrow_array(node_data) + 1]
@@ -458,7 +459,8 @@ pub mod tests {
         (buffers, node_meta)
     }
 
-    fn get_node_mapping_from_array_data(data: &ArrayRef) -> NodeMapping {
+    #[allow(clippy::borrowed_box)]
+    fn get_node_mapping_from_array_data(data: &Box<dyn Array>) -> NodeMapping {
         if data.child_data().is_empty() {
             NodeMapping::empty()
         } else {
@@ -473,8 +475,9 @@ pub mod tests {
 
     // Extracts column hierarchy metadata from the Arrow Array data for a given FieldNode, and its
     // children
+    #[allow(clippy::borrowed_box)]
     fn get_col_hierarchy_from_arrow_array(
-        arrow_array: &ArrayRef,
+        arrow_array: &Box<dyn Array>,
         node_infos: &[meta::NodeStatic],
     ) -> (usize, Vec<usize>, NodeMapping) {
         let node_count = get_num_nodes_from_array_data(arrow_array);
@@ -1329,9 +1332,9 @@ pub mod tests {
             arrow2::array::FixedSizeBinaryArray::from([Some([3u8; 6])]),
             arrow2::array::FixedSizeBinaryArray::from([Some([3u8; 8])]),
         ];
-        let dummy_data_arrays: Vec<ArrayRef> = dummy_data_arrays
+        let dummy_data_arrays: Vec<Box<dyn Array>> = dummy_data_arrays
             .into_iter()
-            .map(|array| Arc::from(array.to_boxed()))
+            .map(|array| array.to_boxed())
             .collect();
 
         for (arrow_array, (column_meta, node_info)) in dummy_data_arrays
@@ -1686,10 +1689,7 @@ pub mod tests {
 
         let struct_c0 = arrow2::array::StructArray::new(
             DataType::Struct(fields),
-            vec![
-                Arc::new(string_array) as ArrayRef,
-                Arc::new(bool_array) as ArrayRef,
-            ],
+            vec![string_array.boxed(), bool_array.boxed()],
             None,
         );
 
