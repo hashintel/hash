@@ -14,6 +14,7 @@
     "test": "jest --runInBand"
   },
   "dependencies": {
+    "@blockprotocol/type-system-web": "https://gitpkg.now.sh/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?c0a430d",
     "@hashintel/hash-api": "0.0.0",
     "@hashintel/hash-backend-utils": "0.0.0",
     "@hashintel/hash-graph-client": "0.0.0",
