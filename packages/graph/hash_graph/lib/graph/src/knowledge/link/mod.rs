@@ -152,7 +152,9 @@ mod tests {
         test_link(
             r#"
             {
-                "https://blockprotocol.org/types/@alice/link-type/written-by/v/1": "00000000-0000-0000-0000-000000000000"
+                "outgoing": {
+                    "https://blockprotocol.org/types/@alice/link-type/written-by/v/1": "00000000-0000-0000-0000-000000000000"
+                }
             }
             "#,
         );
@@ -163,7 +165,9 @@ mod tests {
         test_link(
             r#"
             {
-                "https://blockprotocol.org/types/@alice/link-type/friend-of/v/1": ["00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000"]
+                "outgoing": {
+                    "https://blockprotocol.org/types/@alice/link-type/friend-of/v/1": ["00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000"]
+                }
             }
             "#,
         );

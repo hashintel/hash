@@ -378,7 +378,7 @@ Accept: application/json
 
 {
   "accountId": "{{account_id}}",
-  "targetEntity": "{{person_b_entity_id}}",
+  "targetEntityId": "{{person_b_entity_id}}",
   "linkTypeUri": "{{friend_of_link_type_uri_raw}}"
 }
 
@@ -398,7 +398,7 @@ Accept: application/json
         client.assert(response.status === 200, "Response status is not 200");
     });
     const expected = client.global.get("person_b_entity_id")
-    const actual = response.body[client.global.get("friend_of_link_type_uri_raw")];
+    const actual = response.body.outgoing[client.global.get("friend_of_link_type_uri_raw")];
     client.assert(expected == actual, "Link has wrong target entity ID")
 %}
 
@@ -408,7 +408,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "targetEntity": "{{person_b_entity_id}}",
+  "targetEntityId": "{{person_b_entity_id}}",
   "linkTypeUri": "{{friend_of_link_type_uri_raw}}"
 }
 
