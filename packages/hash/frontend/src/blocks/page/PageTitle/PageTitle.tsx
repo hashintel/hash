@@ -1,4 +1,4 @@
-import { TextareaAutosize } from "@mui/material";
+import { styled, TextareaAutosize, experimental_sx as sx } from "@mui/material";
 import {
   ChangeEventHandler,
   FocusEventHandler,
@@ -11,6 +11,28 @@ import { useBlockProtocolUpdateEntity } from "../../../components/hooks/blockPro
 import { rewriteEntityIdentifier } from "../../../lib/entities";
 import { usePageContext } from "../PageContext";
 import { cleanUpTitle, focusEditorBeginning, isValidPageTitle } from "./utils";
+
+const StyledTextarea = styled(TextareaAutosize)(({ theme }) =>
+  sx({
+    width: "100%",
+    outline: "none",
+    border: "none",
+    resize: "none",
+    fontFamily: "Open Sauce Two",
+    fontSize: "var(--step-4)",
+    fontWeight: 500,
+    lineHeight: 1.23,
+
+    "&::placeholder": {
+      color: theme.palette.gray[40],
+      opacity: 1,
+    },
+
+    ":disabled": {
+      opacity: 0.5,
+    },
+  }),
+);
 
 type PageTitleProps = {
   accountId: string;
@@ -80,24 +102,13 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
 
   // TODO: Assign appropriate a11y attributes
   return (
-    <TextareaAutosize
+    <StyledTextarea
       id="hash-page-title"
       placeholder="Untitled"
       disabled={updateEntityLoading}
       onChange={handleInputChange}
       onKeyDown={handleInputKeyDown}
       onBlur={handleInputBlur}
-      style={{
-        width: "100%",
-        outline: "none",
-        border: "none",
-        resize: "none",
-        fontFamily: "Open Sauce Two",
-        fontSize: "var(--step-4)",
-        fontWeight: 500,
-        lineHeight: 1.23,
-        opacity: updateEntityLoading ? 0.5 : undefined,
-      }}
       value={inputValue}
     />
   );
