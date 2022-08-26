@@ -1501,6 +1501,7 @@ dependencies = [
  "flatbuffers",
  "flatbuffers_gen",
  "glob",
+ "lazy_static",
  "num",
  "rand 0.8.5",
  "serde",

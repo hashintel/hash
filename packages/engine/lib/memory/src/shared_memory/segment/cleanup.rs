@@ -1,48 +1,111 @@
+use std::{collections::HashSet, sync::Mutex};
+
 use glob::GlobError;
+use lazy_static::lazy_static;
 use uuid::Uuid;
 
-use super::MemoryId;
-use crate::{Error, Result};
+lazy_static! {
+    /// We use this to keep a list of all the shared-memory segements which are
+    /// being used by the engine. When the engine exits, we then delete any
+    /// leftover shared memory segments (in release builds; we error in debug builds).
+    pub static ref IN_USE_SHM_SEGMENTS: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
+}
+
+use crate::{shared_memory::MemoryId, Error, Result};
 
 /// Clean up generated shared memory segments associated with a given `MemoryId`.
 ///
-/// Note: this function does not work on macOS.
-///
 /// If debug assertions are enabled, this function will panic if there are any shared-memory
-/// segments left to clear up. This is because macOS does not store a reference to the shared-memory
-/// segments (anywhere!) - the only one we have is the one we receive when we first create the
-/// shared-memory segment. As such, we should consider it a bug if the shared-memory segments have
-/// not been cleaned up before the experiment has completed (obviously it is still useful to have
-/// this function as a safety fallback for operating systems which provide a list of all the
-/// shared-memory segments in use).
+/// segments left to clear up. This is because ideally the engine would clean them all up promptly
+/// (i.e. when the batch the segment corresponds to is no longer needed).
+#[allow(clippy::significant_drop_in_scrutinee)]
 pub fn cleanup_by_base_id(id: Uuid) -> Result<()> {
-    let shm_files = glob::glob(&format!("/dev/shm/{}_*", MemoryId::prefix(id)))
-        .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
+    let segments_not_removed_by_engine: Vec<String> = {
+        let mut segments_list_lock = IN_USE_SHM_SEGMENTS.lock().unwrap();
 
-    #[cfg(debug_assertions)]
-    let mut not_deallocated = Vec::new();
+        let mut segments_not_removed_by_engine = Vec::new();
 
-    for path in shm_files {
-        if let Err(err) = path
-            .map_err(GlobError::into_error)
-            .map(|path| {
-                #[cfg(debug_assertions)]
-                not_deallocated.push(path.display().to_string());
-                path
-            })
-            .and_then(std::fs::remove_file)
-        {
-            tracing::warn!("Could not remove shared memory file: {err}");
+        for os_id in segments_list_lock.iter() {
+            if !os_id.starts_with(&format!("{}_*", MemoryId::prefix(id))) {
+                continue;
+            }
+
+            let shm = shared_memory::ShmemConf::new(true)
+                .os_id(&os_id.clone())
+                .open();
+
+            match shm {
+                Ok(mut mem) => {
+                    segments_not_removed_by_engine.push(os_id.clone());
+                    let is_owner = mem.set_owner(true);
+                    if !is_owner {
+                        tracing::warn!(
+                            "failed to gain ownership of the shared memory segment (this should \
+                             not be possible)"
+                        )
+                    }
+                    // deallocate the shared-memory segment
+                    drop(mem)
+                }
+                Err(e) => {
+                    tracing::warn!("error when trying to open shared-memory segment: {e:?}")
+                }
+            }
         }
-    }
+
+        for to_remove in segments_not_removed_by_engine.iter() {
+            segments_list_lock.remove(to_remove);
+        }
+
+        segments_not_removed_by_engine
+    };
+
+    debug_assert!(
+        segments_not_removed_by_engine.is_empty(),
+        "expected the engine to have cleaned up all the segments it created during the \
+         experiment, but segments with these ids remained at the experiment end: \
+         {segments_not_removed_by_engine:?}"
+    );
 
     #[cfg(debug_assertions)]
-    {
-        if !not_deallocated.is_empty() {
-            panic!(
-                "the following shared memory segments were not deallocated at the end of the \
-                 experiment: {not_deallocated:?}"
-            )
+    check_all_deallocated_linux(id)?;
+
+    Ok(())
+}
+
+/// On Linux we can obtain a list of all the shared memory segments in use, so we can perform some
+/// additional cleanup (this function is mostly useful for testing the implementation of the cleanup
+/// code which uses [`IN_USE_SHM_SEGMENTS`]).
+fn check_all_deallocated_linux(id: Uuid) -> Result<()> {
+    if cfg!(target_os = "linux") {
+        let shm_files = glob::glob(&format!("/dev/shm/{}_*", MemoryId::prefix(id)))
+            .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
+
+        #[cfg(debug_assertions)]
+        let mut not_deallocated = Vec::new();
+
+        for path in shm_files {
+            if let Err(err) = path
+                .map_err(GlobError::into_error)
+                .map(|path| {
+                    #[cfg(debug_assertions)]
+                    not_deallocated.push(path.display().to_string());
+                    path
+                })
+                .and_then(std::fs::remove_file)
+            {
+                tracing::warn!("Could not remove shared memory file: {err}");
+            }
+
+            #[cfg(debug_assertions)]
+            {
+                if !not_deallocated.is_empty() {
+                    panic!(
+                        "the following shared memory segments were not deallocated at the end of \
+                         the experiment: {not_deallocated:?}"
+                    )
+                }
+            }
         }
     }
 
