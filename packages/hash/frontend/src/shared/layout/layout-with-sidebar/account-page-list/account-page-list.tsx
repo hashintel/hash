@@ -64,6 +64,8 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
   const [pagesTreeList, setPagesTreeList] = useState<TreeElement[]>([]);
   const [pagesFlatList, setPagesFlatList] = useState<TreeElement[]>([]);
+  const [pagesFlatIdList, setPagesFlatIdList] = useState<string[]>([]);
+
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
   const [offsetLeft, setOffsetLeft] = useState(0);
@@ -103,6 +105,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     const { treeList, flatList } = getPageList(list, expandedPageIdList);
     setPagesTreeList(treeList);
     setPagesFlatList(flatList);
+    setPagesFlatIdList(flatList.map((page) => page.entityId));
   };
 
   useMemo(() => {
@@ -257,7 +260,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       measuring={measuringConfig}
     >
       <SortableContext
-        items={pagesFlatList.map((item) => item.entityId)}
+        items={pagesFlatIdList}
         strategy={verticalListSortingStrategy}
       >
         <NavLink
