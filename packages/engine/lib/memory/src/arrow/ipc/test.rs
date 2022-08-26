@@ -85,7 +85,7 @@ fn simple_roundtrip() {
     let record_batch = RecordBatch::new(
         schema.clone(),
         Chunk::new(vec![
-            BooleanArray::from_slice(&[true, true, true, true, true]).arced(),
+            BooleanArray::from_slice(&[true, true, true, true, true]).boxed(),
         ]),
     );
 
@@ -102,7 +102,7 @@ fn integer_roundtrip() {
     let record_batch = RecordBatch::new(
         schema.clone(),
         Chunk::new(vec![
-            PrimitiveArray::<u32>::from_slice(&[1, 2, 1, 2]).arced(),
+            PrimitiveArray::<u32>::from_slice(&[1, 2, 1, 2]).boxed(),
         ]),
     );
 
@@ -126,7 +126,7 @@ fn fixed_sized_list_roundtrip() {
     list_array.try_extend(list_data).unwrap();
     let list_array: FixedSizeListArray = list_array.into();
 
-    let record_batch = RecordBatch::new(schema.clone(), Chunk::new(vec![list_array.arced()]));
+    let record_batch = RecordBatch::new(schema.clone(), Chunk::new(vec![list_array.boxed()]));
 
     round_trip(schema, record_batch)
 }
@@ -142,7 +142,7 @@ fn utf8_roundrip() {
     let record_batch = RecordBatch::new(
         schema.clone(),
         Chunk::new(vec![
-            Utf8Array::<i32>::from_slice(&["one", "two", "three"]).arced(),
+            Utf8Array::<i32>::from_slice(&["one", "two", "three"]).boxed(),
         ]),
     );
 
@@ -174,7 +174,7 @@ fn list_roundtrip() {
             *current
         });
 
-    let record_batch = RecordBatch::new(schema.clone(), Chunk::new(vec![list_array.arced()]));
+    let record_batch = RecordBatch::new(schema.clone(), Chunk::new(vec![list_array.boxed()]));
 
     round_trip(schema, record_batch)
 }
@@ -196,7 +196,7 @@ fn fixed_size_binary_roundrip() {
                 [0u8, 104u8, 202u8, 59u8, 212u8],
                 [0u8, 122u8, 12u8, 59u8, 212u8],
             ])
-            .arced(),
+            .boxed(),
         ]),
     );
 
@@ -217,7 +217,7 @@ fn single_fixed_size_binary_roundtrip() {
             FixedSizeBinaryArray::from_slice(&[[
                 44, 76, 252, 210, 92, 141, 68, 36, 129, 235, 57, 157, 47, 231, 116, 103,
             ]])
-            .arced(),
+            .boxed(),
         ]),
     );
 
@@ -261,8 +261,8 @@ fn multiple_columns() {
     let record_batch = RecordBatch::new(
         schema.clone(),
         Chunk::new(vec![
-            BooleanArray::from_slice(&[true, true, true, true]).arced(),
-            list_array.arced(),
+            BooleanArray::from_slice(&[true, true, true, true]).boxed(),
+            list_array.boxed(),
         ]),
     );
 
@@ -334,7 +334,7 @@ fn struct_list_roundtrip() {
         vec![Default::default(), Default::default(), Default::default()],
     ];
 
-    let array: Arc<dyn Array> = list_array.try_into_arrow().unwrap();
+    let array: Box<dyn Array> = list_array.try_into_arrow().unwrap();
 
     let record_batch = RecordBatch::new(schema.clone(), Chunk::new(vec![array]));
 

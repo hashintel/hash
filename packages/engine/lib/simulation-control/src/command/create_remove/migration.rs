@@ -2,7 +2,7 @@
 
 use std::{borrow::Cow, mem, sync::Arc};
 
-use arrow2::{self, array::ArrayRef};
+use arrow2::array::Array;
 use bytemuck::cast_slice;
 use memory::{
     arrow::{
@@ -459,6 +459,9 @@ impl<'a> BufferActions<'a> {
     }
 
     #[allow(clippy::too_many_lines, clippy::too_many_arguments)]
+    // this is necessary, because GrowableArrayData is implemented for Box<dyn Array> but not
+    // &dyn Array
+    #[allow(clippy::borrowed_box)]
     fn traverse_nodes<'b>(
         mut next_state: NextState,
         children_meta: &NodeMapping,
@@ -468,7 +471,7 @@ impl<'a> BufferActions<'a> {
         parent_range_actions: &RangeActions,
         agent_batch: Option<&AgentBatch>,
         agent_batches: &[&AgentBatch],
-        new_agents: Option<&'b ArrayRef>,
+        new_agents: Option<&'b Box<dyn Array>>,
         actions: &mut Vec<BufferAction<'b>>,
         buffer_metas: &mut Vec<Buffer>,
         node_metas: &mut Vec<Node>,
