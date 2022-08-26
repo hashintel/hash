@@ -75,7 +75,7 @@ pub fn cleanup_by_base_id(id: Uuid) -> Result<()> {
 
 /// On Linux we can obtain a list of all the shared memory segments in use, so we can perform some
 /// additional cleanup (this function is mostly useful for testing the implementation of the cleanup
-/// code which uses [`IN_USE_SHM_SEGMENTS`]).
+/// code which uses [`static@IN_USE_SHM_SEGMENTS`]).
 fn check_all_deallocated_linux(id: Uuid) -> Result<()> {
     if cfg!(target_os = "linux") {
         let shm_files = glob::glob(&format!("/dev/shm/{}_*", MemoryId::prefix(id)))
