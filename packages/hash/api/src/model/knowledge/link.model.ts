@@ -101,7 +101,7 @@ export default class {
     return Promise.all(
       Object.entries(entityLinks.outgoing)
         /**
-         * when target entity id is a list, that means the link has many targets.
+         * When target entity id is a list the link has many targets.
          * This is not supported yet
          * @todo support 1:N links
          * */
