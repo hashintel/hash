@@ -128,7 +128,7 @@ const CustomContent = forwardRef(
             }),
           })}
         >
-          {label}
+          {label || "Untitled"}
         </Typography>
         <Tooltip
           title="Add subpages, delete, duplicate and more"

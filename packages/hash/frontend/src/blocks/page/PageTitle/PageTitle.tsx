@@ -87,11 +87,6 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
       return;
     }
 
-    if (!isValidPageTitle(valueToSave)) {
-      setInputValue(value);
-      return;
-    }
-
     void updateEntity({
       data: {
         entityId: rewriteEntityIdentifier({ accountId, entityId }),

@@ -46,7 +46,7 @@ export const useCreatePage = (accountId: string) => {
 
   const createUntitledPage = useCallback(async () => {
     const response = await createPageFn({
-      variables: { accountId, properties: { title: "Untitled" } },
+      variables: { accountId, properties: { title: "" } },
     });
 
     const { accountId: pageAccountId, entityId: pageEntityId } =
@@ -60,7 +60,7 @@ export const useCreatePage = (accountId: string) => {
   const createSubPage = useCallback(
     async (parentPageEntityId: string) => {
       const response = await createPageFn({
-        variables: { accountId, properties: { title: "Untitled" } },
+        variables: { accountId, properties: { title: "" } },
       });
 
       const { accountId: pageAccountId, entityId: pageEntityId } =

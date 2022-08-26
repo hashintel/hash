@@ -54,7 +54,7 @@ const SubMenu = ({ items, defaultIcon }: SubMenuProps) => {
         {items.map((item) => (
           <MenuItem href={item.href} key={item.title}>
             <ListItemIcon>{item.icon ?? defaultIcon}</ListItemIcon>
-            <ListItemText>{item.title}</ListItemText>
+            <ListItemText>{item.title || "Untitled"}</ListItemText>
           </MenuItem>
         ))}
       </Menu>
@@ -140,7 +140,7 @@ export const Breadcrumbs = ({
                   textOverflow: "ellipsis",
                 }}
               >
-                {item.title}
+                {item.title || "Untitled"}
               </Box>
             </Button>
           </Tooltip>
