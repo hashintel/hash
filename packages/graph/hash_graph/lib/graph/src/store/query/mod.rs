@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use error_stack::Result;
 use futures::{future::BoxFuture, FutureExt};
 use serde::{Deserialize, Serialize};
+use type_system::uri::VersionedUri;
 
 pub use self::{
     knowledge::{EntityQuery, EntityVersion, LinkQuery},
@@ -97,6 +98,42 @@ pub enum Expression {
     Literal(Literal),
     Path(Path),
     Field(Identifier),
+}
+
+impl Expression {
+    #[must_use]
+    pub fn for_versioned_uri(uri: &VersionedUri) -> Self {
+        Self::All(vec![
+            Self::Eq(vec![
+                Self::Path(Path {
+                    segments: vec![PathSegment {
+                        identifier: "version".to_owned(),
+                    }],
+                }),
+                Self::Literal(Literal::Float(f64::from(uri.version()))),
+            ]),
+            Self::Eq(vec![
+                Self::Path(Path {
+                    segments: vec![PathSegment {
+                        identifier: "uri".to_owned(),
+                    }],
+                }),
+                Self::Literal(Literal::String(uri.base_uri().to_string())),
+            ]),
+        ])
+    }
+
+    #[must_use]
+    pub fn for_latest_version() -> Self {
+        Self::Eq(vec![
+            Self::Path(Path {
+                segments: vec![PathSegment {
+                    identifier: "version".to_owned(),
+                }],
+            }),
+            Self::Literal(Literal::String("latest".to_owned())),
+        ])
+    }
 }
 
 impl Expression {
