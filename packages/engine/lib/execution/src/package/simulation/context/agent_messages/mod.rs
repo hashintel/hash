@@ -7,7 +7,10 @@ mod writer;
 
 use std::sync::Arc;
 
-use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
+use arrow2::{
+    array::{Array, MutableFixedSizeListArray, MutableListArray, MutablePrimitiveArray, TryExtend},
+    datatypes::{DataType, Field},
+};
 use async_trait::async_trait;
 use serde_json::Value;
 use stateful::{
@@ -33,7 +36,6 @@ const CPU_BOUND: bool = true;
 pub const MESSAGE_INDEX_COUNT: usize = 3;
 
 pub type IndexType = u32;
-pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 
 pub struct AgentMessagesCreator;
 
@@ -116,19 +118,37 @@ impl ContextPackage for AgentMessages {
         &self,
         num_agents: usize,
         _schema: &ContextSchema,
-    ) -> Result<Vec<(RootFieldKey, Arc<dyn Array>)>> {
-        let index_builder = ArrowIndexBuilder::new(1024);
-        let loc_builder = FixedSizeListBuilder::new(index_builder, 3);
-        let mut messages_builder = ListBuilder::new(loc_builder);
+    ) -> Result<Vec<(RootFieldKey, Box<dyn Array>)>> {
+        let index_builder = MutablePrimitiveArray::<u32>::with_capacity(1024);
+        let loc_builder = MutableFixedSizeListArray::new(index_builder, 3);
+        let mut messages_builder: MutableListArray<
+            i32,
+            MutableFixedSizeListArray<MutablePrimitiveArray<u32>>,
+        > = MutableListArray::new_from(
+            loc_builder,
+            DataType::List(Box::new(Field::new(
+                // todo: use a better field name for this
+                // Asana task: https://app.asana.com/0/1199548034582004/1202829751949507/f
+                "item",
+                DataType::FixedSizeList(Box::new(Field::new("item", DataType::UInt32, true)), 3),
+                true,
+            ))),
+            num_agents,
+        );
 
-        (0..num_agents).try_for_each(|_| messages_builder.append(true))?;
+        messages_builder
+            .try_extend((0..num_agents).map(|_| Option::<Vec<Option<Vec<Option<u32>>>>>::None))?;
+
+        let messages = messages_builder.into_box();
+
+        assert_eq!(messages.len(), num_agents);
 
         let field_key = self
             .context_field_spec_accessor
             .get_agent_scoped_field_spec(MESSAGES_FIELD_NAME)?
             .create_key()?;
 
-        Ok(vec![(field_key, Arc::new(messages_builder.finish()))])
+        Ok(vec![(field_key, messages)])
     }
 
     fn span(&self) -> Span {

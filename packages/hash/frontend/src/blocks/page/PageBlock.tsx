@@ -7,11 +7,13 @@ import { useLayoutEffect, useRef, FunctionComponent } from "react";
 import { useLocalstorageState } from "rooks";
 
 import { Button } from "@hashintel/hash-design-system";
+import Box from "@mui/material/Box";
 import { BlockLoadedProvider } from "../onBlockLoaded";
 import { UserBlocksProvider } from "../userBlocks";
 import { EditorConnection } from "./collab/EditorConnection";
 import { BlocksMap, createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
+import { useReadonlyMode } from "../../shared/readonly-mode";
 
 type PageBlockProps = {
   blocks: BlocksMap;
@@ -31,7 +33,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   entityId,
 }) => {
   const root = useRef<HTMLDivElement>(null);
-  const [portals, renderPortal] = usePortals();
+  const [portals, renderPortal, clearPortals] = usePortals();
   const [debugging] = useLocalstorageState<
     { restartCollabButton?: boolean } | boolean
   >("hash.internal.debugging", false);
@@ -44,6 +46,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
 
   const router = useRouter();
   const routeHash = router.asPath.split("#")[1] ?? "";
+  const { readonlyMode } = useReadonlyMode();
 
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not
@@ -72,18 +75,22 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       manager,
     };
 
+    if (readonlyMode) {
+      manager.setReadonlyMode();
+    }
+
     return () => {
-      // @todo how does this work with portals?
-      node.innerHTML = "";
+      clearPortals();
+      view.destroy();
+      connection.close();
       prosemirrorSetup.current = null;
-      connection?.close();
     };
-  }, [accountId, blocks, entityId, renderPortal]);
+  }, [accountId, blocks, entityId, renderPortal, readonlyMode, clearPortals]);
 
   return (
     <UserBlocksProvider value={blocks}>
       <BlockLoadedProvider routeHash={routeHash}>
-        <div id="root" ref={root} />
+        <Box id="root" ref={root} position="relative" />
         {portals}
         {/**
          * @todo position this better

@@ -1,6 +1,6 @@
-use arrow::{
+use arrow2::{
     datatypes::Schema,
-    ipc::writer::{IpcDataGenerator, IpcWriteOptions},
+    io::ipc::write::{default_ipc_fields, schema_to_bytes},
 };
 use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use flatbuffers_gen::sync_state_interim_generated::StateInterimSyncArgs;
@@ -236,7 +236,10 @@ fn inbound_to_nng(
 
             let package_config = pkgs_to_fbs(fbb, &msg.packages)?;
 
-            let shared_ctx = shared_ctx_to_fbs(fbb, &msg.datastore.shared_store);
+            let shared_ctx = {
+                let shared_ctx = msg.datastore.shared_store.upgrade().unwrap();
+                shared_ctx_to_fbs(fbb, shared_ctx.as_ref())
+            };
             let agent_schema_bytes =
                 schema_to_stream_bytes(&msg.datastore.agent_batch_schema.arrow);
             let msg_schema_bytes = schema_to_stream_bytes(&msg.datastore.message_batch_schema);
@@ -321,18 +324,18 @@ fn shared_store_to_fbs<'f>(
     let (agent_batches, msg_batches, indices) = match &shared_store.state {
         SharedState::None => (vec![], vec![], vec![]),
         SharedState::Read(state) => {
-            let a: Vec<_> = state
+            let agents: Vec<_> = state
                 .agent_pool()
                 .batches_iter()
                 .map(|agent_batch| batch_to_fbs(fbb, agent_batch.batch.segment()))
                 .collect();
-            let m: Vec<_> = state
+            let messages: Vec<_> = state
                 .message_pool()
                 .batches_iter()
                 .map(|message_batch| batch_to_fbs(fbb, message_batch.batch.segment()))
                 .collect();
-            let indices = (0..a.len()).collect();
-            (a, m, indices)
+            let indices = (0..agents.len()).collect();
+            (agents, messages, indices)
         }
         SharedState::Write(state) => {
             let a: Vec<_> = state
@@ -351,31 +354,31 @@ fn shared_store_to_fbs<'f>(
         SharedState::Partial(partial) => match partial {
             PartialSharedState::Read(partial) => {
                 let state = &partial.state_proxy;
-                let a: Vec<_> = state
+                let agents: Vec<_> = state
                     .agent_pool()
                     .batches_iter()
                     .map(|agent_batch| batch_to_fbs(fbb, agent_batch.batch.segment()))
                     .collect();
-                let m: Vec<_> = state
+                let messages: Vec<_> = state
                     .message_pool()
                     .batches_iter()
                     .map(|message_batch| batch_to_fbs(fbb, message_batch.batch.segment()))
                     .collect();
-                (a, m, partial.group_indices.clone())
+                (agents, messages, partial.group_indices.clone())
             }
             PartialSharedState::Write(partial) => {
                 let state = &partial.state_proxy;
-                let a: Vec<_> = state
+                let agents: Vec<_> = state
                     .agent_pool()
                     .batches_iter()
                     .map(|agent_batch| batch_to_fbs(fbb, agent_batch.batch.segment()))
                     .collect();
-                let m: Vec<_> = state
+                let messages: Vec<_> = state
                     .message_pool()
                     .batches_iter()
                     .map(|message_batch| batch_to_fbs(fbb, message_batch.batch.segment()))
                     .collect();
-                (a, m, partial.group_indices.clone())
+                (agents, messages, partial.group_indices.clone())
             }
         },
     };
@@ -401,9 +404,8 @@ fn str_to_serialized<'f>(
 
 // TODO: Code duplication with JS runner; move this function into datastore?
 fn schema_to_stream_bytes(schema: &Schema) -> Vec<u8> {
-    let ipc_data_generator = IpcDataGenerator::default();
-    let content = ipc_data_generator.schema_to_bytes(schema, &IpcWriteOptions::default());
-    let mut stream_bytes = arrow_continuation(content.ipc_message.len());
-    stream_bytes.extend_from_slice(&content.ipc_message);
+    let content = schema_to_bytes(schema, &default_ipc_fields(&schema.fields));
+    let mut stream_bytes = arrow_continuation(content.len());
+    stream_bytes.extend_from_slice(&content);
     stream_bytes
 }

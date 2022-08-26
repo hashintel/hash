@@ -4,9 +4,10 @@ import {
   EmbedderGraphMessageCallbacks,
 } from "@blockprotocol/graph";
 import { useGraphEmbedderService } from "@blockprotocol/graph/react";
+import { useHookEmbedderService } from "@blockprotocol/hook/react";
 import { FunctionComponent, useEffect, useRef } from "react";
+import { v4 as uuid } from "uuid";
 import { BlockRenderer } from "./blockRenderer";
-
 import { useRemoteBlock } from "./useRemoteBlock";
 
 type RemoteBlockProps = {
@@ -22,7 +23,7 @@ type RemoteBlockProps = {
   graphProperties: Required<BlockGraphProperties<UnknownRecord>["graph"]>;
   blockMetadata: BlockMetadata;
   crossFrame?: boolean;
-  editableRef?: unknown;
+  editableRef?: (node: HTMLElement | null) => void;
   onBlockLoaded?: () => void;
 };
 
@@ -57,6 +58,23 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
     ...graphProperties,
   });
 
+  useHookEmbedderService(wrapperRef, {
+    callbacks: {
+      async hook({ data }) {
+        if (data?.type === "text" && data.path === "$.text") {
+          editableRef?.(data.node);
+
+          const hookId = data.hookId ?? uuid();
+          return { data: { hookId } };
+        }
+
+        return {
+          errors: [{ code: "NOT_IMPLEMENTED", message: "Improper hook" }],
+        };
+      },
+    },
+  });
+
   useEffect(() => {
     if (graphService) {
       graphService.blockEntity({ data: graphProperties.blockEntity });
@@ -83,6 +101,14 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
     }
   }, [graphProperties.linkedAggregations, graphService]);
 
+  useEffect(() => {
+    if (graphService) {
+      graphService.readonly({
+        data: graphProperties.readonly,
+      });
+    }
+  }, [graphProperties.readonly, graphService]);
+
   if (loading) {
     return <BlockLoadingIndicator />;
   }
@@ -95,10 +121,7 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
     throw err;
   }
 
-  const propsToInject: BlockGraphProperties<Record<string, any>> & {
-    editableRef: any;
-  } = {
-    editableRef,
+  const propsToInject: BlockGraphProperties<Record<string, any>> = {
     graph: graphProperties,
   };
 

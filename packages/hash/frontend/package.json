@@ -18,7 +18,10 @@
   "dependencies": {
     "@apollo/client": "3.6.9",
     "@blockprotocol/core": "0.0.8",
-    "@blockprotocol/graph": "0.0.11-canary.24",
+    "@blockprotocol/graph": "0.0.12",
+    "@blockprotocol/hook": "0.0.1",
+    "@emoji-mart/data": "1.0.5",
+    "@emoji-mart/react": "1.0.1",
     "@emotion/cache": "11.7.1",
     "@emotion/react": "11.9.0",
     "@emotion/server": "11.4.0",
@@ -34,10 +37,11 @@
     "@mui/icons-material": "5.4.2",
     "@mui/lab": "5.0.0-alpha.71",
     "@mui/material": "5.4.3",
+    "@mui/system": "5.5.1",
     "@rjsf/core": "4.1.1",
     "@rjsf/material-ui": "4.1.1",
-    "@sentry/nextjs": "7.5.1",
-    "@sentry/react": "7.5.1",
+    "@sentry/nextjs": "7.10.0",
+    "@sentry/react": "7.10.0",
     "@svgr/webpack": "6.2.1",
     "@twind/next": "1.0.9",
     "ajv": "8.11.0",
@@ -45,6 +49,7 @@
     "clsx": "1.1.1",
     "date-fns": "2.28.0",
     "dotenv-flow": "3.2.0",
+    "emoji-mart": "5.2.1",
     "framer-motion": "^6.4.3",
     "graphql": "15.5.1",
     "iframe-resizer": "4.3.2",
@@ -53,7 +58,7 @@
     "jsonschema": "1.4.0",
     "lodash": "4.17.21",
     "material-ui-popup-state": "2.0.0",
-    "next": "12.2.2",
+    "next": "12.2.4",
     "next-transpile-modules": "9.0.0",
     "pluralize": "8.0.0",
     "prosemirror-collab": "1.2.2",
@@ -85,12 +90,13 @@
     "@graphql-codegen/fragment-matcher": "3.2.1",
     "@graphql-codegen/typescript": "2.6.0",
     "@graphql-codegen/typescript-operations": "2.4.3",
-    "@next/bundle-analyzer": "12.2.2",
+    "@next/bundle-analyzer": "12.2.4",
     "@testing-library/dom": "8.14.0",
     "@testing-library/jest-dom": "5.16.4",
     "@testing-library/react": "13.3.0",
     "@testing-library/user-event": "14.2.1",
     "@types/dotenv-flow": "3.2.0",
+    "@types/emoji-mart": "3.0.9",
     "@types/iframe-resizer": "3.5.9",
     "@types/jest": "28.1.4",
     "@types/jsonpath": "0.2.0",
@@ -133,6 +139,6 @@
     "typescript": "4.7.4"
   },
   "engines": {
-    "node": ">=16.13.0"
+    "node": ">=16.15.0"
   }
 }

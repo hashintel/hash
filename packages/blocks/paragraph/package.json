@@ -19,12 +19,13 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "blockprotocol": "0.0.12"
+    "@blockprotocol/graph": "0.0.12",
+    "@blockprotocol/hook": "0.0.1"
   },
   "devDependencies": {
     "block-scripts": "0.0.14",
     "eslint": "8.20.0",
-    "mock-block-dock": "0.0.10",
+    "mock-block-dock": "0.0.20",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "typescript": "4.7.4",
@@ -39,6 +40,9 @@
     "servePort": 62682
   },
   "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
     "displayName": "Paragraph",
     "icon": "public/paragraph.svg",
     "image": "public/preview.svg",
@@ -47,6 +51,6 @@
         "text": "William Shakespeare was an English playwright, poet and actor, widely regarded as the greatest writer in the English language and the world's greatest dramatist. He is often called England's national poet and the \"Bard of Avon\"."
       }
     ],
-    "protocol": "0.1"
+    "protocol": "0.2"
   }
 }

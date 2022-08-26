@@ -2,6 +2,10 @@
 
 use std::sync::Arc;
 
+use arrow2::{
+    array::{MutableFixedSizeListArray, MutableListArray, MutablePrimitiveArray, TryExtend},
+    datatypes::{DataType, Field},
+};
 use async_trait::async_trait;
 use stateful::{
     agent,
@@ -33,7 +37,6 @@ const CPU_BOUND: bool = true;
 pub const NEIGHBOR_INDEX_COUNT: usize = 2;
 
 pub type IndexType = u32;
-pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 
 pub struct NeighborsCreator;
 
@@ -82,7 +85,7 @@ pub struct Neighbors {
 }
 
 impl Neighbors {
-    fn neighbor_vec<'a>(batches: &'a [&AgentBatch]) -> Result<Vec<NeighborRef<'a>>> {
+    fn neighbor_vec(batches: &[&AgentBatch]) -> Result<Vec<NeighborRef>> {
         Ok(agent::arrow::position_iter(batches)?
             .zip(agent::arrow::index_iter(batches))
             .zip(agent::arrow::search_radius_iter(batches)?)
@@ -127,13 +130,28 @@ impl ContextPackage for Neighbors {
         &self,
         num_agents: usize,
         _schema: &ContextSchema,
-    ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow::array::Array>)>> {
-        let index_builder = ArrowIndexBuilder::new(1024);
+    ) -> Result<Vec<(RootFieldKey, Box<dyn arrow2::array::Array>)>> {
+        let index_builder = MutablePrimitiveArray::<u32>::with_capacity(1024);
 
-        let neighbor_index_builder = arrow::array::FixedSizeListBuilder::new(index_builder, 2);
-        let mut neighbors_builder = arrow::array::ListBuilder::new(neighbor_index_builder);
+        let neighbor_index_builder = MutableFixedSizeListArray::new(index_builder, 2);
+        // todo: this may not be the correct shape
+        let mut neighbors_builder: MutableListArray<
+            i32,
+            MutableFixedSizeListArray<MutablePrimitiveArray<u32>>,
+        > = MutableListArray::new_from(
+            neighbor_index_builder,
+            DataType::List(Box::new(Field::new(
+                "item",
+                DataType::FixedSizeList(Box::new(Field::new("item", DataType::UInt32, true)), 2),
+                true,
+            ))),
+            num_agents,
+        );
 
-        (0..num_agents).try_for_each(|_| neighbors_builder.append(true))?;
+        neighbors_builder
+            .try_extend((0..num_agents).map(|_| Option::<Vec<Option<Vec<Option<u32>>>>>::None))?;
+        let neighbors = neighbors_builder.into_box();
+        assert_eq!(neighbors.len(), num_agents);
 
         // TODO, this is unclean, we won't have to do this if we move empty arrow
         //   initialisation to be done per schema instead of per package
@@ -142,7 +160,7 @@ impl ContextPackage for Neighbors {
             .get_agent_scoped_field_spec("neighbors")?
             .create_key()?;
 
-        Ok(vec![(field_key, Arc::new(neighbors_builder.finish()))])
+        Ok(vec![(field_key, neighbors)])
     }
 
     fn span(&self) -> Span {

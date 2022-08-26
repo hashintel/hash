@@ -41,7 +41,7 @@ impl ExperimentConfig {
             })
             .build()?;
         let base_globals: Globals = serde_json::from_str(&simulation.globals_src)
-            .report()
+            .into_report()
             .attach_printable("Could not parse globals JSON")
             .change_context(ConfigError)?;
 

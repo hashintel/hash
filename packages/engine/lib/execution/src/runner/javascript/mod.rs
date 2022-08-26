@@ -20,18 +20,23 @@ use std::{
     sync::Arc,
 };
 
-use arrow::{
-    array::{ArrayData, BooleanBufferBuilder, BufferBuilder},
+use arrow2::{
+    array::{
+        BooleanArray, FixedSizeBinaryArray, FixedSizeListArray, ListArray, PrimitiveArray,
+        StructArray, Utf8Array,
+    },
+    bitmap::Bitmap,
     buffer::Buffer,
-    datatypes::{ArrowNativeType, DataType, Schema},
-    ipc::writer::{IpcDataGenerator, IpcWriteOptions},
-    util::bit_util,
+    datatypes::{DataType, Schema},
+    io::ipc::write::{default_ipc_fields, schema_to_bytes},
+    types::NativeType,
 };
 use futures::{Future, FutureExt};
 use memory::{
-    arrow::{ArrowBatch, ColumnChange},
+    arrow::{util::bit_util, ArrowBatch, ColumnChange},
     shared_memory::{arrow_continuation, Segment},
 };
+use num::Num;
 use stateful::{
     agent::AgentBatch,
     field::PackageId,
@@ -611,10 +616,9 @@ fn bytes_to_js<'s>(scope: &mut v8::HandleScope<'s>, bytes: &[u8]) -> Value<'s> {
 }
 
 fn schema_to_stream_bytes(schema: &Schema) -> Vec<u8> {
-    let ipc_data_generator = IpcDataGenerator::default();
-    let content = ipc_data_generator.schema_to_bytes(schema, &IpcWriteOptions::default());
-    let mut stream_bytes = arrow_continuation(content.ipc_message.len());
-    stream_bytes.extend_from_slice(&content.ipc_message);
+    let content = schema_to_bytes(schema, &default_ipc_fields(&schema.fields));
+    let mut stream_bytes = arrow_continuation(content.len());
+    stream_bytes.extend_from_slice(&content);
     stream_bytes
 }
 
@@ -846,7 +850,13 @@ impl<'s> ThreadLocalRunner<'s> {
 
     pub fn new(scope: &mut v8::HandleScope<'s>, init: &ExperimentInitRunnerMsg) -> Result<Self> {
         let embedded = Embedded::import_common_js_files(scope)?;
-        let datasets = Self::load_datasets(scope, &init.shared_context)?;
+        let datasets = {
+            let upgraded = init.shared_context.upgrade().expect(
+                "failed to obtain access to the shared store (this is a bug: it should not be \
+                 possible for the ExperimentController to be dropped before a Javascript runner)",
+            );
+            Self::load_datasets(scope, upgraded.as_ref())?
+        };
 
         let pkg_config = &init.package_config.0;
         let pkg_fns = v8::Array::new(scope, pkg_config.len() as i32);
@@ -901,22 +911,22 @@ impl<'s> ThreadLocalRunner<'s> {
     /// # SAFETY
     ///
     /// - `data_ptr` must be valid for `data_len` reads of `T`
-    unsafe fn read_primitive_buffer<T: ArrowNativeType>(
+    unsafe fn read_primitive_buffer<T: NativeType + Num>(
         &self,
         data_ptr: NonNull<T>,
         data_len: usize,
         _data_capacity: usize, // for future use to create a `Buffer::from_raw_parts`
         target_len: usize,
-    ) -> Buffer {
+    ) -> Buffer<T> {
         // TODO: OPTIM: We currently copy the buffers because the JavaScript representation of
         //   arrays does not match the Rust implementation. Try to reduce copies where possible by
         //   reusing it, i.e. check, if `target_len` >= `data_capacity` and constructing it from raw
         //   parts.
         // Create a buffer for `target_len` elements
-        let mut builder = BufferBuilder::new(target_len);
+        let mut builder = Vec::with_capacity(target_len);
 
         // Read data from JS
-        builder.append_slice(slice::from_raw_parts(data_ptr.as_ptr(), data_len));
+        builder.extend_from_slice(slice::from_raw_parts(data_ptr.as_ptr(), data_len));
 
         // Ensure we don't subtract a larger unsigned number from a smaller
         // TODO: Use `buffer.resize()` instead of `builder.advance()`
@@ -925,8 +935,9 @@ impl<'s> ThreadLocalRunner<'s> {
             "Expected length is smaller than the actual length for buffer: {:?}",
             slice::from_raw_parts(data_ptr.as_ptr(), data_len)
         );
-        builder.advance(target_len - data_len);
-        builder.finish()
+        // make the buffer larger as needed
+        builder.resize(builder.len() + (target_len - data_len), T::zero());
+        Buffer::from(builder)
     }
 
     /// Creates a new offset buffer from the provided `data_ptr` and `data_capacity` with at least a
@@ -943,7 +954,7 @@ impl<'s> ThreadLocalRunner<'s> {
         data_len: usize,
         _data_capacity: usize, // for future use to create a `Buffer::from_raw_parts`
         target_len: usize,
-    ) -> (Buffer, usize) {
+    ) -> (Buffer<i32>, usize) {
         // TODO: OPTIM: We currently copy the buffers because the JavaScript representation of
         //   arrays does not match the Rust implementation. Try to reduce copies where possible by
         //   reusing it, i.e. check, if `target_len` <= `data_capacity` and constructing it from raw
@@ -952,7 +963,7 @@ impl<'s> ThreadLocalRunner<'s> {
         // For each value in the buffer, we have a start offset and an end offset. The start offset
         // is equal to the end offset of the previous value, thus we need `num_values + 1`
         // offset values.
-        let mut builder = BufferBuilder::new(target_len + 1);
+        let mut builder = Vec::with_capacity(target_len + 1);
 
         let offsets = slice::from_raw_parts(data_ptr.as_ptr(), data_len + 1);
         debug_assert_eq!(offsets[0], 0, "Offset buffer does not start with `0`");
@@ -963,19 +974,18 @@ impl<'s> ThreadLocalRunner<'s> {
         debug_assert!(offsets.is_sorted(), "Offsets are not ordered");
 
         // Read data from JS
-        builder.append_slice(offsets);
+        builder.extend_from_slice(offsets);
 
         let last = offsets[data_len];
 
         // Ensure we don't subtract a larger unsigned number from a smaller
-        // TODO: Use `buffer.resize()` instead of `builder.append_n()`
         debug_assert!(
             target_len >= data_len,
             "Expected offset count is smaller than the actual buffer: {:?}",
             slice::from_raw_parts(data_ptr.as_ptr(), data_len + 1)
         );
-        builder.append_n(target_len - data_len, last);
-        (builder.finish(), last as usize)
+        builder.resize(target_len + 1, 0);
+        (Buffer::from_iter(builder), last as usize)
     }
 
     /// Creates a new packed buffer from the provided `data_ptr` and `data_capacity` with at least
@@ -990,31 +1000,34 @@ impl<'s> ThreadLocalRunner<'s> {
         data_len: usize,
         _data_capacity: usize, // for future use to create a `Buffer::from_raw_parts`
         target_len: usize,
-    ) -> Buffer {
+    ) -> Bitmap {
         // TODO: OPTIM: We currently copy the buffers because the JavaScript representation of
         //   arrays does not match the Rust implementation. Try to reduce copies where possible by
         //   reusing it, i.e. check, if `target_len` <= `data_capacity` and constructing it from raw
         //   parts.
-        // Create a buffer for `target_len` elements
-        let mut builder = BooleanBufferBuilder::new(target_len);
 
-        // Read data from JS
-        builder.append_packed_range(
-            0..data_len,
+        let mut mutable_bitmap = Bitmap::from_u8_slice(
             slice::from_raw_parts(data_ptr.as_ptr(), bit_util::ceil(data_len, 8)),
-        );
-        builder.resize(target_len);
-        builder.finish()
+            data_len,
+        )
+        .into_mut()
+        .unwrap_right();
+
+        assert!(target_len >= data_len);
+        mutable_bitmap.extend_constant(target_len - data_len, false);
+        mutable_bitmap.into()
     }
 
     /// TODO: DOC, flushing from a single column
+    ///
+    /// TODO: investigate whether it is possible to use the Arrow FFI interface here
     fn array_data_from_js(
         &mut self,
         scope: &mut v8::HandleScope<'s>,
         data: Value<'s>,
         data_type: &DataType,
         len: Option<usize>,
-    ) -> Result<ArrayData> {
+    ) -> Result<Box<dyn arrow2::array::Array>> {
         // `data` must not be dropped until flush is over, because
         // pointers returned from FFI point inside `data`'s ArrayBuffers' memory.
         let obj = data.to_object(scope).ok_or_else(|| {
@@ -1038,21 +1051,36 @@ impl<'s> ThreadLocalRunner<'s> {
         // then resize the buffer to `target_len`.
         let target_len = len.unwrap_or(data.len);
 
-        let mut builder = ArrayData::builder(data_type.clone());
+        let validity = NonNull::new(data.null_bits_ptr as *mut u8).map(|null_bits_ptr| {
+            // SAFETY: null-bits are provided by arrow
+            unsafe {
+                self.read_boolean_buffer(
+                    null_bits_ptr,
+                    data.len,
+                    data.null_bits_capacity,
+                    target_len,
+                )
+            }
+        });
 
-        match data_type {
+        Ok(match data_type {
             DataType::Boolean => unsafe {
                 // SAFETY: `data` is provided by arrow
                 debug_assert!(
                     !data.buffer_ptrs[0].is_null(),
                     "Required pointer for `Boolean` (`buffers[0]`) is null"
                 );
-                builder = builder.add_buffer(self.read_boolean_buffer(
-                    NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8),
-                    data.len,
-                    data.buffer_capacities[0],
-                    target_len,
-                ));
+                BooleanArray::from_data(
+                    DataType::Boolean,
+                    self.read_boolean_buffer(
+                        NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8),
+                        data.len,
+                        data.buffer_capacities[0],
+                        target_len,
+                    ),
+                    validity,
+                )
+                .boxed()
             },
             DataType::UInt16 => unsafe {
                 // SAFETY: `data` is provided by arrow and the type is `u16`
@@ -1060,12 +1088,17 @@ impl<'s> ThreadLocalRunner<'s> {
                     !data.buffer_ptrs[0].is_null(),
                     "Required pointer for `UInt16` (`buffers[0]`) is null"
                 );
-                builder = builder.add_buffer(self.read_primitive_buffer(
-                    NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<u16>(),
-                    data.len,
-                    data.buffer_capacities[0],
-                    target_len,
-                ))
+                PrimitiveArray::<u16>::from_data(
+                    DataType::UInt16,
+                    self.read_primitive_buffer(
+                        NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<u16>(),
+                        data.len,
+                        data.buffer_capacities[0],
+                        target_len,
+                    ),
+                    validity,
+                )
+                .boxed()
             },
             DataType::UInt32 => unsafe {
                 // SAFETY: `data` is provided by arrow and the type is `u32`
@@ -1073,12 +1106,17 @@ impl<'s> ThreadLocalRunner<'s> {
                     !data.buffer_ptrs[0].is_null(),
                     "Required pointer for `UInt32` (`buffers[0]`) is null"
                 );
-                builder = builder.add_buffer(self.read_primitive_buffer(
-                    NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<u32>(),
-                    data.len,
-                    data.buffer_capacities[0],
-                    target_len,
-                ))
+                PrimitiveArray::<u32>::from_data(
+                    DataType::UInt32,
+                    self.read_primitive_buffer(
+                        NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<u32>(),
+                        data.len,
+                        data.buffer_capacities[0],
+                        target_len,
+                    ),
+                    validity,
+                )
+                .boxed()
             },
             DataType::Float64 => unsafe {
                 debug_assert!(
@@ -1086,12 +1124,17 @@ impl<'s> ThreadLocalRunner<'s> {
                     "Required pointer for `Float64` (`buffers[0]`) is null"
                 );
                 // SAFETY: `data` is provided by arrow and the type is `f64`
-                builder = builder.add_buffer(self.read_primitive_buffer(
-                    NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<f64>(),
-                    data.len,
-                    data.buffer_capacities[0],
-                    target_len,
-                ))
+                PrimitiveArray::<f64>::from_data(
+                    DataType::Float64,
+                    self.read_primitive_buffer(
+                        NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<f64>(),
+                        data.len,
+                        data.buffer_capacities[0],
+                        target_len,
+                    ),
+                    validity,
+                )
+                .boxed()
             },
             DataType::Utf8 => {
                 // Utf8 is stored in two buffers:
@@ -1099,7 +1142,7 @@ impl<'s> ThreadLocalRunner<'s> {
                 //   [1]: The value buffer (u8)
 
                 // SAFETY: Offset `data` is provided by arrow.
-                let (offset_buffer, last_offset) = unsafe {
+                let (offsets, last_offset) = unsafe {
                     debug_assert!(
                         !data.buffer_ptrs[0].is_null(),
                         "Required pointer for `Utf8` (`buffers[0]`) is null"
@@ -1111,22 +1154,31 @@ impl<'s> ThreadLocalRunner<'s> {
                         target_len,
                     )
                 };
-                builder = builder.add_buffer(offset_buffer);
+
+                debug_assert!(
+                    offsets.len() > data.len,
+                    "the offsets array was too short! offsets.len()={} but data.len={}. Note: we \
+                     should have at least values + 1 offsets",
+                    offsets.len(),
+                    data.len
+                );
 
                 // SAFETY: `data` is provided by arrow, the length is provided by `offsets`, and the
                 //   type for strings is `u8`
-                unsafe {
+                let values = unsafe {
                     debug_assert!(
                         !data.buffer_ptrs[1].is_null(),
                         "Required pointer for `Utf8` (`buffers[1]`) is null"
                     );
-                    builder = builder.add_buffer(self.read_primitive_buffer(
+                    self.read_primitive_buffer(
                         NonNull::new_unchecked(data.buffer_ptrs[1] as *mut u8),
                         last_offset,
                         data.buffer_capacities[1],
                         last_offset,
-                    ));
+                    )
                 };
+
+                Utf8Array::from_data(DataType::Utf8, offsets, values, validity).boxed()
             }
             DataType::List(inner_field) => {
                 // List is stored in one buffer and child data containing the indexed values:
@@ -1134,7 +1186,7 @@ impl<'s> ThreadLocalRunner<'s> {
                 //   child_data: The value data
 
                 // SAFETY: Offset `data` is provided by arrow.
-                let (offset_buffer, last_offset) = unsafe {
+                let (offsets, last_offset) = unsafe {
                     debug_assert!(
                         !data.buffer_ptrs[0].is_null(),
                         "Required pointer for `List` (`buffers[0]`) is null"
@@ -1146,19 +1198,26 @@ impl<'s> ThreadLocalRunner<'s> {
                         target_len,
                     )
                 };
-                builder = builder.add_buffer(offset_buffer);
 
                 let child_data = get_child_data(scope, obj)?;
 
                 let child = child_data.get_index(scope, 0).ok_or_else(|| {
                     Error::V8("Could not access index 0 on child_data".to_string())
                 })?;
-                builder = builder.add_child_data(self.array_data_from_js(
+                let child = self.array_data_from_js(
                     scope,
                     child,
                     inner_field.data_type(),
                     Some(last_offset),
-                )?);
+                )?;
+
+                ListArray::new(
+                    DataType::List(inner_field.clone()),
+                    offsets,
+                    child,
+                    validity,
+                )
+                .boxed()
             }
             DataType::FixedSizeList(inner_field, size) => {
                 // FixedSizeListList is only stored by child data, as offsets are not required
@@ -1168,12 +1227,18 @@ impl<'s> ThreadLocalRunner<'s> {
                 let child = child_data.get_index(scope, 0).ok_or_else(|| {
                     Error::V8("Could not access index 0 on child_data".to_string())
                 })?;
-                builder = builder.add_child_data(self.array_data_from_js(
+                let values = self.array_data_from_js(
                     scope,
                     child,
                     inner_field.data_type(),
                     Some(*size as usize * target_len),
-                )?);
+                )?;
+                FixedSizeListArray::new(
+                    DataType::FixedSizeList(inner_field.clone(), *size),
+                    values,
+                    validity,
+                )
+                .boxed()
             }
             DataType::Struct(inner_fields) => {
                 // Structs are only defined by child data
@@ -1184,66 +1249,43 @@ impl<'s> ThreadLocalRunner<'s> {
                     "Number of fields provided by JavaScript does not match expected number of \
                      fields"
                 );
+                let mut arrays = Vec::with_capacity(inner_fields.len());
                 for (i, inner_field) in (0..child_data.length()).zip(inner_fields) {
                     let child = child_data.get_index(scope, i as u32).ok_or_else(|| {
                         Error::V8(format!("Could not access index {i} on child_data"))
                     })?;
-                    builder = builder.add_child_data(self.array_data_from_js(
+                    arrays.push(self.array_data_from_js(
                         scope,
                         child,
                         inner_field.data_type(),
                         Some(target_len),
                     )?);
                 }
+                StructArray::new(DataType::Struct(inner_fields.clone()), arrays, validity).boxed()
             }
             DataType::FixedSizeBinary(size) => {
                 // FixedSizeBinary is only stored as a buffer (u8), offsets are not required because
                 // the size is known
 
                 // SAFETY: `data` is provided by arrow
-                unsafe {
+                let values = unsafe {
                     debug_assert!(
                         !data.buffer_ptrs[0].is_null(),
                         "Required pointer for `FixedSizeBinary` (`buffers[0]`) is null"
                     );
-                    builder = builder.add_buffer(self.read_primitive_buffer(
+                    self.read_primitive_buffer(
                         NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8),
                         *size as usize * data.len,
                         data.buffer_capacities[0],
                         *size as usize * target_len,
-                    ));
+                    )
                 };
+                FixedSizeBinaryArray::new(DataType::FixedSizeBinary(*size), values, validity)
+                    .boxed()
             }
             // TODO: More types?
             data_type => return Err(Error::FlushType(data_type.clone())),
-        };
-
-        builder = builder.len(target_len);
-        if let Some(null_bits_ptr) = NonNull::new(data.null_bits_ptr as *mut u8) {
-            // SAFETY: null-bits are provided by arrow
-            let null_bit_buffer = unsafe {
-                self.read_boolean_buffer(
-                    null_bits_ptr,
-                    data.len,
-                    data.null_bits_capacity,
-                    target_len,
-                )
-            };
-
-            // The `data.null_count` provided is only valid for `data.len`, as the buffer is
-            // resized to `target_len`, the `null_count` has to be adjusted.
-            builder = builder
-                .null_bit_buffer(null_bit_buffer)
-                .null_count(data.null_count + target_len - data.len);
-        }
-
-        // TODO: Either move to Arrow2 or fix the validation error
-        // Arrow2 task: https://app.asana.com/0/1199548034582004/1201999214936733/f
-        //
-        // Arrow's null checking fails for a couple of tests when trying to validate the
-        // conversion from JS to Rust. This is likely a false-positive and will be fixed by moving
-        // to Arrow2. In the meantime we bypass the validation.
-        Ok(unsafe { builder.build_unchecked() })
+        })
     }
 
     fn flush_batch(
@@ -1274,7 +1316,7 @@ impl<'s> ThreadLocalRunner<'s> {
                 })?;
 
             let i_field = i_field.value() as usize;
-            let field = schema.field(i_field);
+            let field = &schema.fields[i_field];
 
             let data = new_js_string(scope, "data");
 
@@ -1358,6 +1400,10 @@ impl<'s> ThreadLocalRunner<'s> {
         Ok(())
     }
 
+    /// "Flushes" the changes which the JavaScript code made. This involves collecting a list of all
+    /// the changes, which we then use to modify the underlying Arrow arrays.
+    ///
+    /// See also the [`memory::arrow::flush`] module for more information.
     fn flush(
         &mut self,
         scope: &mut v8::HandleScope<'s>,
@@ -1365,19 +1411,9 @@ impl<'s> ThreadLocalRunner<'s> {
         shared_store: &mut TaskSharedStore,
         return_val: Object<'s>,
     ) -> Result<()> {
-        let (proxy, group_indices) = match &mut shared_store.state {
-            SharedState::None | SharedState::Read(_) => return Ok(()),
-            SharedState::Write(state) => {
-                let indices = (0..state.agent_pool().len()).collect();
-                (state, indices)
-            }
-            SharedState::Partial(partial) => match partial {
-                PartialSharedState::Read(_) => return Ok(()),
-                PartialSharedState::Write(state) => {
-                    let indices = state.group_indices.clone();
-                    (&mut state.state_proxy, indices)
-                }
-            },
+        let (proxy, group_indices) = match shared_store.get_write_proxies() {
+            Ok(t) => t,
+            Err(_) => return Ok(()),
         };
 
         let state = self
@@ -1609,6 +1645,10 @@ impl<'s> ThreadLocalRunner<'s> {
         Option<Vec<String>>,
     )> {
         tracing::debug!("Calling JS run_task");
+
+        // if the shared_store contains outdated data, then we must reload it here
+        Self::reload_data_if_necessary(&mut shared_store)?;
+
         let return_val: Value<'s> =
             call_js_function(scope, self.embedded.run_task, self.this, args)
                 .map_err(|err| Error::V8(format!("Could not run run_task Function: {err}")))?;
@@ -1634,7 +1674,7 @@ impl<'s> ThreadLocalRunner<'s> {
                     ))
                 })?;
 
-        // Only flushes if state writable
+        // Only flushes if the state is writable
         self.flush(scope, sim_id, &mut shared_store, return_val)?;
 
         let next_task_msg = TargetedRunnerTaskMsg {
@@ -1649,6 +1689,18 @@ impl<'s> ThreadLocalRunner<'s> {
         };
 
         Ok((next_task_msg, user_warnings, logs))
+    }
+
+    /// Reloads the data in the shared_store if necessary.
+    fn reload_data_if_necessary(shared_store: &mut TaskSharedStore) -> Result<()> {
+        let (write_proxies, _) = match shared_store.get_write_proxies() {
+            Ok(t) => t,
+            Err(_) => return Ok(()),
+        };
+        write_proxies
+            .maybe_reload()
+            .map_err(|_| JavaScriptError::from("could not reload batches (this is a bug)"))?;
+        Ok(())
     }
 
     fn ctx_batch_sync(

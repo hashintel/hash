@@ -25,3 +25,6 @@ format_strings = true # Default: false
 # Imports
 imports_granularity = "Crate" # Default: "Preserve"
 group_imports = "StdExternalCrate" # Default: "Preserve"
+
+# Diagnostics
+error_on_unformatted = true # Default: false

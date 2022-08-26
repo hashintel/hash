@@ -60,6 +60,8 @@ pub mod __private {
         }
     }
 
+    // false-positive lint
+    #[allow(unreachable_pub)]
     // Import anonymously to allow calling `__kind` but forbid implementing the tag-traits.
     pub use self::specialization::{ContextTag as _, ReportTag as _};
 }
@@ -192,7 +194,9 @@ macro_rules! report {
 /// ```
 #[macro_export]
 macro_rules! bail {
-    ($err:expr $(,)?) => {{ return $crate::Result::Err($crate::report!($err)) }};
+    ($err:expr $(,)?) => {{
+        return $crate::Result::Err($crate::report!($err));
+    }};
 }
 
 /// Ensures `$cond` is met, otherwise return an error.

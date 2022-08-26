@@ -36,6 +36,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
       entityId,
       properties: { items },
     },
+    readonly,
   },
 }) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
@@ -56,6 +57,9 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   }
 
   const publishItems = (newItems: Items) => {
+    if (readonly) {
+      return;
+    }
     void graphService?.updateEntity({
       data: {
         entityId,
@@ -82,7 +86,11 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
       }),
     );
 
-  const onValueChange = (index: number, value: string) =>
+  const onValueChange = (index: number, value: string) => {
+    if (readonly) {
+      return;
+    }
+
     updateItems(
       produce(draftItems, (newItems) => {
         if (newItems[index]) {
@@ -91,6 +99,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
       }),
       false,
     );
+  };
 
   const onItemBlur = () => publishItems(draftItems);
 
@@ -126,40 +135,43 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
       ref={blockRootRef}
       sx={{ display: "flex", flexDirection: "column", paddingX: 1 }}
     >
-      <Box sx={{ display: "flex", alignSelf: "end" }}>
-        <Button
-          onClick={() => onAdd()}
-          sx={({ palette }) => ({
-            marginRight: 1,
-            border: "1px solid",
-            borderColor: palette.primary.light,
-            "&:hover": {
-              borderColor: palette.primary.main,
-            },
-          })}
-        >
-          <AddIcon fontSize="small" />
-        </Button>
-        <Button
-          disabled={draftItems.length <= 1}
-          onClick={() => onShuffle()}
-          sx={({ palette }) => ({
-            border: "1px solid",
-            borderColor: palette.primary.light,
-            "&:hover": {
-              borderColor: palette.primary.main,
-            },
-          })}
-        >
-          <ShuffleIcon />
-        </Button>
-      </Box>
+      {!readonly && (
+        <Box sx={{ display: "flex", alignSelf: "end" }}>
+          <Button
+            onClick={() => onAdd()}
+            sx={({ palette }) => ({
+              marginRight: 1,
+              border: "1px solid",
+              borderColor: palette.primary.light,
+              "&:hover": {
+                borderColor: palette.primary.main,
+              },
+            })}
+          >
+            <AddIcon fontSize="small" />
+          </Button>
+          <Button
+            disabled={draftItems.length <= 1}
+            onClick={() => onShuffle()}
+            sx={({ palette }) => ({
+              border: "1px solid",
+              borderColor: palette.primary.light,
+              "&:hover": {
+                borderColor: palette.primary.main,
+              },
+            })}
+          >
+            <ShuffleIcon />
+          </Button>
+        </Box>
+      )}
       <ItemList
         list={draftItems}
         onReorder={onReorder}
         onValueChange={onValueChange}
         onItemBlur={onItemBlur}
         onDelete={onDelete}
+        readonly={!!readonly}
       />
     </Box>
   );

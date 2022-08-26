@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use arrow::datatypes::Schema;
+use arrow2::datatypes::Schema;
 use memory::arrow::{meta, meta::StaticMetadata};
 
 use crate::message::arrow::MESSAGE_BATCH_SCHEMA;
@@ -11,6 +11,7 @@ use crate::message::arrow::MESSAGE_BATCH_SCHEMA;
 ///
 /// [`Message`]: crate::message::Message
 /// [`FieldSpec`]: crate::field::FieldSpec
+#[derive(Debug)]
 pub struct MessageSchema {
     pub arrow: Arc<Schema>,
     pub static_meta: Arc<meta::StaticMetadata>,

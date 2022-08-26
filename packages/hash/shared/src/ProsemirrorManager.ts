@@ -8,7 +8,6 @@ import {
   areComponentsCompatible,
   fetchBlock,
   HashBlock,
-  HashBlockMeta,
   prepareBlockCache,
 } from "./blocks";
 import {
@@ -43,7 +42,8 @@ import { childrenForTextEntity } from "./text";
 
 type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
 
-type ComponentNodeViewFactory = (meta: HashBlockMeta) => NodeViewFactory;
+type ComponentNodeViewFactory = (block: HashBlock) => NodeViewFactory;
+
 /**
  * Manages the creation and editing of the ProseMirror schema, and utilities around
  * editing the prosemirror document.
@@ -97,7 +97,7 @@ export class ProsemirrorManager {
         nodeViews: {
           // Private API
           ...(this.view as any).nodeViews,
-          [componentId]: this.componentNodeViewFactory(meta),
+          [componentId]: this.componentNodeViewFactory(block),
         },
       });
     }
@@ -171,6 +171,14 @@ export class ProsemirrorManager {
         ? childrenForTextEntity(blockData, this.schema)
         : [];
 
+    /**
+     * The structure of this is as follows:
+     *
+     * Block node (BlockView) to render the wrapping block UI, i.e, block handle
+     * -> Entity node, which renders no UI, to store the block entity draft id
+     *   -> Entity node, to store the block data entity's draft id
+     *     -> The component node (ComponentView), to render the actual block component
+     */
     return this.schema.nodes.block!.create({}, [
       this.schema.nodes.entity!.create(
         { draftId: draftBlockId },
@@ -415,6 +423,18 @@ export class ProsemirrorManager {
     };
   }
 
+  async insertBlock(
+    targetComponentId: string,
+    variant: BlockVariant,
+    to: number,
+  ) {
+    const [tr, node] = await this.createBlock(targetComponentId, null, variant);
+
+    tr.insert(to, node);
+
+    return { tr };
+  }
+
   async replaceRange(
     targetComponentId: string,
     variant: BlockVariant,
@@ -526,6 +546,22 @@ export class ProsemirrorManager {
     });
 
     this.view.dispatch(tr);
+  }
+
+  /**
+   * Updates the prosemirror editor to not be editable.
+   * @see https://prosemirror.net/docs/ref/#view.EditorView.editable
+   */
+  setReadonlyMode() {
+    if (!this.view) {
+      throw new Error("Cannot trigger setReadonlyMode without view");
+    }
+
+    if (this.view) {
+      this.view.setProps({
+        editable: () => false,
+      });
+    }
   }
 
   /**

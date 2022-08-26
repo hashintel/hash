@@ -6,7 +6,11 @@ import {
   LinkedAggregation as BpLinkedAggregation,
 } from "@blockprotocol/graph";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
+import {
+  BlockEntity,
+  isTextContainingEntityProperties,
+  isTextProperties,
+} from "@hashintel/hash-shared/entity";
 import {
   useCallback,
   useLayoutEffect,
@@ -16,6 +20,8 @@ import {
 } from "react";
 import { uniqBy } from "lodash";
 
+import { useLocalstorageState } from "rooks";
+import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 import {
   convertApiEntityToBpEntity,
   convertApiEntityTypesToBpEntityTypes,
@@ -25,7 +31,7 @@ import {
 } from "../../lib/entities";
 import { fetchEmbedCode } from "./fetchEmbedCode";
 import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
-import { useBlockLoaded } from "../../blocks/onBlockLoaded";
+import { useBlockLoadedContext } from "../../blocks/onBlockLoaded";
 import { useBlockProtocolAggregateEntities } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
 import { useBlockProtocolAggregateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolCreateEntity } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntity";
@@ -40,12 +46,19 @@ import { useBlockProtocolUpdateEntityType } from "../hooks/blockProtocolFunction
 import { useBlockProtocolUpdateLink } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLink";
 import { useBlockProtocolUpdateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregation";
 import { EntityType as ApiEntityType } from "../../graphql/apiTypes.gen";
+import { useReadonlyMode } from "../../shared/readonly-mode";
+import { DataMapEditor } from "./data-map-editor";
+import { mapData, SchemaMap } from "./shared";
+import { useBlockContext } from "../../blocks/page/BlockContext";
 
+// @todo consolidate these properties, e.g. take all entityX, linkX into a single childEntity prop
+// @see https://app.asana.com/0/1200211978612931/1202807842439190/f
 type BlockLoaderProps = {
   accountId: string;
   blockEntityId: string;
   blockMetadata: HashBlockMeta;
-  editableRef: unknown;
+  blockSchema: JsonSchema;
+  editableRef: (node: HTMLElement | null) => void;
   entityId: string;
   entityType?: Pick<ApiEntityType, "entityId" | "properties">;
   entityTypeId: string;
@@ -55,6 +68,19 @@ type BlockLoaderProps = {
   linkedAggregations: BlockEntity["properties"]["entity"]["linkedAggregations"];
   onBlockLoaded: () => void;
   // shouldSandbox?: boolean;
+};
+
+const removeTextEntities = (properties: {}) => {
+  // @see https://app.asana.com/0/1201095311341924/1202694273052398/f
+  if (isTextProperties(properties)) {
+    return { text: "" };
+  }
+
+  if (isTextContainingEntityProperties(properties)) {
+    return { ...properties, text: "" };
+  }
+
+  return properties;
 };
 
 // const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
@@ -67,32 +93,53 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   accountId,
   blockEntityId,
   blockMetadata,
+  blockSchema,
   editableRef,
   entityId,
   entityType,
   entityTypeId,
-  entityProperties,
+  entityProperties: untransformedEntityProperties,
   linkGroups,
   linkedEntities,
   linkedAggregations,
   onBlockLoaded,
   // shouldSandbox,
 }) => {
+  const { readonlyMode } = useReadonlyMode();
   const { aggregateEntityTypes } =
     useBlockProtocolAggregateEntityTypes(accountId);
   const { aggregateEntities } = useBlockProtocolAggregateEntities(accountId);
-  const { createLinkedAggregation } = useBlockProtocolCreateLinkedAggregation();
-  const { createLink } = useBlockProtocolCreateLink();
-  const { createEntity } = useBlockProtocolCreateEntity(accountId);
-  const { createEntityType } = useBlockProtocolCreateEntityType(accountId);
-  const { deleteLinkedAggregation } = useBlockProtocolDeleteLinkedAggregation();
-  const { deleteLink } = useBlockProtocolDeleteLink();
-  const { updateEntity } = useBlockProtocolUpdateEntity();
-  const { uploadFile } = useBlockProtocolFileUpload(accountId);
-  const { updateEntityType } = useBlockProtocolUpdateEntityType();
-  const { updateLinkedAggregation } = useBlockProtocolUpdateLinkedAggregation();
+  const { createLinkedAggregation } =
+    useBlockProtocolCreateLinkedAggregation(readonlyMode);
+  const { createLink } = useBlockProtocolCreateLink(readonlyMode);
+  const { createEntity } = useBlockProtocolCreateEntity(
+    accountId,
+    readonlyMode,
+  );
+  const { createEntityType } = useBlockProtocolCreateEntityType(
+    accountId,
+    readonlyMode,
+  );
+  const { deleteLinkedAggregation } =
+    useBlockProtocolDeleteLinkedAggregation(readonlyMode);
+  const { deleteLink } = useBlockProtocolDeleteLink(readonlyMode);
+  const { updateEntity } = useBlockProtocolUpdateEntity(false, readonlyMode);
+  const { uploadFile } = useBlockProtocolFileUpload(accountId, readonlyMode);
+  const { updateEntityType } = useBlockProtocolUpdateEntityType(readonlyMode);
+  const { updateLinkedAggregation } =
+    useBlockProtocolUpdateLinkedAggregation(readonlyMode);
 
   const { updateLink } = useBlockProtocolUpdateLink();
+
+  const { showDataMappingUi, setShowDataMappingUi } = useBlockContext();
+
+  // Storing these in local storage is a temporary solution – we want them in the db soon
+  // Known issue: this hook always sets _some_ value in local storage, so we end up with unnecessary things stored there
+  const mapId = `${entityTypeId}:${blockMetadata.source}`;
+  const [schemaMap, setSchemaMap] = useLocalstorageState<SchemaMap>(
+    `map:${mapId}`,
+    { mapId },
+  );
 
   const graphProperties = useMemo<
     Required<BlockGraphProperties<UnknownRecord>["graph"]>
@@ -127,35 +174,51 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       );
     }
 
+    const blockGraph = {
+      depth: 1,
+      linkGroups: convertApiLinkGroupsToBpLinkGroups(linkGroups),
+      linkedEntities: convertedLinkedEntities,
+    };
+
     const blockEntity = convertApiEntityToBpEntity({
       accountId,
       entityId: entityId ?? "entityId-not-yet-set", // @todo ensure blocks always get sent an entityId
       entityTypeId,
-      properties: entityProperties,
+      properties: removeTextEntities(untransformedEntityProperties),
     });
+
+    if (
+      typeof schemaMap === "object" &&
+      Object.keys(schemaMap.transformations ?? {}).length > 0
+    ) {
+      blockEntity.properties = mapData(
+        blockEntity,
+        blockGraph,
+        schemaMap.transformations,
+      );
+    }
 
     return {
       blockEntity,
-      blockGraph: {
-        depth: 1,
-        linkGroups: convertApiLinkGroupsToBpLinkGroups(linkGroups),
-        linkedEntities: convertedLinkedEntities,
-      },
+      blockGraph,
       entityTypes: uniqBy(
         convertedEntityTypesForProvidedEntities,
         "entityTypeId",
       ),
       linkedAggregations: convertedLinkedAggregations,
+      readonly: readonlyMode,
     };
   }, [
     accountId,
     entityType,
     entityId,
-    entityProperties,
+    untransformedEntityProperties,
     entityTypeId,
     linkGroups,
     linkedEntities,
     linkedAggregations,
+    readonlyMode,
+    schemaMap,
   ]);
 
   const functions = {
@@ -179,7 +242,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     updateLinkedAggregation,
   };
 
-  const onBlockLoadedFromContext = useBlockLoaded();
+  const onBlockLoadedFromContext = useBlockLoadedContext()?.onBlockLoaded;
   const onBlockLoadedRef = useRef(onBlockLoaded);
 
   useLayoutEffect(() => {
@@ -206,6 +269,23 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   //     />
   //   );
   // }
+
+  if (showDataMappingUi) {
+    return (
+      <DataMapEditor
+        onClose={() => setShowDataMappingUi(false)}
+        schemaMap={schemaMap}
+        sourceBlockEntity={{
+          ...graphProperties.blockEntity,
+          properties: untransformedEntityProperties,
+        }}
+        sourceBlockGraph={graphProperties.blockGraph}
+        targetSchema={blockSchema}
+        transformedTree={graphProperties.blockEntity.properties}
+        onSchemaMapChange={setSchemaMap}
+      />
+    );
+  }
 
   return (
     <RemoteBlock

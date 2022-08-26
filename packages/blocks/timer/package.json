@@ -17,13 +17,13 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.11-canary.24",
+    "@blockprotocol/graph": "0.0.12",
     "date-fns": "2.28.0",
     "duration-fns": "3.0.1"
   },
   "devDependencies": {
     "block-scripts": "0.0.14",
-    "mock-block-dock": "0.0.15",
+    "mock-block-dock": "0.0.20",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

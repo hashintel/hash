@@ -22,6 +22,7 @@ import {
  */
 export const useBlockProtocolUpdateEntity = (
   updateForPage: boolean = false,
+  readonly?: boolean,
 ): {
   updateEntity: EmbedderGraphMessageCallbacks["updateEntity"];
   updateEntityLoading: boolean;
@@ -39,6 +40,17 @@ export const useBlockProtocolUpdateEntity = (
   const updateEntity: EmbedderGraphMessageCallbacks["updateEntity"] =
     useCallback(
       async ({ data }) => {
+        if (readonly) {
+          return {
+            errors: [
+              {
+                code: "FORBIDDEN",
+                message: "Operation can't be carried out in readonly mode",
+              },
+            ],
+          };
+        }
+
         if (!data) {
           return {
             errors: [
@@ -77,7 +89,7 @@ export const useBlockProtocolUpdateEntity = (
           };
         });
       },
-      [updateEntityFn, updateForPage, updatePageFn],
+      [updateEntityFn, updateForPage, updatePageFn, readonly],
     );
 
   // @todo consider removing this state and implementing loading locally

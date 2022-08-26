@@ -1,122 +1,128 @@
+import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
 import TreeItem, {
+  treeItemClasses,
+  TreeItemContentProps,
   TreeItemProps,
   useTreeItem,
-  TreeItemContentProps,
-  treeItemClasses,
 } from "@mui/lab/TreeItem";
 // import clsx from "clsx";
-import { Box, Tooltip, Typography } from "@mui/material";
-import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
-import {
-  faChevronRight,
-  faEllipsis,
-  faFile,
-} from "@fortawesome/free-solid-svg-icons";
-import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { forwardRef, MouseEvent, Ref } from "react";
+import { Tooltip, Typography } from "@mui/material";
+import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
+import { forwardRef, MouseEvent, ReactElement, Ref } from "react";
+import { PageIconButton } from "../../../../components/PageIconButton";
+import { useRouteAccountInfo } from "../../../routing";
 import { Link } from "../../../ui";
 import { PageMenu } from "./page-menu";
 
+const stopEvent = (event: MouseEvent) => {
+  event.preventDefault();
+  event.stopPropagation();
+};
+
 // tweaked the example at https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
-const CustomContent = forwardRef((props: TreeItemContentProps, ref) => {
-  const { label, nodeId, expandable, url, depth } = props;
-  const popupState = usePopupState({
-    variant: "popover",
-    popupId: "page-menu",
-  });
+const CustomContent = forwardRef(
+  (props: TreeItemContentProps, ref): ReactElement => {
+    const { label, nodeId, expandable, url, depth } = props;
+    const { accountId } = useRouteAccountInfo();
+    const popupState = usePopupState({
+      variant: "popover",
+      popupId: "page-menu",
+    });
 
-  const { expanded, selected, handleExpansion, preventSelection } =
-    useTreeItem(nodeId);
+    const { expanded, selected, handleExpansion, preventSelection } =
+      useTreeItem(nodeId);
 
-  const handleMouseDown = (
-    event: MouseEvent<HTMLDivElement, globalThis.MouseEvent>,
-  ) => {
-    preventSelection(event);
-  };
+    const handleMouseDown = (
+      event: MouseEvent<HTMLAnchorElement, globalThis.MouseEvent>,
+    ) => {
+      preventSelection(event);
+    };
 
-  const handleExpansionClick = (
-    event: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>,
-  ) => {
-    handleExpansion(event);
-  };
+    const handleExpansionClick = (
+      event: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>,
+    ) => {
+      stopEvent(event);
+      handleExpansion(event);
+    };
 
-  return (
-    <Box
-      tabIndex={0}
-      onMouseDown={handleMouseDown}
-      ref={ref as Ref<HTMLDivElement>}
-      sx={({ palette }) => ({
-        display: "flex",
-        alignItems: "center",
-        borderRadius: "4px",
+    const trigger = bindTrigger(popupState);
 
-        pl: `${depth * 16 + 8}px`,
-        pr: 0.5,
+    return (
+      <Link
+        noLinkStyle
+        href={url}
+        tabIndex={0}
+        onMouseDown={handleMouseDown}
+        ref={ref as Ref<HTMLAnchorElement>}
+        sx={({ palette }) => ({
+          display: "flex",
+          alignItems: "center",
+          borderRadius: "4px",
 
-        ...(!selected && {}),
+          pl: `${depth * 16 + 8}px`,
+          pr: 0.5,
 
-        "&:hover": {
-          ...(!selected && { backgroundColor: palette.gray[20] }),
+          ...(!selected && {}),
 
-          "& .page-title": {
-            color: palette.gray[80],
+          "&:hover": {
+            ...(!selected && { backgroundColor: palette.gray[20] }),
+
+            "& .page-title": {
+              color: palette.gray[80],
+            },
+
+            "& .page-menu-trigger": {
+              color: palette.gray[40],
+            },
           },
 
-          "& .page-menu-trigger": {
-            color: palette.gray[40],
-          },
-        },
-
-        ...(selected && {
-          backgroundColor: palette.gray[30],
-        }),
-      })}
-    >
-      <IconButton
-        onClick={handleExpansionClick}
-        size="xs"
-        unpadded
-        rounded
-        sx={({ transitions }) => ({
-          visibility: "hidden",
-          pointerEvents: "none",
-          mr: 0.5,
-
-          ...(expandable && {
-            visibility: "visible",
-            pointerEvents: "auto",
-            transform: expanded ? `rotate(90deg)` : "none",
-            transition: transitions.create("transform", { duration: 300 }),
+          ...(selected && {
+            backgroundColor: palette.gray[30],
           }),
         })}
       >
-        <FontAwesomeIcon icon={faChevronRight} />
-      </IconButton>
-      <FontAwesomeIcon
-        icon={faFile}
-        sx={{
-          fontSize: 16,
-          mr: 1.25,
-          color: ({ palette }) => palette.gray[40],
-        }}
-      />
-      <Link
-        noLinkStyle
-        tabIndex={-1}
-        sx={{
-          flex: 1,
-        }}
-        href={url}
-      >
+        <IconButton
+          onClick={handleExpansionClick}
+          size="xs"
+          unpadded
+          rounded
+          sx={({ transitions }) => ({
+            visibility: "hidden",
+            pointerEvents: "none",
+            mr: 0.5,
+
+            ...(expandable && {
+              visibility: "visible",
+              pointerEvents: "auto",
+              transform: expanded ? `rotate(90deg)` : "none",
+              transition: transitions.create("transform", { duration: 300 }),
+            }),
+          })}
+        >
+          <FontAwesomeIcon icon={faChevronRight} />
+        </IconButton>
+        <PageIconButton
+          hasDarkBg={selected}
+          accountId={accountId}
+          entityId={nodeId}
+          size="small"
+          onClick={stopEvent}
+          popoverProps={{ onClick: stopEvent }}
+        />
         <Typography
           variant="smallTextLabels"
           className="page-title"
           sx={({ palette }) => ({
+            ml: "6px",
             display: "block",
             color: palette.gray[70],
             fontWeight: 400,
             py: 1,
-
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            flex: 1,
             ...(selected && {
               color: palette.gray[90],
             }),
@@ -124,37 +130,43 @@ const CustomContent = forwardRef((props: TreeItemContentProps, ref) => {
         >
           {label}
         </Typography>
-      </Link>
-      <Tooltip
-        title="Add subpages, delete, duplicate and more"
-        componentsProps={{
-          tooltip: {
-            sx: {
-              width: 175,
+        <Tooltip
+          title="Add subpages, delete, duplicate and more"
+          componentsProps={{
+            tooltip: {
+              sx: {
+                width: 175,
+              },
             },
-          },
-        }}
-      >
-        <IconButton
-          {...bindTrigger(popupState)}
-          size="medium"
-          unpadded
-          className="page-menu-trigger"
-          sx={({ palette }) => ({
-            color: [selected ? palette.gray[40] : "transparent"],
-            "&:focus-visible, &:hover": {
-              backgroundColor: palette.gray[selected ? 40 : 30],
-              color: palette.gray[selected ? 50 : 40],
-            },
-          })}
+          }}
         >
-          <FontAwesomeIcon icon={faEllipsis} />
-        </IconButton>
-      </Tooltip>
-      <PageMenu popupState={popupState} entityId={nodeId} />
-    </Box>
-  );
-});
+          <IconButton
+            {...trigger}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              trigger.onClick(event);
+            }}
+            size="medium"
+            unpadded
+            className="page-menu-trigger"
+            sx={({ palette }) => ({
+              ml: "auto",
+              color: [selected ? palette.gray[40] : "transparent"],
+              "&:focus-visible, &:hover": {
+                backgroundColor: palette.gray[selected ? 40 : 30],
+                color: `${palette.gray[selected ? 50 : 40]} !important`,
+              },
+            })}
+          >
+            <FontAwesomeIcon icon={faEllipsis} />
+          </IconButton>
+        </Tooltip>
+        <PageMenu popupState={popupState} entityId={nodeId} />
+      </Link>
+    );
+  },
+);
 
 export const PageTreeItem = ({
   sx = [],

@@ -20,13 +20,13 @@ use crate::{AttachmentKind, Context, Frame, FrameKind};
 ///     - `T` is the first struct on `#[repr(C)]`.
 ///
 /// [`type_id`]: Self::type_id
-pub(super) unsafe trait FrameImpl: 'static {
+pub(super) unsafe trait FrameImpl: Send + Sync + 'static {
     fn kind(&self) -> FrameKind<'_>;
 
     /// Returns the [`TypeId`] of this `Frame`.
     ///
     /// It's guaranteed, that `*dyn FrameImpl` can be cast to a pointer to the type returned by
-    /// `type_id`.  
+    /// `type_id`.
     fn type_id(&self) -> TypeId;
 
     /// Returns the location where this `Frame` was created.

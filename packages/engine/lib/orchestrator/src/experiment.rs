@@ -212,7 +212,7 @@ impl Experiment {
             engine_handle.recv(),
         )
         .await
-        .report()
+        .into_report()
         .change_context(OrchestratorError::from("engine start timeout"));
         match msg {
             Ok(EngineStatus::Started) => {}
@@ -399,10 +399,23 @@ impl Experiment {
         }
 
         debug!("Performing cleanup");
-        engine_process
-            .exit_and_cleanup(experiment_run.id())
-            .await
-            .attach_printable("Could not cleanup after finish")?;
+        // we run this in a separate task because it might panic (in debug builds), and we would
+        // still like the debug output from tracing in that case
+        let join_handle = tokio::task::spawn(async move {
+            engine_process
+                .exit_and_cleanup(experiment_run.id())
+                .await
+                .attach_printable("Could not cleanup after finish")
+        });
+        match join_handle.await {
+            Ok(inner) => inner?,
+            Err(_) => {
+                return Err(error_stack::Report::new(OrchestratorError::from(
+                    "error: cleanup task panicked (most likely because there were shared-memory \
+                     segments which were not deallocated)",
+                )));
+            }
+        }
 
         ensure!(
             graceful_finish,

@@ -80,6 +80,7 @@ const parseDurationIfPossible = (
 export const App: BlockComponent<BlockEntityProperties> = ({
   graph: {
     blockEntity: { entityId, properties: blockEntityProperties },
+    readonly,
   },
 }) => {
   const blockRef = useRef<HTMLDivElement>(null);
@@ -146,6 +147,10 @@ export const App: BlockComponent<BlockEntityProperties> = ({
           : undefined,
       };
 
+      if (readonly) {
+        return;
+      }
+
       void graphService?.updateEntity({
         data: {
           entityId,
@@ -153,7 +158,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         },
       });
     },
-    [entityId, graphService],
+    [entityId, graphService, readonly],
   );
 
   const remainingDurationInMs =
@@ -261,7 +266,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         <div className="duration-container">
           <DurationInput
             value={displayedDurationInMs}
-            disabled={timerStatus === "running"}
+            disabled={readonly || timerStatus === "running"}
             onChange={handleDurationInputChange}
             onSubmit={handlePlayClick}
           />
@@ -273,6 +278,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
             ref={pauseButtonRef}
             className="big-button big-button_type_pause"
             onClick={handlePauseClick}
+            disabled={readonly}
           >
             <span className="big-button__icon" />
           </button>
@@ -283,6 +289,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
             ref={startButtonRef}
             className="big-button big-button_type_play"
             onClick={handlePlayClick}
+            disabled={readonly}
           >
             <span className="big-button__icon" />
           </button>
@@ -293,6 +300,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
           aria-label="Less time"
           className="less-time-button"
           disabled={
+            readonly ||
             timerStatus === "running" ||
             displayedDurationInMs <= minInitialDurationInMs
           }
@@ -303,13 +311,16 @@ export const App: BlockComponent<BlockEntityProperties> = ({
           aria-label="Reset"
           className="reset-button"
           onClick={handleReset}
-          disabled={timerStatus === "idle" || timerStatus === "finished"}
+          disabled={
+            readonly || timerStatus === "idle" || timerStatus === "finished"
+          }
           type="button"
         />
         <button
           aria-label="More time"
           className="more-time-button"
           disabled={
+            readonly ||
             timerStatus === "running" ||
             displayedDurationInMs >= maxInitialDurationInMs
           }
