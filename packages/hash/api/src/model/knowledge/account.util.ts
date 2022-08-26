@@ -1,4 +1,4 @@
-import { UserModel } from "..";
+import { OrgModel, UserModel } from "..";
 import { GraphApi } from "../../graph";
 import {
   generateSchemaBaseUri,
@@ -54,8 +54,10 @@ module Shortname {
     graphApi: GraphApi,
     params: { shortname: string },
   ) => {
-    /** @todo validate org model shortname */
-    return (await UserModel.getUserByShortname(graphApi, params)) !== null;
+    return (
+      (await UserModel.getUserByShortname(graphApi, params)) !== null ||
+      (await OrgModel.getUserByShortname(graphApi, params)) !== null
+    );
   };
 
   export const shortnameIsInvalid = (shortname: string): boolean => {
