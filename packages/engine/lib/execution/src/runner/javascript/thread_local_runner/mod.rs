@@ -304,9 +304,9 @@ impl<'s> ThreadLocalRunner<'s> {
     /// Runs a task on JavaScript with the provided simulation id.
     ///
     /// Returns the next task ([`TargetedRunnerTaskMsg`]) and, if present, warnings
-    /// ([`RunnerJavaScriptError`]) and logging statements.
+    /// ([`RunnerError`]) and logging statements.
     ///
-    /// [`RunnerJavaScriptError`]: crate::runner::comms::RunnerJavaScriptError
+    /// [`RunnerError`]: crate::runner::comms::RunnerError
     ///
     /// # JavaScriptErrors
     ///
