@@ -10,7 +10,7 @@ import {
 import { useBlockProtocolUpdateEntity } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
 import { rewriteEntityIdentifier } from "../../../lib/entities";
 import { usePageContext } from "../PageContext";
-import { cleanUpTitle, focusEditorBeginning, isValidPageTitle } from "./utils";
+import { cleanUpTitle, focusEditorBeginning } from "./utils";
 
 const StyledTextarea = styled(TextareaAutosize)(({ theme }) =>
   sx({
