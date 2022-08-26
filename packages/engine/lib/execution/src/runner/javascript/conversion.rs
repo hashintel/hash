@@ -1,5 +1,5 @@
 //! This module contains functions which convert the Rust engine state into the appropriate
-//! Javascript values.
+//! JavaScript values.
 
 use memory::shared_memory::Segment;
 use stateful::{agent::AgentBatch, field::PackageId, message::MessageBatch};
