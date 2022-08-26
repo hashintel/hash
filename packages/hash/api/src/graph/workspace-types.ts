@@ -14,6 +14,7 @@ import {
   emailPropertyType,
   userEntityType,
   preferredNamePropertyType,
+  orgEntityType,
 } from "../model";
 import { logger } from "../logger";
 import {
@@ -29,7 +30,7 @@ const workspacePropertyTypes: PropertyType[] = [
   preferredNamePropertyType,
 ];
 
-const workspaceEntityTypes: EntityType[] = [userEntityType];
+const workspaceEntityTypes: EntityType[] = [userEntityType, orgEntityType];
 
 /**
  * A script that ensures the required primitive data types and workspace types
