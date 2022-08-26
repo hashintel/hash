@@ -13,7 +13,7 @@ interface PageContextProps {
   setEditorView: (view: EditorView<Schema>) => void;
 }
 
-const PageContext = createContext<PageContextProps>({} as PageContextProps);
+const PageContext = createContext<PageContextProps | null>(null);
 
 export const PageContextProvider = ({ children }: PropsWithChildren) => {
   const [editorView, setEditorView] = useState<EditorView<Schema>>();
@@ -28,6 +28,10 @@ export const PageContextProvider = ({ children }: PropsWithChildren) => {
 
 export const usePageContext = () => {
   const context = useContext(PageContext);
+
+  if (!context) {
+    throw new Error("no PageContext value has been provided");
+  }
 
   return context;
 };
