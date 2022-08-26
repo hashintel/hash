@@ -125,7 +125,7 @@ describe("Link model class", () => {
   });
 
   it("can get a single entity link", async () => {
-    const link = await LinkModel.get(graphApi, {
+    const link = await LinkModel.getOutgoing(graphApi, {
       sourceEntity,
       linkTypeModel: linkTypeFriend,
     });
@@ -138,7 +138,7 @@ describe("Link model class", () => {
   it("can inactivate an active link", async () => {
     await acquaintanceLink.inactivate(graphApi);
 
-    const result = await LinkModel.get(graphApi, {
+    const result = await LinkModel.getOutgoing(graphApi, {
       sourceEntity,
       linkTypeModel: linkTypeAcquaintance,
     });

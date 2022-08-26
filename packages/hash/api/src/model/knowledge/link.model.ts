@@ -125,13 +125,13 @@ export default class {
   }
 
   /**
-   * Get the target of a specific link on a source entity.
+   * Get the outgoing link of a source entity given a link type.
    *
    * @param params.accountId the accountId of the account creating the link
    * @param params.sourceEntity the source entity of the link
    * @param params.linkTypeModel the Link Type of the link
    */
-  static async get(
+  static async getOutgoing(
     graphApi: GraphApi,
     {
       sourceEntity,
