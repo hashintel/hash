@@ -3,13 +3,11 @@ use error_stack::{IntoReport, Result, ResultExt, StreamExt as _};
 use futures::{StreamExt, TryStreamExt};
 use serde::Deserialize;
 use tokio_postgres::{GenericClient, RowStream};
-use type_system::PropertyType;
 
 use crate::{
     ontology::{
         types::{EntityType, LinkType},
         AccountId, PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier,
-        PersistedPropertyType,
     },
     store::{
         crud::Read,
@@ -32,14 +30,14 @@ pub trait PersistedOntologyType {
 //         Self { inner, identifier }
 //     }
 // }
-
-impl PersistedOntologyType for PersistedPropertyType {
-    type Inner = PropertyType;
-
-    fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self {
-        Self { inner, identifier }
-    }
-}
+//
+// impl PersistedOntologyType for PersistedPropertyType {
+//     type Inner = PropertyType;
+//
+//     fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self {
+//         Self { inner, identifier }
+//     }
+// }
 
 impl PersistedOntologyType for PersistedLinkType {
     type Inner = LinkType;

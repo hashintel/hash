@@ -1,11 +1,18 @@
+mod read;
+
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use tokio_postgres::GenericClient;
 use type_system::PropertyType;
 
 use crate::{
-    ontology::{AccountId, PersistedOntologyIdentifier},
-    store::{AsClient, InsertionError, PostgresStore, PropertyTypeStore, UpdateError},
+    ontology::{AccountId, PersistedOntologyIdentifier, PersistedPropertyType},
+    store::{
+        crud::Read,
+        postgres::ontology::property_type::read::PostgresPropertyTypeResolver,
+        query::{Expression, ExpressionResolver},
+        AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
+    },
 };
 
 #[async_trait]
@@ -72,5 +79,18 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             .change_context(UpdateError)?;
 
         Ok(identifier)
+    }
+}
+
+#[async_trait]
+impl<C: AsClient> Read<PersistedPropertyType> for PostgresStore<C> {
+    type Query<'q> = Expression;
+
+    async fn read<'query>(
+        &self,
+        query: &Self::Query<'query>,
+    ) -> Result<Vec<PersistedPropertyType>, QueryError> {
+        let mut resolver = PostgresPropertyTypeResolver::new(self.as_client());
+        resolver.resolve(query).await
     }
 }

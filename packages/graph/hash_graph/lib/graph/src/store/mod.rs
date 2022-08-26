@@ -25,9 +25,7 @@ use crate::{
     },
     store::{
         error::LinkActivationError,
-        query::{
-            EntityQuery, EntityTypeQuery, Expression, LinkQuery, LinkTypeQuery, PropertyTypeQuery,
-        },
+        query::{EntityQuery, EntityTypeQuery, Expression, LinkQuery, LinkTypeQuery},
     },
 };
 
@@ -245,7 +243,7 @@ pub trait DataTypeStore: for<'q> crud::Read<PersistedDataType, Query<'q> = Expre
 /// Describes the API of a store implementation for [`PropertyType`]s.
 #[async_trait]
 pub trait PropertyTypeStore:
-    for<'q> crud::Read<PersistedPropertyType, Query<'q> = PropertyTypeQuery<'q>>
+    for<'q> crud::Read<PersistedPropertyType, Query<'q> = Expression>
 {
     /// Creates a new [`PropertyType`].
     ///
@@ -268,7 +266,7 @@ pub trait PropertyTypeStore:
     /// - if the requested [`PropertyType`] doesn't exist.
     async fn get_property_type(
         &self,
-        query: &PropertyTypeQuery<'_>,
+        query: &Expression,
     ) -> Result<Vec<PersistedPropertyType>, QueryError> {
         self.read(query).await
     }

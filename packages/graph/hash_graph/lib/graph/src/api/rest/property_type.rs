@@ -16,10 +16,7 @@ use super::api_resource::RoutedResource;
 use crate::{
     api::rest::read_from_store,
     ontology::{AccountId, PersistedOntologyIdentifier, PersistedPropertyType},
-    store::{
-        query::PropertyTypeQuery, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore,
-        StorePool,
-    },
+    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool},
 };
 
 #[derive(OpenApi)]
@@ -123,9 +120,18 @@ async fn create_property_type<P: StorePool + Send>(
 async fn get_latest_property_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PersistedPropertyType>>, StatusCode> {
-    read_from_store(pool.as_ref(), &PropertyTypeQuery::new().by_latest_version())
-        .await
-        .map(Json)
+    use crate::store::query::{Expression, Literal, Path, PathSegment};
+
+    let query = Expression::Eq(vec![
+        Expression::Path(Path {
+            segments: vec![PathSegment {
+                identifier: "version".to_owned(),
+            }],
+        }),
+        Expression::Literal(Literal::String("latest".to_owned())),
+    ]);
+    tracing::debug!("query: {}", serde_json::to_string_pretty(&query).unwrap());
+    read_from_store(pool.as_ref(), &query).await.map(Json)
 }
 
 #[utoipa::path(
@@ -147,15 +153,31 @@ async fn get_property_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedPropertyType>, StatusCode> {
-    read_from_store(
-        pool.as_ref(),
-        &PropertyTypeQuery::new()
-            .by_uri(uri.base_uri())
-            .by_version(uri.version()),
-    )
-    .await
-    .and_then(|mut property_types| property_types.pop().ok_or(StatusCode::NOT_FOUND))
-    .map(Json)
+    use crate::store::query::{Expression, Literal, Path, PathSegment};
+
+    let query = Expression::All(vec![
+        Expression::Eq(vec![
+            Expression::Path(Path {
+                segments: vec![PathSegment {
+                    identifier: "version".to_owned(),
+                }],
+            }),
+            Expression::Literal(Literal::Float(f64::from(uri.version()))),
+        ]),
+        Expression::Eq(vec![
+            Expression::Path(Path {
+                segments: vec![PathSegment {
+                    identifier: "uri".to_owned(),
+                }],
+            }),
+            Expression::Literal(Literal::String(uri.base_uri().to_string())),
+        ]),
+    ]);
+    tracing::debug!("query: {}", serde_json::to_string_pretty(&query).unwrap());
+    read_from_store(pool.as_ref(), &query)
+        .await
+        .and_then(|mut data_types| data_types.pop().ok_or(StatusCode::NOT_FOUND))
+        .map(Json)
 }
 
 #[derive(Component, Serialize, Deserialize)]

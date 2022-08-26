@@ -132,6 +132,7 @@ impl Expression {
                 Expression::All(expressions) => {
                     for expression in expressions {
                         match expression.evaluate(resolver).await {
+                            Literal::Bool(true) => continue,
                             literal @ Literal::Bool(false) => return literal,
                             literal => panic!("Not a boolean: {literal:?}"),
                         }
@@ -141,6 +142,7 @@ impl Expression {
                 Expression::Any(expressions) => {
                     for expression in expressions {
                         match expression.evaluate(resolver).await {
+                            Literal::Bool(false) => continue,
                             literal @ Literal::Bool(true) => return literal,
                             literal => panic!("Not a boolean: {literal:?}"),
                         }
