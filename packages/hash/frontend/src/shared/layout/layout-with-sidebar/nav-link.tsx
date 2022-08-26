@@ -41,7 +41,6 @@ export const NavLink: FunctionComponent<NavLinkProps> = ({
       rounded
       className="end-adornment-button"
       onClick={endAdornmentProps.onClick}
-      disabled={loading}
       {...otherEndAdornmentProps}
       sx={[
         ({ palette }) => ({

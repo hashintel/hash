@@ -18,7 +18,6 @@ export interface PageTreeItemProps {
   expanded: boolean;
   expandable: boolean;
   collapsed: boolean;
-  disabled: boolean;
   createSubPage: (parentPageEntityId: string) => Promise<boolean | undefined>;
   archivePage: (accountId: string, pageEntityId: string) => Promise<void>;
   onCollapse?: () => void;
@@ -43,7 +42,6 @@ export const PageTreeItem = forwardRef(
       onCollapse,
       expanded,
       collapsed,
-      disabled,
       isSorting,
       style,
       attributes,
@@ -106,7 +104,6 @@ export const PageTreeItem = forwardRef(
                 transition: transitions.create("transform", { duration: 300 }),
               }),
             })}
-            disabled={disabled}
           >
             <FontAwesomeIcon icon={faChevronRight} />
           </IconButton>
@@ -163,11 +160,7 @@ export const PageTreeItem = forwardRef(
                     backgroundColor: palette.gray[selected ? 40 : 30],
                     color: palette.gray[selected ? 50 : 40],
                   },
-                  "&:disabled": {
-                    color: palette.gray[40],
-                  },
                 })}
-                disabled={disabled}
               >
                 <FontAwesomeIcon icon={faEllipsis} />
               </IconButton>

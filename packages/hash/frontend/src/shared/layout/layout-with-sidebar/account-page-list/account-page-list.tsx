@@ -228,7 +228,6 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             collapsed={collapsed}
             createSubPage={createSubPage}
             archivePage={archivePage}
-            disabled={loading}
           />
         );
 
