@@ -24,6 +24,8 @@ pub fn read_record_batch(segment: &Segment, schema: Arc<Schema>) -> crate::Resul
 
     let mut reader = std::io::Cursor::new(segment.get_data_buffer()?);
 
+    let mut scratch = Vec::new();
+
     let columns = arrow2::io::ipc::read::read_record_batch(
         batch,
         &schema.fields,
@@ -32,10 +34,13 @@ pub fn read_record_batch(segment: &Segment, schema: Arc<Schema>) -> crate::Resul
             is_little_endian: cfg!(target_endian = "little"),
         },
         None,
+        None,
         &Default::default(),
         arrow_format::ipc::MetadataVersion::V4,
         &mut reader,
         0,
+        segment.get_data_buffer_len().unwrap() as u64,
+        &mut scratch,
     )?;
 
     trace!("successfully finished reading from {}", segment.id());

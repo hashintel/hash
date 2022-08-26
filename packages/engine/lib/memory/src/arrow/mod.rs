@@ -9,7 +9,7 @@
 //! resources explaining how Arrow works, so we won't duplicate those explanations here, and instead
 //! just list them
 //!
-//! - [Arrow2's guide](https://github.com/DataEngineeringLabs/arrow2-convert)
+//! - [Arrow2's guide](https://jorgecarleitao.github.io/arrow2/)
 //! - [Notes on Arrow](https://wesm.github.io/arrow-site-test/)
 //! - [The Arrow specification](https://arrow.apache.org/docs/format/Columnar.html)
 pub mod flush;
