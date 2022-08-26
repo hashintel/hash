@@ -1,6 +1,12 @@
 import { PersistedEntity, GraphApi } from "@hashintel/hash-graph-client";
 
-import { EntityModel, EntityTypeModel } from "../index";
+import {
+  EntityModel,
+  EntityTypeModel,
+  LinkModel,
+  LinkModelCreateParams,
+  LinkTypeModel,
+} from "../index";
 
 export type EntityModelConstructorParams = {
   accountId: string;
@@ -234,5 +240,35 @@ export default class {
     const { accountId, entityId } = this;
 
     return await EntityModel.getLatest(graphApi, { accountId, entityId });
+  }
+
+  /** @see {@link LinkModel.create} */
+  async createOutgoingLink(
+    graphApi: GraphApi,
+    params: Omit<LinkModelCreateParams, "sourceEntity" | "accountId">,
+  ): Promise<LinkModel> {
+    return await LinkModel.create(graphApi, {
+      accountId: this.accountId,
+      sourceEntity: this,
+      ...params,
+    });
+  }
+
+  /** @see {@link LinkModel.getAllOutgoing} */
+  async getAllOutgoingLinks(graphApi: GraphApi): Promise<LinkModel[]> {
+    return await LinkModel.getAllOutgoing(graphApi, {
+      sourceEntity: this,
+    });
+  }
+
+  /** @see {@link LinkModel.getOutgoing} */
+  async getOutgoingLink(
+    graphApi: GraphApi,
+    params: { linkTypeModel: LinkTypeModel },
+  ): Promise<LinkModel | null> {
+    return await LinkModel.getOutgoing(graphApi, {
+      sourceEntity: this,
+      ...params,
+    });
   }
 }
