@@ -11,7 +11,7 @@ use graph::{
         Entity, EntityId, Link, Links, Outgoing, PersistedEntity, PersistedEntityIdentifier,
     },
     ontology::{
-        types::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType},
+        types::{EntityType, LinkType},
         AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
         PersistedOntologyIdentifier, PersistedPropertyType,
     },
@@ -27,6 +27,7 @@ use graph::{
     },
 };
 use tokio_postgres::{NoTls, Transaction};
+use type_system::{uri::VersionedUri, DataType, PropertyType};
 use uuid::Uuid;
 
 pub struct DatabaseTestWrapper {
@@ -164,7 +165,7 @@ impl DatabaseApi<'_> {
             )
             .await?
             .pop()
-            .expect("No data type found"))
+            .expect("no data type found"))
     }
 
     pub async fn update_data_type(
@@ -198,7 +199,7 @@ impl DatabaseApi<'_> {
             )
             .await?
             .pop()
-            .expect("No property type found"))
+            .expect("no property type found"))
     }
 
     pub async fn update_property_type(
@@ -232,7 +233,7 @@ impl DatabaseApi<'_> {
             )
             .await?
             .pop()
-            .expect("No entity type found"))
+            .expect("no entity type found"))
     }
 
     pub async fn update_entity_type(
@@ -266,7 +267,7 @@ impl DatabaseApi<'_> {
             )
             .await?
             .pop()
-            .expect("No link type found"))
+            .expect("no link type found"))
     }
 
     pub async fn update_link_type(
@@ -294,7 +295,7 @@ impl DatabaseApi<'_> {
             .get_entity(&EntityQuery::new().by_id(entity_id).by_latest_version())
             .await?
             .pop()
-            .expect("No entity found"))
+            .expect("no entity found"))
     }
 
     pub async fn update_entity(
@@ -336,7 +337,7 @@ impl DatabaseApi<'_> {
             )
             .await?
             .pop()
-            .expect("No link found")
+            .expect("no link found")
             .outgoing()[&link_type_uri]
             .clone())
     }
@@ -347,7 +348,7 @@ impl DatabaseApi<'_> {
             .get_links(&LinkQuery::new().by_source_entity_id(source_entity_id))
             .await?
             .pop()
-            .expect("No links found"))
+            .expect("no links found"))
     }
 
     async fn remove_link(

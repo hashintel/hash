@@ -1,9 +1,10 @@
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use tokio_postgres::GenericClient;
+use type_system::PropertyType;
 
 use crate::{
-    ontology::{types::PropertyType, AccountId, PersistedOntologyIdentifier},
+    ontology::{AccountId, PersistedOntologyIdentifier},
     store::{AsClient, InsertionError, PostgresStore, PropertyTypeStore, UpdateError},
 };
 

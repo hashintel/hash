@@ -2,10 +2,10 @@ use std::{collections::HashMap, fmt};
 
 use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
+use type_system::uri::VersionedUri;
 use utoipa::Component;
 
 use super::EntityId;
-use crate::ontology::types::uri::VersionedUri;
 
 /// A Link between a source and a target entity identified by [`EntityId`]s.
 ///

@@ -9,15 +9,13 @@ use axum::{
     Extension, Json, Router,
 };
 use serde::{Deserialize, Serialize};
+use type_system::{uri::VersionedUri, PropertyType};
 use utoipa::{Component, OpenApi};
 
 use super::api_resource::RoutedResource;
 use crate::{
     api::rest::read_from_store,
-    ontology::{
-        types::{uri::VersionedUri, PropertyType},
-        AccountId, PersistedOntologyIdentifier, PersistedPropertyType,
-    },
+    ontology::{AccountId, PersistedOntologyIdentifier, PersistedPropertyType},
     store::{
         query::PropertyTypeQuery, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore,
         StorePool,

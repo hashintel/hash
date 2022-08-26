@@ -1,4 +1,4 @@
-use graph::ontology::types::uri::VersionedUri;
+use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::{
     postgres::DatabaseTestWrapper,
@@ -24,7 +24,10 @@ async fn insert() {
         .create_entity(
             &person,
             VersionedUri::new(
-                "https://blockprotocol.org/@alice/types/entity-type/person".to_owned(),
+                BaseUri::new(
+                    "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
+                )
+                .expect("couldn't construct Base URI"),
                 1,
             ),
         )
@@ -56,7 +59,10 @@ async fn query() {
         .create_entity(
             &organization,
             VersionedUri::new(
-                "https://blockprotocol.org/@alice/types/entity-type/organization".to_owned(),
+                BaseUri::new(
+                    "https://blockprotocol.org/@alice/types/entity-type/organization/".to_owned(),
+                )
+                .expect("couldn't construct Base URI"),
                 1,
             ),
         )
@@ -87,7 +93,8 @@ async fn update() {
         .create_entity(
             &page_v1,
             VersionedUri::new(
-                "https://blockprotocol.org/@alice/types/entity-type/page".to_owned(),
+                BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/page/".to_owned())
+                    .expect("couldn't construct Base URI"),
                 1,
             ),
         )
@@ -98,7 +105,8 @@ async fn update() {
         identifier.entity_id(),
         &page_v2,
         VersionedUri::new(
-            "https://blockprotocol.org/@alice/types/entity-type/page".to_owned(),
+            BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/page/".to_owned())
+                .expect("couldn't construct Base URI"),
             1,
         ),
     )
