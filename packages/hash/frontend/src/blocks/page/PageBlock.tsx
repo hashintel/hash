@@ -67,6 +67,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       accountId,
       entityId,
       blocks,
+      readonlyMode,
     );
 
     prosemirrorSetup.current = {
@@ -74,10 +75,6 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       connection: connection ?? null,
       manager,
     };
-
-    if (readonlyMode) {
-      prosemirrorSetup.current.manager.setReadonlyMode();
-    }
 
     return () => {
       // @todo how does this work with portals?
