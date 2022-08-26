@@ -5,11 +5,7 @@ import {
 } from "apollo-server-express";
 import { GraphApi } from "../../../graph";
 
-import {
-  shortnameMaximumLength,
-  shortnameMinimumLength,
-  UserModel,
-} from "../../../model";
+import { AccountUtil, UserModel } from "../../../model";
 import { MutationUpdateUserArgs, ResolverFn } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { mapUserModelToGQL, UnresolvedGQLUser } from "./util";
@@ -17,7 +13,7 @@ import { mapUserModelToGQL, UnresolvedGQLUser } from "./util";
 export const ALLOWED_SHORTNAME_CHARS = /^[a-zA-Z0-9-_]+$/;
 
 const validateShortname = async (graphApi: GraphApi, shortname: string) => {
-  if (UserModel.shortnameContainsInvalidCharacter(shortname)) {
+  if (AccountUtil.shortnameContainsInvalidCharacter(shortname)) {
     throw new UserInputError(
       "Shortname may only contain letters, numbers, - or _",
     );
@@ -27,17 +23,17 @@ const validateShortname = async (graphApi: GraphApi, shortname: string) => {
   }
 
   if (
-    UserModel.shortnameIsRestricted(shortname) ||
-    (await UserModel.shortnameIsTaken(graphApi, { shortname }))
+    AccountUtil.shortnameIsRestricted(shortname) ||
+    (await AccountUtil.shortnameIsTaken(graphApi, { shortname }))
   ) {
     throw new ApolloError(`Shortname ${shortname} taken`, "NAME_TAKEN");
   }
 
   /** @todo: enable admins to have a shortname under 4 characters */
-  if (shortname.length < shortnameMinimumLength) {
+  if (shortname.length < AccountUtil.shortnameMinimumLength) {
     throw new UserInputError("Shortname must be at least 4 characters long.");
   }
-  if (shortname.length > shortnameMaximumLength) {
+  if (shortname.length > AccountUtil.shortnameMaximumLength) {
     throw new UserInputError("Shortname cannot be longer than 24 characters");
   }
 };

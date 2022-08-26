@@ -14,7 +14,6 @@ import {
   generateSchemaBaseUri,
   generateWorkspaceEntityTypeSchema,
   generateWorkspacePropertyTypeSchema,
-  RESTRICTED_SHORTNAMES,
   workspaceAccountId,
   workspaceTypesNamespaceUri,
 } from "../util";
@@ -106,26 +105,6 @@ const userEntityTypeVersionedUri = userEntityType.$id;
  * @class {@link UserModel}
  */
 export default class extends EntityModel {
-  static ALLOWED_SHORTNAME_CHARS = /^[a-zA-Z0-9-_]+$/;
-
-  static shortnameContainsInvalidCharacter(shortname: string): boolean {
-    return !!shortname.search(UserModel.ALLOWED_SHORTNAME_CHARS);
-  }
-
-  static shortnameIsRestricted(shortname: string): boolean {
-    return RESTRICTED_SHORTNAMES.includes(shortname);
-  }
-
-  static shortnameIsInvalid(shortname: string): boolean {
-    return (
-      shortname.length < AccountUtil.shortnameMinimumLength ||
-      shortname.length > AccountUtil.shortnameMaximumLength ||
-      shortname[0] === "-" ||
-      UserModel.shortnameContainsInvalidCharacter(shortname) ||
-      UserModel.shortnameIsRestricted(shortname)
-    );
-  }
-
   /**
    * Get a workspace user entity by their entityId.
    *
@@ -171,13 +150,6 @@ export default class extends EntityModel {
       .find((user) => user.getShortname() === params.shortname);
 
     return matchingUser ?? null;
-  }
-
-  static async shortnameIsTaken(
-    graphApi: GraphApi,
-    params: { shortname: string },
-  ) {
-    return (await UserModel.getUserByShortname(graphApi, params)) !== null;
   }
 
   /**
@@ -344,13 +316,13 @@ export default class extends EntityModel {
   ): Promise<UserModel> {
     const { updatedByAccountId, updatedShortname } = params;
 
-    if (UserModel.shortnameIsInvalid(updatedShortname)) {
+    if (AccountUtil.shortnameIsInvalid(updatedShortname)) {
       throw new Error(`The shortname "${updatedShortname}" is invalid`);
     }
 
     if (
-      UserModel.shortnameIsRestricted(updatedShortname) ||
-      (await UserModel.shortnameIsTaken(graphApi, {
+      AccountUtil.shortnameIsRestricted(updatedShortname) ||
+      (await AccountUtil.shortnameIsTaken(graphApi, {
         shortname: updatedShortname,
       }))
     ) {
@@ -358,8 +330,6 @@ export default class extends EntityModel {
         `A user entity with shortname "${updatedShortname}" already exists.`,
       );
     }
-
-    /** @todo: also ensure shortname is unique amongst orgs */
 
     const previousShortname = this.getShortname();
 
