@@ -27,6 +27,12 @@ export const emailPropertyType = generateWorkspacePropertyTypeSchema({
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
+export const emailBaseUri = generateSchemaBaseUri({
+  namespaceUri: workspaceTypesNamespaceUri,
+  kind: "propertyType",
+  title: emailPropertyType.title,
+});
+
 // Generate the schema for the kratos identity property type
 export const kratosIdentityIdPropertyType = generateWorkspacePropertyTypeSchema(
   {
@@ -35,22 +41,16 @@ export const kratosIdentityIdPropertyType = generateWorkspacePropertyTypeSchema(
   },
 );
 
-// Generate the schema for the preferred name property type
-export const preferredNamePropertyType = generateWorkspacePropertyTypeSchema({
-  title: "Preferred Name",
-  possibleValues: [{ primitiveDataType: "Text" }],
-});
-
-export const emailBaseUri = generateSchemaBaseUri({
-  namespaceUri: workspaceTypesNamespaceUri,
-  kind: "propertyType",
-  title: emailPropertyType.title,
-});
-
 export const kratosIdentityIdBaseUri = generateSchemaBaseUri({
   namespaceUri: workspaceTypesNamespaceUri,
   kind: "propertyType",
   title: kratosIdentityIdPropertyType.title,
+});
+
+// Generate the schema for the preferred name property type
+export const preferredNamePropertyType = generateWorkspacePropertyTypeSchema({
+  title: "Preferred Name",
+  possibleValues: [{ primitiveDataType: "Text" }],
 });
 
 export const preferredNameBaseUri = generateSchemaBaseUri({
