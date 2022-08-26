@@ -50,7 +50,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
   const { updateEntity, updateEntityLoading } =
     useBlockProtocolUpdateEntity(true);
   const [inputValue, setInputValue] = useState<string>(value);
-  const { editorView } = usePageContext();
+  const { editorView, pageTitleRef } = usePageContext();
 
   useEffect(() => {
     setInputValue(value);
@@ -98,7 +98,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
   // TODO: Assign appropriate a11y attributes
   return (
     <StyledTextarea
-      id="hash-page-title"
+      ref={pageTitleRef}
       placeholder="Untitled"
       disabled={updateEntityLoading}
       onChange={handleInputChange}

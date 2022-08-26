@@ -49,7 +49,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   const routeHash = router.asPath.split("#")[1] ?? "";
   const { readonlyMode } = useReadonlyMode();
 
-  const { setEditorView } = usePageContext();
+  const { setEditorView, pageTitleRef } = usePageContext();
 
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not
@@ -70,6 +70,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       accountId,
       entityId,
       blocks,
+      pageTitleRef,
     );
 
     setEditorView(view);
@@ -98,6 +99,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     readonlyMode,
     clearPortals,
     setEditorView,
+    pageTitleRef,
   ]);
 
   return (
