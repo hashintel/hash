@@ -206,7 +206,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     resetState();
   };
 
-  const renderGroupCollapsibleItems = (itemsArray: TreeElement[]) => {
+  const renderPageTree = (itemsArray: TreeElement[]) => {
     return itemsArray.map(
       ({
         entityId,
@@ -239,7 +239,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             {item}
             {children ? (
               <Collapse key={`${entityId}-children`} in={expanded}>
-                {renderGroupCollapsibleItems(children)}
+                {renderPageTree(children)}
               </Collapse>
             ) : null}
           </Box>
@@ -273,7 +273,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           }}
         >
           <Box sx={{ marginX: 0.75 }}>
-            {renderGroupCollapsibleItems(pagesTreeList)}
+            {renderPageTree(pagesTreeList)}
 
             <DragOverlay dropAnimation={null} />
           </Box>
