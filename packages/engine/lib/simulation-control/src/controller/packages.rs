@@ -227,10 +227,10 @@ impl Packages {
         sim_run_config: &SimulationRunConfig,
         num_agents: usize,
     ) -> Result<Context> {
-        let keys_and_columns = self
+        let mut keys_and_columns = self
             .context
             .iter()
-            // TODO: remove the need for this by creating a method to generate empty arrow columns 
+            // TODO: remove the need for this by creating a method to generate empty arrow columns
             //       from the schema
             .map(|package| {
                 package
@@ -240,7 +240,7 @@ impl Packages {
             .into_iter()
             .flatten()
             .map(|(field_key, col)| (field_key.value().to_string(), col))
-            .collect::<HashMap<String, Arc<dyn arrow2::array::Array>>>();
+            .collect::<HashMap<String, Box<dyn arrow2::array::Array>>>();
 
         // because we aren't generating the columns from the schema, we need to reorder the cols
         // from the packages to match this is another reason to move column creation to be
@@ -252,14 +252,13 @@ impl Packages {
             .iter()
             .map(|arrow_field| {
                 let col = keys_and_columns
-                    .get(&arrow_field.name)
+                    .remove(&arrow_field.name)
                     .ok_or_else(|| {
                         Error::from(format!(
                             "Expected to find an arrow column for key: {}",
                             arrow_field.name
                         ))
-                    })
-                    .map(Arc::clone);
+                    });
                 if let Ok(col) = &col {
                     debug_assert_eq!(
                         arrow_field.data_type(),

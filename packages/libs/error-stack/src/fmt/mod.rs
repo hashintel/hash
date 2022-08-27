@@ -5,8 +5,8 @@
 //!
 //! The format implementation (especially the [`Debug`] implementation),
 //! can be easily extended using hooks.
-//! Hooks are functions of the signature `Fn(&T, &mut HookContext<T>) -> Emit`, they provide an
-//! easy and ergonomic way to partially modify the format and enable the output of types that are
+//! Hooks are functions of the signature `Fn(&T, &mut HookContext<T>) -> Vec<Emit>`, they provide
+//! an easy and ergonomic way to partially modify the format and enable the output of types that are
 //! not necessarily added via `.attach_printable()` or are unable to implement [`Display`].
 //!
 //! Hooks can be attached through the central hooking mechanism which `error-stack`
@@ -15,7 +15,7 @@
 //! You can also provide a fallback function, which is called whenever a hook hasn't been added for
 //! a specific type of attachment.
 //! The fallback function needs to have a signature of
-//! `Fn(&Frame, &mut HookContext<T>) -> Option<Emit>`
+//! `Fn(&Frame, &mut HookContext<T>) -> Vec<Emit>`
 //! and can be set via [`Report::install_debug_hook_fallback`].
 //!
 //! > **Caution:** Overwriting the fallback **will** remove the builtin formatting for types like
@@ -32,11 +32,9 @@
 //! [`Report::install_debug_hook`].
 //! This type needs to be `'static`, [`Send`], and [`Sync`].
 //!
-//! The function must return a value of type [`Emit`], which decides *when* a value is going to be
-//! emitted during printing, refer to the documentation of [`Emit`] for further information.
-//!
-//! Fallback functions must return [`Option`], which indicates whether a fallback was able to find a
-//! value for the specified [`Frame`].
+//! The hook function must return [`Vec<Emit>`], which decides what is going
+//! to be emitted during printing, refer to the documentation of [`Emit`] for further
+//! information.
 //!
 //! ## Example
 //!
@@ -44,45 +42,51 @@
 //! # // we only test on nightly, therefore report is unused (so is render)
 //! # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 //! use std::io::{Error, ErrorKind};
-//! use error_stack::{
-//!     fmt::{Emit},
-//!     Report
-//! };
+//! use error_stack::Report;
+//! use error_stack::fmt::Emit;
+//!
+//! struct ErrorCode(u64);
+//! struct Suggestion(&'static str);
+//! struct Warning(&'static str);
+//! struct Info(&'static str);
 //!
 //! // This hook will never be called, because a later invocation of `install_debug_hook` overwrites
 //! // the hook for the type `u64`.
-//! Report::install_debug_hook::<u64>(|_, _| Emit::next("will never be called"));
+//! Report::install_debug_hook::<ErrorCode>(|_, _| vec![Emit::next("will never be called")]);
 //!
 //! // `HookContext` always has a type parameter, which needs to be the same as the type of the
 //! // value, we use `HookContext` here as storage, to store values specific to this hook.
 //! // Here we make use of the auto-incrementing feature.
-//! // The incrementation is type specific, meaning that `ctx.increment()` for the `u32` hook will
-//! // not influence the counter of the `u64` or `u16` hook.
-//! Report::install_debug_hook::<u32>(|_, ctx| Emit::next(format!("u32 value {}", ctx.increment())));
+//! // The incrementation is type specific, meaning that `ctx.increment()` for the `Suggestion` hook
+//! // will not influence the counter of the `ErrorCode` or `Warning` hook.
+//! Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| vec![Emit::next(format!("Suggestion {}: {val}", ctx.increment() + 1))]);
 //!
 //! // we do not need to make use of the context, to either store a value for the duration of the
 //! // rendering, or to render additional text, which is why we omit the parameter.
-//! Report::install_debug_hook::<u64>(|val, _| Emit::next(format!("u64 value ({val})")));
+//! Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| vec![Emit::next(format!("Error ({val})"))]);
 //!
-//! Report::install_debug_hook::<u16>(|_, ctx| {
+//! Report::install_debug_hook::<Warning>(|Warning(val), ctx| {
+//!     let idx = ctx.increment() + 1;
+//!
 //!     // we set a value, which will be removed on non-alternate views
 //!     // and is going to be appended to the actual return value.
 //!     if ctx.alternate() {
-//!         ctx.attach_snippet("Look! I was rendered from a `u16`");
+//!         ctx.attach_snippet(format!("Warning {idx}:\n  {val}"));
 //!     }
-//!     Emit::next("For more information, look down below")
+//!
+//!     vec![Emit::next(format!("Warning ({idx}) occurred"))]
 //!  });
 //!
 //! // you can use arbitrary values as arguments, just make sure that you won't repeat them.
 //! // here we use [`Emit::defer`], this means that this value will be put at the end of the group.
-//! Report::install_debug_hook::<String>(|val, _| Emit::defer(val));
+//! Report::install_debug_hook::<Info>(|Info(val), _| vec![Emit::defer(format!("Info: {val}"))]);
 //!
 //! let report = Report::new(Error::from(ErrorKind::InvalidInput))
-//!     .attach(2u64)
-//!     .attach("This is going to be at the end".to_owned())
-//!     .attach(3u32)
-//!     .attach(3u32)
-//!     .attach(4u16);
+//!     .attach(ErrorCode(404))
+//!     .attach(Info("This is going to be at the end"))
+//!     .attach(Suggestion("Try to be connected to the internet."))
+//!     .attach(Suggestion("Try better next time!"))
+//!     .attach(Warning("Unable to fetch resource"));
 //!
 //! # owo_colors::set_override(true);
 //! # fn render(value: String) -> String {
@@ -126,11 +130,8 @@
 //! [`SpanTrace`]: tracing_error::SpanTrace
 //! [`error_stack::fmt::builtin_debug_hook_fallback`]: crate::fmt::builtin_debug_hook_fallback
 //! [`atomic`]: std::sync::atomic
-// This makes sure that `Emit` isn't regarded as dead-code even though it isn't exported on no-std.
-// This just simplifies maintenance, as otherwise we would be in cfg hell.
-#![cfg_attr(not(feature = "std"), allow(dead_code))]
-// Makes sure that `Emit` isn't regarded as unreachable even though it isn't exported on no-std.
-// Simplifies maintenance as we don't need to special case the visibility modifier.
+// Makes sure that `Emit` isn't regarded as unreachable even though it isn't exported on
+// no-std. Simplifies maintenance as we don't need to special case the visibility modifier.
 #![cfg_attr(not(feature = "std"), allow(unreachable_pub))]
 
 mod hook;
@@ -170,12 +171,11 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
 /// Modify the behaviour, with which text returned from hook invocations are rendered.
 ///
-/// Text can either be emitted immediately as the [`Emit::Next`] line, or deferred the via
-/// [`Emit::Defer`] until the end of the current stack, a stack is a list of attachments until a
-/// frame, which has more than a single source.
+/// Text can either be emitted immediately as next line, or deferred until the end of the current
+/// stack, a stack is a list of attachments until a frame which has more than a single source.
 ///
-/// Hooks that emit [`Emit::Defer`] are reversed when rendered, meaning that when `A`, `B`, and `C`
-/// use [`Emit::Defer`], they will be rendered in the order: `C`, `B`, `A`.
+/// Deferred lines are reversed when rendered, meaning that when `A`, `B`, and `C` have been added
+/// by **any** hook, they will be rendered in the order: `C`, `B`, `A`.
 ///
 /// # Example
 ///
@@ -184,22 +184,33 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::{Error, ErrorKind};
 ///
-/// use error_stack::{
-///     fmt::Emit,
-///     Report
-/// };
+/// use error_stack::{fmt::Emit, Report};
 ///
-/// Report::install_debug_hook::<u64>(|val, _| Emit::next(format!("u64: {val}")));
-/// Report::install_debug_hook::<u32>(|val, _| Emit::defer(format!("u32: {val}")));
+/// struct Warning(&'static str);
+/// struct ErrorCode(u64);
+/// struct Suggestion(&'static str);
+/// struct Secret(&'static str);
+///
+/// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| {
+///     vec![Emit::next(format!("Error Code: {val}"))]
+/// });
+/// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
+///     vec![Emit::defer(format!("Suggestion: {val}"))]
+/// });
+/// Report::install_debug_hook::<Warning>(|Warning(val), _| {
+///     vec![Emit::next("Abnormal program execution detected"), Emit::next(format!("Warning: {val}"))]
+/// });
+/// Report::install_debug_hook::<Secret>(|_, _| vec![]);
 ///
 /// let report = Report::new(Error::from(ErrorKind::InvalidInput))
-///     .attach(1u64)
-///     .attach(2u32)
-///     .attach(3u64)
-///     .attach(4u32)
-///     .attach(5u32)
-///     .attach(6u64)
-///     .attach(7u64);
+///     .attach(ErrorCode(404))
+///     .attach(Suggestion("Do you have a connection to the internet?"))
+///     .attach(ErrorCode(405))
+///     .attach(Warning("Unable to determine environment"))
+///     .attach(Secret("pssst, don't tell anyone else c;"))
+///     .attach(Suggestion("Execute the program from the fish shell"))
+///     .attach(ErrorCode(501))
+///     .attach(Suggestion("Try better next time!"));
 ///
 /// # owo_colors::set_override(true);
 /// # fn render(value: String) -> String {
@@ -221,13 +232,14 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// <pre>
 #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap"))]
 /// </pre>
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[must_use]
 #[non_exhaustive]
 pub enum Emit {
     /// Line is going to be emitted after all immediate lines have been emitted from the current
     /// stack.
     /// This means that deferred lines will always be last in a group.
+    #[cfg_attr(not(any(feature = "std", feature = "spantrace")), allow(dead_code))]
     Defer(String),
     /// Going to be emitted immediately as the next line in the chain of
     /// attachments and contexts.
@@ -235,17 +247,107 @@ pub enum Emit {
 }
 
 impl Emit {
-    /// Create a new [`Next`] line, which is emitted immediately in the tree.
+    /// Add a new line which is going to be emitted immediately.
     ///
-    /// [`Next`]: Self::Next
+    /// # Example
+    ///
+    /// ```rust
+    /// # // we only test on nightly, therefore report is unused (so is render)
+    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+    /// use std::io;
+    ///
+    /// use error_stack::{fmt::Emit, Report};
+    ///
+    /// struct Suggestion(&'static str);
+    ///
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
+    ///     vec![
+    ///         Emit::next(format!("Suggestion: {val}")),
+    ///         Emit::next("Sorry for the inconvenience!")
+    ///     ]
+    /// });
+    ///
+    /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
+    ///     .attach(Suggestion("Try better next time"));
+    ///
+    /// # owo_colors::set_override(true);
+    /// # fn render(value: String) -> String {
+    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #
+    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #
+    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// # }
+    /// #
+    /// # #[cfg(nightly)]
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap")].assert_eq(&render(format!("{report:?}")));
+    /// #
+    /// println!("{report:?}");
+    /// ```
+    ///
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap"))]
+    /// </pre>
     pub fn next<T: Into<String>>(line: T) -> Self {
         Self::Next(line.into())
     }
 
-    /// Create a new [`Defer`] line, which is deferred until the end of the current chain of
-    /// attachments and contexts.
+    /// Create a new line, which is going to be deferred until the end of the current stack.
     ///
-    /// [`Defer`]: Self::Defer
+    /// A stack are all attachments until a [`Context`] is encountered in the frame stack,
+    /// lines added via this function are going to be emitted at the end, in reversed direction to
+    /// the attachments that added them
+    ///
+    /// [`Context`]: crate::Context
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # // we only test on nightly, therefore report is unused (so is render)
+    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+    /// use std::io;
+    ///
+    /// use error_stack::{fmt::Emit, Report};
+    ///
+    /// struct ErrorCode(u64);
+    /// struct Suggestion(&'static str);
+    ///
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
+    ///     vec![Emit::defer(format!("Suggestion: {val}"))]
+    /// });
+    /// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| {
+    ///     vec![Emit::next(format!("Error Code: {val}"))]
+    /// });
+    ///
+    /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
+    ///     .attach(Suggestion("Try better next time!"))
+    ///     .attach(ErrorCode(404))
+    ///     .attach(Suggestion("Try to use a different shell!"))
+    ///     .attach(ErrorCode(405));
+    ///
+    /// # owo_colors::set_override(true);
+    /// # fn render(value: String) -> String {
+    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #
+    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #
+    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// # }
+    /// #
+    /// # #[cfg(nightly)]
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add_defer.snap")].assert_eq(&render(format!("{report:?}")));
+    /// #
+    /// println!("{report:?}");
+    /// ```
+    ///
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add_defer.snap"))]
+    /// </pre>
+    #[cfg_attr(not(any(feature = "std", feature = "spantrace")), allow(dead_code))]
     pub fn defer<T: Into<String>>(line: T) -> Self {
         Self::Defer(line.into())
     }
@@ -750,7 +852,7 @@ fn debug_attachments(
                             .attach_snippet(snippet.clone());
                     }
 
-                    return Some(debug.output().clone());
+                    return debug.output().to_vec();
                 }
 
                 #[cfg(all(not(nightly), feature = "unstable"))]
@@ -760,7 +862,7 @@ fn debug_attachments(
                             .attach_snippet(snippet.clone());
                     }
 
-                    return Some(debug.output().clone());
+                    return debug.output().to_vec();
                 }
 
                 #[cfg(feature = "std")]
@@ -776,17 +878,18 @@ fn debug_attachments(
                 }
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                Some(attachment.to_string()).map(Emit::Next)
+                vec![Emit::next(attachment.to_string())]
             }
         })
-        .inspect(|value| {
+        .flat_map(|value| {
             // increase the opaque counter, if we're unable to determine the actual value of the
             // frame
-            if value.is_none() {
+            if value.is_empty() {
                 opaque.increase();
             }
+
+            value
         })
-        .flatten()
         .partition(|f| matches!(f, Emit::Next(_)));
 
     let opaque = opaque.render();

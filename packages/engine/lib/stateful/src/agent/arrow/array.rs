@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use arrow2::{
     array::{
-        ArrayRef, FixedSizeBinaryArray, FixedSizeListArray, MutableFixedSizeBinaryArray,
+        Array, FixedSizeBinaryArray, FixedSizeListArray, MutableFixedSizeBinaryArray,
         PrimitiveArray,
     },
     chunk::Chunk,
@@ -90,27 +90,27 @@ impl IntoRecordBatch for &[&Agent] {
             let col = if name.eq(AgentStateField::AgentId.name()) {
                 agents_to_id_col(self)?
             } else if name == AgentStateField::AgentName.name() {
-                Arc::new(json_vals_to_utf8(vals, true)?)
+                Box::new(json_vals_to_utf8(vals, true)?)
             } else if name == AgentStateField::Messages.name() {
-                Arc::new(MessageArray::from_json(vals)?)
+                Box::new(MessageArray::from_json(vals)?)
             } else if name == AgentStateField::Position.name() {
-                Arc::new(agents_to_position_col(self)?)
+                Box::new(agents_to_position_col(self)?)
             } else if name == AgentStateField::Direction.name()
                 || name == AgentStateField::Velocity.name()
             {
-                Arc::new(agents_to_direction_col(self)?)
+                Box::new(agents_to_direction_col(self)?)
             } else if name == AgentStateField::Shape.name() {
-                Arc::new(json_vals_to_utf8(vals, true)?)
+                Box::new(json_vals_to_utf8(vals, true)?)
             } else if name == AgentStateField::Height.name() {
-                Arc::new(json_vals_to_primitive::<f64>(vals, true)?)
+                Box::new(json_vals_to_primitive::<f64>(vals, true)?)
             } else if name == AgentStateField::Scale.name() {
-                Arc::new(agents_to_scale_col(self)?)
+                Box::new(agents_to_scale_col(self)?)
             } else if name == AgentStateField::Color.name() {
-                Arc::new(json_vals_to_utf8(vals, true)?)
+                Box::new(json_vals_to_utf8(vals, true)?)
             } else if name == AgentStateField::Rgb.name() {
-                Arc::new(agents_to_rgb_col(self)?)
+                Box::new(agents_to_rgb_col(self)?)
             } else if name == AgentStateField::Hidden.name() {
-                Arc::new(json_vals_to_bool(vals)?)
+                Box::new(json_vals_to_bool(vals)?)
             } else if name == PREVIOUS_INDEX_FIELD_KEY {
                 previous_index_to_empty_col(self.len(), field.data_type().clone())?
             } else if matches!(
@@ -136,14 +136,14 @@ impl IntoRecordBatch for &[&Agent] {
 
 // `get_agent_id_array` is needed for public interface, but
 // this function avoids copying ids to separate `Vec`.
-fn agents_to_id_col(agents: &[&Agent]) -> Result<ArrayRef> {
+fn agents_to_id_col(agents: &[&Agent]) -> Result<Box<dyn Array>> {
     let mut builder = MutableFixedSizeBinaryArray::with_capacity(UUID_V4_LEN, agents.len());
     for agent in agents {
         builder.push(Some(agent.agent_id.as_bytes()));
     }
     let array: FixedSizeBinaryArray = builder.into();
     debug_assert_eq!(array.len(), agents.len());
-    Ok(array.arced())
+    Ok(array.boxed())
 }
 
 macro_rules! agents_to_vec_col_gen {
@@ -177,17 +177,16 @@ agents_to_vec_col_gen!(position, agents_to_position_col);
 agents_to_vec_col_gen!(scale, agents_to_scale_col);
 agents_to_vec_col_gen!(rgb, agents_to_rgb_col);
 
-fn previous_index_to_empty_col(num_agents: usize, dt: DataType) -> Result<ArrayRef> {
+fn previous_index_to_empty_col(num_agents: usize, dt: DataType) -> Result<Box<dyn Array>> {
     if let DataType::FixedSizeList(inner_field, inner_len) = dt.clone() {
         debug_assert!(matches!(inner_field.data_type(), DataType::UInt32));
 
         let primitive: PrimitiveArray<u32> =
             PrimitiveArray::new_null(DataType::UInt32, num_agents * inner_len);
 
-        // todo: this is not the right data type
-        Ok(Arc::new(arrow2::array::FixedSizeListArray::new(
+        Ok(Box::new(arrow2::array::FixedSizeListArray::new(
             DataType::FixedSizeList(inner_field, inner_len),
-            primitive.arced(),
+            primitive.boxed(),
             None,
         )))
     } else {

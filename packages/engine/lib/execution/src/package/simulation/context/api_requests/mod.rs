@@ -135,7 +135,7 @@ impl ContextPackage for ApiRequests {
         &self,
         num_agents: usize,
         context_schema: &ContextSchema,
-    ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow2::array::Array>)>> {
+    ) -> Result<Vec<(RootFieldKey, Box<dyn arrow2::array::Array>)>> {
         let field_key = self
             .context_field_spec_accessor
             .get_local_hidden_scoped_field_spec(API_RESPONSES_FIELD_NAME)?
@@ -165,7 +165,7 @@ impl ContextPackage for ApiRequests {
             num_agents,
         );
 
-        Ok(vec![(field_key, api_response_list.arced())])
+        Ok(vec![(field_key, api_response_list.boxed())])
     }
 
     fn span(&self) -> Span {

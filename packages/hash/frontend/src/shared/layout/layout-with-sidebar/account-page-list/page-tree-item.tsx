@@ -2,9 +2,9 @@ import { Box, Tooltip, Typography } from "@mui/material";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
 import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { CSSProperties, forwardRef, Ref, useState } from "react";
+import { CSSProperties, forwardRef, MouseEvent, Ref, useState } from "react";
 import { DraggableAttributes } from "@dnd-kit/core";
-import { PageIcon } from "../../../../components/PageIcon";
+import { PageIconButton } from "../../../../components/PageIconButton";
 import { Link } from "../../../ui";
 import { PageMenu } from "./page-menu";
 import { useRouteAccountInfo } from "../../../routing";
@@ -27,6 +27,11 @@ export interface PageTreeItemProps {
   style?: CSSProperties;
   wrapperRef?(node: HTMLLIElement): void;
 }
+
+const stopEvent = (event: MouseEvent) => {
+  event.preventDefault();
+  event.stopPropagation();
+};
 
 export const PageTreeItem = forwardRef(
   (
@@ -59,13 +64,17 @@ export const PageTreeItem = forwardRef(
       popupId: "page-menu",
     });
 
+    const trigger = bindTrigger(popupState);
+
     return collapsed && isSorting ? null : (
       <Box
         ref={wrapperRef}
         onMouseEnter={() => !isSorting && setHovered(true)}
         onMouseLeave={() => !isSorting && setHovered(false)}
       >
-        <Box
+        <Link
+          noLinkStyle
+          href={url}
           tabIndex={0}
           sx={({ palette, transitions }) => ({
             ...style,
@@ -84,11 +93,14 @@ export const PageTreeItem = forwardRef(
               ? palette.gray[20]
               : "none",
           })}
-          ref={ref as Ref<HTMLDivElement>}
+          ref={ref as Ref<HTMLAnchorElement>}
           {...attributes}
         >
           <IconButton
-            onClick={() => onCollapse?.()}
+            onClick={(event) => {
+              stopEvent(event);
+              onCollapse?.();
+            }}
             size="xs"
             unpadded
             rounded
@@ -108,34 +120,31 @@ export const PageTreeItem = forwardRef(
             <FontAwesomeIcon icon={faChevronRight} />
           </IconButton>
 
-          <PageIcon
+          <PageIconButton
             hasDarkBg={selected}
             accountId={accountId}
             entityId={id}
             size="small"
+            onClick={stopEvent}
+            popoverProps={{ onClick: stopEvent }}
           />
 
-          <Link
-            noLinkStyle
-            tabIndex={-1}
-            sx={{
-              flex: 1,
+          <Typography
+            variant="smallTextLabels"
+            sx={({ palette }) => ({
+              display: "block",
+              fontWeight: 400,
               marginLeft: 0.75,
-            }}
-            href={url}
+              py: 1,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              flex: 1,
+              color: palette.gray[selected || hovered ? 90 : 70],
+            })}
           >
-            <Typography
-              variant="smallTextLabels"
-              sx={({ palette }) => ({
-                display: "block",
-                fontWeight: 400,
-                py: 1,
-                color: palette.gray[selected || hovered ? 90 : 70],
-              })}
-            >
-              {title}
-            </Typography>
-          </Link>
+            {title}
+          </Typography>
 
           <Tooltip
             title="Add subpages, delete, duplicate and more"
@@ -150,10 +159,15 @@ export const PageTreeItem = forwardRef(
             <Box>
               <IconButton
                 {...listeners}
-                {...bindTrigger(popupState)}
+                {...trigger}
+                onClick={(event) => {
+                  stopEvent(event);
+                  trigger.onClick(event);
+                }}
                 size="medium"
                 unpadded
                 sx={({ palette }) => ({
+                  marginLeft: "auto",
                   opacity: selected || hovered ? 1 : 0,
                   color: palette.gray[40],
                   "&:focus-visible, &:hover": {
@@ -172,7 +186,7 @@ export const PageTreeItem = forwardRef(
             createSubPage={createSubPage}
             archivePage={archivePage}
           />
-        </Box>
+        </Link>
       </Box>
     );
   },
