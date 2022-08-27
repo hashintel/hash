@@ -82,17 +82,18 @@ export const getProjection = (
   dragOffset: number,
   indentationWidth: number,
 ) => {
-  const overItemIndex = items.findIndex(({ entityId }) => entityId === overId);
-  const activeItemIndex = items.findIndex(
+  const filteredItems = items.filter((item) => !item.collapsed);
+  const overItemIndex = filteredItems.findIndex(
+    ({ entityId }) => entityId === overId,
+  );
+  const activeItemIndex = filteredItems.findIndex(
     ({ entityId }) => entityId === activeId,
   );
 
-  const activeItem = items[activeItemIndex];
-  const newItems = arrayMove(items, activeItemIndex, overItemIndex);
+  const activeItem = filteredItems[activeItemIndex];
+  const newItems = arrayMove(filteredItems, activeItemIndex, overItemIndex);
   const previousItem = newItems[overItemIndex - 1];
-  const nextItem = newItems.filter((item) => !item.collapsed)[
-    overItemIndex + 1
-  ];
+  const nextItem = newItems[overItemIndex + 1];
 
   const dragDepth = Math.round(dragOffset / indentationWidth);
   const projectedDepth = (activeItem ? activeItem.depth : 0) + dragDepth;
