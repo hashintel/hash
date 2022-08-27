@@ -20,6 +20,7 @@ import {
   DragStartEvent,
 } from "@dnd-kit/core";
 import Box from "@mui/material/Box";
+import Collapse from "@mui/material/Collapse";
 import {
   AccountPage,
   useAccountPages,
@@ -31,7 +32,6 @@ import { NavLink } from "../nav-link";
 import { AccountPageListItem } from "./account-page-list-item";
 import { useReorderPage } from "../../../../components/hooks/useReorderPage";
 import { TreeElement, getProjection, getPageList } from "./utils";
-import { Collapse } from "@mui/material";
 
 type AccountPageListProps = {
   accountId: string;
