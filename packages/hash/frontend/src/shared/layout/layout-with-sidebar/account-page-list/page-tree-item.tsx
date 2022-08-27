@@ -94,6 +94,7 @@ export const PageTreeItem = forwardRef(
               : "none",
           })}
           ref={ref as Ref<HTMLAnchorElement>}
+          {...listeners}
           {...attributes}
         >
           <IconButton
@@ -158,7 +159,6 @@ export const PageTreeItem = forwardRef(
           >
             <Box>
               <IconButton
-                {...listeners}
                 {...trigger}
                 onClick={(event) => {
                   stopEvent(event);
