@@ -13,7 +13,7 @@ use core::{
     marker::PhantomData,
 };
 
-pub use default::builtin_debug_hook_fallback;
+pub(crate) use default::debug_hooks_no_std;
 
 use crate::fmt::{Emit, Frame};
 
@@ -491,8 +491,9 @@ type BoxedHook =
 /// [`Frame`]: crate::Frame
 /// [`.insert()`]: Hooks::insert
 #[cfg(feature = "std")]
-#[allow(clippy::redundant_pub_crate)]
 pub(crate) struct Hooks {
+    pub(crate) init: bool,
+
     // We use `Vec`, instead of `HashMap` or `BTreeMap`, so that ordering is consistent with the
     // insertion order of types.
     pub(crate) inner: Vec<(TypeId, BoxedHook)>,
@@ -501,10 +502,32 @@ pub(crate) struct Hooks {
 
 #[cfg(feature = "std")]
 impl Hooks {
+    fn load(&mut self) {
+        if self.init {
+            return;
+        }
+
+        // Operations are infallible, this makes sure that we do not go into endless recursion.
+        self.init = true;
+
+        #[cfg(feature = "spantrace")]
+        {
+            self.insert(default::span_trace);
+        }
+
+        #[cfg(nightly)]
+        {
+            self.insert(default::backtrace);
+        }
+    }
+
     pub(crate) fn insert<T: Send + Sync + 'static>(
         &mut self,
         hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) -> Vec<Emit> + Send + Sync + 'static,
     ) {
+        // make sure that we have loaded all built-in hooks
+        self.load();
+
         let type_id = TypeId::of::<T>();
 
         let boxed_hook = Box::new(move |frame: &Frame, ctx: &mut HookContext<Frame>| {
@@ -555,7 +578,7 @@ impl Hooks {
             if let Some(fallback) = self.fallback.as_ref() {
                 fallback(frame, ctx)
             } else {
-                builtin_debug_hook_fallback(frame, ctx)
+                vec![]
             }
         } else {
             emits
@@ -611,14 +634,11 @@ mod default {
         ))]
     }
 
-    /// Fallback for common attachments that are automatically created
-    /// by `error_stack`, like [`Backtrace`] and [`SpanTrace`]
-    ///
-    /// [`Backtrace`]: std::backtrace::Backtrace
-    /// [`SpanTrace`]: tracing_error::SpanTrace
+    /// This manually calls all builtin hooks for installations that do not have std enabled.
     // Frame can be unused, if neither backtrace or spantrace are enabled
     #[allow(unused_variables)]
-    pub fn builtin_debug_hook_fallback<'a>(
+    #[cfg(not(feature = "std"))]
+    pub(crate) fn debug_hooks_no_std<'a>(
         frame: &Frame,
         ctx: &mut HookContext<'a, Frame>,
     ) -> Vec<Emit> {
@@ -629,6 +649,7 @@ mod default {
         // stabilized yet.
         #[cfg(nightly)]
         {
+            // TODO: once
             #[cfg(all(rust_1_65, feature = "std"))]
             if let Some(bt) = frame.request_ref() {
                 emit.append(&mut backtrace(bt, ctx.cast()));

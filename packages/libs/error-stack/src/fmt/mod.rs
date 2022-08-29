@@ -159,9 +159,9 @@ use core::{
 };
 
 #[cfg(feature = "std")]
-pub use hook::builtin_debug_hook_fallback;
+pub use hook::debug_hooks_no_std;
 #[cfg(not(feature = "std"))]
-pub(crate) use hook::builtin_debug_hook_fallback;
+pub(crate) use hook::debug_hooks_no_std;
 #[cfg(feature = "std")]
 pub use hook::HookContext;
 use hook::HookContextImpl;
@@ -853,7 +853,7 @@ fn debug_attachments(
             }
             #[cfg(not(feature = "std"))]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
-                builtin_debug_hook_fallback(frame, &mut ctx.as_hook_context())
+                debug_hooks_no_std(frame, &mut ctx.as_hook_context())
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                 vec![Emit::Next(attachment.to_string())]

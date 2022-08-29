@@ -8,6 +8,7 @@ use crate::{
 type FormatterHook = Box<dyn Fn(&Report<()>, &mut fmt::Formatter<'_>) -> fmt::Result + Send + Sync>;
 
 static FMT_HOOK: RwLock<Hooks> = RwLock::new(Hooks {
+    init: false,
     inner: Vec::new(),
     fallback: None,
 });
@@ -236,7 +237,7 @@ impl Report<()> {
     ///
     /// Report::install_debug_hook_fallback(|frame, ctx| {
     ///     // first run all builtin hooks to make sure that we print backtrace and spantrace
-    ///     let builtin = fmt::builtin_debug_hook_fallback(frame, ctx);
+    ///     let builtin = fmt::debug_hooks_no_std(frame, ctx);
     ///
     ///     if builtin.is_empty() {
     ///         vec![Emit::next("unknown")]
@@ -283,7 +284,7 @@ impl Report<()> {
     /// };
     ///
     /// use error_stack::{
-    ///     fmt::{builtin_debug_hook_fallback, Emit},
+    ///     fmt::{debug_hooks_no_std, Emit},
     ///     report, Report,
     /// };
     ///
@@ -312,7 +313,7 @@ impl Report<()> {
     ///     if let Some(error) = frame.downcast_ref::<UserError>() {
     ///         vec![Emit::next(format!("Error Code: {}", error.code.0))]
     ///     } else {
-    ///         builtin_debug_hook_fallback(frame, ctx)
+    ///         debug_hooks_no_std(frame, ctx)
     ///     }
     /// });
     ///
