@@ -245,11 +245,11 @@ export default class {
   /** @see {@link LinkModel.create} */
   async createOutgoingLink(
     graphApi: GraphApi,
-    params: Omit<LinkModelCreateParams, "sourceEntity" | "accountId">,
+    params: Omit<LinkModelCreateParams, "sourceEntityModel" | "accountId">,
   ): Promise<LinkModel> {
     return await LinkModel.create(graphApi, {
       accountId: this.accountId,
-      sourceEntity: this,
+      sourceEntityModel: this,
       ...params,
     });
   }
@@ -257,7 +257,7 @@ export default class {
   /** @see {@link LinkModel.getAllOutgoing} */
   async getAllOutgoingLinks(graphApi: GraphApi): Promise<LinkModel[]> {
     return await LinkModel.getAllOutgoing(graphApi, {
-      sourceEntity: this,
+      sourceEntityModel: this,
     });
   }
 
@@ -267,7 +267,7 @@ export default class {
     params: { linkTypeModel: LinkTypeModel },
   ): Promise<LinkModel | null> {
     return await LinkModel.getOutgoing(graphApi, {
-      sourceEntity: this,
+      sourceEntityModel: this,
       ...params,
     });
   }

@@ -33,7 +33,7 @@ describe("Link model class", () => {
   let testType: EntityTypeModel;
   let linkTypeFriend: LinkTypeModel;
   let linkTypeAcquaintance: LinkTypeModel;
-  let sourceEntity: EntityModel;
+  let sourceEntityModel: EntityModel;
   let targetEntityFriend: EntityModel;
   let targetEntityAcquaintance: EntityModel;
 
@@ -91,7 +91,7 @@ describe("Link model class", () => {
 
     linkTypeFriend = results[0];
     linkTypeAcquaintance = results[1];
-    sourceEntity = results[2];
+    sourceEntityModel = results[2];
     targetEntityFriend = results[3];
     targetEntityAcquaintance = results[4];
   });
@@ -101,22 +101,22 @@ describe("Link model class", () => {
   it("can link entities", async () => {
     friendLink = await LinkModel.create(graphApi, {
       accountId,
-      sourceEntity,
+      sourceEntityModel,
       linkTypeModel: linkTypeFriend,
-      targetEntity: targetEntityFriend,
+      targetEntityModel: targetEntityFriend,
     });
 
     acquaintanceLink = await LinkModel.create(graphApi, {
       accountId,
-      sourceEntity,
+      sourceEntityModel,
       linkTypeModel: linkTypeAcquaintance,
-      targetEntity: targetEntityAcquaintance,
+      targetEntityModel: targetEntityAcquaintance,
     });
   });
 
   it("can get all entity links", async () => {
     const allLinks = await LinkModel.getAllOutgoing(graphApi, {
-      sourceEntity,
+      sourceEntityModel,
     });
 
     expect(allLinks).toHaveLength(2);
@@ -126,20 +126,20 @@ describe("Link model class", () => {
 
   it("can get a single entity link", async () => {
     const link = await LinkModel.getOutgoing(graphApi, {
-      sourceEntity,
+      sourceEntityModel,
       linkTypeModel: linkTypeFriend,
     });
 
-    expect(link!.sourceEntity).toEqual(sourceEntity);
+    expect(link!.sourceEntityModel).toEqual(sourceEntityModel);
     expect(link!.linkTypeModel).toEqual(linkTypeFriend);
-    expect(link!.targetEntity).toEqual(targetEntityFriend);
+    expect(link!.targetEntityModel).toEqual(targetEntityFriend);
   });
 
   it("can inactivate an active link", async () => {
     await acquaintanceLink.inactivate(graphApi);
 
     const result = await LinkModel.getOutgoing(graphApi, {
-      sourceEntity,
+      sourceEntityModel,
       linkTypeModel: linkTypeAcquaintance,
     });
 

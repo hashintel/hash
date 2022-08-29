@@ -4,16 +4,16 @@ import { EntityModel, LinkModel, LinkTypeModel } from "../index";
 
 export type LinkModelConstructorParams = {
   accountId: string;
-  sourceEntity: EntityModel;
+  sourceEntityModel: EntityModel;
   linkTypeModel: LinkTypeModel;
-  targetEntity: EntityModel;
+  targetEntityModel: EntityModel;
 };
 
 export type LinkModelCreateParams = {
   accountId: string;
-  sourceEntity: EntityModel;
+  sourceEntityModel: EntityModel;
   linkTypeModel: LinkTypeModel;
-  targetEntity: EntityModel;
+  targetEntityModel: EntityModel;
 };
 
 /**
@@ -22,21 +22,21 @@ export type LinkModelCreateParams = {
 export default class {
   accountId: string;
 
-  sourceEntity: EntityModel;
+  sourceEntityModel: EntityModel;
   linkTypeModel: LinkTypeModel;
-  targetEntity: EntityModel;
+  targetEntityModel: EntityModel;
 
   constructor({
     accountId,
-    sourceEntity,
+    sourceEntityModel,
     linkTypeModel,
-    targetEntity,
+    targetEntityModel,
   }: LinkModelConstructorParams) {
     this.accountId = accountId;
 
-    this.sourceEntity = sourceEntity;
+    this.sourceEntityModel = sourceEntityModel;
     this.linkTypeModel = linkTypeModel;
-    this.targetEntity = targetEntity;
+    this.targetEntityModel = targetEntityModel;
   }
 
   /**
@@ -44,36 +44,36 @@ export default class {
    * type.
    *
    * @param params.accountId the accountId of the account creating the link
-   * @param params.sourceEntity the source entity of the link
+   * @param params.sourceEntityModel the source entity of the link
    * @param params.linkTypeModel the Link Type of the link
-   * @param params.targetEntity the target entity of the link
+   * @param params.targetEntityModel the target entity of the link
    */
   static async create(
     graphApi: GraphApi,
     {
       accountId,
-      sourceEntity,
+      sourceEntityModel,
       linkTypeModel,
-      targetEntity,
+      targetEntityModel,
     }: LinkModelCreateParams,
   ): Promise<LinkModel> {
     const {
       data: { sourceEntityId, linkTypeUri, targetEntityId },
-    } = await graphApi.createLink(sourceEntity.entityId, {
+    } = await graphApi.createLink(sourceEntityModel.entityId, {
       accountId,
       linkTypeUri: linkTypeModel.schema.$id,
-      targetEntityId: targetEntity.entityId,
+      targetEntityId: targetEntityModel.entityId,
     });
 
     const fetchedParams = {
-      sourceEntity: await EntityModel.getLatest(graphApi, {
+      sourceEntityModel: await EntityModel.getLatest(graphApi, {
         accountId,
         entityId: sourceEntityId,
       }),
       linkTypeModel: await LinkTypeModel.get(graphApi, {
         versionedUri: linkTypeUri,
       }),
-      targetEntity: await EntityModel.getLatest(graphApi, {
+      targetEntityModel: await EntityModel.getLatest(graphApi, {
         accountId,
         entityId: targetEntityId,
       }),
@@ -89,17 +89,17 @@ export default class {
    * Get all outgoing links of a source entity.
    *
    * @param params.accountId the accountId of the account creating the link
-   * @param params.sourceEntity the source entity of the link
+   * @param params.sourceEntityModel the source entity of the link
    */
   static async getAllOutgoing(
     graphApi: GraphApi,
-    { sourceEntity }: { sourceEntity: EntityModel },
+    { sourceEntityModel }: { sourceEntityModel: EntityModel },
   ): Promise<LinkModel[]> {
     const { data: entityLinks } = await graphApi.getEntityLinks(
-      sourceEntity.entityId,
+      sourceEntityModel.entityId,
     );
     return Promise.all(
-      Object.entries(entityLinks.outgoing)
+      Object.entries(entityLinks)
         /**
          * When target entity id is a list the link has many targets.
          * This is not supported yet
@@ -109,14 +109,14 @@ export default class {
         .map(
           async ([linkTypeUri, targetEntityId]) =>
             new LinkModel({
-              accountId: sourceEntity.accountId,
+              accountId: sourceEntityModel.accountId,
               linkTypeModel: await LinkTypeModel.get(graphApi, {
                 versionedUri: linkTypeUri,
               }),
-              sourceEntity,
-              targetEntity: await EntityModel.getLatest(graphApi, {
+              sourceEntityModel,
+              targetEntityModel: await EntityModel.getLatest(graphApi, {
                 /** @todo figure out what account ID we use here */
-                accountId: sourceEntity.accountId,
+                accountId: sourceEntityModel.accountId,
                 entityId: targetEntityId,
               }),
             }),
@@ -128,19 +128,21 @@ export default class {
    * Get the outgoing link of a source entity given a link type.
    *
    * @param params.accountId the accountId of the account creating the link
-   * @param params.sourceEntity the source entity of the link
+   * @param params.sourceEntityModel the source entity of the link
    * @param params.linkTypeModel the Link Type of the link
    */
   static async getOutgoing(
     graphApi: GraphApi,
     {
-      sourceEntity,
+      sourceEntityModel,
       linkTypeModel,
-    }: { sourceEntity: EntityModel; linkTypeModel: LinkTypeModel },
+    }: { sourceEntityModel: EntityModel; linkTypeModel: LinkTypeModel },
   ): Promise<LinkModel | null> {
     /** @todo use structural querying for this client-side fetch */
     const links = (
-      await LinkModel.getAllOutgoing(graphApi, { sourceEntity })
+      await LinkModel.getAllOutgoing(graphApi, {
+        sourceEntityModel,
+      })
     ).filter(
       (link) => link.linkTypeModel.schema.$id === linkTypeModel.schema.$id,
     );
@@ -152,9 +154,9 @@ export default class {
    * Make a link inactive.
    */
   async inactivate(graphApi: GraphApi): Promise<void> {
-    await graphApi.inactivateLink(this.sourceEntity.entityId, {
+    await graphApi.inactivateLink(this.sourceEntityModel.entityId, {
       linkTypeUri: this.linkTypeModel.schema.$id,
-      targetEntityId: this.targetEntity.entityId,
+      targetEntityId: this.targetEntityModel.entityId,
     });
   }
 }
