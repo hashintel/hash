@@ -154,7 +154,7 @@ export default class {
     ).filter(
       (link) => link.linkTypeModel.schema.$id === linkTypeModel.schema.$id,
     );
-    /** @todo the may return an array of links whe nwe support 1:N links. */
+    /** @todo this may return an array of links whe new support 1:N links. */
     return links[0] ? links[0] : null;
   }
 
