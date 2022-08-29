@@ -10,7 +10,7 @@ import {
   TextSelection,
   Transaction,
 } from "prosemirror-state";
-import { ReactElement } from "react";
+import { ReactElement, RefObject } from "react";
 import { ensureMounted } from "../../../lib/dom";
 import { RenderPortal } from "../usePortals";
 import { BlockSuggester } from "./BlockSuggester";
@@ -122,6 +122,7 @@ export const createSuggester = (
   renderPortal: RenderPortal,
   getManager: () => ProsemirrorManager,
   accountId: string,
+  documentRootRef: RefObject<HTMLDivElement>,
 ) =>
   new Plugin<SuggesterState, Schema>({
     key: suggesterPluginKey,
@@ -210,7 +211,7 @@ export const createSuggester = (
       },
     },
     view() {
-      const container = document.querySelector("#root") as HTMLDivElement;
+      const container = documentRootRef.current;
       const mountNode = document.createElement("div");
 
       return {
@@ -279,7 +280,7 @@ export const createSuggester = (
               );
           }
 
-          if (jsx) {
+          if (jsx && container) {
             ensureMounted(mountNode, container);
             renderPortal(
               <Popper

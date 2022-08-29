@@ -1,3 +1,4 @@
+import { RefObject } from "react";
 import { HashBlock } from "@hashintel/hash-shared/blocks";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
@@ -28,6 +29,7 @@ export const createEditorView = (
   accountId: string,
   pageEntityId: string,
   blocks: BlocksMap,
+  documentRootRef: RefObject<HTMLDivElement>,
 ) => {
   let manager: ProsemirrorManager;
 
@@ -35,7 +37,7 @@ export const createEditorView = (
 
   const plugins: Plugin<unknown, Schema>[] = [
     ...createFormatPlugins(renderPortal),
-    createSuggester(renderPortal, () => manager, accountId),
+    createSuggester(renderPortal, () => manager, accountId, documentRootRef),
     errorPlugin,
   ];
 

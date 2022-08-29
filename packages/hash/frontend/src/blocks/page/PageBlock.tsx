@@ -67,6 +67,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       accountId,
       entityId,
       blocks,
+      root,
     );
 
     prosemirrorSetup.current = {
