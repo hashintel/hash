@@ -45,7 +45,7 @@
 //! ## Example
 //!
 //! ```rust
-//! # // we only test on rust 1.65, therefore report is unused (so is render)
+//! # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
 //! # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
 //! use std::io::{Error, ErrorKind};
 //! use error_stack::Report;
@@ -183,7 +183,7 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// # Example
 ///
 /// ```rust
-/// # // we only test on rust 1.65, therefore report is unused (so is render)
+/// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
 /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::{Error, ErrorKind};
 ///
@@ -255,7 +255,7 @@ impl Emit {
     /// # Example
     ///
     /// ```rust
-    /// # // we only test on rust 1.65, therefore report is unused (so is render)
+    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
     /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io;
     ///
@@ -309,7 +309,7 @@ impl Emit {
     /// # Example
     ///
     /// ```rust
-    /// # // we only test on rust 1.65, therefore report is unused (so is render)
+    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
     /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io;
     ///
