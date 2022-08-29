@@ -96,10 +96,13 @@ export const generateSchemaBaseUri = (params: {
   namespaceUri: string;
   kind: SchemaKind;
   title: string;
-}) =>
-  `${params.namespaceUri}/${schemaKindSlugs[params.kind]}/${slugifySchemaTitle(
-    params.title,
-  )}`;
+}) => {
+  const a = `${params.namespaceUri}/${
+    schemaKindSlugs[params.kind]
+  }/${slugifySchemaTitle(params.title)}`;
+
+  return a;
+};
 
 export const generateSchemaVersionedUri = (params: {
   namespaceUri: string;
@@ -140,7 +143,9 @@ export const generateWorkspacePropertyTypeSchema = (params: {
   title: string;
   /** @todo: account for nested property types (once we have a use-case) */
   possibleValues: {
-    primitiveDataType: PrimitiveDataTypeTitle;
+    primitiveDataType?: PrimitiveDataTypeTitle;
+    /** @todo make use of new type system package instead of ad-hoc types */
+    propertyTypeObject?: { [_ in string]: { $ref: string } };
     array?: boolean;
   }[];
 }): PropertyType => ({
@@ -151,21 +156,31 @@ export const generateWorkspacePropertyTypeSchema = (params: {
   }),
   kind: "propertyType",
   title: params.title,
-  oneOf: params.possibleValues.map(({ array, primitiveDataType }) =>
-    array
-      ? {
+  oneOf: params.possibleValues.map(
+    ({ array, primitiveDataType, propertyTypeObject }) => {
+      let inner;
+      if (primitiveDataType) {
+        inner = {
+          $ref: primitiveDataTypeVersionedUris[primitiveDataType],
+        };
+      } else if (propertyTypeObject) {
+        inner = { type: "object" as const, properties: propertyTypeObject };
+      } else {
+        throw new Error(
+          "Please provide either a primitiveDataType or a propertyTypeObject to generateWorkspacePropertyTypeSchema",
+        );
+      }
+      if (array) {
+        return {
           type: "array",
           items: {
-            oneOf: [
-              {
-                $ref: primitiveDataTypeVersionedUris[primitiveDataType],
-              },
-            ],
+            oneOf: [inner],
           },
-        }
-      : {
-          $ref: primitiveDataTypeVersionedUris[primitiveDataType],
-        },
+        };
+      } else {
+        return inner;
+      }
+    },
   ),
 });
 

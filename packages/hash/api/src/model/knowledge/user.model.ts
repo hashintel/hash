@@ -4,6 +4,7 @@ import {
   EntityModelCreateParams,
   EntityTypeModel,
   UserModel,
+  AccountUtil,
 } from "..";
 import {
   adminKratosSdk,
@@ -17,7 +18,6 @@ import {
   workspaceAccountId,
   workspaceTypesNamespaceUri,
 } from "../util";
-import { AccountUtil } from "./account.util";
 
 type QualifiedEmail = { address: string; verified: boolean; primary: boolean };
 
@@ -58,6 +58,12 @@ export const preferredNameBaseUri = generateSchemaBaseUri({
   kind: "propertyType",
   title: preferredNamePropertyType.title,
 });
+
+export const UserPropertyTypes = [
+  emailPropertyType,
+  kratosIdentityIdPropertyType,
+  preferredNamePropertyType,
+];
 
 type UserModelCreateParams = Omit<
   EntityModelCreateParams,

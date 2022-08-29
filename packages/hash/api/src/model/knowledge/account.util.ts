@@ -28,9 +28,6 @@ module Shortname {
     possibleValues: [{ primitiveDataType: "Text" }],
   });
 
-  export const shortnameMinimumLength = 4;
-  export const shortnameMaximumLength = 24;
-
   export const shortnameBaseUri = generateSchemaBaseUri({
     namespaceUri: workspaceTypesNamespaceUri,
     kind: "propertyType",
@@ -38,6 +35,9 @@ module Shortname {
   });
 
   // Validations for shortnames
+  export const shortnameMinimumLength = 4;
+  export const shortnameMaximumLength = 24;
+
   const ALLOWED_SHORTNAME_CHARS = /^[a-zA-Z0-9-_]+$/;
 
   export const shortnameContainsInvalidCharacter = (
