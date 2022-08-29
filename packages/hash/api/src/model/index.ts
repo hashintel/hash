@@ -17,40 +17,32 @@ import Page from "./page.model";
 import Block from "./block.model";
 import Link from "./link.model";
 import Aggregation from "./aggregation.model";
-import DataTypeModel from "./ontology/data-type.model";
-import PropertyTypeModel from "./ontology/property-type.model";
-import LinkTypeModel from "./ontology/link-type.model";
-import EntityTypeModel from "./ontology/entity-type.model";
-import EntityModel from "./knowledge/entity.model";
-import UserModel from "./knowledge/user.model";
-import LinkModel from "./knowledge/link.model";
-import OrgModel from "./knowledge/org.model";
 
 export * from "./ontology/data-type.model";
-export { DataTypeModel };
+export { default as DataTypeModel } from "./ontology/data-type.model";
 
 export * from "./ontology/property-type.model";
-export { PropertyTypeModel };
+export { default as PropertyTypeModel } from "./ontology/property-type.model";
 
 export * from "./ontology/link-type.model";
-export { LinkTypeModel };
+export { default as LinkTypeModel } from "./ontology/link-type.model";
 
 export * from "./ontology/entity-type.model";
-export { EntityTypeModel };
+export { default as EntityTypeModel } from "./ontology/entity-type.model";
 
 export * from "./knowledge/entity.model";
-export { EntityModel };
+export { default as EntityModel } from "./knowledge/entity.model";
+
+export * from "./knowledge/link.model";
+export { default as LinkModel } from "./knowledge/link.model";
 
 export * from "./knowledge/account.util";
 
 export * from "./knowledge/user.model";
-export { UserModel };
-
-export * from "./knowledge/link.model";
-export { LinkModel };
+export { default as UserModel } from "./knowledge/user.model";
 
 export * from "./knowledge/org.model";
-export { OrgModel };
+export { default as OrgModel } from "./knowledge/org.model";
 
 /** @todo: deprecate legacy model classes */
 
