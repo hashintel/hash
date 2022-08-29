@@ -603,6 +603,8 @@ mod default {
         Frame,
     };
 
+
+
     #[cfg(all(rust_1_65, feature = "std"))]
     fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Vec<Emit> {
         let idx = ctx.increment();
@@ -614,9 +616,7 @@ mod default {
             backtrace.frames().len(),
             idx + 1
         ))]
-    }
-
-    #[cfg(feature = "spantrace")]
+    }    #[cfg(feature = "spantrace")]
     fn span_trace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) -> Vec<Emit> {
         let idx = ctx.increment();
 
@@ -649,11 +649,7 @@ mod default {
         // stabilized yet.
         #[cfg(nightly)]
         {
-            // TODO: once
-            #[cfg(all(rust_1_65, feature = "std"))]
-            if let Some(bt) = frame.request_ref() {
-                emit.append(&mut backtrace(bt, ctx.cast()));
-            }
+			// backtrace isn't included because this function is only available on no_std
 
             #[cfg(feature = "spantrace")]
             if let Some(st) = frame.request_ref() {
@@ -663,10 +659,7 @@ mod default {
 
         #[cfg(not(nightly))]
         {
-            #[cfg(all(rust_1_65, feature = "std"))]
-            if let Some(bt) = frame.downcast_ref() {
-                emit.append(&mut backtrace(bt, ctx.cast()));
-            }
+            // backtrace isn't included because this function is only available on no_std
 
             #[cfg(feature = "spantrace")]
             if let Some(st) = frame.downcast_ref() {
