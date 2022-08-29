@@ -1,10 +1,8 @@
-use std::sync::Arc;
-
 use arrow2::{
     array,
     array::{
-        Array, ArrayRef, BooleanArray, FixedSizeListArray, ListArray, MutableArray,
-        MutablePrimitiveArray, MutableUtf8Array, PrimitiveArray, StructArray, Utf8Array,
+        Array, BooleanArray, FixedSizeListArray, ListArray, MutableArray, MutablePrimitiveArray,
+        MutableUtf8Array, PrimitiveArray, StructArray, Utf8Array,
     },
     bitmap::{Bitmap, MutableBitmap},
     buffer::Buffer,
@@ -209,34 +207,34 @@ fn json_vals_to_struct(
 // TODO: OPTIM: As an optimization, we could look at both whether a column is *nullable* (i.e.
 //       can have nulls) and whether it has a *non-zero null count* (i.e. currently
 //       has nulls). Right now it only matters whether the column is nullable.
-pub fn json_vals_to_col(vals: Vec<Value>, field: &Field, nullable: bool) -> Result<ArrayRef> {
+pub fn json_vals_to_col(vals: Vec<Value>, field: &Field, nullable: bool) -> Result<Box<dyn Array>> {
     // Inner columns (i.e. columns that are elements of list or struct arrays) are
     // always nullable; fields might not be.
     match field.data_type() {
-        DataType::Float64 => Ok(Arc::new(json_vals_to_primitive::<f64>(vals, nullable)?)),
-        DataType::Float32 => Ok(Arc::new(json_vals_to_primitive::<f32>(vals, nullable)?)),
-        DataType::Int64 => Ok(Arc::new(json_vals_to_primitive::<i64>(vals, nullable)?)),
-        DataType::Int32 => Ok(Arc::new(json_vals_to_primitive::<i32>(vals, nullable)?)),
-        DataType::Int16 => Ok(Arc::new(json_vals_to_primitive::<i16>(vals, nullable)?)),
-        DataType::Int8 => Ok(Arc::new(json_vals_to_primitive::<i8>(vals, nullable)?)),
-        DataType::UInt64 => Ok(Arc::new(json_vals_to_primitive::<u64>(vals, nullable)?)),
-        DataType::UInt32 => Ok(Arc::new(json_vals_to_primitive::<u32>(vals, nullable)?)),
-        DataType::UInt16 => Ok(Arc::new(json_vals_to_primitive::<u16>(vals, nullable)?)),
-        DataType::UInt8 => Ok(Arc::new(json_vals_to_primitive::<u8>(vals, nullable)?)),
-        DataType::Boolean => Ok(Arc::new(json_vals_to_bool(vals)?)),
-        DataType::Utf8 => Ok(Arc::new(json_vals_to_utf8(vals, nullable)?)),
-        DataType::List(inner_field) => Ok(Arc::new(json_vals_to_list(
+        DataType::Float64 => Ok(Box::new(json_vals_to_primitive::<f64>(vals, nullable)?)),
+        DataType::Float32 => Ok(Box::new(json_vals_to_primitive::<f32>(vals, nullable)?)),
+        DataType::Int64 => Ok(Box::new(json_vals_to_primitive::<i64>(vals, nullable)?)),
+        DataType::Int32 => Ok(Box::new(json_vals_to_primitive::<i32>(vals, nullable)?)),
+        DataType::Int16 => Ok(Box::new(json_vals_to_primitive::<i16>(vals, nullable)?)),
+        DataType::Int8 => Ok(Box::new(json_vals_to_primitive::<i8>(vals, nullable)?)),
+        DataType::UInt64 => Ok(Box::new(json_vals_to_primitive::<u64>(vals, nullable)?)),
+        DataType::UInt32 => Ok(Box::new(json_vals_to_primitive::<u32>(vals, nullable)?)),
+        DataType::UInt16 => Ok(Box::new(json_vals_to_primitive::<u16>(vals, nullable)?)),
+        DataType::UInt8 => Ok(Box::new(json_vals_to_primitive::<u8>(vals, nullable)?)),
+        DataType::Boolean => Ok(Box::new(json_vals_to_bool(vals)?)),
+        DataType::Utf8 => Ok(Box::new(json_vals_to_utf8(vals, nullable)?)),
+        DataType::List(inner_field) => Ok(Box::new(json_vals_to_list(
             vals,
             nullable,
             inner_field.clone(),
         )?)),
-        DataType::FixedSizeList(inner_field, size) => Ok(Arc::new(json_vals_to_fixed_size_list(
+        DataType::FixedSizeList(inner_field, size) => Ok(Box::new(json_vals_to_fixed_size_list(
             vals,
             nullable,
             inner_field.clone(),
             *size as i32,
         )?)),
-        DataType::Struct(fields) => Ok(Arc::new(json_vals_to_struct(
+        DataType::Struct(fields) => Ok(Box::new(json_vals_to_struct(
             vals,
             nullable,
             fields.clone(),
@@ -247,7 +245,7 @@ pub fn json_vals_to_col(vals: Vec<Value>, field: &Field, nullable: bool) -> Resu
     }
 }
 
-pub fn json_vals_to_any_type_col(vals: Vec<Value>, dt: &DataType) -> Result<ArrayRef> {
+pub fn json_vals_to_any_type_col(vals: Vec<Value>, dt: &DataType) -> Result<Box<dyn Array>> {
     debug_assert!(matches!(dt, DataType::Utf8));
 
     let mut builder = MutableUtf8Array::<i32>::with_capacity(vals.len() * 64);
@@ -257,7 +255,7 @@ pub fn json_vals_to_any_type_col(vals: Vec<Value>, dt: &DataType) -> Result<Arra
     }
 
     let array: Utf8Array<i32> = builder.into();
-    Ok(array.arced())
+    Ok(array.boxed())
 }
 
 fn numeric_to_json_vals<T: NativeType + Num + Serialize>(col: &dyn Array) -> Result<Vec<Value>> {
@@ -318,7 +316,7 @@ fn utf8_to_json_vals(col: &dyn Array) -> Result<Vec<Value>> {
     Ok(json_vals)
 }
 
-pub fn json_utf8_json_vals(col: &ArrayRef) -> Result<Vec<Value>> {
+pub fn json_utf8_json_vals(col: &dyn Array) -> Result<Vec<Value>> {
     let array = col.as_any().downcast_ref::<Utf8Array<i32>>().unwrap();
     let mut json_vals: Vec<Value> = Vec::with_capacity(array.len());
     for i_val in 0..array.len() {

@@ -8,7 +8,7 @@ import { useMemo, useRef } from "react";
 
 import { getEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { Box, styled } from "@mui/material";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { SimpleEntityEditor } from "./shared/simple-entity-editor";
 

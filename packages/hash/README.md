@@ -147,6 +147,14 @@ See https://blockprotocol.org/docs/developing-blocks
 
 ## Testing
 
+### Debug mode
+
+Some parts of the UI designed to help with development/debugging are hidden. You can display these elements by running the following in your browser console.
+
+```js
+localStorage["hash.internal.debugging"] = "true";
+```
+
 ### Backend integration tests
 
 Backend integration tests are located in [packages/hash/integration](./packages/hash/integration) folder.

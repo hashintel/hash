@@ -118,7 +118,7 @@ impl ContextPackage for AgentMessages {
         &self,
         num_agents: usize,
         _schema: &ContextSchema,
-    ) -> Result<Vec<(RootFieldKey, Arc<dyn Array>)>> {
+    ) -> Result<Vec<(RootFieldKey, Box<dyn Array>)>> {
         let index_builder = MutablePrimitiveArray::<u32>::with_capacity(1024);
         let loc_builder = MutableFixedSizeListArray::new(index_builder, 3);
         let mut messages_builder: MutableListArray<
@@ -139,7 +139,7 @@ impl ContextPackage for AgentMessages {
         messages_builder
             .try_extend((0..num_agents).map(|_| Option::<Vec<Option<Vec<Option<u32>>>>>::None))?;
 
-        let messages = messages_builder.into_arc();
+        let messages = messages_builder.into_box();
 
         assert_eq!(messages.len(), num_agents);
 

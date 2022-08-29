@@ -3,7 +3,11 @@
 mod inbound;
 mod outbound;
 
-use std::{collections::HashMap, fmt, sync::Arc};
+use std::{
+    collections::HashMap,
+    fmt,
+    sync::{Arc, Weak},
+};
 
 use arrow2::datatypes::Schema;
 use stateful::{
@@ -119,7 +123,23 @@ pub struct DatastoreSimulationPayload {
     pub agent_batch_schema: Arc<AgentSchema>,
     pub message_batch_schema: Arc<Schema>,
     pub context_batch_schema: Arc<Schema>,
-    pub shared_store: Arc<SharedStore>,
+    pub shared_store: Weak<SharedStore>,
+}
+
+impl DatastoreSimulationPayload {
+    pub fn new(
+        agent_batch_schema: Arc<AgentSchema>,
+        message_batch_schema: Arc<Schema>,
+        context_batch_schema: Arc<Schema>,
+        shared_store: Weak<SharedStore>,
+    ) -> Self {
+        Self {
+            agent_batch_schema,
+            message_batch_schema,
+            context_batch_schema,
+            shared_store,
+        }
+    }
 }
 
 impl fmt::Debug for DatastoreSimulationPayload {
@@ -139,7 +159,7 @@ struct DatastoreInit {
 #[derive(Clone)]
 pub struct ExperimentInitRunnerMsgBase {
     pub experiment_id: ExperimentId,
-    pub shared_context: Arc<SharedStore>,
+    pub shared_context: Weak<SharedStore>,
     pub package_config: Arc<PackageMsgs>,
     pub runner_config: RunnerConfig,
 }
@@ -148,7 +168,7 @@ pub struct ExperimentInitRunnerMsgBase {
 pub struct ExperimentInitRunnerMsg {
     pub experiment_id: ExperimentId,
     pub worker_index: WorkerIndex,
-    pub shared_context: Arc<SharedStore>,
+    pub shared_context: Weak<SharedStore>,
     pub package_config: Arc<PackageMsgs>,
     pub runner_config: RunnerConfig,
 }
@@ -158,18 +178,12 @@ impl ExperimentInitRunnerMsg {
         base: &ExperimentInitRunnerMsgBase,
         worker_index: WorkerIndex,
     ) -> ExperimentInitRunnerMsg {
-        let ExperimentInitRunnerMsgBase {
-            experiment_id,
-            shared_context,
-            package_config,
-            runner_config,
-        } = base.clone();
         ExperimentInitRunnerMsg {
-            experiment_id,
+            experiment_id: base.experiment_id,
             worker_index,
-            shared_context,
-            package_config,
-            runner_config,
+            shared_context: base.shared_context.clone(),
+            package_config: base.package_config.clone(),
+            runner_config: base.runner_config.clone(),
         }
     }
 }

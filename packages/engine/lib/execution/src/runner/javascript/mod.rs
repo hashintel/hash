@@ -22,8 +22,8 @@ use std::{
 
 use arrow2::{
     array::{
-        ArrayRef, BooleanArray, FixedSizeBinaryArray, FixedSizeListArray, ListArray,
-        PrimitiveArray, StructArray, Utf8Array,
+        BooleanArray, FixedSizeBinaryArray, FixedSizeListArray, ListArray, PrimitiveArray,
+        StructArray, Utf8Array,
     },
     bitmap::Bitmap,
     buffer::Buffer,
@@ -850,7 +850,13 @@ impl<'s> ThreadLocalRunner<'s> {
 
     pub fn new(scope: &mut v8::HandleScope<'s>, init: &ExperimentInitRunnerMsg) -> Result<Self> {
         let embedded = Embedded::import_common_js_files(scope)?;
-        let datasets = Self::load_datasets(scope, &init.shared_context)?;
+        let datasets = {
+            let upgraded = init.shared_context.upgrade().expect(
+                "failed to obtain access to the shared store (this is a bug: it should not be \
+                 possible for the ExperimentController to be dropped before a Javascript runner)",
+            );
+            Self::load_datasets(scope, upgraded.as_ref())?
+        };
 
         let pkg_config = &init.package_config.0;
         let pkg_fns = v8::Array::new(scope, pkg_config.len() as i32);
@@ -1021,7 +1027,7 @@ impl<'s> ThreadLocalRunner<'s> {
         data: Value<'s>,
         data_type: &DataType,
         len: Option<usize>,
-    ) -> Result<ArrayRef> {
+    ) -> Result<Box<dyn arrow2::array::Array>> {
         // `data` must not be dropped until flush is over, because
         // pointers returned from FFI point inside `data`'s ArrayBuffers' memory.
         let obj = data.to_object(scope).ok_or_else(|| {
@@ -1074,7 +1080,7 @@ impl<'s> ThreadLocalRunner<'s> {
                     ),
                     validity,
                 )
-                .arced()
+                .boxed()
             },
             DataType::UInt16 => unsafe {
                 // SAFETY: `data` is provided by arrow and the type is `u16`
@@ -1092,7 +1098,7 @@ impl<'s> ThreadLocalRunner<'s> {
                     ),
                     validity,
                 )
-                .arced()
+                .boxed()
             },
             DataType::UInt32 => unsafe {
                 // SAFETY: `data` is provided by arrow and the type is `u32`
@@ -1110,7 +1116,7 @@ impl<'s> ThreadLocalRunner<'s> {
                     ),
                     validity,
                 )
-                .arced()
+                .boxed()
             },
             DataType::Float64 => unsafe {
                 debug_assert!(
@@ -1128,7 +1134,7 @@ impl<'s> ThreadLocalRunner<'s> {
                     ),
                     validity,
                 )
-                .arced()
+                .boxed()
             },
             DataType::Utf8 => {
                 // Utf8 is stored in two buffers:
@@ -1172,7 +1178,7 @@ impl<'s> ThreadLocalRunner<'s> {
                     )
                 };
 
-                Utf8Array::from_data(DataType::Utf8, offsets, values, validity).arced()
+                Utf8Array::from_data(DataType::Utf8, offsets, values, validity).boxed()
             }
             DataType::List(inner_field) => {
                 // List is stored in one buffer and child data containing the indexed values:
@@ -1211,7 +1217,7 @@ impl<'s> ThreadLocalRunner<'s> {
                     child,
                     validity,
                 )
-                .arced()
+                .boxed()
             }
             DataType::FixedSizeList(inner_field, size) => {
                 // FixedSizeListList is only stored by child data, as offsets are not required
@@ -1232,7 +1238,7 @@ impl<'s> ThreadLocalRunner<'s> {
                     values,
                     validity,
                 )
-                .arced()
+                .boxed()
             }
             DataType::Struct(inner_fields) => {
                 // Structs are only defined by child data
@@ -1255,7 +1261,7 @@ impl<'s> ThreadLocalRunner<'s> {
                         Some(target_len),
                     )?);
                 }
-                StructArray::new(DataType::Struct(inner_fields.clone()), arrays, validity).arced()
+                StructArray::new(DataType::Struct(inner_fields.clone()), arrays, validity).boxed()
             }
             DataType::FixedSizeBinary(size) => {
                 // FixedSizeBinary is only stored as a buffer (u8), offsets are not required because
@@ -1275,7 +1281,7 @@ impl<'s> ThreadLocalRunner<'s> {
                     )
                 };
                 FixedSizeBinaryArray::new(DataType::FixedSizeBinary(*size), values, validity)
-                    .arced()
+                    .boxed()
             }
             // TODO: More types?
             data_type => return Err(Error::FlushType(data_type.clone())),

@@ -1,14 +1,8 @@
-import {
-  faClockRotateLeft,
-  faEllipsisVertical,
-  faFile,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
-import { Box, Typography } from "@mui/material";
+import { faFile } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Box } from "@mui/material";
 import { ReactNode } from "react";
 import { useSidebarContext } from "../../shared/layout/layout-with-sidebar";
-import { useReadonlyMode } from "../../shared/readonly-mode";
-import { Button } from "../../shared/ui";
 import { Breadcrumbs, BreadcrumbsProps } from "./breadcrumbs";
 
 type Props = {
@@ -24,7 +18,6 @@ export const TopContextBar = ({
   defaultCrumbIcon = <FontAwesomeIcon icon={faFile} />,
   scrollToTop = () => {},
 }: Props) => {
-  const { readonlyMode } = useReadonlyMode();
   const { sidebarOpen } = useSidebarContext();
   return (
     <Box
@@ -40,40 +33,6 @@ export const TopContextBar = ({
           defaultIcon={defaultCrumbIcon}
           scrollToTop={scrollToTop}
         />
-      </Box>
-
-      <Box
-        ml="auto"
-        alignItems="center"
-        sx={({ palette }) => ({
-          display: readonlyMode ? "none" : "flex",
-          "& > *": {
-            color: palette.gray[50],
-            "&:hover": {
-              color: palette.gray[70],
-            },
-          },
-        })}
-      >
-        <Button variant="tertiary_quiet" size="xs">
-          <Typography variant="smallTextLabels" whiteSpace="nowrap">
-            <Box component="strong">0</Box> comments
-          </Typography>
-        </Button>
-
-        <Button variant="tertiary_quiet" size="xs">
-          Share
-        </Button>
-        <Button
-          variant="tertiary_quiet"
-          size="xs"
-          startIcon={<FontAwesomeIcon icon={faClockRotateLeft} />}
-        >
-          v2.3.1
-        </Button>
-        <IconButton>
-          <FontAwesomeIcon icon={faEllipsisVertical} />
-        </IconButton>
       </Box>
     </Box>
   );

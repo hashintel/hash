@@ -9,6 +9,7 @@ from wrappers import shared_buf_from_c_memory
 from wrappers import dynamic_meta_from_c_memory
 from wrappers import static_meta_from_schema
 from wrappers import flush
+from wrappers import unload_shared_mem
 
 N_MARKER_BYTES = 8  # Markers are all u64s.
 N_MARKERS = 8  # NUMBER_OF_MARKERS in datastore/memory.rs.
@@ -286,7 +287,9 @@ class Batches:
 
     def free(self):
         # TODO: Check that this releases references to shared memory
-        #       (Call _free_rust_static_meta, _free_rust_dynamic_meta, unload_shared_mem here?)
+        #       (Call _free_rust_static_meta, _free_rust_dynamic_meta here?)
         #   see https://app.asana.com/0/1201461747883418/1201634225076144/f
         # TODO: Make this the `__del__` method?
+        for batch in self.batches.values():
+            unload_shared_mem(batch.c_memory)
         self.batches = {}
