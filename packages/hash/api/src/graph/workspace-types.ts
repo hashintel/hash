@@ -10,11 +10,10 @@ import {
   EntityTypeModel,
   PropertyTypeModel,
   AccountUtil,
-  kratosIdentityIdPropertyType,
-  emailPropertyType,
   userEntityType,
-  preferredNamePropertyType,
   orgEntityType,
+  OrgPropertyTypes,
+  UserPropertyTypes,
 } from "../model";
 import { logger } from "../logger";
 import {
@@ -24,10 +23,9 @@ import {
 
 const workspacePropertyTypes: PropertyType[] = [
   AccountUtil.shortnamePropertyType,
-  emailPropertyType,
-  kratosIdentityIdPropertyType,
   AccountUtil.accountIdPropertyType,
-  preferredNamePropertyType,
+  ...UserPropertyTypes,
+  ...OrgPropertyTypes,
 ];
 
 const workspaceEntityTypes: EntityType[] = [userEntityType, orgEntityType];
@@ -62,26 +60,25 @@ export const ensureWorkspaceTypesExist = async (params: {
   );
 
   // Next, let's ensure all workspace property types have been created
-  await Promise.all(
-    workspacePropertyTypes.map(async (schema) => {
-      const { $id: versionedUri } = schema;
-      const existingPropertyType = await PropertyTypeModel.get(graphApi, {
-        versionedUri,
-      }).catch((error: AxiosError) =>
-        error.response?.status === 404 ? null : Promise.reject(error),
-      );
+  // This is done sequentially as property types might reference other property
+  // types
+  /** @todo Use transactional primitive/bulk insert to be able to do this in parallel */
+  for (const schema of workspacePropertyTypes) {
+    const { $id: versionedUri } = schema;
+    const existingPropertyType = await PropertyTypeModel.get(graphApi, {
+      versionedUri,
+    }).catch((error: AxiosError) =>
+      error.response?.status === 404 ? null : Promise.reject(error),
+    );
 
-      if (!existingPropertyType) {
-        await PropertyTypeModel.create(graphApi, {
-          accountId: workspaceAccountId,
-          schema,
-        });
-        logger.info(
-          `Created property type with versioned URI "${versionedUri}"`,
-        );
-      }
-    }),
-  );
+    if (!existingPropertyType) {
+      await PropertyTypeModel.create(graphApi, {
+        accountId: workspaceAccountId,
+        schema,
+      });
+      logger.info(`Created property type with versioned URI "${versionedUri}"`);
+    }
+  }
 
   // Finally, let's ensure all workspace entity types have been created
   await Promise.all(
