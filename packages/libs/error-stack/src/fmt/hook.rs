@@ -15,7 +15,6 @@ use core::{
 
 #[cfg(not(feature = "std"))]
 pub(crate) use default::debug_hooks_no_std;
-use futures::StreamExt;
 
 use crate::fmt::{hook::default::builtin, Emit, Frame};
 
@@ -571,7 +570,7 @@ impl Hooks {
             .chain(
                 // make sure that we execute the builtin hooks even if we haven't called `insert()`
                 // yet
-                (!self.init).then(|| builtin()).flatten(),
+                (!self.init).then(|| builtin()).iter().flatten(),
             )
             .flat_map(|(_, hook)| hook(frame, ctx))
             .collect();
@@ -609,6 +608,8 @@ mod default {
         Frame,
     };
 
+    // TODO: this is called for every invocation of call() if we haven't `.insert()` yet
+    //  I'd like to remove that this called every time.
     #[cfg(feature = "std")]
     pub(crate) fn builtin() -> Vec<(TypeId, BoxedHook)> {
         let mut hooks = vec![];

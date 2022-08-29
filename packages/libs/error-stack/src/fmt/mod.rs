@@ -159,10 +159,6 @@ use core::{
 };
 
 #[cfg(feature = "std")]
-pub use hook::debug_hooks_no_std;
-#[cfg(not(feature = "std"))]
-pub(crate) use hook::debug_hooks_no_std;
-#[cfg(feature = "std")]
 pub use hook::HookContext;
 use hook::HookContextImpl;
 #[cfg(feature = "std")]
