@@ -44,7 +44,7 @@ impl Report<()> {
     ///
     /// [`Debug`]: core::fmt::Debug
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```
     /// # // we only test the snapshot on rust 1.65, therefore report is unused (so is render)
@@ -87,6 +87,9 @@ impl Report<()> {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook.snap"))]
     /// </pre>
+    ///
+    /// This example showcases the ability of hooks being invoked for values provided via the
+    /// [Provider API](crate::Context), this feature is currently only available on nightly.
     ///
     /// ```
     /// # // this is a lot of boilerplate, if you find a better way, please change this!
@@ -178,7 +181,7 @@ impl Report<()> {
     /// [`Debug`]: core::fmt::Debug
     /// [`install_debug_hook`]: Self::install_debug_hook
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```
     /// # // we only test the snapshot on rust 1.65, therefore report is unused (so is render)
@@ -218,6 +221,9 @@ impl Report<()> {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback.snap"))]
     /// </pre>
+    ///
+    /// This example showcases the use of the builtin fallback hook as a fallback in our custom
+    /// fallback:
     ///
     /// ```
     /// # // we only test the snapshot on rust 1.65, therefore report is unused (so is render)
@@ -264,6 +270,9 @@ impl Report<()> {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback_builtin.snap"))]
     /// </pre>
+    ///
+    /// This example showcases how we can use the fallback hook to downcast `UserError` and provide
+    /// custom formatting for it's content:
     ///
     /// ```
     /// # // we only test the snapshot on rust 1.65, therefore report is unused (so is render)

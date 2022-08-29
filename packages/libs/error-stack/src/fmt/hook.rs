@@ -495,7 +495,6 @@ type BoxedHook =
 pub(crate) struct Hooks {
     // We use `Vec`, instead of `HashMap` or `BTreeMap`, so that ordering is consistent with the
     // insertion order of types.
-    // Overwrites will not append, but instead will replace the current position in the `Vec<>`
     pub(crate) inner: Vec<(TypeId, BoxedHook)>,
     pub(crate) fallback: Option<BoxedHook>,
 }
@@ -532,13 +531,10 @@ impl Hooks {
             }
         });
 
-        // Find if there's already a slot for the type, if present replace, otherwise append a new
-        // entry.
-        if let Some(hook) = self.inner.iter_mut().find(|(id, _)| *id == type_id) {
-            *hook = (type_id, boxed_hook);
-        } else {
-            self.inner.push((type_id, boxed_hook));
-        }
+        // make sure that previous hooks of the same TypeId are deleted.
+        self.inner.retain(|(id, _)| *id != type_id);
+        // push new hook onto the stack
+        self.inner.push((type_id, boxed_hook));
     }
 
     pub(crate) fn fallback(
