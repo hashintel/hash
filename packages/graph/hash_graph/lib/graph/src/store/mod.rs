@@ -435,11 +435,11 @@ pub trait LinkStore: for<'q> crud::Read<OutgoingLinks, Query<'q> = LinkQuery<'q>
         created_by: AccountId,
     ) -> Result<(), InsertionError>;
 
-    /// Get the [`Links`] specified by the [`LinkQuery`].
+    /// Get the [`OutgoingLinks`] specified by the [`LinkQuery`].
     ///
     /// # Errors
     ///
-    /// - if the requested [`Links`] don't exist.
+    /// - if the requested [`OutgoingLinks`] don't exist.
     async fn get_links(&self, query: &LinkQuery<'_>) -> Result<Vec<OutgoingLinks>, QueryError> {
         self.read(query).await
     }
