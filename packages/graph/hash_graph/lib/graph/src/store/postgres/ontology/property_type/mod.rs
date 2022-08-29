@@ -2,6 +2,7 @@ mod read;
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
+use futures::{StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
 use type_system::PropertyType;
 
@@ -9,8 +10,8 @@ use crate::{
     ontology::{AccountId, PersistedOntologyIdentifier, PersistedPropertyType},
     store::{
         crud::Read,
-        postgres::ontology::property_type::read::PostgresPropertyTypeResolver,
-        query::{Expression, ExpressionResolver},
+        postgres::resolve::{PostgresContext, Record},
+        query::{Expression, Literal},
         AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
     },
 };
@@ -88,9 +89,47 @@ impl<C: AsClient> Read<PersistedPropertyType> for PostgresStore<C> {
 
     async fn read<'query>(
         &self,
-        query: &Self::Query<'query>,
+        expression: &Self::Query<'query>,
     ) -> Result<Vec<PersistedPropertyType>, QueryError> {
-        let mut resolver = PostgresPropertyTypeResolver::new(self.as_client());
-        resolver.resolve(query).await
+        let mut output = Vec::new();
+        self.read_property_types()
+            .await?
+            .map(|row_result| row_result.into_report().change_context(QueryError))
+            .try_fold(
+                (self, &mut output),
+                |(mut context, output), row| async move {
+                    let property_type: PropertyType = serde_json::from_value(row.get(0))
+                        .into_report()
+                        .change_context(QueryError)?;
+
+                    let versioned_property_type = Record {
+                        record: property_type,
+                        is_latest: row.get(2),
+                    };
+
+                    if let Literal::Bool(result) = expression
+                        .evaluate(&versioned_property_type, &mut context)
+                        .await
+                    {
+                        if result {
+                            let uri = versioned_property_type.record.id();
+                            let account_id: AccountId = row.get(1);
+                            let identifier =
+                                PersistedOntologyIdentifier::new(uri.clone(), account_id);
+                            output.push(PersistedPropertyType {
+                                inner: versioned_property_type.record,
+                                identifier,
+                            });
+                        }
+                    } else {
+                        panic!("Expression does not result in a boolean value")
+                    }
+
+                    Ok((context, output))
+                },
+            )
+            .await?;
+
+        Ok(output)
     }
 }

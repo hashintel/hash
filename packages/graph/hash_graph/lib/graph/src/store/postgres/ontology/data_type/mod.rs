@@ -1,7 +1,8 @@
-mod read;
+pub mod read;
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
+use futures::{StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
 use type_system::DataType;
 
@@ -9,8 +10,8 @@ use crate::{
     ontology::{AccountId, PersistedDataType, PersistedOntologyIdentifier},
     store::{
         crud::Read,
-        postgres::ontology::data_type::read::PostgresDataTypeResolver,
-        query::{Expression, ExpressionResolver},
+        postgres::resolve::{PostgresContext, Record},
+        query::{Expression, Literal},
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
 };
@@ -74,9 +75,47 @@ impl<C: AsClient> Read<PersistedDataType> for PostgresStore<C> {
 
     async fn read<'query>(
         &self,
-        query: &Self::Query<'query>,
+        expression: &Self::Query<'query>,
     ) -> Result<Vec<PersistedDataType>, QueryError> {
-        let mut resolver = PostgresDataTypeResolver::new(self.as_client());
-        resolver.resolve(query).await
+        let mut output = Vec::new();
+        self.read_data_types()
+            .await?
+            .map(|row_result| row_result.into_report().change_context(QueryError))
+            .try_fold(
+                (self, &mut output),
+                |(mut context, output), row| async move {
+                    let data_type: DataType = serde_json::from_value(row.get(0))
+                        .into_report()
+                        .change_context(QueryError)?;
+
+                    let versioned_data_type = Record {
+                        record: data_type,
+                        is_latest: row.get(2),
+                    };
+
+                    if let Literal::Bool(result) = expression
+                        .evaluate(&versioned_data_type, &mut context)
+                        .await
+                    {
+                        if result {
+                            let uri = versioned_data_type.record.id();
+                            let account_id: AccountId = row.get(1);
+                            let identifier =
+                                PersistedOntologyIdentifier::new(uri.clone(), account_id);
+                            output.push(PersistedDataType {
+                                inner: versioned_data_type.record,
+                                identifier,
+                            });
+                        }
+                    } else {
+                        panic!("Expression does not result in a boolean value")
+                    }
+
+                    Ok((context, output))
+                },
+            )
+            .await?;
+
+        Ok(output)
     }
 }

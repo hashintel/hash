@@ -1,8 +1,8 @@
-use async_trait::async_trait;
 mod knowledge;
 mod ontology;
 
 mod pool;
+mod resolve;
 mod version_id;
 
 use error_stack::{IntoReport, Report, Result, ResultExt};

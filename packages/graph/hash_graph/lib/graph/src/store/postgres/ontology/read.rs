@@ -23,22 +23,6 @@ pub trait PersistedOntologyType {
     fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self;
 }
 
-// impl PersistedOntologyType for PersistedDataType {
-//     type Inner = DataType;
-//
-//     fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self {
-//         Self { inner, identifier }
-//     }
-// }
-//
-// impl PersistedOntologyType for PersistedPropertyType {
-//     type Inner = PropertyType;
-//
-//     fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self {
-//         Self { inner, identifier }
-//     }
-// }
-
 impl PersistedOntologyType for PersistedLinkType {
     type Inner = LinkType;
 
