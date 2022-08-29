@@ -578,11 +578,9 @@ impl Hooks {
             .collect();
 
         if emits.is_empty() {
-            if let Some(fallback) = self.fallback.as_ref() {
-                fallback(frame, ctx)
-            } else {
-                vec![]
-            }
+            self.fallback
+                .as_ref()
+                .map_or_else(Vec::new, |fallback| fallback(frame, ctx))
         } else {
             emits
         }
