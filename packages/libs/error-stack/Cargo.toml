@@ -23,7 +23,6 @@ futures-core = { version = "0.3", optional = true, default-features = false }
 smallvec = { version = "1", optional = true, default_features = false, features = ['union'] }
 anyhow = { version = "1", default-features = false, optional = true }
 eyre = { version = "0.6", default-features = false, optional = true }
-
 owo-colors = { version = "3.4.0", default-features = false, optional = true, features = ['supports-colors'] }
 
 [dev-dependencies]
@@ -51,7 +50,6 @@ pretty-print = ["dep:owo-colors"]
 small = ["dep:smallvec"]
 spantrace = ["dep:tracing-error"]
 std = ["anyhow?/std"]
-unstable = []
 
 [package.metadata.docs.rs]
 all-features = true
