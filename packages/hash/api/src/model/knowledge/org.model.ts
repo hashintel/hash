@@ -4,6 +4,7 @@ import {
   EntityModel,
   EntityModelCreateParams,
   AccountUtil,
+  EntityTypeModel,
 } from "..";
 import {
   generateSchemaBaseUri,
@@ -114,12 +115,53 @@ export type OrgModelCreateParams = Omit<
  * @class {@link OrgModel}
  */
 export default class extends EntityModel {
+  static async createOrg(graphApi: GraphApi, params: OrgModelCreateParams) {
+    const { shortname, name, providedInfo } = params;
+
+    const { data: orgAccountId } = await graphApi.createAccountId();
+
+    const properties: object = {
+      [AccountUtil.accountIdBaseUri]: orgAccountId,
+      [AccountUtil.shortnameBaseUri]: shortname,
+      [orgNamedBaseUri]: name,
+      [orgProvidedInfoBaseUri]: providedInfo
+        ? {
+            [orgSizeBaseUri]: providedInfo.orgSize,
+          }
+        : undefined,
+    };
+
+    const entityTypeModel = await OrgModel.getOrgEntityType(graphApi);
+
+    const userEntityAccountId = workspaceAccountId;
+
+    const { entityId, version } = await EntityModel.create(graphApi, {
+      accountId: workspaceAccountId,
+      properties,
+      entityTypeModel,
+    });
+
+    return new OrgModel({
+      accountId: userEntityAccountId,
+      entityId,
+      version,
+      entityTypeModel,
+      properties,
+    });
+  }
+
+  static async getOrgEntityType(graphApi: GraphApi) {
+    return await EntityTypeModel.get(graphApi, {
+      versionedUri: orgEntityTypeVersionedUri,
+    });
+  }
+
   /**
    * Get a workspace organization entity by their shortname.
    *
    * @param params.shortname - the shortname of the organization
    */
-  static async getUserByShortname(
+  static async getOrgByShortname(
     graphApi: GraphApi,
     params: { shortname: string },
   ): Promise<OrgModel | null> {
@@ -134,7 +176,7 @@ export default class extends EntityModel {
           entityTypeModel.schema.$id === orgEntityTypeVersionedUri,
       )
       .map((entityModel) => new OrgModel(entityModel))
-      .find((user) => user.getShortname() === params.shortname);
+      .find((org) => org.getShortname() === params.shortname);
 
     return matchingOrg ?? null;
   }

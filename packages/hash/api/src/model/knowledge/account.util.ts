@@ -56,7 +56,7 @@ module Shortname {
   ) => {
     return (
       (await UserModel.getUserByShortname(graphApi, params)) !== null ||
-      (await OrgModel.getUserByShortname(graphApi, params)) !== null
+      (await OrgModel.getOrgByShortname(graphApi, params)) !== null
     );
   };
 
