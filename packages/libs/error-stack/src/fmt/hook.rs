@@ -13,9 +13,11 @@ use core::{
     marker::PhantomData,
 };
 
+#[cfg(not(feature = "std"))]
 pub(crate) use default::debug_hooks_no_std;
+use futures::StreamExt;
 
-use crate::fmt::{Emit, Frame};
+use crate::fmt::{hook::default::builtin, Emit, Frame};
 
 #[derive(Default)]
 pub(crate) struct HookContextImpl {
@@ -468,6 +470,34 @@ impl<T: 'static> HookContext<'_, T> {
 type BoxedHook =
     Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Vec<Emit> + Send + Sync>;
 
+fn into_boxed_hook<T: Send + Sync + 'static>(
+    hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) -> Vec<Emit> + Send + Sync + 'static,
+) -> BoxedHook {
+    Box::new(move |frame: &Frame, ctx: &mut HookContext<Frame>| {
+        #[cfg(nightly)]
+        {
+            frame
+                .request_ref::<T>()
+                .map(|val| hook(val, ctx.cast()))
+                .or_else(|| {
+                    frame
+                        .request_value::<T>()
+                        .as_ref()
+                        .map(|val| hook(val, ctx.cast()))
+                })
+                .unwrap_or_default()
+        }
+
+        #[cfg(not(nightly))]
+        {
+            frame
+                .downcast_ref::<T>()
+                .map(|val| hook(val, ctx.cast()))
+                .unwrap_or_default()
+        }
+    })
+}
+
 /// Holds list of hooks and a fallback.
 ///
 /// The fallback is called whenever a hook for a specific type couldn't be found.
@@ -507,18 +537,9 @@ impl Hooks {
             return;
         }
 
-        // Operations are infallible, this makes sure that we do not go into endless recursion.
+        self.inner.append(&mut builtin());
+
         self.init = true;
-
-        #[cfg(feature = "spantrace")]
-        {
-            self.insert(default::span_trace);
-        }
-
-        #[cfg(nightly)]
-        {
-            self.insert(default::backtrace);
-        }
     }
 
     pub(crate) fn insert<T: Send + Sync + 'static>(
@@ -530,34 +551,10 @@ impl Hooks {
 
         let type_id = TypeId::of::<T>();
 
-        let boxed_hook = Box::new(move |frame: &Frame, ctx: &mut HookContext<Frame>| {
-            #[cfg(nightly)]
-            {
-                frame
-                    .request_ref::<T>()
-                    .map(|val| hook(val, ctx.cast()))
-                    .or_else(|| {
-                        frame
-                            .request_value::<T>()
-                            .as_ref()
-                            .map(|val| hook(val, ctx.cast()))
-                    })
-                    .unwrap_or_default()
-            }
-
-            #[cfg(not(nightly))]
-            {
-                frame
-                    .downcast_ref::<T>()
-                    .map(|val| hook(val, ctx.cast()))
-                    .unwrap_or_default()
-            }
-        });
-
         // make sure that previous hooks of the same TypeId are deleted.
         self.inner.retain(|(id, _)| *id != type_id);
         // push new hook onto the stack
-        self.inner.push((type_id, boxed_hook));
+        self.inner.push((type_id, into_boxed_hook(hook)));
     }
 
     pub(crate) fn fallback(
@@ -571,6 +568,11 @@ impl Hooks {
         let emits: Vec<_> = self
             .inner
             .iter()
+            .chain(
+                // make sure that we execute the builtin hooks even if we haven't called `insert()`
+                // yet
+                (!self.init).then(|| builtin()).flatten(),
+            )
             .flat_map(|(_, hook)| hook(frame, ctx))
             .collect();
 
@@ -592,6 +594,7 @@ mod default {
     #[cfg(any(all(rust_1_65, feature = "std"), feature = "spantrace"))]
     use alloc::format;
     use alloc::{vec, vec::Vec};
+    use std::any::TypeId;
     #[cfg(all(rust_1_65, feature = "std"))]
     use std::backtrace::Backtrace;
 
@@ -599,11 +602,29 @@ mod default {
     use tracing_error::SpanTrace;
 
     use crate::{
-        fmt::{hook::HookContext, Emit},
+        fmt::{
+            hook::{into_boxed_hook, BoxedHook, HookContext},
+            Emit,
+        },
         Frame,
     };
 
+    #[cfg(feature = "std")]
+    pub(crate) fn builtin() -> Vec<(TypeId, BoxedHook)> {
+        let mut hooks = vec![];
 
+        #[cfg(feature = "spantrace")]
+        {
+            hooks.push((TypeId::of::<SpanTrace>(), into_boxed_hook(span_trace)));
+        }
+
+        #[cfg(rust_1_65)]
+        {
+            hooks.push((TypeId::of::<Backtrace>(), into_boxed_hook(backtrace)));
+        }
+
+        hooks
+    }
 
     #[cfg(all(rust_1_65, feature = "std"))]
     fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Vec<Emit> {
@@ -616,7 +637,8 @@ mod default {
             backtrace.frames().len(),
             idx + 1
         ))]
-    }    #[cfg(feature = "spantrace")]
+    }
+    #[cfg(feature = "spantrace")]
     fn span_trace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) -> Vec<Emit> {
         let idx = ctx.increment();
 
@@ -649,7 +671,7 @@ mod default {
         // stabilized yet.
         #[cfg(nightly)]
         {
-			// backtrace isn't included because this function is only available on no_std
+            // backtrace isn't included because this function is only available on no_std
 
             #[cfg(feature = "spantrace")]
             if let Some(st) = frame.request_ref() {
