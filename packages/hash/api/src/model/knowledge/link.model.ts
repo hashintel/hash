@@ -143,7 +143,10 @@ export default class {
       linkTypeModel,
     }: { sourceEntityModel: EntityModel; linkTypeModel: LinkTypeModel },
   ): Promise<LinkModel | null> {
-    /** @todo use structural querying for this client-side fetch */
+    /**
+     * @todo use structural querying for this client-side fetch
+     *   https://app.asana.com/0/1200211978612931/1202510174412974/f
+     */
     const links = (
       await LinkModel.getAllOutgoing(graphApi, {
         sourceEntityModel,
