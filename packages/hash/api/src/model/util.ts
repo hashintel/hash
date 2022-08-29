@@ -96,13 +96,10 @@ export const generateSchemaBaseUri = (params: {
   namespaceUri: string;
   kind: SchemaKind;
   title: string;
-}) => {
-  const a = `${params.namespaceUri}/${
-    schemaKindSlugs[params.kind]
-  }/${slugifySchemaTitle(params.title)}/`;
-
-  return a;
-};
+}) =>
+  `${params.namespaceUri}/${schemaKindSlugs[params.kind]}/${slugifySchemaTitle(
+    params.title,
+  )}/`;
 
 export const generateSchemaVersionedUri = (params: {
   namespaceUri: string;
