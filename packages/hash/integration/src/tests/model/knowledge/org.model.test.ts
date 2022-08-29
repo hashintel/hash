@@ -26,13 +26,41 @@ describe("Org model class", () => {
   });
 
   let createdOrg: OrgModel;
+  let shortname = "test-org";
   it("can create an org", async () => {
     createdOrg = await OrgModel.createOrg(graphApi, {
       name: "Test org",
-      shortname: "test-org",
+      shortname,
       providedInfo: {
         orgSize: OrgSize.ElevenToFifty,
       },
     });
+  });
+
+  it("can get the account id", () => {
+    expect(createdOrg.getAccountId()).toBeDefined();
+  });
+
+  it("can update the shortname of an org", async () => {
+    shortname = "test-org-updated";
+    createdOrg = await createdOrg.updateShortname(graphApi, {
+      updatedByAccountId: createdOrg.getAccountId(),
+      updatedShortname: shortname,
+    });
+  });
+
+  it("can update the preferred name of an org", async () => {
+    createdOrg = await createdOrg.updateOrgName(graphApi, {
+      updatedByAccountId: createdOrg.getAccountId(),
+      updatedOrgName: "The testing org",
+    });
+  });
+
+  it("can get an org by its shortname", async () => {
+    const fetchedOrg = await OrgModel.getOrgByShortname(graphApi, {
+      shortname,
+    });
+
+    expect(fetchedOrg).toEqual(createdOrg);
   });
 });

@@ -181,7 +181,66 @@ export default class extends EntityModel {
     return matchingOrg ?? null;
   }
 
-  getShortname(): string | undefined {
+  getAccountId(): string {
+    return (this.properties as any)[AccountUtil.accountIdBaseUri];
+  }
+
+  getShortname(): string {
     return (this.properties as any)[AccountUtil.shortnameBaseUri];
+  }
+
+  async updateShortname(
+    graphApi: GraphApi,
+    params: { updatedByAccountId: string; updatedShortname: string },
+  ): Promise<OrgModel> {
+    const { updatedByAccountId, updatedShortname } = params;
+
+    if (AccountUtil.shortnameIsInvalid(updatedShortname)) {
+      throw new Error(`The shortname "${updatedShortname}" is invalid`);
+    }
+
+    if (
+      AccountUtil.shortnameIsRestricted(updatedShortname) ||
+      (await AccountUtil.shortnameIsTaken(graphApi, {
+        shortname: updatedShortname,
+      }))
+    ) {
+      throw new Error(
+        `A user entity with shortname "${updatedShortname}" already exists.`,
+      );
+    }
+
+    return await this.updateProperty(graphApi, {
+      propertyTypeBaseUri: AccountUtil.shortnameBaseUri,
+      value: updatedShortname,
+      updatedByAccountId,
+    }).then((updatedEntity) => new OrgModel(updatedEntity));
+  }
+
+  getOrgName(): string {
+    return (this.properties as any)[orgNamedBaseUri];
+  }
+
+  static orgNameIsInvalid(preferredName: string) {
+    return preferredName === "";
+  }
+
+  async updateOrgName(
+    graphApi: GraphApi,
+    params: { updatedByAccountId: string; updatedOrgName: string },
+  ) {
+    const { updatedByAccountId, updatedOrgName } = params;
+
+    if (OrgModel.orgNameIsInvalid(updatedOrgName)) {
+      throw new Error(`Organization name "${updatedOrgName}" is invalid.`);
+    }
+
+    const updatedEntity = await this.updateProperty(graphApi, {
+      propertyTypeBaseUri: orgNamedBaseUri,
+      value: updatedOrgName,
+      updatedByAccountId,
+    });
+
+    return new OrgModel(updatedEntity);
   }
 }
