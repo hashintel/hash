@@ -74,7 +74,7 @@ export default class {
       entityId: identifier.entityId,
       version,
       entityTypeModel,
-      properties: inner.properties,
+      properties: inner,
     });
   }
 
@@ -93,7 +93,7 @@ export default class {
     } = await graphApi.createEntity({
       accountId,
       entityTypeUri: entityTypeModel.schema.$id,
-      entity: { properties },
+      entity: properties,
     });
 
     return new EntityModel({
@@ -172,7 +172,7 @@ export default class {
       entityId,
       /** @todo: make this argument optional */
       entityTypeUri: entityTypeModel.schema.$id,
-      entity: { properties },
+      entity: properties,
     });
 
     return new EntityModel({
