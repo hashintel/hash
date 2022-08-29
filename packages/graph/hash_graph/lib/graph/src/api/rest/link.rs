@@ -9,7 +9,7 @@ use utoipa::{Component, OpenApi};
 
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store},
-    knowledge::{EntityId, Link, Links},
+    knowledge::{EntityId, Link, OutgoingLinks},
     ontology::AccountId,
     store::{error::QueryError, query::LinkQuery, LinkStore, StorePool},
 };
@@ -21,7 +21,7 @@ use crate::{
         get_entity_links,
         inactivate_link
     ),
-    components(AccountId, Link, Links, CreateLinkRequest, InactivateLinkRequest),
+    components(AccountId, Link, OutgoingLinks, CreateLinkRequest, InactivateLinkRequest),
     tags(
         (name = "Link", description = "link management API")
     )
@@ -112,7 +112,7 @@ async fn create_link<P: StorePool + Send>(
     path = "/entities/{entityId}/links",
     tag = "Link",
     responses(
-        (status = 200, content_type = "application/json", description = "The requested links on the given source entity", body = Links),
+        (status = 200, content_type = "application/json", description = "The requested links on the given source entity", body = OutgoingLinks),
         (status = 422, content_type = "text/plain", description = "Provided source entity id is invalid"),
 
         (status = 404, description = "No links were found"),
@@ -125,7 +125,7 @@ async fn create_link<P: StorePool + Send>(
 async fn get_entity_links<P: StorePool + Send>(
     Path(source_entity_id): Path<EntityId>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<Links>, StatusCode> {
+) -> Result<Json<OutgoingLinks>, StatusCode> {
     read_from_store(
         pool.as_ref(),
         &LinkQuery::new().by_source_entity_id(source_entity_id),

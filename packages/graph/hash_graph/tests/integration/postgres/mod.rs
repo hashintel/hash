@@ -8,7 +8,8 @@ mod property_type;
 use error_stack::Result;
 use graph::{
     knowledge::{
-        Entity, EntityId, Link, Links, Outgoing, PersistedEntity, PersistedEntityIdentifier,
+        Entity, EntityId, Link, OutgoingLinkTarget, OutgoingLinks, PersistedEntity,
+        PersistedEntityIdentifier,
     },
     ontology::{
         types::{EntityType, LinkType},
@@ -323,7 +324,7 @@ impl DatabaseApi<'_> {
         &self,
         source_entity_id: EntityId,
         link_type_uri: VersionedUri,
-    ) -> Result<Outgoing, QueryError> {
+    ) -> Result<OutgoingLinkTarget, QueryError> {
         Ok(self
             .store
             .get_links(
@@ -342,7 +343,10 @@ impl DatabaseApi<'_> {
             .clone())
     }
 
-    pub async fn get_entity_links(&self, source_entity_id: EntityId) -> Result<Links, QueryError> {
+    pub async fn get_entity_links(
+        &self,
+        source_entity_id: EntityId,
+    ) -> Result<OutgoingLinks, QueryError> {
         Ok(self
             .store
             .get_links(&LinkQuery::new().by_source_entity_id(source_entity_id))

@@ -57,11 +57,11 @@ impl fmt::Display for Link {
 
 // TODO: Add PersistedLink to expose metadata about link instances
 
-/// From a source entity, this is the outgoing link targeting one or more other entities given by
-/// [`EntityId`]s.
+/// Outgoing link targets of a source entity sharing the same link type. May be one or many
+/// [`EntityId`]s
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum Outgoing {
+pub enum OutgoingLinkTarget {
     Single(EntityId),
     Multiple(Vec<EntityId>),
 }
@@ -69,20 +69,17 @@ pub enum Outgoing {
 /// A collection of links that originate from the same source entity.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
 #[serde(rename_all = "camelCase")]
-pub struct Links {
-    #[serde(flatten)]
-    outgoing: HashMap<VersionedUri, Outgoing>,
-}
+pub struct OutgoingLinks(HashMap<VersionedUri, OutgoingLinkTarget>);
 
-impl Links {
+impl OutgoingLinks {
     #[must_use]
-    pub const fn new(links: HashMap<VersionedUri, Outgoing>) -> Self {
-        Self { outgoing: links }
+    pub const fn new(links: HashMap<VersionedUri, OutgoingLinkTarget>) -> Self {
+        Self(links)
     }
 
     #[must_use]
-    pub const fn outgoing(&self) -> &HashMap<VersionedUri, Outgoing> {
-        &self.outgoing
+    pub const fn outgoing(&self) -> &HashMap<VersionedUri, OutgoingLinkTarget> {
+        &self.0
     }
 }
 
@@ -139,7 +136,7 @@ mod tests {
     fn test_link(json: &str) {
         let json_value: serde_json::Value = serde_json::from_str(json).expect("invalid JSON");
 
-        let link: Links = serde_json::from_value(json_value.clone()).expect("invalid link");
+        let link: OutgoingLinks = serde_json::from_value(json_value.clone()).expect("invalid link");
 
         assert_eq!(
             serde_json::to_value(link.clone()).expect("could not serialize"),
@@ -153,9 +150,7 @@ mod tests {
         test_link(
             r#"
             {
-                "outgoing": {
-                    "https://blockprotocol.org/types/@alice/link-type/written-by/v/1": "00000000-0000-0000-0000-000000000000"
-                }
+                "https://blockprotocol.org/types/@alice/link-type/written-by/v/1": "00000000-0000-0000-0000-000000000000"
             }
             "#,
         );
@@ -166,9 +161,7 @@ mod tests {
         test_link(
             r#"
             {
-                "outgoing": {
-                    "https://blockprotocol.org/types/@alice/link-type/friend-of/v/1": ["00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000"]
-                }
+                "https://blockprotocol.org/types/@alice/link-type/friend-of/v/1": ["00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000"]
             }
             "#,
         );
