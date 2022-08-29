@@ -5,6 +5,7 @@ mod pool;
 mod resolve;
 mod version_id;
 
+use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use postgres_types::ToSql;
 use serde::Serialize;

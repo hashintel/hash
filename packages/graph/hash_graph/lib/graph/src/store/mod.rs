@@ -216,7 +216,7 @@ pub trait DataTypeStore: for<'q> crud::Read<PersistedDataType, Query<'q> = Expre
         created_by: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError>;
 
-    /// Get the [`DataType`]s specified by the [`DataTypeQuery`].
+    /// Get the [`DataType`]s specified by the [`Expression`].
     ///
     /// # Errors
     ///
@@ -259,7 +259,7 @@ pub trait PropertyTypeStore:
         created_by: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError>;
 
-    /// Get the [`PropertyType`]s specified by the [`PropertyTypeQuery`].
+    /// Get the [`PropertyType`]s specified by the [`Expression`].
     ///
     /// # Errors
     ///
