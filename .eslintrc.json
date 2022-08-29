@@ -299,7 +299,8 @@
           "react-dom": { "named": true }
         }
       }
-    ]
+    ],
+    "@typescript-eslint/prefer-nullish-coalescing": ["error"]
   },
   "settings": {
     "import/resolver": {
