@@ -24,10 +24,6 @@
 //! `Fn(&Frame, &mut HookContext<T>) -> Vec<Emit>`
 //! and can be set via [`Report::install_debug_hook_fallback`].
 //!
-//! > **Caution:** Overwriting the fallback **will** remove the builtin formatting for types like
-//! > [`Backtrace`] and [`SpanTrace`], you can mitigate this by calling
-//! > [`error_stack::fmt::builtin_debug_hook_fallback`] in your fallback code.
-//!
 //! Hook functions need to be [`Fn`] and **not** [`FnMut`], which means they are unable to directly
 //! mutate state outside of the closure.
 //! You can still achieve mutable state outside of the scope of your closure through interior
