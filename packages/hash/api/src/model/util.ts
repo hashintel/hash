@@ -99,7 +99,7 @@ export const generateSchemaBaseUri = (params: {
 }) => {
   const a = `${params.namespaceUri}/${
     schemaKindSlugs[params.kind]
-  }/${slugifySchemaTitle(params.title)}`;
+  }/${slugifySchemaTitle(params.title)}/`;
 
   return a;
 };
@@ -109,7 +109,7 @@ export const generateSchemaVersionedUri = (params: {
   kind: SchemaKind;
   title: string;
   version?: number;
-}) => `${generateSchemaBaseUri(params)}/v/${params.version ?? 1}`;
+}) => `${generateSchemaBaseUri(params)}v/${params.version ?? 1}`;
 
 const primitiveDataTypeTitles = [
   "Text",
