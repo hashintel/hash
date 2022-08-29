@@ -13,10 +13,12 @@ use core::{
     marker::PhantomData,
 };
 
+#[cfg(feature = "std")]
+use default::builtin;
 #[cfg(not(feature = "std"))]
 pub(crate) use default::debug_hooks_no_std;
 
-use crate::fmt::{hook::default::builtin, Emit, Frame};
+use crate::fmt::{Emit, Frame};
 
 #[derive(Default)]
 pub(crate) struct HookContextImpl {
@@ -593,7 +595,7 @@ mod default {
     #[cfg(any(all(rust_1_65, feature = "std"), feature = "spantrace"))]
     use alloc::format;
     use alloc::{vec, vec::Vec};
-    use std::any::TypeId;
+    use core::any::TypeId;
     #[cfg(all(rust_1_65, feature = "std"))]
     use std::backtrace::Backtrace;
 

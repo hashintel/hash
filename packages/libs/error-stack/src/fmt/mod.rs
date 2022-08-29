@@ -849,7 +849,7 @@ fn debug_attachments(
             }
             #[cfg(not(feature = "std"))]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
-                debug_hooks_no_std(frame, &mut ctx.as_hook_context())
+                hook::debug_hooks_no_std(frame, &mut ctx.as_hook_context())
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                 vec![Emit::Next(attachment.to_string())]
