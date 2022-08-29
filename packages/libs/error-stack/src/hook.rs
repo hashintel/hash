@@ -88,8 +88,8 @@ impl Report<()> {
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook.snap"))]
     /// </pre>
     ///
-    /// This example showcases the ability of hooks being invoked for values provided via the
-    /// [Provider API](crate::Context), this feature is currently only available on nightly.
+    /// This example showcases the ability of hooks to be invoked for values provided via the
+    /// Provider API using [`Error::provide`].
     ///
     /// ```
     /// # // this is a lot of boilerplate, if you find a better way, please change this!
