@@ -27,7 +27,7 @@ const graphApi = createGraphClient(logger, {
 
 const accountId = "00000000-0000-0000-0000-000000000000";
 
-const entityType$id = "https://link~example.com/entity-type/v/1";
+const entityType$id = "https://link~example.com/entity-type-person/v/1";
 
 describe("Link model class", () => {
   let testType: EntityTypeModel;
@@ -43,7 +43,7 @@ describe("Link model class", () => {
       schema: {
         $id: entityType$id,
         kind: "entityType",
-        title: "Text",
+        title: "Person",
         type: "object",
         properties: {},
       },
