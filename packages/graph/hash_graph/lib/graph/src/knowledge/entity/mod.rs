@@ -31,10 +31,7 @@ impl fmt::Display for EntityId {
 ///
 /// When expressed as JSON, this should validate against its respective entity type(s).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
-pub struct Entity {
-    #[serde(flatten)]
-    properties: HashMap<BaseUri, serde_json::Value>,
-}
+pub struct Entity(HashMap<BaseUri, serde_json::Value>);
 
 // TODO: consider making an analogue of this for Links and elements of the Ontology
 /// The metadata required to uniquely identify an instance of an [`Entity`] that has been persisted

@@ -77,10 +77,10 @@ export interface CreateEntityRequest {
   accountId: string;
   /**
    *
-   * @type {Entity}
+   * @type {object}
    * @memberof CreateEntityRequest
    */
-  entity: Entity;
+  entity: object;
   /**
    *
    * @type {string}
@@ -229,19 +229,6 @@ export interface DataTypeReference {
    * @memberof DataTypeReference
    */
   $ref: string;
-}
-/**
- * An entity.
- * @export
- * @interface Entity
- */
-export interface Entity {
-  /**
-   *
-   * @type {object}
-   * @memberof Entity
-   */
-  properties: object;
 }
 /**
  * Specifies the structure of an Entity Type
@@ -452,10 +439,10 @@ export interface PersistedEntity {
   identifier: PersistedEntityIdentifier;
   /**
    *
-   * @type {Entity}
+   * @type {object}
    * @memberof PersistedEntity
    */
-  inner: Entity;
+  inner: object;
   /**
    *
    * @type {string}
@@ -730,10 +717,10 @@ export interface UpdateEntityRequest {
   accountId: string;
   /**
    *
-   * @type {Entity}
+   * @type {object}
    * @memberof UpdateEntityRequest
    */
-  entity: Entity;
+  entity: object;
   /**
    *
    * @type {string}
