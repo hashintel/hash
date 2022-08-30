@@ -3,12 +3,13 @@ use error_stack::{IntoReport, Result, ResultExt};
 use tokio_postgres::{GenericClient, Row, RowStream};
 use type_system::{uri::VersionedUri, DataType, PropertyType};
 
-use crate::store::{postgres::parameter_list, AsClient, PostgresStore, QueryError};
+use crate::store::{postgres::parameter_list, query::Resolve, AsClient, PostgresStore, QueryError};
 
 /// Context used to for [`Resolve`].
 ///
 /// This is only used as an implementation detail inside of the [`postgres`] module.
 ///
+/// [`Resolve`]: crate::store::query::Resolve
 /// [`postgres`]: crate::store::postgres
 // TODO: Use the context to hold query data
 //   see https://app.asana.com/0/0/1202884883200946/f
