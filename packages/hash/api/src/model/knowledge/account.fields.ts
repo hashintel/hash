@@ -71,7 +71,7 @@ module Shortname {
   };
 }
 
-export const AccountUtil = {
+export const AccountFields = {
   ...AccountId,
   ...Shortname,
 };

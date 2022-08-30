@@ -3,7 +3,7 @@ import {
   OrgModel,
   EntityModel,
   EntityModelCreateParams,
-  AccountUtil,
+  AccountFields,
   EntityTypeModel,
 } from "..";
 import {
@@ -67,13 +67,13 @@ export const orgEntityType = generateWorkspaceEntityTypeSchema({
   title: "Organization",
   properties: [
     {
-      baseUri: AccountUtil.shortnameBaseUri,
-      versionedUri: AccountUtil.shortnamePropertyType.$id,
+      baseUri: AccountFields.shortnameBaseUri,
+      versionedUri: AccountFields.shortnamePropertyType.$id,
       required: true,
     },
     {
-      baseUri: AccountUtil.accountIdBaseUri,
-      versionedUri: AccountUtil.accountIdPropertyType.$id,
+      baseUri: AccountFields.accountIdBaseUri,
+      versionedUri: AccountFields.accountIdPropertyType.$id,
       required: true,
     },
     {
@@ -128,8 +128,8 @@ export default class extends EntityModel {
     const { data: orgAccountId } = await graphApi.createAccountId();
 
     const properties: object = {
-      [AccountUtil.accountIdBaseUri]: orgAccountId,
-      [AccountUtil.shortnameBaseUri]: shortname,
+      [AccountFields.accountIdBaseUri]: orgAccountId,
+      [AccountFields.shortnameBaseUri]: shortname,
       [orgNamedBaseUri]: name,
       [orgProvidedInfoBaseUri]: providedInfo
         ? {
@@ -189,11 +189,11 @@ export default class extends EntityModel {
   }
 
   getAccountId(): string {
-    return (this.properties as any)[AccountUtil.accountIdBaseUri];
+    return (this.properties as any)[AccountFields.accountIdBaseUri];
   }
 
   getShortname(): string {
-    return (this.properties as any)[AccountUtil.shortnameBaseUri];
+    return (this.properties as any)[AccountFields.shortnameBaseUri];
   }
 
   async updateShortname(
@@ -202,13 +202,13 @@ export default class extends EntityModel {
   ): Promise<OrgModel> {
     const { updatedByAccountId, updatedShortname } = params;
 
-    if (AccountUtil.shortnameIsInvalid(updatedShortname)) {
+    if (AccountFields.shortnameIsInvalid(updatedShortname)) {
       throw new Error(`The shortname "${updatedShortname}" is invalid`);
     }
 
     if (
-      AccountUtil.shortnameIsRestricted(updatedShortname) ||
-      (await AccountUtil.shortnameIsTaken(graphApi, {
+      AccountFields.shortnameIsRestricted(updatedShortname) ||
+      (await AccountFields.shortnameIsTaken(graphApi, {
         shortname: updatedShortname,
       }))
     ) {
@@ -218,7 +218,7 @@ export default class extends EntityModel {
     }
 
     return await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: AccountUtil.shortnameBaseUri,
+      propertyTypeBaseUri: AccountFields.shortnameBaseUri,
       value: updatedShortname,
       updatedByAccountId,
     }).then((updatedEntity) => new OrgModel(updatedEntity));

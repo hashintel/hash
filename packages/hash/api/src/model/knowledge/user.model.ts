@@ -4,7 +4,7 @@ import {
   EntityModelCreateParams,
   EntityTypeModel,
   UserModel,
-  AccountUtil,
+  AccountFields,
 } from "..";
 import {
   adminKratosSdk,
@@ -78,8 +78,8 @@ export const userEntityType = generateWorkspaceEntityTypeSchema({
   title: "User",
   properties: [
     {
-      baseUri: AccountUtil.shortnameBaseUri,
-      versionedUri: AccountUtil.shortnamePropertyType.$id,
+      baseUri: AccountFields.shortnameBaseUri,
+      versionedUri: AccountFields.shortnamePropertyType.$id,
     },
     {
       baseUri: emailBaseUri,
@@ -93,8 +93,8 @@ export const userEntityType = generateWorkspaceEntityTypeSchema({
       required: true,
     },
     {
-      baseUri: AccountUtil.accountIdBaseUri,
-      versionedUri: AccountUtil.accountIdPropertyType.$id,
+      baseUri: AccountFields.accountIdBaseUri,
+      versionedUri: AccountFields.accountIdPropertyType.$id,
       required: true,
     },
     {
@@ -220,8 +220,8 @@ export default class extends EntityModel {
     const properties: object = {
       [emailBaseUri]: emails,
       [kratosIdentityIdBaseUri]: kratosIdentityId,
-      [AccountUtil.accountIdBaseUri]: userAccountId,
-      [AccountUtil.shortnameBaseUri]: undefined,
+      [AccountFields.accountIdBaseUri]: userAccountId,
+      [AccountFields.shortnameBaseUri]: undefined,
       [preferredNameBaseUri]: undefined,
     };
 
@@ -313,7 +313,7 @@ export default class extends EntityModel {
   }
 
   getShortname(): string | undefined {
-    return (this.properties as any)[AccountUtil.shortnameBaseUri];
+    return (this.properties as any)[AccountFields.shortnameBaseUri];
   }
 
   async updateShortname(
@@ -322,13 +322,13 @@ export default class extends EntityModel {
   ): Promise<UserModel> {
     const { updatedByAccountId, updatedShortname } = params;
 
-    if (AccountUtil.shortnameIsInvalid(updatedShortname)) {
+    if (AccountFields.shortnameIsInvalid(updatedShortname)) {
       throw new Error(`The shortname "${updatedShortname}" is invalid`);
     }
 
     if (
-      AccountUtil.shortnameIsRestricted(updatedShortname) ||
-      (await AccountUtil.shortnameIsTaken(graphApi, {
+      AccountFields.shortnameIsRestricted(updatedShortname) ||
+      (await AccountFields.shortnameIsTaken(graphApi, {
         shortname: updatedShortname,
       }))
     ) {
@@ -340,7 +340,7 @@ export default class extends EntityModel {
     const previousShortname = this.getShortname();
 
     const updatedUser = await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: AccountUtil.shortnameBaseUri,
+      propertyTypeBaseUri: AccountFields.shortnameBaseUri,
       value: updatedShortname,
       updatedByAccountId,
     }).then((updatedEntity) => new UserModel(updatedEntity));
@@ -350,7 +350,7 @@ export default class extends EntityModel {
     }).catch(async (error) => {
       // If an error occurred updating the entity, set the property to have the previous shortname
       await this.updateProperty(graphApi, {
-        propertyTypeBaseUri: AccountUtil.shortnameBaseUri,
+        propertyTypeBaseUri: AccountFields.shortnameBaseUri,
         value: previousShortname,
         updatedByAccountId,
       });
@@ -393,7 +393,7 @@ export default class extends EntityModel {
   }
 
   getAccountId(): string {
-    return (this.properties as any)[AccountUtil.accountIdBaseUri];
+    return (this.properties as any)[AccountFields.accountIdBaseUri];
   }
 
   getInfoProvidedAtSignup(): any {

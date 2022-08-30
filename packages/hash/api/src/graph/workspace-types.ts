@@ -9,7 +9,7 @@ import {
   DataTypeModel,
   EntityTypeModel,
   PropertyTypeModel,
-  AccountUtil,
+  AccountFields,
   userEntityType,
   orgEntityType,
   OrgPropertyTypes,
@@ -22,8 +22,8 @@ import {
 } from "../model/util";
 
 const workspacePropertyTypes: PropertyType[] = [
-  AccountUtil.shortnamePropertyType,
-  AccountUtil.accountIdPropertyType,
+  AccountFields.shortnamePropertyType,
+  AccountFields.accountIdPropertyType,
   ...UserPropertyTypes,
   ...OrgPropertyTypes,
 ];
