@@ -111,7 +111,11 @@ export default class {
             new LinkModel({
               /**
                * @todo figure out what account ID we use here
-               *   https://app.asana.com/0/1202805690238892/1202883599104674/f */
+               *   Directly related to
+               *   https://app.asana.com/0/1202805690238892/1202883599104674/f
+               *   And may require consideration for
+               *   https://app.asana.com/0/1202805690238892/1202890446280569/f
+               */
               accountId: sourceEntityModel.accountId,
               linkTypeModel: await LinkTypeModel.get(graphApi, {
                 versionedUri: linkTypeUri,
