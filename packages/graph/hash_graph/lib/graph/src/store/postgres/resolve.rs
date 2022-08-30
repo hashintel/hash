@@ -5,6 +5,13 @@ use type_system::{uri::VersionedUri, DataType, PropertyType};
 
 use crate::store::{postgres::parameter_list, AsClient, PostgresStore, QueryError};
 
+/// Context used to for [`Resolve`].
+///
+/// This is only used as an implementation detail inside of the [`postgres`] module.
+///
+/// [`postgres`]: crate::store::postgres
+// TODO: Use the context to hold query data
+//   see https://app.asana.com/0/0/1202884883200946/f
 #[async_trait]
 pub trait PostgresContext {
     async fn read_all_data_types(&self) -> Result<RowStream, QueryError>;
