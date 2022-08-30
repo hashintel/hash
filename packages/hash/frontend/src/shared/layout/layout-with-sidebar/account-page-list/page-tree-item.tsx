@@ -6,10 +6,10 @@ import TreeItem, {
   TreeItemProps,
   useTreeItem,
 } from "@mui/lab/TreeItem";
-// import clsx from "clsx";
 import { Tooltip, Typography } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { forwardRef, MouseEvent, ReactElement, Ref } from "react";
+import { PAGE_TITLE_PLACEHOLDER } from "../../../../blocks/page/PageTitle/PageTitle";
 import { PageIconButton } from "../../../../components/PageIconButton";
 import { useRouteAccountInfo } from "../../../routing";
 import { Link } from "../../../ui";
@@ -128,7 +128,7 @@ const CustomContent = forwardRef(
             }),
           })}
         >
-          {label}
+          {label || PAGE_TITLE_PLACEHOLDER}
         </Typography>
         <Tooltip
           title="Add subpages, delete, duplicate and more"

@@ -61,8 +61,8 @@ impl HookContextImpl {
 /// ### Example
 ///
 /// ```rust
-/// # // we only test on nightly, therefore report is unused (so is render)
-/// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+/// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+/// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::ErrorKind;
 ///
 /// use error_stack::{fmt::Emit, Report};
@@ -101,7 +101,7 @@ impl HookContextImpl {
 /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 /// # }
 /// #
-/// # #[cfg(nightly)]
+/// # #[cfg(rust_1_65)]
 /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap")].assert_eq(&render(format!("{report:#?}")));
 /// #
 /// println!("{report:#?}");
@@ -126,8 +126,8 @@ impl HookContextImpl {
 /// ### Example
 ///
 /// ```rust
-/// # // we only test on nightly, therefore report is unused (so is render)
-/// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+/// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+/// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::ErrorKind;
 ///
 /// use error_stack::{fmt::Emit, Report};
@@ -163,7 +163,7 @@ impl HookContextImpl {
 /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 /// # }
 /// #
-/// # #[cfg(nightly)]
+/// # #[cfg(rust_1_65)]
 /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_storage.snap")].assert_eq(&render(format!("{report:?}")));
 /// #
 /// println!("{report:?}");
@@ -209,8 +209,8 @@ impl<'a, T> HookContext<'a, T> {
     /// ### Example
     ///
     /// ```rust
-    /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
     /// use error_stack::{
@@ -250,7 +250,7 @@ impl<'a, T> HookContext<'a, T> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # #[cfg(nightly)]
+    /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_cast.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// println!("{report:?}");
@@ -340,8 +340,8 @@ impl<T: 'static> HookContext<'_, T> {
     /// increment a counter, if the counter wasn't initialized this method will return `0`.
     ///
     /// ```rust
-    /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
     /// use error_stack::fmt::Emit;
@@ -368,7 +368,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # #[cfg(nightly)]
+    /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_increment.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// println!("{report:?}");
@@ -406,8 +406,8 @@ impl<T: 'static> HookContext<'_, T> {
     /// consistent with [`increment()`].
     ///
     /// ```rust
-    /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
     /// use error_stack::{fmt::Emit, Report};
@@ -433,7 +433,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # #[cfg(nightly)]
+    /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_decrement.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// println!("{report:?}");
@@ -472,14 +472,14 @@ type BoxedHook =
 ///
 /// The fallback is called whenever a hook for a specific type couldn't be found.
 ///
-/// These are used to augment the [`Debug`] and [`Display`] information
-/// of attachments, which are normally not printable.
+/// These are used to augment the [`Debug`] information of attachments and contexts, which are
+/// normally not printable.
 ///
 /// Hooks are added via [`.insert()`], which will wrap the function in an additional closure.
-/// This closure will downcast the [`Frame`] to the requested type.
+/// This closure will downcast/request the [`Frame`] to the requested type.
 ///
-/// If not set, opaque attachments (added via [`.attach()`]) won't be rendered in the [`Debug`] and
-/// [`Display`] output.
+/// If not set, opaque attachments (added via [`.attach()`]) won't be rendered in the [`Debug`]
+/// output.
 ///
 /// The default implementation provides supports for [`Backtrace`] and [`SpanTrace`],
 /// if their necessary features have been enabled.
@@ -493,8 +493,9 @@ type BoxedHook =
 #[cfg(feature = "std")]
 #[allow(clippy::redundant_pub_crate)]
 pub(crate) struct Hooks {
-    // TODO: Remove `Option` when const `BTreeMap::new` is stabilized
-    pub(crate) inner: Option<BTreeMap<TypeId, BoxedHook>>,
+    // We use `Vec`, instead of `HashMap` or `BTreeMap`, so that ordering is consistent with the
+    // insertion order of types.
+    pub(crate) inner: Vec<(TypeId, BoxedHook)>,
     pub(crate) fallback: Option<BoxedHook>,
 }
 
@@ -504,18 +505,36 @@ impl Hooks {
         &mut self,
         hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) -> Vec<Emit> + Send + Sync + 'static,
     ) {
-        let inner = self.inner.get_or_insert_with(BTreeMap::new);
+        let type_id = TypeId::of::<T>();
 
-        inner.insert(
-            TypeId::of::<T>(),
-            Box::new(move |frame, ctx| {
-                // `.unwrap()` never fails here, because `Hooks` guarantees the function will never
-                // be called on an object which cannot be downcast.
-                let frame = frame.downcast_ref::<T>().unwrap();
+        let boxed_hook = Box::new(move |frame: &Frame, ctx: &mut HookContext<Frame>| {
+            #[cfg(nightly)]
+            {
+                frame
+                    .request_ref::<T>()
+                    .map(|val| hook(val, ctx.cast()))
+                    .or_else(|| {
+                        frame
+                            .request_value::<T>()
+                            .as_ref()
+                            .map(|val| hook(val, ctx.cast()))
+                    })
+                    .unwrap_or_default()
+            }
 
-                hook(frame, ctx.cast())
-            }),
-        );
+            #[cfg(not(nightly))]
+            {
+                frame
+                    .downcast_ref::<T>()
+                    .map(|val| hook(val, ctx.cast()))
+                    .unwrap_or_default()
+            }
+        });
+
+        // make sure that previous hooks of the same TypeId are deleted.
+        self.inner.retain(|(id, _)| *id != type_id);
+        // push new hook onto the stack
+        self.inner.push((type_id, boxed_hook));
     }
 
     pub(crate) fn fallback(
@@ -526,14 +545,20 @@ impl Hooks {
     }
 
     pub(crate) fn call<'a>(&self, frame: &Frame, ctx: &mut HookContext<'a, Frame>) -> Vec<Emit> {
-        let ty = Frame::type_id(frame);
+        let emits: Vec<_> = self
+            .inner
+            .iter()
+            .flat_map(|(_, hook)| hook(frame, ctx))
+            .collect();
 
-        if let Some(hook) = self.inner.as_ref().and_then(|map| map.get(&ty)) {
-            hook(frame, ctx)
-        } else if let Some(fallback) = self.fallback.as_ref() {
-            fallback(frame, ctx)
+        if emits.is_empty() {
+            if let Some(fallback) = self.fallback.as_ref() {
+                fallback(frame, ctx)
+            } else {
+                builtin_debug_hook_fallback(frame, ctx)
+            }
         } else {
-            builtin_debug_hook_fallback(frame, ctx)
+            emits
         }
     }
 }
@@ -541,10 +566,10 @@ impl Hooks {
 mod default {
     #![allow(unused_imports)]
 
-    #[cfg(any(all(nightly, feature = "std"), feature = "spantrace"))]
+    #[cfg(any(all(rust_1_65, feature = "std"), feature = "spantrace"))]
     use alloc::format;
     use alloc::{vec, vec::Vec};
-    #[cfg(all(nightly, feature = "std"))]
+    #[cfg(all(rust_1_65, feature = "std"))]
     use std::backtrace::Backtrace;
 
     #[cfg(feature = "spantrace")]
@@ -555,7 +580,7 @@ mod default {
         Frame,
     };
 
-    #[cfg(all(nightly, feature = "std"))]
+    #[cfg(all(rust_1_65, feature = "std"))]
     fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Vec<Emit> {
         let idx = ctx.increment();
 
@@ -604,7 +629,7 @@ mod default {
         // stabilized yet.
         #[cfg(nightly)]
         {
-            #[cfg(feature = "std")]
+            #[cfg(all(rust_1_65, feature = "std"))]
             if let Some(bt) = frame.request_ref() {
                 emit.append(&mut backtrace(bt, ctx.cast()));
             }
@@ -617,6 +642,11 @@ mod default {
 
         #[cfg(not(nightly))]
         {
+            #[cfg(all(rust_1_65, feature = "std"))]
+            if let Some(bt) = frame.downcast_ref() {
+                emit.append(&mut backtrace(bt, ctx.cast()));
+            }
+
             #[cfg(feature = "spantrace")]
             if let Some(st) = frame.downcast_ref() {
                 emit.append(&mut span_trace(st, ctx.cast()));
