@@ -216,19 +216,6 @@ impl Segment {
         self.data.get_os_id()
     }
 
-    // TODO: UNUSED: Needs triage
-    pub fn as_ptr(&self) -> *const u8 {
-        self.data.as_ptr()
-    }
-
-    // TODO: `data.as_mut_ptr`, with `&mut self` argument, to avoid
-    //       violating Rust's aliasing rules for pointers derived
-    //       from const references.
-    // TODO: UNUSED: Needs triage
-    pub fn as_mut_ptr(&mut self) -> *mut u8 {
-        self.data.as_ptr()
-    }
-
     /// Resize the Shared Memory segment, also performs
     /// reloading
     pub fn resize(&mut self, mut new_size: usize) -> Result<()> {
