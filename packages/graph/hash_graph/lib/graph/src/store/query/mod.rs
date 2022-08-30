@@ -14,9 +14,12 @@ pub use self::{
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Literal {
+    // TODO: Avoid cloning
+    //   see https://app.asana.com/0/0/1202884883200947/f
     String(String),
     Float(f64),
-    // TODO: Integer
+    // TODO: Support Integer
+    //   see https://app.asana.com/0/0/1202884883200973/f
     Bool(bool),
     Null,
     List(Vec<Self>),
@@ -38,6 +41,8 @@ fn compare(lhs: &Literal, rhs: &Literal) -> bool {
         (Literal::List(lhs), Literal::List(rhs)) => {
             lhs.len() == rhs.len() && lhs.iter().zip(rhs).all(|(lhs, rhs)| compare(lhs, rhs))
         }
+        // TODO: Implement function `contains`
+        //   see https://app.asana.com/0/0/1202884883200944/f
         (Literal::List(lhs), rhs) => lhs.iter().any(|literal| compare(literal, rhs)),
         (lhs, Literal::List(rhs)) => rhs.iter().any(|literal| compare(lhs, literal)),
 
@@ -55,23 +60,26 @@ fn compare(lhs: &Literal, rhs: &Literal) -> bool {
     }
 }
 
-impl TryFrom<serde_json::Value> for Literal {
-    type Error = ();
-
-    fn try_from(value: serde_json::Value) -> std::result::Result<Self, Self::Error> {
+impl From<serde_json::Value> for Literal {
+    fn from(value: serde_json::Value) -> Self {
         use serde_json::Value;
 
-        Ok(match value {
+        match value {
             Value::Null => Self::Null,
             Value::Bool(bool) => Self::Bool(bool),
+            // TODO: Support Integer to avoid potential panic
+            //   see https://app.asana.com/0/0/1202884883200973/f
             Value::Number(number) => number.as_f64().map_or_else(
                 || panic!("Could not parse {number} as literal"),
                 Self::Float,
             ),
             Value::String(string) => Self::String(string),
-            Value::Array(_) => todo!(),
-            Value::Object(_) => todo!(),
-        })
+            Value::Array(list) => Self::List(list.into_iter().map(From::from).collect()),
+            Value::Object(_) => {
+                // see: https://app.asana.com/0/0/1202884883200943/f
+                todo!("`Literal::Object`")
+            }
+        }
     }
 }
 
@@ -89,6 +97,8 @@ pub struct Path {
     pub segments: Vec<PathSegment>,
 }
 
+// TODO: DOC: Write documentation for the AST
+//   see https://app.asana.com/0/0/1202884883200976/f
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Expression {
@@ -138,7 +148,9 @@ impl Expression {
 }
 
 impl Expression {
-    #[allow(clippy::missing_panics_doc, reason = "TODO: Apply error handling")]
+    // TODO: Implement error handling
+    //   see https://app.asana.com/0/0/1202884883200968/f
+    #[allow(clippy::missing_panics_doc, reason = "Error handling not applied yet")]
     pub fn evaluate<'t, 'resolver, 'context, 'r, R, C>(
         &'t self,
         resolver: &'resolver R,
@@ -197,8 +209,10 @@ impl Expression {
                 }
                 Expression::Literal(literal) => literal.clone(),
                 Expression::Path(path) => resolver.resolve(&path.segments, context).await,
-                // _ => todo!(),
-                Expression::Field(_identifier) => todo!(),
+                Expression::Field(_identifier) => {
+                    // see https://app.asana.com/0/0/1202884883200943/f
+                    todo!("`Literal::Object`")
+                }
             }
         }
         .boxed()
@@ -207,14 +221,9 @@ impl Expression {
 
 #[async_trait]
 pub trait Resolve<Ctx> {
+    // TODO: Implement error handling
+    //   see https://app.asana.com/0/0/1202884883200968/f
     async fn resolve(&self, path: &[PathSegment], context: &mut Ctx) -> Literal;
-
-    fn by_ref(&self) -> &Self
-    where
-        Self: Sized,
-    {
-        self
-    }
 }
 
 #[async_trait]
@@ -223,6 +232,8 @@ where
     Ctx: Send,
 {
     async fn resolve(&self, path: &[PathSegment], context: &mut Ctx) -> Literal {
+        // TODO: Support `Literal::Object`
+        //   see https://app.asana.com/0/0/1202884883200943/f
         match self {
             Literal::List(values) => match path {
                 [] => panic!("Path is empty"),

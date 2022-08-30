@@ -97,6 +97,8 @@ fn apply_filter<T: OntologyDatabaseType>(element: T, query: &OntologyQuery<'_, T
     Some(element)
 }
 
+// TODO: Unify methods for Ontology types using `Expression`s
+//   see https://app.asana.com/0/0/1202884883200959/f
 #[async_trait]
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where

@@ -83,6 +83,8 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     }
 }
 
+// TODO: Unify methods for Ontology types using `Expression`s
+//   see https://app.asana.com/0/0/1202884883200959/f
 #[async_trait]
 impl<C: AsClient> Read<PersistedPropertyType> for PostgresStore<C> {
     type Query<'q> = Expression;
@@ -122,6 +124,8 @@ impl<C: AsClient> Read<PersistedPropertyType> for PostgresStore<C> {
                             });
                         }
                     } else {
+                        // TODO: Implement error handling
+                        //   see https://app.asana.com/0/0/1202884883200968/f
                         panic!("Expression does not result in a boolean value")
                     }
 

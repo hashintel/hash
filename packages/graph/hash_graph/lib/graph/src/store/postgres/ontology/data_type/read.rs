@@ -18,6 +18,8 @@ where
                 todo!("`Literal::Object`")
             }
             [segment, segments @ ..] => {
+                // TODO: Avoid cloning on literals
+                //   see https://app.asana.com/0/0/1202884883200947/f
                 let literal = match segment.identifier.as_str() {
                     "uri" => Literal::String(self.record.id().base_uri().to_string()),
                     "version" => Literal::Version(self.record.id().version(), self.is_latest),
@@ -34,10 +36,7 @@ where
                         .additional_properties()
                         .get(key)
                         .cloned()
-                        .map(TryFrom::try_from)
-                        .transpose()
-                        .expect("Could not convert value into literal")
-                        .unwrap_or(Literal::Null),
+                        .map_or(Literal::Null, From::from),
                 };
                 if segments.is_empty() {
                     literal
