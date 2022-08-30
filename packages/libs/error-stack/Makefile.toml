@@ -9,7 +9,7 @@ CARGO_RUSTDOC_HACK_FLAGS = ""
 CARGO_DOC_HACK_FLAGS = ""
 # The only features that are of relevance are: spantrace, pretty-print, std, hooks
 # all others do not change the output
-CARGO_INSTA_TEST_HACK_FLAGS = "--keep-going --feature-powerset --include-features spantrace,pretty-print,std,unstable --ignore-unknown-features"
+CARGO_INSTA_TEST_HACK_FLAGS = "--keep-going --feature-powerset --include-features spantrace,pretty-print,std --ignore-unknown-features"
 
 
 [tasks.test]

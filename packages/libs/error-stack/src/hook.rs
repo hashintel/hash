@@ -8,7 +8,7 @@ use crate::{
 type FormatterHook = Box<dyn Fn(&Report<()>, &mut fmt::Formatter<'_>) -> fmt::Result + Send + Sync>;
 
 static FMT_HOOK: RwLock<Hooks> = RwLock::new(Hooks {
-    inner: None,
+    inner: Vec::new(),
     fallback: None,
 });
 static DEBUG_HOOK: RwLock<Option<FormatterHook>> = RwLock::new(None);
@@ -44,11 +44,11 @@ impl Report<()> {
     ///
     /// [`Debug`]: core::fmt::Debug
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```
-    /// # // we only test the snapshot on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test the snapshot on rust 1.65, therefore report is unused (so is render)
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::{
@@ -76,7 +76,7 @@ impl Report<()> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # #[cfg(nightly)]
+    /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// println!("{report:?}");
@@ -86,6 +86,82 @@ impl Report<()> {
     ///
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook.snap"))]
+    /// </pre>
+    ///
+    /// This example showcases the ability of hooks to be invoked for values provided via the
+    /// Provider API using [`Error::provide`].
+    ///
+    /// ```
+    /// # // this is a lot of boilerplate, if you find a better way, please change this!
+    /// # // with #![cfg(nightly)] docsrs will complain that there's no main in non-nightly
+    /// # #![cfg_attr(nightly, feature(error_generic_member_access, provide_any))]
+    /// # const _: &'static str = r#"
+    /// #![feature(error_generic_member_access, provide_any)]
+    /// # "#;
+    ///
+    /// # #[cfg(nightly)]
+    /// # mod nightly {
+    /// use std::any::Demand;
+    /// use std::error::Error;
+    /// use std::fmt::{Display, Formatter};
+    /// use error_stack::{fmt::Emit, Report, report};
+    ///
+    /// struct Suggestion(&'static str);
+    ///
+    /// #[derive(Debug)]
+    /// struct ErrorCode(u64);
+    ///
+    ///
+    /// #[derive(Debug)]
+    /// struct UserError {
+    ///     code: ErrorCode
+    /// }
+    ///
+    /// impl Display for UserError {
+    ///     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    ///         f.write_str("Invalid user input")
+    ///     }
+    /// }
+    ///
+    /// impl Error for UserError {
+    ///  fn provide<'a>(&'a self, req: &mut Demand<'a>) {
+    ///    req.provide_value(|| Suggestion("Try better next time!"));
+    ///    req.provide_ref(&self.code);
+    ///  }
+    /// }
+    ///
+    /// # pub fn main() {
+    /// Report::install_debug_hook::<Suggestion>(|val, _| vec![Emit::next(format!("Suggestion: {}", val.0))]);
+    /// Report::install_debug_hook::<ErrorCode>(|val, _| vec![Emit::next(format!("Error Code: {}", val.0))]);
+    ///
+    /// let report = report!(UserError {code: ErrorCode(420)});
+    ///
+    /// # owo_colors::set_override(true);
+    /// # fn render(value: String) -> String {
+    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #
+    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #
+    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// # }
+    /// #
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook_provide.snap")].assert_eq(&render(format!("{report:?}")));
+    /// #
+    /// println!("{report:?}");
+    /// # }
+    /// # }
+    /// # #[cfg(not(nightly))]
+    /// # fn main() {}
+    /// # #[cfg(nightly)]
+    /// # fn main() {nightly::main()}
+    /// ```
+    ///
+    /// Which will result in something like:
+    ///
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook_provide.snap"))]
     /// </pre>
     #[cfg(feature = "std")]
     pub fn install_debug_hook<T: Send + Sync + 'static>(
@@ -105,17 +181,13 @@ impl Report<()> {
     /// [`Debug`]: core::fmt::Debug
     /// [`install_debug_hook`]: Self::install_debug_hook
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```
-    /// # // we only test the snapshot on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test the snapshot on rust 1.65, therefore report is unused (so is render)
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::{Error, ErrorKind};
-    ///
-    /// use error_stack::{
-    ///     fmt::Emit,
-    ///     report, Report,
-    /// };
+    /// use error_stack::{fmt::Emit, report, Report};
     ///
     /// struct Suggestion(&'static str);
     ///
@@ -138,7 +210,7 @@ impl Report<()> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # #[cfg(nightly)]
+    /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// println!("{report:?}");
@@ -150,18 +222,21 @@ impl Report<()> {
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback.snap"))]
     /// </pre>
     ///
+    /// This example showcases the use of the builtin fallback hook as a fallback in our custom
+    /// fallback:
+    ///
     /// ```
-    /// # // we only test the snapshot on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test the snapshot on rust 1.65, therefore report is unused (so is render)
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::{fmt::{self, Emit}, report, Report};
     ///
     /// struct Suggestion(&'static str);
     ///
-    /// Report::install_debug_hook_fallback(|val, ctx| {
+    /// Report::install_debug_hook_fallback(|frame, ctx| {
     ///     // first run all builtin hooks to make sure that we print backtrace and spantrace
-    ///     let builtin = fmt::builtin_debug_hook_fallback(val, ctx);
+    ///     let builtin = fmt::builtin_debug_hook_fallback(frame, ctx);
     ///
     ///     if builtin.is_empty() {
     ///         vec![Emit::next("unknown")]
@@ -184,7 +259,7 @@ impl Report<()> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # #[cfg(nightly)]
+    /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback_builtin.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// println!("{report:?}");
@@ -194,6 +269,76 @@ impl Report<()> {
     ///
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback_builtin.snap"))]
+    /// </pre>
+    ///
+    /// This example showcases how we can use the fallback hook to downcast `UserError` and provide
+    /// custom formatting for it's content:
+    ///
+    /// ```
+    /// # // we only test the snapshot on rust 1.65, therefore report is unused (so is render)
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
+    /// use std::{
+    ///     error::Error,
+    ///     fmt::{Display, Formatter},
+    /// };
+    ///
+    /// use error_stack::{
+    ///     fmt::{builtin_debug_hook_fallback, Emit},
+    ///     report, Report,
+    /// };
+    ///
+    /// #[derive(Debug)]
+    /// struct ErrorCode(u64);
+    ///
+    /// #[derive(Debug)]
+    /// struct UserError {
+    ///     code: ErrorCode,
+    /// }
+    ///
+    /// impl Display for UserError {
+    ///     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    ///         f.write_str("Invalid user input")
+    ///     }
+    /// }
+    ///
+    /// impl Error for UserError {}
+    ///
+    /// // this will never called, because we **do not** provide `ErrorCode` in `UserError`
+    /// // we instead use fallback to provide better diagnostics.
+    /// Report::install_debug_hook::<ErrorCode>(|_, _| vec![Emit::next("Error Code")]);
+    ///
+    /// Report::install_debug_hook_fallback(|frame, ctx| {
+    ///     // add additional attachments, but only if we're a context of type `UserError`
+    ///     if let Some(error) = frame.downcast_ref::<UserError>() {
+    ///         vec![Emit::next(format!("Error Code: {}", error.code.0))]
+    ///     } else {
+    ///         builtin_debug_hook_fallback(frame, ctx)
+    ///     }
+    /// });
+    ///
+    /// let report = report!(UserError {code: ErrorCode(404)});
+    ///
+    /// # owo_colors::set_override(true);
+    /// # fn render(value: String) -> String {
+    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #
+    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #
+    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// # }
+    /// #
+    /// # #[cfg(rust_1_65)]
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback_context.snap")].assert_eq(&render(format!("{report:?}")));
+    /// #
+    /// println!("{report:?}");
+    /// ```
+    ///
+    /// Which will result in something like:
+    ///
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback_context.snap"))]
     /// </pre>
     #[cfg(feature = "std")]
     pub fn install_debug_hook_fallback(
