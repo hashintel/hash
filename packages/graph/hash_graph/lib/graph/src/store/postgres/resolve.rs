@@ -3,7 +3,7 @@ use error_stack::{IntoReport, Result, ResultExt};
 use tokio_postgres::{GenericClient, Row, RowStream};
 use type_system::{uri::VersionedUri, DataType, PropertyType};
 
-use crate::store::{postgres::parameter_list, query::Resolve, AsClient, PostgresStore, QueryError};
+use crate::store::{postgres::parameter_list, AsClient, PostgresStore, QueryError};
 
 /// Context used to for [`Resolve`].
 ///
@@ -75,9 +75,9 @@ async fn read_all_types(client: &impl AsClient, table: &str) -> Result<RowStream
             &format!(
                 r#"
                 SELECT schema, created_by, MAX(version) OVER (PARTITION by base_uri) = version as latest
-                FROM {table}
+                FROM {table} type_table
                 INNER JOIN ids
-                ON {table}.version_id = ids.version_id
+                ON type_table.version_id = ids.version_id
                 ORDER BY base_uri, version DESC;
                 "#,
             ),
@@ -93,15 +93,19 @@ async fn read_versioned_type(
     table: &str,
     uri: &VersionedUri,
 ) -> Result<Record<Row>, QueryError> {
-    let type_row = client
+    let row = client
         .as_client()
         .query_one(
             &format!(
                 r#"
-                SELECT schema, created_by
-                FROM {table}
+                SELECT schema, created_by, (
+                    SELECT MAX(version) as latest 
+                    FROM ids 
+                    WHERE base_uri = $1
+                )
+                FROM {table} type_table
                 INNER JOIN ids
-                ON {table}.version_id = ids.version_id
+                ON type_table.version_id = ids.version_id
                 WHERE base_uri = $1 AND version = $2;
                 "#
             ),
@@ -111,22 +115,9 @@ async fn read_versioned_type(
         .into_report()
         .change_context(QueryError)?;
 
-    let row = client
-        .as_client()
-        .query_one(
-            r#"
-            SELECT MAX(version) as latest
-            FROM ids
-            WHERE base_uri = $1
-            "#,
-            &[&uri.base_uri().as_str()],
-        )
-        .await
-        .into_report()
-        .change_context(QueryError)?;
-    let latest: i64 = row.get(0);
+    let latest: i64 = row.get(2);
     Ok(Record {
-        record: type_row,
+        record: row,
         is_latest: latest as u32 == uri.version(),
     })
 }
