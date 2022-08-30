@@ -115,6 +115,13 @@ export type OrgModelCreateParams = Omit<
  * @class {@link OrgModel}
  */
 export default class extends EntityModel {
+  /**
+   * Create a workspace organization entity.
+   *
+   * @param params.shortname - the shortname of the organization
+   * @param params.name - the name of the organization
+   * @param params.providedInfo - optional metadata about the organization
+   */
   static async createOrg(graphApi: GraphApi, params: OrgModelCreateParams) {
     const { shortname, name, providedInfo } = params;
 
@@ -157,7 +164,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get a workspace organization entity by their shortname.
+   * Get a workspace organization entity by its shortname.
    *
    * @param params.shortname - the shortname of the organization
    */
