@@ -58,6 +58,10 @@ where
     }
 }
 
+/// Associates a database entry with the information about the latest version if the corresponding
+/// entry.
+///
+/// This is used for filtering by the latest version.
 #[derive(Debug)]
 pub struct Record<T> {
     pub record: T,

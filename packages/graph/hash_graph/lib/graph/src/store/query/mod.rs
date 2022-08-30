@@ -219,6 +219,9 @@ impl Expression {
     }
 }
 
+/// Resolves this types into a [`Literal`].
+// TODO: DOC
+//   see https://app.asana.com/0/0/1202884883200976/f
 #[async_trait]
 pub trait Resolve<Ctx> {
     // TODO: Implement error handling
