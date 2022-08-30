@@ -137,6 +137,7 @@
 // no-std. Simplifies maintenance as we don't need to special case the visibility modifier.
 #![cfg_attr(not(feature = "std"), allow(unreachable_pub))]
 
+#[cfg(feature = "std")]
 mod hook;
 
 use alloc::{
@@ -156,6 +157,7 @@ use core::{
 
 #[cfg(feature = "std")]
 pub use hook::HookContext;
+#[cfg(feature = "std")]
 use hook::HookContextImpl;
 #[cfg(feature = "std")]
 pub(crate) use hook::Hooks;
@@ -829,7 +831,7 @@ impl Opaque {
 
 fn debug_attachments(
     loc: Option<Line>,
-    ctx: &mut HookContextImpl,
+    #[cfg(feature = "std")] ctx: &mut HookContextImpl,
     last: bool,
     frames: Vec<&Frame>,
 ) -> Lines {
@@ -845,7 +847,7 @@ fn debug_attachments(
             }
             #[cfg(not(feature = "std"))]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
-                hook::debug_hooks_no_std(frame, &mut ctx.as_hook_context())
+                vec![]
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                 vec![Emit::Next(attachment.to_string())]
@@ -1006,7 +1008,11 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
         .collect()
 }
 
-fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Vec<Lines> {
+fn debug_frame(
+    root: &Frame,
+    #[cfg(feature = "std")] ctx: &mut HookContextImpl,
+    prefix: &[&Frame],
+) -> Vec<Lines> {
     let (stack, sources) = collect(root, prefix);
     let (stack, prefix) = partition(&stack);
 
@@ -1028,6 +1034,7 @@ fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Ve
             body.reverse();
             let body = debug_attachments(
                 Some(loc),
+                #[cfg(feature = "std")]
                 ctx,
                 (len == 1 && sources.is_empty()) || idx > 0,
                 once(head).chain(body).collect(),
@@ -1041,7 +1048,14 @@ fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Ve
         .flat_map(
             // if the group is "transparent" (has no context), it will return all it's parents
             // rendered this is why we must first flat_map.
-            |source| debug_frame(source, ctx, &prefix),
+            |source| {
+                debug_frame(
+                    source,
+                    #[cfg(feature = "std")]
+                    ctx,
+                    &prefix,
+                )
+            },
         )
         .collect::<Vec<_>>();
 
@@ -1066,12 +1080,21 @@ impl<C> Debug for Report<C> {
             return result;
         }
 
+        #[cfg(feature = "std")]
         let mut ctx = HookContextImpl::new(fmt.alternate());
 
+        #[cfg_attr(not(feature = "std"), allow(unused_mut))]
         let mut lines = self
             .current_frames()
             .iter()
-            .flat_map(|frame| debug_frame(frame, &mut ctx, &[]))
+            .flat_map(|frame| {
+                debug_frame(
+                    frame,
+                    #[cfg(feature = "std")]
+                    &mut ctx,
+                    &[],
+                )
+            })
             .enumerate()
             .flat_map(|(idx, lines)| {
                 if idx == 0 {
@@ -1091,34 +1114,37 @@ impl<C> Debug for Report<C> {
             .collect::<Vec<_>>()
             .join("\n");
 
-        // only output detailed information (like backtraces), if alternate mode is enabled, or the
-        // snippet has been forced.
-        let suffix = ctx
-            .snippets
-            .into_iter()
-            .map(
-                // remove all trailing newlines for a more uniform look
-                |snippet| snippet.trim_end_matches('\n').to_owned(),
-            )
-            .collect::<Vec<_>>()
-            .join("\n\n");
+        #[cfg(feature = "std")]
+        {
+            // only output detailed information (like backtraces), if alternate mode is enabled, or
+            // the snippet has been forced.
+            let suffix = ctx
+                .snippets
+                .into_iter()
+                .map(
+                    // remove all trailing newlines for a more uniform look
+                    |snippet| snippet.trim_end_matches('\n').to_owned(),
+                )
+                .collect::<Vec<_>>()
+                .join("\n\n");
 
-        if !suffix.is_empty() {
-            // 44 is the size for the separation.
-            lines.reserve(44 + suffix.len());
+            if !suffix.is_empty() {
+                // 44 is the size for the separation.
+                lines.reserve(44 + suffix.len());
 
-            lines.push_str("\n\n");
-            #[cfg(feature = "pretty-print")]
-            {
-                lines.push_str(&"━".repeat(40));
+                lines.push_str("\n\n");
+                #[cfg(feature = "pretty-print")]
+                {
+                    lines.push_str(&"━".repeat(40));
+                }
+                #[cfg(not(feature = "pretty-print"))]
+                {
+                    lines.push_str(&"=".repeat(40));
+                }
+
+                lines.push_str("\n\n");
+                lines.push_str(&suffix);
             }
-            #[cfg(not(feature = "pretty-print"))]
-            {
-                lines.push_str(&"=".repeat(40));
-            }
-
-            lines.push_str("\n\n");
-            lines.push_str(&suffix);
         }
 
         fmt.write_str(&lines)
