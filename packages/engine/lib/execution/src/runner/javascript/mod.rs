@@ -14,15 +14,16 @@
 
 mod conversion;
 mod data_ffi;
-pub(self) mod embedded;
 pub(crate) mod error;
-pub(self) mod modules;
-pub(self) mod reporting;
-pub(self) mod run;
-pub(self) mod runner;
-pub(self) mod task;
-pub(self) mod thread_local_runner;
-pub(self) mod utils;
+
+mod embedded;
+mod modules;
+mod reporting;
+mod run;
+mod runner;
+mod task;
+mod thread_local_runner;
+mod utils;
 
 use std::fs;
 
