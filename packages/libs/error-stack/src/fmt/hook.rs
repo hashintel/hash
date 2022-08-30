@@ -613,7 +613,7 @@ mod default {
 
             #[cfg(feature = "spantrace")]
             Report::install_debug_hook(span_trace);
-        })
+        });
     }
 
     #[cfg(rust_1_65)]
