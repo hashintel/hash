@@ -245,7 +245,7 @@ where
                         .identifier
                         .parse()
                         .expect("path needs to be an unsigned integer");
-                    let literal = values.get(index).expect("Index out of bounds");
+                    let literal = values.get(index).expect("index out of bounds");
                     if segments.is_empty() {
                         literal.clone()
                     } else {
