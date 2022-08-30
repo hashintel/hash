@@ -29,7 +29,6 @@ export const createEditorView = (
   accountId: string,
   pageEntityId: string,
   blocks: BlocksMap,
-  documentRootRef: RefObject<HTMLDivElement>,
 ) => {
   let manager: ProsemirrorManager;
 
@@ -37,7 +36,7 @@ export const createEditorView = (
 
   const plugins: Plugin<unknown, Schema>[] = [
     ...createFormatPlugins(renderPortal),
-    createSuggester(renderPortal, () => manager, accountId, documentRootRef),
+    createSuggester(renderPortal, () => manager, accountId, renderNode),
     errorPlugin,
   ];
 
