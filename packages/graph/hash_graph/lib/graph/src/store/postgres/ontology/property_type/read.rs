@@ -59,7 +59,7 @@ where
                     },
                     "propertyTypes" => match segments {
                         [] => {
-                            // see https://app.asana.com/0/0/1202884883200943/f"
+                            // see https://app.asana.com/0/0/1202884883200943/f
                             todo!("`Literal::Object`")
                         }
                         [property_type_segment, property_type_segments @ ..]
