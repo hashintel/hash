@@ -37,10 +37,10 @@ export const useCreateSubPage = (accountId: string) => {
         variables: { accountId, properties: { title: "Untitled" } },
       });
 
-      const { accountId: pageAccountId, entityId: pageEntityId } =
-        response.data?.createPage ?? {};
+      if (response.data?.createPage) {
+        const { accountId: pageAccountId, entityId: pageEntityId } =
+          response.data.createPage;
 
-      if (pageAccountId && pageEntityId) {
         await setParentPageFn({
           variables: {
             accountId: pageAccountId,
