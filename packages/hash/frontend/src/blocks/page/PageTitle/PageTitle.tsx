@@ -3,9 +3,9 @@ import {
   ChangeEventHandler,
   FocusEventHandler,
   KeyboardEventHandler,
-  useEffect,
   useState,
   FunctionComponent,
+  useRef,
 } from "react";
 import { useBlockProtocolUpdateEntity } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
 import { rewriteEntityIdentifier } from "../../../lib/entities";
@@ -40,6 +40,8 @@ type PageTitleProps = {
   value: string;
 };
 
+export const PAGE_TITLE_PLACEHOLDER = "Untitled";
+
 // TODO: Add read-only mode based on page permissions
 export const PageTitle: FunctionComponent<PageTitleProps> = ({
   accountId,
@@ -50,11 +52,9 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
   const { updateEntity, updateEntityLoading } =
     useBlockProtocolUpdateEntity(true);
   const [inputValue, setInputValue] = useState<string>(value);
-  const { editorView, pageTitleRef } = usePageContext();
+  const prevValueRef = useRef(value);
 
-  useEffect(() => {
-    setInputValue(value);
-  }, [value]);
+  const { editorView, pageTitleRef } = usePageContext();
 
   const handleInputChange: ChangeEventHandler<HTMLTextAreaElement> = (
     event,
@@ -95,11 +95,16 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
     });
   };
 
+  if (value !== prevValueRef.current) {
+    prevValueRef.current = value;
+    setInputValue(value);
+  }
+
   // TODO: Assign appropriate a11y attributes
   return (
     <StyledTextarea
       ref={pageTitleRef}
-      placeholder="Untitled"
+      placeholder={PAGE_TITLE_PLACEHOLDER}
       disabled={updateEntityLoading}
       onChange={handleInputChange}
       onKeyDown={handleInputKeyDown}

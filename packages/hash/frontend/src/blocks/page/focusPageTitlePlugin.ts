@@ -5,7 +5,7 @@ import { RefObject } from "react";
 export const createFocusPageTitlePlugin = (
   pageTitleRef: RefObject<HTMLTextAreaElement>,
 ) =>
-  new Plugin<any, Schema>({
+  new Plugin<unknown, Schema>({
     props: {
       handleKeyDown: (view, event) => {
         const isArrowUp = event.key === "ArrowUp";
