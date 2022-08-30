@@ -831,9 +831,9 @@ impl Opaque {
 
 fn debug_attachments(
     loc: Option<Line>,
-    #[cfg(feature = "std")] ctx: &mut HookContextImpl,
     last: bool,
     frames: Vec<&Frame>,
+    #[cfg(feature = "std")] ctx: &mut HookContextImpl,
 ) -> Lines {
     let mut opaque = Opaque::new();
 
@@ -1010,8 +1010,8 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
 
 fn debug_frame(
     root: &Frame,
-    #[cfg(feature = "std")] ctx: &mut HookContextImpl,
     prefix: &[&Frame],
+    #[cfg(feature = "std")] ctx: &mut HookContextImpl,
 ) -> Vec<Lines> {
     let (stack, sources) = collect(root, prefix);
     let (stack, prefix) = partition(&stack);
@@ -1034,10 +1034,10 @@ fn debug_frame(
             body.reverse();
             let body = debug_attachments(
                 Some(loc),
-                #[cfg(feature = "std")]
-                ctx,
                 (len == 1 && sources.is_empty()) || idx > 0,
                 once(head).chain(body).collect(),
+                #[cfg(feature = "std")]
+                ctx,
             );
             head_ctx.then(body)
         })
@@ -1051,9 +1051,9 @@ fn debug_frame(
             |source| {
                 debug_frame(
                     source,
+                    &prefix,
                     #[cfg(feature = "std")]
                     ctx,
-                    &prefix,
                 )
             },
         )
@@ -1090,9 +1090,9 @@ impl<C> Debug for Report<C> {
             .flat_map(|frame| {
                 debug_frame(
                     frame,
+                    &[],
                     #[cfg(feature = "std")]
                     &mut ctx,
-                    &[],
                 )
             })
             .enumerate()
