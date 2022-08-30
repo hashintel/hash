@@ -12,6 +12,12 @@
 //! Hooks can be attached through the central hooking mechanism which `error-stack`
 //! provides via [`Report::install_debug_hook`].
 //!
+//! Hooks are called for contexts which provide additional values through [`Error::provide`] or
+//! [`Context::provide`] and attachments which are added via [`Report::attach`].
+//! For contexts and values, that can be requested using [`Frame::request_ref`] and
+//! [`Frame::request_value`], the rendering order is determined by the order of
+//! [`Report::install_debug_hook`] calls.
+//!
 //! You can also provide a fallback function, which is called whenever a hook hasn't been added for
 //! a specific type of attachment.
 //! The fallback function needs to have a signature of
@@ -39,8 +45,8 @@
 //! ## Example
 //!
 //! ```rust
-//! # // we only test on nightly, therefore report is unused (so is render)
-//! # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+//! # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+//! # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
 //! use std::io::{Error, ErrorKind};
 //! use error_stack::Report;
 //! use error_stack::fmt::Emit;
@@ -51,7 +57,7 @@
 //! struct Info(&'static str);
 //!
 //! // This hook will never be called, because a later invocation of `install_debug_hook` overwrites
-//! // the hook for the type `u64`.
+//! // the hook for the type `ErrorCode`.
 //! Report::install_debug_hook::<ErrorCode>(|_, _| vec![Emit::next("will never be called")]);
 //!
 //! // `HookContext` always has a type parameter, which needs to be the same as the type of the
@@ -99,28 +105,28 @@
 //! #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 //! # }
 //! #
-//! # #[cfg(nightly)]
+//! # #[cfg(rust_1_65)]
 //! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__doc.snap")].assert_eq(&render(format!("{report:?}")));
 //! #
 //! println!("{report:?}");
 //!
-//! # #[cfg(nightly)]
+//! # #[cfg(rust_1_65)]
 //! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt_doc_alt.snap")].assert_eq(&render(format!("{report:#?}")));
 //! #
 //! println!("{report:#?}");
 //! ```
-//! ### `println!("{report:?}")`
+//!
+//! The output of `println!("{report:?}")`:
 //!
 //! <pre>
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__doc.snap"))]
 //! </pre>
 //!
-//! ### `println!("{report:#?}")`
+//! The output of `println!("{report:#?}")`:
 //!
 //! <pre>
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt_doc_alt.snap"))]
 //! </pre>
-//!
 //!
 //! [`Display`]: core::fmt::Display
 //! [`Debug`]: core::fmt::Debug
@@ -130,13 +136,12 @@
 //! [`SpanTrace`]: tracing_error::SpanTrace
 //! [`error_stack::fmt::builtin_debug_hook_fallback`]: crate::fmt::builtin_debug_hook_fallback
 //! [`atomic`]: std::sync::atomic
+//! [`Error::provide`]: std::error::Error::provide
 // Makes sure that `Emit` isn't regarded as unreachable even though it isn't exported on
 // no-std. Simplifies maintenance as we don't need to special case the visibility modifier.
 #![cfg_attr(not(feature = "std"), allow(unreachable_pub))]
 
 mod hook;
-#[cfg(feature = "unstable")]
-mod unstable;
 
 use alloc::{
     borrow::ToOwned,
@@ -149,13 +154,13 @@ use alloc::{
 use core::{
     fmt,
     fmt::{Debug, Display, Formatter},
+    iter::once,
     mem,
 };
 
 #[cfg(feature = "std")]
 pub use hook::builtin_debug_hook_fallback;
 #[cfg(not(feature = "std"))]
-#[allow(clippy::redundant_pub_crate)]
 pub(crate) use hook::builtin_debug_hook_fallback;
 #[cfg(feature = "std")]
 pub use hook::HookContext;
@@ -164,8 +169,6 @@ use hook::HookContextImpl;
 pub(crate) use hook::Hooks;
 #[cfg(feature = "pretty-print")]
 use owo_colors::{OwoColorize, Stream::Stdout, Style as OwOStyle};
-#[cfg(feature = "unstable")]
-pub use unstable::DebugDiagnostic;
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
@@ -180,8 +183,8 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// # Example
 ///
 /// ```rust
-/// # // we only test on nightly, therefore report is unused (so is render)
-/// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+/// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+/// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::{Error, ErrorKind};
 ///
 /// use error_stack::{fmt::Emit, Report};
@@ -223,7 +226,7 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 /// # }
 /// #
-/// # #[cfg(nightly)]
+/// # #[cfg(rust_1_65)]
 /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap")].assert_eq(&render(format!("{report:?}")));
 /// #
 /// println!("{report:?}");
@@ -252,8 +255,8 @@ impl Emit {
     /// # Example
     ///
     /// ```rust
-    /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io;
     ///
     /// use error_stack::{fmt::Emit, Report};
@@ -281,7 +284,7 @@ impl Emit {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # #[cfg(nightly)]
+    /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// println!("{report:?}");
@@ -290,6 +293,7 @@ impl Emit {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap"))]
     /// </pre>
+    #[cfg_attr(not(feature = "std"), allow(dead_code))]
     pub fn next<T: Into<String>>(line: T) -> Self {
         Self::Next(line.into())
     }
@@ -305,8 +309,8 @@ impl Emit {
     /// # Example
     ///
     /// ```rust
-    /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io;
     ///
     /// use error_stack::{fmt::Emit, Report};
@@ -338,7 +342,7 @@ impl Emit {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # #[cfg(nightly)]
+    /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add_defer.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// println!("{report:?}");
@@ -843,48 +847,23 @@ fn debug_attachments(
     let (next, defer): (Vec<_>, _) = frames
         .into_iter()
         .map(|frame| match frame.kind() {
-            FrameKind::Context(_) => unreachable!(),
-            FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
-                #[cfg(all(nightly, feature = "unstable"))]
-                if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
-                    for snippet in debug.snippets() {
-                        ctx.as_hook_context::<DebugDiagnostic>()
-                            .attach_snippet(snippet.clone());
-                    }
-
-                    return debug.output().to_vec();
-                }
-
-                #[cfg(all(not(nightly), feature = "unstable"))]
-                if let Some(debug) = frame.downcast_ref::<DebugDiagnostic>() {
-                    for snippet in debug.snippets() {
-                        ctx.as_hook_context::<DebugDiagnostic>()
-                            .attach_snippet(snippet.clone());
-                    }
-
-                    return debug.output().to_vec();
-                }
-
-                #[cfg(feature = "std")]
-                {
-                    Report::get_debug_format_hook(|hooks| {
-                        hooks.call(frame, &mut ctx.as_hook_context())
-                    })
-                }
-
-                #[cfg(not(feature = "std"))]
-                {
-                    builtin_debug_hook_fallback(frame, &mut ctx.as_hook_context())
-                }
+            #[cfg(feature = "std")]
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
+                Report::get_debug_format_hook(|hooks| hooks.call(frame, &mut ctx.as_hook_context()))
+            }
+            #[cfg(not(feature = "std"))]
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
+                builtin_debug_hook_fallback(frame, &mut ctx.as_hook_context())
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                vec![Emit::next(attachment.to_string())]
+                vec![Emit::Next(attachment.to_string())]
             }
         })
-        .flat_map(|value| {
+        .enumerate()
+        .flat_map(|(idx, value)| {
             // increase the opaque counter, if we're unable to determine the actual value of the
             // frame
-            if value.is_empty() {
+            if idx > 0 && value.is_empty() {
                 opaque.increase();
             }
 
@@ -1048,7 +1027,7 @@ fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Ve
             // each "paket" on the stack is made up of a head (guaranteed to be a `Context`) and
             // `n` attachments.
             // The attachments are rendered as direct descendants of the parent context
-            let (head, loc) = debug_context(head, match head.kind() {
+            let (head_ctx, loc) = debug_context(head, match head.kind() {
                 FrameKind::Context(c) => c,
                 FrameKind::Attachment(_) => unreachable!(),
             });
@@ -1059,10 +1038,9 @@ fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Ve
                 Some(loc),
                 ctx,
                 (len == 1 && sources.is_empty()) || idx > 0,
-                body,
+                once(head).chain(body).collect(),
             );
-
-            head.then(body)
+            head_ctx.then(body)
         })
         .collect();
 

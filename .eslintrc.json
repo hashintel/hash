@@ -52,11 +52,11 @@
         "message": "Please replace `any` with a specific type"
       },
       {
-        "selector": "CallExpression[callee.object.name=/^(EditorState|NodeSelection|TextSelection|DecorationSet|ProsemirrorNode|MarkType)$/][callee.property.name=create]:not([typeParameters])",
+        "selector": "CallExpression[callee.object.name=/^(EditorState|NodeSelection|TextSelection|ProsemirrorNode|MarkType)$/][callee.property.name=create]:not([typeParameters])",
         "message": "Please provide a generic to avoid implicit `any`"
       },
       {
-        "selector": "CallExpression[callee.object.name=/^(EditorState|NodeSelection|TextSelection|DecorationSet|ProsemirrorNode|MarkType)$/][callee.property.name=create][typeParameters.params.0.type=TSAnyKeyword]",
+        "selector": "CallExpression[callee.object.name=/^(EditorState|NodeSelection|TextSelection|ProsemirrorNode|MarkType)$/][callee.property.name=create][typeParameters.params.0.type=TSAnyKeyword]",
         "message": "Please replace `any` with a specific type"
       },
       {

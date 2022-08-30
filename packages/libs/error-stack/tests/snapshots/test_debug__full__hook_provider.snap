@@ -1,17 +1,11 @@
 ---
 source: tests/test_debug.rs
-expression: "format!(\"{report:#?}\")"
+expression: "format!(\"{report:?}\")"
 ---
-Context B
-├╴tests/test_debug.rs:331:14
-├╴Printable C
-│
-├─▶ A multiline
-│   context that might have
-│   a bit more info
-│   ├╴tests/test_debug.rs:328:14
-│   ├╴Printable B
-│   ╰╴1 additional opaque attachment
+Context D
+├╴tests/test_debug.rs:589:38
+├╴usize: 420
+├╴&'static str: Invalid User Input
 │
 ╰─▶ Root error
     ├╴tests/common.rs:147:5

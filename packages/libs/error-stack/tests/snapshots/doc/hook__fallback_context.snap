@@ -1,6 +1,6 @@
-<b>invalid input parameter</b>
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/fmt/unstable.rs:11:14</span>
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Hello!
+<b>Invalid user input</b>
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/hook.rs:45:14</span>
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Error Code: 404
 <span style='color:#a00'>╰</span><span style='color:#a00'>╴</span>backtrace with [n] frames (1)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
