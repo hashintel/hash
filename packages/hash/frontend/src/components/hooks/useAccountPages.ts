@@ -10,7 +10,7 @@ import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 export type AccountPage = {
   title: string;
   entityId: string;
-  parentPageEntityId: string | null;
+  parentPageEntityId?: string | null;
 };
 
 export type AccountPagesInfo = {
@@ -31,12 +31,16 @@ export const useAccountPages = (accountId: string): AccountPagesInfo => {
       return [];
     }
 
-    return data?.accountPages.map((page) => ({
-      title: page.properties.title,
-      entityId: page.entityId,
-      parentPageEntityId: page.parentPageEntityId,
-    }));
-  }, [data]) as AccountPage[];
+    return data?.accountPages.map(
+      ({ entityId, parentPageEntityId, properties: { title } }) => {
+        return {
+          entityId,
+          parentPageEntityId,
+          title,
+        };
+      },
+    );
+  }, [data]);
 
   return { data: accountPages, loading };
 };
