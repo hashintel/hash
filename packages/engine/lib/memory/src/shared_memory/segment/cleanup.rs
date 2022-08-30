@@ -81,7 +81,7 @@ fn check_all_deallocated_linux(id: Uuid) -> Result<()> {
         let shm_files = glob::glob(&format!("/dev/shm/{}_*", MemoryId::prefix(id)))
             .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
 
-        let mut not_deallocated = Vec::new();
+        let mut not_deallocated: Vec<String> = Vec::new();
 
         for path in shm_files {
             if let Err(err) = path
