@@ -591,6 +591,7 @@ mod default {
     };
 
     pub(crate) fn install_builtin_hooks() {
+        // We could in theory remove this and replace it with a single AtomicBool.
         static INSTALL_BUILTIN: Once = Once::new();
 
         // This static makes sure that we only run once, if we wouldn't have this guard we would
@@ -601,6 +602,8 @@ mod default {
         // > behavior is not specified, allowed outcomes are a panic or a deadlock.
         static INSTALL_BUILTIN_RUNNING: AtomicBool = AtomicBool::new(false);
 
+        // This has minimal overhead, as `Once::call_once` calls `.is_completed` as the short path
+        // we just move it out here, so that we're able to check `INSTALL_BUILTIN_RUNNING`
         if INSTALL_BUILTIN.is_completed() || INSTALL_BUILTIN_RUNNING.load(Ordering::Acquire) {
             return;
         }
