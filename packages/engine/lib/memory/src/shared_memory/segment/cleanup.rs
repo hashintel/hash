@@ -81,7 +81,6 @@ fn check_all_deallocated_linux(id: Uuid) -> Result<()> {
         let shm_files = glob::glob(&format!("/dev/shm/{}_*", MemoryId::prefix(id)))
             .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
 
-        #[cfg(debug_assertions)]
         let mut not_deallocated = Vec::new();
 
         for path in shm_files {
@@ -97,15 +96,11 @@ fn check_all_deallocated_linux(id: Uuid) -> Result<()> {
                 tracing::warn!("Could not remove shared memory file: {err}");
             }
 
-            #[cfg(debug_assertions)]
-            {
-                if !not_deallocated.is_empty() {
-                    panic!(
-                        "the following shared memory segments were not deallocated at the end of \
-                         the experiment: {not_deallocated:?}"
-                    )
-                }
-            }
+            debug_assert!(
+                not_deallocated.is_empty(),
+                "the following shared memory segments were not deallocated at the end of the \
+                 experiment: {not_deallocated:?}"
+            );
         }
     }
 
