@@ -70,6 +70,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       accountId,
       entityId,
       blocks,
+      readonlyMode,
       pageTitleRef,
     );
 
@@ -80,10 +81,6 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       connection: connection ?? null,
       manager,
     };
-
-    if (readonlyMode) {
-      manager.setReadonlyMode();
-    }
 
     return () => {
       clearPortals();

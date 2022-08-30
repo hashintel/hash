@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client";
 import {
   HashBlock,
-  defaultBlocks,
+  defaultBlockComponentIds,
   fetchBlock,
 } from "@hashintel/hash-shared/blocks";
 import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
@@ -58,7 +58,7 @@ type PageProps = {
  */
 export const getStaticProps: GetStaticProps<PageProps> = async () => {
   const fetchedBlocks = await Promise.all(
-    defaultBlocks.map((componentId) => fetchBlock(componentId)),
+    defaultBlockComponentIds.map((componentId) => fetchBlock(componentId)),
   );
 
   return {

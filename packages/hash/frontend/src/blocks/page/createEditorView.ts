@@ -12,6 +12,7 @@ import { EditorConnection } from "./collab/EditorConnection";
 import { ComponentView } from "./ComponentView";
 import { createErrorPlugin } from "./createErrorPlugin";
 import { createFormatPlugins } from "./createFormatPlugins";
+import { createPlaceholderPlugin } from "./createPlaceholderPlugin/createPlaceholderPlugin";
 import { createSuggester } from "./createSuggester/createSuggester";
 import { createFocusPageTitlePlugin } from "./focusPageTitlePlugin";
 import { MentionView } from "./MentionView/MentionView";
@@ -30,6 +31,7 @@ export const createEditorView = (
   accountId: string,
   pageEntityId: string,
   blocks: BlocksMap,
+  readonly: boolean,
   pageTitleRef: RefObject<HTMLTextAreaElement>,
 ) => {
   let manager: ProsemirrorManager;
@@ -39,6 +41,7 @@ export const createEditorView = (
   const plugins: Plugin<unknown, Schema>[] = [
     ...createFormatPlugins(renderPortal),
     createSuggester(renderPortal, () => manager, accountId),
+    createPlaceholderPlugin(renderPortal),
     errorPlugin,
     createFocusPageTitlePlugin(pageTitleRef),
   ];
@@ -105,8 +108,8 @@ export const createEditorView = (
         );
       },
     },
-    dispatchTransaction: (tr) =>
-      connection?.dispatchTransaction(tr, connection?.state.version ?? 0),
+    dispatchTransaction: (tr) => connection?.dispatchTransaction(tr),
+    editable: () => !readonly,
   });
 
   manager = new ProsemirrorManager(

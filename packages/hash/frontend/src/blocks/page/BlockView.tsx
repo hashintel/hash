@@ -4,7 +4,10 @@ import {
   entityStorePluginState,
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
-import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
+import {
+  findComponentNode,
+  isEntityNode,
+} from "@hashintel/hash-shared/prosemirror";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
@@ -345,7 +348,19 @@ export class BlockView implements NodeView<Schema> {
       this.manager
         .insertBlock(blockMeta.componentId, variant, newPosition)
         .then(({ tr }) => {
-          tr.setSelection(TextSelection.create<Schema>(tr.doc, newPosition));
+          /**
+           * calculate nextPosition to correctly focus the to the component inside, not the wrapper
+           * */
+          const $pos = tr.doc.resolve(newPosition + 1);
+          const nextPosition = findComponentNode(
+            $pos.node(1),
+            $pos.start(1),
+          )?.[1];
+
+          if (nextPosition !== undefined) {
+            tr.setSelection(TextSelection.create<Schema>(tr.doc, nextPosition));
+          }
+
           editorView.focus();
           editorView.dispatch(tr);
         })
