@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use arrow2::{
     array::{self, Array, FixedSizeListArray, Utf8Array},
     datatypes::{Field, Schema},
@@ -11,14 +9,14 @@ use crate::{
         arrow::PREVIOUS_INDEX_FIELD_KEY, field::AgentId, Agent, AgentBatch, AgentName, AgentSchema,
         AgentStateField, IsRequired, BUILTIN_FIELDS,
     },
-    field::{FieldScope, FieldTypeVariant, UUID_V4_LEN},
+    field::{FieldScope, UUID_V4_LEN},
     message::{arrow::column::MessageColumn, MessageBatch, MessageSchema},
     Error, Result,
 };
 
 /// Conversion of batches to a list of [`Agent`]s.
 pub trait IntoAgents {
-    fn to_agent_states(&self, agent_schema: Option<&AgentSchema>) -> Result<Vec<Agent>>;
+    fn to_agent_states(&self) -> Result<Vec<Agent>>;
 
     // Conversion into `Agent` where certain built-in fields and
     // null values are selectively ignored
@@ -26,10 +24,10 @@ pub trait IntoAgents {
 }
 
 impl IntoAgents for (&AgentBatch, &MessageBatch) {
-    fn to_agent_states(&self, agent_schema: Option<&AgentSchema>) -> Result<Vec<Agent>> {
+    fn to_agent_states(&self) -> Result<Vec<Agent>> {
         let agents = self.0.batch.record_batch()?;
         let messages = self.1.batch.record_batch()?;
-        let mut states = agents.to_agent_states(agent_schema)?;
+        let mut states = agents.to_agent_states()?;
         set_states_messages(&mut states, messages)?;
         Ok(states)
     }
@@ -44,10 +42,10 @@ impl IntoAgents for (&AgentBatch, &MessageBatch) {
 }
 
 impl IntoAgents for (&RecordBatch, &RecordBatch) {
-    fn to_agent_states(&self, agent_schema: Option<&AgentSchema>) -> Result<Vec<Agent>> {
+    fn to_agent_states(&self) -> Result<Vec<Agent>> {
         let agents = &self.0;
         let messages = &self.1;
-        let mut states = agents.to_agent_states(agent_schema)?;
+        let mut states = agents.to_agent_states()?;
         set_states_messages(&mut states, messages)?;
         Ok(states)
     }
@@ -62,8 +60,8 @@ impl IntoAgents for (&RecordBatch, &RecordBatch) {
 }
 
 impl IntoAgents for AgentBatch {
-    fn to_agent_states(&self, agent_schema: Option<&AgentSchema>) -> Result<Vec<Agent>> {
-        self.batch.record_batch()?.to_agent_states(agent_schema)
+    fn to_agent_states(&self) -> Result<Vec<Agent>> {
+        self.batch.record_batch()?.to_agent_states()
     }
 
     fn to_filtered_agent_states(&self, agent_schema: &AgentSchema) -> Result<Vec<Agent>> {
@@ -74,7 +72,7 @@ impl IntoAgents for AgentBatch {
 }
 
 impl IntoAgents for RecordBatch {
-    fn to_agent_states(&self, agent_schema: Option<&AgentSchema>) -> Result<Vec<Agent>> {
+    fn to_agent_states(&self) -> Result<Vec<Agent>> {
         let agents = self;
 
         let mut states: Vec<Agent> = std::iter::repeat(Agent::empty())
@@ -83,38 +81,17 @@ impl IntoAgents for RecordBatch {
 
         set_states_builtins(&mut states, agents)?;
 
-        let any_types = &agent_schema
-            .map(|v| {
-                v.field_spec_map
-                    .iter()
-                    .filter_map(|(key, field_spec)| {
-                        if matches!(
-                            field_spec.inner.field_type.variant,
-                            FieldTypeVariant::AnyType
-                        ) {
-                            Some(key.value().to_string())
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<HashSet<String>>()
-            })
-            .unwrap_or_else(|| {
-                self.schema()
-                    .metadata
-                    .get("any_type_fields")
-                    .expect("The key `any_type_fields` should always exist in the metadata")
-                    .split(',')
-                    .map(|v| v.to_string())
-                    .collect()
-            });
-
         for (i_field, field) in agents.schema().fields.iter().enumerate() {
             // TODO: remove the need for this
             if BUILTIN_FIELDS.contains(&field.name.as_str()) {
                 continue; // Skip builtins, because they were already
             } // set in `set_states_builtins`.
-            if any_types.contains(&field.name) {
+            let is_any_type_field = field
+                .metadata
+                .get("any_type")
+                .map(|entry| entry == "1")
+                .unwrap_or(false);
+            if is_any_type_field {
                 // We need to use "from_str" and not "to_value" when converting to serde_json::Value
                 set_states_serialized(&mut states, agents, i_field, field)?;
             } else {
@@ -125,7 +102,7 @@ impl IntoAgents for RecordBatch {
     }
 
     fn to_filtered_agent_states(&self, agent_schema: &AgentSchema) -> Result<Vec<Agent>> {
-        let agent_states = self.to_agent_states(Some(agent_schema))?;
+        let agent_states = self.to_agent_states()?;
 
         let group_field_names = agent_schema
             .field_spec_map

@@ -1,6 +1,5 @@
-use std::collections::BTreeMap;
-
 use arrow2::datatypes::{DataType, Field, Schema};
+use memory::arrow::metadata::add_metadata;
 use stateful::{
     agent::{
         arrow::{IntoRecordBatch, PREVIOUS_INDEX_FIELD_KEY},
@@ -55,24 +54,24 @@ fn get_schema() -> Result<()> {
 
     field_spec_map.try_extend([root_field_spec_from_agent_field(AgentStateField::AgentId)?])?;
 
-    let mut meta = BTreeMap::new();
-    meta.insert("any_type_fields".into(), "".into());
-    meta.insert("nullable".into(), "1,1,0,1".into());
     let target = Schema::from(vec![
-        Field::new("_PRIVATE_0_test1", DataType::Boolean, true),
-        Field::new(
+        add_metadata(Field::new("_PRIVATE_0_test1", DataType::Boolean, true)),
+        add_metadata(Field::new(
             "_PRIVATE_0_test3",
             DataType::FixedSizeList(Box::new(Field::new("item", DataType::Float64, true)), 3),
             true,
-        ),
-        Field::new("agent_id", DataType::FixedSizeBinary(UUID_V4_LEN), false),
-        Field::new(
+        )),
+        add_metadata(Field::new(
+            "agent_id",
+            DataType::FixedSizeBinary(UUID_V4_LEN),
+            false,
+        )),
+        add_metadata(Field::new(
             "_PRIVATE_0_test2",
             DataType::List(Box::new(Field::new("item", DataType::Float64, true))),
             true,
-        ),
-    ])
-    .with_metadata(meta);
+        )),
+    ]);
 
     let schema = field_spec_map.create_arrow_schema().unwrap();
     assert_eq!(schema, target);
@@ -94,7 +93,7 @@ fn agent_state_into_record_batch() -> Result<()> {
             .as_slice()
             .to_message_batch(MessageSchema::default().arrow)?;
 
-        let mut returned_agents = (&agent_batch, &message_batch).to_agent_states(Some(&schema))?;
+        let mut returned_agents = (&agent_batch, &message_batch).to_agent_states()?;
 
         agents.iter_mut().for_each(|v| {
             v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);

@@ -15,6 +15,7 @@
 pub mod flush;
 pub mod ipc;
 pub mod meta;
+pub mod metadata;
 pub mod record_batch;
 pub mod util;
 

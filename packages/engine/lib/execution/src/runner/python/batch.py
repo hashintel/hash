@@ -61,24 +61,6 @@ def verify_markers(markers, mem):
     assert meta_offset + meta_size <= data_offset
     assert data_offset + data_size <= mem.size
 
-
-def parse_any_type_fields(metadata):
-    any_type_fields = set()
-
-    # arrow2 serializes empty dictionaries as None (rather than `{}`, as arrow
-    # did)
-    if metadata is None:
-        return any_type_fields
-
-    field_names = metadata.get("any_type_fields")
-
-    if field_names:
-        for field_name in field_names.split(","):
-            any_type_fields.add(field_name)
-
-    return any_type_fields
-
-
 def load_record_batch(mem, schema=None):
     (
         schema_offset,
@@ -101,8 +83,7 @@ def load_record_batch(mem, schema=None):
     record_batch_buf = mem[meta_offset: data_offset + data_size]
     record_batch = pa.ipc.read_record_batch(record_batch_buf, schema)
 
-    any_type_fields = parse_any_type_fields(schema.metadata)
-    return record_batch, any_type_fields
+    return record_batch
 
 
 # Returns dataset name, dataset contents and whether JSON could be loaded.
@@ -137,9 +118,6 @@ class Batch:
         self.mem = None
         # After loading, `record_batch` will be a record batch.
         self.record_batch = None
-        # TODO: Remove `any_type_fields` after upgrading Arrow and putting metadata in individual
-        #       columns.
-        self.any_type_fields = None
         # Syncing erases columns that have become invalid.
         self.cols = {}
 
@@ -189,7 +167,7 @@ class Batch:
             verify_markers(markers, self.mem)
 
         if should_load_batch:
-            self.record_batch, self.any_type_fields = load_record_batch(
+            self.record_batch = load_record_batch(
                 self.mem, schema
             )
             self.cols = {}  # Avoid using obsolete column data.
@@ -205,7 +183,7 @@ class Batch:
 
         field = self.record_batch.schema.field(i_field)
         vector = self.record_batch.column(i_field)
-        is_any = name in self.any_type_fields
+        is_any = "any_type" in field.metadata and field.metadata["any_type"] == "1"
         if loader is not None:
             col = loader(vector, field.nullable, is_any)
         elif name.startswith("_PRIVATE_") or name.startswith("_HIDDEN_"):
@@ -226,8 +204,6 @@ class Batch:
                 self.load_col(field_name, loaders.get(field_name))
 
     def flush_changes(self, schema, skip):
-        any_type_fields = parse_any_type_fields(schema.metadata)
-
         # Dynamically accessed columns (if any) were added to `cols` by `state`.
         changes = []
         for field_name, col in self.cols.items():
@@ -241,7 +217,7 @@ class Batch:
                 continue  # Not supposed to have this column in `cols`?
 
             field = schema.field(i_field)
-            if field.name in any_type_fields:
+            if "any_type" in field.metadata:
                 # Convert `any`-type array of JSON values to array of JSON strings
                 # for Arrow serialization as a string column.
                 py_col = [json.dumps(elem) for elem in col]

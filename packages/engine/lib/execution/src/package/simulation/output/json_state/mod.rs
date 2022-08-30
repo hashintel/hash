@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use stateful::{
-    agent::{AgentSchema, IntoAgents},
+    agent::IntoAgents,
     context::Context,
     field::{FieldScope, FieldSpecMapAccessor},
     global::Globals,
@@ -26,7 +26,6 @@ use crate::{
 };
 
 pub struct JsonState {
-    agent_schema: Arc<AgentSchema>,
     output_config: JsonStateOutputConfig,
 }
 
@@ -51,7 +50,7 @@ impl OutputPackage for JsonState {
                     agent_batch.batch.record_batch()?,
                     message_batch.batch.record_batch()?,
                 )
-                    .to_agent_states(Some(&self.agent_schema))
+                    .to_agent_states()
             })
             .collect();
 
@@ -99,10 +98,7 @@ impl OutputPackageCreator for JsonStateCreator {
             .get(&PackageName::Output(OutputPackageName::JsonState))
             .ok_or_else(|| Error::from("Missing JSON state config"))?;
         let output_config: JsonStateOutputConfig = serde_json::from_value(value.clone())?;
-        Ok(Box::new(JsonState {
-            agent_schema: Arc::clone(&config.agent_schema),
-            output_config,
-        }))
+        Ok(Box::new(JsonState { output_config }))
     }
 
     fn persistence_config(

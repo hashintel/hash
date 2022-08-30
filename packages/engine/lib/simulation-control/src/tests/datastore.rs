@@ -51,7 +51,7 @@ pub fn growable_array_modification() -> Result<()> {
 
     let num_agents = 1000;
 
-    let (schema, agents) = gen_schema_and_test_agents(num_agents, 0)?;
+    let (_, agents) = gen_schema_and_test_agents(num_agents, 0)?;
 
     let mut state =
         State::from_agent_states(&agents, dummy_sim_run_config().to_state_create_parameters())
@@ -87,7 +87,7 @@ pub fn growable_array_modification() -> Result<()> {
     let batch_proxy: &AgentBatch = state_proxy.agent_pool().batch(0).unwrap();
 
     let names = batch_proxy.names()?;
-    let agent_states = batch_proxy.to_agent_states(Some(&schema))?;
+    let agent_states = batch_proxy.to_agent_states()?;
 
     targets.into_iter().enumerate().for_each(|(i, t)| match t {
         Some(v) => {

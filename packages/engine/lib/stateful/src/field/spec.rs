@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{collections::BTreeMap, fmt};
 
 use arrow2::datatypes::{DataType, Field};
 
@@ -10,7 +10,8 @@ use crate::{
     },
 };
 
-/// A single specification of a field
+/// A single specification of a field - this is defined by the user when they write their
+/// simulation.
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct FieldSpec {
     pub name: String,
@@ -25,6 +26,17 @@ impl FieldSpec {
         can_guarantee_non_null: bool,
         field_key: Option<RootFieldKey>,
     ) -> Field {
+        let metadata = {
+            let mut metadata = BTreeMap::new();
+            if self.field_type.nullable {
+                metadata.insert("nullable".to_string(), "1".to_string());
+            }
+            if matches!(self.field_type.variant, FieldTypeVariant::AnyType) {
+                metadata.insert("any_type".to_string(), "1".to_string());
+            }
+            metadata
+        };
+
         // We cannot guarantee non-nullability for certain root-level arrow-fields due to how we
         // initialise data currently. As this is an impl on FieldSpec we need the calling
         // context to provide the guarantee that the nullablity is enforced.
@@ -34,7 +46,7 @@ impl FieldSpec {
             true
         };
 
-        if let Some(key) = field_key {
+        let field = if let Some(key) = field_key {
             Field::new(
                 key.value(),
                 DataType::from(self.field_type.variant),
@@ -46,7 +58,9 @@ impl FieldSpec {
                 DataType::from(self.field_type.variant),
                 base_nullability,
             )
-        }
+        };
+
+        field.with_metadata(metadata)
     }
 
     /// This key is required for accessing neighbors' outboxes (new inboxes).

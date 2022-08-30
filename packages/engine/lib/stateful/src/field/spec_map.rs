@@ -9,7 +9,7 @@ use std::{
 use arrow2::datatypes::{Field, Schema};
 
 use crate::{
-    field::{FieldScope, FieldTypeVariant, IsFixedSize, RootFieldKey, RootFieldSpec},
+    field::{FieldScope, IsFixedSize, RootFieldKey, RootFieldSpec},
     Error, Result,
 };
 
@@ -136,8 +136,6 @@ impl FieldSpecMap {
         let mut partitioned_fields = Vec::with_capacity(self.len());
         let mut fixed_size_no = 0;
 
-        let mut any_types = vec![];
-
         for (key, field_spec) in self.iter() {
             let key = key.value().to_string();
 
@@ -147,35 +145,19 @@ impl FieldSpecMap {
             } else {
                 partitioned_fields.push((field_spec, key.clone()));
             }
-
-            if matches!(
-                field_spec.inner.field_type.variant,
-                FieldTypeVariant::AnyType
-            ) {
-                any_types.push(key)
-            }
         }
 
         // Sort both partitions by field keys
         let key_sort = |a: &(&RootFieldSpec, String), b: &(&RootFieldSpec, String)| a.1.cmp(&b.1);
         partitioned_fields[0..fixed_size_no].sort_by(key_sort);
         partitioned_fields[fixed_size_no..].sort_by(key_sort);
-        let nullabilities = partitioned_fields
-            .iter()
-            .map(|spec| (spec.0.inner.field_type.nullable as usize).to_string())
-            .collect::<Vec<_>>();
 
-        let mut metadata = BTreeMap::new();
-        // TODO: this can be simplified when we update arrow-rs (beyond 1.0.1), we can set this on
-        //   Field's custom metadata instead of the schema
-        metadata.insert("any_type_fields".into(), any_types.join(","));
-        metadata.insert("nullable".into(), nullabilities.join(","));
         Ok(Schema {
             fields: partitioned_fields
                 .into_iter()
                 .map(|(field_spec, _)| Field::try_from(field_spec.clone()))
                 .collect::<Result<_>>()?,
-            metadata,
+            metadata: BTreeMap::new(),
         })
     }
 }
