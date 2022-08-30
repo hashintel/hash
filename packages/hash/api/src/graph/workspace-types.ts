@@ -62,7 +62,11 @@ export const ensureWorkspaceTypesExist = async (params: {
   // Next, let's ensure all workspace property types have been created
   // This is done sequentially as property types might reference other property
   // types
-  /** @todo Use transactional primitive/bulk insert to be able to do this in parallel */
+  /**
+   * @todo Use transactional primitive/bulk insert to be able to do this in parallel
+   *   see the following task:
+   *   https://app.asana.com/0/1201095311341924/1202573572594586/f
+   */
   for (const schema of workspacePropertyTypes) {
     const { $id: versionedUri } = schema;
     const existingPropertyType = await PropertyTypeModel.get(graphApi, {
