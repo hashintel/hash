@@ -19,6 +19,7 @@ import {
 } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
 import { ReactNode } from "react";
+import { PAGE_TITLE_PLACEHOLDER } from "../../blocks/page/PageTitle/PageTitle";
 import { MenuItem } from "../../shared/ui";
 
 export type Breadcrumb = {
@@ -54,7 +55,7 @@ const SubMenu = ({ items, defaultIcon }: SubMenuProps) => {
         {items.map((item) => (
           <MenuItem href={item.href} key={item.title}>
             <ListItemIcon>{item.icon ?? defaultIcon}</ListItemIcon>
-            <ListItemText>{item.title}</ListItemText>
+            <ListItemText>{item.title || "Untitled"}</ListItemText>
           </MenuItem>
         ))}
       </Menu>
@@ -140,7 +141,7 @@ export const Breadcrumbs = ({
                   textOverflow: "ellipsis",
                 }}
               >
-                {item.title}
+                {item.title || PAGE_TITLE_PLACEHOLDER}
               </Box>
             </Button>
           </Tooltip>
