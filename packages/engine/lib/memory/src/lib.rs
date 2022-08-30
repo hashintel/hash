@@ -15,6 +15,8 @@
 //! [`Segment`]: crate::shared_memory::Segment
 //! [`ArrowBatch`]: crate::arrow::ArrowBatch
 
+#![feature(const_btree_new)]
+
 mod error;
 
 pub mod arrow;
