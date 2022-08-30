@@ -177,6 +177,9 @@ impl HookContextImpl {
 #[repr(transparent)]
 pub struct HookContext<'a, T> {
     parent: &'a mut HookContextImpl,
+
+    emits: Vec<Emit>,
+
     _marker: PhantomData<T>,
 }
 
