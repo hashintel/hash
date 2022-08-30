@@ -43,6 +43,8 @@ export const settlePromiseFromResponse = (
     promiseSettlerFns.resolve(payload.data);
   } else {
     promiseSettlerFns.reject(
+      // @todo what to do with empty error
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       new Error(payload.error || "Request could not be fulfilled."),
     );
   }

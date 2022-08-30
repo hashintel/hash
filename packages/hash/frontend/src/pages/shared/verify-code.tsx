@@ -47,7 +47,7 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
   invitationInfo,
 }) => {
   const [state, setState] = useState({
-    text: defaultCode || "",
+    text: defaultCode ?? "",
     emailResent: false,
     syntheticLoading: false,
   });

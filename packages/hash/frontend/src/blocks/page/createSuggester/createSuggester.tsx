@@ -292,7 +292,7 @@ export const createSuggester = (
                     options: {
                       offset: () => [
                         coords.left -
-                          (anchorNode?.getBoundingClientRect().x || 0),
+                          (anchorNode?.getBoundingClientRect().x ?? 0),
                         0,
                       ],
                     },

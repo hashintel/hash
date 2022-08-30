@@ -13,8 +13,8 @@ export const dbAggregateEntity =
   async (params: { accountId: string; operation: AggregateOperationInput }) => {
     const { accountId, operation } = params;
     const { entityTypeId } = operation;
-    const pageNumber = operation?.pageNumber || 1;
-    const itemsPerPage = operation?.itemsPerPage || 10;
+    const pageNumber = operation?.pageNumber ?? 1;
+    const itemsPerPage = operation?.itemsPerPage ?? 10;
     const multiSort = operation?.multiSort ?? [{ field: "updatedAt" }];
     const multiFilter = operation?.multiFilter;
 

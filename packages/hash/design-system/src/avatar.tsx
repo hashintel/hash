@@ -53,6 +53,8 @@ export const Avatar: FunctionComponent<AvatarProps> = ({
             lineHeight: 1,
           }}
         >
+          {/** @todo what to do about empty title */}
+          {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing */}
           {(title || "User").charAt(0).toUpperCase()}
         </Box>
       )}

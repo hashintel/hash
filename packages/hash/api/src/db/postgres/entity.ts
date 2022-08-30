@@ -810,7 +810,7 @@ export const getAncestorReferences = async (
   if (params.depth !== undefined && params.depth < 1) {
     throw new Error("parameter depth must be at least 1");
   }
-  const depth = params.depth || 1;
+  const depth = params.depth ?? 1;
   let refs = [{ accountId: params.accountId, entityId: params.entityId }];
   for (let i = 0; i < depth; i++) {
     const incomingLinks = await Promise.all(

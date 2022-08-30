@@ -37,7 +37,7 @@ export const createUser: ResolverFn<
         email,
         primary: true,
         verified: false,
-      })) ||
+      })) ??
       // ...or create this user
       (await User.createUser(client, {
         emails: [{ address: email, primary: true, verified: false }],
@@ -51,6 +51,8 @@ export const createUser: ResolverFn<
       emailTransporter,
       {
         emailAddress: email,
+        // @todo what to do about empty magicLinkQueryParams
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         magicLinkQueryParams: magicLinkQueryParams || undefined,
       },
     );

@@ -57,6 +57,8 @@ export const sendLoginCode: ResolverFn<
     return user
       .sendLoginVerificationCode(client, emailTransporter, {
         alternateEmailAddress: hasProvidedEmail ? emailOrShortname : undefined,
+        // @todo what to do about empty redirectPath
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         redirectPath: redirectPath || undefined,
       })
       .then((verificationCode) =>

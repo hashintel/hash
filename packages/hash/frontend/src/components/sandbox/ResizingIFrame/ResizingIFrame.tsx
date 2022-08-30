@@ -65,6 +65,8 @@ export const ResizingIFrame = forwardRef<
     <iframe
       {...props}
       ref={iFrameRef}
+      /** @todo what to do with empty title */
+      /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing */
       title={props.title || "HASH"}
       sandbox="allow-scripts allow-top-navigation-by-user-activation"
     />

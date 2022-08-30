@@ -21,16 +21,16 @@ if (!OPENSEARCH_ENABLED) {
 }
 
 // Environment variables
-const PORT = process.env.HASH_SEARCH_LOADER_PORT || 3838;
+const PORT = process.env.HASH_SEARCH_LOADER_PORT ?? 3838;
 const REDIS_HOST = getRequiredEnv("HASH_REDIS_HOST");
-const REDIS_PORT = parseInt(process.env.HASH_REDIS_PORT || "6379", 10);
+const REDIS_PORT = parseInt(process.env.HASH_REDIS_PORT ?? "6379", 10);
 const SEARCH_QUEUE_NAME = getRequiredEnv("HASH_SEARCH_QUEUE_NAME");
 const STATSD_ENABLED = process.env.STATSD_ENABLED === "1";
 const STATSD_HOST = STATSD_ENABLED ? getRequiredEnv("STATSD_HOST") : "";
-const STATSD_PORT = parseInt(process.env.STATSD_PORT || "8125", 10);
+const STATSD_PORT = parseInt(process.env.STATSD_PORT ?? "8125", 10);
 const OPENSEARCH_HOST = getRequiredEnv("HASH_OPENSEARCH_HOST");
 const OPENSEARCH_PORT = parseInt(
-  process.env.HASH_OPENSEARCH_PORT || "9200",
+  process.env.HASH_OPENSEARCH_PORT ?? "9200",
   10,
 );
 const OPENSEARCH_HTTPS_ENABLED =
@@ -125,7 +125,7 @@ const main = async () => {
       ? undefined
       : {
           username: process.env.HASH_OPENSEARCH_USERNAME,
-          password: process.env.HASH_OPENSEARCH_PASSWORD || "",
+          password: process.env.HASH_OPENSEARCH_PASSWORD ?? "",
         };
   const search = await OpenSearch.connect(logger, {
     host: OPENSEARCH_HOST,

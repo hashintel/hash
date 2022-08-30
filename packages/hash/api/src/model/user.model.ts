@@ -214,7 +214,7 @@ class __User extends Account {
 
   getEmail(emailAddress: string): Email | null {
     return (
-      this.properties.emails.find(({ address }) => address === emailAddress) ||
+      this.properties.emails.find(({ address }) => address === emailAddress) ??
       null
     );
   }
@@ -319,6 +319,8 @@ class __User extends Account {
     }
 
     const emailAddress =
+      // @todo what to do about empty alternateEmailAddress
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       alternateEmailAddress || this.getPrimaryEmail().address;
 
     const verificationCode = await VerificationCode.create(client, {

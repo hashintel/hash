@@ -72,7 +72,7 @@ const main = async () => {
   try {
     if (isStatsDEnabled) {
       const statsdHost = process.env.STATSD_HOST;
-      const statsdPort = parseInt(process.env.STATSD_PORT || "8125", 10);
+      const statsdPort = parseInt(process.env.STATSD_PORT ?? "8125", 10);
       await waitOnResource(`tcp:${statsdHost}:${statsdPort}`, logger);
 
       statsd = new StatsD({
@@ -181,11 +181,11 @@ const main = async () => {
         ? undefined
         : {
             username: process.env.HASH_OPENSEARCH_USERNAME,
-            password: process.env.HASH_OPENSEARCH_PASSWORD || "",
+            password: process.env.HASH_OPENSEARCH_PASSWORD ?? "",
           };
     search = await OpenSearch.connect(logger, {
       host: getRequiredEnv("HASH_OPENSEARCH_HOST"),
-      port: parseInt(process.env.HASH_OPENSEARCH_PORT || "9200", 10),
+      port: parseInt(process.env.HASH_OPENSEARCH_PORT ?? "9200", 10),
       auth: searchAuth,
       httpsEnabled: !!process.env.HASH_OPENSEARCH_HTTPS_ENABLED,
     });

@@ -208,6 +208,8 @@ export const LoginModal: FunctionComponent<LoginModalProps> = ({
 
   const defaultLoginIdentifier = useMemo(() => {
     const { email, shortname } = router.query;
+    // @todo how to handle empty email
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     const identifier = email || shortname;
 
     if (typeof identifier === "string") {

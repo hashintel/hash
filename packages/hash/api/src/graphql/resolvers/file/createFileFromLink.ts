@@ -20,6 +20,8 @@ export const createFileFromLink: ResolverFn<
   MutationCreateFileFromLinkArgs
 > = async (_, { name, url, accountId }, { user, dataSources }) => {
   const createdByAccountId = user.entityId;
+  // @todo what to do about empty name
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   const fileName = name || guessFileNameFromURL(url);
   const file = await File.createFileEntityFromLink(dataSources.db, {
     accountId,

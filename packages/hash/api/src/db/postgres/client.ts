@@ -226,13 +226,13 @@ export class PostgresClient implements DbClient {
     params: Parameters<DbClient["getEntity"]>[0],
     lock: boolean = false,
   ): ReturnType<DbClient["getEntity"]> {
-    return (await getEntity(this.conn, params, lock)) || undefined;
+    return await getEntity(this.conn, params, lock);
   }
 
   async getEntityLatestVersion(
     params: Parameters<DbClient["getEntityLatestVersion"]>[0],
   ): ReturnType<DbClient["getEntityLatestVersion"]> {
-    return (await getEntityLatestVersion(this.conn, params)) || undefined;
+    return await getEntityLatestVersion(this.conn, params);
   }
 
   async getEntityType(
@@ -246,11 +246,9 @@ export class PostgresClient implements DbClient {
   async getEntityTypeLatestVersion(
     params: Parameters<DbClient["getEntityTypeLatestVersion"]>[0],
   ): ReturnType<DbClient["getEntityTypeLatestVersion"]> {
-    return (
-      (await getEntityTypeLatestVersion(this.conn, {
-        entityId: params.entityTypeId,
-      })) || null
-    );
+    return await getEntityTypeLatestVersion(this.conn, {
+      entityId: params.entityTypeId,
+    });
   }
 
   async getEntityTypeByComponentId(
