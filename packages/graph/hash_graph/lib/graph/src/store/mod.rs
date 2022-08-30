@@ -17,7 +17,9 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    knowledge::{Entity, EntityId, Link, Links, PersistedEntity, PersistedEntityIdentifier},
+    knowledge::{
+        Entity, EntityId, Link, OutgoingLinks, PersistedEntity, PersistedEntityIdentifier,
+    },
     ontology::{
         types::{EntityType, LinkType},
         AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
@@ -414,7 +416,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = EntityQue
 
 /// Describes the API of a store implementation for [`Link`]s.
 #[async_trait]
-pub trait LinkStore: for<'q> crud::Read<Links, Query<'q> = LinkQuery<'q>> {
+pub trait LinkStore: for<'q> crud::Read<OutgoingLinks, Query<'q> = LinkQuery<'q>> {
     /// Creates a new [`Link`].
     ///
     /// # Errors:
@@ -428,12 +430,12 @@ pub trait LinkStore: for<'q> crud::Read<Links, Query<'q> = LinkQuery<'q>> {
         created_by: AccountId,
     ) -> Result<(), InsertionError>;
 
-    /// Get the [`Links`] specified by the [`LinkQuery`].
+    /// Get the [`OutgoingLinks`] specified by the [`LinkQuery`].
     ///
     /// # Errors
     ///
-    /// - if the requested [`Links`] don't exist.
-    async fn get_links(&self, query: &LinkQuery<'_>) -> Result<Vec<Links>, QueryError> {
+    /// - if the requested [`OutgoingLinks`] don't exist.
+    async fn get_links(&self, query: &LinkQuery<'_>) -> Result<Vec<OutgoingLinks>, QueryError> {
         self.read(query).await
     }
 

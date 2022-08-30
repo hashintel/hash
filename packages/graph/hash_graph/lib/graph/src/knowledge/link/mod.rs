@@ -11,9 +11,10 @@ use super::EntityId;
 ///
 /// The link is described by a link type [`VersionedUri`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
+#[serde(rename_all = "camelCase")]
 pub struct Link {
-    source_entity: EntityId,
-    target_entity: EntityId,
+    source_entity_id: EntityId,
+    target_entity_id: EntityId,
     #[component(value_type = String)]
     link_type_uri: VersionedUri,
 }
@@ -21,25 +22,25 @@ pub struct Link {
 impl Link {
     #[must_use]
     pub const fn new(
-        source_entity: EntityId,
-        target_entity: EntityId,
+        source_entity_id: EntityId,
+        target_entity_id: EntityId,
         link_type_uri: VersionedUri,
     ) -> Self {
         Self {
-            source_entity,
-            target_entity,
+            source_entity_id,
+            target_entity_id,
             link_type_uri,
         }
     }
 
     #[must_use]
     pub const fn source_entity(&self) -> EntityId {
-        self.source_entity
+        self.source_entity_id
     }
 
     #[must_use]
     pub const fn target_entity(&self) -> EntityId {
-        self.target_entity
+        self.target_entity_id
     }
 
     #[must_use]
@@ -56,31 +57,29 @@ impl fmt::Display for Link {
 
 // TODO: Add PersistedLink to expose metadata about link instances
 
-/// From a source entity, this is the outgoing link targeting one or more other entities given by
-/// [`EntityId`]s.
+/// Outgoing link targets of a source entity sharing the same link type. May be one or many
+/// [`EntityId`]s
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum Outgoing {
+pub enum OutgoingLinkTarget {
     Single(EntityId),
     Multiple(Vec<EntityId>),
 }
 
 /// A collection of links that originate from the same source entity.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
-pub struct Links {
-    #[serde(flatten)]
-    outgoing: HashMap<VersionedUri, Outgoing>,
-}
+#[serde(rename_all = "camelCase")]
+pub struct OutgoingLinks(HashMap<VersionedUri, OutgoingLinkTarget>);
 
-impl Links {
+impl OutgoingLinks {
     #[must_use]
-    pub const fn new(links: HashMap<VersionedUri, Outgoing>) -> Self {
-        Self { outgoing: links }
+    pub const fn new(links: HashMap<VersionedUri, OutgoingLinkTarget>) -> Self {
+        Self(links)
     }
 
     #[must_use]
-    pub const fn outgoing(&self) -> &HashMap<VersionedUri, Outgoing> {
-        &self.outgoing
+    pub const fn outgoing(&self) -> &HashMap<VersionedUri, OutgoingLinkTarget> {
+        &self.0
     }
 }
 
@@ -137,7 +136,7 @@ mod tests {
     fn test_link(json: &str) {
         let json_value: serde_json::Value = serde_json::from_str(json).expect("invalid JSON");
 
-        let link: Links = serde_json::from_value(json_value.clone()).expect("invalid link");
+        let link: OutgoingLinks = serde_json::from_value(json_value.clone()).expect("invalid link");
 
         assert_eq!(
             serde_json::to_value(link.clone()).expect("could not serialize"),

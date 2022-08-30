@@ -6,5 +6,5 @@ mod link;
 
 pub use self::{
     entity::{Entity, EntityId, PersistedEntity, PersistedEntityIdentifier},
-    link::{Link, LinkStatus, Links, Outgoing},
+    link::{Link, LinkStatus, OutgoingLinkTarget, OutgoingLinks},
 };

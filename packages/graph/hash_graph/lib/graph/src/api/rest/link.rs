@@ -9,7 +9,7 @@ use utoipa::{Component, OpenApi};
 
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store},
-    knowledge::{EntityId, Link, Links},
+    knowledge::{EntityId, Link, OutgoingLinks},
     ontology::AccountId,
     store::{error::QueryError, query::LinkQuery, LinkStore, StorePool},
 };
@@ -21,7 +21,7 @@ use crate::{
         get_entity_links,
         inactivate_link
     ),
-    components(AccountId, Link, Links, CreateLinkRequest, InactivateLinkRequest),
+    components(AccountId, Link, OutgoingLinks, CreateLinkRequest, InactivateLinkRequest),
     tags(
         (name = "Link", description = "link management API")
     )
@@ -48,7 +48,7 @@ impl RoutedResource for LinkResource {
 #[derive(Serialize, Deserialize, Component)]
 #[serde(rename_all = "camelCase")]
 struct CreateLinkRequest {
-    target_entity: EntityId,
+    target_entity_id: EntityId,
     #[component(value_type = String)]
     link_type_uri: VersionedUri,
     account_id: AccountId,
@@ -71,13 +71,13 @@ struct CreateLinkRequest {
     )
 )]
 async fn create_link<P: StorePool + Send>(
-    source_entity: Path<EntityId>,
+    source_entity_id: Path<EntityId>,
     body: Json<CreateLinkRequest>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Link>, StatusCode> {
-    let Path(source_entity) = source_entity;
+    let Path(source_entity_id) = source_entity_id;
     let Json(CreateLinkRequest {
-        target_entity,
+        target_entity_id,
         link_type_uri,
         account_id,
     }) = body;
@@ -87,7 +87,7 @@ async fn create_link<P: StorePool + Send>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let link = Link::new(source_entity, target_entity, link_type_uri);
+    let link = Link::new(source_entity_id, target_entity_id, link_type_uri);
 
     store
         .create_link(&link, account_id)
@@ -112,7 +112,7 @@ async fn create_link<P: StorePool + Send>(
     path = "/entities/{entityId}/links",
     tag = "Link",
     responses(
-        (status = 200, content_type = "application/json", description = "The requested links on the given source entity", body = Links),
+        (status = 200, content_type = "application/json", description = "The requested links on the given source entity", body = OutgoingLinks),
         (status = 422, content_type = "text/plain", description = "Provided source entity id is invalid"),
 
         (status = 404, description = "No links were found"),
@@ -125,7 +125,7 @@ async fn create_link<P: StorePool + Send>(
 async fn get_entity_links<P: StorePool + Send>(
     Path(source_entity_id): Path<EntityId>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<Links>, StatusCode> {
+) -> Result<Json<OutgoingLinks>, StatusCode> {
     read_from_store(
         pool.as_ref(),
         &LinkQuery::new().by_source_entity_id(source_entity_id),
@@ -138,7 +138,7 @@ async fn get_entity_links<P: StorePool + Send>(
 #[derive(Serialize, Deserialize, Component)]
 #[serde(rename_all = "camelCase")]
 struct InactivateLinkRequest {
-    target_entity: EntityId,
+    target_entity_id: EntityId,
     #[component(value_type = String)]
     link_type_uri: VersionedUri,
 }
@@ -160,13 +160,13 @@ struct InactivateLinkRequest {
     ),
 )]
 async fn inactivate_link<P: StorePool + Send>(
-    source_entity: Path<EntityId>,
+    source_entity_id: Path<EntityId>,
     body: Json<InactivateLinkRequest>,
     pool: Extension<Arc<P>>,
 ) -> Result<StatusCode, StatusCode> {
-    let Path(source_entity) = source_entity;
+    let Path(source_entity_id) = source_entity_id;
     let Json(InactivateLinkRequest {
-        target_entity,
+        target_entity_id,
         link_type_uri,
     }) = body;
 
@@ -176,7 +176,11 @@ async fn inactivate_link<P: StorePool + Send>(
     })?;
 
     store
-        .inactivate_link(&Link::new(source_entity, target_entity, link_type_uri))
+        .inactivate_link(&Link::new(
+            source_entity_id,
+            target_entity_id,
+            link_type_uri,
+        ))
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not inactivate link");
