@@ -831,10 +831,11 @@ impl Opaque {
 
 fn debug_attachments(
     loc: Option<Line>,
-    last: bool,
+    position: Position,
     frames: Vec<&Frame>,
     #[cfg(feature = "std")] ctx: &mut HookContextImpl,
 ) -> Lines {
+    let last = matches!(position, Position::Last);
     let mut opaque = Opaque::new();
 
     // evaluate all frames to their respective values, will call all hooks with the current context
@@ -1034,7 +1035,24 @@ fn debug_frame(
             body.reverse();
             let body = debug_attachments(
                 Some(loc),
-                (len == 1 && sources.is_empty()) || idx > 0,
+                // This makes sure that we use `\-` instead of `-`,
+                // this is true whenever we only have a single context and no sources,
+                // **or** if our idx is larger than `0`, this might sound false,
+                // but this is because contexts other than the first context create a new
+                // "indentation", in this indentation we are considered last.
+                //
+                // Context A
+                // | Attachment B
+                // | Attachment C <- not last, because we are not the only context
+                // |
+                // \-Context <- indentation here is handled by `debug_render`!
+                //   | Attachment B
+                //   \-Attachment C <- last because it's the last of the parent context!
+                if (len == 1 && sources.is_empty()) || idx > 0 {
+                    Position::Last
+                } else {
+                    Position::Middle
+                },
                 once(head).chain(body).collect(),
                 #[cfg(feature = "std")]
                 ctx,
