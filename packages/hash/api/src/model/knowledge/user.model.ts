@@ -186,6 +186,9 @@ export default class extends EntityModel {
     return matchingUser ?? null;
   }
 
+  /**
+   * Get the system User entity type.
+   */
   static async getUserEntityType(graphApi: GraphApi): Promise<EntityTypeModel> {
     return await EntityTypeModel.get(graphApi, {
       versionedUri: userEntityTypeVersionedUri,
@@ -316,6 +319,12 @@ export default class extends EntityModel {
     return (this.properties as any)[AccountFields.shortnameBaseUri];
   }
 
+  /**
+   * Update the shorname of a User.
+   *
+   * @param params.updatedByAccountId - the account id of the user requesting the updating
+   * @param params.updatedShortname - the new shortname to assign to the User
+   */
   async updateShortname(
     graphApi: GraphApi,
     params: { updatedByAccountId: string; updatedShortname: string },
@@ -369,6 +378,12 @@ export default class extends EntityModel {
     return preferredName === "";
   }
 
+  /**
+   * Update the preferred name of a User.
+   *
+   * @param params.updatedByAccountId - the account id of the user requesting the updating
+   * @param params.updatedPreferredName - the new preferred name to assign to the User
+   */
   async updatePreferredName(
     graphApi: GraphApi,
     params: { updatedByAccountId: string; updatedPreferredName: string },

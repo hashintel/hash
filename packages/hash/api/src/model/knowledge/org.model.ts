@@ -157,6 +157,9 @@ export default class extends EntityModel {
     });
   }
 
+  /**
+   * Get the system Organization entity type.
+   */
   static async getOrgEntityType(graphApi: GraphApi) {
     return await EntityTypeModel.get(graphApi, {
       versionedUri: orgEntityTypeVersionedUri,
@@ -196,6 +199,12 @@ export default class extends EntityModel {
     return (this.properties as any)[AccountFields.shortnameBaseUri];
   }
 
+  /**
+   * Update the shorname of an Organization
+   *
+   * @param params.updatedByAccountId - the account id of the user requesting the updating
+   * @param params.updatedShortname - the new shortname to assign to the Organization
+   */
   async updateShortname(
     graphApi: GraphApi,
     params: { updatedByAccountId: string; updatedShortname: string },
@@ -232,6 +241,12 @@ export default class extends EntityModel {
     return preferredName === "";
   }
 
+  /**
+   * Update the name of an Organization
+   *
+   * @param params.updatedByAccountId - the account id of the user requesting the updating
+   * @param params.updatedOrgName - the new name to assign to the Organization
+   */
   async updateOrgName(
     graphApi: GraphApi,
     params: { updatedByAccountId: string; updatedOrgName: string },
