@@ -10,7 +10,7 @@ import {
   TextSelection,
   Transaction,
 } from "prosemirror-state";
-import { ReactElement, RefObject } from "react";
+import { ReactElement } from "react";
 import { ensureMounted } from "../../../lib/dom";
 import { RenderPortal } from "../usePortals";
 import { BlockSuggester } from "./BlockSuggester";

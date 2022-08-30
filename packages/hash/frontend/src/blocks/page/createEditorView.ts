@@ -1,4 +1,3 @@
-import { RefObject } from "react";
 import { HashBlock } from "@hashintel/hash-shared/blocks";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
