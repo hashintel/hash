@@ -3,6 +3,7 @@
 use std::sync::Arc;
 
 use axum::{
+    extract::Path,
     http::StatusCode,
     routing::{get, post},
     Extension, Json, Router,
@@ -148,7 +149,7 @@ async fn get_latest_property_types<P: StorePool + Send>(
     )
 )]
 async fn get_property_type<P: StorePool + Send>(
-    uri: axum::extract::Path<VersionedUri>,
+    uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedPropertyType>, StatusCode> {
     read_from_store(pool.as_ref(), &Expression::for_versioned_uri(&uri.0))
