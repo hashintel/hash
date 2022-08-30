@@ -132,6 +132,10 @@ export default class {
   /**
    * Get the outgoing link of a source entity given a link type.
    *
+   * @todo Once multi links (1:N links) can be created, we need to change this
+   *   method appropriately to retrieve multi links
+   *   https://app.asana.com/0/0/1202891272217988/f
+   *
    * @param params.accountId the accountId of the account creating the link
    * @param params.sourceEntityModel the source entity of the link
    * @param params.linkTypeModel the Link Type of the link
@@ -154,7 +158,10 @@ export default class {
     ).filter(
       (link) => link.linkTypeModel.schema.$id === linkTypeModel.schema.$id,
     );
-    /** @todo this may return an array of links whe new support 1:N links. */
+    /**
+     * @todo this may return an array of links when we support 1:N links.
+     *   see https://app.asana.com/0/0/1202891272217988/f
+     */
     return links[0] ? links[0] : null;
   }
 
