@@ -85,8 +85,7 @@ impl Drop for Segment {
             // we need to remove this from the list of segments that the engine has currently
             // allocated (as we are about to deallocate it)
             let was_present = {
-                let in_use = cleanup::IN_USE_SHM_SEGMENTS;
-                let mut lock = in_use.lock().unwrap();
+                let mut lock = IN_USE_SHM_SEGMENTS.lock().unwrap();
                 lock.remove(self.id())
             };
             debug_assert!(
@@ -95,8 +94,7 @@ impl Drop for Segment {
                 self.id(),
                 {
                     let debug_repr: String = {
-                        let in_use = cleanup::IN_USE_SHM_SEGMENTS;
-                        let lock = in_use.lock().unwrap();
+                        let lock = IN_USE_SHM_SEGMENTS.lock().unwrap();
                         format!("{lock:?}")
                     };
                     debug_repr

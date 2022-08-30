@@ -1,12 +1,15 @@
-use std::{collections::BTreeSet, sync::Mutex};
+use std::{collections::HashSet, sync::Mutex};
 
 use glob::GlobError;
+use lazy_static::lazy_static;
 use uuid::Uuid;
 
-/// We use this to keep a list of all the shared-memory segements which are
-/// being used by the engine. When the engine exits, we then delete any
-/// leftover shared memory segments (in release builds; we error in debug builds).
-pub const IN_USE_SHM_SEGMENTS: Mutex<BTreeSet<String>> = Mutex::new(BTreeSet::new());
+lazy_static! {
+    /// We use this to keep a list of all the shared-memory segements which are
+    /// being used by the engine. When the engine exits, we then delete any
+    /// leftover shared memory segments (in release builds; we error in debug builds).
+    pub static ref IN_USE_SHM_SEGMENTS: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
+}
 
 use crate::{shared_memory::MemoryId, Error, Result};
 
@@ -18,8 +21,7 @@ use crate::{shared_memory::MemoryId, Error, Result};
 #[allow(clippy::significant_drop_in_scrutinee)]
 pub fn cleanup_by_base_id(id: Uuid) -> Result<()> {
     let segments_not_removed_by_engine: Vec<String> = {
-        let in_use = IN_USE_SHM_SEGMENTS;
-        let mut segments_list_lock = in_use.lock().unwrap();
+        let mut segments_list_lock = IN_USE_SHM_SEGMENTS.lock().unwrap();
 
         let mut segments_not_removed_by_engine = Vec::new();
 
