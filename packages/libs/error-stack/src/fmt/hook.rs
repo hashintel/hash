@@ -14,9 +14,7 @@ use core::{
 };
 
 #[cfg(feature = "std")]
-use default::builtin;
-#[cfg(not(feature = "std"))]
-pub(crate) use default::debug_hooks_no_std;
+pub(crate) use default::install_builtin_hooks;
 
 use crate::fmt::{Emit, Frame};
 
@@ -523,8 +521,6 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
 /// [`.insert()`]: Hooks::insert
 #[cfg(feature = "std")]
 pub(crate) struct Hooks {
-    pub(crate) init: bool,
-
     // We use `Vec`, instead of `HashMap` or `BTreeMap`, so that ordering is consistent with the
     // insertion order of types.
     pub(crate) inner: Vec<(TypeId, BoxedHook)>,
@@ -533,23 +529,10 @@ pub(crate) struct Hooks {
 
 #[cfg(feature = "std")]
 impl Hooks {
-    fn load(&mut self) {
-        if self.init {
-            return;
-        }
-
-        self.inner.append(&mut builtin());
-
-        self.init = true;
-    }
-
     pub(crate) fn insert<T: Send + Sync + 'static>(
         &mut self,
         hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) -> Vec<Emit> + Send + Sync + 'static,
     ) {
-        // make sure that we have loaded all built-in hooks
-        self.load();
-
         let type_id = TypeId::of::<T>();
 
         // make sure that previous hooks of the same TypeId are deleted.
@@ -569,11 +552,6 @@ impl Hooks {
         let emits: Vec<_> = self
             .inner
             .iter()
-            .chain(
-                // make sure that we execute the builtin hooks even if we haven't called `insert()`
-                // yet
-                (!self.init).then(|| builtin()).iter().flatten(),
-            )
             .flat_map(|(_, hook)| hook(frame, ctx))
             .collect();
 
@@ -590,12 +568,16 @@ impl Hooks {
 mod default {
     #![allow(unused_imports)]
 
-    #[cfg(any(all(rust_1_65, feature = "std"), feature = "spantrace"))]
+    #[cfg(any(rust_1_65, feature = "spantrace"))]
     use alloc::format;
     use alloc::{vec, vec::Vec};
     use core::any::TypeId;
-    #[cfg(all(rust_1_65, feature = "std"))]
+    #[cfg(rust_1_65)]
     use std::backtrace::Backtrace;
+    use std::sync::{
+        atomic::{AtomicBool, Ordering},
+        Once,
+    };
 
     #[cfg(feature = "spantrace")]
     use tracing_error::SpanTrace;
@@ -605,29 +587,36 @@ mod default {
             hook::{into_boxed_hook, BoxedHook, HookContext},
             Emit,
         },
-        Frame,
+        Frame, Report,
     };
 
-    // TODO: this is called for every invocation of call() if we haven't `.insert()` yet
-    //  I'd like to remove that this called every time.
-    #[cfg(feature = "std")]
-    pub(crate) fn builtin() -> Vec<(TypeId, BoxedHook)> {
-        let mut hooks = vec![];
+    pub(crate) fn install_builtin_hooks() {
+        static INSTALL_BUILTIN: Once = Once::new();
 
-        #[cfg(feature = "spantrace")]
-        {
-            hooks.push((TypeId::of::<SpanTrace>(), into_boxed_hook(span_trace)));
+        // This static makes sure that we only run once, if we wouldn't have this guard we would
+        // deadlock, as `install_debug_hook` calls `install_builtin_hooks`, and according to the
+        // docs:
+        //
+        // > If the given closure recursively invokes call_once on the same Once instance the exact
+        // > behavior is not specified, allowed outcomes are a panic or a deadlock.
+        static INSTALL_BUILTIN_RUNNING: AtomicBool = AtomicBool::new(false);
+
+        if INSTALL_BUILTIN.is_completed() || INSTALL_BUILTIN_RUNNING.load(Ordering::Acquire) {
+            return;
         }
 
-        #[cfg(rust_1_65)]
-        {
-            hooks.push((TypeId::of::<Backtrace>(), into_boxed_hook(backtrace)));
-        }
+        INSTALL_BUILTIN.call_once(|| {
+            INSTALL_BUILTIN_RUNNING.store(true, Ordering::Release);
 
-        hooks
+            #[cfg(all(rust_1_65))]
+            Report::install_debug_hook(backtrace);
+
+            #[cfg(feature = "spantrace")]
+            Report::install_debug_hook(span_trace);
+        })
     }
 
-    #[cfg(all(rust_1_65, feature = "std"))]
+    #[cfg(rust_1_65)]
     fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Vec<Emit> {
         let idx = ctx.increment();
 
@@ -639,6 +628,7 @@ mod default {
             idx + 1
         ))]
     }
+
     #[cfg(feature = "spantrace")]
     fn span_trace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) -> Vec<Emit> {
         let idx = ctx.increment();
@@ -655,41 +645,5 @@ mod default {
             "spantrace with {span} frames ({})",
             idx + 1
         ))]
-    }
-
-    /// This manually calls all builtin hooks for installations that do not have std enabled.
-    // Frame can be unused, if neither backtrace or spantrace are enabled
-    #[allow(unused_variables)]
-    #[cfg(not(feature = "std"))]
-    pub(crate) fn debug_hooks_no_std<'a>(
-        frame: &Frame,
-        ctx: &mut HookContext<'a, Frame>,
-    ) -> Vec<Emit> {
-        #[allow(unused_mut)]
-        let mut emit = vec![];
-
-        // we're only able to use `request_ref` in nightly, because the Provider API hasn't been
-        // stabilized yet.
-        #[cfg(nightly)]
-        {
-            // backtrace isn't included because this function is only available on no_std
-
-            #[cfg(feature = "spantrace")]
-            if let Some(st) = frame.request_ref() {
-                emit.append(&mut span_trace(st, ctx.cast()));
-            }
-        }
-
-        #[cfg(not(nightly))]
-        {
-            // backtrace isn't included because this function is only available on no_std
-
-            #[cfg(feature = "spantrace")]
-            if let Some(st) = frame.downcast_ref() {
-                emit.append(&mut span_trace(st, ctx.cast()));
-            }
-        }
-
-        emit
     }
 }

@@ -160,7 +160,7 @@ pub use hook::HookContext;
 #[cfg(feature = "std")]
 use hook::HookContextImpl;
 #[cfg(feature = "std")]
-pub(crate) use hook::Hooks;
+pub(crate) use hook::{install_builtin_hooks, Hooks};
 #[cfg(feature = "pretty-print")]
 use owo_colors::{OwoColorize, Stream::Stdout, Style as OwOStyle};
 

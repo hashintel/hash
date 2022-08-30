@@ -1,14 +1,13 @@
 use std::{error::Error, fmt, sync::RwLock};
 
 use crate::{
-    fmt::{Emit, HookContext, Hooks},
+    fmt::{install_builtin_hooks, Emit, HookContext, Hooks},
     Frame, Report, Result,
 };
 
 type FormatterHook = Box<dyn Fn(&Report<()>, &mut fmt::Formatter<'_>) -> fmt::Result + Send + Sync>;
 
 static FMT_HOOK: RwLock<Hooks> = RwLock::new(Hooks {
-    init: false,
     inner: Vec::new(),
     fallback: None,
 });
@@ -168,6 +167,8 @@ impl Report<()> {
     pub fn install_debug_hook<T: Send + Sync + 'static>(
         hook: impl Fn(&T, &mut HookContext<T>) -> Vec<Emit> + Send + Sync + 'static,
     ) {
+        install_builtin_hooks();
+
         let mut lock = FMT_HOOK.write().expect("should not be poisoned");
         lock.insert(hook);
     }
@@ -302,6 +303,8 @@ impl Report<()> {
     /// [`install_debug_hook`]: Self::install_debug_hook
     #[cfg(feature = "std")]
     pub(crate) fn get_debug_format_hook<T>(closure: impl FnOnce(&Hooks) -> T) -> T {
+        install_builtin_hooks();
+
         let hook = FMT_HOOK.read().expect("should not be poisoned");
         closure(&hook)
     }
