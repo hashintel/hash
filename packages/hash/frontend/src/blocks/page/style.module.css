@@ -35,24 +35,25 @@
 }
 
 .Block__UI {
+  position: absolute;
+  left: -32px;
   user-select: none;
-  flex: 0 1 auto;
-  margin-right: 0.75rem;
   display: flex;
   align-items: center;
 }
 
 .Block__Content {
+  /* This is relative because `placeholderPlugin` is rendered absolutely, and wrapped by this  */
+  position: relative;
   flex: 1;
   height: 100%;
 }
 
 .Block__InsertBlock {
-  width: calc(100% - 36px);
+  width: 100%;
   max-width: 1200px;
   position: absolute;
   height: 30px;
-  margin-left: 36px;
 }
 
 .Block__InsertBlock__Bottom {
