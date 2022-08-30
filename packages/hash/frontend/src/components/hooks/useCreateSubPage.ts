@@ -10,7 +10,9 @@ import {
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { createPage, setParentPage } from "../../graphql/queries/page.queries";
 
-export const useCreateSubPage = (accountId: string) => {
+export const useCreateSubPage = (
+  accountId: string,
+): [(parentPageEntityId: string) => Promise<void>, { loading: boolean }] => {
   const router = useRouter();
 
   const [createPageFn, { loading: createPageLoading }] = useMutation<
@@ -49,14 +51,14 @@ export const useCreateSubPage = (accountId: string) => {
           },
         });
 
-        return router.push(`/${pageAccountId}/${pageEntityId}`);
+        await router.push(`/${pageAccountId}/${pageEntityId}`);
       }
     },
     [createPageFn, accountId, setParentPageFn, router],
   );
 
-  return {
+  return [
     createSubPage,
-    loading: createPageLoading || setParentPageLoading,
-  };
+    { loading: createPageLoading || setParentPageLoading },
+  ];
 };

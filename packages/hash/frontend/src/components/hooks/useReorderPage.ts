@@ -7,7 +7,16 @@ import {
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { setParentPage } from "../../graphql/queries/page.queries";
 
-export const useReorderPage = (accountId: string) => {
+export const useReorderPage = (
+  accountId: string,
+): [
+  (
+    pageEntityId: string,
+    parentPageEntityId: string | null,
+    index: number,
+  ) => Promise<void>,
+  { loading: boolean },
+] => {
   const [setParentPageFn, { loading }] = useMutation<
     SetParentPageMutation,
     SetParentPageMutationVariables
@@ -27,7 +36,7 @@ export const useReorderPage = (accountId: string) => {
       parentPageEntityId: string | null,
       index: number,
     ) => {
-      return setParentPageFn({
+      await setParentPageFn({
         variables: {
           accountId,
           parentPageEntityId,
@@ -39,8 +48,5 @@ export const useReorderPage = (accountId: string) => {
     [accountId, setParentPageFn],
   );
 
-  return {
-    reorderPage,
-    loading,
-  };
+  return [reorderPage, { loading }];
 };

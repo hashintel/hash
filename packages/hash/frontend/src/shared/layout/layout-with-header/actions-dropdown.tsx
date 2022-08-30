@@ -27,7 +27,7 @@ export const ActionsDropdownInner: FunctionComponent<{
   const router = useRouter();
   const theme = useTheme();
   const [loading, setLoading] = useState(false);
-  const { createUntitledPage } = useCreatePage(accountId);
+  const [createUntitledPage] = useCreatePage(accountId);
   const popupState = usePopupState({
     variant: "popover",
     popupId: "actions-dropdown-menu",

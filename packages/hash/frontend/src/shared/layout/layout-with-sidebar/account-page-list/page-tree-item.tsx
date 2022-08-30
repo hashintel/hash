@@ -18,8 +18,12 @@ export interface PageTreeItemProps {
   expanded: boolean;
   expandable: boolean;
   collapsed: boolean;
-  createSubPage: (parentPageEntityId: string) => Promise<boolean | undefined>;
-  archivePage: (accountId: string, pageEntityId: string) => Promise<void>;
+  createSubPage: (parentPageEntityId: string) => Promise<void>;
+  archivePage: (
+    value: boolean,
+    accountId: string,
+    pageEntityId: string,
+  ) => Promise<void>;
   onCollapse?: () => void;
   isSorting?: boolean;
   attributes?: DraggableAttributes;

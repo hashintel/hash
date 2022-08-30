@@ -11,7 +11,10 @@ import {
 import { useCallback } from "react";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 
-export const useArchivePage = () => {
+export const useArchivePage = (): [
+  (value: boolean, accountId: string, pageEntityId: string) => Promise<void>,
+  { loading: boolean },
+] => {
   const [updatePageFn, { loading }] = useMutation<
     UpdatePageMutation,
     UpdatePageMutationVariables
@@ -35,12 +38,12 @@ export const useArchivePage = () => {
   );
 
   const archivePage = useCallback(
-    async (accountId: string, pageEntityId: string) => {
+    async (value: boolean, accountId: string, pageEntityId: string) => {
       await updatePageFn({
         variables: {
           accountId,
           entityId: pageEntityId,
-          properties: { archived: true },
+          properties: { archived: value },
         },
         refetchQueries: getRefetchQueries(accountId, pageEntityId),
       });
@@ -48,19 +51,5 @@ export const useArchivePage = () => {
     [updatePageFn, getRefetchQueries],
   );
 
-  const unarchivePage = useCallback(
-    async (accountId: string, pageEntityId: string) => {
-      await updatePageFn({
-        variables: {
-          accountId,
-          entityId: pageEntityId,
-          properties: { archived: false },
-        },
-        refetchQueries: getRefetchQueries(accountId, pageEntityId),
-      });
-    },
-    [updatePageFn, getRefetchQueries],
-  );
-
-  return { archivePage, unarchivePage, loading };
+  return [archivePage, { loading }];
 };

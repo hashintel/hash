@@ -50,12 +50,12 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 }) => {
   const { data } = useAccountPages(accountId);
 
-  const { createUntitledPage, loading: createUntitledPageLoading } =
+  const [createUntitledPage, { loading: createUntitledPageLoading }] =
     useCreatePage(accountId);
-  const { createSubPage, loading: createSubpageLoading } =
+  const [createSubPage, { loading: createSubpageLoading }] =
     useCreateSubPage(accountId);
-  const { reorderPage, loading: reorderLoading } = useReorderPage(accountId);
-  const { archivePage, loading: archivePageLoading } = useArchivePage();
+  const [reorderPage, { loading: reorderLoading }] = useReorderPage(accountId);
+  const [archivePage, { loading: archivePageLoading }] = useArchivePage();
 
   const [expandedPageIds, setExpandedPageIds] = useLocalstorageState<string[]>(
     "hash-expanded-sidebar-pages",

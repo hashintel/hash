@@ -8,7 +8,9 @@ import {
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { createPage } from "../../graphql/queries/page.queries";
 
-export const useCreatePage = (accountId: string) => {
+export const useCreatePage = (
+  accountId: string,
+): [() => Promise<boolean | undefined>, { loading: boolean }] => {
   const router = useRouter();
 
   const [createPageFn, { loading: createPageLoading }] = useMutation<
@@ -37,8 +39,5 @@ export const useCreatePage = (accountId: string) => {
     }
   }, [createPageFn, accountId, router]);
 
-  return {
-    createUntitledPage,
-    loading: createPageLoading,
-  };
+  return [createUntitledPage, { loading: createPageLoading }];
 };
