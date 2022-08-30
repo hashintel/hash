@@ -77,10 +77,10 @@ export interface CreateEntityRequest {
   accountId: string;
   /**
    *
-   * @type {Entity}
+   * @type {object}
    * @memberof CreateEntityRequest
    */
-  entity: Entity;
+  entity: object;
   /**
    *
    * @type {string}
@@ -130,7 +130,7 @@ export interface CreateLinkRequest {
    * @type {string}
    * @memberof CreateLinkRequest
    */
-  targetEntity: string;
+  targetEntityId: string;
 }
 /**
  *
@@ -229,19 +229,6 @@ export interface DataTypeReference {
    * @memberof DataTypeReference
    */
   $ref: string;
-}
-/**
- * An entity.
- * @export
- * @interface Entity
- */
-export interface Entity {
-  /**
-   *
-   * @type {object}
-   * @memberof Entity
-   */
-  properties: object;
 }
 /**
  * Specifies the structure of an Entity Type
@@ -347,7 +334,7 @@ export interface InactivateLinkRequest {
    * @type {string}
    * @memberof InactivateLinkRequest
    */
-  targetEntity: string;
+  targetEntityId: string;
 }
 /**
  * A Link between a source and a target entity identified by [`EntityId`]s.
@@ -360,19 +347,19 @@ export interface Link {
    * @type {string}
    * @memberof Link
    */
-  link_type_uri: string;
+  linkTypeUri: string;
   /**
    *
    * @type {string}
    * @memberof Link
    */
-  source_entity: string;
+  sourceEntityId: string;
   /**
    *
    * @type {string}
    * @memberof Link
    */
-  target_entity: string;
+  targetEntityId: string;
 }
 /**
  * Specifies the structure of a Link Type
@@ -420,19 +407,6 @@ export type LinkTypeKindEnum =
   typeof LinkTypeKindEnum[keyof typeof LinkTypeKindEnum];
 
 /**
- * A collection of links that originate from the same source entity.
- * @export
- * @interface Links
- */
-export interface Links {
-  /**
-   *
-   * @type {object}
-   * @memberof Links
-   */
-  outgoing: object;
-}
-/**
  *
  * @export
  * @interface PersistedDataType
@@ -465,10 +439,10 @@ export interface PersistedEntity {
   identifier: PersistedEntityIdentifier;
   /**
    *
-   * @type {Entity}
+   * @type {object}
    * @memberof PersistedEntity
    */
-  inner: Entity;
+  inner: object;
   /**
    *
    * @type {string}
@@ -743,10 +717,10 @@ export interface UpdateEntityRequest {
   accountId: string;
   /**
    *
-   * @type {Entity}
+   * @type {object}
    * @memberof UpdateEntityRequest
    */
-  entity: Entity;
+  entity: object;
   /**
    *
    * @type {string}
@@ -3839,7 +3813,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       entityId: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Links>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<object>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getEntityLinks(
         entityId,
@@ -4336,7 +4310,7 @@ export const GraphApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getEntityLinks(entityId: string, options?: any): AxiosPromise<Links> {
+    getEntityLinks(entityId: string, options?: any): AxiosPromise<object> {
       return localVarFp
         .getEntityLinks(entityId, options)
         .then((request) => request(axios, basePath));
@@ -4645,7 +4619,7 @@ export interface GraphApiInterface {
   getEntityLinks(
     entityId: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Links>;
+  ): AxiosPromise<object>;
 
   /**
    *
@@ -5377,7 +5351,7 @@ export const LinkApiFp = function (configuration?: Configuration) {
       entityId: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Links>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<object>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getEntityLinks(
         entityId,
@@ -5452,7 +5426,7 @@ export const LinkApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getEntityLinks(entityId: string, options?: any): AxiosPromise<Links> {
+    getEntityLinks(entityId: string, options?: any): AxiosPromise<object> {
       return localVarFp
         .getEntityLinks(entityId, options)
         .then((request) => request(axios, basePath));
@@ -5506,7 +5480,7 @@ export interface LinkApiInterface {
   getEntityLinks(
     entityId: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Links>;
+  ): AxiosPromise<object>;
 
   /**
    *

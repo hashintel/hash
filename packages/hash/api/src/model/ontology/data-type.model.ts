@@ -29,8 +29,10 @@ export default class {
    * Create a data type.
    *
    * @todo revisit data type creation
-   * User defined data types are not specified yet, which means this `create`
-   * operation should not be exposed to users yet.
+   *   User defined data types are not specified yet, which means this `create`
+   *   operation should not be exposed to users yet.
+   *   Depends on the RFC captured by:
+   *   https://app.asana.com/0/1200211978612931/1202464168422955/f
    *
    * @param params.accountId the accountId of the account creating the data type
    * @param params.schema a `DataType`
@@ -59,7 +61,12 @@ export default class {
     graphApi: GraphApi,
     _params: { accountId: string },
   ): Promise<DataTypeModel[]> {
-    /** @todo: get all latest data types in specified account */
+    /**
+     * @todo: get all latest data types in specified account.
+     *   This may mean implictly filtering results by what an account is
+     *   authorized to see.
+     *   https://app.asana.com/0/1202805690238892/1202890446280569/f
+     */
     const { data: persistedDataTypes } = await graphApi.getLatestDataTypes();
 
     return persistedDataTypes.map(
@@ -98,8 +105,10 @@ export default class {
    * Update a data type.
    *
    * @todo revisit data type update
-   * As with data type `create`, this `update` operation is not currently relevant to users
-   * because user defined data types are not fully specified.
+   *   As with data type `create`, this `update` operation is not currently relevant to users
+   *   because user defined data types are not fully specified.
+   *   Depends on the RFC captured by:
+   *   https://app.asana.com/0/1200211978612931/1202464168422955/f
    *
    * @param params.accountId the accountId of the account making the update
    * @param params.schema a `DataType`

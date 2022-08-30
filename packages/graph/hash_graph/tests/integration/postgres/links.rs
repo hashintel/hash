@@ -1,4 +1,4 @@
-use graph::knowledge::Outgoing;
+use graph::knowledge::OutgoingLinkTarget;
 use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::{
@@ -59,7 +59,7 @@ async fn insert() {
 
     assert_eq!(
         link_target,
-        Outgoing::Single(person_b_identifier.entity_id())
+        OutgoingLinkTarget::Single(person_b_identifier.entity_id())
     );
 }
 

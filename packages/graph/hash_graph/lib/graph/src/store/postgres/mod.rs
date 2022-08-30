@@ -599,8 +599,8 @@ where
     async fn update_link_status(
         &self,
         active: LinkStatus,
-        source_entity: EntityId,
-        target_entity: EntityId,
+        source_entity_id: EntityId,
+        target_entity_id: EntityId,
         link_type_version_id: VersionId,
     ) -> Result<(), LinkActivationError> {
         self.as_client()
@@ -611,7 +611,7 @@ where
                     WHERE source_entity_id = $2 AND target_entity_id = $3 AND link_type_version_id = $4
                     RETURNING source_entity_id, target_entity_id, link_type_version_id;
                 "#,
-                &[&active, &source_entity, &target_entity, &link_type_version_id],
+                &[&active, &source_entity_id, &target_entity_id, &link_type_version_id],
             )
             .await
             .into_report()

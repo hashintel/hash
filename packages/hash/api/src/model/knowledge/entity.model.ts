@@ -1,6 +1,12 @@
 import { PersistedEntity, GraphApi } from "@hashintel/hash-graph-client";
 
-import { EntityModel, EntityTypeModel } from "../index";
+import {
+  EntityModel,
+  EntityTypeModel,
+  LinkModel,
+  LinkModelCreateParams,
+  LinkTypeModel,
+} from "../index";
 
 export type EntityModelConstructorParams = {
   accountId: string;
@@ -68,7 +74,7 @@ export default class {
       entityId: identifier.entityId,
       version,
       entityTypeModel,
-      properties: inner.properties,
+      properties: inner,
     });
   }
 
@@ -87,7 +93,7 @@ export default class {
     } = await graphApi.createEntity({
       accountId,
       entityTypeUri: entityTypeModel.schema.$id,
-      entity: { properties },
+      entity: properties,
     });
 
     return new EntityModel({
@@ -108,7 +114,12 @@ export default class {
     graphApi: GraphApi,
     _params: { accountId: string },
   ): Promise<EntityModel[]> {
-    /** @todo: get all latest entities in specified account */
+    /**
+     * @todo: get all latest entities in specified account.
+     *   This may mean implictly filtering results by what an account is
+     *   authorized to see.
+     *   https://app.asana.com/0/1202805690238892/1202890446280569/f
+     */
     const { data: entities } = await graphApi.getLatestEntities();
 
     const cachedEntityTypeModels = new Map<string, EntityTypeModel>();
@@ -166,7 +177,7 @@ export default class {
       entityId,
       /** @todo: make this argument optional */
       entityTypeUri: entityTypeModel.schema.$id,
-      entity: { properties },
+      entity: properties,
     });
 
     return new EntityModel({
@@ -234,5 +245,35 @@ export default class {
     const { accountId, entityId } = this;
 
     return await EntityModel.getLatest(graphApi, { accountId, entityId });
+  }
+
+  /** @see {@link LinkModel.create} */
+  async createOutgoingLink(
+    graphApi: GraphApi,
+    params: Omit<LinkModelCreateParams, "sourceEntityModel" | "accountId">,
+  ): Promise<LinkModel> {
+    return await LinkModel.create(graphApi, {
+      accountId: this.accountId,
+      sourceEntityModel: this,
+      ...params,
+    });
+  }
+
+  /** @see {@link LinkModel.getAllOutgoing} */
+  async getAllOutgoingLinks(graphApi: GraphApi): Promise<LinkModel[]> {
+    return await LinkModel.getAllOutgoing(graphApi, {
+      sourceEntityModel: this,
+    });
+  }
+
+  /** @see {@link LinkModel.getOutgoing} */
+  async getOutgoingLink(
+    graphApi: GraphApi,
+    params: { linkTypeModel: LinkTypeModel },
+  ): Promise<LinkModel | null> {
+    return await LinkModel.getOutgoing(graphApi, {
+      sourceEntityModel: this,
+      ...params,
+    });
   }
 }

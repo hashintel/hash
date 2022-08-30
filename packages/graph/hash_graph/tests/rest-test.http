@@ -378,7 +378,7 @@ Accept: application/json
 
 {
   "accountId": "{{account_id}}",
-  "targetEntity": "{{person_b_entity_id}}",
+  "targetEntityId": "{{person_b_entity_id}}",
   "linkTypeUri": "{{friend_of_link_type_uri_raw}}"
 }
 
@@ -408,7 +408,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "targetEntity": "{{person_b_entity_id}}",
+  "targetEntityId": "{{person_b_entity_id}}",
   "linkTypeUri": "{{friend_of_link_type_uri_raw}}"
 }
 
