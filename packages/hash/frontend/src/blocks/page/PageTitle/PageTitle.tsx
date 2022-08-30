@@ -5,7 +5,6 @@ import {
   KeyboardEventHandler,
   useState,
   FunctionComponent,
-  useRef,
 } from "react";
 import { useBlockProtocolUpdateEntity } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
 import { rewriteEntityIdentifier } from "../../../lib/entities";
@@ -51,8 +50,8 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
   // TODO: Display update error once expected UX is discussed
   const { updateEntity, updateEntityLoading } =
     useBlockProtocolUpdateEntity(true);
-  const [inputValue, setInputValue] = useState<string>(value);
-  const prevValueRef = useRef(value);
+  const [prevValue, setPrevValue] = useState(value);
+  const [inputValue, setInputValue] = useState(value);
 
   const { editorView, pageTitleRef } = usePageContext();
 
@@ -95,8 +94,8 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
     });
   };
 
-  if (value !== prevValueRef.current) {
-    prevValueRef.current = value;
+  if (value !== prevValue) {
+    setPrevValue(value);
     setInputValue(value);
   }
 
