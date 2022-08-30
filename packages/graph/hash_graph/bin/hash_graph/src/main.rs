@@ -1,15 +1,20 @@
 mod args;
 
-use std::{fmt, net::SocketAddr, sync::Arc};
+use std::{collections::HashMap, fmt, net::SocketAddr, sync::Arc};
 
 use error_stack::{Context, IntoReport, Result, ResultExt};
 use graph::{
     api::rest::rest_api_router,
     logging::init_logger,
-    ontology::{types::DataType, AccountId},
+    ontology::AccountId,
     store::{AccountStore, DataTypeStore, PostgresStorePool, StorePool},
 };
+use serde_json::json;
 use tokio_postgres::NoTls;
+use type_system::{
+    uri::{BaseUri, VersionedUri},
+    DataType,
+};
 use uuid::Uuid;
 
 use crate::args::Args;
@@ -29,6 +34,90 @@ impl fmt::Display for GraphError {
 /// This will include things that are mocks or stubs to make up for missing pieces of infrastructure
 /// that haven't been created yet.
 async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphError> {
+    let text = DataType::new(
+        VersionedUri::new(
+            BaseUri::new(
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
+            )
+            .expect("failed to construct base URI"),
+            1,
+        ),
+        "Text".to_owned(),
+        Some("An ordered sequence of characters".to_owned()),
+        "string".to_owned(),
+        HashMap::default(),
+    );
+
+    let number = DataType::new(
+        VersionedUri::new(
+            BaseUri::new(
+                "https://blockprotocol.org/@blockprotocol/types/data-type/number/".to_owned(),
+            )
+            .expect("failed to construct base URI"),
+            1,
+        ),
+        "Number".to_owned(),
+        Some("An arithmetical value (in the Real number system)".to_owned()),
+        "number".to_owned(),
+        HashMap::default(),
+    );
+
+    let boolean = DataType::new(
+        VersionedUri::new(
+            BaseUri::new(
+                "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/".to_owned(),
+            )
+            .expect("failed to construct base URI"),
+            1,
+        ),
+        "Boolean".to_owned(),
+        Some("A True or False value".to_owned()),
+        "boolean".to_owned(),
+        HashMap::default(),
+    );
+
+    let null = DataType::new(
+        VersionedUri::new(
+            BaseUri::new(
+                "https://blockprotocol.org/@blockprotocol/types/data-type/null/".to_owned(),
+            )
+            .expect("failed to construct base URI"),
+            1,
+        ),
+        "Null".to_owned(),
+        Some("A placeholder value representing 'nothing'".to_owned()),
+        "null".to_owned(),
+        HashMap::default(),
+    );
+
+    let object = DataType::new(
+        VersionedUri::new(
+            BaseUri::new(
+                "https://blockprotocol.org/@blockprotocol/types/data-type/object/".to_owned(),
+            )
+            .expect("failed to construct base URI"),
+            1,
+        ),
+        "Object".to_owned(),
+        Some("A plain JSON object with no pre-defined structure".to_owned()),
+        "object".to_owned(),
+        HashMap::default(),
+    );
+
+    let empty_list = DataType::new(
+        VersionedUri::new(
+            BaseUri::new(
+                "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/".to_owned(),
+            )
+            .expect("failed to construct base URI"),
+            1,
+        ),
+        "Empty List".to_owned(),
+        Some("An Empty List".to_owned()),
+        "array".to_owned(),
+        [("const".to_owned(), json!([]))].into_iter().collect(),
+    );
+
     // TODO: Revisit once an authentication and authorization setup is in place
     let root_account_id = AccountId::new(Uuid::nil());
 
@@ -55,14 +144,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     }
 
     // Seed the primitive data types if they don't already exist
-    let data_types = [
-        DataType::text(),
-        DataType::number(),
-        DataType::boolean(),
-        DataType::empty_list(),
-        DataType::object(),
-        DataType::null(),
-    ];
+    let data_types = [text, number, boolean, empty_list, object, null];
     for data_type in data_types {
         if connection
             .create_data_type(&data_type, root_account_id)

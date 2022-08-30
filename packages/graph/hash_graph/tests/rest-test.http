@@ -223,7 +223,7 @@ Accept: application/json
     "type": "object",
     "title": "Person",
     "properties": {
-      "https://blockprotocol.org/@alice/types/property-type/name": {
+      "https://blockprotocol.org/@alice/types/property-type/name/": {
         "$ref": "https://blockprotocol.org/@alice/types/property-type/name/v/1"
       }
     }
@@ -259,7 +259,7 @@ Accept: application/json
     "type": "object",
     "title": "Person",
     "properties": {
-      "https://blockprotocol.org/@alice/types/property-type/name": {
+      "https://blockprotocol.org/@alice/types/property-type/name/": {
         "$ref": "https://blockprotocol.org/@alice/types/property-type/name/v/2"
       }
     },
@@ -300,7 +300,7 @@ Accept: application/json
 {
   "accountId": "{{account_id}}",
   "entity": {
-    "https://blockprotocol.org/@alice/types/property-type/name": "Alice"
+    "https://blockprotocol.org/@alice/types/property-type/name/": "Alice"
   },
   "entityTypeUri": "https://blockprotocol.org/@alice/types/entity-type/person/v/1"
 }
@@ -331,7 +331,7 @@ Accept: application/json
   "entityId": "{{person_a_entity_id}}",
   "entityTypeUri": "https://blockprotocol.org/@alice/types/entity-type/person/v/2",
   "entity": {
-    "https://blockprotocol.org/@alice/types/property-type/name": "Alice Allison"
+    "https://blockprotocol.org/@alice/types/property-type/name/": "Alice Allison"
   }
 }
 
@@ -349,7 +349,7 @@ Accept: application/json
 {
   "accountId": "{{account_id}}",
   "entity": {
-    "https://blockprotocol.org/@alice/types/property-type/name": "Bob"
+    "https://blockprotocol.org/@alice/types/property-type/name/": "Bob"
   },
   "entityTypeUri": "https://blockprotocol.org/@alice/types/entity-type/person/v/1"
 }

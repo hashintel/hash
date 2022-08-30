@@ -2,19 +2,14 @@ mod links;
 
 use std::collections::{HashMap, HashSet};
 
-use error_stack::{ensure, Result};
+use error_stack::Result;
 use serde::{Deserialize, Serialize};
-
-use crate::ontology::types::{
-    entity_type::links::{Links, ValueOrMaybeOrderedArray},
-    error::ValidationError,
-    property_type::PropertyTypeReference,
-    serde_shared::{
-        array::ValueOrArray,
-        object::{Object, ValidateUri},
-    },
+use type_system::{
     uri::{BaseUri, VersionedUri},
+    Object, PropertyTypeReference, ValidateUri, ValidationError, ValueOrArray,
 };
+
+use crate::ontology::types::entity_type::links::{Links, ValueOrMaybeOrderedArray};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -38,15 +33,15 @@ impl EntityTypeReference {
 }
 
 impl ValidateUri for EntityTypeReference {
-    fn validate_uri(&self, base_uri: &BaseUri) -> Result<(), ValidationError> {
-        ensure!(
-            base_uri == self.uri().base_uri(),
-            ValidationError::BaseUriMismatch {
+    fn validate_uri(&self, base_uri: &BaseUri) -> std::result::Result<(), ValidationError> {
+        if base_uri == self.uri().base_uri() {
+            Ok(())
+        } else {
+            Err(ValidationError::BaseUriMismatch {
                 base_uri: base_uri.clone(),
-                versioned_uri: self.uri().clone()
-            }
-        );
-        Ok(())
+                versioned_uri: self.uri().clone(),
+            })
+        }
     }
 }
 
@@ -207,6 +202,8 @@ impl EntityType {
 mod tests {
     use std::str::FromStr;
 
+    use type_system::PropertyTypeReference;
+
     use super::*;
 
     fn test_entity_type_schema(schema: &serde_json::Value) -> EntityType {
@@ -226,7 +223,7 @@ mod tests {
     ) {
         let expected_property_type_references = uris
             .into_iter()
-            .map(|uri| VersionedUri::from_str(uri).expect("Invalid URI"))
+            .map(|uri| VersionedUri::from_str(uri).expect("invalid URI"))
             .collect::<HashSet<_>>();
 
         let property_type_references = entity_type
@@ -247,8 +244,8 @@ mod tests {
             .into_iter()
             .map(|(link_type_uri, entity_type_uri)| {
                 (
-                    VersionedUri::from_str(link_type_uri).expect("Invalid URI"),
-                    VersionedUri::from_str(entity_type_uri).expect("Invalid URI"),
+                    VersionedUri::from_str(link_type_uri).expect("invalid URI"),
+                    VersionedUri::from_str(entity_type_uri).expect("invalid URI"),
                 )
             })
             .collect::<HashMap<_, _>>();
