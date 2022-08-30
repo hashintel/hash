@@ -80,7 +80,7 @@ impl<C: AsClient> Read<PersistedDataType> for PostgresStore<C> {
         expression: &Self::Query<'query>,
     ) -> Result<Vec<PersistedDataType>, QueryError> {
         let mut output = Vec::new();
-        self.read_data_types()
+        self.read_all_data_types()
             .await?
             .map(|row_result| row_result.into_report().change_context(QueryError))
             .try_fold(

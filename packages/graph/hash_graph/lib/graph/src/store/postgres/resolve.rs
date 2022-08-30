@@ -1,18 +1,25 @@
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
-use tokio_postgres::{GenericClient, RowStream};
-use type_system::{uri::VersionedUri, DataType};
+use tokio_postgres::{GenericClient, Row, RowStream};
+use type_system::{uri::VersionedUri, DataType, PropertyType};
 
 use crate::store::{postgres::parameter_list, AsClient, PostgresStore, QueryError};
 
 #[async_trait]
 pub trait PostgresContext {
-    async fn read_data_types(&self) -> Result<RowStream, QueryError>;
+    async fn read_all_data_types(&self) -> Result<RowStream, QueryError>;
+
     async fn read_versioned_data_type(
         &self,
         uri: &VersionedUri,
     ) -> Result<Record<DataType>, QueryError>;
-    async fn read_property_types(&self) -> Result<RowStream, QueryError>;
+
+    async fn read_all_property_types(&self) -> Result<RowStream, QueryError>;
+
+    async fn read_versioned_property_type(
+        &self,
+        uri: &VersionedUri,
+    ) -> Result<Record<PropertyType>, QueryError>;
 }
 
 #[async_trait]
@@ -20,8 +27,8 @@ impl<T> PostgresContext for &T
 where
     T: PostgresContext + Sync,
 {
-    async fn read_data_types(&self) -> Result<RowStream, QueryError> {
-        PostgresContext::read_data_types(*self).await
+    async fn read_all_data_types(&self) -> Result<RowStream, QueryError> {
+        PostgresContext::read_all_data_types(*self).await
     }
 
     async fn read_versioned_data_type(
@@ -31,8 +38,15 @@ where
         PostgresContext::read_versioned_data_type(*self, uri).await
     }
 
-    async fn read_property_types(&self) -> Result<RowStream, QueryError> {
-        PostgresContext::read_property_types(*self).await
+    async fn read_all_property_types(&self) -> Result<RowStream, QueryError> {
+        PostgresContext::read_all_property_types(*self).await
+    }
+
+    async fn read_versioned_property_type(
+        &self,
+        uri: &VersionedUri,
+    ) -> Result<Record<PropertyType>, QueryError> {
+        PostgresContext::read_versioned_property_type(*self, uri).await
     }
 }
 
@@ -42,84 +56,106 @@ pub struct Record<T> {
     pub is_latest: bool,
 }
 
-#[async_trait]
-impl<C: AsClient> PostgresContext for PostgresStore<C> {
-    async fn read_data_types(&self) -> Result<RowStream, QueryError> {
-        self.client.as_client()
-            .query_raw(
+async fn read_all_types(client: &impl AsClient, table: &str) -> Result<RowStream, QueryError> {
+    client
+        .as_client()
+        .query_raw(
+            &format!(
                 r#"
                 SELECT schema, created_by, MAX(version) OVER (PARTITION by base_uri) = version as latest
-                FROM data_types
+                FROM {table}
                 INNER JOIN ids
-                ON data_types.version_id = ids.version_id
+                ON {table}.version_id = ids.version_id
                 ORDER BY base_uri, version DESC;
                 "#,
-                parameter_list([]),
-            )
-            .await
-            .into_report()
-            .change_context(QueryError)
+            ),
+            parameter_list([]),
+        )
+        .await
+        .into_report()
+        .change_context(QueryError)
+}
+
+async fn read_versioned_type(
+    client: &impl AsClient,
+    table: &str,
+    uri: &VersionedUri,
+) -> Result<Record<Row>, QueryError> {
+    let type_row = client
+        .as_client()
+        .query_one(
+            &format!(
+                r#"
+                SELECT schema, created_by
+                FROM {table}
+                INNER JOIN ids
+                ON {table}.version_id = ids.version_id
+                WHERE base_uri = $1 AND version = $2;
+                "#
+            ),
+            &[&uri.base_uri().as_str(), &i64::from(uri.version())],
+        )
+        .await
+        .into_report()
+        .change_context(QueryError)?;
+
+    let row = client
+        .as_client()
+        .query_one(
+            r#"
+            SELECT MAX(version) as latest
+            FROM ids
+            WHERE base_uri = $1
+            "#,
+            &[&uri.base_uri().as_str()],
+        )
+        .await
+        .into_report()
+        .change_context(QueryError)?;
+    let latest: i64 = row.get(0);
+    Ok(Record {
+        record: type_row,
+        is_latest: latest as u32 == uri.version(),
+    })
+}
+
+#[async_trait]
+impl<C: AsClient> PostgresContext for PostgresStore<C> {
+    async fn read_all_data_types(&self) -> Result<RowStream, QueryError> {
+        read_all_types(&self.client, "data_types").await
     }
 
     async fn read_versioned_data_type(
         &self,
         uri: &VersionedUri,
     ) -> Result<Record<DataType>, QueryError> {
-        let row = self
-            .client
-            .as_client()
-            .query_one(
-                r#"
-                SELECT schema, created_by
-                FROM data_types
-                INNER JOIN ids
-                ON data_types.version_id = ids.version_id
-                WHERE base_uri = $1 AND version = $2;
-                "#,
-                &[&uri.base_uri().as_str(), &i64::from(uri.version())],
-            )
-            .await
-            .into_report()
-            .change_context(QueryError)?;
-        let data_type: DataType = serde_json::from_value(row.get(0))
-            .into_report()
-            .change_context(QueryError)?;
+        let Record { record, is_latest } =
+            read_versioned_type(&self.client, "data_types", uri).await?;
 
-        let row = self
-            .client
-            .as_client()
-            .query_one(
-                r#"
-                SELECT MAX(version) as latest
-                FROM ids
-                WHERE base_uri = $1
-                "#,
-                &[&uri.base_uri().as_str()],
-            )
-            .await
-            .into_report()
-            .change_context(QueryError)?;
-        let latest: i64 = row.get(0);
         Ok(Record {
-            record: data_type,
-            is_latest: latest as u32 == uri.version(),
+            record: serde_json::from_value(record.get(0))
+                .into_report()
+                .change_context(QueryError)?,
+            is_latest,
         })
     }
 
-    async fn read_property_types(&self) -> Result<RowStream, QueryError> {
-        self.client.as_client()
-            .query_raw(
-                r#"
-                SELECT schema, created_by, MAX(version) OVER (PARTITION by base_uri) = version as latest
-                FROM property_types
-                INNER JOIN ids
-                ON property_types.version_id = ids.version_id
-                ORDER BY base_uri, version DESC;
-                "#,
-                parameter_list([]),
-            )
-            .await
-            .into_report()
-            .change_context(QueryError)
+    async fn read_all_property_types(&self) -> Result<RowStream, QueryError> {
+        read_all_types(&self.client, "property_types").await
+    }
+
+    async fn read_versioned_property_type(
+        &self,
+        uri: &VersionedUri,
+    ) -> Result<Record<PropertyType>, QueryError> {
+        let Record { record, is_latest } =
+            read_versioned_type(&self.client, "property_types", uri).await?;
+
+        Ok(Record {
+            record: serde_json::from_value(record.get(0))
+                .into_report()
+                .change_context(QueryError)?,
+            is_latest,
+        })
     }
 }

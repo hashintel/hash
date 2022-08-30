@@ -94,7 +94,7 @@ impl<C: AsClient> Read<PersistedPropertyType> for PostgresStore<C> {
         expression: &Self::Query<'query>,
     ) -> Result<Vec<PersistedPropertyType>, QueryError> {
         let mut output = Vec::new();
-        self.read_property_types()
+        self.read_all_property_types()
             .await?
             .map(|row_result| row_result.into_report().change_context(QueryError))
             .try_fold(

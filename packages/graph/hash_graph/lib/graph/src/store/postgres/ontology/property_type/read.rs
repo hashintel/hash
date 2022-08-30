@@ -67,21 +67,22 @@ where
                         {
                             // TODO: Use relation tables
                             //   see https://app.asana.com/0/0/1202884883200942/f
-                            let property_type_set = self.record.data_type_references();
-                            let mut data_types = Vec::with_capacity(property_type_set.len());
-                            for data_type_ref in property_type_set {
-                                let data_type = context
-                                    .read_versioned_data_type(data_type_ref.uri())
+                            let property_type_set = self.record.property_type_references();
+                            let mut property_types = Vec::with_capacity(property_type_set.len());
+                            for property_type_ref in property_type_set {
+                                let property_type = context
+                                    .read_versioned_property_type(property_type_ref.uri())
                                     .await
-                                    .expect("Could not read data type");
-                                data_types
-                                    .push(data_type.resolve(property_type_segments, context).await);
+                                    .expect("Could not read property type");
+                                property_types.push(
+                                    property_type.resolve(property_type_segments, context).await,
+                                );
                             }
-                            return Literal::List(data_types);
+                            return Literal::List(property_types);
                         }
                         _ => {
                             // see https://app.asana.com/0/0/1202884883200970/f
-                            todo!("Non-wildcard queries on data types")
+                            todo!("Non-wildcard queries on property types")
                         }
                     },
                     _ => Literal::Null,
