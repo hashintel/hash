@@ -58,7 +58,7 @@ where
     }
 }
 
-/// Associates a database entry with the information about the latest version if the corresponding
+/// Associates a database entry with the information about the latest version of the corresponding
 /// entry.
 ///
 /// This is used for filtering by the latest version.
