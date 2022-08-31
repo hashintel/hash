@@ -1,3 +1,7 @@
+use std::str::FromStr;
+
+use type_system::EntityType;
+
 use crate::{
     postgres::DatabaseTestWrapper,
     test_data::{data_type, entity_type, link_type, property_type},
@@ -6,7 +10,7 @@ use crate::{
 #[tokio::test]
 async fn insert() {
     let person_et =
-        serde_json::from_str(entity_type::PERSON_V1).expect("could not parse entity type");
+        EntityType::from_str(entity_type::PERSON_V1).expect("could not parse entity type");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -19,7 +23,7 @@ async fn insert() {
         .await
         .expect("could not seed database");
 
-    api.create_entity_type(&person_et)
+    api.create_entity_type(person_et)
         .await
         .expect("could not create entity type");
 }
@@ -27,7 +31,7 @@ async fn insert() {
 #[tokio::test]
 async fn query() {
     let organization_et =
-        serde_json::from_str(entity_type::ORGANIZATION_V1).expect("could not parse entity type");
+        EntityType::from_str(entity_type::ORGANIZATION_V1).expect("could not parse entity type");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -35,7 +39,7 @@ async fn query() {
         .await
         .expect("could not seed database");
 
-    api.create_entity_type(&organization_et)
+    api.create_entity_type(organization_et.clone())
         .await
         .expect("could not create entity type");
 
@@ -50,9 +54,9 @@ async fn query() {
 #[tokio::test]
 async fn update() {
     let page_et_v1 =
-        serde_json::from_str(entity_type::PAGE_V1).expect("could not parse entity type");
+        EntityType::from_str(entity_type::PAGE_V1).expect("could not parse entity type");
     let page_et_v2 =
-        serde_json::from_str(entity_type::PAGE_V2).expect("could not parse entity type");
+        EntityType::from_str(entity_type::PAGE_V2).expect("could not parse entity type");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -69,11 +73,11 @@ async fn update() {
         .await
         .expect("could not seed database:");
 
-    api.create_entity_type(&page_et_v1)
+    api.create_entity_type(page_et_v1.clone())
         .await
         .expect("could not create entity type");
 
-    api.update_entity_type(&page_et_v2)
+    api.update_entity_type(page_et_v2.clone())
         .await
         .expect("could not update entity type");
 

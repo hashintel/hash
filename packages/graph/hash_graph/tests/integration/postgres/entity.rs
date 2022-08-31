@@ -1,3 +1,4 @@
+use graph::knowledge::Entity;
 use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::{
@@ -7,7 +8,7 @@ use crate::{
 
 #[tokio::test]
 async fn insert() {
-    let person = serde_json::from_str(entity::PERSON_A_V1).expect("could not parse entity");
+    let person: Entity = serde_json::from_str(entity::PERSON_A_V1).expect("could not parse entity");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -22,7 +23,7 @@ async fn insert() {
 
     let identifier = api
         .create_entity(
-            &person,
+            person.clone(),
             VersionedUri::new(
                 BaseUri::new(
                     "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
@@ -44,7 +45,7 @@ async fn insert() {
 
 #[tokio::test]
 async fn query() {
-    let organization =
+    let organization: Entity =
         serde_json::from_str(entity::ORGANIZATION_V1).expect("could not parse entity");
 
     let mut database = DatabaseTestWrapper::new().await;
@@ -57,7 +58,7 @@ async fn query() {
 
     let identifier = api
         .create_entity(
-            &organization,
+            organization.clone(),
             VersionedUri::new(
                 BaseUri::new(
                     "https://blockprotocol.org/@alice/types/entity-type/organization/".to_owned(),
@@ -78,8 +79,8 @@ async fn query() {
 
 #[tokio::test]
 async fn update() {
-    let page_v1 = serde_json::from_str(entity::PAGE_V1).expect("could not parse entity");
-    let page_v2 = serde_json::from_str(entity::PAGE_V2).expect("could not parse entity");
+    let page_v1: Entity = serde_json::from_str(entity::PAGE_V1).expect("could not parse entity");
+    let page_v2: Entity = serde_json::from_str(entity::PAGE_V2).expect("could not parse entity");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -91,7 +92,7 @@ async fn update() {
 
     let identifier = api
         .create_entity(
-            &page_v1,
+            page_v1.clone(),
             VersionedUri::new(
                 BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/page/".to_owned())
                     .expect("couldn't construct Base URI"),
@@ -103,7 +104,7 @@ async fn update() {
 
     api.update_entity(
         identifier.entity_id(),
-        &page_v2,
+        page_v2.clone(),
         VersionedUri::new(
             BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/page/".to_owned())
                 .expect("couldn't construct Base URI"),
