@@ -375,7 +375,7 @@ enum Symbol {
 ///
 /// # Example
 ///
-/// ```no_run
+/// ```ignore
 /// assert_eq!(sym!('├', '┬'), &[
 ///     Symbol::VerticalRight,
 ///     Symbol::HorizontalDown
