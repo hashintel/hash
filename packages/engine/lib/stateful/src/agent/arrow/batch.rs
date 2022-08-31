@@ -209,7 +209,7 @@ impl AgentBatch {
     }
 
     pub fn from_shmem_os_id(os_id: &str) -> Result<Box<Self>> {
-        let segment = Segment::from_shmem_os_id(os_id, true, true)?;
+        let segment = Segment::open(os_id, true, true)?;
         Ok(Box::new(AgentBatch::from_segment(segment, None, None)?))
     }
 
