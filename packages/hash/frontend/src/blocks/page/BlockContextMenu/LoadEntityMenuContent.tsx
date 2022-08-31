@@ -90,7 +90,14 @@ export const LoadEntityMenuContent: FunctionComponent<
        * loading text entities does not work, possibly due to use of legacy __linkedData
        * @todo see if this works when __linkedData is removed
        */
-      if (isTextEntity(entity)) return false;
+      if (
+        isTextEntity(entity) ||
+        ["Page", "Paragraph", "Header", "Callout"].includes(
+          entity.entityType.properties.title,
+        )
+      ) {
+        return false;
+      }
 
       // don't include entities that have empty data
       if (Object.keys(entity.properties).length === 0) {
