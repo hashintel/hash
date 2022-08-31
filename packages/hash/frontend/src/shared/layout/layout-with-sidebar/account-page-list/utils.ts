@@ -4,7 +4,6 @@ import { groupBy } from "lodash";
 import { AccountPage } from "../../../../components/hooks/useAccountPages";
 
 export interface TreeElement extends AccountPage {
-  parentId: string;
   depth: number;
   index: number;
   expanded: boolean;
@@ -40,7 +39,6 @@ export const getPageList = (
           ...page,
           depth,
           index,
-          parentId: page.parentPageEntityId,
           expanded,
           expandable,
           collapsed,
