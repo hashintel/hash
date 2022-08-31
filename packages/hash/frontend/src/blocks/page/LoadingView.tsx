@@ -1,16 +1,17 @@
-import { Skeleton } from "@mui/material";
+import { Box } from "@mui/material";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeView } from "prosemirror-view";
+import { BlockLoadingIndicator } from "../../components/RemoteBlock/RemoteBlock";
 
 import { RenderPortal } from "./usePortals";
 
-const PageContentLoadingState = () => {
+export const ProsemirrorLoadingState = () => {
   return (
-    <>
+    <Box mt={2.75}>
       {[1, 2, 3].map((num) => (
-        <Skeleton key={num} animation="wave" height={50} />
+        <BlockLoadingIndicator sx={{ mb: 0.9 }} key={num} />
       ))}
-    </>
+    </Box>
   );
 };
 
@@ -30,7 +31,7 @@ export class LoadingView implements NodeView<Schema> {
       return false;
     }
 
-    this.renderPortal(<PageContentLoadingState />, this.dom);
+    this.renderPortal(<ProsemirrorLoadingState />, this.dom);
     return true;
   }
 

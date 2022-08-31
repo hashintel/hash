@@ -5,6 +5,7 @@ import {
 } from "@blockprotocol/graph";
 import { useGraphEmbedderService } from "@blockprotocol/graph/react";
 import { useHookEmbedderService } from "@blockprotocol/hook/react";
+import { Skeleton, SkeletonProps } from "@mui/material";
 import { FunctionComponent, useEffect, useRef } from "react";
 import { v4 as uuid } from "uuid";
 import { BlockRenderer } from "./blockRenderer";
@@ -27,9 +28,9 @@ type RemoteBlockProps = {
   onBlockLoaded?: () => void;
 };
 
-export const BlockLoadingIndicator: FunctionComponent = () => (
-  <div>Loading...</div>
-);
+export const BlockLoadingIndicator: FunctionComponent<{
+  sx?: SkeletonProps["sx"];
+}> = ({ sx }) => <Skeleton sx={sx} animation="wave" height={50} />;
 
 /**
  * Loads and renders a block from a URL, instantiates the graph service handler,
