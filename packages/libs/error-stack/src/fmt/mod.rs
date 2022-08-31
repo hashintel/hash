@@ -453,6 +453,130 @@ enum Position {
     Last,
 }
 
+#[derive(Debug, Copy, Clone)]
+enum Spacing {
+    // Standard to create a width of 4 characters
+    Full,
+    // Minimal width to create a width of 2/3 characters
+    Minimal,
+}
+
+#[derive(Debug, Copy, Clone)]
+struct Indent {
+    /// Is this used in a group context, if that is the case, then add a single leading space
+    group: bool,
+    /// Should the indent be visible, if that isn't the case it will render a space instead of
+    /// `|`
+    visible: bool,
+    /// Should spacing included, this is the difference between `|   ` and `|`
+    spacing: Option<Spacing>,
+}
+
+impl Indent {
+    fn new(group: bool) -> Self {
+        Self {
+            group,
+            visible: true,
+            spacing: Some(Spacing::Full),
+        }
+    }
+
+    fn spacing(mut self, spacing: Spacing) -> Self {
+        self.spacing = Some(spacing);
+
+        self
+    }
+
+    fn no_spacing(mut self) -> Self {
+        self.spacing = None;
+
+        self
+    }
+
+    fn invisible(self) -> Self {
+        self.with_visible(false)
+    }
+
+    fn visible(self) -> Self {
+        self.with_visible(true)
+    }
+
+    fn with_visible(mut self, visible: bool) -> Self {
+        self.visible = visible;
+
+        self
+    }
+
+    fn group() -> Self {
+        Self::new(true)
+    }
+
+    fn no_group() -> Self {
+        Self::new(false)
+    }
+
+    fn prepare(&self) -> &'static [Symbol] {
+        match self {
+            Self {
+                group: true,
+                visible: true,
+                spacing: Some(_),
+            } => &[
+                Symbol::Space,
+                Symbol::Vertical,
+                Symbol::Space,
+                Symbol::Space,
+            ],
+            Self {
+                group: true,
+                visible: true,
+                spacing: None,
+            } => &[Symbol::Space, Symbol::Vertical],
+            Self {
+                group: false,
+                visible: true,
+                spacing: Some(Spacing::Full),
+            } => &[
+                Symbol::Vertical,
+                Symbol::Space,
+                Symbol::Space,
+                Symbol::Space,
+            ],
+            Self {
+                group: false,
+                visible: true,
+                spacing: Some(Spacing::Minimal),
+            } => &[Symbol::Vertical, Symbol::Space],
+            Self {
+                group: false,
+                visible: true,
+                spacing: None,
+            } => &[Symbol::Vertical],
+            Self {
+                visible: false,
+                spacing: Some(Spacing::Full),
+                ..
+            } => &[Symbol::Space, Symbol::Space, Symbol::Space, Symbol::Space],
+            Self {
+                visible: false,
+                spacing: Some(Spacing::Minimal),
+                ..
+            } => &[Symbol::Space, Symbol::Space],
+            Self {
+                visible: false,
+                spacing: None,
+                ..
+            } => &[],
+        }
+    }
+}
+
+impl From<Indent> for Instruction {
+    fn from(indent: Indent) -> Self {
+        Self::Indent(indent)
+    }
+}
+
 /// The display of content is using an instruction style architecture,
 /// where we first render every indentation and action as an [`Instruction`], these instructions
 /// are a lot easier to reason about and enable better manipulation of the stream of data.
@@ -480,16 +604,7 @@ enum Instruction {
         position: Position,
     },
 
-    Indent {
-        /// Is this used in a group context, if that is the case, then add a single leading space
-        group: bool,
-        /// Should the indent be visible, if that isn't the case it will render a space instead of
-        /// `|`
-        visible: bool,
-        /// Should spacing included, this is the difference between `|   ` and `|`
-        spacing: bool,
-        minimal: bool,
-    },
+    Indent(Indent),
 }
 
 /// Minimized instruction, which looses information about what it represents and converts it to
@@ -556,68 +671,7 @@ impl Instruction {
             },
 
             // Indentation (like `|   ` or ` |  `)
-            Self::Indent {
-                group: true,
-                visible: true,
-                spacing: true,
-                ..
-            } => PreparedInstruction::Symbols(&[
-                Symbol::Space,
-                Symbol::Vertical,
-                Symbol::Space,
-                Symbol::Space,
-            ]),
-            Self::Indent {
-                group: true,
-                visible: true,
-                spacing: false,
-                ..
-            } => PreparedInstruction::Symbols(&[Symbol::Space, Symbol::Vertical]),
-            Self::Indent {
-                group: false,
-                visible: true,
-                spacing: true,
-                minimal: false,
-            } => PreparedInstruction::Symbols(&[
-                Symbol::Vertical,
-                Symbol::Space,
-                Symbol::Space,
-                Symbol::Space,
-            ]),
-            Self::Indent {
-                group: false,
-                visible: true,
-                spacing: true,
-                minimal: true,
-            } => PreparedInstruction::Symbols(&[Symbol::Vertical, Symbol::Space]),
-            Self::Indent {
-                group: false,
-                visible: true,
-                spacing: false,
-                ..
-            } => PreparedInstruction::Symbols(&[Symbol::Vertical]),
-            Self::Indent {
-                visible: false,
-                spacing: true,
-                minimal: false,
-                ..
-            } => PreparedInstruction::Symbols(&[
-                Symbol::Space,
-                Symbol::Space,
-                Symbol::Space,
-                Symbol::Space,
-            ]),
-            Self::Indent {
-                visible: false,
-                spacing: true,
-                minimal: true,
-                ..
-            } => PreparedInstruction::Symbols(&[Symbol::Space, Symbol::Space]),
-            Self::Indent {
-                visible: false,
-                spacing: false,
-                ..
-            } => PreparedInstruction::Symbols(&[]),
+            Self::Indent(indent) => PreparedInstruction::Symbols(indent.prepare()),
         }
     }
 }
@@ -913,12 +967,12 @@ fn debug_attachments(
                 if idx == 0 {
                     line.push(Instruction::Attachment { position })
                 } else {
-                    line.push(Instruction::Indent {
-                        group: false,
-                        visible: !matches!(position, Position::Last),
-                        spacing: true,
-                        minimal: true,
-                    })
+                    line.push(
+                        Indent::no_group()
+                            .with_visible(!matches!(position, Position::Last))
+                            .spacing(Spacing::Minimal)
+                            .into(),
+                    )
                 }
             })
         })
@@ -945,23 +999,17 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
                     if idx == 0 {
                         line.push(Instruction::Group { position })
                     } else {
-                        line.push(Instruction::Indent {
-                            group: true,
-                            visible: !matches!(position, Position::Last),
-                            spacing: true,
-                            minimal: false,
-                        })
+                        line.push(
+                            Indent::group()
+                                .with_visible(!matches!(position, Position::Last))
+                                .into(),
+                        )
                     }
                 })
                 .collect::<Lines>()
                 .before(
                     // add a buffer line for readability
-                    Line::new().push(Instruction::Indent {
-                        group: idx != 0,
-                        visible: true,
-                        spacing: false,
-                        minimal: false,
-                    }),
+                    Line::new().push(Indent::new(idx != 0).no_spacing().into()),
                 )
         })
         .collect::<Vec<_>>();
@@ -984,26 +1032,17 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
                 if idx == 0 {
                     line.push(Instruction::Context { position })
                 } else {
-                    line.push(Instruction::Indent {
-                        group: false,
-                        visible: !matches!(position, Position::Last),
-                        spacing: true,
-                        minimal: false,
-                    })
+                    line.push(
+                        Indent::no_group()
+                            .with_visible(!matches!(position, Position::Last))
+                            .into(),
+                    )
                 }
             })
             .collect::<Vec<_>>();
 
         // this is not using `.collect<>().before()`, because somehow that kills rustfmt?!
-        lines.insert(
-            0,
-            Line::new().push(Instruction::Indent {
-                group: false,
-                visible: true,
-                spacing: false,
-                minimal: false,
-            }),
-        );
+        lines.insert(0, Line::new().push(Indent::no_group().no_spacing().into()));
 
         lines
     });
@@ -1086,12 +1125,14 @@ impl<C> Debug for Report<C> {
                     lines.into_vec()
                 } else {
                     lines
-                        .before(Line::new().push(Instruction::Indent {
-                            group: false,
-                            visible: false,
-                            spacing: false,
-                            minimal: false,
-                        }))
+                        .before(
+                            Line::new().push(
+                                Indent::no_group() //
+                                    .invisible()
+                                    .no_spacing()
+                                    .into(),
+                            ),
+                        )
                         .into_vec()
                 }
             })
