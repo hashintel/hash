@@ -4,10 +4,6 @@ import {
   EntityType,
   LinkType,
 } from "@blockprotocol/type-system-web";
-/**
- * @todo migrate the below types to the type system package types.
- *   https://app.asana.com/0/1202805690238892/1202892835843657/f
- */
 import slugify from "slugify";
 import { getRequiredEnv } from "../util";
 
