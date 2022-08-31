@@ -1,4 +1,5 @@
 import { NodeSpec, NodeType, ProsemirrorNode, Schema } from "prosemirror-model";
+import { paragraphBlockComponentId } from "./blocks";
 
 type NodeWithAttrs<Attrs extends {}> = Omit<
   ProsemirrorNode<Schema>,
@@ -337,4 +338,8 @@ export const mutateSchema = (
       }
     }
   })(schema.spec);
+};
+
+export const isParagraphNode = (node: ProsemirrorNode<Schema>) => {
+  return componentNodeToId(node) === paragraphBlockComponentId;
 };
