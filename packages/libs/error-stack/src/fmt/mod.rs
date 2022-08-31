@@ -561,7 +561,7 @@ impl Indent {
         Self::new(false)
     }
 
-    fn prepare(&self) -> &'static [Symbol] {
+    fn prepare(self) -> &'static [Symbol] {
         match self {
             Self {
                 group: true,
@@ -652,6 +652,9 @@ enum PreparedInstruction<'a> {
 }
 
 impl Instruction {
+    // Reason: the match arms are the same intentionally, this makes it more clean which variant
+    //  emits which and also keeps it nicely formatted.
+    #[allow(clippy::match_same_arms)]
     fn prepare(&self) -> PreparedInstruction {
         match self {
             Self::Value { value, style } => PreparedInstruction::Content(value, style),
