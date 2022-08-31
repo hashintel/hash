@@ -1,9 +1,10 @@
-import {
-  EntityType,
-  PropertyType,
-  DataType,
-  LinkType,
-} from "@hashintel/hash-graph-client";
+import { DataType, PropertyType } from "@blockprotocol/type-system-web";
+/**
+ * @todo migrate the below types to the type system package types.
+ *   https://app.asana.com/0/1202805690238892/1202892835843657/f
+ */
+import { EntityType, LinkType } from "@hashintel/hash-graph-client";
+
 import slugify from "slugify";
 import { getRequiredEnv } from "../util";
 
@@ -106,14 +107,14 @@ export const generateSchemaBaseUri = (params: {
 }) =>
   `${params.namespaceUri}/${schemaKindSlugs[params.kind]}/${slugifySchemaTitle(
     params.title,
-  )}/`;
+  )}/` as const;
 
 export const generateSchemaVersionedUri = (params: {
   namespaceUri: string;
   kind: SchemaKind;
   title: string;
   version?: number;
-}) => `${generateSchemaBaseUri(params)}v/${params.version ?? 1}`;
+}) => `${generateSchemaBaseUri(params)}v/${params.version ?? 1}` as const;
 
 const primitiveDataTypeTitles = [
   "Text",
@@ -187,7 +188,11 @@ export const generateWorkspacePropertyTypeSchema = (params: {
         return inner;
       }
     },
-  ),
+    /**
+     * @todo remove this cast when the method uses the new type system package.
+     *   https://app.asana.com/0/1202805690238892/1202892835843657/f
+     */
+  ) as any,
 });
 
 /**

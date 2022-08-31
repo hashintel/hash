@@ -57,7 +57,7 @@ export const linkTypeTypedef = gql`
       """
       New link type schema contents to be used.
       """
-      newLinkType: LinkType!
+      updatedLinkType: LinkType!
     ): PersistedLinkType!
   }
 `;
