@@ -19,8 +19,8 @@ export class LoadingView implements NodeView<Schema> {
   dom: HTMLDivElement;
 
   constructor(
-    public node: ProsemirrorNode<Schema>,
-    public renderPortal: RenderPortal,
+    node: ProsemirrorNode<Schema>,
+    private renderPortal: RenderPortal,
   ) {
     this.dom = document.createElement("div");
     this.update(node);
