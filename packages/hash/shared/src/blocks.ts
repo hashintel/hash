@@ -234,7 +234,7 @@ export const fetchBlock = async (
 export const paragraphBlockComponentId =
   "https://blockprotocol.org/blocks/@hash/paragraph";
 
-const textBlockComponentIds = new Set([
+export const textBlockComponentIds = new Set([
   paragraphBlockComponentId,
   "https://blockprotocol.org/blocks/@hash/header",
   "https://blockprotocol.org/blocks/@hash/callout",

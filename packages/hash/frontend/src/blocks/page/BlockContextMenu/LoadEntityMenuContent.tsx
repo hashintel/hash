@@ -17,7 +17,7 @@ import {
   useRef,
   FunctionComponent,
 } from "react";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
+import { BlockEntity, isTextEntity } from "@hashintel/hash-shared/entity";
 import {
   LoadingSpinner,
   TextField,
@@ -85,6 +85,12 @@ export const LoadEntityMenuContent: FunctionComponent<
       // we are interested in loading different child entities into blocks, not the block entities
       // – block entities are simply a reference to (a) a component and (b) a child entity
       if (isBlockEntity(entity)) return false;
+
+      /**
+       * loading text entities does not work, possibly due to use of legacy __linkedData
+       * @todo see if this works when __linkedData is removed
+       */
+      if (isTextEntity(entity)) return false;
 
       // don't include entities that have empty data
       if (Object.keys(entity.properties).length === 0) {

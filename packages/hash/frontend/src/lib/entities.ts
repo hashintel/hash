@@ -6,11 +6,8 @@ import {
   LinkGroup as BpLinkGroup,
   LinkedAggregation as BpLinkedAggregation,
   LinkedAggregationDefinition as BpLinkedAggregationDefinition,
-  EntityType,
   Entity,
 } from "@blockprotocol/graph";
-
-import { isParsedJsonObject } from "@hashintel/hash-shared/json-utils";
 
 import {
   UnknownEntity as ApiEntity,
