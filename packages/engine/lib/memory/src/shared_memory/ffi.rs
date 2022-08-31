@@ -25,7 +25,7 @@ unsafe extern "C" fn load_shmem(id: *const u8, len: u64) -> *mut CSegment {
     // `include_terminal_padding` = true because if external modules resize
     // the shared memory, then that means that this shared memory module
     // contains data subject to external resizing
-    match Segment::from_shmem_os_id(message, true, true) {
+    match Segment::open_unchecked(message, true, true) {
         Ok(segment) => {
             debug_assert!(!segment.data.is_owner());
             let ptr = segment.data.as_ptr();
