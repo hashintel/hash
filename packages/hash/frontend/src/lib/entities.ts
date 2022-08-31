@@ -6,6 +6,8 @@ import {
   LinkGroup as BpLinkGroup,
   LinkedAggregation as BpLinkedAggregation,
   LinkedAggregationDefinition as BpLinkedAggregationDefinition,
+  EntityType,
+  Entity,
 } from "@blockprotocol/graph";
 
 import { isParsedJsonObject } from "@hashintel/hash-shared/json-utils";
@@ -441,24 +443,48 @@ export const convertApiEntityTypesToBpEntityTypes = (
   records.map((record) => convertApiEntityTypeToBpEntityType(record));
 
 /**
- * This is a temporary solution to guess a display label for an entity.
- * It will be replaced by a 'labelProperty' in the schema indicating which field to use as the label
+ * Generate a display label for an entity
+ * Prefers the BP-specified labelProperty if it exists.
  * @see https://blockprotocol.org/docs/spec/graph-service-specification#json-schema-extensions
  */
-export const guessEntityName = (entity: JsonObject) => {
-  const { name, preferredName, displayName, title, shortname, ...rest } =
-    isParsedJsonObject(entity.properties) ? entity.properties : entity;
-  const valueForKeyContainingName = Object.entries(rest).find(([key]) =>
-    key.toLowerCase().includes("name"),
-  )?.[1];
-  return (
-    name ??
-    preferredName ??
-    displayName ??
-    title ??
-    shortname ??
-    valueForKeyContainingName ??
-    entity.entityId ??
-    "Entity"
-  ).toString();
+export const generateEntityLabel = (
+  entity: Entity,
+  schema?: JsonObject,
+): string => {
+  // if the schema has a labelProperty set, prefer that
+  const labelProperty = schema?.labelProperty;
+  if (
+    typeof labelProperty === "string" &&
+    typeof entity.properties[labelProperty] === "string" &&
+    entity.properties[labelProperty]
+  ) {
+    return entity.properties[labelProperty] as string;
+  }
+
+  // fallback to some likely display name properties
+  const options = [
+    "name",
+    "preferredName",
+    "displayName",
+    "title",
+    "shortname",
+  ];
+  for (const option of options) {
+    if (typeof entity.properties[option] === "string") {
+      return entity.properties[option] as string;
+    }
+  }
+
+  // fallback to the entity type and a few characters of the entityId
+  let entityId = entity.entityId;
+  try {
+    // in case this entityId is a stringified JSON object, extract the real entityId from it
+    ({ entityId } = parseEntityIdentifier(entityId));
+  } catch {
+    // entityId was not a stringified object, it was already the real entityId
+  }
+
+  const entityTypeName = schema?.title ?? "Entity";
+
+  return `${entityTypeName}-${entityId.slice(0, 5)}`;
 };

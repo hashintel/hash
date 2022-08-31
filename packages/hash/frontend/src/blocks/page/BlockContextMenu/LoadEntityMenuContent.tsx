@@ -27,7 +27,7 @@ import { useBlockView } from "../BlockViewContext";
 import { useRouteAccountInfo } from "../../../shared/routing";
 import { MenuItem } from "../../../shared/ui";
 import { useAccountEntities } from "../../../components/hooks/useAccountEntities";
-import { guessEntityName } from "../../../lib/entities";
+import { generateEntityLabel } from "../../../lib/entities";
 
 type LoadEntityMenuContentProps = {
   blockEntityId: string | null;
@@ -156,7 +156,10 @@ export const LoadEntityMenuContent: FunctionComponent<
             </ListItemIcon>
             <Tooltip title={JSON.stringify(entity.properties, undefined, 2)}>
               <ListItemText
-                primary={guessEntityName(entity)}
+                primary={generateEntityLabel(
+                  entity,
+                  entity.entityType.properties,
+                )}
                 primaryTypographyProps={{
                   noWrap: true,
                 }}
