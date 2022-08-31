@@ -38,6 +38,7 @@ import { NavLink } from "../nav-link";
 import { AccountPageListItem } from "./account-page-list-item";
 import { useReorderPage } from "../../../../components/hooks/useReorderPage";
 import { TreeElement, getProjection, getPageList } from "./utils";
+import { IDENTATION_WIDTH } from "./page-tree-item";
 
 type AccountPageListProps = {
   accountId: string;
@@ -135,9 +136,14 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     }),
   );
 
+  const dragDepth = useMemo(
+    () => Math.round(offsetLeft / IDENTATION_WIDTH),
+    [offsetLeft],
+  );
+
   const projected =
     activeId && overId
-      ? getProjection(pagesFlatList, activeId, overId, offsetLeft, 16)
+      ? getProjection(pagesFlatList, activeId, overId, dragDepth)
       : null;
 
   useEffect(() => {

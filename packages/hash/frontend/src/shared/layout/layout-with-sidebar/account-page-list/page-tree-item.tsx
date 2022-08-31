@@ -35,6 +35,8 @@ export interface PageTreeItemProps {
   dragProps?: DragProps;
 }
 
+export const IDENTATION_WIDTH = 16;
+
 const stopEvent = (event: MouseEvent) => {
   event.preventDefault();
   event.stopPropagation();
@@ -96,7 +98,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
               duration: 200,
               easing: "ease",
             })}, ${style?.transition}`,
-            paddingLeft: `${16 * depth + 8}px`,
+            paddingLeft: `${IDENTATION_WIDTH * depth + 8}px`,
             paddingRight: 0.5,
             backgroundColor: selected
               ? palette.gray[30]

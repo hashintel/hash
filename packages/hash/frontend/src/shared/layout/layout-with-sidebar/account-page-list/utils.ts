@@ -83,8 +83,7 @@ export const getProjection = (
   items: TreeElement[],
   activeId: UniqueIdentifier,
   overId: UniqueIdentifier,
-  dragOffset: number,
-  indentationWidth: number,
+  dragDepth: number,
 ) => {
   const expandedPages = items.filter((item) => !item.collapsed);
   const overItemIndex = expandedPages.findIndex(
@@ -99,7 +98,6 @@ export const getProjection = (
   const previousItem = newItems[overItemIndex - 1];
   const nextItem = newItems[overItemIndex + 1];
 
-  const dragDepth = Math.round(dragOffset / indentationWidth);
   const projectedDepth = (activeItem ? activeItem.depth : 0) + dragDepth;
   const maxDepth = previousItem ? previousItem.depth + 1 : 0;
   const minDepth = nextItem ? nextItem.depth : 0;
