@@ -13,48 +13,43 @@ export interface TreeElement extends AccountPage {
   children?: TreeElement[];
 }
 
-const getRecursivePageList = (
-  groupedPages: { [id: string]: AccountPage[] },
-  id: string,
+export const getPageList = (
+  pagesList: AccountPage[],
   expandedIds: string[],
+  parentId: string | null = null,
   depth = 0,
   collapsed = false,
 ): TreeElement[] => {
   const emptyList: TreeElement[] = [];
 
   return (
-    groupedPages[id]?.reduce((prev, page, index) => {
-      const expanded = expandedIds.includes(page.entityId);
-      const children = getRecursivePageList(
-        groupedPages,
-        page.entityId,
-        expandedIds,
-        depth + 1,
-        collapsed || !expanded,
-      );
-      const expandable = !!children.length;
+    pagesList
+      .filter((page) => page.parentPageEntityId === parentId)
+      .reduce((prev, page, index) => {
+        const expanded = expandedIds.includes(page.entityId);
+        const children = getPageList(
+          pagesList,
+          expandedIds,
+          page.entityId,
+          depth + 1,
+          collapsed || !expanded,
+        );
+        const expandable = !!children.length;
 
-      const item = {
-        ...page,
-        depth,
-        index,
-        parentId: page.parentPageEntityId,
-        expanded,
-        expandable,
-        collapsed,
-      } as TreeElement;
+        const item = {
+          ...page,
+          depth,
+          index,
+          parentId: page.parentPageEntityId,
+          expanded,
+          expandable,
+          collapsed,
+        } as TreeElement;
 
-      return [...prev, item, ...children];
-    }, emptyList) || emptyList
+        return [...prev, item, ...children];
+      }, emptyList) || emptyList
   );
 };
-
-export const getPageList = (pages: AccountPage[], expandedIds: string[]) =>
-  getRecursivePageList(
-    groupBy(pages, (page) => page.parentPageEntityId),
-    "null",
-    expandedIds,
-  );
 
 // Calculates relevant properties for the page that is being dragged
 // - depth: current drag depth
