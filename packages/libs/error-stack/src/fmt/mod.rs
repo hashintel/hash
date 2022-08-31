@@ -1035,19 +1035,19 @@ fn debug_frame(
             body.reverse();
             let body = debug_attachments(
                 Some(loc),
-                // This makes sure that we use `\-` instead of `-`,
+                // This makes sure that we use `╰─` instead of `├─`,
                 // this is true whenever we only have a single context and no sources,
                 // **or** if our idx is larger than `0`, this might sound false,
                 // but this is because contexts other than the first context create a new
                 // "indentation", in this indentation we are considered last.
                 //
                 // Context A
-                // | Attachment B
-                // | Attachment C <- not last, because we are not the only context
+                // ├╴Attachment B
+                // ├╴Attachment C <- not last, because we are not the only context
                 // |
-                // \-Context <- indentation here is handled by `debug_render`!
-                //   | Attachment B
-                //   \-Attachment C <- last because it's the last of the parent context!
+                // ╰─▶ Context D <- indentation here is handled by `debug_render`!
+                //     ├╴Attachment E
+                //     ╰╴Attachment F <- last because it's the last of the parent context!
                 if (len == 1 && sources.is_empty()) || idx > 0 {
                     Position::Last
                 } else {
