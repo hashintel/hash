@@ -154,11 +154,11 @@ impl Expression {
     pub fn evaluate<'t, 'resolver, 'context, 'r, R, C>(
         &'t self,
         resolver: &'resolver R,
-        context: &'context mut C,
+        context: &'context C,
     ) -> BoxFuture<'t, Literal>
     where
         for<'rec> R: Resolve<C> + Send + Sync + 'resolver,
-        C: Send + 'context,
+        C: Sync + 'context,
         'context: 't,
         'resolver: 't,
         Self: 't,
@@ -223,18 +223,18 @@ impl Expression {
 // TODO: DOC
 //   see https://app.asana.com/0/0/1202884883200976/f
 #[async_trait]
-pub trait Resolve<Ctx> {
+pub trait Resolve<C> {
     // TODO: Implement error handling
     //   see https://app.asana.com/0/0/1202884883200968/f
-    async fn resolve(&self, path: &[PathSegment], context: &mut Ctx) -> Literal;
+    async fn resolve(&self, path: &[PathSegment], context: &C) -> Literal;
 }
 
 #[async_trait]
-impl<Ctx> Resolve<Ctx> for Literal
+impl<C> Resolve<C> for Literal
 where
-    Ctx: Send,
+    C: Sync,
 {
-    async fn resolve(&self, path: &[PathSegment], context: &mut Ctx) -> Literal {
+    async fn resolve(&self, path: &[PathSegment], context: &C) -> Literal {
         // TODO: Support `Literal::Object`
         //   see https://app.asana.com/0/0/1202884883200943/f
         match self {

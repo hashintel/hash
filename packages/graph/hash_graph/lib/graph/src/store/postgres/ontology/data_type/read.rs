@@ -7,11 +7,11 @@ use crate::store::{
 };
 
 #[async_trait]
-impl<Ctx> Resolve<Ctx> for Record<DataType>
+impl<C> Resolve<C> for Record<DataType>
 where
-    Ctx: Send,
+    C: Sync,
 {
-    async fn resolve(&self, path: &[PathSegment], context: &mut Ctx) -> Literal {
+    async fn resolve(&self, path: &[PathSegment], context: &C) -> Literal {
         match path {
             [] => {
                 // see https://app.asana.com/0/0/1202884883200943/f"

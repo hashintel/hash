@@ -30,34 +30,6 @@ pub trait PostgresContext {
     ) -> Result<Record<PropertyType>, QueryError>;
 }
 
-#[async_trait]
-impl<T> PostgresContext for &T
-where
-    T: PostgresContext + Sync,
-{
-    async fn read_all_data_types(&self) -> Result<RowStream, QueryError> {
-        PostgresContext::read_all_data_types(*self).await
-    }
-
-    async fn read_versioned_data_type(
-        &self,
-        uri: &VersionedUri,
-    ) -> Result<Record<DataType>, QueryError> {
-        PostgresContext::read_versioned_data_type(*self, uri).await
-    }
-
-    async fn read_all_property_types(&self) -> Result<RowStream, QueryError> {
-        PostgresContext::read_all_property_types(*self).await
-    }
-
-    async fn read_versioned_property_type(
-        &self,
-        uri: &VersionedUri,
-    ) -> Result<Record<PropertyType>, QueryError> {
-        PostgresContext::read_versioned_property_type(*self, uri).await
-    }
-}
-
 /// Associates a database entry with the information about the latest version of the corresponding
 /// entry.
 ///
