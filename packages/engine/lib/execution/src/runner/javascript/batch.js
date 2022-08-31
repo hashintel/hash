@@ -54,7 +54,9 @@ const load_vectors = (record_batch_bytes, schema) => {
     const vector = new arrow.makeVector(vector_list[i]);
     const field = schema.fields[i];
     vector.type.is_any =
-      "any_type" in field.metadata && field.metadata["any_type"] == "1";
+      field.metadata !== null &&
+      "any_type" in field.metadata &&
+      field.metadata["any_type"] == "1";
     vectors[field.name] = vector;
   }
   return vectors;

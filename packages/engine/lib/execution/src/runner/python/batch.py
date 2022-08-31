@@ -183,7 +183,11 @@ class Batch:
 
         field = self.record_batch.schema.field(i_field)
         vector = self.record_batch.column(i_field)
-        is_any = "any_type" in field.metadata and field.metadata["any_type"] == "1"
+        is_any = (
+            field.metadata is not None
+            and "any_type" in field.metadata
+            and field.metadata["any_type"] == "1"
+        )
         if loader is not None:
             col = loader(vector, field.nullable, is_any)
         elif name.startswith("_PRIVATE_") or name.startswith("_HIDDEN_"):
@@ -217,7 +221,11 @@ class Batch:
                 continue  # Not supposed to have this column in `cols`?
 
             field = schema.field(i_field)
-            if "any_type" in field.metadata and field.metadata["any_type"] == "1":
+            if (
+                field.metadata is not None
+                and "any_type" in field.metadata
+                and field.metadata["any_type"] == "1"
+            ):
                 # Convert `any`-type array of JSON values to array of JSON strings
                 # for Arrow serialization as a string column.
                 py_col = [json.dumps(elem) for elem in col]
