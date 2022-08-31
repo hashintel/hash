@@ -3,13 +3,11 @@ use error_stack::{IntoReport, Result, ResultExt, StreamExt as _};
 use futures::{StreamExt, TryStreamExt};
 use serde::Deserialize;
 use tokio_postgres::{GenericClient, RowStream};
-use type_system::{DataType, PropertyType};
 
 use crate::{
     ontology::{
         types::{EntityType, LinkType},
-        AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
-        PersistedOntologyIdentifier, PersistedPropertyType,
+        AccountId, PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier,
     },
     store::{
         crud::Read,
@@ -23,22 +21,6 @@ pub trait PersistedOntologyType {
     type Inner;
 
     fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self;
-}
-
-impl PersistedOntologyType for PersistedDataType {
-    type Inner = DataType;
-
-    fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self {
-        Self { inner, identifier }
-    }
-}
-
-impl PersistedOntologyType for PersistedPropertyType {
-    type Inner = PropertyType;
-
-    fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self {
-        Self { inner, identifier }
-    }
 }
 
 impl PersistedOntologyType for PersistedLinkType {
@@ -115,6 +97,8 @@ fn apply_filter<T: OntologyDatabaseType>(element: T, query: &OntologyQuery<'_, T
     Some(element)
 }
 
+// TODO: Unify methods for Ontology types using `Expression`s
+//   see https://app.asana.com/0/0/1202884883200959/f
 #[async_trait]
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where

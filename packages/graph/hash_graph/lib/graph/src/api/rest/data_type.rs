@@ -17,9 +17,10 @@ use crate::{
     api::rest::read_from_store,
     ontology::{AccountId, PersistedDataType, PersistedOntologyIdentifier},
     store::{
-        query::DataTypeQuery, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool,
+        query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool,
     },
 };
+
 #[derive(OpenApi)]
 #[openapi(
     handlers(
@@ -121,10 +122,16 @@ async fn create_data_type<P: StorePool + Send>(
 )]
 async fn get_latest_data_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
+    mut body: Option<Json<Expression>>,
 ) -> Result<Json<Vec<PersistedDataType>>, StatusCode> {
-    read_from_store(pool.as_ref(), &DataTypeQuery::new().by_latest_version())
-        .await
-        .map(Json)
+    read_from_store(
+        pool.as_ref(),
+        &body
+            .take()
+            .map_or_else(Expression::for_latest_version, |json| json.0),
+    )
+    .await
+    .map(Json)
 }
 
 #[utoipa::path(
@@ -146,15 +153,10 @@ async fn get_data_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedDataType>, StatusCode> {
-    read_from_store(
-        pool.as_ref(),
-        &DataTypeQuery::new()
-            .by_uri(uri.base_uri())
-            .by_version(uri.version()),
-    )
-    .await
-    .and_then(|mut data_types| data_types.pop().ok_or(StatusCode::NOT_FOUND))
-    .map(Json)
+    read_from_store(pool.as_ref(), &Expression::for_versioned_uri(&uri.0))
+        .await
+        .and_then(|mut data_types| data_types.pop().ok_or(StatusCode::NOT_FOUND))
+        .map(Json)
 }
 
 #[derive(Component, Serialize, Deserialize)]

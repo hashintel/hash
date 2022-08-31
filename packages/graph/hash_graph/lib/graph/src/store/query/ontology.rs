@@ -1,11 +1,9 @@
 use std::{fmt, fmt::Formatter, marker::PhantomData};
 
-use type_system::{uri::BaseUri, DataType, PropertyType};
+use type_system::uri::BaseUri;
 
 use crate::ontology::types::{EntityType, LinkType};
 
-pub type DataTypeQuery<'q> = OntologyQuery<'q, DataType>;
-pub type PropertyTypeQuery<'q> = OntologyQuery<'q, PropertyType>;
 pub type LinkTypeQuery<'q> = OntologyQuery<'q, LinkType>;
 pub type EntityTypeQuery<'q> = OntologyQuery<'q, EntityType>;
 
