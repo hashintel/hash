@@ -1,7 +1,7 @@
 use std::{error::Error, fmt, sync::RwLock};
 
 use crate::{
-    fmt::{Emit, HookContext, Hooks},
+    fmt::{install_builtin_hooks, Emit, HookContext, Hooks},
     Frame, Report, Result,
 };
 
@@ -167,6 +167,8 @@ impl Report<()> {
     pub fn install_debug_hook<T: Send + Sync + 'static>(
         hook: impl Fn(&T, &mut HookContext<T>) -> Vec<Emit> + Send + Sync + 'static,
     ) {
+        install_builtin_hooks();
+
         let mut lock = FMT_HOOK.write().expect("should not be poisoned");
         lock.insert(hook);
     }
@@ -191,9 +193,6 @@ impl Report<()> {
     ///
     /// struct Suggestion(&'static str);
     ///
-    /// // This will remove all formatting for `Backtrace` and `SpanTrace`!
-    /// // The example after this once calls `builtin_debug_hook_fallback()`, which makes sure that we always print
-    /// // `Backtrace` and `SpanTrace`.
     /// Report::install_debug_hook_fallback(|_, _| vec![Emit::next("unknown")]);
     ///
     /// let report =
@@ -222,55 +221,6 @@ impl Report<()> {
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback.snap"))]
     /// </pre>
     ///
-    /// This example showcases the use of the builtin fallback hook as a fallback in our custom
-    /// fallback:
-    ///
-    /// ```
-    /// # // we only test the snapshot on rust 1.65, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
-    /// use std::io::{Error, ErrorKind};
-    ///
-    /// use error_stack::{fmt::{self, Emit}, report, Report};
-    ///
-    /// struct Suggestion(&'static str);
-    ///
-    /// Report::install_debug_hook_fallback(|frame, ctx| {
-    ///     // first run all builtin hooks to make sure that we print backtrace and spantrace
-    ///     let builtin = fmt::builtin_debug_hook_fallback(frame, ctx);
-    ///
-    ///     if builtin.is_empty() {
-    ///         vec![Emit::next("unknown")]
-    ///     } else {
-    ///         builtin
-    ///     }
-    /// });
-    ///
-    /// let report =
-    ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("O no, try again"));
-    ///
-    /// # owo_colors::set_override(true);
-    /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
-    /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
-    /// #
-    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
-    /// # }
-    /// #
-    /// # #[cfg(rust_1_65)]
-    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback_builtin.snap")].assert_eq(&render(format!("{report:?}")));
-    /// #
-    /// println!("{report:?}");
-    /// ```
-    ///
-    /// Which will result in something like:
-    ///
-    /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback_builtin.snap"))]
-    /// </pre>
-    ///
     /// This example showcases how we can use the fallback hook to downcast `UserError` and provide
     /// custom formatting for it's content:
     ///
@@ -283,7 +233,7 @@ impl Report<()> {
     /// };
     ///
     /// use error_stack::{
-    ///     fmt::{builtin_debug_hook_fallback, Emit},
+    ///     fmt::Emit,
     ///     report, Report,
     /// };
     ///
@@ -307,12 +257,12 @@ impl Report<()> {
     /// // we instead use fallback to provide better diagnostics.
     /// Report::install_debug_hook::<ErrorCode>(|_, _| vec![Emit::next("Error Code")]);
     ///
-    /// Report::install_debug_hook_fallback(|frame, ctx| {
+    /// Report::install_debug_hook_fallback(|frame, _| {
     ///     // add additional attachments, but only if we're a context of type `UserError`
     ///     if let Some(error) = frame.downcast_ref::<UserError>() {
     ///         vec![Emit::next(format!("Error Code: {}", error.code.0))]
     ///     } else {
-    ///         builtin_debug_hook_fallback(frame, ctx)
+    ///         vec![]
     ///     }
     /// });
     ///
@@ -353,6 +303,8 @@ impl Report<()> {
     /// [`install_debug_hook`]: Self::install_debug_hook
     #[cfg(feature = "std")]
     pub(crate) fn get_debug_format_hook<T>(closure: impl FnOnce(&Hooks) -> T) -> T {
+        install_builtin_hooks();
+
         let hook = FMT_HOOK.read().expect("should not be poisoned");
         closure(&hook)
     }

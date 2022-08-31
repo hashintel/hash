@@ -13,7 +13,8 @@ use core::{
     marker::PhantomData,
 };
 
-pub use default::builtin_debug_hook_fallback;
+#[cfg(feature = "std")]
+pub(crate) use default::install_builtin_hooks;
 
 use crate::fmt::{Emit, Frame};
 
@@ -468,6 +469,34 @@ impl<T: 'static> HookContext<'_, T> {
 type BoxedHook =
     Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Vec<Emit> + Send + Sync>;
 
+fn into_boxed_hook<T: Send + Sync + 'static>(
+    hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) -> Vec<Emit> + Send + Sync + 'static,
+) -> BoxedHook {
+    Box::new(move |frame: &Frame, ctx: &mut HookContext<Frame>| {
+        #[cfg(nightly)]
+        {
+            frame
+                .request_ref::<T>()
+                .map(|val| hook(val, ctx.cast()))
+                .or_else(|| {
+                    frame
+                        .request_value::<T>()
+                        .as_ref()
+                        .map(|val| hook(val, ctx.cast()))
+                })
+                .unwrap_or_default()
+        }
+
+        #[cfg(not(nightly))]
+        {
+            frame
+                .downcast_ref::<T>()
+                .map(|val| hook(val, ctx.cast()))
+                .unwrap_or_default()
+        }
+    })
+}
+
 /// Holds list of hooks and a fallback.
 ///
 /// The fallback is called whenever a hook for a specific type couldn't be found.
@@ -491,7 +520,6 @@ type BoxedHook =
 /// [`Frame`]: crate::Frame
 /// [`.insert()`]: Hooks::insert
 #[cfg(feature = "std")]
-#[allow(clippy::redundant_pub_crate)]
 pub(crate) struct Hooks {
     // We use `Vec`, instead of `HashMap` or `BTreeMap`, so that ordering is consistent with the
     // insertion order of types.
@@ -507,34 +535,10 @@ impl Hooks {
     ) {
         let type_id = TypeId::of::<T>();
 
-        let boxed_hook = Box::new(move |frame: &Frame, ctx: &mut HookContext<Frame>| {
-            #[cfg(nightly)]
-            {
-                frame
-                    .request_ref::<T>()
-                    .map(|val| hook(val, ctx.cast()))
-                    .or_else(|| {
-                        frame
-                            .request_value::<T>()
-                            .as_ref()
-                            .map(|val| hook(val, ctx.cast()))
-                    })
-                    .unwrap_or_default()
-            }
-
-            #[cfg(not(nightly))]
-            {
-                frame
-                    .downcast_ref::<T>()
-                    .map(|val| hook(val, ctx.cast()))
-                    .unwrap_or_default()
-            }
-        });
-
         // make sure that previous hooks of the same TypeId are deleted.
         self.inner.retain(|(id, _)| *id != type_id);
         // push new hook onto the stack
-        self.inner.push((type_id, boxed_hook));
+        self.inner.push((type_id, into_boxed_hook(hook)));
     }
 
     pub(crate) fn fallback(
@@ -552,11 +556,9 @@ impl Hooks {
             .collect();
 
         if emits.is_empty() {
-            if let Some(fallback) = self.fallback.as_ref() {
-                fallback(frame, ctx)
-            } else {
-                builtin_debug_hook_fallback(frame, ctx)
-            }
+            self.fallback
+                .as_ref()
+                .map_or_else(Vec::new, |fallback| fallback(frame, ctx))
         } else {
             emits
         }
@@ -566,21 +568,58 @@ impl Hooks {
 mod default {
     #![allow(unused_imports)]
 
-    #[cfg(any(all(rust_1_65, feature = "std"), feature = "spantrace"))]
+    #[cfg(any(rust_1_65, feature = "spantrace"))]
     use alloc::format;
     use alloc::{vec, vec::Vec};
-    #[cfg(all(rust_1_65, feature = "std"))]
+    use core::any::TypeId;
+    #[cfg(rust_1_65)]
     use std::backtrace::Backtrace;
+    use std::sync::{
+        atomic::{AtomicBool, Ordering},
+        Once,
+    };
 
     #[cfg(feature = "spantrace")]
     use tracing_error::SpanTrace;
 
     use crate::{
-        fmt::{hook::HookContext, Emit},
-        Frame,
+        fmt::{
+            hook::{into_boxed_hook, BoxedHook, HookContext},
+            Emit,
+        },
+        Frame, Report,
     };
 
-    #[cfg(all(rust_1_65, feature = "std"))]
+    pub(crate) fn install_builtin_hooks() {
+        // We could in theory remove this and replace it with a single AtomicBool.
+        static INSTALL_BUILTIN: Once = Once::new();
+
+        // This static makes sure that we only run once, if we wouldn't have this guard we would
+        // deadlock, as `install_debug_hook` calls `install_builtin_hooks`, and according to the
+        // docs:
+        //
+        // > If the given closure recursively invokes call_once on the same Once instance the exact
+        // > behavior is not specified, allowed outcomes are a panic or a deadlock.
+        static INSTALL_BUILTIN_RUNNING: AtomicBool = AtomicBool::new(false);
+
+        // This has minimal overhead, as `Once::call_once` calls `.is_completed` as the short path
+        // we just move it out here, so that we're able to check `INSTALL_BUILTIN_RUNNING`
+        if INSTALL_BUILTIN.is_completed() || INSTALL_BUILTIN_RUNNING.load(Ordering::Acquire) {
+            return;
+        }
+
+        INSTALL_BUILTIN.call_once(|| {
+            INSTALL_BUILTIN_RUNNING.store(true, Ordering::Release);
+
+            #[cfg(all(rust_1_65))]
+            Report::install_debug_hook(backtrace);
+
+            #[cfg(feature = "spantrace")]
+            Report::install_debug_hook(span_trace);
+        });
+    }
+
+    #[cfg(rust_1_65)]
     fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Vec<Emit> {
         let idx = ctx.increment();
 
@@ -609,50 +648,5 @@ mod default {
             "spantrace with {span} frames ({})",
             idx + 1
         ))]
-    }
-
-    /// Fallback for common attachments that are automatically created
-    /// by `error_stack`, like [`Backtrace`] and [`SpanTrace`]
-    ///
-    /// [`Backtrace`]: std::backtrace::Backtrace
-    /// [`SpanTrace`]: tracing_error::SpanTrace
-    // Frame can be unused, if neither backtrace or spantrace are enabled
-    #[allow(unused_variables)]
-    pub fn builtin_debug_hook_fallback<'a>(
-        frame: &Frame,
-        ctx: &mut HookContext<'a, Frame>,
-    ) -> Vec<Emit> {
-        #[allow(unused_mut)]
-        let mut emit = vec![];
-
-        // we're only able to use `request_ref` in nightly, because the Provider API hasn't been
-        // stabilized yet.
-        #[cfg(nightly)]
-        {
-            #[cfg(all(rust_1_65, feature = "std"))]
-            if let Some(bt) = frame.request_ref() {
-                emit.append(&mut backtrace(bt, ctx.cast()));
-            }
-
-            #[cfg(feature = "spantrace")]
-            if let Some(st) = frame.request_ref() {
-                emit.append(&mut span_trace(st, ctx.cast()));
-            }
-        }
-
-        #[cfg(not(nightly))]
-        {
-            #[cfg(all(rust_1_65, feature = "std"))]
-            if let Some(bt) = frame.downcast_ref() {
-                emit.append(&mut backtrace(bt, ctx.cast()));
-            }
-
-            #[cfg(feature = "spantrace")]
-            if let Some(st) = frame.downcast_ref() {
-                emit.append(&mut span_trace(st, ctx.cast()));
-            }
-        }
-
-        emit
     }
 }
