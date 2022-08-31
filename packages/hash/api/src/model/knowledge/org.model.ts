@@ -91,6 +91,11 @@ export const orgEntityType = generateWorkspaceEntityTypeSchema({
 
 const orgEntityTypeVersionedUri = orgEntityType.$id;
 
+/**
+ * @todo revisit organization size provided info. These constant strings could
+ *   be replaced by ranges for example.
+ *   https://app.asana.com/0/0/1202900021005257/f
+ */
 export enum OrgSize {
   ElevenToFifty = "ELEVEN_TO_FIFTY",
   FiftyOneToTwoHundredAndFifty = "FIFTY_ONE_TO_TWO_HUNDRED_AND_FIFTY",
