@@ -4,12 +4,10 @@ use glob::GlobError;
 use lazy_static::lazy_static;
 use uuid::Uuid;
 
-lazy_static! {
-    /// We use this to keep a list of all the shared-memory segements which are
-    /// being used by the engine. When the engine exits, we then delete any
-    /// leftover shared memory segments (in release builds; we error in debug builds).
-    pub static ref IN_USE_SHM_SEGMENTS: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
-}
+/// We use this to keep a list of all the shared-memory segements which are
+/// being used by the engine. When the engine exits, we then delete any
+/// leftover shared memory segments (in release builds; we error in debug builds).
+pub static IN_USE_SHM_SEGMENTS: LazyLock<Mutex<HashSet<String>>> = LazyLock::new(Mutex::default);
 
 use crate::{shared_memory::MemoryId, Error, Result};
 
