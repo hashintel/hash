@@ -154,7 +154,7 @@ async fn get_property_type<P: StorePool + Send>(
 ) -> Result<Json<PersistedPropertyType>, StatusCode> {
     read_from_store(pool.as_ref(), &Expression::for_versioned_uri(&uri.0))
         .await
-        .and_then(|mut data_types| data_types.pop().ok_or(StatusCode::NOT_FOUND))
+        .and_then(|mut property_types| property_types.pop().ok_or(StatusCode::NOT_FOUND))
         .map(Json)
 }
 
