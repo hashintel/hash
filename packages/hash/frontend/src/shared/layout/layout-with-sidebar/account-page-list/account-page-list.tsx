@@ -119,7 +119,9 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     [pagesFlatList],
   );
 
-  useMemo(() => {
+  useEffect(() => {
+    // We only update the state when everything has been loaded.
+    // This is to prevent items from jumping around when trying to expand/collapse a page while a reorder update is being made.
     if (!loading) {
       setSortableList(data, expandedPageIds);
     }
