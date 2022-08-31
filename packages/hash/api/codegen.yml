@@ -10,8 +10,8 @@ generates:
       noSchemaStitching: true
   ./src/graphql/apiTypes.gen.ts:
     documents:
-      - ../shared/src/queries/*.ts
-      - ./src/collab/graphql/queries/*.ts
+      - ../shared/src/queries/**/*.ts
+      - ./src/collab/graphql/queries/**/*.ts
     hooks:
       afterOneFileWrite:
         - prettier --write
@@ -23,11 +23,12 @@ generates:
       noSchemaStitching: true
       skipTypename: true
       scalars:
+        DataType: "@blockprotocol/type-system-web#DataType"
+        PropertyType: "@blockprotocol/type-system-web#PropertyType"
         # TODO Switch out this direct dependency on the HASH Graph SDK with
-        #   the a shared type package
-        DataType: "@hashintel/hash-graph-client#DataType"
-        PropertyType: "@hashintel/hash-graph-client#PropertyType"
+        #   the Block Protocol type system package when ready
         LinkType: "@hashintel/hash-graph-client#LinkType"
+        EntityType: "@hashintel/hash-graph-client#EntityType"
         TextToken: "@hashintel/hash-shared/graphql/types#TextToken"
         Date: string
         UnknownEntityProperties: "@hashintel/hash-shared/graphql/types#UnknownEntityProperties"

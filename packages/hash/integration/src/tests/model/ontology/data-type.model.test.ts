@@ -2,7 +2,7 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
-import { DataType } from "@hashintel/hash-graph-client/";
+import { DataType } from "@blockprotocol/type-system-web";
 import { DataTypeModel } from "@hashintel/hash-api/src/model";
 
 jest.setTimeout(60000);
@@ -23,10 +23,10 @@ const graphApi = createGraphClient(logger, {
 
 const accountId = "00000000-0000-0000-0000-000000000000";
 
-const textDataType$id = "https://data-type~example.com/data-type/v/1";
+const textDataType$id = "https://data-type~example.com/data-type/v/1" as const;
 
 describe("Data type CRU", () => {
-  const dataType = ($id: string): DataType => {
+  const dataType = ($id: DataType["$id"]): DataType => {
     return {
       $id,
       kind: "dataType",

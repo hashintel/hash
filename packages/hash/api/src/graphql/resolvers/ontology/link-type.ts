@@ -85,7 +85,7 @@ export const updateLinkType: ResolverFn<
   MutationUpdateLinkTypeArgs
 > = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
-  const { accountId, linkTypeVersionedUri, newLinkType } = params;
+  const { accountId, linkTypeVersionedUri, updatedLinkType } = params;
 
   const linkTypeModel = await LinkTypeModel.get(graphApi, {
     versionedUri: linkTypeVersionedUri,
@@ -99,7 +99,7 @@ export const updateLinkType: ResolverFn<
   const updatedLinkTypeModel = await linkTypeModel
     .update(graphApi, {
       accountId: accountId ?? user.getAccountId(),
-      schema: newLinkType,
+      schema: updatedLinkType,
     })
     .catch((err: AxiosError) => {
       const msg =
