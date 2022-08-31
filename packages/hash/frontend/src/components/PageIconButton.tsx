@@ -2,7 +2,7 @@ import {
   fontAwesomeIconClasses,
   IconButton,
 } from "@hashintel/hash-design-system";
-import { iconButtonClasses, Tooltip } from "@mui/material";
+import { iconButtonClasses, Tooltip, SxProps, Theme } from "@mui/material";
 import { SystemStyleObject } from "@mui/system";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { MouseEventHandler } from "react";
@@ -24,6 +24,7 @@ interface PageIconButtonProps {
   hasDarkBg?: boolean;
   onClick?: MouseEventHandler<HTMLButtonElement>;
   popoverProps?: EmojiPickerPopoverProps;
+  sx?: SxProps<Theme>;
 }
 
 export const PageIconButton = ({
@@ -35,6 +36,7 @@ export const PageIconButton = ({
   hasDarkBg,
   onClick,
   popoverProps,
+  sx = [],
 }: PageIconButtonProps) => {
   const popupState = usePopupState({
     variant: "popover",
@@ -55,26 +57,29 @@ export const PageIconButton = ({
             onClick?.(event);
             trigger.onClick(event);
           }}
-          sx={({ palette }) => {
-            const background = hasDarkBg ? palette.gray[40] : palette.gray[30];
+          sx={[
+            ({ palette }) => {
+              const background = hasDarkBg
+                ? palette.gray[40]
+                : palette.gray[30];
 
-            const hoverState: SystemStyleObject = {
-              background,
-              ...(hasDarkBg && {
-                [`.${fontAwesomeIconClasses.icon}`]: {
-                  color: palette.gray[50],
-                },
-              }),
-
-              // ""
-            };
-            return {
-              p: 0,
-              ...(popupState.isOpen && hoverState),
-              "&:focus-visible, &:hover": hoverState,
-              [`&.${iconButtonClasses.disabled}`]: { color: "unset" },
-            };
-          }}
+              const hoverState: SystemStyleObject = {
+                background,
+                ...(hasDarkBg && {
+                  [`.${fontAwesomeIconClasses.icon}`]: {
+                    color: palette.gray[50],
+                  },
+                }),
+              };
+              return {
+                p: 0,
+                ...(popupState.isOpen && hoverState),
+                "&:focus-visible, &:hover": hoverState,
+                [`&.${iconButtonClasses.disabled}`]: { color: "unset" },
+              };
+            },
+            ...(Array.isArray(sx) ? sx : [sx]),
+          ]}
           disabled={readonly || updateEntityLoading}
         >
           <PageIcon

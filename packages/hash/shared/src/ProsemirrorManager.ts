@@ -549,22 +549,6 @@ export class ProsemirrorManager {
   }
 
   /**
-   * Updates the prosemirror editor to not be editable.
-   * @see https://prosemirror.net/docs/ref/#view.EditorView.editable
-   */
-  setReadonlyMode() {
-    if (!this.view) {
-      throw new Error("Cannot trigger setReadonlyMode without view");
-    }
-
-    if (this.view) {
-      this.view.setProps({
-        editable: () => false,
-      });
-    }
-  }
-
-  /**
    * There are a number of common entity store actions necessary to insert
    * a completely new block + its block data entity. This function will do
    * that for you.
