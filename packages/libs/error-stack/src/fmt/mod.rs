@@ -966,7 +966,7 @@ fn debug_attachments(
                 } else {
                     line.push(
                         Indent::no_group()
-                            .with_visible(!matches!(position, Position::Final))
+                            .visible(!matches!(position, Position::Final))
                             .spacing(Spacing::Minimal)
                             .into(),
                     )
@@ -998,7 +998,7 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
                     } else {
                         line.push(
                             Indent::group()
-                                .with_visible(!matches!(position, Position::Final))
+                                .visible(!matches!(position, Position::Final))
                                 .into(),
                         )
                     }
@@ -1006,7 +1006,7 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
                 .collect::<Lines>()
                 .before(
                     // add a buffer line for readability
-                    Line::new().push(Indent::new(idx != 0).no_spacing().into()),
+                    Line::new().push(Indent::new(idx != 0).spacing(None).into()),
                 )
         })
         .collect::<Vec<_>>();
@@ -1031,7 +1031,7 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
                 } else {
                     line.push(
                         Indent::no_group()
-                            .with_visible(!matches!(position, Position::Final))
+                            .visible(!matches!(position, Position::Final))
                             .into(),
                     )
                 }
@@ -1039,7 +1039,7 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
             .collect::<Vec<_>>();
 
         // this is not using `.collect<>().before()`, because somehow that kills rustfmt?!
-        lines.insert(0, Line::new().push(Indent::no_group().no_spacing().into()));
+        lines.insert(0, Line::new().push(Indent::no_group().spacing(None).into()));
 
         lines
     });
@@ -1161,12 +1161,8 @@ impl<C> Debug for Report<C> {
                 } else {
                     lines
                         .before(
-                            Line::new().push(
-                                Indent::no_group()
-                                    .invisible()
-                                    .no_spacing()
-                                    .into(),
-                            ),
+                            Line::new()
+                                .push(Indent::no_group().visible(false).spacing(None).into()),
                         )
                         .into_vec()
                 }
