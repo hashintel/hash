@@ -151,17 +151,10 @@ impl Expression {
     // TODO: Implement error handling
     //   see https://app.asana.com/0/0/1202884883200968/f
     #[expect(clippy::missing_panics_doc, reason = "Error handling not applied yet")]
-    pub fn evaluate<'t, 'resolver, 'context, 'r, R, C>(
-        &'t self,
-        resolver: &'resolver R,
-        context: &'context C,
-    ) -> BoxFuture<'t, Literal>
+    pub fn evaluate<'a, R, C>(&'a self, resolver: &'a R, context: &'a C) -> BoxFuture<Literal>
     where
-        for<'rec> R: Resolve<C> + Send + Sync + 'resolver,
-        C: Sync + 'context,
-        'context: 't,
-        'resolver: 't,
-        Self: 't,
+        R: Resolve<C> + Sync,
+        C: Sync,
     {
         async move {
             match self {
