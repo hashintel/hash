@@ -25,7 +25,7 @@ const getRecursivePageList = (
   depth = 0,
   collapsed = false,
 ): PageList => {
-  const emptyTreeList = [] as TreeElement[];
+  const emptyTreeList: TreeElement[] = [];
   const emptyList: PageList = {
     treeList: emptyTreeList,
     flatList: emptyTreeList,
