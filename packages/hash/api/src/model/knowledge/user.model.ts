@@ -180,7 +180,10 @@ export default class extends EntityModel {
     graphApi: GraphApi,
     params: { shortname: string },
   ): Promise<UserModel | null> {
-    /** @todo: use upcoming Graph API method to filter entities in the datastore */
+    /**
+     * @todo: use upcoming Graph API method to filter entities in the datastore
+     *   https://app.asana.com/0/1202805690238892/1202890614880643/f
+     */
     const allEntities = await EntityModel.getAllLatest(graphApi, {
       accountId: workspaceAccountId,
     });
@@ -212,7 +215,10 @@ export default class extends EntityModel {
     graphApi: GraphApi,
     params: { kratosIdentityId: string },
   ): Promise<UserModel | null> {
-    /** @todo: use upcoming Graph API method to filter entities in the datastore */
+    /**
+     * @todo: use upcoming Graph API method to filter entities in the datastore
+     *   https://app.asana.com/0/1202805690238892/1202890614880643/f
+     */
     const allEntities = await EntityModel.getAllLatest(graphApi, {
       accountId: workspaceAccountId,
     });

@@ -55,7 +55,12 @@ export default class {
     graphApi: GraphApi,
     _params: { accountId: string },
   ): Promise<LinkTypeModel[]> {
-    /** @todo: get all latest link types in specified account */
+    /**
+     * @todo: get all latest link types in specified account.
+     *   This may mean implictly filtering results by what an account is
+     *   authorized to see.
+     *   https://app.asana.com/0/1202805690238892/1202890446280569/f
+     */
     const { data: persistedLinkTypes } = await graphApi.getLatestLinkTypes();
 
     return persistedLinkTypes.map(

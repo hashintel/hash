@@ -4,7 +4,7 @@ use tokio_postgres::GenericClient;
 use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::{
-    knowledge::{EntityId, Links, Outgoing},
+    knowledge::{EntityId, OutgoingLinkTarget, OutgoingLinks},
     store::{
         crud,
         query::{LinkQuery, OntologyVersion},
@@ -15,7 +15,7 @@ use crate::{
 async fn single_by_source_entity_id(
     client: &(impl GenericClient + Sync),
     source_entity_id: EntityId,
-) -> Result<impl Iterator<Item = (VersionedUri, Outgoing)> + Send, QueryError> {
+) -> Result<impl Iterator<Item = (VersionedUri, OutgoingLinkTarget)> + Send, QueryError> {
     Ok(client
         .query(
             r#"
@@ -37,7 +37,7 @@ async fn single_by_source_entity_id(
                     BaseUri::new(row.get(0)).expect("invalid BaseUri"),
                     row.get::<_, i64>(1) as u32,
                 ),
-                Outgoing::Single(row.get(2)),
+                OutgoingLinkTarget::Single(row.get(2)),
             )
         }))
 }
@@ -45,7 +45,7 @@ async fn single_by_source_entity_id(
 async fn multi_by_source_entity_id(
     client: &(impl GenericClient + Sync),
     source_entity_id: EntityId,
-) -> Result<impl Iterator<Item = (VersionedUri, Outgoing)> + Send, QueryError> {
+) -> Result<impl Iterator<Item = (VersionedUri, OutgoingLinkTarget)> + Send, QueryError> {
     Ok(client
         .query(
             r#"
@@ -67,17 +67,19 @@ async fn multi_by_source_entity_id(
         .into_iter()
         .map(|row| (
             VersionedUri::new(BaseUri::new(row.get(0)).expect("invalid BaseUri"), row.get::<_, i64>(1) as u32),
-            Outgoing::Multiple(row.get(2))
+            OutgoingLinkTarget::Multiple(row.get(2))
         )))
 }
 
 async fn by_source_entity_id(
     client: &(impl GenericClient + Sync),
     source_entity_id: EntityId,
-) -> Result<Vec<Links>, QueryError> {
+) -> Result<Vec<OutgoingLinks>, QueryError> {
     let single_links = single_by_source_entity_id(client, source_entity_id).await?;
     let multi_links = multi_by_source_entity_id(client, source_entity_id).await?;
-    Ok(vec![Links::new(single_links.chain(multi_links).collect())])
+    Ok(vec![OutgoingLinks::new(
+        single_links.chain(multi_links).collect(),
+    )])
 }
 
 async fn by_link_type_by_source_entity_id(
@@ -85,7 +87,7 @@ async fn by_link_type_by_source_entity_id(
     link_type_base_uri: &BaseUri,
     link_type_version: u32,
     source_entity_id: EntityId,
-) -> Result<Vec<Links>, QueryError> {
+) -> Result<Vec<OutgoingLinks>, QueryError> {
     let link =
         client
         .query_one(
@@ -121,15 +123,15 @@ async fn by_link_type_by_source_entity_id(
 
     let val: (Option<EntityId>, Option<Vec<EntityId>>) = (link.get(1), link.get(2));
     let outgoing = match val {
-        (Some(entity_id), None) => Outgoing::Single(entity_id),
-        (None, Some(entity_ids)) => Outgoing::Multiple(entity_ids),
+        (Some(entity_id), None) => OutgoingLinkTarget::Single(entity_id),
+        (None, Some(entity_ids)) => OutgoingLinkTarget::Multiple(entity_ids),
         _ => {
             return Err(Report::new(QueryError)
                 .attach_printable(source_entity_id)
                 .attach_printable(link_type_base_uri.clone()));
         }
     };
-    Ok(vec![Links::new(
+    Ok(vec![OutgoingLinks::new(
         [(
             VersionedUri::new(link_type_base_uri.clone(), link_type_version),
             outgoing,
@@ -140,10 +142,13 @@ async fn by_link_type_by_source_entity_id(
 
 // TODO: we should probably support taking PersistedEntityIdentifier here as well as an EntityId
 #[async_trait]
-impl<C: AsClient> crud::Read<Links> for PostgresStore<C> {
+impl<C: AsClient> crud::Read<OutgoingLinks> for PostgresStore<C> {
     type Query<'q> = LinkQuery<'q>;
 
-    async fn read<'query>(&self, query: &Self::Query<'query>) -> Result<Vec<Links>, QueryError> {
+    async fn read<'query>(
+        &self,
+        query: &Self::Query<'query>,
+    ) -> Result<Vec<OutgoingLinks>, QueryError> {
         match (query.link_type_query(), query.source_entity_id()) {
             (None, Some(source_entity_id)) => {
                 by_source_entity_id(self.as_client(), source_entity_id).await
