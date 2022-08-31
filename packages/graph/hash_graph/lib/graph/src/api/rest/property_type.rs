@@ -8,6 +8,7 @@ use axum::{
     routing::{get, post},
     Extension, Json, Router,
 };
+use error_stack::IntoReport;
 use serde::{Deserialize, Serialize};
 use type_system::{uri::VersionedUri, PropertyType};
 use utoipa::{Component, OpenApi};
@@ -64,7 +65,7 @@ impl RoutedResource for PropertyTypeResource {
 #[serde(rename_all = "camelCase")]
 struct CreatePropertyTypeRequest {
     #[component(value_type = VAR_PROPERTY_TYPE)]
-    schema: PropertyType,
+    schema: serde_json::Value,
     account_id: AccountId,
 }
 
@@ -93,8 +94,15 @@ async fn create_property_type<P: StorePool + Send>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let property_type: PropertyType = schema.try_into().into_report().map_err(|report| {
+        tracing::error!(error=?report, "Couldn't convert schema to Property Type");
+        StatusCode::UNPROCESSABLE_ENTITY // TODO - Do we want to return a 400 instead
+        // TODO - We should probably return more information to the client
+        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+    })?;
+
     store
-        .create_property_type(&schema, account_id)
+        .create_property_type(property_type, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create property type");
@@ -162,7 +170,7 @@ async fn get_property_type<P: StorePool + Send>(
 #[serde(rename_all = "camelCase")]
 struct UpdatePropertyTypeRequest {
     #[component(value_type = VAR_PROPERTY_TYPE)]
-    schema: PropertyType,
+    schema: serde_json::Value,
     account_id: AccountId,
 }
 
@@ -190,8 +198,15 @@ async fn update_property_type<P: StorePool + Send>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let property_type: PropertyType = schema.try_into().into_report().map_err(|report| {
+        tracing::error!(error=?report, "Couldn't convert schema to Property Type");
+        StatusCode::UNPROCESSABLE_ENTITY // TODO - Do we want to return a 400 instead
+        // TODO - We should probably return more information to the client
+        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+    })?;
+
     store
-        .update_property_type(&schema, account_id)
+        .update_property_type(property_type, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update property type");

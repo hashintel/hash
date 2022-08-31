@@ -8,6 +8,7 @@ use axum::{
     routing::{get, post},
     Extension, Json, Router,
 };
+use error_stack::IntoReport;
 use serde::{Deserialize, Serialize};
 use type_system::{uri::VersionedUri, DataType};
 use utoipa::{Component, OpenApi};
@@ -64,7 +65,7 @@ impl RoutedResource for DataTypeResource {
 #[serde(rename_all = "camelCase")]
 struct CreateDataTypeRequest {
     #[component(value_type = VAR_DATA_TYPE)]
-    schema: DataType,
+    schema: serde_json::Value,
     account_id: AccountId,
 }
 
@@ -93,8 +94,15 @@ async fn create_data_type<P: StorePool + Send>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let data_type: DataType = schema.try_into().into_report().map_err(|report| {
+        tracing::error!(error=?report, "Couldn't convert schema to Property Type");
+        StatusCode::UNPROCESSABLE_ENTITY // TODO - Do we want to return a 400 instead
+        // TODO - We should probably return more information to the client
+        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+    })?;
+
     store
-        .create_data_type(&schema, account_id)
+        .create_data_type(data_type, account_id)
         .await
         .map_err(|report| {
             // TODO: consider adding the data type, or at least its URI in the trace
@@ -163,7 +171,7 @@ async fn get_data_type<P: StorePool + Send>(
 #[serde(rename_all = "camelCase")]
 struct UpdateDataTypeRequest {
     #[component(value_type = VAR_DATA_TYPE)]
-    schema: DataType,
+    schema: serde_json::Value,
     account_id: AccountId,
 }
 
@@ -191,8 +199,15 @@ async fn update_data_type<P: StorePool + Send>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let data_type: DataType = schema.try_into().into_report().map_err(|report| {
+        tracing::error!(error=?report, "Couldn't convert schema to Property Type");
+        StatusCode::UNPROCESSABLE_ENTITY // TODO - Do we want to return a 400 instead
+        // TODO - We should probably return more information to the client
+        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+    })?;
+
     store
-        .update_data_type(&schema, account_id)
+        .update_data_type(data_type, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update data type");

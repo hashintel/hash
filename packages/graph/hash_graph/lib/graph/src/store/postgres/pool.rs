@@ -32,7 +32,7 @@ impl ErrorSink<Error> for ErrorLogger {
     }
 }
 
-#[allow(clippy::trait_duplication_in_bounds, reason = "false positive")]
+#[expect(clippy::trait_duplication_in_bounds, reason = "false positive")]
 impl<Tls> PostgresStorePool<Tls>
 where
     Tls: MakeTlsConnect<Socket> + Clone + Send + Sync + 'static,

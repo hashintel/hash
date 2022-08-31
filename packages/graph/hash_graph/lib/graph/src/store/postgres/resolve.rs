@@ -107,10 +107,12 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
         let Record { record, is_latest } =
             read_versioned_type(&self.client, "data_types", uri).await?;
 
+        let data_type: DataType = serde_json::Value::try_into(record.get(0))
+            .into_report()
+            .change_context(QueryError)?;
+
         Ok(Record {
-            record: serde_json::from_value(record.get(0))
-                .into_report()
-                .change_context(QueryError)?,
+            record: data_type,
             is_latest,
         })
     }
@@ -126,10 +128,12 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
         let Record { record, is_latest } =
             read_versioned_type(&self.client, "property_types", uri).await?;
 
+        let property_type: PropertyType = serde_json::Value::try_into(record.get(0))
+            .into_report()
+            .change_context(QueryError)?;
+
         Ok(Record {
-            record: serde_json::from_value(record.get(0))
-                .into_report()
-                .change_context(QueryError)?,
+            record: property_type,
             is_latest,
         })
     }

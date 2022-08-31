@@ -20,7 +20,7 @@ use crate::{
 impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     async fn create_property_type(
         &mut self,
-        property_type: &PropertyType,
+        property_type: PropertyType,
         created_by: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError> {
         let transaction = PostgresStore::new(
@@ -31,10 +31,13 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 .change_context(InsertionError)?,
         );
 
-        let (version_id, identifier) = transaction.create(property_type, created_by).await?;
+        // TODO - get rid of the clone on property_type
+        let (version_id, identifier) = transaction
+            .create(property_type.clone(), created_by)
+            .await?;
 
         transaction
-            .insert_property_type_references(property_type, version_id)
+            .insert_property_type_references(&property_type, version_id)
             .await
             .change_context(InsertionError)
             .attach_printable("Could not insert references for property type")
@@ -52,7 +55,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
     async fn update_property_type(
         &mut self,
-        property_type: &PropertyType,
+        property_type: PropertyType,
         updated_by: AccountId,
     ) -> Result<PersistedOntologyIdentifier, UpdateError> {
         let transaction = PostgresStore::new(
@@ -63,10 +66,13 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 .change_context(UpdateError)?,
         );
 
-        let (version_id, identifier) = transaction.update(property_type, updated_by).await?;
+        // TODO - get rid of the clone on property_type
+        let (version_id, identifier) = transaction
+            .update(property_type.clone(), updated_by)
+            .await?;
 
         transaction
-            .insert_property_type_references(property_type, version_id)
+            .insert_property_type_references(&property_type, version_id)
             .await
             .change_context(UpdateError)
             .attach_printable("Could not insert references for property type")
@@ -97,7 +103,7 @@ impl<C: AsClient> Read<PersistedPropertyType> for PostgresStore<C> {
             .await?
             .map(|row_result| row_result.into_report().change_context(QueryError))
             .try_filter_map(|row| async move {
-                let property_type: PropertyType = serde_json::from_value(row.get(0))
+                let property_type: PropertyType = serde_json::Value::try_into(row.get(0))
                     .into_report()
                     .change_context(QueryError)?;
 

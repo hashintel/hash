@@ -8,13 +8,14 @@ use axum::{
     routing::{get, post},
     Extension, Json, Router,
 };
+use error_stack::IntoReport;
 use serde::{Deserialize, Serialize};
-use type_system::uri::VersionedUri;
+use type_system::{uri::VersionedUri, EntityType};
 use utoipa::{Component, OpenApi};
 
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store},
-    ontology::{types::EntityType, AccountId, PersistedEntityType, PersistedOntologyIdentifier},
+    ontology::{AccountId, PersistedEntityType, PersistedOntologyIdentifier},
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
         query::EntityTypeQuery,
@@ -65,7 +66,7 @@ impl RoutedResource for EntityTypeResource {
 #[serde(rename_all = "camelCase")]
 struct CreateEntityTypeRequest {
     #[component(value_type = VAR_ENTITY_TYPE)]
-    schema: EntityType,
+    schema: serde_json::Value,
     account_id: AccountId,
 }
 
@@ -94,8 +95,16 @@ async fn create_entity_type<P: StorePool + Send>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let entity_type: EntityType = schema.try_into().into_report().map_err(|report| {
+        tracing::error!(error=?report, "Couldn't convert schema to Entity Type");
+        // Shame there isn't an UNPROCESSABLE_ENTITY_TYPE code :D
+        StatusCode::UNPROCESSABLE_ENTITY // TODO - Do we want to return a 400 instead
+        // TODO - We should probably return more information to the client
+        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+    })?;
+
     store
-        .create_entity_type(&schema, account_id)
+        .create_entity_type(entity_type, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create entity type");
@@ -162,7 +171,7 @@ async fn get_entity_type<P: StorePool + Send>(
 #[serde(rename_all = "camelCase")]
 struct UpdateEntityTypeRequest {
     #[component(value_type = VAR_ENTITY_TYPE)]
-    schema: EntityType,
+    schema: serde_json::Value,
     account_id: AccountId,
 }
 
@@ -190,8 +199,16 @@ async fn update_entity_type<P: StorePool + Send>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let entity_type: EntityType = schema.try_into().into_report().map_err(|report| {
+        tracing::error!(error=?report, "Couldn't convert schema to Entity Type");
+        // Shame there isn't an UNPROCESSABLE_ENTITY_TYPE code :D
+        StatusCode::UNPROCESSABLE_ENTITY // TODO - Do we want to return a 400 instead
+        // TODO - We should probably return more information to the client
+        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+    })?;
+
     store
-        .update_entity_type(&schema, account_id)
+        .update_entity_type(entity_type, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity type");

@@ -2,6 +2,7 @@
   "kind": "entityType",
   "$id": "https://blockprotocol.org/@alice/types/entity-type/book/v/1",
   "title": "Book",
+  "pluralTitle": "Books",
   "type": "object",
   "properties": {
     "https://blockprotocol.org/@alice/types/property-type/name/": {

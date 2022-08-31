@@ -8,11 +8,10 @@ mod version_id;
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use postgres_types::ToSql;
-use serde::Serialize;
 use tokio_postgres::GenericClient;
 use type_system::{
     uri::{BaseUri, VersionedUri},
-    DataTypeReference, PropertyType, PropertyTypeReference,
+    DataTypeReference, EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
 };
 use uuid::Uuid;
 
@@ -20,10 +19,7 @@ pub use self::pool::{AsClient, PostgresStorePool};
 use super::error::LinkActivationError;
 use crate::{
     knowledge::{Entity, EntityId, LinkStatus, PersistedEntityIdentifier},
-    ontology::{
-        types::{EntityType, EntityTypeReference},
-        AccountId, PersistedOntologyIdentifier,
-    },
+    ontology::{AccountId, PersistedOntologyIdentifier},
     store::{
         error::VersionedUriAlreadyExists,
         postgres::{ontology::OntologyDatabaseType, version_id::VersionId},
@@ -248,16 +244,16 @@ where
     /// [`BaseUri`]: type_system::uri::BaseUri
     async fn create<T>(
         &self,
-        database_type: &T,
+        database_type: T,
         created_by: AccountId,
     ) -> Result<(VersionId, PersistedOntologyIdentifier), InsertionError>
     where
-        T: OntologyDatabaseType + Serialize + Send + Sync,
+        T: OntologyDatabaseType + Send + Sync,
     {
-        let uri = database_type.versioned_uri();
+        let uri = database_type.versioned_uri().clone();
 
         if self
-            .contains_base_uri(uri.base_uri())
+            .contains_base_uri(&uri.base_uri())
             .await
             .change_context(InsertionError)?
         {
@@ -266,10 +262,10 @@ where
                 .change_context(InsertionError));
         }
 
-        self.insert_base_uri(uri.base_uri()).await?;
+        self.insert_base_uri(&uri.base_uri()).await?;
 
         if self
-            .contains_uri(uri)
+            .contains_uri(&uri)
             .await
             .change_context(InsertionError)?
         {
@@ -280,13 +276,14 @@ where
 
         let version_id = VersionId::new(Uuid::new_v4());
         self.insert_version_id(version_id).await?;
-        self.insert_uri(uri, version_id).await?;
+        self.insert_uri(&uri, version_id).await?;
+
         self.insert_with_id(version_id, database_type, created_by)
             .await?;
 
         Ok((
             version_id,
-            PersistedOntologyIdentifier::new(uri.clone(), created_by),
+            PersistedOntologyIdentifier::new(uri, created_by),
         ))
     }
 
@@ -302,13 +299,13 @@ where
     /// [`BaseUri`]: type_system::uri::BaseUri
     async fn update<T>(
         &self,
-        database_type: &T,
+        database_type: T,
         updated_by: AccountId,
     ) -> Result<(VersionId, PersistedOntologyIdentifier), UpdateError>
     where
-        T: OntologyDatabaseType + Serialize + Send + Sync,
+        T: OntologyDatabaseType + Send + Sync,
     {
-        let uri = database_type.versioned_uri();
+        let uri = database_type.versioned_uri().clone();
 
         if !self
             .contains_base_uri(uri.base_uri())
@@ -324,7 +321,7 @@ where
         self.insert_version_id(version_id)
             .await
             .change_context(UpdateError)?;
-        self.insert_uri(uri, version_id)
+        self.insert_uri(&uri, version_id)
             .await
             .change_context(UpdateError)?;
         self.insert_with_id(version_id, database_type, updated_by)
@@ -333,7 +330,7 @@ where
 
         Ok((
             version_id,
-            PersistedOntologyIdentifier::new(uri.clone(), updated_by),
+            PersistedOntologyIdentifier::new(uri, updated_by),
         ))
     }
 
@@ -346,15 +343,13 @@ where
     async fn insert_with_id<T>(
         &self,
         version_id: VersionId,
-        database_type: &T,
+        database_type: T,
         created_by: AccountId,
     ) -> Result<(), InsertionError>
     where
-        T: OntologyDatabaseType + Serialize + Sync,
+        T: OntologyDatabaseType + Sync,
     {
-        let value = serde_json::to_value(database_type)
-            .into_report()
-            .change_context(InsertionError)?;
+        let value: serde_json::Value = database_type.into();
         // Generally bad practice to construct a query without preparation, but it's not possible to
         // pass a table name as a parameter and `T::table()` is well-defined, so this is a safe
         // usage.
@@ -566,7 +561,7 @@ where
     async fn insert_entity(
         &self,
         entity_id: EntityId,
-        entity: &Entity,
+        entity: Entity,
         entity_type_uri: VersionedUri,
         account_id: AccountId,
     ) -> Result<PersistedEntityIdentifier, InsertionError> {

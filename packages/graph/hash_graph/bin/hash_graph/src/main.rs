@@ -146,15 +146,16 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     // Seed the primitive data types if they don't already exist
     let data_types = [text, number, boolean, empty_list, object, null];
     for data_type in data_types {
+        let title = data_type.title().to_owned();
         if connection
-            .create_data_type(&data_type, root_account_id)
+            .create_data_type(data_type, root_account_id)
             .await
             .change_context(GraphError)
             .is_err()
         {
-            tracing::info!(%root_account_id, "tried to insert primitive {} data type, but it already exists", data_type.title());
+            tracing::info!(%root_account_id, "tried to insert primitive {} data type, but it already exists", title);
         } else {
-            tracing::info!(%root_account_id, "inserted the primitive {} data type", data_type.title());
+            tracing::info!(%root_account_id, "inserted the primitive {} data type", title);
         }
     }
 
