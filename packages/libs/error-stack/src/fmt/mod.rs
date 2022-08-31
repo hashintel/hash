@@ -531,25 +531,13 @@ impl Indent {
         }
     }
 
-    fn spacing(mut self, spacing: Spacing) -> Self {
-        self.spacing = Some(spacing);
-
+    fn spacing(mut self, spacing: impl Into<Option<Spacing>>) -> Self {
+        self.spacing = spacing.into();
         self
     }
 
-    fn no_spacing(mut self) -> Self {
-        self.spacing = None;
-
-        self
-    }
-
-    fn invisible(self) -> Self {
-        self.with_visible(false)
-    }
-
-    fn with_visible(mut self, visible: bool) -> Self {
+    fn visible(mut self, visible: bool) -> Self {
         self.visible = visible;
-
         self
     }
 
@@ -1174,7 +1162,7 @@ impl<C> Debug for Report<C> {
                     lines
                         .before(
                             Line::new().push(
-                                Indent::no_group() //
+                                Indent::no_group()
                                     .invisible()
                                     .no_spacing()
                                     .into(),
