@@ -1,4 +1,10 @@
-import { FunctionComponent, useMemo, useState, useCallback } from "react";
+import {
+  FunctionComponent,
+  useMemo,
+  useState,
+  useCallback,
+  useEffect,
+} from "react";
 import { useLocalstorageState } from "rooks";
 import {
   SortableContext,
@@ -69,6 +75,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
   const [offsetLeft, setOffsetLeft] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
   const loading =
     createUntitledPageLoading ||
@@ -127,11 +134,15 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       ? getProjection(pagesFlatList, activeId, overId, offsetLeft, 16)
       : null;
 
+  useEffect(() => {
+    document.body.style.setProperty("cursor", isDragging ? "grabbing" : "");
+  }, [isDragging]);
+
   const resetState = () => {
     setOverId(null);
     setActiveId(null);
     setOffsetLeft(0);
-    document.body.style.setProperty("cursor", "");
+    setIsDragging(false);
   };
 
   const handleDragStart = ({
@@ -145,8 +156,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     }
     setActiveId(activeItemId);
     setOverId(activeItemId);
-
-    document.body.style.setProperty("cursor", "grabbing");
+    setIsDragging(true);
   };
 
   const handleDragMove = ({ delta }: DragMoveEvent) => {
