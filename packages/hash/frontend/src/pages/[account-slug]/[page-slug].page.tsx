@@ -239,7 +239,11 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   }
 
   if (loading) {
-    return <PageLoadingState />;
+    return (
+      <Container>
+        <PageLoadingState />
+      </Container>
+    );
   }
 
   if (error) {
