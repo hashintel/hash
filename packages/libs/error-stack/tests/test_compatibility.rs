@@ -52,7 +52,9 @@ fn anyhow() {
 
     // Backtrace is provided through `anyhow::Error` by `Error::provide`
     #[cfg(all(rust_1_65, feature = "std"))]
-    remove_backtrace_context(&mut report_messages);
+    if has_backtrace(&anyhow) {
+        remove_backtrace_context(&mut report_messages);
+    }
 
     let anyhow_report = anyhow.into_report().unwrap_err();
 
