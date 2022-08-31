@@ -7,71 +7,64 @@ import {
   workspaceTypesNamespaceUri,
 } from "../util";
 
-module AccountId {
-  // Generate the schema for the account id property type
-  export const accountIdPropertyType = generateWorkspacePropertyTypeSchema({
-    title: "Account ID",
-    possibleValues: [{ primitiveDataType: "Text" }],
-  });
+// AccountId
+// Generate the schema for the account id property type
+export const accountIdPropertyType = generateWorkspacePropertyTypeSchema({
+  title: "Account ID",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
 
-  export const accountIdBaseUri = generateSchemaBaseUri({
-    namespaceUri: workspaceTypesNamespaceUri,
-    kind: "propertyType",
-    title: accountIdPropertyType.title,
-  });
-}
+export const accountIdBaseUri = generateSchemaBaseUri({
+  namespaceUri: workspaceTypesNamespaceUri,
+  kind: "propertyType",
+  title: accountIdPropertyType.title,
+});
 
-module Shortname {
-  // Generate the schema for the shortname property type
-  export const shortnamePropertyType = generateWorkspacePropertyTypeSchema({
-    title: "Shortname",
-    possibleValues: [{ primitiveDataType: "Text" }],
-  });
+// Shortname
+// Generate the schema for the shortname property type
+export const shortnamePropertyType = generateWorkspacePropertyTypeSchema({
+  title: "Shortname",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
 
-  export const shortnameBaseUri = generateSchemaBaseUri({
-    namespaceUri: workspaceTypesNamespaceUri,
-    kind: "propertyType",
-    title: shortnamePropertyType.title,
-  });
+export const shortnameBaseUri = generateSchemaBaseUri({
+  namespaceUri: workspaceTypesNamespaceUri,
+  kind: "propertyType",
+  title: shortnamePropertyType.title,
+});
 
-  // Validations for shortnames
-  export const shortnameMinimumLength = 4;
-  export const shortnameMaximumLength = 24;
+// Validations for shortnames
+export const shortnameMinimumLength = 4;
+export const shortnameMaximumLength = 24;
 
-  const ALLOWED_SHORTNAME_CHARS = /^[a-zA-Z0-9-_]+$/;
+const ALLOWED_SHORTNAME_CHARS = /^[a-zA-Z0-9-_]+$/;
 
-  export const shortnameContainsInvalidCharacter = (
-    shortname: string,
-  ): boolean => {
-    return !!shortname.search(ALLOWED_SHORTNAME_CHARS);
-  };
+export const shortnameContainsInvalidCharacter = (
+  shortname: string,
+): boolean => {
+  return !!shortname.search(ALLOWED_SHORTNAME_CHARS);
+};
 
-  export const shortnameIsRestricted = (shortname: string): boolean => {
-    return RESTRICTED_SHORTNAMES.includes(shortname);
-  };
+export const shortnameIsRestricted = (shortname: string): boolean => {
+  return RESTRICTED_SHORTNAMES.includes(shortname);
+};
 
-  export const shortnameIsTaken = async (
-    graphApi: GraphApi,
-    params: { shortname: string },
-  ) => {
-    return (
-      (await UserModel.getUserByShortname(graphApi, params)) !== null ||
-      (await OrgModel.getOrgByShortname(graphApi, params)) !== null
-    );
-  };
+export const shortnameIsTaken = async (
+  graphApi: GraphApi,
+  params: { shortname: string },
+) => {
+  return (
+    (await UserModel.getUserByShortname(graphApi, params)) !== null ||
+    (await OrgModel.getOrgByShortname(graphApi, params)) !== null
+  );
+};
 
-  export const shortnameIsInvalid = (shortname: string): boolean => {
-    return (
-      shortname.length < shortnameMinimumLength ||
-      shortname.length > shortnameMaximumLength ||
-      shortname[0] === "-" ||
-      shortnameContainsInvalidCharacter(shortname) ||
-      shortnameIsRestricted(shortname)
-    );
-  };
-}
-
-export const AccountFields = {
-  ...AccountId,
-  ...Shortname,
+export const shortnameIsInvalid = (shortname: string): boolean => {
+  return (
+    shortname.length < shortnameMinimumLength ||
+    shortname.length > shortnameMaximumLength ||
+    shortname[0] === "-" ||
+    shortnameContainsInvalidCharacter(shortname) ||
+    shortnameIsRestricted(shortname)
+  );
 };

@@ -36,7 +36,7 @@ export { default as EntityModel } from "./knowledge/entity.model";
 export * from "./knowledge/link.model";
 export { default as LinkModel } from "./knowledge/link.model";
 
-export * from "./knowledge/account.fields";
+export * as AccountFields from "./knowledge/account.fields";
 
 export * from "./knowledge/user.model";
 export { default as UserModel } from "./knowledge/user.model";
