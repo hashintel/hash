@@ -8,12 +8,11 @@ import {
   DataTypeModel,
   EntityTypeModel,
   PropertyTypeModel,
-  shortnamePropertyType,
-  kratosIdentityIdPropertyType,
-  emailPropertyType,
+  AccountFields,
   userEntityType,
-  accountIdPropertyType,
-  preferredNamePropertyType,
+  orgEntityType,
+  OrgPropertyTypes,
+  UserPropertyTypes,
 } from "../model";
 import { logger } from "../logger";
 import {
@@ -22,14 +21,13 @@ import {
 } from "../model/util";
 
 const workspacePropertyTypes: PropertyType[] = [
-  shortnamePropertyType,
-  emailPropertyType,
-  kratosIdentityIdPropertyType,
-  accountIdPropertyType,
-  preferredNamePropertyType,
+  AccountFields.shortnamePropertyType,
+  AccountFields.accountIdPropertyType,
+  ...UserPropertyTypes,
+  ...OrgPropertyTypes,
 ];
 
-const workspaceEntityTypes: EntityType[] = [userEntityType];
+const workspaceEntityTypes: EntityType[] = [userEntityType, orgEntityType];
 
 /**
  * A script that ensures the required primitive data types and workspace types
@@ -61,26 +59,29 @@ export const ensureWorkspaceTypesExist = async (params: {
   );
 
   // Next, let's ensure all workspace property types have been created
-  await Promise.all(
-    workspacePropertyTypes.map(async (schema) => {
-      const { $id: versionedUri } = schema;
-      const existingPropertyType = await PropertyTypeModel.get(graphApi, {
-        versionedUri,
-      }).catch((error: AxiosError) =>
-        error.response?.status === 404 ? null : Promise.reject(error),
-      );
+  // This is done sequentially as property types might reference other property
+  // types
+  /**
+   * @todo Use transactional primitive/bulk insert to be able to do this in parallel
+   *   see the following task:
+   *   https://app.asana.com/0/1201095311341924/1202573572594586/f
+   */
+  for (const schema of workspacePropertyTypes) {
+    const { $id: versionedUri } = schema;
+    const existingPropertyType = await PropertyTypeModel.get(graphApi, {
+      versionedUri,
+    }).catch((error: AxiosError) =>
+      error.response?.status === 404 ? null : Promise.reject(error),
+    );
 
-      if (!existingPropertyType) {
-        await PropertyTypeModel.create(graphApi, {
-          accountId: workspaceAccountId,
-          schema,
-        });
-        logger.info(
-          `Created property type with versioned URI "${versionedUri}"`,
-        );
-      }
-    }),
-  );
+    if (!existingPropertyType) {
+      await PropertyTypeModel.create(graphApi, {
+        accountId: workspaceAccountId,
+        schema,
+      });
+      logger.info(`Created property type with versioned URI "${versionedUri}"`);
+    }
+  }
 
   // Finally, let's ensure all workspace entity types have been created
   await Promise.all(
