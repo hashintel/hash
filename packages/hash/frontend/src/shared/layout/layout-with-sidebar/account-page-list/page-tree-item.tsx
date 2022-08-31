@@ -71,11 +71,17 @@ export const PageTreeItem = forwardRef(
 
     const trigger = bindTrigger(popupState);
 
+    const setHoveredState = (value: boolean) => {
+      if (!isSorting) {
+        setHovered(value);
+      }
+    };
+
     return collapsed && isSorting ? null : (
       <Box
         ref={wrapperRef}
-        onMouseEnter={() => !isSorting && setHovered(true)}
-        onMouseLeave={() => !isSorting && setHovered(false)}
+        onMouseEnter={() => setHoveredState(true)}
+        onMouseLeave={() => setHoveredState(false)}
       >
         <Link
           noLinkStyle
