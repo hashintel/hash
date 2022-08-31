@@ -86,16 +86,16 @@ export const getProjection = (
   dragOffset: number,
   indentationWidth: number,
 ) => {
-  const filteredItems = items.filter((item) => !item.collapsed);
-  const overItemIndex = filteredItems.findIndex(
+  const expandedPages = items.filter((item) => !item.collapsed);
+  const overItemIndex = expandedPages.findIndex(
     ({ entityId }) => entityId === overId,
   );
-  const activeItemIndex = filteredItems.findIndex(
+  const activeItemIndex = expandedPages.findIndex(
     ({ entityId }) => entityId === activeId,
   );
 
-  const activeItem = filteredItems[activeItemIndex];
-  const newItems = arrayMove(filteredItems, activeItemIndex, overItemIndex);
+  const activeItem = expandedPages[activeItemIndex];
+  const newItems = arrayMove(expandedPages, activeItemIndex, overItemIndex);
   const previousItem = newItems[overItemIndex - 1];
   const nextItem = newItems[overItemIndex + 1];
 
