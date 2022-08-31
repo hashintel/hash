@@ -320,7 +320,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Update the shorname of a User.
+   * Update the shortname of a User.
    *
    * @param params.updatedByAccountId - the account id of the user requesting the updating
    * @param params.updatedShortname - the new shortname to assign to the User
