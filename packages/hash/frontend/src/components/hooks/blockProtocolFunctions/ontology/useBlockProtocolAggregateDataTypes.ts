@@ -31,7 +31,12 @@ export const useBlockProtocolAggregateDataTypes = (): {
         };
       }
 
-      /** @todo Add filtering to this aggregate query. */
+      /**
+       * @todo Add filtering to this aggregate query using structural querying.
+       *   This may mean having the backend use structural querying and relaying
+       *   or doing it from here.
+       *   https://app.asana.com/0/1202805690238892/1202890614880643/f
+       */
       const response = await aggregateFn({
         query: getAllLatestDataTypesQuery,
       });

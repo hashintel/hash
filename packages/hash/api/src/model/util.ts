@@ -1,5 +1,8 @@
 import { DataType, PropertyType } from "@blockprotocol/type-system-web";
-/** @todo migrate the below types to the type system package types. */
+/**
+ * @todo migrate the below types to the type system package types.
+ *   https://app.asana.com/0/1202805690238892/1202892835843657/f
+ */
 import { EntityType, LinkType } from "@hashintel/hash-graph-client";
 
 import slugify from "slugify";
@@ -149,22 +152,27 @@ export const generateWorkspacePropertyTypeSchema = (params: {
   }),
   kind: "propertyType",
   title: params.title,
-  oneOf: params.possibleValues.map(({ array, primitiveDataType }) =>
-    array
-      ? {
-          type: "array",
-          items: {
-            oneOf: [
-              {
-                $ref: primitiveDataTypeVersionedUris[primitiveDataType],
-              },
-            ],
+  oneOf: params.possibleValues.map(
+    ({ array, primitiveDataType }) =>
+      array
+        ? {
+            type: "array",
+            items: {
+              oneOf: [
+                {
+                  $ref: primitiveDataTypeVersionedUris[primitiveDataType],
+                },
+              ],
+            },
+          }
+        : {
+            $ref: primitiveDataTypeVersionedUris[primitiveDataType],
           },
-        }
-      : {
-          $ref: primitiveDataTypeVersionedUris[primitiveDataType],
-        },
-  ) as any /** @todo remove this cast */,
+    /**
+     * @todo remove this cast when the method uses the new type system package.
+     *   https://app.asana.com/0/1202805690238892/1202892835843657/f
+     */
+  ) as any,
 });
 
 /**

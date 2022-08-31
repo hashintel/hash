@@ -77,6 +77,7 @@ export default class {
            *   terms of the shape of values returned from the API, but the API
            *   client is unable to be given as type package types - it generates
            *   its own types.
+           *   https://app.asana.com/0/1202805690238892/1202892835843657/f
            */
           schema: persistedPropertyType.inner as PropertyType,
           accountId: persistedPropertyType.identifier.createdBy,
@@ -111,6 +112,7 @@ export default class {
        *   terms of the shape of values returned from the API, but the API
        *   client is unable to be given as type package types - it generates
        *   its own types.
+       *   https://app.asana.com/0/1202805690238892/1202892835843657/f
        */
       schema: persistedPropertyType.inner as PropertyType,
       accountId: persistedPropertyType.identifier.createdBy,
@@ -152,6 +154,7 @@ export default class {
        *   terms of the shape of values returned from the API, but the API
        *   client is unable to be given as type package types - it generates
        *   its own types.
+       *   https://app.asana.com/0/1202805690238892/1202892835843657/f
        */
       schema: updateArguments.schema as PropertyType,
       accountId: identifier.createdBy,
