@@ -56,15 +56,27 @@ async fn update() {
         .await
         .expect("could not seed database");
 
-    api.create_link_type(owns_lt_v1)
+    api.create_link_type(owns_lt_v1.clone())
         .await
         .expect("could not create link type");
 
-    api.update_link_type(owns_lt_v2)
+    api.update_link_type(owns_lt_v2.clone())
         .await
         .expect("could not update link type");
 
-    // TODO - what's the point of this assert
-    // assert_ne!(owns_lt_v1, owns_lt_v2);
-    // assert_ne!(owns_lt_v1.id(), owns_lt_v2.id());
+    let returned_owns_lt_v1 = api
+        .get_link_type(owns_lt_v1.id())
+        .await
+        .expect("could not get property type");
+
+    let returned_owns_lt_v2 = api
+        .get_link_type(owns_lt_v2.id())
+        .await
+        .expect("could not get property type");
+
+    // TODO: we probably want to be testing more interesting queries, checking an update should
+    //  probably use getLatestVersion
+    //  https://app.asana.com/0/0/1202884883200974/f
+    assert_eq!(owns_lt_v1, returned_owns_lt_v1.inner);
+    assert_eq!(owns_lt_v2, returned_owns_lt_v2.inner);
 }

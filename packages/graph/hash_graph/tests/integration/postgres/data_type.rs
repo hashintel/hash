@@ -56,15 +56,27 @@ async fn update() {
         .await
         .expect("could not seed database");
 
-    api.create_data_type(object_dt_v1)
+    api.create_data_type(object_dt_v1.clone())
         .await
         .expect("could not create data type");
 
-    api.update_data_type(object_dt_v2)
+    api.update_data_type(object_dt_v2.clone())
         .await
         .expect("could not update data type");
 
-    // TODO: what's the point of this check
-    // assert_ne!(object_dt_v1, object_dt_v2);
-    // assert_ne!(object_dt_v1.id(), object_dt_v2.id());
+    let returned_object_dt_v1 = api
+        .get_data_type(object_dt_v1.id())
+        .await
+        .expect("could not get property type");
+
+    // TODO: we probably want to be testing more interesting queries, checking an update should
+    //  probably use getLatestVersion
+    //  https://app.asana.com/0/0/1202884883200974/f
+    let returned_object_dt_v2 = api
+        .get_data_type(object_dt_v2.id())
+        .await
+        .expect("could not get property type");
+
+    assert_eq!(object_dt_v1, returned_object_dt_v1.inner);
+    assert_eq!(object_dt_v2, returned_object_dt_v2.inner);
 }
