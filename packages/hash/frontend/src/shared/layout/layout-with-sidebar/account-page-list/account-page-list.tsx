@@ -179,7 +179,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     if (projected && over) {
       const { depth, parentPageEntityId } = projected;
 
-      const clonedItems = [...pagesFlatList] as TreeElement[];
+      const clonedItems = [...pagesFlatList];
 
       const overIndex = clonedItems.findIndex(
         ({ entityId }) => entityId === over.id,
