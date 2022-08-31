@@ -72,7 +72,6 @@ export const getPageList = (pages: AccountPage[], expandedIds: string[]) =>
     groupBy(pages, (page) => page.parentPageEntityId),
     "null",
     expandedIds,
-    0,
   );
 
 export const getProjection = (
