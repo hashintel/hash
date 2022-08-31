@@ -1,7 +1,7 @@
 mod read;
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{bail, IntoReport, Report, Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
 use type_system::PropertyType;
@@ -11,7 +11,7 @@ use crate::{
     store::{
         crud::Read,
         postgres::resolve::{PostgresContext, Record},
-        query::{Expression, Literal},
+        query::{Expression, ExpressionError, Literal},
         AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
     },
 };
@@ -106,8 +106,10 @@ impl<C: AsClient> Read<PersistedPropertyType> for PostgresStore<C> {
                     is_latest: row.get(2),
                 };
 
-                if let Literal::Bool(result) =
-                    expression.evaluate(&versioned_property_type, self).await
+                if let Literal::Bool(result) = expression
+                    .evaluate(&versioned_property_type, self)
+                    .await
+                    .change_context(QueryError)?
                 {
                     Ok(result.then(|| {
                         let uri = versioned_property_type.record.id();
@@ -119,9 +121,11 @@ impl<C: AsClient> Read<PersistedPropertyType> for PostgresStore<C> {
                         }
                     }))
                 } else {
-                    // TODO: Implement error handling
-                    //   see https://app.asana.com/0/0/1202884883200968/f
-                    panic!("Expression does not result in a boolean value")
+                    bail!(
+                        Report::new(ExpressionError)
+                            .attach_printable("does not result in a boolean value")
+                            .change_context(QueryError)
+                    );
                 }
             })
             .try_collect()

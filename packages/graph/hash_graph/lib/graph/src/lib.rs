@@ -8,6 +8,7 @@
 #![feature(generic_associated_types)]
 // Not required, reason: Simpler than using blanket implementations
 #![feature(trait_alias)]
+#![feature(try_find)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
 #![warn(

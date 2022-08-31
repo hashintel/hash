@@ -1,9 +1,10 @@
 use async_trait::async_trait;
+use error_stack::{bail, Result, ResultExt};
 use type_system::PropertyType;
 
 use crate::store::{
     postgres::resolve::{PostgresContext, Record},
-    query::{Literal, PathSegment, Resolve},
+    query::{Literal, PathSegment, Resolve, ResolveError},
 };
 
 #[async_trait]
@@ -11,12 +12,9 @@ impl<C> Resolve<C> for Record<PropertyType>
 where
     C: PostgresContext + Sync,
 {
-    async fn resolve(&self, path: &[PathSegment], context: &C) -> Literal {
+    async fn resolve(&self, path: &[PathSegment], context: &C) -> Result<Literal, ResolveError> {
         match path {
-            [] => {
-                // see https://app.asana.com/0/0/1202884883200943/f"
-                todo!("`Literal::Object`")
-            }
+            [] => bail!(ResolveError::UNIMPLEMENTED_LITERAL_OBJECT),
             [segment, segments @ ..] => {
                 // TODO: Avoid cloning on literals
                 //   see https://app.asana.com/0/0/1202884883200947/f
@@ -31,10 +29,7 @@ where
                             Literal::String(description.to_owned())
                         }),
                     "dataTypes" => match segments {
-                        [] => {
-                            // see https://app.asana.com/0/0/1202884883200943/f"
-                            todo!("`Literal::Object`")
-                        }
+                        [] => bail!(ResolveError::UNIMPLEMENTED_LITERAL_OBJECT),
                         [data_type_segment, data_type_segments @ ..]
                             if data_type_segment.identifier == "**" =>
                         {
@@ -46,22 +41,19 @@ where
                                 let data_type = context
                                     .read_versioned_data_type(data_type_ref.uri())
                                     .await
-                                    .expect("Could not read data type");
+                                    .change_context(ResolveError::StoreReadError)?;
                                 data_types
-                                    .push(data_type.resolve(data_type_segments, context).await);
+                                    .push(data_type.resolve(data_type_segments, context).await?);
                             }
-                            return Literal::List(data_types);
+                            return Ok(Literal::List(data_types));
                         }
-                        _ => {
-                            // see https://app.asana.com/0/0/1202884883200970/f
-                            todo!("Non-wildcard queries on data types")
+                        [data_type_segment, ..] if data_type_segment.identifier == "*" => {
+                            bail!(ResolveError::UNIMPLEMENTED_WILDCARDS)
                         }
+                        _ => bail!(ResolveError::UNIMPLEMENTED_LITERAL_OBJECT),
                     },
                     "propertyTypes" => match segments {
-                        [] => {
-                            // see https://app.asana.com/0/0/1202884883200943/f
-                            todo!("`Literal::Object`")
-                        }
+                        [] => bail!(ResolveError::UNIMPLEMENTED_LITERAL_OBJECT),
                         [property_type_segment, property_type_segments @ ..]
                             if property_type_segment.identifier == "**" =>
                         {
@@ -73,23 +65,25 @@ where
                                 let property_type = context
                                     .read_versioned_property_type(property_type_ref.uri())
                                     .await
-                                    .expect("Could not read property type");
+                                    .change_context(ResolveError::StoreReadError)?;
                                 property_types.push(
-                                    property_type.resolve(property_type_segments, context).await,
+                                    property_type
+                                        .resolve(property_type_segments, context)
+                                        .await?,
                                 );
                             }
-                            return Literal::List(property_types);
+                            return Ok(Literal::List(property_types));
                         }
-                        _ => {
-                            // see https://app.asana.com/0/0/1202884883200970/f
-                            todo!("Non-wildcard queries on property types")
+                        [property_type_segment, ..] if property_type_segment.identifier == "*" => {
+                            bail!(ResolveError::UNIMPLEMENTED_WILDCARDS)
                         }
+                        _ => bail!(ResolveError::UNIMPLEMENTED_LITERAL_OBJECT),
                     },
                     _ => Literal::Null,
                 };
 
                 if segments.is_empty() {
-                    literal
+                    Ok(literal)
                 } else {
                     literal.resolve(segments, context).await
                 }

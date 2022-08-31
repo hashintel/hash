@@ -1,9 +1,10 @@
 use async_trait::async_trait;
+use error_stack::{bail, Result};
 use type_system::DataType;
 
 use crate::store::{
     postgres::resolve::Record,
-    query::{Literal, PathSegment, Resolve},
+    query::{Literal, PathSegment, Resolve, ResolveError},
 };
 
 #[async_trait]
@@ -11,12 +12,9 @@ impl<C> Resolve<C> for Record<DataType>
 where
     C: Sync,
 {
-    async fn resolve(&self, path: &[PathSegment], context: &C) -> Literal {
+    async fn resolve(&self, path: &[PathSegment], context: &C) -> Result<Literal, ResolveError> {
         match path {
-            [] => {
-                // see https://app.asana.com/0/0/1202884883200943/f"
-                todo!("`Literal::Object`")
-            }
+            [] => bail!(ResolveError::UNIMPLEMENTED_LITERAL_OBJECT),
             [segment, segments @ ..] => {
                 // TODO: Avoid cloning on literals
                 //   see https://app.asana.com/0/0/1202884883200947/f
@@ -39,7 +37,7 @@ where
                         .map_or(Literal::Null, From::from),
                 };
                 if segments.is_empty() {
-                    literal
+                    Ok(literal)
                 } else {
                     literal.resolve(segments, context).await
                 }
