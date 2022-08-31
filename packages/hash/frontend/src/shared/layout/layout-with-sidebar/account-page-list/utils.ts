@@ -3,11 +3,6 @@ import { arrayMove } from "@dnd-kit/sortable";
 import { groupBy } from "lodash";
 import { AccountPage } from "../../../../components/hooks/useAccountPages";
 
-export interface PageList {
-  treeList: TreeElement[];
-  flatList: TreeElement[];
-}
-
 export interface TreeElement extends AccountPage {
   parentId: string;
   depth: number;
@@ -24,12 +19,8 @@ const getRecursivePageList = (
   expandedIds: string[],
   depth = 0,
   collapsed = false,
-): PageList => {
-  const emptyTreeList: TreeElement[] = [];
-  const emptyList: PageList = {
-    treeList: emptyTreeList,
-    flatList: emptyTreeList,
-  };
+): TreeElement[] => {
+  const emptyList: TreeElement[] = [];
 
   return (
     groupedPages[id]?.reduce((prev, page, index) => {
@@ -41,7 +32,7 @@ const getRecursivePageList = (
         depth + 1,
         collapsed || !expanded,
       );
-      const expandable = !!children.treeList.length;
+      const expandable = !!children.length;
 
       const item = {
         ...page,
@@ -53,16 +44,7 @@ const getRecursivePageList = (
         collapsed,
       } as TreeElement;
 
-      return {
-        treeList: [
-          ...prev.treeList,
-          {
-            ...item,
-            children: children.treeList,
-          } as TreeElement,
-        ],
-        flatList: [...prev.flatList, item, ...children.flatList],
-      };
+      return [...prev, item, ...children];
     }, emptyList) || emptyList
   );
 };

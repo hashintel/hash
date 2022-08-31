@@ -76,8 +76,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     [],
   );
 
-  const [pagesTreeList, setPagesTreeList] = useState<TreeElement[]>([]);
-  const [pagesFlatList, setPagesFlatList] = useState<TreeElement[]>([]);
+  const [pagesList, setPagesList] = useState<TreeElement[]>([]);
 
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
@@ -110,14 +109,12 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     list: AccountPage[],
     expandedPageIdList: string[],
   ) => {
-    const { treeList, flatList } = getPageList(list, expandedPageIdList);
-    setPagesTreeList(treeList);
-    setPagesFlatList(flatList);
+    setPagesList(getPageList(list, expandedPageIdList));
   };
 
   const pagesFlatIdList = useMemo(
-    () => pagesFlatList.map((page) => page.entityId),
-    [pagesFlatList],
+    () => pagesList.map((page) => page.entityId),
+    [pagesList],
   );
 
   useEffect(() => {
@@ -143,7 +140,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
   const projected =
     activeId && overId
-      ? getProjection(pagesFlatList, activeId, overId, dragDepth)
+      ? getProjection(pagesList, activeId, overId, dragDepth)
       : null;
 
   useEffect(() => {
@@ -185,7 +182,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     if (projected && over) {
       const { depth, parentPageEntityId } = projected;
 
-      const clonedItems = [...pagesFlatList];
+      const clonedItems = [...pagesList];
 
       const overIndex = clonedItems.findIndex(
         ({ entityId }) => entityId === over.id,
@@ -228,17 +225,13 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     resetState();
   };
 
-  const renderPageTree = (itemsArray: TreeElement[]) => {
-    return itemsArray.map(
-      ({
-        entityId,
-        title,
-        depth,
-        expandable,
-        expanded,
-        collapsed,
-        children,
-      }) => {
+  const renderPageTree = (
+    pagesArray: TreeElement[],
+    parentId: string | null = null,
+  ) => {
+    return pagesArray
+      .filter((page) => page.parentPageEntityId === parentId)
+      .map(({ entityId, title, depth, expandable, expanded, collapsed }) => {
         const item = (
           <AccountPageListItem
             key={entityId}
@@ -259,15 +252,14 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         return (
           <Box key={entityId}>
             {item}
-            {children ? (
+            {expandable ? (
               <Collapse key={`${entityId}-children`} in={expanded}>
-                {renderPageTree(children)}
+                {renderPageTree(pagesArray, entityId)}
               </Collapse>
             ) : null}
           </Box>
         );
-      },
-    );
+      });
   };
 
   return (
@@ -295,7 +287,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           }}
         >
           <Box sx={{ marginX: 0.75 }}>
-            {renderPageTree(pagesTreeList)}
+            {renderPageTree(pagesList)}
 
             <DragOverlay dropAnimation={null} />
           </Box>
