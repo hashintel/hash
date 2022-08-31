@@ -1,7 +1,9 @@
-use std::{collections::HashSet, sync::Mutex};
+use std::{
+    collections::HashSet,
+    sync::{LazyLock, Mutex},
+};
 
 use glob::GlobError;
-use lazy_static::lazy_static;
 use uuid::Uuid;
 
 /// We use this to keep a list of all the shared-memory segements which are
