@@ -900,7 +900,7 @@ fn debug_attachments(
     frames: Vec<&Frame>,
     #[cfg(feature = "std")] ctx: &mut HookContextImpl,
 ) -> Lines {
-    let last = matches!(position, Position::Last);
+    let last = matches!(position, Position::Final);
     let mut opaque = Opaque::new();
 
     // evaluate all frames to their respective values, will call all hooks with the current context
@@ -1099,9 +1099,9 @@ fn debug_frame(
                 //     ├╴Attachment E
                 //     ╰╴Attachment F <- last because it's the last of the parent context!
                 if (len == 1 && sources.is_empty()) || idx > 0 {
-                    Position::Last
+                    Position::Final
                 } else {
-                    Position::Middle
+                    Position::Inner
                 },
                 once(head).chain(body).collect(),
                 #[cfg(feature = "std")]
