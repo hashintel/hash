@@ -523,7 +523,7 @@ struct Indent {
 }
 
 impl Indent {
-    fn new(group: bool) -> Self {
+    const fn new(group: bool) -> Self {
         Self {
             group,
             visible: true,
@@ -536,20 +536,20 @@ impl Indent {
         self
     }
 
-    fn visible(mut self, visible: bool) -> Self {
+    const fn visible(mut self, visible: bool) -> Self {
         self.visible = visible;
         self
     }
 
-    fn group() -> Self {
+    const fn group() -> Self {
         Self::new(true)
     }
 
-    fn no_group() -> Self {
+    const fn no_group() -> Self {
         Self::new(false)
     }
 
-    fn prepare(self) -> &'static [Symbol] {
+    const fn prepare(self) -> &'static [Symbol] {
         match self {
             Self {
                 group: true,
