@@ -2,7 +2,7 @@ import { Box, Tooltip, Typography } from "@mui/material";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
 import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { CSSProperties, forwardRef, MouseEvent, Ref, useState } from "react";
+import { CSSProperties, forwardRef, MouseEvent, useState } from "react";
 import { DraggableAttributes } from "@dnd-kit/core";
 import { PAGE_TITLE_PLACEHOLDER } from "../../../../blocks/page/PageTitle/PageTitle";
 import { PageIconButton } from "../../../../components/PageIconButton";
