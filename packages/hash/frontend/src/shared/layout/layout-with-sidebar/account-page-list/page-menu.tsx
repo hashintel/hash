@@ -108,7 +108,12 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
     [copied, popupState, createSubPage, accountId, entityId, archivePage],
   );
   return (
-    <Menu {...bindMenu(popupState)}>
+    <Menu
+      {...bindMenu(popupState)}
+      onClick={(event) => {
+        event.stopPropagation();
+      }}
+    >
       {menuItems.map(({ title, icon, onClick }, index) => {
         // if (type === "divider") {
         //   // eslint-disable-next-line react/no-array-index-key

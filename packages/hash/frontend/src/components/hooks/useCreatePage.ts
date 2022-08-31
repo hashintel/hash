@@ -28,7 +28,7 @@ export const useCreatePage = (
 
   const createUntitledPage = useCallback(async () => {
     const response = await createPageFn({
-      variables: { accountId, properties: { title: "Untitled" } },
+      variables: { accountId, properties: { title: "" } },
     });
 
     const { accountId: pageAccountId, entityId: pageEntityId } =

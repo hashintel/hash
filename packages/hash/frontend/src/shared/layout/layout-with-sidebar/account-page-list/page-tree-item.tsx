@@ -4,6 +4,7 @@ import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { CSSProperties, forwardRef, MouseEvent, Ref, useState } from "react";
 import { DraggableAttributes } from "@dnd-kit/core";
+import { PAGE_TITLE_PLACEHOLDER } from "../../../../blocks/page/PageTitle/PageTitle";
 import { PageIconButton } from "../../../../components/PageIconButton";
 import { Link } from "../../../ui";
 import { PageMenu } from "./page-menu";
@@ -157,7 +158,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
               color: palette.gray[selected || hovered ? 90 : 70],
             })}
           >
-            {title}
+            {title || PAGE_TITLE_PLACEHOLDER}
           </Typography>
 
           <Tooltip
