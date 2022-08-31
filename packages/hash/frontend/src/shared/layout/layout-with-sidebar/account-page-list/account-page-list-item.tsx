@@ -47,11 +47,13 @@ export const AccountPageListItem: FunctionComponent<PageTreeItemProps> = ({
     <PageTreeItem
       id={id}
       ref={setDraggableNodeRef}
-      wrapperRef={setDroppableNodeRef}
-      attributes={attributes}
-      listeners={listeners}
-      isSorting={isSorting}
-      style={style}
+      dragProps={{
+        attributes,
+        listeners,
+        isSorting,
+        style,
+        wrapperRef: setDroppableNodeRef,
+      }}
       {...props}
     />
   );

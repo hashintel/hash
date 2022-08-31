@@ -9,6 +9,13 @@ import { Link } from "../../../ui";
 import { PageMenu } from "./page-menu";
 import { useRouteAccountInfo } from "../../../routing";
 
+interface DragProps {
+  isSorting?: boolean;
+  attributes?: DraggableAttributes;
+  listeners?: Record<string, Function>;
+  style?: CSSProperties;
+  wrapperRef?(node: HTMLLIElement): void;
+}
 export interface PageTreeItemProps {
   id: string;
   title: string;
@@ -25,11 +32,7 @@ export interface PageTreeItemProps {
     pageEntityId: string,
   ) => Promise<void>;
   onCollapse?: () => void;
-  isSorting?: boolean;
-  attributes?: DraggableAttributes;
-  listeners?: Record<string, Function>;
-  style?: CSSProperties;
-  wrapperRef?(node: HTMLLIElement): void;
+  dragProps?: DragProps;
 }
 
 const stopEvent = (event: MouseEvent) => {
@@ -51,11 +54,7 @@ export const PageTreeItem = forwardRef(
       onCollapse,
       expanded,
       collapsed,
-      isSorting,
-      style,
-      attributes,
-      listeners,
-      wrapperRef,
+      dragProps = {},
     }: PageTreeItemProps,
     ref,
   ) => {
@@ -67,6 +66,8 @@ export const PageTreeItem = forwardRef(
       variant: "popover",
       popupId: "page-menu",
     });
+
+    const { isSorting, style, attributes, listeners, wrapperRef } = dragProps;
 
     const trigger = bindTrigger(popupState);
 
