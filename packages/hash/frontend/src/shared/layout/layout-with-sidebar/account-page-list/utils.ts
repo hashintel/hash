@@ -74,6 +74,11 @@ export const getPageList = (pages: AccountPage[], expandedIds: string[]) =>
     expandedIds,
   );
 
+// Calculates relevant properties for the page that is being dragged
+// - depth: current drag depth
+// - minDepth: minimum possible depth the page can be dragged to
+// - maxDepth: maximum possible depth the page can be dragged to
+// - parentPageEntityId: entityId of the parent page it's being dragged to, or null
 export const getProjection = (
   items: TreeElement[],
   activeId: UniqueIdentifier,
