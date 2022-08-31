@@ -18,10 +18,7 @@ use graph::{
     },
     store::{
         error::LinkActivationError,
-        query::{
-            DataTypeQuery, EntityQuery, EntityTypeQuery, LinkQuery, LinkTypeQuery,
-            PropertyTypeQuery,
-        },
+        query::{EntityQuery, EntityTypeQuery, Expression, LinkQuery, LinkTypeQuery},
         AccountStore, AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
         EntityTypeStore, InsertionError, LinkStore, LinkTypeStore, PostgresStore,
         PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
@@ -159,11 +156,7 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedDataType, QueryError> {
         Ok(self
             .store
-            .get_data_type(
-                &DataTypeQuery::new()
-                    .by_uri(uri.base_uri())
-                    .by_version(uri.version()),
-            )
+            .get_data_type(&Expression::for_versioned_uri(uri))
             .await?
             .pop()
             .expect("no data type found"))
@@ -193,11 +186,7 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedPropertyType, QueryError> {
         Ok(self
             .store
-            .get_property_type(
-                &PropertyTypeQuery::new()
-                    .by_uri(uri.base_uri())
-                    .by_version(uri.version()),
-            )
+            .get_property_type(&Expression::for_versioned_uri(uri))
             .await?
             .pop()
             .expect("no property type found"))

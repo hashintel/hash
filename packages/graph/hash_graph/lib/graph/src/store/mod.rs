@@ -27,10 +27,7 @@ use crate::{
     },
     store::{
         error::LinkActivationError,
-        query::{
-            DataTypeQuery, EntityQuery, EntityTypeQuery, LinkQuery, LinkTypeQuery,
-            PropertyTypeQuery,
-        },
+        query::{EntityQuery, EntityTypeQuery, Expression, LinkQuery, LinkTypeQuery},
     },
 };
 
@@ -206,9 +203,7 @@ pub trait AccountStore {
 
 /// Describes the API of a store implementation for [`DataType`]s.
 #[async_trait]
-pub trait DataTypeStore:
-    for<'q> crud::Read<PersistedDataType, Query<'q> = DataTypeQuery<'q>>
-{
+pub trait DataTypeStore: for<'q> crud::Read<PersistedDataType, Query<'q> = Expression> {
     /// Creates a new [`DataType`].
     ///
     /// # Errors:
@@ -223,14 +218,14 @@ pub trait DataTypeStore:
         created_by: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError>;
 
-    /// Get the [`DataType`]s specified by the [`DataTypeQuery`].
+    /// Get the [`DataType`]s specified by the [`Expression`].
     ///
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
     async fn get_data_type(
         &self,
-        query: &DataTypeQuery<'_>,
+        query: &Expression,
     ) -> Result<Vec<PersistedDataType>, QueryError> {
         self.read(query).await
     }
@@ -250,7 +245,7 @@ pub trait DataTypeStore:
 /// Describes the API of a store implementation for [`PropertyType`]s.
 #[async_trait]
 pub trait PropertyTypeStore:
-    for<'q> crud::Read<PersistedPropertyType, Query<'q> = PropertyTypeQuery<'q>>
+    for<'q> crud::Read<PersistedPropertyType, Query<'q> = Expression>
 {
     /// Creates a new [`PropertyType`].
     ///
@@ -266,14 +261,14 @@ pub trait PropertyTypeStore:
         created_by: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError>;
 
-    /// Get the [`PropertyType`]s specified by the [`PropertyTypeQuery`].
+    /// Get the [`PropertyType`]s specified by the [`Expression`].
     ///
     /// # Errors
     ///
     /// - if the requested [`PropertyType`] doesn't exist.
     async fn get_property_type(
         &self,
-        query: &PropertyTypeQuery<'_>,
+        query: &Expression,
     ) -> Result<Vec<PersistedPropertyType>, QueryError> {
         self.read(query).await
     }
