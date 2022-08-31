@@ -641,7 +641,7 @@ enum Instruction {
     Context {
         position: Position,
     },
-    /// `Position::Last` means *that nothing follows*
+    /// `Position::Final` means *that nothing follows*
     Attachment {
         position: Position,
     },
