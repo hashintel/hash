@@ -70,7 +70,6 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
   const [pagesTreeList, setPagesTreeList] = useState<TreeElement[]>([]);
   const [pagesFlatList, setPagesFlatList] = useState<TreeElement[]>([]);
-  const [pagesFlatIdList, setPagesFlatIdList] = useState<string[]>([]);
 
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
@@ -112,8 +111,12 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     const { treeList, flatList } = getPageList(list, expandedPageIdList);
     setPagesTreeList(treeList);
     setPagesFlatList(flatList);
-    setPagesFlatIdList(flatList.map((page) => page.entityId));
   };
+
+  const pagesFlatIdList = useMemo(
+    () => pagesFlatList.map((page) => page.entityId),
+    [pagesFlatList],
+  );
 
   useMemo(() => {
     if (!loading) {
