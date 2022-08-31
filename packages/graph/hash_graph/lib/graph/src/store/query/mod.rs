@@ -150,7 +150,7 @@ impl Expression {
 impl Expression {
     // TODO: Implement error handling
     //   see https://app.asana.com/0/0/1202884883200968/f
-    #[allow(clippy::missing_panics_doc, reason = "Error handling not applied yet")]
+    #[expect(clippy::missing_panics_doc, reason = "Error handling not applied yet")]
     pub fn evaluate<'t, 'resolver, 'context, 'r, R, C>(
         &'t self,
         resolver: &'resolver R,
