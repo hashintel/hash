@@ -53,6 +53,12 @@ export const shortnameIsTaken = async (
   graphApi: GraphApi,
   params: { shortname: string },
 ) => {
+  /**
+   * @todo currently these method calls create circular dependencies on the User
+   *   and Org model classes. We should revisit model class interaction to see
+   *   if we can get around this.
+   *   https://app.asana.com/0/1202805690238892/1202890446280565/f
+   */
   return (
     (await UserModel.getUserByShortname(graphApi, params)) !== null ||
     (await OrgModel.getOrgByShortname(graphApi, params)) !== null
