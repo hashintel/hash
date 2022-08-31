@@ -658,9 +658,6 @@ enum PreparedInstruction<'a> {
 }
 
 impl Instruction {
-    // Reason for allow:
-    // > This is just a big statement to convert to a prepared instruction, there
-    // isn't really any logic here
     fn prepare(&self) -> PreparedInstruction {
         match self {
             Self::Value { value, style } => PreparedInstruction::Content(value, style),
