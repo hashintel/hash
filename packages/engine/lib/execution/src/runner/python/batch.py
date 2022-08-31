@@ -217,7 +217,7 @@ class Batch:
                 continue  # Not supposed to have this column in `cols`?
 
             field = schema.field(i_field)
-            if "any_type" in field.metadata:
+            if "any_type" in field.metadata and field.metadata["any_type"] == "1":
                 # Convert `any`-type array of JSON values to array of JSON strings
                 # for Arrow serialization as a string column.
                 py_col = [json.dumps(elem) for elem in col]
