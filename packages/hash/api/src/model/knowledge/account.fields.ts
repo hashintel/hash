@@ -34,6 +34,11 @@ export const shortnameBaseUri = generateSchemaBaseUri({
 });
 
 // Validations for shortnames
+/**
+ * @todo revisit (simple) shortname validation to make use of data type
+ *   constraints.
+ *   https://app.asana.com/0/0/1202900021005257/f
+ */
 export const shortnameMinimumLength = 4;
 export const shortnameMaximumLength = 24;
 
