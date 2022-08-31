@@ -357,7 +357,7 @@ impl Emit {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum Symbol {
     // special, used to indicate location
     Location,
@@ -371,6 +371,62 @@ enum Symbol {
     CurveRight,
 
     Space,
+}
+
+/// We use symbols during resolution, which is efficient and versatile, but makes the conversion
+/// between [`Instruction`] to [`Symbol`] harder to comprehend for a user.
+///
+/// This macro fixes this by creating a compile-time lookup table to easily map every character in
+/// the [`Display`] of [`Symbol`] to it's corresponding symbol.
+///
+/// # Example
+///
+/// ```no_run
+/// assert_eq!(sym!('├', '┬'), &[
+///     Symbol::VerticalRight,
+///     Symbol::HorizontalDown
+/// ])
+/// ```
+macro_rules! sym {
+    (#char '@') => {
+        Symbol::Location
+    };
+
+    (#char '│') => {
+        Symbol::Vertical
+    };
+
+    (#char '├') => {
+        Symbol::VerticalRight
+    };
+
+    (#char '─') => {
+        Symbol::Horizontal
+    };
+
+    (#char '╴') => {
+        Symbol::HorizontalLeft
+    };
+
+    (#char '┬') => {
+        Symbol::HorizontalDown
+    };
+
+    (#char '▶') => {
+        Symbol::ArrowRight
+    };
+
+    (#char '╰') => {
+        Symbol::CurveRight
+    };
+
+    (#char ' ') => {
+        Symbol::Space
+    };
+
+    ($($char:tt),+) => {
+        &[$(sym!(#char $char)),*]
+    };
 }
 
 #[cfg(feature = "pretty-print")]
@@ -449,8 +505,8 @@ impl From<Style> for OwOStyle {
 #[derive(Debug, Copy, Clone)]
 enum Position {
     First,
-    Middle,
-    Last,
+    Inner,
+    Final,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -497,10 +553,6 @@ impl Indent {
         self.with_visible(false)
     }
 
-    fn visible(self) -> Self {
-        self.with_visible(true)
-    }
-
     fn with_visible(mut self, visible: bool) -> Self {
         self.visible = visible;
 
@@ -521,47 +573,37 @@ impl Indent {
                 group: true,
                 visible: true,
                 spacing: Some(_),
-            } => &[
-                Symbol::Space,
-                Symbol::Vertical,
-                Symbol::Space,
-                Symbol::Space,
-            ],
+            } => sym!(' ', '│', ' ', ' '),
             Self {
                 group: true,
                 visible: true,
                 spacing: None,
-            } => &[Symbol::Space, Symbol::Vertical],
+            } => sym!(' ', '│'),
             Self {
                 group: false,
                 visible: true,
                 spacing: Some(Spacing::Full),
-            } => &[
-                Symbol::Vertical,
-                Symbol::Space,
-                Symbol::Space,
-                Symbol::Space,
-            ],
+            } => sym!('│', ' ', ' ', ' '),
             Self {
                 group: false,
                 visible: true,
                 spacing: Some(Spacing::Minimal),
-            } => &[Symbol::Vertical, Symbol::Space],
+            } => sym!('│', ' '),
             Self {
                 group: false,
                 visible: true,
                 spacing: None,
-            } => &[Symbol::Vertical],
+            } => sym!('│'),
             Self {
                 visible: false,
                 spacing: Some(Spacing::Full),
                 ..
-            } => &[Symbol::Space, Symbol::Space, Symbol::Space, Symbol::Space],
+            } => sym!(' ', ' ', ' ', ' '),
             Self {
                 visible: false,
                 spacing: Some(Spacing::Minimal),
                 ..
-            } => &[Symbol::Space, Symbol::Space],
+            } => sym!(' ', ' '),
             Self {
                 visible: false,
                 spacing: None,
@@ -626,48 +668,21 @@ impl Instruction {
             Self::Symbol(symbol) => PreparedInstruction::Symbol(symbol),
 
             Self::Group { position } => match position {
-                Position::First => PreparedInstruction::Symbols(&[
-                    Symbol::CurveRight,
-                    Symbol::HorizontalDown,
-                    Symbol::ArrowRight,
-                    Symbol::Space,
-                ]),
-                Position::Middle => PreparedInstruction::Symbols(&[
-                    Symbol::Space,
-                    Symbol::VerticalRight,
-                    Symbol::ArrowRight,
-                    Symbol::Space,
-                ]),
-                Position::Last => PreparedInstruction::Symbols(&[
-                    Symbol::Space,
-                    Symbol::CurveRight,
-                    Symbol::ArrowRight,
-                    Symbol::Space,
-                ]),
+                Position::First => PreparedInstruction::Symbols(sym!('╰', '┬', '▶', ' ')),
+                Position::Inner => PreparedInstruction::Symbols(sym!(' ', '├', '▶', ' ')),
+                Position::Final => PreparedInstruction::Symbols(sym!(' ', '╰', '▶', ' ')),
             },
 
             Self::Context { position } => match position {
-                Position::First | Position::Middle => PreparedInstruction::Symbols(&[
-                    Symbol::VerticalRight,
-                    Symbol::Horizontal,
-                    Symbol::ArrowRight,
-                    Symbol::Space,
-                ]),
-                Position::Last => PreparedInstruction::Symbols(&[
-                    Symbol::CurveRight,
-                    Symbol::Horizontal,
-                    Symbol::ArrowRight,
-                    Symbol::Space,
-                ]),
+                Position::First => PreparedInstruction::Symbols(sym!('├', '─', '▶', ' ')),
+                Position::Inner => PreparedInstruction::Symbols(sym!('├', '─', '▶', ' ')),
+                Position::Final => PreparedInstruction::Symbols(sym!('╰', '─', '▶', ' ')),
             },
 
             Self::Attachment { position } => match position {
-                Position::First | Position::Middle => {
-                    PreparedInstruction::Symbols(&[Symbol::VerticalRight, Symbol::HorizontalLeft])
-                }
-                Position::Last => {
-                    PreparedInstruction::Symbols(&[Symbol::CurveRight, Symbol::HorizontalLeft])
-                }
+                Position::First => PreparedInstruction::Symbols(sym!('├', '╴')),
+                Position::Inner => PreparedInstruction::Symbols(sym!('├', '╴')),
+                Position::Final => PreparedInstruction::Symbols(sym!('╰', '╴')),
             },
 
             // Indentation (like `|   ` or ` |  `)
@@ -958,9 +973,9 @@ fn debug_attachments(
         .enumerate()
         .flat_map(|(idx, lines)| {
             let position = match idx {
-                pos if pos + 1 == len && last => Position::Last,
+                pos if pos + 1 == len && last => Position::Final,
                 0 => Position::First,
-                _ => Position::Middle,
+                _ => Position::Inner,
             };
 
             lines.into_iter().enumerate().map(move |(idx, line)| {
@@ -969,7 +984,7 @@ fn debug_attachments(
                 } else {
                     line.push(
                         Indent::no_group()
-                            .with_visible(!matches!(position, Position::Last))
+                            .with_visible(!matches!(position, Position::Final))
                             .spacing(Spacing::Minimal)
                             .into(),
                     )
@@ -987,9 +1002,9 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
         .map(|(idx, lines)| {
             let position = match idx {
                 // this is first to make sure that 0 is caught as `Last` instead of `First`
-                pos if pos + 1 == len => Position::Last,
+                pos if pos + 1 == len => Position::Final,
                 0 => Position::First,
-                _ => Position::Middle,
+                _ => Position::Inner,
             };
 
             lines
@@ -1001,7 +1016,7 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
                     } else {
                         line.push(
                             Indent::group()
-                                .with_visible(!matches!(position, Position::Last))
+                                .with_visible(!matches!(position, Position::Final))
                                 .into(),
                         )
                     }
@@ -1020,9 +1035,9 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
     // insert the arrows and buffer indentation
     let contexts = contexts.into_iter().enumerate().flat_map(|(idx, lines)| {
         let position = match idx {
-            pos if pos + 1 == len && !tail => Position::Last,
+            pos if pos + 1 == len && !tail => Position::Final,
             0 => Position::First,
-            _ => Position::Middle,
+            _ => Position::Inner,
         };
 
         let mut lines = lines
@@ -1034,7 +1049,7 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
                 } else {
                     line.push(
                         Indent::no_group()
-                            .with_visible(!matches!(position, Position::Last))
+                            .with_visible(!matches!(position, Position::Final))
                             .into(),
                     )
                 }
