@@ -5,7 +5,7 @@ use type_system::{uri::VersionedUri, DataType, PropertyType};
 
 use crate::store::{postgres::parameter_list, AsClient, PostgresStore, QueryError};
 
-/// Context used to for [`Resolve`].
+/// Context used for [`Resolve`].
 ///
 /// This is only used as an implementation detail inside of the [`postgres`] module.
 ///
