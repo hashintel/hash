@@ -1,8 +1,8 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { AxiosError } from "axios";
-import { PropertyType } from "@blockprotocol/type-system-web";
+import { PropertyType, EntityType } from "@blockprotocol/type-system-web";
 /** @todo migrate the below types to the type system package types. */
-import { GraphApi, EntityType } from "@hashintel/hash-graph-client";
+import { GraphApi } from "@hashintel/hash-graph-client";
 
 import {
   DataTypeModel,
@@ -95,7 +95,7 @@ export const ensureWorkspaceTypesExist = async (params: {
       if (!existingEntityType) {
         await EntityTypeModel.create(graphApi, {
           accountId: workspaceAccountId,
-          schema,
+          schema: schema as any, // TODO - trust me bro
         });
 
         logger.info(`Created entity type with versioned URI "${versionedUri}"`);

@@ -1,10 +1,13 @@
-import { DataType, PropertyType } from "@blockprotocol/type-system-web";
+import {
+  DataType,
+  PropertyType,
+  EntityType,
+  LinkType,
+} from "@blockprotocol/type-system-web";
 /**
  * @todo migrate the below types to the type system package types.
  *   https://app.asana.com/0/1202805690238892/1202892835843657/f
  */
-import { EntityType, LinkType } from "@hashintel/hash-graph-client";
-
 import slugify from "slugify";
 import { getRequiredEnv } from "../util";
 
@@ -100,14 +103,14 @@ export const generateSchemaBaseUri = (params: {
 }) =>
   `${params.namespaceUri}/${schemaKindSlugs[params.kind]}/${slugifySchemaTitle(
     params.title,
-  )}`;
+  )}/` as const;
 
 export const generateSchemaVersionedUri = (params: {
   namespaceUri: string;
   kind: SchemaKind;
   title: string;
   version?: number;
-}) => `${generateSchemaBaseUri(params)}/v/${params.version ?? 1}` as const;
+}) => `${generateSchemaBaseUri(params)}v/${params.version ?? 1}` as const;
 
 const primitiveDataTypeTitles = [
   "Text",
@@ -152,6 +155,7 @@ export const generateWorkspacePropertyTypeSchema = (params: {
   }),
   kind: "propertyType",
   title: params.title,
+  pluralTitle: params.title,
   oneOf: params.possibleValues.map(
     ({ array, primitiveDataType }) =>
       array
@@ -193,6 +197,7 @@ export const generateWorkspaceEntityTypeSchema = (params: {
     kind: "entityType",
   }),
   title: params.title,
+  pluralTitle: params.title,
   type: "object",
   kind: "entityType",
   properties: params.properties.reduce(
