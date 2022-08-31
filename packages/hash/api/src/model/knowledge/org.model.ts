@@ -200,7 +200,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Update the shorname of an Organization
+   * Update the shortname of an Organization
    *
    * @param params.updatedByAccountId - the account id of the user requesting the updating
    * @param params.updatedShortname - the new shortname to assign to the Organization
