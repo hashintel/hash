@@ -54,7 +54,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   currentPageEntityId,
   accountId,
 }) => {
-  const { data } = useAccountPages(accountId);
+  const { data, loading: accountPagesLoading } = useAccountPages(accountId);
 
   const [createUntitledPage, { loading: createUntitledPageLoading }] =
     useCreatePage(accountId);
@@ -62,6 +62,13 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     useCreateSubPage(accountId);
   const [reorderPage, { loading: reorderLoading }] = useReorderPage(accountId);
   const [archivePage, { loading: archivePageLoading }] = useArchivePage();
+
+  const loading =
+    accountPagesLoading ||
+    createUntitledPageLoading ||
+    createSubpageLoading ||
+    reorderLoading ||
+    archivePageLoading;
 
   const [expandedPageIds, setExpandedPageIds] = useLocalstorageState<string[]>(
     "hash-expanded-sidebar-pages",
@@ -75,12 +82,6 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
   const [offsetLeft, setOffsetLeft] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-
-  const loading =
-    createUntitledPageLoading ||
-    createSubpageLoading ||
-    reorderLoading ||
-    archivePageLoading;
 
   // @todo handle loading/error states properly
   const addPage = useCallback(async () => {
