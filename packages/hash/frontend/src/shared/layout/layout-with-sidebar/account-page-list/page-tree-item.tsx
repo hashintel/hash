@@ -40,7 +40,7 @@ const stopEvent = (event: MouseEvent) => {
   event.stopPropagation();
 };
 
-export const PageTreeItem = forwardRef(
+export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
   (
     {
       id,
@@ -104,7 +104,7 @@ export const PageTreeItem = forwardRef(
               ? palette.gray[20]
               : "none",
           })}
-          ref={ref as Ref<HTMLAnchorElement>}
+          ref={ref}
           {...listeners}
           {...attributes}
         >
