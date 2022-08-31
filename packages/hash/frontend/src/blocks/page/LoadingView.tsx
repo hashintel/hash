@@ -14,7 +14,7 @@ const PageContentLoadingState = () => {
   );
 };
 
-export class BlankView implements NodeView<Schema> {
+export class LoadingView implements NodeView<Schema> {
   dom: HTMLDivElement;
 
   constructor(
@@ -26,7 +26,7 @@ export class BlankView implements NodeView<Schema> {
   }
 
   update(node: ProsemirrorNode<Schema>) {
-    if (node.type.name !== "blank") {
+    if (node.type.name !== "loading") {
       return false;
     }
 
