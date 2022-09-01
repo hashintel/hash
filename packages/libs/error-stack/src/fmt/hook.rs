@@ -128,7 +128,7 @@ impl<'a> HookContextInner<'a> {
 /// Report::install_debug_hook::<Warning>(|Warning(val), _| {
 ///     vec![Emit::immediate("Abnormal program execution detected"), Emit::immediate(format!("Warning: {val}"))]
 /// });
-/// Report::install_debug_hook::<Secret>(|_, _| vec![]);
+/// Report::install_debug_hook::<Secret>(|_, _| {});
 ///
 /// let report = Report::new(Error::from(ErrorKind::InvalidInput))
 ///     .attach(ErrorCode(404))
