@@ -5,9 +5,9 @@
 //!
 //! The format implementation (especially the [`Debug`] implementation),
 //! can be easily extended using hooks.
-//! Hooks are functions of the signature `Fn(&T, &mut HookContext<T>) -> Vec<Emit>`, they provide
-//! an easy and ergonomic way to partially modify the format and enable the output of types that are
-//! not necessarily added via `.attach_printable()` or are unable to implement [`Display`].
+//! Hooks are functions of the signature `Fn(&T, &mut HookContext<T>)`, they provide an easy and
+//! ergonomic way to partially modify the format and enable the output of types that are
+//! not necessarily added via [`Report::attach_printable`] or are unable to implement [`Display`].
 //!
 //! Hooks can be attached through the central hooking mechanism which `error-stack`
 //! provides via [`Report::install_debug_hook`].
@@ -21,8 +21,7 @@
 //! You can also provide a fallback function, which is called whenever a hook hasn't been added for
 //! a specific type of attachment.
 //! The fallback function needs to have a signature of
-//! `Fn(&Frame, &mut HookContext<T>) -> Vec<Emit>`
-//! and can be set via [`Report::install_debug_hook_fallback`].
+//! `Fn(&Frame, &mut HookContext<T>)` and can be set via [`Report::install_debug_hook_fallback`].
 //!
 //! Hook functions need to be [`Fn`] and **not** [`FnMut`], which means they are unable to directly
 //! mutate state outside of the closure.
