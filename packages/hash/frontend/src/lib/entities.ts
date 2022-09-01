@@ -1,4 +1,3 @@
-import { JsonObject } from "@blockprotocol/core";
 import {
   Entity as BpEntity,
   EntityType as BpEntityType,
@@ -446,7 +445,7 @@ export const convertApiEntityTypesToBpEntityTypes = (
  */
 export const generateEntityLabel = (
   entity: Entity,
-  schema?: JsonObject,
+  schema?: { labelProperty?: unknown; title?: unknown },
 ): string => {
   // if the schema has a labelProperty set, prefer that
   const labelProperty = schema?.labelProperty;

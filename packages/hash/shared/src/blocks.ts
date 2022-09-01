@@ -234,7 +234,7 @@ export const fetchBlock = async (
 export const paragraphBlockComponentId =
   "https://blockprotocol.org/blocks/@hash/paragraph";
 
-export const textBlockComponentIds = new Set([
+const textBlockComponentIds = new Set([
   paragraphBlockComponentId,
   "https://blockprotocol.org/blocks/@hash/header",
   "https://blockprotocol.org/blocks/@hash/callout",
@@ -264,7 +264,7 @@ export const defaultBlockComponentIds = [
  * which is used to know if the block is compatible for switching from one
  * text block to another
  */
-const isHashTextBlock = (componentId: string) =>
+export const isHashTextBlock = (componentId: string) =>
   textBlockComponentIds.has(componentId);
 
 /**

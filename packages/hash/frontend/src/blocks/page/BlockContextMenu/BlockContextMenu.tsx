@@ -1,6 +1,6 @@
 import {
   areComponentsCompatible,
-  textBlockComponentIds,
+  isHashTextBlock,
 } from "@hashintel/hash-shared/blocks";
 import { useRef, forwardRef, useMemo, ForwardRefRenderFunction } from "react";
 
@@ -75,7 +75,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
     const hasChildEntity =
       Object.keys(blockEntity?.properties.entity?.properties ?? {}).length > 0;
     const items = [
-      ...(currentComponentId && !textBlockComponentIds.has(currentComponentId)
+      ...(currentComponentId && !isHashTextBlock(currentComponentId)
         ? [
             {
               key: "set-entity",
