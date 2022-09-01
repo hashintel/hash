@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { sleep } from "@hashintel/hash-shared/sleep";
 import { loginUsingUi } from "./utils/loginUsingUi";
 
 test("user can create and update entity", async ({ page }) => {
@@ -37,6 +38,9 @@ test("user can create and update entity", async ({ page }) => {
   await page.fill('[placeholder="newProperty"]', "Property1");
   await page.click("text=Create Property");
 
+  // Wait until property gets created
+  await sleep(1000);
+
   // Click on New Entity button to create new instance of entity
   await page.click(`text=New ${entityName}`);
   await page.waitForURL(
@@ -54,6 +58,9 @@ test("user can create and update entity", async ({ page }) => {
   await page.click('[placeholder="newProperty"]');
   await page.fill('[placeholder="newProperty"]', "Property2");
   await page.click("text=Create Property");
+
+  // Wait until property gets created
+  await sleep(1000);
 
   // Click on New Entity button to create new instance of entity
   await page.click(`text=New ${entityName}`);
