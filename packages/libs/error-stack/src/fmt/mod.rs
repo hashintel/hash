@@ -33,9 +33,9 @@
 //! [`Report::install_debug_hook`].
 //! This type needs to be `'static`, [`Send`], and [`Sync`].
 //!
-//! The hook function must return [`Vec<Emit>`], which decides what is going
-//! to be emitted during printing, refer to the documentation of [`Emit`] for further
-//! information.
+//! You can emit lines, which decide what is going to be emitted during printed with
+//! [`HookContext::emit`] and [`HookContext::emit_deferred`], refer to the documentation of
+//! [`HookContext`] for further information.
 //!
 //! ## Example
 //!
@@ -799,7 +799,7 @@ fn debug_attachments(
     frames: Vec<&Frame>,
     #[cfg(feature = "std")] ctx: &mut HookContextImpl,
 ) -> Lines {
-    let last = matches!(position, Position::Last);
+    let last = matches!(position, Position::Final);
 
     // Reason: snippets is unused in no-std, but this makes code cleaner overall
     #[cfg_attr(not(feature = "std"), allow(unused_variables, unused_mut))]
