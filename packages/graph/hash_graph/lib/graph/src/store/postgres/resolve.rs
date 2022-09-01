@@ -97,15 +97,18 @@ async fn read_versioned_type(
 #[async_trait]
 impl<C: AsClient> PostgresContext for PostgresStore<C> {
     async fn read_all_data_types(&self) -> Result<RowStream, QueryError> {
-        read_all_types(&self.client, "data_types").await
+        read_all_types(&self.client, "data_types")
+            .await
+            .attach_printable("could not read data types")
     }
 
     async fn read_versioned_data_type(
         &self,
         uri: &VersionedUri,
     ) -> Result<Record<DataType>, QueryError> {
-        let Record { record, is_latest } =
-            read_versioned_type(&self.client, "data_types", uri).await?;
+        let Record { record, is_latest } = read_versioned_type(&self.client, "data_types", uri)
+            .await
+            .attach_printable("could not read data type")?;
 
         Ok(Record {
             record: serde_json::from_value(record.get(0))
@@ -116,15 +119,18 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
     }
 
     async fn read_all_property_types(&self) -> Result<RowStream, QueryError> {
-        read_all_types(&self.client, "property_types").await
+        read_all_types(&self.client, "property_types")
+            .await
+            .attach_printable("could not read property types")
     }
 
     async fn read_versioned_property_type(
         &self,
         uri: &VersionedUri,
     ) -> Result<Record<PropertyType>, QueryError> {
-        let Record { record, is_latest } =
-            read_versioned_type(&self.client, "property_types", uri).await?;
+        let Record { record, is_latest } = read_versioned_type(&self.client, "property_types", uri)
+            .await
+            .attach_printable("could not read property type")?;
 
         Ok(Record {
             record: serde_json::from_value(record.get(0))
