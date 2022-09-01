@@ -71,7 +71,10 @@ export const workspaceAccountId = nilUuid;
 
 const workspaceAccountShortname = getRequiredEnv("WORKSPACE_ACCOUNT_SHORTNAME");
 
-/** @todo: revisit how this URI is defined and obtained as this is a temporary solution */
+/**
+ * @todo: revisit how this URI is defined and obtained as this is a temporary solution
+ *   https://app.asana.com/0/1200211978612931/1202848989198299/f
+ */
 export const workspaceTypesNamespaceUri = `https://example.com/@${workspaceAccountShortname}/types`;
 
 export const blockprotocolTypesNamespaceUri =
@@ -90,6 +93,10 @@ const schemaKindSlugs: Record<SchemaKind, string> = {
   linkType: "link-type",
 };
 
+/**
+ * @todo replace with unified type ID generation
+ *   https://app.asana.com/0/1200211978612931/1202848989198299/f
+ */
 const slugifySchemaTitle = (title: string): string =>
   slugify(title, { lower: true });
 
@@ -100,14 +107,14 @@ export const generateSchemaBaseUri = (params: {
 }) =>
   `${params.namespaceUri}/${schemaKindSlugs[params.kind]}/${slugifySchemaTitle(
     params.title,
-  )}`;
+  )}/` as const;
 
 export const generateSchemaVersionedUri = (params: {
   namespaceUri: string;
   kind: SchemaKind;
   title: string;
   version?: number;
-}) => `${generateSchemaBaseUri(params)}/v/${params.version ?? 1}` as const;
+}) => `${generateSchemaBaseUri(params)}v/${params.version ?? 1}` as const;
 
 const primitiveDataTypeTitles = [
   "Text",
@@ -136,12 +143,16 @@ export const primitiveDataTypeVersionedUris = primitiveDataTypeTitles.reduce(
 
 /**
  * Helper method for generating a property type schema for the Graph API.
+ *
+ * @todo make use of new type system package instead of ad-hoc types.
+ *   https://app.asana.com/0/1202805690238892/1202892835843657/f
  */
 export const generateWorkspacePropertyTypeSchema = (params: {
   title: string;
-  /** @todo: account for nested property types (once we have a use-case) */
+
   possibleValues: {
-    primitiveDataType: PrimitiveDataTypeTitle;
+    primitiveDataType?: PrimitiveDataTypeTitle;
+    propertyTypeObject?: { [_ in string]: { $ref: string } };
     array?: boolean;
   }[];
 }): PropertyType => ({
@@ -153,21 +164,30 @@ export const generateWorkspacePropertyTypeSchema = (params: {
   kind: "propertyType",
   title: params.title,
   oneOf: params.possibleValues.map(
-    ({ array, primitiveDataType }) =>
-      array
-        ? {
-            type: "array",
-            items: {
-              oneOf: [
-                {
-                  $ref: primitiveDataTypeVersionedUris[primitiveDataType],
-                },
-              ],
-            },
-          }
-        : {
-            $ref: primitiveDataTypeVersionedUris[primitiveDataType],
+    ({ array, primitiveDataType, propertyTypeObject }) => {
+      let inner;
+      if (primitiveDataType) {
+        inner = {
+          $ref: primitiveDataTypeVersionedUris[primitiveDataType],
+        };
+      } else if (propertyTypeObject) {
+        inner = { type: "object" as const, properties: propertyTypeObject };
+      } else {
+        throw new Error(
+          "Please provide either a primitiveDataType or a propertyTypeObject to generateWorkspacePropertyTypeSchema",
+        );
+      }
+      if (array) {
+        return {
+          type: "array",
+          items: {
+            oneOf: [inner],
           },
+        };
+      } else {
+        return inner;
+      }
+    },
     /**
      * @todo remove this cast when the method uses the new type system package.
      *   https://app.asana.com/0/1202805690238892/1202892835843657/f
@@ -177,6 +197,9 @@ export const generateWorkspacePropertyTypeSchema = (params: {
 
 /**
  * Helper method for generating an entity schema for the Graph API.
+ *
+ * @todo make use of new type system package instead of ad-hoc types.
+ *   https://app.asana.com/0/1202805690238892/1202892835843657/f
  */
 export const generateWorkspaceEntityTypeSchema = (params: {
   title: string;
@@ -213,6 +236,10 @@ export const generateWorkspaceEntityTypeSchema = (params: {
     .map(({ baseUri }) => baseUri),
 });
 
+/**
+ * @todo make use of new type system package for managing URI structure.
+ *   https://app.asana.com/0/1202805690238892/1202892835843657/f
+ */
 export const incrementVersionedId = (verisonedId: string): string => {
   // Invariant: the last part of a versioned URI is /v/N where N is always a positive number
   //   with no trailing slash

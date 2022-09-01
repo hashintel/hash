@@ -32,15 +32,15 @@ const textDataType$id =
   "https://entity-type~example.com/data-type/v/1" as const;
 
 const textPropertyTypeBaseId =
-  "https://entity-type~example.com/property-type-text";
-const textPropertyType$id = `${textPropertyTypeBaseId}/v/1` as const;
+  "https://entity-type~example.com/property-type-text/";
+const textPropertyType$id = `${textPropertyTypeBaseId}v/1` as const;
 
 const namePropertyTypeBaseId =
-  "https://entity-type~example.com/property-type-name";
-const namePropertyType$id = `${namePropertyTypeBaseId}/v/1` as const;
+  "https://entity-type~example.com/property-type-name/";
+const namePropertyType$id = `${namePropertyTypeBaseId}v/1` as const;
 
-const knowsLinkTypeBaseId = "https://entity-type~example.com/link-type-knows";
-const knowsLinkType$id = `${knowsLinkTypeBaseId}/v/1` as const;
+const knowsLinkTypeBaseId = "https://entity-type~example.com/link-type-knows/";
+const knowsLinkType$id = `${knowsLinkTypeBaseId}v/1` as const;
 
 const knowsDestinationEntityType$id =
   "https://entity-type~example.com/entity-type-destination/v/1" as const;
