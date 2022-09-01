@@ -48,7 +48,7 @@ futures = ["dep:pin-project", "dep:futures-core"]
 hooks = ["std"]
 pretty-print = ["dep:owo-colors"]
 small = ["dep:smallvec"]
-spantrace = ["dep:tracing-error"]
+spantrace = ["dep:tracing-error", "std"]
 std = ["anyhow?/std"]
 
 [package.metadata.docs.rs]

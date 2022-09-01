@@ -122,6 +122,7 @@ export const createSuggester = (
   renderPortal: RenderPortal,
   getManager: () => ProsemirrorManager,
   accountId: string,
+  documentRoot: HTMLElement,
 ) =>
   new Plugin<SuggesterState, Schema>({
     key: suggesterPluginKey,
@@ -210,7 +211,6 @@ export const createSuggester = (
       },
     },
     view() {
-      const container = document.querySelector("#root") as HTMLDivElement;
       const mountNode = document.createElement("div");
 
       return {
@@ -280,12 +280,12 @@ export const createSuggester = (
           }
 
           if (jsx) {
-            ensureMounted(mountNode, container);
+            ensureMounted(mountNode, documentRoot);
             renderPortal(
               <Popper
                 open
                 placement="bottom-start"
-                container={container}
+                container={documentRoot}
                 modifiers={[
                   {
                     name: "offset",
