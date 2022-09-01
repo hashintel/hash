@@ -96,7 +96,7 @@ async fn create_data_type<P: StorePool + Send>(
 
     let data_type: DataType = schema.try_into().into_report().map_err(|report| {
         tracing::error!(error=?report, "Couldn't convert schema to Property Type");
-        StatusCode::UNPROCESSABLE_ENTITY // TODO - Do we want to return a 400 instead
+        StatusCode::UNPROCESSABLE_ENTITY
         // TODO - We should probably return more information to the client
         //  https://app.asana.com/0/1201095311341924/1202574350052904/f
     })?;
@@ -201,7 +201,7 @@ async fn update_data_type<P: StorePool + Send>(
 
     let data_type: DataType = schema.try_into().into_report().map_err(|report| {
         tracing::error!(error=?report, "Couldn't convert schema to Property Type");
-        StatusCode::UNPROCESSABLE_ENTITY // TODO - Do we want to return a 400 instead
+        StatusCode::UNPROCESSABLE_ENTITY
         // TODO - We should probably return more information to the client
         //  https://app.asana.com/0/1201095311341924/1202574350052904/f
     })?;

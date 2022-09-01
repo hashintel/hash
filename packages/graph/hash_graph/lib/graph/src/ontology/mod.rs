@@ -62,7 +62,8 @@ where
     serde_json::Value: From<T>,
     S: Serializer,
 {
-    // TODO: get rid of this clone
+    // This clone is necessary because `Serialize` requires us to take the param by reference here
+    //  even though we only use it in places where we could move
     let value: serde_json::Value = ontology_type.clone().into();
     value.serialize(serializer)
 }

@@ -335,6 +335,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       },
       multi_order: {
         // TODO: this is where we could do fractional indexing
+        //  https://app.asana.com/0/1200211978612931/1202085856561975/f
         type: "integer",
       },
       created_by: {
