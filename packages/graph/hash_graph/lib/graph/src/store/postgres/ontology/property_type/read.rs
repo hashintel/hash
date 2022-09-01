@@ -1,10 +1,13 @@
 use async_trait::async_trait;
-use error_stack::{bail, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 use type_system::PropertyType;
 
 use crate::store::{
     postgres::resolve::{PostgresContext, Record},
-    query::{Literal, PathSegment, Resolve, ResolveError},
+    query::{
+        Literal, PathSegment, Resolve, ResolveError, UNIMPLEMENTED_LITERAL_OBJECT,
+        UNIMPLEMENTED_WILDCARDS,
+    },
 };
 
 #[async_trait]
@@ -14,7 +17,7 @@ where
 {
     async fn resolve(&self, path: &[PathSegment], context: &C) -> Result<Literal, ResolveError> {
         match path {
-            [] => bail!(ResolveError::UNIMPLEMENTED_LITERAL_OBJECT),
+            [] => todo!("{}", UNIMPLEMENTED_LITERAL_OBJECT),
             [segment, segments @ ..] => {
                 // TODO: Avoid cloning on literals
                 //   see https://app.asana.com/0/0/1202884883200947/f
@@ -29,7 +32,7 @@ where
                             Literal::String(description.to_owned())
                         }),
                     "dataTypes" => match segments {
-                        [] => bail!(ResolveError::UNIMPLEMENTED_LITERAL_OBJECT),
+                        [] => todo!("{}", UNIMPLEMENTED_LITERAL_OBJECT),
                         [data_type_segment, data_type_segments @ ..]
                             if data_type_segment.identifier == "**" =>
                         {
@@ -48,12 +51,12 @@ where
                             return Ok(Literal::List(data_types));
                         }
                         [data_type_segment, ..] if data_type_segment.identifier == "*" => {
-                            bail!(ResolveError::UNIMPLEMENTED_WILDCARDS)
+                            todo!("{}", UNIMPLEMENTED_WILDCARDS)
                         }
-                        _ => bail!(ResolveError::UNIMPLEMENTED_LITERAL_OBJECT),
+                        _ => todo!("{}", UNIMPLEMENTED_LITERAL_OBJECT),
                     },
                     "propertyTypes" => match segments {
-                        [] => bail!(ResolveError::UNIMPLEMENTED_LITERAL_OBJECT),
+                        [] => todo!("{}", UNIMPLEMENTED_LITERAL_OBJECT),
                         [property_type_segment, property_type_segments @ ..]
                             if property_type_segment.identifier == "**" =>
                         {
@@ -75,9 +78,9 @@ where
                             return Ok(Literal::List(property_types));
                         }
                         [property_type_segment, ..] if property_type_segment.identifier == "*" => {
-                            bail!(ResolveError::UNIMPLEMENTED_WILDCARDS)
+                            todo!("{}", UNIMPLEMENTED_WILDCARDS)
                         }
-                        _ => bail!(ResolveError::UNIMPLEMENTED_LITERAL_OBJECT),
+                        _ => todo!("{}", UNIMPLEMENTED_LITERAL_OBJECT),
                     },
                     _ => Literal::Null,
                 };

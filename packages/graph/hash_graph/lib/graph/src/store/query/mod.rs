@@ -98,7 +98,7 @@ impl From<serde_json::Value> for Literal {
             ),
             Value::String(string) => Self::String(string),
             Value::Array(list) => Self::List(list.into_iter().map(From::from).collect()),
-            Value::Object(_) => todo!("{}", ResolveError::UNIMPLEMENTED_LITERAL_OBJECT),
+            Value::Object(_) => todo!("{}", UNIMPLEMENTED_LITERAL_OBJECT),
         }
     }
 }
@@ -193,6 +193,7 @@ impl fmt::Display for ExpressionError {
 impl Error for ExpressionError {}
 
 impl Expression {
+    #[expect(clippy::missing_panics_doc, reason = "Not implemented yet")]
     pub fn evaluate<'a, R, C>(
         &'a self,
         resolver: &'a R,
@@ -257,10 +258,7 @@ impl Expression {
                     .resolve(&path.segments, context)
                     .await
                     .change_context(ExpressionError)?,
-                Expression::Field(_) => bail!(
-                    Report::new(ResolveError::UNIMPLEMENTED_LITERAL_OBJECT)
-                        .change_context(ExpressionError)
-                ),
+                Expression::Field(_) => todo!("{}", UNIMPLEMENTED_LITERAL_OBJECT),
             })
         }
         .boxed()
@@ -269,24 +267,14 @@ impl Expression {
 
 #[derive(Debug)]
 pub enum ResolveError {
-    Unimplemented {
-        description: &'static str,
-        issue: &'static str,
-    },
-    EmptyPath {
-        literal: Literal,
-    },
-    CannotIndex {
-        path: Path,
-        literal: Literal,
-    },
+    EmptyPath { literal: Literal },
+    CannotIndex { path: Path, literal: Literal },
     StoreReadError,
 }
 
 impl fmt::Display for ResolveError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Unimplemented { description, issue } => write!(fmt, "{description}, see {issue}"),
             Self::EmptyPath { literal } => write!(fmt, "empty path when resolving `{literal:?}`"),
             Self::CannotIndex { path, literal } => {
                 write!(fmt, "cannot index `{literal:?}` with path `{path}`")
@@ -298,16 +286,10 @@ impl fmt::Display for ResolveError {
 
 impl Error for ResolveError {}
 
-impl ResolveError {
-    pub const UNIMPLEMENTED_LITERAL_OBJECT: Self = Self::Unimplemented {
-        description: "`Literal::Object` is not implemented yet",
-        issue: "https://app.asana.com/0/0/1202884883200943/f",
-    };
-    pub const UNIMPLEMENTED_WILDCARDS: Self = Self::Unimplemented {
-        description: "fine-grained wildcards are not implemented yet",
-        issue: "https://app.asana.com/0/0/1202884883200970/f",
-    };
-}
+pub const UNIMPLEMENTED_LITERAL_OBJECT: &str =
+    "`Literal::Object` is not implemented yet, see https://app.asana.com/0/0/1202884883200943/f";
+pub const UNIMPLEMENTED_WILDCARDS: &str =
+    "fine-grained wildcards are not implemented yet, see https://app.asana.com/0/0/1202884883200970/f";
 
 #[async_trait]
 pub trait Resolve<C> {
