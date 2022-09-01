@@ -219,7 +219,7 @@ impl Expression {
                             literal @ Literal::Bool(false) => return Ok(literal),
                             literal => bail!(
                                 Report::new(ExpressionError)
-                                    .attach_printable(format!("Not a boolean: {literal:?}"))
+                                    .attach_printable(format!("not a boolean: {literal:?}"))
                             ),
                         }
                     }
@@ -232,7 +232,7 @@ impl Expression {
                             literal @ Literal::Bool(true) => return Ok(literal),
                             literal => bail!(
                                 Report::new(ExpressionError)
-                                    .attach_printable(format!("Not a boolean: {literal:?}"))
+                                    .attach_printable(format!("not a boolean: {literal:?}"))
                             ),
                         }
                     }
