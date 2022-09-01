@@ -291,7 +291,7 @@ impl fmt::Display for ResolveError {
             Self::CannotIndex { path, literal } => {
                 write!(fmt, "cannot index `{literal:?}` with path `{path}`")
             }
-            Self::StoreReadError => fmt.write_str("Could not read data from store"),
+            Self::StoreReadError => fmt.write_str("could not read data from store"),
         }
     }
 }
