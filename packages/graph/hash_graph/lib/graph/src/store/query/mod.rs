@@ -77,7 +77,7 @@ fn compare(lhs: &Literal, rhs: &Literal) -> Result<bool, ExpressionError> {
         (lhs, rhs) => {
             bail!(
                 Report::new(ExpressionError)
-                    .attach_printable(format!("unsupported operation: {lhs:?} == {rhs:?}"))
+                    .attach_printable(format!("cannot compare `{lhs:?}` and `{rhs:?}`"))
             )
         }
     })
