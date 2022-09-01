@@ -68,7 +68,9 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 .change_context(UpdateError)?,
         );
 
-        // TODO - get rid of the clone on property_type
+        // This clone is currently necessary because we extract the references as we insert them.
+        // We can only insert them after the type has been created, and so we currently extract them
+        // after as well. See `insert_property_type_references` taking `&property_type`
         let (version_id, identifier) = transaction
             .update(property_type.clone(), updated_by)
             .await?;
