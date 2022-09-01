@@ -678,7 +678,7 @@ impl Opaque {
 }
 
 fn debug_attachments_order(emits: impl Iterator<Item = Emit>) -> Vec<String> {
-    let mut out = vec![];
+    let mut out = Vec::with_capacity(emits.size_hint().0);
     let mut defer = vec![];
 
     for emit in emits {
