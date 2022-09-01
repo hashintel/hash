@@ -14,6 +14,7 @@ import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { useCreatePage } from "../../../components/hooks/useCreatePage";
 import { NavLink } from "./nav-link";
 import { PageTreeItem } from "./account-page-list/page-tree-item";
+import { PagesLoadingState } from "./account-page-list/pages-loading-state";
 
 type AccountPageListProps = {
   accountId: string;
@@ -65,7 +66,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   currentPageEntityId,
   accountId,
 }) => {
-  const { data } = useAccountPages(accountId);
+  const { data, loading: pagesLoading } = useAccountPages(accountId);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useLocalstorageState<string[]>(
@@ -120,19 +121,23 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         "data-testid": "create-page-btn",
       }}
     >
-      <TreeView
-        data-testid="pages-tree"
-        tabIndex={-1}
-        sx={{
-          mx: 0.75,
-        }}
-        selected={currentPageEntityId ?? ""}
-        expanded={expanded}
-        onNodeToggle={handleToggle}
-        onNodeSelect={handleSelect}
-      >
-        {formattedData.map((node) => renderTree(node, accountId, 0))}
-      </TreeView>
+      {pagesLoading ? (
+        <PagesLoadingState />
+      ) : (
+        <TreeView
+          data-testid="pages-tree"
+          tabIndex={-1}
+          sx={{
+            mx: 0.75,
+          }}
+          selected={currentPageEntityId ?? ""}
+          expanded={expanded}
+          onNodeToggle={handleToggle}
+          onNodeSelect={handleSelect}
+        >
+          {formattedData.map((node) => renderTree(node, accountId, 0))}
+        </TreeView>
+      )}
     </NavLink>
   );
 };
