@@ -58,18 +58,18 @@
 //!
 //! // This hook will never be called, because a later invocation of `install_debug_hook` overwrites
 //! // the hook for the type `ErrorCode`.
-//! Report::install_debug_hook::<ErrorCode>(|_, _| vec![Emit::next("will never be called")]);
+//! Report::install_debug_hook::<ErrorCode>(|_, _| vec![Emit::immediate("will never be called")]);
 //!
 //! // `HookContext` always has a type parameter, which needs to be the same as the type of the
 //! // value, we use `HookContext` here as storage, to store values specific to this hook.
 //! // Here we make use of the auto-incrementing feature.
 //! // The incrementation is type specific, meaning that `ctx.increment()` for the `Suggestion` hook
 //! // will not influence the counter of the `ErrorCode` or `Warning` hook.
-//! Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| vec![Emit::next(format!("Suggestion {}: {val}", ctx.increment() + 1))]);
+//! Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| vec![Emit::immediate(format!("Suggestion {}: {val}", ctx.increment() + 1))]);
 //!
 //! // we do not need to make use of the context, to either store a value for the duration of the
 //! // rendering, or to render additional text, which is why we omit the parameter.
-//! Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| vec![Emit::next(format!("Error ({val})"))]);
+//! Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| vec![Emit::immediate(format!("Error ({val})"))]);
 //!
 //! Report::install_debug_hook::<Warning>(|Warning(val), ctx| {
 //!     let idx = ctx.increment() + 1;
@@ -80,7 +80,7 @@
 //!         ctx.attach_snippet(format!("Warning {idx}:\n  {val}"));
 //!     }
 //!
-//!     vec![Emit::next(format!("Warning ({idx}) occurred"))]
+//!     vec![Emit::immediate(format!("Warning ({idx}) occurred"))]
 //!  });
 //!
 //! // you can use arbitrary values as arguments, just make sure that you won't repeat them.
@@ -172,6 +172,7 @@ use owo_colors::{OwoColorize, Stream::Stdout, Style as OwOStyle};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
+// TODO: move this
 /// Modify the behaviour, with which text returned from hook invocations are rendered.
 ///
 /// Text can either be emitted immediately as next line, or deferred until the end of the current
@@ -195,13 +196,13 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 /// struct Secret(&'static str);
 ///
 /// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| {
-///     vec![Emit::next(format!("Error Code: {val}"))]
+///     vec![Emit::immediate(format!("Error Code: {val}"))]
 /// });
 /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
 ///     vec![Emit::defer(format!("Suggestion: {val}"))]
 /// });
 /// Report::install_debug_hook::<Warning>(|Warning(val), _| {
-///     vec![Emit::next("Abnormal program execution detected"), Emit::next(format!("Warning: {val}"))]
+///     vec![Emit::immediate("Abnormal program execution detected"), Emit::immediate(format!("Warning: {val}"))]
 /// });
 /// Report::install_debug_hook::<Secret>(|_, _| vec![]);
 ///
@@ -238,121 +239,22 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[must_use]
 #[non_exhaustive]
-pub enum Emit {
+pub(crate) enum Emit {
     /// Line is going to be emitted after all immediate lines have been emitted from the current
     /// stack.
     /// This means that deferred lines will always be last in a group.
-    #[cfg_attr(not(any(feature = "std", feature = "spantrace")), allow(dead_code))]
     Defer(String),
     /// Going to be emitted immediately as the next line in the chain of
     /// attachments and contexts.
-    Next(String),
+    Immediate(String),
 }
 
 impl Emit {
-    /// Add a new line which is going to be emitted immediately.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
-    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
-    /// use std::io;
-    ///
-    /// use error_stack::{fmt::Emit, Report};
-    ///
-    /// struct Suggestion(&'static str);
-    ///
-    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
-    ///     vec![
-    ///         Emit::next(format!("Suggestion: {val}")),
-    ///         Emit::next("Sorry for the inconvenience!")
-    ///     ]
-    /// });
-    ///
-    /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
-    ///     .attach(Suggestion("Try better next time"));
-    ///
-    /// # owo_colors::set_override(true);
-    /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
-    /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
-    /// #
-    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
-    /// # }
-    /// #
-    /// # #[cfg(rust_1_65)]
-    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap")].assert_eq(&render(format!("{report:?}")));
-    /// #
-    /// println!("{report:?}");
-    /// ```
-    ///
-    /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap"))]
-    /// </pre>
-    #[cfg_attr(not(feature = "std"), allow(dead_code))]
-    pub fn next<T: Into<String>>(line: T) -> Self {
-        Self::Next(line.into())
+    pub(crate) fn immediate<T: Into<String>>(line: T) -> Self {
+        Self::Immediate(line.into())
     }
 
-    /// Create a new line, which is going to be deferred until the end of the current stack.
-    ///
-    /// A stack are all attachments until a [`Context`] is encountered in the frame stack,
-    /// lines added via this function are going to be emitted at the end, in reversed direction to
-    /// the attachments that added them
-    ///
-    /// [`Context`]: crate::Context
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
-    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
-    /// use std::io;
-    ///
-    /// use error_stack::{fmt::Emit, Report};
-    ///
-    /// struct ErrorCode(u64);
-    /// struct Suggestion(&'static str);
-    ///
-    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
-    ///     vec![Emit::defer(format!("Suggestion: {val}"))]
-    /// });
-    /// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| {
-    ///     vec![Emit::next(format!("Error Code: {val}"))]
-    /// });
-    ///
-    /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
-    ///     .attach(Suggestion("Try better next time!"))
-    ///     .attach(ErrorCode(404))
-    ///     .attach(Suggestion("Try to use a different shell!"))
-    ///     .attach(ErrorCode(405));
-    ///
-    /// # owo_colors::set_override(true);
-    /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
-    /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
-    /// #
-    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
-    /// # }
-    /// #
-    /// # #[cfg(rust_1_65)]
-    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add_defer.snap")].assert_eq(&render(format!("{report:?}")));
-    /// #
-    /// println!("{report:?}");
-    /// ```
-    ///
-    /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add_defer.snap"))]
-    /// </pre>
-    #[cfg_attr(not(any(feature = "std", feature = "spantrace")), allow(dead_code))]
-    pub fn defer<T: Into<String>>(line: T) -> Self {
+    pub(crate) fn defer<T: Into<String>>(line: T) -> Self {
         Self::Defer(line.into())
     }
 }
@@ -856,7 +758,7 @@ fn debug_attachments(
                 builtin_debug_hook_fallback(frame, &mut ctx.as_hook_context())
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                vec![Emit::Next(attachment.to_string())]
+                vec![Emit::Immediate(attachment.to_string())]
             }
         })
         .enumerate()
@@ -869,7 +771,7 @@ fn debug_attachments(
 
             value
         })
-        .partition(|f| matches!(f, Emit::Next(_)));
+        .partition(|f| matches!(f, Emit::Immediate(_)));
 
     let opaque = opaque.render();
 
@@ -880,7 +782,7 @@ fn debug_attachments(
         .into_iter()
         .chain(defer.into_iter().rev())
         .map(|emit| match emit {
-            Emit::Defer(value) | Emit::Next(value) => value,
+            Emit::Defer(value) | Emit::Immediate(value) => value,
         })
         .map(|value| {
             value

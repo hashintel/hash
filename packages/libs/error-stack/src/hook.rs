@@ -59,7 +59,7 @@ impl Report<()> {
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|val, _| {
-    ///     vec![Emit::next(format!("Suggestion: {}", val.0))]
+    ///     vec![Emit::immediate(format!("Suggestion: {}", val.0))]
     /// });
     ///
     /// let report =
@@ -131,8 +131,8 @@ impl Report<()> {
     /// }
     ///
     /// # pub fn main() {
-    /// Report::install_debug_hook::<Suggestion>(|val, _| vec![Emit::next(format!("Suggestion: {}", val.0))]);
-    /// Report::install_debug_hook::<ErrorCode>(|val, _| vec![Emit::next(format!("Error Code: {}", val.0))]);
+    /// Report::install_debug_hook::<Suggestion>(|val, _| vec![Emit::immediate(format!("Suggestion: {}", val.0))]);
+    /// Report::install_debug_hook::<ErrorCode>(|val, _| vec![Emit::immediate(format!("Error Code: {}", val.0))]);
     ///
     /// let report = report!(UserError {code: ErrorCode(420)});
     ///
@@ -194,7 +194,7 @@ impl Report<()> {
     /// // This will remove all formatting for `Backtrace` and `SpanTrace`!
     /// // The example after this once calls `builtin_debug_hook_fallback()`, which makes sure that we always print
     /// // `Backtrace` and `SpanTrace`.
-    /// Report::install_debug_hook_fallback(|_, _| vec![Emit::next("unknown")]);
+    /// Report::install_debug_hook_fallback(|_, _| vec![Emit::immediate("unknown")]);
     ///
     /// let report =
     ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("O no, try again"));
@@ -239,7 +239,7 @@ impl Report<()> {
     ///     let builtin = fmt::builtin_debug_hook_fallback(frame, ctx);
     ///
     ///     if builtin.is_empty() {
-    ///         vec![Emit::next("unknown")]
+    ///         vec![Emit::immediate("unknown")]
     ///     } else {
     ///         builtin
     ///     }
@@ -305,12 +305,12 @@ impl Report<()> {
     ///
     /// // this will never called, because we **do not** provide `ErrorCode` in `UserError`
     /// // we instead use fallback to provide better diagnostics.
-    /// Report::install_debug_hook::<ErrorCode>(|_, _| vec![Emit::next("Error Code")]);
+    /// Report::install_debug_hook::<ErrorCode>(|_, _| vec![Emit::immediate("Error Code")]);
     ///
     /// Report::install_debug_hook_fallback(|frame, ctx| {
     ///     // add additional attachments, but only if we're a context of type `UserError`
     ///     if let Some(error) = frame.downcast_ref::<UserError>() {
-    ///         vec![Emit::next(format!("Error Code: {}", error.code.0))]
+    ///         vec![Emit::immediate(format!("Error Code: {}", error.code.0))]
     ///     } else {
     ///         builtin_debug_hook_fallback(frame, ctx)
     ///     }

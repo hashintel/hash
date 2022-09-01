@@ -17,18 +17,18 @@ pub use default::builtin_debug_hook_fallback;
 
 use crate::fmt::{Emit, Frame};
 
+type Storage = BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>;
+
 #[derive(Default)]
 pub(crate) struct HookContextImpl {
-    pub(crate) snippets: Vec<String>,
     alternate: bool,
 
-    storage: BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>,
+    storage: Storage,
 }
 
 impl HookContextImpl {
     pub(crate) fn new(alternate: bool) -> Self {
         Self {
-            snippets: Vec::new(),
             alternate,
             storage: BTreeMap::new(),
         }
@@ -36,8 +36,44 @@ impl HookContextImpl {
 
     pub(crate) fn as_hook_context<T>(&mut self) -> HookContext<'_, T> {
         HookContext {
-            parent: self,
+            inner: HookContextInner::new(self),
             _marker: PhantomData::default(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct HookContextInner<'a> {
+    inner: &'a mut HookContextImpl,
+
+    emits: Vec<Emit>,
+    snippets: Vec<Emit>,
+}
+
+impl HookContextInner<'_> {
+    fn storage(&self) -> &Storage {
+        &self.inner.storage
+    }
+
+    fn storage_mut(&mut self) -> &mut Storage {
+        &mut self.inner.storage
+    }
+
+    fn alternate(&self) -> bool {
+        self.inner.alternate
+    }
+
+    fn into_parts(self) -> (Vec<Emit>, Vec<Emit>) {
+        (self.emits, self.snippets)
+    }
+}
+
+impl<'a> HookContextInner<'a> {
+    fn new(inner: &'a mut HookContextImpl) -> Self {
+        Self {
+            inner,
+            snippets: Vec::new(),
+            emits: Vec::new(),
         }
     }
 }
@@ -48,12 +84,13 @@ impl HookContextImpl {
 /// 1) Emitting Snippets
 /// 2) Storage
 ///
-/// ## Emitting Snippets
+/// ## Emitting Snippets and Lines
 ///
 /// A [`Debug`] backtrace consists of two different sections, a rendered tree of objects and
 /// additional text/information that is too large to fit into the tree.
 ///
-/// Snippets can be added to the current output via [`attach_snippet()`].
+/// Lines to the rendered tree of objects can be attached via [`emit()`], or [`emit_deferred()`].
+/// Snippets can be added to the current output via [`snippet()`], or [`snippet_deferred()`].
 ///
 /// [`attach_snippet()`]: HookContext::attach_snippet
 /// [`Debug`]: core::fmt::Debug
@@ -77,7 +114,7 @@ impl HookContextImpl {
 ///         ctx.attach_snippet(format!("Error {code}:\n  {reason}"));
 ///     }
 ///
-///     vec![Emit::next(format!("Error {code}"))]
+///     vec![Emit::immediate(format!("Error {code}"))]
 /// });
 ///
 /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -143,7 +180,7 @@ impl HookContextImpl {
 ///
 ///     ctx.insert(acc);
 ///
-///     vec![Emit::next(format!(
+///     vec![Emit::immediate(format!(
 ///         "Computation for {val} (acc = {acc}, div = {div})"
 ///     ))]
 /// });
@@ -176,9 +213,7 @@ impl HookContextImpl {
 /// [`Debug`]: core::fmt::Debug
 #[repr(transparent)]
 pub struct HookContext<'a, T> {
-    parent: &'a mut HookContextImpl,
-
-    emits: Vec<Emit>,
+    inner: HookContextInner<'a>,
 
     _marker: PhantomData<T>,
 }
@@ -191,8 +226,116 @@ impl<T> HookContext<'_, T> {
     ///
     /// [`alternate()`]: Self::alternate
     /// [`Debug`]: core::fmt::Debug
-    pub fn attach_snippet(&mut self, snippet: impl Into<String>) {
-        self.parent.snippets.push(snippet.into());
+    pub fn snippet(&mut self, snippet: impl Into<String>) {
+        self.inner.snippets.push(Emit::immediate(snippet));
+    }
+
+    pub fn snippet_deferred(&mut self, snippet: impl Into<String>) {
+        self.inner.snippets.push(Emit::defer(snippet));
+    }
+
+    /// Add a new line which is going to be emitted immediately.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
+    /// use std::io;
+    ///
+    /// use error_stack::{fmt::Emit, Report};
+    ///
+    /// struct Suggestion(&'static str);
+    ///
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
+    ///     vec![
+    ///         Emit::immediate(format!("Suggestion: {val}")),
+    ///         Emit::immediate("Sorry for the inconvenience!")
+    ///     ]
+    /// });
+    ///
+    /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
+    ///     .attach(Suggestion("Try better next time"));
+    ///
+    /// # owo_colors::set_override(true);
+    /// # fn render(value: String) -> String {
+    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #
+    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #
+    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// # }
+    /// #
+    /// # #[cfg(rust_1_65)]
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap")].assert_eq(&render(format!("{report:?}")));
+    /// #
+    /// println!("{report:?}");
+    /// ```
+    ///
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap"))]
+    /// </pre>
+    pub fn emit(&mut self, line: impl Into<String>) {
+        self.inner.emits.push(Emit::immediate(line));
+    }
+
+    /// Create a new line, which is going to be deferred until the end of the current stack.
+    ///
+    /// A stack are all attachments until a [`Context`] is encountered in the frame stack,
+    /// lines added via this function are going to be emitted at the end, in reversed direction to
+    /// the attachments that added them
+    ///
+    /// [`Context`]: crate::Context
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
+    /// use std::io;
+    ///
+    /// use error_stack::{fmt::Emit, Report};
+    ///
+    /// struct ErrorCode(u64);
+    /// struct Suggestion(&'static str);
+    ///
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
+    ///     vec![Emit::defer(format!("Suggestion: {val}"))]
+    /// });
+    /// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| {
+    ///     vec![Emit::immediate(format!("Error Code: {val}"))]
+    /// });
+    ///
+    /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
+    ///     .attach(Suggestion("Try better next time!"))
+    ///     .attach(ErrorCode(404))
+    ///     .attach(Suggestion("Try to use a different shell!"))
+    ///     .attach(ErrorCode(405));
+    ///
+    /// # owo_colors::set_override(true);
+    /// # fn render(value: String) -> String {
+    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #
+    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #
+    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// # }
+    /// #
+    /// # #[cfg(rust_1_65)]
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add_defer.snap")].assert_eq(&render(format!("{report:?}")));
+    /// #
+    /// println!("{report:?}");
+    /// ```
+    ///
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add_defer.snap"))]
+    /// </pre>
+    pub fn emit_deferred(&mut self, line: impl Into<String>) {
+        self.inner.emits.push(Emit::defer(line));
     }
 }
 
@@ -225,13 +368,13 @@ impl<'a, T> HookContext<'a, T> {
     /// struct Error(&'static str);
     ///
     /// Report::install_debug_hook::<Error>(|Error(frame), ctx| {
-    ///     vec![Emit::next(format!(
+    ///     vec![Emit::immediate(format!(
     ///         "[{}] [ERROR] {frame}",
     ///         ctx.increment() + 1
     ///     ))]
     /// });
     /// Report::install_debug_hook::<Warning>(|Warning(frame), ctx| {
-    ///     vec![Emit::next(format!(
+    ///     vec![Emit::immediate(format!(
     ///         "[{}] [WARN] {frame}",
     ///         ctx.cast::<Error>().increment() + 1
     ///     ))]
@@ -274,7 +417,19 @@ impl<'a, T> HookContext<'a, T> {
     /// This corresponds to the output of [`std::fmt::Formatter::alternate`].
     #[must_use]
     pub fn alternate(&self) -> bool {
-        self.parent.alternate
+        self.inner.alternate()
+    }
+
+    fn storage(&self) -> &Storage {
+        self.inner.storage()
+    }
+
+    fn storage_mut(&mut self) -> &mut Storage {
+        self.inner.storage_mut()
+    }
+
+    fn into_parts(self) -> (Vec<Emit>, Vec<Emit>) {
+        self.inner.into_parts()
     }
 }
 
@@ -288,8 +443,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// [`Debug`]: core::fmt::Debug
     #[must_use]
     pub fn get<U: 'static>(&self) -> Option<&U> {
-        self.parent
-            .storage
+        self.storage()
             .get(&TypeId::of::<T>())?
             .get(&TypeId::of::<U>())?
             .downcast_ref()
@@ -301,8 +455,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// [`HookContext`]s that share the same inner value (e.g. same invocation of [`Debug`]) will
     /// return the same value.
     pub fn get_mut<U: 'static>(&mut self) -> Option<&mut U> {
-        self.parent
-            .storage
+        self.storage_mut()
             .get_mut(&TypeId::of::<T>())?
             .get_mut(&TypeId::of::<U>())?
             .downcast_mut()
@@ -313,8 +466,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// The returned value will the previously stored value of the same type `U` scoped over type
     /// `T`, if it existed, did no such value exist it will return [`None`].
     pub fn insert<U: 'static>(&mut self, value: U) -> Option<U> {
-        self.parent
-            .storage
+        self.storage()
             .entry(TypeId::of::<T>())
             .or_default()
             .insert(TypeId::of::<U>(), Box::new(value))?
@@ -327,8 +479,7 @@ impl<T: 'static> HookContext<'_, T> {
     ///
     /// The returned value will be the previously stored value of the same type `U`.
     pub fn remove<U: 'static>(&mut self) -> Option<U> {
-        self.parent
-            .storage
+        self.storage_mut()
             .get_mut(&TypeId::of::<T>())?
             .remove(&TypeId::of::<U>())?
             .downcast()
@@ -353,7 +504,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     vec![Emit::next(format!("Suggestion {}: {val}", ctx.increment()))]
+    ///     vec![Emit::immediate(format!("Suggestion {}: {val}", ctx.increment()))]
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -418,7 +569,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     vec![Emit::next(format!("Suggestion {}: {val}", ctx.decrement()))]
+    ///     vec![Emit::immediate(format!("Suggestion {}: {val}", ctx.decrement()))]
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
