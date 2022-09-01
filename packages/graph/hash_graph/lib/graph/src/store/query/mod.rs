@@ -193,10 +193,10 @@ impl fmt::Display for ExpressionError {
 impl Error for ExpressionError {}
 
 impl Expression {
-    pub fn evaluate<'this, R, C>(
-        &'this self,
-        resolver: &'this R,
-        context: &'this C,
+    pub fn evaluate<'a, R, C>(
+        &'a self,
+        resolver: &'a R,
+        context: &'a C,
     ) -> BoxFuture<Result<Literal, ExpressionError>>
     where
         R: Resolve<C> + Sync,
