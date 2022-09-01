@@ -345,7 +345,7 @@ pub trait LinkTypeStore: for<'q> crud::Read<PersistedLinkType, Query<'q> = Expre
         created_by: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError>;
 
-    /// Get the [`LinkType`]s specified by the [`LinkTypeQuery`].
+    /// Get the [`LinkType`]s specified by the [`Expression`].
     ///
     /// # Errors
     ///
