@@ -94,7 +94,7 @@ export const ensureWorkspaceTypesExist = async (params: {
       if (!existingEntityType) {
         await EntityTypeModel.create(graphApi, {
           accountId: workspaceAccountId,
-          schema: schema as any, // TODO - trust me bro
+          schema,
         });
 
         logger.info(`Created entity type with versioned URI "${versionedUri}"`);

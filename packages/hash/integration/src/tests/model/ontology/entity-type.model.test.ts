@@ -2,13 +2,13 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
-import { EntityType } from "@hashintel/hash-graph-client/";
 import {
   EntityTypeModel,
   DataTypeModel,
   PropertyTypeModel,
   LinkTypeModel,
 } from "@hashintel/hash-api/src/model";
+import { EntityType } from "@blockprotocol/type-system-web";
 
 jest.setTimeout(60000);
 
@@ -63,6 +63,7 @@ beforeAll(async () => {
         $id: knowsDestinationEntityType$id,
         kind: "entityType",
         title: "Text",
+        pluralTitle: "Text",
         type: "object",
         properties: {},
       },
@@ -73,6 +74,7 @@ beforeAll(async () => {
         $id: textPropertyType$id,
         kind: "propertyType",
         title: "Text",
+        pluralTitle: "Text",
         oneOf: [{ $ref: textDataType$id }],
       },
     }),
@@ -82,6 +84,7 @@ beforeAll(async () => {
         $id: namePropertyType$id,
         kind: "propertyType",
         title: "Text",
+        pluralTitle: "Text",
         oneOf: [{ $ref: textDataType$id }],
       },
     }),
@@ -90,8 +93,9 @@ beforeAll(async () => {
       schema: {
         $id: knowsLinkType$id,
         kind: "linkType",
-        description: "Knows of someone",
         title: "Knows",
+        pluralTitle: "Knows",
+        description: "Knows of someone",
       },
     }),
   ]);
@@ -103,6 +107,7 @@ describe("Entity type CRU", () => {
       $id,
       kind: "entityType",
       title: "Text",
+      pluralTitle: "Text",
       type: "object",
       properties: {
         [textPropertyTypeBaseId]: { $ref: textPropertyType$id },

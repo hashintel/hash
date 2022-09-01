@@ -29,6 +29,7 @@ describe("Link type CRU", () => {
       $id,
       kind: "linkType",
       title: "A link",
+      pluralTitle: "Multiple Links",
       description: "A link between things",
     };
   };
