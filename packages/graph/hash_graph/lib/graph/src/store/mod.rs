@@ -27,7 +27,7 @@ use crate::{
     },
     store::{
         error::LinkActivationError,
-        query::{EntityQuery, EntityTypeQuery, Expression, LinkQuery, LinkTypeQuery},
+        query::{EntityQuery, EntityTypeQuery, Expression, LinkQuery},
     },
 };
 
@@ -330,9 +330,7 @@ pub trait EntityTypeStore:
 
 /// Describes the API of a store implementation for [`LinkType`]s.
 #[async_trait]
-pub trait LinkTypeStore:
-    for<'q> crud::Read<PersistedLinkType, Query<'q> = LinkTypeQuery<'q>>
-{
+pub trait LinkTypeStore: for<'q> crud::Read<PersistedLinkType, Query<'q> = Expression> {
     /// Creates a new [`LinkType`].
     ///
     /// # Errors:
@@ -354,7 +352,7 @@ pub trait LinkTypeStore:
     /// - if the requested [`LinkType`] doesn't exist.
     async fn get_link_type(
         &self,
-        query: &LinkTypeQuery<'_>,
+        query: &Expression,
     ) -> Result<Vec<PersistedLinkType>, QueryError> {
         self.read(query).await
     }

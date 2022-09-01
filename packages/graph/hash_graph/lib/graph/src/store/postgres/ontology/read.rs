@@ -5,10 +5,7 @@ use serde::Deserialize;
 use tokio_postgres::{GenericClient, RowStream};
 
 use crate::{
-    ontology::{
-        types::{EntityType, LinkType},
-        AccountId, PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier,
-    },
+    ontology::{types::EntityType, AccountId, PersistedEntityType, PersistedOntologyIdentifier},
     store::{
         crud::Read,
         postgres::{ontology::OntologyDatabaseType, parameter_list},
@@ -21,14 +18,6 @@ pub trait PersistedOntologyType {
     type Inner;
 
     fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self;
-}
-
-impl PersistedOntologyType for PersistedLinkType {
-    type Inner = LinkType;
-
-    fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self {
-        Self { inner, identifier }
-    }
 }
 
 impl PersistedOntologyType for PersistedEntityType {

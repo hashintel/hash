@@ -17,7 +17,7 @@ use crate::{
     api::rest::read_from_store,
     ontology::{types::LinkType, AccountId, PersistedLinkType, PersistedOntologyIdentifier},
     store::{
-        query::LinkTypeQuery, BaseUriAlreadyExists, BaseUriDoesNotExist, LinkTypeStore, StorePool,
+        query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, LinkTypeStore, StorePool,
     },
 };
 
@@ -121,10 +121,16 @@ async fn create_link_type<P: StorePool + Send>(
 )]
 async fn get_latest_link_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
+    mut body: Option<Json<Expression>>,
 ) -> Result<Json<Vec<PersistedLinkType>>, StatusCode> {
-    read_from_store(pool.as_ref(), &LinkTypeQuery::new().by_latest_version())
-        .await
-        .map(Json)
+    read_from_store(
+        pool.as_ref(),
+        &body
+            .take()
+            .map_or_else(Expression::for_latest_version, |json| json.0),
+    )
+    .await
+    .map(Json)
 }
 
 #[utoipa::path(
@@ -146,15 +152,10 @@ async fn get_link_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedLinkType>, StatusCode> {
-    read_from_store(
-        pool.as_ref(),
-        &LinkTypeQuery::new()
-            .by_uri(uri.base_uri())
-            .by_version(uri.version()),
-    )
-    .await
-    .and_then(|mut link_types| link_types.pop().ok_or(StatusCode::NOT_FOUND))
-    .map(Json)
+    read_from_store(pool.as_ref(), &Expression::for_versioned_uri(&uri.0))
+        .await
+        .and_then(|mut data_types| data_types.pop().ok_or(StatusCode::NOT_FOUND))
+        .map(Json)
 }
 
 #[derive(Component, Serialize, Deserialize)]

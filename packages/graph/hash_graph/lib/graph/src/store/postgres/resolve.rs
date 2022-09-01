@@ -2,11 +2,11 @@ use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use futures::{Stream, StreamExt};
 use serde::Deserialize;
-use tokio_postgres::{GenericClient, Row, RowStream};
+use tokio_postgres::{GenericClient, RowStream};
 use type_system::{uri::VersionedUri, DataType, PropertyType};
 
 use crate::{
-    ontology::AccountId,
+    ontology::{types::LinkType, AccountId},
     store::{postgres::parameter_list, AsClient, PostgresStore, QueryError},
 };
 
@@ -35,6 +35,13 @@ pub trait PostgresContext {
         &self,
         uri: &VersionedUri,
     ) -> Result<Record<PropertyType>, QueryError>;
+
+    async fn read_all_link_types(&self) -> Result<RecordStream<LinkType>, QueryError>;
+
+    async fn read_versioned_link_type(
+        &self,
+        uri: &VersionedUri,
+    ) -> Result<Record<LinkType>, QueryError>;
 }
 
 /// Associates a database entry with the information about the latest version of the corresponding
@@ -83,11 +90,11 @@ async fn read_all_types(client: &impl AsClient, table: &str) -> Result<RowStream
         .into_report().change_context(QueryError)
 }
 
-async fn read_versioned_type(
+async fn read_versioned_type<T: for<'de> Deserialize<'de>>(
     client: &impl AsClient,
     table: &str,
     uri: &VersionedUri,
-) -> Result<Record<Row>, QueryError> {
+) -> Result<Record<T>, QueryError> {
     let row = client
         .as_client()
         .query_one(
@@ -110,10 +117,14 @@ async fn read_versioned_type(
         .into_report()
         .change_context(QueryError)?;
 
+    let record = serde_json::from_value(row.get(0))
+        .into_report()
+        .change_context(QueryError)?;
     let account_id = row.get(1);
     let latest: i64 = row.get(2);
+
     Ok(Record {
-        record: row,
+        record,
         account_id,
         is_latest: latest as u32 == uri.version(),
     })
@@ -123,7 +134,9 @@ async fn read_versioned_type(
 impl<C: AsClient> PostgresContext for PostgresStore<C> {
     async fn read_all_data_types(&self) -> Result<RecordStream<DataType>, QueryError> {
         Ok(row_stream_to_record_stream(
-            read_all_types(&self.client, "data_types").await?,
+            read_all_types(&self.client, "data_types")
+                .await
+                .attach_printable("could not read data types")?,
         ))
     }
 
@@ -131,26 +144,16 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
         &self,
         uri: &VersionedUri,
     ) -> Result<Record<DataType>, QueryError> {
-        let Record {
-            record,
-            account_id,
-            is_latest,
-        } = read_versioned_type(&self.client, "data_types", uri)
+        read_versioned_type(&self.client, "data_types", uri)
             .await
-            .attach_printable("could not read data type")?;
-
-        Ok(Record {
-            record: serde_json::from_value(record.get(0))
-                .into_report()
-                .change_context(QueryError)?,
-            account_id,
-            is_latest,
-        })
+            .attach_printable("could not read data type")
     }
 
     async fn read_all_property_types(&self) -> Result<RecordStream<PropertyType>, QueryError> {
         Ok(row_stream_to_record_stream(
-            read_all_types(&self.client, "property_types").await?,
+            read_all_types(&self.client, "property_types")
+                .await
+                .attach_printable("could not read property types")?,
         ))
     }
 
@@ -158,20 +161,25 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
         &self,
         uri: &VersionedUri,
     ) -> Result<Record<PropertyType>, QueryError> {
-        let Record {
-            record,
-            account_id,
-            is_latest,
-        } = read_versioned_type(&self.client, "property_types", uri)
+        read_versioned_type(&self.client, "property_types", uri)
             .await
-            .attach_printable("could not read property type")?;
+            .attach_printable("could not read property type")
+    }
 
-        Ok(Record {
-            record: serde_json::from_value(record.get(0))
-                .into_report()
-                .change_context(QueryError)?,
-            account_id,
-            is_latest,
-        })
+    async fn read_all_link_types(&self) -> Result<RecordStream<LinkType>, QueryError> {
+        Ok(row_stream_to_record_stream(
+            read_all_types(&self.client, "link_types")
+                .await
+                .attach_printable("could not read link types")?,
+        ))
+    }
+
+    async fn read_versioned_link_type(
+        &self,
+        uri: &VersionedUri,
+    ) -> Result<Record<LinkType>, QueryError> {
+        read_versioned_type(&self.client, "link_types", uri)
+            .await
+            .attach_printable("could not read link type")
     }
 }
