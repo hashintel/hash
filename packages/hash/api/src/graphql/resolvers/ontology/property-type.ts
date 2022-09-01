@@ -28,9 +28,7 @@ export const createPropertyType: ResolverFn<
     const msg =
       err.response?.status === 409
         ? `Property type with the same URI already exists. [URI=${propertyType.$id}]`
-        : `Couldn't create property type. ${JSON.stringify(
-            err.response?.data,
-          )}`;
+        : `Couldn't create property type.`;
 
     throw new ApolloError(msg, "CREATION_ERROR");
   });
