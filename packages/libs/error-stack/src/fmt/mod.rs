@@ -351,7 +351,7 @@ impl Emit {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum Symbol {
     // special, used to indicate location
     Location,
@@ -365,6 +365,62 @@ enum Symbol {
     CurveRight,
 
     Space,
+}
+
+/// We use symbols during resolution, which is efficient and versatile, but makes the conversion
+/// between [`Instruction`] to [`Symbol`] harder to comprehend for a user.
+///
+/// This macro fixes this by creating a compile-time lookup table to easily map every character in
+/// the [`Display`] of [`Symbol`] to it's corresponding symbol.
+///
+/// # Example
+///
+/// ```ignore
+/// assert_eq!(sym!('├', '┬'), &[
+///     Symbol::VerticalRight,
+///     Symbol::HorizontalDown
+/// ])
+/// ```
+macro_rules! sym {
+    (#char '@') => {
+        Symbol::Location
+    };
+
+    (#char '│') => {
+        Symbol::Vertical
+    };
+
+    (#char '├') => {
+        Symbol::VerticalRight
+    };
+
+    (#char '─') => {
+        Symbol::Horizontal
+    };
+
+    (#char '╴') => {
+        Symbol::HorizontalLeft
+    };
+
+    (#char '┬') => {
+        Symbol::HorizontalDown
+    };
+
+    (#char '▶') => {
+        Symbol::ArrowRight
+    };
+
+    (#char '╰') => {
+        Symbol::CurveRight
+    };
+
+    (#char ' ') => {
+        Symbol::Space
+    };
+
+    ($($char:tt),+) => {
+        &[$(sym!(#char $char)),*]
+    };
 }
 
 #[cfg(feature = "pretty-print")]
@@ -443,8 +499,106 @@ impl From<Style> for OwOStyle {
 #[derive(Debug, Copy, Clone)]
 enum Position {
     First,
-    Middle,
-    Last,
+    Inner,
+    Final,
+}
+
+#[derive(Debug, Copy, Clone)]
+enum Spacing {
+    // Standard to create a width of 4 characters
+    Full,
+    // Minimal width to create a width of 2/3 characters
+    Minimal,
+}
+
+#[derive(Debug, Copy, Clone)]
+struct Indent {
+    /// Is this used in a group context, if that is the case, then add a single leading space
+    group: bool,
+    /// Should the indent be visible, if that isn't the case it will render a space instead of
+    /// `|`
+    visible: bool,
+    /// Should spacing included, this is the difference between `|   ` and `|`
+    spacing: Option<Spacing>,
+}
+
+impl Indent {
+    const fn new(group: bool) -> Self {
+        Self {
+            group,
+            visible: true,
+            spacing: Some(Spacing::Full),
+        }
+    }
+
+    fn spacing(mut self, spacing: impl Into<Option<Spacing>>) -> Self {
+        self.spacing = spacing.into();
+        self
+    }
+
+    const fn visible(mut self, visible: bool) -> Self {
+        self.visible = visible;
+        self
+    }
+
+    const fn group() -> Self {
+        Self::new(true)
+    }
+
+    const fn no_group() -> Self {
+        Self::new(false)
+    }
+
+    const fn prepare(self) -> &'static [Symbol] {
+        match self {
+            Self {
+                group: true,
+                visible: true,
+                spacing: Some(_),
+            } => sym!(' ', '│', ' ', ' '),
+            Self {
+                group: true,
+                visible: true,
+                spacing: None,
+            } => sym!(' ', '│'),
+            Self {
+                group: false,
+                visible: true,
+                spacing: Some(Spacing::Full),
+            } => sym!('│', ' ', ' ', ' '),
+            Self {
+                group: false,
+                visible: true,
+                spacing: Some(Spacing::Minimal),
+            } => sym!('│', ' '),
+            Self {
+                group: false,
+                visible: true,
+                spacing: None,
+            } => sym!('│'),
+            Self {
+                visible: false,
+                spacing: Some(Spacing::Full),
+                ..
+            } => sym!(' ', ' ', ' ', ' '),
+            Self {
+                visible: false,
+                spacing: Some(Spacing::Minimal),
+                ..
+            } => sym!(' ', ' '),
+            Self {
+                visible: false,
+                spacing: None,
+                ..
+            } => &[],
+        }
+    }
+}
+
+impl From<Indent> for Instruction {
+    fn from(indent: Indent) -> Self {
+        Self::Indent(indent)
+    }
 }
 
 /// The display of content is using an instruction style architecture,
@@ -469,21 +623,12 @@ enum Instruction {
     Context {
         position: Position,
     },
-    /// `Position::Last` means *that nothing follows*
+    /// `Position::Final` means *that nothing follows*
     Attachment {
         position: Position,
     },
 
-    Indent {
-        /// Is this used in a group context, if that is the case, then add a single leading space
-        group: bool,
-        /// Should the indent be visible, if that isn't the case it will render a space instead of
-        /// `|`
-        visible: bool,
-        /// Should spacing included, this is the difference between `|   ` and `|`
-        spacing: bool,
-        minimal: bool,
-    },
+    Indent(Indent),
 }
 
 /// Minimized instruction, which looses information about what it represents and converts it to
@@ -495,123 +640,34 @@ enum PreparedInstruction<'a> {
 }
 
 impl Instruction {
-    // Reason for allow:
-    // > This is just a big statement to convert to a prepared instruction, there
-    // isn't really any logic here
-    #[allow(clippy::too_many_lines)]
+    // Reason: the match arms are the same intentionally, this makes it more clean which variant
+    //  emits which and also keeps it nicely formatted.
+    #[allow(clippy::match_same_arms)]
     fn prepare(&self) -> PreparedInstruction {
         match self {
             Self::Value { value, style } => PreparedInstruction::Content(value, style),
             Self::Symbol(symbol) => PreparedInstruction::Symbol(symbol),
 
             Self::Group { position } => match position {
-                Position::First => PreparedInstruction::Symbols(&[
-                    Symbol::CurveRight,
-                    Symbol::HorizontalDown,
-                    Symbol::ArrowRight,
-                    Symbol::Space,
-                ]),
-                Position::Middle => PreparedInstruction::Symbols(&[
-                    Symbol::Space,
-                    Symbol::VerticalRight,
-                    Symbol::ArrowRight,
-                    Symbol::Space,
-                ]),
-                Position::Last => PreparedInstruction::Symbols(&[
-                    Symbol::Space,
-                    Symbol::CurveRight,
-                    Symbol::ArrowRight,
-                    Symbol::Space,
-                ]),
+                Position::First => PreparedInstruction::Symbols(sym!('╰', '┬', '▶', ' ')),
+                Position::Inner => PreparedInstruction::Symbols(sym!(' ', '├', '▶', ' ')),
+                Position::Final => PreparedInstruction::Symbols(sym!(' ', '╰', '▶', ' ')),
             },
 
             Self::Context { position } => match position {
-                Position::First | Position::Middle => PreparedInstruction::Symbols(&[
-                    Symbol::VerticalRight,
-                    Symbol::Horizontal,
-                    Symbol::ArrowRight,
-                    Symbol::Space,
-                ]),
-                Position::Last => PreparedInstruction::Symbols(&[
-                    Symbol::CurveRight,
-                    Symbol::Horizontal,
-                    Symbol::ArrowRight,
-                    Symbol::Space,
-                ]),
+                Position::First => PreparedInstruction::Symbols(sym!('├', '─', '▶', ' ')),
+                Position::Inner => PreparedInstruction::Symbols(sym!('├', '─', '▶', ' ')),
+                Position::Final => PreparedInstruction::Symbols(sym!('╰', '─', '▶', ' ')),
             },
 
             Self::Attachment { position } => match position {
-                Position::First | Position::Middle => {
-                    PreparedInstruction::Symbols(&[Symbol::VerticalRight, Symbol::HorizontalLeft])
-                }
-                Position::Last => {
-                    PreparedInstruction::Symbols(&[Symbol::CurveRight, Symbol::HorizontalLeft])
-                }
+                Position::First => PreparedInstruction::Symbols(sym!('├', '╴')),
+                Position::Inner => PreparedInstruction::Symbols(sym!('├', '╴')),
+                Position::Final => PreparedInstruction::Symbols(sym!('╰', '╴')),
             },
 
             // Indentation (like `|   ` or ` |  `)
-            Self::Indent {
-                group: true,
-                visible: true,
-                spacing: true,
-                ..
-            } => PreparedInstruction::Symbols(&[
-                Symbol::Space,
-                Symbol::Vertical,
-                Symbol::Space,
-                Symbol::Space,
-            ]),
-            Self::Indent {
-                group: true,
-                visible: true,
-                spacing: false,
-                ..
-            } => PreparedInstruction::Symbols(&[Symbol::Space, Symbol::Vertical]),
-            Self::Indent {
-                group: false,
-                visible: true,
-                spacing: true,
-                minimal: false,
-            } => PreparedInstruction::Symbols(&[
-                Symbol::Vertical,
-                Symbol::Space,
-                Symbol::Space,
-                Symbol::Space,
-            ]),
-            Self::Indent {
-                group: false,
-                visible: true,
-                spacing: true,
-                minimal: true,
-            } => PreparedInstruction::Symbols(&[Symbol::Vertical, Symbol::Space]),
-            Self::Indent {
-                group: false,
-                visible: true,
-                spacing: false,
-                ..
-            } => PreparedInstruction::Symbols(&[Symbol::Vertical]),
-            Self::Indent {
-                visible: false,
-                spacing: true,
-                minimal: false,
-                ..
-            } => PreparedInstruction::Symbols(&[
-                Symbol::Space,
-                Symbol::Space,
-                Symbol::Space,
-                Symbol::Space,
-            ]),
-            Self::Indent {
-                visible: false,
-                spacing: true,
-                minimal: true,
-                ..
-            } => PreparedInstruction::Symbols(&[Symbol::Space, Symbol::Space]),
-            Self::Indent {
-                visible: false,
-                spacing: false,
-                ..
-            } => PreparedInstruction::Symbols(&[]),
+            Self::Indent(indent) => PreparedInstruction::Symbols(indent.prepare()),
         }
     }
 }
@@ -835,7 +891,7 @@ fn debug_attachments(
     frames: Vec<&Frame>,
     #[cfg(feature = "std")] ctx: &mut HookContextImpl,
 ) -> Lines {
-    let last = matches!(position, Position::Last);
+    let last = matches!(position, Position::Final);
     let mut opaque = Opaque::new();
 
     // evaluate all frames to their respective values, will call all hooks with the current context
@@ -899,21 +955,21 @@ fn debug_attachments(
         .enumerate()
         .flat_map(|(idx, lines)| {
             let position = match idx {
-                pos if pos + 1 == len && last => Position::Last,
+                pos if pos + 1 == len && last => Position::Final,
                 0 => Position::First,
-                _ => Position::Middle,
+                _ => Position::Inner,
             };
 
             lines.into_iter().enumerate().map(move |(idx, line)| {
                 if idx == 0 {
                     line.push(Instruction::Attachment { position })
                 } else {
-                    line.push(Instruction::Indent {
-                        group: false,
-                        visible: !matches!(position, Position::Last),
-                        spacing: true,
-                        minimal: true,
-                    })
+                    line.push(
+                        Indent::no_group()
+                            .visible(!matches!(position, Position::Final))
+                            .spacing(Spacing::Minimal)
+                            .into(),
+                    )
                 }
             })
         })
@@ -928,9 +984,9 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
         .map(|(idx, lines)| {
             let position = match idx {
                 // this is first to make sure that 0 is caught as `Last` instead of `First`
-                pos if pos + 1 == len => Position::Last,
+                pos if pos + 1 == len => Position::Final,
                 0 => Position::First,
-                _ => Position::Middle,
+                _ => Position::Inner,
             };
 
             lines
@@ -940,23 +996,17 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
                     if idx == 0 {
                         line.push(Instruction::Group { position })
                     } else {
-                        line.push(Instruction::Indent {
-                            group: true,
-                            visible: !matches!(position, Position::Last),
-                            spacing: true,
-                            minimal: false,
-                        })
+                        line.push(
+                            Indent::group()
+                                .visible(!matches!(position, Position::Final))
+                                .into(),
+                        )
                     }
                 })
                 .collect::<Lines>()
                 .before(
                     // add a buffer line for readability
-                    Line::new().push(Instruction::Indent {
-                        group: idx != 0,
-                        visible: true,
-                        spacing: false,
-                        minimal: false,
-                    }),
+                    Line::new().push(Indent::new(idx != 0).spacing(None).into()),
                 )
         })
         .collect::<Vec<_>>();
@@ -967,9 +1017,9 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
     // insert the arrows and buffer indentation
     let contexts = contexts.into_iter().enumerate().flat_map(|(idx, lines)| {
         let position = match idx {
-            pos if pos + 1 == len && !tail => Position::Last,
+            pos if pos + 1 == len && !tail => Position::Final,
             0 => Position::First,
-            _ => Position::Middle,
+            _ => Position::Inner,
         };
 
         let mut lines = lines
@@ -979,26 +1029,17 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
                 if idx == 0 {
                     line.push(Instruction::Context { position })
                 } else {
-                    line.push(Instruction::Indent {
-                        group: false,
-                        visible: !matches!(position, Position::Last),
-                        spacing: true,
-                        minimal: false,
-                    })
+                    line.push(
+                        Indent::no_group()
+                            .visible(!matches!(position, Position::Final))
+                            .into(),
+                    )
                 }
             })
             .collect::<Vec<_>>();
 
         // this is not using `.collect<>().before()`, because somehow that kills rustfmt?!
-        lines.insert(
-            0,
-            Line::new().push(Instruction::Indent {
-                group: false,
-                visible: true,
-                spacing: false,
-                minimal: false,
-            }),
-        );
+        lines.insert(0, Line::new().push(Indent::no_group().spacing(None).into()));
 
         lines
     });
@@ -1049,9 +1090,9 @@ fn debug_frame(
                 //     ├╴Attachment E
                 //     ╰╴Attachment F <- last because it's the last of the parent context!
                 if (len == 1 && sources.is_empty()) || idx > 0 {
-                    Position::Last
+                    Position::Final
                 } else {
-                    Position::Middle
+                    Position::Inner
                 },
                 once(head).chain(body).collect(),
                 #[cfg(feature = "std")]
@@ -1119,12 +1160,10 @@ impl<C> Debug for Report<C> {
                     lines.into_vec()
                 } else {
                     lines
-                        .before(Line::new().push(Instruction::Indent {
-                            group: false,
-                            visible: false,
-                            spacing: false,
-                            minimal: false,
-                        }))
+                        .before(
+                            Line::new()
+                                .push(Indent::no_group().visible(false).spacing(None).into()),
+                        )
                         .into_vec()
                 }
             })
