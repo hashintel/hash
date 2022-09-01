@@ -248,12 +248,12 @@ where
         created_by: AccountId,
     ) -> Result<(VersionId, PersistedOntologyIdentifier), InsertionError>
     where
-        T: OntologyDatabaseType + Send + Sync,
+        T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
     {
         let uri = database_type.versioned_uri().clone();
 
         if self
-            .contains_base_uri(&uri.base_uri())
+            .contains_base_uri(uri.base_uri())
             .await
             .change_context(InsertionError)?
         {
@@ -262,7 +262,7 @@ where
                 .change_context(InsertionError));
         }
 
-        self.insert_base_uri(&uri.base_uri()).await?;
+        self.insert_base_uri(uri.base_uri()).await?;
 
         if self
             .contains_uri(&uri)
@@ -303,7 +303,7 @@ where
         updated_by: AccountId,
     ) -> Result<(VersionId, PersistedOntologyIdentifier), UpdateError>
     where
-        T: OntologyDatabaseType + Send + Sync,
+        T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
     {
         let uri = database_type.versioned_uri().clone();
 
@@ -347,7 +347,7 @@ where
         created_by: AccountId,
     ) -> Result<(), InsertionError>
     where
-        T: OntologyDatabaseType + Sync,
+        T: OntologyDatabaseType + Sync + Into<serde_json::Value>,
     {
         let value: serde_json::Value = database_type.into();
         // Generally bad practice to construct a query without preparation, but it's not possible to

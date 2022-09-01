@@ -9,7 +9,7 @@ use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyTyp
 /// Provides an abstraction over elements of the Type System stored in the Database.
 ///
 /// [`PostgresDatabase`]: crate::store::PostgresDatabase
-pub trait OntologyDatabaseType: Into<serde_json::Value> + TryFrom<serde_json::Value> {
+pub trait OntologyDatabaseType {
     /// Returns the name of the table where this type is stored.
     fn table() -> &'static str;
 

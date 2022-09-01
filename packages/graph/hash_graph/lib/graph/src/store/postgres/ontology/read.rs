@@ -100,7 +100,7 @@ fn apply_filter<T: OntologyDatabaseType>(element: T, query: &OntologyQuery<'_, T
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
     T: PersistedOntologyType + Send,
-    T::Inner: OntologyDatabaseType,
+    T::Inner: OntologyDatabaseType + TryFrom<serde_json::Value>,
     <<T as PersistedOntologyType>::Inner as TryFrom<serde_json::Value>>::Error: Context,
 {
     type Query<'q> = OntologyQuery<'q, T::Inner>;
