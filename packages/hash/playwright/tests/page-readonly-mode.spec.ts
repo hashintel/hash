@@ -1,9 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { loginUsingUi } from "./utils/loginUsingUi";
 
-const pageName = "Untitled";
-const pageTitleInputSelector = '[placeholder="A title for the page"]';
-
 test("user can view page in read-only mode but not update", async ({
   page,
 }) => {
@@ -16,8 +13,6 @@ test("user can view page in read-only mode but not update", async ({
   await page.locator('[data-testid="create-page-btn"]').click();
 
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
-
-  await expect(page.locator(pageTitleInputSelector)).toHaveValue(pageName);
 
   await expect(page.locator('[data-testid="page-sidebar"]')).toBeVisible();
 
