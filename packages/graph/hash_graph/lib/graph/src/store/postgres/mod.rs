@@ -347,7 +347,7 @@ where
         created_by: AccountId,
     ) -> Result<(), InsertionError>
     where
-        T: OntologyDatabaseType + Sync + Into<serde_json::Value>,
+        T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
     {
         let value: serde_json::Value = database_type.into();
         // Generally bad practice to construct a query without preparation, but it's not possible to
