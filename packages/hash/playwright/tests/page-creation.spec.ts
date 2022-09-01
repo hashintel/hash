@@ -157,7 +157,6 @@ test("user can create page", async ({ page }) => {
   ).toHaveCount(5);
 });
 
-// TODO: investigate flakiness of page renaming and enable the test in CI
 test("user can rename page", async ({ page }) => {
   const pageName1 = `Page ${pageNameSuffix}`;
   const pageName2 = `Page 2 ${pageNameSuffix}`;
