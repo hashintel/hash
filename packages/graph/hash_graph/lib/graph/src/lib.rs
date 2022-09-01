@@ -9,6 +9,7 @@
 // Not required, reason: Simpler than using blanket implementations
 #![feature(trait_alias)]
 #![feature(try_find)]
+#![feature(type_alias_impl_trait)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
 #![warn(
