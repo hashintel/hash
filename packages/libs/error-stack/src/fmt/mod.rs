@@ -63,7 +63,8 @@
 //! // The incrementation is type specific, meaning that `ctx.increment()` for the `Suggestion` hook
 //! // will not influence the counter of the `ErrorCode` or `Warning` hook.
 //! Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-//!     ctx.emit(format!("Suggestion {}: {val}", ctx.increment() + 1));
+//!     let idx = ctx.increment() + 1;
+//!     ctx.emit(format!("Suggestion {idx}: {val}"));
 //! });
 //!
 //! Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), ctx| {
@@ -177,6 +178,9 @@ pub(crate) enum Emit {
     /// Line is going to be emitted after all immediate lines have been emitted from the current
     /// stack.
     /// This means that deferred lines will always be last in a group.
+    // Reason: We could in theory dead-code, but that would hurt readability in the rendering
+    // process.
+    #[cfg_attr(not(feature = "std"), allow(dead_code))]
     Defer(String),
     /// Going to be emitted immediately as the next line in the chain of
     /// attachments and contexts.
@@ -184,10 +188,12 @@ pub(crate) enum Emit {
 }
 
 impl Emit {
+    #[cfg(feature = "std")]
     pub(crate) fn immediate<T: Into<String>>(line: T) -> Self {
         Self::Immediate(line.into())
     }
 
+    #[cfg(feature = "std")]
     pub(crate) fn defer<T: Into<String>>(line: T) -> Self {
         Self::Defer(line.into())
     }
@@ -671,6 +677,67 @@ impl Opaque {
     }
 }
 
+fn debug_attachments_order(emits: impl Iterator<Item = Emit>) -> Vec<String> {
+    let mut out = vec![];
+    let mut defer = vec![];
+
+    for emit in emits {
+        match emit {
+            Emit::Defer(value) => {
+                defer.push(value);
+            }
+            Emit::Immediate(value) => {
+                out.push(value);
+            }
+        }
+    }
+
+    out.append(&mut defer);
+
+    out
+}
+
+fn debug_attachments_invoke(
+    frames: Vec<&Frame>,
+    #[cfg(feature = "std")] ctx: &mut HookContextImpl,
+) -> (Opaque, Vec<String>, Vec<String>) {
+    let mut opaque = Opaque::new();
+
+    let (emits, snippets): (Vec<_>, Vec<_>) = frames
+        .into_iter()
+        .map(|frame| match frame.kind() {
+            #[cfg(feature = "std")]
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
+                let mut ctx = ctx.as_hook_context();
+                Report::get_debug_format_hook(|hooks| hooks.call(frame, &mut ctx));
+                ctx.into_parts()
+            }
+            #[cfg(not(feature = "std"))]
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
+                (vec![], vec![])
+            }
+            FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
+                (vec![Emit::Immediate(attachment.to_string())], vec![])
+            }
+        })
+        .enumerate()
+        .map(|(idx, (emits, snippets))| {
+            // increase the opaque counter, if we're unable to determine the actual value of the
+            // frame
+            if idx > 0 && emits.is_empty() {
+                opaque.increase();
+            }
+
+            (emits, snippets)
+        })
+        .unzip();
+
+    let emits = debug_attachments_order(emits.into_iter().flatten());
+    let snippets = debug_attachments_order(snippets.into_iter().flatten());
+
+    (opaque, emits, snippets)
+}
+
 fn debug_attachments(
     loc: Option<Line>,
     position: Position,
@@ -678,59 +745,33 @@ fn debug_attachments(
     #[cfg(feature = "std")] ctx: &mut HookContextImpl,
 ) -> Lines {
     let last = matches!(position, Position::Last);
-    let mut opaque = Opaque::new();
 
-    // evaluate all frames to their respective values, will call all hooks with the current context
-    let (next, defer): (Vec<_>, _) = frames
-        .into_iter()
-        .map(|frame| match frame.kind() {
-            #[cfg(feature = "std")]
-            FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
-                Report::get_debug_format_hook(|hooks| hooks.call(frame, &mut ctx.as_hook_context()))
-            }
-            #[cfg(not(feature = "std"))]
-            FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
-                vec![]
-            }
-            FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                vec![Emit::Immediate(attachment.to_string())]
-            }
-        })
-        .enumerate()
-        .flat_map(|(idx, value)| {
-            // increase the opaque counter, if we're unable to determine the actual value of the
-            // frame
-            if idx > 0 && value.is_empty() {
-                opaque.increase();
-            }
-
-            value
-        })
-        .partition(|f| matches!(f, Emit::Immediate(_)));
-
+    // Reason: snippets is unused in no-std, but this makes code cleaner overall
+    #[cfg_attr(not(feature = "std"), allow(unused_variables, unused_mut))]
+    let (opaque, emits, mut snippets) = debug_attachments_invoke(
+        frames,
+        #[cfg(feature = "std")]
+        ctx,
+    );
     let opaque = opaque.render();
 
+    #[cfg(feature = "std")]
+    ctx.snippets.append(&mut snippets);
+
     // calculate the len, combine next and defer emitted values into a single stream
-    let len =
-        next.len() + defer.len() + loc.as_ref().map_or(0, |_| 1) + opaque.as_ref().map_or(0, |_| 1);
-    let lines = next
-        .into_iter()
-        .chain(defer.into_iter().rev())
-        .map(|emit| match emit {
-            Emit::Defer(value) | Emit::Immediate(value) => value,
-        })
-        .map(|value| {
-            value
-                .lines()
-                .map(ToOwned::to_owned)
-                .map(|line| {
-                    Line::new().push(Instruction::Value {
-                        value: line,
-                        style: Style::new(),
-                    })
+    let len = emits.len() + loc.as_ref().map_or(0, |_| 1) + opaque.as_ref().map_or(0, |_| 1);
+    let lines = emits.into_iter().map(|value| {
+        value
+            .lines()
+            .map(ToOwned::to_owned)
+            .map(|line| {
+                Line::new().push(Instruction::Value {
+                    value: line,
+                    style: Style::new(),
                 })
-                .collect::<Vec<_>>()
-        });
+            })
+            .collect::<Vec<_>>()
+    });
 
     // indentation for every first line, use `Instruction::Attachment`, otherwise use minimal
     // indent omit that indent when we're the last value

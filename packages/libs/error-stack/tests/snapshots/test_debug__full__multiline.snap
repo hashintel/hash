@@ -8,8 +8,8 @@ Root error
 │ attachment
 │ that might have some
 │ additional info
-├╴spantrace with 2 frames (1)
-╰╴backtrace with [n] frames (1)
+├╴backtrace with [n] frames (1)
+╰╴spantrace with 2 frames (1)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

@@ -20,8 +20,9 @@ use crate::fmt::{Emit, Frame};
 
 type Storage = BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>;
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub(crate) struct HookContextImpl {
+    pub(crate) snippets: Vec<String>,
     alternate: bool,
 
     storage: Storage,
@@ -30,6 +31,7 @@ pub(crate) struct HookContextImpl {
 impl HookContextImpl {
     pub(crate) fn new(alternate: bool) -> Self {
         Self {
+            snippets: Vec::new(),
             alternate,
             storage: BTreeMap::new(),
         }
@@ -113,32 +115,53 @@ impl<'a> HookContextInner<'a> {
 /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::{Error, ErrorKind};
 ///
-/// use error_stack::{fmt::Emit, Report};
+/// use error_stack::Report;
 ///
 /// struct Warning(&'static str);
-/// struct ErrorCode(u64);
+/// struct HttpResponseStatusCode(u64);
 /// struct Suggestion(&'static str);
 /// struct Secret(&'static str);
 ///
-/// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| {
-///     vec![Emit::immediate(format!("Error Code: {val}"))]
+/// // You can emit a line, which is going to be emitted immediately.
+/// Report::install_debug_hook::<HttpResponseStatusCode>(|HttpResponseStatusCode(val), ctx| {
+///     // This is going to be emitted immediately in the list of snippets.
+///     if ctx.alternate() {
+///         ctx.snippet(format!("Error {val}: {} Error", if *val < 500 {"Client"} else {"Server"}))
+///     }
+///
+///     ctx.emit(format!("Error Code: {val}"));
 /// });
-/// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
-///     vec![Emit::defer(format!("Suggestion: {val}"))]
+///
+/// // You can emit a line which is deferred to the end of the stack.
+/// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
+///     let idx = ctx.increment();
+///
+///     // deferred snippets are deferred until the end of snippets of the current stack
+///     if ctx.alternate() {
+///         ctx.snippet_deferred(format!("Suggestion {idx}:\n  {val}"));
+///     }
+///
+///     ctx.emit_deferred(format!("Suggestion ({idx})"));
 /// });
-/// Report::install_debug_hook::<Warning>(|Warning(val), _| {
-///     vec![Emit::immediate("Abnormal program execution detected"), Emit::immediate(format!("Warning: {val}"))]
+///
+/// // You can emit multiple lines from the same hook.
+/// Report::install_debug_hook::<Warning>(|Warning(val), ctx| {
+///     ctx.emit("Abnormal program execution detected");
+///     ctx.emit(format!("Warning: {val}"));
 /// });
+///
+/// // By not returning anything you are to hide an attachment
+/// // (it will still be counted towards opaque attachments)
 /// Report::install_debug_hook::<Secret>(|_, _| {});
 ///
 /// let report = Report::new(Error::from(ErrorKind::InvalidInput))
-///     .attach(ErrorCode(404))
+///     .attach(HttpResponseStatusCode(404))
 ///     .attach(Suggestion("Do you have a connection to the internet?"))
-///     .attach(ErrorCode(405))
+///     .attach(HttpResponseStatusCode(405))
 ///     .attach(Warning("Unable to determine environment"))
 ///     .attach(Secret("pssst, don't tell anyone else c;"))
 ///     .attach(Suggestion("Execute the program from the fish shell"))
-///     .attach(ErrorCode(501))
+///     .attach(HttpResponseStatusCode(501))
 ///     .attach(Suggestion("Try better next time!"));
 ///
 /// # owo_colors::set_override(true);
@@ -162,58 +185,6 @@ impl<'a> HookContextInner<'a> {
 #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap"))]
 /// </pre>
 ///
-/// This example shows how snippets work:
-/// TODO: move to snippet()
-/// ```rust
-/// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
-/// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
-/// use std::io::ErrorKind;
-///
-/// use error_stack::Report;
-///
-/// struct Error {
-///     code: usize,
-///     reason: &'static str,
-/// }
-///
-/// Report::install_debug_hook::<Error>(|Error { code, reason }, ctx| {
-///     if ctx.alternate() {
-///         ctx.snippet(format!("Error {code}:\n  {reason}"));
-///     }
-///
-///     ctx.emit(format!("Error {code}"));
-/// });
-///
-/// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-///     .attach(Error {
-///         code: 404,
-///         reason: "Not Found - Server cannot find requested resource",
-///     })
-///     .attach(Error {
-///         code: 405,
-///         reason: "Bad Request - Server cannot or will not process request",
-///     });
-///
-/// # owo_colors::set_override(true);
-/// # fn render(value: String) -> String {
-/// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-/// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
-/// #
-/// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-/// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
-/// #
-/// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
-/// # }
-/// #
-/// # #[cfg(rust_1_65)]
-/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap")].assert_eq(&render(format!("{report:#?}")));
-/// #
-/// println!("{report:#?}");
-/// ```
-///
-/// <pre>
-#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap"))]
-/// </pre>
 ///
 /// ## Storage
 ///
@@ -286,7 +257,6 @@ pub struct HookContext<'a, T> {
 }
 
 impl<T> HookContext<'_, T> {
-    // TODO: example
     /// This snippet (which can include line breaks) will be appended to the
     /// main message.
     ///
@@ -294,11 +264,134 @@ impl<T> HookContext<'_, T> {
     ///
     /// [`alternate()`]: Self::alternate
     /// [`Debug`]: core::fmt::Debug
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
+    /// use std::io::ErrorKind;
+    ///
+    /// use error_stack::Report;
+    ///
+    /// struct Error {
+    ///     code: usize,
+    ///     reason: &'static str,
+    /// }
+    ///
+    /// Report::install_debug_hook::<Error>(|Error { code, reason }, ctx| {
+    ///     if ctx.alternate() {
+    ///         ctx.snippet(format!("Error {code}:\n  {reason}"));
+    ///     }
+    ///
+    ///     ctx.emit(format!("Error {code}"));
+    /// });
+    ///
+    /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
+    ///     .attach(Error {
+    ///         code: 404,
+    ///         reason: "Not Found - Server cannot find requested resource",
+    ///     })
+    ///     .attach(Error {
+    ///         code: 405,
+    ///         reason: "Bad Request - Server cannot or will not process request",
+    ///     });
+    ///
+    /// # owo_colors::set_override(true);
+    /// # fn render(value: String) -> String {
+    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #
+    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #
+    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// # }
+    /// #
+    /// # #[cfg(rust_1_65)]
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap")].assert_eq(&render(format!("{report:#?}")));
+    /// #
+    /// println!("{report:#?}");
+    /// ```
+    ///
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap"))]
+    /// </pre>
     pub fn snippet(&mut self, snippet: impl Into<String>) {
         self.inner.snippets.push(Emit::immediate(snippet));
     }
 
-    // TODO: example
+    /// Create a new multiline snippet, which is going to be appended to the end of the message, but
+    /// deferred, until the end of the stack of current snippets.
+    ///
+    /// A stack are all attachments until a [`Context`] is encountered in the frame stack,
+    /// lines added via this function are going to be emitted at the end.
+    ///
+    /// [`Context`]: crate::Context
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
+    /// use std::io::ErrorKind;
+    ///
+    /// use error_stack::Report;
+    ///
+    /// struct Error {
+    ///     code: usize,
+    ///     reason: &'static str,
+    /// }
+    ///
+    /// struct Suggestion(&'static str);
+    ///
+    /// Report::install_debug_hook::<Error>(|Error { code, reason }, ctx| {
+    ///     if ctx.alternate() {
+    ///         ctx.snippet_deferred(format!("Error {code}:\n  {reason}"));
+    ///     }
+    ///
+    ///     ctx.emit_deferred(format!("Error {code}"));
+    /// });
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(suggestion), ctx| {
+    ///     let idx = ctx.increment();
+    ///
+    ///     if ctx.alternate() {
+    ///         ctx.snippet(format!("Suggestion {idx}:\n  {suggestion}"))
+    ///     }
+    ///
+    ///     ctx.emit(format!("Suggestion ({idx})"));
+    /// });
+    ///
+    /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
+    ///     .attach(Error {
+    ///         code: 404,
+    ///         reason: "Not Found - Server cannot find requested resource",
+    ///     })
+    ///     .attach(Error {
+    ///         code: 405,
+    ///         reason: "Bad Request - Server cannot or will not process request",
+    ///     });
+    ///
+    /// # owo_colors::set_override(true);
+    /// # fn render(value: String) -> String {
+    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #
+    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #
+    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// # }
+    /// #
+    /// # #[cfg(rust_1_65)]
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_snippet_defer.snap")].assert_eq(&render(format!("{report:#?}")));
+    /// #
+    /// println!("{report:#?}");
+    /// ```
+    ///
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_snippet_defer.snap"))]
+    /// </pre>
     pub fn snippet_deferred(&mut self, snippet: impl Into<String>) {
         self.inner.snippets.push(Emit::defer(snippet));
     }
@@ -351,8 +444,7 @@ impl<T> HookContext<'_, T> {
     /// Create a new line, which is going to be deferred until the end of the current stack.
     ///
     /// A stack are all attachments until a [`Context`] is encountered in the frame stack,
-    /// lines added via this function are going to be emitted at the end, in reversed direction to
-    /// the attachments that added them
+    /// lines added via this function are going to be emitted at the end.
     ///
     /// [`Context`]: crate::Context
     ///
@@ -432,10 +524,13 @@ impl<'a, T> HookContext<'a, T> {
     /// struct Error(&'static str);
     ///
     /// Report::install_debug_hook::<Error>(|Error(frame), ctx| {
-    ///     ctx.emit(format!("[{}] [ERROR] {frame}", ctx.increment() + 1));
+    ///     let idx = ctx.increment() + 1;
+    ///
+    ///     ctx.emit(format!("[{idx}] [ERROR] {frame}"));
     /// });
     /// Report::install_debug_hook::<Warning>(|Warning(frame), ctx| {
-    ///     ctx.emit(format!("[{}] [WARN] {frame}", ctx.cast::<Error>().increment() + 1))
+    ///     let idx = ctx.cast::<Error>().increment() + 1;
+    ///     ctx.emit(format!("[{idx}] [WARN] {frame}"))
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -486,12 +581,8 @@ impl<'a, T> HookContext<'a, T> {
         self.inner.storage_mut()
     }
 
-    fn into_parts(self) -> (Vec<Emit>, Vec<Emit>) {
+    pub(crate) fn into_parts(self) -> (Vec<Emit>, Vec<Emit>) {
         self.inner.into_parts()
-    }
-
-    fn is_empty(&self) -> bool {
-        self.inner.emits.is_empty()
     }
 }
 
@@ -528,7 +619,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// The returned value will the previously stored value of the same type `U` scoped over type
     /// `T`, if it existed, did no such value exist it will return [`None`].
     pub fn insert<U: 'static>(&mut self, value: U) -> Option<U> {
-        self.storage()
+        self.storage_mut()
             .entry(TypeId::of::<T>())
             .or_default()
             .insert(TypeId::of::<U>(), Box::new(value))?
@@ -565,7 +656,8 @@ impl<T: 'static> HookContext<'_, T> {
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     ctx.emit(format!("Suggestion {}: {val}", ctx.increment()));
+    ///     let idx = ctx.increment();
+    ///     ctx.emit(format!("Suggestion {idx}: {val}"));
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -630,7 +722,8 @@ impl<T: 'static> HookContext<'_, T> {
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     ctx.emit(format!("Suggestion {}: {val}", ctx.decrement()));
+    ///     let idx = ctx.decrement();
+    ///     ctx.emit(format!("Suggestion {idx}: {val}"));
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -680,7 +773,9 @@ impl<T: 'static> HookContext<'_, T> {
     }
 }
 
-type BoxedHook = Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) + Send + Sync>;
+type BoxedHook =
+    Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Option<()> + Send + Sync>;
+type BoxedFallbackHook = Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) + Send + Sync>;
 
 fn into_boxed_hook<T: Send + Sync + 'static>(
     hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) + Send + Sync + 'static,
@@ -697,15 +792,11 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
                         .as_ref()
                         .map(|val| hook(val, ctx.cast()))
                 })
-                .unwrap_or_default()
         }
 
         #[cfg(not(nightly))]
         {
-            frame
-                .downcast_ref::<T>()
-                .map(|val| hook(val, ctx.cast()))
-                .unwrap_or_default()
+            frame.downcast_ref::<T>().map(|val| hook(val, ctx.cast()))
         }
     })
 }
@@ -737,7 +828,7 @@ pub(crate) struct Hooks {
     // We use `Vec`, instead of `HashMap` or `BTreeMap`, so that ordering is consistent with the
     // insertion order of types.
     pub(crate) inner: Vec<(TypeId, BoxedHook)>,
-    pub(crate) fallback: Option<BoxedHook>,
+    pub(crate) fallback: Option<BoxedFallbackHook>,
 }
 
 #[cfg(feature = "std")]
@@ -762,14 +853,19 @@ impl Hooks {
     }
 
     pub(crate) fn call<'a>(&self, frame: &Frame, ctx: &mut HookContext<'a, Frame>) {
-        for (_, hook) in &self.inner {
-            hook(frame, ctx);
-        }
+        // by checking the times we actually invoked a function we make sure that
+        // even if we only emit snippets, or have purposely not emitted anything don't use the
+        // fallback.
+        let calls = self
+            .inner
+            .iter()
+            .filter_map(|(_, hook)| hook(frame, ctx))
+            .count();
 
-        if ctx.is_empty() {
-            self.fallback
-                .as_ref()
-                .map_or_else(Vec::new, |fallback| fallback(frame, ctx))
+        if calls == 0 {
+            if let Some(fallback) = &self.fallback {
+                fallback(frame, ctx);
+            }
         }
     }
 }

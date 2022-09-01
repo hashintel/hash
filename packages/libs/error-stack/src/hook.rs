@@ -1,7 +1,7 @@
 use std::{error::Error, fmt, sync::RwLock};
 
 use crate::{
-    fmt::{install_builtin_hooks, Emit, HookContext, Hooks},
+    fmt::{install_builtin_hooks, HookContext, Hooks},
     Frame, Report, Result,
 };
 
@@ -54,12 +54,11 @@ impl Report<()> {
     /// use error_stack::{
     ///     report, Report,
     /// };
-    /// use error_stack::fmt::Emit;
     ///
     /// struct Suggestion(&'static str);
     ///
-    /// Report::install_debug_hook::<Suggestion>(|val, _| {
-    ///     vec![Emit::immediate(format!("Suggestion: {}", val.0))]
+    /// Report::install_debug_hook::<Suggestion>(|val, ctx| {
+    ///     ctx.emit(format!("Suggestion: {}", val.0));
     /// });
     ///
     /// let report =
@@ -104,7 +103,7 @@ impl Report<()> {
     /// use std::any::Demand;
     /// use std::error::Error;
     /// use std::fmt::{Display, Formatter};
-    /// use error_stack::{fmt::Emit, Report, report};
+    /// use error_stack::{Report, report};
     ///
     /// struct Suggestion(&'static str);
     ///
@@ -131,8 +130,12 @@ impl Report<()> {
     /// }
     ///
     /// # pub fn main() {
-    /// Report::install_debug_hook::<Suggestion>(|val, _| vec![Emit::immediate(format!("Suggestion: {}", val.0))]);
-    /// Report::install_debug_hook::<ErrorCode>(|val, _| vec![Emit::immediate(format!("Error Code: {}", val.0))]);
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
+    ///     ctx.emit(format!("Suggestion: {val}"));
+    /// });
+    /// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), ctx| {
+    ///     ctx.emit(format!("Error Code: {val}"));
+    /// });
     ///
     /// let report = report!(UserError {code: ErrorCode(420)});
     ///
@@ -189,11 +192,13 @@ impl Report<()> {
     /// # // we only test the snapshot on rust 1.65, therefore report is unused (so is render)
     /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::{Error, ErrorKind};
-    /// use error_stack::{fmt::Emit, report, Report};
+    /// use error_stack::{report, Report};
     ///
     /// struct Suggestion(&'static str);
     ///
-    /// Report::install_debug_hook_fallback(|_, _| vec![Emit::next("unknown")]);
+    /// Report::install_debug_hook_fallback(|_, ctx| {
+    ///     ctx.emit("unknown");
+    /// });
     ///
     /// let report =
     ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("O no, try again"));
@@ -232,10 +237,7 @@ impl Report<()> {
     ///     fmt::{Display, Formatter},
     /// };
     ///
-    /// use error_stack::{
-    ///     fmt::Emit,
-    ///     report, Report,
-    /// };
+    /// use error_stack::{report, Report};
     ///
     /// #[derive(Debug)]
     /// struct ErrorCode(u64);
@@ -255,14 +257,14 @@ impl Report<()> {
     ///
     /// // this will never called, because we **do not** provide `ErrorCode` in `UserError`
     /// // we instead use fallback to provide better diagnostics.
-    /// Report::install_debug_hook::<ErrorCode>(|_, _| vec![Emit::immediate("Error Code")]);
+    /// Report::install_debug_hook::<ErrorCode>(|_, ctx| {
+    ///     ctx.emit("Error Code");
+    /// });
     ///
-    /// Report::install_debug_hook_fallback(|frame, _| {
+    /// Report::install_debug_hook_fallback(|frame, ctx| {
     ///     // add additional attachments, but only if we're a context of type `UserError`
     ///     if let Some(error) = frame.downcast_ref::<UserError>() {
-    ///         vec![Emit::immediate(format!("Error Code: {}", error.code.0))]
-    ///     } else {
-    ///         vec![]
+    ///         ctx.emit(format!("Error Code: {}", error.code.0));
     ///     }
     /// });
     ///

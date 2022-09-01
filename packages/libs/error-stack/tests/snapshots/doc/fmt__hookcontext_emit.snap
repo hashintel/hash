@@ -6,11 +6,11 @@
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Backtrace No. 1
-  [redacted]
-
 Error 404:
   Not Found - Server cannot find requested resource
 
 Error 405:
   Bad Request - Server cannot or will not process request
+
+Backtrace No. 1
+  [redacted]
