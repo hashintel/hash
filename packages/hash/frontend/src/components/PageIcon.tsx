@@ -10,7 +10,10 @@ import {
 
 export type SizeVariant = "small" | "medium";
 
-const variantSizes: Record<SizeVariant, { container: number; font: number }> = {
+export const pageIconVariantSizes: Record<
+  SizeVariant,
+  { container: number; font: number }
+> = {
   small: { container: 20, font: 14 },
   medium: { container: 44, font: 36 },
 };
@@ -35,7 +38,7 @@ export const PageIcon = ({
     },
   );
 
-  const sizes = variantSizes[size];
+  const sizes = pageIconVariantSizes[size];
 
   return (
     <Box
