@@ -683,7 +683,7 @@ impl<T: 'static> HookContext<'_, T> {
 type BoxedHook = Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) + Send + Sync>;
 
 fn into_boxed_hook<T: Send + Sync + 'static>(
-    hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) -> Vec<Emit> + Send + Sync + 'static,
+    hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) + Send + Sync + 'static,
 ) -> BoxedHook {
     Box::new(move |frame: &Frame, ctx: &mut HookContext<Frame>| {
         #[cfg(nightly)]
@@ -766,12 +766,10 @@ impl Hooks {
             hook(frame, ctx);
         }
 
-        if emits.is_empty() {
+        if ctx.is_empty() {
             self.fallback
                 .as_ref()
                 .map_or_else(Vec::new, |fallback| fallback(frame, ctx))
-        } else {
-            emits
         }
     }
 }
@@ -831,20 +829,19 @@ mod default {
     }
 
     #[cfg(rust_1_65)]
-    fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Vec<Emit> {
+    fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) {
         let idx = ctx.increment();
 
-        ctx.attach_snippet(format!("Backtrace No. {}\n{}", idx + 1, backtrace));
-
-        vec![Emit::defer(format!(
+        ctx.snippet_deferred(format!("Backtrace No. {}\n{}", idx + 1, backtrace));
+        ctx.emit_deferred(format!(
             "backtrace with {} frames ({})",
             backtrace.frames().len(),
             idx + 1
-        ))]
+        ));
     }
 
     #[cfg(feature = "spantrace")]
-    fn span_trace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) -> Vec<Emit> {
+    fn span_trace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) {
         let idx = ctx.increment();
 
         let mut span = 0;
@@ -853,11 +850,7 @@ mod default {
             true
         });
 
-        ctx.attach_snippet(format!("Span Trace No. {}\n{}", idx + 1, spantrace));
-
-        vec![Emit::defer(format!(
-            "spantrace with {span} frames ({})",
-            idx + 1
-        ))]
+        ctx.snippet_deferred(format!("Span Trace No. {}\n{}", idx + 1, spantrace));
+        ctx.emit_deferred(format!("spantrace with {span} frames ({})", idx + 1));
     }
 }
