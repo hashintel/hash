@@ -95,14 +95,80 @@ impl<'a> HookContextInner<'a> {
 /// [`attach_snippet()`]: HookContext::attach_snippet
 /// [`Debug`]: core::fmt::Debug
 ///
+/// ### `emit`/`snippet` vs. `emit_deferred`/`snippet_deferred`
+///
+/// Lines and snippets can be emitted either immediately or deferred until the current stack, where
+/// a stack is a list of attachments until a frame which has more than a single source.
+///
+/// To emit a line immediately use [`HookContext::emit`] and [`HookContext::snippet`] for snippets,
+/// use [`HookContext::emit_deferred`] for deferred lines and [`HookContext::snippet_deferred`] for
+/// snippets.
+///
 /// ### Example
 ///
+/// TODO: add example of `snippets` deferred
+/// ```rust
+/// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+/// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
+/// use std::io::{Error, ErrorKind};
+///
+/// use error_stack::{fmt::Emit, Report};
+///
+/// struct Warning(&'static str);
+/// struct ErrorCode(u64);
+/// struct Suggestion(&'static str);
+/// struct Secret(&'static str);
+///
+/// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| {
+///     vec![Emit::immediate(format!("Error Code: {val}"))]
+/// });
+/// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
+///     vec![Emit::defer(format!("Suggestion: {val}"))]
+/// });
+/// Report::install_debug_hook::<Warning>(|Warning(val), _| {
+///     vec![Emit::immediate("Abnormal program execution detected"), Emit::immediate(format!("Warning: {val}"))]
+/// });
+/// Report::install_debug_hook::<Secret>(|_, _| vec![]);
+///
+/// let report = Report::new(Error::from(ErrorKind::InvalidInput))
+///     .attach(ErrorCode(404))
+///     .attach(Suggestion("Do you have a connection to the internet?"))
+///     .attach(ErrorCode(405))
+///     .attach(Warning("Unable to determine environment"))
+///     .attach(Secret("pssst, don't tell anyone else c;"))
+///     .attach(Suggestion("Execute the program from the fish shell"))
+///     .attach(ErrorCode(501))
+///     .attach(Suggestion("Try better next time!"));
+///
+/// # owo_colors::set_override(true);
+/// # fn render(value: String) -> String {
+/// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+/// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+/// #
+/// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+/// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+/// #
+/// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+/// # }
+/// #
+/// # #[cfg(rust_1_65)]
+/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap")].assert_eq(&render(format!("{report:?}")));
+/// #
+/// println!("{report:?}");
+/// ```
+///
+/// <pre>
+#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap"))]
+/// </pre>
+///
+/// This example shows how snippets work:
+/// TODO: move to snippet()
 /// ```rust
 /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
 /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::ErrorKind;
 ///
-/// use error_stack::{fmt::Emit, Report};
+/// use error_stack::Report;
 ///
 /// struct Error {
 ///     code: usize,
@@ -111,10 +177,10 @@ impl<'a> HookContextInner<'a> {
 ///
 /// Report::install_debug_hook::<Error>(|Error { code, reason }, ctx| {
 ///     if ctx.alternate() {
-///         ctx.attach_snippet(format!("Error {code}:\n  {reason}"));
+///         ctx.snippet(format!("Error {code}:\n  {reason}"));
 ///     }
 ///
-///     vec![Emit::immediate(format!("Error {code}"))]
+///     ctx.emit(format!("Error {code}"));
 /// });
 ///
 /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -167,7 +233,7 @@ impl<'a> HookContextInner<'a> {
 /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::ErrorKind;
 ///
-/// use error_stack::{fmt::Emit, Report};
+/// use error_stack::Report;
 ///
 /// struct Computation(u64);
 ///
@@ -180,9 +246,9 @@ impl<'a> HookContextInner<'a> {
 ///
 ///     ctx.insert(acc);
 ///
-///     vec![Emit::immediate(format!(
+///     ctx.emit(format!(
 ///         "Computation for {val} (acc = {acc}, div = {div})"
-///     ))]
+///     ));
 /// });
 ///
 /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -219,6 +285,7 @@ pub struct HookContext<'a, T> {
 }
 
 impl<T> HookContext<'_, T> {
+    // TODO: example
     /// This snippet (which can include line breaks) will be appended to the
     /// main message.
     ///
@@ -230,6 +297,7 @@ impl<T> HookContext<'_, T> {
         self.inner.snippets.push(Emit::immediate(snippet));
     }
 
+    // TODO: example
     pub fn snippet_deferred(&mut self, snippet: impl Into<String>) {
         self.inner.snippets.push(Emit::defer(snippet));
     }
@@ -243,15 +311,13 @@ impl<T> HookContext<'_, T> {
     /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io;
     ///
-    /// use error_stack::{fmt::Emit, Report};
+    /// use error_stack::Report;
     ///
     /// struct Suggestion(&'static str);
     ///
-    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
-    ///     vec![
-    ///         Emit::immediate(format!("Suggestion: {val}")),
-    ///         Emit::immediate("Sorry for the inconvenience!")
-    ///     ]
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
+    ///     ctx.emit(format!("Suggestion: {val}"));
+    ///     ctx.emit("Sorry for the inconvenience!");
     /// });
     ///
     /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
@@ -296,16 +362,16 @@ impl<T> HookContext<'_, T> {
     /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io;
     ///
-    /// use error_stack::{fmt::Emit, Report};
+    /// use error_stack::Report;
     ///
     /// struct ErrorCode(u64);
     /// struct Suggestion(&'static str);
     ///
-    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
-    ///     vec![Emit::defer(format!("Suggestion: {val}"))]
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
+    ///     ctx.emit_deferred(format!("Suggestion: {val}"));
     /// });
-    /// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| {
-    ///     vec![Emit::immediate(format!("Error Code: {val}"))]
+    /// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), ctx| {
+    ///     ctx.emit_deferred(format!("Error Code: {val}"));
     /// });
     ///
     /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
@@ -359,25 +425,16 @@ impl<'a, T> HookContext<'a, T> {
     /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
-    /// use error_stack::{
-    ///     fmt::Emit,
-    ///     Report,
-    /// };
+    /// use error_stack::Report;
     ///
     /// struct Warning(&'static str);
     /// struct Error(&'static str);
     ///
     /// Report::install_debug_hook::<Error>(|Error(frame), ctx| {
-    ///     vec![Emit::immediate(format!(
-    ///         "[{}] [ERROR] {frame}",
-    ///         ctx.increment() + 1
-    ///     ))]
+    ///     ctx.emit(format!("[{}] [ERROR] {frame}", ctx.increment() + 1));
     /// });
     /// Report::install_debug_hook::<Warning>(|Warning(frame), ctx| {
-    ///     vec![Emit::immediate(format!(
-    ///         "[{}] [WARN] {frame}",
-    ///         ctx.cast::<Error>().increment() + 1
-    ///     ))]
+    ///     ctx.emit(format!("[{}] [WARN] {frame}", ctx.cast::<Error>().increment() + 1))
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -430,6 +487,10 @@ impl<'a, T> HookContext<'a, T> {
 
     fn into_parts(self) -> (Vec<Emit>, Vec<Emit>) {
         self.inner.into_parts()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.inner.emits.is_empty()
     }
 }
 
@@ -498,13 +559,12 @@ impl<T: 'static> HookContext<'_, T> {
     /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
-    /// use error_stack::fmt::Emit;
     /// use error_stack::Report;
     ///
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     vec![Emit::immediate(format!("Suggestion {}: {val}", ctx.increment()))]
+    ///     ctx.emit(format!("Suggestion {}: {val}", ctx.increment()));
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -564,12 +624,12 @@ impl<T: 'static> HookContext<'_, T> {
     /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
-    /// use error_stack::{fmt::Emit, Report};
+    /// use error_stack::Report;
     ///
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     vec![Emit::immediate(format!("Suggestion {}: {val}", ctx.decrement()))]
+    ///     ctx.emit(format!("Suggestion {}: {val}", ctx.decrement()));
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -619,8 +679,7 @@ impl<T: 'static> HookContext<'_, T> {
     }
 }
 
-type BoxedHook =
-    Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Vec<Emit> + Send + Sync>;
+type BoxedHook = Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) + Send + Sync>;
 
 /// Holds list of hooks and a fallback.
 ///
@@ -657,7 +716,7 @@ pub(crate) struct Hooks {
 impl Hooks {
     pub(crate) fn insert<T: Send + Sync + 'static>(
         &mut self,
-        hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) -> Vec<Emit> + Send + Sync + 'static,
+        hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) + Send + Sync + 'static,
     ) {
         let type_id = TypeId::of::<T>();
 
@@ -693,26 +752,22 @@ impl Hooks {
 
     pub(crate) fn fallback(
         &mut self,
-        hook: impl for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Vec<Emit> + Send + Sync + 'static,
+        hook: impl for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) + Send + Sync + 'static,
     ) {
         self.fallback = Some(Box::new(hook));
     }
 
-    pub(crate) fn call<'a>(&self, frame: &Frame, ctx: &mut HookContext<'a, Frame>) -> Vec<Emit> {
-        let emits: Vec<_> = self
-            .inner
-            .iter()
-            .flat_map(|(_, hook)| hook(frame, ctx))
-            .collect();
+    pub(crate) fn call<'a>(&self, frame: &Frame, ctx: &mut HookContext<'a, Frame>) {
+        for (_, hook) in &self.inner {
+            hook(frame, ctx);
+        }
 
-        if emits.is_empty() {
+        if ctx.is_empty() {
             if let Some(fallback) = self.fallback.as_ref() {
-                fallback(frame, ctx)
+                fallback(frame, ctx);
             } else {
-                builtin_debug_hook_fallback(frame, ctx)
+                builtin_debug_hook_fallback(frame, ctx);
             }
-        } else {
-            emits
         }
     }
 }

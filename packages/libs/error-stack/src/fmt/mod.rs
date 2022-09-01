@@ -49,7 +49,6 @@
 //! # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
 //! use std::io::{Error, ErrorKind};
 //! use error_stack::Report;
-//! use error_stack::fmt::Emit;
 //!
 //! struct ErrorCode(u64);
 //! struct Suggestion(&'static str);
@@ -58,18 +57,22 @@
 //!
 //! // This hook will never be called, because a later invocation of `install_debug_hook` overwrites
 //! // the hook for the type `ErrorCode`.
-//! Report::install_debug_hook::<ErrorCode>(|_, _| vec![Emit::immediate("will never be called")]);
+//! Report::install_debug_hook::<ErrorCode>(|_, ctx| {
+//!     ctx.emit("will never be called");
+//! });
 //!
 //! // `HookContext` always has a type parameter, which needs to be the same as the type of the
 //! // value, we use `HookContext` here as storage, to store values specific to this hook.
 //! // Here we make use of the auto-incrementing feature.
 //! // The incrementation is type specific, meaning that `ctx.increment()` for the `Suggestion` hook
 //! // will not influence the counter of the `ErrorCode` or `Warning` hook.
-//! Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| vec![Emit::immediate(format!("Suggestion {}: {val}", ctx.increment() + 1))]);
+//! Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
+//!     ctx.emit(format!("Suggestion {}: {val}", ctx.increment() + 1));
+//! });
 //!
-//! // we do not need to make use of the context, to either store a value for the duration of the
-//! // rendering, or to render additional text, which is why we omit the parameter.
-//! Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| vec![Emit::immediate(format!("Error ({val})"))]);
+//! Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), ctx| {
+//!     ctx.emit(format!("Error ({val})"));
+//! });
 //!
 //! Report::install_debug_hook::<Warning>(|Warning(val), ctx| {
 //!     let idx = ctx.increment() + 1;
@@ -77,15 +80,16 @@
 //!     // we set a value, which will be removed on non-alternate views
 //!     // and is going to be appended to the actual return value.
 //!     if ctx.alternate() {
-//!         ctx.attach_snippet(format!("Warning {idx}:\n  {val}"));
+//!         ctx.snippet(format!("Warning {idx}:\n  {val}"));
 //!     }
 //!
-//!     vec![Emit::immediate(format!("Warning ({idx}) occurred"))]
+//!     ctx.emit(format!("Warning ({idx}) occurred"));
 //!  });
 //!
-//! // you can use arbitrary values as arguments, just make sure that you won't repeat them.
-//! // here we use [`Emit::defer`], this means that this value will be put at the end of the group.
-//! Report::install_debug_hook::<Info>(|Info(val), _| vec![Emit::defer(format!("Info: {val}"))]);
+//! // here we use [`emit_defer()`], this means that this value will be put at the end of the group.
+//! Report::install_debug_hook::<Info>(|Info(val), ctx| {
+//!     ctx.emit_deferred(format!("Info: {val}"));
+//! });
 //!
 //! let report = Report::new(Error::from(ErrorKind::InvalidInput))
 //!     .attach(ErrorCode(404))
@@ -172,70 +176,6 @@ use owo_colors::{OwoColorize, Stream::Stdout, Style as OwOStyle};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
-// TODO: move this
-/// Modify the behaviour, with which text returned from hook invocations are rendered.
-///
-/// Text can either be emitted immediately as next line, or deferred until the end of the current
-/// stack, a stack is a list of attachments until a frame which has more than a single source.
-///
-/// Deferred lines are reversed when rendered, meaning that when `A`, `B`, and `C` have been added
-/// by **any** hook, they will be rendered in the order: `C`, `B`, `A`.
-///
-/// # Example
-///
-/// ```rust
-/// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
-/// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
-/// use std::io::{Error, ErrorKind};
-///
-/// use error_stack::{fmt::Emit, Report};
-///
-/// struct Warning(&'static str);
-/// struct ErrorCode(u64);
-/// struct Suggestion(&'static str);
-/// struct Secret(&'static str);
-///
-/// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| {
-///     vec![Emit::immediate(format!("Error Code: {val}"))]
-/// });
-/// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
-///     vec![Emit::defer(format!("Suggestion: {val}"))]
-/// });
-/// Report::install_debug_hook::<Warning>(|Warning(val), _| {
-///     vec![Emit::immediate("Abnormal program execution detected"), Emit::immediate(format!("Warning: {val}"))]
-/// });
-/// Report::install_debug_hook::<Secret>(|_, _| vec![]);
-///
-/// let report = Report::new(Error::from(ErrorKind::InvalidInput))
-///     .attach(ErrorCode(404))
-///     .attach(Suggestion("Do you have a connection to the internet?"))
-///     .attach(ErrorCode(405))
-///     .attach(Warning("Unable to determine environment"))
-///     .attach(Secret("pssst, don't tell anyone else c;"))
-///     .attach(Suggestion("Execute the program from the fish shell"))
-///     .attach(ErrorCode(501))
-///     .attach(Suggestion("Try better next time!"));
-///
-/// # owo_colors::set_override(true);
-/// # fn render(value: String) -> String {
-/// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-/// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
-/// #
-/// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-/// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
-/// #
-/// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
-/// # }
-/// #
-/// # #[cfg(rust_1_65)]
-/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap")].assert_eq(&render(format!("{report:?}")));
-/// #
-/// println!("{report:?}");
-/// ```
-///
-/// <pre>
-#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap"))]
-/// </pre>
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[must_use]
 #[non_exhaustive]
