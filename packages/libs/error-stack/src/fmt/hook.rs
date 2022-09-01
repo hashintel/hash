@@ -66,7 +66,7 @@ impl HookContextInner<'_> {
         self.inner.alternate
     }
 
-    fn into_parts(self) -> (Vec<Emit>, Vec<Emit>) {
+    const fn into_parts(self) -> (Vec<Emit>, Vec<Emit>) {
         (self.emits, self.snippets)
     }
 }
@@ -92,10 +92,10 @@ impl<'a> HookContextInner<'a> {
 /// A [`Debug`] backtrace consists of two different sections, a rendered tree of objects and
 /// additional text/information that is too large to fit into the tree.
 ///
-/// Lines to the rendered tree of objects can be attached via [`emit()`], or [`emit_deferred()`].
-/// Snippets can be added to the current output via [`snippet()`], or [`snippet_deferred()`].
+/// Lines to the rendered tree of objects can be attached via [`HookContext::emit`], or
+/// [`HookContext::emit_deferred`]. Snippets can be added to the current output via
+/// [`HookContext::snippet`], or [`HookContext::snippet_deferred`].
 ///
-/// [`attach_snippet()`]: HookContext::attach_snippet
 /// [`Debug`]: core::fmt::Debug
 ///
 /// ### `emit`/`snippet` vs. `emit_deferred`/`snippet_deferred`
@@ -581,7 +581,7 @@ impl<'a, T> HookContext<'a, T> {
         self.inner.storage_mut()
     }
 
-    pub(crate) fn into_parts(self) -> (Vec<Emit>, Vec<Emit>) {
+    pub(crate) const fn into_parts(self) -> (Vec<Emit>, Vec<Emit>) {
         self.inner.into_parts()
     }
 }
@@ -641,7 +641,7 @@ impl<T: 'static> HookContext<'_, T> {
     }
 
     /// One of the most common interactions with [`HookContext`] is a counter to reference previous
-    /// frames or the content emitted during [`attach_snippet()`].
+    /// frames or the content emitted during [`HookContext::snippet`].
     ///
     /// This is a utility method, which uses the other primitive methods provided to automatically
     /// increment a counter, if the counter wasn't initialized this method will return `0`.
@@ -685,7 +685,6 @@ impl<T: 'static> HookContext<'_, T> {
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_increment.snap"))]
     /// </pre>
     ///
-    /// [`attach_snippet()`]: Self::attach_snippet
     /// [`Debug`]: core::fmt::Debug
     pub fn increment(&mut self) -> isize {
         let counter = self.get_mut::<isize>();
@@ -706,7 +705,7 @@ impl<T: 'static> HookContext<'_, T> {
     }
 
     /// One of the most common interactions with [`HookContext`] is a counter
-    /// to reference previous frames or the content emitted during [`attach_snippet()`].
+    /// to reference previous frames or the content emitted during [`HookContext::attach_snippet`].
     ///
     /// This is a utility method, which uses the other primitive method provided to automatically
     /// decrement a counter, if the counter wasn't initialized this method will return `-1` to stay
@@ -752,7 +751,6 @@ impl<T: 'static> HookContext<'_, T> {
     /// </pre>
     ///
     /// [`increment()`]: Self::increment
-    /// [`attach_snippet()`]: Self::attach_snippet
     pub fn decrement(&mut self) -> isize {
         let counter = self.get_mut::<isize>();
 
