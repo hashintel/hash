@@ -1,5 +1,5 @@
 import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
-import { ListItemIcon, ListItemText } from "@mui/material";
+import { ListItemIcon, ListItemText, menuItemClasses } from "@mui/material";
 import {
   bindPopover,
   bindHover,
@@ -65,6 +65,14 @@ export const BlockContextMenuItem = forwardRef<
           })}
       sx={{
         position: "relative",
+
+        [`&.${menuItemClasses.focusVisible}`]: {
+          boxShadow: "none",
+        },
+
+        ...(subMenuPopupState.isOpen && {
+          backgroundColor: ({ palette }) => `${palette.gray[20]} !important`,
+        }),
       }}
     >
       <ListItemIcon>{icon}</ListItemIcon>
