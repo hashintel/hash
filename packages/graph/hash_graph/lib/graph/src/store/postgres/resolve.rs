@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use error_stack::{Context, IntoReport, Result, ResultExt};
 use futures::{Stream, StreamExt};
 use tokio_postgres::{GenericClient, RowStream};
-use type_system::{uri::VersionedUri, DataType, LinkType, PropertyType};
+use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
 
 use crate::{
     ontology::AccountId,
@@ -45,6 +45,13 @@ pub trait PostgresContext {
         &self,
         uri: &VersionedUri,
     ) -> Result<Record<LinkType>, QueryError>;
+
+    async fn read_all_entity_types(&self) -> Result<RecordStream<EntityType>, QueryError>;
+
+    async fn read_versioned_entity_type(
+        &self,
+        uri: &VersionedUri,
+    ) -> Result<Record<EntityType>, QueryError>;
 }
 
 /// Associates a database entry with the information about the latest version of the corresponding
@@ -191,5 +198,22 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
         read_versioned_type(&self.client, "link_types", uri)
             .await
             .attach_printable("could not read link type")
+    }
+
+    async fn read_all_entity_types(&self) -> Result<RecordStream<EntityType>, QueryError> {
+        Ok(row_stream_to_record_stream(
+            read_all_types(&self.client, "entity_types")
+                .await
+                .attach_printable("could not read entity types")?,
+        ))
+    }
+
+    async fn read_versioned_entity_type(
+        &self,
+        uri: &VersionedUri,
+    ) -> Result<Record<EntityType>, QueryError> {
+        read_versioned_type(&self.client, "entity_types", uri)
+            .await
+            .attach_printable("could not read entity type")
     }
 }
