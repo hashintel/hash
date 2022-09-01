@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { sleep } from "@hashintel/hash-shared/sleep";
-import { loginUsingUi } from "./utils/loginUsingUi";
-import { resetDb } from "./utils/resetDb";
+import { loginUsingUi } from "./utils/login-using-ui";
+import { resetDb } from "./utils/reset-db";
 
 const pageNameSuffix = Date.now();
 const pageNameFallback = "Untitled";
