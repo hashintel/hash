@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use error_stack::{Result, ResultExt};
+use futures::stream::{self, StreamExt, TryStreamExt};
 use type_system::PropertyType;
 
 use crate::store::{
@@ -38,17 +39,19 @@ where
                         {
                             // TODO: Use relation tables
                             //   see https://app.asana.com/0/0/1202884883200942/f
-                            let data_type_set = self.record.data_type_references();
-                            let mut data_types = Vec::with_capacity(data_type_set.len());
-                            for data_type_ref in data_type_set {
-                                let data_type = context
-                                    .read_versioned_data_type(data_type_ref.uri())
-                                    .await
-                                    .change_context(ResolveError::StoreReadError)?;
-                                data_types
-                                    .push(data_type.resolve(data_type_segments, context).await?);
-                            }
-                            return Ok(Literal::List(data_types));
+                            return Ok(Literal::List(
+                                stream::iter(self.record.data_type_references())
+                                    .then(|data_type_ref| async {
+                                        context
+                                            .read_versioned_data_type(data_type_ref.uri())
+                                            .await
+                                            .change_context(ResolveError::StoreReadError)?
+                                            .resolve(data_type_segments, context)
+                                            .await
+                                    })
+                                    .try_collect()
+                                    .await?,
+                            ));
                         }
                         [data_type_segment, ..] if data_type_segment.identifier == "*" => {
                             todo!("{}", UNIMPLEMENTED_WILDCARDS)
@@ -62,20 +65,19 @@ where
                         {
                             // TODO: Use relation tables
                             //   see https://app.asana.com/0/0/1202884883200942/f
-                            let property_type_set = self.record.property_type_references();
-                            let mut property_types = Vec::with_capacity(property_type_set.len());
-                            for property_type_ref in property_type_set {
-                                let property_type = context
-                                    .read_versioned_property_type(property_type_ref.uri())
-                                    .await
-                                    .change_context(ResolveError::StoreReadError)?;
-                                property_types.push(
-                                    property_type
-                                        .resolve(property_type_segments, context)
-                                        .await?,
-                                );
-                            }
-                            return Ok(Literal::List(property_types));
+                            return Ok(Literal::List(
+                                stream::iter(self.record.property_type_references())
+                                    .then(|property_type_ref| async {
+                                        context
+                                            .read_versioned_property_type(property_type_ref.uri())
+                                            .await
+                                            .change_context(ResolveError::StoreReadError)?
+                                            .resolve(property_type_segments, context)
+                                            .await
+                                    })
+                                    .try_collect()
+                                    .await?,
+                            ));
                         }
                         [property_type_segment, ..] if property_type_segment.identifier == "*" => {
                             todo!("{}", UNIMPLEMENTED_WILDCARDS)
