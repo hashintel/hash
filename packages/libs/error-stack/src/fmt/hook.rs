@@ -707,7 +707,7 @@ impl<T: 'static> HookContext<'_, T> {
     }
 
     /// One of the most common interactions with [`HookContext`] is a counter
-    /// to reference previous frames or the content emitted during [`HookContext::attach_snippet`].
+    /// to reference previous frames or the content emitted during [`HookContext::snippet`].
     ///
     /// This is a utility method, which uses the other primitive method provided to automatically
     /// decrement a counter, if the counter wasn't initialized this method will return `-1` to stay
