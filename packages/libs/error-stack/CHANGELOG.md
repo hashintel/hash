@@ -2,6 +2,11 @@
 
 All notable changes to `error-stack` will be documented in this file.
 
+## Planned
+
+- Support for [`serde`](https://serde.rs) (`Serialize` only)
+- Support for [`defmt`](https://defmt.ferrous-systems.com)
+
 ## 0.2.0 - Unreleased
 
 ### Breaking Changes

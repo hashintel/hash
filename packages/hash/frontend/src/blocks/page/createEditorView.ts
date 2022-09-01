@@ -40,7 +40,7 @@ export const createEditorView = (
 
   const plugins: Plugin<unknown, Schema>[] = [
     ...createFormatPlugins(renderPortal),
-    createSuggester(renderPortal, () => manager, accountId),
+    createSuggester(renderPortal, () => manager, accountId, renderNode),
     createPlaceholderPlugin(renderPortal),
     errorPlugin,
     createFocusPageTitlePlugin(pageTitleRef),
