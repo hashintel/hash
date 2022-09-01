@@ -117,6 +117,20 @@ pub struct Path {
     pub segments: Vec<PathSegment>,
 }
 
+impl fmt::Display for Path {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(
+            &self
+                .segments
+                .iter()
+                .map(|segment| segment.identifier.as_str())
+                .collect::<Vec<_>>()
+                .join("."),
+            fmt,
+        )
+    }
+}
+
 // TODO: DOC: Write documentation for the AST
 //   see https://app.asana.com/0/0/1202884883200976/f
 #[derive(Debug, Serialize, Deserialize)]
@@ -274,15 +288,9 @@ impl fmt::Display for ResolveError {
         match self {
             Self::Unimplemented { description, issue } => write!(fmt, "{description}, see {issue}"),
             Self::EmptyPath { literal } => write!(fmt, "empty path when resolving `{literal:?}`"),
-            Self::CannotIndex { path, literal } => write!(
-                fmt,
-                "cannot index `{literal:?}` with path `{}`",
-                path.segments
-                    .iter()
-                    .map(|segment| segment.identifier.as_str())
-                    .collect::<Vec<_>>()
-                    .join(".")
-            ),
+            Self::CannotIndex { path, literal } => {
+                write!(fmt, "cannot index `{literal:?}` with path `{path}`")
+            }
             Self::StoreReadError => fmt.write_str("Could not read data from store"),
         }
     }
