@@ -40,7 +40,7 @@ impl fmt::Debug for Literal {
             Self::Bool(bool) => fmt::Debug::fmt(bool, fmt),
             Self::Null => fmt.write_str("null"),
             Self::List(list) => fmt::Debug::fmt(list, fmt),
-            Self::Version(version, _) => fmt::Debug::fmt(version, fmt),
+            Self::Version(version, latest) => write!(fmt, "({version}, latest={latest})"),
         }
     }
 }
