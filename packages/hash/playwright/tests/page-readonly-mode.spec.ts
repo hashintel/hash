@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { loginUsingUi } from "./utils/loginUsingUi";
+import { resetDb } from "./utils/resetDb";
+
+test.beforeEach(async () => {
+  await resetDb();
+});
 
 test("user can view page in read-only mode but not update", async ({
   page,

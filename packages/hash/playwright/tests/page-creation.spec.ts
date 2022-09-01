@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { sleep } from "@hashintel/hash-shared/sleep";
 import { loginUsingUi } from "./utils/loginUsingUi";
+import { resetDb } from "./utils/resetDb";
 
 const pageNameSuffix = Date.now();
 const pageNameFallback = "Untitled";
@@ -9,6 +10,14 @@ const listOfPagesSelector = '[data-testid="pages-tree"]';
 const pageTitleInputSelector = '[placeholder="Untitled"]';
 
 const modifierKey = process.platform === "darwin" ? "Meta" : "Control";
+
+/**
+ * not calling resetDb in beforeEach
+ * because "user can rename page" uses the page created at "user can create page"
+ */
+test.beforeAll(async () => {
+  await resetDb();
+});
 
 test("user can create page", async ({ page }) => {
   await loginUsingUi({

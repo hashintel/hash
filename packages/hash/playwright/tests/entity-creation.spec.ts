@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { sleep } from "@hashintel/hash-shared/sleep";
 import { loginUsingUi } from "./utils/loginUsingUi";
+import { resetDb } from "./utils/resetDb";
+
+test.beforeEach(async () => {
+  await resetDb();
+});
 
 test("user can create and update entity", async ({ page }) => {
   await loginUsingUi({ page, accountShortName: "bob" });

@@ -1,4 +1,9 @@
 import { test, expect } from "@playwright/test";
+import { resetDb } from "./utils/resetDb";
+
+test.beforeEach(async () => {
+  await resetDb();
+});
 
 test("guest user navigation to login and signup pages", async ({ page }) => {
   await page.goto("/");
