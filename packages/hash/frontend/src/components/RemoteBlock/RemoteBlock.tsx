@@ -30,7 +30,16 @@ type RemoteBlockProps = {
 
 export const BlockLoadingIndicator: FunctionComponent<{
   sx?: SkeletonProps["sx"];
-}> = ({ sx }) => <Skeleton sx={sx} animation="wave" height={50} />;
+}> = ({ sx = [] }) => (
+  <Skeleton
+    animation="wave"
+    variant="rectangular"
+    sx={[
+      { borderRadius: 1, height: "32px" },
+      ...(Array.isArray(sx) ? sx : [sx]),
+    ]}
+  />
+);
 
 /**
  * Loads and renders a block from a URL, instantiates the graph service handler,
@@ -135,7 +144,9 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
           properties={propsToInject}
           sourceUrl={blockMetadata.source}
         />
-      ) : null}
+      ) : (
+        <BlockLoadingIndicator />
+      )}
     </div>
   );
 };
