@@ -19,7 +19,7 @@ use graph::{
     },
     store::{
         error::LinkActivationError,
-        query::{EntityQuery, Expression, LinkQuery},
+        query::{Expression, LinkQuery},
         AccountStore, AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
         EntityTypeStore, InsertionError, LinkStore, LinkTypeStore, PostgresStore,
         PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
@@ -275,7 +275,7 @@ impl DatabaseApi<'_> {
     pub async fn get_entity(&mut self, entity_id: EntityId) -> Result<PersistedEntity, QueryError> {
         Ok(self
             .store
-            .get_entity(&EntityQuery::new().by_id(entity_id).by_latest_version())
+            .get_entity(&Expression::for_latest_entity_id(entity_id))
             .await?
             .pop()
             .expect("no entity found"))
