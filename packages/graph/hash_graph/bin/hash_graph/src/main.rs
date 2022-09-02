@@ -6,7 +6,7 @@ use error_stack::{Context, IntoReport, Result, ResultExt};
 use graph::{
     api::rest::rest_api_router,
     logging::init_logger,
-    ontology::AccountId,
+    ontology::{AccountId, DomainValidator},
     store::{AccountStore, DataTypeStore, PostgresStorePool, StorePool},
 };
 use serde_json::json;
@@ -182,7 +182,10 @@ async fn main() -> Result<(), GraphError> {
 
     stop_gap_setup(&pool).await?;
 
-    let rest_router = rest_api_router(Arc::new(pool));
+    let rest_router = rest_api_router(
+        Arc::new(pool),
+        Arc::new(DomainValidator::new(args.allowed_url_domain)),
+    );
     let api_address = format!("{}:{}", args.api_host, args.api_port);
     let addr: SocketAddr = api_address
         .parse()

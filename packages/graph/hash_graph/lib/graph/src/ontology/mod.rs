@@ -2,6 +2,8 @@
 
 use core::fmt;
 
+use error_stack::{Context, IntoReport, Result, ResultExt};
+use regex::{Captures, Regex};
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json;
 use tokio_postgres::types::{FromSql, ToSql};
@@ -56,7 +58,82 @@ impl PersistedOntologyIdentifier {
     }
 }
 
-fn serialize_ontology_type<T, S>(ontology_type: &T, serializer: S) -> Result<S::Ok, S::Error>
+#[derive(Debug)]
+pub struct DomainValidationError;
+
+impl Context for DomainValidationError {}
+
+impl fmt::Display for DomainValidationError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("URL failed to validate ")
+    }
+}
+
+/// TODO: DOC
+pub struct DomainValidator(Regex);
+
+impl DomainValidator {
+    #[must_use]
+    pub fn new(regex: Regex) -> Self {
+        regex
+            .capture_names()
+            .position(|capture_name| capture_name == Some("shortname"))
+            .expect("shortname capture group was missing");
+
+        regex
+            .capture_names()
+            .position(|capture_name| capture_name == Some("shortname"))
+            .expect("shortname capture group was missing");
+
+        Self(regex)
+    }
+
+    #[must_use]
+    pub fn validate_url(&self, url: &str) -> bool {
+        self.0.is_match(url)
+    }
+
+    fn captures<'a>(&'a self, url: &'a str) -> Result<Captures, DomainValidationError> {
+        self.0
+            .captures(url)
+            .ok_or(DomainValidationError)
+            .into_report()
+    }
+
+    // TODO - we don't need to get the captures twice if we're always going to extract both
+    /// Returns the capture of group with name "shortname"
+    ///
+    /// # Errors
+    ///
+    /// - [`DomainValidationError`], if "shortname" didn't capture anything
+    pub fn extract_shortname<'a>(&'a self, url: &'a str) -> Result<&str, DomainValidationError> {
+        self.captures(url)?
+            .name("shortname")
+            .map(|matched| matched.as_str())
+            .ok_or(DomainValidationError)
+            .into_report()
+            .attach_printable("missing shortname")
+    }
+
+    /// Returns the capture of group with name "kind"
+    ///
+    /// # Errors
+    ///
+    /// - [`DomainValidationError`], if "kind" didn't capture anything
+    pub fn extract_kind<'a>(&'a self, url: &'a str) -> Result<&str, DomainValidationError> {
+        self.captures(url)?
+            .name("kind")
+            .map(|matched| matched.as_str())
+            .ok_or(DomainValidationError)
+            .into_report()
+            .attach_printable("missing ontology type kind")
+    }
+}
+
+fn serialize_ontology_type<T, S>(
+    ontology_type: &T,
+    serializer: S,
+) -> std::result::Result<S::Ok, S::Error>
 where
     T: Clone,
     serde_json::Value: From<T>,
