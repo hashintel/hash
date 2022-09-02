@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
 
 pub use self::{
-    knowledge::{EntityQuery, EntityVersion, LinkQuery},
+    knowledge::LinkQuery,
     ontology::{LinkTypeQuery, OntologyQuery, OntologyVersion},
 };
 use crate::knowledge::EntityId;
