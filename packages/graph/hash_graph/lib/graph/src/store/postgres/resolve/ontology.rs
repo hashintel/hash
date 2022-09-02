@@ -24,7 +24,7 @@ pub struct OntologyRecord<T> {
     pub is_latest: bool,
 }
 
-pub fn row_stream_to_record_stream<T>(row_stream: RowStream) -> RecordStream<T>
+fn row_stream_to_record_stream<T>(row_stream: RowStream) -> RecordStream<T>
 where
     T: TryFrom<serde_json::Value, Error: Context>,
 {
@@ -42,8 +42,14 @@ where
     })
 }
 
-pub async fn read_all_types(client: &impl AsClient, table: &str) -> Result<RowStream, QueryError> {
-    client
+pub async fn read_all_types<T>(
+    client: &impl AsClient,
+    table: &str,
+) -> Result<RecordStream<T>, QueryError>
+where
+    T: TryFrom<serde_json::Value, Error: Context>,
+{
+    let row_stream = client
         .as_client()
         .query_raw(
             &format!(
@@ -58,7 +64,8 @@ pub async fn read_all_types(client: &impl AsClient, table: &str) -> Result<RowSt
             parameter_list([]),
         )
         .await
-        .into_report().change_context(QueryError)
+        .into_report().change_context(QueryError)?;
+    Ok(row_stream_to_record_stream(row_stream))
 }
 
 pub async fn read_versioned_type<T>(

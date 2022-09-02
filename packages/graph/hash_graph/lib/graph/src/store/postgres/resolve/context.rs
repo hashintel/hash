@@ -38,11 +38,9 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
     where
         T: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>,
     {
-        Ok(ontology::row_stream_to_record_stream(
-            ontology::read_all_types(&self.client, T::table())
-                .await
-                .attach_printable("could not read ontology types")?,
-        ))
+        Ok(ontology::read_all_types(&self.client, T::table())
+            .await
+            .attach_printable("could not read ontology types")?)
     }
 
     async fn read_versioned_ontology_type<T>(
