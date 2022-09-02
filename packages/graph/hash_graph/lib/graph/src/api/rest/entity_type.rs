@@ -164,7 +164,7 @@ async fn get_entity_type<P: StorePool + Send>(
 ) -> Result<Json<PersistedEntityType>, StatusCode> {
     read_from_store(pool.as_ref(), &Expression::for_versioned_uri(&uri.0))
         .await
-        .and_then(|mut data_types| data_types.pop().ok_or(StatusCode::NOT_FOUND))
+        .and_then(|mut entity_types| entity_types.pop().ok_or(StatusCode::NOT_FOUND))
         .map(Json)
 }
 
