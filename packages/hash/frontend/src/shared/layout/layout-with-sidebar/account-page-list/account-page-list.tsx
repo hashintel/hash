@@ -37,7 +37,12 @@ import { useArchivePage } from "../../../../components/hooks/useArchivePage";
 import { NavLink } from "../nav-link";
 import { AccountPageListItem } from "./account-page-list-item";
 import { useReorderPage } from "../../../../components/hooks/useReorderPage";
-import { TreeElement, getProjection, getPageList } from "./utils";
+import {
+  TreeElement,
+  getProjection,
+  getPageList,
+  isPageCollapsed,
+} from "./utils";
 import { IDENTATION_WIDTH } from "./page-tree-item";
 
 type AccountPageListProps = {
@@ -81,7 +86,6 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
   const [offsetLeft, setOffsetLeft] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
 
   // @todo handle loading/error states properly
   const addPage = useCallback(async () => {
@@ -105,12 +109,19 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     );
   };
 
-  const setSortableList = (
-    list: AccountPage[],
-    expandedPageIdList: string[],
-  ) => {
-    setPagesList(getPageList(list, expandedPageIdList));
+  const setSortableList = (list: AccountPage[]) => {
+    setPagesList(getPageList(list));
   };
+
+  const collapsedPageIds = useMemo(
+    () =>
+      pagesList
+        .filter((page) =>
+          isPageCollapsed(page, pagesList, expandedPageIds, activeId),
+        )
+        .map((page) => page.entityId),
+    [expandedPageIds, activeId],
+  );
 
   const pagesFlatIdList = useMemo(
     () => pagesList.map((page) => page.entityId),
@@ -119,11 +130,11 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
   useEffect(() => {
     // We only update the state when everything has been loaded.
-    // This is to prevent items from jumping around when trying to expand/collapse a page while a reorder update is being made.
+    // If the request fails, pages will be reordered to their original state
     if (!loading) {
-      setSortableList(data, expandedPageIds);
+      setSortableList(data);
     }
-  }, [data, expandedPageIds, loading]);
+  }, [data, loading]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -140,32 +151,24 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
   const projected =
     activeId && overId
-      ? getProjection(pagesList, activeId, overId, dragDepth)
+      ? getProjection(pagesList, collapsedPageIds, activeId, overId, dragDepth)
       : null;
 
   useEffect(() => {
-    document.body.style.setProperty("cursor", isDragging ? "grabbing" : "");
-  }, [isDragging]);
+    document.body.style.setProperty("cursor", activeId ? "grabbing" : "");
+  }, [activeId]);
 
   const resetState = () => {
     setOverId(null);
     setActiveId(null);
     setOffsetLeft(0);
-    setIsDragging(false);
   };
 
   const handleDragStart = ({
     active: { id: activeItemId },
   }: DragStartEvent) => {
-    if (expandedPageIds.findIndex((id) => id === activeItemId) > -1) {
-      setSortableList(
-        data,
-        expandedPageIds.filter((id) => id !== activeItemId),
-      );
-    }
     setActiveId(activeItemId);
     setOverId(activeItemId);
-    setIsDragging(true);
   };
 
   const handleDragMove = ({ delta }: DragMoveEvent) => {
@@ -194,7 +197,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
       if (
         activeTreeItem &&
-        (activeTreeItem?.depth !== depth || active.id !== over.id)
+        (activeTreeItem.depth !== depth || active.id !== over.id)
       ) {
         clonedItems[activeIndex] = {
           ...activeTreeItem,
@@ -208,15 +211,8 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           .filter((item) => item.parentPageEntityId === parentPageEntityId)
           .findIndex((item) => item.entityId === activeId);
 
-        setSortableList(sortedItems, expandedPageIds);
-        reorderPage(active.id.toString(), parentPageEntityId, newIndex).catch(
-          () => {
-            // fallback to previous state when the request fails
-            setSortableList(data, expandedPageIds);
-          },
-        );
-      } else {
-        setSortableList(data, expandedPageIds);
+        setSortableList(sortedItems);
+        reorderPage(active.id.toString(), parentPageEntityId, newIndex);
       }
     }
   };
@@ -231,7 +227,13 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   ) => {
     return pagesArray
       .filter((page) => page.parentPageEntityId === parentId)
-      .map(({ entityId, title, depth, expandable, expanded, collapsed }) => {
+      .map(({ entityId, title, depth }) => {
+        const expanded =
+          expandedPageIds.includes(entityId) && activeId !== entityId;
+        const children = renderPageTree(pagesArray, entityId);
+        const expandable = !!children.length;
+        const collapsed = collapsedPageIds.includes(entityId);
+
         const item = (
           <AccountPageListItem
             key={entityId}
@@ -254,7 +256,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             {item}
             {expandable ? (
               <Collapse key={`${entityId}-children`} in={expanded}>
-                {renderPageTree(pagesArray, entityId)}
+                {children}
               </Collapse>
             ) : null}
           </Box>

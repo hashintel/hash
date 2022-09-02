@@ -1,51 +1,55 @@
 import { UniqueIdentifier } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import { groupBy } from "lodash";
 import { AccountPage } from "../../../../components/hooks/useAccountPages";
 
 export interface TreeElement extends AccountPage {
   depth: number;
-  index: number;
-  expanded: boolean;
-  expandable: boolean;
-  collapsed: boolean;
-  children?: TreeElement[];
 }
 
 export const getPageList = (
   pagesList: AccountPage[],
-  expandedIds: string[],
   parentId: string | null = null,
   depth = 0,
-  collapsed = false,
 ): TreeElement[] => {
   const emptyList: TreeElement[] = [];
 
+  return pagesList
+    .filter((page) => page.parentPageEntityId === parentId)
+    .reduce((prev, page) => {
+      const children = getPageList(pagesList, page.entityId, depth + 1);
+
+      const item = {
+        ...page,
+        depth,
+      } as TreeElement;
+
+      return [...prev, item, ...children];
+    }, emptyList);
+};
+
+export const isPageCollapsed = (
+  page: TreeElement,
+  pageList: TreeElement[],
+  expandedIds: string[],
+  activeId: UniqueIdentifier | null,
+): boolean => {
+  const { parentPageEntityId } = page;
+
+  if (!parentPageEntityId) {
+    return false;
+  }
+
+  const parentPage = pageList.find(
+    (item) => item.entityId === page.parentPageEntityId,
+  );
+
+  const parentExpanded =
+    parentPageEntityId !== activeId && expandedIds.includes(parentPageEntityId);
+
   return (
-    pagesList
-      .filter((page) => page.parentPageEntityId === parentId)
-      .reduce((prev, page, index) => {
-        const expanded = expandedIds.includes(page.entityId);
-        const children = getPageList(
-          pagesList,
-          expandedIds,
-          page.entityId,
-          depth + 1,
-          collapsed || !expanded,
-        );
-        const expandable = !!children.length;
-
-        const item = {
-          ...page,
-          depth,
-          index,
-          expanded,
-          expandable,
-          collapsed,
-        } as TreeElement;
-
-        return [...prev, item, ...children];
-      }, emptyList) || emptyList
+    !parentExpanded ||
+    (!!parentPage &&
+      isPageCollapsed(parentPage, pageList, expandedIds, activeId))
   );
 };
 
@@ -55,12 +59,16 @@ export const getPageList = (
 // - maxDepth: maximum possible depth the page can be dragged to
 // - parentPageEntityId: entityId of the parent page it's being dragged to, or null
 export const getProjection = (
-  items: TreeElement[],
+  pages: TreeElement[],
+  collapsedPageIds: string[],
   activeId: UniqueIdentifier,
   overId: UniqueIdentifier,
   dragDepth: number,
 ) => {
-  const expandedPages = items.filter((item) => !item.collapsed);
+  const expandedPages = pages.filter(
+    (page) => !collapsedPageIds.includes(page.entityId),
+  );
+
   const overItemIndex = expandedPages.findIndex(
     ({ entityId }) => entityId === overId,
   );
