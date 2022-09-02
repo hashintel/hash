@@ -4,6 +4,7 @@ mod ontology;
 use std::{error::Error, fmt, ops::Not};
 
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use error_stack::{bail, Report, Result, ResultExt};
 use futures::{future::BoxFuture, FutureExt};
 use serde::{Deserialize, Serialize};
@@ -30,7 +31,22 @@ pub enum Literal {
     // TODO: Object
     /// Internal representation for a version
     #[serde(skip)]
-    Version(u32, bool),
+    Version(Version, bool),
+}
+
+#[derive(Debug, Clone)]
+pub enum Version {
+    Ontology(u32),
+    Entity(DateTime<Utc>),
+}
+
+impl fmt::Display for Version {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Ontology(version) => fmt::Display::fmt(version, fmt),
+            Self::Entity(version) => fmt::Display::fmt(version, fmt),
+        }
+    }
 }
 
 impl fmt::Debug for Literal {
@@ -69,10 +85,16 @@ fn compare(lhs: &Literal, rhs: &Literal) -> Result<bool, ExpressionError> {
         (lhs, Literal::List(rhs)) => rhs.iter().try_find(|rhs| compare(lhs, rhs))?.is_some(),
 
         // Version
-        (Literal::Version(lhs, _), Literal::Float(rhs)) => *lhs == *rhs as u32,
-        (Literal::Float(lhs), Literal::Version(rhs, _)) => *lhs as u32 == *rhs,
-        (Literal::String(lhs), Literal::Version(_, latest)) if lhs == "latest" => *latest,
+        (Literal::Version(Version::Ontology(lhs), _), Literal::Float(rhs)) => *lhs == *rhs as u32,
+        (Literal::Version(Version::Entity(lhs), _), Literal::Float(rhs)) => {
+            lhs.timestamp() == *rhs as i64
+        }
         (Literal::Version(_, latest), Literal::String(rhs)) if rhs == "latest" => *latest,
+        (Literal::Float(lhs), Literal::Version(Version::Ontology(rhs), _)) => *lhs as u32 == *rhs,
+        (Literal::Float(lhs), Literal::Version(Version::Entity(rhs), _)) => {
+            *lhs as i64 == rhs.timestamp()
+        }
+        (Literal::String(lhs), Literal::Version(_, latest)) if lhs == "latest" => *latest,
 
         // unmatched
         (lhs, rhs) => {
