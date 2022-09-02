@@ -19,7 +19,7 @@ use crate::{
 impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn create_entity(
         &mut self,
-        entity: &Entity,
+        entity: Entity,
         entity_type_uri: VersionedUri,
         created_by: AccountId,
     ) -> Result<PersistedEntityIdentifier, InsertionError> {
@@ -51,7 +51,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        entity: &Entity,
+        entity: Entity,
         entity_type_uri: VersionedUri,
         updated_by: AccountId,
     ) -> Result<PersistedEntityIdentifier, UpdateError> {

@@ -4,9 +4,10 @@ use async_trait::async_trait;
 use error_stack::{bail, IntoReport, Report, Result, ResultExt};
 use futures::TryStreamExt;
 use tokio_postgres::GenericClient;
+use type_system::LinkType;
 
 use crate::{
-    ontology::{types::LinkType, AccountId, PersistedLinkType, PersistedOntologyIdentifier},
+    ontology::{AccountId, PersistedLinkType, PersistedOntologyIdentifier},
     store::{
         crud::Read,
         postgres::resolve::PostgresContext,
@@ -19,7 +20,7 @@ use crate::{
 impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
     async fn create_link_type(
         &mut self,
-        link_type: &LinkType,
+        link_type: LinkType,
         created_by: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError> {
         let transaction = PostgresStore::new(
@@ -44,7 +45,7 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
 
     async fn update_link_type(
         &mut self,
-        link_type: &LinkType,
+        link_type: LinkType,
         updated_by: AccountId,
     ) -> Result<PersistedOntologyIdentifier, UpdateError> {
         let transaction = PostgresStore::new(

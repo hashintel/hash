@@ -1,8 +1,7 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { AxiosError } from "axios";
-import { PropertyType } from "@blockprotocol/type-system-web";
-/** @todo migrate the below types to the type system package types. */
-import { GraphApi, EntityType } from "@hashintel/hash-graph-client";
+import { PropertyType, EntityType } from "@blockprotocol/type-system-web";
+import { GraphApi } from "@hashintel/hash-graph-client";
 
 import {
   DataTypeModel,

@@ -3,6 +3,7 @@
   "$id": "https://blockprotocol.org/@alice/types/entity-type/building/v/1",
   "type": "object",
   "title": "Building",
+  "pluralTitle": "Buildings",
   "properties": {},
   "links": {
     "https://blockprotocol.org/@alice/types/link-type/located-at/v/1": {

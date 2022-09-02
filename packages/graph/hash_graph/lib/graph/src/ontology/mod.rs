@@ -1,16 +1,13 @@
-//! Model types that describe the elements of the HASH Ontology.
-
-pub mod types;
+//! TODO: DOC
 
 use core::fmt;
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
+use serde_json;
 use tokio_postgres::types::{FromSql, ToSql};
-use type_system::{uri::VersionedUri, DataType, PropertyType};
+use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
 use utoipa::Component;
 use uuid::Uuid;
-
-use crate::ontology::types::{EntityType, LinkType};
 
 // TODO - find a good place for AccountId, perhaps it will become redundant in a future design
 
@@ -59,100 +56,46 @@ impl PersistedOntologyIdentifier {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
+fn serialize_ontology_type<T, S>(ontology_type: &T, serializer: S) -> Result<S::Ok, S::Error>
+where
+    T: Clone,
+    serde_json::Value: From<T>,
+    S: Serializer,
+{
+    // This clone is necessary because `Serialize` requires us to take the param by reference here
+    //  even though we only use it in places where we could move
+    let value: serde_json::Value = ontology_type.clone().into();
+    value.serialize(serializer)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
 pub struct PersistedDataType {
     #[component(value_type = VAR_DATA_TYPE)]
+    #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: DataType,
     pub identifier: PersistedOntologyIdentifier,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
 pub struct PersistedPropertyType {
     #[component(value_type = VAR_PROPERTY_TYPE)]
+    #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: PropertyType,
     pub identifier: PersistedOntologyIdentifier,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
 pub struct PersistedLinkType {
     #[component(value_type = VAR_LINK_TYPE)]
+    #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: LinkType,
     pub identifier: PersistedOntologyIdentifier,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
 pub struct PersistedEntityType {
     #[component(value_type = VAR_ENTITY_TYPE)]
+    #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: EntityType,
     pub identifier: PersistedOntologyIdentifier,
-}
-
-#[cfg(test)]
-mod tests {
-    use std::fmt::Debug;
-
-    use serde::{Deserialize, Serialize};
-
-    /// Will serialize as a constant value `"string"`
-    #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-    #[serde(rename_all = "camelCase")]
-    pub enum StringTypeTag {
-        #[default]
-        String,
-    }
-
-    #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-    #[serde(rename_all = "camelCase", deny_unknown_fields)]
-    pub struct StringTypeStruct {
-        r#type: StringTypeTag,
-    }
-
-    pub fn check_serialization<T>(
-        value: &T,
-        json: &serde_json::Value,
-    ) -> Result<(), serde_json::Error>
-    where
-        T: Debug + PartialEq + Serialize,
-    {
-        let serialized_json = serde_json::to_value(value)?;
-        assert_eq!(
-            &serialized_json, json,
-            "Serialized value does not match expected JSON",
-        );
-
-        Ok(())
-    }
-
-    pub fn check_deserialization<T>(
-        value: &T,
-        json: serde_json::Value,
-    ) -> Result<(), serde_json::Error>
-    where
-        for<'de> T: Debug + PartialEq + Deserialize<'de>,
-    {
-        let deserialized_json = serde_json::from_value::<T>(json)?;
-        assert_eq!(
-            &deserialized_json, value,
-            "Deserialized JSON does not match expected value",
-        );
-
-        Ok(())
-    }
-
-    pub fn check<T>(value: &T, json: serde_json::Value) -> Result<(), serde_json::Error>
-    where
-        for<'de> T: Debug + PartialEq + Serialize + Deserialize<'de>,
-    {
-        check_serialization(value, &json)?;
-        check_deserialization(value, json)?;
-        Ok(())
-    }
-
-    pub fn check_invalid_json<T>(json: serde_json::Value)
-    where
-        for<'de> T: Debug + Deserialize<'de>,
-    {
-        serde_json::from_value::<T>(json)
-            .expect_err("JSON was expected to be invalid but it was accepted");
-    }
 }

@@ -47,6 +47,7 @@ describe("Property type CRU", () => {
       $id,
       kind: "propertyType",
       title: "A property type",
+      pluralTitle: "Multiple property types",
       oneOf: [
         {
           $ref: textDataType$id,

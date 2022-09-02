@@ -1,8 +1,5 @@
-import {
-  LinkType,
-  GraphApi,
-  UpdateLinkTypeRequest,
-} from "@hashintel/hash-graph-client";
+import { LinkType } from "@blockprotocol/type-system-web";
+import { GraphApi, UpdateLinkTypeRequest } from "@hashintel/hash-graph-client";
 
 import { LinkTypeModel } from "../index";
 import { incrementVersionedId } from "../util";

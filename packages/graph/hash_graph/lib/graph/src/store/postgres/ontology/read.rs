@@ -1,11 +1,11 @@
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt, StreamExt as _};
+use error_stack::{Context, IntoReport, Result, ResultExt, StreamExt as _};
 use futures::{StreamExt, TryStreamExt};
-use serde::Deserialize;
 use tokio_postgres::{GenericClient, RowStream};
+use type_system::{EntityType, LinkType};
 
 use crate::{
-    ontology::{types::EntityType, AccountId, PersistedEntityType, PersistedOntologyIdentifier},
+    ontology::{AccountId, PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier},
     store::{
         crud::Read,
         postgres::{ontology::OntologyDatabaseType, parameter_list},
@@ -92,7 +92,8 @@ fn apply_filter<T: OntologyDatabaseType>(element: T, query: &OntologyQuery<'_, T
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
     T: PersistedOntologyType + Send,
-    for<'de> T::Inner: OntologyDatabaseType + Deserialize<'de>,
+    T::Inner: OntologyDatabaseType + TryFrom<serde_json::Value>,
+    <<T as PersistedOntologyType>::Inner as TryFrom<serde_json::Value>>::Error: Context,
 {
     type Query<'q> = OntologyQuery<'q, T::Inner>;
 
@@ -107,7 +108,7 @@ where
             .map(IntoReport::into_report)
             .change_context(QueryError)
             .try_filter_map(|row| async move {
-                let element: T::Inner = serde_json::from_value(row.get(0))
+                let element: T::Inner = T::Inner::try_from(row.get(0))
                     .into_report()
                     .change_context(QueryError)?;
 

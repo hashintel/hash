@@ -3,6 +3,7 @@
   "$id": "https://blockprotocol.org/@alice/types/entity-type/page/v/1",
   "type": "object",
   "title": "Page",
+  "pluralTitle": "Pages",
   "properties": {
     "https://blockprotocol.org/@alice/types/property-type/text/": {
       "$ref": "https://blockprotocol.org/@alice/types/property-type/text/v/1"

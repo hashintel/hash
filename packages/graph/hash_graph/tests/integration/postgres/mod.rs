@@ -5,6 +5,8 @@ mod link_type;
 mod links;
 mod property_type;
 
+use std::str::FromStr;
+
 use error_stack::Result;
 use graph::{
     knowledge::{
@@ -12,7 +14,6 @@ use graph::{
         PersistedEntityIdentifier,
     },
     ontology::{
-        types::{EntityType, LinkType},
         AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
         PersistedOntologyIdentifier, PersistedPropertyType,
     },
@@ -25,7 +26,7 @@ use graph::{
     },
 };
 use tokio_postgres::{NoTls, Transaction};
-use type_system::{uri::VersionedUri, DataType, PropertyType};
+use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
 use uuid::Uuid;
 
 pub struct DatabaseTestWrapper {
@@ -101,7 +102,7 @@ impl DatabaseTestWrapper {
         for data_type in data_types {
             store
                 .create_data_type(
-                    &serde_json::from_str(data_type).expect("could not parse data type"),
+                    DataType::from_str(data_type).expect("could not parse data type"),
                     account_id,
                 )
                 .await?;
@@ -110,7 +111,7 @@ impl DatabaseTestWrapper {
         for property_type in property_types {
             store
                 .create_property_type(
-                    &serde_json::from_str(property_type).expect("could not parse data type"),
+                    PropertyType::from_str(property_type).expect("could not parse data type"),
                     account_id,
                 )
                 .await?;
@@ -120,7 +121,7 @@ impl DatabaseTestWrapper {
         for link_type in link_types {
             store
                 .create_link_type(
-                    &serde_json::from_str(link_type).expect("could not parse link type"),
+                    LinkType::from_str(link_type).expect("could not parse link type"),
                     account_id,
                 )
                 .await?;
@@ -129,7 +130,7 @@ impl DatabaseTestWrapper {
         for entity_type in entity_types {
             store
                 .create_entity_type(
-                    &serde_json::from_str(entity_type).expect("could not parse entity type"),
+                    EntityType::from_str(entity_type).expect("could not parse entity type"),
                     account_id,
                 )
                 .await?;
@@ -143,7 +144,7 @@ impl DatabaseTestWrapper {
 impl DatabaseApi<'_> {
     pub async fn create_data_type(
         &mut self,
-        data_type: &DataType,
+        data_type: DataType,
     ) -> Result<PersistedOntologyIdentifier, InsertionError> {
         self.store
             .create_data_type(data_type, self.account_id)
@@ -164,7 +165,7 @@ impl DatabaseApi<'_> {
 
     pub async fn update_data_type(
         &mut self,
-        data_type: &DataType,
+        data_type: DataType,
     ) -> Result<PersistedOntologyIdentifier, UpdateError> {
         self.store
             .update_data_type(data_type, self.account_id)
@@ -173,7 +174,7 @@ impl DatabaseApi<'_> {
 
     pub async fn create_property_type(
         &mut self,
-        property_type: &PropertyType,
+        property_type: PropertyType,
     ) -> Result<PersistedOntologyIdentifier, InsertionError> {
         self.store
             .create_property_type(property_type, self.account_id)
@@ -194,7 +195,7 @@ impl DatabaseApi<'_> {
 
     pub async fn update_property_type(
         &mut self,
-        property_type: &PropertyType,
+        property_type: PropertyType,
     ) -> Result<PersistedOntologyIdentifier, UpdateError> {
         self.store
             .update_property_type(property_type, self.account_id)
@@ -203,7 +204,7 @@ impl DatabaseApi<'_> {
 
     pub async fn create_entity_type(
         &mut self,
-        entity_type: &EntityType,
+        entity_type: EntityType,
     ) -> Result<PersistedOntologyIdentifier, InsertionError> {
         self.store
             .create_entity_type(entity_type, self.account_id)
@@ -228,7 +229,7 @@ impl DatabaseApi<'_> {
 
     pub async fn update_entity_type(
         &mut self,
-        entity_type: &EntityType,
+        entity_type: EntityType,
     ) -> Result<PersistedOntologyIdentifier, UpdateError> {
         self.store
             .update_entity_type(entity_type, self.account_id)
@@ -237,7 +238,7 @@ impl DatabaseApi<'_> {
 
     pub async fn create_link_type(
         &mut self,
-        link_type: &LinkType,
+        link_type: LinkType,
     ) -> Result<PersistedOntologyIdentifier, InsertionError> {
         self.store
             .create_link_type(link_type, self.account_id)
@@ -258,7 +259,7 @@ impl DatabaseApi<'_> {
 
     pub async fn update_link_type(
         &mut self,
-        link_type: &LinkType,
+        link_type: LinkType,
     ) -> Result<PersistedOntologyIdentifier, UpdateError> {
         self.store
             .update_link_type(link_type, self.account_id)
@@ -267,7 +268,7 @@ impl DatabaseApi<'_> {
 
     pub async fn create_entity(
         &mut self,
-        entity: &Entity,
+        entity: Entity,
         entity_type_uri: VersionedUri,
     ) -> Result<PersistedEntityIdentifier, InsertionError> {
         self.store
@@ -287,7 +288,7 @@ impl DatabaseApi<'_> {
     pub async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        entity: &Entity,
+        entity: Entity,
         entity_type_uri: VersionedUri,
     ) -> Result<PersistedEntityIdentifier, UpdateError> {
         self.store

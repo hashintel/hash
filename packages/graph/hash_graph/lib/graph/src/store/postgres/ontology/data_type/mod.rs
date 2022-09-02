@@ -20,7 +20,7 @@ use crate::{
 impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     async fn create_data_type(
         &mut self,
-        data_type: &DataType,
+        data_type: DataType,
         created_by: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError> {
         let transaction = PostgresStore::new(
@@ -45,7 +45,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
     async fn update_data_type(
         &mut self,
-        data_type: &DataType,
+        data_type: DataType,
         updated_by: AccountId,
     ) -> Result<PersistedOntologyIdentifier, UpdateError> {
         let transaction = PostgresStore::new(

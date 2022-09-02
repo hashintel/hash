@@ -1,9 +1,10 @@
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use tokio_postgres::GenericClient;
+use type_system::EntityType;
 
 use crate::{
-    ontology::{types::EntityType, AccountId, PersistedOntologyIdentifier},
+    ontology::{AccountId, PersistedOntologyIdentifier},
     store::{AsClient, EntityTypeStore, InsertionError, PostgresStore, UpdateError},
 };
 
@@ -11,7 +12,7 @@ use crate::{
 impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
     async fn create_entity_type(
         &mut self,
-        entity_type: &EntityType,
+        entity_type: EntityType,
         created_by: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError> {
         let transaction = PostgresStore::new(
@@ -22,10 +23,13 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 .change_context(InsertionError)?,
         );
 
-        let (version_id, identifier) = transaction.create(entity_type, created_by).await?;
+        // This clone is currently necessary because we extract the references as we insert them.
+        // We can only insert them after the type has been created, and so we currently extract them
+        // after as well. See `insert_entity_type_references` taking `&entity_type`
+        let (version_id, identifier) = transaction.create(entity_type.clone(), created_by).await?;
 
         transaction
-            .insert_entity_type_references(entity_type, version_id)
+            .insert_entity_type_references(&entity_type, version_id)
             .await
             .change_context(InsertionError)
             .attach_printable("Could not insert references for entity type")
@@ -43,7 +47,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
     async fn update_entity_type(
         &mut self,
-        entity_type: &EntityType,
+        entity_type: EntityType,
         updated_by: AccountId,
     ) -> Result<PersistedOntologyIdentifier, UpdateError> {
         let transaction = PostgresStore::new(
@@ -54,10 +58,13 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 .change_context(UpdateError)?,
         );
 
-        let (version_id, identifier) = transaction.update(entity_type, updated_by).await?;
+        // This clone is currently necessary because we extract the references as we insert them.
+        // We can only insert them after the type has been created, and so we currently extract them
+        // after as well. See `insert_entity_type_references` taking `&entity_type`
+        let (version_id, identifier) = transaction.update(entity_type.clone(), updated_by).await?;
 
         transaction
-            .insert_entity_type_references(entity_type, version_id)
+            .insert_entity_type_references(&entity_type, version_id)
             .await
             .change_context(UpdateError)
             .attach_printable("Could not insert references for entity type")

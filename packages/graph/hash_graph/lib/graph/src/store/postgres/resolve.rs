@@ -1,7 +1,6 @@
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Context, IntoReport, Result, ResultExt};
 use futures::{Stream, StreamExt};
-use serde::Deserialize;
 use tokio_postgres::{GenericClient, RowStream};
 use type_system::{uri::VersionedUri, DataType, PropertyType};
 
@@ -10,7 +9,11 @@ use crate::{
     store::{postgres::parameter_list, AsClient, PostgresStore, QueryError},
 };
 
-type RecordStream<T: for<'de> Deserialize<'de>> = impl Stream<Item = Result<Record<T>, QueryError>>;
+type RecordStream<T>
+where
+    T: TryFrom<serde_json::Value>,
+    <T as TryFrom<serde_json::Value>>::Error: Context,
+= impl Stream<Item = Result<Record<T>, QueryError>>;
 
 /// Context used for [`Resolve`].
 ///
@@ -55,16 +58,19 @@ pub struct Record<T> {
     pub is_latest: bool,
 }
 
-fn row_stream_to_record_stream<T: for<'de> Deserialize<'de>>(
-    row_stream: RowStream,
-) -> RecordStream<T> {
+fn row_stream_to_record_stream<T>(row_stream: RowStream) -> RecordStream<T>
+where
+    T: TryFrom<serde_json::Value>,
+    <T as TryFrom<serde_json::Value>>::Error: Context,
+{
     row_stream.map(|row| {
         let row = row.into_report().change_context(QueryError)?;
+        let record: T = serde_json::Value::try_into(row.get(0))
+            .into_report()
+            .change_context(QueryError)?;
 
         Ok(Record {
-            record: serde_json::from_value(row.get(0))
-                .into_report()
-                .change_context(QueryError)?,
+            record,
             account_id: row.get(1),
             is_latest: row.get(2),
         })
