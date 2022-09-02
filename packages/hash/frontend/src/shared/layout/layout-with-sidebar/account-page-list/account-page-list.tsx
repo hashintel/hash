@@ -308,7 +308,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             loading,
           }}
         >
-          {!treeItems.length ? (
+          {pagesLoading ? (
             <PagesLoadingState />
           ) : (
             <Box sx={{ marginX: 0.75 }}>
