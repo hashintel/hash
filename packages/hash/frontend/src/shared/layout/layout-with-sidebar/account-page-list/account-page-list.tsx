@@ -41,6 +41,7 @@ import {
   TreeItem,
 } from "./utils";
 import { IDENTATION_WIDTH } from "./page-tree-item";
+import { PagesLoadingState } from "./pages-loading-state";
 
 type AccountPageListProps = {
   accountId: string;
@@ -57,7 +58,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   currentPageEntityId,
   accountId,
 }) => {
-  const { data, loading: accountPagesLoading } = useAccountPages(accountId);
+  const { data, loading: pagesLoading } = useAccountPages(accountId);
 
   const [createUntitledPage, { loading: createUntitledPageLoading }] =
     useCreatePage(accountId);
@@ -67,7 +68,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   const [archivePage, { loading: archivePageLoading }] = useArchivePage();
 
   const loading =
-    accountPagesLoading ||
+    pagesLoading ||
     createUntitledPageLoading ||
     createSubpageLoading ||
     reorderLoading ||
@@ -283,11 +284,15 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             loading,
           }}
         >
-          <Box sx={{ marginX: 0.75 }}>
-            {renderPageTree(treeItems)}
+          {!treeItems.length ? (
+            <PagesLoadingState />
+          ) : (
+            <Box sx={{ marginX: 0.75 }}>
+              {renderPageTree(treeItems)}
 
-            <DragOverlay dropAnimation={null} />
-          </Box>
+              <DragOverlay dropAnimation={null} />
+            </Box>
+          )}
         </NavLink>
       </SortableContext>
     </DndContext>
