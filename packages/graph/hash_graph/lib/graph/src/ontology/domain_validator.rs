@@ -37,8 +37,8 @@ impl DomainValidator {
 
         regex
             .capture_names()
-            .position(|capture_name| capture_name == Some("shortname"))
-            .expect("shortname capture group was missing");
+            .position(|capture_name| capture_name == Some("kind"))
+            .expect("kind capture group was missing");
 
         Self(regex)
     }
