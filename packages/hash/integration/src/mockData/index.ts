@@ -770,13 +770,15 @@ void (async () => {
   await subPage!.setParentPage(db, {
     parentPage: parentPage!,
     setByAccountId: user.accountId,
-    index: null,
+    prevIndex: "a0",
+    nextIndex: "a1",
   });
 
   await subSubpage!.setParentPage(db, {
     parentPage: subPage!,
     setByAccountId: user.accountId,
-    index: null,
+    prevIndex: "a0",
+    nextIndex: "a1",
   });
 
   // eslint-disable-next-line no-console -- TODO: consider moving this file to /scripts/ so that no-console rule is autodisabled
