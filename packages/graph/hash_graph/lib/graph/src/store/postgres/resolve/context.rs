@@ -15,7 +15,7 @@ use crate::store::{
 /// This is only used as an implementation detail inside of the [`postgres`] module.
 ///
 /// [`Resolve`]: crate::store::query::Resolve
-/// [`postgres`]: super
+/// [`postgres`]: super::super
 // TODO: Use the context to hold query data
 //   see https://app.asana.com/0/0/1202884883200946/f
 #[async_trait]
