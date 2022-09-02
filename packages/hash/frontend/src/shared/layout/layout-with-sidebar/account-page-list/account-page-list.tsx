@@ -115,7 +115,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           isPageCollapsed(item, treeItems, expandedPageIds, activeId),
         )
         .map(({ page }) => page.entityId),
-    [expandedPageIds, activeId],
+    [treeItems, expandedPageIds, activeId],
   );
 
   const pagesFlatIdList = useMemo(
@@ -233,15 +233,15 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   };
 
   const renderPageTree = (
-    treeItems: TreeItem[],
+    treeItemList: TreeItem[],
     parentId: string | null = null,
   ) => {
-    return treeItems
+    return treeItemList
       .filter(({ page }) => page.parentPageEntityId === parentId)
       .map(({ page: { entityId, title }, depth }) => {
         const expanded =
           expandedPageIds.includes(entityId) && activeId !== entityId;
-        const children = renderPageTree(treeItems, entityId);
+        const children = renderPageTree(treeItemList, entityId);
         const expandable = !!children.length;
         const collapsed = collapsedPageIds.includes(entityId);
 
@@ -262,7 +262,10 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
                 return;
               }
 
-              await createSubPage(entityId, getLastIndex(treeItems, entityId));
+              await createSubPage(
+                entityId,
+                getLastIndex(treeItemList, entityId),
+              );
             }}
             archivePage={archivePage}
           />

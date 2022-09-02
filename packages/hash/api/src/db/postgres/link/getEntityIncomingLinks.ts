@@ -5,6 +5,7 @@ import {
   DbLinkWithVersionRow,
   selectAllLinksWithDestinationEntity,
 } from "./sql/links.util";
+
 export const getEntityIncomingLinks = async (
   conn: Connection,
   params: {
