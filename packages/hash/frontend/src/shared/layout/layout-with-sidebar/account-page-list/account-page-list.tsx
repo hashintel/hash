@@ -27,10 +27,7 @@ import {
 } from "@dnd-kit/core";
 import Box from "@mui/material/Box";
 import Collapse from "@mui/material/Collapse";
-import {
-  AccountPage,
-  useAccountPages,
-} from "../../../../components/hooks/useAccountPages";
+import { useAccountPages } from "../../../../components/hooks/useAccountPages";
 import { useCreatePage } from "../../../../components/hooks/useCreatePage";
 import { useCreateSubPage } from "../../../../components/hooks/useCreateSubPage";
 import { useArchivePage } from "../../../../components/hooks/useArchivePage";
@@ -38,10 +35,10 @@ import { NavLink } from "../nav-link";
 import { AccountPageListItem } from "./account-page-list-item";
 import { useReorderPage } from "../../../../components/hooks/useReorderPage";
 import {
-  TreeElement,
   getProjection,
-  getPageList,
+  getTreeItemList,
   isPageCollapsed,
+  TreeItem,
 } from "./utils";
 import { IDENTATION_WIDTH } from "./page-tree-item";
 
@@ -81,7 +78,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     [],
   );
 
-  const [pagesList, setPagesList] = useState<TreeElement[]>([]);
+  const [treeItems, setTreeItems] = useState<TreeItem[]>([]);
 
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
@@ -109,30 +106,26 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     );
   };
 
-  const setSortableList = (list: AccountPage[]) => {
-    setPagesList(getPageList(list));
-  };
-
   const collapsedPageIds = useMemo(
     () =>
-      pagesList
-        .filter((page) =>
-          isPageCollapsed(page, pagesList, expandedPageIds, activeId),
+      treeItems
+        .filter((item) =>
+          isPageCollapsed(item, treeItems, expandedPageIds, activeId),
         )
-        .map((page) => page.entityId),
+        .map(({ page }) => page.entityId),
     [expandedPageIds, activeId],
   );
 
   const pagesFlatIdList = useMemo(
-    () => pagesList.map((page) => page.entityId),
-    [pagesList],
+    () => treeItems.map(({ page }) => page.entityId),
+    [treeItems],
   );
 
   useEffect(() => {
     // We only update the state when everything has been loaded.
     // If the request fails, pages will be reordered to their original state
     if (!loading) {
-      setSortableList(data);
+      setTreeItems(getTreeItemList(data));
     }
   }, [data, loading]);
 
@@ -151,7 +144,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
   const projected =
     activeId && overId
-      ? getProjection(pagesList, collapsedPageIds, activeId, overId, dragDepth)
+      ? getProjection(treeItems, collapsedPageIds, activeId, overId, dragDepth)
       : null;
 
   useEffect(() => {
@@ -185,13 +178,13 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     if (projected && over) {
       const { depth, parentPageEntityId } = projected;
 
-      const clonedItems = [...pagesList];
+      const clonedItems = [...treeItems];
 
       const overIndex = clonedItems.findIndex(
-        ({ entityId }) => entityId === over.id,
+        ({ page }) => page.entityId === over.id,
       );
       const activeIndex = clonedItems.findIndex(
-        ({ entityId }) => entityId === active.id,
+        ({ page }) => page.entityId === active.id,
       );
       const activeTreeItem = clonedItems[activeIndex];
 
@@ -200,18 +193,20 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         (activeTreeItem.depth !== depth || active.id !== over.id)
       ) {
         clonedItems[activeIndex] = {
-          ...activeTreeItem,
+          page: {
+            ...activeTreeItem.page,
+            parentPageEntityId,
+          },
           depth,
-          parentPageEntityId,
         };
 
         const sortedItems = arrayMove(clonedItems, activeIndex, overIndex);
 
         const newIndex = sortedItems
-          .filter((item) => item.parentPageEntityId === parentPageEntityId)
-          .findIndex((item) => item.entityId === activeId);
+          .filter(({ page }) => page.parentPageEntityId === parentPageEntityId)
+          .findIndex(({ page }) => page.entityId === activeId);
 
-        setSortableList(sortedItems);
+        setTreeItems(sortedItems);
         reorderPage(active.id.toString(), parentPageEntityId, newIndex);
       }
     }
@@ -222,15 +217,15 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   };
 
   const renderPageTree = (
-    pagesArray: TreeElement[],
+    treeItems: TreeItem[],
     parentId: string | null = null,
   ) => {
-    return pagesArray
-      .filter((page) => page.parentPageEntityId === parentId)
-      .map(({ entityId, title, depth }) => {
+    return treeItems
+      .filter(({ page }) => page.parentPageEntityId === parentId)
+      .map(({ page: { entityId, title }, depth }) => {
         const expanded =
           expandedPageIds.includes(entityId) && activeId !== entityId;
-        const children = renderPageTree(pagesArray, entityId);
+        const children = renderPageTree(treeItems, entityId);
         const expandable = !!children.length;
         const collapsed = collapsedPageIds.includes(entityId);
 
@@ -289,7 +284,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           }}
         >
           <Box sx={{ marginX: 0.75 }}>
-            {renderPageTree(pagesList)}
+            {renderPageTree(treeItems)}
 
             <DragOverlay dropAnimation={null} />
           </Box>

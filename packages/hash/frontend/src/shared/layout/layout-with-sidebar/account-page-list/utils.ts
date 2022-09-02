@@ -2,45 +2,46 @@ import { UniqueIdentifier } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { AccountPage } from "../../../../components/hooks/useAccountPages";
 
-export interface TreeElement extends AccountPage {
+export interface TreeItem {
+  page: AccountPage;
   depth: number;
 }
 
-export const getPageList = (
+export const getTreeItemList = (
   pagesList: AccountPage[],
   parentId: string | null = null,
   depth = 0,
-): TreeElement[] => {
-  const emptyList: TreeElement[] = [];
+): TreeItem[] => {
+  const emptyList: TreeItem[] = [];
 
   return pagesList
     .filter((page) => page.parentPageEntityId === parentId)
     .reduce((prev, page) => {
-      const children = getPageList(pagesList, page.entityId, depth + 1);
+      const children = getTreeItemList(pagesList, page.entityId, depth + 1);
 
       const item = {
-        ...page,
+        page,
         depth,
-      } as TreeElement;
+      } as TreeItem;
 
       return [...prev, item, ...children];
     }, emptyList);
 };
 
 export const isPageCollapsed = (
-  page: TreeElement,
-  pageList: TreeElement[],
+  treeItem: TreeItem,
+  treeItemList: TreeItem[],
   expandedIds: string[],
   activeId: UniqueIdentifier | null,
 ): boolean => {
-  const { parentPageEntityId } = page;
+  const { parentPageEntityId } = treeItem.page;
 
   if (!parentPageEntityId) {
     return false;
   }
 
-  const parentPage = pageList.find(
-    (item) => item.entityId === page.parentPageEntityId,
+  const parentPage = treeItemList.find(
+    ({ page }) => page.entityId === parentPageEntityId,
   );
 
   const parentExpanded =
@@ -49,7 +50,7 @@ export const isPageCollapsed = (
   return (
     !parentExpanded ||
     (!!parentPage &&
-      isPageCollapsed(parentPage, pageList, expandedIds, activeId))
+      isPageCollapsed(parentPage, treeItemList, expandedIds, activeId))
   );
 };
 
@@ -59,21 +60,21 @@ export const isPageCollapsed = (
 // - maxDepth: maximum possible depth the page can be dragged to
 // - parentPageEntityId: entityId of the parent page it's being dragged to, or null
 export const getProjection = (
-  pages: TreeElement[],
+  pages: TreeItem[],
   collapsedPageIds: string[],
   activeId: UniqueIdentifier,
   overId: UniqueIdentifier,
   dragDepth: number,
 ) => {
   const expandedPages = pages.filter(
-    (page) => !collapsedPageIds.includes(page.entityId),
+    ({ page }) => !collapsedPageIds.includes(page.entityId),
   );
 
   const overItemIndex = expandedPages.findIndex(
-    ({ entityId }) => entityId === overId,
+    ({ page }) => page.entityId === overId,
   );
   const activeItemIndex = expandedPages.findIndex(
-    ({ entityId }) => entityId === activeId,
+    ({ page }) => page.entityId === activeId,
   );
 
   const activeItem = expandedPages[activeItemIndex];
@@ -93,17 +94,17 @@ export const getProjection = (
     }
 
     if (depth === previousItem.depth) {
-      return previousItem.parentPageEntityId;
+      return previousItem.page.parentPageEntityId;
     }
 
     if (depth > previousItem.depth) {
-      return previousItem.entityId;
+      return previousItem.page.entityId;
     }
 
     const newParent = newItems
       .slice(0, overItemIndex)
       .reverse()
-      .find((item) => item.depth === depth)?.parentPageEntityId;
+      .find((item) => item.depth === depth)?.page.parentPageEntityId;
 
     return newParent ?? null;
   };
