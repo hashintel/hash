@@ -61,8 +61,7 @@ impl PersistedOntologyType for PersistedEntityType {
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
     T: PersistedOntologyType + Send,
-    T::Inner: OntologyDatabaseType + TryFrom<serde_json::Value> + Send,
-    <T::Inner as TryFrom<serde_json::Value>>::Error: Context,
+    T::Inner: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context> + Send,
     Record<T::Inner>: Resolve<Self> + Sync,
 {
     type Query<'q> = Expression;
