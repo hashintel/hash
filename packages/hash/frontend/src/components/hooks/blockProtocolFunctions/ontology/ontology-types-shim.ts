@@ -12,8 +12,12 @@ import {
   ReadOrModifyResourceError,
 } from "@blockprotocol/graph";
 
-import { DataType, PropertyType } from "@blockprotocol/type-system-web";
-import { EntityType, LinkType } from "@hashintel/hash-graph-client";
+import {
+  DataType,
+  PropertyType,
+  EntityType,
+  LinkType,
+} from "@blockprotocol/type-system-web";
 
 export type OntologyCallbacks = {
   aggregateDataTypes: AggregateDataTypesMessageCallback;

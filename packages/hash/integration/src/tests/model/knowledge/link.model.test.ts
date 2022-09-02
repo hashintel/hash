@@ -44,6 +44,7 @@ describe("Link model class", () => {
         $id: entityType$id,
         kind: "entityType",
         title: "Person",
+        pluralTitle: "People",
         type: "object",
         properties: {},
       },
@@ -56,6 +57,7 @@ describe("Link model class", () => {
           $id: "https://link~example.com/link-types/friends-with/v/1",
           kind: "linkType",
           title: "Friends",
+          pluralTitle: "Friends",
           description: "Friend of",
         },
       }),
@@ -66,6 +68,7 @@ describe("Link model class", () => {
           $id: "https://link~example.com/link-types/acquaintance/v/1",
           kind: "linkType",
           title: "Acquaintance",
+          pluralTitle: "Acquaintances",
           description: "Acquainted with",
         },
       }),
@@ -130,9 +133,9 @@ describe("Link model class", () => {
       linkTypeModel: linkTypeFriend,
     });
 
-    expect(link!.sourceEntityModel).toEqual(sourceEntityModel);
-    expect(link!.linkTypeModel).toEqual(linkTypeFriend);
-    expect(link!.targetEntityModel).toEqual(targetEntityFriend);
+    expect(link?.sourceEntityModel).toEqual(sourceEntityModel);
+    expect(link?.linkTypeModel).toEqual(linkTypeFriend);
+    expect(link?.targetEntityModel).toEqual(targetEntityFriend);
   });
 
   it("can inactivate an active link", async () => {

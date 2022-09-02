@@ -11,6 +11,10 @@ generates:
     config:
       skipTypename: true
       scalars:
+        DataType: "@blockprotocol/type-system-web#DataType"
+        PropertyType: "@blockprotocol/type-system-web#PropertyType"
+        LinkType: "@blockprotocol/type-system-web#LinkType"
+        EntityType: "@blockprotocol/type-system-web#EntityType"
         TextToken: "@hashintel/hash-shared/graphql/types#TextToken"
         Date: string
         UnknownEntityProperties: "@hashintel/hash-shared/graphql/types#UnknownEntityProperties"

@@ -84,6 +84,7 @@ Accept: application/json
     "kind": "propertyType",
     "$id": "https://blockprotocol.org/@alice/types/property-type/name/v/1",
     "title": "Name",
+    "pluralTitle": "Names",
     "oneOf": [
       {
         "$ref": "https://example.com/data-type/text/v/1"
@@ -119,6 +120,7 @@ Accept: application/json
     "kind": "propertyType",
     "$id": "https://blockprotocol.org/@alice/types/property-type/name/v/2",
     "title": "Name",
+    "pluralTitle": "Names",
     "oneOf": [
       {
         "$ref": "https://example.com/data-type/text/v/2"
@@ -154,6 +156,7 @@ Accept: application/json
     "kind": "linkType",
     "$id": "https://blockprotocol.org/@alice/types/link-type/friend-of/v/1",
     "title": "Friend Of",
+    "pluralTitle": "Friends Of",
     "description": "Someone who has a shared bond of mutual affection",
     "relatedKeywords": []
   }
@@ -187,6 +190,7 @@ Accept: application/json
     "kind": "linkType",
     "$id": "https://blockprotocol.org/@alice/types/link-type/friend-of/v/2",
     "title": "Friend Of",
+    "pluralTitle": "Friends Of",
     "description": "Someone who has a shared bond of mutual affection",
     "relatedKeywords": ["social"]
   }
@@ -222,6 +226,7 @@ Accept: application/json
     "$id": "https://blockprotocol.org/@alice/types/entity-type/person/v/1",
     "type": "object",
     "title": "Person",
+    "pluralTitle": "People",
     "properties": {
       "https://blockprotocol.org/@alice/types/property-type/name/": {
         "$ref": "https://blockprotocol.org/@alice/types/property-type/name/v/1"
@@ -258,6 +263,7 @@ Accept: application/json
     "$id": "https://blockprotocol.org/@alice/types/entity-type/person/v/2",
     "type": "object",
     "title": "Person",
+    "pluralTitle": "People",
     "properties": {
       "https://blockprotocol.org/@alice/types/property-type/name/": {
         "$ref": "https://blockprotocol.org/@alice/types/property-type/name/v/2"

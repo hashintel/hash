@@ -1,10 +1,9 @@
-import { DataType, PropertyType } from "@blockprotocol/type-system-web";
-/**
- * @todo migrate the below types to the type system package types.
- *   https://app.asana.com/0/1202805690238892/1202892835843657/f
- */
-import { EntityType, LinkType } from "@hashintel/hash-graph-client";
-
+import {
+  DataType,
+  PropertyType,
+  EntityType,
+  LinkType,
+} from "@blockprotocol/type-system-web";
 import slugify from "slugify";
 import { getRequiredEnv } from "../util";
 
@@ -163,6 +162,7 @@ export const generateWorkspacePropertyTypeSchema = (params: {
   }),
   kind: "propertyType",
   title: params.title,
+  pluralTitle: params.title,
   oneOf: params.possibleValues.map(
     ({ array, primitiveDataType, propertyTypeObject }) => {
       let inner;
@@ -216,6 +216,7 @@ export const generateWorkspaceEntityTypeSchema = (params: {
     kind: "entityType",
   }),
   title: params.title,
+  pluralTitle: params.title,
   type: "object",
   kind: "entityType",
   properties: params.properties.reduce(

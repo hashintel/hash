@@ -8,14 +8,15 @@ use axum::{
     routing::{get, post},
     Extension, Json, Router,
 };
+use error_stack::IntoReport;
 use serde::{Deserialize, Serialize};
-use type_system::uri::VersionedUri;
+use type_system::{uri::VersionedUri, LinkType};
 use utoipa::{Component, OpenApi};
 
 use super::api_resource::RoutedResource;
 use crate::{
     api::rest::read_from_store,
-    ontology::{types::LinkType, AccountId, PersistedLinkType, PersistedOntologyIdentifier},
+    ontology::{AccountId, PersistedLinkType, PersistedOntologyIdentifier},
     store::{
         query::LinkTypeQuery, BaseUriAlreadyExists, BaseUriDoesNotExist, LinkTypeStore, StorePool,
     },
@@ -64,7 +65,7 @@ impl RoutedResource for LinkTypeResource {
 #[serde(rename_all = "camelCase")]
 struct CreateLinkTypeRequest {
     #[component(value_type = VAR_LINK_TYPE)]
-    schema: LinkType,
+    schema: serde_json::Value,
     account_id: AccountId,
 }
 
@@ -93,8 +94,15 @@ async fn create_link_type<P: StorePool + Send>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let link_type: LinkType = schema.try_into().into_report().map_err(|report| {
+        tracing::error!(error=?report, "Couldn't convert schema to Link Type");
+        StatusCode::UNPROCESSABLE_ENTITY
+        // TODO - We should probably return more information to the client
+        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+    })?;
+
     store
-        .create_link_type(&schema, account_id)
+        .create_link_type(link_type, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create link type");
@@ -161,7 +169,7 @@ async fn get_link_type<P: StorePool + Send>(
 #[serde(rename_all = "camelCase")]
 struct UpdateLinkTypeRequest {
     #[component(value_type = VAR_LINK_TYPE)]
-    schema: LinkType,
+    schema: serde_json::Value,
     account_id: AccountId,
 }
 
@@ -189,8 +197,15 @@ async fn update_link_type<P: StorePool + Send>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let link_type: LinkType = schema.try_into().into_report().map_err(|report| {
+        tracing::error!(error=?report, "Couldn't convert schema to Link Type");
+        StatusCode::UNPROCESSABLE_ENTITY
+        // TODO - We should probably return more information to the client
+        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+    })?;
+
     store
-        .update_link_type(&schema, account_id)
+        .update_link_type(link_type, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update link type");

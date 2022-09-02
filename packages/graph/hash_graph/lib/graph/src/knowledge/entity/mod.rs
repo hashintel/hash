@@ -33,7 +33,6 @@ impl fmt::Display for EntityId {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
 pub struct Entity(HashMap<BaseUri, serde_json::Value>);
 
-// TODO: consider making an analogue of this for Links and elements of the Ontology
 /// The metadata required to uniquely identify an instance of an [`Entity`] that has been persisted
 /// in the datastore.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]

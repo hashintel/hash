@@ -2,6 +2,7 @@
   "kind": "linkType",
   "$id": "https://blockprotocol.org/@alice/types/link-type/written-by/v/1",
   "title": "Written By",
+  "pluralTitle": "Written By",
   "description": "Written or composed by",
   "relatedKeywords": []
 }

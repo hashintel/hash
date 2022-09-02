@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { Box, Container } from "@mui/material";
 import { TextField } from "@hashintel/hash-design-system";
-import init, { isVersionedUri } from "@blockprotocol/type-system-web";
+import init, { validateVersionedUri } from "@blockprotocol/type-system-web";
 
 import { Button } from "../../shared/ui";
 import { useUser } from "../../components/hooks/useUser";
@@ -46,7 +46,7 @@ const ExampleUsage = ({ accountId }: { accountId: string }) => {
 
   const createPropertyType = useCallback(() => {
     void (async () => {
-      if (isVersionedUri(propertyUri)) {
+      if (validateVersionedUri(propertyUri).type === "Ok") {
         await functions
           .createPropertyType({
             data: {
@@ -54,6 +54,7 @@ const ExampleUsage = ({ accountId }: { accountId: string }) => {
                 kind: "propertyType",
                 $id: propertyUri,
                 title: "Name",
+                pluralTitle: "Names",
                 oneOf: [
                   {
                     $ref: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",

@@ -274,6 +274,12 @@ export interface EntityType {
   links?: object;
   /**
    *
+   * @type {string}
+   * @memberof EntityType
+   */
+  pluralTitle: string;
+  /**
+   *
    * @type {object}
    * @memberof EntityType
    */
@@ -385,6 +391,12 @@ export interface LinkType {
    * @memberof LinkType
    */
   kind: LinkTypeKindEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof LinkType
+   */
+  pluralTitle: string;
   /**
    *
    * @type {Array<string>}
@@ -660,6 +672,12 @@ export interface PropertyType {
    * @memberof PropertyType
    */
   oneOf: Array<PropertyValues>;
+  /**
+   *
+   * @type {string}
+   * @memberof PropertyType
+   */
+  pluralTitle: string;
   /**
    *
    * @type {string}

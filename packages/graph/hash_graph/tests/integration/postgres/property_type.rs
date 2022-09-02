@@ -1,3 +1,7 @@
+use std::str::FromStr;
+
+use type_system::PropertyType;
+
 use crate::{
     postgres::DatabaseTestWrapper,
     test_data::{data_type, property_type},
@@ -6,7 +10,7 @@ use crate::{
 #[tokio::test]
 async fn insert() {
     let age_pt =
-        serde_json::from_str(property_type::AGE_V1).expect("could not parse property type");
+        PropertyType::from_str(property_type::AGE_V1).expect("could not parse property type");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -14,14 +18,14 @@ async fn insert() {
         .await
         .expect("could not seed database");
 
-    api.create_property_type(&age_pt)
+    api.create_property_type(age_pt)
         .await
         .expect("could not create property type");
 }
 
 #[tokio::test]
 async fn query() {
-    let favorite_quote_pt = serde_json::from_str(property_type::FAVORITE_QUOTE_V1)
+    let favorite_quote_pt = PropertyType::from_str(property_type::FAVORITE_QUOTE_V1)
         .expect("could not parse property type");
 
     let mut database = DatabaseTestWrapper::new().await;
@@ -30,7 +34,7 @@ async fn query() {
         .await
         .expect("could not seed database");
 
-    api.create_property_type(&favorite_quote_pt)
+    api.create_property_type(favorite_quote_pt.clone())
         .await
         .expect("could not create property type");
 
@@ -45,9 +49,10 @@ async fn query() {
 #[tokio::test]
 async fn update() {
     let user_id_pt_v1 =
-        serde_json::from_str(property_type::USER_ID_V1).expect("could not parse property type");
+        PropertyType::from_str(property_type::USER_ID_V1).expect("could not parse property type");
+
     let user_id_pt_v2 =
-        serde_json::from_str(property_type::USER_ID_V2).expect("could not parse property type");
+        PropertyType::from_str(property_type::USER_ID_V2).expect("could not parse property type");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -55,14 +60,27 @@ async fn update() {
         .await
         .expect("could not seed database");
 
-    api.create_property_type(&user_id_pt_v1)
+    api.create_property_type(user_id_pt_v1.clone())
         .await
         .expect("could not create property type");
 
-    api.update_property_type(&user_id_pt_v2)
+    api.update_property_type(user_id_pt_v2.clone())
         .await
         .expect("could not update property type");
 
-    assert_ne!(user_id_pt_v1, user_id_pt_v2);
-    assert_ne!(user_id_pt_v1.id(), user_id_pt_v2.id());
+    let returned_user_id_pt_v1 = api
+        .get_property_type(user_id_pt_v1.id())
+        .await
+        .expect("could not get property type");
+
+    let returned_user_id_pt_v2 = api
+        .get_property_type(user_id_pt_v2.id())
+        .await
+        .expect("could not get property type");
+
+    // TODO: we probably want to be testing more interesting queries, checking an update should
+    //  probably use getLatestVersion
+    //  https://app.asana.com/0/0/1202884883200974/f
+    assert_eq!(user_id_pt_v1, returned_user_id_pt_v1.inner);
+    assert_eq!(user_id_pt_v2, returned_user_id_pt_v2.inner);
 }

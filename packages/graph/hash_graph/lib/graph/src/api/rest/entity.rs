@@ -95,7 +95,7 @@ async fn create_entity<P: StorePool + Send>(
     })?;
 
     store
-        .create_entity(&entity, entity_type_uri, account_id)
+        .create_entity(entity, entity_type_uri, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create entity");
@@ -191,7 +191,7 @@ async fn update_entity<P: StorePool + Send>(
     })?;
 
     store
-        .update_entity(entity_id, &entity, entity_type_uri, account_id)
+        .update_entity(entity_id, entity, entity_type_uri, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity");
