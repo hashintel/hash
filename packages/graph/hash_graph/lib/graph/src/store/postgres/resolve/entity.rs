@@ -47,8 +47,8 @@ pub async fn read_all_entities(client: &impl AsClient) -> Result<RecordStream, Q
             SELECT properties, entity_id, entities.version, ids.base_uri, ids.version, created_by, MAX(entities.version) OVER (PARTITION by entity_id) = entities.version as latest
             FROM entities
             INNER JOIN ids
-            ids.version_id = entities.entity_type_version_id
-            ORDER BY base_uri, version DESC;
+            ON ids.version_id = entities.entity_type_version_id
+            ORDER BY entity_id, entities.version DESC;
             "#,
             parameter_list([]),
         )
