@@ -142,10 +142,16 @@ async fn get_entity<P: StorePool + Send>(
 )]
 async fn get_latest_entities<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
+    mut body: Option<Json<Expression>>,
 ) -> Result<Json<Vec<PersistedEntity>>, StatusCode> {
-    read_from_store(pool.as_ref(), &Expression::for_latest_version())
-        .await
-        .map(Json)
+    read_from_store(
+        pool.as_ref(),
+        &body
+            .take()
+            .map_or_else(Expression::for_latest_version, |json| json.0),
+    )
+    .await
+    .map(Json)
 }
 
 #[derive(Component, Serialize, Deserialize)]
