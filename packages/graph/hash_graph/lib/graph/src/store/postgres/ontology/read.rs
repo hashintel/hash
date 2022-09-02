@@ -2,10 +2,10 @@ use async_trait::async_trait;
 use error_stack::{Context, IntoReport, Result, ResultExt, StreamExt as _};
 use futures::{StreamExt, TryStreamExt};
 use tokio_postgres::{GenericClient, RowStream};
-use type_system::{EntityType, LinkType};
+use type_system::EntityType;
 
 use crate::{
-    ontology::{AccountId, PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier},
+    ontology::{AccountId, PersistedEntityType, PersistedOntologyIdentifier},
     store::{
         crud::Read,
         postgres::{ontology::OntologyDatabaseType, parameter_list},
@@ -18,14 +18,6 @@ pub trait PersistedOntologyType {
     type Inner;
 
     fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self;
-}
-
-impl PersistedOntologyType for PersistedLinkType {
-    type Inner = LinkType;
-
-    fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self {
-        Self { inner, identifier }
-    }
 }
 
 impl PersistedOntologyType for PersistedEntityType {
