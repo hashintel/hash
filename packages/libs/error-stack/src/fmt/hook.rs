@@ -88,12 +88,12 @@ impl<'a> HookContextInner<'a> {
 /// 1) Emitting Snippets
 /// 2) Storage
 ///
-/// ## Emitting Snippets and Lines
+/// ## Emitting lines and snippets
 ///
 /// A [`Debug`] backtrace consists of two different sections, a rendered tree of objects and
 /// additional text/information that is too large to fit into the tree.
 ///
-/// Lines to the rendered tree of objects can be attached via [`HookContext::emit`], or
+/// Lines can be attached to the rendered tree of objects via [`HookContext::emit`], or
 /// [`HookContext::emit_deferred`]. Snippets can be added to the current output via
 /// [`HookContext::snippet`], or [`HookContext::snippet_deferred`].
 ///
@@ -130,7 +130,7 @@ impl<'a> HookContextInner<'a> {
 ///         ctx.snippet(format!("Error {val}: {} Error", if *val < 500 {"Client"} else {"Server"}))
 ///     }
 ///
-///     ctx.emit(format!("Error Code: {val}"));
+///     ctx.emit(format!("Error code: {val}"));
 /// });
 ///
 /// // You can emit a line which is deferred to the end of the stack.
