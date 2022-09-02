@@ -17,8 +17,8 @@ use super::api_resource::RoutedResource;
 use crate::{
     api::rest::read_from_store,
     ontology::{
-        AccountId, DomainValidator, PersistedDataType, PersistedOntologyIdentifier,
-        ValidateOntologyType,
+        domain_validator::{DomainValidator, ValidateOntologyType},
+        AccountId, PersistedDataType, PersistedOntologyIdentifier,
     },
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool,

@@ -16,8 +16,8 @@ use utoipa::{Component, OpenApi};
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store},
     ontology::{
-        AccountId, DomainValidator, PersistedEntityType, PersistedOntologyIdentifier,
-        ValidateOntologyType,
+        domain_validator::{DomainValidator, ValidateOntologyType},
+        AccountId, PersistedEntityType, PersistedOntologyIdentifier,
     },
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},

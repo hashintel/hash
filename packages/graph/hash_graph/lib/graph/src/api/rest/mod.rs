@@ -25,7 +25,7 @@ use utoipa::{openapi, Modify, OpenApi};
 
 use self::api_resource::RoutedResource;
 use crate::{
-    ontology::DomainValidator,
+    ontology::domain_validator::DomainValidator,
     store::{crud::Read, StorePool},
 };
 

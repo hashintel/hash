@@ -6,7 +6,7 @@ use error_stack::{Context, IntoReport, Result, ResultExt};
 use graph::{
     api::rest::rest_api_router,
     logging::init_logger,
-    ontology::{AccountId, DomainValidator},
+    ontology::{domain_validator::DomainValidator, AccountId},
     store::{AccountStore, DataTypeStore, PostgresStorePool, StorePool},
 };
 use serde_json::json;
