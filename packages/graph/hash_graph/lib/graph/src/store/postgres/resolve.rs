@@ -33,28 +33,28 @@ pub trait PostgresContext {
         T: OntologyDatabaseType + TryFrom<serde_json::Value>,
         <T as TryFrom<serde_json::Value>>::Error: Context;
 
-    async fn read_all_data_types(&self) -> Result<RecordStream<DataType>, QueryError>;
+    async fn read_versioned_ontology_type<T>(
+        &self,
+        uri: &VersionedUri,
+    ) -> Result<Record<T>, QueryError>
+    where
+        T: OntologyDatabaseType + TryFrom<serde_json::Value>,
+        <T as TryFrom<serde_json::Value>>::Error: Context;
 
     async fn read_versioned_data_type(
         &self,
         uri: &VersionedUri,
     ) -> Result<Record<DataType>, QueryError>;
 
-    async fn read_all_property_types(&self) -> Result<RecordStream<PropertyType>, QueryError>;
-
     async fn read_versioned_property_type(
         &self,
         uri: &VersionedUri,
     ) -> Result<Record<PropertyType>, QueryError>;
 
-    async fn read_all_link_types(&self) -> Result<RecordStream<LinkType>, QueryError>;
-
     async fn read_versioned_link_type(
         &self,
         uri: &VersionedUri,
     ) -> Result<Record<LinkType>, QueryError>;
-
-    async fn read_all_entity_types(&self) -> Result<RecordStream<EntityType>, QueryError>;
 
     async fn read_versioned_entity_type(
         &self,
@@ -169,12 +169,17 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
         ))
     }
 
-    async fn read_all_data_types(&self) -> Result<RecordStream<DataType>, QueryError> {
-        Ok(row_stream_to_record_stream(
-            read_all_types(&self.client, "data_types")
-                .await
-                .attach_printable("could not read data types")?,
-        ))
+    async fn read_versioned_ontology_type<T>(
+        &self,
+        uri: &VersionedUri,
+    ) -> Result<Record<T>, QueryError>
+    where
+        T: OntologyDatabaseType + TryFrom<serde_json::Value>,
+        <T as TryFrom<serde_json::Value>>::Error: Context,
+    {
+        read_versioned_type(&self.client, T::table(), uri)
+            .await
+            .attach_printable("could not read ontology type")
     }
 
     async fn read_versioned_data_type(
@@ -186,14 +191,6 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
             .attach_printable("could not read data type")
     }
 
-    async fn read_all_property_types(&self) -> Result<RecordStream<PropertyType>, QueryError> {
-        Ok(row_stream_to_record_stream(
-            read_all_types(&self.client, "property_types")
-                .await
-                .attach_printable("could not read property types")?,
-        ))
-    }
-
     async fn read_versioned_property_type(
         &self,
         uri: &VersionedUri,
@@ -203,14 +200,6 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
             .attach_printable("could not read property type")
     }
 
-    async fn read_all_link_types(&self) -> Result<RecordStream<LinkType>, QueryError> {
-        Ok(row_stream_to_record_stream(
-            read_all_types(&self.client, "link_types")
-                .await
-                .attach_printable("could not read link types")?,
-        ))
-    }
-
     async fn read_versioned_link_type(
         &self,
         uri: &VersionedUri,
@@ -218,14 +207,6 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
         read_versioned_type(&self.client, "link_types", uri)
             .await
             .attach_printable("could not read link type")
-    }
-
-    async fn read_all_entity_types(&self) -> Result<RecordStream<EntityType>, QueryError> {
-        Ok(row_stream_to_record_stream(
-            read_all_types(&self.client, "entity_types")
-                .await
-                .attach_printable("could not read entity types")?,
-        ))
     }
 
     async fn read_versioned_entity_type(

@@ -1,9 +1,13 @@
 use async_trait::async_trait;
 use error_stack::{bail, Context, Report, Result, ResultExt};
 use futures::TryStreamExt;
+use type_system::{DataType, EntityType, LinkType, PropertyType};
 
 use crate::{
-    ontology::PersistedOntologyIdentifier,
+    ontology::{
+        PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier,
+        PersistedPropertyType,
+    },
     store::{
         crud::Read,
         postgres::{
@@ -19,6 +23,38 @@ pub trait PersistedOntologyType {
     type Inner;
 
     fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self;
+}
+
+impl PersistedOntologyType for PersistedDataType {
+    type Inner = DataType;
+
+    fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self {
+        Self { inner, identifier }
+    }
+}
+
+impl PersistedOntologyType for PersistedPropertyType {
+    type Inner = PropertyType;
+
+    fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self {
+        Self { inner, identifier }
+    }
+}
+
+impl PersistedOntologyType for PersistedLinkType {
+    type Inner = LinkType;
+
+    fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self {
+        Self { inner, identifier }
+    }
+}
+
+impl PersistedOntologyType for PersistedEntityType {
+    type Inner = EntityType;
+
+    fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self {
+        Self { inner, identifier }
+    }
 }
 
 #[async_trait]
