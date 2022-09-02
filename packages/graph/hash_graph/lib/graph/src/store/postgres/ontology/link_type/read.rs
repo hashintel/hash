@@ -1,12 +1,10 @@
 use async_trait::async_trait;
 use error_stack::Result;
+use type_system::LinkType;
 
-use crate::{
-    ontology::types::LinkType,
-    store::{
-        postgres::resolve::{PostgresContext, Record},
-        query::{Literal, PathSegment, Resolve, ResolveError, UNIMPLEMENTED_LITERAL_OBJECT},
-    },
+use crate::store::{
+    postgres::resolve::{PostgresContext, Record},
+    query::{Literal, PathSegment, Resolve, ResolveError, UNIMPLEMENTED_LITERAL_OBJECT},
 };
 
 #[async_trait]

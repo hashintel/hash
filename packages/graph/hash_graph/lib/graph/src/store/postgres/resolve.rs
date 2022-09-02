@@ -2,10 +2,10 @@ use async_trait::async_trait;
 use error_stack::{Context, IntoReport, Result, ResultExt};
 use futures::{Stream, StreamExt};
 use tokio_postgres::{GenericClient, RowStream};
-use type_system::{uri::VersionedUri, DataType, PropertyType};
+use type_system::{uri::VersionedUri, DataType, LinkType, PropertyType};
 
 use crate::{
-    ontology::{types::LinkType, AccountId},
+    ontology::AccountId,
     store::{postgres::parameter_list, AsClient, PostgresStore, QueryError},
 };
 
@@ -96,11 +96,15 @@ async fn read_all_types(client: &impl AsClient, table: &str) -> Result<RowStream
         .into_report().change_context(QueryError)
 }
 
-async fn read_versioned_type<T: for<'de> Deserialize<'de>>(
+async fn read_versioned_type<T>(
     client: &impl AsClient,
     table: &str,
     uri: &VersionedUri,
-) -> Result<Record<T>, QueryError> {
+) -> Result<Record<T>, QueryError>
+where
+    T: TryFrom<serde_json::Value>,
+    <T as TryFrom<serde_json::Value>>::Error: Context,
+{
     let row = client
         .as_client()
         .query_one(
@@ -123,7 +127,7 @@ async fn read_versioned_type<T: for<'de> Deserialize<'de>>(
         .into_report()
         .change_context(QueryError)?;
 
-    let record = serde_json::from_value(row.get(0))
+    let record = T::try_from(row.get(0))
         .into_report()
         .change_context(QueryError)?;
     let account_id = row.get(1);
