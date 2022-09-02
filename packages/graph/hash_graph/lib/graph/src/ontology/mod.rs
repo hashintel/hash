@@ -4,6 +4,7 @@ pub mod domain_validator;
 
 use core::fmt;
 
+use error_stack::{Context, IntoReport, Result, ResultExt};
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json;
 use tokio_postgres::types::{FromSql, ToSql};
@@ -58,7 +59,55 @@ impl PersistedOntologyIdentifier {
     }
 }
 
-fn serialize_ontology_type<T, S>(ontology_type: &T, serializer: S) -> Result<S::Ok, S::Error>
+#[derive(Debug)]
+pub struct PatchSchemaIdError;
+impl Context for PatchSchemaIdError {}
+
+impl fmt::Display for PatchSchemaIdError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("failed to patch schema's id")
+    }
+}
+
+/// TODO: DOC
+///
+/// # Errors
+pub fn patch_id_and_parse<T>(
+    id: &VersionedUri,
+    mut value: serde_json::Value,
+) -> Result<T, PatchSchemaIdError>
+where
+    T: TryFrom<serde_json::Value, Error: Context>,
+{
+    if let Some(object) = value.as_object_mut() {
+        if let Some(previous_val) = object.insert(
+            "$id".to_owned(),
+            serde_json::to_value(id).expect("failed to deserialize id"),
+        ) {
+            return Err(PatchSchemaIdError)
+                .into_report()
+                .attach_printable("schema already had an $id")
+                .attach_printable(previous_val);
+        }
+    } else {
+        return Err(PatchSchemaIdError)
+            .into_report()
+            .attach_printable("unexpected schema format, couldn't parse as object")
+            .attach_printable(value);
+    }
+
+    let ontology_type: T = value
+        .try_into()
+        .into_report()
+        .change_context(PatchSchemaIdError)?;
+
+    Ok(ontology_type)
+}
+
+fn serialize_ontology_type<T, S>(
+    ontology_type: &T,
+    serializer: S,
+) -> std::result::Result<S::Ok, S::Error>
 where
     T: Clone,
     serde_json::Value: From<T>,

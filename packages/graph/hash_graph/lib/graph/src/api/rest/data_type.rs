@@ -18,7 +18,7 @@ use crate::{
     api::rest::read_from_store,
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        AccountId, PersistedDataType, PersistedOntologyIdentifier,
+        patch_id_and_parse, AccountId, PersistedDataType, PersistedOntologyIdentifier,
     },
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool,
@@ -179,8 +179,9 @@ async fn get_data_type<P: StorePool + Send>(
 #[derive(Component, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UpdateDataTypeRequest {
-    #[component(value_type = VAR_DATA_TYPE)]
+    #[component(value_type = VAR_UPDATE_DATA_TYPE)]
     schema: serde_json::Value,
+    type_to_update: VersionedUri,
     account_id: AccountId,
 }
 
@@ -201,18 +202,27 @@ async fn update_data_type<P: StorePool + Send>(
     body: Json<UpdateDataTypeRequest>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
-    let Json(UpdateDataTypeRequest { schema, account_id }) = body;
+    let Json(UpdateDataTypeRequest {
+        schema,
+        type_to_update,
+        account_id,
+    }) = body;
+
+    let new_type_id = VersionedUri::new(
+        type_to_update.base_uri().clone(),
+        type_to_update.version() + 1,
+    );
+
+    let data_type = patch_id_and_parse(&new_type_id, schema).map_err(|report| {
+        tracing::error!(error=?report, "Couldn't patch schema and convert to Data Type");
+        StatusCode::UNPROCESSABLE_ENTITY
+        // TODO - We should probably return more information to the client
+        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+    })?;
 
     let mut store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    let data_type: DataType = schema.try_into().into_report().map_err(|report| {
-        tracing::error!(error=?report, "Couldn't convert schema to Property Type");
-        StatusCode::UNPROCESSABLE_ENTITY
-        // TODO - We should probably return more information to the client
-        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
     })?;
 
     store
