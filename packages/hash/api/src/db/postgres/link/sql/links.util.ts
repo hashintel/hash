@@ -103,17 +103,8 @@ export const selectLatestVersionOfLink = (params: {
 export const selectAllLinksWithDestinationEntity = (params: {
   destinationAccountId: string;
   destinationEntityId: string;
-  activeAt?: Date;
-  path?: string;
-  additionalClauses?: ValueExpressionType[];
 }) => sql<DbLinkWithVersionRow>`
-  with all_links as (${
-    params.activeAt
-      ? selectAllLatestVersionsOfLinksBeforeTimestamp({
-          beforeTimestamp: params.activeAt,
-        })
-      : selectAllLatestVersionsOfLinks
-  })
+  with all_links as (${selectAllLatestVersionsOfLinks})
   select *
   from all_links
   where
@@ -121,23 +112,6 @@ export const selectAllLinksWithDestinationEntity = (params: {
     [
       sql`destination_account_id = ${params.destinationAccountId}`,
       sql`destination_entity_id = ${params.destinationEntityId}`,
-      params.activeAt
-        ? [
-            // the link was applied before the timestamp
-            sql`applied_to_source_at <= ${params.activeAt.toISOString()}`,
-            // either the link was removed after the timestamp, or the link hasn't been removed yet
-            sql`(
-              removed_from_source_at > ${params.activeAt.toISOString()}
-            or
-              removed_from_source_at is null 
-          )`,
-          ]
-        : [
-            // the link hasn't been removed yet (so can be considered as "active" right now)
-            sql`removed_from_source_at is null`,
-          ],
-      params.path !== undefined ? sql`path = ${params.path}` : [],
-      ...(params.additionalClauses ?? []),
     ].flat(),
     sql` and `,
   )}

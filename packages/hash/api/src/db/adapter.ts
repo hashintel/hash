@@ -534,8 +534,6 @@ export interface DbClient {
   getEntityIncomingLinks(params: {
     accountId: string;
     entityId: string;
-    activeAt?: Date;
-    path?: string;
   }): Promise<DbLink[]>;
 
   /** Create a verification code */
