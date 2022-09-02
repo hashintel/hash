@@ -32,13 +32,13 @@ impl ErrorSink<Error> for ErrorLogger {
     }
 }
 
-#[expect(clippy::trait_duplication_in_bounds, reason = "false positive")]
-impl<Tls> PostgresStorePool<Tls>
+impl<Tls: Clone + Send + Sync + 'static> PostgresStorePool<Tls>
 where
-    Tls: MakeTlsConnect<Socket> + Clone + Send + Sync + 'static,
-    <Tls as MakeTlsConnect<Socket>>::Stream: Send + Sync,
-    <Tls as MakeTlsConnect<Socket>>::TlsConnect: Send,
-    <<Tls as MakeTlsConnect<Socket>>::TlsConnect as TlsConnect<Socket>>::Future: Send,
+    Tls: MakeTlsConnect<
+        Socket,
+        Stream: Send + Sync,
+        TlsConnect: Send + TlsConnect<Socket, Future: Send>,
+    >,
 {
     /// Creates a new `PostgresDatabasePool`.
     ///
@@ -67,14 +67,14 @@ where
     }
 }
 
-#[allow(clippy::trait_duplication_in_bounds, reason = "false positive")]
 #[async_trait]
-impl<Tls> StorePool for PostgresStorePool<Tls>
+impl<Tls: Clone + Send + Sync + 'static> StorePool for PostgresStorePool<Tls>
 where
-    Tls: MakeTlsConnect<Socket> + Clone + Send + Sync + 'static,
-    <Tls as MakeTlsConnect<Socket>>::Stream: Send + Sync,
-    <Tls as MakeTlsConnect<Socket>>::TlsConnect: Send,
-    <<Tls as MakeTlsConnect<Socket>>::TlsConnect as TlsConnect<Socket>>::Future: Send,
+    Tls: MakeTlsConnect<
+        Socket,
+        Stream: Send + Sync,
+        TlsConnect: Send + TlsConnect<Socket, Future: Send>,
+    >,
 {
     type Error = RunError<Error>;
     type Store<'pool> = PostgresStore<PooledConnection<'pool, PostgresConnectionManager<Tls>>>;
@@ -95,13 +95,14 @@ pub trait AsClient: Send + Sync {
     fn as_mut_client(&mut self) -> &mut Self::Client;
 }
 
-#[allow(clippy::trait_duplication_in_bounds, reason = "false positive")]
-impl<Tls> AsClient for PooledConnection<'_, PostgresConnectionManager<Tls>>
+impl<Tls: Clone + Send + Sync + 'static> AsClient
+    for PooledConnection<'_, PostgresConnectionManager<Tls>>
 where
-    Tls: MakeTlsConnect<Socket> + Clone + Send + Sync + 'static,
-    <Tls as MakeTlsConnect<Socket>>::Stream: Send + Sync,
-    <Tls as MakeTlsConnect<Socket>>::TlsConnect: Send,
-    <<Tls as MakeTlsConnect<Socket>>::TlsConnect as TlsConnect<Socket>>::Future: Send,
+    Tls: MakeTlsConnect<
+        Socket,
+        Stream: Send + Sync,
+        TlsConnect: Send + TlsConnect<Socket, Future: Send>,
+    >,
 {
     type Client = Client;
 

@@ -57,8 +57,7 @@ async fn read_from_store<'pool, P, T>(
     query: &<P::Store<'pool> as Read<T>>::Query<'_>,
 ) -> Result<Vec<T>, StatusCode>
 where
-    P: StorePool,
-    P::Store<'pool>: Read<T>,
+    P: StorePool<Store<'pool>: Read<T>>,
     T: Send,
 {
     let store = pool.acquire().await.map_err(|report| {

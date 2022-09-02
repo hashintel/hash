@@ -14,8 +14,7 @@ use crate::{
 
 type RecordStream<T>
 where
-    T: TryFrom<serde_json::Value>,
-    <T as TryFrom<serde_json::Value>>::Error: Context,
+    T: TryFrom<serde_json::Value, Error: Context>,
 = impl Stream<Item = Result<Record<T>, QueryError>>;
 
 /// Context used for [`Resolve`].
@@ -30,16 +29,14 @@ where
 pub trait PostgresContext {
     async fn read_all_ontology_types<T>(&self) -> Result<RecordStream<T>, QueryError>
     where
-        T: OntologyDatabaseType + TryFrom<serde_json::Value>,
-        <T as TryFrom<serde_json::Value>>::Error: Context;
+        T: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>;
 
     async fn read_versioned_ontology_type<T>(
         &self,
         uri: &VersionedUri,
     ) -> Result<Record<T>, QueryError>
     where
-        T: OntologyDatabaseType + TryFrom<serde_json::Value>,
-        <T as TryFrom<serde_json::Value>>::Error: Context;
+        T: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>;
 }
 
 /// Associates a database entry with the information about the latest version of the corresponding
@@ -55,8 +52,7 @@ pub struct Record<T> {
 
 fn row_stream_to_record_stream<T>(row_stream: RowStream) -> RecordStream<T>
 where
-    T: TryFrom<serde_json::Value>,
-    <T as TryFrom<serde_json::Value>>::Error: Context,
+    T: TryFrom<serde_json::Value, Error: Context>,
 {
     row_stream.map(|row| {
         let row = row.into_report().change_context(QueryError)?;
@@ -97,8 +93,7 @@ async fn read_versioned_type<T>(
     uri: &VersionedUri,
 ) -> Result<Record<T>, QueryError>
 where
-    T: TryFrom<serde_json::Value>,
-    <T as TryFrom<serde_json::Value>>::Error: Context,
+    T: TryFrom<serde_json::Value, Error: Context>,
 {
     let row = client
         .as_client()
@@ -139,8 +134,7 @@ where
 impl<C: AsClient> PostgresContext for PostgresStore<C> {
     async fn read_all_ontology_types<T>(&self) -> Result<RecordStream<T>, QueryError>
     where
-        T: OntologyDatabaseType + TryFrom<serde_json::Value>,
-        <T as TryFrom<serde_json::Value>>::Error: Context,
+        T: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>,
     {
         Ok(row_stream_to_record_stream(
             read_all_types(&self.client, T::table())
@@ -154,8 +148,7 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
         uri: &VersionedUri,
     ) -> Result<Record<T>, QueryError>
     where
-        T: OntologyDatabaseType + TryFrom<serde_json::Value>,
-        <T as TryFrom<serde_json::Value>>::Error: Context,
+        T: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>,
     {
         read_versioned_type(&self.client, T::table(), uri)
             .await
