@@ -11,14 +11,14 @@ use crate::{
 pub type RecordStream<T>
 where
     T: TryFrom<serde_json::Value, Error: Context>,
-= impl Stream<Item = Result<Record<T>, QueryError>>;
+= impl Stream<Item = Result<OntologyRecord<T>, QueryError>>;
 
 /// Associates a database entry with the information about the latest version of the corresponding
 /// entry.
 ///
 /// This is used for filtering by the latest version.
 #[derive(Debug)]
-pub struct Record<T> {
+pub struct OntologyRecord<T> {
     pub record: T,
     pub account_id: AccountId,
     pub is_latest: bool,
@@ -34,7 +34,7 @@ where
             .into_report()
             .change_context(QueryError)?;
 
-        Ok(Record {
+        Ok(OntologyRecord {
             record,
             account_id: row.get(1),
             is_latest: row.get(2),
@@ -65,7 +65,7 @@ pub async fn read_versioned_type<T>(
     client: &impl AsClient,
     table: &str,
     uri: &VersionedUri,
-) -> Result<Record<T>, QueryError>
+) -> Result<OntologyRecord<T>, QueryError>
 where
     T: TryFrom<serde_json::Value, Error: Context>,
 {
@@ -97,7 +97,7 @@ where
     let account_id = row.get(1);
     let latest: i64 = row.get(2);
 
-    Ok(Record {
+    Ok(OntologyRecord {
         record,
         account_id,
         is_latest: latest as u32 == uri.version(),

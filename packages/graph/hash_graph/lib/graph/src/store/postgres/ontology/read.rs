@@ -12,7 +12,7 @@ use crate::{
         crud::Read,
         postgres::{
             ontology::OntologyDatabaseType,
-            resolve::{PostgresContext, Record},
+            resolve::{OntologyRecord, PostgresContext},
         },
         query::{Expression, ExpressionError, Literal, Resolve},
         AsClient, PostgresStore, QueryError,
@@ -62,7 +62,7 @@ impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
     T: PersistedOntologyType + Send,
     T::Inner: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context> + Send,
-    Record<T::Inner>: Resolve<Self> + Sync,
+    OntologyRecord<T::Inner>: Resolve<Self> + Sync,
 {
     type Query<'q> = Expression;
 

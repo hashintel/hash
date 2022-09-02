@@ -5,7 +5,7 @@ use type_system::uri::VersionedUri;
 use crate::store::{
     postgres::{
         ontology::OntologyDatabaseType,
-        resolve::{ontology, ontology::RecordStream, Record},
+        resolve::{ontology, ontology::RecordStream, OntologyRecord},
     },
     AsClient, PostgresStore, QueryError,
 };
@@ -27,7 +27,7 @@ pub trait PostgresContext {
     async fn read_versioned_ontology_type<T>(
         &self,
         uri: &VersionedUri,
-    ) -> Result<Record<T>, QueryError>
+    ) -> Result<OntologyRecord<T>, QueryError>
     where
         T: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>;
 }
@@ -48,7 +48,7 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
     async fn read_versioned_ontology_type<T>(
         &self,
         uri: &VersionedUri,
-    ) -> Result<Record<T>, QueryError>
+    ) -> Result<OntologyRecord<T>, QueryError>
     where
         T: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>,
     {

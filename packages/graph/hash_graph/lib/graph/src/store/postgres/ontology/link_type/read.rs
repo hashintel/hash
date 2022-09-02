@@ -3,12 +3,12 @@ use error_stack::Result;
 use type_system::LinkType;
 
 use crate::store::{
-    postgres::resolve::{PostgresContext, Record},
+    postgres::resolve::{OntologyRecord, PostgresContext},
     query::{Literal, PathSegment, Resolve, ResolveError, UNIMPLEMENTED_LITERAL_OBJECT},
 };
 
 #[async_trait]
-impl<C> Resolve<C> for Record<LinkType>
+impl<C> Resolve<C> for OntologyRecord<LinkType>
 where
     C: PostgresContext + Sync,
 {

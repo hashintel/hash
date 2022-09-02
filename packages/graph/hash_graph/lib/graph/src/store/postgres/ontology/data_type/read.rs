@@ -3,12 +3,12 @@ use error_stack::Result;
 use type_system::DataType;
 
 use crate::store::{
-    postgres::resolve::Record,
+    postgres::resolve::OntologyRecord,
     query::{Literal, PathSegment, Resolve, ResolveError, UNIMPLEMENTED_LITERAL_OBJECT},
 };
 
 #[async_trait]
-impl<C> Resolve<C> for Record<DataType>
+impl<C> Resolve<C> for OntologyRecord<DataType>
 where
     C: Sync,
 {

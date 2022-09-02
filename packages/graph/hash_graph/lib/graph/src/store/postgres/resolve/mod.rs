@@ -3,4 +3,4 @@ mod entity;
 mod links;
 mod ontology;
 
-pub use self::{context::PostgresContext, ontology::Record};
+pub use self::{context::PostgresContext, ontology::OntologyRecord};
