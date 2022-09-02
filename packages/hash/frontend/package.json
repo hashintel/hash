@@ -20,7 +20,7 @@
     "@blockprotocol/core": "0.0.8",
     "@blockprotocol/graph": "0.0.12",
     "@blockprotocol/hook": "0.0.1",
-    "@blockprotocol/type-system-web": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?d33a4ec",
+    "@blockprotocol/type-system-web": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?57f64ce",
     "@emoji-mart/data": "1.0.5",
     "@emoji-mart/react": "1.0.1",
     "@emotion/cache": "11.7.1",
