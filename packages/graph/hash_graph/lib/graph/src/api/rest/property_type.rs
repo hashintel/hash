@@ -16,7 +16,7 @@ use utoipa::{Component, OpenApi};
 use super::api_resource::RoutedResource;
 use crate::{
     api::rest::read_from_store,
-    ontology::{AccountId, PersistedOntologyIdentifier, PersistedPropertyType},
+    ontology::{AccountId, DomainValidator, PersistedOntologyIdentifier, PersistedPropertyType},
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
     },
@@ -86,19 +86,27 @@ struct CreatePropertyTypeRequest {
 async fn create_property_type<P: StorePool + Send>(
     body: Json<CreatePropertyTypeRequest>,
     pool: Extension<Arc<P>>,
+    domain_validator: Extension<Arc<DomainValidator>>,
 ) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
     let Json(CreatePropertyTypeRequest { schema, account_id }) = body;
-
-    let mut store = pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
 
     let property_type: PropertyType = schema.try_into().into_report().map_err(|report| {
         tracing::error!(error=?report, "Couldn't convert schema to Property Type");
         StatusCode::UNPROCESSABLE_ENTITY
         // TODO - We should probably return more information to the client
         //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+    })?;
+
+    if !domain_validator.validate_versioned_uri(property_type.id()) {
+        tracing::error!(id=?property_type.id().clone(), "Property Type ID didn't validate");
+        // TODO - We should probably return more information to the client
+        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+        return Err(StatusCode::UNPROCESSABLE_ENTITY);
+    }
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
     store

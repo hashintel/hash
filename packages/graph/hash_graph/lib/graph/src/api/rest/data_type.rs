@@ -16,7 +16,7 @@ use utoipa::{Component, OpenApi};
 use super::api_resource::RoutedResource;
 use crate::{
     api::rest::read_from_store,
-    ontology::{AccountId, PersistedDataType, PersistedOntologyIdentifier},
+    ontology::{AccountId, DomainValidator, PersistedDataType, PersistedOntologyIdentifier},
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool,
     },
@@ -86,19 +86,27 @@ struct CreateDataTypeRequest {
 async fn create_data_type<P: StorePool + Send>(
     body: Json<CreateDataTypeRequest>,
     pool: Extension<Arc<P>>,
+    domain_validator: Extension<Arc<DomainValidator>>,
 ) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
     let Json(CreateDataTypeRequest { schema, account_id }) = body;
-
-    let mut store = pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
 
     let data_type: DataType = schema.try_into().into_report().map_err(|report| {
         tracing::error!(error=?report, "Couldn't convert schema to Property Type");
         StatusCode::UNPROCESSABLE_ENTITY
         // TODO - We should probably return more information to the client
         //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+    })?;
+
+    if !domain_validator.validate_versioned_uri(data_type.id()) {
+        tracing::error!(id=?data_type.id().clone(), "Data Type ID didn't validate");
+        // TODO - We should probably return more information to the client
+        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+        return Err(StatusCode::UNPROCESSABLE_ENTITY);
+    }
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
     store

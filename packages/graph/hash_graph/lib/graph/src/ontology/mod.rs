@@ -93,6 +93,12 @@ impl DomainValidator {
         self.0.is_match(url)
     }
 
+    #[must_use]
+    pub fn validate_versioned_uri(&self, versioned_uri: &VersionedUri) -> bool {
+        let base_uri = versioned_uri.base_uri();
+        self.0.is_match(base_uri.as_str())
+    }
+
     fn captures<'a>(&'a self, url: &'a str) -> Result<Captures, DomainValidationError> {
         self.0
             .captures(url)

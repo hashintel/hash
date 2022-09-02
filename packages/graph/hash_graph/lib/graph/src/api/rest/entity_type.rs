@@ -15,7 +15,7 @@ use utoipa::{Component, OpenApi};
 
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store},
-    ontology::{AccountId, PersistedEntityType, PersistedOntologyIdentifier},
+    ontology::{AccountId, DomainValidator, PersistedEntityType, PersistedOntologyIdentifier},
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
         query::Expression,
@@ -87,13 +87,9 @@ struct CreateEntityTypeRequest {
 async fn create_entity_type<P: StorePool + Send>(
     body: Json<CreateEntityTypeRequest>,
     pool: Extension<Arc<P>>,
+    domain_validator: Extension<Arc<DomainValidator>>,
 ) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
     let Json(CreateEntityTypeRequest { schema, account_id }) = body;
-
-    let mut store = pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
 
     let entity_type: EntityType = schema.try_into().into_report().map_err(|report| {
         tracing::error!(error=?report, "Couldn't convert schema to Entity Type");
@@ -101,6 +97,18 @@ async fn create_entity_type<P: StorePool + Send>(
         StatusCode::UNPROCESSABLE_ENTITY
         // TODO - We should probably return more information to the client
         //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+    })?;
+
+    if !domain_validator.validate_versioned_uri(entity_type.id()) {
+        tracing::error!(id=?entity_type.id().clone(), "Entity Type ID didn't validate");
+        // TODO - We should probably return more information to the client
+        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+        return Err(StatusCode::UNPROCESSABLE_ENTITY);
+    }
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
     store
