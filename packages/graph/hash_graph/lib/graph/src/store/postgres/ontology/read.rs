@@ -1,14 +1,20 @@
 use async_trait::async_trait;
-use error_stack::{Context, IntoReport, Result, ResultExt, StreamExt as _};
-use futures::{StreamExt, TryStreamExt};
-use tokio_postgres::{GenericClient, RowStream};
+use error_stack::{bail, Context, Report, Result, ResultExt};
+use futures::TryStreamExt;
+use type_system::{DataType, EntityType, LinkType, PropertyType};
 
 use crate::{
-    ontology::{AccountId, PersistedOntologyIdentifier},
+    ontology::{
+        PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier,
+        PersistedPropertyType,
+    },
     store::{
         crud::Read,
-        postgres::{ontology::OntologyDatabaseType, parameter_list},
-        query::{OntologyQuery, OntologyVersion},
+        postgres::{
+            ontology::OntologyDatabaseType,
+            resolve::{PostgresContext, Record},
+        },
+        query::{Expression, ExpressionError, Literal, Resolve},
         AsClient, PostgresStore, QueryError,
     },
 };
@@ -19,97 +25,70 @@ pub trait PersistedOntologyType {
     fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self;
 }
 
-async fn all<T: OntologyDatabaseType>(
-    client: &(impl GenericClient + Sync),
-) -> Result<RowStream, QueryError> {
-    client
-        .query_raw(
-            &format!(
-                r#"
-                SELECT schema, created_by
-                FROM {};
-                "#,
-                T::table()
-            ),
-            parameter_list([]),
-        )
-        .await
-        .into_report()
-        .change_context(QueryError)
-}
+impl PersistedOntologyType for PersistedDataType {
+    type Inner = DataType;
 
-async fn by_latest_version<T: OntologyDatabaseType>(
-    client: &(impl GenericClient + Sync),
-) -> Result<RowStream, QueryError> {
-    client
-        .query_raw(
-            &format!(
-                r#"
-                SELECT DISTINCT ON(base_uri) schema, created_by
-                FROM {table}
-                INNER JOIN ids ON ids.version_id = {table}.version_id
-                ORDER BY base_uri, version DESC;
-                "#,
-                table = T::table()
-            ),
-            parameter_list([]),
-        )
-        .await
-        .into_report()
-        .change_context(QueryError)
-}
-
-fn apply_filter<T: OntologyDatabaseType>(element: T, query: &OntologyQuery<'_, T>) -> Option<T> {
-    let uri = element.versioned_uri();
-
-    if let Some(base_uri) = query.uri() {
-        if uri.base_uri() != base_uri {
-            return None;
-        }
+    fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self {
+        Self { inner, identifier }
     }
-
-    if let Some(OntologyVersion::Exact(version)) = query.version() {
-        if uri.version() != version {
-            return None;
-        }
-    }
-
-    Some(element)
 }
 
-// TODO: Unify methods for Ontology types using `Expression`s
-//   see https://app.asana.com/0/0/1202884883200959/f
+impl PersistedOntologyType for PersistedPropertyType {
+    type Inner = PropertyType;
+
+    fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self {
+        Self { inner, identifier }
+    }
+}
+
+impl PersistedOntologyType for PersistedLinkType {
+    type Inner = LinkType;
+
+    fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self {
+        Self { inner, identifier }
+    }
+}
+
+impl PersistedOntologyType for PersistedEntityType {
+    type Inner = EntityType;
+
+    fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self {
+        Self { inner, identifier }
+    }
+}
+
 #[async_trait]
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
     T: PersistedOntologyType + Send,
-    T::Inner: OntologyDatabaseType + TryFrom<serde_json::Value>,
-    <<T as PersistedOntologyType>::Inner as TryFrom<serde_json::Value>>::Error: Context,
+    T::Inner: OntologyDatabaseType + TryFrom<serde_json::Value> + Send,
+    <T::Inner as TryFrom<serde_json::Value>>::Error: Context,
+    Record<T::Inner>: Resolve<Self> + Sync,
 {
-    type Query<'q> = OntologyQuery<'q, T::Inner>;
+    type Query<'q> = Expression;
 
     async fn read<'query>(&self, query: &Self::Query<'query>) -> Result<Vec<T>, QueryError> {
-        let row_stream = if let Some(OntologyVersion::Latest) = query.version() {
-            by_latest_version::<T::Inner>(self.as_client()).await?
-        } else {
-            all::<T::Inner>(self.as_client()).await?
-        };
-
-        row_stream
-            .map(IntoReport::into_report)
-            .change_context(QueryError)
-            .try_filter_map(|row| async move {
-                let element: T::Inner = T::Inner::try_from(row.get(0))
-                    .into_report()
-                    .change_context(QueryError)?;
-
-                let account_id: AccountId = row.get(1);
-
-                Ok(apply_filter(element, query).map(|element| {
-                    let uri = element.versioned_uri();
-                    let identifier = PersistedOntologyIdentifier::new(uri.clone(), account_id);
-                    T::new(element, identifier)
-                }))
+        self.read_all_ontology_types::<T::Inner>()
+            .await?
+            .try_filter_map(|ontology_type| async move {
+                if let Literal::Bool(result) = query
+                    .evaluate(&ontology_type, self)
+                    .await
+                    .change_context(QueryError)?
+                {
+                    Ok(result.then(|| {
+                        let uri = ontology_type.record.versioned_uri();
+                        let identifier =
+                            PersistedOntologyIdentifier::new(uri.clone(), ontology_type.account_id);
+                        T::new(ontology_type.record, identifier)
+                    }))
+                } else {
+                    bail!(
+                        Report::new(ExpressionError)
+                            .attach_printable("does not result in a boolean value")
+                            .change_context(QueryError)
+                    );
+                }
             })
             .try_collect()
             .await

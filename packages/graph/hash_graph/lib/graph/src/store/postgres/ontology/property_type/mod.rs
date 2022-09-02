@@ -1,19 +1,13 @@
 mod read;
 
 use async_trait::async_trait;
-use error_stack::{bail, IntoReport, Report, Result, ResultExt};
-use futures::TryStreamExt;
+use error_stack::{IntoReport, Result, ResultExt};
 use tokio_postgres::GenericClient;
 use type_system::PropertyType;
 
 use crate::{
-    ontology::{AccountId, PersistedOntologyIdentifier, PersistedPropertyType},
-    store::{
-        crud::Read,
-        postgres::resolve::PostgresContext,
-        query::{Expression, ExpressionError, Literal},
-        AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
-    },
+    ontology::{AccountId, PersistedOntologyIdentifier},
+    store::{AsClient, InsertionError, PostgresStore, PropertyTypeStore, UpdateError},
 };
 
 #[async_trait]
@@ -90,45 +84,5 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             .change_context(UpdateError)?;
 
         Ok(identifier)
-    }
-}
-
-// TODO: Unify methods for Ontology types using `Expression`s
-//   see https://app.asana.com/0/0/1202884883200959/f
-#[async_trait]
-impl<C: AsClient> Read<PersistedPropertyType> for PostgresStore<C> {
-    type Query<'q> = Expression;
-
-    async fn read<'query>(
-        &self,
-        expression: &Self::Query<'query>,
-    ) -> Result<Vec<PersistedPropertyType>, QueryError> {
-        self.read_all_property_types()
-            .await?
-            .try_filter_map(|property_type| async move {
-                if let Literal::Bool(result) = expression
-                    .evaluate(&property_type, self)
-                    .await
-                    .change_context(QueryError)?
-                {
-                    Ok(result.then(|| {
-                        let uri = property_type.record.id();
-                        let identifier =
-                            PersistedOntologyIdentifier::new(uri.clone(), property_type.account_id);
-                        PersistedPropertyType {
-                            inner: property_type.record,
-                            identifier,
-                        }
-                    }))
-                } else {
-                    bail!(
-                        Report::new(ExpressionError)
-                            .attach_printable("does not result in a boolean value")
-                            .change_context(QueryError)
-                    );
-                }
-            })
-            .try_collect()
-            .await
     }
 }

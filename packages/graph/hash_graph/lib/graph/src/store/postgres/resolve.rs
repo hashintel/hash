@@ -2,11 +2,14 @@ use async_trait::async_trait;
 use error_stack::{Context, IntoReport, Result, ResultExt};
 use futures::{Stream, StreamExt};
 use tokio_postgres::{GenericClient, RowStream};
-use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
+use type_system::uri::VersionedUri;
 
 use crate::{
     ontology::AccountId,
-    store::{postgres::parameter_list, AsClient, PostgresStore, QueryError},
+    store::{
+        postgres::{ontology::OntologyDatabaseType, parameter_list},
+        AsClient, PostgresStore, QueryError,
+    },
 };
 
 type RecordStream<T>
@@ -25,33 +28,18 @@ where
 //   see https://app.asana.com/0/0/1202884883200946/f
 #[async_trait]
 pub trait PostgresContext {
-    async fn read_all_data_types(&self) -> Result<RecordStream<DataType>, QueryError>;
+    async fn read_all_ontology_types<T>(&self) -> Result<RecordStream<T>, QueryError>
+    where
+        T: OntologyDatabaseType + TryFrom<serde_json::Value>,
+        <T as TryFrom<serde_json::Value>>::Error: Context;
 
-    async fn read_versioned_data_type(
+    async fn read_versioned_ontology_type<T>(
         &self,
         uri: &VersionedUri,
-    ) -> Result<Record<DataType>, QueryError>;
-
-    async fn read_all_property_types(&self) -> Result<RecordStream<PropertyType>, QueryError>;
-
-    async fn read_versioned_property_type(
-        &self,
-        uri: &VersionedUri,
-    ) -> Result<Record<PropertyType>, QueryError>;
-
-    async fn read_all_link_types(&self) -> Result<RecordStream<LinkType>, QueryError>;
-
-    async fn read_versioned_link_type(
-        &self,
-        uri: &VersionedUri,
-    ) -> Result<Record<LinkType>, QueryError>;
-
-    async fn read_all_entity_types(&self) -> Result<RecordStream<EntityType>, QueryError>;
-
-    async fn read_versioned_entity_type(
-        &self,
-        uri: &VersionedUri,
-    ) -> Result<Record<EntityType>, QueryError>;
+    ) -> Result<Record<T>, QueryError>
+    where
+        T: OntologyDatabaseType + TryFrom<serde_json::Value>,
+        <T as TryFrom<serde_json::Value>>::Error: Context;
 }
 
 /// Associates a database entry with the information about the latest version of the corresponding
@@ -149,71 +137,28 @@ where
 
 #[async_trait]
 impl<C: AsClient> PostgresContext for PostgresStore<C> {
-    async fn read_all_data_types(&self) -> Result<RecordStream<DataType>, QueryError> {
+    async fn read_all_ontology_types<T>(&self) -> Result<RecordStream<T>, QueryError>
+    where
+        T: OntologyDatabaseType + TryFrom<serde_json::Value>,
+        <T as TryFrom<serde_json::Value>>::Error: Context,
+    {
         Ok(row_stream_to_record_stream(
-            read_all_types(&self.client, "data_types")
+            read_all_types(&self.client, T::table())
                 .await
-                .attach_printable("could not read data types")?,
+                .attach_printable("could not read ontology types")?,
         ))
     }
 
-    async fn read_versioned_data_type(
+    async fn read_versioned_ontology_type<T>(
         &self,
         uri: &VersionedUri,
-    ) -> Result<Record<DataType>, QueryError> {
-        read_versioned_type(&self.client, "data_types", uri)
+    ) -> Result<Record<T>, QueryError>
+    where
+        T: OntologyDatabaseType + TryFrom<serde_json::Value>,
+        <T as TryFrom<serde_json::Value>>::Error: Context,
+    {
+        read_versioned_type(&self.client, T::table(), uri)
             .await
-            .attach_printable("could not read data type")
-    }
-
-    async fn read_all_property_types(&self) -> Result<RecordStream<PropertyType>, QueryError> {
-        Ok(row_stream_to_record_stream(
-            read_all_types(&self.client, "property_types")
-                .await
-                .attach_printable("could not read property types")?,
-        ))
-    }
-
-    async fn read_versioned_property_type(
-        &self,
-        uri: &VersionedUri,
-    ) -> Result<Record<PropertyType>, QueryError> {
-        read_versioned_type(&self.client, "property_types", uri)
-            .await
-            .attach_printable("could not read property type")
-    }
-
-    async fn read_all_link_types(&self) -> Result<RecordStream<LinkType>, QueryError> {
-        Ok(row_stream_to_record_stream(
-            read_all_types(&self.client, "link_types")
-                .await
-                .attach_printable("could not read link types")?,
-        ))
-    }
-
-    async fn read_versioned_link_type(
-        &self,
-        uri: &VersionedUri,
-    ) -> Result<Record<LinkType>, QueryError> {
-        read_versioned_type(&self.client, "link_types", uri)
-            .await
-            .attach_printable("could not read link type")
-    }
-
-    async fn read_all_entity_types(&self) -> Result<RecordStream<EntityType>, QueryError> {
-        Ok(row_stream_to_record_stream(
-            read_all_types(&self.client, "entity_types")
-                .await
-                .attach_printable("could not read entity types")?,
-        ))
-    }
-
-    async fn read_versioned_entity_type(
-        &self,
-        uri: &VersionedUri,
-    ) -> Result<Record<EntityType>, QueryError> {
-        read_versioned_type(&self.client, "entity_types", uri)
-            .await
-            .attach_printable("could not read entity type")
+            .attach_printable("could not read ontology type")
     }
 }
