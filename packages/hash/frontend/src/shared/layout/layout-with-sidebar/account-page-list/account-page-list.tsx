@@ -257,9 +257,13 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             expandable={expandable}
             expanded={expanded}
             collapsed={collapsed}
-            createSubPage={async () =>
-              await createSubPage(entityId, getLastIndex(treeItems, entityId))
-            }
+            createSubPage={async () => {
+              if (loading) {
+                return;
+              }
+
+              await createSubPage(entityId, getLastIndex(treeItems, entityId));
+            }}
             archivePage={archivePage}
           />
         );
