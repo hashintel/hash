@@ -18,7 +18,7 @@ use crate::{
     ontology::AccountId,
     store::{
         error::{EntityDoesNotExist, QueryError},
-        query::EntityQuery,
+        query::Expression,
         EntityStore, StorePool,
     },
 };
@@ -125,13 +125,10 @@ async fn get_entity<P: StorePool + Send>(
     Path(entity_id): Path<EntityId>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedEntity>, StatusCode> {
-    read_from_store(
-        pool.as_ref(),
-        &EntityQuery::new().by_id(entity_id).by_latest_version(),
-    )
-    .await
-    .and_then(|mut entities| entities.pop().ok_or(StatusCode::NOT_FOUND))
-    .map(Json)
+    read_from_store(pool.as_ref(), &Expression::for_latest_entity_id(entity_id))
+        .await
+        .and_then(|mut entities| entities.pop().ok_or(StatusCode::NOT_FOUND))
+        .map(Json)
 }
 
 #[utoipa::path(
@@ -146,7 +143,7 @@ async fn get_entity<P: StorePool + Send>(
 async fn get_latest_entities<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PersistedEntity>>, StatusCode> {
-    read_from_store(pool.as_ref(), &EntityQuery::new().by_latest_version())
+    read_from_store(pool.as_ref(), &Expression::for_latest_version())
         .await
         .map(Json)
 }

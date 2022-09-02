@@ -13,6 +13,7 @@ pub use self::{
     knowledge::{EntityQuery, EntityVersion, LinkQuery},
     ontology::{LinkTypeQuery, OntologyQuery, OntologyVersion},
 };
+use crate::knowledge::EntityId;
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -177,6 +178,21 @@ impl Expression {
                 }],
             }),
             Self::Literal(Literal::String("latest".to_owned())),
+        ])
+    }
+
+    #[must_use]
+    pub fn for_latest_entity_id(id: EntityId) -> Self {
+        Self::All(vec![
+            Self::for_latest_version(),
+            Self::Eq(vec![
+                Self::Path(Path {
+                    segments: vec![PathSegment {
+                        identifier: "id".to_owned(),
+                    }],
+                }),
+                Self::Literal(Literal::String(id.to_string())),
+            ]),
         ])
     }
 }
