@@ -18,7 +18,7 @@ use crate::{
     ontology::{AccountId, PersistedEntityType, PersistedOntologyIdentifier},
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
-        query::EntityTypeQuery,
+        query::Expression,
         EntityTypeStore, StorePool,
     },
 };
@@ -131,10 +131,16 @@ async fn create_entity_type<P: StorePool + Send>(
 )]
 async fn get_latest_entity_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
+    mut body: Option<Json<Expression>>,
 ) -> Result<Json<Vec<PersistedEntityType>>, StatusCode> {
-    read_from_store(pool.as_ref(), &EntityTypeQuery::new().by_latest_version())
-        .await
-        .map(Json)
+    read_from_store(
+        pool.as_ref(),
+        &body
+            .take()
+            .map_or_else(Expression::for_latest_version, |json| json.0),
+    )
+    .await
+    .map(Json)
 }
 
 #[utoipa::path(
@@ -156,15 +162,10 @@ async fn get_entity_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedEntityType>, StatusCode> {
-    read_from_store(
-        pool.as_ref(),
-        &EntityTypeQuery::new()
-            .by_uri(uri.base_uri())
-            .by_version(uri.version()),
-    )
-    .await
-    .and_then(|mut entity_types| entity_types.pop().ok_or(StatusCode::NOT_FOUND))
-    .map(Json)
+    read_from_store(pool.as_ref(), &Expression::for_versioned_uri(&uri.0))
+        .await
+        .and_then(|mut entity_types| entity_types.pop().ok_or(StatusCode::NOT_FOUND))
+        .map(Json)
 }
 
 #[derive(Component, Serialize, Deserialize)]

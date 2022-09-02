@@ -19,7 +19,7 @@ use graph::{
     },
     store::{
         error::LinkActivationError,
-        query::{EntityQuery, EntityTypeQuery, Expression, LinkQuery},
+        query::{EntityQuery, Expression, LinkQuery},
         AccountStore, AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
         EntityTypeStore, InsertionError, LinkStore, LinkTypeStore, PostgresStore,
         PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
@@ -217,11 +217,7 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedEntityType, QueryError> {
         Ok(self
             .store
-            .get_entity_type(
-                &EntityTypeQuery::new()
-                    .by_uri(uri.base_uri())
-                    .by_version(uri.version()),
-            )
+            .get_entity_type(&Expression::for_versioned_uri(uri))
             .await?
             .pop()
             .expect("no entity type found"))

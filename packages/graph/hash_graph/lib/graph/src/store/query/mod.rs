@@ -11,7 +11,7 @@ use type_system::uri::VersionedUri;
 
 pub use self::{
     knowledge::{EntityQuery, EntityVersion, LinkQuery},
-    ontology::{EntityTypeQuery, LinkTypeQuery, OntologyQuery, OntologyVersion},
+    ontology::{LinkTypeQuery, OntologyQuery, OntologyVersion},
 };
 
 #[derive(Clone, Serialize, Deserialize)]

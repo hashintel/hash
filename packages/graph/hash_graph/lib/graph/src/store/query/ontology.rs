@@ -1,9 +1,8 @@
 use std::{fmt, fmt::Formatter, marker::PhantomData};
 
-use type_system::{uri::BaseUri, EntityType, LinkType};
+use type_system::{uri::BaseUri, LinkType};
 
 pub type LinkTypeQuery<'q> = OntologyQuery<'q, LinkType>;
-pub type EntityTypeQuery<'q> = OntologyQuery<'q, EntityType>;
 
 #[derive(Debug, Copy, Clone)]
 pub enum OntologyVersion {
