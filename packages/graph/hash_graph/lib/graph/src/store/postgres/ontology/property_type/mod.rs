@@ -1,8 +1,8 @@
 mod read;
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
-use futures::{StreamExt, TryStreamExt};
+use error_stack::{bail, IntoReport, Report, Result, ResultExt};
+use futures::TryStreamExt;
 use tokio_postgres::GenericClient;
 use type_system::PropertyType;
 
@@ -10,8 +10,8 @@ use crate::{
     ontology::{AccountId, PersistedOntologyIdentifier, PersistedPropertyType},
     store::{
         crud::Read,
-        postgres::resolve::{PostgresContext, Record},
-        query::{Expression, Literal},
+        postgres::resolve::PostgresContext,
+        query::{Expression, ExpressionError, Literal},
         AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
     },
 };
@@ -105,33 +105,27 @@ impl<C: AsClient> Read<PersistedPropertyType> for PostgresStore<C> {
     ) -> Result<Vec<PersistedPropertyType>, QueryError> {
         self.read_all_property_types()
             .await?
-            .map(|row_result| row_result.into_report().change_context(QueryError))
-            .try_filter_map(|row| async move {
-                let property_type: PropertyType = serde_json::Value::try_into(row.get(0))
-                    .into_report()
-                    .change_context(QueryError)?;
-
-                let versioned_property_type = Record {
-                    record: property_type,
-                    is_latest: row.get(2),
-                };
-
-                if let Literal::Bool(result) =
-                    expression.evaluate(&versioned_property_type, self).await
+            .try_filter_map(|property_type| async move {
+                if let Literal::Bool(result) = expression
+                    .evaluate(&property_type, self)
+                    .await
+                    .change_context(QueryError)?
                 {
                     Ok(result.then(|| {
-                        let uri = versioned_property_type.record.id();
-                        let account_id: AccountId = row.get(1);
-                        let identifier = PersistedOntologyIdentifier::new(uri.clone(), account_id);
+                        let uri = property_type.record.id();
+                        let identifier =
+                            PersistedOntologyIdentifier::new(uri.clone(), property_type.account_id);
                         PersistedPropertyType {
-                            inner: versioned_property_type.record,
+                            inner: property_type.record,
                             identifier,
                         }
                     }))
                 } else {
-                    // TODO: Implement error handling
-                    //   see https://app.asana.com/0/0/1202884883200968/f
-                    panic!("Expression does not result in a boolean value")
+                    bail!(
+                        Report::new(ExpressionError)
+                            .attach_printable("does not result in a boolean value")
+                            .change_context(QueryError)
+                    );
                 }
             })
             .try_collect()
