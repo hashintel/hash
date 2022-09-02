@@ -6,7 +6,10 @@ use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyTyp
 
 use crate::{
     ontology::AccountId,
-    store::{postgres::parameter_list, AsClient, PostgresStore, QueryError},
+    store::{
+        postgres::{ontology::OntologyDatabaseType, parameter_list},
+        AsClient, PostgresStore, QueryError,
+    },
 };
 
 type RecordStream<T>
@@ -25,6 +28,11 @@ where
 //   see https://app.asana.com/0/0/1202884883200946/f
 #[async_trait]
 pub trait PostgresContext {
+    async fn read_all_ontology_types<T>(&self) -> Result<RecordStream<T>, QueryError>
+    where
+        T: OntologyDatabaseType + TryFrom<serde_json::Value>,
+        <T as TryFrom<serde_json::Value>>::Error: Context;
+
     async fn read_all_data_types(&self) -> Result<RecordStream<DataType>, QueryError>;
 
     async fn read_versioned_data_type(
@@ -149,6 +157,18 @@ where
 
 #[async_trait]
 impl<C: AsClient> PostgresContext for PostgresStore<C> {
+    async fn read_all_ontology_types<T>(&self) -> Result<RecordStream<T>, QueryError>
+    where
+        T: OntologyDatabaseType + TryFrom<serde_json::Value>,
+        <T as TryFrom<serde_json::Value>>::Error: Context,
+    {
+        Ok(row_stream_to_record_stream(
+            read_all_types(&self.client, T::table())
+                .await
+                .attach_printable("could not read ontology types")?,
+        ))
+    }
+
     async fn read_all_data_types(&self) -> Result<RecordStream<DataType>, QueryError> {
         Ok(row_stream_to_record_stream(
             read_all_types(&self.client, "data_types")
