@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use error_stack::{Context, IntoReport, Result, ResultExt};
 use futures::{Stream, StreamExt};
 use tokio_postgres::{GenericClient, RowStream};
-use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
+use type_system::uri::VersionedUri;
 
 use crate::{
     ontology::AccountId,
@@ -40,26 +40,6 @@ pub trait PostgresContext {
     where
         T: OntologyDatabaseType + TryFrom<serde_json::Value>,
         <T as TryFrom<serde_json::Value>>::Error: Context;
-
-    async fn read_versioned_data_type(
-        &self,
-        uri: &VersionedUri,
-    ) -> Result<Record<DataType>, QueryError>;
-
-    async fn read_versioned_property_type(
-        &self,
-        uri: &VersionedUri,
-    ) -> Result<Record<PropertyType>, QueryError>;
-
-    async fn read_versioned_link_type(
-        &self,
-        uri: &VersionedUri,
-    ) -> Result<Record<LinkType>, QueryError>;
-
-    async fn read_versioned_entity_type(
-        &self,
-        uri: &VersionedUri,
-    ) -> Result<Record<EntityType>, QueryError>;
 }
 
 /// Associates a database entry with the information about the latest version of the corresponding
@@ -180,41 +160,5 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
         read_versioned_type(&self.client, T::table(), uri)
             .await
             .attach_printable("could not read ontology type")
-    }
-
-    async fn read_versioned_data_type(
-        &self,
-        uri: &VersionedUri,
-    ) -> Result<Record<DataType>, QueryError> {
-        read_versioned_type(&self.client, "data_types", uri)
-            .await
-            .attach_printable("could not read data type")
-    }
-
-    async fn read_versioned_property_type(
-        &self,
-        uri: &VersionedUri,
-    ) -> Result<Record<PropertyType>, QueryError> {
-        read_versioned_type(&self.client, "property_types", uri)
-            .await
-            .attach_printable("could not read property type")
-    }
-
-    async fn read_versioned_link_type(
-        &self,
-        uri: &VersionedUri,
-    ) -> Result<Record<LinkType>, QueryError> {
-        read_versioned_type(&self.client, "link_types", uri)
-            .await
-            .attach_printable("could not read link type")
-    }
-
-    async fn read_versioned_entity_type(
-        &self,
-        uri: &VersionedUri,
-    ) -> Result<Record<EntityType>, QueryError> {
-        read_versioned_type(&self.client, "entity_types", uri)
-            .await
-            .attach_printable("could not read entity type")
     }
 }

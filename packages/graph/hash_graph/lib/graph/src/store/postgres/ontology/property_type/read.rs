@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use error_stack::{Result, ResultExt};
 use futures::stream::{self, StreamExt, TryStreamExt};
-use type_system::PropertyType;
+use type_system::{DataType, PropertyType};
 
 use crate::store::{
     postgres::resolve::{PostgresContext, Record},
@@ -43,7 +43,9 @@ where
                                 stream::iter(self.record.data_type_references())
                                     .then(|data_type_ref| async {
                                         context
-                                            .read_versioned_data_type(data_type_ref.uri())
+                                            .read_versioned_ontology_type::<DataType>(
+                                                data_type_ref.uri(),
+                                            )
                                             .await
                                             .change_context(ResolveError::StoreReadError)?
                                             .resolve(data_type_segments, context)
@@ -69,7 +71,9 @@ where
                                 stream::iter(self.record.property_type_references())
                                     .then(|property_type_ref| async {
                                         context
-                                            .read_versioned_property_type(property_type_ref.uri())
+                                            .read_versioned_ontology_type::<PropertyType>(
+                                                property_type_ref.uri(),
+                                            )
                                             .await
                                             .change_context(ResolveError::StoreReadError)?
                                             .resolve(property_type_segments, context)
