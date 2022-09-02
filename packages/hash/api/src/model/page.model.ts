@@ -48,87 +48,6 @@ class __Page extends Entity {
     return pageEntityType;
   }
 
-  static async getPageFractionalIndex(
-    client: DbClient,
-    params: {
-      entityId: string | null;
-      index: number | null;
-      parentPage: Page | null;
-      accountId: string;
-    },
-  ): Promise<string> {
-    const { entityId, index, accountId, parentPage } = params;
-
-    let childPages: Page[] = [];
-
-    if (parentPage !== null) {
-      // We get the children pages by querying the incomingLinks on the parent page
-      const parentPageIncomingLinks = await parentPage?.getIncomingLinks(
-        client,
-        {
-          activeAt: new Date(),
-          path: ["parentPage"],
-        },
-      );
-
-      childPages = await Promise.all(
-        parentPageIncomingLinks?.map(async (link) =>
-          __Page.fromEntity(client, await link.getSource(client)),
-        ) || [],
-      );
-    } else {
-      // getAllPagesInAccount is only used when the page doesn't have a parent page
-      // because it's significantly slower than requesting incoming links
-      const pages = await this.getAllPagesInAccount(client, { accountId });
-
-      childPages = await Promise.all(
-        pages.map(async (page) =>
-          (await page.getParentPage(client)) ? [] : page,
-        ),
-      ).then((filteredPages) => filteredPages.flat());
-    }
-
-    const childPagesExcludingSelf = childPages.filter(
-      (page) => page.entityId !== entityId,
-    );
-
-    const sortedChildrenIndexes = childPagesExcludingSelf
-      .map((page) => page.properties.index)
-      .sort();
-
-    const getClosestIndex = (
-      indexArray: string[],
-      currIndex: number,
-      forward: boolean,
-    ): string | null => {
-      if (!indexArray[currIndex]) {
-        const newIndex = currIndex + (forward ? 1 : -1);
-
-        return newIndex >= 0 && newIndex < indexArray.length
-          ? getClosestIndex(indexArray, newIndex, forward)
-          : null;
-      }
-
-      return indexArray[currIndex] || null;
-    };
-
-    if (index !== null) {
-      const before = getClosestIndex(sortedChildrenIndexes, index - 1, false);
-      const after = getClosestIndex(sortedChildrenIndexes, index, true);
-
-      return generateKeyBetween(before, after);
-    }
-
-    return generateKeyBetween(
-      getClosestIndex(
-        sortedChildrenIndexes,
-        sortedChildrenIndexes.length - 1,
-        false,
-      ),
-      null,
-    );
-  }
-
   static async createPage(
     client: DbClient,
     params: {
@@ -141,6 +60,7 @@ class __Page extends Entity {
         accountId: string;
         entityId: string;
       }[];
+      prevIndex: string | null;
     },
   ): Promise<Page> {
     /**
@@ -153,6 +73,7 @@ class __Page extends Entity {
       properties: pageProperties,
       accountId,
       initialLinkedContents,
+      prevIndex,
     } = params;
 
     const blockProperties: DbBlockProperties = {
@@ -201,12 +122,7 @@ class __Page extends Entity {
             },
           ];
 
-    const index = await __Page.getPageFractionalIndex(client, {
-      entityId: null,
-      index: null,
-      parentPage: null,
-      accountId,
-    });
+    const index = generateKeyBetween(prevIndex, null);
 
     const properties = { ...pageProperties, index };
 
@@ -380,18 +296,14 @@ class __Page extends Entity {
     client: DbClient,
     params: {
       parentPage: Page | null;
-      index: number | null;
       setByAccountId: string;
+      prevIndex: string | null;
+      nextIndex: string | null;
     },
   ): Promise<void> {
-    const { setByAccountId, parentPage, index } = params;
+    const { setByAccountId, parentPage, prevIndex, nextIndex } = params;
 
-    const newIndex = await __Page.getPageFractionalIndex(client, {
-      entityId: this.entityId,
-      index,
-      parentPage,
-      accountId: setByAccountId,
-    });
+    const newIndex = generateKeyBetween(prevIndex, nextIndex);
 
     const existingParentPage = await this.getParentPage(client);
 

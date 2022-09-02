@@ -11,6 +11,7 @@ export type AccountPage = {
   title: string;
   entityId: string;
   parentPageEntityId?: string | null;
+  index: string;
 };
 
 export type AccountPagesInfo = {
@@ -32,11 +33,12 @@ export const useAccountPages = (accountId: string): AccountPagesInfo => {
     }
 
     return data?.accountPages.map(
-      ({ entityId, parentPageEntityId, properties: { title } }) => {
+      ({ entityId, parentPageEntityId, properties: { title, index } }) => {
         return {
           entityId,
           parentPageEntityId,
           title,
+          index,
         };
       },
     );

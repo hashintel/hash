@@ -54,6 +54,16 @@ export const isPageCollapsed = (
   );
 };
 
+export const getLastIndex = (
+  treeItemList: TreeItem[],
+  parentId: string | null = null,
+) => {
+  const groupItems = treeItemList.filter(
+    ({ page }) => page.parentPageEntityId === parentId,
+  );
+  return groupItems[groupItems.length - 1]?.page.index ?? null;
+};
+
 // Calculates relevant properties for the page that is being dragged
 // - depth: current drag depth
 // - minDepth: minimum possible depth the page can be dragged to
@@ -88,13 +98,13 @@ export const getProjection = (
 
   const depth = Math.min(Math.max(projectedDepth, minDepth), maxDepth);
 
-  const getParentId = () => {
+  const getParentId = (): string | null => {
     if (depth === 0 || !previousItem) {
       return null;
     }
 
     if (depth === previousItem.depth) {
-      return previousItem.page.parentPageEntityId;
+      return previousItem.page.parentPageEntityId ?? null;
     }
 
     if (depth > previousItem.depth) {

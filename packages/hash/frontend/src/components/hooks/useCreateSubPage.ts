@@ -12,7 +12,10 @@ import { createPage, setParentPage } from "../../graphql/queries/page.queries";
 
 export const useCreateSubPage = (
   accountId: string,
-): [(parentPageEntityId: string) => Promise<void>, { loading: boolean }] => {
+): [
+  (parentPageEntityId: string, prevIndex: string | null) => Promise<void>,
+  { loading: boolean },
+] => {
   const router = useRouter();
 
   const [createPageFn, { loading: createPageLoading }] = useMutation<
@@ -34,7 +37,7 @@ export const useCreateSubPage = (
   });
 
   const createSubPage = useCallback(
-    async (parentPageEntityId: string) => {
+    async (parentPageEntityId: string, prevIndex: string | null) => {
       const response = await createPageFn({
         variables: { accountId, properties: { title: "Untitled" } },
       });
@@ -48,6 +51,7 @@ export const useCreateSubPage = (
             accountId: pageAccountId,
             pageEntityId,
             parentPageEntityId,
+            prevIndex,
           },
         });
 

@@ -38,6 +38,7 @@ import {
   getProjection,
   getTreeItemList,
   isPageCollapsed,
+  getLastIndex,
   TreeItem,
 } from "./utils";
 import { IDENTATION_WIDTH } from "./page-tree-item";
@@ -92,12 +93,12 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     }
 
     try {
-      await createUntitledPage();
+      await createUntitledPage(getLastIndex(treeItems));
     } catch (err) {
       // eslint-disable-next-line no-console -- TODO: consider using logger
       console.error("Could not create page: ", err);
     }
-  }, [createUntitledPage, loading]);
+  }, [createUntitledPage, loading, treeItems]);
 
   const handleToggle = (nodeId: string) => {
     setExpandedPageIds((expandedIds) =>
@@ -207,8 +208,22 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           .filter(({ page }) => page.parentPageEntityId === parentPageEntityId)
           .findIndex(({ page }) => page.entityId === activeId);
 
+        const parentSortedItems = sortedItems.filter(
+          ({ page }) => page.parentPageEntityId === parentPageEntityId,
+        );
+
+        const beforeIndex = parentSortedItems[newIndex - 1]?.page.index ?? null;
+        const afterIndex = parentSortedItems[newIndex + 1]?.page.index ?? null;
+
         setTreeItems(sortedItems);
-        reorderPage(active.id.toString(), parentPageEntityId, newIndex);
+        reorderPage(
+          active.id.toString(),
+          parentPageEntityId,
+          beforeIndex,
+          afterIndex,
+        ).catch(() => {
+          setTreeItems(getTreeItemList(data));
+        });
       }
     }
   };
@@ -242,7 +257,9 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             expandable={expandable}
             expanded={expanded}
             collapsed={collapsed}
-            createSubPage={createSubPage}
+            createSubPage={async () =>
+              await createSubPage(entityId, getLastIndex(treeItems, entityId))
+            }
             archivePage={archivePage}
           />
         );

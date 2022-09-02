@@ -26,7 +26,7 @@ export interface PageTreeItemProps {
   expanded: boolean;
   expandable: boolean;
   collapsed: boolean;
-  createSubPage: (parentPageEntityId: string) => Promise<void>;
+  createSubPage: () => Promise<void>;
   archivePage: (
     value: boolean,
     accountId: string,

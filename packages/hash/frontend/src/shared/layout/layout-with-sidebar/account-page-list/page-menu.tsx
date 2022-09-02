@@ -10,7 +10,7 @@ import { MenuItem } from "../../../ui";
 type PageMenuProps = {
   popupState: PopupState;
   entityId: string;
-  createSubPage: (parentPageEntityId: string) => Promise<void>;
+  createSubPage: () => Promise<void>;
   archivePage: (
     value: boolean,
     accountId: string,
@@ -42,7 +42,7 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
         onClick: async () => {
           try {
             // @todo handle loading/error states properly
-            await createSubPage(entityId);
+            await createSubPage();
           } catch (err) {
             // eslint-disable-next-line no-console -- TODO: consider using logger
             console.log("err ==> ", err);

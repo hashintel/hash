@@ -13,7 +13,8 @@ export const useReorderPage = (
   (
     pageEntityId: string,
     parentPageEntityId: string | null,
-    index: number,
+    prevIndex: string | null,
+    nextIndex: string | null,
   ) => Promise<void>,
   { loading: boolean },
 ] => {
@@ -34,14 +35,16 @@ export const useReorderPage = (
     async (
       pageEntityId: string,
       parentPageEntityId: string | null,
-      index: number,
+      prevIndex: string | null,
+      nextIndex: string | null,
     ) => {
       await setParentPageFn({
         variables: {
           accountId,
           parentPageEntityId,
           pageEntityId,
-          index,
+          prevIndex,
+          nextIndex,
         },
       });
     },
