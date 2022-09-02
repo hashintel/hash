@@ -9,7 +9,7 @@ export const createPage: ResolverFn<
   MutationCreatePageArgs
 > = async (
   _,
-  { accountId, properties, prevIndex = null },
+  { accountId, properties, prevIndex },
   { dataSources: { db }, user },
 ) => {
   const page = await Page.createPage(db, {
