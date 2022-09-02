@@ -68,6 +68,8 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   const [reorderPage, { loading: reorderLoading }] = useReorderPage(accountId);
   const [archivePage, { loading: archivePageLoading }] = useArchivePage();
 
+  const [initialLoading, setInitialLoading] = useState(true);
+
   const loading =
     pagesLoading ||
     createUntitledPageLoading ||
@@ -128,6 +130,9 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     // If the request fails, pages will be reordered to their original state
     if (!loading) {
       setTreeItems(getTreeItemList(data));
+      if (initialLoading) {
+        setInitialLoading(false);
+      }
     }
   }, [data, loading]);
 
@@ -308,7 +313,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             loading,
           }}
         >
-          {pagesLoading ? (
+          {initialLoading ? (
             <PagesLoadingState />
           ) : (
             <Box sx={{ marginX: 0.75 }}>
