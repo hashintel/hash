@@ -301,7 +301,7 @@ pub trait EntityTypeStore: for<'q> crud::Read<PersistedEntityType, Query<'q> = E
         created_by: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError>;
 
-    /// Get the [`EntityType`]s specified by the [`EntityTypeQuery`].
+    /// Get the [`EntityType`]s specified by the [`Expression`].
     ///
     /// # Errors
     ///
