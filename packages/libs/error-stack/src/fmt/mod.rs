@@ -33,7 +33,7 @@
 //! [`Report::install_debug_hook`].
 //! This type needs to be `'static`, [`Send`], and [`Sync`].
 //!
-//! You can emit lines, which decide what is going to be emitted during printed with
+//! You can emit lines, which decide what is going to be emitted during printing with
 //! [`HookContext::emit`] and [`HookContext::emit_deferred`], refer to the documentation of
 //! [`HookContext`] for further information.
 //!
@@ -82,7 +82,7 @@
 //!     ctx.emit(format!("Warning ({idx}) occurred"));
 //!  });
 //!
-//! // here we use [`emit_defer()`], this means that this value will be put at the end of the group.
+//! // here we use `emit_deferred()`, this means that this value will be put at the end of the group.
 //! Report::install_debug_hook::<Info>(|Info(val), ctx| {
 //!     ctx.emit_deferred(format!("Info: {val}"));
 //! });
