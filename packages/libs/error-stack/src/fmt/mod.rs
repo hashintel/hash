@@ -177,8 +177,9 @@ pub(crate) enum Emit {
     /// Line is going to be emitted after all immediate lines have been emitted from the current
     /// stack.
     /// This means that deferred lines will always be last in a group.
-    // Reason: We could in theory dead-code, but that would hurt readability in the rendering
-    // process.
+    // Reason: in theory we could only conditionally create this variant in std, but that would
+    //  hurt readability in the generation process, instead we opt for `dead_code`, which will
+    //  disable the warning.
     #[cfg_attr(not(feature = "std"), allow(dead_code))]
     Defer(String),
     /// Going to be emitted immediately as the next line in the chain of

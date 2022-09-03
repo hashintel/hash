@@ -294,7 +294,7 @@ impl Report<()> {
     /// </pre>
     #[cfg(feature = "std")]
     pub fn install_debug_hook_fallback(
-        hook: impl for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) + Send + Sync + 'static,
+        hook: impl Fn(&Frame, &mut HookContext<Frame>) + Send + Sync + 'static,
     ) {
         let mut lock = FMT_HOOK.write().expect("should not be poisoned");
         lock.fallback(hook);

@@ -110,7 +110,6 @@ impl<'a> HookContextInner<'a> {
 ///
 /// ### Example
 ///
-/// TODO: add example of `snippets` deferred
 /// ```rust
 /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
 /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
@@ -180,12 +179,24 @@ impl<'a> HookContextInner<'a> {
 /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap")].assert_eq(&render(format!("{report:?}")));
 /// #
 /// println!("{report:?}");
+///
+/// # #[cfg(rust_1_65)]
+/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit_alt.snap")].assert_eq(&render(format!("{report:#?}")));
+/// #
+/// println!("{report:#?}");
 /// ```
+///
+/// The output of `println!("{report:?}")`:
 ///
 /// <pre>
 #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap"))]
 /// </pre>
 ///
+/// The output of `println!("{report:#?}")`:
+///
+/// <pre>
+#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit_alt.snap"))]
+/// </pre>
 ///
 /// ## Storage
 ///
@@ -778,7 +789,7 @@ type BoxedHook =
 type BoxedFallbackHook = Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) + Send + Sync>;
 
 fn into_boxed_hook<T: Send + Sync + 'static>(
-    hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) + Send + Sync + 'static,
+    hook: impl Fn(&T, &mut HookContext<T>) + Send + Sync + 'static,
 ) -> BoxedHook {
     Box::new(move |frame: &Frame, ctx: &mut HookContext<Frame>| {
         #[cfg(nightly)]
@@ -835,7 +846,7 @@ pub(crate) struct Hooks {
 impl Hooks {
     pub(crate) fn insert<T: Send + Sync + 'static>(
         &mut self,
-        hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) + Send + Sync + 'static,
+        hook: impl Fn(&T, &mut HookContext<T>) + Send + Sync + 'static,
     ) {
         let type_id = TypeId::of::<T>();
 
@@ -847,7 +858,7 @@ impl Hooks {
 
     pub(crate) fn fallback(
         &mut self,
-        hook: impl for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) + Send + Sync + 'static,
+        hook: impl Fn(&Frame, &mut HookContext<Frame>) + Send + Sync + 'static,
     ) {
         self.fallback = Some(Box::new(hook));
     }
