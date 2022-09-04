@@ -162,8 +162,6 @@ use core::{
 #[cfg(feature = "std")]
 pub use hook::HookContext;
 #[cfg(feature = "std")]
-use hook::HookContextImpl;
-#[cfg(feature = "std")]
 pub(crate) use hook::{install_builtin_hooks, Hooks};
 #[cfg(feature = "pretty-print")]
 use owo_colors::{OwoColorize, Stream::Stdout, Style as OwOStyle};
@@ -755,7 +753,7 @@ fn debug_attachments_order(emits: impl Iterator<Item = Emit>) -> Vec<String> {
 
 fn debug_attachments_invoke(
     frames: Vec<&Frame>,
-    #[cfg(feature = "std")] ctx: &mut HookContextImpl,
+    #[cfg(feature = "std")] ctx: &mut HookContext<Frame>,
 ) -> (Opaque, Vec<String>, Vec<String>) {
     let mut opaque = Opaque::new();
 
@@ -764,9 +762,8 @@ fn debug_attachments_invoke(
         .map(|frame| match frame.kind() {
             #[cfg(feature = "std")]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
-                let mut ctx = ctx.as_hook_context();
-                Report::get_debug_format_hook(|hooks| hooks.call(frame, &mut ctx));
-                ctx.into_parts()
+                Report::get_debug_format_hook(|hooks| hooks.call(frame, ctx));
+                ctx.take_emits()
             }
             #[cfg(not(feature = "std"))]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
@@ -798,7 +795,7 @@ fn debug_attachments(
     loc: Option<Line>,
     position: Position,
     frames: Vec<&Frame>,
-    #[cfg(feature = "std")] ctx: &mut HookContextImpl,
+    #[cfg(feature = "std")] ctx: &mut HookContext<Frame>,
 ) -> Lines {
     let last = matches!(position, Position::Final);
 
@@ -812,7 +809,7 @@ fn debug_attachments(
     let opaque = opaque.render();
 
     #[cfg(feature = "std")]
-    ctx.snippets.append(&mut snippets);
+    ctx.append_snippet_string(&mut snippets);
 
     // calculate the len, combine next and defer emitted values into a single stream
     let len = emits.len() + loc.as_ref().map_or(0, |_| 1) + opaque.as_ref().map_or(0, |_| 1);
@@ -936,7 +933,7 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
 fn debug_frame(
     root: &Frame,
     prefix: &[&Frame],
-    #[cfg(feature = "std")] ctx: &mut HookContextImpl,
+    #[cfg(feature = "std")] ctx: &mut HookContext<Frame>,
 ) -> Vec<Lines> {
     let (stack, sources) = collect(root, prefix);
     let (stack, prefix) = partition(&stack);
@@ -1023,7 +1020,7 @@ impl<C> Debug for Report<C> {
         }
 
         #[cfg(feature = "std")]
-        let mut ctx = HookContextImpl::new(fmt.alternate());
+        let mut ctx = HookContext::new(fmt.alternate());
 
         #[cfg_attr(not(feature = "std"), allow(unused_mut))]
         let mut lines = self
@@ -1059,8 +1056,8 @@ impl<C> Debug for Report<C> {
             // only output detailed information (like backtraces), if alternate mode is enabled, or
             // the snippet has been forced.
             let suffix = ctx
-                .snippets
-                .into_iter()
+                .snippet_strings()
+                .iter()
                 .map(
                     // remove all trailing newlines for a more uniform look
                     |snippet| snippet.trim_end_matches('\n').to_owned(),
