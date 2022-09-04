@@ -66,6 +66,7 @@ impl HookContextInner<'_> {
         self.inner.alternate
     }
 
+    // Reason: false-positive
     #[allow(clippy::missing_const_for_fn)]
     fn into_parts(self) -> (Vec<Emit>, Vec<Emit>) {
         (self.emits, self.snippets)
@@ -593,6 +594,7 @@ impl<'a, T> HookContext<'a, T> {
         self.inner.storage_mut()
     }
 
+    // Reason: false-positive
     #[allow(clippy::missing_const_for_fn)]
     pub(crate) fn into_parts(self) -> (Vec<Emit>, Vec<Emit>) {
         self.inner.into_parts()
