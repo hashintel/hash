@@ -11,7 +11,7 @@ use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store},
     knowledge::{EntityId, Link, OutgoingLinks},
     ontology::AccountId,
-    store::{error::QueryError, query::LinkQuery, LinkStore, StorePool},
+    store::{error::QueryError, query::Expression, LinkStore, StorePool},
 };
 
 #[derive(OpenApi)]
@@ -125,13 +125,12 @@ async fn create_link<P: StorePool + Send>(
 async fn get_entity_links<P: StorePool + Send>(
     Path(source_entity_id): Path<EntityId>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<OutgoingLinks>, StatusCode> {
+) -> Result<Json<Vec<Link>>, StatusCode> {
     read_from_store(
         pool.as_ref(),
-        &LinkQuery::new().by_source_entity_id(source_entity_id),
+        &Expression::for_link_by_source_entity_id(source_entity_id),
     )
     .await
-    .and_then(|mut links| links.pop().ok_or(StatusCode::NOT_FOUND))
     .map(Json)
 }
 

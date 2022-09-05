@@ -7,19 +7,16 @@ mod property_type;
 
 use std::str::FromStr;
 
-use error_stack::Result;
+use error_stack::{Report, Result};
 use graph::{
-    knowledge::{
-        Entity, EntityId, Link, OutgoingLinkTarget, OutgoingLinks, PersistedEntity,
-        PersistedEntityIdentifier,
-    },
+    knowledge::{Entity, EntityId, Link, PersistedEntity, PersistedEntityIdentifier},
     ontology::{
         AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
         PersistedOntologyIdentifier, PersistedPropertyType,
     },
     store::{
         error::LinkActivationError,
-        query::{Expression, LinkQuery},
+        query::{Expression, Literal, Path, PathSegment},
         AccountStore, AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
         EntityTypeStore, InsertionError, LinkStore, LinkTypeStore, PostgresStore,
         PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
@@ -306,35 +303,51 @@ impl DatabaseApi<'_> {
         &self,
         source_entity_id: EntityId,
         link_type_uri: VersionedUri,
-    ) -> Result<OutgoingLinkTarget, QueryError> {
+    ) -> Result<Link, QueryError> {
         Ok(self
             .store
-            .get_links(
-                &LinkQuery::new()
-                    .by_source_entity_id(source_entity_id)
-                    .by_link_types(|link_types| {
-                        link_types
-                            .by_uri(link_type_uri.base_uri())
-                            .by_version(link_type_uri.version())
+            .get_links(&Expression::All(vec![
+                Expression::for_link_by_source_entity_id(source_entity_id),
+                Expression::Eq(vec![
+                    Expression::Path(Path {
+                        segments: vec![
+                            PathSegment {
+                                identifier: "type".to_owned(),
+                            },
+                            PathSegment {
+                                identifier: "uri".to_owned(),
+                            },
+                        ],
                     }),
-            )
+                    Expression::Literal(Literal::String(link_type_uri.base_uri().to_string())),
+                ]),
+                Expression::Eq(vec![
+                    Expression::Path(Path {
+                        segments: vec![
+                            PathSegment {
+                                identifier: "type".to_owned(),
+                            },
+                            PathSegment {
+                                identifier: "version".to_owned(),
+                            },
+                        ],
+                    }),
+                    Expression::Literal(Literal::Float(link_type_uri.version() as f64)),
+                ]),
+            ]))
             .await?
             .pop()
-            .expect("no link found")
-            .outgoing()[&link_type_uri]
+            .ok_or_else(|| Report::new(QueryError).attach_printable("no link found"))?
             .clone())
     }
 
     pub async fn get_entity_links(
         &self,
         source_entity_id: EntityId,
-    ) -> Result<OutgoingLinks, QueryError> {
-        Ok(self
-            .store
-            .get_links(&LinkQuery::new().by_source_entity_id(source_entity_id))
-            .await?
-            .pop()
-            .expect("no links found"))
+    ) -> Result<Vec<Link>, QueryError> {
+        self.store
+            .get_links(&Expression::for_link_by_source_entity_id(source_entity_id))
+            .await
     }
 
     async fn remove_link(

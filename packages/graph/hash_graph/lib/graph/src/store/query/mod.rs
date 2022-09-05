@@ -235,6 +235,23 @@ impl Expression {
             ]),
         ])
     }
+
+    #[must_use]
+    pub fn for_link_by_source_entity_id(id: EntityId) -> Self {
+        Self::Eq(vec![
+            Self::Path(Path {
+                segments: vec![
+                    PathSegment {
+                        identifier: "source".to_owned(),
+                    },
+                    PathSegment {
+                        identifier: "id".to_owned(),
+                    },
+                ],
+            }),
+            Self::Literal(Literal::String(id.to_string())),
+        ])
+    }
 }
 
 #[derive(Debug)]

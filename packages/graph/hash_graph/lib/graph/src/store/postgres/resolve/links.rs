@@ -43,6 +43,7 @@ pub async fn read_all_active_links(client: &impl AsClient) -> Result<RecordStrea
             r#"
             SELECT base_uri, version, source_entity_id, target_entity_id, created_by, active
             FROM links
+            JOIN ids ON version_id = link_type_version_id
             WHERE active
             "#,
             parameter_list([]),
