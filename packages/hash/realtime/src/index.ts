@@ -272,7 +272,7 @@ const main = async () => {
       ]);
     } catch (error) {
       logger.error(
-        "And error occoured while polling/updating replication owner.",
+        "An error occoured while polling/updating replication owner.",
         error,
       );
     }
