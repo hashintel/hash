@@ -1,6 +1,3 @@
-mod knowledge;
-mod ontology;
-
 use std::{error::Error, fmt, ops::Not, str::FromStr};
 
 use async_trait::async_trait;
@@ -10,10 +7,6 @@ use futures::{future::BoxFuture, FutureExt};
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
 
-pub use self::{
-    knowledge::LinkQuery,
-    ontology::{LinkTypeQuery, OntologyQuery, OntologyVersion},
-};
 use crate::knowledge::EntityId;
 
 #[derive(Clone, Serialize, Deserialize)]
