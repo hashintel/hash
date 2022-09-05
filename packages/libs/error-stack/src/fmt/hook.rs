@@ -252,7 +252,7 @@ impl HookContextInner {
 #[repr(transparent)]
 pub struct HookContext<T> {
     inner: HookContextInner,
-    _marker: PhantomData<T>,
+    _marker: PhantomData<fn(&T)>,
 }
 
 impl<T> HookContext<T> {
