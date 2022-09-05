@@ -6,7 +6,7 @@ use futures::{stream, StreamExt, TryStreamExt};
 use type_system::{uri::VersionedUri, EntityType, PropertyType};
 
 use crate::store::{
-    postgres::resolve::{PostgresContext, Record},
+    postgres::resolve::{OntologyRecord, PostgresContext},
     query::{
         Literal, PathSegment, Resolve, ResolveError, UNIMPLEMENTED_LITERAL_OBJECT,
         UNIMPLEMENTED_WILDCARDS,
@@ -97,7 +97,7 @@ async fn resolve_link_types(
 }
 
 #[async_trait]
-impl<C> Resolve<C> for Record<EntityType>
+impl<C> Resolve<C> for OntologyRecord<EntityType>
 where
     C: PostgresContext + Sync,
 {

@@ -4,7 +4,7 @@ use futures::stream::{self, StreamExt, TryStreamExt};
 use type_system::{DataType, PropertyType};
 
 use crate::store::{
-    postgres::resolve::{PostgresContext, Record},
+    postgres::resolve::{OntologyRecord, PostgresContext},
     query::{
         Literal, PathSegment, Resolve, ResolveError, UNIMPLEMENTED_LITERAL_OBJECT,
         UNIMPLEMENTED_WILDCARDS,
@@ -12,7 +12,7 @@ use crate::store::{
 };
 
 #[async_trait]
-impl<C> Resolve<C> for Record<PropertyType>
+impl<C> Resolve<C> for OntologyRecord<PropertyType>
 where
     C: PostgresContext + Sync,
 {
