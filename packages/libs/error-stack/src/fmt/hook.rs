@@ -249,6 +249,9 @@ impl HookContextInner {
 /// </pre>
 ///
 /// [`Debug`]: core::fmt::Debug
+// TODO: ideally we would want to make `HookContextInner` private, as it is an implementation
+//  detail, but "attribute privacy" as outlined in https://github.com/rust-lang/rust/pull/61969
+//  is currently not implemented for repr(transparent).
 #[repr(transparent)]
 pub struct HookContext<T> {
     inner: HookContextInner,
