@@ -63,7 +63,7 @@ const acquireReplicationSlot = async (
             -- Second argument to this calls specifies whether or not the replication
             -- slot is temporary.
             select 1 from pg_create_logical_replication_slot(${slotName}, 'wal2json', ${
-    options.temporary ?? false
+    options.temporary ?? true
   })
           )
           else 1
