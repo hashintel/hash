@@ -181,6 +181,7 @@ async fn get_data_type<P: StorePool + Send>(
 struct UpdateDataTypeRequest {
     #[component(value_type = VAR_UPDATE_DATA_TYPE)]
     schema: serde_json::Value,
+    #[component(value_type = String)]
     type_to_update: VersionedUri,
     account_id: AccountId,
 }

@@ -182,6 +182,7 @@ async fn get_property_type<P: StorePool + Send>(
 struct UpdatePropertyTypeRequest {
     #[component(value_type = VAR_UPDATE_PROPERTY_TYPE)]
     schema: serde_json::Value,
+    #[component(value_type = String)]
     type_to_update: VersionedUri,
     account_id: AccountId,
 }

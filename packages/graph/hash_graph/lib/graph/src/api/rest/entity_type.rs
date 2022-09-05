@@ -182,6 +182,7 @@ async fn get_entity_type<P: StorePool + Send>(
 struct UpdateEntityTypeRequest {
     #[component(value_type = VAR_UPDATE_ENTITY_TYPE)]
     schema: serde_json::Value,
+    #[component(value_type = String)]
     type_to_update: VersionedUri,
     account_id: AccountId,
 }

@@ -180,6 +180,7 @@ async fn get_link_type<P: StorePool + Send>(
 struct UpdateLinkTypeRequest {
     #[component(value_type = VAR_UPDATE_LINK_TYPE)]
     schema: serde_json::Value,
+    #[component(value_type = String)]
     type_to_update: VersionedUri,
     account_id: AccountId,
 }
