@@ -12,6 +12,7 @@ use core::{
     any::{Any, TypeId},
     marker::PhantomData,
 };
+use std::mem;
 
 #[cfg(feature = "std")]
 pub(crate) use default::install_builtin_hooks;
@@ -20,65 +21,51 @@ use crate::fmt::{Emit, Frame};
 
 type Storage = BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>;
 
-#[derive(Debug, Default)]
-pub(crate) struct HookContextImpl {
-    pub(crate) snippets: Vec<String>,
-    alternate: bool,
-
-    storage: Storage,
-}
-
-impl HookContextImpl {
-    pub(crate) fn new(alternate: bool) -> Self {
-        Self {
-            snippets: Vec::new(),
-            alternate,
-            storage: BTreeMap::new(),
-        }
-    }
-
-    pub(crate) fn as_hook_context<T>(&mut self) -> HookContext<'_, T> {
-        HookContext {
-            inner: HookContextInner::new(self),
-            _marker: PhantomData::default(),
-        }
-    }
-}
-
 #[derive(Debug)]
-pub(crate) struct HookContextInner<'a> {
-    inner: &'a mut HookContextImpl,
+pub(crate) struct HookContextInner {
+    storage: Storage,
 
+    alternate: bool,
     emits: Vec<Emit>,
     snippets: Vec<Emit>,
+
+    snippet_strings: Vec<String>,
 }
 
-impl HookContextInner<'_> {
+impl HookContextInner {
     fn storage(&self) -> &Storage {
-        &self.inner.storage
+        &self.storage
     }
 
     fn storage_mut(&mut self) -> &mut Storage {
-        &mut self.inner.storage
+        &mut self.storage
     }
 
-    fn alternate(&self) -> bool {
-        self.inner.alternate
+    const fn alternate(&self) -> bool {
+        self.alternate
     }
 
-    // Reason: false-positive
-    #[allow(clippy::missing_const_for_fn)]
-    fn into_parts(self) -> (Vec<Emit>, Vec<Emit>) {
-        (self.emits, self.snippets)
+    fn take_emits(&mut self) -> (Vec<Emit>, Vec<Emit>) {
+        (mem::take(&mut self.emits), mem::take(&mut self.snippets))
+    }
+
+    fn append_snippet_string(&mut self, snippets: &mut Vec<String>) {
+        self.snippet_strings.append(snippets);
+    }
+
+    fn snippet_strings(&self) -> &[String] {
+        &self.snippet_strings
     }
 }
 
-impl<'a> HookContextInner<'a> {
-    fn new(inner: &'a mut HookContextImpl) -> Self {
+impl HookContextInner {
+    fn new(alternate: bool) -> Self {
         Self {
-            inner,
+            storage: Storage::default(),
             snippets: Vec::new(),
             emits: Vec::new(),
+            alternate,
+            snippet_strings: vec![],
         }
     }
 }
@@ -263,13 +250,27 @@ impl<'a> HookContextInner<'a> {
 ///
 /// [`Debug`]: core::fmt::Debug
 #[repr(transparent)]
-pub struct HookContext<'a, T> {
-    inner: HookContextInner<'a>,
-
+pub struct HookContext<T> {
+    inner: HookContextInner,
     _marker: PhantomData<T>,
 }
 
-impl<T> HookContext<'_, T> {
+impl<T> HookContext<T> {
+    pub(crate) fn new(alternate: bool) -> Self {
+        Self {
+            inner: HookContextInner::new(alternate),
+            _marker: PhantomData,
+        }
+    }
+
+    pub(crate) fn append_snippet_string(&mut self, snippets: &mut Vec<String>) {
+        self.inner.append_snippet_string(snippets);
+    }
+
+    pub(crate) fn snippet_strings(&self) -> &[String] {
+        self.inner.snippet_strings()
+    }
+
     /// This snippet (which can include line breaks) will be appended to the
     /// main message.
     ///
@@ -509,9 +510,7 @@ impl<T> HookContext<'_, T> {
     pub fn emit_deferred(&mut self, line: impl Into<String>) {
         self.inner.emits.push(Emit::defer(line));
     }
-}
 
-impl<'a, T> HookContext<'a, T> {
     /// Cast the [`HookContext`] to a new type `U`.
     ///
     /// The storage of [`HookContext`] is partitioned, meaning that if `T` and `U` are different
@@ -572,17 +571,17 @@ impl<'a, T> HookContext<'a, T> {
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_cast.snap"))]
     /// </pre>
     #[must_use]
-    pub fn cast<U>(&mut self) -> &mut HookContext<'a, U> {
+    pub fn cast<U>(&mut self) -> &mut HookContext<U> {
         // SAFETY: `HookContext` is marked as repr(transparent) and the generic is only used inside
         // of the `PhantomData`
-        unsafe { &mut *(self as *mut HookContext<T>).cast::<HookContext<U>>() }
+        unsafe { &mut *(self as *mut Self).cast::<HookContext<U>>() }
     }
 
     /// Returns if the currently requested format should render the alternate representation.
     ///
     /// This corresponds to the output of [`std::fmt::Formatter::alternate`].
     #[must_use]
-    pub fn alternate(&self) -> bool {
+    pub const fn alternate(&self) -> bool {
         self.inner.alternate()
     }
 
@@ -594,14 +593,12 @@ impl<'a, T> HookContext<'a, T> {
         self.inner.storage_mut()
     }
 
-    // Reason: false-positive
-    #[allow(clippy::missing_const_for_fn)]
-    pub(crate) fn into_parts(self) -> (Vec<Emit>, Vec<Emit>) {
-        self.inner.into_parts()
+    pub(crate) fn take_emits(&mut self) -> (Vec<Emit>, Vec<Emit>) {
+        self.inner.take_emits()
     }
 }
 
-impl<T: 'static> HookContext<'_, T> {
+impl<T: 'static> HookContext<T> {
     /// Return a reference to a value of type `U`, if a value of that type exists.
     ///
     /// Values returned are isolated and therefore "bound" to `T`, this means that if two different
@@ -786,9 +783,8 @@ impl<T: 'static> HookContext<'_, T> {
     }
 }
 
-type BoxedHook =
-    Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Option<()> + Send + Sync>;
-type BoxedFallbackHook = Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) + Send + Sync>;
+type BoxedHook = Box<dyn Fn(&Frame, &mut HookContext<Frame>) -> Option<()> + Send + Sync>;
+type BoxedFallbackHook = Box<dyn Fn(&Frame, &mut HookContext<Frame>) + Send + Sync>;
 
 fn into_boxed_hook<T: Send + Sync + 'static>(
     hook: impl Fn(&T, &mut HookContext<T>) + Send + Sync + 'static,
@@ -865,7 +861,7 @@ impl Hooks {
         self.fallback = Some(Box::new(hook));
     }
 
-    pub(crate) fn call<'a>(&self, frame: &Frame, ctx: &mut HookContext<'a, Frame>) {
+    pub(crate) fn call(&self, frame: &Frame, ctx: &mut HookContext<Frame>) {
         // by checking the times we actually invoked a function we make sure that
         // even if we only emit snippets, or have purposely not emitted anything don't use the
         // fallback.
