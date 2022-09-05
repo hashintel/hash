@@ -7,7 +7,7 @@ use crate::{
     store::{
         postgres::{
             ontology::OntologyDatabaseType,
-            resolve::{entity, entity::EntityRecord, ontology, OntologyRecord},
+            resolve::{entity, entity::EntityRecord, links, ontology, OntologyRecord},
         },
         AsClient, PostgresStore, QueryError,
     },
@@ -40,6 +40,8 @@ pub trait PostgresContext {
         &self,
         entity_id: EntityId,
     ) -> Result<EntityRecord, QueryError>;
+
+    async fn read_all_active_links(&self) -> Result<links::RecordStream, QueryError>;
 }
 
 #[async_trait]
@@ -78,5 +80,11 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
         Ok(entity::read_latest_entity_by_id(&self.client, entity_id)
             .await
             .attach_printable("could not read entity")?)
+    }
+
+    async fn read_all_active_links(&self) -> Result<links::RecordStream, QueryError> {
+        Ok(links::read_all_active_links(&self.client)
+            .await
+            .attach_printable("could not read links")?)
     }
 }
