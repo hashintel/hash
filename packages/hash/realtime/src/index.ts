@@ -19,11 +19,8 @@ import {
 
 import { MONITOR_TABLES, generateQueues } from "./config";
 
-// The name of the Postgres logical replication slot
-const SLOT_NAME = "realtime";
-
 // The number of milliseconds between queries to the replication slot
-const POLL_INTERVAL_MILLIS = 150;
+const POLL_INTERVAL_MILLIS = 250;
 
 // An identifier for this instance of the realtime service. It is used to ensure
 // only a single instance of the service is reading from the replication slot
@@ -45,23 +42,44 @@ const logger = new Logger({
 
 const QUEUES = generateQueues(logger);
 
-const acquireSlot = async (pool: PgPool) => {
+const acquireReplicationSlot = async (
+  pool: PgPool,
+  slotName: string,
+  options: { temporary?: boolean },
+) => {
   // Create the slot if it does not exist
+  await pool.query(sql`
+  select
+        case
+          when not exists (
+            select 1
+            from pg_replication_slots
+            where slot_name = ${slotName}
+          )
+          then (
+            -- Second argument to this calls specifies whether or not the replication
+            -- slot is temporary.
+            select 1 from pg_create_logical_replication_slot(${slotName}, 'wal2json', ${
+    options.temporary ?? false
+  })
+          )
+          else 1
+        end;`);
   const slotExists = await pool.exists(sql`
-    select * from pg_replication_slots where slot_name = ${SLOT_NAME}
+    select * from pg_replication_slots where slot_name = ${slotName}
   `);
   if (!slotExists) {
     await pool.query(sql`
-      select * from pg_create_logical_replication_slot(${SLOT_NAME}, 'wal2json')
+      select * from pg_create_logical_replication_slot(${slotName}, 'wal2json')
     `);
-    logger.info(`Created replication slot '${SLOT_NAME}'`);
+    logger.info(`Created replication slot '${slotName}'`);
   }
 
   // Attempt to take ownership of the slot
   const slotAcquired = await pool.transaction(async (tx) => {
     const slotIsOwned = await tx.maybeOneFirst(sql`
       select ownership_expires_at > now() as owned from realtime.ownership
-      where slot_name = ${SLOT_NAME}
+      where slot_name = ${slotName}
       for update
     `);
     if (!slotIsOwned) {
@@ -70,7 +88,7 @@ const acquireSlot = async (pool: PgPool) => {
       } * interval '1 second'`;
       await tx.query(sql`
         insert into realtime.ownership (slot_name, slot_owner, ownership_expires_at)
-        values (${SLOT_NAME}, ${INSTANCE_ID}, ${expires})
+        values (${slotName}, ${INSTANCE_ID}, ${expires})
         on conflict (slot_name) do update
         set
           slot_owner = EXCLUDED.slot_owner,
@@ -86,36 +104,36 @@ const acquireSlot = async (pool: PgPool) => {
 };
 
 /** Update this instance's ownership of the slot. */
-const updateSlotOwnership = async (pool: PgPool) => {
+const updateSlotOwnership = async (pool: PgPool, slotName: string) => {
   await pool.query(sql`
     update realtime.ownership
     set
       ownership_expires_at = now() + ${
         OWNERSHIP_EXPIRY_MILLIS / 1000
       } * interval '1 second'
-    where slot_name = ${SLOT_NAME} and slot_owner = ${INSTANCE_ID}
+    where slot_name = ${slotName} and slot_owner = ${INSTANCE_ID}
   `);
-  logger.debug(`Updated ownership of slot "${SLOT_NAME}"`);
+  logger.debug(`Updated ownership of slot "${slotName}"`);
 };
 
 /** Release ownership of the slot. Does nothing if this instance is not the current
  * owner. */
-const releaseSlotOwnership = async (pool: PgPool) => {
+const releaseSlotOwnership = async (pool: PgPool, slotName: string) => {
   const res = await pool.query(sql`
     delete from realtime.ownership
-    where slot_name = ${SLOT_NAME} and slot_owner = ${INSTANCE_ID}
+    where slot_name = ${slotName} and slot_owner = ${INSTANCE_ID}
   `);
   if (res.rowCount > 0) {
-    logger.debug(`Released ownership of slot "${SLOT_NAME}"`);
+    logger.debug(`Released ownership of slot "${slotName}"`);
   }
 };
 
-const pollChanges = async (pool: PgPool) => {
+const pollChanges = async (pool: PgPool, slotName: string) => {
   // Note: setting 'include-transaction' to 'false' here removes the transaction begin
   // & end messages with action types "B" and "C", respectively. We don't need these.
   const rows = await pool.anyFirst(sql`
     select data::jsonb from pg_logical_slot_get_changes(
-      ${SLOT_NAME},
+      ${slotName},
       null,
       null,
       'add-tables', ${MONITOR_TABLES.join(",")},
@@ -162,34 +180,44 @@ const createHttpServer = () => {
 const main = async () => {
   logger.info("STARTED");
 
+  // The name of the Postgres logical replication slot
+  const slotName = process.env.HASH_REALTIME_SLOT_NAME ?? "realtime";
+
   // Start a HTTP server
   const httpServer = createHttpServer();
   const port = parseInt(process.env.HASH_REALTIME_PORT || "3333", 10);
   httpServer.listen({ host: "::", port });
   logger.info(`HTTP server listening on port ${port}`);
 
-  const pgHost = getRequiredEnv("HASH_PG_HOST");
-  const pgPort = parseInt(getRequiredEnv("HASH_PG_PORT"), 10);
+  const pgHost = process.env.HASH_GRAPH_PG_HOST ?? "localhost";
+  const pgPort = parseInt(process.env.HASH_GRAPH_PG_PORT || "5432", 10);
   await waitOnResource(`tcp:${pgHost}:${pgPort}`, logger);
 
   const pool = createPostgresConnPool(logger, {
-    user: getRequiredEnv("HASH_PG_USER"),
+    user: getRequiredEnv("HASH_GRAPH_REALTIME_PG_USER"),
     host: pgHost,
     port: pgPort,
-    database: getRequiredEnv("HASH_PG_DATABASE"),
-    password: getRequiredEnv("HASH_PG_PASSWORD"),
+    database: getRequiredEnv("HASH_GRAPH_PG_DATABASE"),
+    password: getRequiredEnv("HASH_GRAPH_REALTIME_PG_PASSWORD"),
     maxPoolSize: 1,
   });
 
   // Try to acquire the slot
   let slotAcquired = false;
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
-  const int1 = setInterval(async () => {
-    slotAcquired = await acquireSlot(pool);
+  const slotInterval = setIntervalAsync(async () => {
+    // The replication is set to be temporary because it prevents writing to disk.
+    // If we write the WAL to disk, our DB might halt because of running out of space.
+    // Instead, temporary slots will only store the WAL in memory, and flush when changes are polled.
+    slotAcquired = await acquireReplicationSlot(pool, slotName, {
+      temporary: true,
+    });
     if (slotAcquired) {
-      clearInterval(int1);
-      logger.debug("Acquired slot ownership");
-      return;
+      // The following is a work-around to not deadlock clearing the interval:
+      // https://github.com/ealmansi/set-interval-async/tree/b05a0406a247ab8ad390db5d45d7d7b0a6ee6eff#avoiding-deadlock-when-clearing-an-interval
+      void (async () => {
+        await clearIntervalAsync(slotInterval);
+        logger.debug("Acquired slot ownership");
+      })();
     }
     logger.debug("Slot is owned. Waiting in standby.");
   }, OWNERSHIP_EXPIRY_MILLIS);
@@ -203,11 +231,14 @@ const main = async () => {
   // instance of the callback promise is executed at any given time.
   // We can then also reduce the interval without fear that we will be stacking
   // DB queries unnecessarily.
-  const int2 = setIntervalAsync(async () => {
+  const pollInterval = setIntervalAsync(async () => {
     if (!slotAcquired) {
       return;
     }
-    await Promise.all([pollChanges(pool), updateSlotOwnership(pool)]);
+    await Promise.all([
+      pollChanges(pool, slotName),
+      updateSlotOwnership(pool, slotName),
+    ]);
   }, POLL_INTERVAL_MILLIS);
 
   // Gracefully shutdown on receiving a termination signal.
@@ -218,10 +249,11 @@ const main = async () => {
       return;
     }
     receivedTerminationSignal = true;
-    await clearIntervalAsync(int2);
+    await clearIntervalAsync(slotInterval);
+    await clearIntervalAsync(pollInterval);
 
     // Ownership will expire, but release anyway
-    await releaseSlotOwnership(pool);
+    await releaseSlotOwnership(pool, slotName);
 
     logger.debug("Closing connection pool");
     await pool.end();
