@@ -28,7 +28,13 @@ async fn resolve_properties(
         [head_path_segment, tail_path_segments @ ..] => {
             let uri = BaseUri::new(head_path_segment.identifier.clone())
                 .into_report()
-                .change_context(ResolveError::StoreReadError)?;
+                .change_context(ResolveError::StoreReadError)
+                .attach_printable_lazy(|| {
+                    format!(
+                        "Could not parse {} as base URI",
+                        head_path_segment.identifier
+                    )
+                })?;
             let literal = properties
                 .get(&uri)
                 .cloned()
