@@ -34,7 +34,7 @@ export const updatePropertyTypeMutation = gql`
   mutation updatePropertyType(
     $accountId: ID!
     $propertyTypeVersionedUri: String!
-    $updatedPropertyType: PropertyType!
+    $updatedPropertyType: PropertyTypeWithoutId!
   ) {
     updatePropertyType(
       accountId: $accountId

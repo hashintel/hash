@@ -2,6 +2,7 @@ import { gql } from "apollo-server-express";
 
 export const dataTypeTypedef = gql`
   scalar DataType
+  scalar DataTypeWithoutId
 
   type PersistedDataType {
     """
@@ -34,6 +35,6 @@ export const dataTypeTypedef = gql`
   # have been described and specified as an RFC.
   # extend type Mutation {
   #   createDataType(accountId: ID!, dataType: DataType!): PersistedDataType!
-  #   updateDataType(accountId: ID!, dataType: DataType!): PersistedDataType!
+  #   updateDataType(accountId: ID!, dataType: DataTypeWithoutId!): PersistedDataType!
   # }
 `;

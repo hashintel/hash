@@ -34,7 +34,7 @@ export const updateEntityTypeMutation = gql`
   mutation updateEntityType(
     $accountId: ID!
     $entityTypeVersionedUri: String!
-    $updatedEntityType: EntityType!
+    $updatedEntityType: EntityTypeWithoutId!
   ) {
     updateEntityType(
       accountId: $accountId

@@ -2,6 +2,7 @@ import { gql } from "apollo-server-express";
 
 export const linkTypeTypedef = gql`
   scalar LinkType
+  scalar LinkTypeWithoutId
 
   type PersistedLinkType {
     """
@@ -57,7 +58,7 @@ export const linkTypeTypedef = gql`
       """
       New link type schema contents to be used.
       """
-      updatedLinkType: LinkType!
+      updatedLinkType: LinkTypeWithoutId!
     ): PersistedLinkType!
   }
 `;

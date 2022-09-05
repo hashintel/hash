@@ -34,7 +34,7 @@ export const updateLinkTypeMutation = gql`
   mutation updateLinkType(
     $accountId: ID!
     $linkTypeVersionedUri: String!
-    $updatedLinkType: LinkType!
+    $updatedLinkType: LinkTypeWithoutId!
   ) {
     updateLinkType(
       accountId: $accountId

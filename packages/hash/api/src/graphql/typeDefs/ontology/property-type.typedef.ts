@@ -2,6 +2,7 @@ import { gql } from "apollo-server-express";
 
 export const propertyTypeTypedef = gql`
   scalar PropertyType
+  scalar PropertyTypeWithoutId
 
   type PersistedPropertyType {
     """
@@ -61,7 +62,7 @@ export const propertyTypeTypedef = gql`
       """
       New property type schema contents to be used.
       """
-      updatedPropertyType: PropertyType!
+      updatedPropertyType: PropertyTypeWithoutId!
     ): PersistedPropertyType!
   }
 `;
