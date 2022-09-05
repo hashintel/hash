@@ -65,6 +65,16 @@ export const BlockContextMenuItem = forwardRef<
           })}
       sx={{
         position: "relative",
+        boxShadow: "none !important",
+
+        "&:active": {
+          backgroundColor: ({ palette }) =>
+            `${palette.primary.main} !important`,
+        },
+
+        ...(subMenuPopupState.isOpen && {
+          backgroundColor: ({ palette }) => `${palette.gray[20]} !important`,
+        }),
       }}
     >
       <ListItemIcon>{icon}</ListItemIcon>
