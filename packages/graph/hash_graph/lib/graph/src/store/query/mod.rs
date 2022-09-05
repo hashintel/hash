@@ -34,7 +34,7 @@ pub enum Literal {
     Version(Version, bool),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Version {
     Ontology(u32),
     Entity(DateTime<Utc>),
