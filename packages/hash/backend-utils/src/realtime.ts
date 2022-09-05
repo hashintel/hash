@@ -1,8 +1,4 @@
-import {
-  EntityVersion,
-  AggregationVersion,
-  LinkVersion,
-} from "@hashintel/hash-backend-utils/pgTables";
+import { Entity, Link } from "@hashintel/hash-backend-utils/pgTables";
 
 /**
  * @todo Consider adding realtime handling for types
@@ -19,8 +15,8 @@ export const isSupportedRealtimeTable = (
 
 export type RealtimeMessage =
   | {
-      table: "entity_versions";
-      record: EntityVersion;
+      table: "entities";
+      record: Entity;
     }
-  | { table: "aggregation_versions"; record: AggregationVersion }
-  | { table: "link_versions"; record: LinkVersion };
+  | { table: "links"; record: Link };
+// | { table: "aggregation_versions"; record: AggregationVersion }
