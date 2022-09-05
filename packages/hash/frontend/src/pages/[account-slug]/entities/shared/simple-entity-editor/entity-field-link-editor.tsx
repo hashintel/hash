@@ -3,7 +3,6 @@ import {
   Entity,
   Link,
 } from "@blockprotocol/graph";
-import { JsonObject } from "@blockprotocol/core";
 import {
   ChangeEvent,
   HTMLProps,
@@ -16,7 +15,7 @@ import { tw } from "twind";
 
 import { CreateLinkFnWithFixedSource } from "./types";
 import {
-  guessEntityName,
+  generateEntityLabel,
   parseEntityIdentifier,
 } from "../../../../../lib/entities";
 import { Link as LinkComponent } from "../../../../../shared/ui";
@@ -83,7 +82,7 @@ export const EntityFieldLinkEditor: FunctionComponent<EntitySelectProps> = ({
     })
       .then(({ data }) => {
         if (!data) {
-          throw new Error("No data returned from aggregateEntitites");
+          throw new Error("No data returned from aggregateEntities");
         }
 
         /**
@@ -92,9 +91,9 @@ export const EntityFieldLinkEditor: FunctionComponent<EntitySelectProps> = ({
          * @todo support users defining the JSON Schema uniqueItems property on an array field
          */
         setEntityOptions(
-          data.results.map(({ entityId, ...properties }) => ({
-            entityId,
-            name: guessEntityName({ entityId, ...properties } as JsonObject),
+          data.results.map((entity) => ({
+            entityId: entity.entityId,
+            name: generateEntityLabel(entity),
           })),
         );
       })
@@ -184,7 +183,7 @@ export const EntityFieldLinkEditor: FunctionComponent<EntitySelectProps> = ({
               <div className={tw`flex my-6`} key={link.linkId}>
                 <div className={tw`font-bold w-32`}>
                   <LinkComponent href={`/${accountId}/entities/${entityId}`}>
-                    <a>{guessEntityName(linkedEntity as JsonObject)}</a>
+                    <a>{generateEntityLabel(linkedEntity)}</a>
                   </LinkComponent>
                 </div>
                 <button

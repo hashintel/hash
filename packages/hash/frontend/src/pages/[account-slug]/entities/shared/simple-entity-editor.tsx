@@ -15,7 +15,7 @@ import {
   EntityLinkDefinition,
 } from "./simple-entity-editor/types";
 import { EntityLinksEditor } from "./simple-entity-editor/entity-links-editor";
-import { guessEntityName } from "../../../../lib/entities";
+import { generateEntityLabel } from "../../../../lib/entities";
 
 type SimpleEntityEditorProps = {
   aggregateEntities: EmbedderGraphMessageCallbacks["aggregateEntities"];
@@ -179,7 +179,13 @@ export const SimpleEntityEditor: FunctionComponent<SimpleEntityEditorProps> = ({
 
   const name =
     "entityProperties" in variableProps
-      ? guessEntityName({ properties: variableProps.entityProperties })
+      ? generateEntityLabel(
+          {
+            entityId: variableProps.entityId,
+            properties: variableProps.entityProperties,
+          },
+          schema,
+        )
       : "New Entity";
 
   const createLinkWithFixedSource: CreateLinkFnWithFixedSource | undefined =
