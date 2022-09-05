@@ -358,14 +358,14 @@ pub const UNIMPLEMENTED_WILDCARDS: &str =
     "fine-grained wildcards are not implemented yet, see https://app.asana.com/0/0/1202884883200970/f";
 
 #[async_trait]
-pub trait Resolve<C> {
+pub trait Resolve<C: ?Sized> {
     async fn resolve(&self, path: &[PathSegment], context: &C) -> Result<Literal, ResolveError>;
 }
 
 #[async_trait]
 impl<C> Resolve<C> for Literal
 where
-    C: Sync,
+    C: Sync + ?Sized,
 {
     async fn resolve(&self, path: &[PathSegment], context: &C) -> Result<Literal, ResolveError> {
         // TODO: Support `Literal::Object`

@@ -2,20 +2,14 @@ use async_trait::async_trait;
 use error_stack::{bail, IntoReport, Report, Result, ResultExt};
 use futures::TryStreamExt;
 use tokio_postgres::GenericClient;
-use type_system::{
-    uri::{BaseUri, VersionedUri},
-    LinkType,
-};
+use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::{
     knowledge::{EntityId, Link, OutgoingLinkTarget, OutgoingLinks},
     store::{
         crud,
-        postgres::resolve::{LinkRecord, PostgresContext},
-        query::{
-            Expression, ExpressionError, Literal, PathSegment, Resolve, ResolveError,
-            UNIMPLEMENTED_LITERAL_OBJECT,
-        },
+        postgres::context::PostgresContext,
+        query::{Expression, ExpressionError, Literal},
         AsClient, PostgresStore, QueryError,
     },
 };
@@ -152,54 +146,7 @@ async fn by_link_type_by_source_entity_id(
     )])
 }
 
-#[async_trait]
-impl<C> Resolve<C> for LinkRecord
-where
-    C: PostgresContext + Sync,
-{
-    async fn resolve(&self, path: &[PathSegment], context: &C) -> Result<Literal, ResolveError> {
-        match path {
-            [] => todo!("{}", UNIMPLEMENTED_LITERAL_OBJECT),
-            [head_path_segment, tail_path_segments @ ..] => {
-                let literal = match head_path_segment.identifier.as_str() {
-                    "type" => {
-                        return context
-                            .read_versioned_ontology_type::<LinkType>(&self.type_uri)
-                            .await
-                            .change_context(ResolveError::StoreReadError)?
-                            .resolve(tail_path_segments, context)
-                            .await;
-                    }
-                    "source" => {
-                        return context
-                            .read_latest_entity_by_id(self.source_entity_id)
-                            .await
-                            .change_context(ResolveError::StoreReadError)?
-                            .resolve(tail_path_segments, context)
-                            .await;
-                    }
-                    "target" => {
-                        return context
-                            .read_latest_entity_by_id(self.target_entity_id)
-                            .await
-                            .change_context(ResolveError::StoreReadError)?
-                            .resolve(tail_path_segments, context)
-                            .await;
-                    }
-                    "active" => Literal::Bool(self.is_active),
-                    _ => Literal::Null,
-                };
-
-                if tail_path_segments.is_empty() {
-                    Ok(literal)
-                } else {
-                    literal.resolve(tail_path_segments, context).await
-                }
-            }
-        }
-    }
-}
-
+// TODO: we should probably support taking PersistedEntityIdentifier here as well as an EntityId
 #[async_trait]
 impl<C: AsClient> crud::Read<Link> for PostgresStore<C> {
     type Query<'q> = Expression;
