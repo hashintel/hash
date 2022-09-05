@@ -42,6 +42,16 @@ pub trait PostgresContext {
     ) -> Result<EntityRecord, QueryError>;
 
     async fn read_all_active_links(&self) -> Result<links::RecordStream, QueryError>;
+
+    async fn read_active_links_by_source(
+        &self,
+        entity_id: EntityId,
+    ) -> Result<links::RecordStream, QueryError>;
+
+    async fn read_active_links_by_target(
+        &self,
+        entity_id: EntityId,
+    ) -> Result<links::RecordStream, QueryError>;
 }
 
 #[async_trait]
@@ -84,6 +94,24 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
 
     async fn read_all_active_links(&self) -> Result<links::RecordStream, QueryError> {
         Ok(links::read_all_active_links(&self.client)
+            .await
+            .attach_printable("could not read links")?)
+    }
+
+    async fn read_active_links_by_source(
+        &self,
+        entity_id: EntityId,
+    ) -> Result<links::RecordStream, QueryError> {
+        Ok(links::read_active_links_by_source(&self.client, entity_id)
+            .await
+            .attach_printable("could not read links")?)
+    }
+
+    async fn read_active_links_by_target(
+        &self,
+        entity_id: EntityId,
+    ) -> Result<links::RecordStream, QueryError> {
+        Ok(links::read_active_links_by_target(&self.client, entity_id)
             .await
             .attach_printable("could not read links")?)
     }

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use error_stack::{bail, IntoReport, Report, Result, ResultExt};
-use futures::TryStreamExt;
+use futures::{StreamExt, TryStreamExt};
 use type_system::{uri::BaseUri, EntityType};
 
 use crate::{
@@ -71,8 +71,48 @@ where
                             .resolve(tail_path_segments, context)
                             .await;
                     }
-                    "properties" => return resolve_properties(self.entity.properties(), tail_path_segments, context).await,
-                    "outgoingLinks" | "incomingLinks" => todo!("links are not supported yet, see https://app.asana.com/0/0/1202912966917503/f"),
+                    "properties" => {
+                        return resolve_properties(
+                            self.entity.properties(),
+                            tail_path_segments,
+                            context,
+                        )
+                        .await;
+                    }
+                    "outgoingLinks" => {
+                        // TODO: Use relation tables
+                        //   see https://app.asana.com/0/0/1202884883200942/f
+                        return Ok(Literal::List(
+                            context
+                                .read_active_links_by_source(self.id)
+                                .await
+                                .change_context(ResolveError::StoreReadError)?
+                                .then(|link| async {
+                                    link.change_context(ResolveError::StoreReadError)?
+                                        .resolve(tail_path_segments, context)
+                                        .await
+                                })
+                                .try_collect()
+                                .await?,
+                        ));
+                    }
+                    "incomingLinks" => {
+                        // TODO: Use relation tables
+                        //   see https://app.asana.com/0/0/1202884883200942/f
+                        return Ok(Literal::List(
+                            context
+                                .read_active_links_by_target(self.id)
+                                .await
+                                .change_context(ResolveError::StoreReadError)?
+                                .then(|link| async {
+                                    link.change_context(ResolveError::StoreReadError)?
+                                        .resolve(tail_path_segments, context)
+                                        .await
+                                })
+                                .try_collect()
+                                .await?,
+                        ));
+                    }
                     _ => Literal::Null,
                 };
 
