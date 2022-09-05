@@ -29,7 +29,7 @@ Accept: application/json
   "accountId": "{{account_id}}",
   "schema": {
     "kind": "dataType",
-    "$id": "https://example.com/data-type/text/v/1",
+    "$id": "http://localhost:3000/@alice/types/data-type/text/v/1",
     "title": "Text",
     "type": "string"
   }
@@ -58,9 +58,9 @@ Accept: application/json
 
 {
   "accountId": "{{account_id}}",
+  "typeToUpdate": "http://localhost:3000/@alice/types/data-type/text/v/1",
   "schema": {
     "kind": "dataType",
-    "$id": "https://example.com/data-type/text/v/2",
     "title": "Text",
     "description": "An ordered sequence of characters",
     "type": "string"
@@ -82,12 +82,12 @@ Accept: application/json
   "accountId": "{{account_id}}",
   "schema": {
     "kind": "propertyType",
-    "$id": "https://blockprotocol.org/@alice/types/property-type/name/v/1",
+    "$id": "http://localhost:3000/@alice/types/property-type/name/v/1",
     "title": "Name",
     "pluralTitle": "Names",
     "oneOf": [
       {
-        "$ref": "https://example.com/data-type/text/v/1"
+        "$ref": "http://localhost:3000/@alice/types/data-type/text/v/1"
       }
     ]
   }
@@ -116,14 +116,14 @@ Accept: application/json
 
 {
   "accountId": "{{account_id}}",
+  "typeToUpdate": "http://localhost:3000/@alice/types/property-type/name/v/1",
   "schema": {
     "kind": "propertyType",
-    "$id": "https://blockprotocol.org/@alice/types/property-type/name/v/2",
     "title": "Name",
     "pluralTitle": "Names",
     "oneOf": [
       {
-        "$ref": "https://example.com/data-type/text/v/2"
+        "$ref": "http://localhost:3000/@alice/types/data-type/text/v/2"
       }
     ]
   }
@@ -154,7 +154,7 @@ Accept: application/json
   "accountId": "{{account_id}}",
   "schema": {
     "kind": "linkType",
-    "$id": "https://blockprotocol.org/@alice/types/link-type/friend-of/v/1",
+    "$id": "http://localhost:3000/@alice/types/link-type/friend-of/v/1",
     "title": "Friend Of",
     "pluralTitle": "Friends Of",
     "description": "Someone who has a shared bond of mutual affection",
@@ -186,9 +186,9 @@ Accept: application/json
 
 {
   "accountId": "{{account_id}}",
+  "typeToUpdate": "http://localhost:3000/@alice/types/link-type/friend-of/v/1",
   "schema": {
     "kind": "linkType",
-    "$id": "https://blockprotocol.org/@alice/types/link-type/friend-of/v/2",
     "title": "Friend Of",
     "pluralTitle": "Friends Of",
     "description": "Someone who has a shared bond of mutual affection",
@@ -223,13 +223,13 @@ Accept: application/json
   "accountId": "{{account_id}}",
   "schema": {
     "kind": "entityType",
-    "$id": "https://blockprotocol.org/@alice/types/entity-type/person/v/1",
+    "$id": "http://localhost:3000/@alice/types/entity-type/person/v/1",
     "type": "object",
     "title": "Person",
     "pluralTitle": "People",
     "properties": {
-      "https://blockprotocol.org/@alice/types/property-type/name/": {
-        "$ref": "https://blockprotocol.org/@alice/types/property-type/name/v/1"
+      "http://localhost:3000/@alice/types/property-type/name/": {
+        "$ref": "http://localhost:3000/@alice/types/property-type/name/v/1"
       }
     }
   }
@@ -258,22 +258,22 @@ Accept: application/json
 
 {
   "accountId": "{{account_id}}",
+  "typeToUpdate": "http://localhost:3000/@alice/types/entity-type/person/v/1",
   "schema": {
     "kind": "entityType",
-    "$id": "https://blockprotocol.org/@alice/types/entity-type/person/v/2",
     "type": "object",
     "title": "Person",
     "pluralTitle": "People",
     "properties": {
-      "https://blockprotocol.org/@alice/types/property-type/name/": {
-        "$ref": "https://blockprotocol.org/@alice/types/property-type/name/v/2"
+      "http://localhost:3000/@alice/types/property-type/name/": {
+        "$ref": "http://localhost:3000/@alice/types/property-type/name/v/2"
       }
     },
     "links": {
-      "https://blockprotocol.org/@alice/types/link-type/friend-of/v/2": {
+      "http://localhost:3000/@alice/types/link-type/friend-of/v/2": {
         "type": "array",
         "items": {
-          "$ref": "https://blockprotocol.org/@alice/types/entity-type/person/v/2"
+          "$ref": "http://localhost:3000/@alice/types/entity-type/person/v/2"
         },
         "ordered": false
       }
@@ -306,9 +306,9 @@ Accept: application/json
 {
   "accountId": "{{account_id}}",
   "entity": {
-    "https://blockprotocol.org/@alice/types/property-type/name/": "Alice"
+    "http://localhost:3000/@alice/types/property-type/name/": "Alice"
   },
-  "entityTypeUri": "https://blockprotocol.org/@alice/types/entity-type/person/v/1"
+  "entityTypeUri": "http://localhost:3000/@alice/types/entity-type/person/v/1"
 }
 
 > {%
@@ -335,9 +335,9 @@ Accept: application/json
 {
   "accountId": "{{account_id}}",
   "entityId": "{{person_a_entity_id}}",
-  "entityTypeUri": "https://blockprotocol.org/@alice/types/entity-type/person/v/2",
+  "entityTypeUri": "http://localhost:3000/@alice/types/entity-type/person/v/2",
   "entity": {
-    "https://blockprotocol.org/@alice/types/property-type/name/": "Alice Allison"
+    "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
   }
 }
 
@@ -355,9 +355,9 @@ Accept: application/json
 {
   "accountId": "{{account_id}}",
   "entity": {
-    "https://blockprotocol.org/@alice/types/property-type/name/": "Bob"
+    "http://localhost:3000/@alice/types/property-type/name/": "Bob"
   },
-  "entityTypeUri": "https://blockprotocol.org/@alice/types/entity-type/person/v/1"
+  "entityTypeUri": "http://localhost:3000/@alice/types/entity-type/person/v/1"
 }
 
 > {%
