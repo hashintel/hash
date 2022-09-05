@@ -6,6 +6,7 @@ import {
   clearIntervalAsync,
   setIntervalAsync,
 } from "set-interval-async/dynamic";
+import { GracefulShutdown } from "@hashintel/hash-backend-utils/shutdown";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import {
   createPostgresConnPool,
@@ -41,6 +42,8 @@ const logger = new Logger({
 });
 
 const QUEUES = generateQueues(logger);
+
+const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
 const acquireReplicationSlot = async (
   pool: PgPool,
@@ -188,6 +191,14 @@ const main = async () => {
   const port = parseInt(process.env.HASH_REALTIME_PORT || "3333", 10);
   httpServer.listen({ host: "::", port });
   logger.info(`HTTP server listening on port ${port}`);
+  shutdown.addCleanup("HTTP server", async () => {
+    return new Promise((resolve, _reject) => {
+      httpServer.close((_) => {
+        logger.debug("SHUTDOWN");
+        resolve();
+      });
+    });
+  });
 
   const pgHost = process.env.HASH_GRAPH_PG_HOST ?? "localhost";
   const pgPort = parseInt(process.env.HASH_GRAPH_PG_PORT || "5432", 10);
@@ -200,6 +211,14 @@ const main = async () => {
     database: getRequiredEnv("HASH_GRAPH_PG_DATABASE"),
     password: getRequiredEnv("HASH_GRAPH_REALTIME_PG_PASSWORD"),
     maxPoolSize: 1,
+  });
+
+  shutdown.addCleanup("Postgres connection", async () => {
+    // Ownership will expire, but release anyway
+    await releaseSlotOwnership(pool, slotName);
+
+    logger.debug("Closing connection pool");
+    await pool.end();
   });
 
   // The replication is set to be temporary because it prevents writing to disk.
@@ -220,6 +239,7 @@ const main = async () => {
         await clearIntervalAsync(slotInterval);
         logger.info("Acquired slot ownership");
       })();
+      return;
     }
 
     slotAcquired = await acquireReplicationSlot(pool, slotName, {
@@ -227,6 +247,10 @@ const main = async () => {
     });
     logger.debug("Slot is owned. Waiting in standby.");
   }, OWNERSHIP_EXPIRY_MILLIS);
+
+  shutdown.addCleanup("Postgres connection", async () => {
+    await clearIntervalAsync(slotInterval);
+  });
 
   // Poll the replication slot for new data
   // We are using set-interval-async/dynamic as the built-in setInterval might
@@ -241,42 +265,27 @@ const main = async () => {
     if (!slotAcquired) {
       return;
     }
-    await Promise.all([
-      pollChanges(pool, slotName),
-      updateSlotOwnership(pool, slotName),
-    ]);
+    try {
+      await Promise.all([
+        pollChanges(pool, slotName),
+        updateSlotOwnership(pool, slotName),
+      ]);
+    } catch (error) {
+      logger.error(
+        "And error occoured while polling/updating replication owner.",
+        error,
+      );
+    }
   }, POLL_INTERVAL_MILLIS);
 
-  // Gracefully shutdown on receiving a termination signal.
-  let receivedTerminationSignal = false;
-  const shutdown = async (signal: string) => {
-    logger.debug(`Received ${signal} signal`);
-    if (receivedTerminationSignal) {
-      return;
-    }
-    receivedTerminationSignal = true;
-    await clearIntervalAsync(slotInterval);
+  shutdown.addCleanup("Postgres connection", async () => {
     await clearIntervalAsync(pollInterval);
-
-    // Ownership will expire, but release anyway
-    await releaseSlotOwnership(pool, slotName);
-
-    logger.debug("Closing connection pool");
-    await pool.end();
-
-    httpServer.close((_) => {
-      logger.debug("SHUTDOWN");
-      process.exit(0);
-    });
-  };
-  process.on("SIGTERM", () => {
-    void shutdown("SIGTERM");
-  });
-  process.on("SIGINT", () => {
-    void shutdown("SIGINT");
   });
 };
 
 (async () => {
   await main();
-})().catch(logger.error);
+})().catch(async (err) => {
+  logger.error(err);
+  await shutdown.trigger();
+});
