@@ -85,7 +85,7 @@ fn compare(lhs: &Literal, rhs: &Literal) -> Result<bool, ExpressionError> {
         (lhs, Literal::List(rhs)) => rhs.iter().try_find(|rhs| compare(lhs, rhs))?.is_some(),
 
         // Version
-        // Ontology == float
+        // ontology == float
         (Literal::Version(Version::Ontology(version), _), Literal::Float(literal))
         | (Literal::Float(literal), Literal::Version(Version::Ontology(version), _)) => {
             *version == *literal as u32
@@ -95,14 +95,14 @@ fn compare(lhs: &Literal, rhs: &Literal) -> Result<bool, ExpressionError> {
         | (Literal::Float(literal), Literal::Version(Version::Entity(version), _)) => {
             version.timestamp() == *literal as i64
         }
-        // entity == date time
+        // entity == latest
         (Literal::Version(_, latest), Literal::String(literal))
         | (Literal::String(literal), Literal::Version(_, latest))
             if literal == "latest" =>
         {
             *latest
         }
-        // version == version
+        // entity == date time
         (Literal::Version(Version::Entity(version), _), Literal::String(literal))
         | (Literal::String(literal), Literal::Version(Version::Entity(version), _)) => {
             DateTime::<Utc>::from_str(literal)
@@ -111,6 +111,7 @@ fn compare(lhs: &Literal, rhs: &Literal) -> Result<bool, ExpressionError> {
                 .attach_printable_lazy(|| format!("cannot parse {rhs:?} as version"))
                 .change_context(ExpressionError)?
         }
+        // version == version
         (Literal::Version(lhs, _), Literal::Version(rhs, _)) => lhs == rhs,
 
         // unmatched
