@@ -21,7 +21,10 @@ export const getAllLatestPropertyTypesQuery = gql`
 `;
 
 export const createPropertyTypeMutation = gql`
-  mutation createPropertyType($accountId: ID!, $propertyType: PropertyType!) {
+  mutation createPropertyType(
+    $accountId: ID!
+    $propertyType: PropertyTypeWithoutId!
+  ) {
     createPropertyType(accountId: $accountId, propertyType: $propertyType) {
       propertyTypeVersionedUri
       accountId

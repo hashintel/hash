@@ -44,7 +44,7 @@ export const propertyTypeTypedef = gql`
       The id of the account where to create the property type in. Defaults to the account id of the current user.
       """
       accountId: ID
-      propertyType: PropertyType!
+      propertyType: PropertyTypeWithoutId!
     ): PersistedPropertyType!
 
     """

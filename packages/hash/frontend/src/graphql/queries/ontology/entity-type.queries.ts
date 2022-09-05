@@ -21,7 +21,10 @@ export const getAllLatestEntityTypesQuery = gql`
 `;
 
 export const createEntityTypeMutation = gql`
-  mutation createEntityType($accountId: ID!, $entityType: EntityType!) {
+  mutation createEntityType(
+    $accountId: ID!
+    $entityType: EntityTypeWithoutId!
+  ) {
     createEntityType(accountId: $accountId, entityType: $entityType) {
       entityTypeVersionedUri
       accountId

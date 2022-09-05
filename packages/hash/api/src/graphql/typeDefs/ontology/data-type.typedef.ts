@@ -34,7 +34,7 @@ export const dataTypeTypedef = gql`
   # The following mutations should not be exposed until user defined data types
   # have been described and specified as an RFC.
   # extend type Mutation {
-  #   createDataType(accountId: ID!, dataType: DataType!): PersistedDataType!
+  #   createDataType(accountId: ID!, dataType: DataTypeWithoutId!): PersistedDataType!
   #   updateDataType(accountId: ID!, dataType: DataTypeWithoutId!): PersistedDataType!
   # }
 `;

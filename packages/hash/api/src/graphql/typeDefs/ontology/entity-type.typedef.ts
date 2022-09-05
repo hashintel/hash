@@ -42,7 +42,7 @@ export const entityTypeTypedef = gql`
       accountId refers to the account to create the entity type in.
       """
       accountId: ID
-      entityType: EntityType!
+      entityType: EntityTypeWithoutId!
     ): PersistedEntityType!
 
     """

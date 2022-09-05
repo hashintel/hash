@@ -40,7 +40,7 @@ export const linkTypeTypedef = gql`
       The id of the account where to create the link type in. Defaults to the account id of the current user.
       """
       accountId: ID
-      linkType: LinkType!
+      linkType: LinkTypeWithoutId!
     ): PersistedLinkType!
 
     """
