@@ -24,6 +24,7 @@ import { BlockContext } from "./BlockContext";
 import { BlockHandle } from "./BlockHandle";
 import { InsertBlock } from "./InsertBlock";
 import { BlockHighlight } from "./BlockHighlight";
+import { CommentButton } from "./Comments/CommentButton";
 
 export const getBlockDomId = (blockEntityId: string) =>
   `entity-${blockEntityId}`;
@@ -268,6 +269,7 @@ export class BlockView implements NodeView<Schema> {
                   ctx?.setShowDataMappingUi(!ctx.showDataMappingUi)
                 }
               />
+              <CommentButton className={styles.Block__Comments_Button} />
             </BlockViewContext.Provider>
           );
         }}

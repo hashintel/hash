@@ -40,6 +40,7 @@
   user-select: none;
   display: flex;
   align-items: center;
+  width: calc(100% + 32px);
 }
 
 .Block__Content {
@@ -62,4 +63,9 @@
 
 .Block__InsertBlock__Top {
   bottom: 100%;
+}
+
+.Block__Comments_Button {
+  position: absolute;
+  left: 100%;
 }
