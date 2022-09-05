@@ -130,9 +130,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     // If the request fails, pages will be reordered to their original state
     if (!loading) {
       setTreeItems(getTreeItemList(data));
-      if (initialLoading) {
-        setInitialLoading(false);
-      }
+      setInitialLoading(false);
     }
   }, [data, loading]);
 
