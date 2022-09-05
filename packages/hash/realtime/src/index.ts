@@ -65,18 +65,20 @@ const acquireReplicationSlot = async (
           )
           else 1
         end;`);
+
   const slotExists = await pool.exists(sql`
     select * from pg_replication_slots where slot_name = ${slotName}
   `);
-  if (!slotExists) {
-    await pool.query(sql`
-      select * from pg_create_logical_replication_slot(${slotName}, 'wal2json')
-    `);
-    logger.info(`Created replication slot '${slotName}'`);
+
+  if (slotExists) {
+    logger.info(`Replication slot '${slotName}' exists.`);
+  } else {
+    logger.warn(`Could not create replication slot '${slotName}'. Retrying..`);
+    return false;
   }
 
   // Attempt to take ownership of the slot
-  const slotAcquired = await pool.transaction(async (tx) => {
+  return await pool.transaction(async (tx) => {
     const slotIsOwned = await tx.maybeOneFirst(sql`
       select ownership_expires_at > now() as owned from realtime.ownership
       where slot_name = ${slotName}
@@ -99,8 +101,6 @@ const acquireReplicationSlot = async (
     // The slot is owned by another instance of the realtime service
     return false;
   });
-
-  return slotAcquired;
 };
 
 /** Update this instance's ownership of the slot. */
@@ -202,23 +202,29 @@ const main = async () => {
     maxPoolSize: 1,
   });
 
-  // Try to acquire the slot
-  let slotAcquired = false;
+  // The replication is set to be temporary because it prevents writing to disk.
+  // If we write the WAL to disk, our DB might halt because of running out of space.
+  // Instead, temporary slots will only store the WAL in memory, and flush when changes are polled.
+  //
+  // First call outside the interval to run it immediately.
+  let slotAcquired = await acquireReplicationSlot(pool, slotName, {
+    temporary: true,
+  });
+
+  // Retry loop to acquire replication slot.
   const slotInterval = setIntervalAsync(async () => {
-    // The replication is set to be temporary because it prevents writing to disk.
-    // If we write the WAL to disk, our DB might halt because of running out of space.
-    // Instead, temporary slots will only store the WAL in memory, and flush when changes are polled.
-    slotAcquired = await acquireReplicationSlot(pool, slotName, {
-      temporary: true,
-    });
     if (slotAcquired) {
       // The following is a work-around to not deadlock clearing the interval:
       // https://github.com/ealmansi/set-interval-async/tree/b05a0406a247ab8ad390db5d45d7d7b0a6ee6eff#avoiding-deadlock-when-clearing-an-interval
       void (async () => {
         await clearIntervalAsync(slotInterval);
-        logger.debug("Acquired slot ownership");
+        logger.info("Acquired slot ownership");
       })();
     }
+
+    slotAcquired = await acquireReplicationSlot(pool, slotName, {
+      temporary: true,
+    });
     logger.debug("Slot is owned. Waiting in standby.");
   }, OWNERSHIP_EXPIRY_MILLIS);
 
