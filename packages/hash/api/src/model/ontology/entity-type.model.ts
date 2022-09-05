@@ -5,7 +5,6 @@ import {
 } from "@hashintel/hash-graph-client";
 
 import { EntityTypeModel, PropertyTypeModel, LinkTypeModel } from "../index";
-import { incrementVersionedId } from "../util";
 
 export type EntityTypeModelConstructorParams = {
   accountId: string;
@@ -133,12 +132,11 @@ export default class {
       schema: EntityType;
     },
   ): Promise<EntityTypeModel> {
-    const newVersionedId = incrementVersionedId(this.schema.$id);
-
     const { accountId, schema } = params;
     const updateArguments: UpdateEntityTypeRequest = {
       accountId,
-      schema: { ...schema, $id: newVersionedId },
+      typeToUpdate: this.schema.$id,
+      schema,
     };
 
     const { data: identifier } = await graphApi.updateEntityType(
@@ -146,18 +144,7 @@ export default class {
     );
 
     return new EntityTypeModel({
-      /**
-       * @todo and a warning, these type casts are here to compensate for
-       *   the differences between the Graph API package and the
-       *   type system package.
-       *
-       *   The type system package can be considered the source of truth in
-       *   terms of the shape of values returned from the API, but the API
-       *   client is unable to be given as type package types - it generates
-       *   its own types.
-       *   https://app.asana.com/0/1202805690238892/1202892835843657/f
-       */
-      schema: updateArguments.schema as EntityType,
+      schema: { ...schema, $id: identifier.uri },
       accountId: identifier.createdBy,
     });
   }

@@ -2,7 +2,6 @@ import { LinkType } from "@blockprotocol/type-system-web";
 import { GraphApi, UpdateLinkTypeRequest } from "@hashintel/hash-graph-client";
 
 import { LinkTypeModel } from "../index";
-import { incrementVersionedId } from "../util";
 
 type LinkTypeModelConstructorParams = {
   accountId: string;
@@ -102,21 +101,20 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: LinkType;
+      schema: Omit<LinkType, "$id">;
     },
   ): Promise<LinkTypeModel> {
-    const newVersionedId = incrementVersionedId(this.schema.$id);
-
     const { accountId, schema } = params;
     const updateArguments: UpdateLinkTypeRequest = {
       accountId,
-      schema: { ...schema, $id: newVersionedId },
+      typeToUpdate: this.schema.$id,
+      schema,
     };
 
     const { data: identifier } = await graphApi.updateLinkType(updateArguments);
 
     return new LinkTypeModel({
-      schema: updateArguments.schema,
+      schema: { ...schema, $id: identifier.uri },
       accountId: identifier.createdBy,
     });
   }

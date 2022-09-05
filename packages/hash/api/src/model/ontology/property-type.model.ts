@@ -6,7 +6,6 @@ import {
 import { PropertyType } from "@blockprotocol/type-system-web";
 
 import { PropertyTypeModel } from "../index";
-import { incrementVersionedId } from "../util";
 
 type PropertyTypeModelConstructorParams = {
   accountId: string;
@@ -129,15 +128,14 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: PropertyType;
+      schema: Omit<PropertyType, "$id">;
     },
   ): Promise<PropertyTypeModel> {
-    const newVersionedId = incrementVersionedId(this.schema.$id);
-
     const { accountId, schema } = params;
     const updateArguments: UpdatePropertyTypeRequest = {
       accountId,
-      schema: { ...schema, $id: newVersionedId },
+      typeToUpdate: this.schema.$id,
+      schema,
     };
 
     const { data: identifier } = await graphApi.updatePropertyType(
@@ -145,18 +143,7 @@ export default class {
     );
 
     return new PropertyTypeModel({
-      /**
-       * @todo and a warning, these type casts are here to compensate for
-       *   the differences between the Graph API package and the
-       *   type system package.
-       *
-       *   The type system package can be considered the source of truth in
-       *   terms of the shape of values returned from the API, but the API
-       *   client is unable to be given as type package types - it generates
-       *   its own types.
-       *   https://app.asana.com/0/1202805690238892/1202892835843657/f
-       */
-      schema: updateArguments.schema as PropertyType,
+      schema: { ...schema, $id: identifier.uri },
       accountId: identifier.createdBy,
     });
   }
