@@ -1,7 +1,7 @@
 mod knowledge;
 mod ontology;
 
-use std::{error::Error, fmt, ops::Not};
+use std::{error::Error, fmt, ops::Not, str::FromStr};
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -90,9 +90,19 @@ fn compare(lhs: &Literal, rhs: &Literal) -> Result<bool, ExpressionError> {
             lhs.timestamp() == *rhs as i64
         }
         (Literal::Version(_, latest), Literal::String(rhs)) if rhs == "latest" => *latest,
+        (Literal::Version(Version::Entity(lhs), _), Literal::String(rhs)) => {
+            DateTime::<Utc>::from_str(rhs)
+                .map(|version| *lhs == version)
+                .unwrap_or(false)
+        }
         (Literal::Float(lhs), Literal::Version(Version::Ontology(rhs), _)) => *lhs as u32 == *rhs,
         (Literal::Float(lhs), Literal::Version(Version::Entity(rhs), _)) => {
             *lhs as i64 == rhs.timestamp()
+        }
+        (Literal::String(lhs), Literal::Version(Version::Entity(rhs), _)) => {
+            DateTime::<Utc>::from_str(lhs)
+                .map(|version| version == *rhs)
+                .unwrap_or(false)
         }
         (Literal::String(lhs), Literal::Version(_, latest)) if lhs == "latest" => *latest,
 
