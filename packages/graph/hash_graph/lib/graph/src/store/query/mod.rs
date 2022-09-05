@@ -5,7 +5,7 @@ use std::{error::Error, fmt, ops::Not, str::FromStr};
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use error_stack::{bail, Report, Result, ResultExt};
+use error_stack::{bail, IntoReport, Report, Result, ResultExt};
 use futures::{future::BoxFuture, FutureExt};
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
@@ -34,7 +34,7 @@ pub enum Literal {
     Version(Version, bool),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Version {
     Ontology(u32),
     Entity(DateTime<Utc>),
@@ -85,26 +85,33 @@ fn compare(lhs: &Literal, rhs: &Literal) -> Result<bool, ExpressionError> {
         (lhs, Literal::List(rhs)) => rhs.iter().try_find(|rhs| compare(lhs, rhs))?.is_some(),
 
         // Version
-        (Literal::Version(Version::Ontology(lhs), _), Literal::Float(rhs)) => *lhs == *rhs as u32,
-        (Literal::Version(Version::Entity(lhs), _), Literal::Float(rhs)) => {
-            lhs.timestamp() == *rhs as i64
+        // Ontology == float
+        (Literal::Version(Version::Ontology(version), _), Literal::Float(literal))
+        | (Literal::Float(literal), Literal::Version(Version::Ontology(version), _)) => {
+            *version == *literal as u32
         }
-        (Literal::Version(_, latest), Literal::String(rhs)) if rhs == "latest" => *latest,
-        (Literal::Version(Version::Entity(lhs), _), Literal::String(rhs)) => {
-            DateTime::<Utc>::from_str(rhs)
-                .map(|version| *lhs == version)
-                .unwrap_or(false)
+        // entity == float
+        (Literal::Version(Version::Entity(version), _), Literal::Float(literal))
+        | (Literal::Float(literal), Literal::Version(Version::Entity(version), _)) => {
+            version.timestamp() == *literal as i64
         }
-        (Literal::Float(lhs), Literal::Version(Version::Ontology(rhs), _)) => *lhs as u32 == *rhs,
-        (Literal::Float(lhs), Literal::Version(Version::Entity(rhs), _)) => {
-            *lhs as i64 == rhs.timestamp()
+        // entity == date time
+        (Literal::Version(_, latest), Literal::String(literal))
+        | (Literal::String(literal), Literal::Version(_, latest))
+            if literal == "latest" =>
+        {
+            *latest
         }
-        (Literal::String(lhs), Literal::Version(Version::Entity(rhs), _)) => {
-            DateTime::<Utc>::from_str(lhs)
-                .map(|version| version == *rhs)
-                .unwrap_or(false)
+        // version == version
+        (Literal::Version(Version::Entity(version), _), Literal::String(literal))
+        | (Literal::String(literal), Literal::Version(Version::Entity(version), _)) => {
+            DateTime::<Utc>::from_str(literal)
+                .map(|date_time| date_time == *version)
+                .into_report()
+                .attach_printable_lazy(|| format!("cannot parse {rhs:?} as version"))
+                .change_context(ExpressionError)?
         }
-        (Literal::String(lhs), Literal::Version(_, latest)) if lhs == "latest" => *latest,
+        (Literal::Version(lhs, _), Literal::Version(rhs, _)) => lhs == rhs,
 
         // unmatched
         (lhs, rhs) => {
