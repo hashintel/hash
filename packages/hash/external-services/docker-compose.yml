@@ -36,7 +36,8 @@ services:
     #   - ../../../var/external-services/opensearch/data:/usr/share/opensearch/data
 
   postgres:
-    image: postgres:14-alpine3.16
+    build:
+      context: ./postgres
     deploy:
       restart_policy:
         condition: on-failure
@@ -50,6 +51,8 @@ services:
       HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
       HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DATABASE}"
+      HASH_GRAPH_REALTIME_PG_USER: "${HASH_GRAPH_REALTIME_PG_USER}"
+      HASH_GRAPH_REALTIME_PG_PASSWORD: "${HASH_GRAPH_REALTIME_PG_PASSWORD}"
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
