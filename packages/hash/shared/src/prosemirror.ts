@@ -24,19 +24,19 @@ export const createSchema = () =>
   new Schema({
     nodes: {
       doc: {
-        content: "((componentNode|block)+)|blank",
+        content: "((componentNode|block)+)|loading",
       },
-      blank: {
+      loading: {
         /**
          * As we don't have any component nodes defined by default, we need a
          * placeholder, otherwise Prosemirror will crash when trying to
          * interpret the content expressions in other nodes. However, as soon
-         * as we have defined a different component node, we remove the blank
+         * as we have defined a different component node, we remove the loading
          * node from the componentNode group, which ensures that when
          * Prosemirror attempts to instantiate a componentNode it uses that
-         * node instead of the blank one
+         * node instead of the loading one
          *
-         * @see import("./ProsemirrorManager.ts").ProsemirrorManager#prepareToDisableBlankDefaultComponentNode
+         * @see import("./ProsemirrorManager.ts").ProsemirrorManager#prepareToDisableLoadingDefaultComponentNode
          */
         group: componentNodeGroupName,
         toDOM: () => ["div", 0] as const,
@@ -279,7 +279,7 @@ declare interface OrderedMapPrivateInterface<T> {
  * a user to pass a function which will apply the mutations they want to apply,
  * and the relevant hacks are then applied after to process the mutation.
  *
- * This also deals with deleting the default "blank" node type which we create
+ * This also deals with deleting the default "loading" node type which we create
  * when first creating a new schema before any blocks have been loaded in.
  */
 export const mutateSchema = (
@@ -287,21 +287,21 @@ export const mutateSchema = (
   mutate: (map: OrderedMapPrivateInterface<NodeSpec>) => void,
 ) => {
   mutate(schema.spec.nodes as any);
-  const blankType = schema.nodes.blank!;
+  const loadingType = schema.nodes.loading!;
 
-  if (isComponentNodeType(blankType)) {
-    if (blankType.spec.group?.includes(componentNodeGroupName)) {
-      if (blankType.spec.group !== componentNodeGroupName) {
+  if (isComponentNodeType(loadingType)) {
+    if (loadingType.spec.group?.includes(componentNodeGroupName)) {
+      if (loadingType.spec.group !== componentNodeGroupName) {
         throw new Error(
-          "Blank node type has group expression more complicated than we can handle",
+          "Loading node type has group expression more complicated than we can handle",
         );
       }
 
-      delete blankType.spec.group;
+      delete loadingType.spec.group;
     }
 
-    blankType.groups!.splice(
-      blankType.groups!.indexOf(componentNodeGroupName),
+    loadingType.groups!.splice(
+      loadingType.groups!.indexOf(componentNodeGroupName),
       1,
     );
   }

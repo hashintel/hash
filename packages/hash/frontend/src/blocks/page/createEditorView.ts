@@ -7,6 +7,7 @@ import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { RefObject } from "react";
+import { LoadingView } from "./LoadingView";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
 import { ComponentView } from "./ComponentView";
@@ -90,6 +91,11 @@ export const createEditorView = (
           renderPortal,
           manager,
         );
+      },
+      // Reason for adding unused params e.g. `_decorations`:
+      // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
+      loading(currentNode, _currentView, _getPos, _decorations) {
+        return new LoadingView(currentNode, renderPortal);
       },
       // Reason for adding `_decorations`:
       // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
