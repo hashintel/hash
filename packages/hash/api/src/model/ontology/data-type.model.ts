@@ -136,7 +136,8 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      /** @todo we have to manually specify this type because of Record<string, any>: https://github.com/microsoft/TypeScript/issues/50638 */
+      // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
+      //  https://github.com/microsoft/TypeScript/issues/50638
       schema: Pick<DataType, "kind" | "title" | "description" | "type"> &
         Record<string, any>;
     },
