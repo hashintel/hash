@@ -3,10 +3,10 @@ use std::str::FromStr;
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
-use type_system::{uri::VersionedUri, EntityType};
+use type_system::{uri::VersionedUri, EntityType, PropertyType};
 
 use crate::store::{
-    postgres::resolve::{PostgresContext, Record},
+    postgres::resolve::{OntologyRecord, PostgresContext},
     query::{
         Literal, PathSegment, Resolve, ResolveError, UNIMPLEMENTED_LITERAL_OBJECT,
         UNIMPLEMENTED_WILDCARDS,
@@ -27,7 +27,7 @@ async fn resolve_property_types(
                 stream::iter(entity_type.property_type_references())
                     .then(|property_type_ref| async {
                         context
-                            .read_versioned_property_type(property_type_ref.uri())
+                            .read_versioned_ontology_type::<PropertyType>(property_type_ref.uri())
                             .await
                             .change_context(ResolveError::StoreReadError)?
                             .resolve(tail_path_segments, context)
@@ -60,7 +60,9 @@ async fn resolve_link_types(
                         stream::iter(entity_type.link_type_references())
                             .then(|(_, entity_type_ref)| async {
                                 context
-                                    .read_versioned_entity_type(entity_type_ref.uri())
+                                    .read_versioned_ontology_type::<EntityType>(
+                                        entity_type_ref.uri(),
+                                    )
                                     .await
                                     .change_context(ResolveError::StoreReadError)?
                                     .resolve(tail_path_segments, context)
@@ -78,7 +80,7 @@ async fn resolve_link_types(
                         entity_type.link_type_references().get(&versioned_uri)
                     {
                         context
-                            .read_versioned_entity_type(entity_type_ref.uri())
+                            .read_versioned_ontology_type::<EntityType>(entity_type_ref.uri())
                             .await
                             .change_context(ResolveError::StoreReadError)?
                             .resolve(tail_path_segments, context)
@@ -95,7 +97,7 @@ async fn resolve_link_types(
 }
 
 #[async_trait]
-impl<C> Resolve<C> for Record<EntityType>
+impl<C> Resolve<C> for OntologyRecord<EntityType>
 where
     C: PostgresContext + Sync,
 {

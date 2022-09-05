@@ -8,6 +8,8 @@
 #![feature(generic_associated_types)]
 // Not required, reason: Simpler than using blanket implementations
 #![feature(trait_alias)]
+// Not required, reason: much more simple bounds
+#![feature(associated_type_bounds)]
 #![feature(try_find)]
 #![feature(type_alias_impl_trait)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
