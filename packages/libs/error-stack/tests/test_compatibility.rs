@@ -50,19 +50,16 @@ fn anyhow() {
     #[allow(unused_mut)]
     let mut report_messages = messages(&report);
 
-    // Backtrace from anyhow cannot be captured currently until `Error::provide` is implemented.
-    // Previously, `backtrace` was a function on `Error`, but this was removed, so it has to be
-    // provided by the Provider API.
+    // Backtrace is provided through `anyhow::Error` by `Error::provide`
     #[cfg(all(rust_1_65, feature = "std"))]
-    remove_backtrace_context(&mut report_messages);
+    if has_backtrace(&anyhow) {
+        remove_backtrace_context(&mut report_messages);
+    }
 
     let anyhow_report = anyhow.into_report().unwrap_err();
 
     #[allow(unused_mut)]
     let mut anyhow_messages = messages(&anyhow_report);
-
-    #[cfg(all(rust_1_65, feature = "std"))]
-    remove_backtrace_context(&mut anyhow_messages);
 
     for (anyhow, error_stack) in anyhow_messages.into_iter().rev().zip(report_messages) {
         assert_eq!(anyhow, error_stack);

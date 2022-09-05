@@ -17,7 +17,11 @@ import {
   useRef,
   FunctionComponent,
 } from "react";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
+import {
+  BlockEntity,
+  isTextContainingEntityProperties,
+  isTextEntity,
+} from "@hashintel/hash-shared/entity";
 import {
   LoadingSpinner,
   TextField,
@@ -27,7 +31,7 @@ import { useBlockView } from "../BlockViewContext";
 import { useRouteAccountInfo } from "../../../shared/routing";
 import { MenuItem } from "../../../shared/ui";
 import { useAccountEntities } from "../../../components/hooks/useAccountEntities";
-import { guessEntityName } from "../../../lib/entities";
+import { generateEntityLabel } from "../../../lib/entities";
 
 type LoadEntityMenuContentProps = {
   blockEntityId: string | null;
@@ -85,6 +89,18 @@ export const LoadEntityMenuContent: FunctionComponent<
       // we are interested in loading different child entities into blocks, not the block entities
       // – block entities are simply a reference to (a) a component and (b) a child entity
       if (isBlockEntity(entity)) return false;
+
+      /**
+       * loading text entities does not work, possibly due to use of legacy __linkedData
+       * @todo see if this works when __linkedData is removed
+       */
+      if (
+        isTextEntity(entity) ||
+        isTextContainingEntityProperties(entity.properties) ||
+        entity.entityType.properties.title === "Page"
+      ) {
+        return false;
+      }
 
       // don't include entities that have empty data
       if (Object.keys(entity.properties).length === 0) {
@@ -156,7 +172,10 @@ export const LoadEntityMenuContent: FunctionComponent<
             </ListItemIcon>
             <Tooltip title={JSON.stringify(entity.properties, undefined, 2)}>
               <ListItemText
-                primary={guessEntityName(entity)}
+                primary={generateEntityLabel(
+                  entity,
+                  entity.entityType.properties,
+                )}
                 primaryTypographyProps={{
                   noWrap: true,
                 }}
