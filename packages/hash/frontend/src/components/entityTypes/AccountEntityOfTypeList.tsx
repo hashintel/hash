@@ -7,7 +7,7 @@ import {
 import { FunctionComponent } from "react";
 import { tw } from "twind";
 import { Typography } from "@mui/material";
-import { guessEntityName } from "../../lib/entities";
+import { generateEntityLabel } from "../../lib/entities";
 import { Link } from "../../shared/ui";
 
 type AccountEntityOfTypeListProps = {
@@ -50,7 +50,7 @@ export const AccountEntityOfTypeList: FunctionComponent<
       {results.map((entity) => (
         <li className={tw`mb-2`} key={entity.entityId}>
           <Link noLinkStyle href={`/${accountId}/entities/${entity.entityId}`}>
-            <a>{guessEntityName(entity)}</a>
+            <a>{generateEntityLabel(entity, entity.entityType.properties)}</a>
           </Link>
         </li>
       ))}

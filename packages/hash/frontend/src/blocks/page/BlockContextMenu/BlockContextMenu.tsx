@@ -1,4 +1,7 @@
-import { areComponentsCompatible } from "@hashintel/hash-shared/blocks";
+import {
+  areComponentsCompatible,
+  isHashTextBlock,
+} from "@hashintel/hash-shared/blocks";
 import { useRef, forwardRef, useMemo, ForwardRefRenderFunction } from "react";
 
 import { useKey } from "rooks";
@@ -72,18 +75,22 @@ const BlockContextMenu: ForwardRefRenderFunction<
     const hasChildEntity =
       Object.keys(blockEntity?.properties.entity?.properties ?? {}).length > 0;
     const items = [
-      {
-        key: "set-entity",
-        title: hasChildEntity ? "Swap Entity" : "Add an entity",
-        icon: <FontAwesomeIcon icon={faAdd} />,
-        subMenu: (
-          <LoadEntityMenuContent
-            blockEntityId={entityId}
-            closeParentContextMenu={() => popupState.close()}
-          />
-        ),
-        subMenuWidth: 280,
-      },
+      ...(currentComponentId && !isHashTextBlock(currentComponentId)
+        ? [
+            {
+              key: "set-entity",
+              title: hasChildEntity ? "Swap Entity" : "Add an entity",
+              icon: <FontAwesomeIcon icon={faAdd} />,
+              subMenu: (
+                <LoadEntityMenuContent
+                  blockEntityId={entityId}
+                  closeParentContextMenu={() => popupState.close()}
+                />
+              ),
+              subMenuWidth: 280,
+            },
+          ]
+        : []),
       {
         key: "copy-link",
         title: "Copy Link",
@@ -148,6 +155,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
     return items;
   }, [
     blockEntity,
+    currentComponentId,
     entityId,
     deleteBlock,
     openConfigMenu,

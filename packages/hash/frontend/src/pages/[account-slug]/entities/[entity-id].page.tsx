@@ -20,7 +20,7 @@ import { useBlockProtocolUpdateEntity } from "../../../components/hooks/blockPro
 import {
   convertApiEntitiesToBpEntities,
   convertApiLinkGroupsToBpLinkGroups,
-  guessEntityName,
+  generateEntityLabel,
   rewriteEntityIdentifier,
 } from "../../../lib/entities";
 import { useBlockProtocolAggregateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
@@ -105,6 +105,10 @@ const Page: NextPageWithLayout = () => {
     });
   };
 
+  const entityDisplayName = entity
+    ? generateEntityLabel(entity, entity.entityType.properties)
+    : undefined;
+
   const crumbs = !entity
     ? []
     : [
@@ -114,7 +118,7 @@ const Page: NextPageWithLayout = () => {
           id: entityId,
         },
         {
-          title: guessEntityName(entity),
+          title: entityDisplayName,
           href: `/${accountId}/entities/${entityId}`,
           id: entityId,
         },
@@ -146,7 +150,7 @@ const Page: NextPageWithLayout = () => {
         >
           <h1>
             <strong>
-              {entity ? `Editing '${guessEntityName(entity)}'` : "Loading..."}
+              {entity ? `Editing '${entityDisplayName}'` : "Loading..."}
             </strong>
           </h1>
         </Box>

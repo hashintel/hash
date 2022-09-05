@@ -264,7 +264,7 @@ export const defaultBlockComponentIds = [
  * which is used to know if the block is compatible for switching from one
  * text block to another
  */
-const isHashTextBlock = (componentId: string) =>
+export const isHashTextBlock = (componentId: string) =>
   textBlockComponentIds.has(componentId);
 
 /**
