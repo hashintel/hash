@@ -34,6 +34,7 @@ impl fmt::Display for GraphError {
 /// This will include things that are mocks or stubs to make up for missing pieces of infrastructure
 /// that haven't been created yet.
 async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphError> {
+    // TODO: how do we make these URIs compliant
     let text = DataType::new(
         VersionedUri::new(
             BaseUri::new(
