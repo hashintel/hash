@@ -42,6 +42,16 @@ pub trait PostgresContext {
     ) -> Result<EntityRecord, QueryError>;
 
     async fn read_all_active_links(&self) -> Result<links::RecordStream, QueryError>;
+
+    async fn read_active_links_by_source(
+        &self,
+        entity_id: EntityId,
+    ) -> Result<links::RecordStream, QueryError>;
+
+    async fn read_active_links_by_target(
+        &self,
+        entity_id: EntityId,
+    ) -> Result<links::RecordStream, QueryError>;
 }
 
 #[async_trait]
@@ -50,9 +60,9 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
     where
         T: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>,
     {
-        Ok(ontology::read_all_types(&self.client, T::table())
+        ontology::read_all_types(&self.client, T::table())
             .await
-            .attach_printable("could not read ontology types")?)
+            .attach_printable("could not read ontology types")
     }
 
     async fn read_versioned_ontology_type<T>(
@@ -68,23 +78,43 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
     }
 
     async fn read_all_entities(&self) -> Result<entity::RecordStream, QueryError> {
-        Ok(entity::read_all_entities(&self.client)
+        entity::read_all_entities(&self.client)
             .await
-            .attach_printable("could not read entities")?)
+            .attach_printable("could not read entities")
     }
 
     async fn read_latest_entity_by_id(
         &self,
         entity_id: EntityId,
     ) -> Result<EntityRecord, QueryError> {
-        Ok(entity::read_latest_entity_by_id(&self.client, entity_id)
+        entity::read_latest_entity_by_id(&self.client, entity_id)
             .await
-            .attach_printable("could not read entity")?)
+            .attach_printable("could not read entity")
     }
 
     async fn read_all_active_links(&self) -> Result<links::RecordStream, QueryError> {
-        Ok(links::read_all_active_links(&self.client)
+        links::read_all_active_links(&self.client)
             .await
-            .attach_printable("could not read links")?)
+            .attach_printable("could not read links")
+    }
+
+    async fn read_active_links_by_source(
+        &self,
+        entity_id: EntityId,
+    ) -> Result<links::RecordStream, QueryError> {
+        links::read_active_links_by_source(&self.client, entity_id)
+            .await
+            .attach_printable("could not read outgoing links")
+            .attach_printable_lazy(|| format!("source entity: {entity_id}"))
+    }
+
+    async fn read_active_links_by_target(
+        &self,
+        entity_id: EntityId,
+    ) -> Result<links::RecordStream, QueryError> {
+        links::read_active_links_by_target(&self.client, entity_id)
+            .await
+            .attach_printable("could not read incoming links")
+            .attach_printable_lazy(|| format!("target entity: {entity_id}"))
     }
 }
