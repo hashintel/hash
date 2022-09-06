@@ -200,7 +200,6 @@ where
     }
 }
 
-// TODO: we should probably support taking PersistedEntityIdentifier here as well as an EntityId
 #[async_trait]
 impl<C: AsClient> crud::Read<Link> for PostgresStore<C> {
     type Query<'q> = Expression;
