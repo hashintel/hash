@@ -8,7 +8,7 @@ use type_system::{uri::VersionedUri, EntityType, PropertyType};
 use crate::store::{
     postgres::resolve::{OntologyRecord, PostgresContext},
     query::{
-        Literal, PathSegment, Resolve, ResolveError, UNIMPLEMENTED_LITERAL_OBJECT,
+        Literal, PathSegment, Resolve, ResolveError, Version, UNIMPLEMENTED_LITERAL_OBJECT,
         UNIMPLEMENTED_WILDCARDS,
     },
 };
@@ -109,7 +109,10 @@ where
                 //   see https://app.asana.com/0/0/1202884883200947/f
                 let literal = match head_path_segment.identifier.as_str() {
                     "uri" => Literal::String(self.record.id().base_uri().to_string()),
-                    "version" => Literal::Version(self.record.id().version(), self.is_latest),
+                    "version" => Literal::Version(
+                        Version::Ontology(self.record.id().version()),
+                        self.is_latest,
+                    ),
                     "title" => Literal::String(self.record.title().to_owned()),
                     "description" => self
                         .record

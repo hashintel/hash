@@ -1,18 +1,20 @@
 mod knowledge;
 mod ontology;
 
-use std::{error::Error, fmt, ops::Not};
+use std::{error::Error, fmt, ops::Not, str::FromStr};
 
 use async_trait::async_trait;
-use error_stack::{bail, Report, Result, ResultExt};
+use chrono::{DateTime, Utc};
+use error_stack::{bail, IntoReport, Report, Result, ResultExt};
 use futures::{future::BoxFuture, FutureExt};
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
 
 pub use self::{
-    knowledge::{EntityQuery, EntityVersion, LinkQuery},
+    knowledge::LinkQuery,
     ontology::{LinkTypeQuery, OntologyQuery, OntologyVersion},
 };
+use crate::knowledge::EntityId;
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -29,7 +31,22 @@ pub enum Literal {
     // TODO: Object
     /// Internal representation for a version
     #[serde(skip)]
-    Version(u32, bool),
+    Version(Version, bool),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Version {
+    Ontology(u32),
+    Entity(DateTime<Utc>),
+}
+
+impl fmt::Display for Version {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Ontology(version) => fmt::Display::fmt(version, fmt),
+            Self::Entity(version) => fmt::Display::fmt(version, fmt),
+        }
+    }
 }
 
 impl fmt::Debug for Literal {
@@ -68,10 +85,34 @@ fn compare(lhs: &Literal, rhs: &Literal) -> Result<bool, ExpressionError> {
         (lhs, Literal::List(rhs)) => rhs.iter().try_find(|rhs| compare(lhs, rhs))?.is_some(),
 
         // Version
-        (Literal::Version(lhs, _), Literal::Float(rhs)) => *lhs == *rhs as u32,
-        (Literal::Float(lhs), Literal::Version(rhs, _)) => *lhs as u32 == *rhs,
-        (Literal::String(lhs), Literal::Version(_, latest)) if lhs == "latest" => *latest,
-        (Literal::Version(_, latest), Literal::String(rhs)) if rhs == "latest" => *latest,
+        // ontology == float
+        (Literal::Version(Version::Ontology(version), _), Literal::Float(literal))
+        | (Literal::Float(literal), Literal::Version(Version::Ontology(version), _)) => {
+            *version == *literal as u32
+        }
+        // entity == float
+        (Literal::Version(Version::Entity(version), _), Literal::Float(literal))
+        | (Literal::Float(literal), Literal::Version(Version::Entity(version), _)) => {
+            version.timestamp() == *literal as i64
+        }
+        // entity == latest
+        (Literal::Version(_, latest), Literal::String(literal))
+        | (Literal::String(literal), Literal::Version(_, latest))
+            if literal == "latest" =>
+        {
+            *latest
+        }
+        // entity == date time
+        (Literal::Version(Version::Entity(version), _), Literal::String(literal))
+        | (Literal::String(literal), Literal::Version(Version::Entity(version), _)) => {
+            DateTime::<Utc>::from_str(literal)
+                .map(|date_time| date_time == *version)
+                .into_report()
+                .attach_printable_lazy(|| format!("cannot parse {rhs:?} as version"))
+                .change_context(ExpressionError)?
+        }
+        // version == version
+        (Literal::Version(lhs, _), Literal::Version(rhs, _)) => lhs == rhs,
 
         // unmatched
         (lhs, rhs) => {
@@ -177,6 +218,21 @@ impl Expression {
                 }],
             }),
             Self::Literal(Literal::String("latest".to_owned())),
+        ])
+    }
+
+    #[must_use]
+    pub fn for_latest_entity_id(id: EntityId) -> Self {
+        Self::All(vec![
+            Self::for_latest_version(),
+            Self::Eq(vec![
+                Self::Path(Path {
+                    segments: vec![PathSegment {
+                        identifier: "id".to_owned(),
+                    }],
+                }),
+                Self::Literal(Literal::String(id.to_string())),
+            ]),
         ])
     }
 }
