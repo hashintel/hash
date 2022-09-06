@@ -88,10 +88,9 @@ impl AgentBatch {
         Self::from_segment(segment, Some(schema), None)
     }
 
-    /// todo: DOC
-    // todo: see if it is possible to only use [`arrow2_convert`] and [`arrow2`] (rather than
-    // [`arrow`]) to read the schema from the flatbuffers.
-    // Asana task: https://app.asana.com/0/1199548034582004/1202829751949513/f
+    /// Loads an [`ArrowBatch`] from the provided shared memory segment. This
+    /// will load the [`StaticMetadata`], [`DynamicMetadata`], and the
+    /// underlying [`RecordBatch`].
     pub fn from_segment(
         segment: Segment,
         schema: Option<&AgentSchema>,
