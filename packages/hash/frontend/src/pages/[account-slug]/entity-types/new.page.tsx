@@ -8,7 +8,9 @@ import {
   typographyClasses,
 } from "@mui/material";
 import Image from "next/image";
-import { ReactNode } from "react";
+import { Router } from "next/router";
+import { ReactNode, useEffect, useState } from "react";
+import { Button, TextField } from "@hashintel/hash-design-system";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
 import { TopContextBar } from "../../shared/top-context-bar";
 
@@ -79,7 +81,41 @@ const Chip = ({
   </Stack>
 );
 
+// @todo pass ocorrect router in
+const useWarnIfUnsavedChanges = (
+  unsavedChanges: boolean,
+  callback: () => boolean,
+) => {
+  useEffect(() => {
+    if (unsavedChanges) {
+      const routeChangeStart = () => {
+        const ok = callback();
+        if (!ok) {
+          Router.events.emit("routeChangeError");
+          throw new Error("Abort route change. Please ignore this error.");
+        }
+      };
+      Router.events.on("routeChangeStart", routeChangeStart);
+
+      return () => {
+        Router.events.off("routeChangeStart", routeChangeStart);
+      };
+    }
+  }, [unsavedChanges]);
+};
+
 const Page: NextPageWithLayout = () => {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+
+  const unsavedChanges = !!(name || description);
+  // @todo isn't working
+  useWarnIfUnsavedChanges(unsavedChanges, () => {
+    return confirm(
+      "You have unsaved changes. Are you sure you would like to exit?",
+    );
+  });
+
   return (
     <Stack sx={{ height: "100vh" }}>
       <Box bgcolor="white">
@@ -134,7 +170,41 @@ const Page: NextPageWithLayout = () => {
       <Box flex={1} bgcolor="gray.10" borderTop={1} borderColor="gray.20">
         <Container>
           <Box py={8}>
-            <Typography>Hello, World</Typography>
+            <Stack
+              alignItems="flex-start"
+              sx={{ width: "60%", maxWidth: 600 }}
+              spacing={3}
+            >
+              <TextField
+                label="Singular Name"
+                name="name"
+                type="text"
+                placeholder="e.g. Stock Price"
+                value={name}
+                onChange={(evt) => setName(evt.target.value)}
+                required
+              />
+              {/** @todo should be a text area */}
+              <TextField
+                label="Description"
+                name="description"
+                type="text"
+                placeholder="Describe this entity in one or two sentences"
+                value={description}
+                onChange={(evt) => setDescription(evt.target.value)}
+                required
+                sx={{
+                  width: "90%",
+                }}
+              />
+              <Stack direction="row" spacing={1.25}>
+                <Button type="submit">Create new entity type</Button>
+                {/** @todo set correct URL */}
+                <Button href="/" variant="tertiary">
+                  Discard draft
+                </Button>
+              </Stack>
+            </Stack>
           </Box>
         </Container>
       </Box>
