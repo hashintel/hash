@@ -328,11 +328,6 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         notNull: true,
         references: "link_types",
       },
-      multi: {
-        type: "boolean",
-        notNull: true,
-        default: "false",
-      },
       link_order: {
         // TODO: this is where we could do fractional indexing
         //  https://app.asana.com/0/1200211978612931/1202085856561975/f

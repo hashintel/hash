@@ -31,7 +31,8 @@ fn row_stream_to_record_stream(row_stream: RowStream) -> RecordStream {
             source_entity_id: row.get(2),
             target_entity_id: row.get(3),
             account_id: row.get(4),
-            is_active: row.get(5),
+            // TODO: query historic links?
+            is_active: true,
         })
     })
 }
@@ -41,10 +42,9 @@ pub async fn read_all_active_links(client: &impl AsClient) -> Result<RecordStrea
         .as_client()
         .query_raw(
             r#"
-            SELECT base_uri, version, source_entity_id, target_entity_id, created_by, active
+            SELECT base_uri, version, source_entity_id, target_entity_id, created_by
             FROM links
             JOIN ids ON version_id = link_type_version_id
-            WHERE active
             "#,
             parameter_list([]),
         )
@@ -62,10 +62,10 @@ pub async fn read_active_links_by_source(
         .as_client()
         .query_raw(
             r#"
-            SELECT base_uri, version, source_entity_id, target_entity_id, created_by, active
+            SELECT base_uri, version, source_entity_id, target_entity_id, created_by
             FROM links
             JOIN ids ON version_id = link_type_version_id
-            WHERE active AND source_entity_id = $1
+            WHERE source_entity_id = $1
             "#,
             parameter_list([&entity_id]),
         )
@@ -83,10 +83,10 @@ pub async fn read_active_links_by_target(
         .as_client()
         .query_raw(
             r#"
-            SELECT base_uri, version, source_entity_id, target_entity_id, created_by, active
+            SELECT base_uri, version, source_entity_id, target_entity_id, created_by
             FROM links
             JOIN ids ON version_id = link_type_version_id
-            WHERE active AND target_entity_id = $1
+            WHERE target_entity_id = $1
             "#,
             parameter_list([&entity_id]),
         )
