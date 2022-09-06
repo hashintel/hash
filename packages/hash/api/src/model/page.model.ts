@@ -60,7 +60,7 @@ class __Page extends Entity {
         accountId: string;
         entityId: string;
       }[];
-      prevIndex?: string | null;
+      prevIndex: string | null;
     },
   ): Promise<Page> {
     /**
@@ -122,25 +122,7 @@ class __Page extends Entity {
             },
           ];
 
-    let lastIndex = null;
-    if (prevIndex === undefined) {
-      const pages = await this.getAllPagesInAccount(client, { accountId });
-
-      const childPages = await Promise.all(
-        pages.map(async (page) =>
-          (await page.getParentPage(client)) ? [] : page,
-        ),
-      ).then((filteredPages) => filteredPages.flat());
-
-      const sortedChildrenIndexes = childPages
-        .filter((page) => page.properties.index)
-        .map((page) => page.properties.index)
-        .sort();
-
-      lastIndex = sortedChildrenIndexes[sortedChildrenIndexes.length - 1];
-    }
-
-    const index = generateKeyBetween((prevIndex || lastIndex) ?? null, null);
+    const index = generateKeyBetween(prevIndex, null);
     const properties = { ...pageProperties, index };
 
     const entity = await Entity.createEntityWithLinks(client, {

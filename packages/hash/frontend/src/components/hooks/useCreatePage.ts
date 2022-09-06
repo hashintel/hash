@@ -11,7 +11,7 @@ import { createPage } from "../../graphql/queries/page.queries";
 export const useCreatePage = (
   accountId: string,
 ): [
-  (prevIndex?: string | null) => Promise<boolean | undefined>,
+  (prevIndex: string | null) => Promise<boolean | undefined>,
   { loading: boolean },
 ] => {
   const router = useRouter();
@@ -30,7 +30,7 @@ export const useCreatePage = (
   });
 
   const createUntitledPage = useCallback(
-    async (prevIndex?: string | null) => {
+    async (prevIndex: string | null) => {
       const response = await createPageFn({
         variables: { accountId, properties: { title: "" }, prevIndex },
       });
