@@ -104,7 +104,7 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
     ) -> Result<links::RecordStream, QueryError> {
         Ok(links::read_active_links_by_source(&self.client, entity_id)
             .await
-            .attach_printable("could not read links")?)
+            .attach_printable("could not read outgoing links")?)
     }
 
     async fn read_active_links_by_target(
@@ -113,6 +113,6 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
     ) -> Result<links::RecordStream, QueryError> {
         Ok(links::read_active_links_by_target(&self.client, entity_id)
             .await
-            .attach_printable("could not read links")?)
+            .attach_printable("could not read incoming links")?)
     }
 }
