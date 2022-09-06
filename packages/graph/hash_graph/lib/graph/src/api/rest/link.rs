@@ -29,7 +29,7 @@ use crate::{
         create_link,
         get_entity_links,
         get_active_links,
-        inactivate_link
+        remove_link
     ),
     components(AccountId, Link, OutgoingLinks, CreateLinkRequest, InactivateLinkRequest),
     tags(
@@ -48,7 +48,7 @@ impl RoutedResource for LinkResource {
                 "/entities/:entity_id/links",
                 post(create_link::<P>)
                     .get(get_entity_links::<P>)
-                    .delete(inactivate_link::<P>),
+                    .delete(remove_link::<P>),
             )
             .route("/links", get(get_active_links::<P>))
     }
@@ -167,7 +167,7 @@ struct InactivateLinkRequest {
         ("entityId" = Uuid, Path, description = "The ID of the source entity"),
     ),
 )]
-async fn inactivate_link<P: StorePool + Send>(
+async fn remove_link<P: StorePool + Send>(
     source_entity_id: Path<EntityId>,
     body: Json<InactivateLinkRequest>,
     pool: Extension<Arc<P>>,
@@ -184,7 +184,7 @@ async fn inactivate_link<P: StorePool + Send>(
     })?;
 
     store
-        .inactivate_link(&Link::new(
+        .remove_link(&Link::new(
             source_entity_id,
             target_entity_id,
             link_type_uri,

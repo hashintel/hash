@@ -435,5 +435,5 @@ pub trait LinkStore: for<'q> crud::Read<Link, Query<'q> = Expression> {
     ///
     /// - if the [`Link`] doesn't exist
     /// - if the account referred to by `created_by` does not exist
-    async fn inactivate_link(&mut self, link: &Link) -> Result<(), LinkActivationError>;
+    async fn remove_link(&mut self, link: &Link) -> Result<(), LinkActivationError>;
 }

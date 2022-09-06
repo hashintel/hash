@@ -41,7 +41,7 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
         Ok(())
     }
 
-    async fn inactivate_link(&mut self, link: &Link) -> Result<(), LinkActivationError> {
+    async fn remove_link(&mut self, link: &Link) -> Result<(), LinkActivationError> {
         let link_type_version_id = self
             .version_id_by_uri(link.link_type_uri())
             .await

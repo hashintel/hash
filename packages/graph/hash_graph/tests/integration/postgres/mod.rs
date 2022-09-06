@@ -357,7 +357,7 @@ impl DatabaseApi<'_> {
         link_type_uri: VersionedUri,
     ) -> Result<(), LinkActivationError> {
         let link = Link::new(source_entity_id, target_entity_id, link_type_uri);
-        self.store.inactivate_link(&link).await
+        self.store.remove_link(&link).await
     }
 }
 
