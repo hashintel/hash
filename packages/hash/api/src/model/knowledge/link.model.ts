@@ -99,37 +99,30 @@ export default class {
       sourceEntityModel.entityId,
     );
     return Promise.all(
-      Object.entries(entityLinks)
-        /**
-         * When target entity id is a list the link has many targets.
-         * This is not supported yet
-         * @todo support 1:N links
-         * */
-        .filter(([_, targetEntityId]) => typeof targetEntityId === "string")
-        .map(
-          async ([linkTypeUri, targetEntityId]) =>
-            new LinkModel({
+      entityLinks.map(
+        async (link) =>
+          new LinkModel({
+            /**
+             * @todo figure out what account ID we use here
+             *   Directly related to
+             *   https://app.asana.com/0/1202805690238892/1202883599104674/f
+             *   And may require consideration for
+             *   https://app.asana.com/0/1202805690238892/1202890446280569/f
+             */
+            accountId: sourceEntityModel.accountId,
+            linkTypeModel: await LinkTypeModel.get(graphApi, {
+              versionedUri: link.linkTypeUri,
+            }),
+            sourceEntityModel,
+            targetEntityModel: await EntityModel.getLatest(graphApi, {
               /**
                * @todo figure out what account ID we use here
-               *   Directly related to
-               *   https://app.asana.com/0/1202805690238892/1202883599104674/f
-               *   And may require consideration for
-               *   https://app.asana.com/0/1202805690238892/1202890446280569/f
-               */
+               *   https://app.asana.com/0/1202805690238892/1202883599104674/f */
               accountId: sourceEntityModel.accountId,
-              linkTypeModel: await LinkTypeModel.get(graphApi, {
-                versionedUri: linkTypeUri,
-              }),
-              sourceEntityModel,
-              targetEntityModel: await EntityModel.getLatest(graphApi, {
-                /**
-                 * @todo figure out what account ID we use here
-                 *   https://app.asana.com/0/1202805690238892/1202883599104674/f */
-                accountId: sourceEntityModel.accountId,
-                entityId: targetEntityId,
-              }),
+              entityId: link.targetEntityId,
             }),
-        ),
+          }),
+      ),
     );
   }
 
