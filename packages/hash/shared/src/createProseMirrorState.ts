@@ -8,7 +8,7 @@ import { createSchema } from "./prosemirror";
 import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
 
 const createInitialDoc = (schema: Schema = createSchema()) =>
-  schema.node("doc", {}, [schema.node("blank")]);
+  schema.node("doc", {}, [schema.node("loading")]);
 
 const defaultPlugins: Plugin<any, Schema>[] = [
   ...wrapEntitiesPlugin(baseKeymap),
