@@ -1,6 +1,7 @@
 import React, { forwardRef, useState, CSSProperties, RefObject } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import LinkIcon from "@mui/icons-material/Link";
 import {
   Box,
   IconButton,
@@ -8,6 +9,7 @@ import {
   TextField,
   Paper,
   SxProps,
+  Tooltip,
 } from "@mui/material";
 import { DraggableAttributes } from "@dnd-kit/core";
 
@@ -24,6 +26,7 @@ export type ItemProps = {
   style?: CSSProperties;
   dragOverlay?: RefObject<HTMLDivElement>;
   readonly: boolean;
+  isEntity?: boolean;
 };
 
 export const Item = forwardRef<HTMLLIElement, ItemProps>(
@@ -40,6 +43,7 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
       listeners,
       dragOverlay,
       readonly,
+      isEntity,
     },
     ref,
   ) => {
@@ -66,10 +70,26 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
             paddingX: 2,
             paddingY: 1,
             background: ({ palette }) => palette.grey[50],
+            pl: 0,
+            alignItems: "center",
             ...paperStyle,
           }}
           ref={dragOverlay}
         >
+          <Tooltip title={isEntity ? "This item is linked to an entity" : ""}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "1.5rem",
+                m: "0 0.25rem",
+              }}
+            >
+              {isEntity && <LinkIcon fontSize="small" />}
+            </Box>
+          </Tooltip>
+
           <TextField
             multiline
             fullWidth
@@ -77,7 +97,7 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
             sx={{
               border: "none",
               outline: "none",
-              caretColor: readonly ? "transparent" : "initial",
+              caretColor: readonly || isEntity ? "transparent" : "initial",
             }}
             value={value}
             onChange={(event) => onValueChange?.(event.target.value)}
