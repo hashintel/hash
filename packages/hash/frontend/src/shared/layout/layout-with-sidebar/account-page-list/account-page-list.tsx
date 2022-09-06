@@ -82,11 +82,18 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     [],
   );
 
-  const [treeItems, setTreeItems] = useState<TreeItem[]>([]);
-
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
   const [offsetLeft, setOffsetLeft] = useState(0);
+
+  const [treeItems, setTreeItems] = useState<TreeItem[]>([]);
+  const [prevData, setPrevData] = useState(data);
+
+  if (data !== prevData && !loading) {
+    setPrevData(data);
+    setTreeItems(getTreeItemList(data));
+    setInitialLoading(false);
+  }
 
   // @todo handle loading/error states properly
   const addPage = useCallback(async () => {
@@ -124,15 +131,6 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     () => treeItems.map(({ page }) => page.entityId),
     [treeItems],
   );
-
-  useEffect(() => {
-    // We only update the state when everything has been loaded.
-    // If the request fails, pages will be reordered to their original state
-    if (!loading) {
-      setTreeItems(getTreeItemList(data));
-      setInitialLoading(false);
-    }
-  }, [data, loading]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
