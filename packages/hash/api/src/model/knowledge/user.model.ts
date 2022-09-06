@@ -1,50 +1,21 @@
 import { VersionedUri } from "@blockprotocol/type-system-web";
-import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import {
   EntityModel,
-  EntityModelCreateParams,
   EntityTypeModel,
   UserModel,
   AccountFields,
+  EntityModelCreateParams,
 } from "..";
 import {
   adminKratosSdk,
   KratosUserIdentity,
   KratosUserIdentityTraits,
 } from "../../auth/ory-kratos";
-import {
-  WORKSPACE_TYPES,
-  WORKSPACE_TYPES_INITIALIZERS,
-} from "../../graph/workspace-types";
-import {
-  entityTypeInitializer,
-  propertyTypeInitializer,
-  workspaceAccountId,
-} from "../util";
+import { WORKSPACE_TYPES } from "../../graph/workspace-types";
+import { workspaceAccountId } from "../util";
 
 type QualifiedEmail = { address: string; verified: boolean; primary: boolean };
-
-// Generate the schema for the email property type
-export const emailPropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Email",
-  possibleValues: [{ primitiveDataType: "Text" }],
-});
-
-// Generate the schema for the kratos identity property type
-export const kratosIdentityIdPropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Kratos Identity ID",
-  possibleValues: [{ primitiveDataType: "Text" }],
-});
-
-// Generate the schema for the preferred name property type
-export const preferredNamePropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Preferred Name",
-  possibleValues: [{ primitiveDataType: "Text" }],
-});
 
 type UserModelCreateParams = Omit<
   EntityModelCreateParams,
@@ -52,55 +23,6 @@ type UserModelCreateParams = Omit<
 > & {
   emails: string[];
   kratosIdentityId: string;
-};
-
-// Generate the schema for the user entity type
-export const userEntityTypeInitializer = async (graphApi: GraphApi) => {
-  const shortnamePropertyTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.propertyType.shortName(graphApi);
-
-  const emailPropertyTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.propertyType.email(graphApi);
-
-  const kratosIdentityIdPropertyTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.propertyType.kratosIdentityId(graphApi);
-  const accountIdPropertyTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.propertyType.accountId(graphApi);
-
-  const preferredNamePropertyTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.propertyType.preferredName(graphApi);
-
-  return entityTypeInitializer({
-    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-    title: "User",
-    properties: [
-      {
-        baseUri: shortnamePropertyTypeModel.baseUri,
-        versionedUri: shortnamePropertyTypeModel.schema.$id,
-      },
-      {
-        baseUri: emailPropertyTypeModel.baseUri,
-        versionedUri: emailPropertyTypeModel.schema.$id,
-        required: true,
-        array: { minItems: 1 },
-      },
-      {
-        baseUri: kratosIdentityIdPropertyTypeModel.baseUri,
-        versionedUri: kratosIdentityIdPropertyTypeModel.schema.$id,
-        required: true,
-      },
-      {
-        baseUri: accountIdPropertyTypeModel.baseUri,
-        versionedUri: accountIdPropertyTypeModel.schema.$id,
-        required: true,
-      },
-      {
-        baseUri: preferredNamePropertyTypeModel.baseUri,
-        versionedUri: preferredNamePropertyTypeModel.schema.$id,
-        required: true,
-      },
-    ],
-  })(graphApi);
 };
 
 /**

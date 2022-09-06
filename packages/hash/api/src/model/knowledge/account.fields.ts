@@ -3,22 +3,6 @@ import { OrgModel, UserModel } from "..";
 import { GraphApi } from "../../graph";
 import { propertyTypeInitializer, RESTRICTED_SHORTNAMES } from "../util";
 
-// AccountId
-// Generate the schema for the account id property type
-export const accountIdPropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Account ID",
-  possibleValues: [{ primitiveDataType: "Text" }],
-});
-
-// Shortname
-// Generate the schema for the shortname property type
-export const shortnamePropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Shortname",
-  possibleValues: [{ primitiveDataType: "Text" }],
-});
-
 // Validations for shortnames
 /**
  * @todo revisit (simple) shortname validation to make use of data type

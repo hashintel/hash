@@ -1,5 +1,3 @@
-import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
-
 import { GraphApi } from "../../graph";
 import {
   OrgModel,
@@ -8,95 +6,8 @@ import {
   AccountFields,
   EntityTypeModel,
 } from "..";
-import {
-  entityTypeInitializer,
-  propertyTypeInitializer,
-  workspaceAccountId,
-} from "../util";
-import {
-  WORKSPACE_TYPES,
-  WORKSPACE_TYPES_INITIALIZERS,
-} from "../../graph/workspace-types";
-
-// Generate the schema for the organization name property type
-export const orgNamePropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Organization Name",
-  possibleValues: [{ primitiveDataType: "Text" }],
-});
-
-// Generate the schema for the org size property type
-export const orgSizePropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Organization Size",
-  possibleValues: [{ primitiveDataType: "Text" }],
-});
-
-// Generate the schema for the org provided info property type
-export const orgProvidedInfoPropertyTypeInitializer = async (
-  graphApi: GraphApi,
-) => {
-  const orgSizePropertyTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.propertyType.orgSize(graphApi);
-
-  const orgSizeBaseUri = orgSizePropertyTypeModel.baseUri;
-
-  return propertyTypeInitializer({
-    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-    title: "Organization Provided Info",
-    possibleValues: [
-      {
-        propertyTypeObjectProperties: {
-          [orgSizeBaseUri]: {
-            $ref: orgSizePropertyTypeModel.schema.$id,
-          },
-        },
-      },
-    ],
-  })(graphApi);
-};
-
-// Generate the schema for the org entity type
-export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
-  const shortnamePropertyTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.propertyType.shortName(graphApi);
-
-  const accountIdPropertyTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.propertyType.accountId(graphApi);
-
-  const orgNamePropertyTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.propertyType.orgName(graphApi);
-
-  const orgProvidedInfoPropertyTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.propertyType.orgProvidedInfo(graphApi);
-
-  return entityTypeInitializer({
-    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-    title: "Organization",
-    properties: [
-      {
-        baseUri: shortnamePropertyTypeModel.baseUri,
-        versionedUri: shortnamePropertyTypeModel.schema.$id,
-        required: true,
-      },
-      {
-        baseUri: accountIdPropertyTypeModel.baseUri,
-        versionedUri: accountIdPropertyTypeModel.schema.$id,
-        required: true,
-      },
-      {
-        baseUri: orgNamePropertyTypeModel.baseUri,
-        versionedUri: orgNamePropertyTypeModel.schema.$id,
-        required: true,
-      },
-      {
-        baseUri: orgProvidedInfoPropertyTypeModel.baseUri,
-        versionedUri: orgProvidedInfoPropertyTypeModel.schema.$id,
-        required: false,
-      },
-    ],
-  })(graphApi);
-};
+import { workspaceAccountId } from "../util";
+import { WORKSPACE_TYPES } from "../../graph/workspace-types";
 
 /**
  * @todo revisit organization size provided info. These constant strings could

@@ -103,7 +103,7 @@ export const generateSchemaBaseUri = ({
   kind: SchemaKind;
   title: string;
 }): BaseUri =>
-  `${domain}/${namespace}/types/${schemaKindSlugs[kind]}/${slugifySchemaTitle(
+  `${domain}/@${namespace}/types/${schemaKindSlugs[kind]}/${slugifySchemaTitle(
     title,
   )}` as const;
 
@@ -151,8 +151,8 @@ export const primitiveDataTypeVersionedUris = primitiveDataTypeTitles.reduce(
   (prev, title) => ({
     ...prev,
     [title]: generateSchemaUri({
-      domain: "https://blockprotocol.org/",
-      namespace: "@blockprotocol",
+      domain: "https://blockprotocol.org",
+      namespace: "blockprotocol",
       kind: "dataType",
       title,
     }),

@@ -1,23 +1,9 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 import { GraphApi } from "@hashintel/hash-graph-client";
 
-import {
-  EntityTypeModel,
-  PropertyTypeModel,
-  orgNamePropertyTypeInitializer,
-  orgSizePropertyTypeInitializer,
-  orgProvidedInfoPropertyTypeInitializer,
-  orgEntityTypeInitializer,
-  emailPropertyTypeInitializer,
-  kratosIdentityIdPropertyTypeInitializer,
-  preferredNamePropertyTypeInitializer,
-  userEntityTypeInitializer,
-} from "../model";
-import {} from "../model/util";
-import {
-  accountIdPropertyTypeInitializer,
-  shortnamePropertyTypeInitializer,
-} from "../model/knowledge/account.fields";
+import { EntityTypeModel, PropertyTypeModel } from "../model";
+import { propertyTypeInitializer, entityTypeInitializer } from "../model/util";
 
 /** @todo - Add */
 // eslint-disable-next-line import/no-mutable-exports
@@ -45,11 +31,180 @@ export let WORKSPACE_TYPES: {
   linkType: {};
 };
 
-type Promisify<T> = (graphApi: GraphApi) => Promise<T>;
+// Generate the schema for the org provided info property type
+export const orgProvidedInfoPropertyTypeInitializer = async (
+  graphApi: GraphApi,
+) => {
+  const orgSizePropertyTypeModel =
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.orgSize(graphApi);
+
+  const orgSizeBaseUri = orgSizePropertyTypeModel.baseUri;
+
+  return propertyTypeInitializer({
+    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+    title: "Organization Provided Info",
+    possibleValues: [
+      {
+        propertyTypeObjectProperties: {
+          [orgSizeBaseUri]: {
+            $ref: orgSizePropertyTypeModel.schema.$id,
+          },
+        },
+      },
+    ],
+  })(graphApi);
+};
+
+// Generate the schema for the org entity type
+export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+  const shortnamePropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.shortName(graphApi);
+
+  const accountIdPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.accountId(graphApi);
+
+  const orgNamePropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.orgName(graphApi);
+
+  const orgProvidedInfoPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.orgProvidedInfo(graphApi);
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+    title: "Organization",
+    properties: [
+      {
+        baseUri: shortnamePropertyTypeModel.baseUri,
+        versionedUri: shortnamePropertyTypeModel.schema.$id,
+        required: true,
+      },
+      {
+        baseUri: accountIdPropertyTypeModel.baseUri,
+        versionedUri: accountIdPropertyTypeModel.schema.$id,
+        required: true,
+      },
+      {
+        baseUri: orgNamePropertyTypeModel.baseUri,
+        versionedUri: orgNamePropertyTypeModel.schema.$id,
+        required: true,
+      },
+      {
+        baseUri: orgProvidedInfoPropertyTypeModel.baseUri,
+        versionedUri: orgProvidedInfoPropertyTypeModel.schema.$id,
+        required: false,
+      },
+    ],
+  })(graphApi);
+};
+
+// AccountId
+// Generate the schema for the account id property type
+const accountIdPropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Account ID",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+// Shortname
+// Generate the schema for the shortname property type
+const shortnamePropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Shortname",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+// Generate the schema for the organization name property type
+const orgNamePropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Organization Name",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+// Generate the schema for the org size property type
+const orgSizePropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Organization Size",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+// Generate the schema for the email property type
+const emailPropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Email",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+// Generate the schema for the kratos identity property type
+const kratosIdentityIdPropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Kratos Identity ID",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+// Generate the schema for the preferred name property type
+const preferredNamePropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Preferred Name",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+// Generate the schema for the user entity type
+const userEntityTypeInitializer = async (graphApi: GraphApi) => {
+  const shortnamePropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.shortName(graphApi);
+
+  const emailPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.email(graphApi);
+
+  const kratosIdentityIdPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.kratosIdentityId(graphApi);
+  const accountIdPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.accountId(graphApi);
+
+  const preferredNamePropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.preferredName(graphApi);
+
+  return entityTypeInitializer({
+    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+    title: "User",
+    properties: [
+      {
+        baseUri: shortnamePropertyTypeModel.baseUri,
+        versionedUri: shortnamePropertyTypeModel.schema.$id,
+      },
+      {
+        baseUri: emailPropertyTypeModel.baseUri,
+        versionedUri: emailPropertyTypeModel.schema.$id,
+        required: true,
+        array: { minItems: 1 },
+      },
+      {
+        baseUri: kratosIdentityIdPropertyTypeModel.baseUri,
+        versionedUri: kratosIdentityIdPropertyTypeModel.schema.$id,
+        required: true,
+      },
+      {
+        baseUri: accountIdPropertyTypeModel.baseUri,
+        versionedUri: accountIdPropertyTypeModel.schema.$id,
+        required: true,
+      },
+      {
+        baseUri: preferredNamePropertyTypeModel.baseUri,
+        versionedUri: preferredNamePropertyTypeModel.schema.$id,
+        required: true,
+      },
+    ],
+  })(graphApi);
+};
+
+type LazyPromise<T> = (graphApi: GraphApi) => Promise<T>;
 
 type FlattenAndPromisify<T> = {
   [K in keyof T]: T[K] extends object
-    ? { [I in keyof T[K]]: Promisify<T[K][I]> }
+    ? { [I in keyof T[K]]: LazyPromise<T[K][I]> }
     : never;
 };
 
@@ -75,6 +230,8 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
   },
   linkType: {},
 };
+
+/* eslint-enable @typescript-eslint/no-use-before-define */
 
 /**
  * A script that ensures the required primitive data types and workspace types
