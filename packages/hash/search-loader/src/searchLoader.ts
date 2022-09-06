@@ -1,3 +1,6 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
+/** @todo remove above ts-nocheck */
 import { StatsD } from "hot-shots";
 
 import { QueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/adapter";

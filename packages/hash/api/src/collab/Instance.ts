@@ -1,3 +1,6 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
+/** @todo remove above ts-nocheck */
 import { ApolloClient } from "@apollo/client";
 import {
   AggregationVersion,
