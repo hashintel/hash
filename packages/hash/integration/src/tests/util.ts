@@ -119,7 +119,7 @@ export const createTestUser = async (
       emails: [`${shortname}@example.com`],
     },
   }).catch((err) => {
-    logger.warn(`AHHHHH when creating ${shortname} ${err}`);
+    logger.error(`Error when creating Kratos Identity, ${shortname}: ${err}`);
     throw err;
   });
 
@@ -129,7 +129,7 @@ export const createTestUser = async (
     emails: [`${shortname}@example.com`],
     kratosIdentityId,
   }).catch((err) => {
-    logger.warn("AHHHHH 2");
+    logger.error(`Error making UserModel for ${shortname}`);
     throw err;
   });
 
@@ -139,7 +139,7 @@ export const createTestUser = async (
       updatedShortname: shortname,
     })
     .catch((err) => {
-      logger.warn("AHHHHH 3");
+      logger.error(`Error updating shortname for UserModel to ${shortname}`);
       throw err;
     });
 
