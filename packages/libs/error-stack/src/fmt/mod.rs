@@ -33,9 +33,8 @@
 //! [`Report::install_debug_hook`].
 //! This type needs to be `'static`, [`Send`], and [`Sync`].
 //!
-//! You can emit lines, which decide what is going to be emitted during printing with
-//! [`HookContext::emit`] and [`HookContext::emit_deferred`], refer to the documentation of
-//! [`HookContext`] for further information.
+//! You can add additional entries to the body with [`HookContext::push_body`], refer to the
+//! documentation of [`HookContext`] for further information.
 //!
 //! ## Example
 //!
