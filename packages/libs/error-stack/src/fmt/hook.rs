@@ -298,6 +298,7 @@ impl<T> HookContext<T> {
     ///
     /// Report::install_debug_hook::<Error>(|Error { code, reason }, ctx| {
     ///     if ctx.alternate() {
+    ///         // Add a snippet to the output
     ///         ctx.snippet(format!("Error {code}:\n  {reason}"));
     ///     }
     ///
@@ -364,6 +365,7 @@ impl<T> HookContext<T> {
     ///
     /// Report::install_debug_hook::<Error>(|Error { code, reason }, ctx| {
     ///     if ctx.alternate() {
+    ///         // Add a snippet, which is printed after other snippets
     ///         ctx.snippet_deferred(format!("Error {code}:\n  {reason}"));
     ///     }
     ///
