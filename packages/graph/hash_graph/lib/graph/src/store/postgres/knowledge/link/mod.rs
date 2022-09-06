@@ -1,7 +1,7 @@
 mod read;
 
 use async_trait::async_trait;
-use error_stack::{Result, ResultExt};
+use error_stack::{IntoReport, Result, ResultExt};
 use tokio_postgres::GenericClient;
 
 use crate::{
@@ -22,32 +22,21 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
             .await
             .change_context(InsertionError)
             .attach_printable(link.source_entity())?;
-        let inserted_link = self.as_client()
+
+        self.as_client()
             .query_one(
                 r#"
-                    INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, multi, multi_order, created_by)
-                    VALUES ($1, $2, $3, false, null, $4)
+                    INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, link_order, created_by)
+                    VALUES ($1, $2, $3, null, $4)
                     RETURNING source_entity_id, target_entity_id, link_type_version_id;
                 "#,
                 &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &created_by],
             )
-            .await;
-
-        if let Err(error) = inserted_link {
-            // In the case of inserting a new link errors, we try to update an existing link that
-            // has previously been set to inactive
-            self.update_link_status(
-                LinkStatus::Active,
-                link.source_entity(),
-                link.target_entity(),
-                link_type_version_id,
-            )
             .await
+            .into_report()
             .change_context(InsertionError)
             .attach_printable(created_by)
-            .attach_printable(error)
             .attach_lazy(|| link.clone())?;
-        }
 
         Ok(())
     }
