@@ -153,7 +153,15 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       : null;
 
   useEffect(() => {
-    document.body.style.setProperty("cursor", activeId ? "grabbing" : "");
+    if (activeId) {
+      document.body.style.setProperty("cursor", "grabbing");
+
+      return () => {
+        if (document.body.style.cursor === "grabbing") {
+          document.body.style.setProperty("cursor", "");
+        }
+      };
+    }
   }, [activeId]);
 
   const resetState = () => {
