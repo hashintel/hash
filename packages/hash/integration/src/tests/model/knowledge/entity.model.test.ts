@@ -28,9 +28,12 @@ const graphApi = createGraphClient(logger, {
 const accountId = "00000000-0000-0000-0000-000000000000";
 
 let entityTypeModel: EntityTypeModel;
+let textDataTypeModel: DataTypeModel;
+let namePropertyTypeModel: PropertyTypeModel;
+let favoriteBookPropertyTypeModel: PropertyTypeModel;
 
 beforeAll(async () => {
-  await DataTypeModel.create(graphApi, {
+  textDataTypeModel = await DataTypeModel.create(graphApi, {
     accountId,
     schema: {
       kind: "dataType",
@@ -54,20 +57,23 @@ beforeAll(async () => {
       accountId,
       schema: {
         kind: "propertyType",
-        title: "Text",
-        pluralTitle: "Text",
-        oneOf: [{ $ref: textDataType$id }],
+        title: "Favorite Book",
+        pluralTitle: "Favorite Books",
+        oneOf: [{ $ref: textDataTypeModel.schema.$id }],
       },
+    }).then((val) => {
+      favoriteBookPropertyTypeModel = val;
     }),
     PropertyTypeModel.create(graphApi, {
       accountId,
       schema: {
-        $id: namePropertyType$id,
         kind: "propertyType",
-        title: "Text",
-        pluralTitle: "Text",
-        oneOf: [{ $ref: textDataType$id }],
+        title: "Name",
+        pluralTitle: "Names",
+        oneOf: [{ $ref: textDataTypeModel.schema.$id }],
       },
+    }).then((val) => {
+      namePropertyTypeModel = val;
     }),
   ]);
 
@@ -80,8 +86,8 @@ describe("Entity CRU", () => {
     createdEntityModel = await EntityModel.create(graphApi, {
       accountId,
       properties: {
-        [namePropertyTypeBaseId]: "Bob",
-        [textPropertyTypeBaseId]: "some text",
+        [namePropertyTypeModel.baseUri]: "Bob",
+        [favoriteBookPropertyTypeModel.baseUri]: "some text",
       },
       entityTypeModel,
     });
@@ -103,8 +109,8 @@ describe("Entity CRU", () => {
       .update(graphApi, {
         accountId,
         properties: {
-          [namePropertyTypeBaseId]: "Updated Bob",
-          [textPropertyTypeBaseId]: "Even more text than before",
+          [namePropertyTypeModel.baseUri]: "Updated Bob",
+          [favoriteBookPropertyTypeModel.baseUri]: "Even more text than before",
         },
       })
       .catch((err) => Promise.reject(err.data));
@@ -128,7 +134,9 @@ describe("Entity CRU", () => {
 
     expect(newlyUpdatedModel!.version).toEqual(updatedEntityModel.version);
     expect(
-      (newlyUpdatedModel!.properties as any)[namePropertyTypeBaseId],
-    ).toEqual((updatedEntityModel.properties as any)[namePropertyTypeBaseId]);
+      (newlyUpdatedModel!.properties as any)[namePropertyTypeModel.baseUri],
+    ).toEqual(
+      (updatedEntityModel.properties as any)[namePropertyTypeModel.baseUri],
+    );
   });
 });

@@ -126,7 +126,7 @@ export const generateSchemaUri = ({
  *  https://app.asana.com/0/1200211978612931/1202923896339225/f
  */
 export const extractBaseUri = (versionedUri: string) => {
-  const baseUri = versionedUri.split("/v/")[0];
+  const baseUri = versionedUri.split("v/")[0];
   if (baseUri == null) {
     throw new Error(
       `couldn't extract base URI, malformed Versioned URI: ${versionedUri}`,

@@ -1,10 +1,11 @@
-import { GraphApi, UpdateDataTypeRequest } from "@hashintel/hash-graph-client";
+import { AxiosError } from "axios";
 
+import { GraphApi, UpdateDataTypeRequest } from "@hashintel/hash-graph-client";
 import { DataType } from "@blockprotocol/type-system-web";
 
 import { DataTypeModel, UserModel } from "../index";
-import { generateSchemaUri } from "../util";
-import { AxiosError } from "axios";
+import { generateSchemaUri, workspaceAccountId } from "../util";
+import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
 type DataTypeModelConstructorArgs = {
   accountId: string;
@@ -40,14 +41,21 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: Omit<DataType, "$id">;
+      // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
+      //  https://github.com/microsoft/TypeScript/issues/50638
+      schema: Pick<DataType, "kind" | "title" | "description" | "type"> &
+        Record<string, any>;
     },
   ): Promise<DataTypeModel> {
-    const namespace = (
-      await UserModel.getUserByEntityId(graphApi, {
-        entityId: params.accountId,
-      })
-    )?.getShortname();
+    /** @todo - get rid of this hack for the root account */
+    const namespace =
+      params.accountId === workspaceAccountId
+        ? WORKSPACE_ACCOUNT_SHORTNAME
+        : (
+            await UserModel.getUserByEntityId(graphApi, {
+              entityId: params.accountId,
+            })
+          )?.getShortname();
 
     if (namespace == null) {
       throw new Error(
@@ -71,12 +79,12 @@ export default class {
         throw new Error(
           err.response?.status === 409
             ? `data type with the same URI already exists. [URI=${fullDataType.$id}]`
-            : `couldn't create data type.`,
+            : `[${err.code}] couldn't create data type: ${err.response?.data}.`,
         );
       });
 
     return new DataTypeModel({
-      schema: params.schema,
+      schema: fullDataType,
       accountId: identifier.createdBy,
     });
   }

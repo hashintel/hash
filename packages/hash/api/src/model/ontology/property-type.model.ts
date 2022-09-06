@@ -7,7 +7,8 @@ import {
 } from "@hashintel/hash-graph-client";
 
 import { PropertyTypeModel, UserModel } from "../index";
-import { extractBaseUri, generateSchemaUri } from "../util";
+import { extractBaseUri, generateSchemaUri, workspaceAccountId } from "../util";
+import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
 type PropertyTypeModelConstructorParams = {
   accountId: string;
@@ -40,11 +41,14 @@ export default class {
       schema: Omit<PropertyType, "$id">;
     },
   ): Promise<PropertyTypeModel> {
-    const namespace = (
-      await UserModel.getUserByEntityId(graphApi, {
-        entityId: params.accountId,
-      })
-    )?.getShortname();
+    /** @todo - get rid of this hack for the root account */ const namespace =
+      params.accountId === workspaceAccountId
+        ? WORKSPACE_ACCOUNT_SHORTNAME
+        : (
+            await UserModel.getUserByEntityId(graphApi, {
+              entityId: params.accountId,
+            })
+          )?.getShortname();
 
     if (namespace == null) {
       throw new Error(
@@ -68,7 +72,7 @@ export default class {
         throw new Error(
           err.response?.status === 409
             ? `property type with the same URI already exists. [URI=${fullPropertyType.$id}]`
-            : `couldn't create property type.`,
+            : `[${err.code}] couldn't create property type: ${err.response?.data}.`,
         );
       });
 

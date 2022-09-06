@@ -12,7 +12,8 @@ import {
   LinkTypeModel,
   UserModel,
 } from "../index";
-import { generateSchemaUri } from "../util";
+import { generateSchemaUri, workspaceAccountId } from "../util";
+import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
 export type EntityTypeModelConstructorParams = {
   accountId: string;
@@ -47,11 +48,15 @@ export default class {
     graphApi: GraphApi,
     params: EntityTypeModelCreateParams,
   ): Promise<EntityTypeModel> {
-    const namespace = (
-      await UserModel.getUserByEntityId(graphApi, {
-        entityId: params.accountId,
-      })
-    )?.getShortname();
+    /** @todo - get rid of this hack for the root account */
+    const namespace =
+      params.accountId === workspaceAccountId
+        ? WORKSPACE_ACCOUNT_SHORTNAME
+        : (
+            await UserModel.getUserByEntityId(graphApi, {
+              entityId: params.accountId,
+            })
+          )?.getShortname();
 
     if (namespace == null) {
       throw new Error(
@@ -75,7 +80,7 @@ export default class {
         throw new Error(
           err.response?.status === 409
             ? `entity type with the same URI already exists. [URI=${fullEntityType.$id}]`
-            : `couldn't create entity type.`,
+            : `[${err.code}] couldn't create entity type: ${err.response?.data}.`,
         );
       });
 

@@ -4,7 +4,8 @@ import { LinkType } from "@blockprotocol/type-system-web";
 import { GraphApi, UpdateLinkTypeRequest } from "@hashintel/hash-graph-client";
 
 import { LinkTypeModel, UserModel } from "../index";
-import { generateSchemaUri } from "../util";
+import { generateSchemaUri, workspaceAccountId } from "../util";
+import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
 type LinkTypeModelConstructorParams = {
   accountId: string;
@@ -37,11 +38,15 @@ export default class {
       schema: Omit<LinkType, "$id">;
     },
   ): Promise<LinkTypeModel> {
-    const namespace = (
-      await UserModel.getUserByEntityId(graphApi, {
-        entityId: params.accountId,
-      })
-    )?.getShortname();
+    /** @todo - get rid of this hack for the root account */
+    const namespace =
+      params.accountId === workspaceAccountId
+        ? WORKSPACE_ACCOUNT_SHORTNAME
+        : (
+            await UserModel.getUserByEntityId(graphApi, {
+              entityId: params.accountId,
+            })
+          )?.getShortname();
 
     if (namespace == null) {
       throw new Error(
@@ -65,7 +70,7 @@ export default class {
         throw new Error(
           err.response?.status === 409
             ? `link type with the same URI already exists. [URI=${fullLinkType.$id}]`
-            : `couldn't create link type.`,
+            : `[${err.code}] couldn't create link type: ${err.response?.data}.`,
         );
       });
 
