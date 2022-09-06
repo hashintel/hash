@@ -335,6 +335,7 @@ impl Expression {
 pub enum ResolveError {
     EmptyPath { literal: Literal },
     CannotIndex { path: Path, literal: Literal },
+    OutOfBounds { index: usize, list: Vec<Literal> },
     StoreReadError,
 }
 
@@ -346,6 +347,13 @@ impl fmt::Display for ResolveError {
                 write!(fmt, "cannot index `{literal:?}` with path `{path}`")
             }
             Self::StoreReadError => fmt.write_str("could not read data from store"),
+            Self::OutOfBounds { index, list } => {
+                write!(
+                    fmt,
+                    "index out of bound, got index of `{index}`, but a length of `{}`",
+                    list.len()
+                )
+            }
         }
     }
 }
@@ -368,32 +376,29 @@ where
     C: Sync + ?Sized,
 {
     async fn resolve(&self, path: &[PathSegment], context: &C) -> Result<Literal, ResolveError> {
-        // TODO: Support `Literal::Object`
-        //   see https://app.asana.com/0/0/1202884883200943/f
-        match self {
-            Literal::List(values) => match path {
-                [] => bail!(ResolveError::EmptyPath {
-                    literal: self.clone()
-                }),
-                [segment, segments @ ..] => {
-                    let index: usize = segment
+        match path {
+            [] => Ok(self.clone()),
+            [head_path_segment, tail_path_segments @ ..] => match self {
+                Literal::List(values) => {
+                    let index: usize = head_path_segment
                         .identifier
                         .parse()
                         .expect("path needs to be an unsigned integer");
-                    let literal = values.get(index).expect("index out of bounds");
-                    if segments.is_empty() {
-                        Ok(literal.clone())
-                    } else {
-                        literal.resolve(segments, context).await
-                    }
+                    let literal = values.get(index).ok_or_else(|| {
+                        Report::new(ResolveError::OutOfBounds {
+                            index,
+                            list: values.clone(),
+                        })
+                    })?;
+                    literal.resolve(tail_path_segments, context).await
                 }
+                literal => bail!(ResolveError::CannotIndex {
+                    path: Path {
+                        segments: path.to_vec(),
+                    },
+                    literal: literal.clone(),
+                }),
             },
-            literal => bail!(ResolveError::CannotIndex {
-                path: Path {
-                    segments: path.to_vec(),
-                },
-                literal: literal.clone(),
-            }),
         }
     }
 }
