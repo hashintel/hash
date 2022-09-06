@@ -146,7 +146,6 @@ async fn by_link_type_by_source_entity_id(
     )])
 }
 
-// TODO: we should probably support taking PersistedEntityIdentifier here as well as an EntityId
 #[async_trait]
 impl<C: AsClient> crud::Read<Link> for PostgresStore<C> {
     type Query<'q> = Expression;
