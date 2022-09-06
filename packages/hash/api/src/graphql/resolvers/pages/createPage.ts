@@ -7,11 +7,16 @@ export const createPage: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationCreatePageArgs
-> = async (_, { accountId, properties }, { dataSources: { db }, user }) => {
+> = async (
+  _,
+  { accountId, properties, prevIndex = null },
+  { dataSources: { db }, user },
+) => {
   const page = await Page.createPage(db, {
     accountId,
     createdBy: user,
     properties,
+    prevIndex,
   });
 
   return page.toGQLUnknownEntity();
