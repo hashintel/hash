@@ -28,7 +28,7 @@
     "@dnd-kit/sortable": "7.0.1",
     "@dnd-kit/utilities": "3.2.0",
     "@hashintel/hash-design-system": "0.0.0",
-    "@mui/icons-material": "5.4.2",
+    "@mui/icons-material": "5.10.3",
     "@mui/material": "5.4.3",
     "immer": "9.0.6",
     "lodash.isequal": "4.5.0",
