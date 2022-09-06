@@ -5,7 +5,7 @@ use error_stack::{IntoReport, Result, ResultExt};
 use tokio_postgres::GenericClient;
 
 use crate::{
-    knowledge::{Link, LinkStatus},
+    knowledge::Link,
     ontology::AccountId,
     store::{error::LinkActivationError, AsClient, InsertionError, LinkStore, PostgresStore},
 };

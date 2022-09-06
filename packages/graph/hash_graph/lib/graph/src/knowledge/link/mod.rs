@@ -1,6 +1,5 @@
 use std::fmt;
 
-use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
 use utoipa::Component;

@@ -16,9 +16,8 @@ use type_system::{
 use uuid::Uuid;
 
 pub use self::pool::{AsClient, PostgresStorePool};
-use super::error::LinkActivationError;
 use crate::{
-    knowledge::{Entity, EntityId, LinkStatus, PersistedEntityIdentifier},
+    knowledge::{Entity, EntityId, PersistedEntityIdentifier},
     ontology::{AccountId, PersistedOntologyIdentifier},
     store::{
         error::VersionedUriAlreadyExists,
