@@ -500,28 +500,6 @@ mod full {
     }
 
     #[test]
-    fn hook_defer() {
-        let _guard = prepare(false);
-
-        let report = create_report() //
-            .attach(1u32)
-            .attach(2u64)
-            .attach(3u16);
-
-        Report::install_debug_hook::<u16>(|_, ctx| {
-            ctx.emit_deferred("u16");
-        });
-        Report::install_debug_hook::<u32>(|_, ctx| {
-            ctx.emit_deferred("u32");
-        });
-        Report::install_debug_hook::<u64>(|_, ctx| {
-            ctx.push_body("u64");
-        });
-
-        assert_snapshot!(format!("{report:?}"));
-    }
-
-    #[test]
     fn hook_decr() {
         let _guard = prepare(false);
 
