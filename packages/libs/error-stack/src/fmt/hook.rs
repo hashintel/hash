@@ -63,28 +63,20 @@ impl HookContextInner {
 /// Carrier for contextual information used across hook invocations.
 ///
 /// `HookContext` has two fundamental use-cases:
-/// 1) Emitting Snippets
+/// 1) Emitting body entries and appendix entries
 /// 2) Storage
 ///
-/// ## Emitting lines and snippets
+/// ## Emitting body entries and appendix entries
 ///
-/// A [`Debug`] backtrace consists of two different sections, a rendered tree of objects and
-/// additional text/information that is too large to fit into the tree.
+/// A [`Debug`] backtrace consists of two different sections, a rendered tree of objects (the
+/// **body**) and additional text/information that is too large to fit into the tree (the
+/// **appendix**).
 ///
-/// Lines can be attached to the rendered tree of objects via [`HookContext::emit`], or
-/// [`HookContext::emit_deferred`]. Snippets can be added to the current output via
-/// [`HookContext::snippet`], or [`HookContext::snippet_deferred`].
+/// Entries for the body can be attached to the rendered tree of objects via
+/// [`HookContext::push_body`]. An appendix entry can be attached via
+/// [`HookContext::push_appendix`].
 ///
 /// [`Debug`]: core::fmt::Debug
-///
-/// ### `emit`/`snippet` vs. `emit_deferred`/`snippet_deferred`
-///
-/// Lines and snippets can be emitted either immediately or deferred until the current stack, where
-/// a stack is a list of attachments until a frame which has more than a single source.
-///
-/// To emit a line immediately use [`HookContext::emit`] and [`HookContext::snippet`] for snippets,
-/// use [`HookContext::emit_deferred`] for deferred lines and [`HookContext::snippet_deferred`] for
-/// snippets.
 ///
 /// ### Example
 ///
@@ -102,8 +94,8 @@ impl HookContextInner {
 ///
 /// // You can emit a line, which is going to be emitted immediately.
 /// Report::install_debug_hook::<HttpResponseStatusCode>(|HttpResponseStatusCode(val), ctx| {
-///     // This is going to be emitted immediately in the list of snippets, but only if we
-///     // `format!("{report:#?}")`
+///     // Create a new appendix, which is going to be displayed when someone requests the alternate
+///     // version (`:#?`) of the report.
 ///     if ctx.alternate() {
 ///         ctx.push_appendix(format!("Error {val}: {} Error", if *val < 500 {"Client"} else {"Server"}))
 ///     }
@@ -115,13 +107,13 @@ impl HookContextInner {
 /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
 ///     let idx = ctx.increment();
 ///
-///     // deferred snippets are deferred until the end of snippets of the current stack,
-///     // but only if we `format!("{report:#?}")`
+///     // Create a new appendix, which is going to be displayed when someone requests the alternate
+///     // version (`:#?`) of the report.
 ///     if ctx.alternate() {
-///         ctx.snippet_deferred(format!("Suggestion {idx}:\n  {val}"));
+///         ctx.push_body(format!("Suggestion {idx}:\n  {val}"));
 ///     }
 ///
-///     ctx.emit_deferred(format!("Suggestion ({idx})"));
+///     ctx.push_body(format!("Suggestion ({idx})"));
 /// });
 ///
 /// // You can emit multiple lines from the same hook.
@@ -267,13 +259,10 @@ impl<T> HookContext<T> {
         &self.inner.appendix
     }
 
-    /// This snippet (which can include line breaks) will be appended to the
-    /// main message.
+    /// The contents of the appendix are going to be displayed after the body in the order they have
+    /// been pushed into the [`HookContext`].
     ///
     /// This is useful for dense information like backtraces, or span traces.
-    ///
-    /// [`alternate()`]: Self::alternate
-    /// [`Debug`]: core::fmt::Debug
     ///
     /// # Example
     ///
@@ -332,7 +321,7 @@ impl<T> HookContext<T> {
         self.inner.appendix.push(content.into());
     }
 
-    /// Add a new line to the body which is going to be emitted immediately.
+    /// Add a new entry to the body.
     ///
     /// # Example
     ///
@@ -525,7 +514,7 @@ impl<T: 'static> HookContext<T> {
     }
 
     /// One of the most common interactions with [`HookContext`] is a counter to reference previous
-    /// frames or the content emitted during [`HookContext::snippet`].
+    /// frames or the content emitted during [`HookContext::push_appendix`].
     ///
     /// This is a utility method, which uses the other primitive methods provided to automatically
     /// increment a counter, if the counter wasn't initialized this method will return `0`.
@@ -589,7 +578,7 @@ impl<T: 'static> HookContext<T> {
     }
 
     /// One of the most common interactions with [`HookContext`] is a counter
-    /// to reference previous frames or the content emitted during [`HookContext::snippet`].
+    /// to reference previous frames or the content emitted during [`HookContext::push_appendix`].
     ///
     /// This is a utility method, which uses the other primitive method provided to automatically
     /// decrement a counter, if the counter wasn't initialized this method will return `-1` to stay
@@ -809,8 +798,8 @@ mod default {
     fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) {
         let idx = ctx.increment();
 
-        ctx.snippet_deferred(format!("Backtrace No. {}\n{}", idx + 1, backtrace));
-        ctx.emit_deferred(format!(
+        ctx.push_appendix(format!("Backtrace No. {}\n{}", idx + 1, backtrace));
+        ctx.push_body(format!(
             "backtrace with {} frames ({})",
             backtrace.frames().len(),
             idx + 1
@@ -827,7 +816,7 @@ mod default {
             true
         });
 
-        ctx.snippet_deferred(format!("Span Trace No. {}\n{}", idx + 1, spantrace));
-        ctx.emit_deferred(format!("spantrace with {span} frames ({})", idx + 1));
+        ctx.push_appendix(format!("Span Trace No. {}\n{}", idx + 1, spantrace));
+        ctx.push_body(format!("spantrace with {span} frames ({})", idx + 1));
     }
 }

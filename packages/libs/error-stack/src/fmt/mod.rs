@@ -48,7 +48,6 @@
 //! struct ErrorCode(u64);
 //! struct Suggestion(&'static str);
 //! struct Warning(&'static str);
-//! struct Info(&'static str);
 //!
 //! // This hook will never be called, because a later invocation of `install_debug_hook` overwrites
 //! // the hook for the type `ErrorCode`.
@@ -82,14 +81,9 @@
 //!     ctx.push_body(format!("Warning ({idx}) occurred"));
 //!  });
 //!
-//! // here we use `emit_deferred()`, this means that this value will be put at the end of the group.
-//! Report::install_debug_hook::<Info>(|Info(val), ctx| {
-//!     ctx.emit_deferred(format!("Info: {val}"));
-//! });
 //!
 //! let report = Report::new(Error::from(ErrorKind::InvalidInput))
 //!     .attach(ErrorCode(404))
-//!     .attach(Info("This is going to be at the end"))
 //!     .attach(Suggestion("Try to be connected to the internet."))
 //!     .attach(Suggestion("Try better next time!"))
 //!     .attach(Warning("Unable to fetch resource"));
