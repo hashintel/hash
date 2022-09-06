@@ -130,9 +130,6 @@
 //! [`error_stack::fmt::builtin_debug_hook_fallback`]: crate::fmt::builtin_debug_hook_fallback
 //! [`atomic`]: std::sync::atomic
 //! [`Error::provide`]: std::error::Error::provide
-// Makes sure that `Emit` isn't regarded as unreachable even though it isn't exported on
-// no-std. Simplifies maintenance as we don't need to special case the visibility modifier.
-#![cfg_attr(not(feature = "std"), allow(unreachable_pub))]
 
 #[cfg(feature = "std")]
 mod hook;
@@ -740,18 +737,17 @@ fn debug_attachments(
 ) -> Lines {
     let last = matches!(position, Position::Final);
 
-    // Reason: snippets is unused in no-std, but this makes code cleaner overall
-    #[cfg_attr(not(feature = "std"), allow(unused_variables, unused_mut))]
-    let (opaque, emits) = debug_attachments_invoke(
+    let (opaque, entries) = debug_attachments_invoke(
         frames,
         #[cfg(feature = "std")]
         ctx,
     );
     let opaque = opaque.render();
 
-    // calculate the len, combine next and defer emitted values into a single stream
-    let len = emits.len() + loc.as_ref().map_or(0, |_| 1) + opaque.as_ref().map_or(0, |_| 1);
-    let lines = emits.into_iter().map(|value| {
+    // Calculate the expected end length, by adding all values that have would contribute to the
+    // line count later.
+    let len = entries.len() + loc.as_ref().map_or(0, |_| 1) + opaque.as_ref().map_or(0, |_| 1);
+    let lines = entries.into_iter().map(|value| {
         value
             .lines()
             .map(ToOwned::to_owned)
@@ -991,8 +987,6 @@ impl<C> Debug for Report<C> {
 
         #[cfg(feature = "std")]
         {
-            // only output detailed information (like backtraces), if alternate mode is enabled, or
-            // the snippet has been forced.
             let appendix = ctx
                 .appendix()
                 .iter()

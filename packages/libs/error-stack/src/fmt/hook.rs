@@ -86,10 +86,10 @@ impl HookContextInner {
 /// Carrier for contextual information used across hook invocations.
 ///
 /// `HookContext` has two fundamental use-cases:
-/// 1) Emitting body entries and appendix entries
+/// 1) Adding body entries and appendix entries
 /// 2) Storage
 ///
-/// ## Emitting body entries and appendix entries
+/// ## Adding body entries and appendix entries
 ///
 /// A [`Debug`] backtrace consists of two different sections, a rendered tree of objects (the
 /// **body**) and additional text/information that is too large to fit into the tree (the
@@ -115,7 +115,6 @@ impl HookContextInner {
 /// struct Suggestion(&'static str);
 /// struct Secret(&'static str);
 ///
-/// // You can emit a line, which is going to be emitted immediately.
 /// Report::install_debug_hook::<HttpResponseStatusCode>(|HttpResponseStatusCode(val), ctx| {
 ///     // Create a new appendix, which is going to be displayed when someone requests the alternate
 ///     // version (`:#?`) of the report.
@@ -123,10 +122,10 @@ impl HookContextInner {
 ///         ctx.push_appendix(format!("Error {val}: {} Error", if *val < 500 {"Client"} else {"Server"}))
 ///     }
 ///
+///     // This will push a new entry onto the body with the specified value
 ///     ctx.push_body(format!("Error code: {val}"));
 /// });
 ///
-/// // You can emit a line which is deferred to the end of the stack.
 /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
 ///     let idx = ctx.increment_counter();
 ///
@@ -136,11 +135,12 @@ impl HookContextInner {
 ///         ctx.push_body(format!("Suggestion {idx}:\n  {val}"));
 ///     }
 ///
+///     // This will push a new entry onto the body with the specified value
 ///     ctx.push_body(format!("Suggestion ({idx})"));
 /// });
 ///
-/// // You can emit multiple lines from the same hook.
 /// Report::install_debug_hook::<Warning>(|Warning(val), ctx| {
+///     // You can add multiples entries to the body (and appendix) in the same hook.
 ///     ctx.push_body("Abnormal program execution detected");
 ///     ctx.push_body(format!("Warning: {val}"));
 /// });
@@ -303,7 +303,7 @@ impl<T> HookContext<T> {
     ///
     /// Report::install_debug_hook::<Error>(|Error { code, reason }, ctx| {
     ///     if ctx.alternate() {
-    ///         // Add a snippet to the output
+    ///         // Add an entry to the appendix
     ///         ctx.push_appendix(format!("Error {code}:\n  {reason}"));
     ///     }
     ///
@@ -359,7 +359,7 @@ impl<T> HookContext<T> {
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
     ///     ctx.push_body(format!("Suggestion: {val}"));
-    ///     // We can emit multiple lines in a single hook, these lines will be added one after
+    ///     // We can push multiples entries in a single hook, these lines will be added one after
     ///     // another.
     ///     ctx.push_body("Sorry for the inconvenience!");
     /// });
@@ -537,7 +537,7 @@ impl<T: 'static> HookContext<T> {
     }
 
     /// One of the most common interactions with [`HookContext`] is a counter to reference previous
-    /// frames or the content emitted during [`HookContext::push_appendix`].
+    /// frames in an entry to the appendix that was added using [`HookContext::push_appendix`].
     ///
     /// This is a utility method, which uses the other primitive methods provided to automatically
     /// increment a counter, if the counter wasn't initialized this method will return `0`.
@@ -600,8 +600,8 @@ impl<T: 'static> HookContext<T> {
         }
     }
 
-    /// One of the most common interactions with [`HookContext`] is a counter
-    /// to reference previous frames or the content emitted during [`HookContext::push_appendix`].
+    /// One of the most common interactions with [`HookContext`] is a counter to reference previous
+    /// frames in an entry to the appendix that was added using [`HookContext::push_appendix`].
     ///
     /// This is a utility method, which uses the other primitive method provided to automatically
     /// decrement a counter, if the counter wasn't initialized this method will return `-1` to stay
@@ -745,9 +745,9 @@ impl Hooks {
     }
 
     pub(crate) fn call(&self, frame: &Frame, ctx: &mut HookContext<Frame>) {
-        // by checking the times we actually invoked a function we make sure that
-        // even if we only emit snippets, or have purposely not emitted anything don't use the
-        // fallback.
+        // By checking the times we actually invoked a function we make sure that
+        // even if we only added an appendix, or have purposely not added an entry to the body, we
+        // don't use the fallback.
         let calls = self
             .inner
             .iter()
