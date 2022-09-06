@@ -58,9 +58,18 @@
     "examples": [
       {
         "items": [
-          "Alice",
-          "Bob",
-          "Charlie"
+          {
+            "id": "1",
+            "value": "Alice"
+          },
+          {
+            "id": "2",
+            "value": "Bob"
+          },
+          {
+            "id": "3",
+            "value": "Charlie"
+          }
         ]
       }
     ],

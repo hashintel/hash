@@ -17,11 +17,10 @@ const DevApp = () => {
       blockEntity={{
         entityId: "test-shuffle-1",
         properties: {
-          items: ["Thing 1", "Thing 2"],
+          items: [{ value: "Thing 1" }, { value: "Thing 2" }],
         },
       }}
       debug
-      readonly
     />
   );
 };
