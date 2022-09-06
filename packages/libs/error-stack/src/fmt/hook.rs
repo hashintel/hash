@@ -27,11 +27,11 @@ type Storage = BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>;
 struct Counter(isize);
 
 impl Counter {
-    fn new(value: isize) -> Self {
+    const fn new(value: isize) -> Self {
         Self(value)
     }
 
-    fn as_inner(&self) -> isize {
+    const fn as_inner(&self) -> isize {
         self.0
     }
 
