@@ -19,10 +19,10 @@ export const getTreeItemList = (
     .reduce((prev, page) => {
       const children = getTreeItemList(pagesList, page.entityId, depth + 1);
 
-      const item = {
+      const item: TreeItem = {
         page,
         depth,
-      } as TreeItem;
+      };
 
       return [...prev, item, ...children];
     }, emptyList);
