@@ -1,6 +1,7 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 import { GraphApi } from "@hashintel/hash-graph-client";
+import { logger } from "../logger";
 
 import { EntityTypeModel, PropertyTypeModel } from "../model";
 import { propertyTypeInitializer, entityTypeInitializer } from "../model/util";
@@ -242,6 +243,7 @@ export const ensureWorkspaceTypesExist = async (params: {
   logger: Logger;
 }) => {
   const { graphApi } = params;
+  logger.debug("Ensuring Workspace system types exist");
 
   // Next, create workspace types if they don't already exist
   /**
@@ -250,14 +252,22 @@ export const ensureWorkspaceTypesExist = async (params: {
    *   https://app.asana.com/0/1201095311341924/1202573572594586/f
    */
 
+  const initializedWorkspaceTypes: any = {};
+
   // eslint-disable-next-line guard-for-in
   for (const typeKind in WORKSPACE_TYPES_INITIALIZERS) {
+    initializedWorkspaceTypes[typeKind] = {};
+
     const inner =
       WORKSPACE_TYPES_INITIALIZERS[
         typeKind as keyof typeof WORKSPACE_TYPES_INITIALIZERS
       ];
-    for (const typeInitializer of Object.values(inner)) {
-      await typeInitializer(graphApi);
+    for (const [key, typeInitializer] of Object.entries(inner)) {
+      logger.debug(`Checking Workspace system type: [${key}] exists`);
+      const model = await typeInitializer(graphApi);
+      initializedWorkspaceTypes[typeKind][key] = model;
     }
   }
+
+  WORKSPACE_TYPES = initializedWorkspaceTypes;
 };

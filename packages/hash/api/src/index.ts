@@ -15,13 +15,14 @@ import { OpenSearch } from "@hashintel/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@hashintel/hash-backend-utils/shutdown";
 import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";
 import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
-
 import {
   monorepoRootDir,
   waitOnResource,
 } from "@hashintel/hash-backend-utils/environment";
+
 import setupAuth from "./auth";
 import { RedisCache } from "./cache";
+import { ensureWorkspaceTypesExist } from "./graph/workspace-types";
 import { createCollabApp } from "./collab/collabApp";
 import {
   AwsSesEmailTransporter,
@@ -43,7 +44,6 @@ import { getAwsRegion } from "./lib/aws-config";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { connectToTaskExecutor } from "./task-execution";
 import { createGraphClient } from "./graph";
-import { ensureWorkspaceTypesExist } from "./graph/workspace-types";
 import { ensureDevUsersAreSeeded } from "./auth/seed-dev-users";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");

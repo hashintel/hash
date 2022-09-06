@@ -3,7 +3,7 @@ import {
   UpdatePropertyTypeRequest,
 } from "@hashintel/hash-graph-client";
 
-import { PropertyType, VersionedUri } from "@blockprotocol/type-system-web";
+import { PropertyType } from "@blockprotocol/type-system-web";
 
 import { PropertyTypeModel } from "../index";
 import { extractBaseUri } from "../util";

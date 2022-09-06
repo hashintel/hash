@@ -1,4 +1,3 @@
-import { VersionedUri } from "@blockprotocol/type-system-web";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import {
   EntityModel,
@@ -29,7 +28,6 @@ type UserModelCreateParams = Omit<
  * @class {@link UserModel}
  */
 export default class extends EntityModel {
-  static VERSIONED_URI: VersionedUri;
   /**
    * Get a workspace user entity by their entityId.
    *
@@ -69,7 +67,8 @@ export default class extends EntityModel {
     const matchingUser = allEntities
       .filter(
         ({ entityTypeModel }) =>
-          entityTypeModel.schema.$id === UserModel.VERSIONED_URI,
+          entityTypeModel.schema.$id ===
+          WORKSPACE_TYPES.entityType.user.schema.$id,
       )
       .map((entityModel) => new UserModel(entityModel))
       .find((user) => user.getShortname() === params.shortname);
@@ -97,7 +96,8 @@ export default class extends EntityModel {
     const matchingUser = allEntities
       .filter(
         ({ entityTypeModel }) =>
-          entityTypeModel.schema.$id === UserModel.VERSIONED_URI,
+          entityTypeModel.schema.$id ===
+          WORKSPACE_TYPES.entityType.user.schema.$id,
       )
       .map((entityModel) => new UserModel(entityModel))
       .find((user) => user.getKratosIdentityId() === params.kratosIdentityId);
@@ -110,7 +110,7 @@ export default class extends EntityModel {
    */
   static async getUserEntityType(graphApi: GraphApi): Promise<EntityTypeModel> {
     return await EntityTypeModel.get(graphApi, {
-      versionedUri: UserModel.VERSIONED_URI,
+      versionedUri: WORKSPACE_TYPES.entityType.user.schema.$id,
     });
   }
 
