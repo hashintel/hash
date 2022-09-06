@@ -53,3 +53,45 @@ pub async fn read_all_active_links(client: &impl AsClient) -> Result<RecordStrea
         .change_context(QueryError)?;
     Ok(row_stream_to_record_stream(row_stream))
 }
+
+pub async fn read_active_links_by_source(
+    client: &impl AsClient,
+    entity_id: EntityId,
+) -> Result<RecordStream, QueryError> {
+    let row_stream = client
+        .as_client()
+        .query_raw(
+            r#"
+            SELECT base_uri, version, source_entity_id, target_entity_id, created_by, active
+            FROM links
+            JOIN ids ON version_id = link_type_version_id
+            WHERE active AND source_entity_id = $1
+            "#,
+            parameter_list([&entity_id]),
+        )
+        .await
+        .into_report()
+        .change_context(QueryError)?;
+    Ok(row_stream_to_record_stream(row_stream))
+}
+
+pub async fn read_active_links_by_target(
+    client: &impl AsClient,
+    entity_id: EntityId,
+) -> Result<RecordStream, QueryError> {
+    let row_stream = client
+        .as_client()
+        .query_raw(
+            r#"
+            SELECT base_uri, version, source_entity_id, target_entity_id, created_by, active
+            FROM links
+            JOIN ids ON version_id = link_type_version_id
+            WHERE active AND target_entity_id = $1
+            "#,
+            parameter_list([&entity_id]),
+        )
+        .await
+        .into_report()
+        .change_context(QueryError)?;
+    Ok(row_stream_to_record_stream(row_stream))
+}
