@@ -2,7 +2,9 @@ import { GraphApi, UpdateDataTypeRequest } from "@hashintel/hash-graph-client";
 
 import { DataType } from "@blockprotocol/type-system-web";
 
-import { DataTypeModel } from "../index";
+import { DataTypeModel, UserModel } from "../index";
+import { generateSchemaUri } from "../util";
+import { AxiosError } from "axios";
 
 type DataTypeModelConstructorArgs = {
   accountId: string;
@@ -38,10 +40,40 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: DataType;
+      schema: Omit<DataType, "$id">;
     },
   ): Promise<DataTypeModel> {
-    const { data: identifier } = await graphApi.createDataType(params);
+    const namespace = (
+      await UserModel.getUserByEntityId(graphApi, {
+        entityId: params.accountId,
+      })
+    )?.getShortname();
+
+    if (namespace == null) {
+      throw new Error(
+        `failed to get namespace for account: ${params.accountId}`,
+      );
+    }
+
+    const dataTypeUri = generateSchemaUri({
+      namespace,
+      kind: "dataType",
+      title: params.schema.title,
+    });
+    const fullDataType = { $id: dataTypeUri, ...params.schema };
+
+    const { data: identifier } = await graphApi
+      .createDataType({
+        accountId: params.accountId,
+        schema: fullDataType,
+      })
+      .catch((err: AxiosError) => {
+        throw new Error(
+          err.response?.status === 409
+            ? `data type with the same URI already exists. [URI=${fullDataType.$id}]`
+            : `couldn't create data type.`,
+        );
+      });
 
     return new DataTypeModel({
       schema: params.schema,

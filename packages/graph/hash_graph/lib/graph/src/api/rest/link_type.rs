@@ -101,7 +101,7 @@ async fn create_link_type<P: StorePool + Send>(
     })?;
 
     domain_validator.validate(&link_type).map_err(|report| {
-        tracing::error!(error=?report, "Link Type ID failed to validate");
+        tracing::error!(error=?report, id=link_type.id().to_string(), "Link Type ID failed to validate");
         StatusCode::UNPROCESSABLE_ENTITY
     })?;
 

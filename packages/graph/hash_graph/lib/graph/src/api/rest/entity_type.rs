@@ -103,7 +103,7 @@ async fn create_entity_type<P: StorePool + Send>(
     })?;
 
     domain_validator.validate(&entity_type).map_err(|report| {
-        tracing::error!(error=?report, "Entity Type ID failed to validate");
+        tracing::error!(error=?report, id=entity_type.id().to_string(), "Entity Type ID failed to validate");
         StatusCode::UNPROCESSABLE_ENTITY
     })?;
 

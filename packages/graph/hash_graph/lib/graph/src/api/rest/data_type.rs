@@ -101,7 +101,7 @@ async fn create_data_type<P: StorePool + Send>(
     })?;
 
     domain_validator.validate(&data_type).map_err(|report| {
-        tracing::error!(error=?report, "Data Type ID failed to validate");
+        tracing::error!(error=?report, id=data_type.id().to_string(), "Data Type ID failed to validate");
         StatusCode::UNPROCESSABLE_ENTITY
     })?;
 

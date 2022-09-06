@@ -103,7 +103,7 @@ async fn create_property_type<P: StorePool + Send>(
     domain_validator
         .validate(&property_type)
         .map_err(|report| {
-            tracing::error!(error=?report, "Property Type ID failed to validate");
+            tracing::error!(error=?report, id=property_type.id().to_string(), "Property Type ID failed to validate");
             StatusCode::UNPROCESSABLE_ENTITY
         })?;
 

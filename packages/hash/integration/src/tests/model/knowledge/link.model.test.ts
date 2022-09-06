@@ -27,8 +27,6 @@ const graphApi = createGraphClient(logger, {
 
 const accountId = "00000000-0000-0000-0000-000000000000";
 
-const entityType$id = "https://link~example.com/entity-type-person/v/1";
-
 describe("Link model class", () => {
   let testType: EntityTypeModel;
   let linkTypeFriend: LinkTypeModel;
@@ -41,7 +39,6 @@ describe("Link model class", () => {
     testType = await EntityTypeModel.create(graphApi, {
       accountId,
       schema: {
-        $id: entityType$id,
         kind: "entityType",
         title: "Person",
         pluralTitle: "People",
@@ -54,7 +51,6 @@ describe("Link model class", () => {
       LinkTypeModel.create(graphApi, {
         accountId,
         schema: {
-          $id: "https://link~example.com/link-types/friends-with/v/1",
           kind: "linkType",
           title: "Friends",
           pluralTitle: "Friends",
@@ -65,7 +61,6 @@ describe("Link model class", () => {
       LinkTypeModel.create(graphApi, {
         accountId,
         schema: {
-          $id: "https://link~example.com/link-types/acquaintance/v/1",
           kind: "linkType",
           title: "Acquaintance",
           pluralTitle: "Acquaintances",

@@ -9,9 +9,8 @@ import {
   ResolverFn,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
-import { PropertyTypeModel, UserModel } from "../../../model";
+import { PropertyTypeModel } from "../../../model";
 import { propertyTypeModelToGQL } from "./model-mapping";
-import { generateSchemaUri } from "../../../model/util";
 
 export const createPropertyType: ResolverFn<
   Promise<PersistedPropertyType>,
@@ -22,35 +21,11 @@ export const createPropertyType: ResolverFn<
   const { graphApi } = dataSources;
   const { accountId, propertyType } = params;
 
-  const namespace = (
-    accountId
-      ? await UserModel.getUserByEntityId(graphApi, { entityId: accountId })
-      : user
-  )?.getShortname();
-  if (namespace == null) {
-    throw new ApolloError(
-      "failed to get namespace for account",
-      "CREATION_ERROR",
-    );
-  }
-
-  const propertyTypeUri = generateSchemaUri({
-    namespace,
-    kind: "propertyType",
-    title: propertyType.title,
-  });
-  const fullPropertyType = { $id: propertyTypeUri, ...propertyType };
-
   const createdPropertyTypeModel = await PropertyTypeModel.create(graphApi, {
     accountId: accountId ?? user.getAccountId(),
-    schema: fullPropertyType,
-  }).catch((err: AxiosError) => {
-    const msg =
-      err.response?.status === 409
-        ? `Property type with the same URI already exists. [URI=${fullPropertyType.$id}]`
-        : `Couldn't create property type.`;
-
-    throw new ApolloError(msg, "CREATION_ERROR");
+    schema: propertyType,
+  }).catch((err) => {
+    throw new ApolloError(err, "CREATION_ERROR");
   });
 
   return propertyTypeModelToGQL(createdPropertyTypeModel);

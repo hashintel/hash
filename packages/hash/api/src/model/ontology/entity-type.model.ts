@@ -1,10 +1,18 @@
+import { AxiosError } from "axios";
+
 import { EntityType } from "@blockprotocol/type-system-web";
 import {
   GraphApi,
   UpdateEntityTypeRequest,
 } from "@hashintel/hash-graph-client";
 
-import { EntityTypeModel, PropertyTypeModel, LinkTypeModel } from "../index";
+import {
+  EntityTypeModel,
+  PropertyTypeModel,
+  LinkTypeModel,
+  UserModel,
+} from "../index";
+import { generateSchemaUri } from "../util";
 
 export type EntityTypeModelConstructorParams = {
   accountId: string;
@@ -13,7 +21,7 @@ export type EntityTypeModelConstructorParams = {
 
 export type EntityTypeModelCreateParams = {
   accountId: string;
-  schema: EntityType;
+  schema: Omit<EntityType, "$id">;
 };
 
 /**
@@ -39,10 +47,40 @@ export default class {
     graphApi: GraphApi,
     params: EntityTypeModelCreateParams,
   ): Promise<EntityTypeModel> {
-    const { data: identifier } = await graphApi.createEntityType(params);
+    const namespace = (
+      await UserModel.getUserByEntityId(graphApi, {
+        entityId: params.accountId,
+      })
+    )?.getShortname();
+
+    if (namespace == null) {
+      throw new Error(
+        `failed to get namespace for account: ${params.accountId}`,
+      );
+    }
+
+    const entityTypeUri = generateSchemaUri({
+      namespace,
+      kind: "entityType",
+      title: params.schema.title,
+    });
+    const fullEntityType = { $id: entityTypeUri, ...params.schema };
+
+    const { data: identifier } = await graphApi
+      .createEntityType({
+        accountId: params.accountId,
+        schema: fullEntityType,
+      })
+      .catch((err: AxiosError) => {
+        throw new Error(
+          err.response?.status === 409
+            ? `entity type with the same URI already exists. [URI=${fullEntityType.$id}]`
+            : `couldn't create entity type.`,
+        );
+      });
 
     return new EntityTypeModel({
-      schema: params.schema,
+      schema: fullEntityType,
       accountId: identifier.createdBy,
     });
   }

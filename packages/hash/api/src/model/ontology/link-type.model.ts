@@ -1,7 +1,10 @@
+import { AxiosError } from "axios";
+
 import { LinkType } from "@blockprotocol/type-system-web";
 import { GraphApi, UpdateLinkTypeRequest } from "@hashintel/hash-graph-client";
 
-import { LinkTypeModel } from "../index";
+import { LinkTypeModel, UserModel } from "../index";
+import { generateSchemaUri } from "../util";
 
 type LinkTypeModelConstructorParams = {
   accountId: string;
@@ -31,13 +34,43 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: LinkType;
+      schema: Omit<LinkType, "$id">;
     },
   ): Promise<LinkTypeModel> {
-    const { data: identifier } = await graphApi.createLinkType(params);
+    const namespace = (
+      await UserModel.getUserByEntityId(graphApi, {
+        entityId: params.accountId,
+      })
+    )?.getShortname();
+
+    if (namespace == null) {
+      throw new Error(
+        `failed to get namespace for account: ${params.accountId}`,
+      );
+    }
+
+    const linkTypeUri = generateSchemaUri({
+      namespace,
+      kind: "linkType",
+      title: params.schema.title,
+    });
+    const fullLinkType = { $id: linkTypeUri, ...params.schema };
+
+    const { data: identifier } = await graphApi
+      .createLinkType({
+        accountId: params.accountId,
+        schema: fullLinkType,
+      })
+      .catch((err: AxiosError) => {
+        throw new Error(
+          err.response?.status === 409
+            ? `link type with the same URI already exists. [URI=${fullLinkType.$id}]`
+            : `couldn't create link type.`,
+        );
+      });
 
     return new LinkTypeModel({
-      schema: params.schema,
+      schema: fullLinkType,
       accountId: identifier.createdBy,
     });
   }

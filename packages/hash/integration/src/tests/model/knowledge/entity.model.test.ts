@@ -27,23 +27,12 @@ const graphApi = createGraphClient(logger, {
 
 const accountId = "00000000-0000-0000-0000-000000000000";
 
-const textDataType$id = "https://entity~example.com/data-type/v/1";
-
-const textPropertyTypeBaseId = "https://entity~example.com/property-type-text/";
-const textPropertyType$id = `${textPropertyTypeBaseId}v/1` as const;
-
-const namePropertyTypeBaseId = "https://entity~example.com/property-type-name/";
-const namePropertyType$id = `${namePropertyTypeBaseId}v/1` as const;
-
-const entityType$id = "https://entity~example.com/entity-type-/v/1" as const;
-
 let entityTypeModel: EntityTypeModel;
 
 beforeAll(async () => {
   await DataTypeModel.create(graphApi, {
     accountId,
     schema: {
-      $id: textDataType$id,
       kind: "dataType",
       title: "Text",
       type: "string",
@@ -54,7 +43,6 @@ beforeAll(async () => {
     EntityTypeModel.create(graphApi, {
       accountId,
       schema: {
-        $id: entityType$id,
         kind: "entityType",
         title: "Text",
         pluralTitle: "Text",
@@ -65,7 +53,6 @@ beforeAll(async () => {
     PropertyTypeModel.create(graphApi, {
       accountId,
       schema: {
-        $id: textPropertyType$id,
         kind: "propertyType",
         title: "Text",
         pluralTitle: "Text",

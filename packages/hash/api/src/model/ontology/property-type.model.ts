@@ -1,12 +1,13 @@
+import { AxiosError } from "axios";
+import { PropertyType } from "@blockprotocol/type-system-web";
+
 import {
   GraphApi,
   UpdatePropertyTypeRequest,
 } from "@hashintel/hash-graph-client";
 
-import { PropertyType } from "@blockprotocol/type-system-web";
-
-import { PropertyTypeModel } from "../index";
-import { extractBaseUri } from "../util";
+import { PropertyTypeModel, UserModel } from "../index";
+import { extractBaseUri, generateSchemaUri } from "../util";
 
 type PropertyTypeModelConstructorParams = {
   accountId: string;
@@ -36,13 +37,43 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: PropertyType;
+      schema: Omit<PropertyType, "$id">;
     },
   ): Promise<PropertyTypeModel> {
-    const { data: identifier } = await graphApi.createPropertyType(params);
+    const namespace = (
+      await UserModel.getUserByEntityId(graphApi, {
+        entityId: params.accountId,
+      })
+    )?.getShortname();
+
+    if (namespace == null) {
+      throw new Error(
+        `failed to get namespace for account: ${params.accountId}`,
+      );
+    }
+
+    const propertyTypeUri = generateSchemaUri({
+      namespace,
+      kind: "linkType",
+      title: params.schema.title,
+    });
+    const fullPropertyType = { $id: propertyTypeUri, ...params.schema };
+
+    const { data: identifier } = await graphApi
+      .createPropertyType({
+        accountId: params.accountId,
+        schema: fullPropertyType,
+      })
+      .catch((err: AxiosError) => {
+        throw new Error(
+          err.response?.status === 409
+            ? `property type with the same URI already exists. [URI=${fullPropertyType.$id}]`
+            : `couldn't create property type.`,
+        );
+      });
 
     return new PropertyTypeModel({
-      schema: params.schema,
+      schema: fullPropertyType,
       accountId: identifier.createdBy,
     });
   }
