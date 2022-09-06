@@ -465,7 +465,7 @@ mod full {
         let report = create_report().attach(2u32);
 
         Report::install_debug_hook::<u32>(|_, ctx| {
-            let idx = ctx.increment();
+            let idx = ctx.increment_counter();
             ctx.push_body(format!("unsigned 32bit integer (No. {idx})"));
         });
 
@@ -509,7 +509,7 @@ mod full {
             .attach(3u32);
 
         Report::install_debug_hook::<u32>(|_, ctx| {
-            let idx = ctx.decrement();
+            let idx = ctx.decrement_counter();
             ctx.push_body(idx.to_string());
         });
 
@@ -526,7 +526,7 @@ mod full {
             .attach(3u32);
 
         Report::install_debug_hook::<u32>(|_, ctx| {
-            let idx = ctx.increment();
+            let idx = ctx.increment_counter();
             ctx.push_body(idx.to_string());
         });
 

@@ -105,7 +105,7 @@ impl HookContextInner {
 ///
 /// // You can emit a line which is deferred to the end of the stack.
 /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-///     let idx = ctx.increment();
+///     let idx = ctx.increment_counter();
 ///
 ///     // Create a new appendix, which is going to be displayed when someone requests the alternate
 ///     // version (`:#?`) of the report.
@@ -393,7 +393,7 @@ impl<T> HookContext<T> {
     /// struct Error(&'static str);
     ///
     /// Report::install_debug_hook::<Error>(|Error(frame), ctx| {
-    ///     let idx = ctx.increment() + 1;
+    ///     let idx = ctx.increment_counter() + 1;
     ///
     ///     ctx.push_body(format!("[{idx}] [ERROR] {frame}"));
     /// });
@@ -402,7 +402,7 @@ impl<T> HookContext<T> {
     ///     // a global counter to keep track of all errors and warnings in order, this means
     ///     // we need to access the storage of `Error` using `cast()`.
     ///     let ctx = ctx.cast::<Error>();
-    ///     let idx = ctx.increment() + 1;
+    ///     let idx = ctx.increment_counter() + 1;
     ///     ctx.push_body(format!("[{idx}] [WARN] {frame}"))
     /// });
     ///
@@ -529,7 +529,7 @@ impl<T: 'static> HookContext<T> {
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     let idx = ctx.increment();
+    ///     let idx = ctx.increment_counter();
     ///     ctx.push_body(format!("Suggestion {idx}: {val}"));
     /// });
     ///
@@ -559,7 +559,7 @@ impl<T: 'static> HookContext<T> {
     /// </pre>
     ///
     /// [`Debug`]: core::fmt::Debug
-    pub fn increment(&mut self) -> isize {
+    pub fn increment_counter(&mut self) -> isize {
         let counter = self.get_mut::<isize>();
 
         match counter {
@@ -582,7 +582,7 @@ impl<T: 'static> HookContext<T> {
     ///
     /// This is a utility method, which uses the other primitive method provided to automatically
     /// decrement a counter, if the counter wasn't initialized this method will return `-1` to stay
-    /// consistent with [`increment()`].
+    /// consistent with [`HookContext::increment_counter`].
     ///
     /// ```rust
     /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
@@ -594,7 +594,7 @@ impl<T: 'static> HookContext<T> {
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     let idx = ctx.decrement();
+    ///     let idx = ctx.decrement_counter();
     ///     ctx.push_body(format!("Suggestion {idx}: {val}"));
     /// });
     ///
@@ -622,9 +622,7 @@ impl<T: 'static> HookContext<T> {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_decrement.snap"))]
     /// </pre>
-    ///
-    /// [`increment()`]: Self::increment
-    pub fn decrement(&mut self) -> isize {
+    pub fn decrement_counter(&mut self) -> isize {
         let counter = self.get_mut::<isize>();
 
         match counter {
@@ -796,7 +794,7 @@ mod default {
 
     #[cfg(rust_1_65)]
     fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) {
-        let idx = ctx.increment();
+        let idx = ctx.increment_counter();
 
         ctx.push_appendix(format!("Backtrace No. {}\n{}", idx + 1, backtrace));
         ctx.push_body(format!(
@@ -808,7 +806,7 @@ mod default {
 
     #[cfg(feature = "spantrace")]
     fn span_trace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) {
-        let idx = ctx.increment();
+        let idx = ctx.increment_counter();
 
         let mut span = 0;
         spantrace.with_spans(|_, _| {

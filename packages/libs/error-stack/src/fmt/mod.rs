@@ -61,7 +61,7 @@
 //! // The incrementation is type specific, meaning that `ctx.increment()` for the `Suggestion` hook
 //! // will not influence the counter of the `ErrorCode` or `Warning` hook.
 //! Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-//!     let idx = ctx.increment() + 1;
+//!     let idx = ctx.increment_counter() + 1;
 //!     ctx.push_body(format!("Suggestion {idx}: {val}"));
 //! });
 //!
@@ -70,7 +70,7 @@
 //! });
 //!
 //! Report::install_debug_hook::<Warning>(|Warning(val), ctx| {
-//!     let idx = ctx.increment() + 1;
+//!     let idx = ctx.increment_counter() + 1;
 //!
 //!     // we set a value, which will be removed on non-alternate views
 //!     // and is going to be appended to the actual return value.
