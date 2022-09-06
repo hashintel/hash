@@ -26,6 +26,7 @@ use crate::{
 #[openapi(
     handlers(
         create_property_type,
+        get_property_types_by_query,
         get_property_type,
         get_latest_property_types,
         update_property_type
@@ -56,6 +57,7 @@ impl RoutedResource for PropertyTypeResource {
                         .get(get_latest_property_types::<P>)
                         .put(update_property_type::<P>),
                 )
+                .route("/query", post(get_property_types_by_query::<P>))
                 .route("/:version_id", get(get_property_type::<P>)),
         )
     }
@@ -118,6 +120,24 @@ async fn create_property_type<P: StorePool + Send>(
 }
 
 #[utoipa::path(
+    post,
+    path = "/property-types/query",
+    request_body = Expression,
+    tag = "PropertyType",
+    responses(
+        (status = 200, content_type = "application/json", description = "List of all property types matching the provided query", body = [PersistedPropertyType]),
+
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+async fn get_property_types_by_query<P: StorePool + Send>(
+    pool: Extension<Arc<P>>,
+    Json(expression): Json<Expression>,
+) -> Result<Json<Vec<PersistedPropertyType>>, StatusCode> {
+    read_from_store(pool.as_ref(), &expression).await.map(Json)
+}
+
+#[utoipa::path(
     get,
     path = "/property-types",
     tag = "PropertyType",
@@ -129,16 +149,8 @@ async fn create_property_type<P: StorePool + Send>(
 )]
 async fn get_latest_property_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    mut body: Option<Json<Expression>>,
 ) -> Result<Json<Vec<PersistedPropertyType>>, StatusCode> {
-    read_from_store(
-        pool.as_ref(),
-        &body
-            .take()
-            .map_or_else(Expression::for_latest_version, |json| json.0),
-    )
-    .await
-    .map(Json)
+    get_property_types_by_query(pool, Json(Expression::for_latest_version())).await
 }
 
 #[utoipa::path(
@@ -160,7 +172,7 @@ async fn get_property_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedPropertyType>, StatusCode> {
-    read_from_store(pool.as_ref(), &Expression::for_versioned_uri(&uri.0))
+    get_property_types_by_query(pool, Json(Expression::for_versioned_uri(&uri.0)))
         .await
         .and_then(|mut property_types| property_types.pop().ok_or(StatusCode::NOT_FOUND))
         .map(Json)

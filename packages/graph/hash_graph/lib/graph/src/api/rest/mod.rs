@@ -21,10 +21,13 @@ use axum::{
     Extension, Json, Router,
 };
 use include_dir::{include_dir, Dir};
-use utoipa::{openapi, Modify, OpenApi};
+use utoipa::{
+    openapi::{self, schema, ObjectBuilder},
+    Modify, OpenApi,
+};
 
 use self::api_resource::RoutedResource;
-use crate::store::{crud::Read, StorePool};
+use crate::store::{crud::Read, query::Expression, StorePool};
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
 
@@ -119,7 +122,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
         tags(
             (name = "Graph", description = "HASH Graph API")
         ),
-        modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon)
+        modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &AnyObjectAddon)
     )]
 struct OpenApiDocumentation;
 
@@ -249,5 +252,25 @@ impl Modify for OperationGraphTagAddon {
                 }
             }
         }
+    }
+}
+
+struct AnyObjectAddon;
+
+impl Modify for AnyObjectAddon {
+    fn modify(&self, openapi: &mut openapi::OpenApi) {
+        openapi.components.as_mut().map(|components| {
+            components.schemas.insert(
+                "Expression".to_owned(),
+                schema::Component::Object(
+                    ObjectBuilder::default()
+                        .example(Some(
+                            serde_json::to_value(Expression::for_latest_version())
+                                .expect("Could not serialize expression"),
+                        ))
+                        .build(),
+                ),
+            )
+        });
     }
 }

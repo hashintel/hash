@@ -179,6 +179,12 @@ pub enum Expression {
     Field(Identifier),
 }
 
+impl Default for Expression {
+    fn default() -> Self {
+        Self::Literal(Literal::Bool(true))
+    }
+}
+
 impl Expression {
     #[must_use]
     pub fn for_versioned_uri(uri: &VersionedUri) -> Self {
