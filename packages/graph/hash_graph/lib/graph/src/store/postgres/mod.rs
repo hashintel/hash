@@ -593,30 +593,6 @@ where
         ))
     }
 
-    async fn update_link_status(
-        &self,
-        active: LinkStatus,
-        source_entity_id: EntityId,
-        target_entity_id: EntityId,
-        link_type_version_id: VersionId,
-    ) -> Result<(), LinkActivationError> {
-        self.as_client()
-            .query_one(
-                r#"
-                    UPDATE links 
-                    SET active = $1
-                    WHERE source_entity_id = $2 AND target_entity_id = $3 AND link_type_version_id = $4
-                    RETURNING source_entity_id, target_entity_id, link_type_version_id;
-                "#,
-                &[&active, &source_entity_id, &target_entity_id, &link_type_version_id],
-            )
-            .await
-            .into_report()
-            .change_context(LinkActivationError)?;
-
-        Ok(())
-    }
-
     /// Fetches the [`VersionId`] of the specified [`VersionedUri`].
     ///
     /// # Errors:
@@ -629,9 +605,9 @@ where
             .as_client()
             .query_one(
                 r#"
-                    SELECT version_id
-                    FROM ids
-                    WHERE base_uri = $1 AND version = $2;
+                SELECT version_id
+                FROM ids
+                WHERE base_uri = $1 AND version = $2;
                 "#,
                 &[&uri.base_uri().as_str(), &version],
             )

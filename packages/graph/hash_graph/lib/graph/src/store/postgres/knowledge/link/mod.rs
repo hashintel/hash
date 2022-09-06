@@ -26,9 +26,9 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
         self.as_client()
             .query_one(
                 r#"
-                    INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, link_order, created_by)
-                    VALUES ($1, $2, $3, null, $4)
-                    RETURNING source_entity_id, target_entity_id, link_type_version_id;
+                INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, link_order, created_by)
+                VALUES ($1, $2, $3, null, $4)
+                RETURNING source_entity_id, target_entity_id, link_type_version_id;
                 "#,
                 &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &created_by],
             )
@@ -49,14 +49,28 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
             .attach_printable(link.source_entity())
             .change_context(LinkActivationError)?;
 
-        self.update_link_status(
-            LinkStatus::Inactive,
-            link.source_entity(),
-            link.target_entity(),
-            link_type_version_id,
-        )
-        .await
-        .attach_printable_lazy(|| link.clone())?;
+        self.as_client()
+            .query_one(
+                r#"
+                WITH removed AS (
+                    DELETE FROM links
+                    WHERE source_entity_id = $1 
+                        AND target_entity_id = $2
+                        AND link_type_version_id = $3
+                    RETURNING *
+                )
+                INSERT INTO link_histories
+                SELECT * FROM removed;
+                "#,
+                &[
+                    &link.source_entity(),
+                    &link.target_entity(),
+                    &link_type_version_id,
+                ],
+            )
+            .await
+            .into_report()
+            .change_context(LinkActivationError)?;
 
         Ok(())
     }
