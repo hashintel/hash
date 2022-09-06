@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt};
+use std::fmt;
 
 use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
@@ -55,34 +55,6 @@ impl fmt::Display for Link {
     }
 }
 
-// TODO: Add PersistedLink to expose metadata about link instances
-
-/// Outgoing link targets of a source entity sharing the same link type. May be one or many
-/// [`EntityId`]s
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum OutgoingLinkTarget {
-    Single(EntityId),
-    Multiple(Vec<EntityId>),
-}
-
-/// A collection of links that originate from the same source entity.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
-#[serde(rename_all = "camelCase")]
-pub struct OutgoingLinks(HashMap<VersionedUri, OutgoingLinkTarget>);
-
-impl OutgoingLinks {
-    #[must_use]
-    pub const fn new(links: HashMap<VersionedUri, OutgoingLinkTarget>) -> Self {
-        Self(links)
-    }
-
-    #[must_use]
-    pub const fn outgoing(&self) -> &HashMap<VersionedUri, OutgoingLinkTarget> {
-        &self.0
-    }
-}
-
 /// Specifies whether or not a link is active.
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
@@ -126,44 +98,5 @@ impl ToSql for LinkStatus {
         out: &mut postgres_types::private::BytesMut,
     ) -> Result<postgres_types::IsNull, Box<dyn std::error::Error + Sync + Send>> {
         self.active().to_sql_checked(ty, out)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn test_link(json: &str) {
-        let json_value: serde_json::Value = serde_json::from_str(json).expect("invalid JSON");
-
-        let link: OutgoingLinks = serde_json::from_value(json_value.clone()).expect("invalid link");
-
-        assert_eq!(
-            serde_json::to_value(link.clone()).expect("could not serialize"),
-            json_value,
-            "{link:#?}"
-        );
-    }
-
-    #[test]
-    fn written_by() {
-        test_link(
-            r#"
-            {
-                "https://blockprotocol.org/types/@alice/link-type/written-by/v/1": "00000000-0000-0000-0000-000000000000"
-            }
-            "#,
-        );
-    }
-
-    #[test]
-    fn friend_of() {
-        test_link(
-            r#"
-            {
-                "https://blockprotocol.org/types/@alice/link-type/friend-of/v/1": ["00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000"]
-            }
-            "#,
-        );
     }
 }
