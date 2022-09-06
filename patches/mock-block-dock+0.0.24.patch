@@ -1,0 +1,40 @@
+diff --git a/node_modules/mock-block-dock/dist/cjs/data/entity-types.js b/node_modules/mock-block-dock/dist/cjs/data/entity-types.js
+index dd1b5b4..c411c70 100644
+--- a/node_modules/mock-block-dock/dist/cjs/data/entity-types.js
++++ b/node_modules/mock-block-dock/dist/cjs/data/entity-types.js
+@@ -20,6 +20,7 @@ exports.entityTypes = [
+                     description: "A display name for the company.",
+                 },
+             },
++            labelProperty: "name",
+             required: ["name", "employees"],
+         },
+     },
+@@ -52,6 +53,7 @@ exports.entityTypes = [
+                     maxLength: 24,
+                 },
+             },
++            labelProperty: "name",
+             required: ["age", "email", "name", "username"],
+         },
+     },
+diff --git a/node_modules/mock-block-dock/dist/esm/data/entity-types.js b/node_modules/mock-block-dock/dist/esm/data/entity-types.js
+index 3b672a3..a2a1f43 100644
+--- a/node_modules/mock-block-dock/dist/esm/data/entity-types.js
++++ b/node_modules/mock-block-dock/dist/esm/data/entity-types.js
+@@ -17,6 +17,7 @@ export var entityTypes = [
+                     description: "A display name for the company.",
+                 },
+             },
++            labelProperty: "name",
+             required: ["name", "employees"],
+         },
+     },
+@@ -49,6 +50,7 @@ export var entityTypes = [
+                     maxLength: 24,
+                 },
+             },
++            labelProperty: "name",
+             required: ["age", "email", "name", "username"],
+         },
+     },
