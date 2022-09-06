@@ -3,9 +3,10 @@ import {
   UpdatePropertyTypeRequest,
 } from "@hashintel/hash-graph-client";
 
-import { PropertyType } from "@blockprotocol/type-system-web";
+import { PropertyType, VersionedUri } from "@blockprotocol/type-system-web";
 
 import { PropertyTypeModel } from "../index";
+import { extractBaseUri } from "../util";
 
 type PropertyTypeModelConstructorParams = {
   accountId: string;
@@ -146,5 +147,9 @@ export default class {
       schema: { ...schema, $id: identifier.uri },
       accountId: identifier.createdBy,
     });
+  }
+
+  get baseUri() {
+    return extractBaseUri(this.schema.$id);
   }
 }

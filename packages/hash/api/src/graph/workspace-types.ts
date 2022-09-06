@@ -9,22 +9,66 @@ import {
   PropertyTypeModel,
   AccountFields,
   userEntityType,
-  orgEntityType,
-  OrgPropertyTypes,
-  UserPropertyTypes,
+  orgNamePropertyTypeInitializer,
+  orgSizePropertyTypeInitializer,
+  orgProvidedInfoPropertyTypeInitializer,
+  orgEntityTypeInitializer,
 } from "../model";
 import { logger } from "../logger";
 import {
+  generateWorkspacePropertyTypeSchema,
   primitiveDataTypeVersionedUris,
+  propertyTypeInitializer,
   workspaceAccountId,
 } from "../model/util";
+import {
+  accountIdPropertyTypeInitializer,
+} from "../model/knowledge/account.fields";
 
-const workspacePropertyTypes: PropertyType[] = [
-  AccountFields.shortnamePropertyType,
-  AccountFields.accountIdPropertyType,
-  ...UserPropertyTypes,
-  ...OrgPropertyTypes,
-];
+export let WORKSPACE_TYPES: {
+  data_type: {};
+  property_type: {
+    // General account related
+    accountId: PropertyTypeModel;
+    shortName: PropertyTypeModel;
+
+    // User-related
+    email: PropertyTypeModel;
+    kratosIdentityId: PropertyTypeModel;
+    preferredName: PropertyTypeModel;
+
+    // Org-related
+    orgName: PropertyTypeModel;
+    orgSize: PropertyTypeModel;
+    orgProvidedInfo: PropertyTypeModel;
+  };
+  entity_type: {
+    user: EntityTypeModel;
+    org: EntityTypeModel;
+  };
+  link_type: {};
+};
+
+export const WORKSPACE_TYPE_INITIALIZERS: {
+  [P in keyof typeof WORKSPACE_TYPES]?: (graphApi?: GraphApi) => Promise<typeof WORKSPACE_TYPES[P]>;
+} = {
+  property_type: {
+    accountId: accountIdPropertyTypeInitializer,
+    shortName: ,
+
+    email: 
+    kratosIdentityId: 
+    preferredName: 
+
+    orgName: orgNamePropertyTypeInitializer,
+    orgSize: orgSizePropertyTypeInitializer,
+    orgProvidedInfo: orgProvidedInfoPropertyTypeInitializer,
+  },
+  entity_type: {
+    user: 
+    org: orgEntityTypeInitializer
+  }
+};
 
 const workspaceEntityTypes: EntityType[] = [userEntityType, orgEntityType];
 
@@ -57,7 +101,7 @@ export const ensureWorkspaceTypesExist = async (params: {
     ),
   );
 
-  // Next, let's ensure all workspace property types have been created
+  // Next, let's create workspace property types if they don't already exist
   // This is done sequentially as property types might reference other property
   // types
   /**
@@ -65,6 +109,41 @@ export const ensureWorkspaceTypesExist = async (params: {
    *   see the following task:
    *   https://app.asana.com/0/1201095311341924/1202573572594586/f
    */
+
+  //    .catch((error: AxiosError) =>
+  //    error.response?.status === 404 ? null : Promise.reject(error),
+  //  );
+
+  const shortnamePropertyType = await PropertyTypeModel.create(graphApi, {
+    accountId: workspaceAccountId,
+    schema: generateWorkspacePropertyTypeSchema(shortnamePropertyTypeParams),
+  });
+
+  const accountIdPropertyType = await PropertyTypeModel.create(graphApi, {
+    accountId: workspaceAccountId,
+    schema: generateWorkspacePropertyTypeSchema(accountIdPropertyTypeParams),
+  });
+
+  const emailPropertyType = await PropertyTypeModel.create(graphApi, {
+    accountId: workspaceAccountId,
+    schema: generateWorkspacePropertyTypeSchema(emailPropertyTypeParams),
+  });
+  const kratosIdentityIdPropertyType = await PropertyTypeModel.create(
+    graphApi,
+    {
+      accountId: workspaceAccountId,
+      schema: generateWorkspacePropertyTypeSchema(
+        kratosIdentityIdPropertyTypeParams,
+      ),
+    },
+  );
+  const preferredNamePropertyType = await PropertyTypeModel.create(graphApi, {
+    accountId: workspaceAccountId,
+    schema: generateWorkspacePropertyTypeSchema(
+      preferredNamePropertyTypeParams,
+    ),
+  });
+
   for (const schema of workspacePropertyTypes) {
     const { $id: versionedUri } = schema;
     const existingPropertyType = await PropertyTypeModel.get(graphApi, {

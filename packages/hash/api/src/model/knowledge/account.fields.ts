@@ -1,36 +1,22 @@
+import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 import { OrgModel, UserModel } from "..";
 import { GraphApi } from "../../graph";
-import {
-  generateSchemaBaseUri,
-  generateWorkspacePropertyTypeSchema,
-  RESTRICTED_SHORTNAMES,
-  workspaceTypesNamespaceUri,
-} from "../util";
+import { propertyTypeInitializer, RESTRICTED_SHORTNAMES } from "../util";
 
 // AccountId
 // Generate the schema for the account id property type
-export const accountIdPropertyType = generateWorkspacePropertyTypeSchema({
+export const accountIdPropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   title: "Account ID",
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
-export const accountIdBaseUri = generateSchemaBaseUri({
-  namespaceUri: workspaceTypesNamespaceUri,
-  kind: "propertyType",
-  title: accountIdPropertyType.title,
-});
-
 // Shortname
 // Generate the schema for the shortname property type
-export const shortnamePropertyType = generateWorkspacePropertyTypeSchema({
+export const shortnamePropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   title: "Shortname",
   possibleValues: [{ primitiveDataType: "Text" }],
-});
-
-export const shortnameBaseUri = generateSchemaBaseUri({
-  namespaceUri: workspaceTypesNamespaceUri,
-  kind: "propertyType",
-  title: shortnamePropertyType.title,
 });
 
 // Validations for shortnames

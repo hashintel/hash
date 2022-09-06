@@ -129,7 +129,7 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: EntityType;
+      schema: Omit<EntityType, "$id">;
     },
   ): Promise<EntityTypeModel> {
     const { accountId, schema } = params;

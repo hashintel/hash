@@ -1,3 +1,5 @@
+import { extractBaseUri, VersionedUri } from "@blockprotocol/type-system-web";
+import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import {
   EntityModel,
@@ -5,6 +7,7 @@ import {
   EntityTypeModel,
   UserModel,
   AccountFields,
+  PropertyTypeModel,
 } from "..";
 import {
   adminKratosSdk,
@@ -14,55 +17,55 @@ import {
 import {
   generateSchemaBaseUri,
   generateWorkspaceEntityTypeSchema,
-  generateWorkspacePropertyTypeSchema,
+  PropertyTypeCreatorParams,
   workspaceAccountId,
-  workspaceTypesNamespaceUri,
 } from "../util";
 
 type QualifiedEmail = { address: string; verified: boolean; primary: boolean };
 
 // Generate the schema for the email property type
-export const emailPropertyType = generateWorkspacePropertyTypeSchema({
+export const emailPropertyTypeParams: PropertyTypeCreatorParams = {
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   title: "Email",
   possibleValues: [{ primitiveDataType: "Text" }],
-});
+};
 
 export const emailBaseUri = generateSchemaBaseUri({
-  namespaceUri: workspaceTypesNamespaceUri,
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   kind: "propertyType",
-  title: emailPropertyType.title,
+  title: emailPropertyTypeParams.title,
 });
 
 // Generate the schema for the kratos identity property type
-export const kratosIdentityIdPropertyType = generateWorkspacePropertyTypeSchema(
-  {
-    title: "Kratos Identity ID",
-    possibleValues: [{ primitiveDataType: "Text" }],
-  },
-);
+export const kratosIdentityIdPropertyTypeParams: PropertyTypeCreatorParams = {
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Kratos Identity ID",
+  possibleValues: [{ primitiveDataType: "Text" }],
+};
 
 export const kratosIdentityIdBaseUri = generateSchemaBaseUri({
-  namespaceUri: workspaceTypesNamespaceUri,
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   kind: "propertyType",
-  title: kratosIdentityIdPropertyType.title,
+  title: kratosIdentityIdPropertyTypeParams.title,
 });
 
 // Generate the schema for the preferred name property type
-export const preferredNamePropertyType = generateWorkspacePropertyTypeSchema({
+export const preferredNamePropertyTypeParams: PropertyTypeCreatorParams = {
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   title: "Preferred Name",
   possibleValues: [{ primitiveDataType: "Text" }],
-});
+};
 
 export const preferredNameBaseUri = generateSchemaBaseUri({
-  namespaceUri: workspaceTypesNamespaceUri,
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   kind: "propertyType",
-  title: preferredNamePropertyType.title,
+  title: preferredNamePropertyTypeParams.title,
 });
 
-export const UserPropertyTypes = [
-  emailPropertyType,
-  kratosIdentityIdPropertyType,
-  preferredNamePropertyType,
+export const UserPropertyTypesParams: PropertyTypeCreatorParams[] = [
+  emailPropertyTypeParams,
+  kratosIdentityIdPropertyTypeParams,
+  preferredNamePropertyTypeParams,
 ];
 
 type UserModelCreateParams = Omit<
@@ -74,43 +77,50 @@ type UserModelCreateParams = Omit<
 };
 
 // Generate the schema for the user entity type
-export const userEntityType = generateWorkspaceEntityTypeSchema({
-  title: "User",
-  properties: [
-    {
-      baseUri: AccountFields.shortnameBaseUri,
-      versionedUri: AccountFields.shortnamePropertyType.$id,
-    },
-    {
-      baseUri: emailBaseUri,
-      versionedUri: emailPropertyType.$id,
-      required: true,
-      array: { minItems: 1 },
-    },
-    {
-      baseUri: kratosIdentityIdBaseUri,
-      versionedUri: kratosIdentityIdPropertyType.$id,
-      required: true,
-    },
-    {
-      baseUri: AccountFields.accountIdBaseUri,
-      versionedUri: AccountFields.accountIdPropertyType.$id,
-      required: true,
-    },
-    {
-      baseUri: preferredNameBaseUri,
-      versionedUri: preferredNamePropertyType.$id,
-      required: true,
-    },
-  ],
-});
-
-const userEntityTypeVersionedUri = userEntityType.$id;
+export const userEntityType = (params: {
+  shortnamePropertyTypeId: VersionedUri;
+  emailPropertyTypeId: VersionedUri;
+  kratosIdentityIdPropertyTypeId: VersionedUri;
+  accountIdPropertyTypeId: VersionedUri;
+  preferredNamePropertyTypeId: VersionedUri;
+}) =>
+  generateWorkspaceEntityTypeSchema({
+    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+    title: "User",
+    properties: [
+      {
+        baseUri: ,
+        versionedUri: params.shortnamePropertyTypeId,
+      },
+      {
+        baseUri: extractBaseUri(params.emailPropertyTypeId),
+        versionedUri: params.emailPropertyTypeId,
+        required: true,
+        array: { minItems: 1 },
+      },
+      {
+        baseUri: extractBaseUri(params.kratosIdentityIdPropertyTypeId),
+        versionedUri: params.kratosIdentityIdPropertyTypeId,
+        required: true,
+      },
+      {
+        baseUri: extractBaseUri(params.accountIdPropertyTypeId),
+        versionedUri: params.accountIdPropertyTypeId,
+        required: true,
+      },
+      {
+        baseUri: extractBaseUri(params.preferredNamePropertyTypeId),
+        versionedUri: params.preferredNamePropertyTypeId,
+        required: true,
+      },
+    ],
+  });
 
 /**
  * @class {@link UserModel}
  */
 export default class extends EntityModel {
+  static VERSIONED_URI: VersionedUri;
   /**
    * Get a workspace user entity by their entityId.
    *
@@ -150,7 +160,7 @@ export default class extends EntityModel {
     const matchingUser = allEntities
       .filter(
         ({ entityTypeModel }) =>
-          entityTypeModel.schema.$id === userEntityTypeVersionedUri,
+          entityTypeModel.schema.$id === UserModel.VERSIONED_URI,
       )
       .map((entityModel) => new UserModel(entityModel))
       .find((user) => user.getShortname() === params.shortname);
@@ -178,7 +188,7 @@ export default class extends EntityModel {
     const matchingUser = allEntities
       .filter(
         ({ entityTypeModel }) =>
-          entityTypeModel.schema.$id === userEntityTypeVersionedUri,
+          entityTypeModel.schema.$id === UserModel.VERSIONED_URI,
       )
       .map((entityModel) => new UserModel(entityModel))
       .find((user) => user.getKratosIdentityId() === params.kratosIdentityId);
@@ -191,7 +201,7 @@ export default class extends EntityModel {
    */
   static async getUserEntityType(graphApi: GraphApi): Promise<EntityTypeModel> {
     return await EntityTypeModel.get(graphApi, {
-      versionedUri: userEntityTypeVersionedUri,
+      versionedUri: UserModel.VERSIONED_URI,
     });
   }
 
@@ -315,7 +325,8 @@ export default class extends EntityModel {
     return (this.properties as any)[emailBaseUri];
   }
 
-  getShortname(): string | undefined {
+  /** @todo - How can this be undefined? Have removed the undefined argument but not sure why it was there */
+  getShortname(): string {
     return (this.properties as any)[AccountFields.shortnameBaseUri];
   }
 

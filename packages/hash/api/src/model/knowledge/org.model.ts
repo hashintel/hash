@@ -1,3 +1,5 @@
+import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
+
 import { GraphApi } from "../../graph";
 import {
   OrgModel,
@@ -6,90 +8,90 @@ import {
   AccountFields,
   EntityTypeModel,
 } from "..";
-import {
-  generateSchemaBaseUri,
-  generateWorkspaceEntityTypeSchema,
-  generateWorkspacePropertyTypeSchema,
-  workspaceAccountId,
-  workspaceTypesNamespaceUri,
-} from "../util";
+import { propertyTypeInitializer, workspaceAccountId } from "../util";
+import { WORKSPACE_TYPES } from "../../graph/workspace-types";
 
 // Generate the schema for the organization name property type
-export const orgNamePropertyType = generateWorkspacePropertyTypeSchema({
+export const orgNamePropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   title: "Organization Name",
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
-export const orgNamedBaseUri = generateSchemaBaseUri({
-  namespaceUri: workspaceTypesNamespaceUri,
-  kind: "propertyType",
-  title: orgNamePropertyType.title,
-});
-
 // Generate the schema for the org size property type
-export const orgSizePropertyType = generateWorkspacePropertyTypeSchema({
+export const orgSizePropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   title: "Organization Size",
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
-export const orgSizeBaseUri = generateSchemaBaseUri({
-  namespaceUri: workspaceTypesNamespaceUri,
-  kind: "propertyType",
-  title: orgSizePropertyType.title,
-});
-
 // Generate the schema for the org provided info property type
-export const orgProvidedInfoPropertyType = generateWorkspacePropertyTypeSchema({
-  title: "Organization Provided Info",
-  possibleValues: [
-    {
-      propertyTypeObject: {
-        [orgSizeBaseUri]: { $ref: orgSizePropertyType.$id },
+export const orgProvidedInfoPropertyTypeInitializer = async (
+  graphApi?: GraphApi,
+) => {
+  const orgSizePropertyTypeModel = await WORKSPACE_TYPES.property_type.orgSize(
+    graphApi,
+  );
+
+  const orgSizeBaseUri = orgSizePropertyTypeModel.baseUri;
+
+  return propertyTypeInitializer({
+    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+
+    title: "Organization Provided Info",
+    possibleValues: [
+      {
+        propertyTypeObjectProperties: {
+          [orgSizeBaseUri]: {
+            $ref: orgSizePropertyTypeModel.schema.$id,
+          },
+        },
       },
-    },
-  ],
-});
-
-export const orgProvidedInfoBaseUri = generateSchemaBaseUri({
-  namespaceUri: workspaceTypesNamespaceUri,
-  kind: "propertyType",
-  title: orgProvidedInfoPropertyType.title,
-});
-
-export const OrgPropertyTypes = [
-  orgNamePropertyType,
-  orgSizePropertyType,
-  orgProvidedInfoPropertyType,
-] as const;
+    ],
+  })();
+};
 
 // Generate the schema for the org entity type
-export const orgEntityType = generateWorkspaceEntityTypeSchema({
-  title: "Organization",
-  properties: [
-    {
-      baseUri: AccountFields.shortnameBaseUri,
-      versionedUri: AccountFields.shortnamePropertyType.$id,
-      required: true,
-    },
-    {
-      baseUri: AccountFields.accountIdBaseUri,
-      versionedUri: AccountFields.accountIdPropertyType.$id,
-      required: true,
-    },
-    {
-      baseUri: orgNamedBaseUri,
-      versionedUri: orgNamePropertyType.$id,
-      required: true,
-    },
-    {
-      baseUri: orgProvidedInfoBaseUri,
-      versionedUri: orgProvidedInfoPropertyType.$id,
-      required: false,
-    },
-  ],
-});
+export const orgEntityTypeInitializer = async (graphApi?: GraphApi) => {
+  const shortnamePropertyTypeModel =
+    await WORKSPACE_TYPES.property_type.shortName(graphApi);
 
-const orgEntityTypeVersionedUri = orgEntityType.$id;
+  const accountIdPropertyTypeModel =
+    await WORKSPACE_TYPES.property_type.accountId(graphApi);
+
+  const orgNamePropertyTypeModel = await WORKSPACE_TYPES.property_type.orgName(
+    graphApi,
+  );
+
+  const orgProvidedInfoPropertyTypeModel =
+    await WORKSPACE_TYPES.property_type.orgProvidedInfo(graphApi);
+
+  return {
+    title: "Organization",
+    properties: [
+      {
+        baseUri: shortnamePropertyTypeModel.baseUri,
+        versionedUri: shortnamePropertyTypeModel.schema.$id,
+        required: true,
+      },
+      {
+        baseUri: accountIdPropertyTypeModel.baseUri,
+        versionedUri: accountIdPropertyTypeModel.schema.$id,
+        required: true,
+      },
+      {
+        baseUri: orgNamePropertyTypeModel.baseUri,
+        versionedUri: orgNamePropertyTypeModel.schema.$id,
+        required: true,
+      },
+      {
+        baseUri: orgProvidedInfoPropertyTypeModel.baseUri,
+        versionedUri: orgProvidedInfoPropertyTypeModel.schema.$id,
+        required: false,
+      },
+    ],
+  };
+};
 
 /**
  * @todo revisit organization size provided info. These constant strings could
@@ -133,14 +135,16 @@ export default class extends EntityModel {
     const { data: orgAccountId } = await graphApi.createAccountId();
 
     const properties: object = {
-      [AccountFields.accountIdBaseUri]: orgAccountId,
-      [AccountFields.shortnameBaseUri]: shortname,
-      [orgNamedBaseUri]: name,
-      [orgProvidedInfoBaseUri]: providedInfo
-        ? {
-            [orgSizeBaseUri]: providedInfo.orgSize,
-          }
-        : undefined,
+      [WORKSPACE_TYPES.property_type.accountId.baseUri]: orgAccountId,
+      [WORKSPACE_TYPES.property_type.shortName.baseUri]: shortname,
+      [WORKSPACE_TYPES.property_type.orgName.baseUri]: name,
+      [WORKSPACE_TYPES.property_type.orgProvidedInfo.baseUri]:
+        providedInfo
+          ? {
+              [WORKSPACE_TYPES.property_type.orgSize.baseUri]:
+                providedInfo.orgSize,
+            }
+          : undefined,
     };
 
     const entityTypeModel = await OrgModel.getOrgEntityType(graphApi);
@@ -166,8 +170,10 @@ export default class extends EntityModel {
    * Get the system Organization entity type.
    */
   static async getOrgEntityType(graphApi: GraphApi) {
+    const versionedUri = WORKSPACE_TYPES.entity_type.org.schema.$id;
+
     return await EntityTypeModel.get(graphApi, {
-      versionedUri: orgEntityTypeVersionedUri,
+      versionedUri,
     });
   }
 
@@ -180,6 +186,8 @@ export default class extends EntityModel {
     graphApi: GraphApi,
     params: { shortname: string },
   ): Promise<OrgModel | null> {
+    const versionedUri = WORKSPACE_TYPES.entity_type.org.schema.$id;
+
     /** @todo: use upcoming Graph API method to filter entities in the datastore */
     const allEntities = await EntityModel.getAllLatest(graphApi, {
       accountId: workspaceAccountId,
@@ -187,8 +195,7 @@ export default class extends EntityModel {
 
     const matchingOrg = allEntities
       .filter(
-        ({ entityTypeModel }) =>
-          entityTypeModel.schema.$id === orgEntityTypeVersionedUri,
+        ({ entityTypeModel }) => entityTypeModel.schema.$id === versionedUri,
       )
       .map((entityModel) => new OrgModel(entityModel))
       .find((org) => org.getShortname() === params.shortname);
@@ -196,12 +203,16 @@ export default class extends EntityModel {
     return matchingOrg ?? null;
   }
 
-  getAccountId(): string {
-    return (this.properties as any)[AccountFields.accountIdBaseUri];
-  }
+  getAccountId() = {
+    const accountIdBaseUri = (await WORKSPACE_TYPES.property_type.accountId())
+      .baseUri;
+    return (this.properties as any)[accountIdBaseUri];
+  };
 
-  getShortname(): string {
-    return (this.properties as any)[AccountFields.shortnameBaseUri];
+  getShortname() = {
+    const shortnameBaseUri = (await WORKSPACE_TYPES.property_type.shortName())
+    .baseUri;
+    return (this.properties as any)[shortnameBaseUri];
   }
 
   /**
@@ -239,7 +250,7 @@ export default class extends EntityModel {
   }
 
   getOrgName(): string {
-    return (this.properties as any)[orgNamedBaseUri];
+    return (this.properties as any)[orgNameBaseUri];
   }
 
   static orgNameIsInvalid(preferredName: string) {
@@ -263,7 +274,7 @@ export default class extends EntityModel {
     }
 
     const updatedEntity = await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: orgNamedBaseUri,
+      propertyTypeBaseUri: orgNameBaseUri,
       value: updatedOrgName,
       updatedByAccountId,
     });

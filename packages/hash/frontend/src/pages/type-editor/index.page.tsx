@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { Box, Container } from "@mui/material";
-import { TextField } from "@hashintel/hash-design-system";
-import init, { validateVersionedUri } from "@blockprotocol/type-system-web";
+import init from "@blockprotocol/type-system-web";
 
 import { Button } from "../../shared/ui";
 import { useUser } from "../../components/hooks/useUser";
@@ -21,9 +20,6 @@ import {
  */
 const ExampleUsage = ({ accountId }: { accountId: string }) => {
   const [content, setContent] = useState<string>();
-  const [propertyUri, setPropertyUri] = useState<string>(
-    "https://blockprotocol.org/@alice/types/property-type/new-name/v/1",
-  );
 
   const functions = useBlockProtocolFunctionsWithOntology(accountId);
 
@@ -46,32 +42,29 @@ const ExampleUsage = ({ accountId }: { accountId: string }) => {
 
   const createPropertyType = useCallback(() => {
     void (async () => {
-      if (validateVersionedUri(propertyUri).type === "Ok") {
-        await functions
-          .createPropertyType({
-            data: {
-              propertyType: {
-                kind: "propertyType",
-                $id: propertyUri,
-                title: "Name",
-                pluralTitle: "Names",
-                oneOf: [
-                  {
-                    $ref: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                  },
-                ],
-              },
+      await functions
+        .createPropertyType({
+          data: {
+            propertyType: {
+              kind: "propertyType",
+              title: "Name",
+              pluralTitle: "Names",
+              oneOf: [
+                {
+                  $ref: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                },
+              ],
             },
-          })
-          .then((result) => {
-            setContent(JSON.stringify(result.data ?? {}, null, 2));
-          })
-          .catch((error) => {
-            setContent(JSON.stringify(error ?? {}, null, 2));
-          });
-      }
+          },
+        })
+        .then((result) => {
+          setContent(JSON.stringify(result.data ?? {}, null, 2));
+        })
+        .catch((error) => {
+          setContent(JSON.stringify(error ?? {}, null, 2));
+        });
     })();
-  }, [functions, propertyUri, setContent]);
+  }, [functions, setContent]);
 
   return (
     <Container>
@@ -104,14 +97,6 @@ const ExampleUsage = ({ accountId }: { accountId: string }) => {
         </Button>
 
         <div>
-          <TextField
-            sx={{ py: 1, width: 200 }}
-            label="Property type URI"
-            color="secondary"
-            value={propertyUri}
-            onChange={(event) => setPropertyUri(event.target.value)}
-            focused
-          />
           <br />
 
           <Button size="medium" onClick={createPropertyType}>

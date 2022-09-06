@@ -80,7 +80,7 @@ export type GetDataTypeMessageCallback = MessageCallback<
 export type PropertyTypeResponse = Response<"propertyType", PropertyType>;
 
 export type CreatePropertyTypeRequest = {
-  propertyType: PropertyType;
+  propertyType: Omit<PropertyType, "$id">;
 };
 export type CreatePropertyTypeMessageCallback = MessageCallback<
   CreatePropertyTypeRequest,
@@ -107,7 +107,7 @@ export type GetPropertyTypeMessageCallback = MessageCallback<
 
 export type UpdatePropertyTypeRequest = {
   propertyTypeVersionedUri: string;
-  propertyType: PropertyType;
+  propertyType: Omit<PropertyType, "$id">;
 };
 export type UpdatePropertyTypeMessageCallback = MessageCallback<
   UpdatePropertyTypeRequest,
@@ -121,7 +121,7 @@ export type UpdatePropertyTypeMessageCallback = MessageCallback<
 export type EntityTypeResponse = Response<"entityType", EntityType>;
 
 export type EntityTypeRequest = {
-  entityType: EntityType;
+  entityType: Omit<EntityType, "$id">;
 };
 export type CreateEntityTypeMessageCallback = MessageCallback<
   EntityTypeRequest,
@@ -148,7 +148,7 @@ export type GetEntityTypeMessageCallback = MessageCallback<
 
 export type UpdateEntityTypeRequest = {
   entityTypeVersionedUri: string;
-  entityType: EntityType;
+  entityType: Omit<EntityType, "$id">;
 };
 export type UpdateEntityTypeMessageCallback = MessageCallback<
   UpdateEntityTypeRequest,
@@ -162,7 +162,7 @@ export type UpdateEntityTypeMessageCallback = MessageCallback<
 export type LinkTypeResponse = Response<"linkType", LinkType>;
 
 export type CreateLinkTypeRequest = {
-  linkType: LinkType;
+  linkType: Omit<LinkType, "$id">;
 };
 export type CreateLinkTypeMessageCallback = MessageCallback<
   CreateLinkTypeRequest,
@@ -189,7 +189,7 @@ export type GetLinkTypeMessageCallback = MessageCallback<
 
 export type UpdateLinkTypeRequest = {
   linkTypeVersionedUri: string;
-  linkType: LinkType;
+  linkType: Omit<LinkType, "$id">;
 };
 export type UpdateLinkTypeMessageCallback = MessageCallback<
   UpdateLinkTypeRequest,

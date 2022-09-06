@@ -9,8 +9,9 @@ import {
   ResolverFn,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
-import { LinkTypeModel } from "../../../model";
+import { LinkTypeModel, UserModel } from "../../../model";
 import { linkTypeModelToGQL } from "./model-mapping";
+import { generateSchemaUri } from "../../../model/util";
 
 export const createLinkType: ResolverFn<
   Promise<PersistedLinkType>,
@@ -21,13 +22,32 @@ export const createLinkType: ResolverFn<
   const { graphApi } = dataSources;
   const { accountId, linkType } = params;
 
+  const namespace = (
+    accountId
+      ? await UserModel.getUserByEntityId(graphApi, { entityId: accountId })
+      : user
+  )?.getShortname();
+  if (namespace == null) {
+    throw new ApolloError(
+      "failed to get namespace for account",
+      "CREATION_ERROR",
+    );
+  }
+
+  const linkTypeUri = generateSchemaUri({
+    namespace,
+    kind: "linkType",
+    title: linkType.title,
+  });
+  const fullLinkType = { $id: linkTypeUri, ...linkType };
+
   const createdLinkTypeModel = await LinkTypeModel.create(graphApi, {
     accountId: accountId ?? user.getAccountId(),
-    schema: linkType,
+    schema: fullLinkType,
   }).catch((err: AxiosError) => {
     const msg =
       err.response?.status === 409
-        ? `Link type with the same URI already exists. [URI=${linkType.$id}]`
+        ? `Link type with the same URI already exists. [URI=${fullLinkType.$id}]`
         : `Couldn't create link type.`;
 
     throw new ApolloError(msg, "CREATION_ERROR");

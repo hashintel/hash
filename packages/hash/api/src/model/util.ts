@@ -3,9 +3,14 @@ import {
   PropertyType,
   EntityType,
   LinkType,
+  PropertyValues,
+  VersionedUri,
+  BaseUri,
 } from "@blockprotocol/type-system-web";
 import slugify from "slugify";
-import { getRequiredEnv } from "../util";
+import { EntityTypeModel, PropertyTypeModel } from ".";
+import { GraphApi } from "../graph";
+import { FRONTEND_URL } from "../lib/config";
 
 /** @todo: enable admins to expand upon restricted shortnames block list */
 export const RESTRICTED_SHORTNAMES = [
@@ -68,17 +73,7 @@ export const nilUuid = "00000000-0000-0000-0000-000000000000" as const;
  */
 export const workspaceAccountId = nilUuid;
 
-const workspaceAccountShortname = getRequiredEnv("WORKSPACE_ACCOUNT_SHORTNAME");
-
-/**
- * @todo: revisit how this URI is defined and obtained as this is a temporary solution
- *   https://app.asana.com/0/1200211978612931/1202848989198299/f
- */
-export const workspaceTypesNamespaceUri = `https://example.com/@${workspaceAccountShortname}/types`;
-
-export const blockprotocolTypesNamespaceUri =
-  "https://blockprotocol.org/@blockprotocol/types";
-
+/** @todo avoid this look up, we can just do "entity-type" | ... etc. */
 type SchemaKind =
   | EntityType["kind"]
   | PropertyType["kind"]
@@ -92,28 +87,52 @@ const schemaKindSlugs: Record<SchemaKind, string> = {
   linkType: "link-type",
 };
 
-/**
- * @todo replace with unified type ID generation
- *   https://app.asana.com/0/1200211978612931/1202848989198299/f
- */
 const slugifySchemaTitle = (title: string): string =>
   slugify(title, { lower: true });
 
-export const generateSchemaBaseUri = (params: {
-  namespaceUri: string;
+export const generateSchemaBaseUri = ({
+  domain = FRONTEND_URL,
+  namespace,
+  kind,
+  title,
+}: {
+  domain?: string;
+  namespace: string;
   kind: SchemaKind;
   title: string;
-}) =>
-  `${params.namespaceUri}/${schemaKindSlugs[params.kind]}/${slugifySchemaTitle(
-    params.title,
-  )}/` as const;
+}): BaseUri =>
+  `${domain}/${namespace}/types/${schemaKindSlugs[kind]}/${slugifySchemaTitle(
+    title,
+  )}` as const;
 
-export const generateSchemaVersionedUri = (params: {
-  namespaceUri: string;
+export const generateSchemaUri = ({
+  domain = FRONTEND_URL,
+  namespace,
+  kind,
+  title,
+}: {
+  domain?: string;
+  namespace: string;
   kind: SchemaKind;
   title: string;
-  version?: number;
-}) => `${generateSchemaBaseUri(params)}v/${params.version ?? 1}` as const;
+}): VersionedUri =>
+  `${generateSchemaBaseUri({ domain, namespace, kind, title })}/v/1` as const;
+
+/**
+ * @todo use `extractBaseUri from the type system package when they're unified,
+ *  and we're able to use functional code in node and web environments:
+ *  https://app.asana.com/0/1200211978612931/1202923896339225/f
+ */
+export const extractBaseUri = (versionedUri: string) => {
+  const baseUri = versionedUri.split("v/")[0];
+  if (baseUri == null) {
+    throw new Error(
+      `couldn't extract base URI, malformed Versioned URI: ${versionedUri}`,
+    );
+  }
+
+  return baseUri;
+};
 
 const primitiveDataTypeTitles = [
   "Text",
@@ -129,79 +148,84 @@ export type PrimitiveDataTypeTitle = typeof primitiveDataTypeTitles[number];
 export const primitiveDataTypeVersionedUris = primitiveDataTypeTitles.reduce(
   (prev, title) => ({
     ...prev,
-    [title]: generateSchemaVersionedUri({
-      namespaceUri: blockprotocolTypesNamespaceUri,
+    [title]: generateSchemaUri({
+      domain: "https://blockprotocol.org/",
+      namespace: "@blockprotocol",
       kind: "dataType",
       title,
-      /** @todo: get latest version of primitive data tyeps incase they are udpated */
-      version: 1,
     }),
   }),
   {},
 ) as Record<PrimitiveDataTypeTitle, string>;
 
-/**
- * Helper method for generating a property type schema for the Graph API.
- *
- * @todo make use of new type system package instead of ad-hoc types.
- *   https://app.asana.com/0/1202805690238892/1202892835843657/f
- */
-export const generateWorkspacePropertyTypeSchema = (params: {
+export type PropertyTypeCreatorParams = {
+  namespace: string;
   title: string;
-
   possibleValues: {
     primitiveDataType?: PrimitiveDataTypeTitle;
-    propertyTypeObject?: { [_ in string]: { $ref: string } };
+    propertyTypeObjectProperties?: { [_ in string]: { $ref: string } };
     array?: boolean;
   }[];
-}): PropertyType => ({
-  $id: generateSchemaVersionedUri({
-    namespaceUri: workspaceTypesNamespaceUri,
+};
+/**
+ * Helper method for generating a property type schema for the Graph API.
+ */
+export const generateWorkspacePropertyTypeSchema = (
+  params: PropertyTypeCreatorParams,
+): PropertyType => {
+  const $id = generateSchemaUri({
+    namespace: params.namespace,
     title: params.title,
     kind: "propertyType",
-  }),
-  kind: "propertyType",
-  title: params.title,
-  pluralTitle: params.title,
-  oneOf: params.possibleValues.map(
-    ({ array, primitiveDataType, propertyTypeObject }) => {
-      let inner;
+  });
+
+  const possibleValues = params.possibleValues.map(
+    ({ array, primitiveDataType, propertyTypeObjectProperties }) => {
+      let inner: PropertyValues;
+
       if (primitiveDataType) {
-        inner = {
+        const dataTypeReference: PropertyValues.DataTypeReference = {
           $ref: primitiveDataTypeVersionedUris[primitiveDataType],
         };
-      } else if (propertyTypeObject) {
-        inner = { type: "object" as const, properties: propertyTypeObject };
+        inner = dataTypeReference;
+      } else if (propertyTypeObjectProperties) {
+        const propertyTypeObject: PropertyValues.PropertyTypeObject = {
+          type: "object" as const,
+          properties: propertyTypeObjectProperties,
+        };
+        inner = propertyTypeObject;
       } else {
         throw new Error(
-          "Please provide either a primitiveDataType or a propertyTypeObject to generateWorkspacePropertyTypeSchema",
+          "Please provide either a primitiveDataType or propertyTypeObjectProperties to generateWorkspacePropertyTypeSchema",
         );
       }
+
+      // Optionally wrap inner in an array
       if (array) {
-        return {
+        const arrayOfPropertyValues: PropertyValues.ArrayOfPropertyValues = {
           type: "array",
           items: {
             oneOf: [inner],
           },
         };
+        return arrayOfPropertyValues;
       } else {
         return inner;
       }
     },
-    /**
-     * @todo remove this cast when the method uses the new type system package.
-     *   https://app.asana.com/0/1202805690238892/1202892835843657/f
-     */
-  ) as any,
-});
+  );
 
-/**
- * Helper method for generating an entity schema for the Graph API.
- *
- * @todo make use of new type system package instead of ad-hoc types.
- *   https://app.asana.com/0/1202805690238892/1202892835843657/f
- */
-export const generateWorkspaceEntityTypeSchema = (params: {
+  return {
+    $id,
+    kind: "propertyType",
+    title: params.title,
+    pluralTitle: params.title,
+    oneOf: possibleValues,
+  };
+};
+
+export type EntityCreatorParams = {
+  namespace: string;
   title: string;
   properties: {
     baseUri: string;
@@ -209,30 +233,107 @@ export const generateWorkspaceEntityTypeSchema = (params: {
     required?: boolean;
     array?: { minItems?: number; maxItems?: number } | boolean;
   }[];
-}): EntityType => ({
-  $id: generateSchemaVersionedUri({
-    namespaceUri: workspaceTypesNamespaceUri,
+};
+/**
+ * Helper method for generating an entity schema for the Graph API.
+ *
+ * @todo make use of new type system package instead of ad-hoc types.
+ *   https://app.asana.com/0/1202805690238892/1202892835843657/f
+ */
+export const generateWorkspaceEntityTypeSchema = (
+  params: EntityCreatorParams,
+): EntityType => {
+  const $id = generateSchemaUri({
+    namespace: params.namespace,
     title: params.title,
     kind: "entityType",
-  }),
-  title: params.title,
-  pluralTitle: params.title,
-  type: "object",
-  kind: "entityType",
-  properties: params.properties.reduce(
-    (prev, { baseUri, versionedUri, array }) => ({
-      ...prev,
-      [baseUri]: array
-        ? {
-            type: "array",
-            items: { $ref: versionedUri },
-            ...(array === true ? {} : array),
-          }
-        : { $ref: versionedUri },
-    }),
+  });
+
+  /** @todo - clean this up to be more readable */
+  const properties = params.properties.reduce(
+    (prev, { versionedUri, array }) => {
+      /**
+       *  @todo - use the Type System package to extract the base URI, this is currently blocked by unifying the packages
+       *  so we can use the node/web version within API depending on env:
+       *  https://app.asana.com/0/1200211978612931/1202923896339225/f
+       */
+      const baseUri = versionedUri.split("v/")[0]!;
+
+      return {
+        ...prev,
+        [baseUri]: array
+          ? {
+              type: "array",
+              items: { $ref: versionedUri },
+              ...(array === true ? {} : array),
+            }
+          : { $ref: versionedUri },
+      };
+    },
     {},
-  ),
-  required: params.properties
+  );
+
+  const requiredProperties = params.properties
     .filter(({ required }) => !!required)
-    .map(({ baseUri }) => baseUri),
-});
+    .map(({ baseUri }) => baseUri);
+
+  return {
+    $id,
+    title: params.title,
+    pluralTitle: params.title,
+    type: "object",
+    kind: "entityType",
+    properties,
+    required: requiredProperties,
+  };
+};
+
+export const entityTypeInitializer = (
+  params: EntityCreatorParams,
+): ((graphApi?: GraphApi) => Promise<EntityTypeModel>) => {
+  let entityTypeModel: EntityTypeModel;
+
+  return async (graphApi?: GraphApi) => {
+    if (entityTypeModel) {
+      return entityTypeModel;
+    } else if (graphApi == null) {
+      throw new Error(
+        `entity type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
+      );
+    } else {
+      const entityType = generateWorkspaceEntityTypeSchema(params);
+      // initialize
+      entityTypeModel = await EntityTypeModel.create(graphApi, {
+        accountId: workspaceAccountId,
+        schema: entityType,
+      });
+
+      return entityTypeModel;
+    }
+  };
+};
+
+export const propertyTypeInitializer = (
+  params: PropertyTypeCreatorParams,
+): ((graphApi?: GraphApi) => Promise<PropertyTypeModel>) => {
+  let propertyTypeModel: PropertyTypeModel;
+
+  return async (graphApi?: GraphApi) => {
+    if (propertyTypeModel) {
+      return propertyTypeModel;
+    } else if (graphApi == null) {
+      throw new Error(
+        `property type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
+      );
+    } else {
+      const propertyType = generateWorkspacePropertyTypeSchema(params);
+      // initialize
+      propertyTypeModel = await PropertyTypeModel.create(graphApi, {
+        accountId: workspaceAccountId,
+        schema: propertyType,
+      });
+
+      return propertyTypeModel;
+    }
+  };
+};

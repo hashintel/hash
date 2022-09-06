@@ -9,8 +9,9 @@ import {
   ResolverFn,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
-import { EntityTypeModel } from "../../../model";
+import { EntityTypeModel, UserModel } from "../../../model";
 import { entityTypeModelToGQL } from "./model-mapping";
+import { generateSchemaUri } from "../../../model/util";
 
 export const createEntityType: ResolverFn<
   Promise<PersistedEntityType>,
@@ -19,15 +20,35 @@ export const createEntityType: ResolverFn<
   MutationCreateEntityTypeArgs
 > = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
+  /** @todo - should accountId be optional here */
   const { accountId, entityType } = params;
+
+  const namespace = (
+    accountId
+      ? await UserModel.getUserByEntityId(graphApi, { entityId: accountId })
+      : user
+  )?.getShortname();
+  if (namespace == null) {
+    throw new ApolloError(
+      "failed to get namespace for account",
+      "CREATION_ERROR",
+    );
+  }
+
+  const entityTypeUri = generateSchemaUri({
+    namespace,
+    kind: "entityType",
+    title: entityType.title,
+  });
+  const fullEntityType = { $id: entityTypeUri, ...entityType };
 
   const createdEntityTypeModel = await EntityTypeModel.create(graphApi, {
     accountId: accountId ?? user.getAccountId(),
-    schema: entityType,
+    schema: fullEntityType,
   }).catch((err: AxiosError) => {
     const msg =
       err.response?.status === 409
-        ? `Entity type with the same URI already exists. [URI=${entityType.$id}]`
+        ? `Entity type with the same URI already exists. [URI=${fullEntityType.$id}]`
         : `Couldn't create entity type.`;
 
     throw new ApolloError(msg, "CREATION_ERROR");
