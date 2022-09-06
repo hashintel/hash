@@ -140,7 +140,7 @@ impl HookContextInner {
 ///     ctx.emit(format!("Warning: {val}"));
 /// });
 ///
-/// // By not returning anything you are able to hide an attachment
+/// // By not adding anything you are able to hide an attachment
 /// // (it will still be counted towards opaque attachments)
 /// Report::install_debug_hook::<Secret>(|_, _| {});
 ///
