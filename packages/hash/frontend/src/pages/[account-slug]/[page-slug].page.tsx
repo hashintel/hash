@@ -26,6 +26,7 @@ import {
 import { useArchivePage } from "../../components/hooks/useArchivePage";
 import { PageIcon } from "../../components/PageIcon";
 import { PageIconButton } from "../../components/PageIconButton";
+import { PageLoadingState } from "../../components/PageLoadingState";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import {
   GetPageInfoQuery,
@@ -169,9 +170,11 @@ const generateCrumbsFromPages = ({
   return arr;
 };
 
+export const PAGE_CONTENT_WIDTH = 960;
+
 const Container = styled("div")(({ theme }) => ({
   display: "grid",
-  gridTemplateColumns: "1fr minmax(65ch, 960px) 1fr",
+  gridTemplateColumns: `1fr minmax(65ch, ${PAGE_CONTENT_WIDTH}px) 1fr`,
   padding: theme.spacing(6),
 
   "& > *": {
@@ -240,7 +243,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   if (loading) {
     return (
       <Container>
-        <h1>Loading...</h1>
+        <PageLoadingState />
       </Container>
     );
   }

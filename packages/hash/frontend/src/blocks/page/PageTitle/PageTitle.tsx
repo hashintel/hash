@@ -11,6 +11,9 @@ import { rewriteEntityIdentifier } from "../../../lib/entities";
 import { usePageContext } from "../PageContext";
 import { cleanUpTitle, focusEditorBeginning } from "./utils";
 
+export const PAGE_TITLE_FONT_SIZE = "var(--step-4)";
+export const PAGE_TITLE_LINE_HEIGHT = 1.23;
+
 const StyledTextarea = styled(TextareaAutosize)(({ theme }) =>
   sx({
     width: "100%",
@@ -18,9 +21,9 @@ const StyledTextarea = styled(TextareaAutosize)(({ theme }) =>
     border: "none",
     resize: "none",
     fontFamily: "Open Sauce Two",
-    fontSize: "var(--step-4)",
+    fontSize: PAGE_TITLE_FONT_SIZE,
+    lineHeight: PAGE_TITLE_LINE_HEIGHT,
     fontWeight: 500,
-    lineHeight: 1.23,
 
     "&::placeholder": {
       color: theme.palette.gray[40],
