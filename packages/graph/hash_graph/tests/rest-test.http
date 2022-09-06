@@ -415,7 +415,8 @@ Accept: application/json
 
 {
   "targetEntityId": "{{person_b_entity_id}}",
-  "linkTypeUri": "{{friend_of_link_type_uri_raw}}"
+  "linkTypeUri": "{{friend_of_link_type_uri_raw}}",
+  "accountId": "{{account_id}}"
 }
 
 > {%

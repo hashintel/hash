@@ -406,13 +406,6 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         // This default would give the UTC time "wall clock" even within a transaction/
         default: pgm.func("clock_timestamp()"),
       },
-      // TODO: Consider using timestamps for link duration like we've done for the HASH backend,
-      //   see https://app.asana.com/0/1201095311341924/1201836485518642/f
-      active: {
-        type: "boolean",
-        notNull: true,
-        default: true,
-      },
     },
     {
       ifNotExists: true,

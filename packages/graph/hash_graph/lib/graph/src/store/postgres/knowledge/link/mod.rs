@@ -41,7 +41,11 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
         Ok(())
     }
 
-    async fn remove_link(&mut self, link: &Link) -> Result<(), LinkActivationError> {
+    async fn remove_link(
+        &mut self,
+        link: &Link,
+        created_by: AccountId,
+    ) -> Result<(), LinkActivationError> {
         let link_type_version_id = self
             .version_id_by_uri(link.link_type_uri())
             .await
@@ -57,15 +61,18 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
                     WHERE source_entity_id = $1 
                         AND target_entity_id = $2
                         AND link_type_version_id = $3
-                    RETURNING *
+                    RETURNING source_entity_id, target_entity_id, link_type_version_id,
+                    link_order, created_by, created_at
                 )
-                INSERT INTO link_histories
-                SELECT * FROM removed;
+                INSERT INTO link_histories(source_entity_id, target_entity_id, link_type_version_id,
+                    link_order, created_by, created_at, removed_by)
+                SELECT *, $4 FROM removed;
                 "#,
                 &[
                     &link.source_entity(),
                     &link.target_entity(),
                     &link_type_version_id,
+                    &created_by,
                 ],
             )
             .await
