@@ -1,4 +1,4 @@
-import { extractBaseUri, VersionedUri } from "@blockprotocol/type-system-web";
+import { VersionedUri } from "@blockprotocol/type-system-web";
 import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import {
@@ -7,7 +7,6 @@ import {
   EntityTypeModel,
   UserModel,
   AccountFields,
-  PropertyTypeModel,
 } from "..";
 import {
   adminKratosSdk,
@@ -15,58 +14,37 @@ import {
   KratosUserIdentityTraits,
 } from "../../auth/ory-kratos";
 import {
-  generateSchemaBaseUri,
-  generateWorkspaceEntityTypeSchema,
-  PropertyTypeCreatorParams,
+  WORKSPACE_TYPES,
+  WORKSPACE_TYPES_INITIALIZERS,
+} from "../../graph/workspace-types";
+import {
+  entityTypeInitializer,
+  propertyTypeInitializer,
   workspaceAccountId,
 } from "../util";
 
 type QualifiedEmail = { address: string; verified: boolean; primary: boolean };
 
 // Generate the schema for the email property type
-export const emailPropertyTypeParams: PropertyTypeCreatorParams = {
+export const emailPropertyTypeInitializer = propertyTypeInitializer({
   namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   title: "Email",
   possibleValues: [{ primitiveDataType: "Text" }],
-};
-
-export const emailBaseUri = generateSchemaBaseUri({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  kind: "propertyType",
-  title: emailPropertyTypeParams.title,
 });
 
 // Generate the schema for the kratos identity property type
-export const kratosIdentityIdPropertyTypeParams: PropertyTypeCreatorParams = {
+export const kratosIdentityIdPropertyTypeInitializer = propertyTypeInitializer({
   namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   title: "Kratos Identity ID",
   possibleValues: [{ primitiveDataType: "Text" }],
-};
-
-export const kratosIdentityIdBaseUri = generateSchemaBaseUri({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  kind: "propertyType",
-  title: kratosIdentityIdPropertyTypeParams.title,
 });
 
 // Generate the schema for the preferred name property type
-export const preferredNamePropertyTypeParams: PropertyTypeCreatorParams = {
+export const preferredNamePropertyTypeInitializer = propertyTypeInitializer({
   namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   title: "Preferred Name",
   possibleValues: [{ primitiveDataType: "Text" }],
-};
-
-export const preferredNameBaseUri = generateSchemaBaseUri({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  kind: "propertyType",
-  title: preferredNamePropertyTypeParams.title,
 });
-
-export const UserPropertyTypesParams: PropertyTypeCreatorParams[] = [
-  emailPropertyTypeParams,
-  kratosIdentityIdPropertyTypeParams,
-  preferredNamePropertyTypeParams,
-];
 
 type UserModelCreateParams = Omit<
   EntityModelCreateParams,
@@ -77,44 +55,53 @@ type UserModelCreateParams = Omit<
 };
 
 // Generate the schema for the user entity type
-export const userEntityType = (params: {
-  shortnamePropertyTypeId: VersionedUri;
-  emailPropertyTypeId: VersionedUri;
-  kratosIdentityIdPropertyTypeId: VersionedUri;
-  accountIdPropertyTypeId: VersionedUri;
-  preferredNamePropertyTypeId: VersionedUri;
-}) =>
-  generateWorkspaceEntityTypeSchema({
+export const userEntityTypeInitializer = async (graphApi: GraphApi) => {
+  const shortnamePropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.shortName(graphApi);
+
+  const emailPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.email(graphApi);
+
+  const kratosIdentityIdPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.kratosIdentityId(graphApi);
+  const accountIdPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.accountId(graphApi);
+
+  const preferredNamePropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.preferredName(graphApi);
+
+  return entityTypeInitializer({
     namespace: WORKSPACE_ACCOUNT_SHORTNAME,
     title: "User",
     properties: [
       {
-        baseUri: ,
-        versionedUri: params.shortnamePropertyTypeId,
+        baseUri: shortnamePropertyTypeModel.baseUri,
+        versionedUri: shortnamePropertyTypeModel.schema.$id,
       },
       {
-        baseUri: extractBaseUri(params.emailPropertyTypeId),
-        versionedUri: params.emailPropertyTypeId,
+        baseUri: emailPropertyTypeModel.baseUri,
+        versionedUri: emailPropertyTypeModel.schema.$id,
         required: true,
         array: { minItems: 1 },
       },
       {
-        baseUri: extractBaseUri(params.kratosIdentityIdPropertyTypeId),
-        versionedUri: params.kratosIdentityIdPropertyTypeId,
+        baseUri: kratosIdentityIdPropertyTypeModel.baseUri,
+        versionedUri: kratosIdentityIdPropertyTypeModel.schema.$id,
         required: true,
       },
       {
-        baseUri: extractBaseUri(params.accountIdPropertyTypeId),
-        versionedUri: params.accountIdPropertyTypeId,
+        baseUri: accountIdPropertyTypeModel.baseUri,
+        versionedUri: accountIdPropertyTypeModel.schema.$id,
         required: true,
       },
       {
-        baseUri: extractBaseUri(params.preferredNamePropertyTypeId),
-        versionedUri: params.preferredNamePropertyTypeId,
+        baseUri: preferredNamePropertyTypeModel.baseUri,
+        versionedUri: preferredNamePropertyTypeModel.schema.$id,
         required: true,
       },
     ],
-  });
+  })(graphApi);
+};
 
 /**
  * @class {@link UserModel}
@@ -231,11 +218,11 @@ export default class extends EntityModel {
     const { data: userAccountId } = await graphApi.createAccountId();
 
     const properties: object = {
-      [emailBaseUri]: emails,
-      [kratosIdentityIdBaseUri]: kratosIdentityId,
-      [AccountFields.accountIdBaseUri]: userAccountId,
-      [AccountFields.shortnameBaseUri]: undefined,
-      [preferredNameBaseUri]: undefined,
+      [WORKSPACE_TYPES.propertyType.email.baseUri]: emails,
+      [WORKSPACE_TYPES.propertyType.kratosIdentityId.baseUri]: kratosIdentityId,
+      [WORKSPACE_TYPES.propertyType.accountId.baseUri]: userAccountId,
+      [WORKSPACE_TYPES.propertyType.shortName.baseUri]: undefined,
+      [WORKSPACE_TYPES.propertyType.preferredName.baseUri]: undefined,
     };
 
     const entityTypeModel = await UserModel.getUserEntityType(graphApi);
@@ -295,7 +282,9 @@ export default class extends EntityModel {
   }
 
   async getQualifiedEmails(): Promise<QualifiedEmail[]> {
-    const emails: string[] = (this.properties as any)[emailBaseUri];
+    const emails: string[] = (this.properties as any)[
+      WORKSPACE_TYPES.propertyType.email.baseUri
+    ];
 
     const kratosIdentity = await this.getKratosIdentity();
 
@@ -322,12 +311,14 @@ export default class extends EntityModel {
   }
 
   getEmails(): string[] {
-    return (this.properties as any)[emailBaseUri];
+    return (this.properties as any)[WORKSPACE_TYPES.propertyType.email.baseUri];
   }
 
   /** @todo - How can this be undefined? Have removed the undefined argument but not sure why it was there */
   getShortname(): string {
-    return (this.properties as any)[AccountFields.shortnameBaseUri];
+    return (this.properties as any)[
+      WORKSPACE_TYPES.propertyType.shortName.baseUri
+    ];
   }
 
   /**
@@ -360,7 +351,7 @@ export default class extends EntityModel {
     const previousShortname = this.getShortname();
 
     const updatedUser = await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: AccountFields.shortnameBaseUri,
+      propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.shortName.baseUri,
       value: updatedShortname,
       updatedByAccountId,
     }).then((updatedEntity) => new UserModel(updatedEntity));
@@ -370,7 +361,7 @@ export default class extends EntityModel {
     }).catch(async (error) => {
       // If an error occurred updating the entity, set the property to have the previous shortname
       await this.updateProperty(graphApi, {
-        propertyTypeBaseUri: AccountFields.shortnameBaseUri,
+        propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.shortName.baseUri,
         value: previousShortname,
         updatedByAccountId,
       });
@@ -382,7 +373,9 @@ export default class extends EntityModel {
   }
 
   getPreferredName(): string | undefined {
-    return (this.properties as any)[preferredNameBaseUri];
+    return (this.properties as any)[
+      WORKSPACE_TYPES.propertyType.preferredName.baseUri
+    ];
   }
 
   static preferredNameIsInvalid(preferredName: string) {
@@ -406,7 +399,7 @@ export default class extends EntityModel {
     }
 
     const updatedEntity = await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: preferredNameBaseUri,
+      propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.preferredName.baseUri,
       value: updatedPreferredName,
       updatedByAccountId,
     });
@@ -415,11 +408,15 @@ export default class extends EntityModel {
   }
 
   getKratosIdentityId(): string {
-    return (this.properties as any)[kratosIdentityIdBaseUri];
+    return (this.properties as any)[
+      WORKSPACE_TYPES.propertyType.kratosIdentityId.baseUri
+    ];
   }
 
   getAccountId(): string {
-    return (this.properties as any)[AccountFields.accountIdBaseUri];
+    return (this.properties as any)[
+      WORKSPACE_TYPES.propertyType.accountId.baseUri
+    ];
   }
 
   getInfoProvidedAtSignup(): any {

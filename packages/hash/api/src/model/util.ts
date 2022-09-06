@@ -7,10 +7,12 @@ import {
   VersionedUri,
   BaseUri,
 } from "@blockprotocol/type-system-web";
+import { AxiosError } from "axios";
 import slugify from "slugify";
 import { EntityTypeModel, PropertyTypeModel } from ".";
 import { GraphApi } from "../graph";
 import { FRONTEND_URL } from "../lib/config";
+import { logger } from "../logger";
 
 /** @todo: enable admins to expand upon restricted shortnames block list */
 export const RESTRICTED_SHORTNAMES = [
@@ -224,6 +226,52 @@ export const generateWorkspacePropertyTypeSchema = (
   };
 };
 
+/**
+ * @todo - doc
+ * @param params
+ * @returns
+ */
+export const propertyTypeInitializer = (
+  params: PropertyTypeCreatorParams,
+): ((graphApi: GraphApi) => Promise<PropertyTypeModel>) => {
+  let propertyTypeModel: PropertyTypeModel;
+
+  return async (graphApi?: GraphApi) => {
+    if (propertyTypeModel) {
+      return propertyTypeModel;
+    } else if (graphApi == null) {
+      throw new Error(
+        `property type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
+      );
+    } else {
+      const propertyType = generateWorkspacePropertyTypeSchema(params);
+
+      // initialize
+      propertyTypeModel = await PropertyTypeModel.get(graphApi, {
+        versionedUri: propertyType.$id,
+      }).catch(async (error: AxiosError) => {
+        if (error.response?.status === 404) {
+          // The type was missing, try and create it
+          return await PropertyTypeModel.create(graphApi, {
+            accountId: workspaceAccountId,
+            schema: propertyType,
+          }).catch((createError: AxiosError) => {
+            logger.warn(`Failed to create property type: ${params.title}`);
+            throw createError;
+          });
+        } else {
+          logger.warn(
+            `Failed to check existence of property type: ${params.title}`,
+          );
+          throw error;
+        }
+      });
+
+      return propertyTypeModel;
+    }
+  };
+};
+
 export type EntityCreatorParams = {
   namespace: string;
   title: string;
@@ -288,9 +336,14 @@ export const generateWorkspaceEntityTypeSchema = (
   };
 };
 
+/**
+ * @todo - doc
+ * @param params
+ * @returns
+ */
 export const entityTypeInitializer = (
   params: EntityCreatorParams,
-): ((graphApi?: GraphApi) => Promise<EntityTypeModel>) => {
+): ((graphApi: GraphApi) => Promise<EntityTypeModel>) => {
   let entityTypeModel: EntityTypeModel;
 
   return async (graphApi?: GraphApi) => {
@@ -302,38 +355,29 @@ export const entityTypeInitializer = (
       );
     } else {
       const entityType = generateWorkspaceEntityTypeSchema(params);
+
       // initialize
-      entityTypeModel = await EntityTypeModel.create(graphApi, {
-        accountId: workspaceAccountId,
-        schema: entityType,
+      entityTypeModel = await EntityTypeModel.get(graphApi, {
+        versionedUri: entityType.$id,
+      }).catch(async (error: AxiosError) => {
+        if (error.response?.status === 404) {
+          // The type was missing, try and create it
+          return await EntityTypeModel.create(graphApi, {
+            accountId: workspaceAccountId,
+            schema: entityType,
+          }).catch((createError: AxiosError) => {
+            logger.warn(`Failed to create entity type: ${params.title}`);
+            throw createError;
+          });
+        } else {
+          logger.warn(
+            `Failed to check existence of entity type: ${params.title}`,
+          );
+          throw error;
+        }
       });
 
       return entityTypeModel;
-    }
-  };
-};
-
-export const propertyTypeInitializer = (
-  params: PropertyTypeCreatorParams,
-): ((graphApi?: GraphApi) => Promise<PropertyTypeModel>) => {
-  let propertyTypeModel: PropertyTypeModel;
-
-  return async (graphApi?: GraphApi) => {
-    if (propertyTypeModel) {
-      return propertyTypeModel;
-    } else if (graphApi == null) {
-      throw new Error(
-        `property type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
-      );
-    } else {
-      const propertyType = generateWorkspacePropertyTypeSchema(params);
-      // initialize
-      propertyTypeModel = await PropertyTypeModel.create(graphApi, {
-        accountId: workspaceAccountId,
-        schema: propertyType,
-      });
-
-      return propertyTypeModel;
     }
   };
 };
