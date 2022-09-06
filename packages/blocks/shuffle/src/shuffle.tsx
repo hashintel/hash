@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   BlockComponent,
   useGraphBlockService,
@@ -10,48 +10,93 @@ import { v4 as uuid } from "uuid";
 import isEqual from "lodash.isequal";
 import ShuffleIcon from "@mui/icons-material/Shuffle";
 import AddIcon from "@mui/icons-material/Add";
+import DatasetLinkedIcon from "@mui/icons-material/DatasetLinked";
+import ClearIcon from "@mui/icons-material/Clear";
+import { Entity, EntityType } from "@blockprotocol/graph/.";
+import { styled } from "@mui/material";
 import { ItemList } from "./components/item-list";
+import {
+  AddEntitiesDialog,
+  AddEntitiesDialogRef,
+} from "./components/add-entities-dialog";
+
+const SButton = styled(Button)(({ theme: { palette } }) => ({
+  border: "1px solid",
+  borderColor: palette.primary.light,
+  "&:hover": {
+    borderColor: palette.primary.main,
+  },
+}));
 
 export type Item = {
   id: string;
   value: string;
+  entityId?: string;
+  linkId?: string;
 };
 
 export type Items = Item[];
 
 type BlockEntityProperties = {
-  items?: string[];
+  items?: Items;
 };
 
-export const initialItems = ["Thing 1", "Thing 2"];
+export const initialItems = [
+  { id: "1", value: "Thing 1" },
+  { id: "2", value: "Thing 2" },
+];
 
-const createItems = (items: string[]) =>
-  items.map((item) => ({ id: uuid(), value: item }));
+export const getEntityLabel = (
+  entity: Entity,
+  entityType?: EntityType,
+): string => {
+  const { entityId, properties } = entity;
+  const { labelProperty } = entityType?.schema ?? {};
+  return labelProperty ? String(properties[labelProperty]) : entityId;
+};
 
-const getItemValues = (items: Items) => items.map((item) => item.value);
+const createItems = (items: Item[]): Item[] =>
+  items.map((item) => (item.id ? item : { ...item, id: uuid() }));
 
 export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   graph: {
     blockEntity: {
-      entityId,
+      entityId: blockEntityId,
       properties: { items },
     },
+    blockGraph,
     readonly,
   },
 }) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<AddEntitiesDialogRef>(null);
   const { graphService } = useGraphBlockService(blockRootRef);
-
+  const [entityTypes, setEntityTypes] = useState<EntityType[]>([]);
   const [draftItems, setDraftItems] = useState(() =>
     createItems(items?.length ? items : initialItems),
   );
-
   const [prevItems, setPrevItems] = useState(items);
+
+  useEffect(() => {
+    void graphService
+      ?.aggregateEntityTypes({
+        data: {
+          includeOtherTypesInUse: true,
+        },
+      })
+      .then(({ data, errors }) => {
+        if (errors || !data) {
+          return;
+        }
+        setEntityTypes(data.results);
+      });
+  }, [graphService]);
 
   if (items && items !== prevItems) {
     setPrevItems(items);
 
-    if (!isEqual(items, getItemValues(draftItems))) {
+    // @todo compare items without id, this causes a bug
+    if (!isEqual(items, draftItems)) {
       setDraftItems(createItems(items));
     }
   }
@@ -62,8 +107,8 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     }
     void graphService?.updateEntity({
       data: {
-        entityId,
-        properties: { items: getItemValues(newItems) },
+        entityId: blockEntityId,
+        properties: { items: newItems },
       },
     });
   };
@@ -113,12 +158,19 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
       }),
     );
 
-  const onDelete = (index: number) =>
+  const onDelete = (index: number) => {
     updateItems(
       produce(draftItems, (newItems) => {
-        newItems.splice(index, 1);
+        const [deletedItem] = newItems.splice(index, 1);
+
+        if (deletedItem?.linkId) {
+          void graphService?.deleteLink({
+            data: { linkId: deletedItem.linkId },
+          });
+        }
       }),
     );
+  };
 
   const onShuffle = () =>
     updateItems(
@@ -130,48 +182,86 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
       }),
     );
 
+  const enhancedDraftItems = useMemo(() => {
+    return draftItems.map((item) => {
+      const { entityId: itemEntityId } = item;
+
+      const entity = itemEntityId
+        ? blockGraph?.linkedEntities.find(
+            ({ entityId }) => entityId === itemEntityId,
+          )
+        : undefined;
+
+      const entityType = entityTypes.find(
+        (type) => type.entityTypeId === entity?.entityTypeId,
+      );
+
+      return {
+        ...item,
+        ...(entity && { value: getEntityLabel(entity, entityType) }),
+      };
+    });
+  }, [blockGraph?.linkedEntities, draftItems, entityTypes]);
+
   return (
     <Box
       ref={blockRootRef}
       sx={{ display: "flex", flexDirection: "column", paddingX: 1 }}
     >
       {!readonly && (
-        <Box sx={{ display: "flex", alignSelf: "end" }}>
-          <Button
-            onClick={() => onAdd()}
-            sx={({ palette }) => ({
-              marginRight: 1,
-              border: "1px solid",
-              borderColor: palette.primary.light,
-              "&:hover": {
-                borderColor: palette.primary.main,
-              },
-            })}
-          >
+        <Box sx={{ display: "flex", alignSelf: "end", gap: 1 }}>
+          <SButton onClick={onAdd}>
             <AddIcon fontSize="small" />
-          </Button>
-          <Button
-            disabled={draftItems.length <= 1}
-            onClick={() => onShuffle()}
-            sx={({ palette }) => ({
-              border: "1px solid",
-              borderColor: palette.primary.light,
-              "&:hover": {
-                borderColor: palette.primary.main,
-              },
-            })}
-          >
+          </SButton>
+          <SButton onClick={onShuffle} disabled={draftItems.length <= 1}>
             <ShuffleIcon />
-          </Button>
+          </SButton>
+          <SButton onClick={() => dialogRef.current?.show()}>
+            <DatasetLinkedIcon />
+          </SButton>
+          <SButton
+            onClick={() => {
+              const linkIds = draftItems
+                .map((item) => item.linkId)
+                .filter(Boolean) as string[];
+
+              void Promise.all(
+                linkIds.map((linkId) =>
+                  graphService?.deleteLink({
+                    data: { linkId },
+                  }),
+                ),
+              );
+
+              updateItems([], true);
+            }}
+          >
+            <ClearIcon />
+          </SButton>
         </Box>
       )}
       <ItemList
-        list={draftItems}
+        list={enhancedDraftItems}
         onReorder={onReorder}
         onValueChange={onValueChange}
         onItemBlur={onItemBlur}
         onDelete={onDelete}
         readonly={!!readonly}
+      />
+      <AddEntitiesDialog
+        ref={dialogRef}
+        graphService={graphService}
+        blockGraph={blockGraph}
+        entityTypes={entityTypes}
+        blockEntityId={blockEntityId}
+        onAddItems={(entityItems) => {
+          updateItems(
+            produce(draftItems, (newItems) => {
+              return newItems.concat(entityItems);
+            }),
+            true,
+          );
+        }}
       />
     </Box>
   );
