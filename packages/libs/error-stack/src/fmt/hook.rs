@@ -21,6 +21,29 @@ use crate::fmt::Frame;
 
 type Storage = BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>;
 
+/// Private struct which is used to hold the information about the current count for every type.
+/// This is used so that others cannot interfere with the counter and ensure that there's no
+/// unexpected behavior.
+struct Counter(isize);
+
+impl Counter {
+    fn new(value: isize) -> Self {
+        Self(value)
+    }
+
+    fn as_inner(&self) -> isize {
+        self.0
+    }
+
+    fn increment(&mut self) {
+        self.0 += 1;
+    }
+
+    fn decrement(&mut self) {
+        self.0 -= 1;
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct HookContextInner {
     storage: Storage,
@@ -560,7 +583,7 @@ impl<T: 'static> HookContext<T> {
     ///
     /// [`Debug`]: core::fmt::Debug
     pub fn increment_counter(&mut self) -> isize {
-        let counter = self.get_mut::<isize>();
+        let counter = self.get_mut::<Counter>();
 
         match counter {
             None => {
@@ -570,9 +593,9 @@ impl<T: 'static> HookContext<T> {
                 0
             }
             Some(ctr) => {
-                *ctr += 1;
+                ctr.increment();
 
-                *ctr
+                ctr.as_inner()
             }
         }
     }
@@ -623,7 +646,7 @@ impl<T: 'static> HookContext<T> {
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_decrement.snap"))]
     /// </pre>
     pub fn decrement_counter(&mut self) -> isize {
-        let counter = self.get_mut::<isize>();
+        let counter = self.get_mut::<Counter>();
 
         match counter {
             None => {
@@ -635,8 +658,9 @@ impl<T: 'static> HookContext<T> {
                 -1
             }
             Some(ctr) => {
-                *ctr -= 1;
-                *ctr
+                ctr.decrement();
+
+                ctr.as_inner()
             }
         }
     }
