@@ -588,7 +588,7 @@ impl<T: 'static> HookContext<T> {
         match counter {
             None => {
                 // if the counter hasn't been set yet, default to `0`
-                self.insert(0isize);
+                self.insert(Counter::new(0));
 
                 0
             }
@@ -653,7 +653,7 @@ impl<T: 'static> HookContext<T> {
                 // given that increment starts with `0` (which is therefore the implicit default
                 // value) decrementing the default value results in `-1`,
                 // which is why we output that value.
-                self.insert(-1_isize);
+                self.insert(Counter::new(-1));
 
                 -1
             }
