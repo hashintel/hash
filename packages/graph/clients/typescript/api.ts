@@ -3889,7 +3889,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       entityId: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<object>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<Link>>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getEntityLinks(
         entityId,
@@ -4396,7 +4396,7 @@ export const GraphApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getEntityLinks(entityId: string, options?: any): AxiosPromise<object> {
+    getEntityLinks(entityId: string, options?: any): AxiosPromise<Array<Link>> {
       return localVarFp
         .getEntityLinks(entityId, options)
         .then((request) => request(axios, basePath));
@@ -4713,7 +4713,7 @@ export interface GraphApiInterface {
   getEntityLinks(
     entityId: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<object>;
+  ): AxiosPromise<Array<Link>>;
 
   /**
    *
@@ -5515,7 +5515,7 @@ export const LinkApiFp = function (configuration?: Configuration) {
       entityId: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<object>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<Link>>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getEntityLinks(
         entityId,
@@ -5600,7 +5600,7 @@ export const LinkApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getEntityLinks(entityId: string, options?: any): AxiosPromise<object> {
+    getEntityLinks(entityId: string, options?: any): AxiosPromise<Array<Link>> {
       return localVarFp
         .getEntityLinks(entityId, options)
         .then((request) => request(axios, basePath));
@@ -5662,7 +5662,7 @@ export interface LinkApiInterface {
   getEntityLinks(
     entityId: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<object>;
+  ): AxiosPromise<Array<Link>>;
 
   /**
    *
