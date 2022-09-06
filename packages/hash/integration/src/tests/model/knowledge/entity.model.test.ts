@@ -43,7 +43,7 @@ beforeAll(async () => {
       type: "string",
     },
   }).catch((err) => {
-    logger.warn(`Something went wrong making Text: ${err}`);
+    logger.error(`Something went wrong making Text: ${err}`);
     throw err;
   });
 
@@ -58,7 +58,7 @@ beforeAll(async () => {
         properties: {},
       },
     }).catch((err) => {
-      logger.warn(`Something went wrong making Person: ${err}`);
+      logger.error(`Something went wrong making Person: ${err}`);
       throw err;
     }),
     PropertyTypeModel.create(graphApi, {
@@ -74,7 +74,7 @@ beforeAll(async () => {
         favoriteBookPropertyTypeModel = val;
       })
       .catch((err) => {
-        logger.warn(`Something went wrong making Favorite Book: ${err}`);
+        logger.error(`Something went wrong making Favorite Book: ${err}`);
         throw err;
       }),
     PropertyTypeModel.create(graphApi, {
@@ -90,7 +90,7 @@ beforeAll(async () => {
         namePropertyTypeModel = val;
       })
       .catch((err) => {
-        logger.warn(`Something went wrong making Names: ${err}`);
+        logger.error(`Something went wrong making Names: ${err}`);
         throw err;
       }),
   ]);

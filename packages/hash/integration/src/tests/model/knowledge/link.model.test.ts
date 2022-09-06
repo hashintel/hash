@@ -33,7 +33,7 @@ const uniqueTitleSuffix = (title: string) => {
 
 describe("Link model class", () => {
   let accountId: string;
-  let testType: EntityTypeModel;
+  let testEntityType: EntityTypeModel;
   let linkTypeFriend: LinkTypeModel;
   let linkTypeAcquaintance: LinkTypeModel;
   let sourceEntityModel: EntityModel;
@@ -43,7 +43,7 @@ describe("Link model class", () => {
   beforeAll(async () => {
     accountId = await createTestUser(graphApi, "linktest", logger);
 
-    testType = await EntityTypeModel.create(graphApi, {
+    testEntityType = await EntityTypeModel.create(graphApi, {
       accountId,
       schema: {
         kind: "entityType",
@@ -54,7 +54,7 @@ describe("Link model class", () => {
       },
     });
 
-    const results = await Promise.all([
+    await Promise.all([
       LinkTypeModel.create(graphApi, {
         accountId,
         schema: {
@@ -63,6 +63,8 @@ describe("Link model class", () => {
           pluralTitle: "Friends",
           description: "Friend of",
         },
+      }).then((val) => {
+        linkTypeFriend = val;
       }),
 
       LinkTypeModel.create(graphApi, {
@@ -73,36 +75,39 @@ describe("Link model class", () => {
           pluralTitle: "Acquaintances",
           description: "Acquainted with",
         },
+      }).then((val) => {
+        linkTypeAcquaintance = val;
       }),
 
       EntityModel.create(graphApi, {
         accountId,
-        entityTypeModel: testType,
+        entityTypeModel: testEntityType,
         properties: {},
+      }).then((val) => {
+        sourceEntityModel = val;
       }),
 
       EntityModel.create(graphApi, {
         accountId,
-        entityTypeModel: testType,
+        entityTypeModel: testEntityType,
         properties: {},
+      }).then((val) => {
+        targetEntityFriend = val;
       }),
 
       EntityModel.create(graphApi, {
         accountId,
-        entityTypeModel: testType,
+        entityTypeModel: testEntityType,
         properties: {},
+      }).then((val) => {
+        targetEntityAcquaintance = val;
       }),
     ]);
-
-    linkTypeFriend = results[0];
-    linkTypeAcquaintance = results[1];
-    sourceEntityModel = results[2];
-    targetEntityFriend = results[3];
-    targetEntityAcquaintance = results[4];
   });
 
   let friendLink: LinkModel;
   let acquaintanceLink: LinkModel;
+
   it("can link entities", async () => {
     friendLink = await LinkModel.create(graphApi, {
       accountId,

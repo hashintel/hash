@@ -43,8 +43,8 @@ export default class {
       params.accountId === workspaceAccountId
         ? WORKSPACE_ACCOUNT_SHORTNAME
         : (
-            await UserModel.getUserByEntityId(graphApi, {
-              entityId: params.accountId,
+            await UserModel.getUserByAccountId(graphApi, {
+              accountId: params.accountId,
             })
           )?.getShortname();
 

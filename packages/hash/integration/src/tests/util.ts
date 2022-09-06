@@ -143,7 +143,7 @@ export const createTestUser = async (
       throw err;
     });
 
-  return updatedUser.accountId;
+  return updatedUser.getAccountId();
 };
 
 export class ApiClient {

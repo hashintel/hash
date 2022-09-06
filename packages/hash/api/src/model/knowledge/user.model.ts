@@ -1,4 +1,5 @@
 import { GraphApi } from "@hashintel/hash-graph-client";
+import { AxiosError } from "axios";
 import {
   EntityModel,
   EntityTypeModel,
@@ -28,6 +29,29 @@ type UserModelCreateParams = Omit<
  * @class {@link UserModel}
  */
 export default class extends EntityModel {
+  static async getUserByAccountId(
+    graphApi: GraphApi,
+    params: { accountId: string },
+  ): Promise<UserModel | null> {
+    /**
+     * @todo: We probably shouldn't have this AND `getUserByEntityId`
+     */
+    const allEntities = await EntityModel.getAllLatest(graphApi, {
+      accountId: workspaceAccountId,
+    });
+
+    const matchingUser = allEntities
+      .filter(
+        ({ entityTypeModel }) =>
+          entityTypeModel.schema.$id ===
+          WORKSPACE_TYPES.entityType.user.schema.$id,
+      )
+      .map((entityModel) => new UserModel(entityModel))
+      .find((user) => user.getAccountId() === params.accountId);
+
+    return matchingUser ?? null;
+  }
+
   /**
    * Get a workspace user entity by their entityId.
    *
@@ -42,6 +66,10 @@ export default class extends EntityModel {
     const entityModel = await EntityModel.getLatest(graphApi, {
       accountId: workspaceAccountId,
       entityId,
+    }).catch((err: AxiosError) => {
+      throw new Error(
+        `failed to get user entity with id ${entityId}: ${err.code} ${err.response?.data}`,
+      );
     });
 
     return new UserModel(entityModel);
