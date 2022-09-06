@@ -1,6 +1,3 @@
-mod knowledge;
-mod ontology;
-
 use std::{error::Error, fmt, ops::Not, str::FromStr};
 
 use async_trait::async_trait;
@@ -10,10 +7,6 @@ use futures::{future::BoxFuture, FutureExt};
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
 
-pub use self::{
-    knowledge::LinkQuery,
-    ontology::{LinkTypeQuery, OntologyQuery, OntologyVersion},
-};
 use crate::knowledge::EntityId;
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -233,6 +226,23 @@ impl Expression {
                 }),
                 Self::Literal(Literal::String(id.to_string())),
             ]),
+        ])
+    }
+
+    #[must_use]
+    pub fn for_link_by_source_entity_id(id: EntityId) -> Self {
+        Self::Eq(vec![
+            Self::Path(Path {
+                segments: vec![
+                    PathSegment {
+                        identifier: "source".to_owned(),
+                    },
+                    PathSegment {
+                        identifier: "id".to_owned(),
+                    },
+                ],
+            }),
+            Self::Literal(Literal::String(id.to_string())),
         ])
     }
 }
