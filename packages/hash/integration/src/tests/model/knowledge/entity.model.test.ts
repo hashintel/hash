@@ -8,6 +8,7 @@ import {
   DataTypeModel,
   PropertyTypeModel,
 } from "@hashintel/hash-api/src/model";
+import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
 
@@ -25,14 +26,15 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-const accountId = "00000000-0000-0000-0000-000000000000";
-
+let accountId: string;
 let entityTypeModel: EntityTypeModel;
 let textDataTypeModel: DataTypeModel;
 let namePropertyTypeModel: PropertyTypeModel;
 let favoriteBookPropertyTypeModel: PropertyTypeModel;
 
 beforeAll(async () => {
+  accountId = await createTestUser(graphApi, "entitytest", logger);
+
   textDataTypeModel = await DataTypeModel.create(graphApi, {
     accountId,
     schema: {
@@ -40,6 +42,9 @@ beforeAll(async () => {
       title: "Text",
       type: "string",
     },
+  }).catch((err) => {
+    logger.warn(`Something went wrong making Text: ${err}`);
+    throw err;
   });
 
   const results = await Promise.all([
@@ -47,11 +52,14 @@ beforeAll(async () => {
       accountId,
       schema: {
         kind: "entityType",
-        title: "Text",
-        pluralTitle: "Text",
+        title: "Person",
+        pluralTitle: "People",
         type: "object",
         properties: {},
       },
+    }).catch((err) => {
+      logger.warn(`Something went wrong making Person: ${err}`);
+      throw err;
     }),
     PropertyTypeModel.create(graphApi, {
       accountId,
@@ -61,9 +69,14 @@ beforeAll(async () => {
         pluralTitle: "Favorite Books",
         oneOf: [{ $ref: textDataTypeModel.schema.$id }],
       },
-    }).then((val) => {
-      favoriteBookPropertyTypeModel = val;
-    }),
+    })
+      .then((val) => {
+        favoriteBookPropertyTypeModel = val;
+      })
+      .catch((err) => {
+        logger.warn(`Something went wrong making Favorite Book: ${err}`);
+        throw err;
+      }),
     PropertyTypeModel.create(graphApi, {
       accountId,
       schema: {
@@ -72,9 +85,14 @@ beforeAll(async () => {
         pluralTitle: "Names",
         oneOf: [{ $ref: textDataTypeModel.schema.$id }],
       },
-    }).then((val) => {
-      namePropertyTypeModel = val;
-    }),
+    })
+      .then((val) => {
+        namePropertyTypeModel = val;
+      })
+      .catch((err) => {
+        logger.warn(`Something went wrong making Names: ${err}`);
+        throw err;
+      }),
   ]);
 
   entityTypeModel = results[0];

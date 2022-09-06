@@ -5,6 +5,7 @@ import {
   GraphApi,
   UpdateEntityTypeRequest,
 } from "@hashintel/hash-graph-client";
+import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
 import {
   EntityTypeModel,
@@ -13,7 +14,6 @@ import {
   UserModel,
 } from "../index";
 import { generateSchemaUri, workspaceAccountId } from "../util";
-import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
 export type EntityTypeModelConstructorParams = {
   accountId: string;

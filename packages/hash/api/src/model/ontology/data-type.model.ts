@@ -2,10 +2,10 @@ import { AxiosError } from "axios";
 
 import { GraphApi, UpdateDataTypeRequest } from "@hashintel/hash-graph-client";
 import { DataType } from "@blockprotocol/type-system-web";
+import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
 import { DataTypeModel, UserModel } from "../index";
 import { generateSchemaUri, workspaceAccountId } from "../util";
-import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
 type DataTypeModelConstructorArgs = {
   accountId: string;

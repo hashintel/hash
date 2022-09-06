@@ -8,6 +8,7 @@ import {
   LinkModel,
   LinkTypeModel,
 } from "@hashintel/hash-api/src/model";
+import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
 
@@ -25,9 +26,13 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-const accountId = "00000000-0000-0000-0000-000000000000";
+/** @todo - explain that this avoids DB clashes between tests */
+const uniqueTitleSuffix = (title: string) => {
+  return `Link Test ${title}`;
+};
 
 describe("Link model class", () => {
+  let accountId: string;
   let testType: EntityTypeModel;
   let linkTypeFriend: LinkTypeModel;
   let linkTypeAcquaintance: LinkTypeModel;
@@ -36,11 +41,13 @@ describe("Link model class", () => {
   let targetEntityAcquaintance: EntityModel;
 
   beforeAll(async () => {
+    accountId = await createTestUser(graphApi, "linktest", logger);
+
     testType = await EntityTypeModel.create(graphApi, {
       accountId,
       schema: {
         kind: "entityType",
-        title: "Person",
+        title: uniqueTitleSuffix("Person"),
         pluralTitle: "People",
         type: "object",
         properties: {},
@@ -52,7 +59,7 @@ describe("Link model class", () => {
         accountId,
         schema: {
           kind: "linkType",
-          title: "Friends",
+          title: uniqueTitleSuffix("Friends"),
           pluralTitle: "Friends",
           description: "Friend of",
         },
@@ -62,7 +69,7 @@ describe("Link model class", () => {
         accountId,
         schema: {
           kind: "linkType",
-          title: "Acquaintance",
+          title: uniqueTitleSuffix("Acquaintance"),
           pluralTitle: "Acquaintances",
           description: "Acquainted with",
         },

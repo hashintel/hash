@@ -154,6 +154,7 @@ const preferredNamePropertyTypeInitializer = propertyTypeInitializer({
 
 // Generate the schema for the user entity type
 const userEntityTypeInitializer = async (graphApi: GraphApi) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
   const shortnamePropertyTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.propertyType.shortName(graphApi);
 
@@ -167,6 +168,7 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
 
   const preferredNamePropertyTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.propertyType.preferredName(graphApi);
+  /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
     namespace: WORKSPACE_ACCOUNT_SHORTNAME,

@@ -2,10 +2,10 @@ import { AxiosError } from "axios";
 
 import { LinkType } from "@blockprotocol/type-system-web";
 import { GraphApi, UpdateLinkTypeRequest } from "@hashintel/hash-graph-client";
+import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
 import { LinkTypeModel, UserModel } from "../index";
 import { generateSchemaUri, workspaceAccountId } from "../util";
-import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
 type LinkTypeModelConstructorParams = {
   accountId: string;

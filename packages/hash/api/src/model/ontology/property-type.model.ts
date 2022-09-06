@@ -5,10 +5,10 @@ import {
   GraphApi,
   UpdatePropertyTypeRequest,
 } from "@hashintel/hash-graph-client";
+import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
 import { PropertyTypeModel, UserModel } from "../index";
 import { extractBaseUri, generateSchemaUri, workspaceAccountId } from "../util";
-import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
 type PropertyTypeModelConstructorParams = {
   accountId: string;
@@ -58,7 +58,7 @@ export default class {
 
     const propertyTypeUri = generateSchemaUri({
       namespace,
-      kind: "linkType",
+      kind: "propertyType",
       title: params.schema.title,
     });
     const fullPropertyType = { $id: propertyTypeUri, ...params.schema };
