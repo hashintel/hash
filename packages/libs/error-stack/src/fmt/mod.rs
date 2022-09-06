@@ -53,7 +53,7 @@
 //! // This hook will never be called, because a later invocation of `install_debug_hook` overwrites
 //! // the hook for the type `ErrorCode`.
 //! Report::install_debug_hook::<ErrorCode>(|_, ctx| {
-//!     ctx.emit("will never be called");
+//!     ctx.push_body("will never be called");
 //! });
 //!
 //! // `HookContext` always has a type parameter, which needs to be the same as the type of the
@@ -63,11 +63,11 @@
 //! // will not influence the counter of the `ErrorCode` or `Warning` hook.
 //! Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
 //!     let idx = ctx.increment() + 1;
-//!     ctx.emit(format!("Suggestion {idx}: {val}"));
+//!     ctx.push_body(format!("Suggestion {idx}: {val}"));
 //! });
 //!
 //! Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), ctx| {
-//!     ctx.emit(format!("Error ({val})"));
+//!     ctx.push_body(format!("Error ({val})"));
 //! });
 //!
 //! Report::install_debug_hook::<Warning>(|Warning(val), ctx| {
@@ -76,10 +76,10 @@
 //!     // we set a value, which will be removed on non-alternate views
 //!     // and is going to be appended to the actual return value.
 //!     if ctx.alternate() {
-//!         ctx.snippet(format!("Warning {idx}:\n  {val}"));
+//!         ctx.push_appendix(format!("Warning {idx}:\n  {val}"));
 //!     }
 //!
-//!     ctx.emit(format!("Warning ({idx}) occurred"));
+//!     ctx.push_body(format!("Warning ({idx}) occurred"));
 //!  });
 //!
 //! // here we use `emit_deferred()`, this means that this value will be put at the end of the group.
@@ -167,35 +167,6 @@ pub(crate) use hook::{install_builtin_hooks, Hooks};
 use owo_colors::{OwoColorize, Stream::Stdout, Style as OwOStyle};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[must_use]
-#[non_exhaustive]
-pub(crate) enum Emit {
-    /// Line is going to be emitted after all immediate lines have been emitted from the current
-    /// stack.
-    /// This means that deferred lines will always be last in a group.
-    // Reason: in theory we could only conditionally create this variant in std, but that would
-    //  hurt readability in the generation process, instead we opt for `dead_code`, which will
-    //  disable the warning.
-    #[cfg_attr(not(feature = "std"), allow(dead_code))]
-    Defer(String),
-    /// Going to be emitted immediately as the next line in the chain of
-    /// attachments and contexts.
-    Immediate(String),
-}
-
-impl Emit {
-    #[cfg(feature = "std")]
-    pub(crate) fn immediate<T: Into<String>>(line: T) -> Self {
-        Self::Immediate(line.into())
-    }
-
-    #[cfg(feature = "std")]
-    pub(crate) fn defer<T: Into<String>>(line: T) -> Self {
-        Self::Defer(line.into())
-    }
-}
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum Symbol {
@@ -731,64 +702,41 @@ impl Opaque {
     }
 }
 
-fn debug_attachments_order(emits: impl Iterator<Item = Emit>) -> Vec<String> {
-    let mut out = Vec::with_capacity(emits.size_hint().0);
-    let mut defer = vec![];
-
-    for emit in emits {
-        match emit {
-            Emit::Defer(value) => {
-                defer.push(value);
-            }
-            Emit::Immediate(value) => {
-                out.push(value);
-            }
-        }
-    }
-
-    out.append(&mut defer);
-
-    out
-}
-
 fn debug_attachments_invoke(
     frames: Vec<&Frame>,
     #[cfg(feature = "std")] ctx: &mut HookContext<Frame>,
-) -> (Opaque, Vec<String>, Vec<String>) {
+) -> (Opaque, Vec<String>) {
     let mut opaque = Opaque::new();
 
-    let (emits, snippets): (Vec<_>, Vec<_>) = frames
+    let body = frames
         .into_iter()
         .map(|frame| match frame.kind() {
             #[cfg(feature = "std")]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
                 Report::get_debug_format_hook(|hooks| hooks.call(frame, ctx));
-                ctx.take_emits()
+                ctx.take_body()
             }
             #[cfg(not(feature = "std"))]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
-                (vec![], vec![])
+                vec![]
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                (vec![Emit::Immediate(attachment.to_string())], vec![])
+                vec![attachment.to_string()]
             }
         })
         .enumerate()
-        .map(|(idx, (emits, snippets))| {
+        .map(|(idx, body)| {
             // increase the opaque counter, if we're unable to determine the actual value of the
             // frame
-            if idx > 0 && emits.is_empty() {
+            if idx > 0 && body.is_empty() {
                 opaque.increase();
             }
 
-            (emits, snippets)
+            body
         })
-        .unzip();
+        .collect();
 
-    let emits = debug_attachments_order(emits.into_iter().flatten());
-    let snippets = debug_attachments_order(snippets.into_iter().flatten());
-
-    (opaque, emits, snippets)
+    (opaque, body)
 }
 
 fn debug_attachments(
@@ -801,15 +749,12 @@ fn debug_attachments(
 
     // Reason: snippets is unused in no-std, but this makes code cleaner overall
     #[cfg_attr(not(feature = "std"), allow(unused_variables, unused_mut))]
-    let (opaque, emits, mut snippets) = debug_attachments_invoke(
+    let (opaque, emits) = debug_attachments_invoke(
         frames,
         #[cfg(feature = "std")]
         ctx,
     );
     let opaque = opaque.render();
-
-    #[cfg(feature = "std")]
-    ctx.append_snippet_string(&mut snippets);
 
     // calculate the len, combine next and defer emitted values into a single stream
     let len = emits.len() + loc.as_ref().map_or(0, |_| 1) + opaque.as_ref().map_or(0, |_| 1);
@@ -1055,8 +1000,8 @@ impl<C> Debug for Report<C> {
         {
             // only output detailed information (like backtraces), if alternate mode is enabled, or
             // the snippet has been forced.
-            let suffix = ctx
-                .snippet_strings()
+            let appendix = ctx
+                .appendix()
                 .iter()
                 .map(
                     // remove all trailing newlines for a more uniform look
@@ -1065,9 +1010,9 @@ impl<C> Debug for Report<C> {
                 .collect::<Vec<_>>()
                 .join("\n\n");
 
-            if !suffix.is_empty() {
+            if !appendix.is_empty() {
                 // 44 is the size for the separation.
-                lines.reserve(44 + suffix.len());
+                lines.reserve(44 + appendix.len());
 
                 lines.push_str("\n\n");
                 #[cfg(feature = "pretty-print")]
@@ -1080,7 +1025,7 @@ impl<C> Debug for Report<C> {
                 }
 
                 lines.push_str("\n\n");
-                lines.push_str(&suffix);
+                lines.push_str(&appendix);
             }
         }
 

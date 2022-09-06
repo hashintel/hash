@@ -17,7 +17,7 @@ use std::mem;
 #[cfg(feature = "std")]
 pub(crate) use default::install_builtin_hooks;
 
-use crate::fmt::{Emit, Frame};
+use crate::fmt::Frame;
 
 type Storage = BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>;
 
@@ -26,10 +26,9 @@ pub(crate) struct HookContextInner {
     storage: Storage,
 
     alternate: bool,
-    emits: Vec<Emit>,
-    snippets: Vec<Emit>,
 
-    snippet_strings: Vec<String>,
+    body: Vec<String>,
+    appendix: Vec<String>,
 }
 
 impl HookContextInner {
@@ -45,16 +44,8 @@ impl HookContextInner {
         self.alternate
     }
 
-    fn take_emits(&mut self) -> (Vec<Emit>, Vec<Emit>) {
-        (mem::take(&mut self.emits), mem::take(&mut self.snippets))
-    }
-
-    fn append_snippet_string(&mut self, snippets: &mut Vec<String>) {
-        self.snippet_strings.append(snippets);
-    }
-
-    fn snippet_strings(&self) -> &[String] {
-        &self.snippet_strings
+    fn take_body(&mut self) -> Vec<String> {
+        mem::take(&mut self.body)
     }
 }
 
@@ -62,10 +53,9 @@ impl HookContextInner {
     fn new(alternate: bool) -> Self {
         Self {
             storage: Storage::default(),
-            snippets: Vec::new(),
-            emits: Vec::new(),
+            appendix: Vec::new(),
+            body: Vec::new(),
             alternate,
-            snippet_strings: vec![],
         }
     }
 }
@@ -115,10 +105,10 @@ impl HookContextInner {
 ///     // This is going to be emitted immediately in the list of snippets, but only if we
 ///     // `format!("{report:#?}")`
 ///     if ctx.alternate() {
-///         ctx.snippet(format!("Error {val}: {} Error", if *val < 500 {"Client"} else {"Server"}))
+///         ctx.push_appendix(format!("Error {val}: {} Error", if *val < 500 {"Client"} else {"Server"}))
 ///     }
 ///
-///     ctx.emit(format!("Error code: {val}"));
+///     ctx.push_body(format!("Error code: {val}"));
 /// });
 ///
 /// // You can emit a line which is deferred to the end of the stack.
@@ -136,8 +126,8 @@ impl HookContextInner {
 ///
 /// // You can emit multiple lines from the same hook.
 /// Report::install_debug_hook::<Warning>(|Warning(val), ctx| {
-///     ctx.emit("Abnormal program execution detected");
-///     ctx.emit(format!("Warning: {val}"));
+///     ctx.push_body("Abnormal program execution detected");
+///     ctx.push_body(format!("Warning: {val}"));
 /// });
 ///
 /// // By not adding anything you are able to hide an attachment
@@ -225,7 +215,7 @@ impl HookContextInner {
 ///     ctx.insert(acc);
 ///     ctx.insert(div);
 ///
-///     ctx.emit(format!(
+///     ctx.push_body(format!(
 ///         "Computation for {val} (acc = {acc}, div = {div})"
 ///     ));
 /// });
@@ -273,12 +263,8 @@ impl<T> HookContext<T> {
         }
     }
 
-    pub(crate) fn append_snippet_string(&mut self, snippets: &mut Vec<String>) {
-        self.inner.append_snippet_string(snippets);
-    }
-
-    pub(crate) fn snippet_strings(&self) -> &[String] {
-        self.inner.snippet_strings()
+    pub(crate) fn appendix(&self) -> &[String] {
+        &self.inner.appendix
     }
 
     /// This snippet (which can include line breaks) will be appended to the
@@ -306,10 +292,10 @@ impl<T> HookContext<T> {
     /// Report::install_debug_hook::<Error>(|Error { code, reason }, ctx| {
     ///     if ctx.alternate() {
     ///         // Add a snippet to the output
-    ///         ctx.snippet(format!("Error {code}:\n  {reason}"));
+    ///         ctx.push_appendix(format!("Error {code}:\n  {reason}"));
     ///     }
     ///
-    ///     ctx.emit(format!("Error {code}"));
+    ///     ctx.push_body(format!("Error {code}"));
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -342,87 +328,11 @@ impl<T> HookContext<T> {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap"))]
     /// </pre>
-    pub fn snippet(&mut self, snippet: impl Into<String>) {
-        self.inner.snippets.push(Emit::immediate(snippet));
+    pub fn push_appendix(&mut self, content: impl Into<String>) {
+        self.inner.appendix.push(content.into());
     }
 
-    /// Create a new multiline snippet, which is going to be appended to the end of the message, but
-    /// deferred, until the end of the stack of current snippets.
-    ///
-    /// A stack are all attachments until a [`Context`] is encountered in the frame stack,
-    /// lines added via this function are going to be emitted at the end.
-    ///
-    /// [`Context`]: crate::Context
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
-    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
-    /// use std::io::ErrorKind;
-    ///
-    /// use error_stack::Report;
-    ///
-    /// struct Error {
-    ///     code: usize,
-    ///     reason: &'static str,
-    /// }
-    ///
-    /// struct Suggestion(&'static str);
-    ///
-    /// Report::install_debug_hook::<Error>(|Error { code, reason }, ctx| {
-    ///     if ctx.alternate() {
-    ///         // Add a snippet, which is printed after other snippets
-    ///         ctx.snippet_deferred(format!("Error {code}:\n  {reason}"));
-    ///     }
-    ///
-    ///     ctx.emit_deferred(format!("Error {code}"));
-    /// });
-    /// Report::install_debug_hook::<Suggestion>(|Suggestion(suggestion), ctx| {
-    ///     let idx = ctx.increment();
-    ///
-    ///     if ctx.alternate() {
-    ///         ctx.snippet(format!("Suggestion {idx}:\n  {suggestion}"))
-    ///     }
-    ///
-    ///     ctx.emit(format!("Suggestion ({idx})"));
-    /// });
-    ///
-    /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-    ///     .attach(Error {
-    ///         code: 404,
-    ///         reason: "Not Found - Server cannot find requested resource",
-    ///     })
-    ///     .attach(Error {
-    ///         code: 405,
-    ///         reason: "Bad Request - Server cannot or will not process request",
-    ///     });
-    ///
-    /// # owo_colors::set_override(true);
-    /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
-    /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
-    /// #
-    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
-    /// # }
-    /// #
-    /// # #[cfg(rust_1_65)]
-    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_snippet_defer.snap")].assert_eq(&render(format!("{report:#?}")));
-    /// #
-    /// println!("{report:#?}");
-    /// ```
-    ///
-    /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_snippet_defer.snap"))]
-    /// </pre>
-    pub fn snippet_deferred(&mut self, snippet: impl Into<String>) {
-        self.inner.snippets.push(Emit::defer(snippet));
-    }
-
-    /// Add a new line which is going to be emitted immediately.
+    /// Add a new line to the body which is going to be emitted immediately.
     ///
     /// # Example
     ///
@@ -436,10 +346,10 @@ impl<T> HookContext<T> {
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     ctx.emit(format!("Suggestion: {val}"));
+    ///     ctx.push_body(format!("Suggestion: {val}"));
     ///     // We can emit multiple lines in a single hook, these lines will be added one after
     ///     // another.
-    ///     ctx.emit("Sorry for the inconvenience!");
+    ///     ctx.push_body("Sorry for the inconvenience!");
     /// });
     ///
     /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
@@ -465,64 +375,8 @@ impl<T> HookContext<T> {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap"))]
     /// </pre>
-    pub fn emit(&mut self, line: impl Into<String>) {
-        self.inner.emits.push(Emit::immediate(line));
-    }
-
-    /// Create a new line, which is going to be deferred until the end of the current stack.
-    ///
-    /// A stack are all attachments until a [`Context`] is encountered in the frame stack,
-    /// lines added via this function are going to be emitted at the end.
-    ///
-    /// [`Context`]: crate::Context
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
-    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
-    /// use std::io;
-    ///
-    /// use error_stack::Report;
-    ///
-    /// struct ErrorCode(u64);
-    /// struct Suggestion(&'static str);
-    ///
-    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     ctx.emit_deferred(format!("Suggestion: {val}"));
-    /// });
-    /// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), ctx| {
-    ///     ctx.emit_deferred(format!("Error Code: {val}"));
-    /// });
-    ///
-    /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
-    ///     .attach(Suggestion("Try better next time!"))
-    ///     .attach(ErrorCode(404))
-    ///     .attach(Suggestion("Try to use a different shell!"))
-    ///     .attach(ErrorCode(405));
-    ///
-    /// # owo_colors::set_override(true);
-    /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
-    /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
-    /// #
-    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
-    /// # }
-    /// #
-    /// # #[cfg(rust_1_65)]
-    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add_defer.snap")].assert_eq(&render(format!("{report:?}")));
-    /// #
-    /// println!("{report:?}");
-    /// ```
-    ///
-    /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add_defer.snap"))]
-    /// </pre>
-    pub fn emit_deferred(&mut self, line: impl Into<String>) {
-        self.inner.emits.push(Emit::defer(line));
+    pub fn push_body(&mut self, content: impl Into<String>) {
+        self.inner.body.push(content.into());
     }
 
     /// Cast the [`HookContext`] to a new type `U`.
@@ -552,7 +406,7 @@ impl<T> HookContext<T> {
     /// Report::install_debug_hook::<Error>(|Error(frame), ctx| {
     ///     let idx = ctx.increment() + 1;
     ///
-    ///     ctx.emit(format!("[{idx}] [ERROR] {frame}"));
+    ///     ctx.push_body(format!("[{idx}] [ERROR] {frame}"));
     /// });
     /// Report::install_debug_hook::<Warning>(|Warning(frame), ctx| {
     ///     // We want to share the same counter with `Error`, so that we're able to have
@@ -560,7 +414,7 @@ impl<T> HookContext<T> {
     ///     // we need to access the storage of `Error` using `cast()`.
     ///     let ctx = ctx.cast::<Error>();
     ///     let idx = ctx.increment() + 1;
-    ///     ctx.emit(format!("[{idx}] [WARN] {frame}"))
+    ///     ctx.push_body(format!("[{idx}] [WARN] {frame}"))
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -611,8 +465,8 @@ impl<T> HookContext<T> {
         self.inner.storage_mut()
     }
 
-    pub(crate) fn take_emits(&mut self) -> (Vec<Emit>, Vec<Emit>) {
-        self.inner.take_emits()
+    pub(crate) fn take_body(&mut self) -> Vec<String> {
+        self.inner.take_body()
     }
 }
 
@@ -687,7 +541,7 @@ impl<T: 'static> HookContext<T> {
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
     ///     let idx = ctx.increment();
-    ///     ctx.emit(format!("Suggestion {idx}: {val}"));
+    ///     ctx.push_body(format!("Suggestion {idx}: {val}"));
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -752,7 +606,7 @@ impl<T: 'static> HookContext<T> {
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
     ///     let idx = ctx.decrement();
-    ///     ctx.emit(format!("Suggestion {idx}: {val}"));
+    ///     ctx.push_body(format!("Suggestion {idx}: {val}"));
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
