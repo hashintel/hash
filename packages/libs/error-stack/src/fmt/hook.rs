@@ -780,10 +780,7 @@ mod default {
     use tracing_error::SpanTrace;
 
     use crate::{
-        fmt::{
-            hook::{into_boxed_hook, BoxedHook, HookContext},
-            Emit,
-        },
+        fmt::hook::{into_boxed_hook, BoxedHook, HookContext},
         Frame, Report,
     };
 

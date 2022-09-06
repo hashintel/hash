@@ -719,7 +719,7 @@ fn debug_attachments_invoke(
             }
         })
         .enumerate()
-        .map(|(idx, body)| {
+        .flat_map(|(idx, body)| {
             // increase the opaque counter, if we're unable to determine the actual value of the
             // frame
             if idx > 0 && body.is_empty() {
