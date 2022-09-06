@@ -112,7 +112,8 @@ impl HookContextInner {
 ///
 /// // You can emit a line, which is going to be emitted immediately.
 /// Report::install_debug_hook::<HttpResponseStatusCode>(|HttpResponseStatusCode(val), ctx| {
-///     // This is going to be emitted immediately in the list of snippets.
+///     // This is going to be emitted immediately in the list of snippets, but only if we
+///     // `format!("{report:#?}")`
 ///     if ctx.alternate() {
 ///         ctx.snippet(format!("Error {val}: {} Error", if *val < 500 {"Client"} else {"Server"}))
 ///     }
@@ -124,7 +125,8 @@ impl HookContextInner {
 /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
 ///     let idx = ctx.increment();
 ///
-///     // deferred snippets are deferred until the end of snippets of the current stack
+///     // deferred snippets are deferred until the end of snippets of the current stack,
+///     // but only if we `format!("{report:#?}")`
 ///     if ctx.alternate() {
 ///         ctx.snippet_deferred(format!("Suggestion {idx}:\n  {val}"));
 ///     }
@@ -138,7 +140,7 @@ impl HookContextInner {
 ///     ctx.emit(format!("Warning: {val}"));
 /// });
 ///
-/// // By not returning anything you are to hide an attachment
+/// // By not returning anything you are able to hide an attachment
 /// // (it will still be counted towards opaque attachments)
 /// Report::install_debug_hook::<Secret>(|_, _| {});
 ///
@@ -210,13 +212,18 @@ impl HookContextInner {
 /// struct Computation(u64);
 ///
 /// Report::install_debug_hook::<Computation>(|Computation(val), ctx| {
+///     // Get a value of type `u64`, if we didn't insert one yet, default to 0
 ///     let mut acc = ctx.get::<u64>().copied().unwrap_or(0);
 ///     acc += *val;
 ///
+///     // Get a value of type `f64`, if we didn't insert one yet, default to 1.0
 ///     let mut div = ctx.get::<f32>().copied().unwrap_or(1.0);
 ///     div /= *val as f32;
 ///
+///     // Insert the calculated `u64` and `f32` back into storage, so that we can use them
+///     // in the invocations following this one (for the same `Debug` call)
 ///     ctx.insert(acc);
+///     ctx.insert(div);
 ///
 ///     ctx.emit(format!(
 ///         "Computation for {val} (acc = {acc}, div = {div})"
@@ -430,6 +437,8 @@ impl<T> HookContext<T> {
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
     ///     ctx.emit(format!("Suggestion: {val}"));
+    ///     // We can emit multiple lines in a single hook, these lines will be added one after
+    ///     // another.
     ///     ctx.emit("Sorry for the inconvenience!");
     /// });
     ///
@@ -546,7 +555,11 @@ impl<T> HookContext<T> {
     ///     ctx.emit(format!("[{idx}] [ERROR] {frame}"));
     /// });
     /// Report::install_debug_hook::<Warning>(|Warning(frame), ctx| {
-    ///     let idx = ctx.cast::<Error>().increment() + 1;
+    ///     // We want to share the same counter with `Error`, so that we're able to have
+    ///     // a global counter to keep track of all errors and warnings in order, this means
+    ///     // we need to access the storage of `Error` using `cast()`.
+    ///     let ctx = ctx.cast::<Error>();
+    ///     let idx = ctx.increment() + 1;
     ///     ctx.emit(format!("[{idx}] [WARN] {frame}"))
     /// });
     ///
