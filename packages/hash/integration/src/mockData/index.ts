@@ -745,6 +745,7 @@ void (async () => {
         properties: {
           title,
         },
+        prevIndex: "a0",
       }),
     ),
   );
@@ -763,6 +764,7 @@ void (async () => {
         properties: {
           title,
         },
+        prevIndex: "a0",
       }),
     ),
   );

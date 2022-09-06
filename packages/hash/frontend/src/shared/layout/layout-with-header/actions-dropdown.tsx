@@ -60,7 +60,7 @@ export const ActionsDropdownInner: FunctionComponent<{
       popupState.close();
       setLoading(false);
     }
-  }, [createUntitledPage, loading, popupState]);
+  }, [createUntitledPage, loading, popupState, lastRootPageIndex]);
 
   const newEntityTypeRoute = `/${accountId}/types/new`;
 
