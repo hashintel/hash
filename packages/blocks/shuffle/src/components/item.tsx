@@ -2,60 +2,15 @@ import React, { forwardRef, useState, CSSProperties, RefObject } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import LinkIcon from "@mui/icons-material/Link";
-import {
-  Box,
-  IconButton,
-  ListItem,
-  TextField,
-  Paper,
-  SxProps,
-  Tooltip,
-  styled,
-  experimental_sx as sx,
-} from "@mui/material";
+import { TextField, SxProps, Tooltip } from "@mui/material";
 import { DraggableAttributes } from "@dnd-kit/core";
-
-const SListItem = styled(ListItem)(({ theme }) =>
-  sx({
-    marginBottom: 2,
-    outlineColor: theme.palette.primary.light,
-  }),
-);
-
-const SPaper = styled(Paper)(({ theme }) =>
-  sx({
-    display: "flex",
-    width: 1,
-    paddingX: 2,
-    paddingY: 1,
-    background: theme.palette.grey[50],
-    pl: 0,
-    alignItems: "center",
-  }),
-);
-
-const SLinkIconWrapper = styled(Box)(
-  sx({
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "1.5rem",
-    m: "0 0.25rem",
-  }),
-);
-
-const SButtonsWrapper = styled(Box)(
-  sx({ display: "flex", alignItems: "center", gap: 1 }),
-);
-
-const SIconButton = styled(IconButton)(
-  sx({
-    paddingX: 0.5,
-    paddingY: 1,
-    borderRadius: 1,
-    maxHeight: 40,
-  }),
-);
+import {
+  SButtonsWrapper,
+  SIconButton,
+  SLinkIconWrapper,
+  SListItem,
+  SPaper,
+} from "./item.styled";
 
 export type ItemProps = {
   id: string;
