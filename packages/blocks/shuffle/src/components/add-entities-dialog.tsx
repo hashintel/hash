@@ -55,8 +55,14 @@ const _AddEntitiesDialog: ForwardRefRenderFunction<
 > = ({ entityTypes, blockEntityId, onAddEntityItems, graphService }, ref) => {
   const [dialogState, setDialogState] = useState<DialogState>("closed");
   const [entityList, setEntityList] = useState<Entity[]>([]);
+  // `selections` is a object that stores checkbox `checked` state for each entity.
   const [selections, setSelections] = useState<Record<string, boolean>>({});
 
+  /**
+   * Defined a custom ref, so the parent can simply call `dialogRef.show()`,
+   * which also resets the state to it's initial value when modal is opened,
+   * instead of using an `useEffect` that listens modal's state
+   */
   useImperativeHandle(
     ref,
     () => ({
@@ -70,6 +76,8 @@ const _AddEntitiesDialog: ForwardRefRenderFunction<
 
   const handleEntityTypeClick = async (entityTypeId: string) => {
     if (!graphService) return;
+
+    // get the entities of clicked entity type
     const { data } = await graphService.aggregateEntities({
       data: { operation: { entityTypeId, itemsPerPage: 100 } },
     });
@@ -78,6 +86,7 @@ const _AddEntitiesDialog: ForwardRefRenderFunction<
 
     const { results: entities } = data;
 
+    // by default, all entity checkboxes are checked
     const initialEntitySelection = entities.reduce(
       (prev, curr) => ({ ...prev, [curr.entityId]: true }),
       {},
@@ -117,7 +126,7 @@ const _AddEntitiesDialog: ForwardRefRenderFunction<
 
     const createLinkResponses = await Promise.all(createLinkPromises);
 
-    // add the new items
+    // add the new items to the shuffle items list
     onAddEntityItems(
       selectedEntityIds.map((entityId, i) => {
         return {

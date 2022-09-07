@@ -23,7 +23,9 @@ import { TooltipButton } from "./components/tooltip-button";
 type Item = {
   id: string;
   value: string;
+  // entityId is used to find the entity easily, instead of doing linkId -> link -> entityId
   entityId?: string;
+  // if there is a link between this item and an entity, we save the linkId
   linkId?: string;
 };
 
@@ -58,6 +60,10 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   const [prevItems, setPrevItems] = useState(items);
 
   useEffect(() => {
+    /**
+     * setting the entityTypes to the state,
+     * so we can get the `labelProperty` for the linked items, and show entityTypes in modal
+     * */
     const getEntityTypes = async () => {
       if (!graphService) return;
 
@@ -135,6 +141,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
       produce(draftItems, (newItems) => {
         const [deletedItem] = newItems.splice(index, 1);
 
+        // if item is linked to an entity, we want to delete the link as well
         if (deletedItem?.linkId) {
           void graphService?.deleteLink({
             data: { linkId: deletedItem.linkId },
@@ -167,6 +174,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   const handleAddEntitiesClick = () => dialogRef.current?.show();
 
   const handleRemoveAllClick = () => {
+    // we also want to remove all links for the linked items
     const linkIds = draftItems
       .map((item) => item.linkId)
       .filter(Boolean) as string[];
@@ -182,6 +190,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     updateItems([], true);
   };
 
+  // adds the items selected on AddEntitiesDialog to the list
   const handleAddEntityItems = (entityItems: Items) => {
     updateItems(
       produce(draftItems, (newItems) => {
@@ -191,6 +200,11 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     );
   };
 
+  /**
+   * linked items does not store a `value`,
+   * instead we use `entityId` to set the up-to-date entity label as `value`
+   * this way, we don't show a stale `value` if the linked entity gets updated
+   */
   const enhancedDraftItems = useMemo(() => {
     return draftItems.map((item) => {
       const { entityId: itemEntityId } = item;
