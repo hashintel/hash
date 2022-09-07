@@ -438,7 +438,7 @@
 //! [`SpanTrace`]: tracing_error::SpanTrace
 //! [`smallvec`]: https://docs.rs/smallvec
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(nightly, feature(provide_any))]
+#![cfg_attr(nightly, feature(provide_any, error_in_core))]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(
     all(nightly, feature = "std"),
