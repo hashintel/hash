@@ -618,7 +618,7 @@ where
             .get(0))
     }
 
-    /// Inserts a [`Link`] associated with an [`AccountId`], into the database.
+    /// Inserts a [`Link`] associated with an [`AccountId`] into the database.
     ///
     /// # Errors
     ///
