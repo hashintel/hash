@@ -108,8 +108,9 @@ impl Worker {
         }
     }
 
-    pub fn cleanup(experiment_id: ExperimentId) -> Result<()> {
-        PythonRunner::cleanup(experiment_id)
+    // TODO: remove? (need to improve Python cleanup - test more extensively)
+    pub fn cleanup(_: ExperimentId) -> Result<()> {
+        Ok(())
     }
 
     fn shutdown(&mut self) -> Result<()> {

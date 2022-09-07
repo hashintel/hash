@@ -1,7 +1,9 @@
 //! TODO: DOC
 
 use stateful::{
+    agent::AgentBatch,
     context::Context,
+    message::MessageBatch,
     state::{StateReadProxy, StateWriteProxy},
 };
 
@@ -57,6 +59,88 @@ impl TaskSharedStore {
             },
         };
         Ok((proxy, group_indices))
+    }
+
+    pub fn batches_iter(
+        &self,
+    ) -> (
+        impl Iterator<Item = &AgentBatch>,
+        impl Iterator<Item = &MessageBatch>,
+        Vec<usize>,
+    ) {
+        // TODO: Remove duplication between read and write access
+        match &self.state {
+            SharedState::None => (
+                EmptyOrNonEmpty::Empty(std::iter::empty()),
+                EmptyOrNonEmpty::Empty(std::iter::empty()),
+                vec![],
+            ),
+            SharedState::Write(state) => (
+                EmptyOrNonEmpty::Write(state.agent_pool().batches_iter()),
+                EmptyOrNonEmpty::Write(state.message_pool().batches_iter()),
+                (0..state.agent_pool().len()).collect(),
+            ),
+            SharedState::Read(state) => (
+                EmptyOrNonEmpty::Read(state.agent_pool().batches_iter()),
+                EmptyOrNonEmpty::Read(state.message_pool().batches_iter()),
+                (0..state.agent_pool().len()).collect(),
+            ),
+            SharedState::Partial(partial) => {
+                match partial {
+                    PartialSharedState::Read(partial) => (
+                        EmptyOrNonEmpty::PartialRead(
+                            partial.state_proxy.agent_pool().batches_iter(),
+                        ),
+                        EmptyOrNonEmpty::PartialRead(
+                            partial.state_proxy.message_pool().batches_iter(),
+                        ),
+                        partial.group_indices.clone(), // TODO: Avoid cloning?
+                    ),
+                    PartialSharedState::Write(partial) => (
+                        EmptyOrNonEmpty::PartialWrite(
+                            partial.state_proxy.agent_pool().batches_iter(),
+                        ),
+                        EmptyOrNonEmpty::PartialWrite(
+                            partial.state_proxy.message_pool().batches_iter(),
+                        ),
+                        partial.group_indices.clone(), // TODO: Avoid cloning?
+                    ),
+                }
+            }
+        }
+    }
+}
+
+/// This enum is returned from [`batches_from_shared_store`]. We want to return a single type which
+/// implements [`Iterator`], however, this is difficult because depending on the shared
+/// store in question we might return any of four different iterators. To make one type from the
+/// four, we use an `enum` here, and then implement [`Iterator`] for it, calling the
+/// [`Iterator::next`] method on the underlying iterator.
+pub(crate) enum EmptyOrNonEmpty<OUTPUT, I1, I2, I3, I4> {
+    Empty(std::iter::Empty<OUTPUT>),
+    Read(I1),
+    Write(I2),
+    PartialRead(I3),
+    PartialWrite(I4),
+}
+
+impl<OUTPUT, I1, I2, I3, I4> Iterator for EmptyOrNonEmpty<OUTPUT, I1, I2, I3, I4>
+where
+    I1: Iterator<Item = OUTPUT>,
+    I2: Iterator<Item = OUTPUT>,
+    I3: Iterator<Item = OUTPUT>,
+    I4: Iterator<Item = OUTPUT>,
+{
+    type Item = OUTPUT;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            EmptyOrNonEmpty::Empty(empty) => empty.next(),
+            EmptyOrNonEmpty::Write(non_empty) => non_empty.next(),
+            EmptyOrNonEmpty::Read(non_empty) => non_empty.next(),
+            EmptyOrNonEmpty::PartialRead(i) => i.next(),
+            EmptyOrNonEmpty::PartialWrite(i) => i.next(),
+        }
     }
 }
 

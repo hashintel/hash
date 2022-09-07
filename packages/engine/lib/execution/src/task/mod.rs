@@ -56,7 +56,7 @@ pub use self::{
 };
 pub(crate) use self::{
     distribution::{StateBatchDistribution, TaskDistributionConfig},
-    shared_store::{PartialSharedState, TaskSharedStoreBuilder},
+    shared_store::TaskSharedStoreBuilder,
 };
 use crate::Result;
 
