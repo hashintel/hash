@@ -52,24 +52,27 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   const dialogRef = useRef<AddEntitiesDialogRef>(null);
   const { graphService } = useGraphBlockService(blockRootRef);
   const [entityTypes, setEntityTypes] = useState<EntityType[]>([]);
-  const [draftItems, setDraftItems] = useState<Items>(() =>
+  const [draftItems, setDraftItems] = useState<Items>(
     items?.length ? items : initialItems,
   );
   const [prevItems, setPrevItems] = useState(items);
 
   useEffect(() => {
-    void graphService
-      ?.aggregateEntityTypes({
+    const getEntityTypes = async () => {
+      if (!graphService) return;
+
+      const { data, errors } = await graphService.aggregateEntityTypes({
         data: {
           includeOtherTypesInUse: true,
         },
-      })
-      .then(({ data, errors }) => {
-        if (errors || !data) {
-          return;
-        }
-        setEntityTypes(data.results);
       });
+
+      if (errors || !data) return;
+
+      setEntityTypes(data.results);
+    };
+
+    void getEntityTypes();
   }, [graphService]);
 
   if (items && items !== prevItems) {
@@ -127,16 +130,6 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
 
   const onItemBlur = () => publishItems(draftItems);
 
-  const onAdd = () =>
-    updateItems(
-      produce(draftItems, (newItems) => {
-        newItems.push({
-          id: uuid(),
-          value: `Thing ${draftItems.length + 1}`,
-        });
-      }),
-    );
-
   const onDelete = (index: number) => {
     updateItems(
       produce(draftItems, (newItems) => {
@@ -151,7 +144,17 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     );
   };
 
-  const onShuffle = () =>
+  const handleAddNew = () =>
+    updateItems(
+      produce(draftItems, (newItems) => {
+        newItems.push({
+          id: uuid(),
+          value: `Thing ${draftItems.length + 1}`,
+        });
+      }),
+    );
+
+  const handleShuffle = () =>
     updateItems(
       produce(draftItems, (newItems) => {
         return newItems
@@ -161,7 +164,9 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
       }),
     );
 
-  const removeAllItems = () => {
+  const handleAddEntities = () => dialogRef.current?.show();
+
+  const handleRemoveAll = () => {
     const linkIds = draftItems
       .map((item) => item.linkId)
       .filter(Boolean) as string[];
@@ -177,7 +182,14 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     updateItems([], true);
   };
 
-  const showAddEntitiesDialog = () => dialogRef.current?.show();
+  const handleAddEntityItems = (entityItems: Items) => {
+    updateItems(
+      produce(draftItems, (newItems) => {
+        return newItems.concat(entityItems);
+      }),
+      true,
+    );
+  };
 
   const enhancedDraftItems = useMemo(() => {
     return draftItems.map((item) => {
@@ -204,23 +216,23 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     <Box ref={blockRootRef} display="flex" flexDirection="column" px={1}>
       {!readonly && (
         <Box display="flex" alignSelf="end" gap={1}>
-          <TooltipButton tooltip="Add new" onClick={onAdd}>
+          <TooltipButton tooltip="Add new" onClick={handleAddNew}>
             <AddIcon />
           </TooltipButton>
 
           <TooltipButton
             tooltip="Shuffle"
-            onClick={onShuffle}
+            onClick={handleShuffle}
             disabled={draftItems.length <= 1}
           >
             <ShuffleIcon />
           </TooltipButton>
 
-          <TooltipButton tooltip="Add entities" onClick={showAddEntitiesDialog}>
+          <TooltipButton tooltip="Add entities" onClick={handleAddEntities}>
             <DatasetLinkedIcon />
           </TooltipButton>
 
-          <TooltipButton tooltip="Remove all" onClick={removeAllItems}>
+          <TooltipButton tooltip="Remove all" onClick={handleRemoveAll}>
             <ClearIcon />
           </TooltipButton>
         </Box>
@@ -238,14 +250,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
         graphService={graphService}
         entityTypes={entityTypes}
         blockEntityId={blockEntityId}
-        onAddItems={(entityItems) => {
-          updateItems(
-            produce(draftItems, (newItems) => {
-              return newItems.concat(entityItems);
-            }),
-            true,
-          );
-        }}
+        onAddEntityItems={handleAddEntityItems}
       />
     </Box>
   );

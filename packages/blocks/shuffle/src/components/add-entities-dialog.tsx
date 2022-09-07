@@ -29,7 +29,7 @@ interface AddEntitiesDialogProps {
   entityTypes: EntityType[];
   graphService?: GraphBlockHandler | null;
   blockEntityId: string;
-  onAddItems: (items: Items) => void;
+  onAddEntityItems: (items: Items) => void;
 }
 
 type DialogState = "closed" | "entityType" | "entityList";
@@ -37,7 +37,7 @@ type DialogState = "closed" | "entityType" | "entityList";
 const _AddEntitiesDialog: ForwardRefRenderFunction<
   AddEntitiesDialogRef,
   AddEntitiesDialogProps
-> = ({ entityTypes, graphService, blockEntityId, onAddItems }, ref) => {
+> = ({ entityTypes, graphService, blockEntityId, onAddEntityItems }, ref) => {
   const [dialogState, setDialogState] = useState<DialogState>("closed");
   const [entityList, setEntityList] = useState<Entity[]>([]);
 
@@ -176,7 +176,7 @@ const _AddEntitiesDialog: ForwardRefRenderFunction<
               const createLinkRes = await Promise.all(createLinkPromises);
 
               // add the new items
-              onAddItems(
+              onAddEntityItems(
                 selectedEntityIds.map((entityId, i) => {
                   return {
                     id: uuid(),
