@@ -18,7 +18,7 @@ use crate::{
 #[openapi(
     handlers(
         create_link,
-        query_active_links,
+        get_active_links_by_query,
         get_entity_links,
         inactivate_link
     ),
@@ -43,7 +43,7 @@ impl RoutedResource for LinkResource {
             )
             .nest(
                 "/links",
-                Router::new().route("/query", post(query_active_links::<P>)),
+                Router::new().route("/query", post(get_active_links_by_query::<P>)),
             )
     }
 }
@@ -122,7 +122,7 @@ async fn create_link<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn query_active_links<P: StorePool + Send>(
+async fn get_active_links_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(expression): Json<Expression>,
 ) -> Result<Json<Vec<Link>>, StatusCode> {

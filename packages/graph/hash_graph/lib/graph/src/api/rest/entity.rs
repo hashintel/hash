@@ -27,7 +27,7 @@ use crate::{
 #[openapi(
     handlers(
         create_entity,
-        query_entities,
+        get_entities_by_query,
         get_entity,
         get_latest_entities,
         update_entity
@@ -52,7 +52,7 @@ impl RoutedResource for EntityResource {
                         .get(get_latest_entities::<P>)
                         .put(update_entity::<P>),
                 )
-                .route("/query", post(query_entities::<P>))
+                .route("/query", post(get_entities_by_query::<P>))
                 .route("/:entity_id", get(get_entity::<P>)),
         )
     }
@@ -120,7 +120,7 @@ async fn create_entity<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn query_entities<P: StorePool + Send>(
+async fn get_entities_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(expression): Json<Expression>,
 ) -> Result<Json<Vec<PersistedEntity>>, StatusCode> {

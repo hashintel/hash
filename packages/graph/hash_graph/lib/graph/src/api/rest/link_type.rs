@@ -26,7 +26,7 @@ use crate::{
 #[openapi(
     handlers(
         create_link_type,
-        query_link_types,
+        get_link_types_by_query,
         get_link_type,
         get_latest_link_types,
         update_link_type
@@ -57,7 +57,7 @@ impl RoutedResource for LinkTypeResource {
                         .get(get_latest_link_types::<P>)
                         .put(update_link_type::<P>),
                 )
-                .route("/query", post(query_link_types::<P>))
+                .route("/query", post(get_link_types_by_query::<P>))
                 .route("/:version_id", get(get_link_type::<P>)),
         )
     }
@@ -131,7 +131,7 @@ async fn create_link_type<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn query_link_types<P: StorePool + Send>(
+async fn get_link_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(expression): Json<Expression>,
 ) -> Result<Json<Vec<PersistedLinkType>>, StatusCode> {

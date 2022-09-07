@@ -26,7 +26,7 @@ use crate::{
 #[openapi(
     handlers(
         create_property_type,
-        query_property_types,
+        get_property_types_by_query,
         get_property_type,
         get_latest_property_types,
         update_property_type
@@ -57,7 +57,7 @@ impl RoutedResource for PropertyTypeResource {
                         .get(get_latest_property_types::<P>)
                         .put(update_property_type::<P>),
                 )
-                .route("/query", post(query_property_types::<P>))
+                .route("/query", post(get_property_types_by_query::<P>))
                 .route("/:version_id", get(get_property_type::<P>)),
         )
     }
@@ -131,7 +131,7 @@ async fn create_property_type<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn query_property_types<P: StorePool + Send>(
+async fn get_property_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(expression): Json<Expression>,
 ) -> Result<Json<Vec<PersistedPropertyType>>, StatusCode> {

@@ -27,7 +27,7 @@ use crate::{
 #[openapi(
     handlers(
         create_entity_type,
-        query_entity_types,
+        get_entity_types_by_query,
         get_entity_type,
         get_latest_entity_types,
         update_entity_type
@@ -58,7 +58,7 @@ impl RoutedResource for EntityTypeResource {
                         .get(get_latest_entity_types::<P>)
                         .put(update_entity_type::<P>),
                 )
-                .route("/query", post(query_entity_types::<P>))
+                .route("/query", post(get_entity_types_by_query::<P>))
                 .route("/:version_id", get(get_entity_type::<P>)),
         )
     }
@@ -133,7 +133,7 @@ async fn create_entity_type<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
 )
 )]
-async fn query_entity_types<P: StorePool + Send>(
+async fn get_entity_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(expression): Json<Expression>,
 ) -> Result<Json<Vec<PersistedEntityType>>, StatusCode> {
