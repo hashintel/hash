@@ -270,7 +270,7 @@ export default class {
   async getOutgoingLink(
     graphApi: GraphApi,
     params: { linkTypeModel: LinkTypeModel },
-  ): Promise<LinkModel | null> {
+  ): Promise<LinkModel[]> {
     return await LinkModel.getOutgoing(graphApi, {
       sourceEntityModel: this,
       ...params,

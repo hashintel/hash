@@ -157,7 +157,7 @@ export default class {
       sourceEntityModel,
       linkTypeModel,
     }: { sourceEntityModel: EntityModel; linkTypeModel: LinkTypeModel },
-  ): Promise<LinkModel | null> {
+  ): Promise<LinkModel[]> {
     /**
      * @todo use structural querying for this client-side fetch
      *   https://app.asana.com/0/1200211978612931/1202510174412974/f
@@ -173,6 +173,6 @@ export default class {
      * @todo this may return an array of links when we support 1:N links.
      *   see https://app.asana.com/0/0/1202891272217988/f
      */
-    return links[0] ? links[0] : null;
+    return links;
   }
 }
