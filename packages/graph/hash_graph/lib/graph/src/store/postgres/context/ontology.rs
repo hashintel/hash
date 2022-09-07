@@ -84,8 +84,8 @@ where
             &format!(
                 r#"
                 SELECT schema, created_by, (
-                    SELECT MAX(version) as latest 
-                    FROM ids 
+                    SELECT MAX(version) as latest
+                    FROM ids
                     WHERE base_uri = $1
                 )
                 FROM {} type_table

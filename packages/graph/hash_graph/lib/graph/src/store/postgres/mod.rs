@@ -194,7 +194,7 @@ where
         self.as_client()
             .query_one(
                 r#"
-                    INSERT INTO base_uris (base_uri) 
+                    INSERT INTO base_uris (base_uri)
                     VALUES ($1)
                     RETURNING base_uri;
                 "#,
@@ -217,7 +217,7 @@ where
         self.as_client()
             .query_one(
                 r#"
-                    INSERT INTO version_ids (version_id) 
+                    INSERT INTO version_ids (version_id)
                     VALUES ($1)
                     RETURNING version_id;
                 "#,
@@ -578,7 +578,7 @@ where
             .change_context(InsertionError)?;
         let version = self.as_client().query_one(
                 r#"
-                    INSERT INTO entities (entity_id, version, entity_type_version_id, properties, created_by) 
+                    INSERT INTO entities (entity_id, version, entity_type_version_id, properties, created_by)
                     VALUES ($1, clock_timestamp(), $2, $3, $4)
                     RETURNING version;
                 "#,
@@ -603,7 +603,7 @@ where
         self.as_client()
             .query_one(
                 r#"
-                    UPDATE links 
+                    UPDATE links
                     SET active = $1
                     WHERE source_entity_id = $2 AND target_entity_id = $3 AND link_type_version_id = $4
                     RETURNING source_entity_id, target_entity_id, link_type_version_id;
