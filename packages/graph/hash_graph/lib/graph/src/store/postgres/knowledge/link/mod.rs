@@ -7,7 +7,7 @@ use tokio_postgres::GenericClient;
 use crate::{
     knowledge::Link,
     ontology::AccountId,
-    store::{error::LinkActivationError, AsClient, InsertionError, LinkStore, PostgresStore},
+    store::{error::LinkRemovalError, AsClient, InsertionError, LinkStore, PostgresStore},
 };
 
 #[async_trait]
@@ -17,26 +17,22 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
         link: &Link,
         created_by: AccountId,
     ) -> Result<(), InsertionError> {
-        let link_type_version_id = self
-            .version_id_by_uri(link.link_type_uri())
-            .await
-            .change_context(InsertionError)
-            .attach_printable(link.source_entity())?;
+        let transaction = PostgresStore::new(
+            self.as_mut_client()
+                .transaction()
+                .await
+                .into_report()
+                .change_context(InsertionError)?,
+        );
 
-        self.as_client()
-            .query_one(
-                r#"
-                INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, link_order, created_by)
-                VALUES ($1, $2, $3, null, $4)
-                RETURNING source_entity_id, target_entity_id, link_type_version_id;
-                "#,
-                &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &created_by],
-            )
+        transaction.insert_link(link, created_by).await?;
+
+        transaction
+            .client
+            .commit()
             .await
             .into_report()
-            .change_context(InsertionError)
-            .attach_printable(created_by)
-            .attach_lazy(|| link.clone())?;
+            .change_context(InsertionError)?;
 
         Ok(())
     }
@@ -45,39 +41,23 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
         &mut self,
         link: &Link,
         created_by: AccountId,
-    ) -> Result<(), LinkActivationError> {
-        let link_type_version_id = self
-            .version_id_by_uri(link.link_type_uri())
-            .await
-            .change_context(InsertionError)
-            .attach_printable(link.source_entity())
-            .change_context(LinkActivationError)?;
+    ) -> Result<(), LinkRemovalError> {
+        let transaction = PostgresStore::new(
+            self.as_mut_client()
+                .transaction()
+                .await
+                .into_report()
+                .change_context(LinkRemovalError)?,
+        );
 
-        self.as_client()
-            .query_one(
-                r#"
-                WITH removed AS (
-                    DELETE FROM links
-                    WHERE source_entity_id = $1 
-                        AND target_entity_id = $2
-                        AND link_type_version_id = $3
-                    RETURNING source_entity_id, target_entity_id, link_type_version_id,
-                    link_order, created_by, created_at
-                )
-                INSERT INTO link_histories(source_entity_id, target_entity_id, link_type_version_id,
-                    link_order, created_by, created_at, removed_by)
-                SELECT *, $4 FROM removed;
-                "#,
-                &[
-                    &link.source_entity(),
-                    &link.target_entity(),
-                    &link_type_version_id,
-                    &created_by,
-                ],
-            )
+        transaction.move_link_to_history(link, created_by).await?;
+
+        transaction
+            .client
+            .commit()
             .await
             .into_report()
-            .change_context(LinkActivationError)?;
+            .change_context(LinkRemovalError)?;
 
         Ok(())
     }

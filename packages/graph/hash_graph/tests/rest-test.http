@@ -408,7 +408,7 @@ Accept: application/json
     client.assert(expected == actual, "Link has wrong target entity ID")
 %}
 
-### Inactivate person "a" to person "b" link
+### Remove person "a" to person "b" link
 DELETE http://127.0.0.1:4000/entities/{{person_a_entity_id}}/links
 Content-Type: application/json
 Accept: application/json
@@ -425,7 +425,7 @@ Accept: application/json
     });
 %}
 
-### Check inactivated person "a" to person "b" link
+### Check that person "a" to person "b" link is removed
 GET http://127.0.0.1:4000/entities/{{person_a_entity_id}}/links
 Content-Type: application/json
 Accept: application/json

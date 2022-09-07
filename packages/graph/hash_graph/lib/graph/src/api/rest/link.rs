@@ -31,7 +31,7 @@ use crate::{
         get_active_links,
         remove_link
     ),
-    components(AccountId, Link, CreateLinkRequest, InactivateLinkRequest),
+    components(AccountId, Link, CreateLinkRequest, RemoveLinkRequest),
     tags(
         (name = "Link", description = "link management API")
     )
@@ -145,7 +145,7 @@ async fn get_entity_links<P: StorePool + Send>(
 
 #[derive(Serialize, Deserialize, Component)]
 #[serde(rename_all = "camelCase")]
-struct InactivateLinkRequest {
+struct RemoveLinkRequest {
     target_entity_id: EntityId,
     #[component(value_type = String)]
     link_type_uri: VersionedUri,
@@ -163,18 +163,18 @@ struct InactivateLinkRequest {
         (status = 404, description = "Source entity, target entity or link type URI was not found"),
         (status = 500, description = "Datastore error occurred"),
     ),
-    request_body = InactivateLinkRequest,
+    request_body = RemoveLinkRequest,
     params(
         ("entityId" = Uuid, Path, description = "The ID of the source entity"),
     ),
 )]
 async fn remove_link<P: StorePool + Send>(
     source_entity_id: Path<EntityId>,
-    body: Json<InactivateLinkRequest>,
+    body: Json<RemoveLinkRequest>,
     pool: Extension<Arc<P>>,
 ) -> Result<StatusCode, StatusCode> {
     let Path(source_entity_id) = source_entity_id;
-    let Json(InactivateLinkRequest {
+    let Json(RemoveLinkRequest {
         target_entity_id,
         link_type_uri,
         account_id,
@@ -192,7 +192,7 @@ async fn remove_link<P: StorePool + Send>(
         )
         .await
         .map_err(|report| {
-            tracing::error!(error=?report, "Could not inactivate link");
+            tracing::error!(error=?report, "Could not remove link");
 
             if report.contains::<QueryError>() {
                 return StatusCode::NOT_FOUND;

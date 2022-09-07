@@ -16,8 +16,9 @@ use type_system::{
 use uuid::Uuid;
 
 pub use self::pool::{AsClient, PostgresStorePool};
+use super::error::LinkRemovalError;
 use crate::{
-    knowledge::{Entity, EntityId, PersistedEntityIdentifier},
+    knowledge::{Entity, EntityId, Link, PersistedEntityIdentifier},
     ontology::{AccountId, PersistedOntologyIdentifier},
     store::{
         error::VersionedUriAlreadyExists,
@@ -615,6 +616,88 @@ where
             .change_context(QueryError)
             .attach_printable_lazy(|| uri.clone())?
             .get(0))
+    }
+
+    /// Inserts a [`Link`] associated with an [`AccountId`], into the database.
+    ///
+    /// # Errors
+    ///
+    /// - if the [`Link`] exists already
+    /// - if the [`Link`]s link type doesn't exist
+    /// - if inserting the link failed.
+    async fn insert_link(&self, link: &Link, created_by: AccountId) -> Result<(), InsertionError> {
+        let link_type_version_id = self
+            .version_id_by_uri(link.link_type_uri())
+            .await
+            .change_context(InsertionError)
+            .attach_printable(link.source_entity())?;
+
+        self.as_client()
+        .query_one(
+            r#"
+            INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, link_order, created_by)
+            VALUES ($1, $2, $3, null, $4)
+            RETURNING source_entity_id, target_entity_id, link_type_version_id;
+            "#,
+            &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &created_by],
+        )
+        .await
+        .into_report()
+        .change_context(InsertionError)
+        .attach_printable(created_by)
+        .attach_lazy(|| link.clone())?;
+
+        Ok(())
+    }
+
+    /// Moves a [`Link`] associated with an [`AccountId`] from the `links` table into the
+    /// `link_histories` table.
+    ///
+    /// # Errors
+    ///
+    /// - if the [`Link`] doesn't exist
+    /// - if the [`Link`]s link type doesn't exist
+    /// - if inserting the link failed.
+    async fn move_link_to_history(
+        &self,
+        link: &Link,
+        removed_by: AccountId,
+    ) -> Result<(), LinkRemovalError> {
+        let link_type_version_id = self
+            .version_id_by_uri(link.link_type_uri())
+            .await
+            .change_context(InsertionError)
+            .attach_printable(link.source_entity())
+            .change_context(LinkRemovalError)?;
+
+        self.as_client()
+            .query_one(
+                r#"
+                WITH removed AS (
+                    DELETE FROM links
+                    WHERE source_entity_id = $1 
+                        AND target_entity_id = $2
+                        AND link_type_version_id = $3
+                    RETURNING source_entity_id, target_entity_id, link_type_version_id,
+                    link_order, created_by, created_at
+                )
+                INSERT INTO link_histories(source_entity_id, target_entity_id, link_type_version_id,
+                    link_order, created_by, created_at, removed_by)
+                SELECT *, $4 FROM removed
+                RETURNING source_entity_id, target_entity_id, link_type_version_id;
+                "#,
+                &[
+                    &link.source_entity(),
+                    &link.target_entity(),
+                    &link_type_version_id,
+                    &removed_by,
+                ],
+            )
+            .await
+            .into_report()
+            .change_context(LinkRemovalError)?;
+
+        Ok(())
     }
 }
 

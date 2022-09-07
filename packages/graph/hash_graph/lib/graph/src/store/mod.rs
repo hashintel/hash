@@ -22,7 +22,7 @@ use crate::{
         AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
         PersistedOntologyIdentifier, PersistedPropertyType,
     },
-    store::{error::LinkActivationError, query::Expression},
+    store::{error::LinkRemovalError, query::Expression},
 };
 
 #[derive(Debug)]
@@ -411,8 +411,8 @@ pub trait LinkStore: for<'q> crud::Read<Link, Query<'q> = Expression> {
     ///
     /// # Errors:
     ///
-    /// - if the [`LinkType`] doesn't exist
-    /// - if the [`Link`] already exists
+    /// - if the [`Link`] exists already
+    /// - if the [`Link`]s link type doesn't exist
     /// - if the account referred to by `created_by` does not exist
     async fn create_link(
         &mut self,
@@ -429,15 +429,16 @@ pub trait LinkStore: for<'q> crud::Read<Link, Query<'q> = Expression> {
         self.read(query).await
     }
 
-    /// Inactivates a [`Link`] between a source and target [`Entity`].
+    /// Removes a [`Link`] between a source and target [`Entity`].
     ///
     /// # Errors:
     ///
     /// - if the [`Link`] doesn't exist
+    /// - if the [`Link`]s link type doesn't exist
     /// - if the account referred to by `created_by` does not exist
     async fn remove_link(
         &mut self,
         link: &Link,
         created_by: AccountId,
-    ) -> Result<(), LinkActivationError>;
+    ) -> Result<(), LinkRemovalError>;
 }
