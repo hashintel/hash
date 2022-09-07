@@ -352,7 +352,7 @@ impl fmt::Display for ResolveError {
             Self::OutOfBounds { index, list } => {
                 write!(
                     fmt,
-                    "index out of bound, got index of `{index}`, but a length of `{}`",
+                    "index out of bounds, requested index was `{index}`, but only a length of `{}`",
                     list.len()
                 )
             }
