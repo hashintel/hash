@@ -152,7 +152,7 @@ async fn get_latest_entities<P: StorePool + Send>(
         (status = 200, content_type = "application/json", description = "The requested entity", body = PersistedEntity),
         (status = 422, content_type = "text/plain", description = "Provided entity id is invalid"),
 
-        (status = 404, description = "entity was not found"),
+        (status = 404, description = "Entity was not found"),
         (status = 500, description = "Datastore error occurred"),
     ),
     params(
