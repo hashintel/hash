@@ -40,7 +40,7 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
     async fn remove_link(
         &mut self,
         link: &Link,
-        created_by: AccountId,
+        removed_by: AccountId,
     ) -> Result<(), LinkRemovalError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -50,7 +50,7 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
                 .change_context(LinkRemovalError)?,
         );
 
-        transaction.move_link_to_history(link, created_by).await?;
+        transaction.move_link_to_history(link, removed_by).await?;
 
         transaction
             .client

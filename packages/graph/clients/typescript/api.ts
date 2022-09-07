@@ -118,7 +118,7 @@ export interface CreateLinkRequest {
    * @type {string}
    * @memberof CreateLinkRequest
    */
-  accountId: string;
+  createdBy: string;
   /**
    *
    * @type {string}
@@ -694,13 +694,13 @@ export interface RemoveLinkRequest {
    * @type {string}
    * @memberof RemoveLinkRequest
    */
-  accountId: string;
+  linkTypeUri: string;
   /**
    *
    * @type {string}
    * @memberof RemoveLinkRequest
    */
-  linkTypeUri: string;
+  removedBy: string;
   /**
    *
    * @type {string}

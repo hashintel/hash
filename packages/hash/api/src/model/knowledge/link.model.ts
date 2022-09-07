@@ -166,7 +166,7 @@ export default class {
    * Make a link inactive.
    */
   async inactivate(graphApi: GraphApi): Promise<void> {
-    await graphApi.inactivateLink(this.sourceEntityModel.entityId, {
+    await graphApi.removeLink(this.sourceEntityModel.entityId, {
       linkTypeUri: this.linkTypeModel.schema.$id,
       targetEntityId: this.targetEntityModel.entityId,
     });
