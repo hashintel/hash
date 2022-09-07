@@ -3,7 +3,7 @@ import {
   BlockComponent,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
-import { Button } from "@hashintel/hash-design-system";
+import { Button, ButtonProps } from "@hashintel/hash-design-system";
 import Box from "@mui/material/Box";
 import produce from "immer";
 import { v4 as uuid } from "uuid";
@@ -13,14 +13,20 @@ import AddIcon from "@mui/icons-material/Add";
 import DatasetLinkedIcon from "@mui/icons-material/DatasetLinked";
 import ClearIcon from "@mui/icons-material/Clear";
 import { Entity, EntityType } from "@blockprotocol/graph/.";
-import { styled } from "@mui/material";
+import { styled, Tooltip } from "@mui/material";
 import { ItemList } from "./components/item-list";
 import {
   AddEntitiesDialog,
   AddEntitiesDialogRef,
 } from "./components/add-entities-dialog";
 
-const SButton = styled(Button)(({ theme: { palette } }) => ({
+const STooltipButton = styled(
+  ({ tooltip, ...props }: ButtonProps & { tooltip: string }) => (
+    <Tooltip title={tooltip}>
+      <Button {...props} />
+    </Tooltip>
+  ),
+)(({ theme: { palette } }) => ({
   border: "1px solid",
   borderColor: palette.primary.light,
   "&:hover": {
@@ -95,7 +101,6 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   if (items && items !== prevItems) {
     setPrevItems(items);
 
-    // @todo compare items without id, this causes a bug
     if (!isEqual(items, draftItems)) {
       setDraftItems(createItems(items));
     }
@@ -182,6 +187,24 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
       }),
     );
 
+  const removeAllItems = () => {
+    const linkIds = draftItems
+      .map((item) => item.linkId)
+      .filter(Boolean) as string[];
+
+    void Promise.all(
+      linkIds.map((linkId) =>
+        graphService?.deleteLink({
+          data: { linkId },
+        }),
+      ),
+    );
+
+    updateItems([], true);
+  };
+
+  const showAddEntitiesDialog = () => dialogRef.current?.show();
+
   const enhancedDraftItems = useMemo(() => {
     return draftItems.map((item) => {
       const { entityId: itemEntityId } = item;
@@ -204,40 +227,31 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   }, [blockGraph?.linkedEntities, draftItems, entityTypes]);
 
   return (
-    <Box
-      ref={blockRootRef}
-      sx={{ display: "flex", flexDirection: "column", paddingX: 1 }}
-    >
+    <Box ref={blockRootRef} display="flex" flexDirection="column" px={1}>
       {!readonly && (
-        <Box sx={{ display: "flex", alignSelf: "end", gap: 1 }}>
-          <SButton onClick={onAdd}>
-            <AddIcon fontSize="small" />
-          </SButton>
-          <SButton onClick={onShuffle} disabled={draftItems.length <= 1}>
-            <ShuffleIcon />
-          </SButton>
-          <SButton onClick={() => dialogRef.current?.show()}>
-            <DatasetLinkedIcon />
-          </SButton>
-          <SButton
-            onClick={() => {
-              const linkIds = draftItems
-                .map((item) => item.linkId)
-                .filter(Boolean) as string[];
+        <Box display="flex" alignSelf="end" gap={1}>
+          <STooltipButton tooltip="Add new" onClick={onAdd}>
+            <AddIcon />
+          </STooltipButton>
 
-              void Promise.all(
-                linkIds.map((linkId) =>
-                  graphService?.deleteLink({
-                    data: { linkId },
-                  }),
-                ),
-              );
-
-              updateItems([], true);
-            }}
+          <STooltipButton
+            tooltip="Shuffle"
+            onClick={onShuffle}
+            disabled={draftItems.length <= 1}
           >
+            <ShuffleIcon />
+          </STooltipButton>
+
+          <STooltipButton
+            tooltip="Add entities"
+            onClick={showAddEntitiesDialog}
+          >
+            <DatasetLinkedIcon />
+          </STooltipButton>
+
+          <STooltipButton tooltip="Remove all" onClick={removeAllItems}>
             <ClearIcon />
-          </SButton>
+          </STooltipButton>
         </Box>
       )}
       <ItemList
@@ -251,7 +265,6 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
       <AddEntitiesDialog
         ref={dialogRef}
         graphService={graphService}
-        blockGraph={blockGraph}
         entityTypes={entityTypes}
         blockEntityId={blockEntityId}
         onAddItems={(entityItems) => {

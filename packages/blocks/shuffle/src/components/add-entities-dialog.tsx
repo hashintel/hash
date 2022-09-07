@@ -1,9 +1,4 @@
-import {
-  BlockGraph,
-  Entity,
-  EntityType,
-  GraphBlockHandler,
-} from "@blockprotocol/graph/.";
+import { Entity, EntityType, GraphBlockHandler } from "@blockprotocol/graph/.";
 import {
   Dialog,
   DialogTitle,
@@ -31,7 +26,6 @@ export interface AddEntitiesDialogRef {
 
 interface AddEntitiesDialogProps {
   entityTypes: EntityType[];
-  blockGraph?: BlockGraph;
   graphService?: GraphBlockHandler | null;
   blockEntityId: string;
   onAddItems: (items: Items) => void;
@@ -42,10 +36,7 @@ type DialogState = "closed" | "entityType" | "entityList";
 const _AddEntitiesDialog: ForwardRefRenderFunction<
   AddEntitiesDialogRef,
   AddEntitiesDialogProps
-> = (
-  { blockGraph, entityTypes, graphService, blockEntityId, onAddItems },
-  ref,
-) => {
+> = ({ entityTypes, graphService, blockEntityId, onAddItems }, ref) => {
   const [dialogState, setDialogState] = useState<DialogState>("closed");
   const [entityList, setEntityList] = useState<Entity[]>([]);
 
@@ -164,7 +155,7 @@ const _AddEntitiesDialog: ForwardRefRenderFunction<
           <Button
             disabled={!hasSelectedItems}
             onClick={async () => {
-              if (!graphService || !blockGraph) return;
+              if (!graphService) return;
 
               // create links for selected items
               const selectedEntityIds = Object.entries(selections)

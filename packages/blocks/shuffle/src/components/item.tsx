@@ -10,8 +10,52 @@ import {
   Paper,
   SxProps,
   Tooltip,
+  styled,
+  experimental_sx as sx,
 } from "@mui/material";
 import { DraggableAttributes } from "@dnd-kit/core";
+
+const SListItem = styled(ListItem)(({ theme }) =>
+  sx({
+    marginBottom: 2,
+    outlineColor: theme.palette.primary.light,
+  }),
+);
+
+const SPaper = styled(Paper)(({ theme }) =>
+  sx({
+    display: "flex",
+    width: 1,
+    paddingX: 2,
+    paddingY: 1,
+    background: theme.palette.grey[50],
+    pl: 0,
+    alignItems: "center",
+  }),
+);
+
+const SLinkIconWrapper = styled(Box)(
+  sx({
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "1.5rem",
+    m: "0 0.25rem",
+  }),
+);
+
+const SButtonsWrapper = styled(Box)(
+  sx({ display: "flex", alignItems: "center", gap: 1 }),
+);
+
+const SIconButton = styled(IconButton)(
+  sx({
+    paddingX: 0.5,
+    paddingY: 1,
+    borderRadius: 1,
+    maxHeight: 40,
+  }),
+);
 
 export type ItemProps = {
   id: string;
@@ -50,44 +94,19 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
     const [isHovered, setIsHovered] = useState(false);
 
     return (
-      <ListItem
+      <SListItem
         ref={ref}
         onMouseOver={() => setIsHovered(true)}
         onMouseOut={() => setIsHovered(false)}
         disablePadding
-        sx={{
-          ...style,
-          marginBottom: 2,
-          opacity: isDragging ? 0 : 1,
-          outlineColor: ({ palette }) => palette.primary.light,
-        }}
+        sx={{ ...style, opacity: isDragging ? 0 : 1 }}
         {...attributes}
       >
-        <Paper
-          sx={{
-            display: "flex",
-            width: 1,
-            paddingX: 2,
-            paddingY: 1,
-            background: ({ palette }) => palette.grey[50],
-            pl: 0,
-            alignItems: "center",
-            ...paperStyle,
-          }}
-          ref={dragOverlay}
-        >
+        <SPaper sx={paperStyle} ref={dragOverlay}>
           <Tooltip title={isEntity ? "This item is linked to an entity" : ""}>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "1.5rem",
-                m: "0 0.25rem",
-              }}
-            >
+            <SLinkIconWrapper>
               {isEntity && <LinkIcon fontSize="small" />}
-            </Box>
+            </SLinkIconWrapper>
           </Tooltip>
 
           <TextField
@@ -108,14 +127,10 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
           />
 
           {!readonly && (
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              <IconButton
+            <SButtonsWrapper>
+              <SIconButton
                 onClick={() => onDelete?.()}
                 sx={({ palette }) => ({
-                  paddingX: 0.5,
-                  paddingY: 1,
-                  borderRadius: 1,
-                  maxHeight: 40,
                   opacity: dragOverlay || isHovered ? 1 : 0,
                   transition: ({ transitions }) =>
                     transitions.create("opacity"),
@@ -127,15 +142,10 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
                 disableFocusRipple
               >
                 <CloseIcon fontSize="small" />
-              </IconButton>
+              </SIconButton>
 
-              <IconButton
+              <SIconButton
                 sx={({ palette }) => ({
-                  paddingX: 0.5,
-                  paddingY: 1,
-                  borderRadius: 1,
-                  marginLeft: 1,
-                  maxHeight: 40,
                   background: dragOverlay ? palette.action.hover : "none",
                   "&:focus-visible": {
                     background: palette.action.hover,
@@ -145,11 +155,11 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
                 {...listeners}
               >
                 <DragIndicatorIcon fontSize="small" color="action" />
-              </IconButton>
-            </Box>
+              </SIconButton>
+            </SButtonsWrapper>
           )}
-        </Paper>
-      </ListItem>
+        </SPaper>
+      </SListItem>
     );
   },
 );
