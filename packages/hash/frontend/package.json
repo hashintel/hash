@@ -38,7 +38,7 @@
     "@hashintel/hash-shared": "0.0.0",
     "@headlessui/react": "1.4.1",
     "@lit-labs/react": "1.0.6",
-    "@mui/icons-material": "5.4.2",
+    "@mui/icons-material": "5.10.3",
     "@mui/lab": "5.0.0-alpha.71",
     "@mui/material": "5.4.3",
     "@mui/system": "5.5.1",
