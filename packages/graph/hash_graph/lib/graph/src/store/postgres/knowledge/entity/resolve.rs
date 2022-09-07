@@ -94,7 +94,7 @@ where
             [head_path_segment, tail_path_segments @ ..] => {
                 let uri = BaseUri::new(head_path_segment.identifier.clone())
                     .into_report()
-                    .change_context(ResolveError::StoreReadError)?;
+                    .change_context(ResolveError::Custom)?;
                 let literal = self
                     .properties()
                     .get(&uri)

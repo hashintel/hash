@@ -331,12 +331,14 @@ impl Expression {
     }
 }
 
+// TODO: Split these errors into structs
 #[derive(Debug)]
 pub enum ResolveError {
     EmptyPath { literal: Literal },
     CannotIndex { path: Path, literal: Literal },
     OutOfBounds { index: usize, list: Vec<Literal> },
     StoreReadError,
+    Custom,
 }
 
 impl fmt::Display for ResolveError {
@@ -354,6 +356,7 @@ impl fmt::Display for ResolveError {
                     list.len()
                 )
             }
+            Self::Custom => write!(fmt, "Could not resolve the query"),
         }
     }
 }

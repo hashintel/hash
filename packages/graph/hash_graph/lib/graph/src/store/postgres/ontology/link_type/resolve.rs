@@ -43,7 +43,7 @@ where
                     link_type_uri => {
                         let versioned_uri = VersionedUri::from_str(link_type_uri)
                             .into_report()
-                            .change_context(ResolveError::StoreReadError)?;
+                            .change_context(ResolveError::Custom)?;
                         if let Some(entity_type_ref) = self.get(&versioned_uri) {
                             context
                                 .read_versioned_ontology_type::<EntityType>(entity_type_ref.uri())
