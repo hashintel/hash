@@ -26,7 +26,7 @@ use crate::{
 #[openapi(
     handlers(
         create_link_type,
-        get_link_types_by_query,
+        query_link_types,
         get_link_type,
         get_latest_link_types,
         update_link_type
@@ -57,7 +57,7 @@ impl RoutedResource for LinkTypeResource {
                         .get(get_latest_link_types::<P>)
                         .put(update_link_type::<P>),
                 )
-                .route("/query", post(get_link_types_by_query::<P>))
+                .route("/query", post(query_link_types::<P>))
                 .route("/:version_id", get(get_link_type::<P>)),
         )
     }
@@ -130,7 +130,7 @@ async fn create_link_type<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_link_types_by_query<P: StorePool + Send>(
+async fn query_link_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(expression): Json<Expression>,
 ) -> Result<Json<Vec<PersistedLinkType>>, StatusCode> {
@@ -150,7 +150,7 @@ async fn get_link_types_by_query<P: StorePool + Send>(
 async fn get_latest_link_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PersistedLinkType>>, StatusCode> {
-    get_link_types_by_query(pool, Json(Expression::for_latest_version())).await
+    query_link_types(pool, Json(Expression::for_latest_version())).await
 }
 
 #[utoipa::path(
@@ -172,7 +172,7 @@ async fn get_link_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedLinkType>, StatusCode> {
-    get_link_types_by_query(pool, Json(Expression::for_versioned_uri(&uri.0)))
+    query_link_types(pool, Json(Expression::for_versioned_uri(&uri.0)))
         .await
         .and_then(|mut data_types| data_types.pop().ok_or(StatusCode::NOT_FOUND))
         .map(Json)

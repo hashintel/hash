@@ -27,7 +27,7 @@ use crate::{
 #[openapi(
     handlers(
         create_entity_type,
-        get_entity_types_by_query,
+        query_entity_types,
         get_entity_type,
         get_latest_entity_types,
         update_entity_type
@@ -58,7 +58,7 @@ impl RoutedResource for EntityTypeResource {
                         .get(get_latest_entity_types::<P>)
                         .put(update_entity_type::<P>),
                 )
-                .route("/query", post(get_entity_types_by_query::<P>))
+                .route("/query", post(query_entity_types::<P>))
                 .route("/:version_id", get(get_entity_type::<P>)),
         )
     }
@@ -132,7 +132,7 @@ async fn create_entity_type<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
 )
 )]
-async fn get_entity_types_by_query<P: StorePool + Send>(
+async fn query_entity_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(expression): Json<Expression>,
 ) -> Result<Json<Vec<PersistedEntityType>>, StatusCode> {
@@ -152,7 +152,7 @@ async fn get_entity_types_by_query<P: StorePool + Send>(
 async fn get_latest_entity_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PersistedEntityType>>, StatusCode> {
-    get_entity_types_by_query(pool, Json(Expression::for_latest_version())).await
+    query_entity_types(pool, Json(Expression::for_latest_version())).await
 }
 
 #[utoipa::path(
@@ -174,7 +174,7 @@ async fn get_entity_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedEntityType>, StatusCode> {
-    get_entity_types_by_query(pool, Json(Expression::for_versioned_uri(&uri.0)))
+    query_entity_types(pool, Json(Expression::for_versioned_uri(&uri.0)))
         .await
         .and_then(|mut entity_types| entity_types.pop().ok_or(StatusCode::NOT_FOUND))
         .map(Json)

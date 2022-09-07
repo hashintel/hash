@@ -26,7 +26,7 @@ use crate::{
 #[openapi(
     handlers(
         create_data_type,
-        get_data_types_by_query,
+        query_data_types,
         get_data_type,
         get_latest_data_types,
         update_data_type
@@ -57,7 +57,7 @@ impl RoutedResource for DataTypeResource {
                         .get(get_latest_data_types::<P>)
                         .put(update_data_type::<P>),
                 )
-                .route("/query", post(get_data_types_by_query::<P>))
+                .route("/query", post(query_data_types::<P>))
                 .route("/:version_id", get(get_data_type::<P>)),
         )
     }
@@ -131,7 +131,7 @@ async fn create_data_type<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_data_types_by_query<P: StorePool + Send>(
+async fn query_data_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(expression): Json<Expression>,
 ) -> Result<Json<Vec<PersistedDataType>>, StatusCode> {
@@ -151,7 +151,7 @@ async fn get_data_types_by_query<P: StorePool + Send>(
 async fn get_latest_data_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PersistedDataType>>, StatusCode> {
-    get_data_types_by_query(pool, Json(Expression::for_latest_version())).await
+    query_data_types(pool, Json(Expression::for_latest_version())).await
 }
 
 #[utoipa::path(
@@ -173,7 +173,7 @@ async fn get_data_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedDataType>, StatusCode> {
-    get_data_types_by_query(pool, Json(Expression::for_versioned_uri(&uri.0)))
+    query_data_types(pool, Json(Expression::for_versioned_uri(&uri.0)))
         .await
         .and_then(|mut data_types| data_types.pop().ok_or(StatusCode::NOT_FOUND))
         .map(Json)
