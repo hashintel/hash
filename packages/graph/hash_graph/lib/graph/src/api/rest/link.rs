@@ -147,11 +147,12 @@ async fn get_entity_links<P: StorePool + Send>(
     Path(source_entity_id): Path<EntityId>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<Link>>, StatusCode> {
-    query_active_links(
-        pool,
-        Json(Expression::for_link_by_source_entity_id(source_entity_id)),
+    read_from_store(
+        pool.as_ref(),
+        &Expression::for_link_by_source_entity_id(source_entity_id),
     )
     .await
+    .map(Json)
 }
 
 #[derive(Serialize, Deserialize, Component)]

@@ -150,7 +150,9 @@ async fn query_link_types<P: StorePool + Send>(
 async fn get_latest_link_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PersistedLinkType>>, StatusCode> {
-    query_link_types(pool, Json(Expression::for_latest_version())).await
+    read_from_store(pool.as_ref(), &Expression::for_latest_version())
+        .await
+        .map(Json)
 }
 
 #[utoipa::path(
@@ -172,7 +174,7 @@ async fn get_link_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedLinkType>, StatusCode> {
-    query_link_types(pool, Json(Expression::for_versioned_uri(&uri.0)))
+    read_from_store(pool.as_ref(), &Expression::for_versioned_uri(&uri.0))
         .await
         .and_then(|mut data_types| data_types.pop().ok_or(StatusCode::NOT_FOUND))
         .map(Json)

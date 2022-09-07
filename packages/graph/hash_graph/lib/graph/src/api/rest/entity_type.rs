@@ -152,7 +152,9 @@ async fn query_entity_types<P: StorePool + Send>(
 async fn get_latest_entity_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PersistedEntityType>>, StatusCode> {
-    query_entity_types(pool, Json(Expression::for_latest_version())).await
+    read_from_store(pool.as_ref(), &Expression::for_latest_version())
+        .await
+        .map(Json)
 }
 
 #[utoipa::path(
@@ -174,7 +176,7 @@ async fn get_entity_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedEntityType>, StatusCode> {
-    query_entity_types(pool, Json(Expression::for_versioned_uri(&uri.0)))
+    read_from_store(pool.as_ref(), &Expression::for_versioned_uri(&uri.0))
         .await
         .and_then(|mut entity_types| entity_types.pop().ok_or(StatusCode::NOT_FOUND))
         .map(Json)
