@@ -29,6 +29,10 @@ pub struct DomainValidator(Regex);
 
 impl DomainValidator {
     #[must_use]
+    /// Creates a new `DomainValidator`
+    ///
+    /// # Panics
+    /// If the "shortname" or "kind" named capture groups are missing
     pub fn new(regex: Regex) -> Self {
         regex
             .capture_names()
@@ -83,7 +87,7 @@ impl DomainValidator {
             .into_report()
             .attach_printable("missing ontology type kind")?;
 
-        return Ok((name, kind));
+        Ok((name, kind))
     }
 }
 

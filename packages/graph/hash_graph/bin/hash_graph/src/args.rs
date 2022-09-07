@@ -39,7 +39,6 @@ pub struct Args {
         default_value_t = Regex::new(r"http://localhost:3000/@(?P<shortname>\w+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/(?:\w|-)+/").unwrap(),
         env = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN"
     )]
-    // TODO ensure no trailing slash
     pub allowed_url_domain: Regex,
 
     /// Generate a completion script for the given shell and outputs it to stdout.
