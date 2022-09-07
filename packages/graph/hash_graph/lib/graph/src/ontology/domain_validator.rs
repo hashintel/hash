@@ -32,6 +32,7 @@ impl DomainValidator {
     /// Creates a new `DomainValidator`
     ///
     /// # Panics
+    ///
     /// - If the "shortname" or "kind" named capture groups are missing
     pub fn new(regex: Regex) -> Self {
         regex

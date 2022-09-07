@@ -60,22 +60,29 @@ impl PersistedOntologyIdentifier {
 }
 
 #[derive(Debug)]
-pub struct PatchSchemaIdError;
-impl Context for PatchSchemaIdError {}
+pub struct PatchAndParseError;
+impl Context for PatchAndParseError {}
 
-impl fmt::Display for PatchSchemaIdError {
+impl fmt::Display for PatchAndParseError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("failed to patch schema's id")
+        fmt.write_str("failed to patch schema's id and parse as type")
     }
 }
 
-/// TODO: DOC
+/// Takes the [`serde_json::Value`] representation of an ontology type schema (without an "$id"
+/// field), inserts the given [`VersionedUri`] under the "$id" key, and tries to deserialize the
+/// type.
 ///
 /// # Errors
+///
+/// - [`PatchAndParseError`] if
+///   - "$id" already existed
+///   - the [`serde_json::Value`] wasn't an 'Object'
+///   - deserializing into `T` failed
 pub fn patch_id_and_parse<T>(
     id: &VersionedUri,
     mut value: serde_json::Value,
-) -> Result<T, PatchSchemaIdError>
+) -> Result<T, PatchAndParseError>
 where
     T: TryFrom<serde_json::Value, Error: Context>,
 {
@@ -84,13 +91,13 @@ where
             "$id".to_owned(),
             serde_json::to_value(id).expect("failed to deserialize id"),
         ) {
-            return Err(PatchSchemaIdError)
+            return Err(PatchAndParseError)
                 .into_report()
                 .attach_printable("schema already had an $id")
                 .attach_printable(previous_val);
         }
     } else {
-        return Err(PatchSchemaIdError)
+        return Err(PatchAndParseError)
             .into_report()
             .attach_printable("unexpected schema format, couldn't parse as object")
             .attach_printable(value);
@@ -99,7 +106,7 @@ where
     let ontology_type: T = value
         .try_into()
         .into_report()
-        .change_context(PatchSchemaIdError)?;
+        .change_context(PatchAndParseError)?;
 
     Ok(ontology_type)
 }
