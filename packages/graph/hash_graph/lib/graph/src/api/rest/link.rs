@@ -28,7 +28,7 @@ use crate::{
     handlers(
         create_link,
         get_entity_links,
-        get_active_links,
+        get_current_links,
         remove_link
     ),
     components(AccountId, Link, CreateLinkRequest, RemoveLinkRequest),
@@ -50,7 +50,7 @@ impl RoutedResource for LinkResource {
                     .get(get_entity_links::<P>)
                     .delete(remove_link::<P>),
             )
-            .route("/links", get(get_active_links::<P>))
+            .route("/links", get(get_current_links::<P>))
     }
 }
 
@@ -214,7 +214,7 @@ async fn remove_link<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_active_links<P: StorePool + Send>(
+async fn get_current_links<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     mut body: Option<Json<Expression>>,
 ) -> Result<Json<Vec<Link>>, StatusCode> {

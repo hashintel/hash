@@ -37,7 +37,7 @@ fn row_stream_to_record_stream(row_stream: RowStream) -> RecordStream {
     })
 }
 
-pub async fn read_all_active_links(client: &impl AsClient) -> Result<RecordStream, QueryError> {
+pub async fn read_all_current_links(client: &impl AsClient) -> Result<RecordStream, QueryError> {
     let row_stream = client
         .as_client()
         .query_raw(
@@ -54,7 +54,7 @@ pub async fn read_all_active_links(client: &impl AsClient) -> Result<RecordStrea
     Ok(row_stream_to_record_stream(row_stream))
 }
 
-pub async fn read_active_links_by_source(
+pub async fn read_current_links_by_source(
     client: &impl AsClient,
     entity_id: EntityId,
 ) -> Result<RecordStream, QueryError> {
@@ -75,7 +75,7 @@ pub async fn read_active_links_by_source(
     Ok(row_stream_to_record_stream(row_stream))
 }
 
-pub async fn read_active_links_by_target(
+pub async fn read_current_links_by_target(
     client: &impl AsClient,
     entity_id: EntityId,
 ) -> Result<RecordStream, QueryError> {
