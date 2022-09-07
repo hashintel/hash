@@ -103,14 +103,14 @@ describe("Link model class", () => {
   let acquaintanceLink: LinkModel;
   it("can link entities", async () => {
     friendLink = await LinkModel.create(graphApi, {
-      accountId,
+      createdBy: accountId,
       sourceEntityModel,
       linkTypeModel: linkTypeFriend,
       targetEntityModel: targetEntityFriend,
     });
 
     acquaintanceLink = await LinkModel.create(graphApi, {
-      accountId,
+      createdBy: accountId,
       sourceEntityModel,
       linkTypeModel: linkTypeAcquaintance,
       targetEntityModel: targetEntityAcquaintance,
@@ -139,7 +139,7 @@ describe("Link model class", () => {
   });
 
   it("can inactivate an active link", async () => {
-    await acquaintanceLink.inactivate(graphApi);
+    await acquaintanceLink.remove(graphApi, { removedBy: accountId });
 
     const result = await LinkModel.getOutgoing(graphApi, {
       sourceEntityModel,

@@ -10,7 +10,7 @@ export type LinkModelConstructorParams = {
 };
 
 export type LinkModelCreateParams = {
-  accountId: string;
+  createdBy: string;
   sourceEntityModel: EntityModel;
   linkTypeModel: LinkTypeModel;
   targetEntityModel: EntityModel;
@@ -51,7 +51,7 @@ export default class {
   static async create(
     graphApi: GraphApi,
     {
-      accountId,
+      createdBy,
       sourceEntityModel,
       linkTypeModel,
       targetEntityModel,
@@ -60,28 +60,42 @@ export default class {
     const {
       data: { sourceEntityId, linkTypeUri, targetEntityId },
     } = await graphApi.createLink(sourceEntityModel.entityId, {
-      accountId,
+      createdBy,
       linkTypeUri: linkTypeModel.schema.$id,
       targetEntityId: targetEntityModel.entityId,
     });
 
     const fetchedParams = {
       sourceEntityModel: await EntityModel.getLatest(graphApi, {
-        accountId,
+        accountId: createdBy,
         entityId: sourceEntityId,
       }),
       linkTypeModel: await LinkTypeModel.get(graphApi, {
         versionedUri: linkTypeUri,
       }),
       targetEntityModel: await EntityModel.getLatest(graphApi, {
-        accountId,
+        accountId: createdBy,
         entityId: targetEntityId,
       }),
     };
 
     return new LinkModel({
-      accountId,
+      accountId: createdBy,
       ...fetchedParams,
+    });
+  }
+
+  /**
+   * Remove a link.
+   */
+  async remove(
+    graphApi: GraphApi,
+    { removedBy }: { removedBy: string },
+  ): Promise<void> {
+    await graphApi.removeLink(this.sourceEntityModel.entityId, {
+      linkTypeUri: this.linkTypeModel.schema.$id,
+      targetEntityId: this.targetEntityModel.entityId,
+      removedBy,
     });
   }
 
@@ -160,15 +174,5 @@ export default class {
      *   see https://app.asana.com/0/0/1202891272217988/f
      */
     return links[0] ? links[0] : null;
-  }
-
-  /**
-   * Make a link inactive.
-   */
-  async inactivate(graphApi: GraphApi): Promise<void> {
-    await graphApi.removeLink(this.sourceEntityModel.entityId, {
-      linkTypeUri: this.linkTypeModel.schema.$id,
-      targetEntityId: this.targetEntityModel.entityId,
-    });
   }
 }
