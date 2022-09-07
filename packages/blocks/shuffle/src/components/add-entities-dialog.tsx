@@ -8,6 +8,8 @@ import {
   FormControlLabel,
   Checkbox,
   formControlLabelClasses,
+  experimental_sx as sx,
+  styled,
 } from "@mui/material";
 import { Button } from "@hashintel/hash-design-system";
 import {
@@ -16,10 +18,23 @@ import {
   ForwardRefRenderFunction,
   useState,
   ChangeEvent,
+  useMemo,
 } from "react";
 import { v4 as uuid } from "uuid";
 import { Items } from "../shuffle";
 import { getEntityLabel } from "../utils";
+
+const SFormControlLabel = styled(FormControlLabel)(
+  sx({
+    width: "100%",
+
+    [`.${formControlLabelClasses.label}`]: {
+      overflow: "hidden",
+      whiteSpace: "nowrap",
+      textOverflow: "ellipsis",
+    },
+  }),
+);
 
 export interface AddEntitiesDialogRef {
   show: () => void;
@@ -54,20 +69,22 @@ const _AddEntitiesDialog: ForwardRefRenderFunction<
   );
 
   const handleEntityTypeClick = async (entityTypeId: string) => {
-    const res = await graphService?.aggregateEntities({
+    if (!graphService) return;
+    const { data } = await graphService.aggregateEntities({
       data: { operation: { entityTypeId, itemsPerPage: 100 } },
     });
 
-    const entities = res?.data?.results;
+    if (!data) return setDialogState("closed");
 
-    if (!entities) return setDialogState("closed");
+    const { results: entities } = data;
 
-    const allSelected = entities.reduce((prev, curr) => {
-      return { ...prev, [curr.entityId]: true };
-    }, {});
+    const initialEntitySelection = entities.reduce(
+      (prev, curr) => ({ ...prev, [curr.entityId]: true }),
+      {},
+    );
 
-    setSelections(allSelected);
     setEntityList(entities);
+    setSelections(initialEntitySelection);
     setDialogState("entities");
   };
 
@@ -78,12 +95,12 @@ const _AddEntitiesDialog: ForwardRefRenderFunction<
     }));
   };
 
-  const handleCloseClick = () => setDialogState("closed");
+  const handleClose = () => setDialogState("closed");
 
   const handleAddClick = async () => {
     if (!graphService) return;
 
-    // create links for selected items
+    // create links for selected entities
     const selectedEntityIds = Object.entries(selections)
       .filter(([_, isSelected]) => isSelected)
       .map(([id]) => id);
@@ -98,32 +115,34 @@ const _AddEntitiesDialog: ForwardRefRenderFunction<
       }),
     );
 
-    const createLinkRes = await Promise.all(createLinkPromises);
+    const createLinkResponses = await Promise.all(createLinkPromises);
 
     // add the new items
     onAddEntityItems(
       selectedEntityIds.map((entityId, i) => {
         return {
           id: uuid(),
-          entityId,
-          linkId: createLinkRes[i]?.data?.linkId,
           value: "",
+          entityId,
+          linkId: createLinkResponses[i]?.data?.linkId,
         };
       }),
     );
 
     // close the modal
-    handleCloseClick();
+    handleClose();
   };
 
-  const selectedItemCount = Object.entries(selections).filter(
-    ([_, isSelected]) => isSelected,
-  ).length;
+  const selectedItemCount = useMemo(() => {
+    const entries = Object.entries(selections);
+    const selectedEntries = entries.filter(([_, isSelected]) => isSelected);
+    return selectedEntries.length;
+  }, [selections]);
 
   return (
     <Dialog
       open={dialogState !== "closed"}
-      onClose={handleCloseClick}
+      onClose={handleClose}
       fullWidth
       maxWidth="xs"
     >
@@ -158,18 +177,9 @@ const _AddEntitiesDialog: ForwardRefRenderFunction<
               const label = getEntityLabel(entity, entityType);
 
               return (
-                <FormControlLabel
+                <SFormControlLabel
                   key={entityId}
                   label={label}
-                  sx={{
-                    width: "100%",
-
-                    [`.${formControlLabelClasses.label}`]: {
-                      overflow: "hidden",
-                      whiteSpace: "nowrap",
-                      textOverflow: "ellipsis",
-                    },
-                  }}
                   control={
                     <Checkbox
                       checked={selections[entityId]}
@@ -185,7 +195,7 @@ const _AddEntitiesDialog: ForwardRefRenderFunction<
       )}
 
       <DialogActions>
-        <Button variant="secondary" onClick={handleCloseClick}>
+        <Button variant="secondary" onClick={handleClose}>
           Cancel
         </Button>
         {dialogState === "entities" && (
