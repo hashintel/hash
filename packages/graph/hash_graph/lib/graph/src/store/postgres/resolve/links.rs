@@ -14,7 +14,6 @@ pub struct LinkRecord {
     pub source_entity_id: EntityId,
     pub target_entity_id: EntityId,
     pub account_id: AccountId,
-    pub is_active: bool,
 }
 
 pub type RecordStream = impl Stream<Item = Result<LinkRecord, QueryError>>;
@@ -31,8 +30,6 @@ fn row_stream_to_record_stream(row_stream: RowStream) -> RecordStream {
             source_entity_id: row.get(2),
             target_entity_id: row.get(3),
             account_id: row.get(4),
-            // TODO: query historic links?
-            is_active: true,
         })
     })
 }

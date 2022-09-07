@@ -50,7 +50,6 @@ where
                             .resolve(tail_path_segments, context)
                             .await;
                     }
-                    "active" => Literal::Bool(self.is_active),
                     _ => Literal::Null,
                 };
 
