@@ -11,8 +11,8 @@ use crate::{
     store::{
         crud::Read,
         postgres::{
+            context::{OntologyRecord, PostgresContext},
             ontology::OntologyDatabaseType,
-            resolve::{OntologyRecord, PostgresContext},
         },
         query::{Expression, ExpressionError, Literal, Resolve},
         AsClient, PostgresStore, QueryError,
