@@ -34,7 +34,7 @@ const STooltipButton = styled(
   },
 }));
 
-export type Item = {
+type Item = {
   id: string;
   value: string;
   entityId?: string;
@@ -47,7 +47,7 @@ type BlockEntityProperties = {
   items?: Items;
 };
 
-export const initialItems = [
+const initialItems = [
   { id: "1", value: "Thing 1" },
   { id: "2", value: "Thing 2" },
 ];
@@ -60,9 +60,6 @@ export const getEntityLabel = (
   const { labelProperty } = entityType?.schema ?? {};
   return labelProperty ? String(properties[labelProperty]) : entityId;
 };
-
-const createItems = (items: Item[]): Item[] =>
-  items.map((item) => (item.id ? item : { ...item, id: uuid() }));
 
 export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   graph: {
@@ -78,8 +75,8 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   const dialogRef = useRef<AddEntitiesDialogRef>(null);
   const { graphService } = useGraphBlockService(blockRootRef);
   const [entityTypes, setEntityTypes] = useState<EntityType[]>([]);
-  const [draftItems, setDraftItems] = useState(() =>
-    createItems(items?.length ? items : initialItems),
+  const [draftItems, setDraftItems] = useState<Items>(() =>
+    items?.length ? items : initialItems,
   );
   const [prevItems, setPrevItems] = useState(items);
 
@@ -102,7 +99,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     setPrevItems(items);
 
     if (!isEqual(items, draftItems)) {
-      setDraftItems(createItems(items));
+      setDraftItems(items);
     }
   }
 
