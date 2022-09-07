@@ -169,6 +169,7 @@ export type PropertyTypeCreatorParams = {
     array?: boolean;
   }[];
 };
+
 /**
  * Helper method for generating a property type schema for the Graph API.
  */
@@ -227,9 +228,12 @@ export const generateWorkspacePropertyTypeSchema = (
 };
 
 /**
- * @todo - doc
- * @param params
- * @returns
+ * Returns a function which can be used to initialize a given property type. This asynchronous design allows us to express
+ * dependencies between types in a lazy fashion, where the dependencies can be initialized as they're encountered. (This is
+ * likely to cause problems if we introduce circular dependencies)
+ *
+ * @param params the data required to create a new property type
+ * @returns an async function which can be called to initialize the property type, returning its PropertyTypeModel
  */
 export const propertyTypeInitializer = (
   params: PropertyTypeCreatorParams,
@@ -282,6 +286,7 @@ export type EntityCreatorParams = {
     array?: { minItems?: number; maxItems?: number } | boolean;
   }[];
 };
+
 /**
  * Helper method for generating an entity schema for the Graph API.
  *
@@ -297,7 +302,7 @@ export const generateWorkspaceEntityTypeSchema = (
     kind: "entityType",
   });
 
-  /** @todo - clean this up to be more readable */
+  /** @todo - clean this up to be more readable: https://app.asana.com/0/1202805690238892/1202931031833226/f */
   const properties = params.properties.reduce(
     (prev, { versionedUri, array }) => {
       /**
@@ -337,9 +342,12 @@ export const generateWorkspaceEntityTypeSchema = (
 };
 
 /**
- * @todo - doc
- * @param params
- * @returns
+ * Returns a function which can be used to initialize a given entity type. This asynchronous design allows us to express
+ * dependencies between types in a lazy fashion, where the dependencies can be initialized as they're encountered. (This is
+ * likely to cause problems if we introduce circular dependencies)
+ *
+ * @param params the data required to create a new entity type
+ * @returns an async function which can be called to initialize the entity type, returning its EntityTypeModel
  */
 export const entityTypeInitializer = (
   params: EntityCreatorParams,
