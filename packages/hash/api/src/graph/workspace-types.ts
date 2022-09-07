@@ -6,7 +6,6 @@ import { logger } from "../logger";
 import { EntityTypeModel, PropertyTypeModel } from "../model";
 import { propertyTypeInitializer, entityTypeInitializer } from "../model/util";
 
-/** @todo - Add */
 // eslint-disable-next-line import/no-mutable-exports
 export let WORKSPACE_TYPES: {
   dataType: {};
@@ -101,23 +100,18 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
   })(graphApi);
 };
 
-// AccountId
-// Generate the schema for the account id property type
 const accountIdPropertyTypeInitializer = propertyTypeInitializer({
   namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   title: "Account ID",
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
-// Shortname
-// Generate the schema for the shortname property type
 const shortnamePropertyTypeInitializer = propertyTypeInitializer({
   namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   title: "Shortname",
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
-// Generate the schema for the organization name property type
 const orgNamePropertyTypeInitializer = propertyTypeInitializer({
   namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   title: "Organization Name",
@@ -138,21 +132,18 @@ const emailPropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
-// Generate the schema for the kratos identity property type
 const kratosIdentityIdPropertyTypeInitializer = propertyTypeInitializer({
   namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   title: "Kratos Identity ID",
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
-// Generate the schema for the preferred name property type
 const preferredNamePropertyTypeInitializer = propertyTypeInitializer({
   namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   title: "Preferred Name",
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
-// Generate the schema for the user entity type
 const userEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
   const shortnamePropertyTypeModel =
@@ -237,8 +228,7 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
 /* eslint-enable @typescript-eslint/no-use-before-define */
 
 /**
- * A script that ensures the required primitive data types and workspace types
- * have been created in the graph.
+ * Ensures the required primitive data types and workspace types have been created in the graph.
  */
 export const ensureWorkspaceTypesExist = async (params: {
   graphApi: GraphApi;
@@ -247,7 +237,7 @@ export const ensureWorkspaceTypesExist = async (params: {
   const { graphApi } = params;
   logger.debug("Ensuring Workspace system types exist");
 
-  // Next, create workspace types if they don't already exist
+  // Create workspace types if they don't already exist
   /**
    * @todo Use transactional primitive/bulk insert to be able to do this in parallel
    *   see the following task:

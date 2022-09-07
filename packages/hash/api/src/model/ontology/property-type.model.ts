@@ -41,7 +41,8 @@ export default class {
       schema: Omit<PropertyType, "$id">;
     },
   ): Promise<PropertyTypeModel> {
-    /** @todo - get rid of this hack for the root account */ const namespace =
+    /** @todo - get rid of this hack for the root account */
+    const namespace =
       params.accountId === workspaceAccountId
         ? WORKSPACE_ACCOUNT_SHORTNAME
         : (
