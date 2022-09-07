@@ -412,7 +412,7 @@ pub trait LinkStore: for<'q> crud::Read<Link, Query<'q> = Expression> {
     /// # Errors:
     ///
     /// - if the [`Link`] exists already
-    /// - if the [`Link`]s link type doesn't exist
+    /// - if the [`Link`]s [`LinkType`] doesn't exist
     /// - if the account referred to by `created_by` does not exist
     async fn create_link(
         &mut self,
