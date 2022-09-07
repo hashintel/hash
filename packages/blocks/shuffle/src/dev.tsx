@@ -17,7 +17,10 @@ const DevApp = () => {
       blockEntity={{
         entityId: "test-shuffle-1",
         properties: {
-          items: [{ value: "Thing 1" }, { value: "Thing 2" }],
+          items: [
+            { value: "Thing 1", id: "1" },
+            { value: "Thing 2", id: "2" },
+          ],
         },
       }}
       debug
