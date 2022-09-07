@@ -4,6 +4,7 @@ import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { DataType } from "@blockprotocol/type-system-web";
 import { DataTypeModel } from "@hashintel/hash-api/src/model";
+import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
 
@@ -21,44 +22,50 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-const accountId = "00000000-0000-0000-0000-000000000000";
+let accountId: string;
 
-const textDataType$id = "https://data-type~example.com/data-type/v/1" as const;
+// we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
+//  https://github.com/microsoft/TypeScript/issues/50638
+//  this is needed for as long as DataType extends Record
+const dataTypeSchema: Pick<
+  DataType,
+  "kind" | "title" | "description" | "type"
+> &
+  Record<string, any> = {
+  kind: "dataType",
+  title: "Text",
+  type: "string",
+};
+
+beforeAll(async () => {
+  accountId = await createTestUser(graphApi, "datatypetest", logger);
+});
 
 describe("Data type CRU", () => {
-  const dataType = ($id: DataType["$id"]): DataType => {
-    return {
-      $id,
-      kind: "dataType",
-      title: "Text",
-      type: "string",
-    };
-  };
+  let createdDataTypeModel: DataTypeModel;
+  let updatedDataTypeModel: DataTypeModel;
 
-  const createdDataType$id = textDataType$id;
-  let createdDataType: DataTypeModel;
   it("can create a data type", async () => {
-    createdDataType = await DataTypeModel.create(graphApi, {
+    createdDataTypeModel = await DataTypeModel.create(graphApi, {
       accountId,
-      schema: dataType(createdDataType$id),
+      schema: dataTypeSchema,
     });
   });
 
   it("can read a data type", async () => {
     const fetchedDataType = await DataTypeModel.get(graphApi, {
-      versionedUri: createdDataType$id,
+      versionedUri: createdDataTypeModel.schema.$id,
     });
 
-    expect(fetchedDataType.schema.$id).toEqual(createdDataType$id);
+    expect(fetchedDataType.schema).toEqual(createdDataTypeModel.schema);
   });
 
-  const updated$id = "https://data-type~example.com/data-type/v/2";
   const updatedTitle = "New text!";
   it("can update a data type", async () => {
-    await createdDataType
+    updatedDataTypeModel = await createdDataTypeModel
       .update(graphApi, {
         accountId,
-        schema: { ...dataType(updated$id), title: updatedTitle },
+        schema: { ...dataTypeSchema, title: updatedTitle },
       })
       .catch((err) => Promise.reject(err.data));
   });
@@ -69,13 +76,12 @@ describe("Data type CRU", () => {
     });
 
     const newlyUpdated = allDataTypes.find(
-      (dt) => dt.schema.$id === updated$id,
+      (dt) => dt.schema.$id === updatedDataTypeModel.schema.$id,
     );
 
     expect(allDataTypes.length).toBeGreaterThan(0);
     expect(newlyUpdated).toBeDefined();
 
-    expect(newlyUpdated!.schema.$id).toEqual(updated$id);
-    expect(newlyUpdated!.schema.title).toEqual(updatedTitle);
+    expect(newlyUpdated!.schema).toEqual(updatedDataTypeModel.schema);
   });
 });

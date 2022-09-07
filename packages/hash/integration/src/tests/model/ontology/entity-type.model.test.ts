@@ -9,6 +9,7 @@ import {
   LinkTypeModel,
 } from "@hashintel/hash-api/src/model";
 import { EntityType } from "@blockprotocol/type-system-web";
+import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
 
@@ -26,8 +27,8 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-const accountId = "00000000-0000-0000-0000-000000000000";
-
+let accountId: string;
+let entityTypeSchema: Omit<EntityType, "$id">;
 let workerEntityTypeModel: EntityTypeModel;
 let textDataTypeModel: DataTypeModel;
 let namePropertyTypeModel: PropertyTypeModel;
@@ -35,6 +36,8 @@ let favoriteBookPropertyTypeModel: PropertyTypeModel;
 let knowsLinkTypeModel: LinkTypeModel;
 
 beforeAll(async () => {
+  accountId = await createTestUser(graphApi, "entitytypetest", logger);
+
   textDataTypeModel = await DataTypeModel.create(graphApi, {
     accountId,
     schema: {
@@ -91,10 +94,8 @@ beforeAll(async () => {
       knowsLinkTypeModel = val;
     }),
   ]);
-});
 
-describe("Entity type CRU", () => {
-  const entityType: Omit<EntityType, "$id"> = {
+  entityTypeSchema = {
     kind: "entityType",
     title: "Some",
     pluralTitle: "Text",
@@ -104,7 +105,7 @@ describe("Entity type CRU", () => {
         $ref: favoriteBookPropertyTypeModel.schema.$id,
       },
       [namePropertyTypeModel.baseUri]: {
-        $ref: favoriteBookPropertyTypeModel.schema.$id,
+        $ref: namePropertyTypeModel.schema.$id,
       },
     },
     links: {
@@ -120,12 +121,15 @@ describe("Entity type CRU", () => {
       },
     },
   };
+});
 
+describe("Entity type CRU", () => {
   let createdEntityType: EntityTypeModel;
+
   it("can create an entity type", async () => {
     createdEntityType = await EntityTypeModel.create(graphApi, {
       accountId,
-      schema: entityType,
+      schema: entityTypeSchema,
     });
   });
 
@@ -143,7 +147,7 @@ describe("Entity type CRU", () => {
     const updatedEntityTypeModel = await createdEntityType
       .update(graphApi, {
         accountId,
-        schema: { ...entityType, title: updatedTitle },
+        schema: { ...entityTypeSchema, title: updatedTitle },
       })
       .catch((err) => Promise.reject(err.data));
 

@@ -43,6 +43,7 @@ export default class {
       accountId: string;
       // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
       //  https://github.com/microsoft/TypeScript/issues/50638
+      //  this is needed for as long as DataType extends Record
       schema: Pick<DataType, "kind" | "title" | "description" | "type"> &
         Record<string, any>;
     },
@@ -178,6 +179,7 @@ export default class {
       accountId: string;
       // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
       //  https://github.com/microsoft/TypeScript/issues/50638
+      //  this is needed for as long as DataType extends Record
       schema: Pick<DataType, "kind" | "title" | "description" | "type"> &
         Record<string, any>;
     },

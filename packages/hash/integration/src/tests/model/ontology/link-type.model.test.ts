@@ -4,6 +4,7 @@ import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { LinkType } from "@hashintel/hash-graph-client/";
 import { LinkTypeModel } from "@hashintel/hash-api/src/model";
+import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
 
@@ -21,44 +22,45 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-const accountId = "00000000-0000-0000-0000-000000000000";
+let accountId: string;
+const linkTypeSchema: Omit<LinkType, "$id"> = {
+  kind: "linkType",
+  title: "A link",
+  pluralTitle: "Multiple Links",
+  description: "A link between things",
+};
+
+beforeAll(async () => {
+  accountId = await createTestUser(graphApi, "linktypetest", logger);
+});
 
 describe("Link type CRU", () => {
-  const linkType = ($id: string): LinkType => {
-    return {
-      $id,
-      kind: "linkType",
-      title: "A link",
-      pluralTitle: "Multiple Links",
-      description: "A link between things",
-    };
-  };
+  let createdLinkTypeModel: LinkTypeModel;
+  let updatedLinkTypeModel: LinkTypeModel;
 
-  const createdLinkType$id = "https://example.com/link-type/v/1";
-  let createdLinkType: LinkTypeModel;
   it("can create a link type", async () => {
-    createdLinkType = await LinkTypeModel.create(graphApi, {
+    createdLinkTypeModel = await LinkTypeModel.create(graphApi, {
       accountId,
-      schema: linkType(createdLinkType$id),
+      schema: linkTypeSchema,
     });
   });
 
   it("can read a link type", async () => {
     const fetchedLinkType = await LinkTypeModel.get(graphApi, {
-      versionedUri: createdLinkType$id,
+      versionedUri: createdLinkTypeModel.schema.$id,
     });
 
-    expect(fetchedLinkType.schema.$id).toEqual(createdLinkType$id);
+    expect(fetchedLinkType.schema).toEqual(createdLinkTypeModel.schema);
   });
 
-  const updated$id = "https://example.com/link-type/v/2";
   const updatedTitle = "A new link!";
+
   it("can update a link type", async () => {
-    await createdLinkType
+    updatedLinkTypeModel = await createdLinkTypeModel
       .update(graphApi, {
         accountId,
         schema: {
-          ...linkType(updated$id),
+          ...linkTypeSchema,
           title: updatedTitle,
         },
       })
@@ -71,13 +73,13 @@ describe("Link type CRU", () => {
     });
 
     const newlyUpdated = allLinkTypes.find(
-      (lt) => lt.schema.$id === updated$id,
+      (lt) => lt.schema.$id === updatedLinkTypeModel.schema.$id,
     );
 
     expect(allLinkTypes.length).toBeGreaterThan(0);
     expect(newlyUpdated).toBeDefined();
 
-    expect(newlyUpdated!.schema.$id).toEqual(updated$id);
+    expect(newlyUpdated!.schema).toEqual(updatedLinkTypeModel.schema);
     expect(newlyUpdated!.schema.title).toEqual(updatedTitle);
   });
 });

@@ -7,6 +7,7 @@ import {
   DataTypeModel,
   PropertyTypeModel,
 } from "@hashintel/hash-api/src/model";
+import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
 
@@ -24,64 +25,61 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-const accountId = "00000000-0000-0000-0000-000000000000";
-
-const textDataType$id =
-  "https://property-type~example.com/data-type/v/1" as const;
+let accountId: string;
+let textDataTypeModel: DataTypeModel;
+let propertyTypeSchema: Omit<PropertyType, "$id">;
 
 beforeAll(async () => {
-  await DataTypeModel.create(graphApi, {
+  accountId = await createTestUser(graphApi, "propertytypetest", logger);
+
+  textDataTypeModel = await DataTypeModel.create(graphApi, {
     accountId,
     schema: {
-      $id: textDataType$id,
       kind: "dataType",
       title: "Text",
       type: "string",
     },
   });
+
+  propertyTypeSchema = {
+    kind: "propertyType",
+    title: "A property type",
+    pluralTitle: "Multiple property types",
+    oneOf: [
+      {
+        $ref: textDataTypeModel.schema.$id,
+      },
+    ],
+  };
 });
 
 describe("Property type CRU", () => {
-  const propertyType = ($id: PropertyType["$id"]): PropertyType => {
-    return {
-      $id,
-      kind: "propertyType",
-      title: "A property type",
-      pluralTitle: "Multiple property types",
-      oneOf: [
-        {
-          $ref: textDataType$id,
-        },
-      ],
-    };
-  };
+  let createdPropertyTypeModel: PropertyTypeModel;
+  let updatedPropertyTypeModel: PropertyTypeModel;
 
-  const createdPropertyType$id =
-    "https://property-type~example.com/property-type/v/1";
-  let createdPropertyType: PropertyTypeModel;
   it("can create a property type", async () => {
-    createdPropertyType = await PropertyTypeModel.create(graphApi, {
+    createdPropertyTypeModel = await PropertyTypeModel.create(graphApi, {
       accountId,
-      schema: propertyType(createdPropertyType$id),
+      schema: propertyTypeSchema,
     });
   });
 
   it("can read a property type", async () => {
     const fetchedPropertyType = await PropertyTypeModel.get(graphApi, {
-      versionedUri: createdPropertyType$id,
+      versionedUri: createdPropertyTypeModel.schema.$id,
     });
 
-    expect(fetchedPropertyType.schema.$id).toEqual(createdPropertyType$id);
+    expect(fetchedPropertyType.schema).toEqual(createdPropertyTypeModel.schema);
   });
 
-  const updated$id = "https://property-type~example.com/property-type/v/2";
   const updatedTitle = "New test!";
+
   it("can update a property type", async () => {
-    await createdPropertyType
+    updatedPropertyTypeModel = await createdPropertyTypeModel
       .update(graphApi, {
         accountId,
         schema: {
-          ...propertyType(updated$id),
+          ...propertyTypeSchema,
           title: updatedTitle,
         },
       })
@@ -94,13 +92,13 @@ describe("Property type CRU", () => {
     });
 
     const newlyUpdated = allPropertyTypes.find(
-      (pt) => pt.schema.$id === updated$id,
+      (pt) => pt.schema.$id === updatedPropertyTypeModel.schema.$id,
     );
 
     expect(allPropertyTypes.length).toBeGreaterThan(0);
     expect(newlyUpdated).toBeDefined();
 
-    expect(newlyUpdated!.schema.$id).toEqual(updated$id);
+    expect(newlyUpdated!.schema).toEqual(updatedPropertyTypeModel.schema);
     expect(newlyUpdated!.schema.title).toEqual(updatedTitle);
   });
 });
