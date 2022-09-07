@@ -118,6 +118,7 @@ async fn create_link<P: StorePool + Send>(
     responses(
         (status = 200, content_type = "application/json", description = "List of all links matching the provided query", body = [Link]),
 
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]

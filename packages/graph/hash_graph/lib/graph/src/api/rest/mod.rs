@@ -27,7 +27,11 @@ use utoipa::{
 };
 
 use self::api_resource::RoutedResource;
-use crate::store::{crud::Read, query::Expression, StorePool};
+use crate::store::{
+    crud::Read,
+    query::{Expression, ExpressionError, ResolveError},
+    StorePool,
+};
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
 
@@ -70,8 +74,20 @@ where
 
     // TODO: Implement `Valuable` for queries and print them here
     store.read(query).await.map_err(|report| {
+        let mut status_code = StatusCode::INTERNAL_SERVER_ERROR;
+
+        if let Some(error) = report.downcast_ref::<ExpressionError>() {
+            tracing::error!(%error, "Could not evaluate expression");
+            status_code = StatusCode::UNPROCESSABLE_ENTITY;
+        }
+
+        if let Some(error) = report.downcast_ref::<ResolveError>() {
+            tracing::error!(%error, "Unable to resolve query");
+            status_code = StatusCode::UNPROCESSABLE_ENTITY;
+        }
+
         tracing::error!(error=?report, ?query, "Could not read from the store");
-        StatusCode::INTERNAL_SERVER_ERROR
+        status_code
     })
 }
 

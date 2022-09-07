@@ -127,6 +127,7 @@ async fn create_property_type<P: StorePool + Send>(
     responses(
         (status = 200, content_type = "application/json", description = "List of all property types matching the provided query", body = [PersistedPropertyType]),
 
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]

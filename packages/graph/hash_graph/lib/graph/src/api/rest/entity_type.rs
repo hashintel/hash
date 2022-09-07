@@ -129,6 +129,7 @@ async fn create_entity_type<P: StorePool + Send>(
     responses(
         (status = 200, content_type = "application/json", description = "List of all entity types matching the provided query", body = [PersistedEntityType]),
 
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
 )
 )]
