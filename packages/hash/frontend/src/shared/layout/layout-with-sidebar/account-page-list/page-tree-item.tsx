@@ -1,192 +1,207 @@
+import { Box, Tooltip, Typography } from "@mui/material";
+import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
 import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
-import TreeItem, {
-  treeItemClasses,
-  TreeItemContentProps,
-  TreeItemProps,
-  useTreeItem,
-} from "@mui/lab/TreeItem";
-import { Tooltip, Typography } from "@mui/material";
-import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import { forwardRef, MouseEvent, ReactElement, Ref } from "react";
+import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { CSSProperties, forwardRef, MouseEvent, useState } from "react";
+import { DraggableAttributes } from "@dnd-kit/core";
 import { PAGE_TITLE_PLACEHOLDER } from "../../../../blocks/page/PageTitle/PageTitle";
 import { PageIconButton } from "../../../../components/PageIconButton";
-import { useRouteAccountInfo } from "../../../routing";
 import { Link } from "../../../ui";
 import { PageMenu } from "./page-menu";
+import { useRouteAccountInfo } from "../../../routing";
+
+interface DragProps {
+  isSorting?: boolean;
+  attributes?: DraggableAttributes;
+  listeners?: Record<string, Function>;
+  style?: CSSProperties;
+  wrapperRef?(node: HTMLLIElement): void;
+}
+export interface PageTreeItemProps {
+  id: string;
+  title: string;
+  url: string;
+  depth: number;
+  selected: boolean;
+  expanded: boolean;
+  expandable: boolean;
+  collapsed: boolean;
+  createSubPage: () => Promise<void>;
+  archivePage: (
+    value: boolean,
+    accountId: string,
+    pageEntityId: string,
+  ) => Promise<void>;
+  onCollapse?: () => void;
+  dragProps?: DragProps;
+}
+
+export const IDENTATION_WIDTH = 16;
 
 const stopEvent = (event: MouseEvent) => {
   event.preventDefault();
   event.stopPropagation();
 };
 
-// tweaked the example at https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
-const CustomContent = forwardRef(
-  (props: TreeItemContentProps, ref): ReactElement => {
-    const { label, nodeId, expandable, url, depth } = props;
+export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
+  (
+    {
+      id,
+      title,
+      expandable,
+      url,
+      depth,
+      selected,
+      createSubPage,
+      archivePage,
+      onCollapse,
+      expanded,
+      collapsed,
+      dragProps = {},
+    }: PageTreeItemProps,
+    ref,
+  ) => {
+    const [hovered, setHovered] = useState(false);
+
     const { accountId } = useRouteAccountInfo();
+
     const popupState = usePopupState({
       variant: "popover",
       popupId: "page-menu",
     });
 
-    const { expanded, selected, handleExpansion, preventSelection } =
-      useTreeItem(nodeId);
-
-    const handleMouseDown = (
-      event: MouseEvent<HTMLAnchorElement, globalThis.MouseEvent>,
-    ) => {
-      preventSelection(event);
-    };
-
-    const handleExpansionClick = (
-      event: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>,
-    ) => {
-      stopEvent(event);
-      handleExpansion(event);
-    };
+    const { isSorting, style, attributes, listeners, wrapperRef } = dragProps;
 
     const trigger = bindTrigger(popupState);
 
-    return (
-      <Link
-        noLinkStyle
-        href={url}
-        tabIndex={0}
-        onMouseDown={handleMouseDown}
-        ref={ref as Ref<HTMLAnchorElement>}
-        sx={({ palette }) => ({
-          display: "flex",
-          alignItems: "center",
-          borderRadius: "4px",
+    const setHoveredState = (value: boolean) => {
+      if (!isSorting) {
+        setHovered(value);
+      }
+    };
 
-          pl: `${depth * 16 + 8}px`,
-          pr: 0.5,
-
-          ...(!selected && {}),
-
-          "&:hover": {
-            ...(!selected && { backgroundColor: palette.gray[20] }),
-
-            "& .page-title": {
-              color: palette.gray[80],
-            },
-
-            "& .page-menu-trigger": {
-              color: palette.gray[40],
-            },
-          },
-
-          ...(selected && {
-            backgroundColor: palette.gray[30],
-          }),
-        })}
+    return collapsed && isSorting ? null : (
+      <Box
+        ref={wrapperRef}
+        onMouseEnter={() => setHoveredState(true)}
+        onMouseLeave={() => setHoveredState(false)}
       >
-        <IconButton
-          onClick={handleExpansionClick}
-          size="xs"
-          unpadded
-          rounded
-          sx={({ transitions }) => ({
-            visibility: "hidden",
-            pointerEvents: "none",
-            mr: 0.5,
-
-            ...(expandable && {
-              visibility: "visible",
-              pointerEvents: "auto",
-              transform: expanded ? `rotate(90deg)` : "none",
-              transition: transitions.create("transform", { duration: 300 }),
-            }),
+        <Link
+          noLinkStyle
+          href={url}
+          tabIndex={0}
+          sx={({ palette, transitions }) => ({
+            ...style,
+            display: "flex",
+            alignItems: "center",
+            borderRadius: "4px",
+            transition: `${transitions.create("padding-left", {
+              duration: 200,
+              easing: "ease",
+            })}, ${style?.transition}`,
+            paddingLeft: `${IDENTATION_WIDTH * depth + 8}px`,
+            paddingRight: 0.5,
+            backgroundColor: selected
+              ? palette.gray[30]
+              : hovered
+              ? palette.gray[20]
+              : "none",
           })}
-        >
-          <FontAwesomeIcon icon={faChevronRight} />
-        </IconButton>
-        <PageIconButton
-          hasDarkBg={selected}
-          accountId={accountId}
-          entityId={nodeId}
-          size="small"
-          onClick={stopEvent}
-          popoverProps={{ onClick: stopEvent }}
-        />
-        <Typography
-          variant="smallTextLabels"
-          className="page-title"
-          sx={({ palette }) => ({
-            ml: "6px",
-            display: "block",
-            color: palette.gray[70],
-            fontWeight: 400,
-            py: 1,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            flex: 1,
-            ...(selected && {
-              color: palette.gray[90],
-            }),
-          })}
-        >
-          {label || PAGE_TITLE_PLACEHOLDER}
-        </Typography>
-        <Tooltip
-          title="Add subpages, delete, duplicate and more"
-          componentsProps={{
-            tooltip: {
-              sx: {
-                width: 175,
-              },
-            },
-          }}
+          ref={ref}
+          {...listeners}
+          {...attributes}
         >
           <IconButton
-            {...trigger}
             onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              trigger.onClick(event);
+              stopEvent(event);
+              onCollapse?.();
             }}
-            size="medium"
+            size="xs"
             unpadded
-            className="page-menu-trigger"
-            sx={({ palette }) => ({
-              ml: "auto",
-              color: [selected ? palette.gray[40] : "transparent"],
-              "&:focus-visible, &:hover": {
-                backgroundColor: palette.gray[selected ? 40 : 30],
-                color: `${palette.gray[selected ? 50 : 40]} !important`,
-              },
+            rounded
+            sx={({ transitions }) => ({
+              visibility: "hidden",
+              pointerEvents: "none",
+              mr: 0.5,
+
+              ...(expandable && {
+                visibility: "visible",
+                pointerEvents: "auto",
+                transform: expanded ? `rotate(90deg)` : "none",
+                transition: transitions.create("transform", { duration: 300 }),
+              }),
             })}
           >
-            <FontAwesomeIcon icon={faEllipsis} />
+            <FontAwesomeIcon icon={faChevronRight} />
           </IconButton>
-        </Tooltip>
-        <PageMenu popupState={popupState} entityId={nodeId} />
-      </Link>
+
+          <PageIconButton
+            hasDarkBg={selected}
+            accountId={accountId}
+            entityId={id}
+            size="small"
+            onClick={stopEvent}
+            popoverProps={{ onClick: stopEvent }}
+          />
+
+          <Typography
+            variant="smallTextLabels"
+            sx={({ palette }) => ({
+              display: "block",
+              fontWeight: 400,
+              marginLeft: 0.75,
+              py: 1,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              flex: 1,
+              color: palette.gray[selected || hovered ? 90 : 70],
+            })}
+          >
+            {title || PAGE_TITLE_PLACEHOLDER}
+          </Typography>
+
+          <Tooltip
+            title="Add subpages, delete, duplicate and more"
+            componentsProps={{
+              tooltip: {
+                sx: {
+                  width: 175,
+                },
+              },
+            }}
+          >
+            <Box>
+              <IconButton
+                {...trigger}
+                onClick={(event) => {
+                  stopEvent(event);
+                  trigger.onClick(event);
+                }}
+                size="medium"
+                unpadded
+                sx={({ palette }) => ({
+                  marginLeft: "auto",
+                  opacity: selected || hovered ? 1 : 0,
+                  color: palette.gray[40],
+                  "&:focus-visible, &:hover": {
+                    backgroundColor: palette.gray[selected ? 40 : 30],
+                    color: palette.gray[selected ? 50 : 40],
+                  },
+                })}
+              >
+                <FontAwesomeIcon icon={faEllipsis} />
+              </IconButton>
+            </Box>
+          </Tooltip>
+          <PageMenu
+            entityId={id}
+            popupState={popupState}
+            createSubPage={createSubPage}
+            archivePage={archivePage}
+          />
+        </Link>
+      </Box>
     );
   },
 );
-
-export const PageTreeItem = ({
-  sx = [],
-  ...props
-}: TreeItemProps & { depth: number }) => {
-  return (
-    <TreeItem
-      {...props}
-      sx={[
-        {
-          // resets the default margin applied to a TreeItem's child(ren)
-          // we apply a padding instead to the CustomComponent
-          // this makes it possible for the hover background to span the entire sidebar width
-          [`& .${treeItemClasses.group}`]: {
-            marginLeft: 0,
-          },
-        },
-        ...(Array.isArray(sx) ? sx : [sx]),
-      ]}
-      ContentComponent={CustomContent}
-    />
-  );
-};

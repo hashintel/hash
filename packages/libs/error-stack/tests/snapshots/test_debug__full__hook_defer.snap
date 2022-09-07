@@ -5,10 +5,10 @@ expression: "format!(\"{report:?}\")"
 Root error
 ├╴tests/common.rs:147:5
 ├╴u64
-├╴u16
-├╴u32
+├╴backtrace with [n] frames (1)
 ├╴spantrace with 2 frames (1)
-╰╴backtrace with [n] frames (1)
+├╴u32
+╰╴u16
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

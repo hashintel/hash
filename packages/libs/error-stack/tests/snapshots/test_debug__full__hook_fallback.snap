@@ -6,8 +6,8 @@ Root error
 ├╴tests/common.rs:147:5
 ├╴unknown
 ├╴unknown
-├╴spantrace with 2 frames (1)
-╰╴backtrace with [n] frames (1)
+├╴backtrace with [n] frames (1)
+╰╴spantrace with 2 frames (1)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

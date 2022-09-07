@@ -10597,6 +10597,11 @@ forwarded@0.2.0:
   resolved "https://registry.yarnpkg.com/forwarded/-/forwarded-0.2.0.tgz#2269936428aad4c15c7ebe9779a84bf0b2a81811"
   integrity sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow==
 
+fractional-indexing@2.1.0:
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/fractional-indexing/-/fractional-indexing-2.1.0.tgz#1f20e5973ff6ac9d577583a814af43fcb9441a05"
+  integrity sha512-4tIVui+5dxsXe/BG7D9EzgNIDK9fEoBzjvAf9gFfxFDPo2LsPSjfFKB2QmtcvmioD2IlshtcJFXGEcDPTG6R/A==
+  
 fragment-cache@^0.2.1:
   version "0.2.1"
   resolved "https://registry.yarnpkg.com/fragment-cache/-/fragment-cache-0.2.1.tgz#4290fad27f13e89be7f33799c6bc5a0abfff0d19"

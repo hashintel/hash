@@ -3,29 +3,29 @@ source: tests/test_debug.rs
 expression: "format!(\"{report:?}\")"
 ---
 Context A
-├╴tests/test_debug.rs:443:14
+├╴tests/test_debug.rs:442:14
 ├╴Printable A
 │
 ╰┬▶ Root error
  │  ├╴tests/common.rs:147:5
  │  ├╴Printable A
- │  ├╴spantrace with 2 frames (1)
- │  ╰╴backtrace with [n] frames (1)
+ │  ├╴backtrace with [n] frames (1)
+ │  ╰╴spantrace with 2 frames (1)
  │
  ├▶ Root error
  │  ├╴tests/common.rs:147:5
  │  ├╴Printable B
  │  ├╴Test
- │  ├╴spantrace with 2 frames (2)
  │  ├╴backtrace with [n] frames (2)
+ │  ├╴spantrace with 2 frames (2)
  │  ╰╴1 additional opaque attachment
  │
  ╰▶ Root error
     ├╴tests/common.rs:147:5
     ├╴Printable B
     ├╴Test
-    ├╴spantrace with 2 frames (3)
     ├╴backtrace with [n] frames (3)
+    ├╴spantrace with 2 frames (3)
     ╰╴3 additional opaque attachments
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

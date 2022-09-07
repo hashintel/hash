@@ -1,16 +1,16 @@
 <b>invalid input parameter</b>
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/fmt/hook.rs:23:14</span>
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/fmt/hook.rs:24:14</span>
 <span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Error 404
 <span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Error 405
 <span style='color:#a00'>╰</span><span style='color:#a00'>╴</span>backtrace with [n] frames (1)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Backtrace No. 1
-  [redacted]
-
 Error 404:
   Not Found - Server cannot find requested resource
 
 Error 405:
   Bad Request - Server cannot or will not process request
+
+Backtrace No. 1
+  [redacted]

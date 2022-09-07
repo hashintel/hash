@@ -5,9 +5,9 @@
 //!
 //! The format implementation (especially the [`Debug`] implementation),
 //! can be easily extended using hooks.
-//! Hooks are functions of the signature `Fn(&T, &mut HookContext<T>) -> Vec<Emit>`, they provide
-//! an easy and ergonomic way to partially modify the format and enable the output of types that are
-//! not necessarily added via `.attach_printable()` or are unable to implement [`Display`].
+//! Hooks are functions of the signature `Fn(&T, &mut HookContext<T>)`, they provide an easy and
+//! ergonomic way to partially modify the format and enable the output of types that are
+//! not necessarily added via [`Report::attach_printable`] or are unable to implement [`Display`].
 //!
 //! Hooks can be attached through the central hooking mechanism which `error-stack`
 //! provides via [`Report::install_debug_hook`].
@@ -21,8 +21,7 @@
 //! You can also provide a fallback function, which is called whenever a hook hasn't been added for
 //! a specific type of attachment.
 //! The fallback function needs to have a signature of
-//! `Fn(&Frame, &mut HookContext<T>) -> Vec<Emit>`
-//! and can be set via [`Report::install_debug_hook_fallback`].
+//! `Fn(&Frame, &mut HookContext<T>)` and can be set via [`Report::install_debug_hook_fallback`].
 //!
 //! Hook functions need to be [`Fn`] and **not** [`FnMut`], which means they are unable to directly
 //! mutate state outside of the closure.
@@ -34,9 +33,9 @@
 //! [`Report::install_debug_hook`].
 //! This type needs to be `'static`, [`Send`], and [`Sync`].
 //!
-//! The hook function must return [`Vec<Emit>`], which decides what is going
-//! to be emitted during printing, refer to the documentation of [`Emit`] for further
-//! information.
+//! You can emit lines, which decide what is going to be emitted during printing with
+//! [`HookContext::emit`] and [`HookContext::emit_deferred`], refer to the documentation of
+//! [`HookContext`] for further information.
 //!
 //! ## Example
 //!
@@ -45,7 +44,6 @@
 //! # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
 //! use std::io::{Error, ErrorKind};
 //! use error_stack::Report;
-//! use error_stack::fmt::Emit;
 //!
 //! struct ErrorCode(u64);
 //! struct Suggestion(&'static str);
@@ -54,18 +52,23 @@
 //!
 //! // This hook will never be called, because a later invocation of `install_debug_hook` overwrites
 //! // the hook for the type `ErrorCode`.
-//! Report::install_debug_hook::<ErrorCode>(|_, _| vec![Emit::next("will never be called")]);
+//! Report::install_debug_hook::<ErrorCode>(|_, ctx| {
+//!     ctx.emit("will never be called");
+//! });
 //!
 //! // `HookContext` always has a type parameter, which needs to be the same as the type of the
 //! // value, we use `HookContext` here as storage, to store values specific to this hook.
 //! // Here we make use of the auto-incrementing feature.
 //! // The incrementation is type specific, meaning that `ctx.increment()` for the `Suggestion` hook
 //! // will not influence the counter of the `ErrorCode` or `Warning` hook.
-//! Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| vec![Emit::next(format!("Suggestion {}: {val}", ctx.increment() + 1))]);
+//! Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
+//!     let idx = ctx.increment() + 1;
+//!     ctx.emit(format!("Suggestion {idx}: {val}"));
+//! });
 //!
-//! // we do not need to make use of the context, to either store a value for the duration of the
-//! // rendering, or to render additional text, which is why we omit the parameter.
-//! Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| vec![Emit::next(format!("Error ({val})"))]);
+//! Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), ctx| {
+//!     ctx.emit(format!("Error ({val})"));
+//! });
 //!
 //! Report::install_debug_hook::<Warning>(|Warning(val), ctx| {
 //!     let idx = ctx.increment() + 1;
@@ -73,15 +76,16 @@
 //!     // we set a value, which will be removed on non-alternate views
 //!     // and is going to be appended to the actual return value.
 //!     if ctx.alternate() {
-//!         ctx.attach_snippet(format!("Warning {idx}:\n  {val}"));
+//!         ctx.snippet(format!("Warning {idx}:\n  {val}"));
 //!     }
 //!
-//!     vec![Emit::next(format!("Warning ({idx}) occurred"))]
+//!     ctx.emit(format!("Warning ({idx}) occurred"));
 //!  });
 //!
-//! // you can use arbitrary values as arguments, just make sure that you won't repeat them.
-//! // here we use [`Emit::defer`], this means that this value will be put at the end of the group.
-//! Report::install_debug_hook::<Info>(|Info(val), _| vec![Emit::defer(format!("Info: {val}"))]);
+//! // here we use `emit_deferred()`, this means that this value will be put at the end of the group.
+//! Report::install_debug_hook::<Info>(|Info(val), ctx| {
+//!     ctx.emit_deferred(format!("Info: {val}"));
+//! });
 //!
 //! let report = Report::new(Error::from(ErrorKind::InvalidInput))
 //!     .attach(ErrorCode(404))
@@ -158,195 +162,37 @@ use core::{
 #[cfg(feature = "std")]
 pub use hook::HookContext;
 #[cfg(feature = "std")]
-use hook::HookContextImpl;
-#[cfg(feature = "std")]
 pub(crate) use hook::{install_builtin_hooks, Hooks};
 #[cfg(feature = "pretty-print")]
 use owo_colors::{OwoColorize, Stream::Stdout, Style as OwOStyle};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
-/// Modify the behaviour, with which text returned from hook invocations are rendered.
-///
-/// Text can either be emitted immediately as next line, or deferred until the end of the current
-/// stack, a stack is a list of attachments until a frame which has more than a single source.
-///
-/// Deferred lines are reversed when rendered, meaning that when `A`, `B`, and `C` have been added
-/// by **any** hook, they will be rendered in the order: `C`, `B`, `A`.
-///
-/// # Example
-///
-/// ```rust
-/// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
-/// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
-/// use std::io::{Error, ErrorKind};
-///
-/// use error_stack::{fmt::Emit, Report};
-///
-/// struct Warning(&'static str);
-/// struct ErrorCode(u64);
-/// struct Suggestion(&'static str);
-/// struct Secret(&'static str);
-///
-/// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| {
-///     vec![Emit::next(format!("Error Code: {val}"))]
-/// });
-/// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
-///     vec![Emit::defer(format!("Suggestion: {val}"))]
-/// });
-/// Report::install_debug_hook::<Warning>(|Warning(val), _| {
-///     vec![Emit::next("Abnormal program execution detected"), Emit::next(format!("Warning: {val}"))]
-/// });
-/// Report::install_debug_hook::<Secret>(|_, _| vec![]);
-///
-/// let report = Report::new(Error::from(ErrorKind::InvalidInput))
-///     .attach(ErrorCode(404))
-///     .attach(Suggestion("Do you have a connection to the internet?"))
-///     .attach(ErrorCode(405))
-///     .attach(Warning("Unable to determine environment"))
-///     .attach(Secret("pssst, don't tell anyone else c;"))
-///     .attach(Suggestion("Execute the program from the fish shell"))
-///     .attach(ErrorCode(501))
-///     .attach(Suggestion("Try better next time!"));
-///
-/// # owo_colors::set_override(true);
-/// # fn render(value: String) -> String {
-/// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-/// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
-/// #
-/// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-/// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
-/// #
-/// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
-/// # }
-/// #
-/// # #[cfg(rust_1_65)]
-/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap")].assert_eq(&render(format!("{report:?}")));
-/// #
-/// println!("{report:?}");
-/// ```
-///
-/// <pre>
-#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap"))]
-/// </pre>
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[must_use]
 #[non_exhaustive]
-pub enum Emit {
+pub(crate) enum Emit {
     /// Line is going to be emitted after all immediate lines have been emitted from the current
     /// stack.
     /// This means that deferred lines will always be last in a group.
-    #[cfg_attr(not(any(feature = "std", feature = "spantrace")), allow(dead_code))]
+    // Reason: in theory we could only conditionally create this variant in std, but that would
+    //  hurt readability in the generation process, instead we opt for `dead_code`, which will
+    //  disable the warning.
+    #[cfg_attr(not(feature = "std"), allow(dead_code))]
     Defer(String),
     /// Going to be emitted immediately as the next line in the chain of
     /// attachments and contexts.
-    Next(String),
+    Immediate(String),
 }
 
 impl Emit {
-    /// Add a new line which is going to be emitted immediately.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
-    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
-    /// use std::io;
-    ///
-    /// use error_stack::{fmt::Emit, Report};
-    ///
-    /// struct Suggestion(&'static str);
-    ///
-    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
-    ///     vec![
-    ///         Emit::next(format!("Suggestion: {val}")),
-    ///         Emit::next("Sorry for the inconvenience!")
-    ///     ]
-    /// });
-    ///
-    /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
-    ///     .attach(Suggestion("Try better next time"));
-    ///
-    /// # owo_colors::set_override(true);
-    /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
-    /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
-    /// #
-    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
-    /// # }
-    /// #
-    /// # #[cfg(rust_1_65)]
-    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap")].assert_eq(&render(format!("{report:?}")));
-    /// #
-    /// println!("{report:?}");
-    /// ```
-    ///
-    /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap"))]
-    /// </pre>
-    #[cfg_attr(not(feature = "std"), allow(dead_code))]
-    pub fn next<T: Into<String>>(line: T) -> Self {
-        Self::Next(line.into())
+    #[cfg(feature = "std")]
+    pub(crate) fn immediate<T: Into<String>>(line: T) -> Self {
+        Self::Immediate(line.into())
     }
 
-    /// Create a new line, which is going to be deferred until the end of the current stack.
-    ///
-    /// A stack are all attachments until a [`Context`] is encountered in the frame stack,
-    /// lines added via this function are going to be emitted at the end, in reversed direction to
-    /// the attachments that added them
-    ///
-    /// [`Context`]: crate::Context
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
-    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
-    /// use std::io;
-    ///
-    /// use error_stack::{fmt::Emit, Report};
-    ///
-    /// struct ErrorCode(u64);
-    /// struct Suggestion(&'static str);
-    ///
-    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
-    ///     vec![Emit::defer(format!("Suggestion: {val}"))]
-    /// });
-    /// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| {
-    ///     vec![Emit::next(format!("Error Code: {val}"))]
-    /// });
-    ///
-    /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
-    ///     .attach(Suggestion("Try better next time!"))
-    ///     .attach(ErrorCode(404))
-    ///     .attach(Suggestion("Try to use a different shell!"))
-    ///     .attach(ErrorCode(405));
-    ///
-    /// # owo_colors::set_override(true);
-    /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
-    /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
-    /// #
-    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
-    /// # }
-    /// #
-    /// # #[cfg(rust_1_65)]
-    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add_defer.snap")].assert_eq(&render(format!("{report:?}")));
-    /// #
-    /// println!("{report:?}");
-    /// ```
-    ///
-    /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add_defer.snap"))]
-    /// </pre>
-    #[cfg_attr(not(any(feature = "std", feature = "spantrace")), allow(dead_code))]
-    pub fn defer<T: Into<String>>(line: T) -> Self {
+    #[cfg(feature = "std")]
+    pub(crate) fn defer<T: Into<String>>(line: T) -> Self {
         Self::Defer(line.into())
     }
 }
@@ -885,66 +731,100 @@ impl Opaque {
     }
 }
 
-fn debug_attachments(
-    loc: Option<Line>,
-    position: Position,
+fn debug_attachments_order(emits: impl Iterator<Item = Emit>) -> Vec<String> {
+    let mut out = Vec::with_capacity(emits.size_hint().0);
+    let mut defer = vec![];
+
+    for emit in emits {
+        match emit {
+            Emit::Defer(value) => {
+                defer.push(value);
+            }
+            Emit::Immediate(value) => {
+                out.push(value);
+            }
+        }
+    }
+
+    out.append(&mut defer);
+
+    out
+}
+
+fn debug_attachments_invoke(
     frames: Vec<&Frame>,
-    #[cfg(feature = "std")] ctx: &mut HookContextImpl,
-) -> Lines {
-    let last = matches!(position, Position::Final);
+    #[cfg(feature = "std")] ctx: &mut HookContext<Frame>,
+) -> (Opaque, Vec<String>, Vec<String>) {
     let mut opaque = Opaque::new();
 
-    // evaluate all frames to their respective values, will call all hooks with the current context
-    let (next, defer): (Vec<_>, _) = frames
+    let (emits, snippets): (Vec<_>, Vec<_>) = frames
         .into_iter()
         .map(|frame| match frame.kind() {
             #[cfg(feature = "std")]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
-                Report::get_debug_format_hook(|hooks| hooks.call(frame, &mut ctx.as_hook_context()))
+                Report::get_debug_format_hook(|hooks| hooks.call(frame, ctx));
+                ctx.take_emits()
             }
             #[cfg(not(feature = "std"))]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
-                vec![]
+                (vec![], vec![])
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                vec![Emit::Next(attachment.to_string())]
+                (vec![Emit::Immediate(attachment.to_string())], vec![])
             }
         })
         .enumerate()
-        .flat_map(|(idx, value)| {
+        .map(|(idx, (emits, snippets))| {
             // increase the opaque counter, if we're unable to determine the actual value of the
             // frame
-            if idx > 0 && value.is_empty() {
+            if idx > 0 && emits.is_empty() {
                 opaque.increase();
             }
 
-            value
+            (emits, snippets)
         })
-        .partition(|f| matches!(f, Emit::Next(_)));
+        .unzip();
 
+    let emits = debug_attachments_order(emits.into_iter().flatten());
+    let snippets = debug_attachments_order(snippets.into_iter().flatten());
+
+    (opaque, emits, snippets)
+}
+
+fn debug_attachments(
+    loc: Option<Line>,
+    position: Position,
+    frames: Vec<&Frame>,
+    #[cfg(feature = "std")] ctx: &mut HookContext<Frame>,
+) -> Lines {
+    let last = matches!(position, Position::Final);
+
+    // Reason: snippets is unused in no-std, but this makes code cleaner overall
+    #[cfg_attr(not(feature = "std"), allow(unused_variables, unused_mut))]
+    let (opaque, emits, mut snippets) = debug_attachments_invoke(
+        frames,
+        #[cfg(feature = "std")]
+        ctx,
+    );
     let opaque = opaque.render();
 
+    #[cfg(feature = "std")]
+    ctx.append_snippet_string(&mut snippets);
+
     // calculate the len, combine next and defer emitted values into a single stream
-    let len =
-        next.len() + defer.len() + loc.as_ref().map_or(0, |_| 1) + opaque.as_ref().map_or(0, |_| 1);
-    let lines = next
-        .into_iter()
-        .chain(defer.into_iter().rev())
-        .map(|emit| match emit {
-            Emit::Defer(value) | Emit::Next(value) => value,
-        })
-        .map(|value| {
-            value
-                .lines()
-                .map(ToOwned::to_owned)
-                .map(|line| {
-                    Line::new().push(Instruction::Value {
-                        value: line,
-                        style: Style::new(),
-                    })
+    let len = emits.len() + loc.as_ref().map_or(0, |_| 1) + opaque.as_ref().map_or(0, |_| 1);
+    let lines = emits.into_iter().map(|value| {
+        value
+            .lines()
+            .map(ToOwned::to_owned)
+            .map(|line| {
+                Line::new().push(Instruction::Value {
+                    value: line,
+                    style: Style::new(),
                 })
-                .collect::<Vec<_>>()
-        });
+            })
+            .collect::<Vec<_>>()
+    });
 
     // indentation for every first line, use `Instruction::Attachment`, otherwise use minimal
     // indent omit that indent when we're the last value
@@ -1053,7 +933,7 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
 fn debug_frame(
     root: &Frame,
     prefix: &[&Frame],
-    #[cfg(feature = "std")] ctx: &mut HookContextImpl,
+    #[cfg(feature = "std")] ctx: &mut HookContext<Frame>,
 ) -> Vec<Lines> {
     let (stack, sources) = collect(root, prefix);
     let (stack, prefix) = partition(&stack);
@@ -1140,7 +1020,7 @@ impl<C> Debug for Report<C> {
         }
 
         #[cfg(feature = "std")]
-        let mut ctx = HookContextImpl::new(fmt.alternate());
+        let mut ctx = HookContext::new(fmt.alternate());
 
         #[cfg_attr(not(feature = "std"), allow(unused_mut))]
         let mut lines = self
@@ -1176,8 +1056,8 @@ impl<C> Debug for Report<C> {
             // only output detailed information (like backtraces), if alternate mode is enabled, or
             // the snippet has been forced.
             let suffix = ctx
-                .snippets
-                .into_iter()
+                .snippet_strings()
+                .iter()
                 .map(
                     // remove all trailing newlines for a more uniform look
                     |snippet| snippet.trim_end_matches('\n').to_owned(),

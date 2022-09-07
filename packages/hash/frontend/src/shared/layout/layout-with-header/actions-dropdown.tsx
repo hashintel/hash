@@ -1,4 +1,4 @@
-import { useState, useCallback, FunctionComponent } from "react";
+import { useState, useCallback, FunctionComponent, useMemo } from "react";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
@@ -18,6 +18,7 @@ import {
 import { Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
+import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { useCreatePage } from "../../../components/hooks/useCreatePage";
 import { useRouteAccountInfo } from "../../routing";
 
@@ -27,11 +28,21 @@ export const ActionsDropdownInner: FunctionComponent<{
   const router = useRouter();
   const theme = useTheme();
   const [loading, setLoading] = useState(false);
-  const { createUntitledPage } = useCreatePage(accountId);
+  const { data } = useAccountPages(accountId);
+  const [createUntitledPage] = useCreatePage(accountId);
   const popupState = usePopupState({
     variant: "popover",
     popupId: "actions-dropdown-menu",
   });
+
+  const lastRootPageIndex = useMemo(() => {
+    const rootPages = data
+      .filter(({ parentPageEntityId }) => parentPageEntityId === null)
+      .map(({ index }) => index)
+      .sort();
+
+    return rootPages[rootPages.length - 1] ?? null;
+  }, [data]);
 
   // @todo handle loading/error states properly
   const addPage = useCallback(async () => {
@@ -41,7 +52,7 @@ export const ActionsDropdownInner: FunctionComponent<{
 
     setLoading(true);
     try {
-      await createUntitledPage();
+      await createUntitledPage(lastRootPageIndex);
     } catch (err) {
       // eslint-disable-next-line no-console -- TODO: consider using logger
       console.error("Could not create page: ", err);
@@ -49,7 +60,7 @@ export const ActionsDropdownInner: FunctionComponent<{
       popupState.close();
       setLoading(false);
     }
-  }, [createUntitledPage, loading, popupState]);
+  }, [createUntitledPage, loading, popupState, lastRootPageIndex]);
 
   const newEntityTypeRoute = `/${accountId}/types/new`;
 

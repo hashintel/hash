@@ -10,7 +10,13 @@ export const setParentPage: ResolverFn<
   MutationSetParentPageArgs
 > = async (
   _,
-  { accountId, pageEntityId, parentPageEntityId },
+  {
+    accountId,
+    pageEntityId,
+    parentPageEntityId,
+    prevIndex = null,
+    nextIndex = null,
+  },
   { dataSources: { db }, user },
 ) => {
   if (pageEntityId === parentPageEntityId) {
@@ -49,6 +55,8 @@ export const setParentPage: ResolverFn<
     await pageEntity.setParentPage(client, {
       parentPage,
       setByAccountId: user.accountId,
+      prevIndex,
+      nextIndex,
     });
 
     return pageEntity.toGQLUnknownEntity();
