@@ -11,7 +11,7 @@ use crate::Report;
 /// Defines the current context of a [`Report`].
 ///
 /// When in a `std` environment or on a nightly toolchain, every [`Error`] is a valid `Context`.
-/// This trait is not limited to [`Error`]s and can also be manually implemented for custom objects.
+/// This trait is not limited to [`Error`]s and can also be manually implemented on a type.
 ///
 /// [`Error`]: core::error::Error
 ///
