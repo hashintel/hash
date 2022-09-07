@@ -15,7 +15,7 @@ use graph::{
         PersistedOntologyIdentifier, PersistedPropertyType,
     },
     store::{
-        error::LinkActivationError,
+        error::LinkRemovalError,
         query::{Expression, Literal, Path, PathSegment},
         AccountStore, AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
         EntityTypeStore, InsertionError, LinkStore, LinkTypeStore, PostgresStore,
@@ -355,9 +355,9 @@ impl DatabaseApi<'_> {
         source_entity_id: EntityId,
         target_entity_id: EntityId,
         link_type_uri: VersionedUri,
-    ) -> Result<(), LinkActivationError> {
+    ) -> Result<(), LinkRemovalError> {
         let link = Link::new(source_entity_id, target_entity_id, link_type_uri);
-        self.store.remove_link(&link).await
+        self.store.remove_link(&link, self.account_id).await
     }
 }
 
