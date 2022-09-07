@@ -2807,7 +2807,7 @@ export const GraphApiAxiosParamCreator = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getActiveLinks: async (
+    getCurrentLinks: async (
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
       const localVarPath = `/links`;
@@ -3814,12 +3814,12 @@ export const GraphApiFp = function (configuration?: Configuration) {
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    async getActiveLinks(
+    async getCurrentLinks(
       options?: AxiosRequestConfig,
     ): Promise<
       (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<Link>>
     > {
-      const localVarAxiosArgs = await localVarAxiosParamCreator.getActiveLinks(
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getCurrentLinks(
         options,
       );
       return createRequestFunction(
@@ -4365,9 +4365,9 @@ export const GraphApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getActiveLinks(options?: any): AxiosPromise<Array<Link>> {
+    getCurrentLinks(options?: any): AxiosPromise<Array<Link>> {
       return localVarFp
-        .getActiveLinks(options)
+        .getCurrentLinks(options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -4679,7 +4679,7 @@ export interface GraphApiInterface {
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
-  getActiveLinks(options?: AxiosRequestConfig): AxiosPromise<Array<Link>>;
+  getCurrentLinks(options?: AxiosRequestConfig): AxiosPromise<Array<Link>>;
 
   /**
    *
@@ -5001,9 +5001,9 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
    * @throws {RequiredError}
    * @memberof GraphApi
    */
-  public getActiveLinks(options?: AxiosRequestConfig) {
+  public getCurrentLinks(options?: AxiosRequestConfig) {
     return GraphApiFp(this.configuration)
-      .getActiveLinks(options)
+      .getCurrentLinks(options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -5313,7 +5313,7 @@ export const LinkApiAxiosParamCreator = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getActiveLinks: async (
+    getCurrentLinks: async (
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
       const localVarPath = `/links`;
@@ -5488,12 +5488,12 @@ export const LinkApiFp = function (configuration?: Configuration) {
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    async getActiveLinks(
+    async getCurrentLinks(
       options?: AxiosRequestConfig,
     ): Promise<
       (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<Link>>
     > {
-      const localVarAxiosArgs = await localVarAxiosParamCreator.getActiveLinks(
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getCurrentLinks(
         options,
       );
       return createRequestFunction(
@@ -5587,9 +5587,9 @@ export const LinkApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getActiveLinks(options?: any): AxiosPromise<Array<Link>> {
+    getCurrentLinks(options?: any): AxiosPromise<Array<Link>> {
       return localVarFp
-        .getActiveLinks(options)
+        .getCurrentLinks(options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -5648,7 +5648,7 @@ export interface LinkApiInterface {
    * @throws {RequiredError}
    * @memberof LinkApiInterface
    */
-  getActiveLinks(options?: AxiosRequestConfig): AxiosPromise<Array<Link>>;
+  getCurrentLinks(options?: AxiosRequestConfig): AxiosPromise<Array<Link>>;
 
   /**
    *
@@ -5708,9 +5708,9 @@ export class LinkApi extends BaseAPI implements LinkApiInterface {
    * @throws {RequiredError}
    * @memberof LinkApi
    */
-  public getActiveLinks(options?: AxiosRequestConfig) {
+  public getCurrentLinks(options?: AxiosRequestConfig) {
     return LinkApiFp(this.configuration)
-      .getActiveLinks(options)
+      .getCurrentLinks(options)
       .then((request) => request(this.axios, this.basePath));
   }
 
