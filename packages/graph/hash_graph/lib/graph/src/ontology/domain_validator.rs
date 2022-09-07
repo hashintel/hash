@@ -24,7 +24,7 @@ pub trait ValidateOntologyType<T> {
     fn validate(&self, ontology_type: &T) -> error_stack::Result<(), DomainValidationError>;
 }
 
-/// TODO: DOC
+/// Responsible for validating Type URIs against a known valid pattern.
 pub struct DomainValidator(Regex);
 
 impl DomainValidator {
@@ -58,39 +58,32 @@ impl DomainValidator {
             .into_report()
     }
 
-    // TODO - we don't need to get the captures twice if we're always going to extract both
-    /// Returns the capture of group with name "shortname"
+    /// Returns the captures of the groups "shortname" and "kind"
     ///
     /// # Errors
     ///
-    /// - [`DomainValidationError`], if "shortname" didn't capture anything
-    pub fn extract_shortname<'a>(
+    /// - [`DomainValidationError`], if "shortname" or "kind" didn't capture anything
+    pub fn extract_shortname_and_kind<'a>(
         &'a self,
         url: &'a str,
-    ) -> error_stack::Result<&str, DomainValidationError> {
-        self.captures(url)?
+    ) -> error_stack::Result<(&str, &str), DomainValidationError> {
+        let captures = self.captures(url)?;
+
+        let name = captures
             .name("shortname")
             .map(|matched| matched.as_str())
             .ok_or(DomainValidationError)
             .into_report()
-            .attach_printable("missing shortname")
-    }
+            .attach_printable("missing shortname")?;
 
-    /// Returns the capture of group with name "kind"
-    ///
-    /// # Errors
-    ///
-    /// - [`DomainValidationError`], if "kind" didn't capture anything
-    pub fn extract_kind<'a>(
-        &'a self,
-        url: &'a str,
-    ) -> error_stack::Result<&str, DomainValidationError> {
-        self.captures(url)?
+        let kind = captures
             .name("kind")
             .map(|matched| matched.as_str())
             .ok_or(DomainValidationError)
             .into_report()
-            .attach_printable("missing ontology type kind")
+            .attach_printable("missing ontology type kind")?;
+
+        return Ok((name, kind));
     }
 }
 
@@ -104,7 +97,7 @@ impl ValidateOntologyType<DataType> for DomainValidator {
                 .attach_printable("Data Type base URI didn't match the given validation regex");
         };
 
-        let kind = self.extract_kind(base_uri.as_str())?;
+        let (_, kind) = self.extract_shortname_and_kind(base_uri.as_str())?;
         if kind != "data-type" {
             return Err(DomainValidationError)
                 .into_report()
@@ -112,8 +105,11 @@ impl ValidateOntologyType<DataType> for DomainValidator {
                     format!("Data Type base URI had the incorrect ontology kind slug: {kind}")
                 });
         };
-        // TODO check that the user has write access to the shortname
 
+        // TODO - check that the user has write access to the shortname, this will require us
+        //  making the graph aware of shortnames. We can store them alongside accountIds. We should
+        //  not have to make the graph aware of User entities being a thing however.
+        //  https://app.asana.com/0/1202805690238892/1202931031833224/f
         Ok(())
     }
 }
@@ -131,7 +127,7 @@ impl ValidateOntologyType<PropertyType> for DomainValidator {
             );
         };
 
-        let kind = self.extract_kind(base_uri.as_str())?;
+        let (_, kind) = self.extract_shortname_and_kind(base_uri.as_str())?;
         if kind != "property-type" {
             return Err(DomainValidationError)
                 .into_report()
@@ -139,7 +135,11 @@ impl ValidateOntologyType<PropertyType> for DomainValidator {
                     format!("Property Type base URI had the incorrect ontology kind slug: {kind}")
                 });
         };
-        // TODO check that the user has write access to the shortname
+
+        // TODO - check that the user has write access to the shortname, this will require us
+        //  making the graph aware of shortnames. We can store them alongside accountIds. We should
+        //  not have to make the graph aware of User entities being a thing however.
+        //  https://app.asana.com/0/1202805690238892/1202931031833224/f
         Ok(())
     }
 }
@@ -157,7 +157,7 @@ impl ValidateOntologyType<EntityType> for DomainValidator {
                 .attach_printable("Entity Type base URI didn't match the given validation regex");
         };
 
-        let kind = self.extract_kind(base_uri.as_str())?;
+        let (_, kind) = self.extract_shortname_and_kind(base_uri.as_str())?;
         if kind != "entity-type" {
             return Err(DomainValidationError)
                 .into_report()
@@ -165,7 +165,11 @@ impl ValidateOntologyType<EntityType> for DomainValidator {
                     format!("Entity Type base URI had the incorrect ontology kind slug: {kind}")
                 });
         };
-        // TODO check that the user has write access to the shortname
+
+        // TODO - check that the user has write access to the shortname, this will require us
+        //  making the graph aware of shortnames. We can store them alongside accountIds. We should
+        //  not have to make the graph aware of User entities being a thing however.
+        //  https://app.asana.com/0/1202805690238892/1202931031833224/f
         Ok(())
     }
 }
@@ -180,7 +184,7 @@ impl ValidateOntologyType<LinkType> for DomainValidator {
                 .attach_printable("Link Type base URI didn't match the given validation regex");
         };
 
-        let kind = self.extract_kind(base_uri.as_str())?;
+        let (_, kind) = self.extract_shortname_and_kind(base_uri.as_str())?;
         if kind != "link-type" {
             return Err(DomainValidationError)
                 .into_report()
@@ -188,7 +192,11 @@ impl ValidateOntologyType<LinkType> for DomainValidator {
                     format!("Link Type base URI had the incorrect ontology kind slug: {kind}")
                 });
         };
-        // TODO check that the user has write access to the shortname
+
+        // TODO - check that the user has write access to the shortname, this will require us
+        //  making the graph aware of shortnames. We can store them alongside accountIds. We should
+        //  not have to make the graph aware of User entities being a thing however.
+        //  https://app.asana.com/0/1202805690238892/1202931031833224/f
         Ok(())
     }
 }
