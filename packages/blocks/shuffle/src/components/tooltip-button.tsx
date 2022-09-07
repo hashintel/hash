@@ -1,11 +1,11 @@
 import { Button, ButtonProps } from "@hashintel/hash-design-system";
 import { Tooltip } from "@mui/material";
 
-interface Props extends ButtonProps {
+interface TooltipButtonProps extends ButtonProps {
   tooltip: string;
 }
 
-export const TooltipButton = ({ tooltip, ...props }: Props) => {
+export const TooltipButton = ({ tooltip, ...props }: TooltipButtonProps) => {
   return (
     <Tooltip title={tooltip}>
       <Button

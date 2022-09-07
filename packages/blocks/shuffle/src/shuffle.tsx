@@ -103,7 +103,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     }
   };
 
-  const onReorder = (sourceIndex: number, destinationIndex: number) =>
+  const handleReorder = (sourceIndex: number, destinationIndex: number) =>
     updateItems(
       produce(draftItems, (newItems) => {
         const [removed] = newItems.splice(sourceIndex, 1);
@@ -113,7 +113,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
       }),
     );
 
-  const onValueChange = (index: number, value: string) => {
+  const handleValueChange = (index: number, value: string) => {
     if (readonly) {
       return;
     }
@@ -128,9 +128,9 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     );
   };
 
-  const onItemBlur = () => publishItems(draftItems);
+  const handleItemBlur = () => publishItems(draftItems);
 
-  const onDelete = (index: number) => {
+  const handleDelete = (index: number) => {
     updateItems(
       produce(draftItems, (newItems) => {
         const [deletedItem] = newItems.splice(index, 1);
@@ -144,7 +144,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     );
   };
 
-  const handleAddNew = () =>
+  const handleAddNewClick = () =>
     updateItems(
       produce(draftItems, (newItems) => {
         newItems.push({
@@ -154,7 +154,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
       }),
     );
 
-  const handleShuffle = () =>
+  const handleShuffleClick = () =>
     updateItems(
       produce(draftItems, (newItems) => {
         return newItems
@@ -164,9 +164,9 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
       }),
     );
 
-  const handleAddEntities = () => dialogRef.current?.show();
+  const handleAddEntitiesClick = () => dialogRef.current?.show();
 
-  const handleRemoveAll = () => {
+  const handleRemoveAllClick = () => {
     const linkIds = draftItems
       .map((item) => item.linkId)
       .filter(Boolean) as string[];
@@ -216,33 +216,36 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     <Box ref={blockRootRef} display="flex" flexDirection="column" px={1}>
       {!readonly && (
         <Box display="flex" alignSelf="end" gap={1}>
-          <TooltipButton tooltip="Add new" onClick={handleAddNew}>
+          <TooltipButton tooltip="Add new" onClick={handleAddNewClick}>
             <AddIcon />
           </TooltipButton>
 
           <TooltipButton
             tooltip="Shuffle"
-            onClick={handleShuffle}
+            onClick={handleShuffleClick}
             disabled={draftItems.length <= 1}
           >
             <ShuffleIcon />
           </TooltipButton>
 
-          <TooltipButton tooltip="Add entities" onClick={handleAddEntities}>
+          <TooltipButton
+            tooltip="Add entities"
+            onClick={handleAddEntitiesClick}
+          >
             <DatasetLinkedIcon />
           </TooltipButton>
 
-          <TooltipButton tooltip="Remove all" onClick={handleRemoveAll}>
+          <TooltipButton tooltip="Remove all" onClick={handleRemoveAllClick}>
             <ClearIcon />
           </TooltipButton>
         </Box>
       )}
       <ItemList
         list={enhancedDraftItems}
-        onReorder={onReorder}
-        onValueChange={onValueChange}
-        onItemBlur={onItemBlur}
-        onDelete={onDelete}
+        onReorder={handleReorder}
+        onValueChange={handleValueChange}
+        onItemBlur={handleItemBlur}
+        onDelete={handleDelete}
         readonly={!!readonly}
       />
       <AddEntitiesDialog
