@@ -435,12 +435,3 @@ Accept: application/json
     });
     client.assert(Object.keys(response.body).length === 0, "Link has wrong target entity ID")
 %}
-
-### Check inactivated person "a" to person "b" link
-POST http://127.0.0.1:4000/entities/query
-Content-Type: application/json
-Accept: application/json
-
-{
-  "literal": ""
-}
