@@ -76,8 +76,8 @@ impl HookContextInner {
     fn new(alternate: bool) -> Self {
         Self {
             storage: Storage::default(),
-            appendix: Vec::new(),
             body: Vec::new(),
+            appendix: Vec::new(),
             alternate,
         }
     }
