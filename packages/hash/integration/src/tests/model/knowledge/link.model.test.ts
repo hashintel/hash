@@ -26,11 +26,6 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-/** @todo - explain that this avoids DB clashes between tests */
-const uniqueTitleSuffix = (title: string) => {
-  return `Link Test ${title}`;
-};
-
 describe("Link model class", () => {
   let accountId: string;
   let testEntityType: EntityTypeModel;
@@ -47,7 +42,7 @@ describe("Link model class", () => {
       accountId,
       schema: {
         kind: "entityType",
-        title: uniqueTitleSuffix("Person"),
+        title: "Person",
         pluralTitle: "People",
         type: "object",
         properties: {},
@@ -59,7 +54,7 @@ describe("Link model class", () => {
         accountId,
         schema: {
           kind: "linkType",
-          title: uniqueTitleSuffix("Friends"),
+          title: "Friends",
           pluralTitle: "Friends",
           description: "Friend of",
         },
@@ -71,7 +66,7 @@ describe("Link model class", () => {
         accountId,
         schema: {
           kind: "linkType",
-          title: uniqueTitleSuffix("Acquaintance"),
+          title: "Acquaintance",
           pluralTitle: "Acquaintances",
           description: "Acquainted with",
         },
