@@ -672,6 +672,8 @@ where
 
         self.as_client()
             .query_one(
+                // This query removes a link from the `links` table and then immediately inserts
+                // into the link_histories table.
                 r#"
                 WITH removed AS (
                     DELETE FROM links
@@ -682,8 +684,9 @@ where
                     link_order, created_by, created_at
                 )
                 INSERT INTO link_histories(source_entity_id, target_entity_id, link_type_version_id,
-                    link_order, created_by, created_at, removed_by)
-                SELECT *, $4 FROM removed
+                    link_order, created_by, created_at, removed_by, removed_at)
+                -- When inserting into `link_histories`, `removed_by` and `removed_at` are provided
+                SELECT *, $4, clock_timestamp() FROM removed
                 RETURNING source_entity_id, target_entity_id, link_type_version_id;
                 "#,
                 &[

@@ -45,6 +45,8 @@ pub async fn read_all_current_links(client: &impl AsClient) -> Result<RecordStre
             SELECT base_uri, version, source_entity_id, target_entity_id, created_by
             FROM links
             JOIN ids ON version_id = link_type_version_id
+            -- Nulls will be last with default ascending order (default is ASC NULLS LAST)
+            ORDER BY link_order ASC
             "#,
             parameter_list([]),
         )
@@ -66,6 +68,8 @@ pub async fn read_current_links_by_source(
             FROM links
             JOIN ids ON version_id = link_type_version_id
             WHERE source_entity_id = $1
+            -- Nulls will be last with default ascending order (default is ASC NULLS LAST)
+            ORDER BY link_order ASC
             "#,
             parameter_list([&entity_id]),
         )
