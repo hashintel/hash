@@ -1,7 +1,6 @@
-import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 import { OrgModel, UserModel } from "..";
 import { GraphApi } from "../../graph";
-import { propertyTypeInitializer, RESTRICTED_SHORTNAMES } from "../util";
+import { RESTRICTED_SHORTNAMES } from "../util";
 
 // Validations for shortnames
 /**
