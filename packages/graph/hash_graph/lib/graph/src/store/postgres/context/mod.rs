@@ -1,16 +1,15 @@
+mod entity;
+mod links;
+mod ontology;
+
 use async_trait::async_trait;
 use error_stack::{Context, Result, ResultExt};
 use type_system::uri::VersionedUri;
 
+pub use self::{entity::EntityRecord, links::LinkRecord, ontology::OntologyRecord};
 use crate::{
     knowledge::EntityId,
-    store::{
-        postgres::{
-            ontology::OntologyDatabaseType,
-            resolve::{entity, entity::EntityRecord, links, ontology, OntologyRecord},
-        },
-        AsClient, PostgresStore, QueryError,
-    },
+    store::{postgres::ontology::OntologyDatabaseType, AsClient, PostgresStore, QueryError},
 };
 
 /// Context used for [`Resolve`].
@@ -72,7 +71,7 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
     where
         T: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>,
     {
-        ontology::read_versioned_type(&self.client, T::table(), uri)
+        ontology::read_versioned_type(&self.client, uri)
             .await
             .attach_printable("could not read ontology type")
     }
