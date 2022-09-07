@@ -3,7 +3,6 @@ import {
   BlockComponent,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
-import { Button, ButtonProps } from "@hashintel/hash-design-system";
 import Box from "@mui/material/Box";
 import produce from "immer";
 import { v4 as uuid } from "uuid";
@@ -12,27 +11,14 @@ import ShuffleIcon from "@mui/icons-material/Shuffle";
 import AddIcon from "@mui/icons-material/Add";
 import DatasetLinkedIcon from "@mui/icons-material/DatasetLinked";
 import ClearIcon from "@mui/icons-material/Clear";
-import { Entity, EntityType } from "@blockprotocol/graph/.";
-import { styled, Tooltip } from "@mui/material";
+import { EntityType } from "@blockprotocol/graph/.";
 import { ItemList } from "./components/item-list";
 import {
   AddEntitiesDialog,
   AddEntitiesDialogRef,
 } from "./components/add-entities-dialog";
-
-const STooltipButton = styled(
-  ({ tooltip, ...props }: ButtonProps & { tooltip: string }) => (
-    <Tooltip title={tooltip}>
-      <Button {...props} />
-    </Tooltip>
-  ),
-)(({ theme: { palette } }) => ({
-  border: "1px solid",
-  borderColor: palette.primary.light,
-  "&:hover": {
-    borderColor: palette.primary.main,
-  },
-}));
+import { getEntityLabel } from "./utils";
+import { TooltipButton } from "./components/tooltip-button";
 
 type Item = {
   id: string;
@@ -51,15 +37,6 @@ const initialItems = [
   { id: "1", value: "Thing 1" },
   { id: "2", value: "Thing 2" },
 ];
-
-export const getEntityLabel = (
-  entity: Entity,
-  entityType?: EntityType,
-): string => {
-  const { entityId, properties } = entity;
-  const { labelProperty } = entityType?.schema ?? {};
-  return labelProperty ? String(properties[labelProperty]) : entityId;
-};
 
 export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   graph: {
@@ -227,28 +204,25 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     <Box ref={blockRootRef} display="flex" flexDirection="column" px={1}>
       {!readonly && (
         <Box display="flex" alignSelf="end" gap={1}>
-          <STooltipButton tooltip="Add new" onClick={onAdd}>
+          <TooltipButton tooltip="Add new" onClick={onAdd}>
             <AddIcon />
-          </STooltipButton>
+          </TooltipButton>
 
-          <STooltipButton
+          <TooltipButton
             tooltip="Shuffle"
             onClick={onShuffle}
             disabled={draftItems.length <= 1}
           >
             <ShuffleIcon />
-          </STooltipButton>
+          </TooltipButton>
 
-          <STooltipButton
-            tooltip="Add entities"
-            onClick={showAddEntitiesDialog}
-          >
+          <TooltipButton tooltip="Add entities" onClick={showAddEntitiesDialog}>
             <DatasetLinkedIcon />
-          </STooltipButton>
+          </TooltipButton>
 
-          <STooltipButton tooltip="Remove all" onClick={removeAllItems}>
+          <TooltipButton tooltip="Remove all" onClick={removeAllItems}>
             <ClearIcon />
-          </STooltipButton>
+          </TooltipButton>
         </Box>
       )}
       <ItemList

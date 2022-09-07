@@ -18,7 +18,8 @@ import {
   ChangeEvent,
 } from "react";
 import { v4 as uuid } from "uuid";
-import { getEntityLabel, Items } from "../shuffle";
+import { Items } from "../shuffle";
+import { getEntityLabel } from "../utils";
 
 export interface AddEntitiesDialogRef {
   show: () => void;
