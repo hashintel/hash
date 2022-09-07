@@ -77,7 +77,7 @@ struct CreateEntityRequest {
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Entity Type URI was not found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     request_body = CreateEntityRequest,
 )]
@@ -154,7 +154,7 @@ async fn get_latest_entities<P: StorePool + Send>(
 
         (status = 400, content_type = "text/plain", description = "Provided entity id is invalid"),
         (status = 404, description = "Entity was not found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     params(
         ("entityId" = Uuid, Path, description = "The ID of the entity"),
@@ -189,7 +189,7 @@ struct UpdateEntityRequest {
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Entity ID or Entity Type URI was not found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     request_body = UpdateEntityRequest,
 )]

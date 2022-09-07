@@ -82,7 +82,7 @@ struct CreateEntityTypeRequest {
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create entity type in the datastore as the base entity type ID already exists"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     request_body = CreateEntityTypeRequest,
 )]
@@ -147,7 +147,7 @@ async fn query_entity_types<P: StorePool + Send>(
     responses(
         (status = 200, content_type = "application/json", description = "List of all entity types at their latest versions", body = [PersistedEntityType]),
 
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     )
 )]
 async fn get_latest_entity_types<P: StorePool + Send>(
@@ -167,7 +167,7 @@ async fn get_latest_entity_types<P: StorePool + Send>(
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Entity type was not found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     params(
         ("uri" = String, Path, description = "The URI of the entity type"),
@@ -200,7 +200,7 @@ struct UpdateEntityTypeRequest {
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base entity type ID was not found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     request_body = UpdateEntityTypeRequest,
 )]

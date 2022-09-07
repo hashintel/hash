@@ -67,7 +67,7 @@ struct CreateLinkRequest {
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Source entity, target entity or link type URI was not found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     params(
         ("entityId" = Uuid, Path, description = "The ID of the source entity"),
@@ -138,7 +138,7 @@ async fn query_active_links<P: StorePool + Send>(
         (status = 422, content_type = "text/plain", description = "Provided source entity id is invalid"),
 
         (status = 404, description = "No links were found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     params(
         ("entityId" = Uuid, Path, description = "The ID of the source entity"),
@@ -173,7 +173,7 @@ struct InactivateLinkRequest {
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Source entity, target entity or link type URI was not found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     request_body = InactivateLinkRequest,
     params(
