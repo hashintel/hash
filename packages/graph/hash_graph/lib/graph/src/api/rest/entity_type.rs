@@ -27,6 +27,7 @@ use crate::{
 #[openapi(
     handlers(
         create_entity_type,
+        get_entity_types_by_query,
         get_entity_type,
         get_latest_entity_types,
         update_entity_type
@@ -57,6 +58,7 @@ impl RoutedResource for EntityTypeResource {
                         .get(get_latest_entity_types::<P>)
                         .put(update_entity_type::<P>),
                 )
+                .route("/query", post(get_entity_types_by_query::<P>))
                 .route("/:version_id", get(get_entity_type::<P>)),
         )
     }
@@ -80,7 +82,7 @@ struct CreateEntityTypeRequest {
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create entity type in the datastore as the base entity type ID already exists"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     request_body = CreateEntityTypeRequest,
 )]
@@ -120,27 +122,40 @@ async fn create_entity_type<P: StorePool + Send>(
 }
 
 #[utoipa::path(
+    post,
+    path = "/entity-types/query",
+    request_body = Expression,
+    tag = "EntityType",
+    responses(
+        (status = 200, content_type = "application/json", description = "List of all entity types matching the provided query", body = [PersistedEntityType]),
+
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
+        (status = 500, description = "Store error occurred"),
+)
+)]
+async fn get_entity_types_by_query<P: StorePool + Send>(
+    pool: Extension<Arc<P>>,
+    Json(expression): Json<Expression>,
+) -> Result<Json<Vec<PersistedEntityType>>, StatusCode> {
+    read_from_store(pool.as_ref(), &expression).await.map(Json)
+}
+
+#[utoipa::path(
     get,
     path = "/entity-types",
     tag = "EntityType",
     responses(
         (status = 200, content_type = "application/json", description = "List of all entity types at their latest versions", body = [PersistedEntityType]),
 
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     )
 )]
 async fn get_latest_entity_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    mut body: Option<Json<Expression>>,
 ) -> Result<Json<Vec<PersistedEntityType>>, StatusCode> {
-    read_from_store(
-        pool.as_ref(),
-        &body
-            .take()
-            .map_or_else(Expression::for_latest_version, |json| json.0),
-    )
-    .await
-    .map(Json)
+    read_from_store(pool.as_ref(), &Expression::for_latest_version())
+        .await
+        .map(Json)
 }
 
 #[utoipa::path(
@@ -152,7 +167,7 @@ async fn get_latest_entity_types<P: StorePool + Send>(
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Entity type was not found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     params(
         ("uri" = String, Path, description = "The URI of the entity type"),
@@ -185,7 +200,7 @@ struct UpdateEntityTypeRequest {
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base entity type ID was not found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     request_body = UpdateEntityTypeRequest,
 )]

@@ -2,12 +2,7 @@
 
 use std::sync::Arc;
 
-use axum::{
-    extract::Path,
-    http::StatusCode,
-    routing::{get, post},
-    Extension, Json, Router,
-};
+use axum::{extract::Path, http::StatusCode, routing::post, Extension, Json, Router};
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
 use utoipa::{Component, OpenApi};
@@ -16,19 +11,15 @@ use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store},
     knowledge::{EntityId, Link},
     ontology::AccountId,
-    store::{
-        error::QueryError,
-        query::{Expression, Literal},
-        LinkStore, StorePool,
-    },
+    store::{error::QueryError, query::Expression, LinkStore, StorePool},
 };
 
 #[derive(OpenApi)]
 #[openapi(
     handlers(
         create_link,
+        get_links_by_query,
         get_entity_links,
-        get_links,
         remove_link
     ),
     components(AccountId, Link, CreateLinkRequest, RemoveLinkRequest),
@@ -50,7 +41,10 @@ impl RoutedResource for LinkResource {
                     .get(get_entity_links::<P>)
                     .delete(remove_link::<P>),
             )
-            .route("/links", get(get_links::<P>))
+            .nest(
+                "/links",
+                Router::new().route("/query", post(get_links_by_query::<P>)),
+            )
     }
 }
 
@@ -73,7 +67,7 @@ struct CreateLinkRequest {
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Source entity, target entity or link type URI was not found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     params(
         ("entityId" = Uuid, Path, description = "The ID of the source entity"),
@@ -117,6 +111,25 @@ async fn create_link<P: StorePool + Send>(
 }
 
 #[utoipa::path(
+    post,
+    path = "/links/query",
+    request_body = Expression,
+    tag = "Link",
+    responses(
+        (status = 200, content_type = "application/json", description = "List of all links matching the provided query", body = [Link]),
+
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+async fn get_links_by_query<P: StorePool + Send>(
+    pool: Extension<Arc<P>>,
+    Json(expression): Json<Expression>,
+) -> Result<Json<Vec<Link>>, StatusCode> {
+    read_from_store(pool.as_ref(), &expression).await.map(Json)
+}
+
+#[utoipa::path(
     get,
     path = "/entities/{entityId}/links",
     tag = "Link",
@@ -125,7 +138,7 @@ async fn create_link<P: StorePool + Send>(
         (status = 422, content_type = "text/plain", description = "Provided source entity id is invalid"),
 
         (status = 404, description = "No links were found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     params(
         ("entityId" = Uuid, Path, description = "The ID of the source entity"),
@@ -161,7 +174,7 @@ struct RemoveLinkRequest {
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Source entity, target entity or link type URI was not found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     request_body = RemoveLinkRequest,
     params(
@@ -203,27 +216,4 @@ async fn remove_link<P: StorePool + Send>(
         })?;
 
     Ok(StatusCode::NO_CONTENT)
-}
-
-#[utoipa::path(
-    get,
-    path = "/links",
-    tag = "Link",
-    responses(
-        (status = 200, content_type = "application/json", description = "List of all links", body = [Link]),
-        (status = 500, description = "Store error occurred"),
-    )
-)]
-async fn get_links<P: StorePool + Send>(
-    pool: Extension<Arc<P>>,
-    mut body: Option<Json<Expression>>,
-) -> Result<Json<Vec<Link>>, StatusCode> {
-    read_from_store(
-        pool.as_ref(),
-        &body
-            .take()
-            .map_or_else(|| Expression::Literal(Literal::Bool(true)), |json| json.0),
-    )
-    .await
-    .map(Json)
 }
