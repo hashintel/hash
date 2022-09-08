@@ -194,7 +194,7 @@ where
         self.as_client()
             .query_one(
                 r#"
-                    INSERT INTO base_uris (base_uri) 
+                    INSERT INTO base_uris (base_uri)
                     VALUES ($1)
                     RETURNING base_uri;
                 "#,
@@ -217,7 +217,7 @@ where
         self.as_client()
             .query_one(
                 r#"
-                    INSERT INTO version_ids (version_id) 
+                    INSERT INTO version_ids (version_id)
                     VALUES ($1)
                     RETURNING version_id;
                 "#,
@@ -578,7 +578,7 @@ where
             .change_context(InsertionError)?;
         let version = self.as_client().query_one(
                 r#"
-                    INSERT INTO entities (entity_id, version, entity_type_version_id, properties, created_by) 
+                    INSERT INTO entities (entity_id, version, entity_type_version_id, properties, created_by)
                     VALUES ($1, clock_timestamp(), $2, $3, $4)
                     RETURNING version;
                 "#,
@@ -634,7 +634,7 @@ where
 
         self.as_client()
         .query_one(
-            // TODO: Currently we insert `null` for the `link_order`, this needs to change as we 
+            // TODO: Currently we insert `null` for the `link_order`, this needs to change as we
             //   implement ordered links.
             //   https://app.asana.com/0/1202805690238892/1202937382769278/f
             r#"
@@ -680,7 +680,7 @@ where
                 r#"
                 WITH removed AS (
                     DELETE FROM links
-                    WHERE source_entity_id = $1 
+                    WHERE source_entity_id = $1
                         AND target_entity_id = $2
                         AND link_type_version_id = $3
                     RETURNING source_entity_id, target_entity_id, link_type_version_id,
