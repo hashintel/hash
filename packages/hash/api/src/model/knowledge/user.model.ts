@@ -265,8 +265,14 @@ export default class extends EntityModel {
     return (this.properties as any)[WORKSPACE_TYPES.propertyType.email.baseUri];
   }
 
-  /** @todo - How can this be undefined? Have removed the undefined argument but not sure why it was there */
-  getShortname(): string {
+  /**
+   * @todo This is only undefined because of Users that are in the process of an uncompleted sign-up flow.
+   * Otherwise this should be an invariant and always true. We should revisit how uninitialized users are represented
+   * to avoid things like this:
+   *
+   * https://app.asana.com/0/1202805690238892/1202944961125764/f
+   */
+  getShortname(): string | undefined {
     return (this.properties as any)[
       WORKSPACE_TYPES.propertyType.shortName.baseUri
     ];
