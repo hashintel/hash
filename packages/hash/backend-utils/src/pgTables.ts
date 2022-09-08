@@ -4,35 +4,35 @@
  */
 import { Wal2JsonMsg } from "./wal2json";
 
-export class EntityVersion {
+export class Entity {
   constructor(
-    public accountId: string,
+    /**
+     * @todo Update table definition when provenance info is added for updates
+     *   https://app.asana.com/0/1202805690238892/1202848989198291/f
+     */
     public entityId: string,
-    public entityVersionId: string,
+    public version: string,
     public entityTypeVersionId: string,
-    public properties: any,
-    public updatedByAccountId: string,
-    public updatedAt: Date,
+    public properties: Record<string, unknown>,
+    public createdBy: string,
   ) {}
 
-  private static parseFromRow(row: Record<string, unknown>): EntityVersion {
+  private static parseFromRow(row: Record<string, unknown>): Entity {
     return {
-      accountId: row.account_id as string,
       entityId: row.entity_id as string,
-      entityVersionId: row.entity_version_id as string,
+      version: row.version as string,
       entityTypeVersionId: row.entity_type_version_id as string,
       properties:
         typeof row.properties === "string"
           ? JSON.parse(row.properties)
           : row.properties,
-      updatedByAccountId: row.updated_by_account_id as string,
-      updatedAt: new Date(row.updated_at as string),
+      createdBy: row.created_by as string,
     };
   }
 
-  static parseWal2JsonMsg(msg: Wal2JsonMsg): EntityVersion {
-    if (msg.table !== "entity_versions") {
-      throw new Error(`invalid table "${msg.table}" for EntityVersion type`);
+  static parseWal2JsonMsg(msg: Wal2JsonMsg): Entity {
+    if (msg.table !== "entities") {
+      throw new Error(`invalid table "${msg.table}" for an 'entities' update`);
     }
     const obj = Object.fromEntries(
       msg.columns.map(({ name, value }) => [name, value]),
@@ -41,97 +41,30 @@ export class EntityVersion {
   }
 }
 
-export class AggregationVersion {
+export class Link {
   constructor(
-    public aggregationId: string,
-    public aggregationVersionId: string,
-    public sourceAccountId: string,
+    /**
+     * @todo Update table definition when provenance info is added for updates
+     *   https://app.asana.com/0/1202805690238892/1202848989198291/f
+     */
     public sourceEntityId: string,
-    public appliedToSourceAt: Date,
-    public appliedToSourceByAccountId: string,
-    public removedFromSourceAt: Date | undefined,
-    public removedFromSourceByAccountId: string | undefined,
-    public operation: any,
-    public updatedAt: Date,
-    public updatedByAccountId: string,
+    public targetEntityId: string,
+    public linkTypeVersionId: string,
+    public createdBy: string,
   ) {}
 
-  private static parseFromRow(
-    row: Record<string, unknown>,
-  ): AggregationVersion {
+  private static parseFromRow(row: Record<string, unknown>): Link {
     return {
-      aggregationId: row.aggregation_id as string,
-      aggregationVersionId: row.aggregation_version_id as string,
-      sourceAccountId: row.source_account_id as string,
       sourceEntityId: row.source_entity_id as string,
-      appliedToSourceAt: new Date(row.applied_to_source_at as string),
-      appliedToSourceByAccountId: row.applied_to_source_by_account_id as string,
-      removedFromSourceAt: row.removed_from_source_at
-        ? new Date(row.removed_from_source_at as string)
-        : undefined,
-      removedFromSourceByAccountId:
-        (row.removed_from_source_by_account_id as string | undefined) ??
-        undefined,
-      operation: row.operation,
-      updatedAt: new Date(row.updated_at as string),
-      updatedByAccountId: row.updated_by_account_id as string,
+      targetEntityId: row.target_entity_id as string,
+      linkTypeVersionId: row.link_type_version_id as string,
+      createdBy: row.created_by as string,
     };
   }
 
-  static parseWal2JsonMsg(msg: Wal2JsonMsg): AggregationVersion {
-    if (msg.table !== "aggregation_versions") {
-      throw new Error(
-        `invalid table "${msg.table}" for AggregationVersion type`,
-      );
-    }
-    const obj = Object.fromEntries(
-      msg.columns.map(({ name, value }) => [name, value]),
-    );
-    return this.parseFromRow(obj);
-  }
-}
-
-export class LinkVersion {
-  constructor(
-    public linkId: string,
-    public linkVersionId: string,
-    public index: number | undefined,
-    public sourceAccountId: string,
-    public sourceEntityId: string,
-    public appliedToSourceAt: Date,
-    public appliedToSourceByAccountId: string,
-    public removedFromSourceAt: Date | undefined,
-    public removedFromSourceByAccountId: string | undefined,
-    public destinationAccountId: string,
-    public destinationEntityId: string,
-    public updatedAt: Date,
-    public updatedByAccountId: string,
-  ) {}
-
-  private static parseFromRow(row: Record<string, unknown>): LinkVersion {
-    return {
-      linkId: row.link_id as string,
-      linkVersionId: row.link_version_id as string,
-      index: row.index === null ? undefined : (row.index as number),
-      sourceAccountId: row.source_account_id as string,
-      sourceEntityId: row.source_entity_id as string,
-      appliedToSourceAt: new Date(row.applied_to_source_at as string),
-      appliedToSourceByAccountId: row.applied_to_source_by_account_id as string,
-      removedFromSourceAt: row.removed_from_source_at
-        ? new Date(row.removed_from_source_at as string)
-        : undefined,
-      removedFromSourceByAccountId:
-        (row.removed_from_source_by_account_id as string) ?? undefined,
-      destinationAccountId: row.destination_account_id as string,
-      destinationEntityId: row.destination_entity_id as string,
-      updatedAt: new Date(row.updated_at as string),
-      updatedByAccountId: row.updated_by_account_id as string,
-    };
-  }
-
-  static parseWal2JsonMsg(msg: Wal2JsonMsg): LinkVersion {
-    if (msg.table !== "link_versions") {
-      throw new Error(`invalid table "${msg.table}" for LinkVersion type`);
+  static parseWal2JsonMsg(msg: Wal2JsonMsg): Link {
+    if (msg.table !== "links") {
+      throw new Error(`invalid table "${msg.table}" for a 'link' update`);
     }
     const obj = Object.fromEntries(
       msg.columns.map(({ name, value }) => [name, value]),
