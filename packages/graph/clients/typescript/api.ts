@@ -649,10 +649,10 @@ export interface PropertyType {
   kind: PropertyTypeKindEnum;
   /**
    *
-   * @type {Array<PropertyValues1>}
+   * @type {Array<PropertyValues>}
    * @memberof PropertyType
    */
-  oneOf: Array<PropertyValues1>;
+  oneOf: Array<PropertyValues>;
   /**
    *
    * @type {string}
@@ -1016,10 +1016,10 @@ export interface UpdatePropertyType {
   kind: UpdatePropertyTypeKindEnum;
   /**
    *
-   * @type {Array<PropertyValues>}
+   * @type {Array<PropertyValues1>}
    * @memberof UpdatePropertyType
    */
-  oneOf: Array<PropertyValues>;
+  oneOf: Array<PropertyValues1>;
   /**
    *
    * @type {string}
