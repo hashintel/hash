@@ -24,6 +24,12 @@ pub trait ValidateOntologyType<T> {
     fn validate(&self, ontology_type: &T) -> error_stack::Result<(), DomainValidationError>;
 }
 
+#[expect(dead_code, reason = "We currently don't validate the shortname")]
+struct ShortNameAndKind<'a> {
+    pub short_name: &'a str,
+    pub kind: &'a str,
+}
+
 /// Responsible for validating Type URIs against a known valid pattern.
 pub struct DomainValidator(Regex);
 
@@ -68,13 +74,13 @@ impl DomainValidator {
     /// # Errors
     ///
     /// - [`DomainValidationError`], if "shortname" or "kind" didn't capture anything
-    pub fn extract_shortname_and_kind<'a>(
+    fn extract_shortname_and_kind<'a>(
         &'a self,
         url: &'a str,
-    ) -> error_stack::Result<(&str, &str), DomainValidationError> {
+    ) -> error_stack::Result<ShortNameAndKind, DomainValidationError> {
         let captures = self.captures(url)?;
 
-        let name = captures
+        let short_name = captures
             .name("shortname")
             .map(|matched| matched.as_str())
             .ok_or(DomainValidationError)
@@ -88,7 +94,7 @@ impl DomainValidator {
             .into_report()
             .attach_printable("missing ontology type kind")?;
 
-        Ok((name, kind))
+        Ok(ShortNameAndKind { short_name, kind })
     }
 }
 
@@ -102,7 +108,10 @@ impl ValidateOntologyType<DataType> for DomainValidator {
                 .attach_printable("Data Type base URI didn't match the given validation regex");
         };
 
-        let (_, kind) = self.extract_shortname_and_kind(base_uri.as_str())?;
+        let ShortNameAndKind {
+            short_name: _,
+            kind,
+        } = self.extract_shortname_and_kind(base_uri.as_str())?;
         if kind != "data-type" {
             return Err(DomainValidationError)
                 .into_report()
@@ -132,7 +141,10 @@ impl ValidateOntologyType<PropertyType> for DomainValidator {
             );
         };
 
-        let (_, kind) = self.extract_shortname_and_kind(base_uri.as_str())?;
+        let ShortNameAndKind {
+            short_name: _,
+            kind,
+        } = self.extract_shortname_and_kind(base_uri.as_str())?;
         if kind != "property-type" {
             return Err(DomainValidationError)
                 .into_report()
@@ -162,7 +174,10 @@ impl ValidateOntologyType<EntityType> for DomainValidator {
                 .attach_printable("Entity Type base URI didn't match the given validation regex");
         };
 
-        let (_, kind) = self.extract_shortname_and_kind(base_uri.as_str())?;
+        let ShortNameAndKind {
+            short_name: _,
+            kind,
+        } = self.extract_shortname_and_kind(base_uri.as_str())?;
         if kind != "entity-type" {
             return Err(DomainValidationError)
                 .into_report()
@@ -189,7 +204,10 @@ impl ValidateOntologyType<LinkType> for DomainValidator {
                 .attach_printable("Link Type base URI didn't match the given validation regex");
         };
 
-        let (_, kind) = self.extract_shortname_and_kind(base_uri.as_str())?;
+        let ShortNameAndKind {
+            short_name: _,
+            kind,
+        } = self.extract_shortname_and_kind(base_uri.as_str())?;
         if kind != "link-type" {
             return Err(DomainValidationError)
                 .into_report()
