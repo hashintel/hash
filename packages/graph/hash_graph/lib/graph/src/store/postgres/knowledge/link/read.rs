@@ -1,67 +1,16 @@
 use async_trait::async_trait;
 use error_stack::{bail, Report, Result, ResultExt};
 use futures::TryStreamExt;
-use type_system::LinkType;
 
 use crate::{
     knowledge::Link,
     store::{
         crud,
-        postgres::resolve::{LinkRecord, PostgresContext},
-        query::{
-            Expression, ExpressionError, Literal, PathSegment, Resolve, ResolveError,
-            UNIMPLEMENTED_LITERAL_OBJECT,
-        },
+        postgres::context::PostgresContext,
+        query::{Expression, ExpressionError, Literal},
         AsClient, PostgresStore, QueryError,
     },
 };
-
-#[async_trait]
-impl<C> Resolve<C> for LinkRecord
-where
-    C: PostgresContext + Sync,
-{
-    async fn resolve(&self, path: &[PathSegment], context: &C) -> Result<Literal, ResolveError> {
-        match path {
-            [] => todo!("{}", UNIMPLEMENTED_LITERAL_OBJECT),
-            [head_path_segment, tail_path_segments @ ..] => {
-                let literal = match head_path_segment.identifier.as_str() {
-                    "type" => {
-                        return context
-                            .read_versioned_ontology_type::<LinkType>(&self.type_uri)
-                            .await
-                            .change_context(ResolveError::StoreReadError)?
-                            .resolve(tail_path_segments, context)
-                            .await;
-                    }
-                    "source" => {
-                        return context
-                            .read_latest_entity_by_id(self.source_entity_id)
-                            .await
-                            .change_context(ResolveError::StoreReadError)?
-                            .resolve(tail_path_segments, context)
-                            .await;
-                    }
-                    "target" => {
-                        return context
-                            .read_latest_entity_by_id(self.target_entity_id)
-                            .await
-                            .change_context(ResolveError::StoreReadError)?
-                            .resolve(tail_path_segments, context)
-                            .await;
-                    }
-                    _ => Literal::Null,
-                };
-
-                if tail_path_segments.is_empty() {
-                    Ok(literal)
-                } else {
-                    literal.resolve(tail_path_segments, context).await
-                }
-            }
-        }
-    }
-}
 
 #[async_trait]
 impl<C: AsClient> crud::Read<Link> for PostgresStore<C> {

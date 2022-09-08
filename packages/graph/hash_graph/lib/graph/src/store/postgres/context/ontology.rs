@@ -5,7 +5,10 @@ use type_system::uri::VersionedUri;
 
 use crate::{
     ontology::AccountId,
-    store::{postgres::parameter_list, AsClient, QueryError},
+    store::{
+        postgres::{ontology::OntologyDatabaseType, parameter_list},
+        AsClient, QueryError,
+    },
 };
 
 pub type RecordStream<T>
@@ -70,11 +73,10 @@ where
 
 pub async fn read_versioned_type<T>(
     client: &impl AsClient,
-    table: &str,
     uri: &VersionedUri,
 ) -> Result<OntologyRecord<T>, QueryError>
 where
-    T: TryFrom<serde_json::Value, Error: Context>,
+    T: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>,
 {
     let row = client
         .as_client()
@@ -86,11 +88,12 @@ where
                     FROM ids 
                     WHERE base_uri = $1
                 )
-                FROM {table} type_table
+                FROM {} type_table
                 INNER JOIN ids
                 ON type_table.version_id = ids.version_id
                 WHERE base_uri = $1 AND version = $2;
-                "#
+                "#,
+                T::table()
             ),
             &[&uri.base_uri().as_str(), &i64::from(uri.version())],
         )

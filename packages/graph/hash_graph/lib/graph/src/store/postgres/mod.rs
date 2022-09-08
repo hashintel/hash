@@ -1,8 +1,8 @@
 mod knowledge;
 mod ontology;
 
+mod context;
 mod pool;
-mod resolve;
 mod version_id;
 
 use async_trait::async_trait;
