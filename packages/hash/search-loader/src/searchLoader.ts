@@ -1,8 +1,8 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 /**
- * @todo remove above ts-nocheck as we start of re-enabling collab
- *   https://app.asana.com/0/1202805690238892/1202924026802709/f
+ * @todo remove above ts-nocheck as we start re-enabling OpenSearch indexing
+ *   https://app.asana.com/0/1200211978612931/1202938382575963/f
  */
 import { StatsD } from "hot-shots";
 
