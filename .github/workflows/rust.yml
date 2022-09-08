@@ -27,7 +27,6 @@ jobs:
       test: ${{ steps.crates.outputs.test }}
       docker: ${{ steps.crates.outputs.docker }}
       publish: ${{ steps.crates.outputs.publish }}
-      exclude: ${{ steps.crates.outputs.exclude }}
       samples: ${{ steps.samples.outputs.samples }}
     steps:
       - name: Checkout source code
@@ -184,14 +183,11 @@ jobs:
   docker:
     name: docker
     needs: setup
-    if: needs.setup.outputs.docker != '[]'
+    if: needs.setup.outputs.docker != '{}'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        directory: ${{ fromJSON(needs.setup.outputs.docker) }}
-        profile:
-          - production
+      matrix: ${{ fromJSON(needs.setup.outputs.docker) }}
     defaults:
       run:
         working-directory: ${{ matrix.directory }}

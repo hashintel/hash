@@ -47,14 +47,14 @@ def find_local_crates():
     """
     Returns all available crates in the workspace.
 
-    If a crate is in a sub-crate of another crate, only the super-crate will be returned because `cargo-make` will run
-    the sub-crate automatically.
+    If a crate is in a sub-crate of another crate, only the super-crate will be returned because
+    `cargo-make` will run the sub-crate automatically.
     :return: a list of crate paths
     """
     all_crates = [path.relative_to(CWD).parent for path in CWD.rglob("Cargo.toml")]
     checked_crates = []
     for crate in all_crates:
-        if not any([path in crate.parents for path in all_crates]):
+        if not any(path in crate.parents for path in all_crates):
             checked_crates.append(crate)
     return checked_crates
 
@@ -135,13 +135,19 @@ def filter_for_publishable_crates(crates):
         if fnmatch(crate, pattern)
     ]
 
+
 def filter_for_docker_crates(crates):
     """
     Returns the crates for which docker containers are built
     :param crates: a list of paths to crates
     :return: a list of crate paths for which docker containers are built
     """
-    return [crate for crate in crates for pattern in DOCKER_PATTERNS if fnmatch(crate, pattern)]
+    return [
+        crate
+        for crate in crates
+        for pattern in DOCKER_PATTERNS
+        if fnmatch(crate, pattern)
+    ]
 
 
 def output_matrix(name, crates, **kwargs):
@@ -206,9 +212,11 @@ def main():
     available_crates = find_local_crates()
     changed_crates = filter_for_changed_crates(diffs, available_crates)
     changed_parent_crates = filter_parent_crates(changed_crates)
+    changed_docker_crates = filter_for_docker_crates(changed_parent_crates)
 
     output_matrix("lint", changed_parent_crates)
     output_matrix("test", changed_parent_crates, profile=["development", "production"])
+    output_matrix("docker", changed_docker_crates, profile=["production"])
     output_matrix(
         "publish",
         filter_crates_by_changed_version(
@@ -216,8 +224,6 @@ def main():
         ),
         profile=["release"],
     )
-    output_matrix("docker", filter_for_docker_crates(changed_crates))
-
 
 
 if __name__ == "__main__":
