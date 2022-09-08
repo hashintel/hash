@@ -1,0 +1,20 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:#?}\")"
+---
+Root error
+├╴tests/common.rs:147:5
+├╴backtrace with [n] frames (1)
+├╴spantrace with 2 frames (1)
+╰╴A multiline
+  attachment
+  that might have some
+  additional info
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Backtrace No. 1
+  [redacted]
+
+Span Trace No. 1
+  [redacted]

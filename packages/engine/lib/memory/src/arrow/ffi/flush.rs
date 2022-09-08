@@ -5,13 +5,16 @@
     clippy::missing_safety_doc
 )]
 
-use arrow::util::bit_util;
+use std::sync::Arc;
+
+use tracing::error;
 
 use crate::{
     arrow::{
         ffi::{ArrowArray, CSegment},
         flush::{GrowableArrayData, GrowableBatch, GrowableColumn},
         meta,
+        util::bit_util,
     },
     shared_memory::Segment,
     Error, Result,
@@ -32,10 +35,15 @@ pub struct Changes {
 }
 
 #[no_mangle]
+/// This function handles the flushing of the changes in question into the shared-memory
+/// [`Segment`]. Underneath the hood, it calls [`GrowableBatch::flush_changes`] (specifically, the
+/// implementation of this for [`PreparedBatch`]).
+///
+/// This function is called from inside our Python code responsible for interacting with Arrow.
 unsafe extern "C" fn flush_changes(
     c_segment: *mut CSegment,
-    dynamic_meta: *mut meta::Dynamic,
-    static_meta: *const meta::Static,
+    dynamic_meta: *mut meta::DynamicMetadata,
+    static_meta: *const meta::StaticMetadata,
     changes: *const Changes,
 ) -> Flag {
     let changes = &*changes;
@@ -53,14 +61,14 @@ unsafe extern "C" fn flush_changes(
                 node_into_prepared_array_data(arrow_array, static_meta_ref, node_index)?;
             Ok(PreparedColumn {
                 index: column_index,
-                data: prepared_array_data,
+                data: Arc::new(prepared_array_data),
             })
         })
         .collect::<Result<_>>()
     {
         Ok(v) => v,
         Err(why) => {
-            println!("Error in `flush_changes`: {:?}", &why);
+            error!("Error in `flush_changes`: {:?}", &why);
             return ERROR_FLAG;
         }
     };
@@ -69,7 +77,7 @@ unsafe extern "C" fn flush_changes(
     let loaded_metaversion = match segment.try_read_persisted_metaversion() {
         Ok(v) => v,
         Err(err) => {
-            println!("Could not read metaversions in `flush_changes`: {err:?}");
+            error!("Could not read metaversions in `flush_changes`: {err:?}");
             return ERROR_FLAG;
         }
     };
@@ -112,7 +120,7 @@ unsafe extern "C" fn flush_changes(
         match segment.try_persist_metaversion(metaversion) {
             Ok(v) => v,
             Err(err) => {
-                println!("Could not write metaversion in `flush_changes`: {err:?}");
+                error!("Could not write metaversion in `flush_changes`: {err:?}");
                 return ERROR_FLAG;
             }
         };
@@ -123,7 +131,7 @@ unsafe extern "C" fn flush_changes(
 // Assumes all buffers are properly aligned
 unsafe fn node_into_prepared_array_data(
     arrow_array: *const ArrowArray,
-    static_meta: &meta::Static,
+    static_meta: &meta::StaticMetadata,
     node_index: usize,
 ) -> Result<(PreparedArrayData<'_>, usize)> {
     let arrow_array_ref = &*arrow_array;
@@ -229,7 +237,7 @@ unsafe fn node_into_prepared_array_data(
     Ok((prepared, next_node_index))
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PreparedArrayData<'a> {
     inner: *const ArrowArray,
     child_data: Vec<PreparedArrayData<'a>>,
@@ -265,7 +273,7 @@ impl GrowableArrayData for PreparedArrayData<'_> {
 
 pub struct PreparedColumn<'a> {
     index: usize,
-    data: PreparedArrayData<'a>,
+    data: Arc<PreparedArrayData<'a>>,
 }
 
 impl<'a> GrowableColumn<PreparedArrayData<'a>> for PreparedColumn<'a> {
@@ -280,21 +288,21 @@ impl<'a> GrowableColumn<PreparedArrayData<'a>> for PreparedColumn<'a> {
 
 /// Batch used by Python FFI.
 pub struct PreparedBatch<'a> {
-    static_meta: *const meta::Static,
-    dynamic_meta: &'a mut meta::Dynamic,
+    static_meta: *const meta::StaticMetadata,
+    dynamic_meta: &'a mut meta::DynamicMetadata,
     segment: &'a mut Segment,
 }
 
 impl<'a> GrowableBatch<PreparedArrayData<'a>, PreparedColumn<'a>> for PreparedBatch<'a> {
-    fn static_meta(&self) -> &meta::Static {
+    fn static_meta(&self) -> &meta::StaticMetadata {
         unsafe { &*self.static_meta }
     }
 
-    fn dynamic_meta(&self) -> &meta::Dynamic {
+    fn dynamic_meta(&self) -> &meta::DynamicMetadata {
         self.dynamic_meta
     }
 
-    fn dynamic_meta_mut(&mut self) -> &mut meta::Dynamic {
+    fn dynamic_meta_mut(&mut self) -> &mut meta::DynamicMetadata {
         self.dynamic_meta
     }
 

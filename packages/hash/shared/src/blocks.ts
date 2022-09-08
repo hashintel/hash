@@ -231,8 +231,11 @@ export const fetchBlock = async (
   return await promise;
 };
 
-const textBlocks = new Set([
-  "https://blockprotocol.org/blocks/@hash/paragraph",
+export const paragraphBlockComponentId =
+  "https://blockprotocol.org/blocks/@hash/paragraph";
+
+const textBlockComponentIds = new Set([
+  paragraphBlockComponentId,
   "https://blockprotocol.org/blocks/@hash/header",
   "https://blockprotocol.org/blocks/@hash/callout",
 ]);
@@ -245,8 +248,8 @@ const textBlocks = new Set([
  *    to allow us to add new default blocks that show up for all users.
  *    we currently store this in localStorage - see UserBlockProvider.
  */
-export const defaultBlocks = [
-  ...Array.from(textBlocks),
+export const defaultBlockComponentIds = [
+  ...Array.from(textBlockComponentIds),
   "https://blockprotocol.org/blocks/@hash/person",
   "https://blockprotocol.org/blocks/@hash/image",
   "https://blockprotocol.org/blocks/@hash/table",
@@ -261,7 +264,8 @@ export const defaultBlocks = [
  * which is used to know if the block is compatible for switching from one
  * text block to another
  */
-const isHashTextBlock = (componentId: string) => textBlocks.has(componentId);
+export const isHashTextBlock = (componentId: string) =>
+  textBlockComponentIds.has(componentId);
 
 /**
  * In some places, we need to know if the current component and a target

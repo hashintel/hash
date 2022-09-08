@@ -1,4 +1,5 @@
 import { UserInputError, ApolloError } from "apollo-server-express";
+import { generateKeyBetween } from "fractional-indexing";
 import {
   Block,
   Entity,
@@ -52,11 +53,14 @@ class __Page extends Entity {
     params: {
       createdBy: User;
       accountId: string;
-      properties: DbPageProperties;
+      properties: {
+        title: string;
+      };
       initialLinkedContents?: {
         accountId: string;
         entityId: string;
       }[];
+      prevIndex: string | null;
     },
   ): Promise<Page> {
     /**
@@ -69,6 +73,7 @@ class __Page extends Entity {
       properties: pageProperties,
       accountId,
       initialLinkedContents,
+      prevIndex,
     } = params;
 
     const blockProperties: DbBlockProperties = {
@@ -117,11 +122,14 @@ class __Page extends Entity {
             },
           ];
 
+    const index = generateKeyBetween(prevIndex, null);
+    const properties = { ...pageProperties, index };
+
     const entity = await Entity.createEntityWithLinks(client, {
       user: createdBy,
       accountId,
       entityDefinition: {
-        entityProperties: pageProperties,
+        entityProperties: properties,
         versioned: true,
         entityType: {
           systemTypeName: SystemTypeName.Page,
@@ -130,7 +138,7 @@ class __Page extends Entity {
       },
     });
 
-    return new Page({ ...entity, properties: pageProperties });
+    return new Page({ ...entity, properties });
   }
 
   static async getPageById(
@@ -288,9 +296,13 @@ class __Page extends Entity {
     params: {
       parentPage: Page | null;
       setByAccountId: string;
+      prevIndex: string | null;
+      nextIndex: string | null;
     },
   ): Promise<void> {
-    const { setByAccountId } = params;
+    const { setByAccountId, parentPage, prevIndex, nextIndex } = params;
+
+    const newIndex = generateKeyBetween(prevIndex, nextIndex);
 
     const existingParentPage = await this.getParentPage(client);
 
@@ -299,8 +311,6 @@ class __Page extends Entity {
         removedByAccountId: setByAccountId,
       });
     }
-
-    const { parentPage } = params;
 
     if (parentPage) {
       /** Check whether adding the parent page would create a cycle */
@@ -315,6 +325,15 @@ class __Page extends Entity {
         createdByAccountId: setByAccountId,
         stringifiedPath: "$.parentPage",
         destination: parentPage,
+      });
+    }
+
+    if (this.properties.index !== newIndex) {
+      await this.partialPropertiesUpdate(client, {
+        properties: {
+          index: newIndex,
+        },
+        updatedByAccountId: this.accountId,
       });
     }
   }

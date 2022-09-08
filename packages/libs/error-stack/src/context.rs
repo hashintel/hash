@@ -1,17 +1,19 @@
 #[cfg(nightly)]
 use core::any::Demand;
-#[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
-use core::any::Provider;
+#[cfg(nightly)]
+use core::error::Error;
 use core::fmt;
+#[cfg(all(not(nightly), feature = "std"))]
+use std::error::Error;
 
 use crate::Report;
 
 /// Defines the current context of a [`Report`].
 ///
-/// When in a `std` environment, every [`Error`] is a valid `Context`. This trait is not limited to
-/// [`Error`]s and can also be manually implemented for custom objects.
+/// When in a `std` environment or on a nightly toolchain, every [`Error`] is a valid `Context`.
+/// This trait is not limited to [`Error`]s and can also be manually implemented on a type.
 ///
-/// [`Error`]: std::error::Error
+/// [`Error`]: core::error::Error
 ///
 /// ## Example
 ///
@@ -63,7 +65,6 @@ use crate::Report;
 /// # #[cfg(all(feature = "std", not(miri)))]
 /// # assert!(err.contains::<io::Error>());
 /// # assert!(err.contains::<ConfigError>());
-/// # assert_eq!(err.frames().count(), 2);
 /// ```
 pub trait Context: fmt::Display + fmt::Debug + Send + Sync + 'static {
     /// Provide values which can then be requested by [`Report`].
@@ -83,28 +84,10 @@ where
     }
 }
 
-/// Turns a [`Context`] into a temporary [`Provider`].
-///
-/// To enable the usage of the [`Provider`] trait without implementing [`Provider`] for [`Context`]
-/// this function wraps a reference to a [`Context`] inside of a [`Provider`]
-// We can't implement `Provider` on Context as `Error` will implement `Provider` and `Context` will
-// be implemented on `Error`. For `request`ing a type from `Context`, we need a `Provider`
-// implementation however.
-#[cfg(all(nightly, any(feature = "std", feature = "spantrace")))]
-pub fn temporary_provider(context: &impl Context) -> impl Provider + '_ {
-    struct ProviderImpl<'a, C>(&'a C);
-    impl<C: Context> Provider for ProviderImpl<'_, C> {
-        fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-            self.0.provide(demand);
-        }
-    }
-    ProviderImpl(context)
-}
-
-#[cfg(feature = "std")]
-impl<C: std::error::Error + Send + Sync + 'static> Context for C {
+#[cfg(any(nightly, feature = "std"))]
+impl<C: Error + Send + Sync + 'static> Context for C {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        std::error::Error::provide(self, demand);
+        Error::provide(self, demand);
     }
 }

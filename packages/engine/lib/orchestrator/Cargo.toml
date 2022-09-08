@@ -15,16 +15,14 @@ hash_engine = { path = "../../bin/hash_engine", default-features = false, artifa
 # TODO: Change to `version = "0.2"` as soon as it's released
 error-stack = { git = "https://github.com/hashintel/hash", rev = "5edddb5", features = ["spantrace"] }
 
-async-trait = "0.1.48"
-clap = { version = "3.0.13", optional = true }
+async-trait = "0.1.56"
+clap = { version = "3.2.17", optional = true }
 num_cpus = "1.13.1"
-serde = "1.0.133"
-serde_json = "1.0.74"
-tracing = "0.1.29"
-tokio = { version = "1.18.2" }
+serde = "1.0.138"
+serde_json = "1.0.82"
+tracing = "0.1.35"
+tokio = "1.19.2"
 
 [features]
-default = ["build-nng"]
-build-nng = ["experiment-control/build-nng"]
 texray = ["experiment-control/texray"]
 clap = ["dep:clap", "experiment-control/clap"]

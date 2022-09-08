@@ -148,8 +148,10 @@ impl WorkerPool {
 
         let futs = workers
             .into_iter()
-            .map(|mut c| {
-                tokio::spawn(async move { c.run().await.map_err(Error::from) }.in_current_span())
+            .map(|mut worker| {
+                tokio::spawn(
+                    async move { worker.run().await.map_err(Error::from) }.in_current_span(),
+                )
             })
             .collect::<Vec<_>>();
 

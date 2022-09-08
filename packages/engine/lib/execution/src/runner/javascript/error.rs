@@ -1,4 +1,4 @@
-use arrow::{datatypes::DataType, error::ArrowError};
+use arrow2::datatypes::DataType;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 use tracing::Span;
@@ -22,7 +22,7 @@ pub enum JavaScriptError {
     AlreadyRunning,
 
     #[error("Arrow: {0}")]
-    Arrow(#[from] ArrowError),
+    Arrow(#[from] arrow2::error::Error),
 
     #[error("Unsupported flush datatype: {0:?}")]
     FlushType(DataType),

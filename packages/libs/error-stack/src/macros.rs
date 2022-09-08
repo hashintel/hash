@@ -60,6 +60,8 @@ pub mod __private {
         }
     }
 
+    // false-positive lint
+    #[allow(unreachable_pub)]
     // Import anonymously to allow calling `__kind` but forbid implementing the tag-traits.
     pub use self::specialization::{ContextTag as _, ReportTag as _};
 }
@@ -71,7 +73,7 @@ pub mod __private {
 ///
 /// [`Report`]: crate::Report
 /// [`Context`]: crate::Context
-/// [`Error`]: std::error::Error
+/// [`Error`]: core::error::Error
 ///
 /// # Examples
 ///
@@ -142,7 +144,7 @@ macro_rules! report {
 ///
 /// Create a [`Report`] from [`Error`]:
 ///
-/// [`Error`]: std::error::Error
+/// [`Error`]: core::error::Error
 ///
 /// ```
 /// # #[cfg(all(not(miri), feature = "std"))] {
@@ -192,7 +194,9 @@ macro_rules! report {
 /// ```
 #[macro_export]
 macro_rules! bail {
-    ($err:expr $(,)?) => {{ return $crate::Result::Err($crate::report!($err)) }};
+    ($err:expr $(,)?) => {{
+        return $crate::Result::Err($crate::report!($err));
+    }};
 }
 
 /// Ensures `$cond` is met, otherwise return an error.
@@ -243,104 +247,8 @@ macro_rules! bail {
 #[macro_export]
 macro_rules! ensure {
     ($cond:expr, $err:expr $(,)?) => {{
-        if !$cond {
+        if !bool::from($cond) {
             $crate::bail!($err)
         }
     }};
-}
-
-#[cfg(test)]
-mod tests {
-    #[allow(clippy::wildcard_imports)]
-    use crate::test_helper::*;
-
-    #[test]
-    fn report() {
-        let err = capture_error(|| Err(report!(ContextA)));
-        let err = err.attach_printable("additional message");
-        assert!(err.contains::<ContextA>());
-        assert_eq!(err.current_context(), &ContextA);
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(messages(&err), ["additional message", "Context A"]);
-
-        let err = capture_error(|| Err(report!(err)));
-        let err = err.attach_printable(ContextB);
-        assert!(err.contains::<ContextA>());
-        assert_eq!(err.current_context(), &ContextA);
-        assert!(err.contains::<ContextB>());
-        assert_eq!(err.current_context(), &ContextA);
-        #[cfg(nightly)]
-        assert!(err.request_ref::<ContextB>().next().is_some());
-        assert_eq!(err.frames().count(), 3);
-        assert_eq!(messages(&err), [
-            "Context B",
-            "additional message",
-            "Context A"
-        ]);
-
-        #[cfg(feature = "std")]
-        {
-            let err = capture_error(|| Err(report!(ContextB)));
-            let err = err.attach_printable("additional message");
-            assert_eq!(err.current_context(), &ContextB);
-            assert!(err.contains::<ContextB>());
-            assert_eq!(err.frames().count(), 2);
-            assert_eq!(messages(&err), ["additional message", "Context B"]);
-        }
-    }
-
-    #[test]
-    fn bail() {
-        let err = capture_error(|| bail!(ContextA));
-        let err = err.attach_printable("additional message");
-        assert!(err.contains::<ContextA>());
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(messages(&err), ["additional message", "Context A"]);
-
-        let err = capture_error(|| bail!(err));
-        assert!(err.contains::<ContextA>());
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(messages(&err), ["additional message", "Context A"]);
-
-        #[cfg(feature = "std")]
-        {
-            let err = capture_error(|| bail!(ContextB));
-            let err = err.attach_printable("additional message");
-            assert!(err.contains::<ContextB>());
-            assert_eq!(err.frames().count(), 2);
-            assert_eq!(messages(&err), ["additional message", "Context B"]);
-        }
-    }
-
-    #[test]
-    fn ensure() {
-        let err = capture_error(|| {
-            ensure!(false, ContextA);
-            Ok(())
-        });
-        let err = err.attach_printable("additional message");
-        assert!(err.contains::<ContextA>());
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(messages(&err), ["additional message", "Context A"]);
-
-        let err = capture_error(|| {
-            ensure!(false, err);
-            Ok(())
-        });
-        assert!(err.contains::<ContextA>());
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(messages(&err), ["additional message", "Context A"]);
-
-        #[cfg(feature = "std")]
-        {
-            let err = capture_error(|| {
-                ensure!(false, ContextB);
-                Ok(())
-            });
-            let err = err.attach_printable("additional message");
-            assert!(err.contains::<ContextB>());
-            assert_eq!(err.frames().count(), 2);
-            assert_eq!(messages(&err), ["additional message", "Context B"]);
-        }
-    }
 }

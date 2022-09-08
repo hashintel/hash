@@ -113,20 +113,30 @@ impl BatchPool for MessageBatchPool {
     }
 
     fn remove(&mut self, index: usize) -> Self::Batch {
-        let batch_arc = self.batches.remove(index);
-        if let Ok(rw_lock) = Arc::try_unwrap(batch_arc) {
-            rw_lock.into_inner()
-        } else {
-            panic!("Failed to remove Batch at index {index}, other Arcs to the Batch existed")
+        match Arc::try_unwrap(self.batches.remove(index)) {
+            Ok(rw_lock) => rw_lock.into_inner(),
+            Err(batch_arc) => {
+                let batch_arc = Arc::try_unwrap(batch_arc).unwrap_err();
+                panic!(
+                    "Failed to remove Batch at index {index} - there should be only one strong \
+                     reference to the data (actual reference count: {}).",
+                    Arc::strong_count(&batch_arc)
+                )
+            }
         }
     }
 
     fn swap_remove(&mut self, index: usize) -> Self::Batch {
-        let batch_arc = self.batches.swap_remove(index);
-        if let Ok(rw_lock) = Arc::try_unwrap(batch_arc) {
-            rw_lock.into_inner()
-        } else {
-            panic!("Failed to swap remove Batch at index {index}, other Arcs to the Batch existed")
+        match Arc::try_unwrap(self.batches.swap_remove(index)) {
+            Ok(rw_lock) => rw_lock.into_inner(),
+            Err(batch_arc) => {
+                panic!(
+                    "Failed to swap remove Batch at index {index}, more than one strong reference \
+                     (count: {}) to the Batch existed (arc memory address: {})",
+                    Arc::strong_count(&batch_arc),
+                    Arc::as_ptr(&batch_arc) as usize
+                )
+            }
         }
     }
 
@@ -155,7 +165,7 @@ impl BatchPool for MessageBatchPool {
 
 pub fn recipient_iter_all<'b: 'r, 'r>(
     message_pool_proxy: &'b PoolReadProxy<MessageBatch>,
-) -> impl ParallelIterator<Item = (Vec<&'b str>, MessageReference)> + 'r {
+) -> impl ParallelIterator<Item = (Vec<&str>, MessageReference)> + 'r {
     message_pool_proxy
         .batches
         .par_iter()

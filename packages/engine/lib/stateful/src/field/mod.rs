@@ -10,7 +10,7 @@
 //!
 //! For more information on these types please the the corresponding documentation.
 //!
-//! [`Schema`]: arrow::datatypes::Schema
+//! [`Schema`]: arrow2::datatypes::Schema
 
 mod accessor;
 mod field_type;
@@ -24,7 +24,7 @@ mod spec_map;
 
 /// We store Agent IDs in the UUID-byte format (not string bytes).
 ///
-/// This means their length is 128 bits i.e. 16 bytes
+/// This means their length is 128 bits (16 bytes)
 pub const UUID_V4_LEN: usize = std::mem::size_of::<u128>();
 pub(crate) const POSITION_DIM: usize = 3;
 

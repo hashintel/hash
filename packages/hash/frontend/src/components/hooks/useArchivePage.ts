@@ -11,13 +11,16 @@ import {
 import { useCallback } from "react";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 
-export const useArchivePage = () => {
-  const [updatePageFn] = useMutation<
+export const useArchivePage = (): [
+  (value: boolean, accountId: string, pageEntityId: string) => Promise<void>,
+  { loading: boolean },
+] => {
+  const [updatePageFn, { loading }] = useMutation<
     UpdatePageMutation,
     UpdatePageMutationVariables
-  >(updatePage);
+  >(updatePage, { awaitRefetchQueries: true });
 
-  const getRefecthQueries = useCallback(
+  const getRefetchQueries = useCallback(
     (accountId: string, pageEntityId: string) => [
       {
         query: getAccountPagesTree,
@@ -35,30 +38,18 @@ export const useArchivePage = () => {
   );
 
   const archivePage = useCallback(
-    async (accountId: string, pageEntityId: string) =>
+    async (value: boolean, accountId: string, pageEntityId: string) => {
       await updatePageFn({
         variables: {
           accountId,
           entityId: pageEntityId,
-          properties: { archived: true },
+          properties: { archived: value },
         },
-        refetchQueries: getRefecthQueries(accountId, pageEntityId),
-      }),
-    [updatePageFn, getRefecthQueries],
+        refetchQueries: getRefetchQueries(accountId, pageEntityId),
+      });
+    },
+    [updatePageFn, getRefetchQueries],
   );
 
-  const unarchivePage = useCallback(
-    async (accountId: string, pageEntityId: string) =>
-      await updatePageFn({
-        variables: {
-          accountId,
-          entityId: pageEntityId,
-          properties: { archived: false },
-        },
-        refetchQueries: getRefecthQueries(accountId, pageEntityId),
-      }),
-    [updatePageFn, getRefecthQueries],
-  );
-
-  return { archivePage, unarchivePage };
+  return [archivePage, { loading }];
 };

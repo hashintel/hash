@@ -231,6 +231,19 @@ export interface DataTypeReference {
   $ref: string;
 }
 /**
+ *
+ * @export
+ * @interface DataTypeReferenceUpdate
+ */
+export interface DataTypeReferenceUpdate {
+  /**
+   *
+   * @type {string}
+   * @memberof DataTypeReferenceUpdate
+   */
+  $ref: string;
+}
+/**
  * Specifies the structure of an Entity Type
  * @export
  * @interface EntityType
@@ -599,6 +612,58 @@ export interface PropertyArrayValueItems {
 /**
  *
  * @export
+ * @interface PropertyArrayValueUpdate
+ */
+export interface PropertyArrayValueUpdate {
+  /**
+   *
+   * @type {PropertyArrayValueUpdateItems}
+   * @memberof PropertyArrayValueUpdate
+   */
+  items: PropertyArrayValueUpdateItems;
+  /**
+   *
+   * @type {number}
+   * @memberof PropertyArrayValueUpdate
+   */
+  maxItems?: number;
+  /**
+   *
+   * @type {number}
+   * @memberof PropertyArrayValueUpdate
+   */
+  minItems?: number;
+  /**
+   *
+   * @type {string}
+   * @memberof PropertyArrayValueUpdate
+   */
+  type: PropertyArrayValueUpdateTypeEnum;
+}
+
+export const PropertyArrayValueUpdateTypeEnum = {
+  Array: "array",
+} as const;
+
+export type PropertyArrayValueUpdateTypeEnum =
+  typeof PropertyArrayValueUpdateTypeEnum[keyof typeof PropertyArrayValueUpdateTypeEnum];
+
+/**
+ *
+ * @export
+ * @interface PropertyArrayValueUpdateItems
+ */
+export interface PropertyArrayValueUpdateItems {
+  /**
+   *
+   * @type {Array<PropertyValuesUpdate>}
+   * @memberof PropertyArrayValueUpdateItems
+   */
+  oneOf: Array<PropertyValuesUpdate>;
+}
+/**
+ *
+ * @export
  * @interface PropertyObjectValue
  */
 export interface PropertyObjectValue {
@@ -684,12 +749,12 @@ export type PropertyValues =
   | PropertyObjectValue;
 
 /**
- * @type PropertyValues1
+ * @type PropertyValuesUpdate
  * @export
  */
-export type PropertyValues1 =
-  | DataTypeReference
-  | PropertyArrayValue
+export type PropertyValuesUpdate =
+  | DataTypeReferenceUpdate
+  | PropertyArrayValueUpdate
   | PropertyObjectValue;
 
 /**
@@ -1016,10 +1081,10 @@ export interface UpdatePropertyType {
   kind: UpdatePropertyTypeKindEnum;
   /**
    *
-   * @type {Array<PropertyValues1>}
+   * @type {Array<PropertyValuesUpdate>}
    * @memberof UpdatePropertyType
    */
-  oneOf: Array<PropertyValues1>;
+  oneOf: Array<PropertyValuesUpdate>;
   /**
    *
    * @type {string}

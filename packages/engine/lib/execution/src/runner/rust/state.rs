@@ -5,8 +5,8 @@ use std::{
     sync::Arc,
 };
 
-use arrow::array::Array;
-use arrow::{array::ArrayData, datatypes::Schema};
+use arrow2::array::Array;
+use arrow2::{array::ArrayData, datatypes::Schema};
 use parking_lot::{RwLock, RwLockWriteGuard};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 

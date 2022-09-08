@@ -1,3 +1,3 @@
 # Callout block
 
-https://blockprotocol.org/@hash/callout
+A block to call attention to text.
