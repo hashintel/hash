@@ -13,7 +13,6 @@ import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../shared/layout";
-import { useGetAllEntityTypes } from "../../../components/hooks/useGetAllEntityTypes";
 import { useRouteAccountInfo } from "../../../shared/routing";
 import { parseEntityIdentifier } from "../../../lib/entities";
 
@@ -62,14 +61,16 @@ const Page: NextPageWithLayout = () => {
     }
   }, [router.query.entityTypeId, selectedTypeId]);
 
-  const { data } = useGetAllEntityTypes(accountId);
+  // const { data } = useGetAllEntityTypes(accountId);
 
-  const typeOptions = data?.deprecatedGetAccountEntityTypes;
-  const selectedType = useMemo(() => {
-    return (typeOptions ?? []).find(
-      (option) => option.entityId === selectedTypeId,
-    );
-  }, [selectedTypeId, typeOptions]);
+  // const typeOptions = data?.deprecatedGetAccountEntityTypes;
+  // const selectedType = useMemo(() => {
+  //   return (typeOptions ?? []).find(
+  //     (option) => option.entityId === selectedTypeId,
+  //   );
+  // }, [selectedTypeId, typeOptions]);
+  const selectedType = null as any;
+  const typeOptions = null as any;
 
   return (
     <>

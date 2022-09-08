@@ -23,7 +23,6 @@ import {
   TextField,
   FontAwesomeIcon,
 } from "@hashintel/hash-design-system";
-import { useGetAllEntityTypes } from "../../../components/hooks/useGetAllEntityTypes";
 import { NavLink } from "./nav-link";
 
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
@@ -127,7 +126,8 @@ type AccountEntityTypeListProps = {
 export const AccountEntityTypeList: FunctionComponent<
   AccountEntityTypeListProps
 > = ({ accountId }) => {
-  const { data } = useGetAllEntityTypes(accountId);
+  // const { data } = useGetAllEntityTypes(accountId);
+  const data = null as any;
   const router = useRouter();
 
   const [sortType, setSortType] = useState<SortType>("asc");
@@ -147,7 +147,8 @@ export const AccountEntityTypeList: FunctionComponent<
 
   // todo: handle search server side
   const filteredData = useMemo(() => {
-    let entityTypes = data?.deprecatedGetAccountEntityTypes ?? [];
+    // let entityTypes = data?.deprecatedGetAccountEntityTypes ?? [];
+    let entityTypes = [] as any[];
 
     if (searchQuery) {
       entityTypes = entityTypes.filter(({ properties }) =>
