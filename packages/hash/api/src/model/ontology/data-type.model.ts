@@ -66,7 +66,7 @@ export default class {
 
     const dataTypeUri = generateSchemaUri({
       namespace,
-      kind: "dataType",
+      kind: "data-type",
       title: params.schema.title,
     });
     const fullDataType = { $id: dataTypeUri, ...params.schema };

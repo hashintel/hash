@@ -59,7 +59,7 @@ export default class {
 
     const propertyTypeUri = generateSchemaUri({
       namespace,
-      kind: "propertyType",
+      kind: "property-type",
       title: params.schema.title,
     });
     const fullPropertyType = { $id: propertyTypeUri, ...params.schema };

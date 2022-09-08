@@ -1,8 +1,6 @@
 import {
-  DataType,
   PropertyType,
   EntityType,
-  LinkType,
   PropertyValues,
   VersionedUri,
 } from "@blockprotocol/type-system-web";
@@ -74,19 +72,7 @@ export const nilUuid = "00000000-0000-0000-0000-000000000000" as const;
  */
 export const workspaceAccountId = nilUuid;
 
-/** @todo avoid this look up, we can just do "entity-type" | ... etc. */
-type SchemaKind =
-  | EntityType["kind"]
-  | PropertyType["kind"]
-  | DataType["kind"]
-  | LinkType["kind"];
-
-const schemaKindSlugs: Record<SchemaKind, string> = {
-  entityType: "entity-type",
-  dataType: "data-type",
-  propertyType: "property-type",
-  linkType: "link-type",
-};
+type SchemaKind = "data-type" | "property-type" | "entity-type" | "link-type";
 
 const slugifySchemaTitle = (title: string): string =>
   slugify(title, { lower: true });
@@ -102,7 +88,7 @@ export const generateSchemaUri = ({
   kind: SchemaKind;
   title: string;
 }): VersionedUri =>
-  `${domain}/@${namespace}/types/${schemaKindSlugs[kind]}/${slugifySchemaTitle(
+  `${domain}/@${namespace}/types/${kind}/${slugifySchemaTitle(
     title,
   )}/v/1` as const;
 
@@ -139,7 +125,7 @@ export const primitiveDataTypeVersionedUris = primitiveDataTypeTitles.reduce(
     [title]: generateSchemaUri({
       domain: "https://blockprotocol.org",
       namespace: "blockprotocol",
-      kind: "dataType",
+      kind: "data-type",
       title,
     }),
   }),
@@ -165,7 +151,7 @@ export const generateWorkspacePropertyTypeSchema = (
   const $id = generateSchemaUri({
     namespace: params.namespace,
     title: params.title,
-    kind: "propertyType",
+    kind: "property-type",
   });
 
   const possibleValues = params.possibleValues.map(
@@ -285,7 +271,7 @@ export const generateWorkspaceEntityTypeSchema = (
   const $id = generateSchemaUri({
     namespace: params.namespace,
     title: params.title,
-    kind: "entityType",
+    kind: "entity-type",
   });
 
   /** @todo - clean this up to be more readable: https://app.asana.com/0/1202805690238892/1202931031833226/f */

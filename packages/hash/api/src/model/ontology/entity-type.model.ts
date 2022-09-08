@@ -66,7 +66,7 @@ export default class {
 
     const entityTypeUri = generateSchemaUri({
       namespace,
-      kind: "entityType",
+      kind: "entity-type",
       title: params.schema.title,
     });
     const fullEntityType = { $id: entityTypeUri, ...params.schema };

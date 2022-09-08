@@ -56,7 +56,7 @@ export default class {
 
     const linkTypeUri = generateSchemaUri({
       namespace,
-      kind: "linkType",
+      kind: "link-type",
       title: params.schema.title,
     });
     const fullLinkType = { $id: linkTypeUri, ...params.schema };

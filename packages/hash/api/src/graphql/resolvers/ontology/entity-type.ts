@@ -19,7 +19,6 @@ export const createEntityType: ResolverFn<
   MutationCreateEntityTypeArgs
 > = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
-  /** @todo - should accountId be optional here */
   const { accountId, entityType } = params;
 
   const createdEntityTypeModel = await EntityTypeModel.create(graphApi, {
