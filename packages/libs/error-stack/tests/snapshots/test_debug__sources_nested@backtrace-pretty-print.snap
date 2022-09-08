@@ -14,8 +14,8 @@ Context A
  │  │
  │  ╰─▶ Root error
  │      ├╴tests/common.rs:147:5
- │      ├╴6
- │      ╰╴backtrace with [n] frames (1)
+ │      ├╴backtrace with [n] frames (1)
+ │      ╰╴6
  │
  ╰▶ Context A
     ├╴tests/test_debug.rs:203:10

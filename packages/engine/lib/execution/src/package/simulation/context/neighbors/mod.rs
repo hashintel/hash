@@ -130,7 +130,7 @@ impl ContextPackage for Neighbors {
         &self,
         num_agents: usize,
         _schema: &ContextSchema,
-    ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow2::array::Array>)>> {
+    ) -> Result<Vec<(RootFieldKey, Box<dyn arrow2::array::Array>)>> {
         let index_builder = MutablePrimitiveArray::<u32>::with_capacity(1024);
 
         let neighbor_index_builder = MutableFixedSizeListArray::new(index_builder, 2);
@@ -150,7 +150,7 @@ impl ContextPackage for Neighbors {
 
         neighbors_builder
             .try_extend((0..num_agents).map(|_| Option::<Vec<Option<Vec<Option<u32>>>>>::None))?;
-        let neighbors = neighbors_builder.into_arc();
+        let neighbors = neighbors_builder.into_box();
         assert_eq!(neighbors.len(), num_agents);
 
         // TODO, this is unclean, we won't have to do this if we move empty arrow

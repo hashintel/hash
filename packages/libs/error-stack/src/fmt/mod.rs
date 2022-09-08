@@ -5,22 +5,23 @@
 //!
 //! The format implementation (especially the [`Debug`] implementation),
 //! can be easily extended using hooks.
-//! Hooks are functions of the signature `Fn(&T, &mut HookContext<T>) -> Vec<Emit>`, they provide
-//! an easy and ergonomic way to partially modify the format and enable the output of types that are
-//! not necessarily added via `.attach_printable()` or are unable to implement [`Display`].
+//! Hooks are functions of the signature `Fn(&T, &mut HookContext<T>)`, they provide an easy and
+//! ergonomic way to partially modify the format and enable the output of types that are
+//! not necessarily added via [`Report::attach_printable`] or are unable to implement [`Display`].
 //!
 //! Hooks can be attached through the central hooking mechanism which `error-stack`
 //! provides via [`Report::install_debug_hook`].
 //!
+//! Hooks are called for contexts which provide additional values through [`Error::provide`] or
+//! [`Context::provide`] and attachments which are added via [`Report::attach`].
+//! For contexts and values, that can be requested using [`Frame::request_ref`] and
+//! [`Frame::request_value`], the rendering order is determined by the order of
+//! [`Report::install_debug_hook`] calls.
+//!
 //! You can also provide a fallback function, which is called whenever a hook hasn't been added for
 //! a specific type of attachment.
 //! The fallback function needs to have a signature of
-//! `Fn(&Frame, &mut HookContext<T>) -> Vec<Emit>`
-//! and can be set via [`Report::install_debug_hook_fallback`].
-//!
-//! > **Caution:** Overwriting the fallback **will** remove the builtin formatting for types like
-//! > [`Backtrace`] and [`SpanTrace`], you can mitigate this by calling
-//! > [`error_stack::fmt::builtin_debug_hook_fallback`] in your fallback code.
+//! `Fn(&Frame, &mut HookContext<T>)` and can be set via [`Report::install_debug_hook_fallback`].
 //!
 //! Hook functions need to be [`Fn`] and **not** [`FnMut`], which means they are unable to directly
 //! mutate state outside of the closure.
@@ -32,58 +33,56 @@
 //! [`Report::install_debug_hook`].
 //! This type needs to be `'static`, [`Send`], and [`Sync`].
 //!
-//! The hook function must return [`Vec<Emit>`], which decides what is going
-//! to be emitted during printing, refer to the documentation of [`Emit`] for further
-//! information.
+//! You can add additional entries to the body with [`HookContext::push_body`], refer to the
+//! documentation of [`HookContext`] for further information.
 //!
 //! ## Example
 //!
 //! ```rust
-//! # // we only test on nightly, therefore report is unused (so is render)
-//! # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+//! # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+//! # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
 //! use std::io::{Error, ErrorKind};
 //! use error_stack::Report;
-//! use error_stack::fmt::Emit;
 //!
 //! struct ErrorCode(u64);
 //! struct Suggestion(&'static str);
 //! struct Warning(&'static str);
-//! struct Info(&'static str);
 //!
 //! // This hook will never be called, because a later invocation of `install_debug_hook` overwrites
-//! // the hook for the type `u64`.
-//! Report::install_debug_hook::<ErrorCode>(|_, _| vec![Emit::next("will never be called")]);
+//! // the hook for the type `ErrorCode`.
+//! Report::install_debug_hook::<ErrorCode>(|_, ctx| {
+//!     ctx.push_body("will never be called");
+//! });
 //!
 //! // `HookContext` always has a type parameter, which needs to be the same as the type of the
 //! // value, we use `HookContext` here as storage, to store values specific to this hook.
 //! // Here we make use of the auto-incrementing feature.
 //! // The incrementation is type specific, meaning that `ctx.increment()` for the `Suggestion` hook
 //! // will not influence the counter of the `ErrorCode` or `Warning` hook.
-//! Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| vec![Emit::next(format!("Suggestion {}: {val}", ctx.increment() + 1))]);
+//! Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
+//!     let idx = ctx.increment_counter() + 1;
+//!     ctx.push_body(format!("Suggestion {idx}: {val}"));
+//! });
 //!
-//! // we do not need to make use of the context, to either store a value for the duration of the
-//! // rendering, or to render additional text, which is why we omit the parameter.
-//! Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| vec![Emit::next(format!("Error ({val})"))]);
+//! Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), ctx| {
+//!     ctx.push_body(format!("Error ({val})"));
+//! });
 //!
 //! Report::install_debug_hook::<Warning>(|Warning(val), ctx| {
-//!     let idx = ctx.increment() + 1;
+//!     let idx = ctx.increment_counter() + 1;
 //!
 //!     // we set a value, which will be removed on non-alternate views
 //!     // and is going to be appended to the actual return value.
 //!     if ctx.alternate() {
-//!         ctx.attach_snippet(format!("Warning {idx}:\n  {val}"));
+//!         ctx.push_appendix(format!("Warning {idx}:\n  {val}"));
 //!     }
 //!
-//!     vec![Emit::next(format!("Warning ({idx}) occurred"))]
+//!     ctx.push_body(format!("Warning ({idx}) occurred"));
 //!  });
 //!
-//! // you can use arbitrary values as arguments, just make sure that you won't repeat them.
-//! // here we use [`Emit::defer`], this means that this value will be put at the end of the group.
-//! Report::install_debug_hook::<Info>(|Info(val), _| vec![Emit::defer(format!("Info: {val}"))]);
 //!
 //! let report = Report::new(Error::from(ErrorKind::InvalidInput))
 //!     .attach(ErrorCode(404))
-//!     .attach(Info("This is going to be at the end"))
 //!     .attach(Suggestion("Try to be connected to the internet."))
 //!     .attach(Suggestion("Try better next time!"))
 //!     .attach(Warning("Unable to fetch resource"));
@@ -99,28 +98,28 @@
 //! #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 //! # }
 //! #
-//! # #[cfg(nightly)]
+//! # #[cfg(rust_1_65)]
 //! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__doc.snap")].assert_eq(&render(format!("{report:?}")));
 //! #
 //! println!("{report:?}");
 //!
-//! # #[cfg(nightly)]
+//! # #[cfg(rust_1_65)]
 //! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt_doc_alt.snap")].assert_eq(&render(format!("{report:#?}")));
 //! #
 //! println!("{report:#?}");
 //! ```
-//! ### `println!("{report:?}")`
+//!
+//! The output of `println!("{report:?}")`:
 //!
 //! <pre>
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__doc.snap"))]
 //! </pre>
 //!
-//! ### `println!("{report:#?}")`
+//! The output of `println!("{report:#?}")`:
 //!
 //! <pre>
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt_doc_alt.snap"))]
 //! </pre>
-//!
 //!
 //! [`Display`]: core::fmt::Display
 //! [`Debug`]: core::fmt::Debug
@@ -130,13 +129,10 @@
 //! [`SpanTrace`]: tracing_error::SpanTrace
 //! [`error_stack::fmt::builtin_debug_hook_fallback`]: crate::fmt::builtin_debug_hook_fallback
 //! [`atomic`]: std::sync::atomic
-// Makes sure that `Emit` isn't regarded as unreachable even though it isn't exported on
-// no-std. Simplifies maintenance as we don't need to special case the visibility modifier.
-#![cfg_attr(not(feature = "std"), allow(unreachable_pub))]
+//! [`Error::provide`]: std::error::Error::provide
 
+#[cfg(feature = "std")]
 mod hook;
-#[cfg(feature = "unstable")]
-mod unstable;
 
 use alloc::{
     borrow::ToOwned,
@@ -149,211 +145,20 @@ use alloc::{
 use core::{
     fmt,
     fmt::{Debug, Display, Formatter},
+    iter::once,
     mem,
 };
 
 #[cfg(feature = "std")]
-pub use hook::builtin_debug_hook_fallback;
-#[cfg(not(feature = "std"))]
-#[allow(clippy::redundant_pub_crate)]
-pub(crate) use hook::builtin_debug_hook_fallback;
-#[cfg(feature = "std")]
 pub use hook::HookContext;
-use hook::HookContextImpl;
 #[cfg(feature = "std")]
-pub(crate) use hook::Hooks;
+pub(crate) use hook::{install_builtin_hooks, Hooks};
 #[cfg(feature = "pretty-print")]
 use owo_colors::{OwoColorize, Stream::Stdout, Style as OwOStyle};
-#[cfg(feature = "unstable")]
-pub use unstable::DebugDiagnostic;
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
-/// Modify the behaviour, with which text returned from hook invocations are rendered.
-///
-/// Text can either be emitted immediately as next line, or deferred until the end of the current
-/// stack, a stack is a list of attachments until a frame which has more than a single source.
-///
-/// Deferred lines are reversed when rendered, meaning that when `A`, `B`, and `C` have been added
-/// by **any** hook, they will be rendered in the order: `C`, `B`, `A`.
-///
-/// # Example
-///
-/// ```rust
-/// # // we only test on nightly, therefore report is unused (so is render)
-/// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
-/// use std::io::{Error, ErrorKind};
-///
-/// use error_stack::{fmt::Emit, Report};
-///
-/// struct Warning(&'static str);
-/// struct ErrorCode(u64);
-/// struct Suggestion(&'static str);
-/// struct Secret(&'static str);
-///
-/// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| {
-///     vec![Emit::next(format!("Error Code: {val}"))]
-/// });
-/// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
-///     vec![Emit::defer(format!("Suggestion: {val}"))]
-/// });
-/// Report::install_debug_hook::<Warning>(|Warning(val), _| {
-///     vec![Emit::next("Abnormal program execution detected"), Emit::next(format!("Warning: {val}"))]
-/// });
-/// Report::install_debug_hook::<Secret>(|_, _| vec![]);
-///
-/// let report = Report::new(Error::from(ErrorKind::InvalidInput))
-///     .attach(ErrorCode(404))
-///     .attach(Suggestion("Do you have a connection to the internet?"))
-///     .attach(ErrorCode(405))
-///     .attach(Warning("Unable to determine environment"))
-///     .attach(Secret("pssst, don't tell anyone else c;"))
-///     .attach(Suggestion("Execute the program from the fish shell"))
-///     .attach(ErrorCode(501))
-///     .attach(Suggestion("Try better next time!"));
-///
-/// # owo_colors::set_override(true);
-/// # fn render(value: String) -> String {
-/// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-/// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
-/// #
-/// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-/// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
-/// #
-/// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
-/// # }
-/// #
-/// # #[cfg(nightly)]
-/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap")].assert_eq(&render(format!("{report:?}")));
-/// #
-/// println!("{report:?}");
-/// ```
-///
-/// <pre>
-#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap"))]
-/// </pre>
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[must_use]
-#[non_exhaustive]
-pub enum Emit {
-    /// Line is going to be emitted after all immediate lines have been emitted from the current
-    /// stack.
-    /// This means that deferred lines will always be last in a group.
-    #[cfg_attr(not(any(feature = "std", feature = "spantrace")), allow(dead_code))]
-    Defer(String),
-    /// Going to be emitted immediately as the next line in the chain of
-    /// attachments and contexts.
-    Next(String),
-}
-
-impl Emit {
-    /// Add a new line which is going to be emitted immediately.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
-    /// use std::io;
-    ///
-    /// use error_stack::{fmt::Emit, Report};
-    ///
-    /// struct Suggestion(&'static str);
-    ///
-    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
-    ///     vec![
-    ///         Emit::next(format!("Suggestion: {val}")),
-    ///         Emit::next("Sorry for the inconvenience!")
-    ///     ]
-    /// });
-    ///
-    /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
-    ///     .attach(Suggestion("Try better next time"));
-    ///
-    /// # owo_colors::set_override(true);
-    /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
-    /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
-    /// #
-    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
-    /// # }
-    /// #
-    /// # #[cfg(nightly)]
-    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap")].assert_eq(&render(format!("{report:?}")));
-    /// #
-    /// println!("{report:?}");
-    /// ```
-    ///
-    /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap"))]
-    /// </pre>
-    pub fn next<T: Into<String>>(line: T) -> Self {
-        Self::Next(line.into())
-    }
-
-    /// Create a new line, which is going to be deferred until the end of the current stack.
-    ///
-    /// A stack are all attachments until a [`Context`] is encountered in the frame stack,
-    /// lines added via this function are going to be emitted at the end, in reversed direction to
-    /// the attachments that added them
-    ///
-    /// [`Context`]: crate::Context
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
-    /// use std::io;
-    ///
-    /// use error_stack::{fmt::Emit, Report};
-    ///
-    /// struct ErrorCode(u64);
-    /// struct Suggestion(&'static str);
-    ///
-    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), _| {
-    ///     vec![Emit::defer(format!("Suggestion: {val}"))]
-    /// });
-    /// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), _| {
-    ///     vec![Emit::next(format!("Error Code: {val}"))]
-    /// });
-    ///
-    /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
-    ///     .attach(Suggestion("Try better next time!"))
-    ///     .attach(ErrorCode(404))
-    ///     .attach(Suggestion("Try to use a different shell!"))
-    ///     .attach(ErrorCode(405));
-    ///
-    /// # owo_colors::set_override(true);
-    /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
-    /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
-    /// #
-    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
-    /// # }
-    /// #
-    /// # #[cfg(nightly)]
-    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add_defer.snap")].assert_eq(&render(format!("{report:?}")));
-    /// #
-    /// println!("{report:?}");
-    /// ```
-    ///
-    /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add_defer.snap"))]
-    /// </pre>
-    #[cfg_attr(not(any(feature = "std", feature = "spantrace")), allow(dead_code))]
-    pub fn defer<T: Into<String>>(line: T) -> Self {
-        Self::Defer(line.into())
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum Symbol {
     // special, used to indicate location
     Location,
@@ -367,6 +172,62 @@ enum Symbol {
     CurveRight,
 
     Space,
+}
+
+/// We use symbols during resolution, which is efficient and versatile, but makes the conversion
+/// between [`Instruction`] to [`Symbol`] harder to comprehend for a user.
+///
+/// This macro fixes this by creating a compile-time lookup table to easily map every character in
+/// the [`Display`] of [`Symbol`] to it's corresponding symbol.
+///
+/// # Example
+///
+/// ```ignore
+/// assert_eq!(sym!('├', '┬'), &[
+///     Symbol::VerticalRight,
+///     Symbol::HorizontalDown
+/// ])
+/// ```
+macro_rules! sym {
+    (#char '@') => {
+        Symbol::Location
+    };
+
+    (#char '│') => {
+        Symbol::Vertical
+    };
+
+    (#char '├') => {
+        Symbol::VerticalRight
+    };
+
+    (#char '─') => {
+        Symbol::Horizontal
+    };
+
+    (#char '╴') => {
+        Symbol::HorizontalLeft
+    };
+
+    (#char '┬') => {
+        Symbol::HorizontalDown
+    };
+
+    (#char '▶') => {
+        Symbol::ArrowRight
+    };
+
+    (#char '╰') => {
+        Symbol::CurveRight
+    };
+
+    (#char ' ') => {
+        Symbol::Space
+    };
+
+    ($($char:tt),+) => {
+        &[$(sym!(#char $char)),*]
+    };
 }
 
 #[cfg(feature = "pretty-print")]
@@ -445,8 +306,106 @@ impl From<Style> for OwOStyle {
 #[derive(Debug, Copy, Clone)]
 enum Position {
     First,
-    Middle,
-    Last,
+    Inner,
+    Final,
+}
+
+#[derive(Debug, Copy, Clone)]
+enum Spacing {
+    // Standard to create a width of 4 characters
+    Full,
+    // Minimal width to create a width of 2/3 characters
+    Minimal,
+}
+
+#[derive(Debug, Copy, Clone)]
+struct Indent {
+    /// Is this used in a group context, if that is the case, then add a single leading space
+    group: bool,
+    /// Should the indent be visible, if that isn't the case it will render a space instead of
+    /// `|`
+    visible: bool,
+    /// Should spacing included, this is the difference between `|   ` and `|`
+    spacing: Option<Spacing>,
+}
+
+impl Indent {
+    const fn new(group: bool) -> Self {
+        Self {
+            group,
+            visible: true,
+            spacing: Some(Spacing::Full),
+        }
+    }
+
+    fn spacing(mut self, spacing: impl Into<Option<Spacing>>) -> Self {
+        self.spacing = spacing.into();
+        self
+    }
+
+    const fn visible(mut self, visible: bool) -> Self {
+        self.visible = visible;
+        self
+    }
+
+    const fn group() -> Self {
+        Self::new(true)
+    }
+
+    const fn no_group() -> Self {
+        Self::new(false)
+    }
+
+    const fn prepare(self) -> &'static [Symbol] {
+        match self {
+            Self {
+                group: true,
+                visible: true,
+                spacing: Some(_),
+            } => sym!(' ', '│', ' ', ' '),
+            Self {
+                group: true,
+                visible: true,
+                spacing: None,
+            } => sym!(' ', '│'),
+            Self {
+                group: false,
+                visible: true,
+                spacing: Some(Spacing::Full),
+            } => sym!('│', ' ', ' ', ' '),
+            Self {
+                group: false,
+                visible: true,
+                spacing: Some(Spacing::Minimal),
+            } => sym!('│', ' '),
+            Self {
+                group: false,
+                visible: true,
+                spacing: None,
+            } => sym!('│'),
+            Self {
+                visible: false,
+                spacing: Some(Spacing::Full),
+                ..
+            } => sym!(' ', ' ', ' ', ' '),
+            Self {
+                visible: false,
+                spacing: Some(Spacing::Minimal),
+                ..
+            } => sym!(' ', ' '),
+            Self {
+                visible: false,
+                spacing: None,
+                ..
+            } => &[],
+        }
+    }
+}
+
+impl From<Indent> for Instruction {
+    fn from(indent: Indent) -> Self {
+        Self::Indent(indent)
+    }
 }
 
 /// The display of content is using an instruction style architecture,
@@ -471,21 +430,12 @@ enum Instruction {
     Context {
         position: Position,
     },
-    /// `Position::Last` means *that nothing follows*
+    /// `Position::Final` means *that nothing follows*
     Attachment {
         position: Position,
     },
 
-    Indent {
-        /// Is this used in a group context, if that is the case, then add a single leading space
-        group: bool,
-        /// Should the indent be visible, if that isn't the case it will render a space instead of
-        /// `|`
-        visible: bool,
-        /// Should spacing included, this is the difference between `|   ` and `|`
-        spacing: bool,
-        minimal: bool,
-    },
+    Indent(Indent),
 }
 
 /// Minimized instruction, which looses information about what it represents and converts it to
@@ -497,123 +447,34 @@ enum PreparedInstruction<'a> {
 }
 
 impl Instruction {
-    // Reason for allow:
-    // > This is just a big statement to convert to a prepared instruction, there
-    // isn't really any logic here
-    #[allow(clippy::too_many_lines)]
+    // Reason: the match arms are the same intentionally, this makes it more clean which variant
+    //  emits which and also keeps it nicely formatted.
+    #[allow(clippy::match_same_arms)]
     fn prepare(&self) -> PreparedInstruction {
         match self {
             Self::Value { value, style } => PreparedInstruction::Content(value, style),
             Self::Symbol(symbol) => PreparedInstruction::Symbol(symbol),
 
             Self::Group { position } => match position {
-                Position::First => PreparedInstruction::Symbols(&[
-                    Symbol::CurveRight,
-                    Symbol::HorizontalDown,
-                    Symbol::ArrowRight,
-                    Symbol::Space,
-                ]),
-                Position::Middle => PreparedInstruction::Symbols(&[
-                    Symbol::Space,
-                    Symbol::VerticalRight,
-                    Symbol::ArrowRight,
-                    Symbol::Space,
-                ]),
-                Position::Last => PreparedInstruction::Symbols(&[
-                    Symbol::Space,
-                    Symbol::CurveRight,
-                    Symbol::ArrowRight,
-                    Symbol::Space,
-                ]),
+                Position::First => PreparedInstruction::Symbols(sym!('╰', '┬', '▶', ' ')),
+                Position::Inner => PreparedInstruction::Symbols(sym!(' ', '├', '▶', ' ')),
+                Position::Final => PreparedInstruction::Symbols(sym!(' ', '╰', '▶', ' ')),
             },
 
             Self::Context { position } => match position {
-                Position::First | Position::Middle => PreparedInstruction::Symbols(&[
-                    Symbol::VerticalRight,
-                    Symbol::Horizontal,
-                    Symbol::ArrowRight,
-                    Symbol::Space,
-                ]),
-                Position::Last => PreparedInstruction::Symbols(&[
-                    Symbol::CurveRight,
-                    Symbol::Horizontal,
-                    Symbol::ArrowRight,
-                    Symbol::Space,
-                ]),
+                Position::First => PreparedInstruction::Symbols(sym!('├', '─', '▶', ' ')),
+                Position::Inner => PreparedInstruction::Symbols(sym!('├', '─', '▶', ' ')),
+                Position::Final => PreparedInstruction::Symbols(sym!('╰', '─', '▶', ' ')),
             },
 
             Self::Attachment { position } => match position {
-                Position::First | Position::Middle => {
-                    PreparedInstruction::Symbols(&[Symbol::VerticalRight, Symbol::HorizontalLeft])
-                }
-                Position::Last => {
-                    PreparedInstruction::Symbols(&[Symbol::CurveRight, Symbol::HorizontalLeft])
-                }
+                Position::First => PreparedInstruction::Symbols(sym!('├', '╴')),
+                Position::Inner => PreparedInstruction::Symbols(sym!('├', '╴')),
+                Position::Final => PreparedInstruction::Symbols(sym!('╰', '╴')),
             },
 
             // Indentation (like `|   ` or ` |  `)
-            Self::Indent {
-                group: true,
-                visible: true,
-                spacing: true,
-                ..
-            } => PreparedInstruction::Symbols(&[
-                Symbol::Space,
-                Symbol::Vertical,
-                Symbol::Space,
-                Symbol::Space,
-            ]),
-            Self::Indent {
-                group: true,
-                visible: true,
-                spacing: false,
-                ..
-            } => PreparedInstruction::Symbols(&[Symbol::Space, Symbol::Vertical]),
-            Self::Indent {
-                group: false,
-                visible: true,
-                spacing: true,
-                minimal: false,
-            } => PreparedInstruction::Symbols(&[
-                Symbol::Vertical,
-                Symbol::Space,
-                Symbol::Space,
-                Symbol::Space,
-            ]),
-            Self::Indent {
-                group: false,
-                visible: true,
-                spacing: true,
-                minimal: true,
-            } => PreparedInstruction::Symbols(&[Symbol::Vertical, Symbol::Space]),
-            Self::Indent {
-                group: false,
-                visible: true,
-                spacing: false,
-                ..
-            } => PreparedInstruction::Symbols(&[Symbol::Vertical]),
-            Self::Indent {
-                visible: false,
-                spacing: true,
-                minimal: false,
-                ..
-            } => PreparedInstruction::Symbols(&[
-                Symbol::Space,
-                Symbol::Space,
-                Symbol::Space,
-                Symbol::Space,
-            ]),
-            Self::Indent {
-                visible: false,
-                spacing: true,
-                minimal: true,
-                ..
-            } => PreparedInstruction::Symbols(&[Symbol::Space, Symbol::Space]),
-            Self::Indent {
-                visible: false,
-                spacing: false,
-                ..
-            } => PreparedInstruction::Symbols(&[]),
+            Self::Indent(indent) => PreparedInstruction::Symbols(indent.prepare()),
         }
     }
 }
@@ -831,90 +692,73 @@ impl Opaque {
     }
 }
 
-fn debug_attachments(
-    loc: Option<Line>,
-    ctx: &mut HookContextImpl,
-    last: bool,
+fn debug_attachments_invoke(
     frames: Vec<&Frame>,
-) -> Lines {
+    #[cfg(feature = "std")] ctx: &mut HookContext<Frame>,
+) -> (Opaque, Vec<String>) {
     let mut opaque = Opaque::new();
 
-    // evaluate all frames to their respective values, will call all hooks with the current context
-    let (next, defer): (Vec<_>, _) = frames
+    let body = frames
         .into_iter()
         .map(|frame| match frame.kind() {
-            FrameKind::Context(_) => unreachable!(),
-            FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
-                #[cfg(all(nightly, feature = "unstable"))]
-                if let Some(debug) = frame.request_ref::<DebugDiagnostic>() {
-                    for snippet in debug.snippets() {
-                        ctx.as_hook_context::<DebugDiagnostic>()
-                            .attach_snippet(snippet.clone());
-                    }
-
-                    return debug.output().to_vec();
-                }
-
-                #[cfg(all(not(nightly), feature = "unstable"))]
-                if let Some(debug) = frame.downcast_ref::<DebugDiagnostic>() {
-                    for snippet in debug.snippets() {
-                        ctx.as_hook_context::<DebugDiagnostic>()
-                            .attach_snippet(snippet.clone());
-                    }
-
-                    return debug.output().to_vec();
-                }
-
-                #[cfg(feature = "std")]
-                {
-                    Report::get_debug_format_hook(|hooks| {
-                        hooks.call(frame, &mut ctx.as_hook_context())
-                    })
-                }
-
-                #[cfg(not(feature = "std"))]
-                {
-                    builtin_debug_hook_fallback(frame, &mut ctx.as_hook_context())
-                }
+            #[cfg(feature = "std")]
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
+                Report::get_debug_format_hook(|hooks| hooks.call(frame, ctx));
+                ctx.take_body()
+            }
+            #[cfg(not(feature = "std"))]
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
+                vec![]
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                vec![Emit::next(attachment.to_string())]
+                vec![attachment.to_string()]
             }
         })
-        .flat_map(|value| {
+        .enumerate()
+        .flat_map(|(idx, body)| {
             // increase the opaque counter, if we're unable to determine the actual value of the
             // frame
-            if value.is_empty() {
+            if idx > 0 && body.is_empty() {
                 opaque.increase();
             }
 
-            value
+            body
         })
-        .partition(|f| matches!(f, Emit::Next(_)));
+        .collect();
 
+    (opaque, body)
+}
+
+fn debug_attachments(
+    loc: Option<Line>,
+    position: Position,
+    frames: Vec<&Frame>,
+    #[cfg(feature = "std")] ctx: &mut HookContext<Frame>,
+) -> Lines {
+    let last = matches!(position, Position::Final);
+
+    let (opaque, entries) = debug_attachments_invoke(
+        frames,
+        #[cfg(feature = "std")]
+        ctx,
+    );
     let opaque = opaque.render();
 
-    // calculate the len, combine next and defer emitted values into a single stream
-    let len =
-        next.len() + defer.len() + loc.as_ref().map_or(0, |_| 1) + opaque.as_ref().map_or(0, |_| 1);
-    let lines = next
-        .into_iter()
-        .chain(defer.into_iter().rev())
-        .map(|emit| match emit {
-            Emit::Defer(value) | Emit::Next(value) => value,
-        })
-        .map(|value| {
-            value
-                .lines()
-                .map(ToOwned::to_owned)
-                .map(|line| {
-                    Line::new().push(Instruction::Value {
-                        value: line,
-                        style: Style::new(),
-                    })
+    // Calculate the expected end length, by adding all values that have would contribute to the
+    // line count later.
+    let len = entries.len() + loc.as_ref().map_or(0, |_| 1) + opaque.as_ref().map_or(0, |_| 1);
+    let lines = entries.into_iter().map(|value| {
+        value
+            .lines()
+            .map(ToOwned::to_owned)
+            .map(|line| {
+                Line::new().push(Instruction::Value {
+                    value: line,
+                    style: Style::new(),
                 })
-                .collect::<Vec<_>>()
-        });
+            })
+            .collect::<Vec<_>>()
+    });
 
     // indentation for every first line, use `Instruction::Attachment`, otherwise use minimal
     // indent omit that indent when we're the last value
@@ -925,21 +769,21 @@ fn debug_attachments(
         .enumerate()
         .flat_map(|(idx, lines)| {
             let position = match idx {
-                pos if pos + 1 == len && last => Position::Last,
+                pos if pos + 1 == len && last => Position::Final,
                 0 => Position::First,
-                _ => Position::Middle,
+                _ => Position::Inner,
             };
 
             lines.into_iter().enumerate().map(move |(idx, line)| {
                 if idx == 0 {
                     line.push(Instruction::Attachment { position })
                 } else {
-                    line.push(Instruction::Indent {
-                        group: false,
-                        visible: !matches!(position, Position::Last),
-                        spacing: true,
-                        minimal: true,
-                    })
+                    line.push(
+                        Indent::no_group()
+                            .visible(!matches!(position, Position::Final))
+                            .spacing(Spacing::Minimal)
+                            .into(),
+                    )
                 }
             })
         })
@@ -954,9 +798,9 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
         .map(|(idx, lines)| {
             let position = match idx {
                 // this is first to make sure that 0 is caught as `Last` instead of `First`
-                pos if pos + 1 == len => Position::Last,
+                pos if pos + 1 == len => Position::Final,
                 0 => Position::First,
-                _ => Position::Middle,
+                _ => Position::Inner,
             };
 
             lines
@@ -966,23 +810,17 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
                     if idx == 0 {
                         line.push(Instruction::Group { position })
                     } else {
-                        line.push(Instruction::Indent {
-                            group: true,
-                            visible: !matches!(position, Position::Last),
-                            spacing: true,
-                            minimal: false,
-                        })
+                        line.push(
+                            Indent::group()
+                                .visible(!matches!(position, Position::Final))
+                                .into(),
+                        )
                     }
                 })
                 .collect::<Lines>()
                 .before(
                     // add a buffer line for readability
-                    Line::new().push(Instruction::Indent {
-                        group: idx != 0,
-                        visible: true,
-                        spacing: false,
-                        minimal: false,
-                    }),
+                    Line::new().push(Indent::new(idx != 0).spacing(None).into()),
                 )
         })
         .collect::<Vec<_>>();
@@ -993,9 +831,9 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
     // insert the arrows and buffer indentation
     let contexts = contexts.into_iter().enumerate().flat_map(|(idx, lines)| {
         let position = match idx {
-            pos if pos + 1 == len && !tail => Position::Last,
+            pos if pos + 1 == len && !tail => Position::Final,
             0 => Position::First,
-            _ => Position::Middle,
+            _ => Position::Inner,
         };
 
         let mut lines = lines
@@ -1005,26 +843,17 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
                 if idx == 0 {
                     line.push(Instruction::Context { position })
                 } else {
-                    line.push(Instruction::Indent {
-                        group: false,
-                        visible: !matches!(position, Position::Last),
-                        spacing: true,
-                        minimal: false,
-                    })
+                    line.push(
+                        Indent::no_group()
+                            .visible(!matches!(position, Position::Final))
+                            .into(),
+                    )
                 }
             })
             .collect::<Vec<_>>();
 
         // this is not using `.collect<>().before()`, because somehow that kills rustfmt?!
-        lines.insert(
-            0,
-            Line::new().push(Instruction::Indent {
-                group: false,
-                visible: true,
-                spacing: false,
-                minimal: false,
-            }),
-        );
+        lines.insert(0, Line::new().push(Indent::no_group().spacing(None).into()));
 
         lines
     });
@@ -1035,7 +864,11 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
         .collect()
 }
 
-fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Vec<Lines> {
+fn debug_frame(
+    root: &Frame,
+    prefix: &[&Frame],
+    #[cfg(feature = "std")] ctx: &mut HookContext<Frame>,
+) -> Vec<Lines> {
     let (stack, sources) = collect(root, prefix);
     let (stack, prefix) = partition(&stack);
 
@@ -1048,7 +881,7 @@ fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Ve
             // each "paket" on the stack is made up of a head (guaranteed to be a `Context`) and
             // `n` attachments.
             // The attachments are rendered as direct descendants of the parent context
-            let (head, loc) = debug_context(head, match head.kind() {
+            let (head_ctx, loc) = debug_context(head, match head.kind() {
                 FrameKind::Context(c) => c,
                 FrameKind::Attachment(_) => unreachable!(),
             });
@@ -1057,12 +890,29 @@ fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Ve
             body.reverse();
             let body = debug_attachments(
                 Some(loc),
+                // This makes sure that we use `╰─` instead of `├─`,
+                // this is true whenever we only have a single context and no sources,
+                // **or** if our idx is larger than `0`, this might sound false,
+                // but this is because contexts other than the first context create a new
+                // "indentation", in this indentation we are considered last.
+                //
+                // Context A
+                // ├╴Attachment B
+                // ├╴Attachment C <- not last, because we are not the only context
+                // |
+                // ╰─▶ Context D <- indentation here is handled by `debug_render`!
+                //     ├╴Attachment E
+                //     ╰╴Attachment F <- last because it's the last of the parent context!
+                if (len == 1 && sources.is_empty()) || idx > 0 {
+                    Position::Final
+                } else {
+                    Position::Inner
+                },
+                once(head).chain(body).collect(),
+                #[cfg(feature = "std")]
                 ctx,
-                (len == 1 && sources.is_empty()) || idx > 0,
-                body,
             );
-
-            head.then(body)
+            head_ctx.then(body)
         })
         .collect();
 
@@ -1071,7 +921,14 @@ fn debug_frame(root: &Frame, ctx: &mut HookContextImpl, prefix: &[&Frame]) -> Ve
         .flat_map(
             // if the group is "transparent" (has no context), it will return all it's parents
             // rendered this is why we must first flat_map.
-            |source| debug_frame(source, ctx, &prefix),
+            |source| {
+                debug_frame(
+                    source,
+                    &prefix,
+                    #[cfg(feature = "std")]
+                    ctx,
+                )
+            },
         )
         .collect::<Vec<_>>();
 
@@ -1096,24 +953,31 @@ impl<C> Debug for Report<C> {
             return result;
         }
 
-        let mut ctx = HookContextImpl::new(fmt.alternate());
+        #[cfg(feature = "std")]
+        let mut ctx = HookContext::new(fmt.alternate());
 
+        #[cfg_attr(not(feature = "std"), allow(unused_mut))]
         let mut lines = self
             .current_frames()
             .iter()
-            .flat_map(|frame| debug_frame(frame, &mut ctx, &[]))
+            .flat_map(|frame| {
+                debug_frame(
+                    frame,
+                    &[],
+                    #[cfg(feature = "std")]
+                    &mut ctx,
+                )
+            })
             .enumerate()
             .flat_map(|(idx, lines)| {
                 if idx == 0 {
                     lines.into_vec()
                 } else {
                     lines
-                        .before(Line::new().push(Instruction::Indent {
-                            group: false,
-                            visible: false,
-                            spacing: false,
-                            minimal: false,
-                        }))
+                        .before(
+                            Line::new()
+                                .push(Indent::no_group().visible(false).spacing(None).into()),
+                        )
                         .into_vec()
                 }
             })
@@ -1121,34 +985,35 @@ impl<C> Debug for Report<C> {
             .collect::<Vec<_>>()
             .join("\n");
 
-        // only output detailed information (like backtraces), if alternate mode is enabled, or the
-        // snippet has been forced.
-        let suffix = ctx
-            .snippets
-            .into_iter()
-            .map(
-                // remove all trailing newlines for a more uniform look
-                |snippet| snippet.trim_end_matches('\n').to_owned(),
-            )
-            .collect::<Vec<_>>()
-            .join("\n\n");
+        #[cfg(feature = "std")]
+        {
+            let appendix = ctx
+                .appendix()
+                .iter()
+                .map(
+                    // remove all trailing newlines for a more uniform look
+                    |snippet| snippet.trim_end_matches('\n').to_owned(),
+                )
+                .collect::<Vec<_>>()
+                .join("\n\n");
 
-        if !suffix.is_empty() {
-            // 44 is the size for the separation.
-            lines.reserve(44 + suffix.len());
+            if !appendix.is_empty() {
+                // 44 is the size for the separation.
+                lines.reserve(44 + appendix.len());
 
-            lines.push_str("\n\n");
-            #[cfg(feature = "pretty-print")]
-            {
-                lines.push_str(&"━".repeat(40));
+                lines.push_str("\n\n");
+                #[cfg(feature = "pretty-print")]
+                {
+                    lines.push_str(&"━".repeat(40));
+                }
+                #[cfg(not(feature = "pretty-print"))]
+                {
+                    lines.push_str(&"=".repeat(40));
+                }
+
+                lines.push_str("\n\n");
+                lines.push_str(&appendix);
             }
-            #[cfg(not(feature = "pretty-print"))]
-            {
-                lines.push_str(&"=".repeat(40));
-            }
-
-            lines.push_str("\n\n");
-            lines.push_str(&suffix);
         }
 
         fmt.write_str(&lines)

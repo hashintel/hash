@@ -25,7 +25,7 @@ These apply across all projects:
 
 ## How can I find interesting PRs to work on?
 
-Issue tags can provide a good source of inspiration for would-be contributors. See: “help wanted” and “good for first-time contributors”. You should also feel free to join our [HASH Discord](https://hash.ai/discord) and reach out directly to us for more inspiration. If you're willing to contribute, we'd love to have you!
+Existing issues can provide a good source of inspiration for potential contributions. The issue tags `E-help-wanted` and `E-good-first-issue` flag some of the lower-hanging fruit that are available for people (including first-time contributors) to work on, without necessarily requiring prior discussion. You should also feel free to join our [HASH Discord](https://hash.ai/discord) and reach out directly to us for more inspiration. If you're willing to contribute, we'd love to have you!
 
 ## Why might contributions be rejected?
 

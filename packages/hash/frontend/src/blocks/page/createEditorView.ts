@@ -6,12 +6,16 @@ import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
+import { RefObject } from "react";
+import { LoadingView } from "./LoadingView";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
 import { ComponentView } from "./ComponentView";
 import { createErrorPlugin } from "./createErrorPlugin";
 import { createFormatPlugins } from "./createFormatPlugins";
+import { createPlaceholderPlugin } from "./createPlaceholderPlugin/createPlaceholderPlugin";
 import { createSuggester } from "./createSuggester/createSuggester";
+import { createFocusPageTitlePlugin } from "./focusPageTitlePlugin";
 import { MentionView } from "./MentionView/MentionView";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
@@ -28,6 +32,8 @@ export const createEditorView = (
   accountId: string,
   pageEntityId: string,
   blocks: BlocksMap,
+  readonly: boolean,
+  pageTitleRef: RefObject<HTMLTextAreaElement>,
 ) => {
   let manager: ProsemirrorManager;
 
@@ -35,8 +41,10 @@ export const createEditorView = (
 
   const plugins: Plugin<unknown, Schema>[] = [
     ...createFormatPlugins(renderPortal),
-    createSuggester(renderPortal, () => manager, accountId),
+    createSuggester(renderPortal, () => manager, accountId, renderNode),
+    createPlaceholderPlugin(renderPortal),
     errorPlugin,
+    createFocusPageTitlePlugin(pageTitleRef),
   ];
 
   const state = createProseMirrorState({ accountId, plugins });
@@ -84,6 +92,11 @@ export const createEditorView = (
           manager,
         );
       },
+      // Reason for adding unused params e.g. `_decorations`:
+      // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
+      loading(currentNode, _currentView, _getPos, _decorations) {
+        return new LoadingView(currentNode, renderPortal);
+      },
       // Reason for adding `_decorations`:
       // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
       mention(currentNode, currentView, getPos, _decorations) {
@@ -101,8 +114,8 @@ export const createEditorView = (
         );
       },
     },
-    dispatchTransaction: (tr) =>
-      connection?.dispatchTransaction(tr, connection?.state.version ?? 0),
+    dispatchTransaction: (tr) => connection?.dispatchTransaction(tr),
+    editable: () => !readonly,
   });
 
   manager = new ProsemirrorManager(

@@ -52,7 +52,7 @@ const ensureEntitiesAreWrapped = (
      * Where positions have been unwrapped, wrapperNodes _should_ be provided to re-wrap them.
      */
     if (
-      node.type !== schema.nodes.blank &&
+      node.type !== schema.nodes.loading &&
       parent.type === schema.nodes.doc &&
       // a block node is the outermost wrapping layer, and therefore already wrapped
       node.type !== schema.nodes.block

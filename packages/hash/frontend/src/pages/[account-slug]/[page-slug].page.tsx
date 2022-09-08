@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client";
 import {
   HashBlock,
-  defaultBlocks,
+  defaultBlockComponentIds,
   fetchBlock,
 } from "@hashintel/hash-shared/blocks";
 import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
@@ -17,7 +17,8 @@ import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPos
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
 import { PageBlock } from "../../blocks/page/PageBlock";
-import { PageTitle } from "../../blocks/page/PageTitle";
+import { PageContextProvider } from "../../blocks/page/PageContext";
+import { PageTitle } from "../../blocks/page/PageTitle/PageTitle";
 import {
   AccountPagesInfo,
   useAccountPages,
@@ -25,6 +26,7 @@ import {
 import { useArchivePage } from "../../components/hooks/useArchivePage";
 import { PageIcon } from "../../components/PageIcon";
 import { PageIconButton } from "../../components/PageIconButton";
+import { PageLoadingState } from "../../components/PageLoadingState";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import {
   GetPageInfoQuery,
@@ -57,7 +59,7 @@ type PageProps = {
  */
 export const getStaticProps: GetStaticProps<PageProps> = async () => {
   const fetchedBlocks = await Promise.all(
-    defaultBlocks.map((componentId) => fetchBlock(componentId)),
+    defaultBlockComponentIds.map((componentId) => fetchBlock(componentId)),
   );
 
   return {
@@ -74,7 +76,7 @@ export const PageNotificationBanner: FunctionComponent = () => {
   const { pageEntityId } = useRoutePageInfo();
   const versionId = router.query.version as string | undefined;
 
-  const { unarchivePage } = useArchivePage();
+  const [archivePage] = useArchivePage();
 
   const { data } = useQuery<GetPageInfoQuery, GetPageInfoQueryVariables>(
     getPageInfoQuery,
@@ -116,7 +118,9 @@ export const PageNotificationBanner: FunctionComponent = () => {
             },
           })}
           onClick={() =>
-            accountId && pageEntityId && unarchivePage(accountId, pageEntityId)
+            accountId &&
+            pageEntityId &&
+            archivePage(false, accountId, pageEntityId)
           }
         >
           Restore
@@ -166,10 +170,12 @@ const generateCrumbsFromPages = ({
   return arr;
 };
 
+export const PAGE_CONTENT_WIDTH = 960;
+
 const Container = styled("div")(({ theme }) => ({
   display: "grid",
-  gridTemplateColumns: "1fr minmax(65ch, 960px) 1fr",
-  padding: theme.spacing(7, 10),
+  gridTemplateColumns: `1fr minmax(65ch, ${PAGE_CONTENT_WIDTH}px) 1fr`,
+  padding: theme.spacing(6),
 
   "& > *": {
     gridColumn: "2",
@@ -237,7 +243,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   if (loading) {
     return (
       <Container>
-        <h1>Loading...</h1>
+        <PageLoadingState />
       </Container>
     );
   }
@@ -282,51 +288,55 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
           <link rel="icon" type="image/png" href="/favicon.png" />
         )}
       </Head>
-      <Box
-        sx={({ zIndex, palette }) => ({
-          position: "sticky",
-          top: 0,
-          zIndex: zIndex.appBar,
-          backgroundColor: palette.white,
-        })}
-      >
-        <TopContextBar
-          crumbs={generateCrumbsFromPages({
-            pages: accountPages,
-            pageId: data.page.entityId,
-            accountId,
-          })}
-          scrollToTop={scrollToTop}
-        />
-        <PageNotificationBanner />
-      </Box>
 
-      <Container>
+      <PageContextProvider>
         <Box
-          component="header"
-          ref={pageHeaderRef}
-          sx={{
-            display: "flex",
-            scrollMarginTop: HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT,
-          }}
+          sx={({ zIndex, palette }) => ({
+            position: "sticky",
+            top: 0,
+            zIndex: zIndex.appBar,
+            backgroundColor: palette.white,
+          })}
         >
-          <PageIconButton
-            accountId={accountId}
-            entityId={pageEntityId}
-            versionId={versionId}
+          <TopContextBar
+            crumbs={generateCrumbsFromPages({
+              pages: accountPages,
+              pageId: data.page.entityId,
+              accountId,
+            })}
+            scrollToTop={scrollToTop}
           />
-          <Box ml={3} />
-          <PageTitle
-            value={title}
-            accountId={accountId}
-            entityId={pageEntityId}
-          />
-          {/* 
+          <PageNotificationBanner />
+        </Box>
+
+        <Container>
+          <Box display="flex">
+            <PageIconButton
+              accountId={accountId}
+              entityId={pageEntityId}
+              versionId={versionId}
+              sx={{ mr: 3, alignSelf: "flex-start" }}
+            />
+
+            <Box flex={1}>
+              <Box
+                component="header"
+                ref={pageHeaderRef}
+                sx={{
+                  scrollMarginTop: HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT,
+                }}
+              >
+                <PageTitle
+                  value={title}
+                  accountId={accountId}
+                  entityId={pageEntityId}
+                />
+                {/* 
             Commented out Version Dropdown and Transfer Page buttons.
             They will most likely be added back when new designs 
             for them have been added
           */}
-          {/* <div className={tw`mr-4`}>
+                {/* <div className={tw`mr-4`}>
             <label>Version</label>
             <div>
               <VersionDropdown
@@ -350,15 +360,18 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
               />
             </div>
           </div> */}
-        </Box>
-        <CollabPositionProvider value={collabPositions}>
-          <PageBlock
-            accountId={accountId}
-            blocks={blocksMap}
-            entityId={pageEntityId}
-          />
-        </CollabPositionProvider>
-      </Container>
+              </Box>
+              <CollabPositionProvider value={collabPositions}>
+                <PageBlock
+                  accountId={accountId}
+                  blocks={blocksMap}
+                  entityId={pageEntityId}
+                />
+              </CollabPositionProvider>
+            </Box>
+          </Box>
+        </Container>
+      </PageContextProvider>
     </>
   );
 };

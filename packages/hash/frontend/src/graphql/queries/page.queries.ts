@@ -12,11 +12,15 @@ export const setParentPage = gql`
     $accountId: ID!
     $pageEntityId: ID!
     $parentPageEntityId: ID
+    $prevIndex: String
+    $nextIndex: String
   ) {
     setParentPage(
       accountId: $accountId
       pageEntityId: $pageEntityId
       parentPageEntityId: $parentPageEntityId
+      prevIndex: $prevIndex
+      nextIndex: $nextIndex
     ) {
       accountId
       entityId
@@ -32,8 +36,16 @@ export const setParentPage = gql`
 `;
 
 export const createPage = gql`
-  mutation createPage($accountId: ID!, $properties: PageCreationData!) {
-    createPage(accountId: $accountId, properties: $properties) {
+  mutation createPage(
+    $accountId: ID!
+    $properties: PageCreationData!
+    $prevIndex: String
+  ) {
+    createPage(
+      accountId: $accountId
+      properties: $properties
+      prevIndex: $prevIndex
+    ) {
       accountId
       entityId
     }

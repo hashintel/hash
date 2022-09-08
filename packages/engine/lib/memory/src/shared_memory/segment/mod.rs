@@ -1,8 +1,7 @@
-use std::{env, fmt, mem, path::Path};
+use std::{env, fmt, mem};
 
-use glob::GlobError;
 use shared_memory::{Shmem, ShmemConf};
-use uuid::Uuid;
+use tracing::trace;
 
 use crate::{
     error::{Error, Result},
@@ -14,168 +13,207 @@ use crate::{
     },
 };
 
-pub struct Buffers<'a> {
-    schema: &'a [u8],
-    header: &'a [u8],
-    meta: &'a [u8],
-    data: &'a [u8],
-}
+pub mod buffers;
+pub mod cleanup;
+pub mod memory_id;
 
-impl<'a> Buffers<'a> {
-    #[inline]
-    pub fn schema(&self) -> &'a [u8] {
-        self.schema
-    }
+pub use buffers::Buffers;
+pub use cleanup::cleanup_by_base_id;
+pub use memory_id::MemoryId;
 
-    #[inline]
-    pub fn header(&self) -> &'a [u8] {
-        self.header
-    }
+use self::cleanup::IN_USE_SHM_SEGMENTS;
 
-    #[inline]
-    pub fn meta(&self) -> &'a [u8] {
-        self.meta
-    }
-
-    #[inline]
-    pub fn data(&self) -> &'a [u8] {
-        self.data
-    }
-}
-
-/// An identifier for a shared memory [`Segment`].
+/// A thin wrapper around a shared memory segment. Shared memory provides a way for multiple
+/// processes to all access a common region of memory (usually the operating system would prohibit
+/// processes from accessing the memory of another process directly).
 ///
-/// Holds a UUID and a random suffix. The UUID can be reused for different [`Segment`]s and can all
-/// be cleaned up by calling [`cleanup_by_base_id`].
-#[derive(Debug, PartialEq, Eq)]
-pub struct MemoryId {
-    id: Uuid,
-    suffix: u16,
-}
-
-impl MemoryId {
-    /// Creates a new identifier from the provided [`Uuid`].
-    ///
-    /// This will generate a suffix and ensures, that the shared memory segment does not already
-    /// exists at */dev/shm/*.
-    pub fn new(id: Uuid) -> Self {
-        loop {
-            let memory_id = Self {
-                id,
-                suffix: rand::random::<u16>(),
-            };
-            if !Path::new(&format!("/dev/shm/{memory_id}")).exists() {
-                return memory_id;
-            }
-        }
-    }
-
-    /// Returns the base id used to create this `MemoryId`.
-    pub fn base_id(&self) -> Uuid {
-        self.id
-    }
-
-    /// Returns the prefix used for the identifier.
-    fn prefix(id: Uuid) -> String {
-        if cfg!(target_os = "macos") {
-            // We need to_string otherwise it's not truncated when formatting
-            let id = id.as_simple().to_string();
-            // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
-            format!("shm_{id:.20}")
-        } else {
-            let id = id.as_simple();
-            format!("shm_{id}")
-        }
-    }
-}
-
-impl fmt::Display for MemoryId {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let prefix = Self::prefix(self.base_id());
-        if cfg!(target_os = "macos") {
-            // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
-            write!(fmt, "{}_{:.7}", prefix, self.suffix)
-        } else {
-            write!(fmt, "{}_{}", prefix, self.suffix)
-        }
-    }
-}
-
-/// Clean up generated shared memory segments associated with a given `MemoryId`.
-pub fn cleanup_by_base_id(id: Uuid) -> Result<()> {
-    // TODO: macOS does not store the shared memory FDs at `/dev/shm/`. Maybe it's not storing
-    //   FDs at all. Find out if they are stored somewhere and remove them instead, otherwise we
-    //   have to figure out a way to remove them without relying on the file-system.
-    let shm_files = glob::glob(&format!("/dev/shm/{}_*", MemoryId::prefix(id)))
-        .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
-
-    for path in shm_files {
-        if let Err(err) = path
-            .map_err(GlobError::into_error)
-            .and_then(std::fs::remove_file)
-        {
-            tracing::warn!("Could not remove shared memory file: {err}");
-        }
-    }
-    Ok(())
-}
-
-/// A memory-mapped shared memory segment.
+/// We use shared memory in hEngine to store data which is shared between agents (for example, we
+/// have a batch which stores all the messages each agent has sent/received, one for agent state,
+/// and one for storing arbitrary shared data).
 ///
-/// Includes tools to work with internal structure.
+/// **Important:** to avoid memory leaks, it is essential that all shared memory segments are
+/// deallocated promptly once they are no longer required (they are not automatically freed by the
+/// operating system - even on process exit!) If a [`Segment`] is dropped (and it created the
+/// shared-memory segment) it will be automatically deleted so it is essential that all created
+/// segments are eventually [`Drop`]ped.
 ///
-/// # Internal Buffers
+/// ## Creation
 ///
-/// There are 4 main buffers contained in the shared memory which are:
+/// There are two ways to create a new [`Segment`]: [`Segment::new`] and [`Segment::duplicate`].
+/// [`Segment`] referencing existing segments can be created using [`Segment::open`].
 ///
-///   1) Schema describing the layout of the data (could be an Arrow schema for example)
-///   2) Header data
-///   3) Meta data
-///   4) Data
+/// **It is imperative that [`Segment`]s are not created through any other means.** When we create a
+/// [`Segment`], we add a reference to the [`Segment`] in `cleanup::IN_USE_SHM_SEGMENTS` so
+/// that we can later destroy all the segments we have created. **Any new methods which are added
+/// that create [`Segment`] MUST add the ID of the shared memory segment to
+/// `cleanup::IN_USE_SHM_SEGMENTS`**
 ///
-/// At the beginning of the shared memory segment there is another small, fixed-size buffer which
-/// contains the markers to the four buffers above. This offset buffer can be read with
-/// `Memory::markers`. If one buffer is not needed, it's size can be set to `0`.
-// TODO: Do we need header data **and** meta data? The header is currently only used for storing the
-//       metaversion. If we rename these buffers it would be clearer:
-//         - `Markers` should be called `SegmentHeader` or `Header`
-//         - `Metaversion` could be confused with "Meta data version", maybe `SegmentVersion` or
-//           just `Version`? It also should live inside of `SegmentHeader`
-//         - Remove the old "Header data"
+/// ## Data layout
+///
+/// ------------------------------------------------------------------------------------------------
+/// | [Markers to Schema,Metadata (which are markers and nullcounts of Arrow columns),Column data] |
+/// |                                [padding to 8-byte alignment]                                 |
+/// | [                     Arrow Schema (prepended with continuation bytes)                     ] |
+/// |                            [system-dependent padding (for SIMD)]                             |
+/// | [                                       Header Data                                        ] |
+/// |                                [padding to 8-byte alignment]                                 |
+/// | [                    Arrow Metadata (prepended with continuation bytes)                    ] |
+/// |                            [system-dependent padding (for SIMD)]                             |
+/// | [                                       Column Data                                        ] |
+/// ------------------------------------------------------------------------------------------------
+///
+/// Note column data will not be densely packed as it will leave space for array size fluctuations.
 pub struct Segment {
     pub data: Shmem,
     pub size: usize,
     include_terminal_padding: bool,
 }
 
-// Memory layout:
-// ------------------------------------------------------------------------------------------------
-// | [Markers to Schema,Metadata (which are markers and nullcounts of Arrow columns),Column data] |
-// |                                [padding to 8-byte alignment]                                 |
-// | [                     Arrow Schema (prepended with continuation bytes)                     ] |
-// |                            [system-dependent padding (for SIMD)]                             |
-// | [                                       Header Data                                        ] |
-// |                                [padding to 8-byte alignment]                                 |
-// | [                    Arrow Metadata (prepended with continuation bytes)                    ] |
-// |                            [system-dependent padding (for SIMD)]                             |
-// | [                                       Column Data                                        ] |
-// ------------------------------------------------------------------------------------------------
-//
-// Note column data will not be densely packed as it will leave space for array size fluctuations.
+impl fmt::Debug for Segment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Segment")
+            .field("id (note: not a field)", &self.data.get_os_id())
+            .field("size", &self.size)
+            .field("include_terminal_padding", &self.include_terminal_padding)
+            .finish()
+    }
+}
 
-// Constructors for Memory
+impl Drop for Segment {
+    fn drop(&mut self) {
+        if self.data.is_owner() {
+            // we need to remove this from the list of segments that the engine has currently
+            // allocated (as we are about to deallocate it)
+            let was_present = {
+                let mut lock = IN_USE_SHM_SEGMENTS.lock().unwrap();
+                lock.remove(self.id())
+            };
+            debug_assert!(
+                was_present,
+                "segment {} was not in the set of segments {}",
+                self.id(),
+                {
+                    let debug_repr: String = {
+                        let lock = IN_USE_SHM_SEGMENTS.lock().unwrap();
+                        format!("{lock:?}")
+                    };
+                    debug_repr
+                }
+            );
+
+            trace!(
+                "unlinking shared memory segment {} (as `is_owner`=true)",
+                self.id()
+            );
+        } else {
+            trace!(
+                "dropping shared memory segment {} (as `is_owner=false`)",
+                self.id()
+            )
+        }
+    }
+}
+
 impl Segment {
-    // TODO: UNUSED: Needs triage
-    pub fn as_ptr(&self) -> *const u8 {
-        self.data.as_ptr()
+    /// Crates a new shared memory segment from the given [`MemoryId`].
+    pub fn new(
+        memory_id: MemoryId,
+        size: usize,
+        droppable: bool,
+        include_terminal_padding: bool,
+    ) -> Result<Segment> {
+        Self::validate_size(size)?;
+        let data = ShmemConf::new(droppable)
+            .os_id(&memory_id.to_string())
+            .size(size)
+            .create()?;
+        IN_USE_SHM_SEGMENTS
+            .lock()
+            .unwrap()
+            .insert(memory_id.to_string());
+        Ok(Segment {
+            data,
+            size,
+            include_terminal_padding,
+        })
     }
 
-    // TODO: `data.as_mut_ptr`, with `&mut self` argument, to avoid
-    //       violating Rust's aliasing rules for pointers derived
-    //       from const references.
-    // TODO: UNUSED: Needs triage
-    pub fn as_mut_ptr(&mut self) -> *mut u8 {
-        self.data.as_ptr()
+    /// Opens the shared memory segment with the provided operating system ID.
+    ///
+    /// Note: this will panic in debug builds if the shared memory segment was not created through a
+    /// call to [`Segment::new`].
+    pub fn open(os_id: &str, droppable: bool, include_terminal_padding: bool) -> Result<Segment> {
+        Self::open_impl(os_id, droppable, include_terminal_padding, true)
+    }
+
+    /// Opens the shared memory segment with the provided operating system ID.
+    ///
+    /// Note: this function will not panic if the segment does not exist (if this behavior is
+    /// desirable, use [`Segment::open`]).
+    pub fn open_unchecked(
+        os_id: &str,
+        droppable: bool,
+        include_terminal_padding: bool,
+    ) -> Result<Segment> {
+        Self::open_impl(os_id, droppable, include_terminal_padding, false)
+    }
+
+    #[inline]
+    fn open_impl(
+        os_id: &str,
+        droppable: bool,
+        include_terminal_padding: bool,
+        panic_if_not_exists: bool,
+    ) -> Result<Segment> {
+        if os_id.contains("shm_") {
+            if panic_if_not_exists {
+                debug_assert!(IN_USE_SHM_SEGMENTS.lock().unwrap().contains(os_id));
+            }
+
+            let id = &os_id;
+            let data = ShmemConf::new(droppable).os_id(id).open()?;
+            let size = data.len();
+            Self::validate_size(size)?;
+            Ok(Segment {
+                data,
+                size,
+                include_terminal_padding,
+            })
+        } else {
+            Err(Error::Memory("Expected message to contain \"shm_\"".into()))
+        }
+    }
+
+    /// Duplicates the provided [`Segment`] - i.e. creates a new [`Segment`] with the provided
+    /// [`MemoryId`] with the same contents as the provided [`Segment`].
+    pub fn duplicate(memory: &Segment, memory_id: MemoryId) -> Result<Segment> {
+        let os_id = memory_id.to_string();
+
+        // shouldn't duplicate to the same location
+        debug_assert_ne!(memory.id(), os_id);
+
+        let shmem = &memory.data;
+        let data = ShmemConf::new(true)
+            .os_id(&os_id)
+            .size(memory.size)
+            .create()?;
+        unsafe { std::ptr::copy_nonoverlapping(shmem.as_ptr(), data.as_ptr(), memory.size) };
+
+        // make a note that we created this segment
+        let segment_was_not_in_set_before_creation =
+            { IN_USE_SHM_SEGMENTS.lock().unwrap().insert(os_id) };
+        debug_assert!(segment_was_not_in_set_before_creation);
+
+        Ok(Segment {
+            data,
+            size: memory.size,
+            include_terminal_padding: memory.include_terminal_padding,
+        })
+    }
+
+    /// Get the ID of the shared memory segment
+    pub fn id(&self) -> &str {
+        self.data.get_os_id()
     }
 
     /// Resize the Shared Memory segment, also performs
@@ -205,74 +243,12 @@ impl Segment {
         Ok(())
     }
 
-    /// Get the ID of the shared memory segment
-    pub fn id(&self) -> &str {
-        self.data.get_os_id()
-    }
-
-    // TODO: UNUSED: Needs triage
-    pub fn unmap(self) {
-        self.data.unmap()
-    }
-
-    pub fn shared_memory(
-        memory_id: MemoryId,
-        size: usize,
-        droppable: bool,
-        include_terminal_padding: bool,
-    ) -> Result<Segment> {
-        Self::validate_size(size)?;
-        let data = ShmemConf::new(droppable)
-            .os_id(&memory_id.to_string())
-            .size(size)
-            .create()?;
-        Ok(Segment {
-            data,
-            size,
-            include_terminal_padding,
-        })
-    }
-
-    pub fn from_shmem_os_id(
-        os_id: &str,
-        droppable: bool,
-        include_terminal_padding: bool,
-    ) -> Result<Segment> {
-        if os_id.contains("shm_") {
-            let id = &os_id;
-            let data = ShmemConf::new(droppable).os_id(id).open()?;
-            let size = data.len();
-            Self::validate_size(size)?;
-            Ok(Segment {
-                data,
-                size,
-                include_terminal_padding,
-            })
-        } else {
-            Err(Error::Memory("Expected message to contain \"shm_\"".into()))
-        }
-    }
-
     fn visitor(&self) -> Visitor<'_> {
         Visitor::new(MemoryPtr::from_memory(self))
     }
 
     fn visitor_mut(&mut self) -> VisitorMut<'_> {
         VisitorMut::new(MemoryPtr::from_memory(self), self)
-    }
-
-    pub fn duplicate(memory: &Segment, memory_id: MemoryId) -> Result<Segment> {
-        let shmem = &memory.data;
-        let data = ShmemConf::new(true)
-            .os_id(&memory_id.to_string())
-            .size(memory.size)
-            .create()?;
-        unsafe { std::ptr::copy_nonoverlapping(shmem.as_ptr(), data.as_ptr(), memory.size) };
-        Ok(Segment {
-            data,
-            size: memory.size,
-            include_terminal_padding: memory.include_terminal_padding,
-        })
     }
 
     fn validate_size(size: usize) -> Result<()> {
@@ -477,7 +453,7 @@ impl Segment {
             }
         }
 
-        let mut memory = Segment::shared_memory(memory_id, size, true, include_terminal_padding)?;
+        let mut memory = Segment::new(memory_id, size, true, include_terminal_padding)?;
 
         let mut visitor = memory.visitor_mut();
         let markers_mut = visitor.markers_mut();
@@ -517,7 +493,7 @@ impl Segment {
             }
         }
 
-        let mut memory = Segment::shared_memory(memory_id, size, true, include_terminal_padding)?;
+        let mut memory = Segment::new(memory_id, size, true, include_terminal_padding)?;
 
         let mut visitor = memory.visitor_mut();
         let markers_mut = visitor.markers_mut();
@@ -549,6 +525,8 @@ impl Segment {
 
 #[cfg(all(test, not(miri)))]
 pub mod tests {
+    use uuid::Uuid;
+
     use super::*;
 
     #[test]
@@ -589,7 +567,7 @@ pub mod tests {
 
         let message = segment.id();
 
-        let new_segment = Segment::from_shmem_os_id(message, true, false)?;
+        let new_segment = Segment::open(message, true, false)?;
 
         let slice = unsafe {
             let shmem = &segment.data;

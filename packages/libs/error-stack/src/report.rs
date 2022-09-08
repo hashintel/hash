@@ -199,7 +199,7 @@ pub struct Report<C> {
     pub(super) frames: smallvec::SmallVec<[Frame; 1]>,
     #[cfg(not(feature = "small"))]
     pub(super) frames: Vec<Frame>,
-    _context: PhantomData<C>,
+    _context: PhantomData<fn() -> *const C>,
 }
 
 impl<C> Report<C> {

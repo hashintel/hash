@@ -12,32 +12,73 @@ use core::{
     any::{Any, TypeId},
     marker::PhantomData,
 };
+use std::mem;
 
-pub use default::builtin_debug_hook_fallback;
+#[cfg(feature = "std")]
+pub(crate) use default::install_builtin_hooks;
 
-use crate::fmt::{Emit, Frame};
+use crate::fmt::Frame;
 
-#[derive(Default)]
-pub(crate) struct HookContextImpl {
-    pub(crate) snippets: Vec<String>,
-    alternate: bool,
+type Storage = BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>;
 
-    storage: BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>,
-}
+/// Private struct which is used to hold the information about the current count for every type.
+/// This is used so that others cannot interfere with the counter and ensure that there's no
+/// unexpected behavior.
+struct Counter(isize);
 
-impl HookContextImpl {
-    pub(crate) fn new(alternate: bool) -> Self {
-        Self {
-            snippets: Vec::new(),
-            alternate,
-            storage: BTreeMap::new(),
-        }
+impl Counter {
+    const fn new(value: isize) -> Self {
+        Self(value)
     }
 
-    pub(crate) fn as_hook_context<T>(&mut self) -> HookContext<'_, T> {
-        HookContext {
-            parent: self,
-            _marker: PhantomData::default(),
+    const fn as_inner(&self) -> isize {
+        self.0
+    }
+
+    fn increment(&mut self) {
+        self.0 += 1;
+    }
+
+    fn decrement(&mut self) {
+        self.0 -= 1;
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct HookContextInner {
+    storage: Storage,
+
+    alternate: bool,
+
+    body: Vec<String>,
+    appendix: Vec<String>,
+}
+
+impl HookContextInner {
+    fn storage(&self) -> &Storage {
+        &self.storage
+    }
+
+    fn storage_mut(&mut self) -> &mut Storage {
+        &mut self.storage
+    }
+
+    const fn alternate(&self) -> bool {
+        self.alternate
+    }
+
+    fn take_body(&mut self) -> Vec<String> {
+        mem::take(&mut self.body)
+    }
+}
+
+impl HookContextInner {
+    fn new(alternate: bool) -> Self {
+        Self {
+            storage: Storage::default(),
+            body: Vec::new(),
+            appendix: Vec::new(),
+            alternate,
         }
     }
 }
@@ -45,50 +86,78 @@ impl HookContextImpl {
 /// Carrier for contextual information used across hook invocations.
 ///
 /// `HookContext` has two fundamental use-cases:
-/// 1) Emitting Snippets
+/// 1) Adding body entries and appendix entries
 /// 2) Storage
 ///
-/// ## Emitting Snippets
+/// ## Adding body entries and appendix entries
 ///
-/// A [`Debug`] backtrace consists of two different sections, a rendered tree of objects and
-/// additional text/information that is too large to fit into the tree.
+/// A [`Debug`] backtrace consists of two different sections, a rendered tree of objects (the
+/// **body**) and additional text/information that is too large to fit into the tree (the
+/// **appendix**).
 ///
-/// Snippets can be added to the current output via [`attach_snippet()`].
+/// Entries for the body can be attached to the rendered tree of objects via
+/// [`HookContext::push_body`]. An appendix entry can be attached via
+/// [`HookContext::push_appendix`].
 ///
-/// [`attach_snippet()`]: HookContext::attach_snippet
 /// [`Debug`]: core::fmt::Debug
 ///
 /// ### Example
 ///
 /// ```rust
-/// # // we only test on nightly, therefore report is unused (so is render)
-/// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
-/// use std::io::ErrorKind;
+/// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+/// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
+/// use std::io::{Error, ErrorKind};
 ///
-/// use error_stack::{fmt::Emit, Report};
+/// use error_stack::Report;
 ///
-/// struct Error {
-///     code: usize,
-///     reason: &'static str,
-/// }
+/// struct Warning(&'static str);
+/// struct HttpResponseStatusCode(u64);
+/// struct Suggestion(&'static str);
+/// struct Secret(&'static str);
 ///
-/// Report::install_debug_hook::<Error>(|Error { code, reason }, ctx| {
+/// Report::install_debug_hook::<HttpResponseStatusCode>(|HttpResponseStatusCode(val), ctx| {
+///     // Create a new appendix, which is going to be displayed when someone requests the alternate
+///     // version (`:#?`) of the report.
 ///     if ctx.alternate() {
-///         ctx.attach_snippet(format!("Error {code}:\n  {reason}"));
+///         ctx.push_appendix(format!("Error {val}: {} Error", if *val < 500 {"Client"} else {"Server"}))
 ///     }
 ///
-///     vec![Emit::next(format!("Error {code}"))]
+///     // This will push a new entry onto the body with the specified value
+///     ctx.push_body(format!("Error code: {val}"));
 /// });
 ///
-/// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-///     .attach(Error {
-///         code: 404,
-///         reason: "Not Found - Server cannot find requested resource",
-///     })
-///     .attach(Error {
-///         code: 405,
-///         reason: "Bad Request - Server cannot or will not process request",
-///     });
+/// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
+///     let idx = ctx.increment_counter();
+///
+///     // Create a new appendix, which is going to be displayed when someone requests the alternate
+///     // version (`:#?`) of the report.
+///     if ctx.alternate() {
+///         ctx.push_body(format!("Suggestion {idx}:\n  {val}"));
+///     }
+///
+///     // This will push a new entry onto the body with the specified value
+///     ctx.push_body(format!("Suggestion ({idx})"));
+/// });
+///
+/// Report::install_debug_hook::<Warning>(|Warning(val), ctx| {
+///     // You can add multiples entries to the body (and appendix) in the same hook.
+///     ctx.push_body("Abnormal program execution detected");
+///     ctx.push_body(format!("Warning: {val}"));
+/// });
+///
+/// // By not adding anything you are able to hide an attachment
+/// // (it will still be counted towards opaque attachments)
+/// Report::install_debug_hook::<Secret>(|_, _| {});
+///
+/// let report = Report::new(Error::from(ErrorKind::InvalidInput))
+///     .attach(HttpResponseStatusCode(404))
+///     .attach(Suggestion("Do you have a connection to the internet?"))
+///     .attach(HttpResponseStatusCode(405))
+///     .attach(Warning("Unable to determine environment"))
+///     .attach(Secret("pssst, don't tell anyone else c;"))
+///     .attach(Suggestion("Execute the program from the fish shell"))
+///     .attach(HttpResponseStatusCode(501))
+///     .attach(Suggestion("Try better next time!"));
 ///
 /// # owo_colors::set_override(true);
 /// # fn render(value: String) -> String {
@@ -101,14 +170,27 @@ impl HookContextImpl {
 /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 /// # }
 /// #
-/// # #[cfg(nightly)]
-/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap")].assert_eq(&render(format!("{report:#?}")));
+/// # #[cfg(rust_1_65)]
+/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap")].assert_eq(&render(format!("{report:?}")));
+/// #
+/// println!("{report:?}");
+///
+/// # #[cfg(rust_1_65)]
+/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit_alt.snap")].assert_eq(&render(format!("{report:#?}")));
 /// #
 /// println!("{report:#?}");
 /// ```
 ///
+/// The output of `println!("{report:?}")`:
+///
 /// <pre>
-#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap"))]
+#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap"))]
+/// </pre>
+///
+/// The output of `println!("{report:#?}")`:
+///
+/// <pre>
+#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit_alt.snap"))]
 /// </pre>
 ///
 /// ## Storage
@@ -126,26 +208,31 @@ impl HookContextImpl {
 /// ### Example
 ///
 /// ```rust
-/// # // we only test on nightly, therefore report is unused (so is render)
-/// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+/// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+/// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
 /// use std::io::ErrorKind;
 ///
-/// use error_stack::{fmt::Emit, Report};
+/// use error_stack::Report;
 ///
 /// struct Computation(u64);
 ///
 /// Report::install_debug_hook::<Computation>(|Computation(val), ctx| {
+///     // Get a value of type `u64`, if we didn't insert one yet, default to 0
 ///     let mut acc = ctx.get::<u64>().copied().unwrap_or(0);
 ///     acc += *val;
 ///
+///     // Get a value of type `f64`, if we didn't insert one yet, default to 1.0
 ///     let mut div = ctx.get::<f32>().copied().unwrap_or(1.0);
 ///     div /= *val as f32;
 ///
+///     // Insert the calculated `u64` and `f32` back into storage, so that we can use them
+///     // in the invocations following this one (for the same `Debug` call)
 ///     ctx.insert(acc);
+///     ctx.insert(div);
 ///
-///     vec![Emit::next(format!(
+///     ctx.push_body(format!(
 ///         "Computation for {val} (acc = {acc}, div = {div})"
-///     ))]
+///     ));
 /// });
 ///
 /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -163,7 +250,7 @@ impl HookContextImpl {
 /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 /// # }
 /// #
-/// # #[cfg(nightly)]
+/// # #[cfg(rust_1_65)]
 /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_storage.snap")].assert_eq(&render(format!("{report:?}")));
 /// #
 /// println!("{report:?}");
@@ -174,26 +261,136 @@ impl HookContextImpl {
 /// </pre>
 ///
 /// [`Debug`]: core::fmt::Debug
+// TODO: ideally we would want to make `HookContextInner` private, as it is an implementation
+//  detail, but "attribute privacy" as outlined in https://github.com/rust-lang/rust/pull/61969
+//  is currently not implemented for repr(transparent).
 #[repr(transparent)]
-pub struct HookContext<'a, T> {
-    parent: &'a mut HookContextImpl,
-    _marker: PhantomData<T>,
+pub struct HookContext<T> {
+    inner: HookContextInner,
+    _marker: PhantomData<fn(&T)>,
 }
 
-impl<T> HookContext<'_, T> {
-    /// This snippet (which can include line breaks) will be appended to the
-    /// main message.
+impl<T> HookContext<T> {
+    pub(crate) fn new(alternate: bool) -> Self {
+        Self {
+            inner: HookContextInner::new(alternate),
+            _marker: PhantomData,
+        }
+    }
+
+    pub(crate) fn appendix(&self) -> &[String] {
+        &self.inner.appendix
+    }
+
+    /// The contents of the appendix are going to be displayed after the body in the order they have
+    /// been pushed into the [`HookContext`].
     ///
     /// This is useful for dense information like backtraces, or span traces.
     ///
-    /// [`alternate()`]: Self::alternate
-    /// [`Debug`]: core::fmt::Debug
-    pub fn attach_snippet(&mut self, snippet: impl Into<String>) {
-        self.parent.snippets.push(snippet.into());
+    /// # Example
+    ///
+    /// ```rust
+    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
+    /// use std::io::ErrorKind;
+    ///
+    /// use error_stack::Report;
+    ///
+    /// struct Error {
+    ///     code: usize,
+    ///     reason: &'static str,
+    /// }
+    ///
+    /// Report::install_debug_hook::<Error>(|Error { code, reason }, ctx| {
+    ///     if ctx.alternate() {
+    ///         // Add an entry to the appendix
+    ///         ctx.push_appendix(format!("Error {code}:\n  {reason}"));
+    ///     }
+    ///
+    ///     ctx.push_body(format!("Error {code}"));
+    /// });
+    ///
+    /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
+    ///     .attach(Error {
+    ///         code: 404,
+    ///         reason: "Not Found - Server cannot find requested resource",
+    ///     })
+    ///     .attach(Error {
+    ///         code: 405,
+    ///         reason: "Bad Request - Server cannot or will not process request",
+    ///     });
+    ///
+    /// # owo_colors::set_override(true);
+    /// # fn render(value: String) -> String {
+    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #
+    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #
+    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// # }
+    /// #
+    /// # #[cfg(rust_1_65)]
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap")].assert_eq(&render(format!("{report:#?}")));
+    /// #
+    /// println!("{report:#?}");
+    /// ```
+    ///
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap"))]
+    /// </pre>
+    pub fn push_appendix(&mut self, content: impl Into<String>) {
+        self.inner.appendix.push(content.into());
     }
-}
 
-impl<'a, T> HookContext<'a, T> {
+    /// Add a new entry to the body.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
+    /// use std::io;
+    ///
+    /// use error_stack::Report;
+    ///
+    /// struct Suggestion(&'static str);
+    ///
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
+    ///     ctx.push_body(format!("Suggestion: {val}"));
+    ///     // We can push multiples entries in a single hook, these lines will be added one after
+    ///     // another.
+    ///     ctx.push_body("Sorry for the inconvenience!");
+    /// });
+    ///
+    /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
+    ///     .attach(Suggestion("Try better next time"));
+    ///
+    /// # owo_colors::set_override(true);
+    /// # fn render(value: String) -> String {
+    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #
+    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #
+    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// # }
+    /// #
+    /// # #[cfg(rust_1_65)]
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap")].assert_eq(&render(format!("{report:?}")));
+    /// #
+    /// println!("{report:?}");
+    /// ```
+    ///
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap"))]
+    /// </pre>
+    pub fn push_body(&mut self, content: impl Into<String>) {
+        self.inner.body.push(content.into());
+    }
+
     /// Cast the [`HookContext`] to a new type `U`.
     ///
     /// The storage of [`HookContext`] is partitioned, meaning that if `T` and `U` are different
@@ -209,29 +406,27 @@ impl<'a, T> HookContext<'a, T> {
     /// ### Example
     ///
     /// ```rust
-    /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
-    /// use error_stack::{
-    ///     fmt::Emit,
-    ///     Report,
-    /// };
+    /// use error_stack::Report;
     ///
     /// struct Warning(&'static str);
     /// struct Error(&'static str);
     ///
     /// Report::install_debug_hook::<Error>(|Error(frame), ctx| {
-    ///     vec![Emit::next(format!(
-    ///         "[{}] [ERROR] {frame}",
-    ///         ctx.increment() + 1
-    ///     ))]
+    ///     let idx = ctx.increment_counter() + 1;
+    ///
+    ///     ctx.push_body(format!("[{idx}] [ERROR] {frame}"));
     /// });
     /// Report::install_debug_hook::<Warning>(|Warning(frame), ctx| {
-    ///     vec![Emit::next(format!(
-    ///         "[{}] [WARN] {frame}",
-    ///         ctx.cast::<Error>().increment() + 1
-    ///     ))]
+    ///     // We want to share the same counter with `Error`, so that we're able to have
+    ///     // a global counter to keep track of all errors and warnings in order, this means
+    ///     // we need to access the storage of `Error` using `cast()`.
+    ///     let ctx = ctx.cast::<Error>();
+    ///     let idx = ctx.increment_counter() + 1;
+    ///     ctx.push_body(format!("[{idx}] [WARN] {frame}"))
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -250,7 +445,7 @@ impl<'a, T> HookContext<'a, T> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # #[cfg(nightly)]
+    /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_cast.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// println!("{report:?}");
@@ -260,22 +455,34 @@ impl<'a, T> HookContext<'a, T> {
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_cast.snap"))]
     /// </pre>
     #[must_use]
-    pub fn cast<U>(&mut self) -> &mut HookContext<'a, U> {
+    pub fn cast<U>(&mut self) -> &mut HookContext<U> {
         // SAFETY: `HookContext` is marked as repr(transparent) and the generic is only used inside
         // of the `PhantomData`
-        unsafe { &mut *(self as *mut HookContext<T>).cast::<HookContext<U>>() }
+        unsafe { &mut *(self as *mut Self).cast::<HookContext<U>>() }
     }
 
     /// Returns if the currently requested format should render the alternate representation.
     ///
     /// This corresponds to the output of [`std::fmt::Formatter::alternate`].
     #[must_use]
-    pub fn alternate(&self) -> bool {
-        self.parent.alternate
+    pub const fn alternate(&self) -> bool {
+        self.inner.alternate()
+    }
+
+    fn storage(&self) -> &Storage {
+        self.inner.storage()
+    }
+
+    fn storage_mut(&mut self) -> &mut Storage {
+        self.inner.storage_mut()
+    }
+
+    pub(crate) fn take_body(&mut self) -> Vec<String> {
+        self.inner.take_body()
     }
 }
 
-impl<T: 'static> HookContext<'_, T> {
+impl<T: 'static> HookContext<T> {
     /// Return a reference to a value of type `U`, if a value of that type exists.
     ///
     /// Values returned are isolated and therefore "bound" to `T`, this means that if two different
@@ -285,8 +492,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// [`Debug`]: core::fmt::Debug
     #[must_use]
     pub fn get<U: 'static>(&self) -> Option<&U> {
-        self.parent
-            .storage
+        self.storage()
             .get(&TypeId::of::<T>())?
             .get(&TypeId::of::<U>())?
             .downcast_ref()
@@ -298,8 +504,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// [`HookContext`]s that share the same inner value (e.g. same invocation of [`Debug`]) will
     /// return the same value.
     pub fn get_mut<U: 'static>(&mut self) -> Option<&mut U> {
-        self.parent
-            .storage
+        self.storage_mut()
             .get_mut(&TypeId::of::<T>())?
             .get_mut(&TypeId::of::<U>())?
             .downcast_mut()
@@ -310,8 +515,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// The returned value will the previously stored value of the same type `U` scoped over type
     /// `T`, if it existed, did no such value exist it will return [`None`].
     pub fn insert<U: 'static>(&mut self, value: U) -> Option<U> {
-        self.parent
-            .storage
+        self.storage_mut()
             .entry(TypeId::of::<T>())
             .or_default()
             .insert(TypeId::of::<U>(), Box::new(value))?
@@ -324,8 +528,7 @@ impl<T: 'static> HookContext<'_, T> {
     ///
     /// The returned value will be the previously stored value of the same type `U`.
     pub fn remove<U: 'static>(&mut self) -> Option<U> {
-        self.parent
-            .storage
+        self.storage_mut()
             .get_mut(&TypeId::of::<T>())?
             .remove(&TypeId::of::<U>())?
             .downcast()
@@ -334,23 +537,23 @@ impl<T: 'static> HookContext<'_, T> {
     }
 
     /// One of the most common interactions with [`HookContext`] is a counter to reference previous
-    /// frames or the content emitted during [`attach_snippet()`].
+    /// frames in an entry to the appendix that was added using [`HookContext::push_appendix`].
     ///
     /// This is a utility method, which uses the other primitive methods provided to automatically
     /// increment a counter, if the counter wasn't initialized this method will return `0`.
     ///
     /// ```rust
-    /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
-    /// use error_stack::fmt::Emit;
     /// use error_stack::Report;
     ///
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     vec![Emit::next(format!("Suggestion {}: {val}", ctx.increment()))]
+    ///     let idx = ctx.increment_counter();
+    ///     ctx.push_body(format!("Suggestion {idx}: {val}"));
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -368,7 +571,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # #[cfg(nightly)]
+    /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_increment.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// println!("{report:?}");
@@ -378,44 +581,44 @@ impl<T: 'static> HookContext<'_, T> {
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_increment.snap"))]
     /// </pre>
     ///
-    /// [`attach_snippet()`]: Self::attach_snippet
     /// [`Debug`]: core::fmt::Debug
-    pub fn increment(&mut self) -> isize {
-        let counter = self.get_mut::<isize>();
+    pub fn increment_counter(&mut self) -> isize {
+        let counter = self.get_mut::<Counter>();
 
         match counter {
             None => {
                 // if the counter hasn't been set yet, default to `0`
-                self.insert(0isize);
+                self.insert(Counter::new(0));
 
                 0
             }
             Some(ctr) => {
-                *ctr += 1;
+                ctr.increment();
 
-                *ctr
+                ctr.as_inner()
             }
         }
     }
 
-    /// One of the most common interactions with [`HookContext`] is a counter
-    /// to reference previous frames or the content emitted during [`attach_snippet()`].
+    /// One of the most common interactions with [`HookContext`] is a counter to reference previous
+    /// frames in an entry to the appendix that was added using [`HookContext::push_appendix`].
     ///
     /// This is a utility method, which uses the other primitive method provided to automatically
     /// decrement a counter, if the counter wasn't initialized this method will return `-1` to stay
-    /// consistent with [`increment()`].
+    /// consistent with [`HookContext::increment_counter`].
     ///
     /// ```rust
-    /// # // we only test on nightly, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
+    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
-    /// use error_stack::{fmt::Emit, Report};
+    /// use error_stack::Report;
     ///
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     vec![Emit::next(format!("Suggestion {}: {val}", ctx.decrement()))]
+    ///     let idx = ctx.decrement_counter();
+    ///     ctx.push_body(format!("Suggestion {idx}: {val}"));
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -433,7 +636,7 @@ impl<T: 'static> HookContext<'_, T> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # #[cfg(nightly)]
+    /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_decrement.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// println!("{report:?}");
@@ -442,44 +645,66 @@ impl<T: 'static> HookContext<'_, T> {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_decrement.snap"))]
     /// </pre>
-    ///
-    /// [`increment()`]: Self::increment
-    /// [`attach_snippet()`]: Self::attach_snippet
-    pub fn decrement(&mut self) -> isize {
-        let counter = self.get_mut::<isize>();
+    pub fn decrement_counter(&mut self) -> isize {
+        let counter = self.get_mut::<Counter>();
 
         match counter {
             None => {
                 // given that increment starts with `0` (which is therefore the implicit default
                 // value) decrementing the default value results in `-1`,
                 // which is why we output that value.
-                self.insert(-1_isize);
+                self.insert(Counter::new(-1));
 
                 -1
             }
             Some(ctr) => {
-                *ctr -= 1;
-                *ctr
+                ctr.decrement();
+
+                ctr.as_inner()
             }
         }
     }
 }
 
-type BoxedHook =
-    Box<dyn for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Vec<Emit> + Send + Sync>;
+type BoxedHook = Box<dyn Fn(&Frame, &mut HookContext<Frame>) -> Option<()> + Send + Sync>;
+type BoxedFallbackHook = Box<dyn Fn(&Frame, &mut HookContext<Frame>) + Send + Sync>;
+
+fn into_boxed_hook<T: Send + Sync + 'static>(
+    hook: impl Fn(&T, &mut HookContext<T>) + Send + Sync + 'static,
+) -> BoxedHook {
+    Box::new(move |frame: &Frame, ctx: &mut HookContext<Frame>| {
+        #[cfg(nightly)]
+        {
+            frame
+                .request_ref::<T>()
+                .map(|val| hook(val, ctx.cast()))
+                .or_else(|| {
+                    frame
+                        .request_value::<T>()
+                        .as_ref()
+                        .map(|val| hook(val, ctx.cast()))
+                })
+        }
+
+        #[cfg(not(nightly))]
+        {
+            frame.downcast_ref::<T>().map(|val| hook(val, ctx.cast()))
+        }
+    })
+}
 
 /// Holds list of hooks and a fallback.
 ///
 /// The fallback is called whenever a hook for a specific type couldn't be found.
 ///
-/// These are used to augment the [`Debug`] and [`Display`] information
-/// of attachments, which are normally not printable.
+/// These are used to augment the [`Debug`] information of attachments and contexts, which are
+/// normally not printable.
 ///
 /// Hooks are added via [`.insert()`], which will wrap the function in an additional closure.
-/// This closure will downcast the [`Frame`] to the requested type.
+/// This closure will downcast/request the [`Frame`] to the requested type.
 ///
-/// If not set, opaque attachments (added via [`.attach()`]) won't be rendered in the [`Debug`] and
-/// [`Display`] output.
+/// If not set, opaque attachments (added via [`.attach()`]) won't be rendered in the [`Debug`]
+/// output.
 ///
 /// The default implementation provides supports for [`Backtrace`] and [`SpanTrace`],
 /// if their necessary features have been enabled.
@@ -491,49 +716,48 @@ type BoxedHook =
 /// [`Frame`]: crate::Frame
 /// [`.insert()`]: Hooks::insert
 #[cfg(feature = "std")]
-#[allow(clippy::redundant_pub_crate)]
 pub(crate) struct Hooks {
-    // TODO: Remove `Option` when const `BTreeMap::new` is stabilized
-    pub(crate) inner: Option<BTreeMap<TypeId, BoxedHook>>,
-    pub(crate) fallback: Option<BoxedHook>,
+    // We use `Vec`, instead of `HashMap` or `BTreeMap`, so that ordering is consistent with the
+    // insertion order of types.
+    pub(crate) inner: Vec<(TypeId, BoxedHook)>,
+    pub(crate) fallback: Option<BoxedFallbackHook>,
 }
 
 #[cfg(feature = "std")]
 impl Hooks {
     pub(crate) fn insert<T: Send + Sync + 'static>(
         &mut self,
-        hook: impl for<'a> Fn(&T, &mut HookContext<'a, T>) -> Vec<Emit> + Send + Sync + 'static,
+        hook: impl Fn(&T, &mut HookContext<T>) + Send + Sync + 'static,
     ) {
-        let inner = self.inner.get_or_insert_with(BTreeMap::new);
+        let type_id = TypeId::of::<T>();
 
-        inner.insert(
-            TypeId::of::<T>(),
-            Box::new(move |frame, ctx| {
-                // `.unwrap()` never fails here, because `Hooks` guarantees the function will never
-                // be called on an object which cannot be downcast.
-                let frame = frame.downcast_ref::<T>().unwrap();
-
-                hook(frame, ctx.cast())
-            }),
-        );
+        // make sure that previous hooks of the same TypeId are deleted.
+        self.inner.retain(|(id, _)| *id != type_id);
+        // push new hook onto the stack
+        self.inner.push((type_id, into_boxed_hook(hook)));
     }
 
     pub(crate) fn fallback(
         &mut self,
-        hook: impl for<'a> Fn(&Frame, &mut HookContext<'a, Frame>) -> Vec<Emit> + Send + Sync + 'static,
+        hook: impl Fn(&Frame, &mut HookContext<Frame>) + Send + Sync + 'static,
     ) {
         self.fallback = Some(Box::new(hook));
     }
 
-    pub(crate) fn call<'a>(&self, frame: &Frame, ctx: &mut HookContext<'a, Frame>) -> Vec<Emit> {
-        let ty = Frame::type_id(frame);
+    pub(crate) fn call(&self, frame: &Frame, ctx: &mut HookContext<Frame>) {
+        // By checking the times we actually invoked a function we make sure that
+        // even if we only added an appendix, or have purposely not added an entry to the body, we
+        // don't use the fallback.
+        let calls = self
+            .inner
+            .iter()
+            .filter_map(|(_, hook)| hook(frame, ctx))
+            .count();
 
-        if let Some(hook) = self.inner.as_ref().and_then(|map| map.get(&ty)) {
-            hook(frame, ctx)
-        } else if let Some(fallback) = self.fallback.as_ref() {
-            fallback(frame, ctx)
-        } else {
-            builtin_debug_hook_fallback(frame, ctx)
+        if calls == 0 {
+            if let Some(fallback) = &self.fallback {
+                fallback(frame, ctx);
+            }
         }
     }
 }
@@ -541,36 +765,69 @@ impl Hooks {
 mod default {
     #![allow(unused_imports)]
 
-    #[cfg(any(all(nightly, feature = "std"), feature = "spantrace"))]
+    #[cfg(any(rust_1_65, feature = "spantrace"))]
     use alloc::format;
     use alloc::{vec, vec::Vec};
-    #[cfg(all(nightly, feature = "std"))]
+    use core::any::TypeId;
+    #[cfg(rust_1_65)]
     use std::backtrace::Backtrace;
+    use std::sync::{
+        atomic::{AtomicBool, Ordering},
+        Once,
+    };
 
     #[cfg(feature = "spantrace")]
     use tracing_error::SpanTrace;
 
     use crate::{
-        fmt::{hook::HookContext, Emit},
-        Frame,
+        fmt::hook::{into_boxed_hook, BoxedHook, HookContext},
+        Frame, Report,
     };
 
-    #[cfg(all(nightly, feature = "std"))]
-    fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) -> Vec<Emit> {
-        let idx = ctx.increment();
+    pub(crate) fn install_builtin_hooks() {
+        // We could in theory remove this and replace it with a single AtomicBool.
+        static INSTALL_BUILTIN: Once = Once::new();
 
-        ctx.attach_snippet(format!("Backtrace No. {}\n{}", idx + 1, backtrace));
+        // This static makes sure that we only run once, if we wouldn't have this guard we would
+        // deadlock, as `install_debug_hook` calls `install_builtin_hooks`, and according to the
+        // docs:
+        //
+        // > If the given closure recursively invokes call_once on the same Once instance the exact
+        // > behavior is not specified, allowed outcomes are a panic or a deadlock.
+        static INSTALL_BUILTIN_RUNNING: AtomicBool = AtomicBool::new(false);
 
-        vec![Emit::defer(format!(
+        // This has minimal overhead, as `Once::call_once` calls `.is_completed` as the short path
+        // we just move it out here, so that we're able to check `INSTALL_BUILTIN_RUNNING`
+        if INSTALL_BUILTIN.is_completed() || INSTALL_BUILTIN_RUNNING.load(Ordering::Acquire) {
+            return;
+        }
+
+        INSTALL_BUILTIN.call_once(|| {
+            INSTALL_BUILTIN_RUNNING.store(true, Ordering::Release);
+
+            #[cfg(all(rust_1_65))]
+            Report::install_debug_hook(backtrace);
+
+            #[cfg(feature = "spantrace")]
+            Report::install_debug_hook(span_trace);
+        });
+    }
+
+    #[cfg(rust_1_65)]
+    fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) {
+        let idx = ctx.increment_counter();
+
+        ctx.push_appendix(format!("Backtrace No. {}\n{}", idx + 1, backtrace));
+        ctx.push_body(format!(
             "backtrace with {} frames ({})",
             backtrace.frames().len(),
             idx + 1
-        ))]
+        ));
     }
 
     #[cfg(feature = "spantrace")]
-    fn span_trace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) -> Vec<Emit> {
-        let idx = ctx.increment();
+    fn span_trace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) {
+        let idx = ctx.increment_counter();
 
         let mut span = 0;
         spantrace.with_spans(|_, _| {
@@ -578,51 +835,7 @@ mod default {
             true
         });
 
-        ctx.attach_snippet(format!("Span Trace No. {}\n{}", idx + 1, spantrace));
-
-        vec![Emit::defer(format!(
-            "spantrace with {span} frames ({})",
-            idx + 1
-        ))]
-    }
-
-    /// Fallback for common attachments that are automatically created
-    /// by `error_stack`, like [`Backtrace`] and [`SpanTrace`]
-    ///
-    /// [`Backtrace`]: std::backtrace::Backtrace
-    /// [`SpanTrace`]: tracing_error::SpanTrace
-    // Frame can be unused, if neither backtrace or spantrace are enabled
-    #[allow(unused_variables)]
-    pub fn builtin_debug_hook_fallback<'a>(
-        frame: &Frame,
-        ctx: &mut HookContext<'a, Frame>,
-    ) -> Vec<Emit> {
-        #[allow(unused_mut)]
-        let mut emit = vec![];
-
-        // we're only able to use `request_ref` in nightly, because the Provider API hasn't been
-        // stabilized yet.
-        #[cfg(nightly)]
-        {
-            #[cfg(feature = "std")]
-            if let Some(bt) = frame.request_ref() {
-                emit.append(&mut backtrace(bt, ctx.cast()));
-            }
-
-            #[cfg(feature = "spantrace")]
-            if let Some(st) = frame.request_ref() {
-                emit.append(&mut span_trace(st, ctx.cast()));
-            }
-        }
-
-        #[cfg(not(nightly))]
-        {
-            #[cfg(feature = "spantrace")]
-            if let Some(st) = frame.downcast_ref() {
-                emit.append(&mut span_trace(st, ctx.cast()));
-            }
-        }
-
-        emit
+        ctx.push_appendix(format!("Span Trace No. {}\n{}", idx + 1, spantrace));
+        ctx.push_body(format!("spantrace with {span} frames ({})", idx + 1));
     }
 }

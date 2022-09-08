@@ -2,7 +2,7 @@
 //!
 //! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 //! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-//! [![rust-version](https://img.shields.io/badge/Rust-1.63.0/nightly--2022--08--19-blue)][rust-version]
+//! [![rust-version](https://img.shields.io/badge/Rust-1.63.0/nightly--2022--08--27-blue)][rust-version]
 //! [![discord](https://img.shields.io/discord/840573247803097118)][discord]
 //!
 //! [crates.io]: https://crates.io/crates/error-stack
@@ -151,8 +151,8 @@
 //! [`Report::attach()`] and [`Report::attach_printable()`]:
 //!
 //! ```rust
-//! # // we only test the snapshot on nightly, therefore report is unused (so is render)
-//! # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+//! # // we only test the snapshot on rust 1.65, therefore report is unused (so is render)
+//! # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
 //! # use std::{fs, path::Path};
 //! # use error_stack::{Context, IntoReport, Report, ResultExt};
 //! # pub type Config = String;
@@ -198,7 +198,7 @@
 //! #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 //! # }
 //! #
-//! # #[cfg(nightly)]
+//! # #[cfg(rust_1_65)]
 //! # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/lib__suggestion.snap")].assert_eq(&render(format!("{report:?}")));
 //! ```
 //!
@@ -422,13 +422,10 @@
 //!  `anyhow`  | Provides conversion from [`anyhow::Error`] to [`Report`]       |         | disabled
 //!   `eyre`   | Provides conversion from [`eyre::Report`] to [`Report`]        |         | disabled
 //! `pretty-print` | Provide color[^color] and use of unicode in [`Debug`] output |     | enabled
-//! `unstable` | Enables unstable features, which do not follow semver[^unstable] |  | disabled
 //!
 //! [^color]: error-stack supports the [`NO_COLOR`](http://no-color.org/)
 //!     and `FORCE_COLOR` environment variables through the [owo-colors crate](https://crates.io/crates/owo-colors)
 //!
-//! [^unstable]: unstable features may be removed in **any** future version without notice.
-//!     They exist to gauge interest towards features that may be stablized in the future.
 //!
 //! [`set_display_hook`]: Report::set_display_hook
 //! [`set_debug_hook`]: Report::set_debug_hook
@@ -441,12 +438,12 @@
 //! [`SpanTrace`]: tracing_error::SpanTrace
 //! [`smallvec`]: https://docs.rs/smallvec
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(nightly, feature(provide_any))]
-#![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(
-    all(nightly, feature = "std"),
-    feature(backtrace_frames, error_generic_member_access)
+    nightly,
+    feature(provide_any, error_in_core, error_generic_member_access)
 )]
+#![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
+#![cfg_attr(all(nightly, feature = "std"), feature(backtrace_frames))]
 #![warn(
     missing_docs,
     unreachable_pub,

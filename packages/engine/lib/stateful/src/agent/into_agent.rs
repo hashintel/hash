@@ -169,7 +169,7 @@ fn set_states_messages(states: &mut [Agent], messages: &RecordBatch) -> Result<(
 // https://llvm.org/doxygen/LoopUnswitch_8cpp_source.html
 
 // TODO: Why doesn't this work:
-// fn downcast_col<T>(col: &ArrayRef) -> Result<&T, Error> {
+// fn downcast_col<T>(col: &Box<dyn Array>) -> Result<&T, Error> {
 //     col.as_any().downcast_ref::<T>().ok_or(Error::InvalidArrowDowncast)
 // }
 // This works: https://docs.rs/arrow/1.0.1/src/arrow/array/cast.rs.html
@@ -457,7 +457,7 @@ fn set_states_serialized(
     // https://docs.rs/arrow/1.0.1/src/arrow/datatypes.rs.html#1539-1544
     // ---> i_field == i_col
     let col = record_batch.column(i_field);
-    let vals = json_utf8_json_vals(col)?;
+    let vals = json_utf8_json_vals(col.as_ref())?;
     for (i_val, val) in vals.into_iter().enumerate() {
         if col.null_count() == 0 || col.is_valid(i_val) {
             states[i_val].custom.insert(field.name.clone(), val); // i_val == i_state
