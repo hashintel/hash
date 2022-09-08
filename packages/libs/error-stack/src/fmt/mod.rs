@@ -41,10 +41,20 @@
 //! ```rust
 //! # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
 //! # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
+//! use std::fmt::{Display, Formatter};
 //! use std::io::{Error, ErrorKind};
 //! use error_stack::Report;
 //!
+//! #[derive(Debug)]
 //! struct ErrorCode(u64);
+//!
+//! impl Display for ErrorCode {
+//!   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+//!     f.write_str("Error: ")?;
+//!     Display::fmt(&self.0, f)
+//!   }
+//! }
+//!
 //! struct Suggestion(&'static str);
 //! struct Warning(&'static str);
 //!
@@ -64,6 +74,9 @@
 //!     ctx.push_body(format!("Suggestion {idx}: {val}"));
 //! });
 //!
+//! // Even though we used `attach_printable`, we can still use hooks, `Display` of a type attached
+//! // via `attach_printable` is only ever used when no hook was found and the fallback returned
+//! // nothing.
 //! Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), ctx| {
 //!     ctx.push_body(format!("Error ({val})"));
 //! });
@@ -82,7 +95,7 @@
 //!
 //!
 //! let report = Report::new(Error::from(ErrorKind::InvalidInput))
-//!     .attach(ErrorCode(404))
+//!     .attach_printable(ErrorCode(404))
 //!     .attach(Suggestion("Try to be connected to the internet."))
 //!     .attach(Suggestion("Try better next time!"))
 //!     .attach(Warning("Unable to fetch resource"));
@@ -710,6 +723,18 @@ fn debug_attachments_invoke(
             FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
                 vec![]
             }
+            #[cfg(feature = "std")]
+            FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
+                Report::get_debug_format_hook(|hooks| hooks.call(frame, ctx));
+                let mut body = ctx.take_body();
+
+                if body.is_empty() {
+                    body.push(attachment.to_string());
+                }
+
+                body
+            }
+            #[cfg(not(feature = "std"))]
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                 vec![attachment.to_string()]
             }
