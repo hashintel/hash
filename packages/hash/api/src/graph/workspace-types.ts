@@ -223,10 +223,8 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
   linkType: {},
 };
 
-/* eslint-enable @typescript-eslint/no-use-before-define */
-
 /**
- * Ensures the required primitive data types and workspace types have been created in the graph.
+ * Ensures the required workspace types have been created in the graph.
  */
 export const ensureWorkspaceTypesExist = async (params: {
   graphApi: GraphApi;
