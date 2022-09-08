@@ -710,6 +710,18 @@ fn debug_attachments_invoke(
             FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
                 vec![]
             }
+            #[cfg(feature = "std")]
+            FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
+                Report::get_debug_format_hook(|hooks| hooks.call(frame, ctx));
+                let mut body = ctx.take_body();
+
+                if body.is_empty() {
+                    body.push(attachment.to_string())
+                }
+
+                body
+            }
+            #[cfg(not(feature = "std"))]
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                 vec![attachment.to_string()]
             }
