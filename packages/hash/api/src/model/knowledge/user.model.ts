@@ -34,7 +34,8 @@ export default class extends EntityModel {
     params: { accountId: string },
   ): Promise<UserModel | null> {
     /**
-     * @todo: We probably shouldn't have this AND `getUserByEntityId`
+     * @todo: This method and `getUserByEntityId` is confusing. Should be fixed as part of:
+     *  https://app.asana.com/0/1200211978612931/1202937382769276/f
      */
     const allEntities = await EntityModel.getAllLatest(graphApi, {
       accountId: workspaceAccountId,
