@@ -2,16 +2,25 @@
 
 use std::sync::Arc;
 
-use axum::{extract::Path, http::StatusCode, routing::post, Extension, Json, Router};
+use axum::{
+    extract::Path,
+    http::StatusCode,
+    routing::{get, post},
+    Extension, Json, Router,
+};
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
 use utoipa::{Component, OpenApi};
 
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store},
-    knowledge::{EntityId, Link, OutgoingLinks},
+    knowledge::{EntityId, Link},
     ontology::AccountId,
-    store::{error::QueryError, query::LinkQuery, LinkStore, StorePool},
+    store::{
+        error::QueryError,
+        query::{Expression, Literal},
+        LinkStore, StorePool,
+    },
 };
 
 #[derive(OpenApi)]
@@ -19,9 +28,10 @@ use crate::{
     handlers(
         create_link,
         get_entity_links,
+        get_active_links,
         inactivate_link
     ),
-    components(AccountId, Link, OutgoingLinks, CreateLinkRequest, InactivateLinkRequest),
+    components(AccountId, Link, CreateLinkRequest, InactivateLinkRequest),
     tags(
         (name = "Link", description = "link management API")
     )
@@ -33,15 +43,14 @@ impl RoutedResource for LinkResource {
     fn routes<P: StorePool + Send + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         //   for links specifically, we are stacking on top of the existing `/entity/` routes.
-        Router::new().nest(
-            "/entities/:entity_id/links",
-            Router::new().route(
-                "/",
+        Router::new()
+            .route(
+                "/entities/:entity_id/links",
                 post(create_link::<P>)
                     .get(get_entity_links::<P>)
                     .delete(inactivate_link::<P>),
-            ),
-        )
+            )
+            .route("/links", get(get_active_links::<P>))
     }
 }
 
@@ -112,7 +121,7 @@ async fn create_link<P: StorePool + Send>(
     path = "/entities/{entityId}/links",
     tag = "Link",
     responses(
-        (status = 200, content_type = "application/json", description = "The requested links on the given source entity", body = OutgoingLinks),
+        (status = 200, content_type = "application/json", description = "The requested links on the given source entity", body = [Link]),
         (status = 422, content_type = "text/plain", description = "Provided source entity id is invalid"),
 
         (status = 404, description = "No links were found"),
@@ -125,13 +134,12 @@ async fn create_link<P: StorePool + Send>(
 async fn get_entity_links<P: StorePool + Send>(
     Path(source_entity_id): Path<EntityId>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<OutgoingLinks>, StatusCode> {
+) -> Result<Json<Vec<Link>>, StatusCode> {
     read_from_store(
         pool.as_ref(),
-        &LinkQuery::new().by_source_entity_id(source_entity_id),
+        &Expression::for_link_by_source_entity_id(source_entity_id),
     )
     .await
-    .and_then(|mut links| links.pop().ok_or(StatusCode::NOT_FOUND))
     .map(Json)
 }
 
@@ -194,4 +202,27 @@ async fn inactivate_link<P: StorePool + Send>(
         })?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
+    get,
+    path = "/links",
+    tag = "Link",
+    responses(
+        (status = 200, content_type = "application/json", description = "List of all links", body = [Link]),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+async fn get_active_links<P: StorePool + Send>(
+    pool: Extension<Arc<P>>,
+    mut body: Option<Json<Expression>>,
+) -> Result<Json<Vec<Link>>, StatusCode> {
+    read_from_store(
+        pool.as_ref(),
+        &body
+            .take()
+            .map_or_else(|| Expression::Literal(Literal::Bool(true)), |json| json.0),
+    )
+    .await
+    .map(Json)
 }

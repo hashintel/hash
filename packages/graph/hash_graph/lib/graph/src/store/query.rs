@@ -1,18 +1,13 @@
-mod knowledge;
-mod ontology;
-
-use std::{error::Error, fmt, ops::Not};
+use std::{error::Error, fmt, ops::Not, str::FromStr};
 
 use async_trait::async_trait;
-use error_stack::{bail, Report, Result, ResultExt};
+use chrono::{DateTime, Utc};
+use error_stack::{bail, IntoReport, Report, Result, ResultExt};
 use futures::{future::BoxFuture, FutureExt};
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
 
-pub use self::{
-    knowledge::{EntityQuery, EntityVersion, LinkQuery},
-    ontology::{LinkTypeQuery, OntologyQuery, OntologyVersion},
-};
+use crate::knowledge::EntityId;
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -29,7 +24,22 @@ pub enum Literal {
     // TODO: Object
     /// Internal representation for a version
     #[serde(skip)]
-    Version(u32, bool),
+    Version(Version, bool),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Version {
+    Ontology(u32),
+    Entity(DateTime<Utc>),
+}
+
+impl fmt::Display for Version {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Ontology(version) => fmt::Display::fmt(version, fmt),
+            Self::Entity(version) => fmt::Display::fmt(version, fmt),
+        }
+    }
 }
 
 impl fmt::Debug for Literal {
@@ -68,10 +78,34 @@ fn compare(lhs: &Literal, rhs: &Literal) -> Result<bool, ExpressionError> {
         (lhs, Literal::List(rhs)) => rhs.iter().try_find(|rhs| compare(lhs, rhs))?.is_some(),
 
         // Version
-        (Literal::Version(lhs, _), Literal::Float(rhs)) => *lhs == *rhs as u32,
-        (Literal::Float(lhs), Literal::Version(rhs, _)) => *lhs as u32 == *rhs,
-        (Literal::String(lhs), Literal::Version(_, latest)) if lhs == "latest" => *latest,
-        (Literal::Version(_, latest), Literal::String(rhs)) if rhs == "latest" => *latest,
+        // ontology == float
+        (Literal::Version(Version::Ontology(version), _), Literal::Float(literal))
+        | (Literal::Float(literal), Literal::Version(Version::Ontology(version), _)) => {
+            *version == *literal as u32
+        }
+        // entity == float
+        (Literal::Version(Version::Entity(version), _), Literal::Float(literal))
+        | (Literal::Float(literal), Literal::Version(Version::Entity(version), _)) => {
+            version.timestamp() == *literal as i64
+        }
+        // entity == latest
+        (Literal::Version(_, latest), Literal::String(literal))
+        | (Literal::String(literal), Literal::Version(_, latest))
+            if literal == "latest" =>
+        {
+            *latest
+        }
+        // entity == date time
+        (Literal::Version(Version::Entity(version), _), Literal::String(literal))
+        | (Literal::String(literal), Literal::Version(Version::Entity(version), _)) => {
+            DateTime::<Utc>::from_str(literal)
+                .map(|date_time| date_time == *version)
+                .into_report()
+                .attach_printable_lazy(|| format!("cannot parse {rhs:?} as version"))
+                .change_context(ExpressionError)?
+        }
+        // version == version
+        (Literal::Version(lhs, _), Literal::Version(rhs, _)) => lhs == rhs,
 
         // unmatched
         (lhs, rhs) => {
@@ -179,6 +213,38 @@ impl Expression {
             Self::Literal(Literal::String("latest".to_owned())),
         ])
     }
+
+    #[must_use]
+    pub fn for_latest_entity_id(id: EntityId) -> Self {
+        Self::All(vec![
+            Self::for_latest_version(),
+            Self::Eq(vec![
+                Self::Path(Path {
+                    segments: vec![PathSegment {
+                        identifier: "id".to_owned(),
+                    }],
+                }),
+                Self::Literal(Literal::String(id.to_string())),
+            ]),
+        ])
+    }
+
+    #[must_use]
+    pub fn for_link_by_source_entity_id(id: EntityId) -> Self {
+        Self::Eq(vec![
+            Self::Path(Path {
+                segments: vec![
+                    PathSegment {
+                        identifier: "source".to_owned(),
+                    },
+                    PathSegment {
+                        identifier: "id".to_owned(),
+                    },
+                ],
+            }),
+            Self::Literal(Literal::String(id.to_string())),
+        ])
+    }
 }
 
 #[derive(Debug)]
@@ -265,11 +331,14 @@ impl Expression {
     }
 }
 
+// TODO: Split these errors into structs
 #[derive(Debug)]
 pub enum ResolveError {
     EmptyPath { literal: Literal },
     CannotIndex { path: Path, literal: Literal },
+    OutOfBounds { index: usize, list: Vec<Literal> },
     StoreReadError,
+    Custom,
 }
 
 impl fmt::Display for ResolveError {
@@ -280,6 +349,14 @@ impl fmt::Display for ResolveError {
                 write!(fmt, "cannot index `{literal:?}` with path `{path}`")
             }
             Self::StoreReadError => fmt.write_str("could not read data from store"),
+            Self::OutOfBounds { index, list } => {
+                write!(
+                    fmt,
+                    "index out of bounds, requested index was `{index}`, but only a length of `{}`",
+                    list.len()
+                )
+            }
+            Self::Custom => write!(fmt, "Could not resolve the query"),
         }
     }
 }
@@ -292,42 +369,39 @@ pub const UNIMPLEMENTED_WILDCARDS: &str =
     "fine-grained wildcards are not implemented yet, see https://app.asana.com/0/0/1202884883200970/f";
 
 #[async_trait]
-pub trait Resolve<C> {
+pub trait Resolve<C: ?Sized> {
     async fn resolve(&self, path: &[PathSegment], context: &C) -> Result<Literal, ResolveError>;
 }
 
 #[async_trait]
 impl<C> Resolve<C> for Literal
 where
-    C: Sync,
+    C: Sync + ?Sized,
 {
     async fn resolve(&self, path: &[PathSegment], context: &C) -> Result<Literal, ResolveError> {
-        // TODO: Support `Literal::Object`
-        //   see https://app.asana.com/0/0/1202884883200943/f
-        match self {
-            Literal::List(values) => match path {
-                [] => bail!(ResolveError::EmptyPath {
-                    literal: self.clone()
-                }),
-                [segment, segments @ ..] => {
-                    let index: usize = segment
+        match path {
+            [] => Ok(self.clone()),
+            [head_path_segment, tail_path_segments @ ..] => match self {
+                Literal::List(values) => {
+                    let index: usize = head_path_segment
                         .identifier
                         .parse()
                         .expect("path needs to be an unsigned integer");
-                    let literal = values.get(index).expect("index out of bounds");
-                    if segments.is_empty() {
-                        Ok(literal.clone())
-                    } else {
-                        literal.resolve(segments, context).await
-                    }
+                    let literal = values.get(index).ok_or_else(|| {
+                        Report::new(ResolveError::OutOfBounds {
+                            index,
+                            list: values.clone(),
+                        })
+                    })?;
+                    literal.resolve(tail_path_segments, context).await
                 }
+                literal => bail!(ResolveError::CannotIndex {
+                    path: Path {
+                        segments: path.to_vec(),
+                    },
+                    literal: literal.clone(),
+                }),
             },
-            literal => bail!(ResolveError::CannotIndex {
-                path: Path {
-                    segments: path.to_vec(),
-                },
-                literal: literal.clone(),
-            }),
         }
     }
 }

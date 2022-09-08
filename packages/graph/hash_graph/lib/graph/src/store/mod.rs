@@ -17,17 +17,12 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    knowledge::{
-        Entity, EntityId, Link, OutgoingLinks, PersistedEntity, PersistedEntityIdentifier,
-    },
+    knowledge::{Entity, EntityId, Link, PersistedEntity, PersistedEntityIdentifier},
     ontology::{
         AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
         PersistedOntologyIdentifier, PersistedPropertyType,
     },
-    store::{
-        error::LinkActivationError,
-        query::{EntityQuery, Expression, LinkQuery},
-    },
+    store::{error::LinkActivationError, query::Expression},
 };
 
 #[derive(Debug)]
@@ -368,7 +363,7 @@ pub trait LinkTypeStore: for<'q> crud::Read<PersistedLinkType, Query<'q> = Expre
 
 /// Describes the API of a store implementation for Entities.
 #[async_trait]
-pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = EntityQuery> {
+pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expression> {
     /// Creates a new [`Entity`].
     ///
     /// # Errors:
@@ -383,12 +378,12 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = EntityQue
         created_by: AccountId,
     ) -> Result<PersistedEntityIdentifier, InsertionError>;
 
-    /// Get the [`PersistedEntity`] specified by the [`EntityQuery`].
+    /// Get the [`PersistedEntity`] specified by the [`Expression`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity(&self, query: &EntityQuery) -> Result<Vec<PersistedEntity>, QueryError> {
+    async fn get_entity(&self, query: &Expression) -> Result<Vec<PersistedEntity>, QueryError> {
         self.read(query).await
     }
 
@@ -411,7 +406,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = EntityQue
 
 /// Describes the API of a store implementation for [`Link`]s.
 #[async_trait]
-pub trait LinkStore: for<'q> crud::Read<OutgoingLinks, Query<'q> = LinkQuery<'q>> {
+pub trait LinkStore: for<'q> crud::Read<Link, Query<'q> = Expression> {
     /// Creates a new [`Link`].
     ///
     /// # Errors:
@@ -425,12 +420,12 @@ pub trait LinkStore: for<'q> crud::Read<OutgoingLinks, Query<'q> = LinkQuery<'q>
         created_by: AccountId,
     ) -> Result<(), InsertionError>;
 
-    /// Get the [`OutgoingLinks`] specified by the [`LinkQuery`].
+    /// Get the [`Link`]s specified by the [`Expression`].
     ///
     /// # Errors
     ///
-    /// - if the requested [`OutgoingLinks`] don't exist.
-    async fn get_links(&self, query: &LinkQuery<'_>) -> Result<Vec<OutgoingLinks>, QueryError> {
+    /// - if the requested [`Link`]s don't exist.
+    async fn get_links(&self, query: &Expression) -> Result<Vec<Link>, QueryError> {
         self.read(query).await
     }
 

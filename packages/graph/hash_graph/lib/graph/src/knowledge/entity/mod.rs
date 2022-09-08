@@ -33,6 +33,13 @@ impl fmt::Display for EntityId {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
 pub struct Entity(HashMap<BaseUri, serde_json::Value>);
 
+impl Entity {
+    #[must_use]
+    pub const fn properties(&self) -> &HashMap<BaseUri, serde_json::Value> {
+        &self.0
+    }
+}
+
 /// The metadata required to uniquely identify an instance of an [`Entity`] that has been persisted
 /// in the datastore.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
