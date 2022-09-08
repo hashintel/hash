@@ -17,20 +17,20 @@
     "oneOf": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/propertyValues1"
+        "$ref": "#/$defs/propertyValuesUpdate"
       }
     }
   },
   "required": ["kind", "title", "pluralTitle", "oneOf"],
   "additionalProperties": false,
   "$defs": {
-    "propertyValues1": {
-      "$id": "propertyValues1",
-      "title": "propertyValues1",
+    "propertyValuesUpdate": {
+      "$id": "propertyValuesUpdate",
+      "title": "propertyValuesUpdate",
       "$comment": "The definition of potential property values, made up of a `oneOf` keyword which has a list of options of either references to Data Types, or objects made up of more Property Types",
       "oneOf": [
         {
-          "$ref": "#/$defs/dataTypeReference"
+          "$ref": "#/$defs/dataTypeReferenceUpdate"
         },
         {
           "title": "propertyObjectValue",
@@ -47,7 +47,7 @@
           "additionalProperties": false
         },
         {
-          "title": "propertyArrayValue",
+          "title": "propertyArrayValueUpdate",
           "type": "object",
           "properties": {
             "type": {
@@ -59,7 +59,7 @@
                 "oneOf": {
                   "type": "array",
                   "items": {
-                    "$ref": "propertyValues1"
+                    "$ref": "propertyValuesUpdate"
                   },
                   "minItems": 1
                 }
@@ -94,7 +94,7 @@
         ".*": {
           "oneOf": [
             {
-              "$ref": "#/$defs/propertyTypeReference"
+              "$ref": "#/$defs/propertyTypeReferenceUpdate"
             },
             {
               "type": "object",
@@ -103,7 +103,7 @@
                   "enum": ["array"]
                 },
                 "items": {
-                  "$ref": "#/$defs/propertyTypeReference"
+                  "$ref": "#/$defs/propertyTypeReferenceUpdate"
                 },
                 "minItems": {
                   "type": "integer",
@@ -122,7 +122,7 @@
       },
       "minimumProperties": 1
     },
-    "propertyTypeReference": {
+    "propertyTypeReferenceUpdate": {
       "type": "object",
       "properties": {
         "$ref": {
@@ -134,8 +134,8 @@
       "additionalProperties": false,
       "required": ["$ref"]
     },
-    "dataTypeReference": {
-      "title": "dataTypeReference",
+    "dataTypeReferenceUpdate": {
+      "title": "dataTypeReferenceUpdate",
       "type": "object",
       "properties": {
         "$ref": {
