@@ -28,4 +28,3 @@ group_imports = "StdExternalCrate" # Default: "Preserve"
 
 # Diagnostics
 error_on_unformatted = true # Default: false
-
