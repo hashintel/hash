@@ -1,9 +1,11 @@
+import { AxiosError } from "axios";
+
 import { GraphApi, UpdateDataTypeRequest } from "@hashintel/hash-graph-client";
-
 import { DataType } from "@blockprotocol/type-system-web";
+import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
-import { DataTypeModel } from "../index";
-import { incrementVersionedId } from "../util";
+import { DataTypeModel, UserModel } from "../index";
+import { generateSchemaUri, workspaceAccountId } from "../util";
 
 type DataTypeModelConstructorArgs = {
   accountId: string;
@@ -39,13 +41,51 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: DataType;
+      // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
+      //  https://github.com/microsoft/TypeScript/issues/50638
+      //  this is needed for as long as DataType extends Record
+      schema: Pick<DataType, "kind" | "title" | "description" | "type"> &
+        Record<string, any>;
     },
   ): Promise<DataTypeModel> {
-    const { data: identifier } = await graphApi.createDataType(params);
+    /** @todo - get rid of this hack for the root account */
+    const namespace =
+      params.accountId === workspaceAccountId
+        ? WORKSPACE_ACCOUNT_SHORTNAME
+        : (
+            await UserModel.getUserByAccountId(graphApi, {
+              accountId: params.accountId,
+            })
+          )?.getShortname();
+
+    if (namespace == null) {
+      throw new Error(
+        `failed to get namespace for account: ${params.accountId}`,
+      );
+    }
+
+    const dataTypeUri = generateSchemaUri({
+      namespace,
+      kind: "data-type",
+      title: params.schema.title,
+    });
+    const fullDataType = { $id: dataTypeUri, ...params.schema };
+
+    const { data: identifier } = await graphApi
+      .createDataType({
+        accountId: params.accountId,
+        schema: fullDataType,
+      })
+      .catch((err: AxiosError) => {
+        throw new Error(
+          err.response?.status === 409
+            ? `data type with the same URI already exists. [URI=${fullDataType.$id}]`
+            : `[${err.code}] couldn't create data type: ${err.response?.data}.`,
+        );
+      });
 
     return new DataTypeModel({
-      schema: params.schema,
+      schema: fullDataType,
       accountId: identifier.createdBy,
     });
   }
@@ -137,32 +177,25 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: DataType;
+      // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
+      //  https://github.com/microsoft/TypeScript/issues/50638
+      //  this is needed for as long as DataType extends Record
+      schema: Pick<DataType, "kind" | "title" | "description" | "type"> &
+        Record<string, any>;
     },
   ): Promise<DataTypeModel> {
-    const newVersionedId = incrementVersionedId(this.schema.$id);
-
     const { accountId, schema } = params;
+
     const updateArguments: UpdateDataTypeRequest = {
       accountId,
-      schema: { ...schema, $id: newVersionedId },
+      typeToUpdate: this.schema.$id,
+      schema,
     };
 
     const { data: identifier } = await graphApi.updateDataType(updateArguments);
 
     return new DataTypeModel({
-      /**
-       * @todo and a warning, these type casts are here to compensate for
-       *   the differences between the Graph API package and the
-       *   type system package.
-       *
-       *   The type system package can be considered the source of truth in
-       *   terms of the shape of values returned from the API, but the API
-       *   client is unable to be given as type package types - it generates
-       *   its own types.
-       *   https://app.asana.com/0/1202805690238892/1202892835843657/f
-       */
-      schema: updateArguments.schema as DataType,
+      schema: { ...schema, $id: identifier.uri },
       accountId: identifier.createdBy,
     });
   }

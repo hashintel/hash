@@ -1,12 +1,14 @@
+import { AxiosError } from "axios";
+import { PropertyType } from "@blockprotocol/type-system-web";
+
 import {
   GraphApi,
   UpdatePropertyTypeRequest,
 } from "@hashintel/hash-graph-client";
+import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
-import { PropertyType } from "@blockprotocol/type-system-web";
-
-import { PropertyTypeModel } from "../index";
-import { incrementVersionedId } from "../util";
+import { PropertyTypeModel, UserModel } from "../index";
+import { extractBaseUri, generateSchemaUri, workspaceAccountId } from "../util";
 
 type PropertyTypeModelConstructorParams = {
   accountId: string;
@@ -36,13 +38,47 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: PropertyType;
+      schema: Omit<PropertyType, "$id">;
     },
   ): Promise<PropertyTypeModel> {
-    const { data: identifier } = await graphApi.createPropertyType(params);
+    /** @todo - get rid of this hack for the root account */
+    const namespace =
+      params.accountId === workspaceAccountId
+        ? WORKSPACE_ACCOUNT_SHORTNAME
+        : (
+            await UserModel.getUserByAccountId(graphApi, {
+              accountId: params.accountId,
+            })
+          )?.getShortname();
+
+    if (namespace == null) {
+      throw new Error(
+        `failed to get namespace for account: ${params.accountId}`,
+      );
+    }
+
+    const propertyTypeUri = generateSchemaUri({
+      namespace,
+      kind: "property-type",
+      title: params.schema.title,
+    });
+    const fullPropertyType = { $id: propertyTypeUri, ...params.schema };
+
+    const { data: identifier } = await graphApi
+      .createPropertyType({
+        accountId: params.accountId,
+        schema: fullPropertyType,
+      })
+      .catch((err: AxiosError) => {
+        throw new Error(
+          err.response?.status === 409
+            ? `property type with the same URI already exists. [URI=${fullPropertyType.$id}]`
+            : `[${err.code}] couldn't create property type: ${err.response?.data}.`,
+        );
+      });
 
     return new PropertyTypeModel({
-      schema: params.schema,
+      schema: fullPropertyType,
       accountId: identifier.createdBy,
     });
   }
@@ -129,15 +165,14 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: PropertyType;
+      schema: Omit<PropertyType, "$id">;
     },
   ): Promise<PropertyTypeModel> {
-    const newVersionedId = incrementVersionedId(this.schema.$id);
-
     const { accountId, schema } = params;
     const updateArguments: UpdatePropertyTypeRequest = {
       accountId,
-      schema: { ...schema, $id: newVersionedId },
+      typeToUpdate: this.schema.$id,
+      schema,
     };
 
     const { data: identifier } = await graphApi.updatePropertyType(
@@ -145,19 +180,12 @@ export default class {
     );
 
     return new PropertyTypeModel({
-      /**
-       * @todo and a warning, these type casts are here to compensate for
-       *   the differences between the Graph API package and the
-       *   type system package.
-       *
-       *   The type system package can be considered the source of truth in
-       *   terms of the shape of values returned from the API, but the API
-       *   client is unable to be given as type package types - it generates
-       *   its own types.
-       *   https://app.asana.com/0/1202805690238892/1202892835843657/f
-       */
-      schema: updateArguments.schema as PropertyType,
+      schema: { ...schema, $id: identifier.uri },
       accountId: identifier.createdBy,
     });
+  }
+
+  get baseUri() {
+    return extractBaseUri(this.schema.$id);
   }
 }

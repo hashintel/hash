@@ -15,7 +15,10 @@ use utoipa::{Component, OpenApi};
 
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store},
-    ontology::{AccountId, PersistedEntityType, PersistedOntologyIdentifier},
+    ontology::{
+        domain_validator::{DomainValidator, ValidateOntologyType},
+        patch_id_and_parse, AccountId, PersistedEntityType, PersistedOntologyIdentifier,
+    },
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
         query::Expression,
@@ -89,13 +92,9 @@ struct CreateEntityTypeRequest {
 async fn create_entity_type<P: StorePool + Send>(
     body: Json<CreateEntityTypeRequest>,
     pool: Extension<Arc<P>>,
+    domain_validator: Extension<DomainValidator>,
 ) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
     let Json(CreateEntityTypeRequest { schema, account_id }) = body;
-
-    let mut store = pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
 
     let entity_type: EntityType = schema.try_into().into_report().map_err(|report| {
         tracing::error!(error=?report, "Couldn't convert schema to Entity Type");
@@ -103,6 +102,16 @@ async fn create_entity_type<P: StorePool + Send>(
         StatusCode::UNPROCESSABLE_ENTITY
         // TODO - We should probably return more information to the client
         //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+    })?;
+
+    domain_validator.validate(&entity_type).map_err(|report| {
+        tracing::error!(error=?report, id=entity_type.id().to_string(), "Entity Type ID failed to validate");
+        StatusCode::UNPROCESSABLE_ENTITY
+    })?;
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
     store
@@ -186,8 +195,10 @@ async fn get_entity_type<P: StorePool + Send>(
 #[derive(Component, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UpdateEntityTypeRequest {
-    #[component(value_type = VAR_ENTITY_TYPE)]
+    #[component(value_type = VAR_UPDATE_ENTITY_TYPE)]
     schema: serde_json::Value,
+    #[component(value_type = String)]
+    type_to_update: VersionedUri,
     account_id: AccountId,
 }
 
@@ -208,19 +219,28 @@ async fn update_entity_type<P: StorePool + Send>(
     body: Json<UpdateEntityTypeRequest>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
-    let Json(UpdateEntityTypeRequest { schema, account_id }) = body;
+    let Json(UpdateEntityTypeRequest {
+        schema,
+        type_to_update,
+        account_id,
+    }) = body;
 
-    let mut store = pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let new_type_id = VersionedUri::new(
+        type_to_update.base_uri().clone(),
+        type_to_update.version() + 1,
+    );
 
-    let entity_type: EntityType = schema.try_into().into_report().map_err(|report| {
+    let entity_type = patch_id_and_parse(&new_type_id, schema).map_err(|report| {
         tracing::error!(error=?report, "Couldn't convert schema to Entity Type");
         // Shame there isn't an UNPROCESSABLE_ENTITY_TYPE code :D
         StatusCode::UNPROCESSABLE_ENTITY
         // TODO - We should probably return more information to the client
         //  https://app.asana.com/0/1201095311341924/1202574350052904/f
+    })?;
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
     store

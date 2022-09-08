@@ -24,13 +24,8 @@ export const createEntityType: ResolverFn<
   const createdEntityTypeModel = await EntityTypeModel.create(graphApi, {
     accountId: accountId ?? user.getAccountId(),
     schema: entityType,
-  }).catch((err: AxiosError) => {
-    const msg =
-      err.response?.status === 409
-        ? `Entity type with the same URI already exists. [URI=${entityType.$id}]`
-        : `Couldn't create entity type.`;
-
-    throw new ApolloError(msg, "CREATION_ERROR");
+  }).catch((err) => {
+    throw new ApolloError(err, "CREATION_ERROR");
   });
 
   return entityTypeModelToGQL(createdEntityTypeModel);

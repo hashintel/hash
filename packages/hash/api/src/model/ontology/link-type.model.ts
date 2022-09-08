@@ -1,8 +1,11 @@
+import { AxiosError } from "axios";
+
 import { LinkType } from "@blockprotocol/type-system-web";
 import { GraphApi, UpdateLinkTypeRequest } from "@hashintel/hash-graph-client";
+import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
-import { LinkTypeModel } from "../index";
-import { incrementVersionedId } from "../util";
+import { LinkTypeModel, UserModel } from "../index";
+import { generateSchemaUri, workspaceAccountId } from "../util";
 
 type LinkTypeModelConstructorParams = {
   accountId: string;
@@ -32,13 +35,47 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: LinkType;
+      schema: Omit<LinkType, "$id">;
     },
   ): Promise<LinkTypeModel> {
-    const { data: identifier } = await graphApi.createLinkType(params);
+    /** @todo - get rid of this hack for the root account */
+    const namespace =
+      params.accountId === workspaceAccountId
+        ? WORKSPACE_ACCOUNT_SHORTNAME
+        : (
+            await UserModel.getUserByAccountId(graphApi, {
+              accountId: params.accountId,
+            })
+          )?.getShortname();
+
+    if (namespace == null) {
+      throw new Error(
+        `failed to get namespace for account: ${params.accountId}`,
+      );
+    }
+
+    const linkTypeUri = generateSchemaUri({
+      namespace,
+      kind: "link-type",
+      title: params.schema.title,
+    });
+    const fullLinkType = { $id: linkTypeUri, ...params.schema };
+
+    const { data: identifier } = await graphApi
+      .createLinkType({
+        accountId: params.accountId,
+        schema: fullLinkType,
+      })
+      .catch((err: AxiosError) => {
+        throw new Error(
+          err.response?.status === 409
+            ? `link type with the same URI already exists. [URI=${fullLinkType.$id}]`
+            : `[${err.code}] couldn't create link type: ${err.response?.data}.`,
+        );
+      });
 
     return new LinkTypeModel({
-      schema: params.schema,
+      schema: fullLinkType,
       accountId: identifier.createdBy,
     });
   }
@@ -102,21 +139,20 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: LinkType;
+      schema: Omit<LinkType, "$id">;
     },
   ): Promise<LinkTypeModel> {
-    const newVersionedId = incrementVersionedId(this.schema.$id);
-
     const { accountId, schema } = params;
     const updateArguments: UpdateLinkTypeRequest = {
       accountId,
-      schema: { ...schema, $id: newVersionedId },
+      typeToUpdate: this.schema.$id,
+      schema,
     };
 
     const { data: identifier } = await graphApi.updateLinkType(updateArguments);
 
     return new LinkTypeModel({
-      schema: updateArguments.schema,
+      schema: { ...schema, $id: identifier.uri },
       accountId: identifier.createdBy,
     });
   }

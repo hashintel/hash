@@ -27,10 +27,13 @@ use utoipa::{
 };
 
 use self::api_resource::RoutedResource;
-use crate::store::{
-    crud::Read,
-    query::{Expression, ExpressionError, ResolveError},
-    StorePool,
+use crate::{
+    ontology::domain_validator::DomainValidator,
+    store::{
+        crud::Read,
+        query::{Expression, ExpressionError, ResolveError},
+        StorePool,
+    },
 };
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
@@ -91,7 +94,10 @@ where
     })
 }
 
-pub fn rest_api_router<P: StorePool + Send + 'static>(store: Arc<P>) -> Router {
+pub fn rest_api_router<P: StorePool + Send + 'static>(
+    store: Arc<P>,
+    domain_regex: DomainValidator,
+) -> Router {
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<P>()
         .into_iter()
@@ -102,18 +108,21 @@ pub fn rest_api_router<P: StorePool + Send + 'static>(store: Arc<P>) -> Router {
 
     // super-router can then be used as any other router.
     // Make sure extensions are added at the end so they are made available to merged routers.
-    merged_routes.layer(Extension(store)).nest(
-        "/api-doc",
-        Router::new()
-            .route(
-                "/openapi.json",
-                get({
-                    let doc = open_api_doc;
-                    move || async { Json(doc) }
-                }),
-            )
-            .route("/models/*path", get(serve_static_schema)),
-    )
+    merged_routes
+        .layer(Extension(store))
+        .layer(Extension(domain_regex))
+        .nest(
+            "/api-doc",
+            Router::new()
+                .route(
+                    "/openapi.json",
+                    get({
+                        let doc = open_api_doc;
+                        move || async { Json(doc) }
+                    }),
+                )
+                .route("/models/*path", get(serve_static_schema)),
+        )
 }
 
 #[allow(

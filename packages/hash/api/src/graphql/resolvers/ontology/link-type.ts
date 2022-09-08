@@ -24,13 +24,8 @@ export const createLinkType: ResolverFn<
   const createdLinkTypeModel = await LinkTypeModel.create(graphApi, {
     accountId: accountId ?? user.getAccountId(),
     schema: linkType,
-  }).catch((err: AxiosError) => {
-    const msg =
-      err.response?.status === 409
-        ? `Link type with the same URI already exists. [URI=${linkType.$id}]`
-        : `Couldn't create link type.`;
-
-    throw new ApolloError(msg, "CREATION_ERROR");
+  }).catch((err) => {
+    throw new ApolloError(err, "CREATION_ERROR");
   });
 
   return linkTypeModelToGQL(createdLinkTypeModel);

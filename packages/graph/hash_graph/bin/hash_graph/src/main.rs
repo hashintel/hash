@@ -6,7 +6,7 @@ use error_stack::{Context, IntoReport, Result, ResultExt};
 use graph::{
     api::rest::rest_api_router,
     logging::init_logger,
-    ontology::AccountId,
+    ontology::{domain_validator::DomainValidator, AccountId},
     store::{AccountStore, DataTypeStore, PostgresStorePool, StorePool},
 };
 use serde_json::json;
@@ -25,7 +25,7 @@ impl Context for GraphError {}
 
 impl fmt::Display for GraphError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("The Graph query layer encountered an error during execution")
+        fmt.write_str("the Graph query layer encountered an error during execution")
     }
 }
 
@@ -34,6 +34,7 @@ impl fmt::Display for GraphError {
 /// This will include things that are mocks or stubs to make up for missing pieces of infrastructure
 /// that haven't been created yet.
 async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphError> {
+    // TODO: how do we make these URIs compliant
     let text = DataType::new(
         VersionedUri::new(
             BaseUri::new(
@@ -182,7 +183,10 @@ async fn main() -> Result<(), GraphError> {
 
     stop_gap_setup(&pool).await?;
 
-    let rest_router = rest_api_router(Arc::new(pool));
+    let rest_router = rest_api_router(
+        Arc::new(pool),
+        DomainValidator::new(args.allowed_url_domain),
+    );
     let api_address = format!("{}:{}", args.api_host, args.api_port);
     let addr: SocketAddr = api_address
         .parse()

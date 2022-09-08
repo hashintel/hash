@@ -9,6 +9,7 @@ import {
   LinkTypeModel,
 } from "@hashintel/hash-api/src/model";
 import { EntityType } from "@blockprotocol/type-system-web";
+import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
 
@@ -26,30 +27,20 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-const accountId = "00000000-0000-0000-0000-000000000000";
-
-const textDataType$id =
-  "https://entity-type~example.com/data-type/v/1" as const;
-
-const textPropertyTypeBaseId =
-  "https://entity-type~example.com/property-type-text/";
-const textPropertyType$id = `${textPropertyTypeBaseId}v/1` as const;
-
-const namePropertyTypeBaseId =
-  "https://entity-type~example.com/property-type-name/";
-const namePropertyType$id = `${namePropertyTypeBaseId}v/1` as const;
-
-const knowsLinkTypeBaseId = "https://entity-type~example.com/link-type-knows/";
-const knowsLinkType$id = `${knowsLinkTypeBaseId}v/1` as const;
-
-const knowsDestinationEntityType$id =
-  "https://entity-type~example.com/entity-type-destination/v/1" as const;
+let accountId: string;
+let entityTypeSchema: Omit<EntityType, "$id">;
+let workerEntityTypeModel: EntityTypeModel;
+let textDataTypeModel: DataTypeModel;
+let namePropertyTypeModel: PropertyTypeModel;
+let favoriteBookPropertyTypeModel: PropertyTypeModel;
+let knowsLinkTypeModel: LinkTypeModel;
 
 beforeAll(async () => {
-  await DataTypeModel.create(graphApi, {
+  accountId = await createTestUser(graphApi, "entity-type-test", logger);
+
+  textDataTypeModel = await DataTypeModel.create(graphApi, {
     accountId,
     schema: {
-      $id: textDataType$id,
       kind: "dataType",
       title: "Text",
       type: "string",
@@ -60,101 +51,107 @@ beforeAll(async () => {
     EntityTypeModel.create(graphApi, {
       accountId,
       schema: {
-        $id: knowsDestinationEntityType$id,
         kind: "entityType",
-        title: "Text",
-        pluralTitle: "Text",
+        title: "Worker",
+        pluralTitle: "Workers",
         type: "object",
         properties: {},
       },
+    }).then((val) => {
+      workerEntityTypeModel = val;
     }),
     PropertyTypeModel.create(graphApi, {
       accountId,
       schema: {
-        $id: textPropertyType$id,
         kind: "propertyType",
-        title: "Text",
-        pluralTitle: "Text",
-        oneOf: [{ $ref: textDataType$id }],
+        title: "Favorite Book",
+        pluralTitle: "Favorite Books",
+        oneOf: [{ $ref: textDataTypeModel.schema.$id }],
       },
+    }).then((val) => {
+      favoriteBookPropertyTypeModel = val;
     }),
     PropertyTypeModel.create(graphApi, {
       accountId,
       schema: {
-        $id: namePropertyType$id,
         kind: "propertyType",
-        title: "Text",
-        pluralTitle: "Text",
-        oneOf: [{ $ref: textDataType$id }],
+        title: "Name",
+        pluralTitle: "Names",
+        oneOf: [{ $ref: textDataTypeModel.schema.$id }],
       },
+    }).then((val) => {
+      namePropertyTypeModel = val;
     }),
     LinkTypeModel.create(graphApi, {
       accountId,
       schema: {
-        $id: knowsLinkType$id,
         kind: "linkType",
         title: "Knows",
         pluralTitle: "Knows",
         description: "Knows of someone",
       },
+    }).then((val) => {
+      knowsLinkTypeModel = val;
     }),
   ]);
+
+  entityTypeSchema = {
+    kind: "entityType",
+    title: "Some",
+    pluralTitle: "Text",
+    type: "object",
+    properties: {
+      [favoriteBookPropertyTypeModel.baseUri]: {
+        $ref: favoriteBookPropertyTypeModel.schema.$id,
+      },
+      [namePropertyTypeModel.baseUri]: {
+        $ref: namePropertyTypeModel.schema.$id,
+      },
+    },
+    links: {
+      [knowsLinkTypeModel.schema.$id]: {
+        type: "array",
+        items: {
+          // When adding links in entity type definitions the `$ref` is
+          // expected to be another entity type. That other entity type needs
+          // to exist in the DB beforehand.
+          $ref: workerEntityTypeModel.schema.$id,
+        },
+        ordered: false,
+      },
+    },
+  };
 });
 
 describe("Entity type CRU", () => {
-  const entityType = ($id: string): EntityType => {
-    return {
-      $id,
-      kind: "entityType",
-      title: "Text",
-      pluralTitle: "Text",
-      type: "object",
-      properties: {
-        [textPropertyTypeBaseId]: { $ref: textPropertyType$id },
-        [namePropertyTypeBaseId]: { $ref: namePropertyType$id },
-      },
-      links: {
-        [knowsLinkType$id]: {
-          type: "array",
-          items: {
-            // When adding links in entity type definitions the `$ref` is
-            // expected to be another entity type. That other entity type needs
-            // to exist in the DB beforehand.
-            $ref: knowsDestinationEntityType$id,
-          },
-          ordered: false,
-        },
-      },
-    };
-  };
-
-  const createdEntityType$id =
-    "https://entity-type~example.com/entity-type/v/1";
   let createdEntityType: EntityTypeModel;
+
   it("can create an entity type", async () => {
     createdEntityType = await EntityTypeModel.create(graphApi, {
       accountId,
-      schema: entityType(createdEntityType$id),
+      schema: entityTypeSchema,
     });
   });
 
   it("can read an entity type", async () => {
     const fetchedEntityType = await EntityTypeModel.get(graphApi, {
-      versionedUri: createdEntityType$id,
+      versionedUri: createdEntityType.schema.$id,
     });
 
-    expect(fetchedEntityType.schema.$id).toEqual(createdEntityType$id);
+    expect(fetchedEntityType.schema).toEqual(createdEntityType.schema);
   });
 
-  const updated$id = "https://entity-type~example.com/entity-type/v/2";
   const updatedTitle = "New text!";
+  let updatedId: string | undefined;
   it("can update an entity type", async () => {
-    await createdEntityType
+    const updatedEntityTypeModel = await createdEntityType
       .update(graphApi, {
         accountId,
-        schema: { ...entityType(updated$id), title: updatedTitle },
+        schema: { ...entityTypeSchema, title: updatedTitle },
       })
       .catch((err) => Promise.reject(err.data));
+
+    updatedId = updatedEntityTypeModel.schema.$id;
   });
 
   it("can read all latest entity types", async () => {
@@ -163,13 +160,13 @@ describe("Entity type CRU", () => {
     });
 
     const newlyUpdated = allEntityTypes.find(
-      (dt) => dt.schema.$id === updated$id,
+      (dt) => dt.schema.$id === updatedId,
     );
 
     expect(allEntityTypes.length).toBeGreaterThan(0);
     expect(newlyUpdated).toBeDefined();
 
-    expect(newlyUpdated!.schema.$id).toEqual(updated$id);
+    expect(newlyUpdated!.schema.$id).toEqual(updatedId);
     expect(newlyUpdated!.schema.title).toEqual(updatedTitle);
   });
 
@@ -180,7 +177,7 @@ describe("Entity type CRU", () => {
 
     const linkTypeVersioned$ids = linkTypes.map((lt) => lt.schema.$id);
 
-    expect(linkTypeVersioned$ids).toContain(knowsLinkType$id);
+    expect(linkTypeVersioned$ids).toContain(knowsLinkTypeModel.schema.$id);
   });
 
   it("can get all property types", async () => {
@@ -190,7 +187,11 @@ describe("Entity type CRU", () => {
 
     const propertyTypeVersioned$ids = propertyTypes.map((pt) => pt.schema.$id);
 
-    expect(propertyTypeVersioned$ids).toContain(namePropertyType$id);
-    expect(propertyTypeVersioned$ids).toContain(textPropertyType$id);
+    expect(propertyTypeVersioned$ids).toContain(
+      namePropertyTypeModel.schema.$id,
+    );
+    expect(propertyTypeVersioned$ids).toContain(
+      favoriteBookPropertyTypeModel.schema.$id,
+    );
   });
 });

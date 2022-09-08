@@ -8,6 +8,7 @@ import {
   DataTypeModel,
   PropertyTypeModel,
 } from "@hashintel/hash-api/src/model";
+import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
 
@@ -25,63 +26,73 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-const accountId = "00000000-0000-0000-0000-000000000000";
-
-const textDataType$id = "https://entity~example.com/data-type/v/1";
-
-const textPropertyTypeBaseId = "https://entity~example.com/property-type-text/";
-const textPropertyType$id = `${textPropertyTypeBaseId}v/1` as const;
-
-const namePropertyTypeBaseId = "https://entity~example.com/property-type-name/";
-const namePropertyType$id = `${namePropertyTypeBaseId}v/1` as const;
-
-const entityType$id = "https://entity~example.com/entity-type-/v/1" as const;
-
+let accountId: string;
 let entityTypeModel: EntityTypeModel;
+let textDataTypeModel: DataTypeModel;
+let namePropertyTypeModel: PropertyTypeModel;
+let favoriteBookPropertyTypeModel: PropertyTypeModel;
 
 beforeAll(async () => {
-  await DataTypeModel.create(graphApi, {
+  accountId = await createTestUser(graphApi, "entitytest", logger);
+
+  textDataTypeModel = await DataTypeModel.create(graphApi, {
     accountId,
     schema: {
-      $id: textDataType$id,
       kind: "dataType",
       title: "Text",
       type: "string",
     },
+  }).catch((err) => {
+    logger.error(`Something went wrong making Text: ${err}`);
+    throw err;
   });
 
   const results = await Promise.all([
     EntityTypeModel.create(graphApi, {
       accountId,
       schema: {
-        $id: entityType$id,
         kind: "entityType",
-        title: "Text",
-        pluralTitle: "Text",
+        title: "Person",
+        pluralTitle: "People",
         type: "object",
         properties: {},
       },
+    }).catch((err) => {
+      logger.error(`Something went wrong making Person: ${err}`);
+      throw err;
     }),
     PropertyTypeModel.create(graphApi, {
       accountId,
       schema: {
-        $id: textPropertyType$id,
         kind: "propertyType",
-        title: "Text",
-        pluralTitle: "Text",
-        oneOf: [{ $ref: textDataType$id }],
+        title: "Favorite Book",
+        pluralTitle: "Favorite Books",
+        oneOf: [{ $ref: textDataTypeModel.schema.$id }],
       },
-    }),
+    })
+      .then((val) => {
+        favoriteBookPropertyTypeModel = val;
+      })
+      .catch((err) => {
+        logger.error(`Something went wrong making Favorite Book: ${err}`);
+        throw err;
+      }),
     PropertyTypeModel.create(graphApi, {
       accountId,
       schema: {
-        $id: namePropertyType$id,
         kind: "propertyType",
-        title: "Text",
-        pluralTitle: "Text",
-        oneOf: [{ $ref: textDataType$id }],
+        title: "Name",
+        pluralTitle: "Names",
+        oneOf: [{ $ref: textDataTypeModel.schema.$id }],
       },
-    }),
+    })
+      .then((val) => {
+        namePropertyTypeModel = val;
+      })
+      .catch((err) => {
+        logger.error(`Something went wrong making Names: ${err}`);
+        throw err;
+      }),
   ]);
 
   entityTypeModel = results[0];
@@ -93,8 +104,8 @@ describe("Entity CRU", () => {
     createdEntityModel = await EntityModel.create(graphApi, {
       accountId,
       properties: {
-        [namePropertyTypeBaseId]: "Bob",
-        [textPropertyTypeBaseId]: "some text",
+        [namePropertyTypeModel.baseUri]: "Bob",
+        [favoriteBookPropertyTypeModel.baseUri]: "some text",
       },
       entityTypeModel,
     });
@@ -116,8 +127,8 @@ describe("Entity CRU", () => {
       .update(graphApi, {
         accountId,
         properties: {
-          [namePropertyTypeBaseId]: "Updated Bob",
-          [textPropertyTypeBaseId]: "Even more text than before",
+          [namePropertyTypeModel.baseUri]: "Updated Bob",
+          [favoriteBookPropertyTypeModel.baseUri]: "Even more text than before",
         },
       })
       .catch((err) => Promise.reject(err.data));
@@ -141,7 +152,9 @@ describe("Entity CRU", () => {
 
     expect(newlyUpdatedModel!.version).toEqual(updatedEntityModel.version);
     expect(
-      (newlyUpdatedModel!.properties as any)[namePropertyTypeBaseId],
-    ).toEqual((updatedEntityModel.properties as any)[namePropertyTypeBaseId]);
+      (newlyUpdatedModel!.properties as any)[namePropertyTypeModel.baseUri],
+    ).toEqual(
+      (updatedEntityModel.properties as any)[namePropertyTypeModel.baseUri],
+    );
   });
 });

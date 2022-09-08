@@ -1,11 +1,19 @@
+import { AxiosError } from "axios";
+
 import { EntityType } from "@blockprotocol/type-system-web";
 import {
   GraphApi,
   UpdateEntityTypeRequest,
 } from "@hashintel/hash-graph-client";
+import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
-import { EntityTypeModel, PropertyTypeModel, LinkTypeModel } from "../index";
-import { incrementVersionedId } from "../util";
+import {
+  EntityTypeModel,
+  PropertyTypeModel,
+  LinkTypeModel,
+  UserModel,
+} from "../index";
+import { generateSchemaUri, workspaceAccountId } from "../util";
 
 export type EntityTypeModelConstructorParams = {
   accountId: string;
@@ -14,7 +22,7 @@ export type EntityTypeModelConstructorParams = {
 
 export type EntityTypeModelCreateParams = {
   accountId: string;
-  schema: EntityType;
+  schema: Omit<EntityType, "$id">;
 };
 
 /**
@@ -40,10 +48,44 @@ export default class {
     graphApi: GraphApi,
     params: EntityTypeModelCreateParams,
   ): Promise<EntityTypeModel> {
-    const { data: identifier } = await graphApi.createEntityType(params);
+    /** @todo - get rid of this hack for the root account */
+    const namespace =
+      params.accountId === workspaceAccountId
+        ? WORKSPACE_ACCOUNT_SHORTNAME
+        : (
+            await UserModel.getUserByAccountId(graphApi, {
+              accountId: params.accountId,
+            })
+          )?.getShortname();
+
+    if (namespace == null) {
+      throw new Error(
+        `failed to get namespace for account: ${params.accountId}`,
+      );
+    }
+
+    const entityTypeUri = generateSchemaUri({
+      namespace,
+      kind: "entity-type",
+      title: params.schema.title,
+    });
+    const fullEntityType = { $id: entityTypeUri, ...params.schema };
+
+    const { data: identifier } = await graphApi
+      .createEntityType({
+        accountId: params.accountId,
+        schema: fullEntityType,
+      })
+      .catch((err: AxiosError) => {
+        throw new Error(
+          err.response?.status === 409
+            ? `entity type with the same URI already exists. [URI=${fullEntityType.$id}]`
+            : `[${err.code}] couldn't create entity type: ${err.response?.data}.`,
+        );
+      });
 
     return new EntityTypeModel({
-      schema: params.schema,
+      schema: fullEntityType,
       accountId: identifier.createdBy,
     });
   }
@@ -130,15 +172,14 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
-      schema: EntityType;
+      schema: Omit<EntityType, "$id">;
     },
   ): Promise<EntityTypeModel> {
-    const newVersionedId = incrementVersionedId(this.schema.$id);
-
     const { accountId, schema } = params;
     const updateArguments: UpdateEntityTypeRequest = {
       accountId,
-      schema: { ...schema, $id: newVersionedId },
+      typeToUpdate: this.schema.$id,
+      schema,
     };
 
     const { data: identifier } = await graphApi.updateEntityType(
@@ -146,18 +187,7 @@ export default class {
     );
 
     return new EntityTypeModel({
-      /**
-       * @todo and a warning, these type casts are here to compensate for
-       *   the differences between the Graph API package and the
-       *   type system package.
-       *
-       *   The type system package can be considered the source of truth in
-       *   terms of the shape of values returned from the API, but the API
-       *   client is unable to be given as type package types - it generates
-       *   its own types.
-       *   https://app.asana.com/0/1202805690238892/1202892835843657/f
-       */
-      schema: updateArguments.schema as EntityType,
+      schema: { ...schema, $id: identifier.uri },
       accountId: identifier.createdBy,
     });
   }

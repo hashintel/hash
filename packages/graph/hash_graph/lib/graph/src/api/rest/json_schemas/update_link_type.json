@@ -1,0 +1,17 @@
+{
+  "description": "The contents of a Link Type update request",
+  "properties": {
+    "kind": {
+      "enum": ["linkType"]
+    },
+    "title": { "type": "string" },
+    "pluralTitle": { "type": "string" },
+    "description": { "type": "string" },
+    "relatedKeywords": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": false,
+  "required": ["kind", "title", "pluralTitle", "description"]
+}

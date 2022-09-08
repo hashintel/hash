@@ -684,6 +684,15 @@ export type PropertyValues =
   | PropertyObjectValue;
 
 /**
+ * @type PropertyValues1
+ * @export
+ */
+export type PropertyValues1 =
+  | DataTypeReference
+  | PropertyArrayValue
+  | PropertyObjectValue;
+
+/**
  *
  * @export
  * @interface RemoveLinkRequest
@@ -709,6 +718,47 @@ export interface RemoveLinkRequest {
   targetEntityId: string;
 }
 /**
+ * The contents of a Data Type update request
+ * @export
+ * @interface UpdateDataType
+ */
+export interface UpdateDataType {
+  [key: string]: any;
+
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateDataType
+   */
+  description?: string;
+  /**
+   *
+   * @type {object}
+   * @memberof UpdateDataType
+   */
+  kind: UpdateDataTypeKindEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateDataType
+   */
+  title: string;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateDataType
+   */
+  type: string;
+}
+
+export const UpdateDataTypeKindEnum = {
+  DataType: "dataType",
+} as const;
+
+export type UpdateDataTypeKindEnum =
+  typeof UpdateDataTypeKindEnum[keyof typeof UpdateDataTypeKindEnum];
+
+/**
  *
  * @export
  * @interface UpdateDataTypeRequest
@@ -722,10 +772,16 @@ export interface UpdateDataTypeRequest {
   accountId: string;
   /**
    *
-   * @type {DataType}
+   * @type {UpdateDataType}
    * @memberof UpdateDataTypeRequest
    */
-  schema: DataType;
+  schema: UpdateDataType;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateDataTypeRequest
+   */
+  typeToUpdate: string;
 }
 /**
  *
@@ -759,6 +815,93 @@ export interface UpdateEntityRequest {
   entityTypeUri: string;
 }
 /**
+ * The contents of an Entity Type update request
+ * @export
+ * @interface UpdateEntityType
+ */
+export interface UpdateEntityType {
+  /**
+   *
+   * @type {object}
+   * @memberof UpdateEntityType
+   */
+  default?: object;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateEntityType
+   */
+  description?: string;
+  /**
+   *
+   * @type {Array<object>}
+   * @memberof UpdateEntityType
+   */
+  examples?: Array<object>;
+  /**
+   *
+   * @type {object}
+   * @memberof UpdateEntityType
+   */
+  kind: UpdateEntityTypeKindEnum;
+  /**
+   *
+   * @type {object}
+   * @memberof UpdateEntityType
+   */
+  links?: object;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateEntityType
+   */
+  pluralTitle: string;
+  /**
+   *
+   * @type {object}
+   * @memberof UpdateEntityType
+   */
+  properties: object;
+  /**
+   *
+   * @type {Array<string>}
+   * @memberof UpdateEntityType
+   */
+  required?: Array<string>;
+  /**
+   *
+   * @type {Array<string>}
+   * @memberof UpdateEntityType
+   */
+  requiredLinks?: Array<string>;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateEntityType
+   */
+  title: string;
+  /**
+   *
+   * @type {object}
+   * @memberof UpdateEntityType
+   */
+  type: UpdateEntityTypeTypeEnum;
+}
+
+export const UpdateEntityTypeKindEnum = {
+  EntityType: "entityType",
+} as const;
+
+export type UpdateEntityTypeKindEnum =
+  typeof UpdateEntityTypeKindEnum[keyof typeof UpdateEntityTypeKindEnum];
+export const UpdateEntityTypeTypeEnum = {
+  Object: "object",
+} as const;
+
+export type UpdateEntityTypeTypeEnum =
+  typeof UpdateEntityTypeTypeEnum[keyof typeof UpdateEntityTypeTypeEnum];
+
+/**
  *
  * @export
  * @interface UpdateEntityTypeRequest
@@ -772,11 +915,62 @@ export interface UpdateEntityTypeRequest {
   accountId: string;
   /**
    *
-   * @type {EntityType}
+   * @type {UpdateEntityType}
    * @memberof UpdateEntityTypeRequest
    */
-  schema: EntityType;
+  schema: UpdateEntityType;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateEntityTypeRequest
+   */
+  typeToUpdate: string;
 }
+/**
+ * The contents of a Link Type update request
+ * @export
+ * @interface UpdateLinkType
+ */
+export interface UpdateLinkType {
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateLinkType
+   */
+  description: string;
+  /**
+   *
+   * @type {object}
+   * @memberof UpdateLinkType
+   */
+  kind: UpdateLinkTypeKindEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateLinkType
+   */
+  pluralTitle: string;
+  /**
+   *
+   * @type {Array<string>}
+   * @memberof UpdateLinkType
+   */
+  relatedKeywords?: Array<string>;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateLinkType
+   */
+  title: string;
+}
+
+export const UpdateLinkTypeKindEnum = {
+  LinkType: "linkType",
+} as const;
+
+export type UpdateLinkTypeKindEnum =
+  typeof UpdateLinkTypeKindEnum[keyof typeof UpdateLinkTypeKindEnum];
+
 /**
  *
  * @export
@@ -791,11 +985,62 @@ export interface UpdateLinkTypeRequest {
   accountId: string;
   /**
    *
-   * @type {LinkType}
+   * @type {UpdateLinkType}
    * @memberof UpdateLinkTypeRequest
    */
-  schema: LinkType;
+  schema: UpdateLinkType;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateLinkTypeRequest
+   */
+  typeToUpdate: string;
 }
+/**
+ * The contents of a Property Type update request
+ * @export
+ * @interface UpdatePropertyType
+ */
+export interface UpdatePropertyType {
+  /**
+   *
+   * @type {string}
+   * @memberof UpdatePropertyType
+   */
+  description?: string;
+  /**
+   *
+   * @type {object}
+   * @memberof UpdatePropertyType
+   */
+  kind: UpdatePropertyTypeKindEnum;
+  /**
+   *
+   * @type {Array<PropertyValues1>}
+   * @memberof UpdatePropertyType
+   */
+  oneOf: Array<PropertyValues1>;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdatePropertyType
+   */
+  pluralTitle: string;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdatePropertyType
+   */
+  title: string;
+}
+
+export const UpdatePropertyTypeKindEnum = {
+  PropertyType: "propertyType",
+} as const;
+
+export type UpdatePropertyTypeKindEnum =
+  typeof UpdatePropertyTypeKindEnum[keyof typeof UpdatePropertyTypeKindEnum];
+
 /**
  *
  * @export
@@ -810,10 +1055,16 @@ export interface UpdatePropertyTypeRequest {
   accountId: string;
   /**
    *
-   * @type {PropertyType}
+   * @type {UpdatePropertyType}
    * @memberof UpdatePropertyTypeRequest
    */
-  schema: PropertyType;
+  schema: UpdatePropertyType;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdatePropertyTypeRequest
+   */
+  typeToUpdate: string;
 }
 
 /**

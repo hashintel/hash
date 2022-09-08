@@ -24,13 +24,8 @@ export const createPropertyType: ResolverFn<
   const createdPropertyTypeModel = await PropertyTypeModel.create(graphApi, {
     accountId: accountId ?? user.getAccountId(),
     schema: propertyType,
-  }).catch((err: AxiosError) => {
-    const msg =
-      err.response?.status === 409
-        ? `Property type with the same URI already exists. [URI=${propertyType.$id}]`
-        : `Couldn't create property type.`;
-
-    throw new ApolloError(msg, "CREATION_ERROR");
+  }).catch((err) => {
+    throw new ApolloError(err, "CREATION_ERROR");
   });
 
   return propertyTypeModelToGQL(createdPropertyTypeModel);

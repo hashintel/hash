@@ -1,6 +1,7 @@
 use clap::{AppSettings::DeriveDisplayOrder, Args as _, Command, Parser};
 use clap_complete::Shell;
 use graph::{logging::LoggingArgs, store::DatabaseConnectionInfo};
+use regex::Regex;
 
 /// Arguments passed to the program.
 #[derive(Debug, Parser)]
@@ -12,13 +13,33 @@ pub struct Args {
     #[clap(flatten)]
     pub log_config: LoggingArgs,
 
-    /// The host the REST client is listening at
+    /// The host the REST client is listening at.
     #[clap(long, default_value = "127.0.0.1", env = "HASH_GRAPH_API_HOST")]
     pub api_host: String,
 
-    /// The port the REST client is listening at
+    /// The port the REST client is listening at.
     #[clap(long, default_value_t = 4000, env = "HASH_GRAPH_API_PORT")]
     pub api_port: u16,
+
+    /// A regex which *new* Type System URLs are checked against. Trying to create new Types with
+    /// a domain that doesn't satisfy the pattern will error.
+    ///
+    /// The regex must:
+    ///
+    /// - be in the standard format accepted by Rust's `regex` crate.
+    ///
+    /// - contain a capture group named "shortname" to identify a user's shortname, e.g.
+    ///   `(?P<shortname>[\w|-]+)`
+    ///
+    /// - contain a capture group named "kind" to identify the slug of the kind of ontology type
+    ///   being hosted (data-type, property-type, entity-type, link-type), e.g.
+    ///   `(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))`
+    #[clap(
+        long,
+        default_value_t = Regex::new(r"http://localhost:3000/@(?P<shortname>[\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\w-]+/").unwrap(),
+        env = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN"
+    )]
+    pub allowed_url_domain: Regex,
 
     /// Generate a completion script for the given shell and outputs it to stdout.
     #[clap(long, arg_enum, exclusive = true)]

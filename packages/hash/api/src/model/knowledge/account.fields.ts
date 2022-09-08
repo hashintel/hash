@@ -1,37 +1,6 @@
 import { OrgModel, UserModel } from "..";
 import { GraphApi } from "../../graph";
-import {
-  generateSchemaBaseUri,
-  generateWorkspacePropertyTypeSchema,
-  RESTRICTED_SHORTNAMES,
-  workspaceTypesNamespaceUri,
-} from "../util";
-
-// AccountId
-// Generate the schema for the account id property type
-export const accountIdPropertyType = generateWorkspacePropertyTypeSchema({
-  title: "Account ID",
-  possibleValues: [{ primitiveDataType: "Text" }],
-});
-
-export const accountIdBaseUri = generateSchemaBaseUri({
-  namespaceUri: workspaceTypesNamespaceUri,
-  kind: "propertyType",
-  title: accountIdPropertyType.title,
-});
-
-// Shortname
-// Generate the schema for the shortname property type
-export const shortnamePropertyType = generateWorkspacePropertyTypeSchema({
-  title: "Shortname",
-  possibleValues: [{ primitiveDataType: "Text" }],
-});
-
-export const shortnameBaseUri = generateSchemaBaseUri({
-  namespaceUri: workspaceTypesNamespaceUri,
-  kind: "propertyType",
-  title: shortnamePropertyType.title,
-});
+import { RESTRICTED_SHORTNAMES } from "../util";
 
 // Validations for shortnames
 /**

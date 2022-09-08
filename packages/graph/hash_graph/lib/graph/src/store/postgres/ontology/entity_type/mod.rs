@@ -34,7 +34,12 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             .insert_entity_type_references(&entity_type, version_id)
             .await
             .change_context(InsertionError)
-            .attach_printable("Could not insert references for entity type")
+            .attach_printable_lazy(|| {
+                format!(
+                    "could not insert references for entity type: {}",
+                    entity_type.id()
+                )
+            })
             .attach_lazy(|| entity_type.clone())?;
 
         transaction
@@ -69,7 +74,12 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             .insert_entity_type_references(&entity_type, version_id)
             .await
             .change_context(UpdateError)
-            .attach_printable("Could not insert references for entity type")
+            .attach_printable_lazy(|| {
+                format!(
+                    "could not insert references for entity type: {}",
+                    entity_type.id()
+                )
+            })
             .attach_lazy(|| entity_type.clone())?;
 
         transaction

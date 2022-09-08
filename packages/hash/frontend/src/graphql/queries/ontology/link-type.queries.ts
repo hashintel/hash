@@ -21,7 +21,7 @@ export const getAllLatestLinkTypesQuery = gql`
 `;
 
 export const createLinkTypeMutation = gql`
-  mutation createLinkType($accountId: ID!, $linkType: LinkType!) {
+  mutation createLinkType($accountId: ID!, $linkType: LinkTypeWithoutId!) {
     createLinkType(accountId: $accountId, linkType: $linkType) {
       linkTypeVersionedUri
       accountId
@@ -34,7 +34,7 @@ export const updateLinkTypeMutation = gql`
   mutation updateLinkType(
     $accountId: ID!
     $linkTypeVersionedUri: String!
-    $updatedLinkType: LinkType!
+    $updatedLinkType: LinkTypeWithoutId!
   ) {
     updateLinkType(
       accountId: $accountId

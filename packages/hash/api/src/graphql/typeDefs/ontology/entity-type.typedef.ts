@@ -2,6 +2,7 @@ import { gql } from "apollo-server-express";
 
 export const entityTypeTypedef = gql`
   scalar EntityType
+  scalar EntityTypeWithoutId
 
   type PersistedEntityType {
     """
@@ -41,7 +42,7 @@ export const entityTypeTypedef = gql`
       accountId refers to the account to create the entity type in.
       """
       accountId: ID
-      entityType: EntityType!
+      entityType: EntityTypeWithoutId!
     ): PersistedEntityType!
 
     """
@@ -59,7 +60,7 @@ export const entityTypeTypedef = gql`
       """
       New entity type schema contents to be used.
       """
-      updatedEntityType: EntityType!
+      updatedEntityType: EntityTypeWithoutId!
     ): PersistedEntityType!
   }
 `;

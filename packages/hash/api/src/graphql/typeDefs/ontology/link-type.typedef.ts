@@ -2,6 +2,7 @@ import { gql } from "apollo-server-express";
 
 export const linkTypeTypedef = gql`
   scalar LinkType
+  scalar LinkTypeWithoutId
 
   type PersistedLinkType {
     """
@@ -39,7 +40,7 @@ export const linkTypeTypedef = gql`
       The id of the account where to create the link type in. Defaults to the account id of the current user.
       """
       accountId: ID
-      linkType: LinkType!
+      linkType: LinkTypeWithoutId!
     ): PersistedLinkType!
 
     """
@@ -57,7 +58,7 @@ export const linkTypeTypedef = gql`
       """
       New link type schema contents to be used.
       """
-      updatedLinkType: LinkType!
+      updatedLinkType: LinkTypeWithoutId!
     ): PersistedLinkType!
   }
 `;
