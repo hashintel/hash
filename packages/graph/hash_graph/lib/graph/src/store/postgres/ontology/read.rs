@@ -22,38 +22,62 @@ use crate::{
 pub trait PersistedOntologyType {
     type Inner;
 
-    fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self;
+    fn from_record(record: OntologyRecord<Self::Inner>) -> Self;
 }
 
 impl PersistedOntologyType for PersistedDataType {
     type Inner = DataType;
 
-    fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self {
-        Self { inner, identifier }
+    fn from_record(data_type: OntologyRecord<Self::Inner>) -> Self {
+        let identifier =
+            PersistedOntologyIdentifier::new(data_type.record.id().clone(), data_type.account_id);
+        Self {
+            inner: data_type.record,
+            identifier,
+        }
     }
 }
 
 impl PersistedOntologyType for PersistedPropertyType {
     type Inner = PropertyType;
 
-    fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self {
-        Self { inner, identifier }
+    fn from_record(property_type: OntologyRecord<Self::Inner>) -> Self {
+        let identifier = PersistedOntologyIdentifier::new(
+            property_type.record.id().clone(),
+            property_type.account_id,
+        );
+        Self {
+            inner: property_type.record,
+            identifier,
+        }
     }
 }
 
 impl PersistedOntologyType for PersistedLinkType {
     type Inner = LinkType;
 
-    fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self {
-        Self { inner, identifier }
+    fn from_record(link_type: OntologyRecord<Self::Inner>) -> Self {
+        let identifier =
+            PersistedOntologyIdentifier::new(link_type.record.id().clone(), link_type.account_id);
+        Self {
+            inner: link_type.record,
+            identifier,
+        }
     }
 }
 
 impl PersistedOntologyType for PersistedEntityType {
     type Inner = EntityType;
 
-    fn new(inner: Self::Inner, identifier: PersistedOntologyIdentifier) -> Self {
-        Self { inner, identifier }
+    fn from_record(entity_type: OntologyRecord<Self::Inner>) -> Self {
+        let identifier = PersistedOntologyIdentifier::new(
+            entity_type.record.id().clone(),
+            entity_type.account_id,
+        );
+        Self {
+            inner: entity_type.record,
+            identifier,
+        }
     }
 }
 
@@ -75,12 +99,7 @@ where
                     .await
                     .change_context(QueryError)?
                 {
-                    Ok(result.then(|| {
-                        let uri = ontology_type.record.versioned_uri();
-                        let identifier =
-                            PersistedOntologyIdentifier::new(uri.clone(), ontology_type.account_id);
-                        T::new(ontology_type.record, identifier)
-                    }))
+                    Ok(result.then(|| T::from_record(ontology_type)))
                 } else {
                     bail!(
                         Report::new(ExpressionError)

@@ -9,16 +9,18 @@ use axum::{
     Extension, Json, Router,
 };
 use error_stack::IntoReport;
+use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
 use type_system::{uri::VersionedUri, PropertyType};
 use utoipa::{Component, OpenApi};
 
 use super::api_resource::RoutedResource;
 use crate::{
-    api::rest::read_from_store,
+    api::rest::{read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, AccountId, PersistedOntologyIdentifier, PersistedPropertyType,
+        PropertyTypeTree,
     },
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
@@ -39,7 +41,9 @@ use crate::{
         UpdatePropertyTypeRequest,
         AccountId,
         PersistedOntologyIdentifier,
-        PersistedPropertyType
+        PersistedPropertyType,
+        PropertyTypeQuery,
+        PropertyTypeTree,
     ),
     tags(
         (name = "PropertyType", description = "Property type management API")
@@ -130,23 +134,57 @@ async fn create_property_type<P: StorePool + Send>(
         .map(Json)
 }
 
+#[derive(Deserialize, Component)]
+#[serde(rename_all = "camelCase")]
+struct PropertyTypeQuery {
+    query: Expression,
+    #[serde(default)]
+    data_type_query_depth: u8,
+    #[serde(default)]
+    property_type_query_depth: u8,
+}
+
 #[utoipa::path(
     post,
     path = "/property-types/query",
-    request_body = Expression,
+    request_body = PropertyTypeQuery,
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all property types matching the provided query", body = [PersistedPropertyType]),
+        (status = 200, content_type = "application/json", description = "List of all property types matching the provided query", body = [PropertyTypeTree]),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_property_types_by_query<P: StorePool + Send>(
+async fn get_property_types_by_query<P>(
     pool: Extension<Arc<P>>,
-    Json(expression): Json<Expression>,
-) -> Result<Json<Vec<PersistedPropertyType>>, StatusCode> {
-    read_from_store(pool.as_ref(), &expression).await.map(Json)
+    query: Json<PropertyTypeQuery>,
+) -> Result<Json<Vec<PropertyTypeTree>>, StatusCode>
+where
+    for<'pool> P: StorePool<Store<'pool>: PropertyTypeStore> + Send,
+{
+    let PropertyTypeQuery {
+        query,
+        data_type_query_depth,
+        property_type_query_depth,
+    } = query.0;
+
+    pool.acquire()
+        .map_err(|error| {
+            tracing::error!(?error, "Could not acquire access to the store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })
+        .and_then(|store| async move {
+            store
+                .get_property_type(&query, data_type_query_depth, property_type_query_depth)
+                .await
+                .map_err(|report| {
+                    tracing::error!(error=?report, ?query, "Could not read property type from the store");
+                    report_to_status_code(&report)
+                })
+        })
+        .await
+        .map(Json)
 }
 
 #[utoipa::path(

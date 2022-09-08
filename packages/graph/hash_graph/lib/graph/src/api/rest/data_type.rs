@@ -9,16 +9,18 @@ use axum::{
     Extension, Json, Router,
 };
 use error_stack::IntoReport;
+use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
 use type_system::{uri::VersionedUri, DataType};
 use utoipa::{Component, OpenApi};
 
 use super::api_resource::RoutedResource;
 use crate::{
-    api::rest::read_from_store,
+    api::rest::{read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, AccountId, PersistedDataType, PersistedOntologyIdentifier,
+        patch_id_and_parse, AccountId, DataTypeTree, PersistedDataType,
+        PersistedOntologyIdentifier,
     },
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool,
@@ -40,6 +42,8 @@ use crate::{
         AccountId,
         PersistedOntologyIdentifier,
         PersistedDataType,
+        DataTypeQuery,
+        DataTypeTree,
     ),
     tags(
         (name = "DataType", description = "Data Type management API")
@@ -129,6 +133,14 @@ async fn create_data_type<P: StorePool + Send>(
         .map(Json)
 }
 
+#[derive(Deserialize, Component)]
+#[serde(rename_all = "camelCase")]
+struct DataTypeQuery {
+    query: Expression,
+    #[serde(default)]
+    data_type_query_depth: u8,
+}
+
 #[utoipa::path(
     post,
     path = "/data-types/query",
@@ -143,9 +155,29 @@ async fn create_data_type<P: StorePool + Send>(
 )]
 async fn get_data_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    Json(expression): Json<Expression>,
-) -> Result<Json<Vec<PersistedDataType>>, StatusCode> {
-    read_from_store(pool.as_ref(), &expression).await.map(Json)
+    query: Json<DataTypeQuery>,
+) -> Result<Json<Vec<DataTypeTree>>, StatusCode> {
+    let DataTypeQuery {
+        query,
+        data_type_query_depth,
+    } = query.0;
+
+    pool.acquire()
+        .map_err(|error| {
+            tracing::error!(?error, "Could not acquire access to the store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })
+        .and_then(|store| async move {
+            store
+                .get_data_type(&query, data_type_query_depth)
+                .await
+                .map_err(|report| {
+                    tracing::error!(error=?report, ?query, "Could not read data type from the store");
+                    report_to_status_code(&report)
+                })
+        })
+        .await
+        .map(Json)
 }
 
 #[utoipa::path(

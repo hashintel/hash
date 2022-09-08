@@ -9,15 +9,17 @@ use axum::{
     Extension, Json, Router,
 };
 use error_stack::IntoReport;
+use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
 use type_system::{uri::VersionedUri, EntityType};
 use utoipa::{Component, OpenApi};
 
 use crate::{
-    api::rest::{api_resource::RoutedResource, read_from_store},
+    api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, AccountId, PersistedEntityType, PersistedOntologyIdentifier,
+        patch_id_and_parse, AccountId, EntityTypeTree, PersistedEntityType,
+        PersistedOntologyIdentifier,
     },
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
@@ -40,7 +42,9 @@ use crate::{
         UpdateEntityTypeRequest,
         AccountId,
         PersistedOntologyIdentifier,
-        PersistedEntityType
+        PersistedEntityType,
+        EntityTypeQuery,
+        EntityTypeTree,
     ),
     tags(
         (name = "EntityType", description = "Entity type management API")
@@ -130,13 +134,25 @@ async fn create_entity_type<P: StorePool + Send>(
         .map(Json)
 }
 
+#[derive(Deserialize, Component)]
+#[serde(rename_all = "camelCase")]
+struct EntityTypeQuery {
+    query: Expression,
+    #[serde(default)]
+    data_type_query_depth: u8,
+    #[serde(default)]
+    property_type_query_depth: u8,
+    #[serde(default)]
+    entity_link_query_depth: u8,
+}
+
 #[utoipa::path(
     post,
     path = "/entity-types/query",
-    request_body = Expression,
+    request_body = EntityTypeQuery,
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all entity types matching the provided query", body = [PersistedEntityType]),
+        (status = 200, content_type = "application/json", description = "List of all entity types matching the provided query", body = [EntityTypeTree]),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
@@ -144,9 +160,36 @@ async fn create_entity_type<P: StorePool + Send>(
 )]
 async fn get_entity_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    Json(expression): Json<Expression>,
-) -> Result<Json<Vec<PersistedEntityType>>, StatusCode> {
-    read_from_store(pool.as_ref(), &expression).await.map(Json)
+    query: Json<EntityTypeQuery>,
+) -> Result<Json<Vec<EntityTypeTree>>, StatusCode> {
+    let EntityTypeQuery {
+        query,
+        data_type_query_depth,
+        property_type_query_depth,
+        entity_link_query_depth,
+    } = query.0;
+
+    pool.acquire()
+        .map_err(|error| {
+            tracing::error!(?error, "Could not acquire access to the store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })
+        .and_then(|store| async move {
+            store
+                .get_entity_type(
+                    &query,
+                    data_type_query_depth,
+                    property_type_query_depth,
+                    entity_link_query_depth,
+                )
+                .await
+                .map_err(|report| {
+                    tracing::error!(error=?report, ?query, "Could not read entity type from the store");
+                    report_to_status_code(&report)
+                })
+        })
+        .await
+        .map(Json)
 }
 
 #[utoipa::path(

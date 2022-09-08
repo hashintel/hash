@@ -9,16 +9,18 @@ use axum::{
     Extension, Json, Router,
 };
 use error_stack::IntoReport;
+use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
 use type_system::{uri::VersionedUri, LinkType};
 use utoipa::{Component, OpenApi};
 
 use super::api_resource::RoutedResource;
 use crate::{
-    api::rest::read_from_store,
+    api::rest::{read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, AccountId, PersistedLinkType, PersistedOntologyIdentifier,
+        patch_id_and_parse, AccountId, LinkTypeTree, PersistedLinkType,
+        PersistedOntologyIdentifier,
     },
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, LinkTypeStore, StorePool,
@@ -39,7 +41,9 @@ use crate::{
         UpdateLinkTypeRequest,
         AccountId,
         PersistedOntologyIdentifier,
-        PersistedLinkType
+        PersistedLinkType,
+        LinkTypeQuery,
+        LinkTypeTree,
     ),
     tags(
         (name = "LinkType", description = "Link type management API")
@@ -128,13 +132,19 @@ async fn create_link_type<P: StorePool + Send>(
         .map(Json)
 }
 
+#[derive(Deserialize, Component)]
+#[serde(rename_all = "camelCase")]
+struct LinkTypeQuery {
+    query: Expression,
+}
+
 #[utoipa::path(
     post,
     path = "/link-types/query",
-    request_body = Expression,
+    request_body = LinkTypeQuery,
     tag = "LinkType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all link types matching the provided query", body = [PersistedLinkType]),
+        (status = 200, content_type = "application/json", description = "List of all link types matching the provided query", body = [LinkTypeTree]),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
@@ -142,9 +152,23 @@ async fn create_link_type<P: StorePool + Send>(
 )]
 async fn get_link_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    Json(expression): Json<Expression>,
-) -> Result<Json<Vec<PersistedLinkType>>, StatusCode> {
-    read_from_store(pool.as_ref(), &expression).await.map(Json)
+    query: Json<LinkTypeQuery>,
+) -> Result<Json<Vec<LinkTypeTree>>, StatusCode> {
+    let LinkTypeQuery { query } = query.0;
+
+    pool.acquire()
+        .map_err(|error| {
+            tracing::error!(?error, "Could not acquire access to the store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })
+        .and_then(|store| async move {
+            store.get_link_type(&query).await.map_err(|report| {
+                tracing::error!(error=?report, ?query, "Could not read link type from the store");
+                report_to_status_code(&report)
+            })
+        })
+        .await
+        .map(Json)
 }
 
 #[utoipa::path(

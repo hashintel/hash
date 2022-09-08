@@ -1,14 +1,109 @@
 mod resolve;
 
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    future::Future,
+    pin::Pin,
+};
+
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
+use futures::{stream, FutureExt, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
-use type_system::EntityType;
+use type_system::{uri::VersionedUri, EntityType};
 
 use crate::{
-    ontology::{AccountId, PersistedOntologyIdentifier},
-    store::{AsClient, EntityTypeStore, InsertionError, PostgresStore, UpdateError},
+    ontology::{
+        AccountId, EntityTypeTree, PersistedDataType, PersistedEntityType, PersistedLinkType,
+        PersistedOntologyIdentifier, PersistedPropertyType,
+    },
+    store::{
+        crud::Read,
+        postgres::{context::PostgresContext, PersistedOntologyType},
+        query::Expression,
+        AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
+    },
 };
+
+impl<C: AsClient> PostgresStore<C> {
+    /// Internal method to read a [`PersistedEntityType`] into a [`HashMap`].
+    ///
+    /// This is used to recursively resolve a type, so the result can be reused.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "Output is created in place and needs to be reused later"
+    )]
+    pub(crate) fn get_entity_type_as_dependency<'a>(
+        &'a self,
+        entity_type_uri: VersionedUri,
+        data_type_references: &'a mut HashMap<VersionedUri, PersistedDataType>,
+        property_type_references: &'a mut HashMap<VersionedUri, PersistedPropertyType>,
+        link_type_references: &'a mut HashMap<VersionedUri, PersistedLinkType>,
+        entity_type_references: &'a mut HashMap<VersionedUri, PersistedEntityType>,
+        data_type_resolve_depth: u8,
+        property_type_resolve_depth: u8,
+        entity_link_query_depth: u8,
+    ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
+        async move {
+            // TODO: Avoid cloning of URI
+            //   see https://stackoverflow.com/questions/51542024
+            if let Entry::Vacant(entry) = entity_type_references.entry(entity_type_uri) {
+                let entity_type = PersistedEntityType::from_record(
+                    self.read_versioned_ontology_type::<EntityType>(entry.key())
+                        .await?,
+                );
+                let entity_type = entry.insert(entity_type);
+
+                if let Some(new_depth) = property_type_resolve_depth.checked_sub(1) {
+                    // TODO: Use relation tables
+                    //   see https://app.asana.com/0/0/1202884883200942/f
+                    for property_type_ref in entity_type.inner.property_type_references() {
+                        self.get_property_type_as_dependency(
+                            property_type_ref.uri().clone(),
+                            data_type_references,
+                            property_type_references,
+                            data_type_resolve_depth,
+                            new_depth,
+                        )
+                        .await?;
+                    }
+                }
+
+                if let Some(new_depth) = entity_link_query_depth.checked_sub(1) {
+                    let linked_uris = entity_type
+                        .inner
+                        .link_type_references()
+                        .into_iter()
+                        .map(|(link_type_uri, entity_type_uri)| {
+                            (link_type_uri.clone(), entity_type_uri.uri().clone())
+                        })
+                        .collect::<Vec<_>>();
+
+                    // TODO: Use relation tables
+                    //   see https://app.asana.com/0/0/1202884883200942/f
+                    for (link_type_uri, entity_type_uri) in linked_uris {
+                        self.get_link_type_as_dependency(link_type_uri, link_type_references)
+                            .await?;
+                        self.get_entity_type_as_dependency(
+                            entity_type_uri,
+                            data_type_references,
+                            property_type_references,
+                            link_type_references,
+                            entity_type_references,
+                            data_type_resolve_depth,
+                            property_type_resolve_depth,
+                            new_depth,
+                        )
+                        .await?;
+                    }
+                }
+            }
+
+            Ok(())
+        }
+        .boxed()
+    }
+}
 
 #[async_trait]
 impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
@@ -50,6 +145,76 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             .change_context(InsertionError)?;
 
         Ok(identifier)
+    }
+
+    async fn get_entity_type(
+        &self,
+        query: &Expression,
+        data_type_resolve_depth: u8,
+        property_type_resolve_depth: u8,
+        entity_link_query_depth: u8,
+    ) -> Result<Vec<EntityTypeTree>, QueryError> {
+        stream::iter(Read::<PersistedEntityType>::read(self, query).await?)
+            .then(|entity_type: PersistedEntityType| async {
+                let mut data_type_references = HashMap::new();
+                let mut property_type_references = HashMap::new();
+                let mut link_type_references = HashMap::new();
+                let mut entity_type_references = HashMap::new();
+
+                if let Some(new_depth) = property_type_resolve_depth.checked_sub(1) {
+                    // TODO: Use relation tables
+                    //   see https://app.asana.com/0/0/1202884883200942/f
+                    for data_type_ref in entity_type.inner.property_type_references() {
+                        self.get_property_type_as_dependency(
+                            data_type_ref.uri().clone(),
+                            &mut data_type_references,
+                            &mut property_type_references,
+                            data_type_resolve_depth,
+                            new_depth,
+                        )
+                        .await?;
+                    }
+                }
+
+                if let Some(new_depth) = entity_link_query_depth.checked_sub(1) {
+                    let linked_uris = entity_type
+                        .inner
+                        .link_type_references()
+                        .into_iter()
+                        .map(|(link_type_uri, entity_type_uri)| {
+                            (link_type_uri.clone(), entity_type_uri.uri().clone())
+                        })
+                        .collect::<Vec<_>>();
+
+                    // TODO: Use relation tables
+                    //   see https://app.asana.com/0/0/1202884883200942/f
+                    for (link_type_uri, entity_type_uri) in linked_uris {
+                        self.get_link_type_as_dependency(link_type_uri, &mut link_type_references)
+                            .await?;
+                        self.get_entity_type_as_dependency(
+                            entity_type_uri,
+                            &mut data_type_references,
+                            &mut property_type_references,
+                            &mut link_type_references,
+                            &mut entity_type_references,
+                            data_type_resolve_depth,
+                            property_type_resolve_depth,
+                            new_depth,
+                        )
+                        .await?;
+                    }
+                }
+
+                Ok(EntityTypeTree {
+                    entity_type,
+                    data_type_references: data_type_references.into_values().collect(),
+                    property_type_references: property_type_references.into_values().collect(),
+                    link_type_references: link_type_references.into_values().collect(),
+                    entity_type_references: entity_type_references.into_values().collect(),
+                })
+            })
+            .try_collect()
+            .await
     }
 
     async fn update_entity_type(

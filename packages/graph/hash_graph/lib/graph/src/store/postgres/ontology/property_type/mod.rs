@@ -1,14 +1,94 @@
 mod resolve;
 
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    future::Future,
+    pin::Pin,
+};
+
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
+use futures::{stream, FutureExt, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
-use type_system::PropertyType;
+use type_system::{uri::VersionedUri, PropertyType, PropertyTypeReference};
 
 use crate::{
-    ontology::{AccountId, PersistedOntologyIdentifier},
-    store::{AsClient, InsertionError, PostgresStore, PropertyTypeStore, UpdateError},
+    ontology::{
+        AccountId, PersistedDataType, PersistedOntologyIdentifier, PersistedPropertyType,
+        PropertyTypeTree,
+    },
+    store::{
+        crud::Read,
+        postgres::{context::PostgresContext, PersistedOntologyType},
+        query::Expression,
+        AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
+    },
 };
+
+impl<C: AsClient> PostgresStore<C> {
+    /// Internal method to read a [`PersistedPropertyType`] into a [`HashMap`].
+    ///
+    /// This is used to recursively resolve a type, so the result can be reused.
+    pub(crate) fn get_property_type_as_dependency<'a>(
+        &'a self,
+        property_type_uri: VersionedUri,
+        data_type_references: &'a mut HashMap<VersionedUri, PersistedDataType>,
+        property_type_references: &'a mut HashMap<VersionedUri, PersistedPropertyType>,
+        data_type_resolve_depth: u8,
+        property_type_resolve_depth: u8,
+    ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
+        async move {
+            // TODO: Avoid cloning of URI
+            //   see https://stackoverflow.com/questions/51542024
+            if let Entry::Vacant(entry) = property_type_references.entry(property_type_uri) {
+                let property_type = PersistedPropertyType::from_record(
+                    self.read_versioned_ontology_type::<PropertyType>(entry.key())
+                        .await?,
+                );
+                let property_type = entry.insert(property_type);
+
+                if let Some(new_depth) = data_type_resolve_depth.checked_sub(1) {
+                    // TODO: Use relation tables
+                    //   see https://app.asana.com/0/0/1202884883200942/f
+                    for data_type_ref in property_type.inner.data_type_references() {
+                        self.get_data_type_as_dependency(
+                            data_type_ref.uri().clone(),
+                            data_type_references,
+                            new_depth,
+                        )
+                        .await?;
+                    }
+                }
+
+                if let Some(new_depth) = property_type_resolve_depth.checked_sub(1) {
+                    // TODO: Use relation tables
+                    //   see https://app.asana.com/0/0/1202884883200942/f
+                    let property_type_uris = property_type
+                        .inner
+                        .property_type_references()
+                        .into_iter()
+                        .map(PropertyTypeReference::uri)
+                        .cloned()
+                        .collect::<Vec<_>>();
+
+                    for property_type_uri in property_type_uris {
+                        self.get_property_type_as_dependency(
+                            property_type_uri,
+                            data_type_references,
+                            property_type_references,
+                            data_type_resolve_depth,
+                            new_depth,
+                        )
+                        .await?;
+                    }
+                }
+            }
+
+            Ok(())
+        }
+        .boxed()
+    }
+}
 
 #[async_trait]
 impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
@@ -52,6 +132,55 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             .change_context(InsertionError)?;
 
         Ok(identifier)
+    }
+
+    async fn get_property_type(
+        &self,
+        query: &Expression,
+        data_type_resolve_depth: u8,
+        property_type_resolve_depth: u8,
+    ) -> Result<Vec<PropertyTypeTree>, QueryError> {
+        stream::iter(Read::<PersistedPropertyType>::read(self, query).await?)
+            .then(|property_type: PersistedPropertyType| async {
+                let mut data_type_references = HashMap::new();
+                let mut property_type_references = HashMap::new();
+
+                if let Some(new_depth) = data_type_resolve_depth.checked_sub(1) {
+                    // TODO: Use relation tables
+                    //   see https://app.asana.com/0/0/1202884883200942/f
+                    for data_type_ref in property_type.inner.data_type_references() {
+                        self.get_data_type_as_dependency(
+                            data_type_ref.uri().clone(),
+                            &mut data_type_references,
+                            new_depth,
+                        )
+                        .await?;
+                    }
+                }
+
+                if let Some(new_depth) = property_type_resolve_depth.checked_sub(1) {
+                    // TODO: Use relation tables
+                    //   see https://app.asana.com/0/0/1202884883200942/f
+                    for property_type_ref in property_type.inner.data_type_references() {
+                        self.get_property_type_as_dependency(
+                            property_type_ref.uri().clone(),
+                            &mut data_type_references,
+                            &mut property_type_references,
+                            data_type_resolve_depth,
+                            new_depth,
+                        )
+                        .await?;
+                    }
+                }
+
+                Ok(PropertyTypeTree {
+                    property_type,
+                    data_type_references: data_type_references.into_values().collect(),
+                    property_type_references: property_type_references.into_values().collect(),
+                })
+            })
+            .try_collect()
+            .await
     }
 
     async fn update_property_type(

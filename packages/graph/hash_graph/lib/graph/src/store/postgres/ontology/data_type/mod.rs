@@ -1,14 +1,43 @@
 pub mod resolve;
 
+use std::collections::{hash_map::Entry, HashMap};
+
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
+use futures::{stream, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
-use type_system::DataType;
+use type_system::{uri::VersionedUri, DataType};
 
 use crate::{
-    ontology::{AccountId, PersistedOntologyIdentifier},
-    store::{AsClient, DataTypeStore, InsertionError, PostgresStore, UpdateError},
+    ontology::{AccountId, DataTypeTree, PersistedDataType, PersistedOntologyIdentifier},
+    store::{
+        crud::Read,
+        postgres::{context::PostgresContext, PersistedOntologyType},
+        query::Expression,
+        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
+    },
 };
+
+impl<C: AsClient> PostgresStore<C> {
+    /// Internal method to read a [`PersistedDataType`] into a [`HashMap`].
+    ///
+    /// This is used to recursively resolve a type, so the result can be reused.
+    pub(crate) async fn get_data_type_as_dependency(
+        &self,
+        data_type_uri: VersionedUri,
+        data_types: &mut HashMap<VersionedUri, PersistedDataType>,
+        _data_type_resolve_depth: u8,
+    ) -> Result<(), QueryError> {
+        if let Entry::Vacant(entry) = data_types.entry(data_type_uri) {
+            let data_type = PersistedDataType::from_record(
+                self.read_versioned_ontology_type::<DataType>(entry.key())
+                    .await?,
+            );
+            entry.insert(data_type);
+        }
+        Ok(())
+    }
+}
 
 #[async_trait]
 impl<C: AsClient> DataTypeStore for PostgresStore<C> {
@@ -35,6 +64,17 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             .change_context(InsertionError)?;
 
         Ok(identifier)
+    }
+
+    async fn get_data_type(
+        &self,
+        query: &Expression,
+        _data_type_resolve_depth: u8,
+    ) -> Result<Vec<DataTypeTree>, QueryError> {
+        stream::iter(Read::<PersistedDataType>::read(self, query).await?)
+            .then(|data_type: PersistedDataType| async { Ok(DataTypeTree { data_type }) })
+            .try_collect()
+            .await
     }
 
     async fn update_data_type(

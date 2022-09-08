@@ -122,8 +122,7 @@ where
 {
     // This clone is necessary because `Serialize` requires us to take the param by reference here
     //  even though we only use it in places where we could move
-    let value: serde_json::Value = ontology_type.clone().into();
-    value.serialize(serializer)
+    serde_json::Value::from(ontology_type.clone()).serialize(serializer)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
@@ -135,11 +134,25 @@ pub struct PersistedDataType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
+#[serde(rename_all = "camelCase")]
+pub struct DataTypeTree {
+    pub data_type: PersistedDataType,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
 pub struct PersistedPropertyType {
     #[component(value_type = VAR_PROPERTY_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: PropertyType,
     pub identifier: PersistedOntologyIdentifier,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
+#[serde(rename_all = "camelCase")]
+pub struct PropertyTypeTree {
+    pub property_type: PersistedPropertyType,
+    pub data_type_references: Vec<PersistedDataType>,
+    pub property_type_references: Vec<PersistedPropertyType>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
@@ -151,9 +164,25 @@ pub struct PersistedLinkType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
+#[serde(rename_all = "camelCase")]
+pub struct LinkTypeTree {
+    pub link_type: PersistedLinkType,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
 pub struct PersistedEntityType {
     #[component(value_type = VAR_ENTITY_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: EntityType,
     pub identifier: PersistedOntologyIdentifier,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
+#[serde(rename_all = "camelCase")]
+pub struct EntityTypeTree {
+    pub entity_type: PersistedEntityType,
+    pub data_type_references: Vec<PersistedDataType>,
+    pub property_type_references: Vec<PersistedPropertyType>,
+    pub link_type_references: Vec<PersistedLinkType>,
+    pub entity_type_references: Vec<PersistedEntityType>,
 }

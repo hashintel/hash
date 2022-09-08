@@ -220,6 +220,25 @@ export type DataTypeKindEnum =
 /**
  *
  * @export
+ * @interface DataTypeQuery
+ */
+export interface DataTypeQuery {
+  /**
+   *
+   * @type {number}
+   * @memberof DataTypeQuery
+   */
+  dataTypeQueryDepth: number;
+  /**
+   *
+   * @type {object}
+   * @memberof DataTypeQuery
+   */
+  query: object;
+}
+/**
+ *
+ * @export
  * @interface DataTypeReference
  */
 export interface DataTypeReference {
@@ -242,6 +261,19 @@ export interface DataTypeReferenceUpdate {
    * @memberof DataTypeReferenceUpdate
    */
   $ref: string;
+}
+/**
+ *
+ * @export
+ * @interface DataTypeTree
+ */
+export interface DataTypeTree {
+  /**
+   *
+   * @type {PersistedDataType}
+   * @memberof DataTypeTree
+   */
+  dataType: PersistedDataType;
 }
 /**
  * Specifies the structure of an Entity Type
@@ -337,6 +369,74 @@ export type EntityTypeTypeEnum =
   typeof EntityTypeTypeEnum[keyof typeof EntityTypeTypeEnum];
 
 /**
+ *
+ * @export
+ * @interface EntityTypeQuery
+ */
+export interface EntityTypeQuery {
+  /**
+   *
+   * @type {number}
+   * @memberof EntityTypeQuery
+   */
+  dataTypeQueryDepth: number;
+  /**
+   *
+   * @type {number}
+   * @memberof EntityTypeQuery
+   */
+  entityLinkQueryDepth: number;
+  /**
+   *
+   * @type {number}
+   * @memberof EntityTypeQuery
+   */
+  propertyTypeQueryDepth: number;
+  /**
+   *
+   * @type {object}
+   * @memberof EntityTypeQuery
+   */
+  query: object;
+}
+/**
+ *
+ * @export
+ * @interface EntityTypeTree
+ */
+export interface EntityTypeTree {
+  /**
+   *
+   * @type {Array<PersistedDataType>}
+   * @memberof EntityTypeTree
+   */
+  dataTypeReferences: Array<PersistedDataType>;
+  /**
+   *
+   * @type {PersistedEntityType}
+   * @memberof EntityTypeTree
+   */
+  entityType: PersistedEntityType;
+  /**
+   *
+   * @type {Array<PersistedEntityType>}
+   * @memberof EntityTypeTree
+   */
+  entityTypeReferences: Array<PersistedEntityType>;
+  /**
+   *
+   * @type {Array<PersistedLinkType>}
+   * @memberof EntityTypeTree
+   */
+  linkTypeReferences: Array<PersistedLinkType>;
+  /**
+   *
+   * @type {Array<PersistedPropertyType>}
+   * @memberof EntityTypeTree
+   */
+  propertyTypeReferences: Array<PersistedPropertyType>;
+}
+/**
  * A Link between a source and a target entity identified by [`EntityId`]s.
  * @export
  * @interface Link
@@ -412,6 +512,32 @@ export const LinkTypeKindEnum = {
 export type LinkTypeKindEnum =
   typeof LinkTypeKindEnum[keyof typeof LinkTypeKindEnum];
 
+/**
+ *
+ * @export
+ * @interface LinkTypeQuery
+ */
+export interface LinkTypeQuery {
+  /**
+   *
+   * @type {object}
+   * @memberof LinkTypeQuery
+   */
+  query: object;
+}
+/**
+ *
+ * @export
+ * @interface LinkTypeTree
+ */
+export interface LinkTypeTree {
+  /**
+   *
+   * @type {PersistedLinkType}
+   * @memberof LinkTypeTree
+   */
+  linkType: PersistedLinkType;
+}
 /**
  *
  * @export
@@ -739,6 +865,56 @@ export const PropertyTypeKindEnum = {
 export type PropertyTypeKindEnum =
   typeof PropertyTypeKindEnum[keyof typeof PropertyTypeKindEnum];
 
+/**
+ *
+ * @export
+ * @interface PropertyTypeQuery
+ */
+export interface PropertyTypeQuery {
+  /**
+   *
+   * @type {number}
+   * @memberof PropertyTypeQuery
+   */
+  dataTypeQueryDepth: number;
+  /**
+   *
+   * @type {number}
+   * @memberof PropertyTypeQuery
+   */
+  propertyTypeQueryDepth: number;
+  /**
+   *
+   * @type {object}
+   * @memberof PropertyTypeQuery
+   */
+  query: object;
+}
+/**
+ *
+ * @export
+ * @interface PropertyTypeTree
+ */
+export interface PropertyTypeTree {
+  /**
+   *
+   * @type {Array<PersistedDataType>}
+   * @memberof PropertyTypeTree
+   */
+  dataTypeReferences: Array<PersistedDataType>;
+  /**
+   *
+   * @type {PersistedPropertyType}
+   * @memberof PropertyTypeTree
+   */
+  propertyType: PersistedPropertyType;
+  /**
+   *
+   * @type {Array<PersistedPropertyType>}
+   * @memberof PropertyTypeTree
+   */
+  propertyTypeReferences: Array<PersistedPropertyType>;
+}
 /**
  * @type PropertyValues
  * @export
@@ -2584,16 +2760,20 @@ export const EntityTypeApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {object} body
+     * @param {EntityTypeQuery} entityTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntityTypesByQuery: async (
-      body: object,
+      entityTypeQuery: EntityTypeQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'body' is not null or undefined
-      assertParamExists("getEntityTypesByQuery", "body", body);
+      // verify required parameter 'entityTypeQuery' is not null or undefined
+      assertParamExists(
+        "getEntityTypesByQuery",
+        "entityTypeQuery",
+        entityTypeQuery,
+      );
       const localVarPath = `/entity-types/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -2621,7 +2801,7 @@ export const EntityTypeApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        body,
+        entityTypeQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -2788,21 +2968,24 @@ export const EntityTypeApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {object} body
+     * @param {EntityTypeQuery} entityTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getEntityTypesByQuery(
-      body: object,
+      entityTypeQuery: EntityTypeQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<PersistedEntityType>>
+      ) => AxiosPromise<Array<EntityTypeTree>>
     > {
       const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getEntityTypesByQuery(body, options);
+        await localVarAxiosParamCreator.getEntityTypesByQuery(
+          entityTypeQuery,
+          options,
+        );
       return createRequestFunction(
         localVarAxiosArgs,
         globalAxios,
@@ -2903,16 +3086,16 @@ export const EntityTypeApiFactory = function (
     },
     /**
      *
-     * @param {object} body
+     * @param {EntityTypeQuery} entityTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntityTypesByQuery(
-      body: object,
+      entityTypeQuery: EntityTypeQuery,
       options?: any,
-    ): AxiosPromise<Array<PersistedEntityType>> {
+    ): AxiosPromise<Array<EntityTypeTree>> {
       return localVarFp
-        .getEntityTypesByQuery(body, options)
+        .getEntityTypesByQuery(entityTypeQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -2976,15 +3159,15 @@ export interface EntityTypeApiInterface {
 
   /**
    *
-   * @param {object} body
+   * @param {EntityTypeQuery} entityTypeQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof EntityTypeApiInterface
    */
   getEntityTypesByQuery(
-    body: object,
+    entityTypeQuery: EntityTypeQuery,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<PersistedEntityType>>;
+  ): AxiosPromise<Array<EntityTypeTree>>;
 
   /**
    *
@@ -3047,14 +3230,17 @@ export class EntityTypeApi extends BaseAPI implements EntityTypeApiInterface {
 
   /**
    *
-   * @param {object} body
+   * @param {EntityTypeQuery} entityTypeQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof EntityTypeApi
    */
-  public getEntityTypesByQuery(body: object, options?: AxiosRequestConfig) {
+  public getEntityTypesByQuery(
+    entityTypeQuery: EntityTypeQuery,
+    options?: AxiosRequestConfig,
+  ) {
     return EntityTypeApiFp(this.configuration)
-      .getEntityTypesByQuery(body, options)
+      .getEntityTypesByQuery(entityTypeQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -3734,16 +3920,20 @@ export const GraphApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {object} body
+     * @param {EntityTypeQuery} entityTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntityTypesByQuery: async (
-      body: object,
+      entityTypeQuery: EntityTypeQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'body' is not null or undefined
-      assertParamExists("getEntityTypesByQuery", "body", body);
+      // verify required parameter 'entityTypeQuery' is not null or undefined
+      assertParamExists(
+        "getEntityTypesByQuery",
+        "entityTypeQuery",
+        entityTypeQuery,
+      );
       const localVarPath = `/entity-types/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -3771,7 +3961,7 @@ export const GraphApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        body,
+        entityTypeQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -4018,16 +4208,16 @@ export const GraphApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {object} body
+     * @param {LinkTypeQuery} linkTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getLinkTypesByQuery: async (
-      body: object,
+      linkTypeQuery: LinkTypeQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'body' is not null or undefined
-      assertParamExists("getLinkTypesByQuery", "body", body);
+      // verify required parameter 'linkTypeQuery' is not null or undefined
+      assertParamExists("getLinkTypesByQuery", "linkTypeQuery", linkTypeQuery);
       const localVarPath = `/link-types/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -4055,7 +4245,7 @@ export const GraphApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        body,
+        linkTypeQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -4161,16 +4351,20 @@ export const GraphApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {object} body
+     * @param {PropertyTypeQuery} propertyTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getPropertyTypesByQuery: async (
-      body: object,
+      propertyTypeQuery: PropertyTypeQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'body' is not null or undefined
-      assertParamExists("getPropertyTypesByQuery", "body", body);
+      // verify required parameter 'propertyTypeQuery' is not null or undefined
+      assertParamExists(
+        "getPropertyTypesByQuery",
+        "propertyTypeQuery",
+        propertyTypeQuery,
+      );
       const localVarPath = `/property-types/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -4198,7 +4392,7 @@ export const GraphApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        body,
+        propertyTypeQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -4868,21 +5062,24 @@ export const GraphApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {object} body
+     * @param {EntityTypeQuery} entityTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getEntityTypesByQuery(
-      body: object,
+      entityTypeQuery: EntityTypeQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<PersistedEntityType>>
+      ) => AxiosPromise<Array<EntityTypeTree>>
     > {
       const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getEntityTypesByQuery(body, options);
+        await localVarAxiosParamCreator.getEntityTypesByQuery(
+          entityTypeQuery,
+          options,
+        );
       return createRequestFunction(
         localVarAxiosArgs,
         globalAxios,
@@ -5028,21 +5225,24 @@ export const GraphApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {object} body
+     * @param {LinkTypeQuery} linkTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getLinkTypesByQuery(
-      body: object,
+      linkTypeQuery: LinkTypeQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<PersistedLinkType>>
+      ) => AxiosPromise<Array<LinkTypeTree>>
     > {
       const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getLinkTypesByQuery(body, options);
+        await localVarAxiosParamCreator.getLinkTypesByQuery(
+          linkTypeQuery,
+          options,
+        );
       return createRequestFunction(
         localVarAxiosArgs,
         globalAxios,
@@ -5101,21 +5301,24 @@ export const GraphApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {object} body
+     * @param {PropertyTypeQuery} propertyTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getPropertyTypesByQuery(
-      body: object,
+      propertyTypeQuery: PropertyTypeQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<PersistedPropertyType>>
+      ) => AxiosPromise<Array<PropertyTypeTree>>
     > {
       const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getPropertyTypesByQuery(body, options);
+        await localVarAxiosParamCreator.getPropertyTypesByQuery(
+          propertyTypeQuery,
+          options,
+        );
       return createRequestFunction(
         localVarAxiosArgs,
         globalAxios,
@@ -5468,16 +5671,16 @@ export const GraphApiFactory = function (
     },
     /**
      *
-     * @param {object} body
+     * @param {EntityTypeQuery} entityTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntityTypesByQuery(
-      body: object,
+      entityTypeQuery: EntityTypeQuery,
       options?: any,
-    ): AxiosPromise<Array<PersistedEntityType>> {
+    ): AxiosPromise<Array<EntityTypeTree>> {
       return localVarFp
-        .getEntityTypesByQuery(body, options)
+        .getEntityTypesByQuery(entityTypeQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -5547,16 +5750,16 @@ export const GraphApiFactory = function (
     },
     /**
      *
-     * @param {object} body
+     * @param {LinkTypeQuery} linkTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getLinkTypesByQuery(
-      body: object,
+      linkTypeQuery: LinkTypeQuery,
       options?: any,
-    ): AxiosPromise<Array<PersistedLinkType>> {
+    ): AxiosPromise<Array<LinkTypeTree>> {
       return localVarFp
-        .getLinkTypesByQuery(body, options)
+        .getLinkTypesByQuery(linkTypeQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -5586,16 +5789,16 @@ export const GraphApiFactory = function (
     },
     /**
      *
-     * @param {object} body
+     * @param {PropertyTypeQuery} propertyTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getPropertyTypesByQuery(
-      body: object,
+      propertyTypeQuery: PropertyTypeQuery,
       options?: any,
-    ): AxiosPromise<Array<PersistedPropertyType>> {
+    ): AxiosPromise<Array<PropertyTypeTree>> {
       return localVarFp
-        .getPropertyTypesByQuery(body, options)
+        .getPropertyTypesByQuery(propertyTypeQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -5849,15 +6052,15 @@ export interface GraphApiInterface {
 
   /**
    *
-   * @param {object} body
+   * @param {EntityTypeQuery} entityTypeQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
   getEntityTypesByQuery(
-    body: object,
+    entityTypeQuery: EntityTypeQuery,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<PersistedEntityType>>;
+  ): AxiosPromise<Array<EntityTypeTree>>;
 
   /**
    *
@@ -5923,15 +6126,15 @@ export interface GraphApiInterface {
 
   /**
    *
-   * @param {object} body
+   * @param {LinkTypeQuery} linkTypeQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
   getLinkTypesByQuery(
-    body: object,
+    linkTypeQuery: LinkTypeQuery,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<PersistedLinkType>>;
+  ): AxiosPromise<Array<LinkTypeTree>>;
 
   /**
    *
@@ -5959,15 +6162,15 @@ export interface GraphApiInterface {
 
   /**
    *
-   * @param {object} body
+   * @param {PropertyTypeQuery} propertyTypeQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
   getPropertyTypesByQuery(
-    body: object,
+    propertyTypeQuery: PropertyTypeQuery,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<PersistedPropertyType>>;
+  ): AxiosPromise<Array<PropertyTypeTree>>;
 
   /**
    *
@@ -6241,14 +6444,17 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
 
   /**
    *
-   * @param {object} body
+   * @param {EntityTypeQuery} entityTypeQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApi
    */
-  public getEntityTypesByQuery(body: object, options?: AxiosRequestConfig) {
+  public getEntityTypesByQuery(
+    entityTypeQuery: EntityTypeQuery,
+    options?: AxiosRequestConfig,
+  ) {
     return GraphApiFp(this.configuration)
-      .getEntityTypesByQuery(body, options)
+      .getEntityTypesByQuery(entityTypeQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -6327,14 +6533,17 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
 
   /**
    *
-   * @param {object} body
+   * @param {LinkTypeQuery} linkTypeQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApi
    */
-  public getLinkTypesByQuery(body: object, options?: AxiosRequestConfig) {
+  public getLinkTypesByQuery(
+    linkTypeQuery: LinkTypeQuery,
+    options?: AxiosRequestConfig,
+  ) {
     return GraphApiFp(this.configuration)
-      .getLinkTypesByQuery(body, options)
+      .getLinkTypesByQuery(linkTypeQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -6366,14 +6575,17 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
 
   /**
    *
-   * @param {object} body
+   * @param {PropertyTypeQuery} propertyTypeQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApi
    */
-  public getPropertyTypesByQuery(body: object, options?: AxiosRequestConfig) {
+  public getPropertyTypesByQuery(
+    propertyTypeQuery: PropertyTypeQuery,
+    options?: AxiosRequestConfig,
+  ) {
     return GraphApiFp(this.configuration)
-      .getPropertyTypesByQuery(body, options)
+      .getPropertyTypesByQuery(propertyTypeQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -7144,16 +7356,16 @@ export const LinkTypeApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {object} body
+     * @param {LinkTypeQuery} linkTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getLinkTypesByQuery: async (
-      body: object,
+      linkTypeQuery: LinkTypeQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'body' is not null or undefined
-      assertParamExists("getLinkTypesByQuery", "body", body);
+      // verify required parameter 'linkTypeQuery' is not null or undefined
+      assertParamExists("getLinkTypesByQuery", "linkTypeQuery", linkTypeQuery);
       const localVarPath = `/link-types/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -7181,7 +7393,7 @@ export const LinkTypeApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        body,
+        linkTypeQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -7330,21 +7542,24 @@ export const LinkTypeApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {object} body
+     * @param {LinkTypeQuery} linkTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getLinkTypesByQuery(
-      body: object,
+      linkTypeQuery: LinkTypeQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<PersistedLinkType>>
+      ) => AxiosPromise<Array<LinkTypeTree>>
     > {
       const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getLinkTypesByQuery(body, options);
+        await localVarAxiosParamCreator.getLinkTypesByQuery(
+          linkTypeQuery,
+          options,
+        );
       return createRequestFunction(
         localVarAxiosArgs,
         globalAxios,
@@ -7429,16 +7644,16 @@ export const LinkTypeApiFactory = function (
     },
     /**
      *
-     * @param {object} body
+     * @param {LinkTypeQuery} linkTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getLinkTypesByQuery(
-      body: object,
+      linkTypeQuery: LinkTypeQuery,
       options?: any,
-    ): AxiosPromise<Array<PersistedLinkType>> {
+    ): AxiosPromise<Array<LinkTypeTree>> {
       return localVarFp
-        .getLinkTypesByQuery(body, options)
+        .getLinkTypesByQuery(linkTypeQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -7500,15 +7715,15 @@ export interface LinkTypeApiInterface {
 
   /**
    *
-   * @param {object} body
+   * @param {LinkTypeQuery} linkTypeQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof LinkTypeApiInterface
    */
   getLinkTypesByQuery(
-    body: object,
+    linkTypeQuery: LinkTypeQuery,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<PersistedLinkType>>;
+  ): AxiosPromise<Array<LinkTypeTree>>;
 
   /**
    *
@@ -7573,14 +7788,17 @@ export class LinkTypeApi extends BaseAPI implements LinkTypeApiInterface {
 
   /**
    *
-   * @param {object} body
+   * @param {LinkTypeQuery} linkTypeQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof LinkTypeApi
    */
-  public getLinkTypesByQuery(body: object, options?: AxiosRequestConfig) {
+  public getLinkTypesByQuery(
+    linkTypeQuery: LinkTypeQuery,
+    options?: AxiosRequestConfig,
+  ) {
     return LinkTypeApiFp(this.configuration)
-      .getLinkTypesByQuery(body, options)
+      .getLinkTypesByQuery(linkTypeQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -7747,16 +7965,20 @@ export const PropertyTypeApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {object} body
+     * @param {PropertyTypeQuery} propertyTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getPropertyTypesByQuery: async (
-      body: object,
+      propertyTypeQuery: PropertyTypeQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'body' is not null or undefined
-      assertParamExists("getPropertyTypesByQuery", "body", body);
+      // verify required parameter 'propertyTypeQuery' is not null or undefined
+      assertParamExists(
+        "getPropertyTypesByQuery",
+        "propertyTypeQuery",
+        propertyTypeQuery,
+      );
       const localVarPath = `/property-types/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -7784,7 +8006,7 @@ export const PropertyTypeApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        body,
+        propertyTypeQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -7935,21 +8157,24 @@ export const PropertyTypeApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {object} body
+     * @param {PropertyTypeQuery} propertyTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getPropertyTypesByQuery(
-      body: object,
+      propertyTypeQuery: PropertyTypeQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<PersistedPropertyType>>
+      ) => AxiosPromise<Array<PropertyTypeTree>>
     > {
       const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getPropertyTypesByQuery(body, options);
+        await localVarAxiosParamCreator.getPropertyTypesByQuery(
+          propertyTypeQuery,
+          options,
+        );
       return createRequestFunction(
         localVarAxiosArgs,
         globalAxios,
@@ -8040,16 +8265,16 @@ export const PropertyTypeApiFactory = function (
     },
     /**
      *
-     * @param {object} body
+     * @param {PropertyTypeQuery} propertyTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getPropertyTypesByQuery(
-      body: object,
+      propertyTypeQuery: PropertyTypeQuery,
       options?: any,
-    ): AxiosPromise<Array<PersistedPropertyType>> {
+    ): AxiosPromise<Array<PropertyTypeTree>> {
       return localVarFp
-        .getPropertyTypesByQuery(body, options)
+        .getPropertyTypesByQuery(propertyTypeQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -8111,15 +8336,15 @@ export interface PropertyTypeApiInterface {
 
   /**
    *
-   * @param {object} body
+   * @param {PropertyTypeQuery} propertyTypeQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PropertyTypeApiInterface
    */
   getPropertyTypesByQuery(
-    body: object,
+    propertyTypeQuery: PropertyTypeQuery,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<PersistedPropertyType>>;
+  ): AxiosPromise<Array<PropertyTypeTree>>;
 
   /**
    *
@@ -8187,14 +8412,17 @@ export class PropertyTypeApi
 
   /**
    *
-   * @param {object} body
+   * @param {PropertyTypeQuery} propertyTypeQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PropertyTypeApi
    */
-  public getPropertyTypesByQuery(body: object, options?: AxiosRequestConfig) {
+  public getPropertyTypesByQuery(
+    propertyTypeQuery: PropertyTypeQuery,
+    options?: AxiosRequestConfig,
+  ) {
     return PropertyTypeApiFp(this.configuration)
-      .getPropertyTypesByQuery(body, options)
+      .getPropertyTypesByQuery(propertyTypeQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
