@@ -13,7 +13,7 @@ Context A
  │  ├╴3
  │  │
  │  ╰─▶ Root error
- │      ├╴tests/common.rs:147:5
+ │      ├╴tests/common.rs:149:5
  │      ├╴backtrace with [n] frames (1)
  │      ╰╴6
  │
@@ -32,7 +32,7 @@ Context A
      │  ├╴8
      │  │
      │  ╰─▶ Root error
-     │      ├╴tests/common.rs:147:5
+     │      ├╴tests/common.rs:149:5
      │      ╰╴backtrace with [n] frames (2)
      │
      ├▶ Context A
@@ -44,7 +44,7 @@ Context A
      │  ├╴8
      │  │
      │  ╰─▶ Root error
-     │      ├╴tests/common.rs:147:5
+     │      ├╴tests/common.rs:149:5
      │      ╰╴backtrace with [n] frames (3)
      │
      ├▶ Context A
@@ -57,7 +57,7 @@ Context A
      │  ├╴8
      │  │
      │  ╰─▶ Root error
-     │      ├╴tests/common.rs:147:5
+     │      ├╴tests/common.rs:149:5
      │      ╰╴backtrace with [n] frames (4)
      │
      ├▶ Context A
@@ -67,7 +67,7 @@ Context A
      │  ├╴8
      │  │
      │  ╰─▶ Root error
-     │      ├╴tests/common.rs:147:5
+     │      ├╴tests/common.rs:149:5
      │      ╰╴backtrace with [n] frames (5)
      │
      ╰▶ Context A
@@ -80,7 +80,7 @@ Context A
         │   ╰╴tests/test_debug.rs:177:10
         │
         ╰─▶ Root error
-            ├╴tests/common.rs:147:5
+            ├╴tests/common.rs:149:5
             ╰╴backtrace with [n] frames (6)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
