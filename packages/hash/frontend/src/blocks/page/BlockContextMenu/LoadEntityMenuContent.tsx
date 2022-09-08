@@ -18,9 +18,9 @@ import {
   FunctionComponent,
 } from "react";
 import {
-    BlockEntity,
-    isTextContainingEntityProperties,
-    isTextEntity,
+  BlockEntity,
+  isTextContainingEntityProperties,
+  isTextEntity,
 } from "@hashintel/hash-shared/entity";
 import {
   LoadingSpinner,
