@@ -13,9 +13,9 @@ Context B
 │
 ╰─▶ Root error
     ├╴tests/common.rs:147:5
-    ├╴Printable A
     ├╴backtrace with [n] frames (1)
     ├╴spantrace with 2 frames (1)
+    ├╴Printable A
     ╰╴2 additional opaque attachments
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
