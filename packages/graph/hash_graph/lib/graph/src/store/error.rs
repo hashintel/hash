@@ -88,12 +88,12 @@ impl Context for VersionedUriAlreadyExists {}
 
 #[derive(Debug)]
 #[must_use]
-pub struct LinkActivationError;
+pub struct LinkRemovalError;
 
-impl fmt::Display for LinkActivationError {
+impl fmt::Display for LinkRemovalError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Could not update link active state")
+        fmt.write_str("Could not remove link")
     }
 }
 
-impl Context for LinkActivationError {}
+impl Context for LinkRemovalError {}

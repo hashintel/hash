@@ -18,11 +18,11 @@ use crate::{
 #[openapi(
     handlers(
         create_link,
-        get_active_links_by_query,
+        get_links_by_query,
         get_entity_links,
-        inactivate_link
+        remove_link
     ),
-    components(AccountId, Link, CreateLinkRequest, InactivateLinkRequest),
+    components(AccountId, Link, CreateLinkRequest, RemoveLinkRequest),
     tags(
         (name = "Link", description = "link management API")
     )
@@ -39,11 +39,11 @@ impl RoutedResource for LinkResource {
                 "/entities/:entity_id/links",
                 post(create_link::<P>)
                     .get(get_entity_links::<P>)
-                    .delete(inactivate_link::<P>),
+                    .delete(remove_link::<P>),
             )
             .nest(
                 "/links",
-                Router::new().route("/query", post(get_active_links_by_query::<P>)),
+                Router::new().route("/query", post(get_links_by_query::<P>)),
             )
     }
 }
@@ -54,7 +54,7 @@ struct CreateLinkRequest {
     target_entity_id: EntityId,
     #[component(value_type = String)]
     link_type_uri: VersionedUri,
-    account_id: AccountId,
+    created_by: AccountId,
 }
 
 #[utoipa::path(
@@ -82,7 +82,7 @@ async fn create_link<P: StorePool + Send>(
     let Json(CreateLinkRequest {
         target_entity_id,
         link_type_uri,
-        account_id,
+        created_by,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -93,7 +93,7 @@ async fn create_link<P: StorePool + Send>(
     let link = Link::new(source_entity_id, target_entity_id, link_type_uri);
 
     store
-        .create_link(&link, account_id)
+        .create_link(&link, created_by)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create link");
@@ -122,7 +122,7 @@ async fn create_link<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_active_links_by_query<P: StorePool + Send>(
+async fn get_links_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(expression): Json<Expression>,
 ) -> Result<Json<Vec<Link>>, StatusCode> {
@@ -158,10 +158,11 @@ async fn get_entity_links<P: StorePool + Send>(
 
 #[derive(Serialize, Deserialize, Component)]
 #[serde(rename_all = "camelCase")]
-struct InactivateLinkRequest {
+struct RemoveLinkRequest {
     target_entity_id: EntityId,
     #[component(value_type = String)]
     link_type_uri: VersionedUri,
+    removed_by: AccountId,
 }
 
 #[utoipa::path(
@@ -175,20 +176,21 @@ struct InactivateLinkRequest {
         (status = 404, description = "Source entity, target entity or link type URI was not found"),
         (status = 500, description = "Store error occurred"),
     ),
-    request_body = InactivateLinkRequest,
+    request_body = RemoveLinkRequest,
     params(
         ("entityId" = Uuid, Path, description = "The ID of the source entity"),
     ),
 )]
-async fn inactivate_link<P: StorePool + Send>(
+async fn remove_link<P: StorePool + Send>(
     source_entity_id: Path<EntityId>,
-    body: Json<InactivateLinkRequest>,
+    body: Json<RemoveLinkRequest>,
     pool: Extension<Arc<P>>,
 ) -> Result<StatusCode, StatusCode> {
     let Path(source_entity_id) = source_entity_id;
-    let Json(InactivateLinkRequest {
+    let Json(RemoveLinkRequest {
         target_entity_id,
         link_type_uri,
+        removed_by,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -197,14 +199,13 @@ async fn inactivate_link<P: StorePool + Send>(
     })?;
 
     store
-        .inactivate_link(&Link::new(
-            source_entity_id,
-            target_entity_id,
-            link_type_uri,
-        ))
+        .remove_link(
+            &Link::new(source_entity_id, target_entity_id, link_type_uri),
+            removed_by,
+        )
         .await
         .map_err(|report| {
-            tracing::error!(error=?report, "Could not inactivate link");
+            tracing::error!(error=?report, "Could not remove link");
 
             if report.contains::<QueryError>() {
                 return StatusCode::NOT_FOUND;
