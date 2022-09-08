@@ -201,7 +201,7 @@ const main = async () => {
   });
 
   const pgHost = process.env.HASH_GRAPH_PG_HOST ?? "localhost";
-  const pgPort = parseInt(process.env.HASH_GRAPH_PG_PORT || "5432", 10);
+  const pgPort = parseInt(process.env.HASH_GRAPH_PG_PORT ?? "5432", 10);
   await waitOnResource(`tcp:${pgHost}:${pgPort}`, logger);
 
   const pool = createPostgresConnPool(logger, {
