@@ -103,14 +103,14 @@ describe("Link model class", () => {
   let acquaintanceLink: LinkModel;
   it("can link entities", async () => {
     friendLink = await LinkModel.create(graphApi, {
-      accountId,
+      createdBy: accountId,
       sourceEntityModel,
       linkTypeModel: linkTypeFriend,
       targetEntityModel: targetEntityFriend,
     });
 
     acquaintanceLink = await LinkModel.create(graphApi, {
-      accountId,
+      createdBy: accountId,
       sourceEntityModel,
       linkTypeModel: linkTypeAcquaintance,
       targetEntityModel: targetEntityAcquaintance,
@@ -128,24 +128,27 @@ describe("Link model class", () => {
   });
 
   it("can get a single entity link", async () => {
-    const link = await LinkModel.getOutgoing(graphApi, {
+    const links = await LinkModel.getOutgoing(graphApi, {
       sourceEntityModel,
       linkTypeModel: linkTypeFriend,
     });
+
+    expect(links).toHaveLength(1);
+    const link = links[0];
 
     expect(link?.sourceEntityModel).toEqual(sourceEntityModel);
     expect(link?.linkTypeModel).toEqual(linkTypeFriend);
     expect(link?.targetEntityModel).toEqual(targetEntityFriend);
   });
 
-  it("can inactivate an active link", async () => {
-    await acquaintanceLink.inactivate(graphApi);
+  it("can remove a link", async () => {
+    await acquaintanceLink.remove(graphApi, { removedBy: accountId });
 
-    const result = await LinkModel.getOutgoing(graphApi, {
+    const links = await LinkModel.getOutgoing(graphApi, {
       sourceEntityModel,
       linkTypeModel: linkTypeAcquaintance,
     });
 
-    expect(result).toBeNull();
+    expect(links).toHaveLength(0);
   });
 });

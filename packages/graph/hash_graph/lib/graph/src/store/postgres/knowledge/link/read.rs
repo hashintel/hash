@@ -17,7 +17,7 @@ impl<C: AsClient> crud::Read<Link> for PostgresStore<C> {
     type Query<'q> = Expression;
 
     async fn read<'query>(&self, query: &Self::Query<'query>) -> Result<Vec<Link>, QueryError> {
-        self.read_all_active_links()
+        self.read_all_links()
             .await?
             .try_filter_map(|record| async move {
                 if let Literal::Bool(result) = query
