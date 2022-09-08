@@ -1,6 +1,5 @@
 use std::fmt;
 
-use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
 use utoipa::Component;
@@ -52,51 +51,5 @@ impl Link {
 impl fmt::Display for Link {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(fmt, "{:?}", &self)
-    }
-}
-
-/// Specifies whether or not a link is active.
-#[derive(Debug, Clone, Copy)]
-#[non_exhaustive]
-pub enum LinkStatus {
-    Active,
-    Inactive,
-}
-
-impl LinkStatus {
-    #[must_use]
-    const fn active(self) -> bool {
-        match self {
-            LinkStatus::Active => true,
-            LinkStatus::Inactive => false,
-        }
-    }
-}
-
-impl ToSql for LinkStatus {
-    fn to_sql(
-        &self,
-        ty: &postgres_types::Type,
-        out: &mut postgres_types::private::BytesMut,
-    ) -> Result<postgres_types::IsNull, Box<dyn std::error::Error + Sync + Send>>
-    where
-        Self: Sized,
-    {
-        self.active().to_sql(ty, out)
-    }
-
-    fn accepts(ty: &postgres_types::Type) -> bool
-    where
-        Self: Sized,
-    {
-        bool::accepts(ty)
-    }
-
-    fn to_sql_checked(
-        &self,
-        ty: &postgres_types::Type,
-        out: &mut postgres_types::private::BytesMut,
-    ) -> Result<postgres_types::IsNull, Box<dyn std::error::Error + Sync + Send>> {
-        self.active().to_sql_checked(ty, out)
     }
 }

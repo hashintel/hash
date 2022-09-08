@@ -16,9 +16,9 @@ use type_system::{
 use uuid::Uuid;
 
 pub use self::pool::{AsClient, PostgresStorePool};
-use super::error::LinkActivationError;
+use super::error::LinkRemovalError;
 use crate::{
-    knowledge::{Entity, EntityId, LinkStatus, PersistedEntityIdentifier},
+    knowledge::{Entity, EntityId, Link, PersistedEntityIdentifier},
     ontology::{AccountId, PersistedOntologyIdentifier},
     store::{
         error::VersionedUriAlreadyExists,
@@ -593,30 +593,6 @@ where
         ))
     }
 
-    async fn update_link_status(
-        &self,
-        active: LinkStatus,
-        source_entity_id: EntityId,
-        target_entity_id: EntityId,
-        link_type_version_id: VersionId,
-    ) -> Result<(), LinkActivationError> {
-        self.as_client()
-            .query_one(
-                r#"
-                    UPDATE links
-                    SET active = $1
-                    WHERE source_entity_id = $2 AND target_entity_id = $3 AND link_type_version_id = $4
-                    RETURNING source_entity_id, target_entity_id, link_type_version_id;
-                "#,
-                &[&active, &source_entity_id, &target_entity_id, &link_type_version_id],
-            )
-            .await
-            .into_report()
-            .change_context(LinkActivationError)?;
-
-        Ok(())
-    }
-
     /// Fetches the [`VersionId`] of the specified [`VersionedUri`].
     ///
     /// # Errors:
@@ -629,9 +605,9 @@ where
             .as_client()
             .query_one(
                 r#"
-                    SELECT version_id
-                    FROM ids
-                    WHERE base_uri = $1 AND version = $2;
+                SELECT version_id
+                FROM ids
+                WHERE base_uri = $1 AND version = $2;
                 "#,
                 &[&uri.base_uri().as_str(), &version],
             )
@@ -640,6 +616,94 @@ where
             .change_context(QueryError)
             .attach_printable_lazy(|| uri.clone())?
             .get(0))
+    }
+
+    /// Inserts a [`Link`] associated with an [`AccountId`] into the database.
+    ///
+    /// # Errors
+    ///
+    /// - if the [`Link`] exists already
+    /// - if the [`Link`]s link type doesn't exist
+    /// - if inserting the link failed.
+    async fn insert_link(&self, link: &Link, created_by: AccountId) -> Result<(), InsertionError> {
+        let link_type_version_id = self
+            .version_id_by_uri(link.link_type_uri())
+            .await
+            .change_context(InsertionError)
+            .attach_printable(link.source_entity())?;
+
+        self.as_client()
+        .query_one(
+            // TODO: Currently we insert `null` for the `link_order`, this needs to change as we
+            //   implement ordered links.
+            //   https://app.asana.com/0/1202805690238892/1202937382769278/f
+            r#"
+            INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, link_order, created_by, created_at)
+            VALUES ($1, $2, $3, null, $4, clock_timestamp())
+            RETURNING source_entity_id, target_entity_id, link_type_version_id;
+            "#,
+            &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &created_by],
+        )
+        .await
+        .into_report()
+        .change_context(InsertionError)
+        .attach_printable(created_by)
+        .attach_lazy(|| link.clone())?;
+
+        Ok(())
+    }
+
+    /// Moves a [`Link`] associated with an [`AccountId`] from the `links` table into the
+    /// `link_histories` table.
+    ///
+    /// # Errors
+    ///
+    /// - if the [`Link`] doesn't exist
+    /// - if the [`Link`]s link type doesn't exist
+    /// - if inserting the link failed.
+    async fn move_link_to_history(
+        &self,
+        link: &Link,
+        removed_by: AccountId,
+    ) -> Result<(), LinkRemovalError> {
+        let link_type_version_id = self
+            .version_id_by_uri(link.link_type_uri())
+            .await
+            .change_context(InsertionError)
+            .attach_printable(link.source_entity())
+            .change_context(LinkRemovalError)?;
+
+        self.as_client()
+            .query_one(
+                // This query removes a link from the `links` table and then immediately inserts
+                // into the link_histories table.
+                r#"
+                WITH removed AS (
+                    DELETE FROM links
+                    WHERE source_entity_id = $1
+                        AND target_entity_id = $2
+                        AND link_type_version_id = $3
+                    RETURNING source_entity_id, target_entity_id, link_type_version_id,
+                    link_order, created_by, created_at
+                )
+                INSERT INTO link_histories(source_entity_id, target_entity_id, link_type_version_id,
+                    link_order, created_by, created_at, removed_by, removed_at)
+                -- When inserting into `link_histories`, `removed_by` and `removed_at` are provided
+                SELECT *, $4, clock_timestamp() FROM removed
+                RETURNING source_entity_id, target_entity_id, link_type_version_id;
+                "#,
+                &[
+                    &link.source_entity(),
+                    &link.target_entity(),
+                    &link_type_version_id,
+                    &removed_by,
+                ],
+            )
+            .await
+            .into_report()
+            .change_context(LinkRemovalError)?;
+
+        Ok(())
     }
 }
 

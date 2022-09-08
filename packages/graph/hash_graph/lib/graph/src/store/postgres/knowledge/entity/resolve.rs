@@ -41,7 +41,7 @@ where
                         //   see https://app.asana.com/0/0/1202884883200942/f
                         return Ok(Literal::List(
                             context
-                                .read_active_links_by_source(self.id)
+                                .read_links_by_source(self.id)
                                 .await
                                 .change_context(ResolveError::StoreReadError)?
                                 .then(|link| async {
@@ -58,7 +58,7 @@ where
                         //   see https://app.asana.com/0/0/1202884883200942/f
                         return Ok(Literal::List(
                             context
-                                .read_active_links_by_target(self.id)
+                                .read_links_by_target(self.id)
                                 .await
                                 .change_context(ResolveError::StoreReadError)?
                                 .then(|link| async {

@@ -14,7 +14,6 @@ pub struct LinkRecord {
     pub source_entity_id: EntityId,
     pub target_entity_id: EntityId,
     pub account_id: AccountId,
-    pub is_active: bool,
 }
 
 pub type RecordStream = impl Stream<Item = Result<LinkRecord, QueryError>>;
@@ -31,20 +30,20 @@ fn row_stream_to_record_stream(row_stream: RowStream) -> RecordStream {
             source_entity_id: row.get(2),
             target_entity_id: row.get(3),
             account_id: row.get(4),
-            is_active: row.get(5),
         })
     })
 }
 
-pub async fn read_all_active_links(client: &impl AsClient) -> Result<RecordStream, QueryError> {
+pub async fn read_all_links(client: &impl AsClient) -> Result<RecordStream, QueryError> {
     let row_stream = client
         .as_client()
         .query_raw(
             r#"
-            SELECT base_uri, version, source_entity_id, target_entity_id, created_by, active
+            SELECT base_uri, version, source_entity_id, target_entity_id, created_by
             FROM links
             JOIN ids ON version_id = link_type_version_id
-            WHERE active
+            -- Nulls will be last with default ascending order (default is ASC NULLS LAST)
+            ORDER BY link_order ASC
             "#,
             parameter_list([]),
         )
@@ -54,7 +53,7 @@ pub async fn read_all_active_links(client: &impl AsClient) -> Result<RecordStrea
     Ok(row_stream_to_record_stream(row_stream))
 }
 
-pub async fn read_active_links_by_source(
+pub async fn read_links_by_source(
     client: &impl AsClient,
     entity_id: EntityId,
 ) -> Result<RecordStream, QueryError> {
@@ -62,10 +61,12 @@ pub async fn read_active_links_by_source(
         .as_client()
         .query_raw(
             r#"
-            SELECT base_uri, version, source_entity_id, target_entity_id, created_by, active
+            SELECT base_uri, version, source_entity_id, target_entity_id, created_by
             FROM links
             JOIN ids ON version_id = link_type_version_id
-            WHERE active AND source_entity_id = $1
+            WHERE source_entity_id = $1
+            -- Nulls will be last with default ascending order (default is ASC NULLS LAST)
+            ORDER BY link_order ASC
             "#,
             parameter_list([&entity_id]),
         )
@@ -75,7 +76,7 @@ pub async fn read_active_links_by_source(
     Ok(row_stream_to_record_stream(row_stream))
 }
 
-pub async fn read_active_links_by_target(
+pub async fn read_links_by_target(
     client: &impl AsClient,
     entity_id: EntityId,
 ) -> Result<RecordStream, QueryError> {
@@ -83,10 +84,10 @@ pub async fn read_active_links_by_target(
         .as_client()
         .query_raw(
             r#"
-            SELECT base_uri, version, source_entity_id, target_entity_id, created_by, active
+            SELECT base_uri, version, source_entity_id, target_entity_id, created_by
             FROM links
             JOIN ids ON version_id = link_type_version_id
-            WHERE active AND target_entity_id = $1
+            WHERE target_entity_id = $1
             "#,
             parameter_list([&entity_id]),
         )
