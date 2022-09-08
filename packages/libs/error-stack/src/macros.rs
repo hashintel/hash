@@ -73,7 +73,7 @@ pub mod __private {
 ///
 /// [`Report`]: crate::Report
 /// [`Context`]: crate::Context
-/// [`Error`]: std::error::Error
+/// [`Error`]: core::error::Error
 ///
 /// # Examples
 ///
@@ -144,7 +144,7 @@ macro_rules! report {
 ///
 /// Create a [`Report`] from [`Error`]:
 ///
-/// [`Error`]: std::error::Error
+/// [`Error`]: core::error::Error
 ///
 /// ```
 /// # #[cfg(all(not(miri), feature = "std"))] {

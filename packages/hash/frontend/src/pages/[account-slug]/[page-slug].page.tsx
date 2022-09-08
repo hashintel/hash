@@ -76,7 +76,7 @@ export const PageNotificationBanner: FunctionComponent = () => {
   const { pageEntityId } = useRoutePageInfo();
   const versionId = router.query.version as string | undefined;
 
-  const { unarchivePage } = useArchivePage();
+  const [archivePage] = useArchivePage();
 
   const { data } = useQuery<GetPageInfoQuery, GetPageInfoQueryVariables>(
     getPageInfoQuery,
@@ -118,7 +118,9 @@ export const PageNotificationBanner: FunctionComponent = () => {
             },
           })}
           onClick={() =>
-            accountId && pageEntityId && unarchivePage(accountId, pageEntityId)
+            accountId &&
+            pageEntityId &&
+            archivePage(false, accountId, pageEntityId)
           }
         >
           Restore

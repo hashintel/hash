@@ -1,3 +1,3 @@
 [toolchain]
 # Please also update the badges in `README.md`, `src/lib.rs`, and `macros/`
-channel = "nightly-2022-08-19"
+channel = "nightly-2022-08-27"

@@ -19,10 +19,11 @@ All notable changes to `error-stack` will be documented in this file.
 ### Features
 
 - Implement [`Termination`](https://doc.rust-lang.org/stable/std/process/trait.Termination.html) for `Report` ([#671](https://github.com/hashintel/hash/pull/671))
+- Add support for [`core::error::Error`](https://doc.rust-lang.org/nightly/core/error/trait.Error.html) on nightly ([#1038](https://github.com/hashintel/hash/pull/1038))
+- Add support for [`Error::provide()`](https://doc.rust-lang.org/nightly/core/error/trait.Error.html#method.provide) ([#904](https://github.com/hashintel/hash/pull/904))
 - Add support for async `Stream`s ([#718](https://github.com/hashintel/hash/pull/718))
 - Add support for `Iterator`s ([#716](https://github.com/hashintel/hash/pull/716))
 - Add compatibility for `anyhow` and `eyre` to convert their types into `Report` ([#763](https://github.com/hashintel/hash/pull/763))
-- Add support for [`Error::provide()`](https://doc.rust-lang.org/nightly/std/error/trait.Error.html#method.provide) ([#904](https://github.com/hashintel/hash/pull/904))
 - Add support for related errors and multiple error sources ([#747](https://github.com/hashintel/hash/pull/747))
 - New output for [Debug](https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html) ([#794](https://github.com/hashintel/hash/pull/794))
 - New hook interface for [Debug](https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html) ([#794](https://github.com/hashintel/hash/pull/794))

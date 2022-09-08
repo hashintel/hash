@@ -56,6 +56,7 @@ describe("Page model class ", () => {
       accountId: existingUser.accountId,
       createdBy: existingUser,
       properties: { title: testTitle },
+      prevIndex: "a0",
     });
 
     // Expect the page's entity type to be the Page entity type
