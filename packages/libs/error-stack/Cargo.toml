@@ -18,7 +18,6 @@ categories = ["rust-patterns", "no-std"]
 
 [dependencies]
 tracing-error = { version = "0.2", optional = true, default_features = false }
-pin-project = { version = "1.0.10", optional = true, default_features = false }
 futures-core = { version = "0.3", optional = true, default-features = false }
 smallvec = { version = "1", optional = true, default_features = false, features = ['union'] }
 anyhow = { version = "1", default-features = false, optional = true }
@@ -44,7 +43,7 @@ rustc_version = "0.4"
 [features]
 default = ["std", "small", "pretty-print"]
 
-futures = ["dep:pin-project", "dep:futures-core"]
+futures = ["dep:futures-core"]
 hooks = ["std"]
 pretty-print = ["dep:owo-colors"]
 small = ["dep:smallvec"]
