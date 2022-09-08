@@ -1,6 +1,9 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
-/** @todo remove above ts-nocheck */
+/**
+ * @todo remove above ts-nocheck as we start of re-enabling collab
+ *   https://app.asana.com/0/1202805690238892/1202924026802709/f
+ */
 import { StatsD } from "hot-shots";
 
 import { QueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/adapter";
