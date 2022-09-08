@@ -1,6 +1,6 @@
 import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { tw } from "twind";
 
 import { useRouter } from "next/router";

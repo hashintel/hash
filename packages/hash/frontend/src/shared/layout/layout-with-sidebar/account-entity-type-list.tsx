@@ -163,6 +163,7 @@ export const AccountEntityTypeList: FunctionComponent<
       ["properties.title"],
       [sortType === "asc" || sortType === "desc" ? sortType : "asc"],
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- data is currently commented out
   }, [sortType, data, searchQuery]);
 
   return (
