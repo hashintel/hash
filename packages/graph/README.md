@@ -26,7 +26,8 @@ Then, the Graph API can be started:
 cargo run
 ```
 
-_Logging configuration_
+### Logging configuration
+
 Some of the libraries used are very talkative in `trace` logging configurations, especially `mio`, `hyper`, and `tokio_util`. 
 If you're interested in just increasing the logs for the Graph, we recommend specifically targeting the crates with `RUST_LOG=graph=trace,hash_graph=trace`.
 
