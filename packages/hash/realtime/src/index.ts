@@ -50,7 +50,9 @@ const acquireReplicationSlot = async (
   slotName: string,
   options: { temporary?: boolean },
 ) => {
-  // Create the slot if it does not exist
+  // Create the slot if it does not exist. This allows for permanent or temporary slots.
+  // Setup borrowed from:
+  // https://github.com/supabase/realtime/blob/5dcf96b3629aa98ba55cc212aea8bb1fbeedf4af/server/lib/realtime/rls/replications.ex#L4-L18k
   await pool.query(sql`
   select
         case
