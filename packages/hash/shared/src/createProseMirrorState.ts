@@ -4,10 +4,10 @@ import { keymap } from "prosemirror-keymap";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
 import { createEntityStorePlugin } from "./entityStorePlugin";
-import { createSchema } from "./prosemirror";
+import { blockNodes, createSchema } from "./prosemirror";
 import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
 
-const createInitialDoc = (schema: Schema = createSchema()) =>
+const createInitialDoc = (schema: Schema = createSchema(blockNodes)) =>
   schema.node("doc", {}, [schema.node("blank")]);
 
 const defaultPlugins: Plugin<any, Schema>[] = [
@@ -16,16 +16,8 @@ const defaultPlugins: Plugin<any, Schema>[] = [
   dropCursor(),
 ];
 
-export const createProseMirrorState = ({
-  accountId,
-  doc = createInitialDoc(),
-  plugins = [],
-}: {
-  accountId: string;
-  doc?: ProsemirrorNode<Schema>;
-  plugins?: Plugin<any, Schema>[];
-}) => {
-  const formatKeymap = keymap<Schema>({
+export const formatKeymap = (doc: ProsemirrorNode<Schema>) =>
+  keymap<Schema>({
     // Mod- stands for Cmd- o macOS and Ctrl- elsewhere
     "Mod-b": toggleMark(doc.type.schema.marks.strong!),
     "Mod-i": toggleMark(doc.type.schema.marks.em!),
@@ -50,12 +42,21 @@ export const createProseMirrorState = ({
     "Mod-Shift-z": () => document.execCommand("redo"),
   });
 
+export const createProseMirrorState = ({
+  accountId,
+  doc = createInitialDoc(),
+  plugins = [],
+}: {
+  accountId: string;
+  doc?: ProsemirrorNode<Schema>;
+  plugins?: Plugin<any, Schema>[];
+}) => {
   return EditorState.create<Schema>({
     doc,
     plugins: [
       ...defaultPlugins,
       createEntityStorePlugin({ accountId }),
-      formatKeymap,
+      formatKeymap(doc),
       ...plugins,
     ],
   });

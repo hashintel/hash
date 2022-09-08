@@ -120,9 +120,9 @@ const docChangedInTransaction = (tr: Transaction<Schema>) => {
  */
 export const createSuggester = (
   renderPortal: RenderPortal,
-  getManager: () => ProsemirrorManager,
   accountId: string,
   documentRoot: HTMLElement,
+  getManager?: () => ProsemirrorManager,
 ) =>
   new Plugin<SuggesterState, Schema>({
     key: suggesterPluginKey,
@@ -229,7 +229,7 @@ export const createSuggester = (
             variant: BlockVariant,
             blockConfig: HashBlockMeta,
           ) => {
-            getManager()
+            getManager?.()
               .replaceRange(blockConfig.componentId, variant, from, to)
               .then(({ tr, componentPosition }) => {
                 tr.setMeta(suggesterPluginKey, {
@@ -262,12 +262,14 @@ export const createSuggester = (
 
           switch (triggerChar) {
             case "/":
-              jsx = (
-                <BlockSuggester
-                  search={search.substring(1)}
-                  onChange={onBlockSuggesterChange}
-                />
-              );
+              if (getManager) {
+                jsx = (
+                  <BlockSuggester
+                    search={search.substring(1)}
+                    onChange={onBlockSuggesterChange}
+                  />
+                );
+              }
               break;
             case "@":
               jsx = (

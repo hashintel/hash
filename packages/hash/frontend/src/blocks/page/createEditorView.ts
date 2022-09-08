@@ -2,10 +2,10 @@ import { HashBlock } from "@hashintel/hash-shared/blocks";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
-// import applyDevTools from "prosemirror-dev-tools";
-import { ProsemirrorNode, Schema } from "prosemirror-model";
+import applyDevTools from "prosemirror-dev-tools";
+import { NodeType, ProsemirrorNode, Schema, Slice } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
-import { EditorView } from "prosemirror-view";
+import { Decoration, EditorView } from "prosemirror-view";
 import { RefObject } from "react";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
@@ -20,6 +20,54 @@ import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
 
 export type BlocksMap = Record<string, HashBlock>;
+
+// /**
+//  * Prosemirror doesn't know to convert hard breaks into new line characters
+//  * in the plain text version of the clipboard when we copy out of the
+//  * editor. In the HTML version, they get converted as their `toDOM`
+//  * method instructs, but we have to use this for the plain text version.
+//  *
+//  * @todo find a way of not having to do this centrally
+//  * @todo look into whether this is needed for mentions and for links
+//  */
+export const clipboardTextSerializer =
+  (nodeType?: NodeType<Schema>) => (slice: Slice<Schema>) => {
+    return slice.content.textBetween(
+      0,
+      slice.content.size,
+      "\n\n",
+      (node: ProsemirrorNode<Schema>) => {
+        if (node.type === nodeType) {
+          return "\n";
+        }
+
+        return "";
+      },
+    );
+  };
+
+// Reason for adding `_decorations`:
+// https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
+export const mentionNodeView =
+  (renderPortal: RenderPortal, accountId: string) =>
+  (
+    currentNode: ProsemirrorNode<Schema>,
+    currentView: EditorView<Schema>,
+    getPos: () => number,
+    _decorations: Decoration[],
+  ) => {
+    if (typeof getPos === "boolean") {
+      throw new Error("Invalid config for nodeview");
+    }
+
+    return new MentionView(
+      currentNode,
+      currentView,
+      getPos,
+      renderPortal,
+      accountId,
+    );
+  };
 
 /**
  * An editor view manages the DOM structure that represents an editable document.
@@ -40,7 +88,7 @@ export const createEditorView = (
 
   const plugins: Plugin<unknown, Schema>[] = [
     ...createFormatPlugins(renderPortal),
-    createSuggester(renderPortal, () => manager, accountId, renderNode),
+    createSuggester(renderPortal, accountId, renderNode, () => manager),
     createPlaceholderPlugin(renderPortal),
     errorPlugin,
     createFocusPageTitlePlugin(pageTitleRef),
@@ -52,30 +100,9 @@ export const createEditorView = (
 
   const view = new EditorView<Schema>(renderNode, {
     state,
-
-    /**
-     * Prosemirror doesn't know to convert hard breaks into new line characters
-     * in the plain text version of the clipboard when we copy out of the
-     * editor. In the HTML version, they get converted as their `toDOM`
-     * method instructs, but we have to use this for the plain text version.
-     *
-     * @todo find a way of not having to do this centrally
-     * @todo look into whether this is needed for mentions and for links
-     */
-    clipboardTextSerializer: (slice) => {
-      return slice.content.textBetween(
-        0,
-        slice.content.size,
-        "\n\n",
-        (node: ProsemirrorNode<Schema>) => {
-          if (node.type === view.state.schema.nodes.hardBreak) {
-            return "\n";
-          }
-
-          return "";
-        },
-      );
-    },
+    clipboardTextSerializer: clipboardTextSerializer(
+      state.schema.nodes.hardBreak,
+    ),
     nodeViews: {
       // Reason for adding `_decorations`:
       // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
@@ -91,22 +118,7 @@ export const createEditorView = (
           manager,
         );
       },
-      // Reason for adding `_decorations`:
-      // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
-      mention(currentNode, currentView, getPos, _decorations) {
-        if (typeof getPos === "boolean") {
-          throw new Error("Invalid config for nodeview");
-        }
-
-        return new MentionView(
-          currentNode,
-          currentView,
-          getPos,
-          renderPortal,
-          manager,
-          accountId,
-        );
-      },
+      mention: mentionNodeView(renderPortal, accountId),
     },
     dispatchTransaction: (tr) => connection?.dispatchTransaction(tr),
     editable: () => !readonly,
