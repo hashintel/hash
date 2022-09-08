@@ -107,16 +107,21 @@ pub fn rest_api_router<P: StorePool + Send + 'static>(
     let open_api_doc = OpenApiDocumentation::openapi();
 
     // super-router can then be used as any other router.
+    // Make sure extensions are added at the end so they are made available to merged routers.
     merged_routes
-        // Make sure extensions are added at the end so they are made available to merged routers.
         .layer(Extension(store))
         .layer(Extension(domain_regex))
-        .nest("/api-doc", Router::new().route(
-            "/openapi.json",
-            get({
-                let doc = open_api_doc;
-                move || async { Json(doc) }
-            })).route("/models/*path", get(serve_static_schema)),
+        .nest(
+            "/api-doc",
+            Router::new()
+                .route(
+                    "/openapi.json",
+                    get({
+                        let doc = open_api_doc;
+                        move || async { Json(doc) }
+                    }),
+                )
+                .route("/models/*path", get(serve_static_schema)),
         )
 }
 
