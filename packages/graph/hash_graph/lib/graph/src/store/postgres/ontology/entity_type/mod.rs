@@ -36,7 +36,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             .change_context(InsertionError)
             .attach_printable_lazy(|| {
                 format!(
-                    "Could not insert references for entity type: {}",
+                    "could not insert references for entity type: {}",
                     entity_type.id()
                 )
             })
@@ -76,7 +76,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             .change_context(UpdateError)
             .attach_printable_lazy(|| {
                 format!(
-                    "Could not insert references for entity type: {}",
+                    "could not insert references for entity type: {}",
                     entity_type.id()
                 )
             })

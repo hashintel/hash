@@ -38,7 +38,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             .change_context(InsertionError)
             .attach_printable_lazy(|| {
                 format!(
-                    "Could not insert references for property type: {}",
+                    "could not insert references for property type: {}",
                     property_type.id()
                 )
             })
@@ -80,7 +80,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             .change_context(UpdateError)
             .attach_printable_lazy(|| {
                 format!(
-                    "Could not insert references for property type: {}",
+                    "could not insert references for property type: {}",
                     property_type.id()
                 )
             })
