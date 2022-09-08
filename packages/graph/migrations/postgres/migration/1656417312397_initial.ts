@@ -342,8 +342,6 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       created_at: {
         type: "TIMESTAMP WITH TIME ZONE",
         notNull: true,
-        // This default would give the UTC time "wall clock" even within a transaction/
-        default: pgm.func("clock_timestamp()"),
       },
     },
     {
@@ -403,8 +401,6 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       removed_at: {
         type: "TIMESTAMP WITH TIME ZONE",
         notNull: true,
-        // This default would give the UTC time "wall clock" even within a transaction/
-        default: pgm.func("clock_timestamp()"),
       },
     },
     {
