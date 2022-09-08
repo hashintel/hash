@@ -1,32 +1,29 @@
 <b>invalid input parameter</b>
 <span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/fmt/hook.rs:49:14</span>
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>backtrace with [n] frames (1)
 <span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Error code: 404
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Suggestion 0:
+<span style='color:#a00'>│</span><span style='color:#a00'> </span>  Do you have a connection to the internet?
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Suggestion (0)
 <span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Error code: 405
 <span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Abnormal program execution detected
 <span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Warning: Unable to determine environment
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Error code: 501
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>backtrace with [n] frames (1)
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Suggestion (0)
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Suggestion 1:
+<span style='color:#a00'>│</span><span style='color:#a00'> </span>  Execute the program from the fish shell
 <span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Suggestion (1)
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Error code: 501
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Suggestion 2:
+<span style='color:#a00'>│</span><span style='color:#a00'> </span>  Try better next time!
 <span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Suggestion (2)
 <span style='color:#a00'>╰</span><span style='color:#a00'>╴</span>1 additional opaque attachment
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Backtrace No. 1
+  [redacted]
 
 Error 404: Client Error
 
 Error 405: Client Error
 
 Error 501: Server Error
-
-Backtrace No. 1
-  [redacted]
-
-Suggestion 0:
-  Do you have a connection to the internet?
-
-Suggestion 1:
-  Execute the program from the fish shell
-
-Suggestion 2:
-  Try better next time!

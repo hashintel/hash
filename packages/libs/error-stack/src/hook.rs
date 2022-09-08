@@ -58,7 +58,7 @@ impl Report<()> {
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|val, ctx| {
-    ///     ctx.emit(format!("Suggestion: {}", val.0));
+    ///     ctx.push_body(format!("Suggestion: {}", val.0));
     /// });
     ///
     /// let report =
@@ -131,10 +131,10 @@ impl Report<()> {
     ///
     /// # pub fn main() {
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     ctx.emit(format!("Suggestion: {val}"));
+    ///     ctx.push_body(format!("Suggestion: {val}"));
     /// });
     /// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), ctx| {
-    ///     ctx.emit(format!("Error Code: {val}"));
+    ///     ctx.push_body(format!("Error Code: {val}"));
     /// });
     ///
     /// let report = report!(UserError {code: ErrorCode(420)});
@@ -197,7 +197,7 @@ impl Report<()> {
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook_fallback(|_, ctx| {
-    ///     ctx.emit("unknown");
+    ///     ctx.push_body("unknown");
     /// });
     ///
     /// let report =
@@ -258,13 +258,13 @@ impl Report<()> {
     /// // this will never called, because we **do not** provide `ErrorCode` in `UserError`
     /// // we instead use fallback to provide better diagnostics.
     /// Report::install_debug_hook::<ErrorCode>(|_, ctx| {
-    ///     ctx.emit("Error Code");
+    ///     ctx.push_body("Error Code");
     /// });
     ///
     /// Report::install_debug_hook_fallback(|frame, ctx| {
     ///     // add additional attachments, but only if we're a context of type `UserError`
     ///     if let Some(error) = frame.downcast_ref::<UserError>() {
-    ///         ctx.emit(format!("Error Code: {}", error.code.0));
+    ///         ctx.push_body(format!("Error Code: {}", error.code.0));
     ///     }
     /// });
     ///

@@ -4,12 +4,12 @@ expression: "format!(\"{report:#?}\")"
 ---
 Root error
 ├╴tests/common.rs:147:5
-├╴A multiline
-│ attachment
-│ that might have some
-│ additional info
 ├╴backtrace with [n] frames (1)
-╰╴spantrace with 2 frames (1)
+├╴spantrace with 2 frames (1)
+╰╴A multiline
+  attachment
+  that might have some
+  additional info
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

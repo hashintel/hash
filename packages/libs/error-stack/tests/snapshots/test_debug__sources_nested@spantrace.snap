@@ -14,8 +14,8 @@ Context A
  |  |
  |  |-> Root error
  |      |-at tests/common.rs:147:5
- |      |-6
  |      |-spantrace with 2 frames (1)
+ |      |-6
  |
  |> Context A
     |-at tests/test_debug.rs:203:10
