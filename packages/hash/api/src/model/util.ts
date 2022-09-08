@@ -5,7 +5,6 @@ import {
   LinkType,
   PropertyValues,
   VersionedUri,
-  BaseUri,
 } from "@blockprotocol/type-system-web";
 import { AxiosError } from "axios";
 import slugify from "slugify";
@@ -92,21 +91,6 @@ const schemaKindSlugs: Record<SchemaKind, string> = {
 const slugifySchemaTitle = (title: string): string =>
   slugify(title, { lower: true });
 
-export const generateSchemaBaseUri = ({
-  domain = FRONTEND_URL,
-  namespace,
-  kind,
-  title,
-}: {
-  domain?: string;
-  namespace: string;
-  kind: SchemaKind;
-  title: string;
-}): BaseUri =>
-  `${domain}/@${namespace}/types/${schemaKindSlugs[kind]}/${slugifySchemaTitle(
-    title,
-  )}` as const;
-
 export const generateSchemaUri = ({
   domain = FRONTEND_URL,
   namespace,
@@ -118,7 +102,9 @@ export const generateSchemaUri = ({
   kind: SchemaKind;
   title: string;
 }): VersionedUri =>
-  `${generateSchemaBaseUri({ domain, namespace, kind, title })}/v/1` as const;
+  `${domain}/@${namespace}/types/${schemaKindSlugs[kind]}/${slugifySchemaTitle(
+    title,
+  )}/v/1` as const;
 
 /**
  * @todo use `extractBaseUri from the type system package when they're unified,
