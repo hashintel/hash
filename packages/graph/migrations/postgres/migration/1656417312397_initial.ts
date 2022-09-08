@@ -328,27 +328,20 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         notNull: true,
         references: "link_types",
       },
-      multi: {
-        type: "boolean",
-        notNull: true,
-        default: "false",
-      },
-      multi_order: {
+      link_order: {
         // TODO: this is where we could do fractional indexing
         //  https://app.asana.com/0/1200211978612931/1202085856561975/f
         type: "integer",
+        notNull: false,
       },
       created_by: {
         type: "UUID",
         notNull: true,
         references: "accounts",
       },
-      // TODO: Consider using timestamps for link duration like we've done for the HASH backend,
-      //   see https://app.asana.com/0/1201095311341924/1201836485518642/f
-      active: {
-        type: "boolean",
+      created_at: {
+        type: "TIMESTAMP WITH TIME ZONE",
         notNull: true,
-        default: true,
       },
     },
     {
@@ -364,10 +357,57 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       "link_type_version_id",
     ],
   });
-  pgm.addConstraint("links", "links_single_or_multi", {
-    // multi_order is only appropriate to set if multi is true.
-    check: "(multi) or (multi_order IS NULL)",
-  });
+
+  pgm.createTable(
+    "link_histories",
+    {
+      // We should consider whether these should reference entity_ids or not.
+      // If we allow GDPR removal of entities, this constraint has to fail/cascade depending on desired output.
+      source_entity_id: {
+        type: "UUID",
+        notNull: true,
+        references: "entity_ids",
+      },
+      target_entity_id: {
+        type: "UUID",
+        notNull: true,
+        references: "entity_ids",
+      },
+      link_type_version_id: {
+        type: "UUID",
+        notNull: true,
+        references: "link_types",
+      },
+      link_order: {
+        // TODO: this is where we could do fractional indexing
+        //  https://app.asana.com/0/1200211978612931/1202085856561975/f
+        type: "integer",
+        notNull: false,
+      },
+      created_by: {
+        type: "UUID",
+        notNull: true,
+        references: "accounts",
+      },
+      created_at: {
+        type: "TIMESTAMP WITH TIME ZONE",
+        notNull: true,
+      },
+      removed_by: {
+        type: "UUID",
+        notNull: true,
+        references: "accounts",
+      },
+      removed_at: {
+        type: "TIMESTAMP WITH TIME ZONE",
+        notNull: true,
+      },
+    },
+    {
+      ifNotExists: true,
+    },
+  );
+  // link_histories has no unique index!
 }
 
 // A down migration would cause data loss.

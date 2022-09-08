@@ -27,6 +27,7 @@ use crate::{
 #[openapi(
     handlers(
         create_entity,
+        get_entities_by_query,
         get_entity,
         get_latest_entities,
         update_entity
@@ -51,6 +52,7 @@ impl RoutedResource for EntityResource {
                         .get(get_latest_entities::<P>)
                         .put(update_entity::<P>),
                 )
+                .route("/query", post(get_entities_by_query::<P>))
                 .route("/:entity_id", get(get_entity::<P>)),
         )
     }
@@ -75,7 +77,7 @@ struct CreateEntityRequest {
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Entity Type URI was not found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     request_body = CreateEntityRequest,
 )]
@@ -107,15 +109,52 @@ async fn create_entity<P: StorePool + Send>(
 }
 
 #[utoipa::path(
+    post,
+    path = "/entities/query",
+    request_body = Expression,
+    tag = "Entity",
+    responses(
+        (status = 200, content_type = "application/json", description = "List of all entities matching the provided query", body = [PersistedEntity]),
+
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+async fn get_entities_by_query<P: StorePool + Send>(
+    pool: Extension<Arc<P>>,
+    Json(expression): Json<Expression>,
+) -> Result<Json<Vec<PersistedEntity>>, StatusCode> {
+    read_from_store(pool.as_ref(), &expression).await.map(Json)
+}
+
+#[utoipa::path(
+    get,
+    path = "/entities",
+    tag = "Entity",
+    responses(
+        (status = 200, content_type = "application/json", description = "List of all entities", body = [PersistedEntity]),
+
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+async fn get_latest_entities<P: StorePool + Send>(
+    pool: Extension<Arc<P>>,
+) -> Result<Json<Vec<PersistedEntity>>, StatusCode> {
+    read_from_store(pool.as_ref(), &Expression::for_latest_version())
+        .await
+        .map(Json)
+}
+
+#[utoipa::path(
     get,
     path = "/entities/{entityId}",
     tag = "Entity",
     responses(
         (status = 200, content_type = "application/json", description = "The requested entity", body = PersistedEntity),
-        (status = 422, content_type = "text/plain", description = "Provided entity id is invalid"),
 
-        (status = 404, description = "entity was not found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 400, content_type = "text/plain", description = "Provided entity id is invalid"),
+        (status = 404, description = "Entity was not found"),
+        (status = 500, description = "Store error occurred"),
     ),
     params(
         ("entityId" = Uuid, Path, description = "The ID of the entity"),
@@ -129,29 +168,6 @@ async fn get_entity<P: StorePool + Send>(
         .await
         .and_then(|mut entities| entities.pop().ok_or(StatusCode::NOT_FOUND))
         .map(Json)
-}
-
-#[utoipa::path(
-    get,
-    path = "/entities",
-    tag = "Entity",
-    responses(
-        (status = 200, content_type = "application/json", description = "List of all entities", body = [PersistedEntity]),
-        (status = 500, description = "Store error occurred"),
-    )
-)]
-async fn get_latest_entities<P: StorePool + Send>(
-    pool: Extension<Arc<P>>,
-    mut body: Option<Json<Expression>>,
-) -> Result<Json<Vec<PersistedEntity>>, StatusCode> {
-    read_from_store(
-        pool.as_ref(),
-        &body
-            .take()
-            .map_or_else(Expression::for_latest_version, |json| json.0),
-    )
-    .await
-    .map(Json)
 }
 
 #[derive(Component, Serialize, Deserialize)]
@@ -173,7 +189,7 @@ struct UpdateEntityRequest {
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Entity ID or Entity Type URI was not found"),
-        (status = 500, description = "Datastore error occurred"),
+        (status = 500, description = "Store error occurred"),
     ),
     request_body = UpdateEntityRequest,
 )]

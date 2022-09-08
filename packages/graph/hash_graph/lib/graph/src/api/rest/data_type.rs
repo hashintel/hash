@@ -29,6 +29,7 @@ use crate::{
 #[openapi(
     handlers(
         create_data_type,
+        get_data_types_by_query,
         get_data_type,
         get_latest_data_types,
         update_data_type
@@ -38,7 +39,7 @@ use crate::{
         UpdateDataTypeRequest,
         AccountId,
         PersistedOntologyIdentifier,
-        PersistedDataType
+        PersistedDataType,
     ),
     tags(
         (name = "DataType", description = "Data Type management API")
@@ -59,6 +60,7 @@ impl RoutedResource for DataTypeResource {
                         .get(get_latest_data_types::<P>)
                         .put(update_data_type::<P>),
                 )
+                .route("/query", post(get_data_types_by_query::<P>))
                 .route("/:version_id", get(get_data_type::<P>)),
         )
     }
@@ -128,6 +130,25 @@ async fn create_data_type<P: StorePool + Send>(
 }
 
 #[utoipa::path(
+    post,
+    path = "/data-types/query",
+    request_body = Expression,
+    tag = "DataType",
+    responses(
+        (status = 200, content_type = "application/json", description = "List of all data types matching the provided query", body = [PersistedDataType]),
+
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+async fn get_data_types_by_query<P: StorePool + Send>(
+    pool: Extension<Arc<P>>,
+    Json(expression): Json<Expression>,
+) -> Result<Json<Vec<PersistedDataType>>, StatusCode> {
+    read_from_store(pool.as_ref(), &expression).await.map(Json)
+}
+
+#[utoipa::path(
     get,
     path = "/data-types",
     tag = "DataType",
@@ -139,16 +160,10 @@ async fn create_data_type<P: StorePool + Send>(
 )]
 async fn get_latest_data_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    mut body: Option<Json<Expression>>,
 ) -> Result<Json<Vec<PersistedDataType>>, StatusCode> {
-    read_from_store(
-        pool.as_ref(),
-        &body
-            .take()
-            .map_or_else(Expression::for_latest_version, |json| json.0),
-    )
-    .await
-    .map(Json)
+    read_from_store(pool.as_ref(), &Expression::for_latest_version())
+        .await
+        .map(Json)
 }
 
 #[utoipa::path(
