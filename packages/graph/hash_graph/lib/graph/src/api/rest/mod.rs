@@ -77,7 +77,7 @@ where
 
 pub fn rest_api_router<P: StorePool + Send + 'static>(
     store: Arc<P>,
-    domain_regex: Arc<DomainValidator>,
+    domain_regex: DomainValidator,
 ) -> Router {
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<P>()

@@ -89,7 +89,7 @@ struct CreateLinkTypeRequest {
 async fn create_link_type<P: StorePool + Send>(
     body: Json<CreateLinkTypeRequest>,
     pool: Extension<Arc<P>>,
-    domain_validator: Extension<Arc<DomainValidator>>,
+    domain_validator: Extension<DomainValidator>,
 ) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
     let Json(CreateLinkTypeRequest { schema, account_id }) = body;
 

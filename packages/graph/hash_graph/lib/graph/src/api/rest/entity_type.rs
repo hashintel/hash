@@ -90,7 +90,7 @@ struct CreateEntityTypeRequest {
 async fn create_entity_type<P: StorePool + Send>(
     body: Json<CreateEntityTypeRequest>,
     pool: Extension<Arc<P>>,
-    domain_validator: Extension<Arc<DomainValidator>>,
+    domain_validator: Extension<DomainValidator>,
 ) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
     let Json(CreateEntityTypeRequest { schema, account_id }) = body;
 

@@ -89,7 +89,7 @@ struct CreatePropertyTypeRequest {
 async fn create_property_type<P: StorePool + Send>(
     body: Json<CreatePropertyTypeRequest>,
     pool: Extension<Arc<P>>,
-    domain_validator: Extension<Arc<DomainValidator>>,
+    domain_validator: Extension<DomainValidator>,
 ) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
     let Json(CreatePropertyTypeRequest { schema, account_id }) = body;
 

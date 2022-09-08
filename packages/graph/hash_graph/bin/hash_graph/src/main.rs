@@ -185,7 +185,7 @@ async fn main() -> Result<(), GraphError> {
 
     let rest_router = rest_api_router(
         Arc::new(pool),
-        Arc::new(DomainValidator::new(args.allowed_url_domain)),
+        DomainValidator::new(args.allowed_url_domain),
     );
     let api_address = format!("{}:{}", args.api_host, args.api_port);
     let addr: SocketAddr = api_address
