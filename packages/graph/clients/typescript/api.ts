@@ -586,6 +586,58 @@ export type PropertyArrayValueTypeEnum =
 /**
  *
  * @export
+ * @interface PropertyArrayValue1
+ */
+export interface PropertyArrayValue1 {
+  /**
+   *
+   * @type {PropertyArrayValue1Items}
+   * @memberof PropertyArrayValue1
+   */
+  items: PropertyArrayValue1Items;
+  /**
+   *
+   * @type {number}
+   * @memberof PropertyArrayValue1
+   */
+  maxItems?: number;
+  /**
+   *
+   * @type {number}
+   * @memberof PropertyArrayValue1
+   */
+  minItems?: number;
+  /**
+   *
+   * @type {string}
+   * @memberof PropertyArrayValue1
+   */
+  type: PropertyArrayValue1TypeEnum;
+}
+
+export const PropertyArrayValue1TypeEnum = {
+  Array: "array",
+} as const;
+
+export type PropertyArrayValue1TypeEnum =
+  typeof PropertyArrayValue1TypeEnum[keyof typeof PropertyArrayValue1TypeEnum];
+
+/**
+ *
+ * @export
+ * @interface PropertyArrayValue1Items
+ */
+export interface PropertyArrayValue1Items {
+  /**
+   *
+   * @type {Array<PropertyValues1>}
+   * @memberof PropertyArrayValue1Items
+   */
+  oneOf: Array<PropertyValues1>;
+}
+/**
+ *
+ * @export
  * @interface PropertyArrayValueItems
  */
 export interface PropertyArrayValueItems {
@@ -689,7 +741,7 @@ export type PropertyValues =
  */
 export type PropertyValues1 =
   | DataTypeReference
-  | PropertyArrayValue
+  | PropertyArrayValue1
   | PropertyObjectValue;
 
 /**
