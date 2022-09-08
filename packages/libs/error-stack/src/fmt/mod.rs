@@ -729,7 +729,7 @@ fn debug_attachments_invoke(
                 let mut body = ctx.take_body();
 
                 if body.is_empty() {
-                    body.push(attachment.to_string())
+                    body.push(attachment.to_string());
                 }
 
                 body
