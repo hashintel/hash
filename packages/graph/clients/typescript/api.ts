@@ -649,10 +649,10 @@ export interface PropertyType {
   kind: PropertyTypeKindEnum;
   /**
    *
-   * @type {Array<PropertyValues>}
+   * @type {Array<PropertyValues1>}
    * @memberof PropertyType
    */
-  oneOf: Array<PropertyValues>;
+  oneOf: Array<PropertyValues1>;
   /**
    *
    * @type {string}
@@ -692,6 +692,31 @@ export type PropertyValues1 =
   | PropertyArrayValue
   | PropertyObjectValue;
 
+/**
+ *
+ * @export
+ * @interface RemoveLinkRequest
+ */
+export interface RemoveLinkRequest {
+  /**
+   *
+   * @type {string}
+   * @memberof RemoveLinkRequest
+   */
+  linkTypeUri: string;
+  /**
+   *
+   * @type {string}
+   * @memberof RemoveLinkRequest
+   */
+  removedBy: string;
+  /**
+   *
+   * @type {string}
+   * @memberof RemoveLinkRequest
+   */
+  targetEntityId: string;
+}
 /**
  * The contents of a Data Type update request
  * @export
@@ -733,31 +758,6 @@ export const UpdateDataTypeKindEnum = {
 export type UpdateDataTypeKindEnum =
   typeof UpdateDataTypeKindEnum[keyof typeof UpdateDataTypeKindEnum];
 
-/**
- *
- * @export
- * @interface RemoveLinkRequest
- */
-export interface RemoveLinkRequest {
-  /**
-   *
-   * @type {string}
-   * @memberof RemoveLinkRequest
-   */
-  linkTypeUri: string;
-  /**
-   *
-   * @type {string}
-   * @memberof RemoveLinkRequest
-   */
-  removedBy: string;
-  /**
-   *
-   * @type {string}
-   * @memberof RemoveLinkRequest
-   */
-  targetEntityId: string;
-}
 /**
  *
  * @export
@@ -1016,10 +1016,10 @@ export interface UpdatePropertyType {
   kind: UpdatePropertyTypeKindEnum;
   /**
    *
-   * @type {Array<PropertyValues1>}
+   * @type {Array<PropertyValues>}
    * @memberof UpdatePropertyType
    */
-  oneOf: Array<PropertyValues1>;
+  oneOf: Array<PropertyValues>;
   /**
    *
    * @type {string}
