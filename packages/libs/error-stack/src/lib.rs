@@ -477,13 +477,7 @@ mod fmt;
 mod hook;
 
 #[doc(inline)]
-#[cfg(feature = "futures")]
-pub use self::ext::stream::StreamExt;
-#[doc(inline)]
-pub use self::ext::{
-    iter::IteratorExt,
-    result::{IntoReport, ResultExt},
-};
+pub use self::ext::result::{IntoReport, ResultExt};
 #[cfg(feature = "std")]
 #[allow(deprecated)]
 pub use self::hook::HookAlreadySet;
