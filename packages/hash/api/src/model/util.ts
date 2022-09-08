@@ -260,7 +260,7 @@ export type EntityCreatorParams = {
 };
 
 /**
- * Helper method for generating an entity schema for the Graph API.
+ * Helper method for generating an entity type schema for the Graph API.
  *
  * @todo make use of new type system package instead of ad-hoc types.
  *   https://app.asana.com/0/1202805690238892/1202892835843657/f
