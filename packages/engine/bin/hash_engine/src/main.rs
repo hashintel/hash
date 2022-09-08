@@ -1,3 +1,10 @@
+//! The hEngine
+//!
+//! This crate defines the executable Engine binary itself. The crate is very light-weight as the
+//! engine implementation is separated across a set of libraries. The entry point libraries are:
+//! - [`execution`]
+//! - [`experiment_control`]
+//! - [`experiment_structure`]
 use std::{error::Error, fmt, sync::Arc};
 
 use error_stack::{IntoReport, Result, ResultExt};

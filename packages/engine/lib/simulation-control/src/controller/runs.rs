@@ -11,7 +11,7 @@ pub struct SimulationRuns {
 
 impl SimulationRuns {
     pub fn new_run(&mut self, handle: JoinHandle<Result<SimulationId>>) {
-        self.inner.push(handle);
+        self.inner.push_back(handle);
     }
 
     pub fn is_empty(&self) -> bool {

@@ -1,4 +1,4 @@
-FROM node:16.14.2-alpine AS builder
+FROM node:16.16.0-alpine AS builder
 
 WORKDIR /app
 
@@ -17,6 +17,9 @@ COPY tsconfig.base.json .
 
 COPY packages/hash/api/codegen.yml packages/hash/api/codegen.yml
 COPY packages/hash/api/src/graphql/typeDefs packages/hash/api/src/graphql/typeDefs
+COPY packages/hash/api/src/collab/graphql/queries packages/hash/api/src/collab/graphql/queries
+COPY packages/hash/shared/src/queries packages/hash/shared/src/queries
+
 RUN yarn workspace @hashintel/hash-api codegen
 
 COPY packages/hash/shared/codegen.yml packages/hash/shared/codegen.yml
@@ -32,7 +35,7 @@ COPY packages/hash/shared packages/hash/shared
 
 #########################################################################################
 
-FROM node:16.14.2-alpine
+FROM node:16.16.0-alpine
 
 COPY --from=builder /app /app
 

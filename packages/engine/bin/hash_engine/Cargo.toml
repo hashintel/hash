@@ -11,14 +11,12 @@ experiment-control = { path = "../../lib/experiment-control", default-features =
 # TODO: Change to `version = "0.2"` as soon as it's released
 error-stack = { git = "https://github.com/hashintel/hash", rev = "5edddb5", features = ["spantrace"] }
 
-tokio = "1.18.2"
-tracing = "0.1.29"
+tokio = "1.19.2"
+tracing = "0.1.35"
 
 [[bin]]
 name = "hash_engine"
 path = "src/main.rs"
 
 [features]
-default = ["build-nng"]
 texray = ["experiment-control/texray"]
-build-nng = ["experiment-control/build-nng"]

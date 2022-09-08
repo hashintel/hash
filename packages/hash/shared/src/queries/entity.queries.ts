@@ -208,6 +208,10 @@ export const aggregateEntity = gql`
         id
         accountId
         entityId
+        entityType {
+          entityId
+          properties
+        }
         entityTypeId
         entityTypeVersionId
         entityTypeName

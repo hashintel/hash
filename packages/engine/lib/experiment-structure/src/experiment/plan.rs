@@ -5,6 +5,7 @@ use execution::package::experiment::{
     basic::{BasicExperimentConfig, SimpleExperimentConfig, SingleRunExperimentConfig},
     ExperimentName, ExperimentPackageConfig,
 };
+use json_comments::StripComments;
 use rand::{distributions::Distribution, Rng, RngCore};
 use rand_distr::{Beta, Gamma, LogNormal, Normal, Poisson};
 use serde::{Deserialize, Serialize};
@@ -50,7 +51,8 @@ fn get_simple_experiment_config(
         .as_ref()
         .ok_or_else(|| Report::new(ExperimentPlanError))
         .attach_printable("Experiment configuration not found: experiments.json")?;
-    let parsed = serde_json::from_str(experiments_manifest)
+    let experiments_manifest_comment_remover = StripComments::new(experiments_manifest.as_bytes());
+    let parsed = serde_json::from_reader(experiments_manifest_comment_remover)
         .into_report()
         .change_context(ExperimentPlanError)
         .attach_printable("Could not parse experiment manifest")?;

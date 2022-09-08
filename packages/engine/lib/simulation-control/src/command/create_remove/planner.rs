@@ -1,8 +1,8 @@
 //! TODO: DOC
 use std::sync::Arc;
 
-use arrow::record_batch::RecordBatch;
 use experiment_structure::SimulationRunConfig;
+use memory::arrow::record_batch::RecordBatch;
 use stateful::{
     agent::{AgentBatch, AgentSchema},
     proxy::PoolReadProxy,
@@ -40,7 +40,7 @@ impl CreateRemovePlanner {
         })
     }
 
-    pub fn run(&mut self, state_proxy: &StateReadProxy) -> Result<MigrationPlan<'_>> {
+    pub fn run(&mut self, state_proxy: &StateReadProxy) -> Result<MigrationPlan> {
         let mut pending = self.pending_plan(state_proxy.agent_pool())?;
 
         let number_inbound = self.commands.get_number_inbound();
@@ -166,7 +166,7 @@ fn buffer_actions_from_pending_batch<'a>(
 
     let range_actions = RangeActions::new(remove, copy, create);
 
-    let agent_batches = state_proxy.agent_pool().batches();
+    let agent_batches = state_proxy.agent_pool().batches_iter().collect::<Vec<_>>();
     BufferActions::from(
         &agent_batches,
         pending_batch.old_batch_index(),

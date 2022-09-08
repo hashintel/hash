@@ -29,7 +29,8 @@ impl<'a> MigrationPlan<'a> {
                 state
                     .agent_pool
                     .write_proxies()?
-                    .batches_mut()
+                    .batches_iter_mut()
+                    .collect::<Vec<_>>()
                     .par_iter_mut(),
             )
             .try_for_each::<_, Result<()>>(|(action, batch)| {

@@ -5,8 +5,6 @@
 
 use std::ops::{Index, IndexMut};
 
-#[cfg(not(target_vendor = "apple"))]
-use crate::{error::Error, shared_memory::markers::Val};
 use crate::{
     error::Result,
     shared_memory::{
@@ -176,8 +174,10 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
         self.prepare_buffer_write(&Buffer::Data, size)
     }
 
-    #[cfg(not(target_vendor = "apple"))]
+    #[cfg(not(target_os = "macos"))]
     pub fn shrink_with_data_length(&mut self, size: usize) -> Result<BufferChange> {
+        use crate::{shared_memory::markers::Val, Error};
+
         let markers = self.markers_mut();
         if size >= markers.data_size() {
             return Err(Error::ExpectedSmallerNewDataSize(self.memory.id().into()));

@@ -10,6 +10,7 @@ mod task;
 
 use std::sync::Arc;
 
+use arrow2::datatypes::Schema;
 use async_trait::async_trait;
 use stateful::{
     agent::AgentBatch,
@@ -114,18 +115,16 @@ impl StatePackageCreator for BehaviorExecutionCreator {
             .get_local_private_scoped_field_spec(BEHAVIOR_IDS_FIELD_NAME)?
             .create_key()?;
 
-        let behavior_ids_col_index = config
-            .agent_schema
-            .arrow
-            .index_of(behavior_ids_col.value())?;
+        let behavior_ids_col_index =
+            index_of(config.agent_schema.arrow.clone(), behavior_ids_col.value())?;
 
         let behavior_index_col = accessor
             .get_local_private_scoped_field_spec(BEHAVIOR_INDEX_FIELD_NAME)?
             .create_key()?;
-        let behavior_index_col_index = config
-            .agent_schema
-            .arrow
-            .index_of(behavior_index_col.value())?;
+        let behavior_index_col_index = index_of(
+            config.agent_schema.arrow.clone(),
+            behavior_index_col.value(),
+        )?;
 
         Ok(Box::new(BehaviorExecution {
             behavior_ids: Arc::clone(self.get_behavior_ids()?),
@@ -137,10 +136,20 @@ impl StatePackageCreator for BehaviorExecutionCreator {
     }
 }
 
+/// Finds the index of the given field in the [`Schema`].
+pub fn index_of(schema: Arc<Schema>, field_name: &str) -> crate::Result<usize> {
+    schema
+        .fields
+        .iter()
+        .enumerate()
+        .find_map(|(index, field)| (field.name == field_name).then_some(index))
+        .ok_or_else(|| Error::ColumnNotFound(field_name.to_string()))
+}
+
 pub struct BehaviorExecution {
     behavior_ids: Arc<BehaviorIds>,
     behavior_ids_col_index: usize,
-    behavior_ids_col_data_types: [arrow::datatypes::DataType; 3],
+    behavior_ids_col_data_types: [arrow2::datatypes::DataType; 3],
     behavior_index_col_index: usize,
     comms: PackageComms,
 }
@@ -156,7 +165,7 @@ impl BehaviorExecution {
         agent_proxies: &mut PoolWriteProxy<AgentBatch>,
     ) -> Result<()> {
         let behavior_ids = chain::gather_behavior_chains(
-            &agent_proxies.batches(),
+            &agent_proxies.batches_iter().collect::<Vec<_>>(),
             &self.behavior_ids,
             self.behavior_ids_col_data_types.clone(),
             self.behavior_ids_col_index,
@@ -177,8 +186,11 @@ impl BehaviorExecution {
     }
 
     /// Iterate over languages of first behaviors to choose first language runner to send task to
-    fn get_first_lang(&self, agent_batches: &[&AgentBatch]) -> Result<Option<Language>> {
-        for agent_pool in agent_batches.iter() {
+    fn get_first_lang<'a>(
+        &self,
+        agent_batches: &mut impl Iterator<Item = &'a AgentBatch>,
+    ) -> Result<Option<Language>> {
+        for agent_pool in agent_batches {
             for agent_behaviors in
                 chain::behavior_list_bytes_iter(agent_pool.batch.record_batch()?)?
             {
@@ -245,7 +257,7 @@ impl StatePackage for BehaviorExecution {
         //       (instead of reading behavior ids in Rust) or by returning the first language from
         //       fix_behavior_chains.
         state_proxy.maybe_reload()?;
-        let lang = match self.get_first_lang(&state_proxy.agent_pool().batches())? {
+        let lang = match self.get_first_lang(&mut state_proxy.agent_pool().batches_iter())? {
             Some(lang) => lang,
             None => {
                 tracing::warn!("No behaviors were found to execute");

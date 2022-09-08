@@ -26,16 +26,16 @@ A-engine:
   - "packages/engine/**/.*"
 
 A-learn:
-  - "resources/*"
-  - "resources/.*"
-  - "resources/**/*"
-  - "resources/**/.*"
+  - "sites/hashai/resources/*"
+  - "sites/hashai/resources/.*"
+  - "sites/hashai/resources/**/*"
+  - "sites/hashai/resources/**/.*"
 
-A-libs:
-  - "packages/libs/*"
-  - "packages/libs/.*"
-  - "packages/libs/**/*"
-  - "packages/libs/**/.*"
+A-error-stack:
+  - "packages/libs/error-stack/*"
+  - "packages/libs/error-stack/.*"
+  - "packages/libs/error-stack/**/*"
+  - "packages/libs/error-stack/**/.*"
 
 A-backend:
   - "packages/graph/*"

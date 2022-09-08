@@ -5,6 +5,7 @@ import {
 } from "@blockprotocol/graph";
 import { useGraphEmbedderService } from "@blockprotocol/graph/react";
 import { useHookEmbedderService } from "@blockprotocol/hook/react";
+import { Skeleton, SkeletonProps } from "@mui/material";
 import { FunctionComponent, useEffect, useRef } from "react";
 import { v4 as uuid } from "uuid";
 import { BlockRenderer } from "./blockRenderer";
@@ -27,8 +28,17 @@ type RemoteBlockProps = {
   onBlockLoaded?: () => void;
 };
 
-export const BlockLoadingIndicator: FunctionComponent = () => (
-  <div>Loading...</div>
+export const BlockLoadingIndicator: FunctionComponent<{
+  sx?: SkeletonProps["sx"];
+}> = ({ sx = [] }) => (
+  <Skeleton
+    animation="wave"
+    variant="rectangular"
+    sx={[
+      { borderRadius: 1, height: "32px" },
+      ...(Array.isArray(sx) ? sx : [sx]),
+    ]}
+  />
 );
 
 /**
@@ -121,10 +131,7 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
     throw err;
   }
 
-  const propsToInject: BlockGraphProperties<Record<string, any>> & {
-    editableRef: any;
-  } = {
-    editableRef,
+  const propsToInject: BlockGraphProperties<Record<string, any>> = {
     graph: graphProperties,
   };
 
@@ -137,7 +144,9 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
           properties={propsToInject}
           sourceUrl={blockMetadata.source}
         />
-      ) : null}
+      ) : (
+        <BlockLoadingIndicator />
+      )}
     </div>
   );
 };

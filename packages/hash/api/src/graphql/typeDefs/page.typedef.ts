@@ -104,6 +104,7 @@ export const pageTypedef = gql`
     pageEntityId: String!
     summary: String
     title: String!
+    index: String!
     icon: String
   }
 
@@ -172,6 +173,7 @@ export const pageTypedef = gql`
     icon: String
     summary: String
     archived: Boolean
+    index: String
   }
 
   """
@@ -339,7 +341,11 @@ export const pageTypedef = gql`
   }
 
   extend type Mutation {
-    createPage(accountId: ID!, properties: PageCreationData!): Page!
+    createPage(
+      accountId: ID!
+      properties: PageCreationData!
+      prevIndex: String
+    ): Page!
 
     updatePage(
       accountId: ID!
@@ -356,6 +362,8 @@ export const pageTypedef = gql`
       accountId: ID!
       pageEntityId: ID!
       parentPageEntityId: ID
+      prevIndex: String
+      nextIndex: String
     ): Page!
 
     """

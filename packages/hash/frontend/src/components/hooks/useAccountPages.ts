@@ -7,12 +7,15 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 
+export type AccountPage = {
+  title: string;
+  entityId: string;
+  parentPageEntityId?: string | null;
+  index: string;
+};
+
 export type AccountPagesInfo = {
-  data: {
-    title: string;
-    entityId: string;
-    parentPageEntityId?: string | null;
-  }[];
+  data: AccountPage[];
   loading: boolean;
 };
 
@@ -29,11 +32,16 @@ export const useAccountPages = (accountId: string): AccountPagesInfo => {
       return [];
     }
 
-    return data?.accountPages.map((page) => ({
-      title: page.properties.title,
-      entityId: page.entityId,
-      parentPageEntityId: page.parentPageEntityId,
-    }));
+    return data?.accountPages.map(
+      ({ entityId, parentPageEntityId, properties: { title, index } }) => {
+        return {
+          entityId,
+          parentPageEntityId,
+          title,
+          index,
+        };
+      },
+    );
   }, [data]);
 
   return { data: accountPages, loading };

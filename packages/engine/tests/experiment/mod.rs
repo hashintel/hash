@@ -210,7 +210,9 @@ pub async fn run_test_suite(
                     log_folder: output.join("log"),
                     log_level: *log_level,
                     output_folder: output,
-                    output_location: OutputLocation::File("output.log".into()),
+                    output_location: OutputLocation::File {
+                        path: "output.log".into(),
+                    },
                     start_timeout,
                     wait_timeout,
                     js_runner_initial_heap_constraint: None,
@@ -377,10 +379,10 @@ fn parse_file<T: DeserializeOwned, P: AsRef<Path>>(path: P) -> Result<T, TestErr
     let path = path.as_ref();
     serde_json::from_reader(BufReader::new(
         File::open(path)
-            .report()
+            .into_report()
             .change_context_lazy(|| TestError::parse_error(path))?,
     ))
-    .report()
+    .into_report()
     .change_context_lazy(|| TestError::parse_error(path))
 }
 
@@ -480,7 +482,7 @@ impl ExpectedOutput {
         for (step, expected_states) in json_state {
             let step = step
                 .parse::<usize>()
-                .report()
+                .into_report()
                 .change_context_lazy(|| TestError::invalid_step(step.clone()))?;
             let result_states = agent_states
                 .get(step)

@@ -17,6 +17,7 @@ import {
 import {
   componentNodeToId,
   isComponentNode,
+  isParagraphNode,
 } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { textBlockNodeToEntityProperties } from "@hashintel/hash-shared/text";
@@ -272,6 +273,17 @@ export class ComponentView implements NodeView<Schema> {
           this.wasSuggested = false;
         }),
       );
+    }
+
+    const isParagraph = isParagraphNode(this.node);
+
+    const isTheOnlyChild = this.editorView.state.doc.childCount === 1;
+    const isEmpty = this.node.content.size === 0;
+
+    const shouldFocusOnLoad = isParagraph && isTheOnlyChild && isEmpty;
+
+    if (shouldFocusOnLoad) {
+      this.editorView.focus();
     }
   };
 

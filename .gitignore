@@ -73,7 +73,7 @@ dist
 build
 
 # vscode config
-.vscode/settings.json
+**/.vscode/settings.json
 
 # intellij IDEs config
 /.idea/

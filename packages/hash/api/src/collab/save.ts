@@ -86,8 +86,6 @@ const ensureEntityTypeForComponent = async (
     const block = await fetchBlock(componentId);
     const jsonSchema = JSON.parse(JSON.stringify(block.schema));
 
-    delete jsonSchema.properties.editableRef;
-
     jsonSchema.componentId = componentId;
 
     desiredEntityTypeId = generatePlaceholderId();

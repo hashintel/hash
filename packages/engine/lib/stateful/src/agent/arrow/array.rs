@@ -1,18 +1,16 @@
 use std::sync::Arc;
 
-use arrow::{
+use arrow2::{
     array::{
-        Array, ArrayData, ArrayDataBuilder, ArrayRef, FixedSizeBinaryArray, FixedSizeBinaryBuilder,
-        FixedSizeListArray, Float64Array,
+        Array, FixedSizeBinaryArray, FixedSizeListArray, MutableFixedSizeBinaryArray,
+        PrimitiveArray,
     },
-    buffer::MutableBuffer,
-    datatypes::{DataType, Field, Float64Type, Schema},
-    record_batch::RecordBatch,
-    util::bit_util,
+    chunk::Chunk,
+    datatypes::{DataType, Schema},
 };
 use memory::arrow::{
     json_vals_to_any_type_col, json_vals_to_bool, json_vals_to_col, json_vals_to_primitive,
-    json_vals_to_utf8, new_zero_bits,
+    json_vals_to_utf8, record_batch::RecordBatch,
 };
 
 use crate::{
@@ -76,15 +74,14 @@ impl IntoRecordBatch for &[&Agent] {
     }
 
     fn to_agent_batch(&self, schema: &AgentSchema) -> Result<RecordBatch> {
-        let mut cols = Vec::with_capacity(schema.arrow.fields().len());
+        let mut cols = Vec::with_capacity(schema.arrow.fields.len());
 
-        for field in schema.arrow.fields() {
-            // If `name` isn't cloned, Rust wants schema to have longer lifetime.
-            let name = field.name().clone();
+        for field in &schema.arrow.fields {
+            let name = field.name.as_str();
 
             let vals: Vec<serde_json::Value> = self
                 .iter()
-                .map(|agent: &&Agent| agent.get_as_json(name.as_str()))
+                .map(|agent: &&Agent| agent.get_as_json(name))
                 .collect::<Result<_>>()?;
 
             // If use `match` instead of `if`, Rust infers that
@@ -93,33 +90,33 @@ impl IntoRecordBatch for &[&Agent] {
             let col = if name.eq(AgentStateField::AgentId.name()) {
                 agents_to_id_col(self)?
             } else if name == AgentStateField::AgentName.name() {
-                Arc::new(json_vals_to_utf8(vals, true)?)
+                Box::new(json_vals_to_utf8(vals, true)?)
             } else if name == AgentStateField::Messages.name() {
-                Arc::new(MessageArray::from_json(vals)?)
+                Box::new(MessageArray::from_json(vals)?)
             } else if name == AgentStateField::Position.name() {
-                Arc::new(agents_to_position_col(self)?)
+                Box::new(agents_to_position_col(self)?)
             } else if name == AgentStateField::Direction.name()
                 || name == AgentStateField::Velocity.name()
             {
-                Arc::new(agents_to_direction_col(self)?)
+                Box::new(agents_to_direction_col(self)?)
             } else if name == AgentStateField::Shape.name() {
-                Arc::new(json_vals_to_utf8(vals, true)?)
+                Box::new(json_vals_to_utf8(vals, true)?)
             } else if name == AgentStateField::Height.name() {
-                Arc::new(json_vals_to_primitive::<Float64Type>(vals, true)?)
+                Box::new(json_vals_to_primitive::<f64>(vals, true)?)
             } else if name == AgentStateField::Scale.name() {
-                Arc::new(agents_to_scale_col(self)?)
+                Box::new(agents_to_scale_col(self)?)
             } else if name == AgentStateField::Color.name() {
-                Arc::new(json_vals_to_utf8(vals, true)?)
+                Box::new(json_vals_to_utf8(vals, true)?)
             } else if name == AgentStateField::Rgb.name() {
-                Arc::new(agents_to_rgb_col(self)?)
+                Box::new(agents_to_rgb_col(self)?)
             } else if name == AgentStateField::Hidden.name() {
-                Arc::new(json_vals_to_bool(vals)?)
+                Box::new(json_vals_to_bool(vals)?)
             } else if name == PREVIOUS_INDEX_FIELD_KEY {
                 previous_index_to_empty_col(self.len(), field.data_type().clone())?
             } else if matches!(
                 schema
                     .field_spec_map
-                    .get_field_spec(&RootFieldKey::new(name))?
+                    .get_field_spec(&RootFieldKey::new(name.to_string()))?
                     .inner
                     .field_type
                     .variant,
@@ -128,57 +125,49 @@ impl IntoRecordBatch for &[&Agent] {
                 // Any-type (JSON string) column
                 json_vals_to_any_type_col(vals, field.data_type())?
             } else {
-                json_vals_to_col(vals, field, field.is_nullable())?
+                json_vals_to_col(vals, field, field.is_nullable)?
             };
             cols.push(col);
         }
-        RecordBatch::try_new(schema.arrow.clone(), cols).map_err(Error::from)
+        // todo: implement RecordBatch::try_new
+        Ok(RecordBatch::new(schema.arrow.clone(), Chunk::new(cols)))
     }
 }
 
 // `get_agent_id_array` is needed for public interface, but
 // this function avoids copying ids to separate `Vec`.
-fn agents_to_id_col(agents: &[&Agent]) -> Result<ArrayRef> {
-    let mut builder = FixedSizeBinaryBuilder::new(agents.len() * UUID_V4_LEN, UUID_V4_LEN as i32);
+fn agents_to_id_col(agents: &[&Agent]) -> Result<Box<dyn Array>> {
+    let mut builder = MutableFixedSizeBinaryArray::with_capacity(UUID_V4_LEN, agents.len());
     for agent in agents {
-        builder_add_id(&mut builder, agent.agent_id)?;
+        builder.push(Some(agent.agent_id.as_bytes()));
     }
-    Ok(Arc::new(builder.finish()))
+    let array: FixedSizeBinaryArray = builder.into();
+    debug_assert_eq!(array.len(), agents.len());
+    Ok(array.boxed())
 }
 
 macro_rules! agents_to_vec_col_gen {
     ($field_name:ident, $function_name:ident) => {
         fn $function_name(agents: &[&Agent]) -> Result<FixedSizeListArray> {
-            let mut flat: Vec<f64> = Vec::with_capacity(agents.len() * 3);
-            let mut null_bits = new_zero_bits(agents.len());
-            let mut_null_bits = null_bits.as_slice_mut();
-            let mut null_count = 0;
-            for (i_agent, agent) in agents.iter().enumerate() {
+            let mut flat: arrow2::array::MutableFixedSizeListArray<
+                arrow2::array::MutablePrimitiveArray<f64>,
+            > = arrow2::array::MutableFixedSizeListArray::new(
+                arrow2::array::MutablePrimitiveArray::new(),
+                3,
+            );
+
+            for agent in agents {
                 if let Some(dir) = agent.$field_name {
-                    flat.push(dir.0);
-                    flat.push(dir.1);
-                    flat.push(dir.2);
-                    bit_util::set_bit(mut_null_bits, i_agent);
+                    arrow2::array::TryPush::try_push(
+                        &mut flat,
+                        Some([Some(dir.0), Some(dir.1), Some(dir.2)]),
+                    )?;
                 } else {
-                    // Null -- put arbitrary data
-                    flat.push(0.0);
-                    flat.push(0.0);
-                    flat.push(0.0);
-                    null_count += 1;
+                    arrow2::array::TryPush::try_push(&mut flat, Option::<[Option<f64>; 3]>::None)?;
                 }
             }
-            let child_array: Float64Array = flat.into();
 
-            let dt =
-                DataType::FixedSizeList(Box::new(Field::new("item", DataType::Float64, true)), 3);
-
-            Ok(ArrayData::builder(dt)
-                .len(agents.len())
-                .null_count(null_count)
-                .null_bit_buffer(null_bits.into())
-                .add_child_data(child_array.data().clone())
-                .build()?
-                .into())
+            Ok(flat.into())
         }
     };
 }
@@ -188,24 +177,18 @@ agents_to_vec_col_gen!(position, agents_to_position_col);
 agents_to_vec_col_gen!(scale, agents_to_scale_col);
 agents_to_vec_col_gen!(rgb, agents_to_rgb_col);
 
-fn previous_index_to_empty_col(num_agents: usize, dt: DataType) -> Result<ArrayRef> {
+fn previous_index_to_empty_col(num_agents: usize, dt: DataType) -> Result<Box<dyn Array>> {
     if let DataType::FixedSizeList(inner_field, inner_len) = dt.clone() {
         debug_assert!(matches!(inner_field.data_type(), DataType::UInt32));
-        let data_byte_size = inner_len as usize * num_agents * std::mem::size_of::<u32>();
-        let mut buffer = MutableBuffer::new(data_byte_size);
-        buffer.resize(data_byte_size, 0);
 
-        let data = ArrayDataBuilder::new(dt)
-            .len(num_agents)
-            .add_child_data(
-                ArrayData::builder(inner_field.data_type().clone())
-                    .len(num_agents * inner_len as usize)
-                    .add_buffer(buffer.into())
-                    .build()?,
-            )
-            .build()?;
+        let primitive: PrimitiveArray<u32> =
+            PrimitiveArray::new_null(DataType::UInt32, num_agents * inner_len);
 
-        Ok(Arc::new(arrow::array::FixedSizeListArray::from(data)))
+        Ok(Box::new(arrow2::array::FixedSizeListArray::new(
+            DataType::FixedSizeList(inner_field, inner_len),
+            primitive.boxed(),
+            None,
+        )))
     } else {
         Err(Error::from(format!(
             "previous_index_to_empty_col was called on the wrong datatype: {:?}",
@@ -214,15 +197,10 @@ fn previous_index_to_empty_col(num_agents: usize, dt: DataType) -> Result<ArrayR
     }
 }
 
-fn builder_add_id(builder: &mut FixedSizeBinaryBuilder, id: AgentId) -> Result<()> {
-    Ok(builder.append_value(id.as_bytes())?)
-}
-
 pub(crate) fn get_agent_id_array(agent_ids: &[AgentId]) -> Result<FixedSizeBinaryArray> {
-    let mut builder =
-        FixedSizeBinaryBuilder::new(agent_ids.len() * UUID_V4_LEN, UUID_V4_LEN as i32);
+    let mut builder = MutableFixedSizeBinaryArray::with_capacity(UUID_V4_LEN, UUID_V4_LEN);
     for agent_id in agent_ids {
-        builder_add_id(&mut builder, *agent_id)?;
+        builder.push(Some(agent_id.as_bytes()));
     }
-    Ok(builder.finish())
+    Ok(builder.into())
 }

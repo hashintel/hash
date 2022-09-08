@@ -1,3 +1,9 @@
+//! The hEngine CLI
+//!
+//! A binary responsible for the orchestration and management of hEngine processes that are used to
+//! run HASH simulation projects. This CLI is a light-weight implementation of an [`orchestrator`]
+//! which enables the running of an experiment through the command-line, accepting a variety of
+//! [`Args`].
 #![allow(clippy::module_inception)]
 
 use std::{

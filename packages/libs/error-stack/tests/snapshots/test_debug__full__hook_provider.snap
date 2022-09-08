@@ -1,0 +1,21 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:?}\")"
+---
+Context D
+├╴tests/test_debug.rs:578:38
+├╴usize: 420
+├╴&'static str: Invalid User Input
+│
+╰─▶ Root error
+    ├╴tests/common.rs:147:5
+    ├╴backtrace with [n] frames (1)
+    ╰╴spantrace with 2 frames (1)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Backtrace No. 1
+  [redacted]
+
+Span Trace No. 1
+  [redacted]

@@ -1,4 +1,9 @@
-use crate::arrow::meta::{Column, Dynamic, NodeStatic};
+use std::sync::Arc;
+
+use arrow2::datatypes::Schema;
+
+use super::conversion::{schema_to_column_hierarchy, ColumnHeirarchy};
+use crate::arrow::meta::{Column, DynamicMetadata, NodeStatic};
 
 /// Static metadata remains constant for a simulation run.
 ///
@@ -6,7 +11,7 @@ use crate::arrow::meta::{Column, Dynamic, NodeStatic};
 /// columns. This is basically the hierarchical map to Arrow metadata and hence `DynamicMeta`. Also
 /// contains information about which buffers are growable.
 #[derive(Debug, Clone)]
-pub struct Static {
+pub struct StaticMetadata {
     /// Column-level information
     column_meta: Vec<Column>,
     /// Information on whether each buffer is growable or not. This is currently not used, as all
@@ -18,16 +23,16 @@ pub struct Static {
     node_count: usize,
 }
 
-impl Static {
+impl StaticMetadata {
     #[must_use]
     pub fn new(
         column_meta: Vec<Column>,
         padding_meta: Vec<bool>,
         node_meta: Vec<NodeStatic>,
-    ) -> Static {
+    ) -> StaticMetadata {
         let buffer_count = padding_meta.len();
         let node_count = column_meta.iter().fold(0, |acc, col| acc + col.node_count);
-        Static {
+        StaticMetadata {
             column_meta,
             padding_meta,
             node_meta,
@@ -36,7 +41,7 @@ impl Static {
         }
     }
 
-    pub fn validate_lengths(&self, dynamic: &Dynamic) -> bool {
+    pub fn validate_lengths(&self, dynamic: &DynamicMetadata) -> bool {
         let base_length = dynamic.length;
         for (i, col) in self.column_meta.iter().enumerate() {
             let node = &dynamic.nodes[col.node_start];
@@ -76,5 +81,14 @@ impl Static {
     #[must_use]
     pub fn get_node_count(&self) -> usize {
         self.node_count
+    }
+
+    pub fn from_schema(schema: Arc<Schema>) -> Self {
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(schema);
+        Self::new(column_indices, padding_meta, node_meta)
     }
 }

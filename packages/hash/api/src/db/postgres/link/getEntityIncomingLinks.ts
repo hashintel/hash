@@ -26,7 +26,7 @@ export const getEntityIncomingLinks = async (
           all_links.source_account_id = incoming_links.source_account_id
         and
           all_links.link_id = incoming_links.link_id
-  `);
+`);
 
   return rows.map(mapDbRowsToDbLink);
 };
