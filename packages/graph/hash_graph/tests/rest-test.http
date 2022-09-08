@@ -319,7 +319,7 @@ Accept: application/json
 %}
 
 ### Get Person entity
-GET http://127.0.0.1:4000/entities/fdsfds
+GET http://127.0.0.1:4000/entities/{{person_a_entity_id}}
 
 > {%
     client.test("status", function() {
