@@ -30,7 +30,7 @@ let textDataTypeModel: DataTypeModel;
 let propertyTypeSchema: Omit<PropertyType, "$id">;
 
 beforeAll(async () => {
-  accountId = await createTestUser(graphApi, "propertytypetest", logger);
+  accountId = await createTestUser(graphApi, "property-type-test", logger);
 
   textDataTypeModel = await DataTypeModel.create(graphApi, {
     accountId,

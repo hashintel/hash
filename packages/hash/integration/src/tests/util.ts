@@ -98,7 +98,7 @@ import {
 
 const randomStringSuffix = () => {
   const alphabet = "abcdefghijklmnopqrstuvwxyz";
-  return new Array(7)
+  return new Array(6)
     .fill(undefined)
     .map(() => alphabet[Math.floor(Math.random() * alphabet.length)])
     .join("");

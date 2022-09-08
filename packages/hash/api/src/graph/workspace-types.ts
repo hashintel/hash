@@ -118,14 +118,12 @@ const orgNamePropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
-// Generate the schema for the org size property type
 const orgSizePropertyTypeInitializer = propertyTypeInitializer({
   namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   title: "Organization Size",
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
-// Generate the schema for the email property type
 const emailPropertyTypeInitializer = propertyTypeInitializer({
   namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   title: "Email",

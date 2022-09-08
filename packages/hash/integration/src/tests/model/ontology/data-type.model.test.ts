@@ -38,7 +38,7 @@ const dataTypeSchema: Pick<
 };
 
 beforeAll(async () => {
-  accountId = await createTestUser(graphApi, "datatypetest", logger);
+  accountId = await createTestUser(graphApi, "data-type-test", logger);
 });
 
 describe("Data type CRU", () => {
