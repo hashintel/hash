@@ -1,7 +1,7 @@
 import {
-  AggregationVersion,
-  EntityVersion,
-  LinkVersion,
+  // AggregationVersion,
+  Entity,
+  Link,
 } from "@hashintel/hash-backend-utils/pgTables";
 import { QueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/adapter";
 import { Wal2JsonMsg } from "@hashintel/hash-backend-utils/wal2json";
@@ -60,14 +60,15 @@ export class EntityWatcher {
      */
     if (msg.action !== "D") {
       const message: RealtimeMessage =
-        msg.table === "entity_versions"
-          ? { table: msg.table, record: EntityVersion.parseWal2JsonMsg(msg) }
-          : msg.table === "link_versions"
-          ? { table: msg.table, record: LinkVersion.parseWal2JsonMsg(msg) }
-          : {
-              table: msg.table,
-              record: AggregationVersion.parseWal2JsonMsg(msg),
-            };
+        msg.table === "entities"
+          ? { table: msg.table, record: Entity.parseWal2JsonMsg(msg) }
+          : { table: msg.table, record: Link.parseWal2JsonMsg(msg) };
+      // : msg.table === "links"
+      // ? { table: msg.table, record: Link.parseWal2JsonMsg(msg) }
+      // : {
+      //     table: msg.table,
+      //     record: AggregationVersion.parseWal2JsonMsg(msg),
+      //   };
 
       for (const subscriber of this.subscriptions) {
         try {
