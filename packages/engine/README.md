@@ -147,6 +147,8 @@ Where CLI args are described below in the [Usage](#usage) section, an example of
 cargo run --bin cli -- <CLI ARGS> -p "<PATH TO HASH PROJECT DIR>" single-run --num-steps <NUM-STEPS>
 ```
 
+**Important**: if you want to use Python behaviors, see the "run a simulation" section for instructions on how to activate the Python virtual environment.
+
 ## Quick Start Guide
 
 This guide will walk you through downloading a [demo simulation], running it, and then finding and verifying its output.
@@ -189,6 +191,11 @@ The CLI comes with a short help page: `cli help` or `cli -h`. A more detailed ex
 If one of the environment variables shown in the help page is passed, it will overwrite the default values. Parameters take precedence over environment variables.
 
 ### Run a simulation
+
+> **IMPORTANT**: if your simulation includes any Python behaviors, then you will need to ensure that the Python virtual environment is activated (it _may_ be possible to use the system default Python interpreter if it has all the necessary dependencies installed, however, we do not recommend this) when running the Engine. The easiest way to do this is by running (from the same directory as this README file)
+> ```
+> . lib/execution/src/runner/python/runner_venv/bin/activate
+> ```
 
 > **Warning** - Rust runners are currently not supported. Within your simulation project, you should only see `.js` files within dependencies (for example, dependencies/@hash/age/src/behaviors/age.js). Files ending in `.rs` will be ignored and the run will possibly fail in unclear ways.
 >
