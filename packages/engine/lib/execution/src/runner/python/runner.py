@@ -35,6 +35,9 @@ class Runner:
             datasets_builder[key] = json.loads(value)
         self.experiment_ctx = ExperimentContext(datasets_builder)
 
+        user_warnings = []
+        user_errors = []
+
         for (msg, fns) in zip(package_init_msgs, package_functions):
             package_start_experiment = fns["start_experiment"]
             pkg = self.pkgs[msg["id"]] = {
@@ -49,9 +52,23 @@ class Runner:
             }
             if package_start_experiment:
                 payload = json.loads(msg["payload"])
-                package_start_experiment(
-                    pkg["experiment"], payload, self.experiment_ctx
-                )
+                try:
+                    result = package_start_experiment(
+                        pkg["experiment"], payload, self.experiment_ctx
+                    )
+                    warnings = result.get("warnings")
+                    if warnings is not None:
+                        user_warnings.extend(warnings)
+                except Exception:
+                    pkg_name = pkg["name"]
+                    origin = "experiment init"
+                    exc_info = sys.exc_info()
+                    error = (
+                        f"Package `{pkg_name}` {origin}: {format_exc_info(exc_info)}"
+                    )
+                    user_errors.push(error)
+
+        return {"user_warnings": user_warnings, "user_errors": user_errors}
 
     def _handle_experiment_init_result(self, pkg, result):
         """
@@ -78,25 +95,6 @@ class Runner:
         #     return True
 
         return False
-
-    def _handle_pkg_error(self, pkg, origin, exc_info, sim_id=0):
-        """
-        :param pkg: The package object, with at least experiment-level data
-        :param origin: What part of the package's source code the error
-                       occurred in (e.g. sim init, experiment init)
-        :param exc_info: See `format_exc_info` in `util.py`.
-        :param sim_id: ID of the simulation run from which the error originated.
-                       If the error isn't specific to any simulation run, we
-                       use 0 as an invalid id.
-        """
-        pkg_name = pkg["name"]
-        error = f"Package `{pkg_name}` {origin}: {format_exc_info(exc_info)}"
-        # TODO: Custom log level(s) for non-engine (i.e. package/user) errors/warnings,
-        #       e.g. `logging.external_error`?
-        logging.error(
-            error
-        )  # First make sure the error gets logged; then try to send it.
-        # self.messenger.send_pkg_error(error, sim_id)
 
     def _free_after_sent(self):
         """
@@ -241,6 +239,7 @@ class Runner:
             state = sim.state.get_group(group_idx)
             ctx = sim.context.get_group(group_idx)
 
+        user_errors = []
         pkg = self.pkgs[pkg_id]
         try:
             # TODO: Pass `task_id` to package?
@@ -252,7 +251,11 @@ class Runner:
             )
         except Exception:
             # Have to catch generic Exception, because package could throw anything.
-            self._handle_pkg_error(pkg, "run_task", sys.exc_info(), sim_id)
+            pkg_name = pkg["name"]
+            origin = "run_task"
+            exc_info = sys.exc_info()
+            error = f"Package `{pkg_name}` {origin}: {format_exc_info(exc_info)}"
+            user_errors.append(error)
             self.sims.pop(str(sim_id))
             return
 
@@ -263,7 +266,12 @@ class Runner:
 
         # TODO: OPTIM chaining if `continuation.target == "Python"`
         # NOTE: this should probably be implemented on the Rust side
-        ret = {"changes": changes, **continuation}
+        ret = {
+            "changes": changes,
+            "user_warnings": [],
+            "user_errors": user_errors,
+            **continuation,
+        }
         if not "task" in ret:
             ret["task"] = "{}"
         return ret

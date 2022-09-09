@@ -31,42 +31,41 @@ impl<'py> PyHandle<'py> {
         tracing::trace!("handling incoming message (type: {})", msg.as_str());
         match msg {
             InboundToRunnerMsgPayload::TaskMsg(msg) => {
-                let sim_id =
-                    sim_id.ok_or_else(|| PythonError::SimulationIdRequired("run task".to_owned()))?;
+                let sim_id = sim_id
+                    .ok_or_else(|| PythonError::SimulationIdRequired("run task".to_owned()))?;
                 self.handle_task_msg(sim_id, msg, outbound_sender)?
             }
             InboundToRunnerMsgPayload::CancelTask(_) => {
                 todo!("cancel messages have not yet been implemented")
             }
             InboundToRunnerMsgPayload::StateSync(msg) => {
-                let sim_id =
-                    sim_id.ok_or_else(|| PythonError::SimulationIdRequired("state sync".to_owned()))?;
+                let sim_id = sim_id
+                    .ok_or_else(|| PythonError::SimulationIdRequired("state sync".to_owned()))?;
                 self.state_sync(sim_id, msg)?;
             }
             InboundToRunnerMsgPayload::StateSnapshotSync(msg) => {
-                let sim_id =
-                    sim_id.ok_or_else(|| PythonError::SimulationIdRequired("state sync".to_owned()))?;
+                let sim_id = sim_id
+                    .ok_or_else(|| PythonError::SimulationIdRequired("state sync".to_owned()))?;
                 self.state_snapshot_sync(sim_id, msg)
                     .map_err(PythonError::from)?;
             }
             InboundToRunnerMsgPayload::ContextBatchSync(msg) => {
-                let sim_id = sim_id.ok_or_else(|| PythonError::SimulationIdRequired(
-                    "context batch sync".to_owned(),
-                ))?;
+                let sim_id = sim_id.ok_or_else(|| {
+                    PythonError::SimulationIdRequired("context batch sync".to_owned())
+                })?;
                 self.context_batch_sync(sim_id, msg)
                     .map_err(PythonError::from)?;
             }
             InboundToRunnerMsgPayload::StateInterimSync(msg) => {
-                let sim_id = sim_id.ok_or_else( || PythonError::SimulationIdRequired(
-                    "state interim sync".to_owned(),
-                ))?;
+                let sim_id = sim_id.ok_or_else(|| {
+                    PythonError::SimulationIdRequired("state interim sync".to_owned())
+                })?;
                 self.state_interim_sync(sim_id, &msg.shared_store)
                     .map_err(PythonError::from)?;
             }
             InboundToRunnerMsgPayload::TerminateSimulationRun => {
-                let sim_id = sim_id.ok_or_else(|| PythonError::SimulationIdRequired(
-                    "terminate sim".to_owned(),
-                ))?;
+                let sim_id = sim_id
+                    .ok_or_else(|| PythonError::SimulationIdRequired("terminate sim".to_owned()))?;
                 self.simulation_states
                     .remove(&sim_id)
                     .ok_or(PythonError::TerminateMissingSimulationRun(sim_id))?;
@@ -106,7 +105,7 @@ impl<'py> PyHandle<'py> {
         let py_package_id = usize::from(msg.package_id.as_usize()).to_object(self.py);
 
         // TODO: handle user errors differently to fatal errors
-        let next_task_msg = self.run_task(
+        let (next_task_msg, status) = self.run_task(
             &[py_sim_id, group_index, py_package_id, payload_str],
             sim_id,
             msg.group_index,
@@ -115,6 +114,8 @@ impl<'py> PyHandle<'py> {
             &wrapper,
             msg.shared_store,
         )?;
+
+        status.send(sim_id, outbound_sender, Language::Python)?;
 
         tracing::trace!("sent task message from Python runner");
         outbound_sender

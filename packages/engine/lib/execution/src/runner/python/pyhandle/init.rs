@@ -9,7 +9,9 @@ use pyo3::{
 
 use self::py_runner::PyRunner;
 use super::{package::PyPackage, PyHandle};
-use crate::runner::comms::ExperimentInitRunnerMsg;
+use crate::runner::{
+    common_to_runners::UserProgramExecutionStatus, comms::ExperimentInitRunnerMsg,
+};
 
 impl<'py> PyHandle<'py> {
     /// Creates a new [`PyHandle`].
@@ -22,7 +24,7 @@ impl<'py> PyHandle<'py> {
     pub(crate) fn new(
         py: Python<'py>,
         init_msg: &ExperimentInitRunnerMsg,
-    ) -> PyResult<PyHandle<'py>> {
+    ) -> PyResult<(PyHandle<'py>, UserProgramExecutionStatus)> {
         tracing::trace!("loading shared datasets");
         let datasets = {
             let upgraded = init_msg.shared_context.upgrade().expect(
@@ -94,16 +96,21 @@ impl<'py> PyHandle<'py> {
             Self::get_py_funcs(Self::import_necessary_modules(py));
         tracing::trace!("finished loading Python Runner class");
 
-        py_functions.start_experiment(py, datasets, package_names, package_functions)?;
+        let status =
+            py_functions.start_experiment(py, datasets, package_names, package_functions)?;
+        let status = status.extract(py)?;
 
         tracing::trace!("created new PyHandle");
 
-        Ok(Self {
-            py,
-            pyarrow: pyarrow.into_py(py),
-            py_functions,
-            simulation_states: Default::default(),
-        })
+        Ok((
+            Self {
+                py,
+                pyarrow: pyarrow.into_py(py),
+                py_functions,
+                simulation_states: Default::default(),
+            },
+            status,
+        ))
     }
 
     /// Does the same thing as [`PyHandle::try_read_arbitrary_file`], except that it panics if it
@@ -232,9 +239,10 @@ pub(crate) mod py_runner {
             datasets: &PyDict,
             msg: &PyList,
             fns: &PyList,
-        ) -> PyResult<()> {
+        ) -> PyResult<Py<PyAny>> {
             tracing::trace!("calling Runner.start_experiment (in runner.py)");
-            self.class
+            let result = self
+                .class
                 .getattr(py, "start_experiment")?
                 .call1(
                     py,
@@ -244,7 +252,6 @@ pub(crate) mod py_runner {
                         fns.cast_as::<PyAny>().unwrap(),
                     ]),
                 )
-                .map(|ret| debug_assert!(ret.is_none(py)))
                 .map_err(|e| {
                     e.print(py);
                     e
@@ -252,7 +259,7 @@ pub(crate) mod py_runner {
                 .unwrap();
             tracing::trace!("finished calling Runner.start_experiment (in runner.py)");
 
-            Ok(())
+            Ok(result)
         }
 
         #[allow(clippy::too_many_arguments)]

@@ -16,10 +16,7 @@ use crate::{
 };
 
 pub struct PythonRunner {
-    // `JavaScriptRunner` and `ThreadLocalRunner` are separate because the V8 Isolate inside
-    // `ThreadLocalRunner` can't be sent between threads.
     init_msg: Arc<ExperimentInitRunnerMsg>,
-    // Args to `ThreadLocalRunner::new`
     inbound_sender: UnboundedSender<(Span, Option<SimulationId>, InboundToRunnerMsgPayload)>,
     inbound_receiver:
         Option<UnboundedReceiver<(Span, Option<SimulationId>, InboundToRunnerMsgPayload)>>,

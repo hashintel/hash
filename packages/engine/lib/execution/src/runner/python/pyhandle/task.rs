@@ -5,6 +5,7 @@ use super::PyHandle;
 use crate::{
     package::simulation::SimulationId,
     runner::{
+        common_to_runners::UserProgramExecutionStatus,
         comms::{RunnerTaskMessage, TargetedRunnerTaskMsg},
         python::error::PythonError,
         MessageTarget,
@@ -23,7 +24,7 @@ impl<'py> PyHandle<'py> {
         task_id: TaskId,
         wrapper: &serde_json::Value,
         mut shared_store: TaskSharedStore,
-    ) -> crate::Result<TargetedRunnerTaskMsg> {
+    ) -> crate::Result<(TargetedRunnerTaskMsg, UserProgramExecutionStatus)> {
         tracing::trace!("Running task (Rust `run_task` function)");
 
         shared_store.reload_data_if_necessary();
@@ -38,14 +39,14 @@ impl<'py> PyHandle<'py> {
                 );
                 obj
             })
-            .map_err(|e| {
-                e.print(self.py);
-                e
-            })
             .expect("Python runner supplied incorrect data to engine (this is a bug)");
         let return_val = return_val
             .cast_as::<PyDict>(self.py)
             .expect("Python runner supplied incorrect data to engine (this is a bug)");
+
+        let status = return_val
+            .extract::<UserProgramExecutionStatus>()
+            .map_err(PythonError::PyErr)?;
 
         let (next_target, next_task_payload) =
             self.get_next_task(return_val).map_err(PythonError::from)?;
@@ -76,7 +77,7 @@ impl<'py> PyHandle<'py> {
             },
         };
 
-        Ok(next_task_msg)
+        Ok((next_task_msg, status))
     }
 
     fn get_next_task(&self, val: &PyDict) -> PyResult<(MessageTarget, String)> {

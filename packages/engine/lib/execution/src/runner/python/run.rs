@@ -38,13 +38,22 @@ pub(crate) fn run_experiment(
             // subsequent iterations of the loop will be unable to use this
             // value. What we do is call `Option::take` on the enumeration when
             // we need owned access to the `SavedPyHandle`, perform the
-            // necessary operations with, and then "return" the handle to its
+            // necessary operations which can only be executed while we have the
+            // global interpreter lock, and then "return" the handle to its
             // place by setting `handle = locally_taken_handle;`
-            let mut handle: Option<SavedPyHandle> = Some(Python::with_gil(|py| {
-                PyResult::Ok(PyHandle::new(py, init_msg.as_ref())?.release_gil())
+            let (mut handle, status): (Option<SavedPyHandle>, _) = Python::with_gil(|py| {
+                let (handle, status) = PyHandle::new(py, init_msg.as_ref())?;
+                PyResult::Ok((Some(handle.release_gil()), status))
             }).map_err(|py| {
                 PythonError::from(py)
-            })?);
+            })?;
+
+            if !status.user_warnings.is_empty() {
+                tracing::warn!("received the following warnings during experiment initialization: {:?}", status.user_warnings);
+            }
+            if !status.user_errors.is_empty() {
+                tracing::error!("received the following errors during experiment initialization: {:?}", status.user_errors);
+            }
 
             loop {
                 match inbound_receiver.recv().await {
@@ -59,13 +68,17 @@ pub(crate) fn run_experiment(
                                 msg,
                                 &outbound_sender,
                             ).map_err(|e| {
+                                // this is a bit messy, but is just to print an
+                                // error in case we came across one when running
+                                // the engine code (user errors are handled
+                                // seperately)
                                 if let crate::Error::Python(PythonError::PyErr(ref e)) = e {
                                     e.print(py);
                                 };
                                 e
                             })?;
                             Ok::<_, crate::Error>((handle.release_gil(), keep_running))
-                        }).unwrap();
+                        })?;
                         handle = Some(local_handle);
 
                         if !keep_running {
