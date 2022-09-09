@@ -4,11 +4,16 @@ use pyo3::ToPyObject;
 
 use super::PyHandle;
 use crate::runner::{
-    common_to_runners::SimState, comms::NewSimulationRun, python::error::PythonError,
+    common_to_runners::{SimState, UserProgramExecutionStatus},
+    comms::NewSimulationRun,
+    python::error::PythonError,
 };
 
 impl<'py> PyHandle<'py> {
-    pub(super) fn start_sim(&mut self, run: NewSimulationRun) -> Result<(), PythonError> {
+    pub(super) fn start_sim(
+        &mut self,
+        run: NewSimulationRun,
+    ) -> Result<UserProgramExecutionStatus, PythonError> {
         tracing::trace!("running start_sim");
         let agent_schema = &run.datastore.agent_batch_schema.arrow;
         let msg_schema = &run.datastore.message_batch_schema;
@@ -25,7 +30,7 @@ impl<'py> PyHandle<'py> {
         let globals = run.globals;
         let sim_id = run.short_id.to_string();
 
-        self.py_functions.start_sim(
+        let status = self.py_functions.start_sim(
             self.py,
             sim_id.as_str(),
             agent_schema,
@@ -35,6 +40,8 @@ impl<'py> PyHandle<'py> {
             &package_messages,
             &globals,
         )?;
+
+        let status: UserProgramExecutionStatus = status.extract(self.py)?;
 
         let state = SimState {
             agent_schema: Arc::clone(&run.datastore.agent_batch_schema.arrow),
@@ -46,6 +53,6 @@ impl<'py> PyHandle<'py> {
 
         tracing::trace!("succesfully finished start_sim");
 
-        Ok(())
+        Ok(status)
     }
 }

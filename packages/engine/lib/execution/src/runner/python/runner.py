@@ -1,5 +1,3 @@
-import logging
-from struct import pack
 import sys
 import time
 
@@ -70,32 +68,6 @@ class Runner:
 
         return {"user_warnings": user_warnings, "user_errors": user_errors}
 
-    def _handle_experiment_init_result(self, pkg, result):
-        """
-        :param pkg: The package object, with experiment-level data
-        :param result: What the package's custom experiment init returned
-        :return: Whether any user errors occurred during this
-                 package's experiment init
-        """
-        # Not checking for None as we are currently not consistent with returns from packages
-        if not result:  # Package didn't return anything.
-            return False
-
-        pkg_name = pkg["name"]
-        prefix = f"Package `{pkg_name}` experiment init: "
-        # warnings = result.get("warnings")
-        # if warnings is not None:
-        #     warnings = tuple(prefix + w for w in warnings)
-        #     self.messenger.send_user_warnings(warnings)
-
-        # errors = result.get("errors")
-        # if errors is not None:
-        #     errors = tuple(prefix + e for e in errors)
-        #     self.messenger.send_user_errors(errors)
-        #     return True
-
-        return False
-
     def _free_after_sent(self):
         """
         Give the Rust process time to receive nng messages and then
@@ -156,6 +128,9 @@ class Runner:
             pa.ipc.read_schema(pa.py_buffer(agent_schema_bytes)),
         )
 
+        user_warnings = []
+        user_errors = []
+
         for i, (pkg_id, pkg) in enumerate(self.pkgs.items()):
             pkg["sims"][sim_id] = pkg_sim_data = {}
 
@@ -166,17 +141,27 @@ class Runner:
                     result = pkg["start_sim"](
                         pkg["experiment"], pkg_sim_data, payload, sim_init_ctx
                     )
-                    if self._handle_sim_init_result(sim_id, sim, pkg, result):
+                    if self._handle_sim_init_result(
+                        sim, pkg, result, user_warnings, user_errors
+                    ):
                         self.sims.pop(str(sim_id))
-                        return
+                        return {
+                            "user_warnings": user_warnings,
+                            "user_errors": user_errors,
+                        }
 
+                # Have to catch generic exception, because package could throw anything.
                 except Exception:
-                    # Have to catch generic exception, because package could throw anything.
-                    self._handle_pkg_error(pkg, "sim init", sys.exc_info(), sim_id)
+                    exc_info = sys.exc_info()
+                    user_errors.push(
+                        f"Package `{pkg.name}` sim init: {format_exc_info(exc_info)}"
+                    )
                     self.sims.pop(str(sim_id))
-                    return
+                    return {"user_errors": user_errors, "user_warnings": user_warnings}
+        
+        return {"user_errors": user_errors, "user_warnings": user_warnings}
 
-    def _handle_sim_init_result(self, sim_id, sim, pkg, result):
+    def _handle_sim_init_result(self, sim, pkg, result, user_warnings, user_errors):
         """
         :param sim_id: The new simulation run's id
         :param sim: The new simulation run's data
@@ -197,9 +182,14 @@ class Runner:
         pkg_name = pkg["name"]
         prefix = f"Package `{pkg_name}` sim init: "
         warnings = result.get("warnings")
-        # todo: log warnings
+        if warnings is not None:
+            warnings = [prefix + w for w in warnings]
+            user_warnings.extend(warnings)
         errors = result.get("errors")
-        # todo: log errors
+        if errors is not None:
+            errors = [prefix + e for e in errors]
+            user_errors.extend(errors)
+            return True
 
         return False
 

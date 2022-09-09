@@ -33,6 +33,7 @@ use crate::{
 };
 
 #[derive(Debug)]
+/// TODO: doc
 pub struct RunnerTaskMessage {
     pub package_id: PackageId,
     pub task_id: TaskId,
@@ -42,6 +43,7 @@ pub struct RunnerTaskMessage {
 }
 
 #[derive(Debug)]
+/// TODO: doc
 pub struct TargetedRunnerTaskMsg {
     pub target: MessageTarget,
     pub msg: RunnerTaskMessage,
@@ -50,14 +52,17 @@ pub struct TargetedRunnerTaskMsg {
 impl TargetedRunnerTaskMsg {}
 
 #[derive(Debug)]
+/// TODO: doc
 pub struct StateInterimSync {
     pub shared_store: TaskSharedStore,
 }
 
 #[derive(Clone, Debug)]
+/// TODO: doc
 pub struct PackageMsgs(pub HashMap<PackageId, PackageInitMsgForWorker>);
 
 #[derive(Debug, Clone)]
+/// TODO: doc
 pub struct NewSimulationRun {
     pub span: Span,
     pub short_id: SimulationId,
@@ -68,6 +73,7 @@ pub struct NewSimulationRun {
 }
 
 #[derive(Clone)]
+/// TODO: doc
 pub struct DatastoreSimulationPayload {
     pub agent_batch_schema: Arc<AgentSchema>,
     pub message_batch_schema: Arc<Schema>,
@@ -98,6 +104,7 @@ impl fmt::Debug for DatastoreSimulationPayload {
 }
 
 #[allow(dead_code)]
+/// TODO: doc
 struct DatastoreInit {
     pub agent_batch_schema: Vec<u8>,
     pub message_batch_schema: Vec<u8>,
@@ -106,6 +113,7 @@ struct DatastoreInit {
 }
 
 #[derive(Clone)]
+/// TODO: doc
 pub struct ExperimentInitRunnerMsgBase {
     pub experiment_id: ExperimentId,
     pub shared_context: Weak<SharedStore>,

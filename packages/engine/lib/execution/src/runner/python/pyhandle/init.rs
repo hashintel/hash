@@ -275,26 +275,21 @@ pub(crate) mod py_runner {
             package_ids: &[Py<PyAny>],
             package_msgs: &[String],
             globals: &Globals,
-        ) -> PyResult<()> {
+        ) -> PyResult<Py<PyAny>> {
             let globals = serde_json::to_string(&globals).unwrap();
 
-            self.class
-                .getattr(py, "start_sim")?
-                .call1(
-                    py,
-                    (
-                        sim_id.to_object(py),
-                        PyBytes::new(py, &schema_to_stream_bytes(agent_schema)),
-                        PyBytes::new(py, &schema_to_stream_bytes(msg_schema)),
-                        PyBytes::new(py, &schema_to_stream_bytes(ctx_schema)),
-                        package_ids.to_object(py),
-                        package_msgs.to_object(py),
-                        globals.to_object(py),
-                    ),
-                )
-                .map(|res| {
-                    debug_assert!(res.is_none(py));
-                })
+            self.class.getattr(py, "start_sim")?.call1(
+                py,
+                (
+                    sim_id.to_object(py),
+                    PyBytes::new(py, &schema_to_stream_bytes(agent_schema)),
+                    PyBytes::new(py, &schema_to_stream_bytes(msg_schema)),
+                    PyBytes::new(py, &schema_to_stream_bytes(ctx_schema)),
+                    package_ids.to_object(py),
+                    package_msgs.to_object(py),
+                    globals.to_object(py),
+                ),
+            )
         }
 
         pub(crate) fn ctx_batch_sync(

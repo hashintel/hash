@@ -6,6 +6,7 @@ use super::PyHandle;
 use crate::{
     package::simulation::SimulationId,
     runner::{
+        common_to_runners::UserProgramExecutionStatus,
         comms::{
             InboundToRunnerMsgPayload, OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload,
             RunnerTaskMessage,
@@ -72,13 +73,16 @@ impl<'py> PyHandle<'py> {
             }
             InboundToRunnerMsgPayload::TerminateRunner => return Ok(true),
             InboundToRunnerMsgPayload::NewSimulationRun(new_sim_run) => {
-                self.start_sim(new_sim_run)?;
+                let sim_id = new_sim_run.short_id.clone();
+                let status: UserProgramExecutionStatus = self.start_sim(new_sim_run)?;
+                status.send(sim_id, outbound_sender, Language::Python)?;
             }
         }
 
         Ok(true)
     }
 
+    /// Processes a [`RunnerTaskMessage`].
     fn handle_task_msg(
         &mut self,
         sim_id: SimulationId,
