@@ -59,11 +59,8 @@ pub(crate) fn run_experiment(
                                 msg,
                                 &outbound_sender,
                             ).map_err(|e| {
-                                match e {
-                                    crate::Error::Python(PythonError::PyErr(ref e)) => {
-                                        e.print(py);
-                                    }
-                                    _ => ()
+                                if let crate::Error::Python(PythonError::PyErr(ref e)) = e {
+                                    e.print(py);
                                 };
                                 e
                             })?;

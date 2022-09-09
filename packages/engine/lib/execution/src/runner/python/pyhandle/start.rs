@@ -28,9 +28,9 @@ impl<'py> PyHandle<'py> {
         self.py_functions.start_sim(
             self.py,
             sim_id.as_str(),
-            &agent_schema,
-            &msg_schema,
-            &ctx_schema,
+            agent_schema,
+            msg_schema,
+            ctx_schema,
             &package_ids,
             &package_messages,
             &globals,

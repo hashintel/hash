@@ -11,7 +11,8 @@ pub struct ColumnChange {
 }
 
 impl ColumnChange {
-    pub fn data<'a>(&'a self) -> &'a Box<dyn Array> {
+    #[allow(clippy::borrowed_box)]
+    pub fn data(&self) -> &Box<dyn Array> {
         &self.data
     }
 }

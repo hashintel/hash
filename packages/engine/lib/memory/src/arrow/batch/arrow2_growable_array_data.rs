@@ -15,22 +15,22 @@ use arrow2::{
 use bytemuck::cast_slice;
 
 pub fn len(array: &dyn Array) -> usize {
-    Array::len(array.as_ref())
+    Array::len(array)
 }
 
 pub fn null_count(array: &dyn Array) -> usize {
-    Array::null_count(array.as_ref())
+    Array::null_count(array)
 }
 
 pub fn null_buffer(array: &dyn Array) -> std::option::Option<&[u8]> {
-    Array::validity(array.as_ref()).map(|bitmap| {
+    Array::validity(array).map(|bitmap| {
         let (slice, ..) = bitmap.as_slice();
         slice
     })
 }
 
 // see the trait definition for documentation on this method
-pub fn buffer<'a>(array: &'a dyn Array, index: usize) -> &'a [u8] {
+pub fn buffer(array: &dyn Array, index: usize) -> &[u8] {
     match array.data_type().to_physical_type() {
         arrow2::datatypes::PhysicalType::Null => &[],
         // boolean arrays only have a "values" field - i.e. one buffer
@@ -222,7 +222,8 @@ pub fn non_null_buffer_count(array: &dyn Array) -> usize {
     }
 }
 
-pub fn child_data<'a>(array: &Box<dyn Array>) -> &[Box<dyn Array>] {
+#[allow(clippy::borrowed_box)]
+pub fn child_data(array: &Box<dyn Array>) -> &[Box<dyn Array>] {
     match array.data_type().to_physical_type() {
         PhysicalType::List => {
             let array = array.as_any().downcast_ref::<ListArray<i32>>().unwrap();

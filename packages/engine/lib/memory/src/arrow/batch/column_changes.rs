@@ -12,6 +12,7 @@ use crate::{
     shared_memory::{padding, BufferChange},
 };
 
+#[allow(clippy::borrowed_box)]
 impl ArrowBatch {
     pub fn flush_column_changes(
         &mut self,
@@ -288,6 +289,7 @@ fn push_non_modify_actions(
 /// This function performs a depth-first pre-order (i.e. it searches first the root node and then
 /// all the subtrees from left-to-right) traversal of the nodes (this is as per the
 /// [Arrow specification](https://arrow.apache.org/docs/format/Columnar.html)).
+#[allow(clippy::borrowed_box)]
 fn gather_array_datas_depth_first(data: &Box<dyn Array>) -> Vec<&Box<dyn Array>> {
     let mut ret = vec![data];
     // Depth-first get all nodes

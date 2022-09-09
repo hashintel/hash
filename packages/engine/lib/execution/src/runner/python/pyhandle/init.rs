@@ -255,6 +255,9 @@ pub(crate) mod py_runner {
             Ok(())
         }
 
+        #[allow(clippy::too_many_arguments)]
+        // TODO: we can reduce the number of arguments in this function by
+        // creating new structs
         pub(crate) fn start_sim(
             &self,
             py: Python<'_>,
@@ -308,7 +311,6 @@ pub(crate) mod py_runner {
                 )
                 .map(|res| {
                     debug_assert!(res.is_none(py));
-                    ()
                 })
         }
 
@@ -324,7 +326,6 @@ pub(crate) mod py_runner {
                 .call1(py, (sim_id.as_u32().to_object(py), agent_pool, msg_pool))
                 .map(|r| {
                     debug_assert!(r.is_none(py));
-                    ()
                 })
         }
 
@@ -349,7 +350,6 @@ pub(crate) mod py_runner {
                 )
                 .map(|res| {
                     debug_assert!(res.is_none(py));
-                    ()
                 })
         }
 
@@ -365,7 +365,6 @@ pub(crate) mod py_runner {
                 .call1(py, (sim_id.as_u32().to_object(py), agent_pool, msg_pool))
                 .map(|res| {
                     debug_assert!(res.is_none(py));
-                    ()
                 })
         }
 
