@@ -67,5 +67,6 @@
 
 .Block__Comments_Button {
   position: absolute;
-  left: 100%;
+  top: -12px;
+  left: calc(100% + 6px);
 }

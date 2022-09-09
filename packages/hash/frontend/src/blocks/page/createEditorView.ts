@@ -2,7 +2,7 @@ import { HashBlock } from "@hashintel/hash-shared/blocks";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
-import applyDevTools from "prosemirror-dev-tools";
+// import applyDevTools from "prosemirror-dev-tools";
 import { NodeType, ProsemirrorNode, Schema, Slice } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { Decoration, EditorView } from "prosemirror-view";
@@ -10,6 +10,7 @@ import { RefObject } from "react";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
 import { ComponentView } from "./ComponentView";
+import { createBlockComment } from "./createBlockCommentPlugin/createBlockComment";
 import { createErrorPlugin } from "./createErrorPlugin";
 import { createFormatPlugins } from "./createFormatPlugins";
 import { createPlaceholderPlugin } from "./createPlaceholderPlugin/createPlaceholderPlugin";
@@ -92,6 +93,7 @@ export const createEditorView = (
     createPlaceholderPlugin(renderPortal),
     errorPlugin,
     createFocusPageTitlePlugin(pageTitleRef),
+    createBlockComment(renderPortal, renderNode),
   ];
 
   const state = createProseMirrorState({ accountId, plugins });

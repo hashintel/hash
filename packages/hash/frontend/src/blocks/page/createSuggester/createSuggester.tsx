@@ -24,6 +24,8 @@ interface Trigger {
   from: number;
   /** ending prosemirror document position */
   to: number;
+  /** trigger source: 'text' for text input and 'event' for external events */
+  triggeredBy: "text" | "event";
 }
 
 /**
@@ -70,13 +72,15 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
     from,
     to,
     char: match[1] as Trigger["char"],
+    triggeredBy: "text",
   };
 };
 
 export type SuggesterAction =
   | { type: "escape" }
   | { type: "key" }
-  | { type: "suggestedBlock"; payload: { position: number | null } };
+  | { type: "suggestedBlock"; payload: { position: number | null } }
+  | { type: "toggle" };
 
 interface SuggesterState {
   /** whether or not the suggester is disabled */
@@ -154,6 +158,27 @@ export const createSuggester = (
               ...state,
               suggestedBlockPosition: action.payload.position,
             };
+
+          case "toggle":
+            if (state.isOpen()) {
+              return {
+                ...state,
+                disabled: true,
+                trigger: null,
+              };
+            } else {
+              return {
+                ...state,
+                disabled: false,
+                trigger: {
+                  from: tr.selection.from,
+                  to: tr.selection.to,
+                  search: "",
+                  char: "@",
+                  triggeredBy: "event",
+                },
+              };
+            }
         }
 
         /**
@@ -179,10 +204,20 @@ export const createSuggester = (
           docChangedInTransaction(tr)
             ? null
             : tr.mapping.map(state.suggestedBlockPosition);
-        const trigger = findTrigger(nextEditorState);
+        const trigger =
+          state.trigger?.triggeredBy === "event" &&
+          findTrigger(nextEditorState) === null
+            ? state.trigger
+            : findTrigger(nextEditorState);
+
         const disabled = state.disabled && trigger !== null;
 
-        return { ...state, trigger, disabled, suggestedBlockPosition };
+        return {
+          ...state,
+          trigger,
+          disabled,
+          suggestedBlockPosition,
+        };
       },
     },
     props: {
@@ -217,7 +252,7 @@ export const createSuggester = (
         update(view) {
           const state = suggesterPluginKey.getState(view.state)!;
 
-          if (!state.isOpen()) return this.destroy!();
+          if (!view.hasFocus() || !state.isOpen()) return this.destroy!();
 
           const { from, to, search, char: triggerChar } = state.trigger!;
           const coords = view.coordsAtPos(from);

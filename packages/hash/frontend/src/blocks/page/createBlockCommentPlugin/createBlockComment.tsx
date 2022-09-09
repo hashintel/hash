@@ -1,0 +1,127 @@
+import { Popper } from "@mui/material";
+import { Schema } from "prosemirror-model";
+import { Plugin, PluginKey } from "prosemirror-state";
+import { ensureMounted } from "../../../lib/dom";
+import { CommentInput } from "../Comments/CommentInput";
+import { RenderPortal } from "../usePortals";
+
+export type BlockCommentAction =
+  | { type: "open"; payload: { anchor: HTMLElement; blockId: string } }
+  | { type: "close" };
+
+interface BlockCommentState {
+  open: boolean;
+  anchorNode: HTMLElement | null;
+  blockId: string | null;
+}
+
+export const blockCommentPluginKey = new PluginKey<BlockCommentState, Schema>(
+  "blockComment",
+);
+
+export const createBlockComment = (
+  renderPortal: RenderPortal,
+  documentRoot: HTMLElement,
+) =>
+  new Plugin<BlockCommentState, Schema>({
+    key: blockCommentPluginKey,
+    state: {
+      init() {
+        return {
+          open: false,
+          anchorNode: null,
+          blockId: null,
+        };
+      },
+      /** produces a new state from the old state and incoming transactions (cf. reducer) */
+      apply(tr, state, _prevEditorState) {
+        const action: BlockCommentAction | undefined = tr.getMeta(
+          blockCommentPluginKey,
+        );
+
+        switch (action?.type) {
+          case "open":
+            return {
+              ...state,
+              open: true,
+              anchorNode: action.payload.anchor,
+              blockId: action.payload.blockId,
+            };
+
+          case "close":
+            return { ...state, open: false };
+        }
+
+        return state;
+      },
+    },
+    props: {
+      handleDOMEvents: {
+        keydown(view, event) {
+          if (event.key === "Escape") {
+            const { tr } = view.state;
+            tr.setMeta(blockCommentPluginKey, { type: "close" });
+          }
+
+          return false;
+        },
+      },
+    },
+    view() {
+      const mountNode = document.createElement("div");
+
+      return {
+        update(view) {
+          const { open, blockId, anchorNode } = blockCommentPluginKey.getState(
+            view.state,
+          )!;
+
+          if (!open || !blockId || !anchorNode) return this.destroy!();
+
+          ensureMounted(mountNode, documentRoot);
+          renderPortal(
+            <Popper
+              open
+              placement="bottom-start"
+              container={documentRoot}
+              modifiers={[
+                {
+                  name: "offset",
+                  options: {
+                    offset: () => [
+                      -13,
+                      -anchorNode.getBoundingClientRect().height - 13,
+                    ],
+                  },
+                },
+                {
+                  name: "preventOverflow",
+                  enabled: true,
+                  options: {
+                    padding: 20,
+                  },
+                },
+              ]}
+              anchorEl={anchorNode}
+            >
+              <CommentInput
+                blockId={blockId}
+                onClose={() => {
+                  const { tr } = view.state;
+                  tr.setMeta(blockCommentPluginKey, {
+                    type: "close",
+                  });
+                  view.dispatch(tr);
+                }}
+              />
+            </Popper>,
+            mountNode,
+          );
+        },
+        destroy() {
+          renderPortal(null, mountNode);
+          mountNode.remove();
+        },
+      };
+    },
+  }) as Plugin<unknown, Schema>;
