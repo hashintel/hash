@@ -27,12 +27,13 @@ class Runner:
         # TODO: should self.sims be a list?
         self.sims = {}
         self.pkgs = {}
-        self.datasets = {}
         self.experiment_ctx = None
 
     def start_experiment(self, datasets, package_init_msgs, package_functions):
+        datasets_builder = {}
         for (key, value) in datasets.items():
-            self.datasets[key] = json.loads(value)
+            datasets_builder[key] = json.loads(value)
+        self.experiment_ctx = ExperimentContext(datasets_builder)
 
         for (msg, fns) in zip(package_init_msgs, package_functions):
             package_start_experiment = fns["start_experiment"]
@@ -77,34 +78,6 @@ class Runner:
         #     return True
 
         return False
-
-    def _handle_runner_error(self, exc_info, sim_id=0):
-        """
-        Notify the Rust process about the runner error and then kill the runner.
-
-        User errors definitely need to be sent back to the Rust process, so
-        they can be sent further to the user and displayed.
-
-        Package error sending is more of a nice-to-have, but helps users
-        report bugs to package authors.
-
-        Runner errors just need to reach our logs, so their contents don't
-        really need to be sent back, but it's still good to notify the
-        Rust process that a runner error occurred, so it immediately knows
-        that the runner exited.
-
-        :param exc_info: See `format_exc_info` in `util.py`.
-        :param sim_id: ID of the simulation run from which the error originated.
-                       If the error isn't specific to any simulation run, we
-                       use 0 as an invalid id.
-        """
-
-        error = f"Runner error: {format_exc_info(exc_info)}"
-        logging.error(
-            error
-        )  # First make sure the error gets logged; then try to send it.
-        # self.messenger.send_runner_error(error, sim_id)
-        self._free_after_sent()
 
     def _handle_pkg_error(self, pkg, origin, exc_info, sim_id=0):
         """

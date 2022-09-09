@@ -1,6 +1,7 @@
 from copy import deepcopy
 import json
 
+
 class AgentContext:
     def __init__(self, sim_ctx, ctx_batch, state_snapshot, i_agent_in_sim):
         # The context batch is sim-wide, so hide it from the user.
