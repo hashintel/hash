@@ -460,8 +460,6 @@ impl<'a> BufferActions<'a> {
     }
 
     #[allow(clippy::too_many_lines, clippy::too_many_arguments)]
-    // this is necessary, because GrowableArrayData is implemented for Box<dyn Array> but not
-    // &dyn Array
     #[allow(clippy::borrowed_box)]
     fn traverse_nodes<'b>(
         mut next_state: NextState,

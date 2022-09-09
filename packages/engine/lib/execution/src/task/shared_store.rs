@@ -125,9 +125,10 @@ impl TaskSharedStore {
     }
 }
 
-/// This enum is returned from [`batches_from_shared_store`]. We want to return a single type which
-/// implements [`Iterator`], however, this is difficult because depending on the shared
-/// store in question we might return any of four different iterators. To make one type from the
+/// This enum is returned from [`TaskSharedStore::get_write_proxies`]. We want
+/// to return a single type which implements [`Iterator`], however, this is
+/// difficult because depending on the shared store in question we might return
+/// any of four different iterators. To make one type from the
 /// four, we use an `enum` here, and then implement [`Iterator`] for it, calling the
 /// [`Iterator::next`] method on the underlying iterator.
 pub(crate) enum EmptyOrNonEmpty<OUTPUT, I1, I2, I3, I4> {

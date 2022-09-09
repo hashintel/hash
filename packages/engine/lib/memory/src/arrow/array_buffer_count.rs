@@ -3,8 +3,6 @@ use arrow2::{array::Array, datatypes::UnionMode};
 // only used in tests (at the moment)
 /// As per <https://arrow.apache.org/docs/format/Columnar.html#buffer-listing-for-each-layout>
 #[cfg_attr(not(test), allow(dead_code))]
-// this is necessary, because GrowableArrayData is implemented for Box<dyn Array> but not
-// &dyn Array
 #[allow(clippy::borrowed_box)]
 pub(crate) fn buffer_count_of_arrow_array(array: &Box<dyn Array>) -> usize {
     match array.data_type() {

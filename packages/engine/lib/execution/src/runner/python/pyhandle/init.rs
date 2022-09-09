@@ -113,8 +113,8 @@ impl<'py> PyHandle<'py> {
         ))
     }
 
-    /// Does the same thing as [`PyHandle::try_read_arbitrary_file`], except that it panics if it
-    /// encounters an error.
+    /// This function is identical to [`PyHandle::try_import_arbitrary_file`],
+    /// except that it panics if it encounters an error.
     pub(crate) fn import_arbitrary_file(
         python: Python<'py>,
         path: PathBuf,
