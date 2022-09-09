@@ -7,10 +7,15 @@ import {
   MutationUpdatePropertyTypeArgs,
   QueryGetPropertyTypeArgs,
   ResolverFn,
+  PersistedPropertyTypeWithRefs,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { PropertyTypeModel } from "../../../model";
-import { propertyTypeModelToGQL } from "./model-mapping";
+import {
+  propertyTypeModelToGQL,
+  propertyTypeModelWithRefsToGQL,
+} from "./model-mapping";
+import { fieldByName } from "../util";
 
 export const createPropertyType: ResolverFn<
   Promise<PersistedPropertyType>,
@@ -32,38 +37,51 @@ export const createPropertyType: ResolverFn<
 };
 
 export const getAllLatestPropertyTypes: ResolverFn<
-  Promise<PersistedPropertyType[]>,
+  Promise<PersistedPropertyTypeWithRefs[]>,
   {},
   LoggedInGraphQLContext,
   {}
-> = async (_, __, { dataSources, user }) => {
+> = async (_, __, { dataSources, user }, info) => {
   const { graphApi } = dataSources;
+  const resolveReferences =
+    fieldByName(info, "referencedDataTypes") !== undefined ||
+    fieldByName(info, "referencedPropertyTypes") !== undefined;
 
-  const allLatestPropertyTypeModels = await PropertyTypeModel.getAllLatest(
-    graphApi,
-    {
+  const allLatestPropertyTypeModels =
+    await PropertyTypeModel.getAllLatestResolved(graphApi, {
       accountId: user.getAccountId(),
-    },
-  ).catch((err: AxiosError) => {
-    throw new ApolloError(
-      `Unable to retrieve all latest property types. ${err.response?.data}`,
-      "GET_ALL_ERROR",
-    );
-  });
+      propertyTypeQueryDepth: resolveReferences ? 255 : 0,
+    }).catch((err: AxiosError) => {
+      throw new ApolloError(
+        `Unable to retrieve all latest property types. ${err.response?.data}`,
+        "GET_ALL_ERROR",
+      );
+    });
 
-  return allLatestPropertyTypeModels.map(propertyTypeModelToGQL);
+  return allLatestPropertyTypeModels.map(
+    ({ property_type, dataTypeReferences, propertyTypeReferences }) =>
+      propertyTypeModelWithRefsToGQL(
+        property_type,
+        dataTypeReferences,
+        propertyTypeReferences,
+      ),
+  );
 };
 
 export const getPropertyType: ResolverFn<
-  Promise<PersistedPropertyType>,
+  Promise<PersistedPropertyTypeWithRefs>,
   {},
   LoggedInGraphQLContext,
   QueryGetPropertyTypeArgs
-> = async (_, { propertyTypeVersionedUri }, { dataSources }) => {
+> = async (_, { propertyTypeVersionedUri }, { dataSources }, info) => {
   const { graphApi } = dataSources;
+  const resolveReferences =
+    fieldByName(info, "referencedDataTypes") !== undefined ||
+    fieldByName(info, "referencedPropertyTypes") !== undefined;
 
-  const propertyTypeModel = await PropertyTypeModel.get(graphApi, {
+  const propertyTypeModel = await PropertyTypeModel.getResolved(graphApi, {
     versionedUri: propertyTypeVersionedUri,
+    propertyTypeQueryDepth: resolveReferences ? 255 : 0,
   }).catch((err: AxiosError) => {
     throw new ApolloError(
       `Unable to retrieve property type. ${err.response?.data}`,
@@ -71,7 +89,11 @@ export const getPropertyType: ResolverFn<
     );
   });
 
-  return propertyTypeModelToGQL(propertyTypeModel);
+  return propertyTypeModelWithRefsToGQL(
+    propertyTypeModel.propertyType,
+    propertyTypeModel.dataTypeReferences,
+    propertyTypeModel.propertyTypeReferences,
+  );
 };
 
 export const updatePropertyType: ResolverFn<

@@ -18,3 +18,15 @@ export type LinkedDataDefinition = {
   entityId?: string;
   entityVersionId?: string;
 };
+
+/**
+ * Returns a specified field, which was requested in the GraphQL query.
+ *
+ * @param info the 'info' fourth argument to all resolvers
+ * @param field_name the field in question
+ * @returns the field identified by `field_name`
+ */
+export const fieldByName = (info: any, field_name: string) => {
+  const requestedFields = info.fieldNodes[0].selectionSet.selections;
+  return requestedFields.find((field: any) => field.name.value === field_name);
+};
