@@ -4,16 +4,16 @@ expression: "format!(\"{report:#?}\")"
 ---
 Root error
 ├╴tests/common.rs:147:5
-├╴Empty
 ├╴backtrace with [n] frames (1)
-╰╴spantrace with 2 frames (1)
+├╴spantrace with 2 frames (1)
+╰╴Empty
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Snippet
 
 Backtrace No. 1
   [redacted]
 
 Span Trace No. 1
   [redacted]
+
+Snippet

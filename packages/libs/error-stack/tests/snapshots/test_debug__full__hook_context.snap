@@ -4,9 +4,9 @@ expression: "format!(\"{report:?}\")"
 ---
 Root error
 ├╴tests/common.rs:147:5
-├╴unsigned 32bit integer (No. 0)
 ├╴backtrace with [n] frames (1)
-╰╴spantrace with 2 frames (1)
+├╴spantrace with 2 frames (1)
+╰╴unsigned 32bit integer (No. 0)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
