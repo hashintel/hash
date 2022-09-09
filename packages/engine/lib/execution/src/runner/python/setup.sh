@@ -59,12 +59,7 @@ if uname -s | grep -q Darwin && uname -p | grep -q arm ; then
   export CXX=clang++
   export PKG_CONFIG_PATH="/opt/homebrew/opt/openblas/lib/pkgconfig"
   python -m pip install wheel
-  python -m pip install -r "${SCRIPT_DIR}/m1-requirements.txt"
-  git clone https://github.com/hashintel/pynng
-  cd pynng
-  python -m pip install .
-  cd ..
-  rm -rf pynng
+  python -m pip install -r "${SCRIPT_DIR}/requirements.txt"
 else
   python -m pip install -r "${SCRIPT_DIR}/requirements.txt"
 fi
