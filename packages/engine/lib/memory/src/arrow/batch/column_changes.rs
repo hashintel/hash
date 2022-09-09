@@ -1,9 +1,9 @@
 use arrow2::array::Array;
 
-use super::{arrow2_growable_array_data::child_data, ArrowBatch};
+use super::{arrow_internal_data::child_data, ArrowBatch};
 use crate::{
     arrow::{
-        batch::arrow2_growable_array_data::{buffer, non_null_buffer_count, null_buffer},
+        batch::arrow_internal_data::{buffer, non_null_buffer_count, null_buffer},
         len, meta, null_count,
         util::bit_util,
         ColumnChange,

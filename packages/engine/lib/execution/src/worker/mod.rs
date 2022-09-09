@@ -622,9 +622,8 @@ impl Worker {
     ///
     /// Splits the [`WorkerTask`] into multiple executions if the [`TaskSharedStore`] is
     /// [`SharedState::Partial`] by using the
-    /// [`PartialSharedState::split_into_individual_per_group()`] method.
-    ///
-    /// [`PartialSharedState::split_into_individual_per_group()`]: crate::task::PartialSharedState::split_into_individual_per_group
+    /// [`crate::task::PartialSharedState::split_into_individual_per_group`]
+    /// method.
     async fn spawn_task(&mut self, sim_id: SimulationId, task: WorkerTask) -> Result<()> {
         let task_id = task.task_id;
         let msg = WorkerHandler::start_message(&task.task)?;

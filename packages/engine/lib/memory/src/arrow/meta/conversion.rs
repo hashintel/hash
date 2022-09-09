@@ -403,7 +403,7 @@ pub mod tests {
     };
 
     use super::*;
-    use crate::arrow::batch::arrow2_growable_array_data::child_data;
+    use crate::arrow::batch::arrow_internal_data::child_data;
 
     type D = DataType;
 

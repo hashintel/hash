@@ -16,10 +16,12 @@ use crate::{
     task::TaskSharedStore,
 };
 impl<'s> ThreadLocalRunner<'s> {
-    /// "Flushes" the changes which the JavaScript code made. This involves collecting a list of all
-    /// the changes, which we then use to modify the underlying Arrow arrays.
+    /// "Flushes" the changes which the JavaScript code made. This involves
+    /// collecting a list of all the changes made, which we then use to modify
+    /// the underlying Arrow arrays.
     ///
-    /// See also the [`memory::arrow::flush`] module for more information.
+    /// See also the [`ArrowBatch::flush_changes`] (and the items in
+    /// [`memory::arrow`] more broadly) for more details on the flushing code.
     pub(in crate::runner::javascript) fn flush(
         &mut self,
         scope: &mut v8::HandleScope<'s>,

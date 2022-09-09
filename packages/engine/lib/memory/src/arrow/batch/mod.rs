@@ -14,7 +14,7 @@ use crate::{
     shared_memory::{Metaversion, Segment},
 };
 
-pub mod arrow2_growable_array_data;
+pub mod arrow_internal_data;
 pub mod column_changes;
 pub mod columns;
 
