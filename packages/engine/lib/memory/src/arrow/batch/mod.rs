@@ -3,7 +3,7 @@ use std::sync::Arc;
 use arrow2::datatypes::Schema;
 use tracing::trace;
 
-use super::{meta::StaticMetadata, record_batch::RecordBatch};
+use super::record_batch::RecordBatch;
 use crate::{
     arrow::{
         change::ColumnChange,
@@ -363,9 +363,14 @@ impl ArrowBatch {
 
     /// Checks that the static metadata of this batch matches that of the
     /// [`Schema`].
-    pub fn check_static_meta(&self, schema: &Schema) {
+    pub fn check_static_meta(
+        &self,
+        #[cfg(debug_assertions)] schema: &Schema,
+        #[cfg(not(debug_assertions))] _: &Schema,
+    ) {
         #[cfg(debug_assertions)]
         {
+            use crate::arrow::meta::StaticMetadata;
             pretty_assertions::assert_eq!(self.record_batch.schema().as_ref(), schema);
             pretty_assertions::assert_eq!(
                 self.static_meta(),

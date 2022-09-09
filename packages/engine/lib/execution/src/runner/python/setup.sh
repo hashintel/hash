@@ -32,7 +32,7 @@ if [ ! -f "${VENV_ACTIVATE_PATH}" ]; then
 
   PYTHON=$1
 
-  echo "Virtual environment didn't exist at: ${VENV_ACTIVATE_PATH}"
+  echo "A virtual environment does not yet exist at `${VENV_ACTIVATE_PATH}`"
   echo "Using $($PYTHON --version) to create a new one"
   (cd "${SCRIPT_DIR}" && ${PYTHON} -m venv runner_venv)
 fi
