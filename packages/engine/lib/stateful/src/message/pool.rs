@@ -72,10 +72,20 @@ impl MessageBatchPool {
         // batches
         for batch_index in (0..self.len()).rev() {
             if let Some(dynamic_batch) = agent_proxies.batch(batch_index) {
-                let mut write_proxy = BatchWriteProxy::new(&self.batches[batch_index])
-                    .unwrap_or_else(|err| {
-                        panic!("Failed to reset Batch at index {batch_index}: {err}");
-                    });
+                // we use `new_blocking` here to work around a bug where (this
+                // is all a guess)
+                //
+                // - one of the runners acquires a lock/reference to BatchWriteProxy (is running in
+                //   a separate thread)
+                // - the main engine then tries to also access this (here there is a race condition)
+                // - to work around this we use `new_blocking` which will try repeatedly to acquire
+                //   the lock if it is not immediately available
+                //
+                // TODO: this isn't a nice solution, so we should at some point
+                // spend some time debugging this further
+                // (https://app.asana.com/0/1199548034582004/1202953832492833/f)
+                let mut write_proxy = BatchWriteProxy::new_blocking(&self.batches[batch_index]);
+
                 write_proxy.reset(dynamic_batch)?;
             } else {
                 // TODO: We possibly need to propagate the IDs of these batches to the runners, so
@@ -152,13 +162,13 @@ impl BatchPool for MessageBatchPool {
     }
 
     fn write_proxies(&mut self) -> Result<PoolWriteProxy<Self::Batch>> {
-        self.batches.iter().map(BatchWriteProxy::new).collect()
+        self.batches.iter().map(BatchWriteProxy::try_new).collect()
     }
 
     fn partial_write_proxies(&mut self, indices: &[usize]) -> Result<PoolWriteProxy<Self::Batch>> {
         indices
             .iter()
-            .map(|i| BatchWriteProxy::new(&self.batches[*i]))
+            .map(|i| BatchWriteProxy::try_new(&self.batches[*i]))
             .collect()
     }
 }

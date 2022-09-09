@@ -93,13 +93,13 @@ impl BatchPool for AgentBatchPool {
     }
 
     fn write_proxies(&mut self) -> Result<PoolWriteProxy<Self::Batch>> {
-        self.batches.iter().map(BatchWriteProxy::new).collect()
+        self.batches.iter().map(BatchWriteProxy::try_new).collect()
     }
 
     fn partial_write_proxies(&mut self, indices: &[usize]) -> Result<PoolWriteProxy<Self::Batch>> {
         indices
             .iter()
-            .map(|i| BatchWriteProxy::new(&self.batches[*i]))
+            .map(|i| BatchWriteProxy::try_new(&self.batches[*i]))
             .collect()
     }
 }

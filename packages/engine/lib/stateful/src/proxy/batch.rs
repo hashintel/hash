@@ -77,13 +77,33 @@ pub struct BatchWriteProxy<K> {
 }
 
 impl<K> BatchWriteProxy<K> {
-    pub fn new(arc: &Arc<RwLock<K>>) -> Result<BatchWriteProxy<K>> {
+    pub fn try_new(arc: &Arc<RwLock<K>>) -> Result<BatchWriteProxy<K>> {
         // SAFETY: `try_lock_exclusive` locks the `RawRwLock` and returns if the lock could be
         //   acquired. The lock is not used if it couldn't be acquired.
         if unsafe { RwLock::raw(arc).try_lock_exclusive() } {
             Ok(BatchWriteProxy { arc: arc.clone() })
         } else {
             Err(Error::ProxyExclusiveLock)
+        }
+    }
+
+    /// This attempts to acquire an exclusive lock on the provided object. Note
+    /// that this will **block the thread** if it cannot acquire a lock. In
+    /// almost every case it is preferable to use [`BatchWriteProxy::try_new`].
+    pub fn new_blocking(arc: &Arc<RwLock<K>>) -> BatchWriteProxy<K> {
+        // SAFETY: `try_lock_exclusive` locks the `RawRwLock` and returns if the lock could be
+        //   acquired. The lock is not used if it couldn't be acquired.
+        let mut tries = 0usize;
+        loop {
+            if tries > 5 {
+                panic!("failed to acquire exclusive lock on the BatchWriteProxy");
+            }
+            let could_lock = unsafe { RwLock::raw(arc).try_lock_exclusive() };
+            if could_lock {
+                return BatchWriteProxy { arc: arc.clone() };
+            }
+            tries += 1;
+            std::thread::sleep(std::time::Duration::from_secs(50));
         }
     }
 
