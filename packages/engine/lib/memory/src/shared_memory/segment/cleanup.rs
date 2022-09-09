@@ -79,6 +79,10 @@ pub fn cleanup_by_base_id(id: Uuid) -> Result<()> {
 /// code which uses [`static@IN_USE_SHM_SEGMENTS`]).
 #[cfg(debug_assertions)]
 fn check_all_deallocated_linux(id: Uuid) -> Result<()> {
+    use glob::GlobError;
+
+    use crate::Error;
+
     if cfg!(target_os = "linux") {
         let shm_files = glob::glob(&format!("/dev/shm/{}_*", MemoryId::prefix(id)))
             .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;

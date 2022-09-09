@@ -1,7 +1,7 @@
 //! Contains a series of utilities to obtain low level data about Arrow arrays.
 //!
 //! TODO: we will hopefully be able to remove these functions as part of
-//! https://app.asana.com/0/1199548034582004/1202946989231688/f
+//! <https://app.asana.com/0/1199548034582004/1202946989231688/f>
 
 use arrow2::{
     array::{
