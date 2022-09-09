@@ -196,13 +196,13 @@ class Runner:
                         pkg["experiment"], pkg_sim_data, payload, sim_init_ctx
                     )
                     if self._handle_sim_init_result(sim_id, sim, pkg, result):
-                        self.sims.pop(sim_id)
+                        self.sims.pop(str(sim_id))
                         return
 
                 except Exception:
                     # Have to catch generic exception, because package could throw anything.
                     self._handle_pkg_error(pkg, "sim init", sys.exc_info(), sim_id)
-                    self.sims.pop(sim_id)
+                    self.sims.pop(str(sim_id))
                     return
 
     def _handle_sim_init_result(self, sim_id, sim, pkg, result):
@@ -280,7 +280,7 @@ class Runner:
         except Exception:
             # Have to catch generic Exception, because package could throw anything.
             self._handle_pkg_error(pkg, "run_task", sys.exc_info(), sim_id)
-            self.sims.pop(sim_id)
+            self.sims.pop(str(sim_id))
             return
 
         changes = state.flush_changes(sim.schema)

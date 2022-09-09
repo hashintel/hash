@@ -27,7 +27,7 @@ impl<'py> PyHandle<'py> {
         let datasets = {
             let upgraded = init_msg.shared_context.upgrade().expect(
                 "failed to obtain access to the shared store (this is a bug: it should not be \
-                 possible for the ExperimentController to be dropped before a Javascript runner)",
+                 possible for the ExperimentController to be dropped before a Python runner)",
             );
             PyHandle::load_datasets(py, upgraded.as_ref())
         }?;

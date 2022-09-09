@@ -110,10 +110,14 @@ impl TaskSharedStore {
         }
     }
 
+    /// Reloads the data in the shared write proxies if necessary.
+    ///
+    /// NOTE: if it is not possible to obtain a reference to the data in the
+    /// shared write proxies, this method will silently abort.
     pub fn reload_data_if_necessary(&mut self) {
         let (write_proxies, _) = match self.get_write_proxies() {
             Ok(t) => t,
-            Err(_) => panic!("failed to obtain write proxies (this is a bug)"),
+            Err(_) => return,
         };
         write_proxies
             .maybe_reload()
