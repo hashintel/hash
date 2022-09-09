@@ -5,12 +5,16 @@ use arrow2::datatypes::Schema;
 use super::conversion::{schema_to_column_hierarchy, ColumnHeirarchy};
 use crate::arrow::meta::{Column, DynamicMetadata, NodeStatic};
 
-/// Static metadata remains constant for a simulation run.
+/// The [`StaticMetadata`] struct contains information about the internal
+/// representation of the Arrow arrays which is constant for the whole
+/// simulation run (information which changes is stored in [`DynamicMetadata`]).
 ///
-/// it contains information about which `Node`s and `Buffer`s in `DynamicMeta` are relevant to
-/// columns. This is basically the hierarchical map to Arrow metadata and hence `DynamicMeta`. Also
-/// contains information about which buffers are growable.
-#[derive(Debug, Clone)]
+/// This information includes how many nodes (each Arrow array is a "node" -
+/// note that some arrays have child arrays, so nodes can be nested) there are,
+/// as well as how many
+/// [buffers](https://arrow.apache.org/docs/format/Columnar.html#buffer-listing-for-each-layout)
+/// each node has (amongst other things).
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StaticMetadata {
     /// Column-level information
     column_meta: Vec<Column>,
@@ -39,6 +43,17 @@ impl StaticMetadata {
             buffer_count,
             node_count,
         }
+    }
+
+    /// Computes the "static metadata" (see the documentation for this struct
+    /// for more information) for the provided [`Schema`].
+    pub fn from_schema(schema: Arc<Schema>) -> Self {
+        let ColumnHeirarchy {
+            column_indices,
+            padding_meta,
+            node_meta,
+        } = schema_to_column_hierarchy(schema);
+        Self::new(column_indices, padding_meta, node_meta)
     }
 
     pub fn validate_lengths(&self, dynamic: &DynamicMetadata) -> bool {
@@ -81,14 +96,5 @@ impl StaticMetadata {
     #[must_use]
     pub fn get_node_count(&self) -> usize {
         self.node_count
-    }
-
-    pub fn from_schema(schema: Arc<Schema>) -> Self {
-        let ColumnHeirarchy {
-            column_indices,
-            padding_meta,
-            node_meta,
-        } = schema_to_column_hierarchy(schema);
-        Self::new(column_indices, padding_meta, node_meta)
     }
 }

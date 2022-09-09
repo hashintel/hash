@@ -1,7 +1,4 @@
-use pyo3::{
-    types::{PyDict, PyTuple},
-    Py, PyAny, PyResult,
-};
+use pyo3::{types::PyDict, Py, PyAny, PyResult};
 use stateful::field::PackageId;
 
 use super::PyHandle;
@@ -25,18 +22,35 @@ impl<'py> PyHandle<'py> {
         task_id: TaskId,
         wrapper: &serde_json::Value,
         mut shared_store: TaskSharedStore,
-    ) -> Result<TargetedRunnerTaskMsg, PythonError> {
-        // TODO: reload data if necessary
+    ) -> crate::Result<TargetedRunnerTaskMsg> {
+        tracing::trace!("Running task (Rust `run_task` function)");
 
-        let f = &self.py_functions.run_task;
-        let return_val = f
-            .call1(self.py, PyTuple::new(self.py, args))
+        shared_store.reload_data_if_necessary();
+
+        let return_val = self
+            .py_functions
+            .run_task(self.py, args)
+            .map(|obj| {
+                assert!(
+                    !obj.is_none(self.py),
+                    "Runner.next_task did not return the next target (this is a bug!)"
+                );
+                obj
+            })
+            .map_err(|e| {
+                e.print(self.py);
+                e
+            })
             .expect("Python runner supplied incorrect data to engine (this is a bug)");
         let return_val = return_val
             .cast_as::<PyDict>(self.py)
             .expect("Python runner supplied incorrect data to engine (this is a bug)");
 
-        let (next_target, next_task_payload) = self.get_next_task(return_val)?;
+        let (next_target, next_task_payload) =
+            self.get_next_task(return_val).map_err(PythonError::from)?;
+        tracing::trace!(
+            "obtained next target ({next_target:?}) with payload `{next_task_payload}`"
+        );
 
         let next_inner_task_msg: serde_json::Value = serde_json::from_str(&next_task_payload)?;
         let next_task_payload =
@@ -48,8 +62,7 @@ impl<'py> PyHandle<'py> {
                     ))
                 })?;
 
-        // TODO: handle error here better
-        self.flush(sim_id, &mut shared_store, return_val).unwrap();
+        self.flush(sim_id, &mut shared_store, return_val)?;
 
         let next_task_msg = TargetedRunnerTaskMsg {
             target: next_target,
@@ -84,9 +97,17 @@ impl<'py> PyHandle<'py> {
         };
         let string = val
             .get_item("task")
-            .expect("misshapen Python object was supplied to engine by the Python runner")
+            .expect(
+                "misshapen Python object was supplied to engine by the Python runner (or the \
+                 engine assumed the structure of the object incorrectly) - in either case, this \
+                 is a bug!",
+            )
             .extract::<String>()
-            .expect("misshapen Python object was supplied to engine by the Python runner");
+            .expect(
+                "misshapen Python object was supplied to engine by the Python runner (or the \
+                 engine assumed the structure of the object incorrectly) - in either case, this \
+                 is a bug!",
+            );
         Ok((target, string))
     }
 }

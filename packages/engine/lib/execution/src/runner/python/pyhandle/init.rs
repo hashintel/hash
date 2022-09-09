@@ -3,10 +3,11 @@
 use std::path::PathBuf;
 
 use pyo3::{
-    types::{PyFunction, PyList, PyModule, PyTuple},
-    IntoPy, Py, PyAny, PyResult, Python,
+    types::{PyDict, PyList, PyModule},
+    IntoPy, PyErr, PyResult, Python, ToPyObject,
 };
 
+use self::py_runner::PyRunner;
 use super::{package::PyPackage, PyHandle};
 use crate::runner::comms::ExperimentInitRunnerMsg;
 
@@ -22,7 +23,7 @@ impl<'py> PyHandle<'py> {
         py: Python<'py>,
         init_msg: &ExperimentInitRunnerMsg,
     ) -> PyResult<PyHandle<'py>> {
-        // first we load the datasets...
+        tracing::trace!("loading shared datasets");
         let datasets = {
             let upgraded = init_msg.shared_context.upgrade().expect(
                 "failed to obtain access to the shared store (this is a bug: it should not be \
@@ -30,11 +31,12 @@ impl<'py> PyHandle<'py> {
             );
             PyHandle::load_datasets(py, upgraded.as_ref())
         }?;
+        tracing::trace!("finished loading shared datasets");
 
-        // ... now we load the package configurations ...
+        tracing::trace!("loading package configurations");
         let package_config = &init_msg.package_config.0;
 
-        let (package_functions, package_names) = {
+        let (package_functions, package_msgs) = {
             let mut package_functions = Vec::with_capacity(package_config.len());
             let mut package_names = Vec::with_capacity(package_config.len());
 
@@ -45,35 +47,56 @@ impl<'py> PyHandle<'py> {
                     package_init_msg.r#type,
                 )?;
 
-                package_functions.push(package);
+                package_functions.push(if package.is_some() {
+                    package.to_object(py)
+                } else {
+                    // The Python runner expects the runner to supply the functions
+                    // object as a dictionary (so we convert to a None to a
+                    // dictionary of `None` if necessary)
+                    let dict = PyDict::new(py);
+                    dict.set_item("start_experiment", ())?;
+                    dict.set_item("start_sim", ())?;
+                    dict.set_item("run_task", ())?;
+                    dict.into_py(py)
+                });
 
-                package_names.push(package_init_msg.name.to_string());
+                package_names.push({
+                    let dict = PyDict::new(py);
+                    dict.set_item("name", package_init_msg.name.to_string().to_object(py))?;
+                    dict.set_item(
+                        "payload",
+                        package_init_msg.payload.to_string().to_object(py),
+                    )?;
+                    dict.set_item(
+                        "id",
+                        usize::from(package_init_msg.id.as_usize()).to_object(py),
+                    )?;
+                    dict.set_item("type", package_init_msg.r#type.to_string())?;
+                    dict
+                });
             }
 
             (package_functions, package_names)
         };
+        tracing::trace!("finished loading package configurations");
 
-        // ... we now convert the package configurations into native Python code
         let package_functions = PyList::new(py, package_functions);
-        let package_names = PyList::new(py, package_names);
+        let package_names = PyList::new(py, package_msgs);
 
         // ... here we import pyarrow
         // TODO: if we can't import it, we should abort and notify the user that they need to set up
         // the virtual environment
+        tracing::trace!("importing pyarrow");
         let pyarrow = py.import("pyarrow")?;
 
-        // ... now we load the Python functions
-        let py_functions = Self::get_py_funcs(Self::import_runner_module(py));
+        tracing::trace!("loading Python Runner class");
+        let py_functions: py_runner::PyRunner =
+            Self::get_py_funcs(Self::import_necessary_modules(py));
+        tracing::trace!("finished loading Python Runner class");
 
-        let args = vec![
-            datasets.cast_as::<PyAny>().unwrap(),
-            package_names.cast_as::<PyAny>().unwrap(),
-            package_functions.cast_as::<PyAny>().unwrap(),
-        ];
+        py_functions.start_experiment(py, datasets, package_names, package_functions)?;
 
-        py_functions
-            .start_experiment
-            .call1(py, PyTuple::new(py, args))?;
+        tracing::trace!("created new PyHandle");
 
         Ok(Self {
             py,
@@ -98,17 +121,67 @@ impl<'py> PyHandle<'py> {
         python: Python<'py>,
         path: PathBuf,
         import_as: &str,
-    ) -> Result<&'py PyModule, pyo3::PyErr> {
-        PyModule::from_code(
+    ) -> Result<&'py PyModule, PyModuleImportError> {
+        Ok(PyModule::from_code(
             python,
-            &std::fs::read_to_string(&path).unwrap(),
+            &match std::fs::read_to_string(&path) {
+                Ok(code) => code,
+                Err(err) if matches!(err.kind(), std::io::ErrorKind::NotFound) => {
+                    return Err(PyModuleImportError::FileNotFound);
+                }
+                Err(err) => {
+                    panic!(
+                        "Encountered an error when trying to read {} (exact error: {err:?})",
+                        path.display()
+                    );
+                }
+            },
             &path.to_string_lossy(),
             import_as,
-        )
+        )?)
     }
 
-    /// Imports `runner.py` as a module.
-    pub(crate) fn import_runner_module(python: Python<'py>) -> &'py PyModule {
+    /// Imports the necessary modules which are required for the Python runner
+    /// to function.
+    ///
+    /// The [`PyModule`] returned is a reference to
+    /// `lib/execution/src/runner/python/runner.py` (imported as `runner`)
+    pub(crate) fn import_necessary_modules(python: Python<'py>) -> &'py PyModule {
+        Self::import_arbitrary_file(
+            python,
+            "./lib/execution/src/runner/python/shmem.py".into(),
+            "shmem",
+        );
+        Self::import_arbitrary_file(
+            python,
+            "./lib/execution/src/runner/python/context.py".into(),
+            "context",
+        );
+        Self::import_arbitrary_file(
+            python,
+            "./lib/execution/src/runner/python/util.py".into(),
+            "util",
+        );
+        Self::import_arbitrary_file(
+            python,
+            "./lib/execution/src/runner/python/state.py".into(),
+            "state",
+        );
+        Self::import_arbitrary_file(
+            python,
+            "./lib/execution/src/runner/python/sim.py".into(),
+            "sim",
+        );
+        Self::import_arbitrary_file(
+            python,
+            "./lib/execution/src/runner/python/hash_util.py".into(),
+            "hash_util",
+        );
+        Self::import_arbitrary_file(
+            python,
+            "./lib/execution/src/runner/python/batch.py".into(),
+            "batch",
+        );
         Self::import_arbitrary_file(
             python,
             "./lib/execution/src/runner/python/runner.py".into(),
@@ -116,47 +189,209 @@ impl<'py> PyHandle<'py> {
         )
     }
 
-    /// Retrieves the Python functions we need (these are all defined in the runner module).
-    pub(crate) fn get_py_funcs(runner: &PyModule) -> PyFunctions {
-        let res = [
-            "start_experiment",
-            "start_sim",
-            "run_task",
-            "ctx_batch_sync",
-            "state_sync",
-            "state_interim_sync",
-            "state_snapshot_sync",
-        ]
-        .into_iter()
-        .map(|name| {
-            let function = runner
-                .getattr(name)
-                .unwrap()
-                .cast_as::<PyFunction>()
-                .unwrap();
+    /// Constructs an instance of the Python `Runner` class (currently this is
+    /// defined in `lib/execution/src/runner/python/runner.py`).
+    pub(crate) fn get_py_funcs(runner: &PyModule) -> PyRunner {
+        tracing::trace!("constructing Runner class");
 
-            function
-        })
-        .collect::<Vec<_>>();
+        let class = runner.dict().get_item("Runner").unwrap();
+        let class = class.getattr("__new__").unwrap().call1((class,)).unwrap();
+        class.getattr("__init__").unwrap().call0().unwrap();
 
-        PyFunctions {
-            start_experiment: res[0].into_py(runner.py()),
-            start_sim: res[1].into_py(runner.py()),
-            run_task: res[2].into_py(runner.py()),
-            ctx_batch_sync: res[3].into_py(runner.py()),
-            state_sync: res[4].into_py(runner.py()),
-            state_interim_sync: res[5].into_py(runner.py()),
-            state_snapshot_sync: res[6].into_py(runner.py()),
+        py_runner::PyRunner {
+            class: class.into_py(class.py()),
         }
     }
 }
 
-pub struct PyFunctions {
-    pub(crate) start_experiment: Py<PyFunction>,
-    pub(crate) start_sim: Py<PyFunction>,
-    pub(crate) run_task: Py<PyFunction>,
-    pub(crate) ctx_batch_sync: Py<PyFunction>,
-    pub(crate) state_sync: Py<PyFunction>,
-    pub(crate) state_interim_sync: Py<PyFunction>,
-    pub(crate) state_snapshot_sync: Py<PyFunction>,
+pub(crate) mod py_runner {
+    use arrow2::{
+        datatypes::Schema,
+        io::ipc::write::{default_ipc_fields, schema_to_bytes},
+    };
+    use memory::shared_memory::arrow_continuation;
+    use pyo3::{
+        types::{PyBytes, PyDict, PyList, PyTuple},
+        Py, PyAny, PyResult, Python, ToPyObject,
+    };
+    use stateful::global::Globals;
+
+    use crate::package::simulation::SimulationId;
+
+    /// This struct owns an instance (well, _the_ instance, because we only ever
+    /// construct one instance of `PyRunner` per Python interpreter). By calling
+    /// the various methods on this class, we can interface with the Python code.
+    pub struct PyRunner {
+        pub(crate) class: Py<PyAny>,
+    }
+
+    impl PyRunner {
+        pub(crate) fn start_experiment(
+            &self,
+            py: Python<'_>,
+            datasets: &PyDict,
+            msg: &PyList,
+            fns: &PyList,
+        ) -> PyResult<()> {
+            tracing::trace!("calling Runner.start_experiment (in runner.py)");
+            self.class
+                .getattr(py, "start_experiment")?
+                .call1(
+                    py,
+                    PyTuple::new(py, &[
+                        datasets.cast_as::<PyAny>().unwrap(),
+                        msg.cast_as::<PyAny>().unwrap(),
+                        fns.cast_as::<PyAny>().unwrap(),
+                    ]),
+                )
+                .map(|ret| debug_assert!(ret.is_none(py)))
+                .map_err(|e| {
+                    e.print(py);
+                    e
+                })
+                .unwrap();
+            tracing::trace!("finished calling Runner.start_experiment (in runner.py)");
+
+            Ok(())
+        }
+
+        pub(crate) fn start_sim(
+            &self,
+            py: Python<'_>,
+            sim_id: &str,
+            agent_schema: &Schema,
+            msg_schema: &Schema,
+            ctx_schema: &Schema,
+            package_ids: &[Py<PyAny>],
+            package_msgs: &[String],
+            globals: &Globals,
+        ) -> PyResult<()> {
+            let globals = serde_json::to_string(&globals).unwrap();
+
+            self.class
+                .getattr(py, "start_sim")?
+                .call1(
+                    py,
+                    (
+                        sim_id.to_object(py),
+                        PyBytes::new(py, &schema_to_stream_bytes(agent_schema)),
+                        PyBytes::new(py, &schema_to_stream_bytes(msg_schema)),
+                        PyBytes::new(py, &schema_to_stream_bytes(ctx_schema)),
+                        package_ids.to_object(py),
+                        package_msgs.to_object(py),
+                        globals.to_object(py),
+                    ),
+                )
+                .map(|res| {
+                    debug_assert!(res.is_none(py));
+                })
+        }
+
+        pub(crate) fn ctx_batch_sync(
+            &self,
+            py: Python<'_>,
+            sim_id: SimulationId,
+            batch: &PyAny,
+            indices: &[usize],
+            current_step: usize,
+        ) -> PyResult<()> {
+            self.class
+                .getattr(py, "ctx_batch_sync")?
+                .call1(
+                    py,
+                    (
+                        sim_id.as_u32().to_object(py),
+                        batch,
+                        indices.to_object(py),
+                        current_step.to_object(py),
+                    ),
+                )
+                .map(|res| {
+                    debug_assert!(res.is_none(py));
+                    ()
+                })
+        }
+
+        pub(crate) fn state_sync(
+            &self,
+            py: Python<'_>,
+            sim_id: SimulationId,
+            agent_pool: &PyList,
+            msg_pool: &PyList,
+        ) -> PyResult<()> {
+            self.class
+                .getattr(py, "state_sync")?
+                .call1(py, (sim_id.as_u32().to_object(py), agent_pool, msg_pool))
+                .map(|r| {
+                    debug_assert!(r.is_none(py));
+                    ()
+                })
+        }
+
+        pub(crate) fn state_interim_sync(
+            &self,
+            py: Python<'_>,
+            sim_id: SimulationId,
+            indices: &[usize],
+            agent_batches: &PyList,
+            msg_batches: &PyList,
+        ) -> PyResult<()> {
+            self.class
+                .getattr(py, "state_interim_sync")?
+                .call1(
+                    py,
+                    (
+                        sim_id.as_u32().to_object(py),
+                        indices.to_object(py),
+                        agent_batches,
+                        msg_batches,
+                    ),
+                )
+                .map(|res| {
+                    debug_assert!(res.is_none(py));
+                    ()
+                })
+        }
+
+        pub(crate) fn state_snapshot_sync(
+            &self,
+            py: Python<'_>,
+            sim_id: SimulationId,
+            agent_pool: &PyList,
+            msg_pool: &PyList,
+        ) -> PyResult<()> {
+            self.class
+                .getattr(py, "state_snapshot_sync")?
+                .call1(py, (sim_id.as_u32().to_object(py), agent_pool, msg_pool))
+                .map(|res| {
+                    debug_assert!(res.is_none(py));
+                    ()
+                })
+        }
+
+        pub(crate) fn run_task(&self, py: Python<'_>, args: &[Py<PyAny>]) -> PyResult<Py<PyAny>> {
+            self.class
+                .getattr(py, "run_task")?
+                .call1(py, PyTuple::new(py, args))
+        }
+    }
+
+    fn schema_to_stream_bytes(schema: &Schema) -> Vec<u8> {
+        let content = schema_to_bytes(schema, &default_ipc_fields(&schema.fields));
+        let mut stream_bytes = arrow_continuation(content.len());
+        stream_bytes.extend_from_slice(&content);
+        stream_bytes
+    }
+}
+
+#[derive(Debug)]
+pub enum PyModuleImportError {
+    PyErr(PyErr),
+    FileNotFound,
+}
+
+impl From<PyErr> for PyModuleImportError {
+    fn from(py_err: PyErr) -> Self {
+        Self::PyErr(py_err)
+    }
 }

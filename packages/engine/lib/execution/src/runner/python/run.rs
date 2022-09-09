@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use pyo3::Python;
+use pyo3::{PyResult, Python};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tracing::{Instrument, Span};
 
@@ -41,9 +41,10 @@ pub(crate) fn run_experiment(
             // necessary operations with, and then "return" the handle to its
             // place by setting `handle = locally_taken_handle;`
             let mut handle: Option<SavedPyHandle> = Some(Python::with_gil(|py| {
-                // TODO: don't unwrap
-                PyHandle::new(py, init_msg.as_ref()).unwrap().release_gil()
-            }));
+                PyResult::Ok(PyHandle::new(py, init_msg.as_ref())?.release_gil())
+            }).map_err(|py| {
+                PythonError::from(py)
+            })?);
 
             loop {
                 match inbound_receiver.recv().await {
@@ -57,9 +58,17 @@ pub(crate) fn run_experiment(
                                 sim_id,
                                 msg,
                                 &outbound_sender,
-                            ).unwrap();
-                            (handle.release_gil(), keep_running)
-                        });
+                            ).map_err(|e| {
+                                match e {
+                                    crate::Error::Python(PythonError::PyErr(ref e)) => {
+                                        e.print(py);
+                                    }
+                                    _ => ()
+                                };
+                                e
+                            })?;
+                            Ok::<_, crate::Error>((handle.release_gil(), keep_running))
+                        }).unwrap();
                         handle = Some(local_handle);
 
                         if !keep_running {
@@ -69,15 +78,18 @@ pub(crate) fn run_experiment(
 
                     },
                     None => {
-                        todo!("proper error message");
+                        tracing::trace!("Inbound sender to Python exited");
+                        return Err(PythonError::InboundReceive.into());
                     },
                 }
             }
+
+            Ok::<_, crate::Error>(())
         }.in_current_span();
     }
 
     let local = tokio::task::LocalSet::new();
-    local.block_on(&runtime, impl_future);
+    local.block_on(&runtime, impl_future)?;
 
     Ok(())
 }

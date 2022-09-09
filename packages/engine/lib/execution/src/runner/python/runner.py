@@ -1,13 +1,16 @@
 import logging
+from struct import pack
 import sys
 import time
 
+# TODO: deserialize JSON on the Rust side (don't serialize it in the first
+# place, just convert directly to Python objects using PyO3)
+import json
+import pyarrow as pa
+
 from batch import Batches
-from context import SimInitContext
-from fbs.RunnerInboundMsgPayload import RunnerInboundMsgPayload
-from package import Package
+from context import ExperimentContext, SimInitContext
 from sim import Sim
-from message import Messenger
 from util import format_exc_info
 
 """
@@ -19,84 +22,35 @@ SLEEP_BEFORE_FREE = 2
 # We want to catch everything
 # pylint: disable=broad-except
 class Runner:
-    def __init__(self, experiment_id, worker_index):
-        try:
-            self.messenger = Messenger(experiment_id, worker_index)
-        except Exception as error:
-            # Can't do much if messenger init fails.
-            logging.error("Messenger init failed: %s", error)
-            raise error
-
+    def __init__(self):
         self.batches = Batches()
+        # TODO: should self.sims be a list?
         self.sims = {}
         self.pkgs = {}
+        self.datasets = {}
         self.experiment_ctx = None
 
-        try:
-            # Package/user error
-            # TODO: Use execptions instead
-            #   see https://app.asana.com/0/1199548034582004/1202011714603649/f
-            if self.start_experiment():
-                self._free_after_sent()
-        except Exception as error:
-            # Have to catch generic Exception -- if we knew what the error
-            # in the runner was, we could have fixed it in the first place.
-            self._handle_runner_error(sys.exc_info())
-            raise error
+    def start_experiment(self, datasets, package_init_msgs, package_functions):
+        for (key, value) in datasets.items():
+            self.datasets[key] = json.loads(value)
 
-    def start_experiment(self):
-        """
-        Wait for an init message from the Rust process, then use it
-        to initialize experiment-level context (`self.experiment_ctx`)
-        and each package's experiment-level data (`self.pkgs`).
-        The packages' source code is not included in the message,
-        but each package's name and type is included, and its
-        source code is looked up from a path determined by its
-        name and type.
-
-        If an error occurs during a package's custom experiment-level
-        initialization (whether a package or user error), it is sent
-        to the Rust process and experiment init is stopped early and
-        `True` is returned. (`True` is returned instead of raising
-        an exception in order to distinguish runner errors from
-        package/user errors.)
-
-        User warnings are also sent to the Rust process, but do not
-        stop experiment-level init.
-
-        This function is actually only called once per Python process,
-        soon after the process starts, because the init message is
-        always the first message that the Rust process sends to a
-        Python process.
-
-        :return: Whether a package/user error occurred
-        """
-        init = self.messenger.recv_init()
-        self.experiment_ctx = init.shared_ctx
-        for pkg_id, config in init.pkgs.items():
-            self.pkgs[pkg_id] = pkg = Package(
-                name=config.name,
-                pkg_type=config.type,
-                owned_fields=[],  # TODO: Propagate `config.owned_fields` here.
-            )
-
-            if pkg.start_experiment is not None:
-                try:
-                    result = pkg.start_experiment(
-                        pkg.experiment, config.payload, self.experiment_ctx
-                    )
-                    were_user_errors = self._handle_experiment_init_result(pkg, result)
-                    if were_user_errors:
-                        # TODO: Should we kill the runner here or let the Rust process
-                        #       terminate it after receiving user errors?
-                        return True
-
-                except Exception:
-                    # Have to catch generic exception, because package could throw anything.
-                    self._handle_pkg_error(pkg, "experiment init", sys.exc_info())
-                    return True
-
-        return False
+        for (msg, fns) in zip(package_init_msgs, package_functions):
+            package_start_experiment = fns["start_experiment"]
+            pkg = self.pkgs[msg["id"]] = {
+                "name": msg["name"],
+                "type": msg["type"],
+                "owns_field": set(),
+                "start_experiment": package_start_experiment,
+                "start_sim": fns["start_sim"],
+                "run_task": fns["run_task"],
+                "experiment": {},
+                "sims": {},
+            }
+            if package_start_experiment:
+                payload = json.loads(msg["payload"])
+                package_start_experiment(
+                    pkg["experiment"], payload, self.experiment_ctx
+                )
 
     def _handle_experiment_init_result(self, pkg, result):
         """
@@ -109,17 +63,18 @@ class Runner:
         if not result:  # Package didn't return anything.
             return False
 
-        prefix = f"Package `{pkg.name}` experiment init: "
-        warnings = result.get("warnings")
-        if warnings is not None:
-            warnings = tuple(prefix + w for w in warnings)
-            self.messenger.send_user_warnings(warnings)
+        pkg_name = pkg["name"]
+        prefix = f"Package `{pkg_name}` experiment init: "
+        # warnings = result.get("warnings")
+        # if warnings is not None:
+        #     warnings = tuple(prefix + w for w in warnings)
+        #     self.messenger.send_user_warnings(warnings)
 
-        errors = result.get("errors")
-        if errors is not None:
-            errors = tuple(prefix + e for e in errors)
-            self.messenger.send_user_errors(errors)
-            return True
+        # errors = result.get("errors")
+        # if errors is not None:
+        #     errors = tuple(prefix + e for e in errors)
+        #     self.messenger.send_user_errors(errors)
+        #     return True
 
         return False
 
@@ -148,7 +103,7 @@ class Runner:
         logging.error(
             error
         )  # First make sure the error gets logged; then try to send it.
-        self.messenger.send_runner_error(error, sim_id)
+        # self.messenger.send_runner_error(error, sim_id)
         self._free_after_sent()
 
     def _handle_pkg_error(self, pkg, origin, exc_info, sim_id=0):
@@ -161,13 +116,14 @@ class Runner:
                        If the error isn't specific to any simulation run, we
                        use 0 as an invalid id.
         """
-        error = f"Package `{pkg.name}` {origin}: {format_exc_info(exc_info)}"
+        pkg_name = pkg["name"]
+        error = f"Package `{pkg_name}` {origin}: {format_exc_info(exc_info)}"
         # TODO: Custom log level(s) for non-engine (i.e. package/user) errors/warnings,
         #       e.g. `logging.external_error`?
         logging.error(
             error
         )  # First make sure the error gets logged; then try to send it.
-        self.messenger.send_pkg_error(error, sim_id)
+        # self.messenger.send_pkg_error(error, sim_id)
 
     def _free_after_sent(self):
         """
@@ -182,11 +138,20 @@ class Runner:
     def _free(self):
         """Release all resources."""
         self.batches.free()
-        self.messenger = None
+        # self.messenger = None
         self.pkgs = None
         self.sims = None
 
-    def start_sim(self, msg):
+    def start_sim(
+        self,
+        sim_id,
+        agent_schema_bytes,
+        msg_schema_bytes,
+        ctx_schema_bytes,
+        package_ids,
+        package_messages,
+        globals,
+    ):
         """
         Registers a new simulation run and executes each package's simulation-level init.
         Context and state packages can optionally return custom Arrow loader and/or getter
@@ -205,29 +170,39 @@ class Runner:
                     between simulation runs), and for each package, a custom payload
                     sent by the package's Rust code.
         """
-        self.sims[msg.sim_id] = sim = Sim(msg.schema, self.experiment_ctx, msg.globals)
+        self.sims[sim_id] = sim = Sim(
+            {
+                "agent": pa.ipc.read_schema(pa.py_buffer(agent_schema_bytes)),
+                "message": pa.ipc.read_schema(pa.py_buffer(msg_schema_bytes)),
+                "context": pa.ipc.read_schema(pa.py_buffer(ctx_schema_bytes)),
+            },
+            self.experiment_ctx,
+            globals,
+        )
         sim_init_ctx = SimInitContext(
-            self.experiment_ctx, sim.globals, sim.schema.agent
+            self.experiment_ctx,
+            globals,
+            pa.ipc.read_schema(pa.py_buffer(agent_schema_bytes)),
         )
 
-        for pkg_id, pkg in self.pkgs.items():
-            pkg.sims[msg.sim_id] = pkg_sim_data = {}
+        for i, (pkg_id, pkg) in enumerate(self.pkgs.items()):
+            pkg["sims"][sim_id] = pkg_sim_data = {}
 
-            if pkg.start_sim is not None:
-                payload = msg.pkgs[pkg_id].payload
+            if pkg["start_sim"] is not None:
+                payload = package_messages[i]
 
                 try:
-                    result = pkg.start_sim(
-                        pkg.experiment, pkg_sim_data, payload, sim_init_ctx
+                    result = pkg["start_sim"](
+                        pkg["experiment"], pkg_sim_data, payload, sim_init_ctx
                     )
-                    if self._handle_sim_init_result(msg.sim_id, sim, pkg, result):
-                        self.sims.pop(msg.sim_id)
+                    if self._handle_sim_init_result(sim_id, sim, pkg, result):
+                        self.sims.pop(sim_id)
                         return
 
                 except Exception:
                     # Have to catch generic exception, because package could throw anything.
-                    self._handle_pkg_error(pkg, "sim init", sys.exc_info(), msg.sim_id)
-                    self.sims.pop(msg.sim_id)
+                    self._handle_pkg_error(pkg, "sim init", sys.exc_info(), sim_id)
+                    self.sims.pop(sim_id)
                     return
 
     def _handle_sim_init_result(self, sim_id, sim, pkg, result):
@@ -243,26 +218,21 @@ class Runner:
         if not result:  # Package didn't return anything.
             return False
 
-        if pkg.type in ("context", "state"):
+        if pkg["type"] in ("context", "state"):
             sim.maybe_add_custom_fns(result, "loaders", pkg)
             sim.maybe_add_custom_fns(result, "getters", pkg)
 
         # TODO: Remove duplication with experiment init result handling.
-        prefix = f"Package `{pkg.name}` sim init: "
+        pkg_name = pkg["name"]
+        prefix = f"Package `{pkg_name}` sim init: "
         warnings = result.get("warnings")
-        if warnings is not None:
-            warnings = tuple(prefix + w for w in warnings)
-            self.messenger.send_user_warnings(warnings, sim_id)
-
+        # todo: log warnings
         errors = result.get("errors")
-        if errors is not None:
-            errors = tuple(prefix + e for e in errors)
-            self.messenger.send_user_errors(errors, sim_id)
-            return True
+        # todo: log errors
 
         return False
 
-    def run_task(self, sim_id, group_idx, pkg_id, task_id, task_msg):
+    def run_task(self, sim_id, group_idx, pkg_id, task_msg):
         """
         Execute a package's task in a specific simulation run, optionally for
         a specific group:
@@ -288,7 +258,9 @@ class Runner:
                         and execution is returned to the simulation main loop.
         :param task_msg: An optional message chosen by the package's Rust code
         """
-        sim = self.sims[sim_id]
+        task_msg = json.loads(task_msg)
+
+        sim = self.sims[str(sim_id)]
         if group_idx is None:
             state = sim.state
             ctx = sim.context
@@ -300,8 +272,10 @@ class Runner:
         try:
             # TODO: Pass `task_id` to package?
             continuation = (
-                    pkg.run_task(pkg.experiment, pkg.sims[sim_id], task_msg, state, ctx)
-                    or {}
+                pkg["run_task"](
+                    pkg["experiment"], pkg["sims"][str(sim_id)], task_msg, state, ctx
+                )
+                or {}
             )
         except Exception:
             # Have to catch generic Exception, because package could throw anything.
@@ -314,12 +288,14 @@ class Runner:
             changes["i_group"] = group_idx
             changes = [changes]
 
-        self.messenger.send_task_continuation(
-            sim_id, changes, pkg_id, task_id, group_idx, continuation
-        )
         # TODO: OPTIM chaining if `continuation.target == "Python"`
+        # NOTE: this should probably be implemented on the Rust side
+        ret = {"changes": changes, **continuation}
+        if not "task" in ret:
+            ret["task"] = "{}"
+        return ret
 
-    def ctx_batch_sync(self, sim_id, ctx_batch, cur_step):
+    def ctx_batch_sync(self, sim_id, ctx_batch, state_group_start_indices, cur_step):
         """
         Load one simulation run's context batch's shared memory segment
         (if necessary) and native columns from Arrow. Also update the
@@ -331,15 +307,15 @@ class Runner:
         :param cur_step: Current step of the simulation run -- synced along
                          with the batch because it's also part of context
         """
-        sim = self.sims[sim_id]
+        sim = self.sims[str(sim_id)]
 
-        ctx_batch = self.batches.sync(ctx_batch, sim.schema.context)
-        ctx_batch.load_missing_cols(sim.schema.context, sim.context_loaders)
+        ctx_batch = self.batches.sync(ctx_batch, sim.schema["context"])
+        ctx_batch.load_missing_cols(sim.schema["context"], sim.context_loaders)
 
         sim.context.set_batch(ctx_batch)
         sim.context.set_step(cur_step)
 
-    def _load_pools(self, sim, agent_pool, message_pool):
+    def _load_pools(self, sim: Sim, agent_pool, message_pool):
         """
         Load batches corresponding to batch objects in pools,
         mutating both `self.batches` and `agent_pool`/`message_pool`.
@@ -353,17 +329,17 @@ class Runner:
         # pylint: disable=consider-using-enumerate
         for group_index in range(len(agent_pool)):
             agent_pool[group_index] = self.batches.sync(
-                agent_pool[group_index], sim.schema.agent
+                agent_pool[group_index], sim.schema["agent"]
             )
             agent_pool[group_index].load_missing_cols(
-                sim.schema.agent, sim.state_loaders
+                sim.schema["agent"], sim.state_loaders
             )
 
             message_pool[group_index] = self.batches.sync(
-                message_pool[group_index], sim.schema.message
+                message_pool[group_index], sim.schema["message"]
             )
             message_pool[group_index].load_missing_cols(
-                sim.schema.message, sim.state_loaders
+                sim.schema["message"], sim.state_loaders
             )
 
     def state_sync(self, sim_id, agent_pool, message_pool):
@@ -376,7 +352,7 @@ class Runner:
         :param agent_pool: List of state agent batch objects
         :param message_pool: List of state message (i.e. outbox) batch objects
         """
-        sim = self.sims[sim_id]
+        sim = self.sims[str(sim_id)]
         self._load_pools(sim, agent_pool, message_pool)
         sim.state.set_pools(agent_pool, message_pool, sim.state_loaders)
 
@@ -394,101 +370,19 @@ class Runner:
                               same length), not the `i`th existing group.
         :param message_batches: State message batch objects
         """
-        sim = self.sims[sim_id]
+        sim = self.sims[str(sim_id)]
         for idx, group_idx in enumerate(group_idxs):
-            agent_batch = self.batches.sync(agent_batches[idx], sim.schema.agent)
-            agent_batch.load_missing_cols(sim.schema.agent, sim.state_loaders)
+            agent_batch = self.batches.sync(agent_batches[idx], sim.schema["agent"])
+            agent_batch.load_missing_cols(sim.schema["agent"], sim.state_loaders)
 
-            msg_batch = self.batches.sync(message_batches[idx], sim.schema.message)
-            msg_batch.load_missing_cols(sim.schema.message, {})
+            msg_batch = self.batches.sync(message_batches[idx], sim.schema["message"])
+            msg_batch.load_missing_cols(sim.schema["message"], {})
 
             group_state = sim.state.get_group(group_idx)
             group_state.set_batches(agent_batch, msg_batch)
 
     def state_snapshot_sync(self, sim_id, agent_pool, message_pool):
-        sim = self.sims[sim_id]
+        # TODO: should self.sims be a list?
+        sim = self.sims[str(sim_id)]
         self._load_pools(sim, agent_pool, message_pool)
         sim.context.set_snapshot(agent_pool, message_pool)
-
-    def run(self):
-        # pylint: disable=too-many-branches
-        """
-        Wait for and handle messages from Rust process until
-        a termination message is received or a fatal error occurs.
-        Messages are always handled sequentially -- the runner
-        finishes handling one message before receiving another.
-        """
-        try:
-            while True:
-                msg, msg_type = self.messenger.recv()
-                # TODO: try and use `match` when we upgrade to Python 3.10+
-                if msg_type == RunnerInboundMsgPayload.TerminateRunner:
-                    logging.debug("Terminating runner")
-                    break
-
-                if msg_type == RunnerInboundMsgPayload.NewSimulationRun:
-                    logging.debug("Starting simulation run")
-                    self.start_sim(msg)
-
-                elif msg_type == RunnerInboundMsgPayload.TerminateSimulationRun:
-                    logging.debug("Terminating simulation run")
-                    del self.sims[msg.sim_id]
-
-                elif msg_type == RunnerInboundMsgPayload.ContextBatchSync:
-                    logging.debug("Handling context batch sync")
-                    self.ctx_batch_sync(msg.sim_id, msg.batch, msg.cur_step)
-
-                elif msg_type == RunnerInboundMsgPayload.StateSync:
-                    logging.debug("Handling state sync")
-                    self.state_sync(msg.sim_id, msg.agent_pool, msg.message_pool)
-                    self.messenger.send_sync_completion(msg.sim_id)
-
-                elif msg_type == RunnerInboundMsgPayload.StateInterimSync:
-                    logging.debug("Handling state interim sync")
-                    self.state_interim_sync(
-                        msg.sim_id,
-                        msg.group_idxs,
-                        msg.agent_batches,
-                        msg.message_batches,
-                    )
-
-                elif msg_type == RunnerInboundMsgPayload.StateSnapshotSync:
-                    logging.debug("Handling snapshot sync")
-                    self.state_snapshot_sync(
-                        msg.sim_id, msg.agent_pool, msg.message_pool
-                    )
-
-                elif msg_type == RunnerInboundMsgPayload.TaskMsg:
-                    logging.debug("Running task")
-                    n_groups = self.sims[msg.sim_id].state.n_groups()
-
-                    group_idx = None
-                    if n_groups == 1:
-                        group_idx = msg.sync.group_idxs[0]
-                    elif len(msg.sync.group_idxs) != n_groups:
-                        # TODO
-                        raise NotImplementedError(
-                            "Tasks on arbitrary subsets of groups are not supported currently"
-                        )
-
-                    self.state_interim_sync(
-                        msg.sim_id,
-                        msg.sync.group_idxs,
-                        msg.sync.agent_batches,
-                        msg.sync.message_batches,
-                    )
-                    self.run_task(
-                        msg.sim_id, group_idx, msg.pkg_id, msg.task_id, msg.payload
-                    )
-
-                elif msg_type == RunnerInboundMsgPayload.CancelTask:
-                    pass  # TODO: CancelTask isn't used for now
-
-                else:
-                    raise RuntimeError(f"Unknown message type: {msg_type}")
-
-        except Exception:
-            # Catch generic Exception to make sure it's logged before the runner exits.
-            self._handle_runner_error(sys.exc_info())
-
-        self._free()

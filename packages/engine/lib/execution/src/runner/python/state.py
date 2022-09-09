@@ -167,7 +167,7 @@ class GroupState:
         # messages to native JavaScript objects.
 
         skip = {"agent_id"}
-        self.__agent_batch.flush_changes(schema.agent, skip)
+        agent_changes = self.__agent_batch.flush_changes(schema["agent"], skip)
 
         # Convert any native message objects to JSON before flushing message batch.
         # Note that this is distinct from (though analogous to) 'any'-type handling
@@ -181,9 +181,9 @@ class GroupState:
                         if "data" in msg:
                             msg["data"] = json.dumps(msg["data"])
 
-        self.__msg_batch.flush_changes(schema.message, set())
+        msg_changes = self.__msg_batch.flush_changes(schema["message"], set())
 
-        return {"agent": self.__agent_batch, "message": self.__msg_batch}
+        return {"agent": agent_changes, "message": msg_changes}
 
 
 class SimState:

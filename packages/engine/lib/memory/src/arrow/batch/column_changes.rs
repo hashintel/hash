@@ -1,78 +1,25 @@
+use arrow2::array::Array;
+
+use super::{arrow2_growable_array_data::child_data, ArrowBatch};
 use crate::{
-    arrow::{meta, util::bit_util},
+    arrow::{
+        batch::arrow2_growable_array_data::{buffer, non_null_buffer_count, null_buffer},
+        len, meta, null_count,
+        util::bit_util,
+        ColumnChange,
+    },
     error::Result,
-    shared_memory::{padding, BufferChange, Segment},
+    shared_memory::{padding, BufferChange},
 };
 
-mod arrow2_growable_array_data;
-
-/// This is an interface which provides a way to extract the data we need about an Arrow array
-/// in order to be able to grow it.
-///
-/// Can be implemented by ArrayData, ArrayDataRef, Python FFI array data.
-pub trait GrowableArrayData: Sized + std::fmt::Debug {
-    fn len(&self) -> usize;
-    fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-    /// Returns the number of items which are null in the given array.
-    fn null_count(&self) -> usize;
-    /// This returns a bitmap, where the nth bit of the returned data specifies whether or not the
-    /// nth item in the array is null or not.
-    fn null_buffer(&self) -> Option<&[u8]>;
-    /// Returns the nth buffer of this array. We follow the
-    /// [specification](https://arrow.apache.org/docs/format/Columnar.html#buffer-listing-for-each-layout)
-    /// _except_ that we don't return any validity bitmaps/null buffers here (these can be obtained
-    /// instead by calling [`GrowableArrayData::null_buffer`]).
-    #[allow(clippy::redundant_allocation)]
-    fn buffer(&self, index: usize) -> &[u8];
-    /// Arrow stores the null buffer separately from other buffers.
-    fn non_null_buffer_count(&self) -> usize;
-    /// This returns the data of the child arrays.
-    fn child_data(&self) -> &[Self];
-}
-
-/// The info required about an Arrow column in order to grow it
-pub trait GrowableColumn<D: GrowableArrayData>: Sized {
-    fn index(&self) -> usize;
-    fn data(&self) -> &D;
-}
-
-/// A batch that can be grown after creation.
-///
-/// Implementing this trait implies that `flush_changes` may alter the memory location.
-///
-/// This trait is useful for batches with dynamically sized Arrow columns, such as string columns,
-/// and Arrow batches whose number of elements can change due to the number of agents changing, such
-/// as components of state or context, or `PreparedBatch` used by Python FFI.
-// TODO: Move `flush_changes` outside of trait and make it a function with type parameters and
-//       remove the type parameters from the trait? (would simplify impl of this trait a bit; still
-//       couldn't make the trait public (outside the datastore) though due to `memory_mut`)
-pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
-    fn static_meta(&self) -> &meta::StaticMetadata;
-    fn dynamic_meta(&self) -> &meta::DynamicMetadata;
-    fn dynamic_meta_mut(&mut self) -> &mut meta::DynamicMetadata;
-    fn segment(&self) -> &Segment;
-    fn segment_mut(&mut self) -> &mut Segment;
-
-    /// Persists all queued changes to memory, empties the queue and increments the
-    /// [`crate::shared_memory::Metaversion`] of the persisted data (i.e. the data in the
-    /// shared-memory [`Segment`]).
-    ///
-    /// Calculates all moves, copies and resizes required to persist the changes.
-    ///
-    /// # Errors
-    ///
-    /// If the loaded metaversion isn't equal to the persisted metaversion, this gives an error to
-    /// avoid flushing stale data. (The loaded metaversion can't be newer than the persisted
-    /// metaversion.)
-    // TODO: We might have to remove this restriction to allow flushing multiple changes in a row.
-    ///
-    /// If the underlying segment has been corrupted somehow, this can give various errors.
-    #[allow(clippy::too_many_lines)]
-    fn flush_changes(&mut self, mut column_changes: Vec<C>) -> Result<BufferChange> {
+impl ArrowBatch {
+    pub fn flush_column_changes(
+        &mut self,
+        mut column_changes: Vec<ColumnChange>,
+    ) -> Result<BufferChange> {
+        tracing::trace!("flushing column changes");
         // Sort the changes by the order in which the columns are
-        column_changes.sort_by_key(|c| c.index());
+        column_changes.sort_by_key(|c| c.index);
 
         let column_metas = self.static_meta().get_column_meta();
 
@@ -85,7 +32,7 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
         // Go over all of the pending changes, calculate target locations for those buffers
         // and neighbouring buffers if they need to be moved.
         column_changes.iter().for_each(|column_change| {
-            let column_index = column_change.index();
+            let column_index = column_change.index;
             // `meta` contains the information about where to look in `self.dynamic_meta` for
             // current offset/node information
             let meta = &column_metas[column_index];
@@ -110,90 +57,95 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
 
             // A column can consist of more than one node. For example a field that is
             // List<u8> corresponds to a column with 2 nodes
-            array_datas.iter().enumerate().for_each(|(i, array_data)| {
-                let node_index = meta.node_start + i;
-                // Update Node information
-                node_changes.push((node_index, meta::Node {
-                    null_count: array_data.null_count(),
-                    length: array_data.len(),
-                }));
+            array_datas
+                .into_iter()
+                .enumerate()
+                // note: the explicit type is here because this was previously
+                // the source of a number of lifetime problems
+                .for_each(|(i, array_data): (usize, &Box<dyn Array>)| {
+                    let node_index = meta.node_start + i;
+                    // Update Node information
+                    node_changes.push((node_index, meta::Node {
+                        null_count: null_count(array_data.as_ref()),
+                        length: len(array_data.as_ref()),
+                    }));
 
-                // Null buffer calculation.
-                // The null buffer is always the first buffer in a column,
-                // it is found under `array_data.null_buffer()` and
-                // NOT under `array_data.buffers()[0]`
-                {
-                    let num_bytes = bit_util::ceil(array_data.len(), 8);
-                    let next_buffer_offset = self
-                        .dynamic_meta()
-                        .buffers
-                        .get(this_buffer_index + 1)
-                        .map_or_else(|| self.dynamic_meta().data_length, |v| v.offset);
-                    let new_padding = padding::maybe_new_dynamic_pad(
-                        this_buffer_offset,
-                        num_bytes,
-                        next_buffer_offset,
+                    // Null buffer calculation.
+                    // The null buffer is always the first buffer in a column,
+                    // it is found under `array_data.null_buffer()` and
+                    // NOT under `array_data.buffers()[0]`
+                    {
+                        let num_bytes = bit_util::ceil(array_data.len(), 8);
+                        let next_buffer_offset = self
+                            .dynamic_meta()
+                            .buffers
+                            .get(this_buffer_index + 1)
+                            .map_or_else(|| self.dynamic_meta().data_length, |v| v.offset);
+                        let new_padding = padding::maybe_new_dynamic_pad(
+                            this_buffer_offset,
+                            num_bytes,
+                            next_buffer_offset,
+                        );
+                        // Safety: A null buffer is always followed by another buffer
+                        if let Some(b) = null_buffer(array_data.as_ref()).as_ref() {
+                            buffer_actions.push(meta::BufferAction::Ref {
+                                index: this_buffer_index,
+                                offset: this_buffer_offset,
+                                padding: new_padding,
+                                buffer: b,
+                            });
+                        } else {
+                            // We know all values must be valid.
+                            // Hence we have to make a homogeneous
+                            // null buffer corresponding to valid values
+                            let buffer = vec![255_u8; num_bytes];
+
+                            buffer_actions.push(meta::BufferAction::Owned {
+                                index: this_buffer_index,
+                                offset: this_buffer_offset,
+                                padding: new_padding,
+                                buffer,
+                            });
+                        }
+
+                        this_buffer_index += 1;
+                        let total_buffer_length = num_bytes + new_padding;
+                        this_buffer_offset += total_buffer_length;
+                    }
+
+                    // Go over offset/data buffers (these are not null buffers)
+                    // Have to do `meta.buffer_counts[i] - 1` because the null buffer is
+                    // separate
+                    debug_assert_eq!(
+                        meta.buffer_counts[i] - 1,
+                        non_null_buffer_count(array_data.as_ref()),
+                        "Number of buffers in metadata does not match actual number of buffers"
                     );
-                    // Safety: A null buffer is always followed by another buffer
-                    if let Some(b) = array_data.null_buffer().as_ref() {
+                    // TODO: when adding datatypes with no null buffer (the null datatype), then
+                    // this   convention does not work
+                    (0..meta.buffer_counts[i] - 1).for_each(|j| {
+                        let buffer = buffer(array_data.as_ref(), j);
+                        let new_len = buffer.len();
+                        let next_buffer_offset = self
+                            .dynamic_meta()
+                            .buffers
+                            .get(this_buffer_index + 1)
+                            .map_or_else(|| self.dynamic_meta().data_length, |v| v.offset);
+                        let new_padding = padding::maybe_new_dynamic_pad(
+                            this_buffer_offset,
+                            new_len,
+                            next_buffer_offset,
+                        );
                         buffer_actions.push(meta::BufferAction::Ref {
-                            index: this_buffer_index,
-                            offset: this_buffer_offset,
-                            padding: new_padding,
-                            buffer: b,
-                        });
-                    } else {
-                        // We know all values must be valid.
-                        // Hence we have to make a homogeneous
-                        // null buffer corresponding to valid values
-                        let buffer = vec![255_u8; num_bytes];
-
-                        buffer_actions.push(meta::BufferAction::Owned {
                             index: this_buffer_index,
                             offset: this_buffer_offset,
                             padding: new_padding,
                             buffer,
                         });
-                    }
-
-                    this_buffer_index += 1;
-                    let total_buffer_length = num_bytes + new_padding;
-                    this_buffer_offset += total_buffer_length;
-                }
-
-                // Go over offset/data buffers (these are not null buffers)
-                // Have to do `meta.buffer_counts[i] - 1` because the null buffer is
-                // separate
-                debug_assert_eq!(
-                    meta.buffer_counts[i] - 1,
-                    array_data.non_null_buffer_count(),
-                    "Number of buffers in metadata does not match actual number of buffers"
-                );
-                // TODO: when adding datatypes with no null buffer (the null datatype), then this
-                //   convention does not work
-                (0..meta.buffer_counts[i] - 1).for_each(|j| {
-                    let buffer = array_data.buffer(j);
-                    let new_len = buffer.len();
-                    let next_buffer_offset = self
-                        .dynamic_meta()
-                        .buffers
-                        .get(this_buffer_index + 1)
-                        .map_or_else(|| self.dynamic_meta().data_length, |v| v.offset);
-                    let new_padding = padding::maybe_new_dynamic_pad(
-                        this_buffer_offset,
-                        new_len,
-                        next_buffer_offset,
-                    );
-                    buffer_actions.push(meta::BufferAction::Ref {
-                        index: this_buffer_index,
-                        offset: this_buffer_offset,
-                        padding: new_padding,
-                        buffer,
+                        this_buffer_offset += new_len + new_padding;
+                        this_buffer_index += 1;
                     });
-                    this_buffer_offset += new_len + new_padding;
-                    this_buffer_index += 1;
                 });
-            });
         });
 
         // There can be buffers at the end which have not been
@@ -336,10 +288,10 @@ fn push_non_modify_actions(
 /// This function performs a depth-first pre-order (i.e. it searches first the root node and then
 /// all the subtrees from left-to-right) traversal of the nodes (this is as per the
 /// [Arrow specification](https://arrow.apache.org/docs/format/Columnar.html)).
-fn gather_array_datas_depth_first<D: GrowableArrayData>(data: &D) -> Vec<&D> {
+fn gather_array_datas_depth_first(data: &Box<dyn Array>) -> Vec<&Box<dyn Array>> {
     let mut ret = vec![data];
     // Depth-first get all nodes
-    data.child_data().iter().for_each(|v| {
+    child_data(data).iter().for_each(|v| {
         ret.append(&mut gather_array_datas_depth_first(v));
     });
     ret

@@ -403,7 +403,7 @@ pub mod tests {
     };
 
     use super::*;
-    use crate::arrow::flush::GrowableArrayData;
+    use crate::arrow::batch::arrow2_growable_array_data::child_data;
 
     type D = DataType;
 
@@ -416,7 +416,7 @@ pub mod tests {
 
     #[allow(clippy::borrowed_box)]
     fn get_num_nodes_from_array_data(data: &Box<dyn Array>) -> usize {
-        data.child_data().iter().fold(0, |total_children, child| {
+        child_data(data).iter().fold(0, |total_children, child| {
             total_children + get_num_nodes_from_array_data(child)
         }) + 1
     }
@@ -447,7 +447,7 @@ pub mod tests {
         // pop the first element of the slice
         let mut node_meta = &node_meta[1..];
 
-        for child_data in node_data.child_data() {
+        for child_data in child_data(node_data) {
             let (child_buffers, new_node_meta) =
                 get_buffer_counts_from_array_data(child_data, node_meta);
             node_meta = new_node_meta;
@@ -461,11 +461,10 @@ pub mod tests {
 
     #[allow(clippy::borrowed_box)]
     fn get_node_mapping_from_array_data(data: &Box<dyn Array>) -> NodeMapping {
-        if data.child_data().is_empty() {
+        if child_data(data).is_empty() {
             NodeMapping::empty()
         } else {
-            let child_node_mappings: Vec<NodeMapping> = data
-                .child_data()
+            let child_node_mappings: Vec<NodeMapping> = child_data(data)
                 .iter()
                 .map(get_node_mapping_from_array_data)
                 .collect();

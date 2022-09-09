@@ -2,8 +2,8 @@
 
 use memory::shared_memory::Segment;
 use pyo3::{
-    types::{PyBool, PyDict, PyList, PyTuple, PyUnicode},
-    PyAny, PyResult,
+    types::{PyDict, PyList},
+    PyAny, PyResult, ToPyObject,
 };
 use stateful::{agent::AgentBatch, message::MessageBatch};
 
@@ -12,6 +12,13 @@ use super::PyHandle;
 impl<'py> PyHandle<'py> {
     /// Converts the state ([`AgentBatch`]es and [`MessageBatch`]es) into their Python
     /// representations.
+    ///
+    /// This creates two lists (the first for the agent batches and the second
+    /// for the message batches). Both lists have the following structure
+    ///
+    /// ```ignore
+    /// List[Dictionary { "id": <the batch id>, "mem": <a Python SharedMemory object> }]
+    /// ```
     pub(super) fn python_of_state<'a>(
         &self,
         agent_batches: impl Iterator<Item = &'a AgentBatch>,
@@ -56,17 +63,16 @@ impl<'py> PyHandle<'py> {
             .py
             .import("multiprocessing.shared_memory")?
             .getattr("SharedMemory")?;
-        py_shmem.call_method(
-            "__init__",
-            PyTuple::new(self.py, [
-                // note: casting from a Python object to PyAny is infallible, so fine to unwrap
-                // here
-                PyUnicode::new(self.py, segment.id())
-                    .cast_as::<PyAny>()
-                    .unwrap(),
-                PyBool::new(self.py, false).cast_as::<PyAny>().unwrap(),
-            ]),
-            None,
-        )
+        let py_shmem = py_shmem.getattr("__new__")?.call1((py_shmem,))?;
+        py_shmem
+            .getattr("__init__")?
+            .call((), {
+                let dict = PyDict::new(self.py);
+                dict.set_item("name", segment.id()).unwrap();
+                dict.set_item("create", false.to_object(self.py)).unwrap();
+                Some(dict)
+            })
+            .expect("failed to create the shared memory segment");
+        Ok(py_shmem)
     }
 }

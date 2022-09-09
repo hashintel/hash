@@ -1,12 +1,17 @@
 use pyo3::{
-    exceptions::PyTypeError,
+    exceptions::{PyAttributeError, PyTypeError},
     prelude::*,
     types::{PyDict, PyFunction},
 };
 
-use super::PyHandle;
+use super::{init::PyModuleImportError, PyHandle};
 use crate::package::simulation::PackageType;
 
+/// This struct is the Python representation of an Engine package. It contains
+/// the three functions which packages may define.
+///
+/// This type implements [`ToPyObject`] which converts it to a Python
+/// dictionary with the relevant fields.
 pub(crate) struct PyPackage<'py> {
     pub(crate) start_experiment: Option<&'py PyFunction>,
     pub(crate) start_sim: Option<&'py PyFunction>,
@@ -15,22 +20,28 @@ pub(crate) struct PyPackage<'py> {
 
 impl<'py> PyPackage<'py> {
     /// Creates a new [`PyPackage`] referencing the relevant the package object.
+    ///
+    /// This imports the file containing the code for the package (if it exists)
+    /// and extracts the necessary functions.
     pub(crate) fn import_package(
-        python: Python<'py>,
+        py: Python<'py>,
         package_name: &str,
         package_type: PackageType,
     ) -> PyResult<Option<PyPackage<'py>>> {
         let path = get_pkg_path(package_name, package_type);
 
-        let module = match PyHandle::try_import_arbitrary_file(python, path.into(), package_name) {
+        let module = match PyHandle::try_import_arbitrary_file(py, path.into(), package_name) {
             Ok(module) => module,
-            Err(e) => {
+            Err(PyModuleImportError::FileNotFound) => {
                 tracing::debug!(
-                    "Could not read package file for package `{}` (note: the package may \
-                     intentionally not exist). Exact error: `{e:?}`",
+                    "Could not read Python package file for package `{}` (note: the package may \
+                     intentionally not exist).`",
                     package_name
                 );
                 return Ok(None);
+            }
+            Err(e) => {
+                panic!("{e:?}");
             }
         };
 
@@ -39,7 +50,14 @@ impl<'py> PyPackage<'py> {
         let functions: Vec<Option<&PyFunction>> = functions
             .into_iter()
             .map(|name: &str| {
-                let attr = module.getattr(name)?;
+                let attr = match module.getattr(name) {
+                    Ok(attr) => attr,
+                    // TODO: does this check need to be more fine-grained?
+                    Err(py_err) if py_err.is_instance_of::<PyAttributeError>(py) => {
+                        return Ok(None);
+                    }
+                    e @ Err(_) => e?,
+                };
 
                 if let Ok(func) = attr.cast_as::<PyFunction>() {
                     Ok(Some(func))

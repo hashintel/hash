@@ -1,11 +1,12 @@
 //! This module contains code to keep the Engine state in sync with the Python
 //! runner's state.
 
-use pyo3::{PyResult, ToPyObject};
+use pyo3::PyResult;
 
 use super::PyHandle;
 use crate::{
     package::simulation::SimulationId,
+    runner::PythonError,
     task::TaskSharedStore,
     worker::{ContextBatchSync, StateSync, WaitableStateSync},
 };
@@ -19,26 +20,24 @@ impl<'py> PyHandle<'py> {
         sim_run_id: SimulationId,
         ctx_batch_sync: ContextBatchSync,
     ) -> PyResult<()> {
+        tracing::trace!(
+            "Running context_batch_sync (Rust function, Python runner) for simulation {sim_run_id}"
+        );
+
         let ContextBatchSync {
             context_batch,
             current_step,
             state_group_start_indices,
         } = ctx_batch_sync;
 
-        let py_sim_id = sim_run_id.as_u32().to_object(self.py);
-        let py_batch_id = self.create_batch_object(context_batch.segment())?;
-        let py_indices = state_group_start_indices.to_object(self.py);
-        let py_current_step = current_step.to_object(self.py);
+        let py_batch = self.create_batch_object(context_batch.segment())?;
 
-        let f = &self.py_functions.ctx_batch_sync;
-        f.call1(
+        self.py_functions.ctx_batch_sync(
             self.py,
-            (
-                py_sim_id.as_ref(self.py),
-                py_batch_id,
-                py_indices.as_ref(self.py),
-                py_current_step.as_ref(self.py),
-            ),
+            sim_run_id,
+            py_batch,
+            &state_group_start_indices,
+            current_step,
         )?;
 
         Ok(())
@@ -48,14 +47,22 @@ impl<'py> PyHandle<'py> {
         &self,
         sim_run_id: SimulationId,
         msg: WaitableStateSync,
-    ) -> PyResult<()> {
+    ) -> Result<(), PythonError> {
+        tracing::trace!("Running Python state_sync (simulation id: {sim_run_id})");
         let agent_pool = msg.state_proxy.agent_proxies.batches_iter();
         let msg_pool = msg.state_proxy.message_proxies.batches_iter();
         let (agent_pool, msg_pool) = self.python_of_state(agent_pool, msg_pool)?;
-        let py_sim_id = sim_run_id.as_u32().to_object(self.py);
 
-        let f = &self.py_functions.state_sync;
-        f.call1(self.py, (py_sim_id, agent_pool, msg_pool))?;
+        self.py_functions
+            .state_sync(self.py, sim_run_id, agent_pool, msg_pool)?;
+
+        tracing::trace!("Finished running Python state_sync (simulation id: {sim_run_id})");
+
+        msg.completion_sender.send(Ok(())).map_err(|err| {
+            PythonError::Unique(format!(
+                "Couldn't send state sync completion to worker: {err:?}",
+            ))
+        })?;
 
         Ok(())
     }
@@ -65,17 +72,21 @@ impl<'py> PyHandle<'py> {
         sim_id: SimulationId,
         shared_store: &TaskSharedStore,
     ) -> PyResult<()> {
+        tracing::trace!(
+            "Running state_interim_sync (Rust function, Python runner) for simulation {sim_id}"
+        );
         // Sync JS.
         let (agent_batches, msg_batches, group_indices) = shared_store.batches_iter();
         // TODO: Pass `agent_pool` and `msg_pool` by reference
         let (agent_batches, msg_batches) = self.python_of_state(agent_batches, msg_batches)?;
 
-        let py_sim_id = sim_id.as_u32().to_object(self.py);
-        let py_indices = group_indices.to_object(self.py);
-
-        let f = &self.py_functions.state_interim_sync;
-
-        f.call1(self.py, (py_sim_id, py_indices, agent_batches, msg_batches))?;
+        self.py_functions.state_interim_sync(
+            self.py,
+            sim_id,
+            &group_indices,
+            agent_batches,
+            msg_batches,
+        )?;
 
         Ok(())
     }
@@ -85,17 +96,18 @@ impl<'py> PyHandle<'py> {
         sim_run_id: SimulationId,
         msg: StateSync,
     ) -> PyResult<()> {
+        tracing::trace!(
+            "Running state_snapshot_sync (Rust function, Python runner) for simulation \
+             {sim_run_id}"
+        );
+
         // TODO: Duplication with `state_sync`
         let agent_pool = msg.state_proxy.agent_pool().batches_iter();
         let msg_pool = msg.state_proxy.message_pool().batches_iter();
         let (agent_pool, msg_pool) = self.python_of_state(agent_pool, msg_pool)?;
 
-        let py_sim_id = sim_run_id.as_u32().to_object(self.py);
-
-        let f = &self.py_functions.state_snapshot_sync;
-
-        f.call1(self.py, (py_sim_id, agent_pool, msg_pool))?;
-
+        self.py_functions
+            .state_snapshot_sync(self.py, sim_run_id, agent_pool, msg_pool)?;
         // State snapshots are part of context, not state, so don't need to
         // sync Rust agent pool and message pool.
         Ok(())

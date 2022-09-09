@@ -21,6 +21,7 @@ impl<'py> PyHandle<'py> {
             let json_data = value.data();
             let json_data = std::str::from_utf8(json_data)
                 .expect("the data segment's contents must be utf-8 encoded");
+            debug_assert!(serde_json::from_str::<serde_json::Value>(json_data).is_ok());
             dataset_dict.set_item(name, json_data)?;
         }
         Ok(dataset_dict)

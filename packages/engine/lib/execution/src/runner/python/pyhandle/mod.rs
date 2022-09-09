@@ -8,25 +8,25 @@ pub(crate) mod state;
 pub(crate) mod sync;
 pub(crate) mod task;
 
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use arrow2::{
     array::Array,
-    datatypes::Schema,
+    datatypes::DataType,
     ffi::{import_array_from_c, import_field_from_c, ArrowArray, ArrowSchema},
 };
 use pyo3::{ffi::Py_uintptr_t, prelude::*};
 
-use self::init::PyFunctions;
-use crate::package::simulation::SimulationId;
+use self::init::py_runner::PyRunner;
+use crate::{package::simulation::SimulationId, runner::common_to_runners::SimState};
 
 /// This struct maintains a handle to the underlying [`Python`] interpreter.
 // TODO: at various points use the PyO3 `intern!` macro when we access fields
 pub struct PyHandle<'py> {
     py: Python<'py>,
     pyarrow: Py<PyModule>,
-    py_functions: PyFunctions,
-    simulation_states: HashMap<SimulationId, SimSchemas>,
+    py_functions: PyRunner,
+    simulation_states: HashMap<SimulationId, SimState>,
 }
 
 impl<'py> PyHandle<'py> {
@@ -41,8 +41,8 @@ impl<'py> PyHandle<'py> {
 
 pub struct SavedPyHandle {
     pyarrow: Py<PyModule>,
-    py_functions: PyFunctions,
-    simulation_states: HashMap<SimulationId, SimSchemas>,
+    py_functions: PyRunner,
+    simulation_states: HashMap<SimulationId, SimState>,
 }
 
 impl SavedPyHandle {
@@ -56,20 +56,17 @@ impl SavedPyHandle {
     }
 }
 
-/// Contains the schemas of the agent and message batches (these can vary for different simulations,
-/// so it is important to record them per-simulation - we do this in [`PyHandle`]).
-struct SimSchemas {
-    #[allow(dead_code)]
-    agent_schema: Arc<Schema>,
-    #[allow(dead_code)]
-    msg_schema: Arc<Schema>,
-}
-
 impl<'py> PyHandle<'py> {
     /// Converts a Python (pyarrow) Arrow array to a Rust ([`arrow2`]) one.
     ///
-    /// Note that no analagous function exists for Rust->Python because we
-    fn rust_of_python_array(&self, arrow_array: &PyAny) -> PyResult<Box<dyn Array>> {
+    /// Note that no analagous function exists for Rust->Python because to
+    /// transfer arrays the other way, Python simply reads them from the
+    /// shared-memory segment.
+    fn rust_of_python_array(
+        &self,
+        arrow_array: &PyAny,
+        data_type: DataType,
+    ) -> PyResult<Box<dyn Array>> {
         let array = Box::new(ArrowArray::empty());
         let schema = Box::new(ArrowSchema::empty());
 
@@ -83,7 +80,8 @@ impl<'py> PyHandle<'py> {
 
         unsafe {
             let field = import_field_from_c(&schema).unwrap();
-            let array: Box<dyn Array> = import_array_from_c(*array, field.data_type).unwrap();
+            assert_eq!(field.data_type, data_type);
+            let array: Box<dyn Array> = import_array_from_c(*array, data_type).unwrap();
             Ok(array)
         }
     }

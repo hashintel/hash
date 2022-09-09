@@ -13,7 +13,6 @@
 //! - [Notes on Arrow](https://wesm.github.io/arrow-site-test/)
 //! - [The Arrow specification](https://arrow.apache.org/docs/format/Columnar.html)
 
-pub mod flush;
 pub mod ipc;
 pub mod meta;
 pub mod record_batch;
@@ -24,10 +23,11 @@ mod batch;
 mod buffer;
 mod change;
 mod conversion;
-mod ffi;
 
 pub use self::{
-    batch::{columns::column_with_name_from_record_batch, ArrowBatch},
+    batch::{
+        arrow2_growable_array_data::*, columns::column_with_name_from_record_batch, ArrowBatch,
+    },
     buffer::{new_buffer, new_offsets_buffer, new_zero_bits},
     change::{ColumnChange, IntoArrowChange},
     conversion::{

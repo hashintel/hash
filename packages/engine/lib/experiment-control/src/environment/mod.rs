@@ -17,7 +17,7 @@ use crate::{
     Error, Result,
 };
 
-const INIT_MSG_RECV_TIMEOUT: Duration = Duration::from_secs(60);
+const INIT_MSG_RECV_TIMEOUT: Duration = Duration::from_secs(240);
 
 pub struct Environment {
     pub orch_client: OrchClient,

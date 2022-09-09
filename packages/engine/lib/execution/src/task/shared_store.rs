@@ -109,6 +109,16 @@ impl TaskSharedStore {
             }
         }
     }
+
+    pub fn reload_data_if_necessary(&mut self) {
+        let (write_proxies, _) = match self.get_write_proxies() {
+            Ok(t) => t,
+            Err(_) => panic!("failed to obtain write proxies (this is a bug)"),
+        };
+        write_proxies
+            .maybe_reload()
+            .expect("failed to reload batches (this a bug)");
+    }
 }
 
 /// This enum is returned from [`batches_from_shared_store`]. We want to return a single type which

@@ -6,8 +6,9 @@ use arrow2::array::Array;
 use bytemuck::cast_slice;
 use memory::{
     arrow::{
-        flush::GrowableArrayData,
+        buffer, child_data,
         meta::{self, Buffer, Node, NodeMapping},
+        null_buffer,
         record_batch::RecordBatch,
         util::bit_util,
     },
@@ -619,9 +620,9 @@ impl<'a> BufferActions<'a> {
                     // CREATE ACTIONS
                     if let Some(agent_data) = &new_agents {
                         let maybe_buffer = if i == 0 {
-                            agent_data.null_buffer()
+                            null_buffer(agent_data.as_ref())
                         } else {
-                            Some(agent_data.buffer(i - 1))
+                            Some(buffer(agent_data.as_ref(), i - 1))
                         };
 
                         if let Some(buffer) = maybe_buffer.as_ref() {
@@ -820,8 +821,8 @@ impl<'a> BufferActions<'a> {
                     };
 
                     // CREATE ACTIONS
-                    let create_actions = new_agents.as_ref().map(|agent_data| {
-                        let buffer = &agent_data.buffer(i - 1);
+                    let create_actions = new_agents.map(|agent_data: &Box<dyn Array>| {
+                        let buffer = &memory::arrow::buffer(agent_data.as_ref(), i - 1);
 
                         let src_buffer: &[i32] = cast_slice(buffer);
 
@@ -958,7 +959,7 @@ impl<'a> BufferActions<'a> {
 
                     // CREATE ACTIONS
                     let create_actions = new_agents.map(|agent_data| {
-                        let buffer = &agent_data.buffer(i - 1);
+                        let buffer = &buffer(agent_data.as_ref(), i - 1);
 
                         let src_buffer = cast_slice(buffer);
                         range_actions
@@ -1035,7 +1036,7 @@ impl<'a> BufferActions<'a> {
                 range_actions,
                 agent_batch,
                 agent_batches,
-                new_agents.map(|parent| &parent.child_data()[child_index]),
+                new_agents.map(|parent| &child_data(parent)[child_index]),
                 actions,
                 buffer_metas,
                 node_metas,

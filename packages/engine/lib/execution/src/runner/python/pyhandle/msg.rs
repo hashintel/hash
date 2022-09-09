@@ -16,12 +16,19 @@ use crate::{
 };
 
 impl<'py> PyHandle<'py> {
+    /// Processes an [`InboundToRunnerMsgPayload`] message. This function
+    /// returns Ok(true) if the engine should keep running this interpreter, and
+    /// Ok(false) if it should stop running the interpreter.
+    ///
+    /// Internally, it selects the correct action to take (i.e. which Python
+    /// function to execute) and runs it.
     pub(crate) fn handle_msg(
         &mut self,
         sim_id: Option<SimulationId>,
         msg: InboundToRunnerMsgPayload,
         outbound_sender: &UnboundedSender<OutboundFromRunnerMsg>,
-    ) -> Result<bool, crate::runner::python::error::PythonError> {
+    ) -> crate::Result<bool> {
+        tracing::trace!("handling incoming message (type: {})", msg.as_str());
         match msg {
             InboundToRunnerMsgPayload::TaskMsg(msg) => {
                 let sim_id =
@@ -39,19 +46,22 @@ impl<'py> PyHandle<'py> {
             InboundToRunnerMsgPayload::StateSnapshotSync(msg) => {
                 let sim_id =
                     sim_id.ok_or(PythonError::SimulationIdRequired("state sync".to_owned()))?;
-                self.state_snapshot_sync(sim_id, msg)?;
+                self.state_snapshot_sync(sim_id, msg)
+                    .map_err(PythonError::from)?;
             }
             InboundToRunnerMsgPayload::ContextBatchSync(msg) => {
                 let sim_id = sim_id.ok_or(PythonError::SimulationIdRequired(
                     "context batch sync".to_owned(),
                 ))?;
-                self.context_batch_sync(sim_id, msg)?;
+                self.context_batch_sync(sim_id, msg)
+                    .map_err(PythonError::from)?;
             }
             InboundToRunnerMsgPayload::StateInterimSync(msg) => {
                 let sim_id = sim_id.ok_or(PythonError::SimulationIdRequired(
                     "state interim sync".to_owned(),
                 ))?;
-                self.state_interim_sync(sim_id, &msg.shared_store)?;
+                self.state_interim_sync(sim_id, &msg.shared_store)
+                    .map_err(PythonError::from)?;
             }
             InboundToRunnerMsgPayload::TerminateSimulationRun => {
                 let sim_id = sim_id.ok_or(PythonError::SimulationIdRequired(
@@ -75,8 +85,10 @@ impl<'py> PyHandle<'py> {
         sim_id: SimulationId,
         msg: RunnerTaskMessage,
         outbound_sender: &UnboundedSender<OutboundFromRunnerMsg>,
-    ) -> Result<(), PythonError> {
-        self.state_interim_sync(sim_id, &msg.shared_store)?;
+    ) -> crate::Result<()> {
+        tracing::trace!("handling task msg");
+        self.state_interim_sync(sim_id, &msg.shared_store)
+            .map_err(PythonError::from)?;
         let (payload, wrapper) = msg
             .payload
             .extract_inner_msg_with_wrapper()
@@ -104,6 +116,7 @@ impl<'py> PyHandle<'py> {
             msg.shared_store,
         )?;
 
+        tracing::trace!("sent task message from Python runner");
         outbound_sender
             .send(OutboundFromRunnerMsg {
                 span: Span::current(),

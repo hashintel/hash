@@ -77,8 +77,12 @@ def start_experiment(experiment, init_message, _experiment_context):
 
 
 def start_sim(experiment, sim, init_message, init_context):
+    import sys
     loaders = {
-        BEHAVIOR_INDEX_FIELD_KEY: hash_util.load_full
+        # note: using sys.modules["hash_util"] is a messy workaround which lets
+        # us use the module (which at thing point has already been imported by
+        # the Engine) without having to work out where it is in the file system
+        BEHAVIOR_INDEX_FIELD_KEY: sys.modules["hash_util"].load_full
     }
     return {
         "loaders": loaders,
