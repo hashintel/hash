@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::{
+    process::{Command, Stdio},
+    sync::Arc,
+};
 
 use pyo3::{PyResult, Python};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
@@ -22,7 +25,19 @@ pub(crate) fn run_experiment(
     )>,
     outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,
 ) -> crate::Result<()> {
-    // TODO: propagate error
+    let output = Command::new("which")
+        .args(&["python"])
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("failed to spawn `which` command")
+        .wait_with_output()
+        .unwrap();
+    let python = String::from_utf8(output.stdout).unwrap();
+    assert!(
+        python.contains("execution") && python.contains("runner_venv"),
+        "not running Python in a virtual environment!"
+    );
+
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
