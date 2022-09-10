@@ -73,7 +73,7 @@ impl<'py> PyHandle<'py> {
             }
             InboundToRunnerMsgPayload::TerminateRunner => return Ok(true),
             InboundToRunnerMsgPayload::NewSimulationRun(new_sim_run) => {
-                let sim_id = new_sim_run.short_id.clone();
+                let sim_id = new_sim_run.short_id;
                 let status: UserProgramExecutionStatus = self.start_sim(new_sim_run)?;
                 status.send(sim_id, outbound_sender, Language::Python)?;
             }

@@ -25,14 +25,12 @@ mod change;
 mod conversion;
 
 pub use self::{
-    batch::{
-        arrow_internal_data::*, columns::column_with_name_from_record_batch, ArrowBatch,
-    },
+    batch::{arrow_internal_data::*, columns::column_with_name_from_record_batch, ArrowBatch},
     buffer::{new_buffer, new_offsets_buffer, new_zero_bits},
     change::{ColumnChange, IntoArrowChange},
     conversion::{
         col_to_json_vals, json_utf8_json_vals, json_vals_to_any_type_col, json_vals_to_bool,
         json_vals_to_col, json_vals_to_primitive, json_vals_to_utf8,
     },
-    record_batch::RecordBatch
+    record_batch::RecordBatch,
 };
