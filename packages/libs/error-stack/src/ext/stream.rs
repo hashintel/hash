@@ -186,7 +186,7 @@ macro_rules! impl_stream_adaptor {
                 cx: &mut core::task::Context<'_>,
             ) -> core::task::Poll<Option<Self::Item>> {
                 // SAFETY: The pointee of `attachment_or_context` will not move. Additionally,
-                //         `Self` does not implement `Drop`, nor it's `#[repr(packed)]`
+                //         `Self` does not implement `Drop`, nor is it `#[repr(packed)]`
                 //         See the `pin` module: https://doc.rust-lang.org/core/pin/index.html
                 let (stream, attachment_or_context) = unsafe {
                     let Self { stream, attachment_or_context } = self.get_unchecked_mut();
@@ -237,7 +237,7 @@ macro_rules! impl_stream_adaptor_lazy {
                 cx: &mut core::task::Context<'_>,
             ) -> core::task::Poll<Option<Self::Item>> {
                 // SAFETY: The pointee of `attachment_or_context` will not move. Additionally,
-                //         `Self` does not implement `Drop`, nor it's `#[repr(packed)]`
+                //         `Self` does not implement `Drop`, nor is it `#[repr(packed)]`
                 //         See the `pin` module: https://doc.rust-lang.org/core/pin/index.html
                 let (stream, attachment_or_context) = unsafe {
                     let Self { stream, attachment_or_context } = self.get_unchecked_mut();

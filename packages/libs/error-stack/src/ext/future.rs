@@ -34,7 +34,7 @@ macro_rules! implement_future_adaptor {
             fn poll(self: Pin<&mut Self>, cx: &mut TaskContext) -> Poll<Self::Output> {
                 // SAFETY: The pointee of `inner` will not move. Note, that the value inside the
                 //         `Option` will be taken, but the `Option` remains in place. Additionally,
-                //         `Self` does not implement `Drop`, nor it's `#[repr(packed)]`
+                //         `Self` does not implement `Drop`, nor is it `#[repr(packed)]`
                 //         See the `pin` module: https://doc.rust-lang.org/core/pin/index.html
                 let (future, inner) = unsafe {
                     let Self { future, inner } = self.get_unchecked_mut();
@@ -76,7 +76,7 @@ macro_rules! implement_lazy_future_adaptor {
             fn poll(self: Pin<&mut Self>, cx: &mut TaskContext) -> Poll<Self::Output> {
                 // SAFETY: The pointee of `inner` will not move. Note, that the value inside the
                 //         `Option` will be taken, but the `Option` remains in place. Additionally,
-                //         `Self` does not implement `Drop`, nor it's `#[repr(packed)]`
+                //         `Self` does not implement `Drop`, nor is it `#[repr(packed)]`
                 //         See the `pin` module: https://doc.rust-lang.org/core/pin/index.html
                 let (future, inner) = unsafe {
                     let Self { future, inner } = self.get_unchecked_mut();
