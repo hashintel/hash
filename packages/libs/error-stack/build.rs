@@ -21,12 +21,12 @@ fn main() {
     #[cfg(feature = "futures")]
     println!(
         "cargo:warning=The `futures` feature for `error-stack` is deprecated as it's not required \
-         anymore"
+         anymore. It will be removed in error-stack v0.3."
     );
 
     #[cfg(feature = "hooks")]
     println!(
         "cargo:warning=The `hooks` feature for `error-stack` is deprecated as it's not required \
-         anymore"
+         anymore. It will be removed in error-stack v0.3."
     );
 }
