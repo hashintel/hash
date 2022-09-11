@@ -27,7 +27,7 @@ Once uploaded the dataset will be listed in your simulation's file list.
 There are also third-party datasets published in hIndex you can add to your project, by searching in the "Add to Simulation" interface in the bottom-left hand corner of hCore.
 
 <Hint style="info">
-**Coming soon:** data syncing from remote sources is currently only achievable through [hEngine](/platform/engine), but remains on our roadmap for [hCore](/platform/core).
+**Coming soon:** data syncing from remote sources is currently only achievable through [HASH Engine](/platform/engine), but will be soon be available in [HASH Core](/platform/core), via [HASH](/platform/hash).
 </Hint>
 
 <Hint style="success">
