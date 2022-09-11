@@ -39,5 +39,5 @@ When an agent in a HASH simulation has its _type_ declared going forward, if hEn
 There is no limit to the number of types that may be attached to an agent, and types may continue to be used descriptively without being linked to entity type URIs.
 
 <Hint style="info">
-As part of these changes, we'll be allowing users to attach arrays of HASH simulation behavior files to entity types under the protected `hash_simulation_behavior` property type field.
+As part of these changes, you'll be able to attach any number of HASH simulation behavior files to an entity type under the protected `hash_simulation_behavior` property.
 </Hint>
