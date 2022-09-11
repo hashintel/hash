@@ -194,7 +194,7 @@ If one of the environment variables shown in the help page is passed, it will ov
 
 > **IMPORTANT**: if your simulation includes any Python behaviors, then you will need to ensure that the Python virtual environment is activated when running the Engine. The easiest way to do this is by running (from the same directory as this README file)
 >
-> ```
+> ```shell
 > . lib/execution/src/runner/python/runner_venv/bin/activate
 > ```
 
