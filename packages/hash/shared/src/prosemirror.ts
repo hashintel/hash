@@ -24,125 +24,121 @@ export const isEntityNode = (
 
 export const componentNodeGroupName = "componentNode";
 
-export const basicNodes: NodeSpecs = {
-  doc: {
-    content: "inline*",
-  },
-  text: {
-    group: "inline",
-  },
-  /**
-   * This is serialized as a new line in `createEditorView` when copying to
-   * plain text
-   *
-   * @todo figure out to do this here
-   * @see createEditorView
-   */
-  hardBreak: {
-    inline: true,
-    group: "inline",
-    selectable: false,
-    parseDOM: [{ tag: "br" }],
-    toDOM() {
-      return ["br"];
-    },
-  },
-  mention: {
-    inline: true,
-    group: "inline",
-    atom: true,
-    attrs: { mentionType: { default: null }, entityId: { default: null } },
-    toDOM: (node) => {
-      const { mentionType, entityId } = node.attrs;
-      return [
-        "span",
-        {
-          "data-hash-type": "mention",
-          "data-mention-type": mentionType,
-          "data-entity-id": entityId,
-        },
-      ] as const;
-    },
-    parseDOM: [
-      {
-        tag: 'span[data-hash-type="mention"]',
-        getAttrs(dom) {
-          return {
-            mentionType: (dom as Element).getAttribute("data-mention-type"),
-            entityId: (dom as Element).getAttribute("data-entity-id"),
-          };
-        },
-      },
-    ],
+export const textNode: NodeSpec = {
+  group: "inline",
+};
+
+export const hardBreakNode: NodeSpec = {
+  inline: true,
+  group: "inline",
+  selectable: false,
+  parseDOM: [{ tag: "br" }],
+  toDOM() {
+    return ["br"];
   },
 };
 
-export const blockNodes: NodeSpecs = {
+export const mentionNode: NodeSpec = {
+  inline: true,
+  group: "inline",
+  atom: true,
+  attrs: { mentionType: { default: null }, entityId: { default: null } },
+  toDOM: (node) => {
+    const { mentionType, entityId } = node.attrs;
+    return [
+      "span",
+      {
+        "data-hash-type": "mention",
+        "data-mention-type": mentionType,
+        "data-entity-id": entityId,
+      },
+    ] as const;
+  },
+  parseDOM: [
+    {
+      tag: 'span[data-hash-type="mention"]',
+      getAttrs(dom) {
+        return {
+          mentionType: (dom as Element).getAttribute("data-mention-type"),
+          entityId: (dom as Element).getAttribute("data-entity-id"),
+        };
+      },
+    },
+  ],
+};
+
+export const blankNode: NodeSpec = {
+  /**
+   * As we don't have any component nodes defined by default, we need a
+   * placeholder, otherwise Prosemirror will crash when trying to
+   * interpret the content expressions in other nodes. However, as soon
+   * as we have defined a different component node, we remove the blank
+   * node from the componentNode group, which ensures that when
+   * Prosemirror attempts to instantiate a componentNode it uses that
+   * node instead of the blank one
+   *
+   * @see import("./ProsemirrorManager.ts").ProsemirrorManager#prepareToDisableBlankDefaultComponentNode
+   */
+  group: "componentNode",
+  toDOM: () => ["div", 0] as const,
+};
+
+export const blockNode: NodeSpec = {
+  content: "entity",
+  /**
+   * These properties are necessary for copy and paste (which is
+   * necessary for drag and drop)
+   *
+   * @note – the actual rendering in the DOM is taken over by the NodeView
+   *         so check `BlockView` and `ComponentView` for how this will
+   *         actually appear
+   */
+  toDOM: () => {
+    return [
+      "div",
+      {
+        "data-hash-type": "block",
+      },
+      0,
+    ] as const;
+  },
+  parseDOM: [
+    {
+      tag: 'div[data-hash-type="block"]',
+    },
+  ],
+};
+
+export const entityNode: NodeSpec = {
+  content: "componentNode | entity",
+  attrs: {
+    draftId: { default: null },
+  },
+  toDOM: () => {
+    return ["div", { "data-hash-type": "entity" }, 0] as const;
+  },
+  parseDOM: [
+    {
+      tag: 'div[data-hash-type="entity"]',
+    },
+  ],
+};
+
+export const getPageEditorNodes = (): NodeSpecs => ({
   doc: {
     content: "((componentNode|block)+)|blank",
   },
-  blank: {
-    /**
-     * As we don't have any component nodes defined by default, we need a
-     * placeholder, otherwise Prosemirror will crash when trying to
-     * interpret the content expressions in other nodes. However, as soon
-     * as we have defined a different component node, we remove the blank
-     * node from the componentNode group, which ensures that when
-     * Prosemirror attempts to instantiate a componentNode it uses that
-     * node instead of the blank one
-     *
-     * @see import("./ProsemirrorManager.ts").ProsemirrorManager#prepareToDisableBlankDefaultComponentNode
-     */
-    group: componentNodeGroupName,
-    toDOM: () => ["div", 0] as const,
-  },
-  block: {
-    content: "entity",
-    /**
-     * These properties are necessary for copy and paste (which is
-     * necessary for drag and drop)
-     *
-     * @note – the actual rendering in the DOM is taken over by the NodeView
-     *         so check `BlockView` and `ComponentView` for how this will
-     *         actually appear
-     */
-    toDOM: () => {
-      return [
-        "div",
-        {
-          "data-hash-type": "block",
-        },
-        0,
-      ] as const;
-    },
-    parseDOM: [
-      {
-        tag: 'div[data-hash-type="block"]',
-      },
-    ],
-  },
-  entity: {
-    content: "componentNode | entity",
-    attrs: {
-      draftId: { default: null },
-    },
-    toDOM: () => {
-      return ["div", { "data-hash-type": "entity" }, 0] as const;
-    },
-    parseDOM: [
-      {
-        tag: 'div[data-hash-type="entity"]',
-      },
-    ],
-  },
-};
+  text: textNode,
+  hardBreak: hardBreakNode,
+  mention: mentionNode,
+  blank: { ...blankNode },
+  block: blockNode,
+  entity: entityNode,
+});
 
-export const createSchema = (nodes?: NodeSpecs) =>
+export const createSchema = (nodes: NodeSpecs) =>
   new Schema({
-    nodes: {
-      ...basicNodes,
-      ...(nodes ?? {}),
-    },
+    nodes,
     marks: {
       strong: {
         toDOM: () => ["strong", { style: "font-weight:bold;" }, 0] as const,

@@ -5,7 +5,12 @@ import { Schema } from "prosemirror-model";
 import { formatKeymap } from "@hashintel/hash-shared/createProseMirrorState";
 import { baseKeymap } from "prosemirror-commands";
 import { keymap } from "prosemirror-keymap";
-import { createSchema } from "@hashintel/hash-shared/prosemirror";
+import {
+  createSchema,
+  hardBreakNode,
+  mentionNode,
+  textNode,
+} from "@hashintel/hash-shared/prosemirror";
 import { Box } from "@mui/material";
 import { faAt } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -47,7 +52,14 @@ export const CommentInput: FunctionComponent<CommentInputProps> = ({
     const editorContainer = editorRef.current;
     if (editorContainer) {
       editorContainer.innerHTML = "";
-      const textSchema = createSchema();
+      const textSchema = createSchema({
+        doc: {
+          content: "inline*",
+        },
+        text: textNode,
+        hardBreak: hardBreakNode,
+        mention: mentionNode,
+      });
 
       const doc = textSchema.node("doc", {}, []);
 
