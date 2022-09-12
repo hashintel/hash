@@ -249,7 +249,11 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
             <DatasetLinkedIcon />
           </TooltipButton>
 
-          <TooltipButton tooltip="Remove all" onClick={handleRemoveAllClick}>
+          <TooltipButton
+            tooltip="Remove all"
+            onClick={handleRemoveAllClick}
+            disabled={draftItems.length < 1}
+          >
             <ClearIcon />
           </TooltipButton>
         </Box>

@@ -133,7 +133,7 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
               onDelete={() => onDelete(index)}
               paperStyle={{ boxShadow }}
               readonly={readonly}
-              isEntity={Boolean(item.linkId)}
+              isEntity={!!item.linkId}
             />
           ))}
           <DragOverlay dropAnimation={dropAnimationConfig}>
@@ -156,7 +156,7 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
                 }}
                 dragOverlay={dragOverlayRef}
                 readonly={readonly}
-                isEntity={Boolean(activeItem.linkId)}
+                isEntity={!!activeItem.linkId}
               />
             ) : null}
           </DragOverlay>

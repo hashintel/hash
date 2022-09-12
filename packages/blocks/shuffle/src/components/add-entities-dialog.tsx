@@ -17,8 +17,6 @@ import {
   forwardRef,
   ForwardRefRenderFunction,
   useState,
-  ChangeEvent,
-  useMemo,
 } from "react";
 import { v4 as uuid } from "uuid";
 import { Items } from "../shuffle";
@@ -47,16 +45,17 @@ interface AddEntitiesDialogProps {
   graphService?: GraphBlockHandler | null;
 }
 
-type DialogState = "closed" | "entityTypes" | "entities";
-
 const _AddEntitiesDialog: ForwardRefRenderFunction<
   AddEntitiesDialogRef,
   AddEntitiesDialogProps
 > = ({ entityTypes, blockEntityId, onAddEntityItems, graphService }, ref) => {
-  const [dialogState, setDialogState] = useState<DialogState>("closed");
+  const [open, setOpen] = useState(false);
+  const [selectedEntityType, setSelectedEntityType] = useState<EntityType>();
   const [entityList, setEntityList] = useState<Entity[]>([]);
   // `selections` is a object that stores checkbox `checked` state for each entity.
-  const [selections, setSelections] = useState<Record<string, boolean>>({});
+  const [selections, setSelections] = useState<boolean[]>([]);
+
+  const handleClose = () => setOpen(false);
 
   /**
    * Defined a custom ref, so the parent can simply call `dialogRef.show()`,
@@ -67,52 +66,53 @@ const _AddEntitiesDialog: ForwardRefRenderFunction<
     ref,
     () => ({
       show: () => {
-        setDialogState("entityTypes");
+        setOpen(true);
+        setSelectedEntityType(undefined);
         setEntityList([]);
       },
     }),
     [],
   );
 
-  const handleEntityTypeClick = async (entityTypeId: string) => {
+  const handleEntityTypeClick = async (entityType: EntityType) => {
     if (!graphService) return;
+
+    const { entityTypeId } = entityType;
 
     // get the entities of clicked entity type
     const { data } = await graphService.aggregateEntities({
       data: { operation: { entityTypeId, itemsPerPage: 100 } },
     });
 
-    if (!data) return setDialogState("closed");
+    if (!data) return handleClose();
 
     const { results: entities } = data;
 
     // by default, all entity checkboxes are checked
-    const initialEntitySelection = entities.reduce(
-      (prev, curr) => ({ ...prev, [curr.entityId]: true }),
-      {},
-    );
+    const initialSelection = entities.map(() => true);
 
     setEntityList(entities);
-    setSelections(initialEntitySelection);
-    setDialogState("entities");
+    setSelections(initialSelection);
+    setSelectedEntityType(entityType);
   };
 
-  const handleCheckboxChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setSelections((prev) => ({
-      ...prev,
-      [event.target.name]: event.target.checked,
-    }));
+  const handleCheckboxChange = (changedIndex: number) => {
+    setSelections((prev) =>
+      prev.map((value, index) => (index === changedIndex ? !value : value)),
+    );
   };
-
-  const handleClose = () => setDialogState("closed");
 
   const handleAddClick = async () => {
     if (!graphService) return;
 
     // create links for selected entities
-    const selectedEntityIds = Object.entries(selections)
-      .filter(([_, isSelected]) => isSelected)
-      .map(([id]) => id);
+    const selectedEntityIds: string[] = [];
+    selections.forEach((value, index) => {
+      if (!value) return;
+
+      const entity = entityList[index];
+      if (entity) selectedEntityIds.push(entity.entityId);
+    });
 
     const createLinkPromises = selectedEntityIds.map((entityId) =>
       graphService.createLink({
@@ -142,48 +142,34 @@ const _AddEntitiesDialog: ForwardRefRenderFunction<
     handleClose();
   };
 
-  const selectedItemCount = useMemo(() => {
-    const entries = Object.entries(selections);
-    const selectedEntries = entries.filter(([_, isSelected]) => isSelected);
-    return selectedEntries.length;
-  }, [selections]);
+  const selectedItemCount = selections.filter(Boolean).length;
 
   return (
-    <Dialog
-      open={dialogState !== "closed"}
-      onClose={handleClose}
-      fullWidth
-      maxWidth="xs"
-    >
+    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="xs">
       <DialogTitle>
-        {dialogState === "entityTypes"
-          ? "Choose Entity Type"
-          : "Select Entities"}
+        {selectedEntityType ? "Select Entities" : "Choose Entity Type"}
       </DialogTitle>
 
-      {dialogState === "entityTypes" &&
-        entityTypes.map(({ entityTypeId, schema }) => (
+      {!selectedEntityType &&
+        entityTypes.map((entityType) => (
           <Button
-            key={entityTypeId}
-            onClick={() => handleEntityTypeClick(entityTypeId)}
+            key={entityType.entityTypeId}
+            onClick={() => handleEntityTypeClick(entityType)}
           >
-            {schema.title}
+            {entityType.schema.title}
           </Button>
         ))}
 
-      {dialogState === "entities" && (
+      {selectedEntityType && (
         <FormControl
           sx={{ mx: 3, mb: 3 }}
           component="fieldset"
           variant="standard"
         >
           <FormGroup>
-            {entityList.map((entity) => {
-              const { entityId, entityTypeId } = entity;
-              const entityType = entityTypes.find(
-                (type) => type.entityTypeId === entityTypeId,
-              );
-              const label = getEntityLabel(entity, entityType);
+            {entityList.map((entity, i) => {
+              const { entityId } = entity;
+              const label = getEntityLabel(entity, selectedEntityType);
 
               return (
                 <SFormControlLabel
@@ -191,9 +177,8 @@ const _AddEntitiesDialog: ForwardRefRenderFunction<
                   label={label}
                   control={
                     <Checkbox
-                      checked={selections[entityId]}
-                      onChange={handleCheckboxChange}
-                      name={entityId}
+                      checked={selections[i]}
+                      onChange={() => handleCheckboxChange(i)}
                     />
                   }
                 />
@@ -207,7 +192,7 @@ const _AddEntitiesDialog: ForwardRefRenderFunction<
         <Button variant="secondary" onClick={handleClose}>
           Cancel
         </Button>
-        {dialogState === "entities" && (
+        {selectedEntityType && (
           <Button disabled={!selectedItemCount} onClick={handleAddClick}>
             {selectedItemCount ? `Add (${selectedItemCount})` : "Add"}
           </Button>
