@@ -39,16 +39,16 @@ export const UserBlocksProvider: FunctionComponent<{
 
   useEffect(() => {
     const setInitialBlocks = async () => {
-      if (process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_API_KEY && data) {
-        const apiProvidedBlocksMap: BlocksMap = {};
-        for (const { componentId } of data.getBlockProtocolBlocks) {
-          apiProvidedBlocksMap[componentId] = await fetchBlock(componentId);
-        }
+      if (!data) return;
 
-        setValue((prevValue) => {
-          return { ...prevValue, ...apiProvidedBlocksMap };
-        });
+      const apiProvidedBlocksMap: BlocksMap = {};
+      for (const { componentId } of data.getBlockProtocolBlocks) {
+        apiProvidedBlocksMap[componentId] = await fetchBlock(componentId);
       }
+
+      setValue((prevValue) => {
+        return { ...prevValue, ...apiProvidedBlocksMap };
+      });
     };
 
     void setInitialBlocks();

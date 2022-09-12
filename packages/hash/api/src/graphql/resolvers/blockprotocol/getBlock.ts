@@ -8,7 +8,7 @@ export const getBlockProtocolBlocks: ResolverFn<
   GraphQLContext,
   {}
 > = async () => {
-  const apiKey = process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_API_KEY as string;
+  const apiKey = process.env.BLOCK_PROTOCOL_API_KEY as string;
 
   const res = await fetch("https://blockprotocol.org/api/blocks", {
     headers: { "x-api-key": apiKey },
