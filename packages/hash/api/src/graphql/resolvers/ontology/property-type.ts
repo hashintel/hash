@@ -50,6 +50,7 @@ export const getAllLatestPropertyTypes: ResolverFn<
   const allLatestPropertyTypeModels =
     await PropertyTypeModel.getAllLatestResolved(graphApi, {
       accountId: user.getAccountId(),
+      dataTypeQueryDepth: resolveReferences ? 255 : 0,
       propertyTypeQueryDepth: resolveReferences ? 255 : 0,
     }).catch((err: AxiosError) => {
       throw new ApolloError(
@@ -59,9 +60,9 @@ export const getAllLatestPropertyTypes: ResolverFn<
     });
 
   return allLatestPropertyTypeModels.map(
-    ({ property_type, dataTypeReferences, propertyTypeReferences }) =>
+    ({ propertyType, dataTypeReferences, propertyTypeReferences }) =>
       propertyTypeModelWithRefsToGQL(
-        property_type,
+        propertyType,
         dataTypeReferences,
         propertyTypeReferences,
       ),
@@ -81,6 +82,7 @@ export const getPropertyType: ResolverFn<
 
   const propertyTypeModel = await PropertyTypeModel.getResolved(graphApi, {
     versionedUri: propertyTypeVersionedUri,
+    dataTypeQueryDepth: resolveReferences ? 255 : 0,
     propertyTypeQueryDepth: resolveReferences ? 255 : 0,
   }).catch((err: AxiosError) => {
     throw new ApolloError(

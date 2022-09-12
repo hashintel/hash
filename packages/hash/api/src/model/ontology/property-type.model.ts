@@ -112,9 +112,10 @@ export default class {
   ): Promise<PropertyTypeModel[]> {
     const resolved = await this.getAllLatestResolved(graphApi, {
       accountId: params.accountId,
+      dataTypeQueryDepth: 0,
       propertyTypeQueryDepth: 0,
     });
-    return resolved.map((property_type) => property_type.property_type);
+    return resolved.map((propertyType) => propertyType.propertyType);
   }
 
   /**
@@ -127,11 +128,12 @@ export default class {
     graphApi: GraphApi,
     params: {
       accountId: string;
+      dataTypeQueryDepth: number;
       propertyTypeQueryDepth: number;
     },
   ): Promise<
     {
-      property_type: PropertyTypeModel;
+      propertyType: PropertyTypeModel;
       dataTypeReferences: DataTypeModel[];
       propertyTypeReferences: PropertyTypeModel[];
     }[]
@@ -143,6 +145,7 @@ export default class {
      *   https://app.asana.com/0/1202805690238892/1202890446280569/f
      */
     const { data: propertyTypeTrees } = await graphApi.getPropertyTypesByQuery({
+      dataTypeQueryDepth: params.dataTypeQueryDepth,
       propertyTypeQueryDepth: params.propertyTypeQueryDepth,
       query: {
         eq: [{ path: ["version"] }, { literal: "latest" }],
@@ -168,7 +171,7 @@ export default class {
         dataTypeReferences: propertyTypeTree.dataTypeReferences.map(
           DataTypeModel.fromPersistedDataType,
         ),
-        propertyTypeReferences: propertyTypeTree.property_type_references.map(
+        propertyTypeReferences: propertyTypeTree.propertyTypeReferences.map(
           PropertyTypeModel.fromPersistedPropertyType,
         ),
       }),
@@ -187,11 +190,12 @@ export default class {
       versionedUri: string;
     },
   ): Promise<PropertyTypeModel> {
-    const resolved = await this.getResolved(graphApi, {
-      versionedUri: params.versionedUri,
-      propertyTypeQueryDepth: 0,
-    });
-    return resolved.propertyType;
+    const { versionedUri } = params;
+    const { data: persistedPropertyType } = await graphApi.getPropertyType(
+      versionedUri,
+    );
+
+    return PropertyTypeModel.fromPersistedPropertyType(persistedPropertyType);
   }
 
   /**
@@ -204,6 +208,7 @@ export default class {
     graphApi: GraphApi,
     params: {
       versionedUri: string;
+      dataTypeQueryDepth: number;
       propertyTypeQueryDepth: number;
     },
   ): Promise<{
@@ -213,6 +218,7 @@ export default class {
   }> {
     const { baseUri, version } = splitVersionedUri(params.versionedUri);
     const { data: propertyTypeTrees } = await graphApi.getPropertyTypesByQuery({
+      dataTypeQueryDepth: params.dataTypeQueryDepth,
       propertyTypeQueryDepth: params.propertyTypeQueryDepth,
       query: {
         all: [
@@ -240,23 +246,14 @@ export default class {
      *   https://app.asana.com/0/1202805690238892/1202892835843657/f
      */
     return {
-      propertyType: new PropertyTypeModel({
-        schema: propertyTypeTree.property_type.inner as PropertyType,
-        accountId: propertyTypeTree.property_type.identifier.createdBy,
-      }),
-      dataTypeReferences: propertyTypeTree.data_type_references.map(
-        (persistedDataType) =>
-          new DataTypeModel({
-            schema: persistedDataType.inner,
-            accountId: persistedDataType.identifier.createdBy,
-          }),
+      propertyType: PropertyTypeModel.fromPersistedPropertyType(
+        propertyTypeTree.propertyType,
       ),
-      propertyTypeReferences: propertyTypeTree.property_type_references.map(
-        (persistedPropertyType) =>
-          new PropertyTypeModel({
-            schema: persistedPropertyType.inner as PropertyType,
-            accountId: persistedPropertyType.identifier.createdBy,
-          }),
+      dataTypeReferences: propertyTypeTree.dataTypeReferences.map(
+        DataTypeModel.fromPersistedDataType,
+      ),
+      propertyTypeReferences: propertyTypeTree.propertyTypeReferences.map(
+        PropertyTypeModel.fromPersistedPropertyType,
       ),
     };
   }

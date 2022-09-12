@@ -121,24 +121,7 @@ export default class {
      */
     const { data: persistedDataTypes } = await graphApi.getLatestDataTypes();
 
-    return persistedDataTypes.map(
-      (persistedDataType) =>
-        new DataTypeModel({
-          /**
-           * @todo and a warning, these type casts are here to compensate for
-           *   the differences between the Graph API package and the
-           *   type system package.
-           *
-           *   The type system package can be considered the source of truth in
-           *   terms of the shape of values returned from the API, but the API
-           *   client is unable to be given as type package types - it generates
-           *   its own types.
-           *   https://app.asana.com/0/1202805690238892/1202892835843657/f
-           */
-          schema: persistedDataType.inner as DataType,
-          accountId: persistedDataType.identifier.createdBy,
-        }),
-    );
+    return persistedDataTypes.map(DataTypeModel.fromPersistedDataType);
   }
 
   /**
@@ -158,21 +141,7 @@ export default class {
       versionedUri,
     );
 
-    return new DataTypeModel({
-      /**
-       * @todo and a warning, these type casts are here to compensate for
-       *   the differences between the Graph API package and the
-       *   type system package.
-       *
-       *   The type system package can be considered the source of truth in
-       *   terms of the shape of values returned from the API, but the API
-       *   client is unable to be given as type package types - it generates
-       *   its own types.
-       *   https://app.asana.com/0/1202805690238892/1202892835843657/f
-       */
-      schema: persistedDataType.inner as DataType,
-      accountId: persistedDataType.identifier.createdBy,
-    });
+    return DataTypeModel.fromPersistedDataType(persistedDataType);
   }
 
   /**
