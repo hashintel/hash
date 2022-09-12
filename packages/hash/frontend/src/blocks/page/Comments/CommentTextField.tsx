@@ -31,13 +31,13 @@ import { clipboardTextSerializer, mentionNodeView } from "../createEditorView";
 import styles from "./style.module.css";
 import { placeholderPlugin } from "./placeholderPlugin";
 
-type CommentInputProps = {
+type CommentTextFieldProps = {
   blockId: string;
   onClose: () => void;
   onSubmit: ((content: TextToken[]) => Promise<void>) | null;
 };
 
-export const CommentInput: FunctionComponent<CommentInputProps> = ({
+export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
   blockId,
   onClose,
   onSubmit,

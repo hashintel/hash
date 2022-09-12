@@ -10,7 +10,7 @@ import { RefObject } from "react";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
 import { ComponentView } from "./ComponentView";
-import { createBlockComment } from "./createBlockCommentPlugin/createBlockComment";
+import { createCommentPlugin } from "./createCommentPlugin";
 import { createErrorPlugin } from "./createErrorPlugin";
 import { createFormatPlugins } from "./createFormatPlugins";
 import { createPlaceholderPlugin } from "./createPlaceholderPlugin/createPlaceholderPlugin";
@@ -93,7 +93,7 @@ export const createEditorView = (
     createPlaceholderPlugin(renderPortal),
     errorPlugin,
     createFocusPageTitlePlugin(pageTitleRef),
-    createBlockComment(renderPortal, renderNode),
+    createCommentPlugin(renderPortal, renderNode),
   ];
 
   const state = createProseMirrorState({ accountId, plugins });

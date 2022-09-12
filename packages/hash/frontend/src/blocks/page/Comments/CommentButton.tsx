@@ -4,7 +4,7 @@ import { faComment } from "@fortawesome/free-regular-svg-icons";
 import Box from "@mui/material/Box";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { useBlockView } from "../BlockViewContext";
-import { blockCommentPluginKey } from "../createBlockCommentPlugin/createBlockComment";
+import { createCommentPluginKey } from "../createCommentPlugin";
 import { useCreateComment } from "../../../components/hooks/useCreateComment";
 import { useRouteAccountInfo } from "../../../shared/routing";
 
@@ -35,7 +35,7 @@ export const CommentButton: FunctionComponent<CommentButtonProps> = ({
   const openCommentInput = () => {
     const view = blockView.editorView;
     const { tr } = view.state;
-    tr.setMeta(blockCommentPluginKey, {
+    tr.setMeta(createCommentPluginKey, {
       type: "open",
       payload: {
         anchorNode: containerRef.current,

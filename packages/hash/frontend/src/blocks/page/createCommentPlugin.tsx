@@ -2,11 +2,11 @@ import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { Popper } from "@mui/material";
 import { Schema } from "prosemirror-model";
 import { Plugin, PluginKey } from "prosemirror-state";
-import { ensureMounted } from "../../../lib/dom";
-import { CommentInput } from "../Comments/CommentInput";
-import { RenderPortal } from "../usePortals";
+import { ensureMounted } from "../../lib/dom";
+import { CommentTextField } from "./Comments/CommentTextField";
+import { RenderPortal } from "./usePortals";
 
-export type BlockCommentAction =
+export type CreateCommentAction =
   | {
       type: "open";
       payload: {
@@ -17,23 +17,23 @@ export type BlockCommentAction =
     }
   | { type: "close" };
 
-interface BlockCommentState {
+interface CreateCommentState {
   open: boolean;
   anchorNode: HTMLElement | null;
   blockId: string | null;
   onSubmit: ((content: TextToken[]) => Promise<void>) | null;
 }
 
-export const blockCommentPluginKey = new PluginKey<BlockCommentState, Schema>(
-  "blockComment",
+export const createCommentPluginKey = new PluginKey<CreateCommentState, Schema>(
+  "createComment",
 );
 
-export const createBlockComment = (
+export const createCommentPlugin = (
   renderPortal: RenderPortal,
   documentRoot: HTMLElement,
 ) =>
-  new Plugin<BlockCommentState, Schema>({
-    key: blockCommentPluginKey,
+  new Plugin<CreateCommentState, Schema>({
+    key: createCommentPluginKey,
     state: {
       init() {
         return {
@@ -45,8 +45,8 @@ export const createBlockComment = (
       },
       /** produces a new state from the old state and incoming transactions (cf. reducer) */
       apply(tr, state, _prevEditorState) {
-        const action: BlockCommentAction | undefined = tr.getMeta(
-          blockCommentPluginKey,
+        const action: CreateCommentAction | undefined = tr.getMeta(
+          createCommentPluginKey,
         );
 
         switch (action?.type) {
@@ -69,7 +69,7 @@ export const createBlockComment = (
         keydown(view, event) {
           if (event.key === "Escape") {
             const { tr } = view.state;
-            tr.setMeta(blockCommentPluginKey, { type: "close" });
+            tr.setMeta(createCommentPluginKey, { type: "close" });
           }
 
           return false;
@@ -82,13 +82,13 @@ export const createBlockComment = (
       return {
         update(view) {
           const { open, blockId, anchorNode, onSubmit } =
-            blockCommentPluginKey.getState(view.state)!;
+            createCommentPluginKey.getState(view.state)!;
 
           if (!open || !blockId || !anchorNode) return this.destroy!();
 
           const onClose = () => {
             const { tr } = view.state;
-            tr.setMeta(blockCommentPluginKey, {
+            tr.setMeta(createCommentPluginKey, {
               type: "close",
             });
             view.dispatch(tr);
@@ -120,7 +120,7 @@ export const createBlockComment = (
               ]}
               anchorEl={anchorNode}
             >
-              <CommentInput
+              <CommentTextField
                 blockId={blockId}
                 onClose={onClose}
                 onSubmit={onSubmit}
