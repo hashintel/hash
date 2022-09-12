@@ -124,9 +124,12 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
 
     return [
       {
-        pageCount: aggregate?.pageCount ?? 1,
-        pageNumber: aggregate?.pageNumber ?? 1,
-        pageSize: aggregate?.itemsPerPage ?? 1,
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle this being 0
+        pageCount: aggregate?.pageCount || 1,
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle this being 0
+        pageNumber: aggregate?.pageNumber || 1,
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle this being 0
+        pageSize: aggregate?.itemsPerPage || 1,
       },
       {
         multiFilter: aggregate?.multiFilter,
