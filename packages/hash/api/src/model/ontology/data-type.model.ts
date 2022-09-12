@@ -1,6 +1,10 @@
 import { AxiosError } from "axios";
 
-import { GraphApi, UpdateDataTypeRequest } from "@hashintel/hash-graph-client";
+import {
+  GraphApi,
+  PersistedDataType,
+  UpdateDataTypeRequest,
+} from "@hashintel/hash-graph-client";
 import { DataType } from "@blockprotocol/type-system-web";
 import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
@@ -23,6 +27,16 @@ export default class {
   constructor({ schema, accountId }: DataTypeModelConstructorArgs) {
     this.accountId = accountId;
     this.schema = schema;
+  }
+
+  static fromPersistedDataType({
+    inner,
+    identifier,
+  }: PersistedDataType): DataTypeModel {
+    return new DataTypeModel({
+      schema: inner as DataType,
+      accountId: identifier.createdBy,
+    });
   }
 
   /**

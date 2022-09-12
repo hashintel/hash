@@ -3,6 +3,7 @@ import { PropertyType } from "@blockprotocol/type-system-web";
 
 import {
   GraphApi,
+  PersistedPropertyType,
   UpdatePropertyTypeRequest,
 } from "@hashintel/hash-graph-client";
 import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
@@ -31,6 +32,16 @@ export default class {
   constructor({ schema, accountId }: PropertyTypeModelConstructorParams) {
     this.accountId = accountId;
     this.schema = schema;
+  }
+
+  static fromPersistedPropertyType({
+    inner,
+    identifier,
+  }: PersistedPropertyType): PropertyTypeModel {
+    return new PropertyTypeModel({
+      schema: inner as PropertyType,
+      accountId: identifier.createdBy,
+    });
   }
 
   /**
@@ -99,18 +110,18 @@ export default class {
       accountId: string;
     },
   ): Promise<PropertyTypeModel[]> {
-    const resolved = this.getAllLatestResolved(graphApi, {
+    const resolved = await this.getAllLatestResolved(graphApi, {
       accountId: params.accountId,
       propertyTypeQueryDepth: 0,
     });
-    return (await resolved).map((property_type) => property_type.property_type);
+    return resolved.map((property_type) => property_type.property_type);
   }
 
   /**
    * Get all property types at their latest version with their references resolved as a list.
    *
-   * @param params.accountId the accountId of the account requesting the property types
    * @param params.depth the depth of the recursion
+   * @param params.propertyTypeQueryDepth recursion depth to use to resolve property types
    */
   static async getAllLatestResolved(
     graphApi: GraphApi,
@@ -151,23 +162,14 @@ export default class {
        *   https://app.asana.com/0/1202805690238892/1202892835843657/f
        */
       ({
-        property_type: new PropertyTypeModel({
-          schema: propertyTypeTree.property_type.inner as PropertyType,
-          accountId: propertyTypeTree.property_type.identifier.createdBy,
-        }),
-        dataTypeReferences: propertyTypeTree.data_type_references.map(
-          (persistedDataType) =>
-            new DataTypeModel({
-              schema: persistedDataType.inner,
-              accountId: persistedDataType.identifier.createdBy,
-            }),
+        propertyType: PropertyTypeModel.fromPersistedPropertyType(
+          propertyTypeTree.propertyType,
+        ),
+        dataTypeReferences: propertyTypeTree.dataTypeReferences.map(
+          DataTypeModel.fromPersistedDataType,
         ),
         propertyTypeReferences: propertyTypeTree.property_type_references.map(
-          (persistedPropertyType) =>
-            new PropertyTypeModel({
-              schema: persistedPropertyType.inner as PropertyType,
-              accountId: persistedPropertyType.identifier.createdBy,
-            }),
+          PropertyTypeModel.fromPersistedPropertyType,
         ),
       }),
     );
@@ -185,18 +187,18 @@ export default class {
       versionedUri: string;
     },
   ): Promise<PropertyTypeModel> {
-    const resolved = this.getResolved(graphApi, {
+    const resolved = await this.getResolved(graphApi, {
       versionedUri: params.versionedUri,
       propertyTypeQueryDepth: 0,
     });
-    return (await resolved).propertyType;
+    return resolved.propertyType;
   }
 
   /**
    * Get a property type by its versioned URI.
    *
-   * @param params.accountId the accountId of the account requesting the property type
    * @param params.versionedUri the unique versioned URI for a property type.
+   * @param params.propertyTypeQueryDepth recursion depth to use to resolve property types
    */
   static async getResolved(
     graphApi: GraphApi,

@@ -108,6 +108,10 @@ export const splitVersionedUri = (
   }
 
   const version = Number(split.pop());
+  if (Number.isNaN(version)) {
+    throw new Error("version is not a valid number");
+  }
+
   const baseUri = split.join("v/");
 
   return { baseUri, version };
