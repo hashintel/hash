@@ -111,8 +111,7 @@ const Page: NextPageWithLayout = () => {
          * Really these should instead be defined under $defs and referenced as such, but they might exist.
          */
         schemaLinkPath = `${
-          // @todo handle subSchemaReference
-          // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+          // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo handle subSchemaReference
           schema$id + (subSchemaReference || "#")
         }/properties/${schemaRef}`;
       }
