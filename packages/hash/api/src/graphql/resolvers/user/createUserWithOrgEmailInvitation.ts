@@ -61,7 +61,7 @@ export const createUserWithOrgEmailInvitation: ResolverFn<
      * periodically from the datastore
      */
     const user =
-      danglingExistingUser ??
+      danglingExistingUser ||
       (await User.createUser(client, {
         emails: [{ address: email, primary: true, verified: true }],
         infoProvidedAtSignup: {},

@@ -113,10 +113,10 @@ export const getEntityAccountIdMany = async (
   // Return in same order as params.ids
   const ids = new Map();
   for (const res of result1.concat(result2)) {
-    ids.set(res.entityId + (res.entityVersionId ?? ""), res);
+    ids.set(res.entityId + (res.entityVersionId || ""), res);
   }
   return params.ids
-    .map((id) => ids.get(id.entityId + (id.entityVersionId ?? "")))
+    .map((id) => ids.get(id.entityId + (id.entityVersionId || "")))
     .filter((id) => id);
 };
 

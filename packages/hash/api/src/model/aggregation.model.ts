@@ -388,8 +388,6 @@ class __Aggregation {
       accountId: this.sourceAccountId,
       entityTypeFilter: {
         entityTypeId: entityTypeId ?? undefined,
-        // @todo what to do about empty entityTypeVersionId
-        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         entityTypeVersionId: entityTypeVersionId || undefined,
       },
     });

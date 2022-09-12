@@ -19,9 +19,9 @@ function getEnvStorageType() {
 export const FILE_UPLOAD_PROVIDER =
   getEnvStorageType() || StorageType.LocalFileSystem;
 export const LOCAL_FILE_UPLOAD_PATH =
-  process.env.LOCAL_FILE_UPLOAD_PATH ?? "var/uploads/";
+  process.env.LOCAL_FILE_UPLOAD_PATH || "var/uploads/";
 
-export const FRONTEND_DOMAIN = process.env.FRONTEND_DOMAIN ?? "localhost:3000";
+export const FRONTEND_DOMAIN = process.env.FRONTEND_DOMAIN || "localhost:3000";
 
 export const FRONTEND_URL = `http${
   process.env.HTTPS_ENABLED ? "s" : ""

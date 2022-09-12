@@ -76,8 +76,6 @@ async function getEmbedResponse({
   url: string;
   type?: Maybe<string>;
 }) {
-  // @todo what to do with type of empty string
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   const oembedEndpoint = getOembedEndpoint(url, type || undefined);
 
   if (!oembedEndpoint) {

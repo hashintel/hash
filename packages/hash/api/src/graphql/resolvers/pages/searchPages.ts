@@ -142,7 +142,7 @@ const getPagesLinkingToTextEntities = async (
           page: getEntityRef(page)!,
           block: getEntityRef(block)!,
           text: getEntityRef(text)!,
-          content: text.fullTextSearch ?? "",
+          content: text.fullTextSearch || "",
         });
       }
     }

@@ -92,7 +92,7 @@ class CheckpointManager {
 
   /** Get the value of a checkpoint. */
   get = (sourceEntityId: string, destinationEntityId: string) => {
-    return this.checkpoints.get(sourceEntityId).get(destinationEntityId) ?? 0;
+    return this.checkpoints.get(sourceEntityId).get(destinationEntityId) || 0;
   };
 
   /** Set the value of a checkpoint. */

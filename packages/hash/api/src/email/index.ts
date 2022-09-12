@@ -47,7 +47,7 @@ export const sendEmailVerificationCodeToEmailAddress =
     }).toString();
 
     const magicLink = `${FRONTEND_URL}/signup?${queryParams}${
-      magicLinkQueryParams ?? ""
+      magicLinkQueryParams || ""
     }`;
 
     await emailTransporter.sendMail({

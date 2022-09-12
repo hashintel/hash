@@ -113,7 +113,7 @@ export const pageSearchResultConnection: ResolverFn<
             entityId: it.document.entityId,
             entityVersionId: it.document.entityTypeVersionId,
           },
-          content: it.document.fullTextSearch ?? "",
+          content: it.document.fullTextSearch || "",
         },
     )
     .sort((matchA, matchB) => matchB.score - matchA.score);

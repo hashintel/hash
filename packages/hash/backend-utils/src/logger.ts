@@ -38,7 +38,7 @@ export class Logger {
         winston.format.errors({ stack: true }),
         winston.format.json(),
       ),
-      defaultMeta: { service: cfg.serviceName, ...(cfg.metadata ?? {}) },
+      defaultMeta: { service: cfg.serviceName, ...(cfg.metadata || {}) },
     });
     if (cfg.mode === "dev") {
       logger.add(
@@ -77,7 +77,7 @@ export class Logger {
   child(metadata: Record<string, string>): Logger {
     return new Logger({
       ...this.cfg,
-      metadata: { ...(this.cfg.metadata ?? {}), ...metadata },
+      metadata: { ...(this.cfg.metadata || {}), ...metadata },
     });
   }
 }

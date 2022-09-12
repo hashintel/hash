@@ -164,7 +164,7 @@ const main = async () => {
 
   // Start a HTTP server
   const httpServer = createHttpServer();
-  const port = parseInt(process.env.HASH_REALTIME_PORT ?? "3333", 10);
+  const port = parseInt(process.env.HASH_REALTIME_PORT || "3333", 10);
   httpServer.listen({ host: "::", port });
   logger.info(`HTTP server listening on port ${port}`);
 

@@ -34,7 +34,7 @@ const main = async () => {
       ? undefined
       : {
           username: process.env.HASH_OPENSEARCH_USERNAME,
-          password: process.env.HASH_OPENSEARCH_PASSWORD ?? "",
+          password: process.env.HASH_OPENSEARCH_PASSWORD || "",
         };
   const search = await OpenSearch.connect(logger, {
     host,

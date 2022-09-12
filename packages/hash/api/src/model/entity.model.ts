@@ -402,7 +402,7 @@ class __Entity {
       path?: PathComponent[];
     },
   ): Promise<Link[]> {
-    const { activeAt, stringifiedPath, path } = params ?? {};
+    const { activeAt, stringifiedPath, path } = params || {};
 
     const outgoingDbLinks = await client.getEntityOutgoingLinks({
       accountId: this.accountId,
