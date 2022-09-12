@@ -161,7 +161,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 if let Some(new_depth) = property_type_resolve_depth.checked_sub(1) {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
-                    for property_type_ref in property_type.inner.data_type_references() {
+                    for property_type_ref in property_type.inner.property_type_references() {
                         self.get_property_type_as_dependency(
                             property_type_ref.uri().clone(),
                             &mut data_type_references,
