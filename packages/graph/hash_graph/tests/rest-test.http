@@ -436,3 +436,18 @@ Accept: application/json
     });
     client.assert(Object.keys(response.body).length === 0, "Link has wrong target entity ID")
 %}
+
+### Check that person "a" to person "b" link is removed
+POST http://127.0.0.1:4000/property-types/query
+Content-Type: application/json
+
+{
+  "query": {
+    "all": [
+      { "eq": [{ "path": ["uri"] }, { "literal": "http://localhost:3000/@example/types/property-type/account-id/" } ]},
+      { "eq": [{ "path": ["version"] }, { "literal": "1" } ]}
+    ]
+  },
+  "propertyTypeQueryDepth": 255,
+  "dataTypeQueryDepth": 255
+}
