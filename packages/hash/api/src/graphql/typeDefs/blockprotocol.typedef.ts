@@ -11,16 +11,15 @@ export const blockprotocolTypedef = gql`
     icon: String
     name: String
     properties: JSONObject
-    examples: [JSONObject]
+    examples: [JSONObject!]
   }
 
   type BlockProtocolBlock {
     blockType: BlockType!
     default: JSONObject
     description: String
-    devReloadEndpoint: String
     displayName: String
-    examples: [JSONObject]
+    examples: [JSONObject!]
     externals: JSONObject
     icon: String
     image: String

@@ -9,7 +9,6 @@ export const getBlockProtocolBlocksQuery = gql`
       }
       default
       description
-      devReloadEndpoint
       displayName
       examples
       externals
