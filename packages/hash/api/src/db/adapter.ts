@@ -234,6 +234,12 @@ export type DbPageEntity = Omit<DbEntity, "properties"> & {
   properties: DbPageProperties;
 };
 
+export type DbCommentProperties = {
+  createdAt: string;
+  editedAt?: string;
+  resolvedAt?: string;
+};
+
 export type DbUnknownEntity = DbEntity;
 
 export interface DbAdapter extends DataSource, DbClient {

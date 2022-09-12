@@ -1,3 +1,4 @@
+import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { Popper } from "@mui/material";
 import { Schema } from "prosemirror-model";
 import { Plugin, PluginKey } from "prosemirror-state";
@@ -6,13 +7,21 @@ import { CommentInput } from "../Comments/CommentInput";
 import { RenderPortal } from "../usePortals";
 
 export type BlockCommentAction =
-  | { type: "open"; payload: { anchor: HTMLElement; blockId: string } }
+  | {
+      type: "open";
+      payload: {
+        anchorNode: HTMLElement;
+        blockId: string;
+        onSubmit: (content: TextToken[]) => Promise<void>;
+      };
+    }
   | { type: "close" };
 
 interface BlockCommentState {
   open: boolean;
   anchorNode: HTMLElement | null;
   blockId: string | null;
+  onSubmit: ((content: TextToken[]) => Promise<void>) | null;
 }
 
 export const blockCommentPluginKey = new PluginKey<BlockCommentState, Schema>(
@@ -31,6 +40,7 @@ export const createBlockComment = (
           open: false,
           anchorNode: null,
           blockId: null,
+          onSubmit: null,
         };
       },
       /** produces a new state from the old state and incoming transactions (cf. reducer) */
@@ -44,8 +54,7 @@ export const createBlockComment = (
             return {
               ...state,
               open: true,
-              anchorNode: action.payload.anchor,
-              blockId: action.payload.blockId,
+              ...action.payload,
             };
 
           case "close":
@@ -72,11 +81,18 @@ export const createBlockComment = (
 
       return {
         update(view) {
-          const { open, blockId, anchorNode } = blockCommentPluginKey.getState(
-            view.state,
-          )!;
+          const { open, blockId, anchorNode, onSubmit } =
+            blockCommentPluginKey.getState(view.state)!;
 
           if (!open || !blockId || !anchorNode) return this.destroy!();
+
+          const onClose = () => {
+            const { tr } = view.state;
+            tr.setMeta(blockCommentPluginKey, {
+              type: "close",
+            });
+            view.dispatch(tr);
+          };
 
           ensureMounted(mountNode, documentRoot);
           renderPortal(
@@ -106,13 +122,8 @@ export const createBlockComment = (
             >
               <CommentInput
                 blockId={blockId}
-                onClose={() => {
-                  const { tr } = view.state;
-                  tr.setMeta(blockCommentPluginKey, {
-                    type: "close",
-                  });
-                  view.dispatch(tr);
-                }}
+                onClose={onClose}
+                onSubmit={onSubmit}
               />
             </Popper>,
             mountNode,
