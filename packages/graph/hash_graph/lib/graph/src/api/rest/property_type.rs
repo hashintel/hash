@@ -135,7 +135,7 @@ async fn create_property_type<P: StorePool + Send>(
 }
 
 #[derive(Deserialize, Component)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct PropertyTypeQuery {
     query: Expression,
     #[serde(default)]

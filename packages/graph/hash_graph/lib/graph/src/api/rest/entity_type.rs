@@ -135,7 +135,7 @@ async fn create_entity_type<P: StorePool + Send>(
 }
 
 #[derive(Deserialize, Component)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct EntityTypeQuery {
     query: Expression,
     #[serde(default)]

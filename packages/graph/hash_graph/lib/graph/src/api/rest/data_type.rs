@@ -134,7 +134,7 @@ async fn create_data_type<P: StorePool + Send>(
 }
 
 #[derive(Deserialize, Component)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct DataTypeQuery {
     query: Expression,
     #[serde(default)]
