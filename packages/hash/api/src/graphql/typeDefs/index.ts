@@ -18,6 +18,7 @@ import { orgMembershipTypedef } from "./orgMembership.typedef";
 import { aggregationTypedef } from "./aggregation.typedef";
 import { pagePaginationTypedef } from "./paginationConnections.typedef";
 import { executeTaskTypedef } from "./taskExecution.typedef";
+import { blockprotocolTypedef } from "./blockprotocol.typedef";
 
 const baseSchema = gql`
   scalar Date
@@ -45,6 +46,7 @@ export const schema = [
   accountTypedef,
   baseSchema,
   blockTypedef,
+  blockprotocolTypedef,
   embedTypeDef,
   entityTypedef,
   linkTypedef,
