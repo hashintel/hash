@@ -132,7 +132,8 @@ export default class {
   /**
    * Get all property types at their latest version with their references resolved as a list.
    *
-   * @param params.depth the depth of the recursion
+   * @param params.accountId the accountId of the account creating the property type
+   * @param params.dataTypeQueryDepth recursion depth to use to resolve data types
    * @param params.propertyTypeQueryDepth recursion depth to use to resolve property types
    */
   static async getAllLatestResolved(
@@ -179,7 +180,6 @@ export default class {
   /**
    * Get a property type by its versioned URI.
    *
-   * @param params.accountId the accountId of the account requesting the property type
    * @param params.versionedUri the unique versioned URI for a property type.
    */
   static async get(
@@ -200,6 +200,7 @@ export default class {
    * Get a property type by its versioned URI.
    *
    * @param params.versionedUri the unique versioned URI for a property type.
+   * @param params.dataTypeQueryDepth recursion depth to use to resolve data types
    * @param params.propertyTypeQueryDepth recursion depth to use to resolve property types
    */
   static async getResolved(
