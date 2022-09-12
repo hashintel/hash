@@ -6,7 +6,7 @@ Our [HASH](https://hash.ai/platform/hash) codebase can be found in `hash`. HASH 
 
 ## `engine`
 
-`engine` houses the codebase of our next-generation version of [hEngine](https://hash.ai/platform/engine) - a versatile agent-based simulation engine written in Rust.
+`engine` houses the codebase of our next-generation version of [HASH Engine](https://hash.ai/platform/engine) - a versatile agent-based simulation engine written in Rust.
 
 ## `blocks`
 
