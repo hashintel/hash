@@ -6,7 +6,7 @@ import { formatKeymap } from "@hashintel/hash-shared/createProseMirrorState";
 import { baseKeymap } from "prosemirror-commands";
 import { keymap } from "prosemirror-keymap";
 import { createSchema } from "@hashintel/hash-shared/prosemirror";
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { faAt } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
@@ -19,6 +19,7 @@ import {
 import { useRouteAccountInfo } from "../../../shared/routing";
 import { clipboardTextSerializer, mentionNodeView } from "../createEditorView";
 import styles from "./style.module.css";
+import { placeholderPlugin } from "./placeholderPlugin";
 
 type CommentInputProps = {
   blockId: string;
@@ -49,6 +50,7 @@ export const CommentInput: FunctionComponent<CommentInputProps> = ({
           ...createFormatPlugins(renderPortal),
           formatKeymap(doc),
           createSuggester(renderPortal, accountId, editorContainer),
+          placeholderPlugin(renderPortal, "Leave a comment"),
         ],
       });
 
@@ -64,6 +66,8 @@ export const CommentInput: FunctionComponent<CommentInputProps> = ({
 
       view.dom.classList.add(styles.Prosemirror_Input!);
 
+      view.focus();
+
       viewRef.current = view;
     }
   }, [accountId, renderPortal, blockId]);
@@ -74,10 +78,9 @@ export const CommentInput: FunctionComponent<CommentInputProps> = ({
         width: 250,
         display: "flex",
         borderRadius: 1.5,
-        border: "1px solid #DDE7F0",
+        border: `1px solid ${palette.gray[30]}`,
         backdropFilter: "blur(40px)",
         transition: transitions.create("border-color"),
-
         "&:focus-within": {
           borderColor: palette.blue[60],
         },
@@ -85,26 +88,29 @@ export const CommentInput: FunctionComponent<CommentInputProps> = ({
     >
       <IconButton
         onClick={onClose}
-        sx={{
+        sx={({ transitions, palette }) => ({
           padding: 0.5,
           borderRadius: 1,
           margin: 1.5,
-          transition: ({ transitions }) => transitions.create("opacity"),
+          transition: transitions.create("opacity"),
           alignSelf: "flex-start",
-        }}
+          color: palette.gray[50],
+        })}
       >
         <FontAwesomeIcon icon={faComment} />
       </IconButton>
 
       <Box
         ref={editorRef}
-        sx={{
+        sx={({ palette }) => ({
           overflow: "hidden",
           flexGrow: 1,
           fontSize: 14,
           lineHeight: "150%",
-        }}
+          color: palette.gray[90],
+        })}
       />
+
       <IconButton
         onClick={() => {
           if (viewRef.current) {
@@ -114,13 +120,14 @@ export const CommentInput: FunctionComponent<CommentInputProps> = ({
             viewRef.current.focus();
           }
         }}
-        sx={{
+        sx={({ palette }) => ({
           padding: 0.5,
           borderRadius: 1,
           margin: 1.5,
           alignSelf: "flex-end",
           order: 1,
-        }}
+          color: palette.gray[40],
+        })}
       >
         <FontAwesomeIcon icon={faAt} />
       </IconButton>
