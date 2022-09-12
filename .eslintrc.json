@@ -349,7 +349,7 @@
       "files": [
         "packages/hash/api/**",
         "packages/hash/backend-utils/**",
-        "packages/hash/realtime**",
+        "packages/hash/realtime/**",
         "packages/hash/datastore/**",
         "packages/hash/docker/**",
         "packages/hash/eslint-config/**",
