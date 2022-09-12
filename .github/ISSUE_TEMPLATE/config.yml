@@ -1,0 +1,14 @@
+blank_issues_enabled: true
+contact_links:
+  - name: GitHub Security Bug Bounty
+    url: https://github.com/hashintel/hash/blob/main/SECURITY.md
+    about: Please see our security policy
+  - name: Twitter
+    url: https://twitter.com/hashintel
+    about: Find us at Twitter
+  - name: Discord
+    url: https://hash.ai/discord
+    about: Join our discord server for quick help and support
+  - name: Community Forum
+    url: https://hash.ai/discord
+    about: Post on our community forum
