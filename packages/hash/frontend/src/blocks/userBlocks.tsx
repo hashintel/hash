@@ -7,12 +7,12 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useState,
 } from "react";
-import { fetchBlock } from "@hashintel/hash-shared/blocks";
 
+import { fetchBlock } from "@hashintel/hash-shared/blocks";
 import { useCachedDefaultState } from "../components/hooks/useDefaultState";
 import { BlocksMap } from "./page/createEditorView";
+import { useGetBlockProtocolBlocks } from "../components/hooks/useGetBlockProtocolBlocks";
 
 interface UserBlocksContextState {
   value: BlocksMap;
@@ -35,62 +35,28 @@ export const UserBlocksProvider: FunctionComponent<{
     },
   );
 
-  const [blockFetchFailed, setBlockFetchFailed] = useState(false);
+  const { data, error } = useGetBlockProtocolBlocks();
 
   useEffect(() => {
-    const setInitialBlocks = () => {
-      if (process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_API_KEY) {
-        const blocksMetadataHeaders = new Headers();
-        blocksMetadataHeaders.set(
-          "x-api-key",
-          process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_API_KEY,
-        );
+    const setInitialBlocks = async () => {
+      if (process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_API_KEY && data) {
+        const apiProvidedBlocksMap: BlocksMap = {};
+        for (const { componentId } of data.getBlockProtocolBlocks) {
+          apiProvidedBlocksMap[componentId] = await fetchBlock(componentId);
+        }
 
-        const controller = new AbortController();
-        const signal = controller.signal;
-
-        fetch("https://blockprotocol.org/api/blocks", {
-          headers: blocksMetadataHeaders,
-          signal,
-        })
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error(`Fetch failed with status: ${response.status}`);
-            }
-            return response.json();
-          })
-          .then(async (responseData) => {
-            const apiProvidedBlocksMap: BlocksMap = {};
-            for (const { componentId } of responseData.results) {
-              apiProvidedBlocksMap[componentId] = await fetchBlock(componentId);
-            }
-
-            setValue((prevValue) => {
-              return { ...prevValue, ...apiProvidedBlocksMap };
-            });
-          })
-          .catch((error) => {
-            // eslint-disable-next-line no-console -- TODO: consider using logger
-            console.error(error);
-            setBlockFetchFailed(true);
-          });
-
-        return controller;
+        setValue((prevValue) => {
+          return { ...prevValue, ...apiProvidedBlocksMap };
+        });
       }
     };
 
-    const controller = setInitialBlocks();
-
-    return () => {
-      if (controller) {
-        controller.abort();
-      }
-    };
-  }, [setValue]);
+    void setInitialBlocks();
+  }, [setValue, data]);
 
   const state = useMemo(
-    () => ({ value, setValue, blockFetchFailed }),
-    [value, setValue, blockFetchFailed],
+    () => ({ value, setValue, blockFetchFailed: !!error }),
+    [value, setValue, error],
   );
 
   return (
