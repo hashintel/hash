@@ -129,11 +129,10 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
     >
       <IconButton
         onClick={onClose}
-        sx={({ transitions, palette }) => ({
+        sx={({ palette }) => ({
           padding: 0.5,
           borderRadius: 1,
           margin: 1.5,
-          transition: transitions.create("opacity"),
           alignSelf: "flex-start",
           color: palette.gray[50],
         })}
