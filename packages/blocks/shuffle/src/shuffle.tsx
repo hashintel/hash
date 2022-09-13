@@ -197,18 +197,22 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
    * this way, we don't show a stale `value` if the linked entity gets updated
    */
   const enhancedDraftItems = useMemo(() => {
+    // creating maps here, so we can use maps in the loop below instead of Array.find
+    // avoid using nested loops for better performance
+    const linkedEntitiesMap = new Map(
+      blockGraph?.linkedEntities.map((entity) => [entity.entityId, entity]),
+    );
+
+    const entityTypesMap = new Map(
+      entityTypes.map((type) => [type.entityTypeId, type]),
+    );
+
     return draftItems.map((item) => {
       const itemEntityId = item.entityId;
 
-      const entity = itemEntityId
-        ? blockGraph?.linkedEntities.find(
-            ({ entityId }) => entityId === itemEntityId,
-          )
-        : undefined;
+      const entity = linkedEntitiesMap.get(itemEntityId || "");
 
-      const entityType = entityTypes.find(
-        (type) => type.entityTypeId === entity?.entityTypeId,
-      );
+      const entityType = entityTypesMap.get(entity?.entityTypeId || "");
 
       return {
         ...item,
