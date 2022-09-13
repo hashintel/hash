@@ -12,12 +12,7 @@ import {
   styled,
 } from "@mui/material";
 import { Button } from "@hashintel/hash-design-system";
-import {
-  useImperativeHandle,
-  forwardRef,
-  ForwardRefRenderFunction,
-  useState,
-} from "react";
+import { useImperativeHandle, forwardRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 import { Items } from "../shuffle";
 import { getEntityLabel } from "../utils";
@@ -45,10 +40,10 @@ interface AddEntitiesDialogProps {
   graphService?: GraphBlockHandler | null;
 }
 
-const _AddEntitiesDialog: ForwardRefRenderFunction<
+export const AddEntitiesDialog = forwardRef<
   AddEntitiesDialogRef,
   AddEntitiesDialogProps
-> = ({ entityTypes, blockEntityId, onAddEntityItems, graphService }, ref) => {
+>(({ entityTypes, blockEntityId, onAddEntityItems, graphService }, ref) => {
   const [open, setOpen] = useState(false);
   const [selectedEntityType, setSelectedEntityType] = useState<EntityType>();
   const [entityList, setEntityList] = useState<Entity[]>([]);
@@ -200,6 +195,4 @@ const _AddEntitiesDialog: ForwardRefRenderFunction<
       </DialogActions>
     </Dialog>
   );
-};
-
-export const AddEntitiesDialog = forwardRef(_AddEntitiesDialog);
+});
