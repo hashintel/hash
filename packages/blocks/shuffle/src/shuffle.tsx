@@ -188,12 +188,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
 
   // adds the items selected on AddEntitiesDialog to the list
   const handleAddEntityItems = (entityItems: Items) => {
-    updateItems(
-      produce(draftItems, (newItems) => {
-        return newItems.concat(entityItems);
-      }),
-      true,
-    );
+    updateItems(draftItems.concat(entityItems), true);
   };
 
   /**
