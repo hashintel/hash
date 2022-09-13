@@ -2,9 +2,13 @@ import { gql } from "apollo-server-express";
 
 export const commentTypedef = gql`
   type Comment implements Entity {
-    contents: [Block!]!
-
     properties: CommentProperties!
+
+    contents: [TextToken!]!
+
+    owner: User!
+
+    parent: Block!
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
@@ -77,11 +81,6 @@ export const commentTypedef = gql`
     """
     linkedAggregations: [LinkedAggregation!]!
     # ENTITY INTERFACE FIELDS END #
-
-    """
-    The parent page of the page
-    """
-    parent: Block
   }
 
   type CommentProperties {

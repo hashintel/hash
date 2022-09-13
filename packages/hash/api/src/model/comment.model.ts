@@ -163,7 +163,7 @@ class __Comment extends Entity {
     return contentLink.getDestination(client);
   }
 
-  async getParent(client: DbClient): Promise<Block | Comment | null> {
+  async getParent(client: DbClient): Promise<Block | null> {
     const parentLinks = await this.getOutgoingLinks(client, {
       path: ["parent"],
     });
@@ -183,22 +183,29 @@ class __Comment extends Entity {
     }
 
     const destinationEntity = await parentLink.getDestination(client);
-    return await Comment.fromEntity(client, destinationEntity);
+    return await Block.fromEntity(client, destinationEntity);
   }
 
-  static async fromEntity(client: DbClient, entity: Entity): Promise<Comment> {
-    if (
-      entity.entityType.entityId !==
-      (await Comment.getEntityType(client)).entityId
-    ) {
+  async getOwner(client: DbClient): Promise<Entity> {
+    const ownerLinks = await this.getOutgoingLinks(client, {
+      path: ["owner"],
+    });
+
+    const [ownerLink, ...unexpectedOwnerLinks] = ownerLinks;
+
+    if (!ownerLink) {
       throw new Error(
-        `Entity with entityId ${entity.entityId} does not have the Comment system type as its entity type`,
+        `Critical: comment with entityId ${this.entityId} in account with accountId ${this.accountId} has no linked owner entity`,
       );
     }
-    return new Comment({
-      ...entity,
-      properties: entity.properties as DbCommentProperties,
-    });
+
+    if (unexpectedOwnerLinks.length > 0) {
+      throw new Error(
+        `Critical: Comment with entityId ${this.entityId} in account ${this.accountId} has more than one linked owner entity`,
+      );
+    }
+
+    return await ownerLink.getDestination(client);
   }
 }
 

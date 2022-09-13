@@ -1,3 +1,4 @@
+import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { ApolloError } from "apollo-server-express";
 import {
   Comment,
@@ -8,7 +9,7 @@ import { ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 
 const contents: ResolverFn<
-  Promise<UnresolvedGQLUnknownEntity>,
+  Promise<TextToken[]>,
   UnresolvedGQLComment,
   GraphQLContext,
   {}
@@ -25,7 +26,7 @@ const contents: ResolverFn<
 
   const content = await comment.getContents(db);
 
-  return content.toGQLUnknownEntity();
+  return (content.properties.tokens || []) as TextToken[];
 };
 
 const parent: ResolverFn<
@@ -48,7 +49,28 @@ const parent: ResolverFn<
   return parentEntity?.toGQLUnknownEntity() ?? null;
 };
 
+const owner: ResolverFn<
+  Promise<UnresolvedGQLUnknownEntity | null>,
+  UnresolvedGQLComment,
+  GraphQLContext,
+  {}
+> = async ({ accountId, entityId }, _, { dataSources: { db } }) => {
+  const comment = await Comment.getCommentById(db, { accountId, entityId });
+
+  if (!comment) {
+    throw new ApolloError(
+      `Comment with entityId ${entityId} not found in account ${accountId}`,
+      "NOT_FOUND",
+    );
+  }
+
+  const ownerEntity = await comment.getOwner(db);
+
+  return ownerEntity?.toGQLUnknownEntity() ?? null;
+};
+
 export const commentLinkedEntities = {
   contents,
   parent,
+  owner,
 };
