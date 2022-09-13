@@ -137,7 +137,7 @@ export const AddEntitiesDialog = forwardRef<
     handleClose();
   };
 
-  const selectedItemCount = selections.filter(Boolean).length;
+  const selectedItemCount = selections.filter((value) => !!value).length;
 
   return (
     <Dialog open={open} onClose={handleClose} fullWidth maxWidth="xs">
