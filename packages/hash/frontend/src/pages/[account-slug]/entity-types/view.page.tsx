@@ -5,6 +5,7 @@ import {
   Card,
   CardActionArea,
   cardActionAreaClasses,
+  CardActionAreaProps,
   CardContent,
   Container,
   Stack,
@@ -16,6 +17,80 @@ import Image from "next/image";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
 import { TopContextBar } from "../../shared/top-context-bar";
 import { Chip, placeholderUri } from "./Chip";
+
+const CreatePropertyCard = ({
+  onClick,
+}: Pick<CardActionAreaProps, "onClick">) => (
+  <Card
+    sx={(theme) => ({
+      boxShadow: theme.boxShadows.xs,
+      "&:hover": {
+        boxShadow: theme.boxShadows.md,
+      },
+    })}
+  >
+    <CardActionArea
+      onClick={onClick}
+      disableRipple
+      disableTouchRipple
+      sx={{
+        [`&:hover .${cardActionAreaClasses.focusHighlight}`]: {
+          opacity: 0,
+        },
+      }}
+    >
+      <CardContent
+        sx={{
+          p: 0,
+          background: "white",
+        }}
+      >
+        <Stack
+          direction="row"
+          alignItems="center"
+          sx={{
+            px: 5,
+            py: 4,
+          }}
+        >
+          <FontAwesomeIcon
+            icon={faList}
+            sx={[{ fontSize: 20 }, cardActionHoverBlue]}
+          />
+          <Box ml={5}>
+            <Typography
+              sx={[
+                { display: "flex", alignItems: "center", mb: 0.75 },
+                cardActionHoverBlue,
+              ]}
+            >
+              <Box component="span" mr={1} fontWeight={500}>
+                Add a property
+              </Box>
+              <FontAwesomeIcon icon={faPlus} />
+            </Typography>
+            <Typography
+              variant="microText"
+              component="p"
+              sx={(theme) => ({ color: theme.palette.gray[90] })}
+            >
+              Properties store individual pieces of information about some
+              aspect of an entity
+            </Typography>
+            <Typography
+              variant="microText"
+              component="p"
+              sx={(theme) => ({ color: theme.palette.gray[60] })}
+            >
+              e.g. a person entity might have a date of birth property which
+              expects a date
+            </Typography>
+          </Box>
+        </Stack>
+      </CardContent>
+    </CardActionArea>
+  </Card>
+);
 
 const cardActionHoverBlue: SxProps<Theme> = (theme) => ({
   [`.${cardActionAreaClasses.root}:hover &`]: {
@@ -100,79 +175,11 @@ const Page: NextPageWithLayout = () => {
               company
             </Box>
           </Typography>
-          <Card
-            sx={(theme) => ({
-              boxShadow: theme.boxShadows.xs,
-              "&:hover": {
-                boxShadow: theme.boxShadows.md,
-              },
-            })}
-          >
-            <CardActionArea
-              onClick={(evt) => {
-                evt.preventDefault();
-                // eslint-disable-next-line no-console
-                console.log("click");
-              }}
-              disableRipple
-              disableTouchRipple
-              sx={{
-                [`&:hover .${cardActionAreaClasses.focusHighlight}`]: {
-                  opacity: 0,
-                },
-              }}
-            >
-              <CardContent
-                sx={{
-                  p: 0,
-                  background: "white",
-                }}
-              >
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  sx={{
-                    px: 5,
-                    py: 4,
-                  }}
-                >
-                  <FontAwesomeIcon
-                    icon={faList}
-                    sx={[{ fontSize: 20 }, cardActionHoverBlue]}
-                  />
-                  <Box ml={5}>
-                    <Typography
-                      sx={[
-                        { display: "flex", alignItems: "center", mb: 0.75 },
-                        cardActionHoverBlue,
-                      ]}
-                    >
-                      <Box component="span" mr={1} fontWeight={500}>
-                        Add a property
-                      </Box>
-                      <FontAwesomeIcon icon={faPlus} />
-                    </Typography>
-                    <Typography
-                      variant="microText"
-                      component="p"
-                      sx={(theme) => ({ color: theme.palette.gray[90] })}
-                    >
-                      Properties store individual pieces of information about
-                      some aspect of an entity
-                    </Typography>
-                    <Typography
-                      variant="microText"
-                      component="p"
-                      sx={(theme) => ({ color: theme.palette.gray[60] })}
-                    >
-                      e.g. a person entity might have a date of birth property
-                      which expects a date
-                    </Typography>
-                  </Box>
-                </Stack>
-              </CardContent>
-            </CardActionArea>
-          </Card>
+          <CreatePropertyCard
+            onClick={() => {
+              alert("Create property");
+            }}
+          />
         </Container>
       </Box>
     </Box>
