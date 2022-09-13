@@ -317,7 +317,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           {pagesLoading ? (
             <PagesLoadingState />
           ) : (
-            <Box sx={{ marginX: 0.75 }}>
+            <Box sx={{ marginX: 0.75 }} data-testid="pages-tree">
               {renderPageTree(treeItems)}
 
               <DragOverlay dropAnimation={null} />
