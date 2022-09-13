@@ -63,6 +63,7 @@ impl PersistedOntologyIdentifier {
 
 #[derive(Debug)]
 pub struct PatchAndParseError;
+
 impl Context for PatchAndParseError {}
 
 impl fmt::Display for PatchAndParseError {
@@ -135,11 +136,17 @@ pub struct PersistedDataType {
     pub identifier: PersistedOntologyIdentifier,
 }
 
+/// Query to read [`DataType`]s, which are matching the [`Expression`].
 #[derive(Debug, Deserialize, Component)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct DataTypeQuery {
     #[serde(rename = "query")]
     pub expression: Expression,
+    /// Depth used to read nested [`DataType`]s.
+    // TODO: `data_type_query_depth` currently does nothing, in the future it will most probably be
+    //       used to resolve user defined data types.
+    //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
+    /// **Note**: Currently, this parameter is unused.
     pub data_type_query_depth: u8,
 }
 
@@ -157,12 +164,24 @@ pub struct PersistedPropertyType {
     pub identifier: PersistedOntologyIdentifier,
 }
 
+/// Query to read [`PropertyType`]s, which are matching the [`Expression`].
 #[derive(Debug, Deserialize, Component)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PropertyTypeQuery {
     #[serde(rename = "query")]
     pub expression: Expression,
+    /// Depth used to read directly or indirectly referenced [`DataType`]s.
+    ///
+    /// [`DataType`]s resolved by [`property_type_query_depth`] are also take into account. This
+    /// means that a for a [`PropertyType`] referring to another [`PropertyType`], which itself
+    /// refers to a [`DataType`] will also resolve the [`DataType`] if both depth-parameter are at
+    /// least set to `1`.
+    ///
+    /// [`property_type_query_depth`]: Self::property_type_query_depth
+    // TODO: https://app.asana.com/0/1200211978612931/1202464168422955/f
+    /// **Note**: A value greater than `1` currently does not have any effect
     pub data_type_query_depth: u8,
+    /// Depth used to read nested [`PropertyType`]s.
     pub property_type_query_depth: u8,
 }
 
@@ -182,6 +201,7 @@ pub struct PersistedLinkType {
     pub identifier: PersistedOntologyIdentifier,
 }
 
+/// Query to read [`LinkType`]s, which are matching the [`Expression`].
 #[derive(Debug, Deserialize, Component)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LinkTypeQuery {
@@ -203,14 +223,23 @@ pub struct PersistedEntityType {
     pub identifier: PersistedOntologyIdentifier,
 }
 
+/// Query to read [`EntityType`]s, which are matching the [`Expression`].
 #[derive(Debug, Deserialize, Component)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityTypeQuery {
     #[serde(rename = "query")]
     pub expression: Expression,
+    /// Depth used to read indirectly referenced [`DataType`]s.
+    // TODO: https://app.asana.com/0/1200211978612931/1202464168422955/f
+    /// **Note**: A value greater than `1` currently does not have any effect
     pub data_type_query_depth: u8,
+    /// Depth used to read directly or indirectly referenced [`PropertyType`]s.
     pub property_type_query_depth: u8,
+    /// Depth used to read directly or indirectly referenced [`LinkType`]s.
+    ///
+    /// **Note**: A value greater than `1` does not have any effect
     pub link_type_query_depth: u8,
+    /// Depth used to read directly or indirectly referenced [`PropertyType`]s.
     pub entity_type_query_depth: u8,
 }
 
