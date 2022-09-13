@@ -418,7 +418,6 @@
 //!  `std`     | Enables support for [`Error`] and, on nightly, [`Backtrace`]   |         | enabled
 //! `spantrace`| Enables the capturing of [`SpanTrace`]s                        |         | disabled
 //!  `futures` | Provides a [`FutureExt`] adaptor                               |         | disabled
-//! `small`    | Enable optimizations for the memory footprint of [`Report`]    |         | enabled
 //!  `anyhow`  | Provides conversion from [`anyhow::Error`] to [`Report`]       |         | disabled
 //!   `eyre`   | Provides conversion from [`eyre::Report`] to [`Report`]        |         | disabled
 //! `pretty-print` | Provide color[^color] and use of unicode in [`Debug`] output |     | enabled
