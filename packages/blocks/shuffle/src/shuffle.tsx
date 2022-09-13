@@ -198,7 +198,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
    */
   const enhancedDraftItems = useMemo(() => {
     return draftItems.map((item) => {
-      const { entityId: itemEntityId } = item;
+      const itemEntityId = item.entityId;
 
       const entity = itemEntityId
         ? blockGraph?.linkedEntities.find(

@@ -4,7 +4,7 @@ export const getEntityLabel = (
   entity: Entity,
   entityType?: EntityType,
 ): string => {
-  const { entityId, properties } = entity;
-  const { labelProperty } = entityType?.schema ?? {};
-  return labelProperty ? String(properties[labelProperty]) : entityId;
+  return entityType?.schema.labelProperty
+    ? String(entity.properties[entityType.schema.labelProperty])
+    : entity.entityId;
 };
