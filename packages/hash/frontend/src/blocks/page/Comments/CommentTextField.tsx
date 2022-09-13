@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useRef, useState } from "react";
+import { FunctionComponent, useCallback, useRef, useState } from "react";
 import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Schema } from "prosemirror-model";
@@ -42,17 +42,19 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
   onClose,
   onSubmit,
 }) => {
-  const editorRef = useRef<HTMLDivElement>();
   const viewRef = useRef<EditorView<Schema>>();
   const [portals, renderPortal] = usePortals();
   const { accountId } = useRouteAccountInfo();
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const editorContainer = editorRef.current;
-    if (editorContainer) {
-      editorContainer.innerHTML = "";
-      const textSchema = createSchema({
+  const [prevBlockId, setPrevBlockId] = useState("");
+  const [editorContainer, setEditorContainer] = useState<HTMLDivElement | null>(
+    null,
+  );
+
+  const createEditor = useCallback(
+    (container: HTMLDivElement) => {
+      const schema = createSchema({
         doc: {
           content: "inline*",
         },
@@ -61,7 +63,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         mention: mentionNode,
       });
 
-      const doc = textSchema.node("doc", {}, []);
+      const doc = schema.node("doc", {}, []);
 
       const state = EditorState.create<Schema>({
         doc,
@@ -69,12 +71,12 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
           keymap<Schema>(baseKeymap),
           ...createFormatPlugins(renderPortal),
           formatKeymap(doc),
-          createSuggester(renderPortal, accountId, editorContainer),
+          createSuggester(renderPortal, accountId, container),
           placeholderPlugin(renderPortal, "Leave a comment"),
         ],
       });
 
-      const view = new EditorView<Schema>(editorContainer, {
+      const view = new EditorView<Schema>(container, {
         state,
         clipboardTextSerializer: clipboardTextSerializer(
           state.schema.nodes.hardBreak,
@@ -110,8 +112,16 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
       view.focus();
 
       viewRef.current = view;
-    }
-  }, [accountId, renderPortal, blockId, onSubmit, onClose]);
+    },
+    [accountId, onSubmit, renderPortal, onClose],
+  );
+
+  if (editorContainer && prevBlockId !== blockId) {
+    setPrevBlockId(blockId);
+
+    editorContainer.innerHTML = "";
+    createEditor(editorContainer);
+  }
 
   return (
     <Box
@@ -141,7 +151,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
       </IconButton>
 
       <Box
-        ref={editorRef}
+        ref={(ref: HTMLDivElement) => setEditorContainer(ref)}
         sx={({ palette }) => ({
           overflow: "hidden",
           flexGrow: 1,

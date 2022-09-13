@@ -28,6 +28,13 @@ export const createCommentPluginKey = new PluginKey<CreateCommentState, Schema>(
   "createComment",
 );
 
+const initState = {
+  open: false,
+  anchorNode: null,
+  blockId: null,
+  onSubmit: null,
+};
+
 export const createCommentPlugin = (
   renderPortal: RenderPortal,
   documentRoot: HTMLElement,
@@ -35,15 +42,7 @@ export const createCommentPlugin = (
   new Plugin<CreateCommentState, Schema>({
     key: createCommentPluginKey,
     state: {
-      init() {
-        return {
-          open: false,
-          anchorNode: null,
-          blockId: null,
-          onSubmit: null,
-        };
-      },
-      /** produces a new state from the old state and incoming transactions (cf. reducer) */
+      init: () => initState,
       apply(tr, state, _prevEditorState) {
         const action: CreateCommentAction | undefined = tr.getMeta(
           createCommentPluginKey,
@@ -53,12 +52,12 @@ export const createCommentPlugin = (
           case "open":
             return {
               ...state,
-              open: true,
               ...action.payload,
+              open: true,
             };
 
           case "close":
-            return { ...state, open: false };
+            return initState;
         }
 
         return state;
