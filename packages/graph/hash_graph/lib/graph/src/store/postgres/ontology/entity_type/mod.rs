@@ -46,8 +46,8 @@ impl<C: AsClient> PostgresStore<C> {
         entity_type_query_depth: u8,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         async move {
-            // TODO: Avoid cloning of URI
-            //   see https://stackoverflow.com/questions/51542024
+            // URI is cloned due to limitations of Entry API, see 
+            // https://stackoverflow.com/questions/51542024
             if let Entry::Vacant(entry) = entity_type_references.entry(entity_type_uri) {
                 let entity_type = PersistedEntityType::from_record(
                     self.read_versioned_ontology_type::<EntityType>(entry.key())
