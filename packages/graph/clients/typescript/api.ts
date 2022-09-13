@@ -385,7 +385,13 @@ export interface EntityTypeQuery {
    * @type {number}
    * @memberof EntityTypeQuery
    */
-  entityLinkQueryDepth: number;
+  entityTypeQueryDepth: number;
+  /**
+   *
+   * @type {number}
+   * @memberof EntityTypeQuery
+   */
+  linkTypeQueryDepth: number;
   /**
    *
    * @type {number}
