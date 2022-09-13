@@ -16,12 +16,12 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Items } from "../shuffle";
-import { Item } from "./item";
+import { Item } from "../shuffle";
+import { Item as ItemComponent } from "./item";
 import { SortableItem } from "./sortable-item";
 
 type ItemListProps = {
-  list: Items;
+  list: Item[];
   onReorder: (sourceIndex: number, destinationIndex: number) => void;
   onValueChange: (index: number, value: string) => void;
   onItemBlur: () => void;
@@ -35,7 +35,7 @@ const measuringConfig = {
   },
 };
 
-const findItemIndexById = (list: Items, id: UniqueIdentifier) =>
+const findItemIndexById = (list: Item[], id: UniqueIdentifier) =>
   list.findIndex((item) => item.id === id);
 
 const boxShadow =
@@ -138,7 +138,7 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
           ))}
           <DragOverlay dropAnimation={dropAnimationConfig}>
             {activeItem ? (
-              <Item
+              <ItemComponent
                 id={activeItem.id}
                 value={activeItem.value}
                 paperStyle={{

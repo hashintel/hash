@@ -14,7 +14,7 @@ import {
 import { Button } from "@hashintel/hash-design-system";
 import { useImperativeHandle, forwardRef, useState } from "react";
 import { v4 as uuid } from "uuid";
-import { Items } from "../shuffle";
+import { Item } from "../shuffle";
 import { getEntityLabel } from "../utils";
 
 const SFormControlLabel = styled(FormControlLabel)(
@@ -36,7 +36,7 @@ export interface AddEntitiesDialogRef {
 interface AddEntitiesDialogProps {
   entityTypes: EntityType[];
   blockEntityId: string;
-  onAddEntityItems: (items: Items) => void;
+  onAddEntityItems: (items: Item[]) => void;
   graphService?: GraphBlockHandler | null;
 }
 

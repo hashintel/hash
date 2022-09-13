@@ -20,7 +20,7 @@ import {
 import { getEntityLabel } from "./utils";
 import { TooltipButton } from "./components/tooltip-button";
 
-type Item = {
+export type Item = {
   id: string;
   value: string;
   // entityId is used to find the entity easily, instead of doing linkId -> link -> entityId
@@ -29,7 +29,7 @@ type Item = {
   linkId?: string;
 };
 
-export type Items = Item[];
+type Items = Item[];
 
 type BlockEntityProperties = {
   items?: Items;
