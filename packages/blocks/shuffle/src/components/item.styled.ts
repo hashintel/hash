@@ -6,6 +6,7 @@ import {
   styled,
   experimental_sx as sx,
   TextField,
+  inputBaseClasses,
 } from "@mui/material";
 
 const LINK_ICON_WIDTH = "2rem";
@@ -47,6 +48,12 @@ export const STextField = styled(TextField)(
     ml: LINK_ICON_WIDTH,
     border: "none",
     outline: "none",
+
+    [`.${inputBaseClasses.disabled}`]: {
+      color: "inherit !important",
+      opacity: "1 !important",
+      "-webkit-text-fill-color": "inherit !important",
+    },
   }),
 );
 
