@@ -8,6 +8,7 @@ import { useLocalstorageState } from "rooks";
 
 import { Button } from "@hashintel/hash-design-system";
 import Box from "@mui/material/Box";
+import { GlobalStyles } from "@mui/material";
 import { BlockLoadedProvider } from "../onBlockLoaded";
 import { UserBlocksProvider } from "../userBlocks";
 import { EditorConnection } from "./collab/EditorConnection";
@@ -102,6 +103,10 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   return (
     <UserBlocksProvider value={blocks}>
       <BlockLoadedProvider routeHash={routeHash}>
+        <GlobalStyles
+          // prevents blue outline on selected nodes
+          styles={{ ".ProseMirror-selectednode": { outline: "none" } }}
+        />
         <Box id="root" ref={root} position="relative" />
         {portals}
         {/**

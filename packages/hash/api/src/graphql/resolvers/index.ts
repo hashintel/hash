@@ -84,6 +84,7 @@ import {
 } from "./taskExecutor";
 import { getLink } from "./link/getLink";
 import { getLinkedAggregation } from "./linkedAggregation/getLinkedAggregation";
+import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 
 export const resolvers = {
   Query: {
@@ -95,6 +96,7 @@ export const resolvers = {
       ) /** @todo: make accessible to admins only (or deprecate) */,
     aggregateEntity: loggedInAndSignedUp(aggregateEntity),
     blocks: loggedInAndSignedUp(blocks),
+    getBlockProtocolBlocks,
     getAccountEntityTypes: loggedInAndSignedUp(getAccountEntityTypes),
     entity: loggedInAndSignedUp(entity),
     entities: loggedInAndSignedUp(canAccessAccount(entities)),

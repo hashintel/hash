@@ -271,7 +271,6 @@ mod full {
 
     #[cfg(all(nightly, feature = "unstable"))]
     use error_stack::fmt::DebugDiagnostic;
-    use error_stack::fmt::Emit;
 
     use super::*;
 
@@ -452,7 +451,9 @@ mod full {
 
         let report = create_report().attach(2u32);
 
-        Report::install_debug_hook::<u32>(|_, _| vec![Emit::next("unsigned 32bit integer")]);
+        Report::install_debug_hook::<u32>(|_, ctx| {
+            ctx.push_body("unsigned 32bit integer");
+        });
 
         assert_snapshot!(format!("{report:?}"));
     }
@@ -464,10 +465,8 @@ mod full {
         let report = create_report().attach(2u32);
 
         Report::install_debug_hook::<u32>(|_, ctx| {
-            vec![Emit::next(format!(
-                "unsigned 32bit integer (No. {})",
-                ctx.increment()
-            ))]
+            let idx = ctx.increment_counter();
+            ctx.push_body(format!("unsigned 32bit integer (No. {idx})"));
         });
 
         assert_snapshot!(format!("{report:?}"));
@@ -479,8 +478,12 @@ mod full {
 
         let report = create_report().attach(1u32).attach(2u64);
 
-        Report::install_debug_hook::<u32>(|_, _| vec![Emit::next("unsigned 32bit integer")]);
-        Report::install_debug_hook::<u64>(|_, _| vec![Emit::next("unsigned 64bit integer")]);
+        Report::install_debug_hook::<u32>(|_, ctx| {
+            ctx.push_body("unsigned 32bit integer");
+        });
+        Report::install_debug_hook::<u64>(|_, ctx| {
+            ctx.push_body("unsigned 64bit integer");
+        });
 
         assert_snapshot!(format!("{report:?}"));
     }
@@ -491,23 +494,7 @@ mod full {
 
         let report = create_report().attach(1u32);
 
-        Report::install_debug_hook_fallback(|_, _| vec![Emit::next("unknown")]);
-
-        assert_snapshot!(format!("{report:?}"));
-    }
-
-    #[test]
-    fn hook_defer() {
-        let _guard = prepare(false);
-
-        let report = create_report() //
-            .attach(1u32)
-            .attach(2u64)
-            .attach(3u16);
-
-        Report::install_debug_hook::<u16>(|_, _| vec![Emit::defer("u16")]);
-        Report::install_debug_hook::<u32>(|_, _| vec![Emit::defer("u32")]);
-        Report::install_debug_hook::<u64>(|_, _| vec![Emit::next("u64")]);
+        Report::install_debug_hook_fallback(|_, ctx| ctx.push_body("unknown"));
 
         assert_snapshot!(format!("{report:?}"));
     }
@@ -522,7 +509,8 @@ mod full {
             .attach(3u32);
 
         Report::install_debug_hook::<u32>(|_, ctx| {
-            vec![Emit::next(format!("{}", ctx.decrement()))]
+            let idx = ctx.decrement_counter();
+            ctx.push_body(idx.to_string());
         });
 
         assert_snapshot!(format!("{report:?}"));
@@ -538,7 +526,8 @@ mod full {
             .attach(3u32);
 
         Report::install_debug_hook::<u32>(|_, ctx| {
-            vec![Emit::next(format!("{}", ctx.increment()))]
+            let idx = ctx.increment_counter();
+            ctx.push_body(idx.to_string());
         });
 
         assert_snapshot!(format!("{report:?}"));
@@ -552,10 +541,10 @@ mod full {
 
         Report::install_debug_hook::<u64>(|_, ctx| {
             if ctx.alternate() {
-                ctx.attach_snippet("Snippet");
+                ctx.push_appendix("Snippet");
             }
 
-            vec![Emit::next("Empty")]
+            ctx.push_body("Empty");
         });
 
         assert_snapshot!("norm", format!("{report:?}"));
@@ -591,9 +580,11 @@ mod full {
             reason: "Invalid User Input",
         });
 
-        Report::install_debug_hook::<usize>(|val, _| vec![Emit::next(format!("usize: {val}"))]);
-        Report::install_debug_hook::<&'static str>(|val, _| {
-            vec![Emit::next(format!("&'static str: {val}"))]
+        Report::install_debug_hook::<usize>(|val, ctx| {
+            ctx.push_body(format!("usize: {val}"));
+        });
+        Report::install_debug_hook::<&'static str>(|val, ctx| {
+            ctx.push_body(format!("&'static str: {val}"));
         });
 
         assert_snapshot!(format!("{report:?}"));

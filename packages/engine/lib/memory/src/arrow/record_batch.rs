@@ -7,20 +7,43 @@ use arrow2::{
     io::ipc::{write::default_ipc_fields, IpcSchema},
 };
 
-/// A record batch is a common abstraction introduced to handle Arrow columns (particularly moving
-/// them over the IPC boundary).
+/// A record batch is a common abstraction introduced to manipulate Arrow
+/// columns which belong together. All the columns must have the same length;
+/// this restriction makes is possible to store values which belong together
+/// logically, but are likely to be accessed separately in a manner which takes
+/// advantage of the design of modern CPU caches.
+///
+/// **Usually the ith entry of every column corresponds to the same logical
+/// X** (X could be a number of things, e.g. an agent or a message). For
+/// example, we have a record batch which stores agent state. Each agent has
+/// a number of different fields (e.g. name, position, direction, velocity,
+/// etc.) We are unlikely to access all these fields at the same time, so it
+/// makes sense to store them in separate columns (as this increases the
+/// percentage of memory accesses are cache hits if, for example, we were to
+/// iterate through the positions of all the agents in the agent batch), but we
+/// do want to be able to access all the fields of an arbitrary agent (provided
+/// we have its index, this is relatively uncomplicated because we can just
+/// select the ith entry of all the columns in the record batch to get all the
+/// fields of the ith agent - here `i` denotes the index of the agent in
+/// question).
+///
+/// A [`RecordBatch`] is not technically part of the Arrow specification (only
+/// the IPC format - i.e. the format we use to (de)serialize Arrow columns into
+/// raw bytes).
 #[derive(Debug, PartialEq)]
 pub struct RecordBatch {
     /// The schema which describes the columns in this [`RecordBatch`].
     schema: Arc<Schema>,
-    /// The underlying columns. Each column stores the data for a specific field.
+    /// The underlying columns. Each column stores the data for a specific
+    /// field. Note that all columns must have the same length.
     columns: Chunk<Box<dyn Array>>,
 }
 
 impl RecordBatch {
     /// Creates a new [`RecordBatch`]
     ///
-    /// When compiled in debug mode, this struct will check that the [`RecordBatch`] is well-formed.
+    /// When compiled in debug mode, this struct will check that the
+    /// actual [`Array`]s in the [`RecordBatch`] match the [`Schema`].
     pub fn new(schema: Arc<Schema>, columns: Chunk<Box<dyn Array>>) -> Self {
         #[cfg(debug_assertions)]
         {

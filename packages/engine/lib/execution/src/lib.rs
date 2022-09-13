@@ -1,7 +1,7 @@
 //! Execution logic to run experiments and simulations.
 //!
 //! This crate is split into two main parts:
-//! - the hEngine Package System, and
+//! - the HASH Engine Package System, and
 //! - the execution of [simulation packages].
 //!
 //! The Package System is defined in the [`package`] module. For running the simulation

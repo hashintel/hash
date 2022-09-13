@@ -67,7 +67,7 @@ export const mentionNode: NodeSpec = {
   ],
 };
 
-export const blankNode: NodeSpec = {
+export const loadingNode: NodeSpec = {
   /**
    * As we don't have any component nodes defined by default, we need a
    * placeholder, otherwise Prosemirror will crash when trying to
@@ -79,7 +79,7 @@ export const blankNode: NodeSpec = {
    *
    * @see import("./ProsemirrorManager.ts").ProsemirrorManager#prepareToDisableBlankDefaultComponentNode
    */
-  group: "componentNode",
+  group: componentNodeGroupName,
   toDOM: () => ["div", 0] as const,
 };
 
@@ -126,12 +126,12 @@ export const entityNode: NodeSpec = {
 
 export const getPageEditorNodes = (): NodeSpecs => ({
   doc: {
-    content: "((componentNode|block)+)|blank",
+    content: "((componentNode|block)+)|loading",
   },
   text: textNode,
   hardBreak: hardBreakNode,
   mention: mentionNode,
-  blank: { ...blankNode },
+  blank: loadingNode,
   block: blockNode,
   entity: entityNode,
 });
@@ -290,7 +290,7 @@ declare interface OrderedMapPrivateInterface<T> {
  * a user to pass a function which will apply the mutations they want to apply,
  * and the relevant hacks are then applied after to process the mutation.
  *
- * This also deals with deleting the default "blank" node type which we create
+ * This also deals with deleting the default "loading" node type which we create
  * when first creating a new schema before any blocks have been loaded in.
  */
 export const mutateSchema = (
@@ -298,21 +298,21 @@ export const mutateSchema = (
   mutate: (map: OrderedMapPrivateInterface<NodeSpec>) => void,
 ) => {
   mutate(schema.spec.nodes as any);
-  const blankType = schema.nodes.blank!;
+  const loadingType = schema.nodes.loading!;
 
-  if (isComponentNodeType(blankType)) {
-    if (blankType.spec.group?.includes(componentNodeGroupName)) {
-      if (blankType.spec.group !== componentNodeGroupName) {
+  if (isComponentNodeType(loadingType)) {
+    if (loadingType.spec.group?.includes(componentNodeGroupName)) {
+      if (loadingType.spec.group !== componentNodeGroupName) {
         throw new Error(
-          "Blank node type has group expression more complicated than we can handle",
+          "Loading node type has group expression more complicated than we can handle",
         );
       }
 
-      delete blankType.spec.group;
+      delete loadingType.spec.group;
     }
 
-    blankType.groups!.splice(
-      blankType.groups!.indexOf(componentNodeGroupName),
+    loadingType.groups!.splice(
+      loadingType.groups!.indexOf(componentNodeGroupName),
       1,
     );
   }
