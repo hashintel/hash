@@ -20,6 +20,8 @@ use crate::{
 };
 
 impl<C: AsClient> PostgresStore<C> {
+    // TODO: `_data_type_query_depth` is unused until data types can reference other data types
+    //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
     /// Internal method to read a [`PersistedDataType`] into a [`HashMap`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
