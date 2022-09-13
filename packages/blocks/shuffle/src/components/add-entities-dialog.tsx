@@ -12,7 +12,7 @@ import {
   styled,
 } from "@mui/material";
 import { Button } from "@hashintel/hash-design-system";
-import { useImperativeHandle, forwardRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { v4 as uuid } from "uuid";
 import { Item } from "../shuffle";
 import { getEntityLabel } from "../utils";
@@ -29,45 +29,35 @@ const SFormControlLabel = styled(FormControlLabel)(
   }),
 );
 
-export interface AddEntitiesDialogRef {
-  show: () => void;
-}
-
 interface AddEntitiesDialogProps {
   entityTypes: EntityType[];
   blockEntityId: string;
   onAddEntityItems: (items: Item[]) => void;
   graphService?: GraphBlockHandler | null;
+  open: boolean;
+  handleClose: () => void;
 }
 
-export const AddEntitiesDialog = forwardRef<
-  AddEntitiesDialogRef,
-  AddEntitiesDialogProps
->(({ entityTypes, blockEntityId, onAddEntityItems, graphService }, ref) => {
-  const [open, setOpen] = useState(false);
+export const AddEntitiesDialog = ({
+  entityTypes,
+  blockEntityId,
+  onAddEntityItems,
+  graphService,
+  open,
+  handleClose,
+}: AddEntitiesDialogProps) => {
   const [selectedEntityType, setSelectedEntityType] = useState<EntityType>();
   const [entityList, setEntityList] = useState<Entity[]>([]);
   // `selections` is a object that stores checkbox `checked` state for each entity.
   const [selections, setSelections] = useState<boolean[]>([]);
 
-  const handleClose = () => setOpen(false);
-
-  /**
-   * Defined a custom ref, so the parent can simply call `dialogRef.show()`,
-   * which also resets the state to it's initial value when modal is opened,
-   * instead of using an `useEffect` that listens modal's state
-   */
-  useImperativeHandle(
-    ref,
-    () => ({
-      show: () => {
-        setOpen(true);
-        setSelectedEntityType(undefined);
-        setEntityList([]);
-      },
-    }),
-    [],
-  );
+  useEffect(() => {
+    if (open) {
+      // reset the state when modal is opened
+      setSelectedEntityType(undefined);
+      setEntityList([]);
+    }
+  }, [open]);
 
   const handleEntityTypeClick = async (entityType: EntityType) => {
     if (!graphService) return;
@@ -195,4 +185,4 @@ export const AddEntitiesDialog = forwardRef<
       </DialogActions>
     </Dialog>
   );
-});
+};

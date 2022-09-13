@@ -13,10 +13,7 @@ import DatasetLinkedIcon from "@mui/icons-material/DatasetLinked";
 import ClearIcon from "@mui/icons-material/Clear";
 import { EntityType } from "@blockprotocol/graph/.";
 import { ItemList } from "./components/item-list";
-import {
-  AddEntitiesDialog,
-  AddEntitiesDialogRef,
-} from "./components/add-entities-dialog";
+import { AddEntitiesDialog } from "./components/add-entities-dialog";
 import { getEntityLabel } from "./utils";
 import { TooltipButton } from "./components/tooltip-button";
 
@@ -51,8 +48,8 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   },
 }) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
-  const dialogRef = useRef<AddEntitiesDialogRef>(null);
   const { graphService } = useGraphBlockService(blockRootRef);
+  const [entitiesDialogOpen, setEntitiesDialogOpen] = useState(false);
   const [entityTypes, setEntityTypes] = useState<EntityType[]>([]);
   const [draftItems, setDraftItems] = useState<Items>(
     items?.length ? items : initialItems,
@@ -171,7 +168,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
       }),
     );
 
-  const handleAddEntitiesClick = () => dialogRef.current?.show();
+  const handleAddEntitiesClick = () => setEntitiesDialogOpen(true);
 
   const handleRemoveAllClick = () => {
     // we also want to remove all links for the linked items
@@ -262,7 +259,8 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
         readonly={!!readonly}
       />
       <AddEntitiesDialog
-        ref={dialogRef}
+        open={entitiesDialogOpen}
+        handleClose={() => setEntitiesDialogOpen(false)}
         graphService={graphService}
         entityTypes={entityTypes}
         blockEntityId={blockEntityId}
