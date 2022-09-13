@@ -179,7 +179,7 @@ pub struct PropertyTypeQuery {
     ///
     /// [`property_type_query_depth`]: Self::property_type_query_depth
     // TODO: https://app.asana.com/0/1200211978612931/1202464168422955/f
-    /// **Note**: A value greater than `1` currently does not have any effect
+    /// **Note**: A value greater than `1` currently does not have any effect.
     pub data_type_query_depth: u8,
     /// Depth used to read nested [`PropertyType`]s.
     pub property_type_query_depth: u8,
@@ -231,13 +231,13 @@ pub struct EntityTypeQuery {
     pub expression: Expression,
     /// Depth used to read indirectly referenced [`DataType`]s.
     // TODO: https://app.asana.com/0/1200211978612931/1202464168422955/f
-    /// **Note**: A value greater than `1` currently does not have any effect
+    /// **Note**: A value greater than `1` currently does not have any effect.
     pub data_type_query_depth: u8,
     /// Depth used to read directly or indirectly referenced [`PropertyType`]s.
     pub property_type_query_depth: u8,
     /// Depth used to read directly or indirectly referenced [`LinkType`]s.
     ///
-    /// **Note**: A value greater than `1` does not have any effect
+    /// **Note**: A value greater than `1` does not have any effect.
     pub link_type_query_depth: u8,
     /// Depth used to read directly or indirectly referenced [`PropertyType`]s.
     pub entity_type_query_depth: u8,
