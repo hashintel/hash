@@ -1,6 +1,4 @@
-use alloc::boxed::Box;
-#[cfg(not(feature = "small"))]
-use alloc::{vec, vec::Vec};
+use alloc::{boxed::Box, vec, vec::Vec};
 use core::{fmt, marker::PhantomData, panic::Location};
 #[cfg(all(rust_1_65, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
@@ -195,9 +193,6 @@ use crate::{
 #[must_use]
 #[repr(transparent)]
 pub struct Report<C> {
-    #[cfg(feature = "small")]
-    pub(super) frames: smallvec::SmallVec<[Frame; 1]>,
-    #[cfg(not(feature = "small"))]
     pub(super) frames: Vec<Frame>,
     _context: PhantomData<fn() -> *const C>,
 }
@@ -205,9 +200,6 @@ pub struct Report<C> {
 impl<C> Report<C> {
     pub(crate) fn from_frame(frame: Frame) -> Self {
         Self {
-            #[cfg(feature = "small")]
-            frames: smallvec::smallvec![frame],
-            #[cfg(not(feature = "small"))]
             frames: vec![frame],
             _context: PhantomData,
         }
