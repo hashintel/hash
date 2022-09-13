@@ -22,20 +22,22 @@ pub use self::kind::{AttachmentKind, FrameKind};
 /// [`Report::request_ref()`]: crate::Report::request_ref
 pub struct Frame {
     frame: Box<dyn FrameImpl>,
+    location: &'static Location<'static>,
+    sources: Box<[Frame]>,
 }
 
 impl Frame {
     /// Returns the location where this `Frame` was created.
     #[must_use]
-    pub fn location(&self) -> &'static Location<'static> {
-        self.frame.location()
+    pub const fn location(&self) -> &'static Location<'static> {
+        self.location
     }
 
     #[allow(missing_docs)]
     #[must_use]
     #[deprecated = "use `sources()` instead"]
-    pub fn source(&self) -> Option<&Self> {
-        self.frame.sources().first()
+    pub const fn source(&self) -> Option<&Self> {
+        self.sources().first()
     }
 
     /// Returns a shared reference to the source of this `Frame`.
@@ -44,15 +46,15 @@ impl Frame {
     ///
     /// [`Report`]: crate::Report
     #[must_use]
-    pub fn sources(&self) -> &[Self] {
-        self.frame.sources()
+    pub const fn sources(&self) -> &[Self] {
+        &self.sources
     }
 
     #[allow(missing_docs)]
     #[must_use]
     #[deprecated = "use `sources_mut()` instead"]
     pub fn source_mut(&mut self) -> Option<&mut Self> {
-        self.frame.sources_mut().first_mut()
+        self.sources_mut().first_mut()
     }
 
     /// Returns a mutable reference to the sources of this `Frame`.
@@ -62,7 +64,7 @@ impl Frame {
     /// [`Report`]: crate::Report
     #[must_use]
     pub fn sources_mut(&mut self) -> &mut [Self] {
-        self.frame.sources_mut()
+        &mut self.sources
     }
 
     /// Returns how the `Frame` was created.
