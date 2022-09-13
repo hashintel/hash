@@ -26,6 +26,7 @@ impl<C: AsClient> PostgresStore<C> {
         &self,
         link_type_uri: VersionedUri,
         link_types: &mut HashMap<VersionedUri, PersistedLinkType>,
+        _link_type_resolve_depth: u8,
     ) -> Result<(), QueryError> {
         // TODO: Use relation tables
         //   see https://app.asana.com/0/0/1202884883200942/f

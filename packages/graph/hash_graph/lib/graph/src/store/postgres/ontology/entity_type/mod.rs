@@ -83,9 +83,13 @@ impl<C: AsClient> PostgresStore<C> {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
                     for (link_type_uri, entity_type_uri) in linked_uris {
-                        if link_type_query_depth.checked_sub(1).is_some() {
-                            self.get_link_type_as_dependency(link_type_uri, link_type_references)
-                                .await?;
+                        if let Some(new_depth) = link_type_query_depth.checked_sub(1) {
+                            self.get_link_type_as_dependency(
+                                link_type_uri,
+                                link_type_references,
+                                new_depth,
+                            )
+                            .await?;
                         }
                         if let Some(new_depth) = entity_type_query_depth.checked_sub(1) {
                             self.get_entity_type_as_dependency(
@@ -184,28 +188,21 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 }
 
                 if link_type_query_depth > 0 || entity_type_query_depth > 0 {
-                    let linked_uris = entity_type
-                        .inner
-                        .link_type_references()
-                        .into_iter()
-                        .map(|(link_type_uri, entity_type_uri)| {
-                            (link_type_uri.clone(), entity_type_uri.uri().clone())
-                        })
-                        .collect::<Vec<_>>();
-
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
-                    for (link_type_uri, entity_type_uri) in linked_uris {
-                        if link_type_query_depth.checked_sub(1).is_some() {
+                    for (link_type_uri, entity_type_ref) in entity_type.inner.link_type_references()
+                    {
+                        if let Some(new_depth) = link_type_query_depth.checked_sub(1) {
                             self.get_link_type_as_dependency(
-                                link_type_uri,
+                                link_type_uri.clone(),
                                 &mut link_type_references,
+                                new_depth,
                             )
                             .await?;
                         }
                         if let Some(new_depth) = entity_type_query_depth.checked_sub(1) {
                             self.get_entity_type_as_dependency(
-                                entity_type_uri,
+                                entity_type_ref.uri().clone(),
                                 &mut data_type_references,
                                 &mut property_type_references,
                                 &mut link_type_references,
