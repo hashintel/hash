@@ -10,7 +10,8 @@ use type_system::{uri::VersionedUri, LinkType};
 
 use crate::{
     ontology::{
-        AccountId, LinkTypeQuery, LinkTypeTree, PersistedLinkType, PersistedOntologyIdentifier,
+        AccountId, LinkTypeQuery, LinkTypeRootedSubgraph, PersistedLinkType,
+        PersistedOntologyIdentifier,
     },
     store::{
         crud::Read,
@@ -79,11 +80,14 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
         Ok(identifier)
     }
 
-    async fn get_link_type(&self, query: &LinkTypeQuery) -> Result<Vec<LinkTypeTree>, QueryError> {
+    async fn get_link_type(
+        &self,
+        query: &LinkTypeQuery,
+    ) -> Result<Vec<LinkTypeRootedSubgraph>, QueryError> {
         let LinkTypeQuery { ref expression } = *query;
 
         stream::iter(Read::<PersistedLinkType>::read(self, expression).await?)
-            .then(|link_type: PersistedLinkType| async { Ok(LinkTypeTree { link_type }) })
+            .then(|link_type: PersistedLinkType| async { Ok(LinkTypeRootedSubgraph { link_type }) })
             .try_collect()
             .await
     }

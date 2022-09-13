@@ -19,7 +19,7 @@ use crate::{
     api::rest::{read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, AccountId, LinkTypeQuery, LinkTypeTree, PersistedLinkType,
+        patch_id_and_parse, AccountId, LinkTypeQuery, LinkTypeRootedSubgraph, PersistedLinkType,
         PersistedOntologyIdentifier,
     },
     store::{
@@ -43,7 +43,7 @@ use crate::{
         PersistedOntologyIdentifier,
         PersistedLinkType,
         LinkTypeQuery,
-        LinkTypeTree,
+        LinkTypeRootedSubgraph,
     ),
     tags(
         (name = "LinkType", description = "Link type management API")
@@ -138,7 +138,7 @@ async fn create_link_type<P: StorePool + Send>(
     request_body = LinkTypeQuery,
     tag = "LinkType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all link types matching the provided query", body = [LinkTypeTree]),
+        (status = 200, content_type = "application/json", description = "List of all link types matching the provided query", body = [LinkTypeRootedSubgraph]),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
@@ -147,7 +147,7 @@ async fn create_link_type<P: StorePool + Send>(
 async fn get_link_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<LinkTypeQuery>,
-) -> Result<Json<Vec<LinkTypeTree>>, StatusCode> {
+) -> Result<Json<Vec<LinkTypeRootedSubgraph>>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
             tracing::error!(?error, "Could not acquire access to the store");

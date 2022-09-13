@@ -18,8 +18,8 @@ use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, AccountId, EntityTypeQuery, EntityTypeTree, PersistedEntityType,
-        PersistedOntologyIdentifier,
+        patch_id_and_parse, AccountId, EntityTypeQuery, EntityTypeRootedSubgraph,
+        PersistedEntityType, PersistedOntologyIdentifier,
     },
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
@@ -44,7 +44,7 @@ use crate::{
         PersistedOntologyIdentifier,
         PersistedEntityType,
         EntityTypeQuery,
-        EntityTypeTree,
+        EntityTypeRootedSubgraph,
     ),
     tags(
         (name = "EntityType", description = "Entity type management API")
@@ -140,7 +140,7 @@ async fn create_entity_type<P: StorePool + Send>(
     request_body = EntityTypeQuery,
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", body = [EntityTypeTree], description = "A list of subgraphs rooted at entity types that satisfy the given query each resolved to the requested depth."),
+        (status = 200, content_type = "application/json", body = [EntityTypeRootedSubgraph], description = "A list of subgraphs rooted at entity types that satisfy the given query each resolved to the requested depth."),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
@@ -149,7 +149,7 @@ async fn create_entity_type<P: StorePool + Send>(
 async fn get_entity_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<EntityTypeQuery>,
-) -> Result<Json<Vec<EntityTypeTree>>, StatusCode> {
+) -> Result<Json<Vec<EntityTypeRootedSubgraph>>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
             tracing::error!(?error, "Could not acquire access to the store");

@@ -10,7 +10,8 @@ use type_system::{uri::VersionedUri, DataType};
 
 use crate::{
     ontology::{
-        AccountId, DataTypeQuery, DataTypeTree, PersistedDataType, PersistedOntologyIdentifier,
+        AccountId, DataTypeQuery, DataTypeRootedSubgraph, PersistedDataType,
+        PersistedOntologyIdentifier,
     },
     store::{
         crud::Read,
@@ -78,14 +79,17 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         Ok(identifier)
     }
 
-    async fn get_data_type(&self, query: &DataTypeQuery) -> Result<Vec<DataTypeTree>, QueryError> {
+    async fn get_data_type(
+        &self,
+        query: &DataTypeQuery,
+    ) -> Result<Vec<DataTypeRootedSubgraph>, QueryError> {
         let DataTypeQuery {
             ref expression,
             data_type_query_depth: _,
         } = *query;
 
         stream::iter(Read::<PersistedDataType>::read(self, expression).await?)
-            .then(|data_type: PersistedDataType| async { Ok(DataTypeTree { data_type }) })
+            .then(|data_type: PersistedDataType| async { Ok(DataTypeRootedSubgraph { data_type }) })
             .try_collect()
             .await
     }

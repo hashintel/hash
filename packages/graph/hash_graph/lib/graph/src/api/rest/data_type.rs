@@ -19,7 +19,7 @@ use crate::{
     api::rest::{read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, AccountId, DataTypeQuery, DataTypeTree, PersistedDataType,
+        patch_id_and_parse, AccountId, DataTypeQuery, DataTypeRootedSubgraph, PersistedDataType,
         PersistedOntologyIdentifier,
     },
     store::{
@@ -43,7 +43,7 @@ use crate::{
         PersistedOntologyIdentifier,
         PersistedDataType,
         DataTypeQuery,
-        DataTypeTree,
+        DataTypeRootedSubgraph,
     ),
     tags(
         (name = "DataType", description = "Data Type management API")
@@ -139,7 +139,7 @@ async fn create_data_type<P: StorePool + Send>(
     request_body = Expression,
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", body = [DataTypeTree], description = "A list of subgraphs rooted at data types that satisfy the given query each resolved to the requested depth."),
+        (status = 200, content_type = "application/json", body = [DataTypeRootedSubgraph], description = "A list of subgraphs rooted at data types that satisfy the given query each resolved to the requested depth."),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
@@ -148,7 +148,7 @@ async fn create_data_type<P: StorePool + Send>(
 async fn get_data_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<DataTypeQuery>,
-) -> Result<Json<Vec<DataTypeTree>>, StatusCode> {
+) -> Result<Json<Vec<DataTypeRootedSubgraph>>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
             tracing::error!(?error, "Could not acquire access to the store");

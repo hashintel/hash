@@ -14,8 +14,8 @@ use type_system::{uri::VersionedUri, EntityType};
 
 use crate::{
     ontology::{
-        AccountId, EntityTypeQuery, EntityTypeTree, PersistedDataType, PersistedEntityType,
-        PersistedLinkType, PersistedOntologyIdentifier, PersistedPropertyType,
+        AccountId, EntityTypeQuery, EntityTypeRootedSubgraph, PersistedDataType,
+        PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier, PersistedPropertyType,
     },
     store::{
         crud::Read,
@@ -177,7 +177,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
     async fn get_entity_type(
         &self,
         query: &EntityTypeQuery,
-    ) -> Result<Vec<EntityTypeTree>, QueryError> {
+    ) -> Result<Vec<EntityTypeRootedSubgraph>, QueryError> {
         let EntityTypeQuery {
             ref expression,
             data_type_query_depth,
@@ -242,7 +242,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                     }
                 }
 
-                Ok(EntityTypeTree {
+                Ok(EntityTypeRootedSubgraph {
                     entity_type,
                     data_type_references: data_type_references.into_values().collect(),
                     property_type_references: property_type_references.into_values().collect(),

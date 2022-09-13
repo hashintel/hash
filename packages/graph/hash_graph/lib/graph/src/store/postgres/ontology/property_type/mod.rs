@@ -15,7 +15,7 @@ use type_system::{uri::VersionedUri, PropertyType, PropertyTypeReference};
 use crate::{
     ontology::{
         AccountId, PersistedDataType, PersistedOntologyIdentifier, PersistedPropertyType,
-        PropertyTypeQuery, PropertyTypeTree,
+        PropertyTypeQuery, PropertyTypeRootedSubgraph,
     },
     store::{
         crud::Read,
@@ -141,7 +141,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     async fn get_property_type(
         &self,
         query: &PropertyTypeQuery,
-    ) -> Result<Vec<PropertyTypeTree>, QueryError> {
+    ) -> Result<Vec<PropertyTypeRootedSubgraph>, QueryError> {
         let PropertyTypeQuery {
             ref expression,
             data_type_query_depth,
@@ -183,7 +183,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                     }
                 }
 
-                Ok(PropertyTypeTree {
+                Ok(PropertyTypeRootedSubgraph {
                     property_type,
                     data_type_references: data_type_references.into_values().collect(),
                     property_type_references: property_type_references.into_values().collect(),

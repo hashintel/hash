@@ -20,7 +20,7 @@ use crate::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, AccountId, PersistedOntologyIdentifier, PersistedPropertyType,
-        PropertyTypeQuery, PropertyTypeTree,
+        PropertyTypeQuery, PropertyTypeRootedSubgraph,
     },
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
@@ -43,7 +43,7 @@ use crate::{
         PersistedOntologyIdentifier,
         PersistedPropertyType,
         PropertyTypeQuery,
-        PropertyTypeTree,
+        PropertyTypeRootedSubgraph,
     ),
     tags(
         (name = "PropertyType", description = "Property type management API")
@@ -140,7 +140,7 @@ async fn create_property_type<P: StorePool + Send>(
     request_body = PropertyTypeQuery,
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", body = [PropertyTypeTree], description = "A list of subgraphs rooted at property types that satisfy the given query each resolved to the requested depth."),
+        (status = 200, content_type = "application/json", body = [PropertyTypeRootedSubgraph], description = "A list of subgraphs rooted at property types that satisfy the given query each resolved to the requested depth."),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
@@ -149,7 +149,7 @@ async fn create_property_type<P: StorePool + Send>(
 async fn get_property_types_by_query<P>(
     pool: Extension<Arc<P>>,
     Json(query): Json<PropertyTypeQuery>,
-) -> Result<Json<Vec<PropertyTypeTree>>, StatusCode>
+) -> Result<Json<Vec<PropertyTypeRootedSubgraph>>, StatusCode>
 where
     for<'pool> P: StorePool<Store<'pool>: PropertyTypeStore> + Send,
 {
