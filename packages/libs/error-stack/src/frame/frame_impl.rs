@@ -29,23 +29,6 @@ pub(super) unsafe trait FrameImpl: Send + Sync + 'static {
     /// `type_id`.
     fn type_id(&self) -> TypeId;
 
-    /// Returns the location where this `Frame` was created.
-    fn location(&self) -> &'static Location<'static>;
-
-    /// Returns a shared reference to the source of this `Frame`.
-    ///
-    /// This corresponds to the `Frame` below this one in a [`Report`].
-    ///
-    /// [`Report`]: crate::Report
-    fn sources(&self) -> &[Frame];
-
-    /// Returns a mutable reference to the source of this `Frame`.
-    ///
-    /// This corresponds to the `Frame` below this one in a [`Report`].
-    ///
-    /// [`Report`]: crate::Report
-    fn sources_mut(&mut self) -> &mut [Frame];
-
     /// Provide values which can then be requested.
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut Demand<'a>);
@@ -54,8 +37,6 @@ pub(super) unsafe trait FrameImpl: Send + Sync + 'static {
 #[repr(C)]
 struct ContextFrame<C> {
     context: C,
-    location: &'static Location<'static>,
-    sources: Box<[Frame]>,
 }
 
 // SAFETY: `type_id` returns `C` and `C` is the first field in `#[repr(C)]`
@@ -68,18 +49,6 @@ unsafe impl<C: Context> FrameImpl for ContextFrame<C> {
         TypeId::of::<C>()
     }
 
-    fn location(&self) -> &'static Location<'static> {
-        self.location
-    }
-
-    fn sources(&self) -> &[Frame] {
-        &self.sources
-    }
-
-    fn sources_mut(&mut self) -> &mut [Frame] {
-        &mut self.sources
-    }
-
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
         Context::provide(&self.context, demand);
@@ -89,8 +58,6 @@ unsafe impl<C: Context> FrameImpl for ContextFrame<C> {
 #[repr(C)]
 struct AttachmentFrame<A> {
     attachment: A,
-    location: &'static Location<'static>,
-    sources: Box<[Frame]>,
 }
 
 // SAFETY: `type_id` returns `A` and `A` is the first field in `#[repr(C)]`
@@ -103,18 +70,6 @@ unsafe impl<A: 'static + Send + Sync> FrameImpl for AttachmentFrame<A> {
         TypeId::of::<A>()
     }
 
-    fn location(&self) -> &'static Location<'static> {
-        self.location
-    }
-
-    fn sources(&self) -> &[Frame] {
-        &self.sources
-    }
-
-    fn sources_mut(&mut self) -> &mut [Frame] {
-        &mut self.sources
-    }
-
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
         demand.provide_ref(&self.attachment);
@@ -124,8 +79,6 @@ unsafe impl<A: 'static + Send + Sync> FrameImpl for AttachmentFrame<A> {
 #[repr(C)]
 struct PrintableAttachmentFrame<A> {
     attachment: A,
-    location: &'static Location<'static>,
-    sources: Box<[Frame]>,
 }
 
 // SAFETY: `type_id` returns `A` and `A` is the first field in `#[repr(C)]`
@@ -136,18 +89,6 @@ unsafe impl<A: 'static + Debug + Display + Send + Sync> FrameImpl for PrintableA
 
     fn type_id(&self) -> TypeId {
         TypeId::of::<A>()
-    }
-
-    fn location(&self) -> &'static Location<'static> {
-        self.location
-    }
-
-    fn sources(&self) -> &[Frame] {
-        &self.sources
-    }
-
-    fn sources_mut(&mut self) -> &mut [Frame] {
-        &mut self.sources
     }
 
     #[cfg(nightly)]
@@ -167,11 +108,9 @@ impl Frame {
         C: Context,
     {
         Self {
-            frame: Box::new(ContextFrame {
-                context,
-                location,
-                sources,
-            }),
+            frame: Box::new(ContextFrame { context }),
+            location,
+            sources,
         }
     }
 
@@ -185,11 +124,9 @@ impl Frame {
         A: Send + Sync + 'static,
     {
         Self {
-            frame: Box::new(AttachmentFrame {
-                attachment,
-                location,
-                sources,
-            }),
+            frame: Box::new(AttachmentFrame { attachment }),
+            location,
+            sources,
         }
     }
 
@@ -206,11 +143,9 @@ impl Frame {
         A: Display + Debug + Send + Sync + 'static,
     {
         Self {
-            frame: Box::new(PrintableAttachmentFrame {
-                attachment,
-                location,
-                sources,
-            }),
+            frame: Box::new(PrintableAttachmentFrame { attachment }),
+            location,
+            sources,
         }
     }
 }
