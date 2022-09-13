@@ -1773,7 +1773,7 @@ export const DataTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<PersistedDataType>>
+      ) => AxiosPromise<Array<DataTypeTree>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getDataTypesByQuery(body, options);
@@ -1880,7 +1880,7 @@ export const DataTypeApiFactory = function (
     getDataTypesByQuery(
       body: object,
       options?: any,
-    ): AxiosPromise<Array<PersistedDataType>> {
+    ): AxiosPromise<Array<DataTypeTree>> {
       return localVarFp
         .getDataTypesByQuery(body, options)
         .then((request) => request(axios, basePath));
@@ -1952,7 +1952,7 @@ export interface DataTypeApiInterface {
   getDataTypesByQuery(
     body: object,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<PersistedDataType>>;
+  ): AxiosPromise<Array<DataTypeTree>>;
 
   /**
    *
@@ -4956,7 +4956,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<PersistedDataType>>
+      ) => AxiosPromise<Array<DataTypeTree>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getDataTypesByQuery(body, options);
@@ -5620,7 +5620,7 @@ export const GraphApiFactory = function (
     getDataTypesByQuery(
       body: object,
       options?: any,
-    ): AxiosPromise<Array<PersistedDataType>> {
+    ): AxiosPromise<Array<DataTypeTree>> {
       return localVarFp
         .getDataTypesByQuery(body, options)
         .then((request) => request(axios, basePath));
@@ -6006,7 +6006,7 @@ export interface GraphApiInterface {
   getDataTypesByQuery(
     body: object,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<PersistedDataType>>;
+  ): AxiosPromise<Array<DataTypeTree>>;
 
   /**
    *

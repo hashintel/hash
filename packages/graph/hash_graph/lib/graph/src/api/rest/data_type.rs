@@ -146,7 +146,7 @@ struct DataTypeQuery {
     request_body = Expression,
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all data types matching the provided query", body = [PersistedDataType]),
+        (status = 200, content_type = "application/json", description = "List of all data types matching the provided query", body = [DataTypeTree]),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
