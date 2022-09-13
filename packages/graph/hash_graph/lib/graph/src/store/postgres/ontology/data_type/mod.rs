@@ -19,19 +19,28 @@ use crate::{
     },
 };
 
-impl<C: AsClient> PostgresStore<C> {
+pub struct DataTypeDependencyContext<'a> {
+    pub data_type_references: &'a mut HashMap<VersionedUri, PersistedDataType>,
     // TODO: `_data_type_query_depth` is unused until data types can reference other data types
     //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
+    pub _data_type_query_depth: u8,
+}
+
+impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`PersistedDataType`] into a [`HashMap`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) async fn get_data_type_as_dependency(
         &self,
         data_type_uri: VersionedUri,
-        data_types: &mut HashMap<VersionedUri, PersistedDataType>,
-        _data_type_query_depth: u8,
+        context: DataTypeDependencyContext<'_>,
     ) -> Result<(), QueryError> {
-        if let Entry::Vacant(entry) = data_types.entry(data_type_uri) {
+        let DataTypeDependencyContext {
+            data_type_references,
+            ..
+        } = context;
+
+        if let Entry::Vacant(entry) = data_type_references.entry(data_type_uri) {
             let data_type = PersistedDataType::from_record(
                 self.read_versioned_ontology_type::<DataType>(entry.key())
                     .await?,
@@ -70,7 +79,12 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     }
 
     async fn get_data_type(&self, query: &DataTypeQuery) -> Result<Vec<DataTypeTree>, QueryError> {
-        stream::iter(Read::<PersistedDataType>::read(self, &query.expression).await?)
+        let DataTypeQuery {
+            ref expression,
+            data_type_query_depth: _,
+        } = *query;
+
+        stream::iter(Read::<PersistedDataType>::read(self, expression).await?)
             .then(|data_type: PersistedDataType| async { Ok(DataTypeTree { data_type }) })
             .try_collect()
             .await

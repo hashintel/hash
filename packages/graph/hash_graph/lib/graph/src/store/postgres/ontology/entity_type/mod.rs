@@ -19,31 +19,45 @@ use crate::{
     },
     store::{
         crud::Read,
-        postgres::{context::PostgresContext, PersistedOntologyType},
+        postgres::{
+            context::PostgresContext, ontology::link_type::LinkTypeDependencyContext,
+            PersistedOntologyType,
+        },
         AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
 };
+
+pub struct PropertyTypeDependencyContext<'a> {
+    pub data_type_references: &'a mut HashMap<VersionedUri, PersistedDataType>,
+    pub property_type_references: &'a mut HashMap<VersionedUri, PersistedPropertyType>,
+    pub link_type_references: &'a mut HashMap<VersionedUri, PersistedLinkType>,
+    pub entity_type_references: &'a mut HashMap<VersionedUri, PersistedEntityType>,
+    pub data_type_query_depth: u8,
+    pub property_type_query_depth: u8,
+    pub link_type_query_depth: u8,
+    pub entity_type_query_depth: u8,
+}
 
 impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`PersistedEntityType`] into a [`HashMap`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "Output is created in place and needs to be reused later"
-    )]
     pub(crate) fn get_entity_type_as_dependency<'a>(
         &'a self,
         entity_type_uri: VersionedUri,
-        data_type_references: &'a mut HashMap<VersionedUri, PersistedDataType>,
-        property_type_references: &'a mut HashMap<VersionedUri, PersistedPropertyType>,
-        link_type_references: &'a mut HashMap<VersionedUri, PersistedLinkType>,
-        entity_type_references: &'a mut HashMap<VersionedUri, PersistedEntityType>,
-        data_type_query_depth: u8,
-        property_type_query_depth: u8,
-        link_type_query_depth: u8,
-        entity_type_query_depth: u8,
+        context: PropertyTypeDependencyContext<'a>,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
+        let PropertyTypeDependencyContext {
+            data_type_references,
+            property_type_references,
+            link_type_references,
+            entity_type_references,
+            data_type_query_depth,
+            property_type_query_depth,
+            link_type_query_depth,
+            entity_type_query_depth,
+        } = context;
+
         async move {
             // URI is cloned due to limitations of Entry API, see
             // https://stackoverflow.com/questions/51542024
@@ -85,22 +99,26 @@ impl<C: AsClient> PostgresStore<C> {
                         if link_type_query_depth > 0 {
                             self.get_link_type_as_dependency(
                                 link_type_uri,
-                                link_type_references,
-                                link_type_query_depth - 1,
+                                LinkTypeDependencyContext {
+                                    link_type_references,
+                                    _link_type_query_depth: link_type_query_depth - 1,
+                                },
                             )
                             .await?;
                         }
                         if entity_type_query_depth > 0 {
                             self.get_entity_type_as_dependency(
                                 entity_type_uri,
-                                data_type_references,
-                                property_type_references,
-                                link_type_references,
-                                entity_type_references,
-                                data_type_query_depth,
-                                property_type_query_depth,
-                                link_type_query_depth,
-                                entity_type_query_depth - 1,
+                                PropertyTypeDependencyContext {
+                                    data_type_references,
+                                    property_type_references,
+                                    link_type_references,
+                                    entity_type_references,
+                                    data_type_query_depth,
+                                    property_type_query_depth,
+                                    link_type_query_depth,
+                                    entity_type_query_depth: entity_type_query_depth - 1,
+                                },
                             )
                             .await?;
                         }
@@ -160,14 +178,22 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         &self,
         query: &EntityTypeQuery,
     ) -> Result<Vec<EntityTypeTree>, QueryError> {
-        stream::iter(Read::<PersistedEntityType>::read(self, &query.expression).await?)
+        let EntityTypeQuery {
+            ref expression,
+            data_type_query_depth,
+            property_type_query_depth,
+            link_type_query_depth,
+            entity_type_query_depth,
+        } = *query;
+
+        stream::iter(Read::<PersistedEntityType>::read(self, expression).await?)
             .then(|entity_type: PersistedEntityType| async {
                 let mut data_type_references = HashMap::new();
                 let mut property_type_references = HashMap::new();
                 let mut link_type_references = HashMap::new();
                 let mut entity_type_references = HashMap::new();
 
-                if query.property_type_query_depth > 0 {
+                if property_type_query_depth > 0 {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
                     for data_type_ref in entity_type.inner.property_type_references() {
@@ -175,37 +201,41 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                             data_type_ref.uri().clone(),
                             &mut data_type_references,
                             &mut property_type_references,
-                            query.data_type_query_depth,
-                            query.property_type_query_depth - 1,
+                            data_type_query_depth,
+                            property_type_query_depth - 1,
                         )
                         .await?;
                     }
                 }
 
-                if query.link_type_query_depth > 0 || query.entity_type_query_depth > 0 {
+                if link_type_query_depth > 0 || entity_type_query_depth > 0 {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
                     for (link_type_uri, entity_type_ref) in entity_type.inner.link_type_references()
                     {
-                        if query.link_type_query_depth > 0 {
+                        if link_type_query_depth > 0 {
                             self.get_link_type_as_dependency(
                                 link_type_uri.clone(),
-                                &mut link_type_references,
-                                query.link_type_query_depth - 1,
+                                LinkTypeDependencyContext {
+                                    link_type_references: &mut link_type_references,
+                                    _link_type_query_depth: link_type_query_depth - 1,
+                                },
                             )
                             .await?;
                         }
-                        if query.entity_type_query_depth > 0 {
+                        if entity_type_query_depth > 0 {
                             self.get_entity_type_as_dependency(
                                 entity_type_ref.uri().clone(),
-                                &mut data_type_references,
-                                &mut property_type_references,
-                                &mut link_type_references,
-                                &mut entity_type_references,
-                                query.data_type_query_depth,
-                                query.property_type_query_depth,
-                                query.link_type_query_depth,
-                                query.entity_type_query_depth - 1,
+                                PropertyTypeDependencyContext {
+                                    data_type_references: &mut data_type_references,
+                                    property_type_references: &mut property_type_references,
+                                    link_type_references: &mut link_type_references,
+                                    entity_type_references: &mut entity_type_references,
+                                    data_type_query_depth,
+                                    property_type_query_depth,
+                                    link_type_query_depth,
+                                    entity_type_query_depth: entity_type_query_depth - 1,
+                                },
                             )
                             .await?;
                         }

@@ -19,6 +19,12 @@ use crate::{
     },
 };
 
+pub struct LinkTypeDependencyContext<'a> {
+    pub link_type_references: &'a mut HashMap<VersionedUri, PersistedLinkType>,
+    // `_link_type_query_depth` is unused as link types do not reference other link types
+    pub _link_type_query_depth: u8,
+}
+
 impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`PersistedLinkType`] into a [`HashMap`].
     ///
@@ -26,12 +32,16 @@ impl<C: AsClient> PostgresStore<C> {
     pub(crate) async fn get_link_type_as_dependency(
         &self,
         link_type_uri: VersionedUri,
-        link_types: &mut HashMap<VersionedUri, PersistedLinkType>,
-        _link_type_resolve_depth: u8,
+        context: LinkTypeDependencyContext<'_>,
     ) -> Result<(), QueryError> {
+        let LinkTypeDependencyContext {
+            link_type_references,
+            ..
+        } = context;
+
         // TODO: Use relation tables
         //   see https://app.asana.com/0/0/1202884883200942/f
-        if let Entry::Vacant(entry) = link_types.entry(link_type_uri) {
+        if let Entry::Vacant(entry) = link_type_references.entry(link_type_uri) {
             let link_type = PersistedLinkType::from_record(
                 self.read_versioned_ontology_type::<LinkType>(entry.key())
                     .await?,
@@ -70,7 +80,9 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
     }
 
     async fn get_link_type(&self, query: &LinkTypeQuery) -> Result<Vec<LinkTypeTree>, QueryError> {
-        stream::iter(Read::<PersistedLinkType>::read(self, &query.expression).await?)
+        let LinkTypeQuery { ref expression } = *query;
+
+        stream::iter(Read::<PersistedLinkType>::read(self, expression).await?)
             .then(|link_type: PersistedLinkType| async { Ok(LinkTypeTree { link_type }) })
             .try_collect()
             .await
