@@ -132,13 +132,8 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
               onItemBlur={() => onItemBlur()}
               onDelete={() => onDelete(index)}
               paperStyle={{ boxShadow }}
-              mode={
-                item.linkId
-                  ? "linkedToEntity"
-                  : readonly
-                  ? "readonly"
-                  : "editable"
-              }
+              readonly={readonly}
+              linkedToEntity={!!item.entityId}
             />
           ))}
           <DragOverlay dropAnimation={dropAnimationConfig}>
@@ -160,13 +155,8 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
                   animation: `pop 250ms normal ease`,
                 }}
                 dragOverlay={dragOverlayRef}
-                mode={
-                  activeItem.linkId
-                    ? "linkedToEntity"
-                    : readonly
-                    ? "readonly"
-                    : "editable"
-                }
+                readonly={readonly}
+                linkedToEntity={!!activeItem.entityId}
               />
             ) : null}
           </DragOverlay>

@@ -25,7 +25,8 @@ export type ItemProps = {
   listeners?: Record<string, Function>;
   style?: CSSProperties;
   dragOverlay?: RefObject<HTMLDivElement>;
-  mode: "editable" | "readonly" | "linkedToEntity";
+  linkedToEntity?: boolean;
+  readonly?: boolean;
 };
 
 export const Item = forwardRef<HTMLLIElement, ItemProps>(
@@ -41,7 +42,8 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
       style,
       listeners,
       dragOverlay,
-      mode,
+      linkedToEntity,
+      readonly,
     },
     ref,
   ) => {
@@ -57,7 +59,7 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
         {...attributes}
       >
         <SPaper sx={paperStyle} ref={dragOverlay}>
-          {mode === "linkedToEntity" && (
+          {linkedToEntity && (
             <Tooltip title="This item is linked to an entity">
               <SLinkIconWrapper>
                 <LinkIcon fontSize="small" />
@@ -69,7 +71,8 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
             multiline
             fullWidth
             variant="standard"
-            disabled={mode !== "editable"}
+            // editing is disabled if item is linked to an entity as well
+            disabled={readonly || linkedToEntity}
             value={value}
             onChange={(event) => onValueChange?.(event.target.value)}
             onBlur={() => onItemBlur?.()}
@@ -78,7 +81,7 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
             }}
           />
 
-          {mode !== "readonly" && (
+          {!readonly && (
             <SButtonsWrapper>
               <SIconButton
                 onClick={() => onDelete?.()}
