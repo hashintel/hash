@@ -33,6 +33,7 @@ type SchemaProperty = {
 };
 
 type PartialSchema = SchemaProperty & {
+  labelProperty: string;
   title?: string;
   required: string[];
   $defs?: Record<string, PartialSchema>;
@@ -63,6 +64,7 @@ const systemTypeSchemas: {
         },
       },
     },
+    labelProperty: "shortname",
     required: ["shortname", "memberships"],
   },
   User: {
@@ -91,6 +93,7 @@ const systemTypeSchemas: {
         type: "string",
       },
     },
+    labelProperty: "shortname",
     required: ["emails", "memberOf"],
 
     $defs: {
@@ -114,6 +117,7 @@ const systemTypeSchemas: {
           },
         },
         required: ["address", "primary", "verified"],
+        labelProperty: "address",
       },
     },
   },
@@ -137,6 +141,7 @@ const systemTypeSchemas: {
       },
     },
     required: ["org", "user", "responsibility"],
+    labelProperty: "responsibility",
   },
   Page: {
     title: "Page",
@@ -164,6 +169,7 @@ const systemTypeSchemas: {
         description: "The title of the page",
       },
     },
+    labelProperty: "title",
     required: ["title", "contents"],
   },
   Block: {
@@ -182,6 +188,7 @@ const systemTypeSchemas: {
         description: "The data entity to display or edit",
       },
     },
+    labelProperty: "componentId",
     required: ["componentId", "entity"],
   },
   Comment: {
