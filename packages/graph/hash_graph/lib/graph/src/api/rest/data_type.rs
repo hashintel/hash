@@ -137,7 +137,6 @@ async fn create_data_type<P: StorePool + Send>(
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct DataTypeQuery {
     query: Expression,
-    #[serde(default)]
     data_type_query_depth: u8,
 }
 

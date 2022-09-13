@@ -138,9 +138,7 @@ async fn create_property_type<P: StorePool + Send>(
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct PropertyTypeQuery {
     query: Expression,
-    #[serde(default)]
     data_type_query_depth: u8,
-    #[serde(default)]
     property_type_query_depth: u8,
 }
 

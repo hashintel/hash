@@ -138,13 +138,9 @@ async fn create_entity_type<P: StorePool + Send>(
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct EntityTypeQuery {
     query: Expression,
-    #[serde(default)]
     data_type_query_depth: u8,
-    #[serde(default)]
     property_type_query_depth: u8,
-    #[serde(default)]
     link_type_query_depth: u8,
-    #[serde(default)]
     entity_type_query_depth: u8,
 }
 
