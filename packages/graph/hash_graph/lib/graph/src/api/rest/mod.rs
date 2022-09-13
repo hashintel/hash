@@ -94,7 +94,7 @@ where
         })
         .and_then(|store| async move {
             // TODO: Closure is taking reference of `store` to `read()`, so the read operation
-            //       needs to be awaited on. By passing through a steam we could avoid awaiting and
+            //       needs to be awaited on. By passing through a stream we could avoid awaiting and
             //       remove the `async move` closure
             //   see https://app.asana.com/0/1202805690238892/1202923536131158/f
             Read::read(&store, query)
