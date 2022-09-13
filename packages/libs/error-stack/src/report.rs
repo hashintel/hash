@@ -193,10 +193,11 @@ use crate::{
 #[must_use]
 #[repr(transparent)]
 pub struct Report<C> {
-    // reason: This implies a memory footprint equal to a single pointer size instead of three
-    //         pointer sizes. `Report` is unlikely to be used in the happy path, but it's almost
-    //         always used in `Result::Err`, so for small `Result::Ok` variants, this would
-    //         increase the size of the `Result` to 24 bytes (on 64 bit) instead of 8 bytes.
+    // The vector is boxed as this implies a memory footprint equal to a single pointer size
+    // instead of three pointer sizes. Even for small `Result::Ok` variants, the `Result` would
+    // still have at least the size of `Report`, even at the happy path. It's unexpected, that
+    // creating or traversing a report will happen in the hot path, so a double indirection is
+    // a good trade-off.
     #[allow(clippy::box_collection)]
     pub(super) frames: Box<Vec<Frame>>,
     _context: PhantomData<fn() -> *const C>,
