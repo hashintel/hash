@@ -8,13 +8,10 @@ const pageNameFallback = "Untitled";
 
 const listOfPagesSelector = '[data-testid="pages-tree"]';
 const pageTitleInputSelector = '[placeholder="Untitled"]';
+const createPageButtonSelector = '[data-testid="create-page-btn"]';
 
 const modifierKey = process.platform === "darwin" ? "Meta" : "Control";
 
-/**
- * not calling resetDb in beforeEach
- * because "user can rename page" uses the page created at "user can create page"
- */
 test.beforeEach(async () => {
   await resetDb();
 });
@@ -31,8 +28,9 @@ test("user can create page", async ({ page }) => {
   // TODO: Check URL contains own login once we have replaced uuids implemented
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+$/));
 
-  // Create the new page
-  await page.locator('[data-testid="create-page-btn"]').click();
+  // TODO: investigate why delay is required for create page button to work
+  await sleep(500);
+  await page.locator(createPageButtonSelector).click();
 
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
 
@@ -172,7 +170,9 @@ test("user can rename page", async ({ page }) => {
 
   await loginUsingUi({ page, accountShortName: "alice" });
 
-  await page.locator('[data-testid="create-page-btn"]').click();
+  // TODO: investigate why delay is required for create page button to work
+  await sleep(500);
+  await page.locator(createPageButtonSelector).click();
 
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
 
