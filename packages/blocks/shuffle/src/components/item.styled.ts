@@ -5,7 +5,10 @@ import {
   Paper,
   styled,
   experimental_sx as sx,
+  TextField,
 } from "@mui/material";
+
+const LINK_ICON_WIDTH = "2rem";
 
 export const SListItem = styled(ListItem)(({ theme }) =>
   sx({
@@ -28,11 +31,22 @@ export const SPaper = styled(Paper)(({ theme }) =>
 
 export const SLinkIconWrapper = styled(Box)(
   sx({
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: LINK_ICON_WIDTH,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    width: "1.5rem",
-    m: "0 0.25rem",
+  }),
+);
+
+export const STextField = styled(TextField)(
+  sx({
+    ml: LINK_ICON_WIDTH,
+    border: "none",
+    outline: "none",
   }),
 );
 

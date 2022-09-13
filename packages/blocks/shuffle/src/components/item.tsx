@@ -2,7 +2,7 @@ import React, { forwardRef, useState, CSSProperties, RefObject } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import LinkIcon from "@mui/icons-material/Link";
-import { TextField, SxProps, Tooltip } from "@mui/material";
+import { SxProps, Tooltip } from "@mui/material";
 import { DraggableAttributes } from "@dnd-kit/core";
 import {
   SButtonsWrapper,
@@ -10,6 +10,7 @@ import {
   SLinkIconWrapper,
   SListItem,
   SPaper,
+  STextField,
 } from "./item.styled";
 
 export type ItemProps = {
@@ -58,19 +59,19 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
         {...attributes}
       >
         <SPaper sx={paperStyle} ref={dragOverlay}>
-          <Tooltip title={isEntity ? "This item is linked to an entity" : ""}>
-            <SLinkIconWrapper>
-              {isEntity && <LinkIcon fontSize="small" />}
-            </SLinkIconWrapper>
-          </Tooltip>
+          {isEntity && (
+            <Tooltip title="This item is linked to an entity">
+              <SLinkIconWrapper>
+                <LinkIcon fontSize="small" />
+              </SLinkIconWrapper>
+            </Tooltip>
+          )}
 
-          <TextField
+          <STextField
             multiline
             fullWidth
             variant="standard"
             sx={{
-              border: "none",
-              outline: "none",
               caretColor: readonly || isEntity ? "transparent" : "initial",
             }}
             value={value}
