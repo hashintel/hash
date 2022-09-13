@@ -1,5 +1,5 @@
 use alloc::{boxed::Box, vec, vec::Vec};
-use core::{fmt, marker::PhantomData, panic::Location};
+use core::{fmt, marker::PhantomData, mem, panic::Location};
 #[cfg(all(rust_1_65, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(feature = "std")]
@@ -193,18 +193,17 @@ use crate::{
 #[must_use]
 #[repr(transparent)]
 pub struct Report<C> {
-    pub(super) frames: Vec<Frame>,
+    // The vector is boxed as this implies a memory footprint equal to a single pointer size
+    // instead of three pointer sizes. Even for small `Result::Ok` variants, the `Result` would
+    // still have at least the size of `Report`, even at the happy path. It's unexpected, that
+    // creating or traversing a report will happen in the hot path, so a double indirection is
+    // a good trade-off.
+    #[allow(clippy::box_collection)]
+    pub(super) frames: Box<Vec<Frame>>,
     _context: PhantomData<fn() -> *const C>,
 }
 
 impl<C> Report<C> {
-    pub(crate) fn from_frame(frame: Frame) -> Self {
-        Self {
-            frames: vec![frame],
-            _context: PhantomData,
-        }
-    }
-
     /// Creates a new `Report<Context>` from a provided scope.
     ///
     /// If `context` does not provide [`Backtrace`]/[`SpanTrace`] then this attempts to capture
@@ -238,7 +237,10 @@ impl<C> Report<C> {
         let span_trace = Some(SpanTrace::capture());
 
         #[allow(unused_mut)]
-        let mut report = Self::from_frame(frame);
+        let mut report = Self {
+            frames: Box::new(vec![frame]),
+            _context: PhantomData,
+        };
 
         #[cfg(all(rust_1_65, feature = "std"))]
         if let Some(backtrace) =
@@ -359,15 +361,17 @@ impl<C> Report<C> {
     /// [`Debug`]: core::fmt::Debug
     /// [`attach_printable()`]: Self::attach_printable
     #[track_caller]
-    pub fn attach<A>(self, attachment: A) -> Self
+    pub fn attach<A>(mut self, attachment: A) -> Self
     where
         A: Send + Sync + 'static,
     {
-        Self::from_frame(Frame::from_attachment(
+        let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
+        self.frames.push(Frame::from_attachment(
             attachment,
             Location::caller(),
-            self.frames.into_boxed_slice(),
-        ))
+            old_frames.into_boxed_slice(),
+        ));
+        self
     }
 
     /// Adds additional (printable) information to the [`Frame`] stack.
@@ -409,15 +413,17 @@ impl<C> Report<C> {
     /// assert_eq!(suggestion.0, "Better use a file which exists next time!");
     /// # }
     #[track_caller]
-    pub fn attach_printable<A>(self, attachment: A) -> Self
+    pub fn attach_printable<A>(mut self, attachment: A) -> Self
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        Self::from_frame(Frame::from_printable_attachment(
+        let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
+        self.frames.push(Frame::from_printable_attachment(
             attachment,
             Location::caller(),
-            self.frames.into_boxed_slice(),
-        ))
+            old_frames.into_boxed_slice(),
+        ));
+        self
     }
 
     /// Add a new [`Context`] object to the top of the [`Frame`] stack, changing the type of the
@@ -425,15 +431,20 @@ impl<C> Report<C> {
     ///
     /// Please see the [`Context`] documentation for more information.
     #[track_caller]
-    pub fn change_context<T>(self, context: T) -> Report<T>
+    pub fn change_context<T>(mut self, context: T) -> Report<T>
     where
         T: Context,
     {
-        Report::from_frame(Frame::from_context(
+        let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
+        self.frames.push(Frame::from_context(
             context,
             Location::caller(),
-            self.frames.into_boxed_slice(),
-        ))
+            old_frames.into_boxed_slice(),
+        ));
+        Report {
+            frames: self.frames,
+            _context: PhantomData,
+        }
     }
 
     /// Return the direct current frames of this report,

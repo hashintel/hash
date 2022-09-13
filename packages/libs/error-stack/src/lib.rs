@@ -489,6 +489,8 @@ pub use self::{
 mod tests {
     #![allow(dead_code)]
 
+    use core::mem;
+
     use crate::Report;
 
     const fn test_send<T: Send>() {}
@@ -499,5 +501,10 @@ mod tests {
         test_send::<Report<()>>();
         test_sync::<Report<()>>();
         test_static::<Report<()>>();
+    }
+
+    #[test]
+    fn test_size() {
+        assert_eq!(mem::size_of::<Report<()>>(), mem::size_of::<*const ()>())
     }
 }
