@@ -1,24 +1,37 @@
-import { faBriefcase, faList } from "@fortawesome/free-solid-svg-icons";
-import { Button, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { Box, Container, Stack, Typography } from "@mui/material";
+import { faBriefcase, faList, faPlus } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import {
+  Box,
+  Card,
+  CardActionArea,
+  cardActionAreaClasses,
+  CardContent,
+  Container,
+  Stack,
+  SxProps,
+  Theme,
+  Typography,
+} from "@mui/material";
 import Image from "next/image";
-import { useState } from "react";
-import { useUser } from "../../../components/hooks/useUser";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
 import { TopContextBar } from "../../shared/top-context-bar";
-import { useBlockProtocolFunctionsWithOntology } from "../../type-editor/blockprotocol-ontology-functions-hook";
 import { Chip, placeholderUri } from "./Chip";
 
+const cardActionHoverBlue: SxProps<Theme> = (theme) => ({
+  [`.${cardActionAreaClasses.root}:hover &`]: {
+    color: theme.palette.blue[70],
+  },
+});
 const Page: NextPageWithLayout = () => {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const { user } = useUser();
-
-  const fns = useBlockProtocolFunctionsWithOntology(user?.accountId ?? "");
-
   return (
-    <Stack sx={{ height: "100vh" }}>
-      <Box bgcolor="white">
+    <Box
+      component={Stack}
+      sx={(theme) => ({
+        minHeight: "100vh",
+        background: theme.palette.gray[10],
+      })}
+    >
+      <Box bgcolor="white" borderBottom={1} borderColor="gray.20">
         <TopContextBar
           defaultCrumbIcon={null}
           crumbs={[
@@ -35,7 +48,7 @@ const Page: NextPageWithLayout = () => {
           ]}
           scrollToTop={() => {}}
         />
-        <Box py={3.75}>
+        <Box pt={3.75}>
           <Container>
             <Chip
               icon={
@@ -66,46 +79,96 @@ const Page: NextPageWithLayout = () => {
                   </Typography>
                 </>
               }
-              sx={[{ marginBottom: 2 }]}
             />
-            <Typography variant="h1" fontWeight="bold">
-              <FontAwesomeIcon icon={faBriefcase} />
+            <Typography variant="h1" fontWeight="bold" mt={3} mb={4.5}>
+              <FontAwesomeIcon
+                // @todo not quite right icon
+                icon={faBriefcase}
+                sx={{ fontSize: 38, mr: 3 }}
+              />
               Company
             </Typography>
           </Container>
         </Box>
       </Box>
-      <Box flex={1} bgcolor="gray.10" borderTop={1} borderColor="gray.20">
+      <Box py={5}>
         <Container>
-          <Typography>
+          <Typography variant="h5" mb={1.25}>
             Properties of{" "}
             <Box component="span" sx={{ fontWeight: "bold" }}>
               company
             </Box>
           </Typography>
-          <Box
+          <Card
             sx={(theme) => ({
-              backgroundColor: theme.palette.white,
-              boxShadow: theme.shadows.xs,
-              borderRadius: 6,
-              p: 4,
+              boxShadow: theme.boxShadows.xs,
+              "&:hover": {
+                boxShadow: theme.boxShadows.md,
+              },
             })}
           >
-            <Stack direction="row">
-              <FontAwesomeIcon icon={faList} />
-              <Box>
-                <Button>Add a property +</Button>
-                <Typography>
-                  Properties store individual pieces of information about some
-                  aspect of an entity e.g. a person entity might have a date of
-                  birth property which expects a date
-                </Typography>
-              </Box>
-            </Stack>
-          </Box>
+            <CardActionArea
+              onClick={(evt) => {
+                evt.preventDefault();
+                // eslint-disable-next-line no-console
+                console.log("click");
+              }}
+              disableRipple
+              disableTouchRipple
+              sx={{
+                [`&:hover .${cardActionAreaClasses.focusHighlight}`]: {
+                  opacity: 0,
+                },
+              }}
+            >
+              <CardContent
+                sx={{
+                  px: 5,
+                  py: 4,
+                  display: "flex",
+                  alignItems: "center",
+                  background: "white",
+                }}
+              >
+                <FontAwesomeIcon
+                  icon={faList}
+                  sx={[{ fontSize: 20 }, cardActionHoverBlue]}
+                />
+                <Box ml={5}>
+                  <Typography
+                    sx={[
+                      { display: "flex", alignItems: "center", mb: 0.75 },
+                      cardActionHoverBlue,
+                    ]}
+                  >
+                    <Box component="span" mr={1} fontWeight={500}>
+                      Add a property
+                    </Box>
+                    <FontAwesomeIcon icon={faPlus} />
+                  </Typography>
+                  <Typography
+                    variant="microText"
+                    component="p"
+                    sx={(theme) => ({ color: theme.palette.gray[90] })}
+                  >
+                    Properties store individual pieces of information about some
+                    aspect of an entity
+                  </Typography>
+                  <Typography
+                    variant="microText"
+                    component="p"
+                    sx={(theme) => ({ color: theme.palette.gray[60] })}
+                  >
+                    e.g. a person entity might have a date of birth property
+                    which expects a date
+                  </Typography>
+                </Box>
+              </CardContent>
+            </CardActionArea>
+          </Card>
         </Container>
       </Box>
-    </Stack>
+    </Box>
   );
 };
 
