@@ -49,11 +49,11 @@ export const propertyTypeTypedef = gql`
     """
     Data types referenced directly or indirectly referenced by this property type
     """
-    referencedDataTypes(depth: Int): [PersistedDataType!]
+    referencedDataTypes(depth: Int): [PersistedDataType!]!
     """
     Property types referenced directly or indirectly referenced by this property type
     """
-    referencedPropertyTypes(depth: Int): [PersistedPropertyType!]
+    referencedPropertyTypes(depth: Int): [PersistedPropertyType!]!
 
     # INTERFACE FIELDS BEGIN #
     """
