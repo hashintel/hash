@@ -479,7 +479,7 @@ mod hook;
 
 #[doc(inline)]
 #[cfg(feature = "futures")]
-pub use self::ext::{future::FutureExt, stream::StreamExt};
+pub use self::ext::stream::StreamExt;
 #[doc(inline)]
 pub use self::ext::{
     iter::IteratorExt,
@@ -490,6 +490,7 @@ pub use self::ext::{
 pub use self::hook::HookAlreadySet;
 pub use self::{
     context::Context,
+    ext::future::FutureExt,
     frame::{AttachmentKind, Frame, FrameKind},
     macros::*,
     report::Report,
