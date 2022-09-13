@@ -54,7 +54,7 @@ impl<C: AsClient> PostgresStore<C> {
                 );
                 let entity_type = entry.insert(entity_type);
 
-                if let Some(new_depth) = property_type_query_depth.checked_sub(1) {
+                if property_type_query_depth > 0 {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
                     for property_type_ref in entity_type.inner.property_type_references() {
@@ -63,7 +63,7 @@ impl<C: AsClient> PostgresStore<C> {
                             data_type_references,
                             property_type_references,
                             data_type_query_depth,
-                            new_depth,
+                            property_type_query_depth - 1,
                         )
                         .await?;
                     }
@@ -82,15 +82,15 @@ impl<C: AsClient> PostgresStore<C> {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
                     for (link_type_uri, entity_type_uri) in linked_uris {
-                        if let Some(new_depth) = link_type_query_depth.checked_sub(1) {
+                        if link_type_query_depth > 0 {
                             self.get_link_type_as_dependency(
                                 link_type_uri,
                                 link_type_references,
-                                new_depth,
+                                link_type_query_depth - 1,
                             )
                             .await?;
                         }
-                        if let Some(new_depth) = entity_type_query_depth.checked_sub(1) {
+                        if entity_type_query_depth > 0 {
                             self.get_entity_type_as_dependency(
                                 entity_type_uri,
                                 data_type_references,
@@ -100,7 +100,7 @@ impl<C: AsClient> PostgresStore<C> {
                                 data_type_query_depth,
                                 property_type_query_depth,
                                 link_type_query_depth,
-                                new_depth,
+                                entity_type_query_depth - 1,
                             )
                             .await?;
                         }
@@ -167,7 +167,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 let mut link_type_references = HashMap::new();
                 let mut entity_type_references = HashMap::new();
 
-                if let Some(new_depth) = query.property_type_query_depth.checked_sub(1) {
+                if query.property_type_query_depth > 0 {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
                     for data_type_ref in entity_type.inner.property_type_references() {
@@ -176,7 +176,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                             &mut data_type_references,
                             &mut property_type_references,
                             query.data_type_query_depth,
-                            new_depth,
+                            query.property_type_query_depth - 1,
                         )
                         .await?;
                     }
@@ -187,15 +187,15 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                     //   see https://app.asana.com/0/0/1202884883200942/f
                     for (link_type_uri, entity_type_ref) in entity_type.inner.link_type_references()
                     {
-                        if let Some(new_depth) = query.link_type_query_depth.checked_sub(1) {
+                        if query.link_type_query_depth > 0 {
                             self.get_link_type_as_dependency(
                                 link_type_uri.clone(),
                                 &mut link_type_references,
-                                new_depth,
+                                query.link_type_query_depth - 1,
                             )
                             .await?;
                         }
-                        if let Some(new_depth) = query.entity_type_query_depth.checked_sub(1) {
+                        if query.entity_type_query_depth > 0 {
                             self.get_entity_type_as_dependency(
                                 entity_type_ref.uri().clone(),
                                 &mut data_type_references,
@@ -205,7 +205,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                                 query.data_type_query_depth,
                                 query.property_type_query_depth,
                                 query.link_type_query_depth,
-                                new_depth,
+                                query.entity_type_query_depth - 1,
                             )
                             .await?;
                         }

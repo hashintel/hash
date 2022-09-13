@@ -46,20 +46,20 @@ impl<C: AsClient> PostgresStore<C> {
                 );
                 let property_type = entry.insert(property_type);
 
-                if let Some(new_depth) = data_type_query_depth.checked_sub(1) {
+                if data_type_query_depth > 0 {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
                     for data_type_ref in property_type.inner.data_type_references() {
                         self.get_data_type_as_dependency(
                             data_type_ref.uri().clone(),
                             data_type_references,
-                            new_depth,
+                            data_type_query_depth - 1,
                         )
                         .await?;
                     }
                 }
 
-                if let Some(new_depth) = property_type_query_depth.checked_sub(1) {
+                if property_type_query_depth > 0 {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
                     let property_type_uris = property_type
@@ -76,7 +76,7 @@ impl<C: AsClient> PostgresStore<C> {
                             data_type_references,
                             property_type_references,
                             data_type_query_depth,
-                            new_depth,
+                            property_type_query_depth - 1,
                         )
                         .await?;
                     }
@@ -142,20 +142,20 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 let mut data_type_references = HashMap::new();
                 let mut property_type_references = HashMap::new();
 
-                if let Some(new_depth) = query.data_type_query_depth.checked_sub(1) {
+                if query.data_type_query_depth > 0 {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
                     for data_type_ref in property_type.inner.data_type_references() {
                         self.get_data_type_as_dependency(
                             data_type_ref.uri().clone(),
                             &mut data_type_references,
-                            new_depth,
+                            query.data_type_query_depth - 1,
                         )
                         .await?;
                     }
                 }
 
-                if let Some(new_depth) = query.property_type_query_depth.checked_sub(1) {
+                if query.property_type_query_depth > 0 {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
                     for property_type_ref in property_type.inner.property_type_references() {
@@ -164,7 +164,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                             &mut data_type_references,
                             &mut property_type_references,
                             query.data_type_query_depth,
-                            new_depth,
+                            query.property_type_query_depth - 1,
                         )
                         .await?;
                     }
