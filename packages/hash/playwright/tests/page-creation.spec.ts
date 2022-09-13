@@ -15,7 +15,7 @@ const modifierKey = process.platform === "darwin" ? "Meta" : "Control";
  * not calling resetDb in beforeEach
  * because "user can rename page" uses the page created at "user can create page"
  */
-test.beforeAll(async () => {
+test.beforeEach(async () => {
   await resetDb();
 });
 
@@ -171,7 +171,9 @@ test("user can rename page", async ({ page }) => {
   const pageName2 = `Page 2 ${pageNameSuffix}`;
 
   await loginUsingUi({ page, accountShortName: "alice" });
-  await page.click(`text=${pageNameFallback}`);
+
+  await page.locator('[data-testid="create-page-btn"]').click();
+
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
 
   const listOfPagesLocator = page.locator(listOfPagesSelector);
