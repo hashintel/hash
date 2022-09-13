@@ -30,25 +30,25 @@ use crate::{
 
 #[derive(OpenApi)]
 #[openapi(
-handlers(
-create_entity_type,
-get_entity_types_by_query,
-get_entity_type,
-get_latest_entity_types,
-update_entity_type
-),
-components(
-CreateEntityTypeRequest,
-UpdateEntityTypeRequest,
-AccountId,
-PersistedOntologyIdentifier,
-PersistedEntityType,
-EntityTypeQuery,
-EntityTypeTree,
-),
-tags(
-(name = "EntityType", description = "Entity type management API")
-)
+    handlers(
+        create_entity_type,
+        get_entity_types_by_query,
+        get_entity_type,
+        get_latest_entity_types,
+        update_entity_type
+    ),
+    components(
+        CreateEntityTypeRequest,
+        UpdateEntityTypeRequest,
+        AccountId,
+        PersistedOntologyIdentifier,
+        PersistedEntityType,
+        EntityTypeQuery,
+        EntityTypeTree,
+    ),
+    tags(
+        (name = "EntityType", description = "Entity type management API")
+    )
 )]
 pub struct EntityTypeResource;
 
@@ -80,18 +80,18 @@ struct CreateEntityTypeRequest {
 }
 
 #[utoipa::path(
-post,
-path = "/entity-types",
-request_body = CreateEntityTypeRequest,
-tag = "EntityType",
-responses(
-(status = 201, content_type = "application/json", description = "The schema of the created entity type", body = PersistedOntologyIdentifier),
-(status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+    post,
+    path = "/entity-types",
+    request_body = CreateEntityTypeRequest,
+    tag = "EntityType",
+    responses(
+        (status = 201, content_type = "application/json", description = "The schema of the created entity type", body = PersistedOntologyIdentifier),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-(status = 409, description = "Unable to create entity type in the datastore as the base entity type ID already exists"),
-(status = 500, description = "Store error occurred"),
-),
-request_body = CreateEntityTypeRequest,
+        (status = 409, description = "Unable to create entity type in the datastore as the base entity type ID already exists"),
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = CreateEntityTypeRequest,
 )]
 async fn create_entity_type<P: StorePool + Send>(
     body: Json<CreateEntityTypeRequest>,
@@ -149,15 +149,15 @@ struct EntityTypeQuery {
 }
 
 #[utoipa::path(
-post,
-path = "/entity-types/query",
-request_body = EntityTypeQuery,
-tag = "EntityType",
-responses(
-(status = 200, content_type = "application/json", description = "List of all entity types matching the provided query", body = [EntityTypeTree]),
-(status = 422, content_type = "text/plain", description = "Provided query is invalid"),
-(status = 500, description = "Store error occurred"),
-)
+    post,
+    path = "/entity-types/query",
+    request_body = EntityTypeQuery,
+    tag = "EntityType",
+    responses(
+        (status = 200, content_type = "application/json", description = "List of all entity types matching the provided query", body = [EntityTypeTree]),
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
 )]
 async fn get_entity_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
@@ -196,14 +196,14 @@ async fn get_entity_types_by_query<P: StorePool + Send>(
 }
 
 #[utoipa::path(
-get,
-path = "/entity-types",
-tag = "EntityType",
-responses(
-(status = 200, content_type = "application/json", description = "List of all entity types at their latest versions", body = [PersistedEntityType]),
+    get,
+    path = "/entity-types",
+    tag = "EntityType",
+    responses(
+        (status = 200, content_type = "application/json", description = "List of all entity types at their latest versions", body = [PersistedEntityType]),
 
-(status = 500, description = "Store error occurred"),
-)
+        (status = 500, description = "Store error occurred"),
+    )
 )]
 async fn get_latest_entity_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
@@ -214,19 +214,19 @@ async fn get_latest_entity_types<P: StorePool + Send>(
 }
 
 #[utoipa::path(
-get,
-path = "/entity-types/{uri}",
-tag = "EntityType",
-responses(
-(status = 200, content_type = "application/json", description = "The schema of the requested entity type", body = PersistedEntityType),
-(status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
+    get,
+    path = "/entity-types/{uri}",
+    tag = "EntityType",
+    responses(
+        (status = 200, content_type = "application/json", description = "The schema of the requested entity type", body = PersistedEntityType),
+        (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
-(status = 404, description = "Entity type was not found"),
-(status = 500, description = "Store error occurred"),
-),
-params(
-("uri" = String, Path, description = "The URI of the entity type"),
-)
+        (status = 404, description = "Entity type was not found"),
+        (status = 500, description = "Store error occurred"),
+    ),
+    params(
+        ("uri" = String, Path, description = "The URI of the entity type"),
+    )
 )]
 async fn get_entity_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
@@ -249,17 +249,17 @@ struct UpdateEntityTypeRequest {
 }
 
 #[utoipa::path(
-put,
-path = "/entity-types",
-tag = "EntityType",
-responses(
-(status = 200, content_type = "application/json", description = "The schema of the updated entity type", body = PersistedOntologyIdentifier),
-(status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+    put,
+    path = "/entity-types",
+    tag = "EntityType",
+    responses(
+        (status = 200, content_type = "application/json", description = "The schema of the updated entity type", body = PersistedOntologyIdentifier),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-(status = 404, description = "Base entity type ID was not found"),
-(status = 500, description = "Store error occurred"),
-),
-request_body = UpdateEntityTypeRequest,
+        (status = 404, description = "Base entity type ID was not found"),
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = UpdateEntityTypeRequest,
 )]
 async fn update_entity_type<P: StorePool + Send>(
     body: Json<UpdateEntityTypeRequest>,
