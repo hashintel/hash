@@ -1,5 +1,5 @@
 import { faBriefcase, faList, faPlus } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { FontAwesomeIcon, TextField } from "@hashintel/hash-design-system";
 import {
   Box,
   Card,
@@ -11,10 +11,18 @@ import {
   Container,
   Stack,
   SxProps,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
   Theme,
   Typography,
+  Checkbox,
+  tableCellClasses,
 } from "@mui/material";
 import Image from "next/image";
+import { useState } from "react";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
 import { TopContextBar } from "../../shared/top-context-bar";
 import { Chip, placeholderUri } from "./Chip";
@@ -23,44 +31,54 @@ const WhiteCard = ({
   onClick,
   children,
 }: {
-  onClick: CardActionAreaProps["onClick"];
+  onClick?: CardActionAreaProps["onClick"];
   children: CardContentProps["children"];
-}) => (
-  <Card
-    sx={[
-      (theme) => ({
-        boxShadow: theme.boxShadows.xs,
-      }),
-      onClick
-        ? (theme) => ({
-            "&:hover": {
-              boxShadow: theme.boxShadows.md,
-            },
-          })
-        : {},
-    ]}
-  >
-    <CardActionArea
-      onClick={onClick}
-      disableRipple
-      disableTouchRipple
+}) => {
+  const cardContent = (
+    <CardContent
       sx={{
-        [`&:hover .${cardActionAreaClasses.focusHighlight}`]: {
-          opacity: 0,
-        },
+        p: 0,
+        background: "white",
       }}
     >
-      <CardContent
-        sx={{
-          p: 0,
-          background: "white",
-        }}
-      >
-        {children}
-      </CardContent>
-    </CardActionArea>
-  </Card>
-);
+      {children}
+    </CardContent>
+  );
+
+  return (
+    <Card
+      sx={[
+        (theme) => ({
+          boxShadow: theme.boxShadows.xs,
+        }),
+        onClick
+          ? (theme) => ({
+              "&:hover": {
+                boxShadow: theme.boxShadows.md,
+              },
+            })
+          : {},
+      ]}
+    >
+      {onClick ? (
+        <CardActionArea
+          onClick={onClick}
+          disableRipple
+          disableTouchRipple
+          sx={{
+            [`&:hover .${cardActionAreaClasses.focusHighlight}`]: {
+              opacity: 0,
+            },
+          }}
+        >
+          {cardContent}
+        </CardActionArea>
+      ) : (
+        cardContent
+      )}
+    </Card>
+  );
+};
 
 const cardActionHoverBlue: SxProps<Theme> = (theme) => ({
   [`.${cardActionAreaClasses.root}:hover &`]: {
@@ -117,7 +135,55 @@ const CreatePropertyCard = ({
   </WhiteCard>
 );
 
+const InsertPropertyCard = () => (
+  <WhiteCard>
+    <Table
+      sx={{
+        [`.${tableCellClasses.head}`]: {
+          fontWeight: "bold",
+        },
+        [`.${tableCellClasses.head}:not(:first-child)`]: {
+          // @todo is this the right way to do this?
+          width: 0,
+          whiteSpace: "nowrap",
+        },
+        [`.${tableCellClasses.body}`]: {
+          textAlign: "center",
+        },
+      }}
+    >
+      <TableHead>
+        <TableRow>
+          <TableCell>Property name</TableCell>
+          <TableCell>Expected values</TableCell>
+          <TableCell>Allow multiple values</TableCell>
+          <TableCell>Required</TableCell>
+          <TableCell>Default value</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        <TableRow>
+          <TableCell colSpan={2}>
+            <TextField
+              placeholder="Search for a property type"
+              sx={{ width: "100%" }}
+            />
+          </TableCell>
+          <TableCell>
+            <Checkbox />
+          </TableCell>
+          <TableCell>
+            <Checkbox />
+          </TableCell>
+          <TableCell />
+        </TableRow>
+      </TableBody>
+    </Table>
+  </WhiteCard>
+);
+
 const Page: NextPageWithLayout = () => {
+  const [mode, setMode] = useState<"empty" | "inserting">("empty");
   return (
     <Box
       component={Stack}
@@ -194,11 +260,15 @@ const Page: NextPageWithLayout = () => {
               company
             </Box>
           </Typography>
-          <CreatePropertyCard
-            onClick={() => {
-              alert("Create property");
-            }}
-          />
+          {mode === "empty" ? (
+            <CreatePropertyCard
+              onClick={() => {
+                setMode("inserting");
+              }}
+            />
+          ) : (
+            <InsertPropertyCard />
+          )}
         </Container>
       </Box>
     </Box>
