@@ -101,6 +101,10 @@ export const createCommentPlugin = (
               container={documentRoot}
               modifiers={[
                 {
+                  name: "flip",
+                  enabled: false,
+                },
+                {
                   name: "offset",
                   options: {
                     offset: () => [
