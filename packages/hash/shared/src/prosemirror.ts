@@ -131,7 +131,7 @@ export const getPageEditorNodes = (): NodeSpecs => ({
   text: textNode,
   hardBreak: hardBreakNode,
   mention: mentionNode,
-  blank: loadingNode,
+  loading: { ...loadingNode },
   block: blockNode,
   entity: entityNode,
 });
