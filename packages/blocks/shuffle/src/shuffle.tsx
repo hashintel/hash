@@ -175,15 +175,11 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
 
   const handleRemoveAllClick = () => {
     // we also want to remove all links for the linked items
-    const linkIds = draftItems
-      .map((item) => item.linkId)
-      .filter(Boolean) as string[];
-
     void Promise.all(
-      linkIds.map((linkId) =>
-        graphService?.deleteLink({
-          data: { linkId },
-        }),
+      draftItems.map(
+        (item) =>
+          item.linkId &&
+          graphService?.deleteLink({ data: { linkId: item.linkId } }),
       ),
     );
 
