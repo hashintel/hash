@@ -173,11 +173,13 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
   const handleRemoveAllClick = () => {
     // we also want to remove all links for the linked items
     void Promise.all(
-      draftItems.map(
-        (item) =>
-          item.linkId &&
-          graphService?.deleteLink({ data: { linkId: item.linkId } }),
-      ),
+      draftItems.map((item) => {
+        if (item.linkId) {
+          return graphService?.deleteLink({ data: { linkId: item.linkId } });
+        }
+
+        return undefined;
+      }),
     );
 
     updateItems([], true);
@@ -260,7 +262,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
       />
       <AddEntitiesDialog
         open={entitiesDialogOpen}
-        handleClose={() => setEntitiesDialogOpen(false)}
+        onClose={() => setEntitiesDialogOpen(false)}
         graphService={graphService}
         entityTypes={entityTypes}
         blockEntityId={blockEntityId}

@@ -12,7 +12,7 @@ import {
   styled,
 } from "@mui/material";
 import { Button } from "@hashintel/hash-design-system";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { v4 as uuid } from "uuid";
 import { Item } from "../shuffle";
 import { getEntityLabel } from "../utils";
@@ -35,7 +35,7 @@ interface AddEntitiesDialogProps {
   onAddEntityItems: (items: Item[]) => void;
   graphService?: GraphBlockHandler | null;
   open: boolean;
-  handleClose: () => void;
+  onClose: () => void;
 }
 
 export const AddEntitiesDialog = ({
@@ -44,20 +44,22 @@ export const AddEntitiesDialog = ({
   onAddEntityItems,
   graphService,
   open,
-  handleClose,
+  onClose,
 }: AddEntitiesDialogProps) => {
   const [selectedEntityType, setSelectedEntityType] = useState<EntityType>();
   const [entityList, setEntityList] = useState<Entity[]>([]);
   // `selections` is a object that stores checkbox `checked` state for each entity.
   const [selections, setSelections] = useState<boolean[]>([]);
 
-  useEffect(() => {
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (prevOpen !== open) {
+    setPrevOpen(open);
+    // reset the state when modal is open
     if (open) {
-      // reset the state when modal is opened
       setSelectedEntityType(undefined);
       setEntityList([]);
     }
-  }, [open]);
+  }
 
   const handleEntityTypeClick = async (entityType: EntityType) => {
     if (!graphService) return;
@@ -69,7 +71,7 @@ export const AddEntitiesDialog = ({
       data: { operation: { entityTypeId, itemsPerPage: 100 } },
     });
 
-    if (!data) return handleClose();
+    if (!data) return onClose();
 
     const { results: entities } = data;
 
@@ -124,13 +126,13 @@ export const AddEntitiesDialog = ({
     );
 
     // close the modal
-    handleClose();
+    onClose();
   };
 
   const selectedItemCount = selections.filter((value) => !!value).length;
 
   return (
-    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="xs">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
       <DialogTitle>
         {selectedEntityType ? "Select Entities" : "Choose Entity Type"}
       </DialogTitle>
@@ -174,7 +176,7 @@ export const AddEntitiesDialog = ({
       )}
 
       <DialogActions>
-        <Button variant="secondary" onClick={handleClose}>
+        <Button variant="secondary" onClick={onClose}>
           Cancel
         </Button>
         {selectedEntityType && (
