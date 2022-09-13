@@ -12,16 +12,12 @@ use core::{
     task::{Context as TaskContext, Poll},
 };
 
-use pin_project::pin_project;
-
 use crate::{Context, Result, ResultExt};
 
 macro_rules! implement_future_adaptor {
     ($future:ident, $method:ident, $bound:ident $(+ $bounds:ident)* $(+ $lifetime:lifetime)*, $output:ty) => {
         #[doc = concat!("Adaptor returned by [`FutureExt::", stringify!( $method ), "`].")]
-        #[pin_project]
         pub struct $future<Fut, T> {
-            #[pin]
             future: Fut,
             inner: Option<T>,
         }
@@ -36,9 +32,14 @@ macro_rules! implement_future_adaptor {
 
             #[track_caller]
             fn poll(self: Pin<&mut Self>, cx: &mut TaskContext) -> Poll<Self::Output> {
-                let projection = self.project();
-                let future = projection.future;
-                let inner = projection.inner;
+                // SAFETY: The pointee of `inner` will not move. Note, that the value inside the
+                //         `Option` will be taken, but the `Option` remains in place. Additionally,
+                //         `Self` does not implement `Drop`, nor is it `#[repr(packed)]`
+                //         See the `pin` module: https://doc.rust-lang.org/core/pin/index.html
+                let (future, inner) = unsafe {
+                    let Self { future, inner } = self.get_unchecked_mut();
+                    (Pin::new_unchecked(future), inner)
+                };
 
                 // Can't use `map` as `#[track_caller]` is unstable on closures
                 match future.poll(cx) {
@@ -57,9 +58,7 @@ macro_rules! implement_future_adaptor {
 macro_rules! implement_lazy_future_adaptor {
     ($future:ident, $method:ident, $bound:ident $(+ $bounds:ident)* $(+ $lifetime:lifetime)*, $output:ty) => {
         #[doc = concat!("Adaptor returned by [`FutureExt::", stringify!( $method ), "`].")]
-        #[pin_project]
         pub struct $future<Fut, F> {
-            #[pin]
             future: Fut,
             inner: Option<F>,
         }
@@ -75,9 +74,14 @@ macro_rules! implement_lazy_future_adaptor {
 
             #[track_caller]
             fn poll(self: Pin<&mut Self>, cx: &mut TaskContext) -> Poll<Self::Output> {
-                let projection = self.project();
-                let future = projection.future;
-                let inner = projection.inner;
+                // SAFETY: The pointee of `inner` will not move. Note, that the value inside the
+                //         `Option` will be taken, but the `Option` remains in place. Additionally,
+                //         `Self` does not implement `Drop`, nor is it `#[repr(packed)]`
+                //         See the `pin` module: https://doc.rust-lang.org/core/pin/index.html
+                let (future, inner) = unsafe {
+                    let Self { future, inner } = self.get_unchecked_mut();
+                    (Pin::new_unchecked(future), inner)
+                };
 
                 // Can't use `map` as `#[track_caller]` is unstable on closures
                 match future.poll(cx) {
