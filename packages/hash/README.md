@@ -400,7 +400,7 @@ If the service should report metrics to a StatsD server, the following variables
 - `NEXT_PUBLIC_API_ORIGIN`: The origin that the API service can be reached on (default: `http://localhost:5001`)
 - `SESSION_SECRET`: The secret used to sign login sessions (default: `secret`)
 - `LOG_LEVEL`: the level of runtime logs that should be omitted, either set to `debug`, `info`, `warn`, `error` (default: `info`)
-- `NEXT_PUBLIC_BLOCK_PROTOCOL_API_KEY`: the api key for fetching blocks from [BP Hub](https://blockprotocol.org/hub).
+- `BLOCK_PROTOCOL_API_KEY`: the api key for fetching blocks from [BP Hub](https://blockprotocol.org/hub).
 
 ## Contributors
 
