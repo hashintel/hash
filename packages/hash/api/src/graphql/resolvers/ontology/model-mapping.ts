@@ -28,16 +28,20 @@ export const propertyTypeModelToGQL = (
   propertyType: propertyType.schema,
 });
 
-export const propertyTypeModelWithRefsToGQL = (
-  propertyType: PropertyTypeModel,
-  dataTypeReferences: DataTypeModel[],
-  propertyTypeReferences: PropertyTypeModel[],
-): PersistedPropertyTypeWithRefs => ({
+export const propertyTypeModelWithRefsToGQL = ({
+  propertyType,
+  referencedDataTypes,
+  referencedPropertyTypes,
+}: {
+  propertyType: PropertyTypeModel;
+  referencedDataTypes: DataTypeModel[];
+  referencedPropertyTypes: PropertyTypeModel[];
+}): PersistedPropertyTypeWithRefs => ({
   accountId: propertyType.accountId,
   propertyTypeVersionedUri: propertyType.schema.$id,
   propertyType: propertyType.schema,
-  referencedDataTypes: dataTypeReferences.map(dataTypeModelToGQL),
-  referencedPropertyTypes: propertyTypeReferences?.map(propertyTypeModelToGQL),
+  referencedDataTypes: referencedDataTypes.map(dataTypeModelToGQL),
+  referencedPropertyTypes: referencedPropertyTypes.map(propertyTypeModelToGQL),
 });
 
 export const linkTypeModelToGQL = (

@@ -146,8 +146,8 @@ export default class {
   ): Promise<
     {
       propertyType: PropertyTypeModel;
-      dataTypeReferences: DataTypeModel[];
-      propertyTypeReferences: PropertyTypeModel[];
+      referencedDataTypes: DataTypeModel[];
+      referencedPropertyTypes: PropertyTypeModel[];
     }[]
   > {
     /**
@@ -156,22 +156,23 @@ export default class {
      *   authorized to see.
      *   https://app.asana.com/0/1202805690238892/1202890446280569/f
      */
-    const { data: propertyTypeTrees } = await graphApi.getPropertyTypesByQuery({
-      dataTypeQueryDepth: params.dataTypeQueryDepth,
-      propertyTypeQueryDepth: params.propertyTypeQueryDepth,
-      query: {
-        eq: [{ path: ["version"] }, { literal: "latest" }],
-      },
-    });
+    const { data: propertyTypeSubgraphs } =
+      await graphApi.getPropertyTypesByQuery({
+        dataTypeQueryDepth: params.dataTypeQueryDepth,
+        propertyTypeQueryDepth: params.propertyTypeQueryDepth,
+        query: {
+          eq: [{ path: ["version"] }, { literal: "latest" }],
+        },
+      });
 
-    return propertyTypeTrees.map((propertyTypeTree) => ({
+    return propertyTypeSubgraphs.map((propertyTypeSubgraph) => ({
       propertyType: PropertyTypeModel.fromPersistedPropertyType(
-        propertyTypeTree.propertyType,
+        propertyTypeSubgraph.propertyType,
       ),
-      dataTypeReferences: propertyTypeTree.referencedDataTypes.map(
+      referencedDataTypes: propertyTypeSubgraph.referencedDataTypes.map(
         DataTypeModel.fromPersistedDataType,
       ),
-      propertyTypeReferences: propertyTypeTree.referencedPropertyTypes.map(
+      referencedPropertyTypes: propertyTypeSubgraph.referencedPropertyTypes.map(
         PropertyTypeModel.fromPersistedPropertyType,
       ),
     }));
@@ -212,22 +213,23 @@ export default class {
     },
   ): Promise<{
     propertyType: PropertyTypeModel;
-    dataTypeReferences: DataTypeModel[];
-    propertyTypeReferences: PropertyTypeModel[];
+    referencedDataTypes: DataTypeModel[];
+    referencedPropertyTypes: PropertyTypeModel[];
   }> {
     const { baseUri, version } = splitVersionedUri(params.versionedUri);
-    const { data: propertyTypeTrees } = await graphApi.getPropertyTypesByQuery({
-      dataTypeQueryDepth: params.dataTypeQueryDepth,
-      propertyTypeQueryDepth: params.propertyTypeQueryDepth,
-      query: {
-        all: [
-          { eq: [{ path: ["uri"] }, { literal: baseUri }] },
-          { eq: [{ path: ["version"] }, { literal: version }] },
-        ],
-      },
-    });
-    const propertyTypeTree = propertyTypeTrees.pop();
-    if (propertyTypeTree === undefined) {
+    const { data: propertyTypeSubgraphs } =
+      await graphApi.getPropertyTypesByQuery({
+        dataTypeQueryDepth: params.dataTypeQueryDepth,
+        propertyTypeQueryDepth: params.propertyTypeQueryDepth,
+        query: {
+          all: [
+            { eq: [{ path: ["uri"] }, { literal: baseUri }] },
+            { eq: [{ path: ["version"] }, { literal: version }] },
+          ],
+        },
+      });
+    const propertyTypeSubgraph = propertyTypeSubgraphs.pop();
+    if (propertyTypeSubgraph === undefined) {
       throw new Error(
         `Unable to retrieve property type for URI: ${params.versionedUri}`,
       );
@@ -235,12 +237,12 @@ export default class {
 
     return {
       propertyType: PropertyTypeModel.fromPersistedPropertyType(
-        propertyTypeTree.propertyType,
+        propertyTypeSubgraph.propertyType,
       ),
-      dataTypeReferences: propertyTypeTree.referencedDataTypes.map(
+      referencedDataTypes: propertyTypeSubgraph.referencedDataTypes.map(
         DataTypeModel.fromPersistedDataType,
       ),
-      propertyTypeReferences: propertyTypeTree.referencedPropertyTypes.map(
+      referencedPropertyTypes: propertyTypeSubgraph.referencedPropertyTypes.map(
         PropertyTypeModel.fromPersistedPropertyType,
       ),
     };

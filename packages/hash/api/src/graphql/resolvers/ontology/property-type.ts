@@ -44,26 +44,21 @@ export const getAllLatestPropertyTypes: ResolverFn<
 > = async (_, __, { dataSources, user }, info) => {
   const { graphApi } = dataSources;
 
-  const allLatestPropertyTypeModels =
-    await PropertyTypeModel.getAllLatestResolved(graphApi, {
+  const propertyTypeSubgraphs = await PropertyTypeModel.getAllLatestResolved(
+    graphApi,
+    {
       accountId: user.getAccountId(),
       dataTypeQueryDepth: dataTypeQueryDepth(info),
       propertyTypeQueryDepth: propertyTypeQueryDepth(info),
-    }).catch((err: AxiosError) => {
-      throw new ApolloError(
-        `Unable to retrieve all latest property types. ${err.response?.data}`,
-        "GET_ALL_ERROR",
-      );
-    });
+    },
+  ).catch((err: AxiosError) => {
+    throw new ApolloError(
+      `Unable to retrieve all latest property types. ${err.response?.data}`,
+      "GET_ALL_ERROR",
+    );
+  });
 
-  return allLatestPropertyTypeModels.map(
-    ({ propertyType, dataTypeReferences, propertyTypeReferences }) =>
-      propertyTypeModelWithRefsToGQL(
-        propertyType,
-        dataTypeReferences,
-        propertyTypeReferences,
-      ),
-  );
+  return propertyTypeSubgraphs.map(propertyTypeModelWithRefsToGQL);
 };
 
 export const getPropertyType: ResolverFn<
@@ -74,7 +69,7 @@ export const getPropertyType: ResolverFn<
 > = async (_, { propertyTypeVersionedUri }, { dataSources }, info) => {
   const { graphApi } = dataSources;
 
-  const propertyTypeModel = await PropertyTypeModel.getResolved(graphApi, {
+  const propertyTypeSubgraph = await PropertyTypeModel.getResolved(graphApi, {
     versionedUri: propertyTypeVersionedUri,
     dataTypeQueryDepth: dataTypeQueryDepth(info),
     propertyTypeQueryDepth: propertyTypeQueryDepth(info),
@@ -85,11 +80,7 @@ export const getPropertyType: ResolverFn<
     );
   });
 
-  return propertyTypeModelWithRefsToGQL(
-    propertyTypeModel.propertyType,
-    propertyTypeModel.dataTypeReferences,
-    propertyTypeModel.propertyTypeReferences,
-  );
+  return propertyTypeModelWithRefsToGQL(propertyTypeSubgraph);
 };
 
 export const updatePropertyType: ResolverFn<
