@@ -26,7 +26,7 @@ export type ItemProps = {
   style?: CSSProperties;
   dragOverlay?: RefObject<HTMLDivElement>;
   readonly: boolean;
-  isEntity?: boolean;
+  linkedToEntity?: boolean;
 };
 
 export const Item = forwardRef<HTMLLIElement, ItemProps>(
@@ -43,7 +43,7 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
       listeners,
       dragOverlay,
       readonly,
-      isEntity,
+      linkedToEntity,
     },
     ref,
   ) => {
@@ -59,7 +59,7 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
         {...attributes}
       >
         <SPaper sx={paperStyle} ref={dragOverlay}>
-          {isEntity && (
+          {linkedToEntity && (
             <Tooltip title="This item is linked to an entity">
               <SLinkIconWrapper>
                 <LinkIcon fontSize="small" />
@@ -72,7 +72,8 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
             fullWidth
             variant="standard"
             sx={{
-              caretColor: readonly || isEntity ? "transparent" : "initial",
+              caretColor:
+                readonly || linkedToEntity ? "transparent" : "initial",
             }}
             value={value}
             onChange={(event) => onValueChange?.(event.target.value)}
