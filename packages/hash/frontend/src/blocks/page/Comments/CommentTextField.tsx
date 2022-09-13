@@ -27,9 +27,10 @@ import {
   suggesterPluginKey,
 } from "../createSuggester/createSuggester";
 import { useRouteAccountInfo } from "../../../shared/routing";
-import { clipboardTextSerializer, mentionNodeView } from "../createEditorView";
 import styles from "./style.module.css";
 import { placeholderPlugin } from "./placeholderPlugin";
+import { clipboardTextSerializer } from "../clipboardTextSerializer";
+import { mentionNodeView } from "../MentionView/MentionNodeView";
 
 type CommentTextFieldProps = {
   blockId: string;
