@@ -216,7 +216,7 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedEntityType, QueryError> {
         Ok(self
             .store
-            .get_entity_type(&Expression::for_versioned_uri(uri), 0, 0, 0)
+            .get_entity_type(&Expression::for_versioned_uri(uri), 0, 0, 0, 0)
             .await?
             .pop()
             .expect("no entity type found")

@@ -306,7 +306,8 @@ pub trait EntityTypeStore: for<'q> crud::Read<PersistedEntityType, Query<'q> = E
         query: &Expression,
         data_type_resolve_depth: u8,
         property_type_resolve_depth: u8,
-        entity_link_query_depth: u8,
+        link_type_query_depth: u8,
+        entity_type_query_depth: u8,
     ) -> Result<Vec<EntityTypeTree>, QueryError>;
 
     /// Update the definition of an existing [`EntityType`].
