@@ -18,7 +18,7 @@
   "dependencies": {
     "@apollo/client": "3.6.9",
     "@blockprotocol/core": "0.0.8",
-    "@blockprotocol/graph": "0.0.12",
+    "@blockprotocol/graph": "0.0.16",
     "@blockprotocol/hook": "0.0.1",
     "@dnd-kit/core": "6.0.5",
     "@dnd-kit/modifiers": "6.0.0",
@@ -38,7 +38,7 @@
     "@hashintel/hash-shared": "0.0.0",
     "@headlessui/react": "1.4.1",
     "@lit-labs/react": "1.0.6",
-    "@mui/icons-material": "5.4.2",
+    "@mui/icons-material": "5.10.3",
     "@mui/lab": "5.0.0-alpha.71",
     "@mui/material": "5.4.3",
     "@mui/system": "5.5.1",
