@@ -168,10 +168,10 @@ export default class {
       propertyType: PropertyTypeModel.fromPersistedPropertyType(
         propertyTypeTree.propertyType,
       ),
-      dataTypeReferences: propertyTypeTree.dataTypeReferences.map(
+      dataTypeReferences: propertyTypeTree.referencedDataTypes.map(
         DataTypeModel.fromPersistedDataType,
       ),
-      propertyTypeReferences: propertyTypeTree.propertyTypeReferences.map(
+      propertyTypeReferences: propertyTypeTree.referencedPropertyTypes.map(
         PropertyTypeModel.fromPersistedPropertyType,
       ),
     }));
@@ -237,10 +237,10 @@ export default class {
       propertyType: PropertyTypeModel.fromPersistedPropertyType(
         propertyTypeTree.propertyType,
       ),
-      dataTypeReferences: propertyTypeTree.dataTypeReferences.map(
+      dataTypeReferences: propertyTypeTree.referencedDataTypes.map(
         DataTypeModel.fromPersistedDataType,
       ),
-      propertyTypeReferences: propertyTypeTree.propertyTypeReferences.map(
+      propertyTypeReferences: propertyTypeTree.referencedPropertyTypes.map(
         PropertyTypeModel.fromPersistedPropertyType,
       ),
     };
