@@ -7,6 +7,7 @@
 //! It may be helpful to first read the [`ResultExt`] documentation.
 use core::{
     fmt::{Debug, Display},
+    pin::Pin,
     task::Poll,
 };
 
@@ -165,10 +166,8 @@ macro_rules! impl_stream_adaptor {
         $(+ $lifetime:lifetime)*,
         $output:ty
     ) => {
-        #[pin_project::pin_project]
         #[doc=concat!("This is the adaptor type returned by [`StreamExt::", stringify!($document_for), "`]")]
         pub struct $name<S, A> {
-            #[pin]
             stream: S,
             attachment_or_context: A,
         }
@@ -186,14 +185,19 @@ macro_rules! impl_stream_adaptor {
                 self: core::pin::Pin<&mut Self>,
                 cx: &mut core::task::Context<'_>,
             ) -> core::task::Poll<Option<Self::Item>> {
-                let projected = self.project();
-                let stream = projected.stream;
+                // SAFETY: The pointee of `attachment_or_context` will not move. Additionally,
+                //         `Self` does not implement `Drop`, nor is it `#[repr(packed)]`
+                //         See the `pin` module: https://doc.rust-lang.org/core/pin/index.html
+                let (stream, attachment_or_context) = unsafe {
+                    let Self { stream, attachment_or_context } = self.get_unchecked_mut();
+                    (Pin::new_unchecked(stream), attachment_or_context)
+                };
 
                 match stream.poll_next(cx) {
                     // Can't use `map` as `#[track_caller]` is unstable on closures
                     #[allow(clippy::manual_map)]
                     Poll::Ready(data) => Poll::Ready(match data {
-                        Some(data) => Some(data.$method(|| projected.attachment_or_context.clone())),
+                        Some(data) => Some(data.$method(|| attachment_or_context.clone())),
                         None => None,
                     }),
                     Poll::Pending => Poll::Pending,
@@ -212,10 +216,8 @@ macro_rules! impl_stream_adaptor_lazy {
         $(+ $lifetime:lifetime)*,
         $output:ty
     ) => {
-        #[pin_project::pin_project]
         #[doc=concat!("This is the adaptor type returned by [`StreamExt::", stringify!($method), "`]")]
         pub struct $name<S, A> {
-            #[pin]
             stream: S,
             attachment_or_context: A,
         }
@@ -234,14 +236,19 @@ macro_rules! impl_stream_adaptor_lazy {
                 self: core::pin::Pin<&mut Self>,
                 cx: &mut core::task::Context<'_>,
             ) -> core::task::Poll<Option<Self::Item>> {
-                let projected = self.project();
-                let stream = projected.stream;
+                // SAFETY: The pointee of `attachment_or_context` will not move. Additionally,
+                //         `Self` does not implement `Drop`, nor is it `#[repr(packed)]`
+                //         See the `pin` module: https://doc.rust-lang.org/core/pin/index.html
+                let (stream, attachment_or_context) = unsafe {
+                    let Self { stream, attachment_or_context } = self.get_unchecked_mut();
+                    (Pin::new_unchecked(stream), attachment_or_context)
+                };
 
                 match stream.poll_next(cx) {
                     // Can't use `map` as `#[track_caller]` is unstable on closures
                     #[allow(clippy::manual_map)]
                     Poll::Ready(data) => Poll::Ready(match data {
-                        Some(data) => Some(data.$method(projected.attachment_or_context)),
+                        Some(data) => Some(data.$method(attachment_or_context)),
                         None => None,
                     }),
                     Poll::Pending => Poll::Pending,
