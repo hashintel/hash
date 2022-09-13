@@ -5,9 +5,9 @@
 mod common;
 
 use common::*;
-use error_stack::{AttachmentKind, FrameKind, IteratorExt, Report, ResultExt};
 #[cfg(feature = "futures")]
-use error_stack::{FutureExt, StreamExt};
+use error_stack::StreamExt;
+use error_stack::{AttachmentKind, FrameKind, FutureExt, IteratorExt, Report, ResultExt};
 
 fn test_messages<E>(report: &Report<E>) {
     assert_eq!(
@@ -74,7 +74,6 @@ fn attach_iterator() {
 }
 
 #[test]
-#[cfg(feature = "futures")]
 fn attach_future() {
     let future = create_future()
         .attach_printable(PrintableA(0))

@@ -8,13 +8,15 @@ pub use alloc::{
 };
 #[allow(unused_imports)]
 use core::{
-    fmt, iter,
+    fmt,
+    future::Future,
+    iter,
     sync::atomic::{AtomicI8, Ordering},
 };
 
 use error_stack::{AttachmentKind, Context, Frame, FrameKind, Report, Result};
 #[cfg(feature = "futures")]
-use futures_core::{Future, Stream};
+use futures_core::Stream;
 #[allow(unused_imports)]
 use once_cell::sync::Lazy;
 
@@ -155,7 +157,6 @@ pub fn create_iterator(num_elements: usize) -> impl Iterator<Item = Result<(), R
     iter::repeat_with(create_error).take(num_elements)
 }
 
-#[cfg(feature = "futures")]
 pub fn create_future() -> impl Future<Output = Result<(), RootError>> {
     futures::future::err(create_report())
 }

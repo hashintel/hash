@@ -14,7 +14,7 @@ Context B
 │   ╰╴1 additional opaque attachment
 │
 ╰─▶ Root error
-    ├╴tests/common.rs:147:5
+    ├╴tests/common.rs:149:5
     ├╴backtrace with [n] frames (1)
     ╰╴spantrace with 2 frames (1)
 
