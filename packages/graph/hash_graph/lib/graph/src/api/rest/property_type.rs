@@ -20,7 +20,7 @@ use crate::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, AccountId, PersistedOntologyIdentifier, PersistedPropertyType,
-        PropertyTypeTree,
+        PropertyTypeQuery, PropertyTypeTree,
     },
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
@@ -134,14 +134,6 @@ async fn create_property_type<P: StorePool + Send>(
         .map(Json)
 }
 
-#[derive(Deserialize, Component)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-struct PropertyTypeQuery {
-    query: Expression,
-    data_type_query_depth: u8,
-    property_type_query_depth: u8,
-}
-
 #[utoipa::path(
     post,
     path = "/property-types/query",
@@ -156,17 +148,11 @@ struct PropertyTypeQuery {
 )]
 async fn get_property_types_by_query<P>(
     pool: Extension<Arc<P>>,
-    query: Json<PropertyTypeQuery>,
+    Json(query): Json<PropertyTypeQuery>,
 ) -> Result<Json<Vec<PropertyTypeTree>>, StatusCode>
 where
     for<'pool> P: StorePool<Store<'pool>: PropertyTypeStore> + Send,
 {
-    let PropertyTypeQuery {
-        query,
-        data_type_query_depth,
-        property_type_query_depth,
-    } = query.0;
-
     pool.acquire()
         .map_err(|error| {
             tracing::error!(?error, "Could not acquire access to the store");
@@ -174,10 +160,10 @@ where
         })
         .and_then(|store| async move {
             store
-                .get_property_type(&query, data_type_query_depth, property_type_query_depth)
+                .get_property_type(&query)
                 .await
                 .map_err(|report| {
-                    tracing::error!(error=?report, ?query, "Could not read property type from the store");
+                    tracing::error!(error=?report, ?query, "Could not read property types from the store");
                     report_to_status_code(&report)
                 })
         })

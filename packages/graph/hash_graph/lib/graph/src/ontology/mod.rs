@@ -12,6 +12,8 @@ use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyTyp
 use utoipa::Component;
 use uuid::Uuid;
 
+use crate::store::query::Expression;
+
 // TODO - find a good place for AccountId, perhaps it will become redundant in a future design
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, Component, FromSql, ToSql)]
@@ -133,6 +135,14 @@ pub struct PersistedDataType {
     pub identifier: PersistedOntologyIdentifier,
 }
 
+#[derive(Debug, Deserialize, Component)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct DataTypeQuery {
+    #[serde(rename = "query")]
+    pub expression: Expression,
+    pub data_type_query_depth: u8,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
 #[serde(rename_all = "camelCase")]
 pub struct DataTypeTree {
@@ -145,6 +155,15 @@ pub struct PersistedPropertyType {
     #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: PropertyType,
     pub identifier: PersistedOntologyIdentifier,
+}
+
+#[derive(Debug, Deserialize, Component)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct PropertyTypeQuery {
+    #[serde(rename = "query")]
+    pub expression: Expression,
+    pub data_type_query_depth: u8,
+    pub property_type_query_depth: u8,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
@@ -163,6 +182,13 @@ pub struct PersistedLinkType {
     pub identifier: PersistedOntologyIdentifier,
 }
 
+#[derive(Debug, Deserialize, Component)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct LinkTypeQuery {
+    #[serde(rename = "query")]
+    pub expression: Expression,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkTypeTree {
@@ -175,6 +201,17 @@ pub struct PersistedEntityType {
     #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: EntityType,
     pub identifier: PersistedOntologyIdentifier,
+}
+
+#[derive(Debug, Deserialize, Component)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct EntityTypeQuery {
+    #[serde(rename = "query")]
+    pub expression: Expression,
+    pub data_type_query_depth: u8,
+    pub property_type_query_depth: u8,
+    pub link_type_query_depth: u8,
+    pub entity_type_query_depth: u8,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]

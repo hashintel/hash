@@ -15,12 +15,11 @@ use type_system::{uri::VersionedUri, PropertyType, PropertyTypeReference};
 use crate::{
     ontology::{
         AccountId, PersistedDataType, PersistedOntologyIdentifier, PersistedPropertyType,
-        PropertyTypeTree,
+        PropertyTypeQuery, PropertyTypeTree,
     },
     store::{
         crud::Read,
         postgres::{context::PostgresContext, PersistedOntologyType},
-        query::Expression,
         AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
     },
 };
@@ -34,8 +33,8 @@ impl<C: AsClient> PostgresStore<C> {
         property_type_uri: VersionedUri,
         data_type_references: &'a mut HashMap<VersionedUri, PersistedDataType>,
         property_type_references: &'a mut HashMap<VersionedUri, PersistedPropertyType>,
-        data_type_resolve_depth: u8,
-        property_type_resolve_depth: u8,
+        data_type_query_depth: u8,
+        property_type_query_depth: u8,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         async move {
             // TODO: Avoid cloning of URI
@@ -47,7 +46,7 @@ impl<C: AsClient> PostgresStore<C> {
                 );
                 let property_type = entry.insert(property_type);
 
-                if let Some(new_depth) = data_type_resolve_depth.checked_sub(1) {
+                if let Some(new_depth) = data_type_query_depth.checked_sub(1) {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
                     for data_type_ref in property_type.inner.data_type_references() {
@@ -60,7 +59,7 @@ impl<C: AsClient> PostgresStore<C> {
                     }
                 }
 
-                if let Some(new_depth) = property_type_resolve_depth.checked_sub(1) {
+                if let Some(new_depth) = property_type_query_depth.checked_sub(1) {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
                     let property_type_uris = property_type
@@ -76,7 +75,7 @@ impl<C: AsClient> PostgresStore<C> {
                             property_type_uri,
                             data_type_references,
                             property_type_references,
-                            data_type_resolve_depth,
+                            data_type_query_depth,
                             new_depth,
                         )
                         .await?;
@@ -136,16 +135,14 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
     async fn get_property_type(
         &self,
-        query: &Expression,
-        data_type_resolve_depth: u8,
-        property_type_resolve_depth: u8,
+        query: &PropertyTypeQuery,
     ) -> Result<Vec<PropertyTypeTree>, QueryError> {
-        stream::iter(Read::<PersistedPropertyType>::read(self, query).await?)
+        stream::iter(Read::<PersistedPropertyType>::read(self, &query.expression).await?)
             .then(|property_type: PersistedPropertyType| async {
                 let mut data_type_references = HashMap::new();
                 let mut property_type_references = HashMap::new();
 
-                if let Some(new_depth) = data_type_resolve_depth.checked_sub(1) {
+                if let Some(new_depth) = query.data_type_query_depth.checked_sub(1) {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
                     for data_type_ref in property_type.inner.data_type_references() {
@@ -158,7 +155,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                     }
                 }
 
-                if let Some(new_depth) = property_type_resolve_depth.checked_sub(1) {
+                if let Some(new_depth) = query.property_type_query_depth.checked_sub(1) {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
                     for property_type_ref in property_type.inner.property_type_references() {
@@ -166,7 +163,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                             property_type_ref.uri().clone(),
                             &mut data_type_references,
                             &mut property_type_references,
-                            data_type_resolve_depth,
+                            query.data_type_query_depth,
                             new_depth,
                         )
                         .await?;

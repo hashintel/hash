@@ -19,7 +19,7 @@ use crate::{
     api::rest::{read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, AccountId, LinkTypeTree, PersistedLinkType,
+        patch_id_and_parse, AccountId, LinkTypeQuery, LinkTypeTree, PersistedLinkType,
         PersistedOntologyIdentifier,
     },
     store::{
@@ -29,25 +29,25 @@ use crate::{
 
 #[derive(OpenApi)]
 #[openapi(
-    handlers(
-        create_link_type,
-        get_link_types_by_query,
-        get_link_type,
-        get_latest_link_types,
-        update_link_type
-    ),
-    components(
-        CreateLinkTypeRequest,
-        UpdateLinkTypeRequest,
-        AccountId,
-        PersistedOntologyIdentifier,
-        PersistedLinkType,
-        LinkTypeQuery,
-        LinkTypeTree,
-    ),
-    tags(
-        (name = "LinkType", description = "Link type management API")
-    )
+handlers(
+create_link_type,
+get_link_types_by_query,
+get_link_type,
+get_latest_link_types,
+update_link_type
+),
+components(
+CreateLinkTypeRequest,
+UpdateLinkTypeRequest,
+AccountId,
+PersistedOntologyIdentifier,
+PersistedLinkType,
+LinkTypeQuery,
+LinkTypeTree,
+),
+tags(
+(name = "LinkType", description = "Link type management API")
+)
 )]
 pub struct LinkTypeResource;
 
@@ -79,18 +79,17 @@ struct CreateLinkTypeRequest {
 }
 
 #[utoipa::path(
-    post,
-    path = "/link-types",
-    request_body = CreateLinkTypeRequest,
-    tag = "LinkType",
-    responses(
-        (status = 201, content_type = "application/json", description = "The schema of the created link type", body = PersistedOntologyIdentifier),
-        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
-
-        (status = 409, description = "Unable to create link type in the store as the base link type ID already exists"),
-        (status = 500, description = "Store error occurred"),
-    ),
-    request_body = CreateLinkTypeRequest,
+post,
+path = "/link-types",
+request_body = CreateLinkTypeRequest,
+tag = "LinkType",
+responses(
+(status = 201, content_type = "application/json", description = "The schema of the created link type", body = PersistedOntologyIdentifier),
+(status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+(status = 409, description = "Unable to create link type in the store as the base link type ID already exists"),
+(status = 500, description = "Store error occurred"),
+),
+request_body = CreateLinkTypeRequest,
 )]
 async fn create_link_type<P: StorePool + Send>(
     body: Json<CreateLinkTypeRequest>,
@@ -132,30 +131,21 @@ async fn create_link_type<P: StorePool + Send>(
         .map(Json)
 }
 
-#[derive(Deserialize, Component)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-struct LinkTypeQuery {
-    query: Expression,
-}
-
 #[utoipa::path(
-    post,
-    path = "/link-types/query",
-    request_body = LinkTypeQuery,
-    tag = "LinkType",
-    responses(
-        (status = 200, content_type = "application/json", description = "List of all link types matching the provided query", body = [LinkTypeTree]),
-
-        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
-        (status = 500, description = "Store error occurred"),
-    )
+post,
+path = "/link-types/query",
+request_body = LinkTypeQuery,
+tag = "LinkType",
+responses(
+(status = 200, content_type = "application/json", description = "List of all link types matching the provided query", body = [LinkTypeTree]),
+(status = 422, content_type = "text/plain", description = "Provided query is invalid"),
+(status = 500, description = "Store error occurred"),
+)
 )]
 async fn get_link_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    query: Json<LinkTypeQuery>,
+    Json(query): Json<LinkTypeQuery>,
 ) -> Result<Json<Vec<LinkTypeTree>>, StatusCode> {
-    let LinkTypeQuery { query } = query.0;
-
     pool.acquire()
         .map_err(|error| {
             tracing::error!(?error, "Could not acquire access to the store");
@@ -163,7 +153,7 @@ async fn get_link_types_by_query<P: StorePool + Send>(
         })
         .and_then(|store| async move {
             store.get_link_type(&query).await.map_err(|report| {
-                tracing::error!(error=?report, ?query, "Could not read link type from the store");
+                tracing::error!(error=?report, ?query, "Could not read link types from the store");
                 report_to_status_code(&report)
             })
         })
@@ -172,14 +162,13 @@ async fn get_link_types_by_query<P: StorePool + Send>(
 }
 
 #[utoipa::path(
-    get,
-    path = "/link-types",
-    tag = "LinkType",
-    responses(
-        (status = 200, content_type = "application/json", description = "List of all link types at their latest versions", body = [PersistedLinkType]),
-
-        (status = 500, description = "Store error occurred"),
-    )
+get,
+path = "/link-types",
+tag = "LinkType",
+responses(
+(status = 200, content_type = "application/json", description = "List of all link types at their latest versions", body = [PersistedLinkType]),
+(status = 500, description = "Store error occurred"),
+)
 )]
 async fn get_latest_link_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
@@ -190,19 +179,18 @@ async fn get_latest_link_types<P: StorePool + Send>(
 }
 
 #[utoipa::path(
-    get,
-    path = "/link-types/{uri}",
-    tag = "LinkType",
-    responses(
-        (status = 200, content_type = "application/json", description = "The schema of the requested link type", body = PersistedLinkType),
-        (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
-
-        (status = 404, description = "Link type was not found"),
-        (status = 500, description = "Store error occurred"),
-    ),
-    params(
-        ("uri" = String, Path, description = "The URI of the link type"),
-    )
+get,
+path = "/link-types/{uri}",
+tag = "LinkType",
+responses(
+(status = 200, content_type = "application/json", description = "The schema of the requested link type", body = PersistedLinkType),
+(status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
+(status = 404, description = "Link type was not found"),
+(status = 500, description = "Store error occurred"),
+),
+params(
+("uri" = String, Path, description = "The URI of the link type"),
+)
 )]
 async fn get_link_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
@@ -225,17 +213,16 @@ struct UpdateLinkTypeRequest {
 }
 
 #[utoipa::path(
-    put,
-    path = "/link-types",
-    tag = "LinkType",
-    responses(
-        (status = 200, content_type = "application/json", description = "The schema of the updated link type", body = PersistedOntologyIdentifier),
-        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
-
-        (status = 404, description = "Base link type ID was not found"),
-        (status = 500, description = "Store error occurred"),
-    ),
-    request_body = UpdateLinkTypeRequest,
+put,
+path = "/link-types",
+tag = "LinkType",
+responses(
+(status = 200, content_type = "application/json", description = "The schema of the updated link type", body = PersistedOntologyIdentifier),
+(status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+(status = 404, description = "Base link type ID was not found"),
+(status = 500, description = "Store error occurred"),
+),
+request_body = UpdateLinkTypeRequest,
 )]
 async fn update_link_type<P: StorePool + Send>(
     body: Json<UpdateLinkTypeRequest>,

@@ -9,11 +9,12 @@ use tokio_postgres::GenericClient;
 use type_system::{uri::VersionedUri, DataType};
 
 use crate::{
-    ontology::{AccountId, DataTypeTree, PersistedDataType, PersistedOntologyIdentifier},
+    ontology::{
+        AccountId, DataTypeQuery, DataTypeTree, PersistedDataType, PersistedOntologyIdentifier,
+    },
     store::{
         crud::Read,
         postgres::{context::PostgresContext, PersistedOntologyType},
-        query::Expression,
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
 };
@@ -26,7 +27,7 @@ impl<C: AsClient> PostgresStore<C> {
         &self,
         data_type_uri: VersionedUri,
         data_types: &mut HashMap<VersionedUri, PersistedDataType>,
-        _data_type_resolve_depth: u8,
+        _data_type_query_depth: u8,
     ) -> Result<(), QueryError> {
         if let Entry::Vacant(entry) = data_types.entry(data_type_uri) {
             let data_type = PersistedDataType::from_record(
@@ -66,12 +67,8 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         Ok(identifier)
     }
 
-    async fn get_data_type(
-        &self,
-        query: &Expression,
-        _data_type_resolve_depth: u8,
-    ) -> Result<Vec<DataTypeTree>, QueryError> {
-        stream::iter(Read::<PersistedDataType>::read(self, query).await?)
+    async fn get_data_type(&self, query: &DataTypeQuery) -> Result<Vec<DataTypeTree>, QueryError> {
+        stream::iter(Read::<PersistedDataType>::read(self, &query.expression).await?)
             .then(|data_type: PersistedDataType| async { Ok(DataTypeTree { data_type }) })
             .try_collect()
             .await

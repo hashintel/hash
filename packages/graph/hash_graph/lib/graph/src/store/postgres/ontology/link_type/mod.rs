@@ -9,11 +9,12 @@ use tokio_postgres::GenericClient;
 use type_system::{uri::VersionedUri, LinkType};
 
 use crate::{
-    ontology::{AccountId, LinkTypeTree, PersistedLinkType, PersistedOntologyIdentifier},
+    ontology::{
+        AccountId, LinkTypeQuery, LinkTypeTree, PersistedLinkType, PersistedOntologyIdentifier,
+    },
     store::{
         crud::Read,
         postgres::{context::PostgresContext, PersistedOntologyType},
-        query::Expression,
         AsClient, InsertionError, LinkTypeStore, PostgresStore, QueryError, UpdateError,
     },
 };
@@ -68,8 +69,8 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
         Ok(identifier)
     }
 
-    async fn get_link_type(&self, query: &Expression) -> Result<Vec<LinkTypeTree>, QueryError> {
-        stream::iter(Read::<PersistedLinkType>::read(self, query).await?)
+    async fn get_link_type(&self, query: &LinkTypeQuery) -> Result<Vec<LinkTypeTree>, QueryError> {
+        stream::iter(Read::<PersistedLinkType>::read(self, &query.expression).await?)
             .then(|link_type: PersistedLinkType| async { Ok(LinkTypeTree { link_type }) })
             .try_collect()
             .await

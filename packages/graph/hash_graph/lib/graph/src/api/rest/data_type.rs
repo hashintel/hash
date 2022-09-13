@@ -19,7 +19,7 @@ use crate::{
     api::rest::{read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, AccountId, DataTypeTree, PersistedDataType,
+        patch_id_and_parse, AccountId, DataTypeQuery, DataTypeTree, PersistedDataType,
         PersistedOntologyIdentifier,
     },
     store::{
@@ -133,13 +133,6 @@ async fn create_data_type<P: StorePool + Send>(
         .map(Json)
 }
 
-#[derive(Deserialize, Component)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-struct DataTypeQuery {
-    query: Expression,
-    data_type_query_depth: u8,
-}
-
 #[utoipa::path(
     post,
     path = "/data-types/query",
@@ -154,26 +147,18 @@ struct DataTypeQuery {
 )]
 async fn get_data_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    query: Json<DataTypeQuery>,
+    Json(query): Json<DataTypeQuery>,
 ) -> Result<Json<Vec<DataTypeTree>>, StatusCode> {
-    let DataTypeQuery {
-        query,
-        data_type_query_depth,
-    } = query.0;
-
     pool.acquire()
         .map_err(|error| {
             tracing::error!(?error, "Could not acquire access to the store");
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .and_then(|store| async move {
-            store
-                .get_data_type(&query, data_type_query_depth)
-                .await
-                .map_err(|report| {
-                    tracing::error!(error=?report, ?query, "Could not read data type from the store");
-                    report_to_status_code(&report)
-                })
+            store.get_data_type(&query).await.map_err(|report| {
+                tracing::error!(error=?report, ?query, "Could not read data types from the store");
+                report_to_status_code(&report)
+            })
         })
         .await
         .map(Json)

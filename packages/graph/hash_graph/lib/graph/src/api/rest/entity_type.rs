@@ -18,7 +18,7 @@ use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, AccountId, EntityTypeTree, PersistedEntityType,
+        patch_id_and_parse, AccountId, EntityTypeQuery, EntityTypeTree, PersistedEntityType,
         PersistedOntologyIdentifier,
     },
     store::{
@@ -134,16 +134,6 @@ async fn create_entity_type<P: StorePool + Send>(
         .map(Json)
 }
 
-#[derive(Deserialize, Component)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-struct EntityTypeQuery {
-    query: Expression,
-    data_type_query_depth: u8,
-    property_type_query_depth: u8,
-    link_type_query_depth: u8,
-    entity_type_query_depth: u8,
-}
-
 #[utoipa::path(
     post,
     path = "/entity-types/query",
@@ -158,16 +148,8 @@ struct EntityTypeQuery {
 )]
 async fn get_entity_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    query: Json<EntityTypeQuery>,
+    Json(query): Json<EntityTypeQuery>,
 ) -> Result<Json<Vec<EntityTypeTree>>, StatusCode> {
-    let EntityTypeQuery {
-        query,
-        data_type_query_depth,
-        property_type_query_depth,
-        link_type_query_depth,
-        entity_type_query_depth,
-    } = query.0;
-
     pool.acquire()
         .map_err(|error| {
             tracing::error!(?error, "Could not acquire access to the store");
@@ -175,16 +157,10 @@ async fn get_entity_types_by_query<P: StorePool + Send>(
         })
         .and_then(|store| async move {
             store
-                .get_entity_type(
-                    &query,
-                    data_type_query_depth,
-                    property_type_query_depth,
-                    link_type_query_depth,
-                    entity_type_query_depth,
-                )
+                .get_entity_type(&query)
                 .await
                 .map_err(|report| {
-                    tracing::error!(error=?report, ?query, "Could not read entity type from the store");
+                    tracing::error!(error=?report, ?query, "Could not read entity types from the store");
                     report_to_status_code(&report)
                 })
         })
