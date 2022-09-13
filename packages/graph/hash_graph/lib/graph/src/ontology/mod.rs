@@ -170,8 +170,8 @@ pub struct PropertyTypeQuery {
 #[serde(rename_all = "camelCase")]
 pub struct PropertyTypeRootedSubgraph {
     pub property_type: PersistedPropertyType,
-    pub data_type_references: Vec<PersistedDataType>,
-    pub property_type_references: Vec<PersistedPropertyType>,
+    pub referenced_data_types: Vec<PersistedDataType>,
+    pub referenced_property_types: Vec<PersistedPropertyType>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
@@ -218,8 +218,8 @@ pub struct EntityTypeQuery {
 #[serde(rename_all = "camelCase")]
 pub struct EntityTypeRootedSubgraph {
     pub entity_type: PersistedEntityType,
-    pub data_type_references: Vec<PersistedDataType>,
-    pub property_type_references: Vec<PersistedPropertyType>,
-    pub link_type_references: Vec<PersistedLinkType>,
-    pub entity_type_references: Vec<PersistedEntityType>,
+    pub referenced_data_types: Vec<PersistedDataType>,
+    pub referenced_property_types: Vec<PersistedPropertyType>,
+    pub referenced_link_types: Vec<PersistedLinkType>,
+    pub referenced_entity_types: Vec<PersistedEntityType>,
 }

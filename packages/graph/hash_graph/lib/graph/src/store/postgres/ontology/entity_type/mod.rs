@@ -244,10 +244,10 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
                 Ok(EntityTypeRootedSubgraph {
                     entity_type,
-                    data_type_references: data_type_references.into_values().collect(),
-                    property_type_references: property_type_references.into_values().collect(),
-                    link_type_references: link_type_references.into_values().collect(),
-                    entity_type_references: entity_type_references.into_values().collect(),
+                    referenced_data_types: data_type_references.into_values().collect(),
+                    referenced_property_types: property_type_references.into_values().collect(),
+                    referenced_link_types: link_type_references.into_values().collect(),
+                    referenced_entity_types: entity_type_references.into_values().collect(),
                 })
             })
             .try_collect()
