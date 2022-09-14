@@ -16,37 +16,35 @@ import {
 } from "@hashintel/hash-design-system";
 import {
   Box,
+  ButtonBase,
   Card,
   CardActionArea,
   cardActionAreaClasses,
   CardActionAreaProps,
   CardContent,
   CardContentProps,
+  Checkbox,
+  checkboxClasses,
   Container,
+  Divider,
+  ListItem,
+  listItemClasses,
+  ListItemText,
+  listItemTextClasses,
+  menuItemClasses,
   Stack,
   SxProps,
   Table,
   TableBody,
+  tableBodyClasses,
   TableCell,
+  tableCellClasses,
+  TableFooter,
   TableHead,
   TableRow,
+  tableRowClasses,
   Theme,
   Typography,
-  Checkbox,
-  tableCellClasses,
-  checkboxClasses,
-  Divider,
-  ListItem,
-  menuItemClasses,
-  listItemClasses,
-  ListItemText,
-  listItemTextClasses,
-  ButtonBase,
-  tableRowClasses,
-  IconButtonProps,
-  TableFooter,
-  tableHeadClasses,
-  tableBodyClasses,
 } from "@mui/material";
 import { bindMenu, bindTrigger } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
@@ -346,7 +344,7 @@ const InsertPropertyCard = () => (
           <TableRow>
             <Typography
               component={TableCell}
-              variant="smallText"
+              variant="smallTextLabels"
               fontWeight={500}
             >
               Share Price
@@ -427,7 +425,7 @@ const InsertPropertyCard = () => (
                   icon={faPlusCircle}
                   sx={{ fontSize: 12, mr: 1 }}
                 />
-                <Typography variant="smallText" fontWeight={500}>
+                <Typography variant="smallTextLabels" fontWeight={500}>
                   Add a property
                 </Typography>
               </ButtonBase>
