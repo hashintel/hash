@@ -4,7 +4,7 @@ export const propertyTypeTypedef = gql`
   scalar PropertyType
   scalar PropertyTypeWithoutId
 
-  interface PersistedPropertyTypeInterface {
+  interface PropertyTypeInterface {
     # These fields are repeated everywhere they're used because
     # (a) GQL requires it - https://github.com/graphql/graphql-spec/issues/533
     # (b) string interpolation breaks the code generator's introspection
@@ -28,7 +28,7 @@ export const propertyTypeTypedef = gql`
     propertyType: PropertyType!
   }
 
-  type PersistedPropertyType implements PersistedPropertyTypeInterface {
+  type PersistedPropertyType implements PropertyTypeInterface {
     # INTERFACE FIELDS BEGIN #
     """
     The specific versioned URI of the property type
@@ -45,7 +45,7 @@ export const propertyTypeTypedef = gql`
     # INTERFACE FIELDS END #
   }
 
-  type PersistedPropertyTypeWithRefs implements PersistedPropertyTypeInterface {
+  type PropertyTypeSubgraph implements PropertyTypeInterface {
     """
     Data types referenced directly or indirectly referenced by this property type
     """
@@ -75,14 +75,12 @@ export const propertyTypeTypedef = gql`
     """
     Get all property types at their latest version.
     """
-    getAllLatestPropertyTypes: [PersistedPropertyTypeWithRefs!]!
+    getAllLatestPropertyTypes: [PropertyTypeSubgraph!]!
 
     """
     Get a property type by its versioned URI.
     """
-    getPropertyType(
-      propertyTypeVersionedUri: String!
-    ): PersistedPropertyTypeWithRefs!
+    getPropertyType(propertyTypeVersionedUri: String!): PropertyTypeSubgraph!
   }
 
   extend type Mutation {

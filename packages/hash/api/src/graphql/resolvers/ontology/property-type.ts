@@ -7,13 +7,13 @@ import {
   MutationUpdatePropertyTypeArgs,
   QueryGetPropertyTypeArgs,
   ResolverFn,
-  PersistedPropertyTypeWithRefs,
+  PropertyTypeSubgraph,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { PropertyTypeModel } from "../../../model";
 import {
   propertyTypeModelToGQL,
-  propertyTypeModelWithRefsToGQL,
+  propertyTypeSubgraphToGQL,
 } from "./model-mapping";
 import { dataTypeQueryDepth, propertyTypeQueryDepth } from "../util";
 
@@ -37,7 +37,7 @@ export const createPropertyType: ResolverFn<
 };
 
 export const getAllLatestPropertyTypes: ResolverFn<
-  Promise<PersistedPropertyTypeWithRefs[]>,
+  Promise<PropertyTypeSubgraph[]>,
   {},
   LoggedInGraphQLContext,
   {}
@@ -58,11 +58,11 @@ export const getAllLatestPropertyTypes: ResolverFn<
     );
   });
 
-  return propertyTypeSubgraphs.map(propertyTypeModelWithRefsToGQL);
+  return propertyTypeSubgraphs.map(propertyTypeSubgraphToGQL);
 };
 
 export const getPropertyType: ResolverFn<
-  Promise<PersistedPropertyTypeWithRefs>,
+  Promise<PropertyTypeSubgraph>,
   {},
   LoggedInGraphQLContext,
   QueryGetPropertyTypeArgs
@@ -80,7 +80,7 @@ export const getPropertyType: ResolverFn<
     );
   });
 
-  return propertyTypeModelWithRefsToGQL(propertyTypeSubgraph);
+  return propertyTypeSubgraphToGQL(propertyTypeSubgraph);
 };
 
 export const updatePropertyType: ResolverFn<

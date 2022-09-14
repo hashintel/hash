@@ -9,7 +9,7 @@ import {
   PersistedEntityType,
   PersistedLinkType,
   PersistedPropertyType,
-  PersistedPropertyTypeWithRefs,
+  PropertyTypeSubgraph,
 } from "../../apiTypes.gen";
 
 export const dataTypeModelToGQL = (
@@ -28,7 +28,7 @@ export const propertyTypeModelToGQL = (
   propertyType: propertyType.schema,
 });
 
-export const propertyTypeModelWithRefsToGQL = ({
+export const propertyTypeSubgraphToGQL = ({
   propertyType,
   referencedDataTypes,
   referencedPropertyTypes,
@@ -36,7 +36,7 @@ export const propertyTypeModelWithRefsToGQL = ({
   propertyType: PropertyTypeModel;
   referencedDataTypes: DataTypeModel[];
   referencedPropertyTypes: PropertyTypeModel[];
-}): PersistedPropertyTypeWithRefs => ({
+}): PropertyTypeSubgraph => ({
   accountId: propertyType.accountId,
   propertyTypeVersionedUri: propertyType.schema.$id,
   propertyType: propertyType.schema,
