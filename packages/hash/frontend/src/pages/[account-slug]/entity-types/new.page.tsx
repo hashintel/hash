@@ -7,7 +7,7 @@ import { useUser } from "../../../components/hooks/useUser";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
 import { TopContextBar } from "../../shared/top-context-bar";
 import { useBlockProtocolFunctionsWithOntology } from "../../type-editor/blockprotocol-ontology-functions-hook";
-import { Chip, placeholderUri } from "./Chip";
+import { OurChip, placeholderUri } from "./Chip";
 
 // @todo pass ocorrect router in
 const useWarnIfUnsavedChanges = (
@@ -68,7 +68,7 @@ const Page: NextPageWithLayout = () => {
         />
         <Box py={3.75}>
           <Container>
-            <Chip
+            <OurChip
               icon={
                 <Box
                   component={Image}

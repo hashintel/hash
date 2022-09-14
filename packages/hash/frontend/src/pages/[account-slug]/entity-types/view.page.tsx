@@ -3,9 +3,14 @@ import {
   faEllipsis,
   faList,
   faPlus,
+  faPlusCircle,
   faSearch,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, TextField } from "@hashintel/hash-design-system";
+import {
+  Chip,
+  FontAwesomeIcon,
+  TextField,
+} from "@hashintel/hash-design-system";
 import {
   Box,
   Card,
@@ -31,8 +36,9 @@ import {
 import Image from "next/image";
 import { useState } from "react";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
+import { Button } from "../../../shared/ui/button";
 import { TopContextBar } from "../../shared/top-context-bar";
-import { Chip, placeholderUri } from "./Chip";
+import { OurChip, placeholderUri } from "./Chip";
 
 const WhiteCard = ({
   onClick,
@@ -226,7 +232,9 @@ const InsertPropertyCard = () => (
           </TableRow>
           <TableRow>
             <TableCell>Share Price</TableCell>
-            <TableCell>Number</TableCell>
+            <TableCell>
+              <Chip>Number</Chip>
+            </TableCell>
             <TableCell>
               <Checkbox />
             </TableCell>
@@ -247,6 +255,20 @@ const InsertPropertyCard = () => (
                   color: theme.palette.gray[50],
                 })}
               />
+            </TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell colSpan={6} sx={{ textAlign: "center" }}>
+              <Button
+                onClick={() => alert("Add a property")}
+                variant="tertiary_quiet"
+                startIcon={
+                  // @todo must be outlijned
+                  <FontAwesomeIcon icon={faPlusCircle} sx={{ fontSize: 12 }} />
+                }
+              >
+                Add a property
+              </Button>
             </TableCell>
           </TableRow>
         </TableBody>
@@ -284,7 +306,7 @@ const Page: NextPageWithLayout = () => {
         />
         <Box pt={3.75}>
           <Container>
-            <Chip
+            <OurChip
               icon={
                 <Box
                   component={Image}
