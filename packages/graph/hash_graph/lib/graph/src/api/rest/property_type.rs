@@ -140,7 +140,7 @@ async fn create_property_type<P: StorePool + Send>(
     request_body = PropertyTypeQuery,
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", body = [PropertyTypeRootedSubgraph], description = "A list of subgraphs rooted at property types that satisfy the given query each resolved to the requested depth."),
+        (status = 200, content_type = "application/json", body = [PropertyTypeRootedSubgraph], description = "A list of subgraphs rooted at property types that satisfy the given query, each resolved to the requested depth."),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),

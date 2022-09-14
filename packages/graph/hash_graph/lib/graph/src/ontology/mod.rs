@@ -127,24 +127,43 @@ where
     //  even though we only use it in places where we could move
     serde_json::Value::from(ontology_type.clone()).serialize(serializer)
 }
-
-/// Depth used to read referenced ontology types when querying a rooted subgraph.
+/// Distance to explore when querying a rooted subgraph in the ontology.
 ///
-/// Records may have references to other types, e.g. a [`PropertyType`] may reference other
-/// [`PropertyType`]s or [`DataType`]s. When a type is requested, a depth for each referenced
-/// type has to be provided. The depth specify, how far references are resolved when returning a
-/// rooted subgraph, a depth of `0` means, that no further references are returned.
+/// Ontology records may have references to other records, e.g. a [`PropertyType`] may reference
+/// other [`PropertyType`]s or [`DataType`]s. The depths provided alongside a query specify how many
+/// steps to explore along a chain of references _of a certain kind of type_. Meaning, any chain of
+/// property type references will be resolved up to the depth given for property types, and *each*
+/// data type referenced in those property types will in turn start a 'new chain' whose exploration
+/// depth is limited by the depth given for data types.
+///
+/// A depth of `0` means that no references are explored for that specific kind of type.
+///
 ///
 /// # Example
 ///
-/// When reading a [`PropertyType`], `data_type_query_depth` and `property_type_query_depth` needs
-/// to be specified. For a give [`PropertyType`], which is referring to another [`PropertyType`],
-/// which itself refers to a [`DataType`], referenced [`PropertyType`] will be returned as well if
-/// `property_type_query_depth` is at least `1`. If in addition `data_type_query_depth` is at least
-/// `1`, the [`DataType`] will be returned as well.
+/// - `EntityType1` references \[`EntityType2`, `PropertyType1`, `LinkType1`]
+/// - `EntityType2` references \[`PropertyType2`]
+/// - `PropertyType1` references \[`DataType2`]
+/// - `PropertyType2` references \[`PropertyType3`, `DataType1`]
+/// - `PropertyType3` references \[`PropertyType4`, `DataType3`]
+/// - `PropertyType4` references \[`DataType3`]
 ///
-/// If `property_type_query_depth` is set to `0`, this will not return any referenced record,
-/// regardless of the `data_type_query_depth`.
+/// If a query on `EntityType1` is made with the following depths:
+/// - `entity_type_query_depth: 1`
+/// - `property_type_query_depth: 3`
+/// - `data_type_query_depth: 1`
+/// - `link_type_query_depth: 0`
+///
+/// Then the returned subgraph will be:
+/// - `referenced_entity_types`: \[`EntityType2`]
+/// - `referenced_property_types`: \[`PropertyType1`, `PropertyType2`, `PropertyType3`]
+/// - `referenced_data_types`: \[`DataType1`, `DataType2`]
+/// - `referenced_link_types`: \[]
+///
+/// ## The idea of "chains"
+///
+/// When `EntityType2` is explored its referenced property types get explored. The chain of
+/// _property type_ references is then resolved to a depth of `property_type_query_depth`.
 pub type QueryDepth = u8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]

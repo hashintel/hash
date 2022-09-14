@@ -140,7 +140,7 @@ async fn create_entity_type<P: StorePool + Send>(
     request_body = EntityTypeQuery,
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", body = [EntityTypeRootedSubgraph], description = "A list of subgraphs rooted at entity types that satisfy the given query each resolved to the requested depth."),
+        (status = 200, content_type = "application/json", body = [EntityTypeRootedSubgraph], description = "A list of subgraphs rooted at entity types that satisfy the given query, each resolved to the requested depth."),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
