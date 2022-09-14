@@ -218,7 +218,7 @@ export type DataTypeKindEnum =
   typeof DataTypeKindEnum[keyof typeof DataTypeKindEnum];
 
 /**
- *
+ * Query to read [`DataType`]s, which are matching the [`Expression`].
  * @export
  * @interface DataTypeQuery
  */
@@ -369,7 +369,7 @@ export type EntityTypeTypeEnum =
   typeof EntityTypeTypeEnum[keyof typeof EntityTypeTypeEnum];
 
 /**
- *
+ * Query to read [`EntityType`]s, which are matching the [`Expression`].
  * @export
  * @interface EntityTypeQuery
  */
@@ -519,7 +519,7 @@ export type LinkTypeKindEnum =
   typeof LinkTypeKindEnum[keyof typeof LinkTypeKindEnum];
 
 /**
- *
+ * Query to read [`LinkType`]s, which are matching the [`Expression`].
  * @export
  * @interface LinkTypeQuery
  */
@@ -872,7 +872,7 @@ export type PropertyTypeKindEnum =
   typeof PropertyTypeKindEnum[keyof typeof PropertyTypeKindEnum];
 
 /**
- *
+ * Query to read [`PropertyType`]s, which are matching the [`Expression`].
  * @export
  * @interface PropertyTypeQuery
  */

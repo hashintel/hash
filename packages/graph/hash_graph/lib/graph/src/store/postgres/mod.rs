@@ -62,12 +62,12 @@ where
 {
     /// Inserts a dependency into the map.
     ///
-    /// If the dependency does not already exist in the dependency map, it will be inserted
-    /// with the provided `depth` and a reference to this dependency will be returned in order
-    /// to continue resolving it. In the case, that the dependency already exists, the `depth`
-    /// will be compared with depth used when inserting it before:
-    /// - If the new depth is higher, the depth will be updated and a reference to the
-    /// dependency will be returned in order to keep resolving it
+    /// If the dependency does not already exist in the dependency map, it will be inserted with the
+    /// provided `depth` and a reference to this dependency will be returned in order to continue
+    /// resolving it. In the case, that the dependency already exists, the `depth` will be compared
+    /// with depth used when inserting it before:
+    /// - If the new depth is higher, the depth will be updated and a reference to the dependency
+    ///   will be returned in order to keep resolving it
     /// - Otherwise, `None` will be returned as no further resolution is needed
     pub async fn insert<F, R>(
         &mut self,

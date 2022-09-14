@@ -184,6 +184,7 @@ pub struct DataTypeQuery {
     // TODO: `data_type_query_depth` currently does nothing, in the future it will most probably be
     //       used to resolve user defined data types.
     //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
+    #[component(value_type = number)]
     pub data_type_query_depth: QueryDepth,
 }
 
@@ -209,7 +210,9 @@ pub struct PropertyTypeQuery {
     pub expression: Expression,
     // TODO: A value greater than `1` currently does not have any effect.
     //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
+    #[component(value_type = number)]
     pub data_type_query_depth: QueryDepth,
+    #[component(value_type = number)]
     pub property_type_query_depth: QueryDepth,
 }
 
@@ -259,9 +262,13 @@ pub struct EntityTypeQuery {
     pub expression: Expression,
     // TODO: A value greater than `1` currently does not have any effect.
     //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
+    #[component(value_type = number)]
     pub data_type_query_depth: QueryDepth,
+    #[component(value_type = number)]
     pub property_type_query_depth: QueryDepth,
+    #[component(value_type = number)]
     pub link_type_query_depth: QueryDepth,
+    #[component(value_type = number)]
     pub entity_type_query_depth: QueryDepth,
 }
 
