@@ -39,7 +39,7 @@ pub struct EntityTypeDependencyContext<'a> {
 }
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read a [`PersistedEntityType`] into a [`HashMap`].
+    /// Internal method to read a [`PersistedEntityType`] into four [`DependencyMap`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) fn get_entity_type_as_dependency<'a>(

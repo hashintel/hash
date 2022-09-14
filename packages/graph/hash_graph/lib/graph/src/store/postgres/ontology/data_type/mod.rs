@@ -26,7 +26,7 @@ pub struct DataTypeDependencyContext<'a> {
 }
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read a [`PersistedDataType`] into a [`HashMap`].
+    /// Internal method to read a [`PersistedDataType`] into a [`DependencyMap`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) async fn get_data_type_as_dependency(

@@ -31,7 +31,7 @@ pub struct PropertyTypeDependencyContext<'a> {
 }
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read a [`PersistedPropertyType`] into a [`HashMap`].
+    /// Internal method to read a [`PersistedPropertyType`] into two [`DependencyMap`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) fn get_property_type_as_dependency<'a>(

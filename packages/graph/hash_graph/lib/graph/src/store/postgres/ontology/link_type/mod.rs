@@ -25,7 +25,7 @@ pub struct LinkTypeDependencyContext<'a> {
 }
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read a [`PersistedLinkType`] into a [`HashMap`].
+    /// Internal method to read a [`PersistedLinkType`] into a [`DependencyMap`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) async fn get_link_type_as_dependency(
