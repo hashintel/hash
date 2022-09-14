@@ -127,6 +127,7 @@ where
     //  even though we only use it in places where we could move
     serde_json::Value::from(ontology_type.clone()).serialize(serializer)
 }
+
 /// Distance to explore when querying a rooted subgraph in the ontology.
 ///
 /// Ontology records may have references to other records, e.g. a [`PropertyType`] may reference
