@@ -11,8 +11,9 @@ use error_stack::{Report, Result};
 use graph::{
     knowledge::{Entity, EntityId, Link, PersistedEntity, PersistedEntityIdentifier},
     ontology::{
-        AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
-        PersistedOntologyIdentifier, PersistedPropertyType,
+        AccountId, DataTypeQuery, EntityTypeQuery, LinkTypeQuery, PersistedDataType,
+        PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier, PersistedPropertyType,
+        PropertyTypeQuery,
     },
     store::{
         error::LinkRemovalError,
@@ -154,10 +155,14 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedDataType, QueryError> {
         Ok(self
             .store
-            .get_data_type(&Expression::for_versioned_uri(uri))
+            .get_data_type(&DataTypeQuery {
+                expression: Expression::for_versioned_uri(uri),
+                data_type_query_depth: 0,
+            })
             .await?
             .pop()
-            .expect("no data type found"))
+            .expect("no data type found")
+            .data_type)
     }
 
     pub async fn update_data_type(
@@ -184,10 +189,15 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedPropertyType, QueryError> {
         Ok(self
             .store
-            .get_property_type(&Expression::for_versioned_uri(uri))
+            .get_property_type(&PropertyTypeQuery {
+                expression: Expression::for_versioned_uri(uri),
+                data_type_query_depth: 0,
+                property_type_query_depth: 0,
+            })
             .await?
             .pop()
-            .expect("no property type found"))
+            .expect("no property type found")
+            .property_type)
     }
 
     pub async fn update_property_type(
@@ -214,10 +224,17 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedEntityType, QueryError> {
         Ok(self
             .store
-            .get_entity_type(&Expression::for_versioned_uri(uri))
+            .get_entity_type(&EntityTypeQuery {
+                expression: Expression::for_versioned_uri(uri),
+                data_type_query_depth: 0,
+                property_type_query_depth: 0,
+                link_type_query_depth: 0,
+                entity_type_query_depth: 0,
+            })
             .await?
             .pop()
-            .expect("no entity type found"))
+            .expect("no entity type found")
+            .entity_type)
     }
 
     pub async fn update_entity_type(
@@ -244,10 +261,13 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedLinkType, QueryError> {
         Ok(self
             .store
-            .get_link_type(&Expression::for_versioned_uri(uri))
+            .get_link_type(&LinkTypeQuery {
+                expression: Expression::for_versioned_uri(uri),
+            })
             .await?
             .pop()
-            .expect("no link type found"))
+            .expect("no link type found")
+            .link_type)
     }
 
     pub async fn update_link_type(

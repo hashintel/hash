@@ -12,6 +12,8 @@ use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyTyp
 use utoipa::Component;
 use uuid::Uuid;
 
+use crate::store::query::Expression;
+
 // TODO - find a good place for AccountId, perhaps it will become redundant in a future design
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, Component, FromSql, ToSql)]
@@ -61,6 +63,7 @@ impl PersistedOntologyIdentifier {
 
 #[derive(Debug)]
 pub struct PatchAndParseError;
+
 impl Context for PatchAndParseError {}
 
 impl fmt::Display for PatchAndParseError {
@@ -122,9 +125,47 @@ where
 {
     // This clone is necessary because `Serialize` requires us to take the param by reference here
     //  even though we only use it in places where we could move
-    let value: serde_json::Value = ontology_type.clone().into();
-    value.serialize(serializer)
+    serde_json::Value::from(ontology_type.clone()).serialize(serializer)
 }
+
+/// Distance to explore when querying a rooted subgraph in the ontology.
+///
+/// Ontology records may have references to other records, e.g. a [`PropertyType`] may reference
+/// other [`PropertyType`]s or [`DataType`]s. The depths provided alongside a query specify how many
+/// steps to explore along a chain of references _of a certain kind of type_. Meaning, any chain of
+/// property type references will be resolved up to the depth given for property types, and *each*
+/// data type referenced in those property types will in turn start a 'new chain' whose exploration
+/// depth is limited by the depth given for data types.
+///
+/// A depth of `0` means that no references are explored for that specific kind of type.
+///
+///
+/// # Example
+///
+/// - `EntityType1` references \[`EntityType2`, `PropertyType1`, `LinkType1`]
+/// - `EntityType2` references \[`PropertyType2`]
+/// - `PropertyType1` references \[`DataType2`]
+/// - `PropertyType2` references \[`PropertyType3`, `DataType1`]
+/// - `PropertyType3` references \[`PropertyType4`, `DataType3`]
+/// - `PropertyType4` references \[`DataType3`]
+///
+/// If a query on `EntityType1` is made with the following depths:
+/// - `entity_type_query_depth: 1`
+/// - `property_type_query_depth: 3`
+/// - `data_type_query_depth: 1`
+/// - `link_type_query_depth: 0`
+///
+/// Then the returned subgraph will be:
+/// - `referenced_entity_types`: \[`EntityType2`]
+/// - `referenced_property_types`: \[`PropertyType1`, `PropertyType2`, `PropertyType3`]
+/// - `referenced_data_types`: \[`DataType1`, `DataType2`]
+/// - `referenced_link_types`: \[]
+///
+/// ## The idea of "chains"
+///
+/// When `EntityType2` is explored its referenced property types get explored. The chain of
+/// _property type_ references is then resolved to a depth of `property_type_query_depth`.
+pub type QueryDepth = u8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
 pub struct PersistedDataType {
@@ -132,6 +173,25 @@ pub struct PersistedDataType {
     #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: DataType,
     pub identifier: PersistedOntologyIdentifier,
+}
+
+/// Query to read [`DataType`]s, which are matching the [`Expression`].
+#[derive(Debug, Deserialize, Component)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct DataTypeQuery {
+    #[serde(rename = "query")]
+    pub expression: Expression,
+    // TODO: `data_type_query_depth` currently does nothing, in the future it will most probably be
+    //       used to resolve user defined data types.
+    //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
+    #[component(value_type = number)]
+    pub data_type_query_depth: QueryDepth,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
+#[serde(rename_all = "camelCase")]
+pub struct DataTypeRootedSubgraph {
+    pub data_type: PersistedDataType,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
@@ -142,6 +202,28 @@ pub struct PersistedPropertyType {
     pub identifier: PersistedOntologyIdentifier,
 }
 
+/// Query to read [`PropertyType`]s, which are matching the [`Expression`].
+#[derive(Debug, Deserialize, Component)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct PropertyTypeQuery {
+    #[serde(rename = "query")]
+    pub expression: Expression,
+    // TODO: A value greater than `1` currently does not have any effect.
+    //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
+    #[component(value_type = number)]
+    pub data_type_query_depth: QueryDepth,
+    #[component(value_type = number)]
+    pub property_type_query_depth: QueryDepth,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
+#[serde(rename_all = "camelCase")]
+pub struct PropertyTypeRootedSubgraph {
+    pub property_type: PersistedPropertyType,
+    pub referenced_data_types: Vec<PersistedDataType>,
+    pub referenced_property_types: Vec<PersistedPropertyType>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
 pub struct PersistedLinkType {
     #[component(value_type = VAR_LINK_TYPE)]
@@ -150,10 +232,52 @@ pub struct PersistedLinkType {
     pub identifier: PersistedOntologyIdentifier,
 }
 
+/// Query to read [`LinkType`]s, which are matching the [`Expression`].
+#[derive(Debug, Deserialize, Component)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct LinkTypeQuery {
+    #[serde(rename = "query")]
+    pub expression: Expression,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
+#[serde(rename_all = "camelCase")]
+pub struct LinkTypeRootedSubgraph {
+    pub link_type: PersistedLinkType,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
 pub struct PersistedEntityType {
     #[component(value_type = VAR_ENTITY_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: EntityType,
     pub identifier: PersistedOntologyIdentifier,
+}
+
+/// Query to read [`EntityType`]s, which are matching the [`Expression`].
+#[derive(Debug, Deserialize, Component)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct EntityTypeQuery {
+    #[serde(rename = "query")]
+    pub expression: Expression,
+    // TODO: A value greater than `1` currently does not have any effect.
+    //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
+    #[component(value_type = number)]
+    pub data_type_query_depth: QueryDepth,
+    #[component(value_type = number)]
+    pub property_type_query_depth: QueryDepth,
+    #[component(value_type = number)]
+    pub link_type_query_depth: QueryDepth,
+    #[component(value_type = number)]
+    pub entity_type_query_depth: QueryDepth,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
+#[serde(rename_all = "camelCase")]
+pub struct EntityTypeRootedSubgraph {
+    pub entity_type: PersistedEntityType,
+    pub referenced_data_types: Vec<PersistedDataType>,
+    pub referenced_property_types: Vec<PersistedPropertyType>,
+    pub referenced_link_types: Vec<PersistedLinkType>,
+    pub referenced_entity_types: Vec<PersistedEntityType>,
 }

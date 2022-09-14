@@ -20,6 +20,8 @@ use axum::{
     routing::get,
     Extension, Json, Router,
 };
+use error_stack::Report;
+use futures::TryFutureExt;
 use include_dir::{include_dir, Dir};
 use utoipa::{
     openapi::{self, schema, ObjectBuilder},
@@ -62,6 +64,21 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
     ]
 }
 
+fn report_to_status_code<C>(report: &Report<C>) -> StatusCode {
+    let mut status_code = StatusCode::INTERNAL_SERVER_ERROR;
+
+    if let Some(error) = report.downcast_ref::<ExpressionError>() {
+        tracing::error!(%error, "Could not evaluate expression");
+        status_code = StatusCode::UNPROCESSABLE_ENTITY;
+    }
+
+    if let Some(error) = report.downcast_ref::<ResolveError>() {
+        tracing::error!(%error, "Unable to resolve query");
+        status_code = StatusCode::UNPROCESSABLE_ENTITY;
+    }
+    status_code
+}
+
 async fn read_from_store<'pool, P, T>(
     pool: &'pool P,
     query: &<P::Store<'pool> as Read<T>>::Query<'_>,
@@ -70,28 +87,25 @@ where
     P: StorePool<Store<'pool>: Read<T>>,
     T: Send,
 {
-    let store = pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire access to the store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    // TODO: Implement `Valuable` for queries and print them here
-    store.read(query).await.map_err(|report| {
-        let mut status_code = StatusCode::INTERNAL_SERVER_ERROR;
-
-        if let Some(error) = report.downcast_ref::<ExpressionError>() {
-            tracing::error!(%error, "Could not evaluate expression");
-            status_code = StatusCode::UNPROCESSABLE_ENTITY;
-        }
-
-        if let Some(error) = report.downcast_ref::<ResolveError>() {
-            tracing::error!(%error, "Unable to resolve query");
-            status_code = StatusCode::UNPROCESSABLE_ENTITY;
-        }
-
-        tracing::error!(error=?report, ?query, "Could not read from the store");
-        status_code
-    })
+    pool.acquire()
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not acquire access to the store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })
+        .and_then(|store| async move {
+            // TODO: Closure is taking reference of `store` to `read()`, so the read operation
+            //       needs to be awaited on. By passing through a stream we could avoid awaiting and
+            //       remove the `async move` closure
+            //   see https://app.asana.com/0/1202805690238892/1202923536131158/f
+            Read::read(&store, query)
+                .map_err(|report| {
+                    // TODO: Implement `Valuable` for queries and print them here
+                    tracing::error!(error=?report, ?query, "Could not read from the store");
+                    report_to_status_code(&report)
+                })
+                .await
+        })
+        .await
 }
 
 pub fn rest_api_router<P: StorePool + Send + 'static>(

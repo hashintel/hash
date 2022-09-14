@@ -16,11 +16,15 @@ use crate::store::QueryError;
 /// Read access to a [`Store`].
 ///
 /// [`Store`]: crate::store::Store
+// TODO: Use queries, which are passed to the query-endpoint
+//   see https://app.asana.com/0/1202805690238892/1202979057056097/f
 #[async_trait]
 pub trait Read<T: Send>: Sync {
     // TODO: Implement `Valuable` for queries and use them directly
     type Query<'q>: Debug + Sync;
 
+    // TODO: Return a stream of `T` instead
+    //   see https://app.asana.com/0/1202805690238892/1202923536131158/f
     /// Returns a value from the [`Store`] specified by the passed `query`.
     ///
     /// [`Store`]: crate::store::Store

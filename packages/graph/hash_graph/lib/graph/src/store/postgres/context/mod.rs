@@ -74,6 +74,7 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
         ontology::read_versioned_type(&self.client, uri)
             .await
             .attach_printable("could not read ontology type")
+            .attach_printable_lazy(|| uri.clone())
     }
 
     async fn read_all_entities(&self) -> Result<entity::RecordStream, QueryError> {
@@ -89,6 +90,7 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
         entity::read_latest_entity_by_id(&self.client, entity_id)
             .await
             .attach_printable("could not read entity")
+            .attach_printable(entity_id)
     }
 
     async fn read_all_links(&self) -> Result<links::RecordStream, QueryError> {
@@ -104,7 +106,7 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
         links::read_links_by_source(&self.client, entity_id)
             .await
             .attach_printable("could not read outgoing links")
-            .attach_printable_lazy(|| format!("source entity: {entity_id}"))
+            .attach_printable(entity_id)
     }
 
     async fn read_links_by_target(

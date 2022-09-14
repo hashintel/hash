@@ -9,16 +9,18 @@ use axum::{
     Extension, Json, Router,
 };
 use error_stack::IntoReport;
+use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
 use type_system::{uri::VersionedUri, DataType};
 use utoipa::{Component, OpenApi};
 
 use super::api_resource::RoutedResource;
 use crate::{
-    api::rest::read_from_store,
+    api::rest::{read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, AccountId, PersistedDataType, PersistedOntologyIdentifier,
+        patch_id_and_parse, AccountId, DataTypeQuery, DataTypeRootedSubgraph, PersistedDataType,
+        PersistedOntologyIdentifier,
     },
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool,
@@ -40,6 +42,8 @@ use crate::{
         AccountId,
         PersistedOntologyIdentifier,
         PersistedDataType,
+        DataTypeQuery,
+        DataTypeRootedSubgraph,
     ),
     tags(
         (name = "DataType", description = "Data Type management API")
@@ -135,7 +139,7 @@ async fn create_data_type<P: StorePool + Send>(
     request_body = Expression,
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all data types matching the provided query", body = [PersistedDataType]),
+        (status = 200, content_type = "application/json", body = [DataTypeRootedSubgraph], description = "A list of subgraphs rooted at data types that satisfy the given query, each resolved to the requested depth."),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
@@ -143,9 +147,21 @@ async fn create_data_type<P: StorePool + Send>(
 )]
 async fn get_data_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    Json(expression): Json<Expression>,
-) -> Result<Json<Vec<PersistedDataType>>, StatusCode> {
-    read_from_store(pool.as_ref(), &expression).await.map(Json)
+    Json(query): Json<DataTypeQuery>,
+) -> Result<Json<Vec<DataTypeRootedSubgraph>>, StatusCode> {
+    pool.acquire()
+        .map_err(|error| {
+            tracing::error!(?error, "Could not acquire access to the store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })
+        .and_then(|store| async move {
+            store.get_data_type(&query).await.map_err(|report| {
+                tracing::error!(error=?report, ?query, "Could not read data types from the store");
+                report_to_status_code(&report)
+            })
+        })
+        .await
+        .map(Json)
 }
 
 #[utoipa::path(

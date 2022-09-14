@@ -6,6 +6,8 @@ mod read;
 
 use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
 
+pub use self::read::PersistedOntologyType;
+
 /// Provides an abstraction over elements of the Type System stored in the Database.
 ///
 /// [`PostgresDatabase`]: crate::store::PostgresDatabase

@@ -19,8 +19,10 @@ pub use self::{
 use crate::{
     knowledge::{Entity, EntityId, Link, PersistedEntity, PersistedEntityIdentifier},
     ontology::{
-        AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
-        PersistedOntologyIdentifier, PersistedPropertyType,
+        AccountId, DataTypeQuery, DataTypeRootedSubgraph, EntityTypeQuery,
+        EntityTypeRootedSubgraph, LinkTypeQuery, LinkTypeRootedSubgraph, PersistedDataType,
+        PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier, PersistedPropertyType,
+        PropertyTypeQuery, PropertyTypeRootedSubgraph,
     },
     store::{error::LinkRemovalError, query::Expression},
 };
@@ -219,10 +221,8 @@ pub trait DataTypeStore: for<'q> crud::Read<PersistedDataType, Query<'q> = Expre
     /// - if the requested [`DataType`] doesn't exist.
     async fn get_data_type(
         &self,
-        query: &Expression,
-    ) -> Result<Vec<PersistedDataType>, QueryError> {
-        self.read(query).await
-    }
+        query: &DataTypeQuery,
+    ) -> Result<Vec<DataTypeRootedSubgraph>, QueryError>;
 
     /// Update the definition of an existing [`DataType`].
     ///
@@ -262,10 +262,8 @@ pub trait PropertyTypeStore:
     /// - if the requested [`PropertyType`] doesn't exist.
     async fn get_property_type(
         &self,
-        query: &Expression,
-    ) -> Result<Vec<PersistedPropertyType>, QueryError> {
-        self.read(query).await
-    }
+        query: &PropertyTypeQuery,
+    ) -> Result<Vec<PropertyTypeRootedSubgraph>, QueryError>;
 
     /// Update the definition of an existing [`PropertyType`].
     ///
@@ -303,10 +301,8 @@ pub trait EntityTypeStore: for<'q> crud::Read<PersistedEntityType, Query<'q> = E
     /// - if the requested [`EntityType`] doesn't exist.
     async fn get_entity_type(
         &self,
-        query: &Expression,
-    ) -> Result<Vec<PersistedEntityType>, QueryError> {
-        self.read(query).await
-    }
+        query: &EntityTypeQuery,
+    ) -> Result<Vec<EntityTypeRootedSubgraph>, QueryError>;
 
     /// Update the definition of an existing [`EntityType`].
     ///
@@ -344,10 +340,8 @@ pub trait LinkTypeStore: for<'q> crud::Read<PersistedLinkType, Query<'q> = Expre
     /// - if the requested [`LinkType`] doesn't exist.
     async fn get_link_type(
         &self,
-        query: &Expression,
-    ) -> Result<Vec<PersistedLinkType>, QueryError> {
-        self.read(query).await
-    }
+        query: &LinkTypeQuery,
+    ) -> Result<Vec<LinkTypeRootedSubgraph>, QueryError>;
 
     /// Update the definition of an existing [`LinkType`].
     ///
