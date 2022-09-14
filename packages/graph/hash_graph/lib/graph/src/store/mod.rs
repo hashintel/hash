@@ -365,11 +365,13 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
     /// - if the [`EntityType`] doesn't exist
     /// - if the [`Entity`] is not valid with respect to the specified [`EntityType`]
     /// - if the account referred to by `created_by` does not exist
+    /// - if an [`EntityId`] was supplied and already exists in the store
     async fn create_entity(
         &mut self,
         entity: Entity,
         entity_type_uri: VersionedUri,
         created_by: AccountId,
+        entity_id: Option<EntityId>,
     ) -> Result<PersistedEntityIdentifier, InsertionError>;
 
     /// Get the [`PersistedEntity`] specified by the [`Expression`].

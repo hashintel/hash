@@ -11,7 +11,6 @@ export let WORKSPACE_TYPES: {
   dataType: {};
   propertyType: {
     // General account related
-    accountId: PropertyTypeModel;
     shortName: PropertyTypeModel;
 
     // User-related
@@ -62,9 +61,6 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
   const shortnamePropertyTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.propertyType.shortName(graphApi);
 
-  const accountIdPropertyTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.propertyType.accountId(graphApi);
-
   const orgNamePropertyTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.propertyType.orgName(graphApi);
 
@@ -82,11 +78,6 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
         required: true,
       },
       {
-        baseUri: accountIdPropertyTypeModel.baseUri,
-        versionedUri: accountIdPropertyTypeModel.schema.$id,
-        required: true,
-      },
-      {
         baseUri: orgNamePropertyTypeModel.baseUri,
         versionedUri: orgNamePropertyTypeModel.schema.$id,
         required: true,
@@ -99,12 +90,6 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
     ],
   })(graphApi);
 };
-
-const accountIdPropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Account ID",
-  possibleValues: [{ primitiveDataType: "Text" }],
-});
 
 const shortnamePropertyTypeInitializer = propertyTypeInitializer({
   namespace: WORKSPACE_ACCOUNT_SHORTNAME,
@@ -152,8 +137,6 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
 
   const kratosIdentityIdPropertyTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.propertyType.kratosIdentityId(graphApi);
-  const accountIdPropertyTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.propertyType.accountId(graphApi);
 
   const preferredNamePropertyTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.propertyType.preferredName(graphApi);
@@ -179,11 +162,6 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
         required: true,
       },
       {
-        baseUri: accountIdPropertyTypeModel.baseUri,
-        versionedUri: accountIdPropertyTypeModel.schema.$id,
-        required: true,
-      },
-      {
         baseUri: preferredNamePropertyTypeModel.baseUri,
         versionedUri: preferredNamePropertyTypeModel.schema.$id,
         required: true,
@@ -205,7 +183,6 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
 > = {
   dataType: {},
   propertyType: {
-    accountId: accountIdPropertyTypeInitializer,
     shortName: shortnamePropertyTypeInitializer,
 
     email: emailPropertyTypeInitializer,

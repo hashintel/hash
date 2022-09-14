@@ -38,20 +38,20 @@ describe("Org model class", () => {
   });
 
   it("can get the account id", () => {
-    expect(createdOrg.getAccountId()).toBeDefined();
+    expect(createdOrg.entityId).toBeDefined();
   });
 
   it("can update the shortname of an org", async () => {
     shortname = "test-org-updated";
     createdOrg = await createdOrg.updateShortname(graphApi, {
-      updatedByAccountId: createdOrg.getAccountId(),
+      updatedByAccountId: createdOrg.entityId,
       updatedShortname: shortname,
     });
   });
 
   it("can update the preferred name of an org", async () => {
     createdOrg = await createdOrg.updateOrgName(graphApi, {
-      updatedByAccountId: createdOrg.getAccountId(),
+      updatedByAccountId: createdOrg.entityId,
       updatedOrgName: "The testing org",
     });
   });

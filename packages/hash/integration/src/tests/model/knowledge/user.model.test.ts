@@ -58,19 +58,19 @@ describe("User model class", () => {
   });
 
   it("can get the account id", () => {
-    expect(createdUser.getAccountId()).toBeDefined();
+    expect(createdUser.entityId).toBeDefined();
   });
 
   it("can update the shortname of a user", async () => {
     createdUser = await createdUser.updateShortname(graphApi, {
-      updatedByAccountId: createdUser.getAccountId(),
+      updatedByAccountId: createdUser.entityId,
       updatedShortname: shortname,
     });
   });
 
   it("can update the preferred name of a user", async () => {
     createdUser = await createdUser.updatePreferredName(graphApi, {
-      updatedByAccountId: createdUser.getAccountId(),
+      updatedByAccountId: createdUser.entityId,
       updatedPreferredName: "Alice",
     });
   });

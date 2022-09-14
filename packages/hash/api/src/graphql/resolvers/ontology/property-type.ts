@@ -27,7 +27,7 @@ export const createPropertyType: ResolverFn<
   const { accountId, propertyType } = params;
 
   const createdPropertyTypeModel = await PropertyTypeModel.create(graphApi, {
-    accountId: accountId ?? user.getAccountId(),
+    accountId: accountId ?? user.entityId,
     schema: propertyType,
   }).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
@@ -47,7 +47,7 @@ export const getAllLatestPropertyTypes: ResolverFn<
   const propertyTypeSubgraphs = await PropertyTypeModel.getAllLatestResolved(
     graphApi,
     {
-      accountId: user.getAccountId(),
+      accountId: user.entityId,
       dataTypeQueryDepth: dataTypeQueryDepth(info),
       propertyTypeQueryDepth: propertyTypeQueryDepth(info),
     },
@@ -103,7 +103,7 @@ export const updatePropertyType: ResolverFn<
 
   const updatedPropertyTypeModel = await propertyTypeModel
     .update(graphApi, {
-      accountId: accountId ?? user.getAccountId(),
+      accountId: accountId ?? user.entityId,
       schema: updatedPropertyType,
     })
     .catch((err: AxiosError) => {

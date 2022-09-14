@@ -86,6 +86,12 @@ export interface CreateEntityRequest {
    * @type {string}
    * @memberof CreateEntityRequest
    */
+  entityId?: string;
+  /**
+   *
+   * @type {string}
+   * @memberof CreateEntityRequest
+   */
   entityTypeUri: string;
 }
 /**

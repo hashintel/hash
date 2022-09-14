@@ -283,9 +283,10 @@ impl DatabaseApi<'_> {
         &mut self,
         entity: Entity,
         entity_type_uri: VersionedUri,
+        entity_id: Option<EntityId>,
     ) -> Result<PersistedEntityIdentifier, InsertionError> {
         self.store
-            .create_entity(entity, entity_type_uri, self.account_id)
+            .create_entity(entity, entity_type_uri, self.account_id, entity_id)
             .await
     }
 
