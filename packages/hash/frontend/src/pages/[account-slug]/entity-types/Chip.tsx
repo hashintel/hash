@@ -67,10 +67,37 @@ export const OurChip = ({
         {domain}
       </Typography>
     </Stack>
-    <Stack direction="row" alignItems="center" pr={1.25} pl="4px">
-      <Typography component="span" color={(theme) => theme.palette.blue[70]}>
-        {path}
-      </Typography>
-    </Stack>
+    <Typography
+      component={Stack}
+      direction="row"
+      sx={(theme) => ({
+        alignItems: "center",
+        pr: 1.25,
+        pl: "4px",
+        color: theme.palette.gray[60],
+        display: "flex",
+        flexShrink: 1,
+        minWidth: 0,
+
+        [`.${typographyClasses.root}`]: {
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+
+          "&:last-child": {
+            // Place the overflow ellipsis at the beginning, not the end
+            "&:before": {
+              // Ensure special characters aren't placed at the end
+              // @see https://stackoverflow.com/questions/9793473/text-overflow-ellipsis-on-left-side#comment82783230_9793669
+              content: '"\\00200e"',
+            },
+            direction: "rtl",
+            textAlign: "left",
+          },
+        },
+      })}
+    >
+      {path}
+    </Typography>
   </Stack>
 );
