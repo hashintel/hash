@@ -962,7 +962,7 @@ export interface RemoveLinkRequest {
    * @type {string}
    * @memberof RemoveLinkRequest
    */
-  removedBy: string;
+  removedById: string;
   /**
    *
    * @type {string}

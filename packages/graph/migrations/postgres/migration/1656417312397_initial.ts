@@ -389,7 +389,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "TIMESTAMP WITH TIME ZONE",
         notNull: true,
       },
-      removed_by: {
+      removed_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",

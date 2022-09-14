@@ -738,7 +738,7 @@ where
     async fn move_link_to_history(
         &self,
         link: &Link,
-        removed_by: AccountId,
+        removed_by_id: AccountId,
     ) -> Result<(), LinkRemovalError> {
         let link_type_version_id = self
             .version_id_by_uri(link.link_type_uri())
@@ -761,8 +761,8 @@ where
                     link_order, owned_by_id, created_at
                 )
                 INSERT INTO link_histories(source_entity_id, target_entity_id, link_type_version_id,
-                    link_order, owned_by_id, created_at, removed_by, removed_at)
-                -- When inserting into `link_histories`, `removed_by` and `removed_at` are provided
+                    link_order, owned_by_id, created_at, removed_by_id, removed_at)
+                -- When inserting into `link_histories`, `removed_by_id` and `removed_at` are provided
                 SELECT *, $4, clock_timestamp() FROM removed
                 RETURNING source_entity_id, target_entity_id, link_type_version_id;
                 "#,
@@ -770,7 +770,7 @@ where
                     &link.source_entity(),
                     &link.target_entity(),
                     &link_type_version_id,
-                    &removed_by,
+                    &removed_by_id,
                 ],
             )
             .await

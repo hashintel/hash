@@ -435,6 +435,6 @@ pub trait LinkStore: for<'q> crud::Read<Link, Query<'q> = Expression> {
     async fn remove_link(
         &mut self,
         link: &Link,
-        removed_by: AccountId,
+        removed_by_id: AccountId,
     ) -> Result<(), LinkRemovalError>;
 }
