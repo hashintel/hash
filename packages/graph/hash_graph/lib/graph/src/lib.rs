@@ -46,6 +46,14 @@
     clippy::use_debug,
     clippy::verbose_file_reads
 )]
+// Until we do optimization work, there should be no reason to use unsafe code. When allowing unsafe
+// again don't forget to enable miri in the `Makefile.toml`. When allowing unsafe code again, we
+// should prefer `#![deny(unsafe_code)]` and only allow it in a few places unless this gets very
+// verbose.
+#![forbid(
+    unsafe_code,
+    reason = "At the current state, unsafe code should be avoided"
+)]
 #![allow(
     clippy::module_name_repetitions,
     reason = "This encourages importing `as` which breaks IDEs"
