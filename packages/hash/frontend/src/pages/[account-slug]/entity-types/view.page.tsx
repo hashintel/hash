@@ -39,16 +39,20 @@ import {
   ListItem,
   menuItemClasses,
   listItemClasses,
-  typographyClasses,
   ListItemText,
   listItemTextClasses,
+  ButtonBase,
+  tableRowClasses,
+  IconButtonProps,
+  TableFooter,
+  tableHeadClasses,
+  tableBodyClasses,
 } from "@mui/material";
 import { bindMenu, bindTrigger } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import Image from "next/image";
 import { useId, useState } from "react";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
-import { Button } from "../../../shared/ui/button";
 import { TopContextBar } from "../../shared/top-context-bar";
 import { OurChip, placeholderUri } from "./Chip";
 
@@ -62,7 +66,7 @@ const WhiteCard = ({
   const cardContent = (
     <CardContent
       sx={{
-        p: 0,
+        p: "0 !important",
         background: "white",
       }}
     >
@@ -122,7 +126,15 @@ const PropertyMenu = () => {
 
   return (
     <>
-      <IconButton {...bindTrigger(popupState)}>
+      <IconButton
+        sx={{
+          opacity: 0,
+          [`.${tableRowClasses.root}:hover &`]: {
+            opacity: 1,
+          },
+        }}
+        {...bindTrigger(popupState)}
+      >
         <FontAwesomeIcon
           icon={faEllipsis}
           sx={(theme) => ({
@@ -271,21 +283,46 @@ const InsertPropertyCard = () => (
     <Box sx={{ p: 0.5 }}>
       <Table
         sx={(theme) => ({
+          [`.${tableCellClasses.root}`]: {
+            pl: 3.5,
+            pr: 1,
+            py: 1.5,
+            border: "none",
+          },
           [`.${tableCellClasses.head}`]: {
-            px: 2,
             py: 1.5,
             borderBottom: "solid",
             borderColor: theme.palette.gray[20],
             fontWeight: "inherit",
             lineHeight: "inherit",
           },
+          [`.${tableBodyClasses.root}:before`]: {
+            lineHeight: "6px",
+            content: `"\\200C"`,
+            display: "block",
+          },
           [`.${tableCellClasses.head}:not(:first-child)`]: {
             width: 0,
             whiteSpace: "nowrap",
           },
           [`.${tableCellClasses.body} .${checkboxClasses.root}`]: {
-            margin: "0 auto",
             textAlign: "center",
+            display: "block",
+          },
+          [`.${tableBodyClasses.root} .${tableRowClasses.root}`]: {
+            [`.${tableCellClasses.root}`]: {
+              "&:first-child": {
+                borderTopLeftRadius: 1,
+                borderBottomLeftRadius: 1,
+              },
+              "&:last-child": {
+                borderTopRightRadius: 1,
+                borderBottomRightRadius: 1,
+              },
+            },
+            [`&:hover .${tableCellClasses.root}`]: {
+              background: theme.palette.gray[10],
+            },
           },
         })}
       >
@@ -306,6 +343,28 @@ const InsertPropertyCard = () => (
           </Typography>
         </TableHead>
         <TableBody>
+          <TableRow>
+            <Typography
+              component={TableCell}
+              variant="smallText"
+              fontWeight={500}
+            >
+              Share Price
+            </Typography>
+            <TableCell>
+              <Chip label="Number" />
+            </TableCell>
+            <TableCell>
+              <Checkbox />
+            </TableCell>
+            <TableCell>
+              <Checkbox />
+            </TableCell>
+            <TableCell>{input}</TableCell>
+            <TableCell>
+              <PropertyMenu />
+            </TableCell>
+          </TableRow>
           <TableRow>
             <TableCell colSpan={2}>
               <TextField
@@ -336,37 +395,45 @@ const InsertPropertyCard = () => (
               <PropertyMenu />
             </TableCell>
           </TableRow>
-          <TableRow>
-            <TableCell>Share Price</TableCell>
-            <TableCell>
-              <Chip label="Number" />
-            </TableCell>
-            <TableCell>
-              <Checkbox />
-            </TableCell>
-            <TableCell>
-              <Checkbox />
-            </TableCell>
-            <TableCell>{input}</TableCell>
-            <TableCell>
-              <PropertyMenu />
-            </TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell colSpan={6} sx={{ textAlign: "center" }}>
-              <Button
-                onClick={() => alert("Add a property")}
-                variant="tertiary_quiet"
-                startIcon={
-                  // @todo must be outlijned
-                  <FontAwesomeIcon icon={faPlusCircle} sx={{ fontSize: 12 }} />
-                }
-              >
-                Add a property
-              </Button>
-            </TableCell>
-          </TableRow>
         </TableBody>
+        <TableFooter>
+          <TableRow>
+            <TableCell
+              colSpan={
+                // Sufficiently large to span full width
+                100
+              }
+              sx={{
+                p: "0 !important",
+              }}
+            >
+              <ButtonBase
+                disableRipple
+                disableTouchRipple
+                onClick={() => alert("Add a property")}
+                sx={(theme) => ({
+                  color: theme.palette.gray[50],
+                  py: 1.5,
+                  width: "100%",
+                  borderRadius: 1,
+                  "&:hover": {
+                    backgroundColor: theme.palette.gray[10],
+                    color: theme.palette.gray[70],
+                  },
+                })}
+              >
+                {/*@todo must be outlijned*/}
+                <FontAwesomeIcon
+                  icon={faPlusCircle}
+                  sx={{ fontSize: 12, mr: 1 }}
+                />
+                <Typography variant="smallText" fontWeight={500}>
+                  Add a property
+                </Typography>
+              </ButtonBase>
+            </TableCell>
+          </TableRow>
+        </TableFooter>
       </Table>
     </Box>
   </WhiteCard>
