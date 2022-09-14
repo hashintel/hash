@@ -28,7 +28,7 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`PersistedLinkType`] into a [`HashMap`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    pub(crate) async fn get_link_type_as_dependency<'a>(
+    pub(crate) async fn get_link_type_as_dependency(
         &self,
         link_type_uri: &VersionedUri,
         context: LinkTypeDependencyContext<'_>,
