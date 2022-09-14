@@ -48,7 +48,7 @@ export default class extends EntityModel {
           WORKSPACE_TYPES.entityType.user.schema.$id,
       )
       .map((entityModel) => new UserModel(entityModel))
-      .find((user) => user.getAccountId() === params.accountId);
+      .find((user) => user.entityId === params.accountId);
 
     return matchingUser ?? null;
   }
@@ -171,7 +171,6 @@ export default class extends EntityModel {
     const properties: object = {
       [WORKSPACE_TYPES.propertyType.email.baseUri]: emails,
       [WORKSPACE_TYPES.propertyType.kratosIdentityId.baseUri]: kratosIdentityId,
-      [WORKSPACE_TYPES.propertyType.accountId.baseUri]: userAccountId,
       [WORKSPACE_TYPES.propertyType.shortName.baseUri]: undefined,
       [WORKSPACE_TYPES.propertyType.preferredName.baseUri]: undefined,
     };
@@ -184,6 +183,7 @@ export default class extends EntityModel {
       accountId: workspaceAccountId,
       properties,
       entityTypeModel,
+      entityId: userAccountId,
     });
 
     return new UserModel({
@@ -367,12 +367,6 @@ export default class extends EntityModel {
   getKratosIdentityId(): string {
     return (this.properties as any)[
       WORKSPACE_TYPES.propertyType.kratosIdentityId.baseUri
-    ];
-  }
-
-  getAccountId(): string {
-    return (this.properties as any)[
-      WORKSPACE_TYPES.propertyType.accountId.baseUri
     ];
   }
 

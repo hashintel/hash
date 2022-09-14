@@ -22,7 +22,7 @@ export const createLinkType: ResolverFn<
   const { accountId, linkType } = params;
 
   const createdLinkTypeModel = await LinkTypeModel.create(graphApi, {
-    accountId: accountId ?? user.getAccountId(),
+    accountId: accountId ?? user.entityId,
     schema: linkType,
   }).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
@@ -40,7 +40,7 @@ export const getAllLatestLinkTypes: ResolverFn<
   const { graphApi } = dataSources;
 
   const allLatestLinkTypeModels = await LinkTypeModel.getAllLatest(graphApi, {
-    accountId: user.getAccountId(),
+    accountId: user.entityId,
   }).catch((err: AxiosError) => {
     throw new ApolloError(
       `Unable to retrieve all latest link types. ${err.response?.data}`,
@@ -93,7 +93,7 @@ export const updateLinkType: ResolverFn<
 
   const updatedLinkTypeModel = await linkTypeModel
     .update(graphApi, {
-      accountId: accountId ?? user.getAccountId(),
+      accountId: accountId ?? user.entityId,
       schema: updatedLinkType,
     })
     .catch((err: AxiosError) => {

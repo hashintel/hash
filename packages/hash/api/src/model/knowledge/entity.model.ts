@@ -20,6 +20,7 @@ export type EntityModelCreateParams = {
   accountId: string;
   properties: object;
   entityTypeModel: EntityTypeModel;
+  entityId?: string;
 };
 
 /**
@@ -86,7 +87,12 @@ export default class {
    */
   static async create(
     graphApi: GraphApi,
-    { accountId, entityTypeModel, properties }: EntityModelCreateParams,
+    {
+      accountId,
+      entityTypeModel,
+      properties,
+      entityId: overrideEntityId,
+    }: EntityModelCreateParams,
   ): Promise<EntityModel> {
     const {
       data: { entityId, version },
@@ -94,6 +100,7 @@ export default class {
       accountId,
       entityTypeUri: entityTypeModel.schema.$id,
       entity: properties,
+      entityId: overrideEntityId,
     });
 
     return new EntityModel({

@@ -17,7 +17,7 @@ export const mapUserModelToGQL = async (
   user: UserModel,
 ): Promise<UnresolvedGQLUser> => {
   return {
-    accountId: user.getAccountId(),
+    accountId: user.entityId,
     id: user.entityId,
     entityId: user.entityId,
     entityVersionId: user.version,

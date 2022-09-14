@@ -51,7 +51,6 @@ export default class extends EntityModel {
     const { data: orgAccountId } = await graphApi.createAccountId();
 
     const properties: object = {
-      [WORKSPACE_TYPES.propertyType.accountId.baseUri]: orgAccountId,
       [WORKSPACE_TYPES.propertyType.shortName.baseUri]: shortname,
       [WORKSPACE_TYPES.propertyType.orgName.baseUri]: name,
       [WORKSPACE_TYPES.propertyType.orgProvidedInfo.baseUri]: providedInfo
@@ -70,6 +69,7 @@ export default class extends EntityModel {
       accountId: workspaceAccountId,
       properties,
       entityTypeModel,
+      entityId: orgAccountId,
     });
 
     return new OrgModel({
@@ -116,12 +116,6 @@ export default class extends EntityModel {
       .find((org) => org.getShortname() === params.shortname);
 
     return matchingOrg ?? null;
-  }
-
-  getAccountId(): string {
-    return (this.properties as any)[
-      WORKSPACE_TYPES.propertyType.accountId.baseUri
-    ];
   }
 
   getShortname(): string {

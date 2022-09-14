@@ -19,7 +19,7 @@ export const getAllLatestDataTypes: ResolverFn<
   const { graphApi } = dataSources;
 
   const allLatestDataTypeModels = await DataTypeModel.getAllLatest(graphApi, {
-    accountId: user.getAccountId(),
+    accountId: user.entityId,
   }).catch((err: AxiosError) => {
     throw new ApolloError(
       `Unable to retrieve all latest data types. ${err.response?.data}`,
