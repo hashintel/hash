@@ -138,7 +138,7 @@ async fn create_link_type<P: StorePool + Send>(
     request_body = LinkTypeQuery,
     tag = "LinkType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all link types matching the provided query", body = [LinkTypeRootedSubgraph]),
+        (status = 200, content_type = "application/json", description = "A list of subgraphs rooted at link types that satisfy the given query, each resolved to the requested depth.", body = [LinkTypeRootedSubgraph]),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
