@@ -3,8 +3,12 @@ import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/syste
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { logger } from "../logger";
 
-import { EntityTypeModel, PropertyTypeModel } from "../model";
-import { propertyTypeInitializer, entityTypeInitializer } from "../model/util";
+import { EntityTypeModel, LinkTypeModel, PropertyTypeModel } from "../model";
+import {
+  propertyTypeInitializer,
+  entityTypeInitializer,
+  linkTypeInitializer,
+} from "../model/util";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let WORKSPACE_TYPES: {
@@ -22,12 +26,22 @@ export let WORKSPACE_TYPES: {
     orgName: PropertyTypeModel;
     orgSize: PropertyTypeModel;
     orgProvidedInfo: PropertyTypeModel;
+
+    // OrgMembership-related
+    role: PropertyTypeModel;
   };
   entityType: {
     user: EntityTypeModel;
     org: EntityTypeModel;
+    orgMembership: EntityTypeModel;
   };
-  linkType: {};
+  linkType: {
+    // User-related
+    orgMembership: LinkTypeModel;
+
+    // OrgMembership-related
+    org: LinkTypeModel;
+  };
 };
 
 // Generate the schema for the org provided info property type
@@ -88,6 +102,41 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
         required: false,
       },
     ],
+    outgoingLinks: [],
+  })(graphApi);
+};
+
+const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+  const rolePropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.role(graphApi);
+
+  const orgEntityTypeModel = await WORKSPACE_TYPES_INITIALIZERS.entityType.org(
+    graphApi,
+  );
+
+  const orgLinkTypeModel = await WORKSPACE_TYPES_INITIALIZERS.linkType.org(
+    graphApi,
+  );
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+    title: "OrgMembership",
+    properties: [
+      {
+        baseUri: rolePropertyTypeModel.baseUri,
+        versionedUri: rolePropertyTypeModel.schema.$id,
+        required: true,
+      },
+    ],
+    outgoingLinks: [
+      {
+        versionedUri: orgLinkTypeModel.schema.$id,
+        destinationVersionedUri: orgEntityTypeModel.schema.$id,
+        required: true,
+      },
+    ],
   })(graphApi);
 };
 
@@ -127,6 +176,24 @@ const preferredNamePropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
+const rolePropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Role",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+const orgLinkTypeInitializer = linkTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Org",
+  description: "The organization of an org membership",
+});
+
+const orgMembershipLinkTypeInitializer = linkTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Org Membership",
+  description: "An org membership of a user",
+});
+
 const userEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
   const shortnamePropertyTypeModel =
@@ -140,6 +207,13 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
 
   const preferredNamePropertyTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.propertyType.preferredName(graphApi);
+
+  const orgMembershipLinkTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.linkType.orgMembership(graphApi);
+
+  const orgMembershipEntityTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.entityType.orgMembership(graphApi);
+
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -167,6 +241,12 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
         required: true,
       },
     ],
+    outgoingLinks: [
+      {
+        versionedUri: orgMembershipLinkTypeModel.schema.$id,
+        destinationVersionedUri: orgMembershipEntityTypeModel.schema.$id,
+      },
+    ],
   })(graphApi);
 };
 
@@ -192,12 +272,18 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     orgName: orgNamePropertyTypeInitializer,
     orgSize: orgSizePropertyTypeInitializer,
     orgProvidedInfo: orgProvidedInfoPropertyTypeInitializer,
+
+    role: rolePropertyTypeInitializer,
   },
   entityType: {
     user: userEntityTypeInitializer,
     org: orgEntityTypeInitializer,
+    orgMembership: orgMembershipEntityTypeInitializer,
   },
-  linkType: {},
+  linkType: {
+    org: orgLinkTypeInitializer,
+    orgMembership: orgMembershipLinkTypeInitializer,
+  },
 };
 
 /**

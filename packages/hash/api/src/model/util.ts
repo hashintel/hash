@@ -3,10 +3,12 @@ import {
   EntityType,
   PropertyValues,
   VersionedUri,
+  BaseUri,
+  LinkType,
 } from "@blockprotocol/type-system-web";
 import { AxiosError } from "axios";
 import slugify from "slugify";
-import { EntityTypeModel, PropertyTypeModel } from ".";
+import { EntityTypeModel, LinkTypeModel, PropertyTypeModel } from ".";
 import { GraphApi } from "../graph";
 import { FRONTEND_URL } from "../lib/config";
 import { logger } from "../logger";
@@ -266,14 +268,19 @@ export const propertyTypeInitializer = (
   };
 };
 
-export type EntityCreatorParams = {
+export type EntityTypeCreatorParams = {
   namespace: string;
   title: string;
   properties: {
-    baseUri: string;
+    baseUri: BaseUri;
     versionedUri: string;
     required?: boolean;
     array?: { minItems?: number; maxItems?: number } | boolean;
+  }[];
+  outgoingLinks: {
+    versionedUri: string;
+    destinationVersionedUri: string;
+    required?: boolean;
   }[];
 };
 
@@ -284,7 +291,7 @@ export type EntityCreatorParams = {
  *   https://app.asana.com/0/1202805690238892/1202892835843657/f
  */
 export const generateWorkspaceEntityTypeSchema = (
-  params: EntityCreatorParams,
+  params: EntityTypeCreatorParams,
 ): EntityType => {
   const $id = generateSchemaUri({
     namespace: params.namespace,
@@ -320,6 +327,18 @@ export const generateWorkspaceEntityTypeSchema = (
     .filter(({ required }) => !!required)
     .map(({ baseUri }) => baseUri);
 
+  const links: EntityType["links"] = params.outgoingLinks.reduce(
+    (prev, { versionedUri, destinationVersionedUri }) => ({
+      ...prev,
+      [versionedUri]: { $ref: destinationVersionedUri },
+    }),
+    {},
+  );
+
+  const requiredLinks = params.outgoingLinks
+    .filter(({ required }) => !!required)
+    .map(({ versionedUri }) => versionedUri);
+
   return {
     $id,
     title: params.title,
@@ -328,6 +347,8 @@ export const generateWorkspaceEntityTypeSchema = (
     kind: "entityType",
     properties,
     required: requiredProperties,
+    links,
+    requiredLinks,
   };
 };
 
@@ -340,7 +361,7 @@ export const generateWorkspaceEntityTypeSchema = (
  * @returns an async function which can be called to initialize the entity type, returning its EntityTypeModel
  */
 export const entityTypeInitializer = (
-  params: EntityCreatorParams,
+  params: EntityTypeCreatorParams,
 ): ((graphApi: GraphApi) => Promise<EntityTypeModel>) => {
   let entityTypeModel: EntityTypeModel;
 
@@ -376,6 +397,87 @@ export const entityTypeInitializer = (
       });
 
       return entityTypeModel;
+    }
+  };
+};
+
+export type LinkTypeCreatorParams = {
+  namespace: string;
+  title: string;
+  description: string;
+  relatedKeywords?: string[];
+};
+
+/**
+ * Helper method for generating an link type schema for the Graph API.
+ *
+ * @todo make use of new type system package instead of ad-hoc types.
+ *   https://app.asana.com/0/1202805690238892/1202892835843657/f
+ */
+export const generateWorkspaceLinkTypeSchema = (
+  params: LinkTypeCreatorParams,
+): LinkType => {
+  const $id = generateSchemaUri({
+    namespace: params.namespace,
+    title: params.title,
+    kind: "link-type",
+  });
+
+  return {
+    kind: "linkType",
+    $id,
+    title: params.title,
+    pluralTitle: params.title,
+    description: params.description,
+    relatedKeywords: params.relatedKeywords,
+  };
+};
+
+/**
+ * Returns a function which can be used to initialize a given link type. This asynchronous design allows us to express
+ * dependencies between types in a lazy fashion, where the dependencies can be initialized as they're encountered. (This is
+ * likely to cause problems if we introduce circular dependencies)
+ *
+ * @param params the data required to create a new entity type
+ * @returns an async function which can be called to initialize the entity type, returning its EntityTypeModel
+ */
+export const linkTypeInitializer = (
+  params: LinkTypeCreatorParams,
+): ((graphApi: GraphApi) => Promise<LinkTypeModel>) => {
+  let linkTypeModel: LinkTypeModel;
+
+  return async (graphApi?: GraphApi) => {
+    if (linkTypeModel) {
+      return linkTypeModel;
+    } else if (graphApi == null) {
+      throw new Error(
+        `entity type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
+      );
+    } else {
+      const linkType = generateWorkspaceLinkTypeSchema(params);
+
+      // initialize
+      linkTypeModel = await LinkTypeModel.get(graphApi, {
+        versionedUri: linkType.$id,
+      }).catch(async (error: AxiosError) => {
+        if (error.response?.status === 404) {
+          // The type was missing, try and create it
+          return await LinkTypeModel.create(graphApi, {
+            accountId: workspaceAccountId,
+            schema: linkType,
+          }).catch((createError: AxiosError) => {
+            logger.warn(`Failed to create entity type: ${params.title}`);
+            throw createError;
+          });
+        } else {
+          logger.warn(
+            `Failed to check existence of entity type: ${params.title}`,
+          );
+          throw error;
+        }
+      });
+
+      return linkTypeModel;
     }
   };
 };
