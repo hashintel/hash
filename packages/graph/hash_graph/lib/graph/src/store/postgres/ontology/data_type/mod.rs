@@ -14,7 +14,7 @@ use crate::{
         PersistedOntologyIdentifier,
     },
     store::{
-        crud::Read,
+        crud::{QueryDepth, Read},
         postgres::{context::PostgresContext, PersistedOntologyType},
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
@@ -24,7 +24,7 @@ pub struct DataTypeDependencyContext<'a> {
     pub data_type_references: &'a mut HashMap<VersionedUri, PersistedDataType>,
     // TODO: `_data_type_query_depth` is unused until data types can reference other data types
     //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
-    pub _data_type_query_depth: u8,
+    pub _data_type_query_depth: QueryDepth,
 }
 
 impl<C: AsClient> PostgresStore<C> {

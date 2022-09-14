@@ -18,7 +18,7 @@ use crate::{
         PropertyTypeQuery, PropertyTypeRootedSubgraph,
     },
     store::{
-        crud::Read,
+        crud::{QueryDepth, Read},
         postgres::{
             context::PostgresContext, ontology::data_type::DataTypeDependencyContext,
             PersistedOntologyType,
@@ -27,6 +27,13 @@ use crate::{
     },
 };
 
+pub struct PropertyTypeDependencyContext<'a> {
+    pub data_type_references: &'a mut HashMap<VersionedUri, PersistedDataType>,
+    pub property_type_references: &'a mut HashMap<VersionedUri, PersistedPropertyType>,
+    pub data_type_query_depth: QueryDepth,
+    pub property_type_query_depth: QueryDepth,
+}
+
 impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`PersistedPropertyType`] into a [`HashMap`].
     ///
@@ -34,11 +41,15 @@ impl<C: AsClient> PostgresStore<C> {
     pub(crate) fn get_property_type_as_dependency<'a>(
         &'a self,
         property_type_uri: VersionedUri,
-        data_type_references: &'a mut HashMap<VersionedUri, PersistedDataType>,
-        property_type_references: &'a mut HashMap<VersionedUri, PersistedPropertyType>,
-        data_type_query_depth: u8,
-        property_type_query_depth: u8,
+        context: PropertyTypeDependencyContext<'a>,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
+        let PropertyTypeDependencyContext {
+            data_type_references,
+            property_type_references,
+            data_type_query_depth,
+            property_type_query_depth,
+        } = context;
+
         async move {
             // TODO: Avoid cloning of URI
             //   see https://stackoverflow.com/questions/51542024
@@ -78,10 +89,12 @@ impl<C: AsClient> PostgresStore<C> {
                     for property_type_uri in property_type_uris {
                         self.get_property_type_as_dependency(
                             property_type_uri,
-                            data_type_references,
-                            property_type_references,
-                            data_type_query_depth,
-                            property_type_query_depth - 1,
+                            PropertyTypeDependencyContext {
+                                data_type_references,
+                                property_type_references,
+                                data_type_query_depth,
+                                property_type_query_depth: property_type_query_depth - 1,
+                            },
                         )
                         .await?;
                     }
@@ -174,10 +187,12 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                     for property_type_ref in property_type.inner.property_type_references() {
                         self.get_property_type_as_dependency(
                             property_type_ref.uri().clone(),
-                            &mut data_type_references,
-                            &mut property_type_references,
-                            data_type_query_depth,
-                            property_type_query_depth - 1,
+                            PropertyTypeDependencyContext {
+                                data_type_references: &mut data_type_references,
+                                property_type_references: &mut property_type_references,
+                                data_type_query_depth,
+                                property_type_query_depth: property_type_query_depth - 1,
+                            },
                         )
                         .await?;
                     }

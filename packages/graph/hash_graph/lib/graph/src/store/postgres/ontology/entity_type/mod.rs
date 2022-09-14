@@ -18,24 +18,27 @@ use crate::{
         PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier, PersistedPropertyType,
     },
     store::{
-        crud::Read,
+        crud::{QueryDepth, Read},
         postgres::{
-            context::PostgresContext, ontology::link_type::LinkTypeDependencyContext,
+            context::PostgresContext,
+            ontology::{
+                link_type::LinkTypeDependencyContext, property_type::PropertyTypeDependencyContext,
+            },
             PersistedOntologyType,
         },
         AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
 };
 
-pub struct PropertyTypeDependencyContext<'a> {
+pub struct EntityTypeDependencyContext<'a> {
     pub data_type_references: &'a mut HashMap<VersionedUri, PersistedDataType>,
     pub property_type_references: &'a mut HashMap<VersionedUri, PersistedPropertyType>,
     pub link_type_references: &'a mut HashMap<VersionedUri, PersistedLinkType>,
     pub entity_type_references: &'a mut HashMap<VersionedUri, PersistedEntityType>,
-    pub data_type_query_depth: u8,
-    pub property_type_query_depth: u8,
-    pub link_type_query_depth: u8,
-    pub entity_type_query_depth: u8,
+    pub data_type_query_depth: QueryDepth,
+    pub property_type_query_depth: QueryDepth,
+    pub link_type_query_depth: QueryDepth,
+    pub entity_type_query_depth: QueryDepth,
 }
 
 impl<C: AsClient> PostgresStore<C> {
@@ -45,9 +48,9 @@ impl<C: AsClient> PostgresStore<C> {
     pub(crate) fn get_entity_type_as_dependency<'a>(
         &'a self,
         entity_type_uri: VersionedUri,
-        context: PropertyTypeDependencyContext<'a>,
+        context: EntityTypeDependencyContext<'a>,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
-        let PropertyTypeDependencyContext {
+        let EntityTypeDependencyContext {
             data_type_references,
             property_type_references,
             link_type_references,
@@ -74,10 +77,12 @@ impl<C: AsClient> PostgresStore<C> {
                     for property_type_ref in entity_type.inner.property_type_references() {
                         self.get_property_type_as_dependency(
                             property_type_ref.uri().clone(),
-                            data_type_references,
-                            property_type_references,
-                            data_type_query_depth,
-                            property_type_query_depth - 1,
+                            PropertyTypeDependencyContext {
+                                data_type_references,
+                                property_type_references,
+                                data_type_query_depth,
+                                property_type_query_depth: property_type_query_depth - 1,
+                            },
                         )
                         .await?;
                     }
@@ -109,7 +114,7 @@ impl<C: AsClient> PostgresStore<C> {
                         if entity_type_query_depth > 0 {
                             self.get_entity_type_as_dependency(
                                 entity_type_uri,
-                                PropertyTypeDependencyContext {
+                                EntityTypeDependencyContext {
                                     data_type_references,
                                     property_type_references,
                                     link_type_references,
@@ -199,10 +204,12 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                     for data_type_ref in entity_type.inner.property_type_references() {
                         self.get_property_type_as_dependency(
                             data_type_ref.uri().clone(),
-                            &mut data_type_references,
-                            &mut property_type_references,
-                            data_type_query_depth,
-                            property_type_query_depth - 1,
+                            PropertyTypeDependencyContext {
+                                data_type_references: &mut data_type_references,
+                                property_type_references: &mut property_type_references,
+                                data_type_query_depth,
+                                property_type_query_depth: property_type_query_depth - 1,
+                            },
                         )
                         .await?;
                     }
@@ -226,7 +233,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                         if entity_type_query_depth > 0 {
                             self.get_entity_type_as_dependency(
                                 entity_type_ref.uri().clone(),
-                                PropertyTypeDependencyContext {
+                                EntityTypeDependencyContext {
                                     data_type_references: &mut data_type_references,
                                     property_type_references: &mut property_type_references,
                                     link_type_references: &mut link_type_references,

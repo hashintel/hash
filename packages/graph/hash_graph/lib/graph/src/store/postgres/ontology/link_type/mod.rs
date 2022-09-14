@@ -14,7 +14,7 @@ use crate::{
         PersistedOntologyIdentifier,
     },
     store::{
-        crud::Read,
+        crud::{QueryDepth, Read},
         postgres::{context::PostgresContext, PersistedOntologyType},
         AsClient, InsertionError, LinkTypeStore, PostgresStore, QueryError, UpdateError,
     },
@@ -23,7 +23,7 @@ use crate::{
 pub struct LinkTypeDependencyContext<'a> {
     pub link_type_references: &'a mut HashMap<VersionedUri, PersistedLinkType>,
     // `_link_type_query_depth` is unused as link types do not reference other link types
-    pub _link_type_query_depth: u8,
+    pub _link_type_query_depth: QueryDepth,
 }
 
 impl<C: AsClient> PostgresStore<C> {
