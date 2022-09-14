@@ -5,6 +5,12 @@ mod context;
 mod pool;
 mod version_id;
 
+use std::{
+    collections::{hash_map::RawEntryMut, HashMap},
+    future::Future,
+    hash::Hash,
+};
+
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use postgres_types::ToSql;
@@ -22,7 +28,7 @@ pub use self::{
 use super::error::LinkRemovalError;
 use crate::{
     knowledge::{Entity, EntityId, Link, PersistedEntityIdentifier},
-    ontology::{AccountId, PersistedOntologyIdentifier},
+    ontology::{AccountId, PersistedOntologyIdentifier, QueryDepth},
     store::{
         error::VersionedUriAlreadyExists,
         postgres::{ontology::OntologyDatabaseType, version_id::VersionId},
@@ -30,6 +36,69 @@ use crate::{
         UpdateError,
     },
 };
+
+pub struct DependencyMap<V, T> {
+    resolved: HashMap<V, (T, QueryDepth)>,
+}
+
+impl<V, T> Default for DependencyMap<V, T> {
+    fn default() -> Self {
+        Self {
+            resolved: HashMap::default(),
+        }
+    }
+}
+
+impl<V, T> DependencyMap<V, T> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl<V, T> DependencyMap<V, T>
+where
+    V: Eq + Hash + Clone + Send + Sync,
+    T: Send,
+{
+    /// Inserts a dependency into the map.
+    ///
+    /// If the dependency does not already exists in the dependency map, it will be inserted with
+    /// the provided `depth` and a reference to this dependency will be returned. In the case, that
+    /// the dependency already exist, the `depth` will be compared with depth used when inserting
+    /// it before. If the new depth is higher, the depth will be updated and a reference to the
+    /// dependency will be returned, otherwise `None` will be returned.
+    pub async fn insert<F, R>(
+        &mut self,
+        identifier: &V,
+        depth: QueryDepth,
+        resolver: F,
+    ) -> Result<Option<&T>, QueryError>
+    where
+        F: Fn() -> R + Send + Sync,
+        R: Future<Output = Result<T, QueryError>> + Send,
+    {
+        Ok(match self.resolved.raw_entry_mut().from_key(identifier) {
+            RawEntryMut::Vacant(entry) => {
+                let value = resolver().await?;
+                let (_id, (value, _depth)) = entry.insert(identifier.clone(), (value, depth));
+                Some(value)
+            }
+            RawEntryMut::Occupied(entry) => {
+                let (value, used_depth) = entry.into_mut();
+                if *used_depth < depth {
+                    *used_depth = depth;
+                    Some(value)
+                } else {
+                    None
+                }
+            }
+        })
+    }
+
+    pub fn into_vec(self) -> Vec<T> {
+        self.resolved.into_values().map(|value| value.0).collect()
+    }
+}
 
 /// Utility function used for [`GenericClient::query_raw`] to infer the parameter as
 /// [`dyn ToSql`][ToSql].

@@ -1,7 +1,5 @@
 pub mod resolve;
 
-use std::collections::{hash_map::Entry, HashMap};
-
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
@@ -15,16 +13,16 @@ use crate::{
     },
     store::{
         crud::Read,
-        postgres::{context::PostgresContext, PersistedOntologyType},
+        postgres::{context::PostgresContext, DependencyMap, PersistedOntologyType},
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
 };
 
 pub struct DataTypeDependencyContext<'a> {
-    pub data_type_references: &'a mut HashMap<VersionedUri, PersistedDataType>,
-    // TODO: `_data_type_query_depth` is unused until data types can reference other data types
+    pub data_type_references: &'a mut DependencyMap<VersionedUri, PersistedDataType>,
+    // TODO: `data_type_query_depth` is unused until data types can reference other data types
     //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
-    pub _data_type_query_depth: QueryDepth,
+    pub data_type_query_depth: QueryDepth,
 }
 
 impl<C: AsClient> PostgresStore<C> {
@@ -33,21 +31,22 @@ impl<C: AsClient> PostgresStore<C> {
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) async fn get_data_type_as_dependency(
         &self,
-        data_type_uri: VersionedUri,
+        data_type_uri: &VersionedUri,
         context: DataTypeDependencyContext<'_>,
     ) -> Result<(), QueryError> {
         let DataTypeDependencyContext {
             data_type_references,
-            ..
+            data_type_query_depth,
         } = context;
 
-        if let Entry::Vacant(entry) = data_type_references.entry(data_type_uri) {
-            let data_type = PersistedDataType::from_record(
-                self.read_versioned_ontology_type::<DataType>(entry.key())
-                    .await?,
-            );
-            entry.insert(data_type);
-        }
+        let _unresolved_entity_type = data_type_references
+            .insert(data_type_uri, data_type_query_depth, || async {
+                Ok(PersistedDataType::from_record(
+                    self.read_versioned_ontology_type(data_type_uri).await?,
+                ))
+            })
+            .await?;
+
         Ok(())
     }
 }
