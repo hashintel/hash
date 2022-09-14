@@ -501,6 +501,7 @@ dependencies = [
  "clap",
  "error-stack",
  "futures",
+ "graph-test-data",
  "include_dir",
  "postgres-types",
  "regex",
@@ -516,6 +517,10 @@ dependencies = [
  "utoipa",
  "uuid",
 ]
+
+[[package]]
+name = "graph-test-data"
+version = "0.0.0"
 
 [[package]]
 name = "hash-graph"
