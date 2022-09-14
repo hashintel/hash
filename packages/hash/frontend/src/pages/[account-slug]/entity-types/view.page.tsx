@@ -1,4 +1,10 @@
-import { faBriefcase, faList, faPlus } from "@fortawesome/free-solid-svg-icons";
+import {
+  faBriefcase,
+  faEllipsis,
+  faList,
+  faPlus,
+  faSearch,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, TextField } from "@hashintel/hash-design-system";
 import {
   Box,
@@ -20,6 +26,7 @@ import {
   Typography,
   Checkbox,
   tableCellClasses,
+  checkboxClasses,
 } from "@mui/material";
 import Image from "next/image";
 import { useState } from "react";
@@ -137,48 +144,114 @@ const CreatePropertyCard = ({
 
 const InsertPropertyCard = () => (
   <WhiteCard>
-    <Table
-      sx={{
-        [`.${tableCellClasses.head}`]: {
-          fontWeight: "bold",
-        },
-        [`.${tableCellClasses.head}:not(:first-child)`]: {
-          // @todo is this the right way to do this?
-          width: 0,
-          whiteSpace: "nowrap",
-        },
-        [`.${tableCellClasses.body}`]: {
-          textAlign: "center",
-        },
-      }}
-    >
-      <TableHead>
-        <TableRow>
-          <TableCell>Property name</TableCell>
-          <TableCell>Expected values</TableCell>
-          <TableCell>Allow multiple values</TableCell>
-          <TableCell>Required</TableCell>
-          <TableCell>Default value</TableCell>
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        <TableRow>
-          <TableCell colSpan={2}>
-            <TextField
-              placeholder="Search for a property type"
-              sx={{ width: "100%" }}
-            />
-          </TableCell>
-          <TableCell>
-            <Checkbox />
-          </TableCell>
-          <TableCell>
-            <Checkbox />
-          </TableCell>
-          <TableCell />
-        </TableRow>
-      </TableBody>
-    </Table>
+    <Box sx={{ p: 0.5 }}>
+      <Table
+        sx={(theme) => ({
+          [`.${tableCellClasses.head}`]: {
+            px: 2,
+            py: 1.5,
+            borderBottom: "solid",
+            borderColor: theme.palette.gray[20],
+            fontWeight: "inherit",
+            lineHeight: "inherit",
+          },
+          [`.${tableCellClasses.head}:not(:first-child)`]: {
+            // @todo is this the right way to do this?
+            width: 0,
+            whiteSpace: "nowrap",
+          },
+          [`.${tableCellClasses.body} .${checkboxClasses.root}`]: {
+            margin: "0 auto",
+            textAlign: "center",
+          },
+        })}
+      >
+        <TableHead>
+          <Typography
+            component={TableRow}
+            variant="smallTextLabels"
+            sx={{
+              fontWeight: 600,
+            }}
+          >
+            <TableCell>Property name</TableCell>
+            <TableCell>Expected values</TableCell>
+            <TableCell>Allow multiple values</TableCell>
+            <TableCell>Required</TableCell>
+            <TableCell>Default value</TableCell>
+            <TableCell />
+          </Typography>
+        </TableHead>
+        <TableBody>
+          <TableRow>
+            <TableCell colSpan={2}>
+              <TextField
+                placeholder="Search for a property type"
+                sx={{ width: "100%" }}
+                InputProps={{
+                  endAdornment: (
+                    <FontAwesomeIcon
+                      icon={faSearch}
+                      sx={(theme) => ({
+                        fontSize: 12,
+                        mr: 2,
+                        color: theme.palette.gray[50],
+                      })}
+                    />
+                  ),
+                }}
+              />
+            </TableCell>
+            <TableCell>
+              <Checkbox />
+            </TableCell>
+            <TableCell>
+              <Checkbox />
+            </TableCell>
+            <TableCell sx={{ minWidth: "min-content" }}>
+              <TextField
+                placeholder="Add default value"
+                sx={{ width: "100%" }}
+              />
+            </TableCell>
+            <TableCell>
+              <FontAwesomeIcon
+                icon={faEllipsis}
+                sx={(theme) => ({
+                  fontSize: 14,
+                  color: theme.palette.gray[50],
+                })}
+              />
+            </TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell>Share Price</TableCell>
+            <TableCell>Number</TableCell>
+            <TableCell>
+              <Checkbox />
+            </TableCell>
+            <TableCell>
+              <Checkbox />
+            </TableCell>
+            <TableCell sx={{ minWidth: "min-content" }}>
+              <TextField
+                placeholder="Add default value"
+                sx={{ width: "100%" }}
+              />
+            </TableCell>
+            <TableCell>
+              <FontAwesomeIcon
+                icon={faEllipsis}
+                sx={(theme) => ({
+                  fontSize: 14,
+                  color: theme.palette.gray[50],
+                })}
+              />
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    </Box>
   </WhiteCard>
 );
 
