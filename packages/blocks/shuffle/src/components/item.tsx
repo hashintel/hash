@@ -1,15 +1,17 @@
 import React, { forwardRef, useState, CSSProperties, RefObject } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
-import {
-  Box,
-  IconButton,
-  ListItem,
-  TextField,
-  Paper,
-  SxProps,
-} from "@mui/material";
+import LinkIcon from "@mui/icons-material/Link";
+import { SxProps, Tooltip } from "@mui/material";
 import { DraggableAttributes } from "@dnd-kit/core";
+import {
+  SButtonsWrapper,
+  SIconButton,
+  SLinkIconWrapper,
+  SListItem,
+  SPaper,
+  STextField,
+} from "./item.styled";
 
 export type ItemProps = {
   id: string;
@@ -23,7 +25,8 @@ export type ItemProps = {
   listeners?: Record<string, Function>;
   style?: CSSProperties;
   dragOverlay?: RefObject<HTMLDivElement>;
-  readonly: boolean;
+  linkedToEntity?: boolean;
+  readonly?: boolean;
 };
 
 export const Item = forwardRef<HTMLLIElement, ItemProps>(
@@ -39,6 +42,7 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
       style,
       listeners,
       dragOverlay,
+      linkedToEntity,
       readonly,
     },
     ref,
@@ -46,39 +50,29 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
     const [isHovered, setIsHovered] = useState(false);
 
     return (
-      <ListItem
+      <SListItem
         ref={ref}
         onMouseOver={() => setIsHovered(true)}
         onMouseOut={() => setIsHovered(false)}
         disablePadding
-        sx={{
-          ...style,
-          marginBottom: 2,
-          opacity: isDragging ? 0 : 1,
-          outlineColor: ({ palette }) => palette.primary.light,
-        }}
+        sx={{ ...style, opacity: isDragging ? 0 : 1 }}
         {...attributes}
       >
-        <Paper
-          sx={{
-            display: "flex",
-            width: 1,
-            paddingX: 2,
-            paddingY: 1,
-            background: ({ palette }) => palette.grey[50],
-            ...paperStyle,
-          }}
-          ref={dragOverlay}
-        >
-          <TextField
+        <SPaper sx={paperStyle} ref={dragOverlay}>
+          {linkedToEntity && (
+            <Tooltip title="This item is linked to an entity">
+              <SLinkIconWrapper>
+                <LinkIcon fontSize="small" />
+              </SLinkIconWrapper>
+            </Tooltip>
+          )}
+
+          <STextField
             multiline
             fullWidth
             variant="standard"
-            sx={{
-              border: "none",
-              outline: "none",
-              caretColor: readonly ? "transparent" : "initial",
-            }}
+            // editing is disabled if item is linked to an entity as well
+            disabled={readonly || linkedToEntity}
             value={value}
             onChange={(event) => onValueChange?.(event.target.value)}
             onBlur={() => onItemBlur?.()}
@@ -88,14 +82,10 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
           />
 
           {!readonly && (
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              <IconButton
+            <SButtonsWrapper>
+              <SIconButton
                 onClick={() => onDelete?.()}
                 sx={({ palette }) => ({
-                  paddingX: 0.5,
-                  paddingY: 1,
-                  borderRadius: 1,
-                  maxHeight: 40,
                   opacity: dragOverlay || isHovered ? 1 : 0,
                   transition: ({ transitions }) =>
                     transitions.create("opacity"),
@@ -107,15 +97,10 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
                 disableFocusRipple
               >
                 <CloseIcon fontSize="small" />
-              </IconButton>
+              </SIconButton>
 
-              <IconButton
+              <SIconButton
                 sx={({ palette }) => ({
-                  paddingX: 0.5,
-                  paddingY: 1,
-                  borderRadius: 1,
-                  marginLeft: 1,
-                  maxHeight: 40,
                   background: dragOverlay ? palette.action.hover : "none",
                   "&:focus-visible": {
                     background: palette.action.hover,
@@ -125,11 +110,11 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
                 {...listeners}
               >
                 <DragIndicatorIcon fontSize="small" color="action" />
-              </IconButton>
-            </Box>
+              </SIconButton>
+            </SButtonsWrapper>
           )}
-        </Paper>
-      </ListItem>
+        </SPaper>
+      </SListItem>
     );
   },
 );
