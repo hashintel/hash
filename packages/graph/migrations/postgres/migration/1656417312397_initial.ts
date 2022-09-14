@@ -10,8 +10,6 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       account_id: {
         type: "UUID",
         primaryKey: true,
-        comment:
-          "Accounts are undecided and just here for satisfying the future schema",
       },
     },
     {
@@ -45,9 +43,8 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     },
   );
 
-  // TODO: rename ids to type_ids
   pgm.createTable(
-    "ids",
+    "type_ids",
     {
       base_uri: {
         type: "TEXT",
@@ -71,7 +68,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         `),
     },
   );
-  pgm.addConstraint("ids", "ids_primary_key", {
+  pgm.addConstraint("type_ids", "type_ids_primary_key", {
     primaryKey: ["base_uri", "version"],
   });
 

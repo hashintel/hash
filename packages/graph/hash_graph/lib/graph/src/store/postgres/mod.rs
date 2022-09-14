@@ -167,7 +167,7 @@ where
                 r#"
                     SELECT EXISTS(
                         SELECT 1
-                        FROM ids
+                        FROM type_ids
                         WHERE base_uri = $1 AND version = $2
                     );
                 "#,
@@ -243,7 +243,7 @@ where
         self.as_client()
             .query_one(
                 r#"
-                    INSERT INTO ids (base_uri, version, version_id)
+                    INSERT INTO type_ids (base_uri, version, version_id)
                     VALUES ($1, $2, $3)
                     RETURNING version_id;
                 "#,
@@ -680,7 +680,7 @@ where
             .query_one(
                 r#"
                 SELECT version_id
-                FROM ids
+                FROM type_ids
                 WHERE base_uri = $1 AND version = $2;
                 "#,
                 &[&uri.base_uri().as_str(), &version],
