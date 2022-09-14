@@ -413,9 +413,9 @@
 //! ---------------|--------------------------------------------------------------------|----------
 //! `std`          | Enables support for [`Error`] and, on nightly, [`Backtrace`]       | enabled
 //! `pretty-print` | Provide color[^color] and use of unicode in [`Debug`] output       | enabled
-//! `spantrace`    | Enables the capturing of [`SpanTrace`]s                            | disabled
-//! `anyhow`       | Provides conversion from [`anyhow::Error`] to [`Report`]           | disabled
-//! `eyre`         | Provides conversion from [`eyre::Report`] to [`Report`]            | disabled
+//! `spantrace`    | Enables automatic capturing of [`SpanTrace`]s                      | disabled
+//! `anyhow`       | Provides `into_report` to convert [`anyhow::Error`] to [`Report`]  | disabled
+//! `eyre`         | Provides `into_report` to convert [`eyre::Report`] to [`Report`]   | disabled
 //!
 //! [^color]: error-stack supports the [`NO_COLOR`](http://no-color.org/)
 //!     and `FORCE_COLOR` environment variables through the [owo-colors crate](https://crates.io/crates/owo-colors)
