@@ -31,6 +31,7 @@ async fn insert() {
                 .expect("couldn't construct Base URI"),
                 1,
             ),
+            None,
         )
         .await
         .expect("could not create entity");
@@ -66,6 +67,7 @@ async fn query() {
                 .expect("couldn't construct Base URI"),
                 1,
             ),
+            None,
         )
         .await
         .expect("could not create entity");
@@ -98,6 +100,7 @@ async fn update() {
                     .expect("couldn't construct Base URI"),
                 1,
             ),
+            None,
         )
         .await
         .expect("could not create entity");

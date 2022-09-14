@@ -34,12 +34,12 @@ async fn insert() {
     );
 
     let person_a_identifier = api
-        .create_entity(person_a, person_type_uri.clone())
+        .create_entity(person_a, person_type_uri.clone(), None)
         .await
         .expect("could not create entity");
 
     let person_b_identifier = api
-        .create_entity(person_b, person_type_uri.clone())
+        .create_entity(person_b, person_type_uri.clone(), None)
         .await
         .expect("could not create entity");
 
@@ -97,17 +97,17 @@ async fn get_entity_links() {
     );
 
     let person_a_identifier = api
-        .create_entity(person_a, person_type_uri.clone())
+        .create_entity(person_a, person_type_uri.clone(), None)
         .await
         .expect("could not create entity");
 
     let person_b_identifier = api
-        .create_entity(person_b, person_type_uri.clone())
+        .create_entity(person_b, person_type_uri.clone(), None)
         .await
         .expect("could not create entity");
 
     let person_c_identifier = api
-        .create_entity(person_c, person_type_uri.clone())
+        .create_entity(person_c, person_type_uri.clone(), None)
         .await
         .expect("could not create entity");
 
@@ -177,12 +177,12 @@ async fn remove_link() {
     );
 
     let person_a_identifier = api
-        .create_entity(person_a, person_type_uri.clone())
+        .create_entity(person_a, person_type_uri.clone(), None)
         .await
         .expect("could not create entity");
 
     let person_b_identifier = api
-        .create_entity(person_b, person_type_uri.clone())
+        .create_entity(person_b, person_type_uri.clone(), None)
         .await
         .expect("could not create entity");
 

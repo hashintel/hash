@@ -65,6 +65,7 @@ struct CreateEntityRequest {
     #[component(value_type = String)]
     entity_type_uri: VersionedUri,
     account_id: AccountId,
+    entity_id: Option<EntityId>,
 }
 
 #[utoipa::path(
@@ -89,6 +90,7 @@ async fn create_entity<P: StorePool + Send>(
         entity,
         entity_type_uri,
         account_id,
+        entity_id,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -97,7 +99,7 @@ async fn create_entity<P: StorePool + Send>(
     })?;
 
     store
-        .create_entity(entity, entity_type_uri, account_id)
+        .create_entity(entity, entity_type_uri, account_id, entity_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create entity");
