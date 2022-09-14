@@ -146,17 +146,18 @@ pub fn rest_api_router<P: StorePool + Send + 'static>(
 async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, StatusCode> {
     let path = path.trim_start_matches('/');
 
-    match STATIC_SCHEMAS.get_file(path) {
-        None => Err(StatusCode::NOT_FOUND),
-        Some(file) => Ok((
-            [(
-                axum::http::header::CONTENT_TYPE,
-                axum::http::HeaderValue::from_static("application/json"),
-            )],
-            file.contents(),
-        )
-            .into_response()),
-    }
+    STATIC_SCHEMAS
+        .get_file(path)
+        .map_or(Err(StatusCode::NOT_FOUND), |file| {
+            Ok((
+                [(
+                    axum::http::header::CONTENT_TYPE,
+                    axum::http::HeaderValue::from_static("application/json"),
+                )],
+                file.contents(),
+            )
+                .into_response())
+        })
 }
 
 #[derive(OpenApi)]

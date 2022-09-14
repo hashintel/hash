@@ -27,7 +27,9 @@ pub struct OntologyRecord<T> {
     pub is_latest: bool,
 }
 
-fn row_stream_to_record_stream<T>(row_stream: RowStream) -> RecordStream<T>
+fn row_stream_to_record_stream<T>(
+    row_stream: RowStream,
+) -> impl Stream<Item = Result<OntologyRecord<T>, QueryError>>
 where
     T: TryFrom<serde_json::Value, Error: Context>,
 {
