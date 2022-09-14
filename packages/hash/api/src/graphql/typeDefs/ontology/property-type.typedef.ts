@@ -4,7 +4,16 @@ export const propertyTypeTypedef = gql`
   scalar PropertyType
   scalar PropertyTypeWithoutId
 
-  type PersistedPropertyType {
+  interface PropertyTypeInterface {
+    # These fields are repeated everywhere they're used because
+    # (a) GQL requires it - https://github.com/graphql/graphql-spec/issues/533
+    # (b) string interpolation breaks the code generator's introspection
+    #
+    # Could maybe use a custom schema loader to parse it ourselves:
+    # https://www.graphql-code-generator.com/docs/getting-started/schema-field#custom-schema-loader
+    #
+    # For now, _COPY ANY CHANGES_ from here to any type that 'implements PersistedPropertyTypeInterface'
+
     """
     The specific versioned URI of the property type
     """
@@ -17,22 +26,61 @@ export const propertyTypeTypedef = gql`
     The property type
     """
     propertyType: PropertyType!
-    # TODO: we might need something like
-    # "referencedDataTypes: [PersistedDataType!]"
-    # for us to retrieve all referenced data types, and one for referenced property types as well.
-    # This will be helpful for displaying the entire property type in the frontend
+  }
+
+  type PersistedPropertyType implements PropertyTypeInterface {
+    # INTERFACE FIELDS BEGIN #
+    """
+    The specific versioned URI of the property type
+    """
+    propertyTypeVersionedUri: String!
+    """
+    The user who created the property type
+    """
+    accountId: ID!
+    """
+    The property type
+    """
+    propertyType: PropertyType!
+    # INTERFACE FIELDS END #
+  }
+
+  type PropertyTypeSubgraph implements PropertyTypeInterface {
+    """
+    Data types referenced directly or indirectly referenced by this property type
+    """
+    referencedDataTypes(depth: Int): [PersistedDataType!]!
+    """
+    Property types referenced directly or indirectly referenced by this property type
+    """
+    referencedPropertyTypes(depth: Int): [PersistedPropertyType!]!
+
+    # INTERFACE FIELDS BEGIN #
+    """
+    The specific versioned URI of the property type
+    """
+    propertyTypeVersionedUri: String!
+    """
+    The user who created the property type
+    """
+    accountId: ID!
+    """
+    The property type
+    """
+    propertyType: PropertyType!
+    # INTERFACE FIELDS END #
   }
 
   extend type Query {
     """
     Get all property types at their latest version.
     """
-    getAllLatestPropertyTypes: [PersistedPropertyType!]!
+    getAllLatestPropertyTypes: [PropertyTypeSubgraph!]!
 
     """
     Get a property type by its versioned URI.
     """
-    getPropertyType(propertyTypeVersionedUri: String!): PersistedPropertyType!
+    getPropertyType(propertyTypeVersionedUri: String!): PropertyTypeSubgraph!
   }
 
   extend type Mutation {

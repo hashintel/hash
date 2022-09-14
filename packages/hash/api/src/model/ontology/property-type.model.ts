@@ -3,12 +3,18 @@ import { PropertyType } from "@blockprotocol/type-system-web";
 
 import {
   GraphApi,
+  PersistedPropertyType,
   UpdatePropertyTypeRequest,
 } from "@hashintel/hash-graph-client";
 import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
-import { PropertyTypeModel, UserModel } from "../index";
-import { extractBaseUri, generateSchemaUri, workspaceAccountId } from "../util";
+import { DataTypeModel, PropertyTypeModel, UserModel } from "../index";
+import {
+  extractBaseUri,
+  generateSchemaUri,
+  workspaceAccountId,
+  splitVersionedUri,
+} from "../util";
 
 type PropertyTypeModelConstructorParams = {
   accountId: string;
@@ -26,6 +32,27 @@ export default class {
   constructor({ schema, accountId }: PropertyTypeModelConstructorParams) {
     this.accountId = accountId;
     this.schema = schema;
+  }
+
+  static fromPersistedPropertyType({
+    inner,
+    identifier,
+  }: PersistedPropertyType): PropertyTypeModel {
+    /**
+     * @todo and a warning, these type casts are here to compensate for
+     *   the differences between the Graph API package and the
+     *   type system package.
+     *
+     *   The type system package can be considered the source of truth in
+     *   terms of the shape of values returned from the API, but the API
+     *   client is unable to be given as type package types - it generates
+     *   its own types.
+     *   https://app.asana.com/0/1202805690238892/1202892835843657/f
+     */
+    return new PropertyTypeModel({
+      schema: inner as PropertyType,
+      accountId: identifier.createdBy,
+    });
   }
 
   /**
@@ -90,41 +117,70 @@ export default class {
    */
   static async getAllLatest(
     graphApi: GraphApi,
-    _params: { accountId: string },
+    params: {
+      accountId: string;
+    },
   ): Promise<PropertyTypeModel[]> {
+    const resolved = await this.getAllLatestResolved(graphApi, {
+      accountId: params.accountId,
+      dataTypeQueryDepth: 0,
+      propertyTypeQueryDepth: 0,
+    });
+    return resolved.map((propertyType) => propertyType.propertyType);
+  }
+
+  /**
+   * Get all property types at their latest version with their references resolved as a list.
+   *
+   * @param params.accountId the accountId of the account creating the property type
+   * @param params.dataTypeQueryDepth recursion depth to use to resolve data types
+   * @param params.propertyTypeQueryDepth recursion depth to use to resolve property types
+   */
+  static async getAllLatestResolved(
+    graphApi: GraphApi,
+    params: {
+      accountId: string;
+      dataTypeQueryDepth: number;
+      propertyTypeQueryDepth: number;
+    },
+  ): Promise<
+    {
+      propertyType: PropertyTypeModel;
+      referencedDataTypes: DataTypeModel[];
+      referencedPropertyTypes: PropertyTypeModel[];
+    }[]
+  > {
     /**
      * @todo: get all latest property types in specified account.
-     *   This may mean implictly filtering results by what an account is
+     *   This may mean implicitly filtering results by what an account is
      *   authorized to see.
      *   https://app.asana.com/0/1202805690238892/1202890446280569/f
      */
-    const { data: persistedPropertyTypes } =
-      await graphApi.getLatestPropertyTypes();
+    const { data: propertyTypeSubgraphs } =
+      await graphApi.getPropertyTypesByQuery({
+        dataTypeQueryDepth: params.dataTypeQueryDepth,
+        propertyTypeQueryDepth: params.propertyTypeQueryDepth,
+        query: {
+          eq: [{ path: ["version"] }, { literal: "latest" }],
+        },
+      });
 
-    return persistedPropertyTypes.map(
-      (persistedPropertyType) =>
-        new PropertyTypeModel({
-          /**
-           * @todo and a warning, these type casts are here to compensate for
-           *   the differences between the Graph API package and the
-           *   type system package.
-           *
-           *   The type system package can be considered the source of truth in
-           *   terms of the shape of values returned from the API, but the API
-           *   client is unable to be given as type package types - it generates
-           *   its own types.
-           *   https://app.asana.com/0/1202805690238892/1202892835843657/f
-           */
-          schema: persistedPropertyType.inner as PropertyType,
-          accountId: persistedPropertyType.identifier.createdBy,
-        }),
-    );
+    return propertyTypeSubgraphs.map((propertyTypeSubgraph) => ({
+      propertyType: PropertyTypeModel.fromPersistedPropertyType(
+        propertyTypeSubgraph.propertyType,
+      ),
+      referencedDataTypes: propertyTypeSubgraph.referencedDataTypes.map(
+        DataTypeModel.fromPersistedDataType,
+      ),
+      referencedPropertyTypes: propertyTypeSubgraph.referencedPropertyTypes.map(
+        PropertyTypeModel.fromPersistedPropertyType,
+      ),
+    }));
   }
 
   /**
    * Get a property type by its versioned URI.
    *
-   * @param params.accountId the accountId of the account requesting the property type
    * @param params.versionedUri the unique versioned URI for a property type.
    */
   static async get(
@@ -138,21 +194,58 @@ export default class {
       versionedUri,
     );
 
-    return new PropertyTypeModel({
-      /**
-       * @todo and a warning, these type casts are here to compensate for
-       *   the differences between the Graph API package and the
-       *   type system package.
-       *
-       *   The type system package can be considered the source of truth in
-       *   terms of the shape of values returned from the API, but the API
-       *   client is unable to be given as type package types - it generates
-       *   its own types.
-       *   https://app.asana.com/0/1202805690238892/1202892835843657/f
-       */
-      schema: persistedPropertyType.inner as PropertyType,
-      accountId: persistedPropertyType.identifier.createdBy,
-    });
+    return PropertyTypeModel.fromPersistedPropertyType(persistedPropertyType);
+  }
+
+  /**
+   * Get a property type by its versioned URI.
+   *
+   * @param params.versionedUri the unique versioned URI for a property type.
+   * @param params.dataTypeQueryDepth recursion depth to use to resolve data types
+   * @param params.propertyTypeQueryDepth recursion depth to use to resolve property types
+   */
+  static async getResolved(
+    graphApi: GraphApi,
+    params: {
+      versionedUri: string;
+      dataTypeQueryDepth: number;
+      propertyTypeQueryDepth: number;
+    },
+  ): Promise<{
+    propertyType: PropertyTypeModel;
+    referencedDataTypes: DataTypeModel[];
+    referencedPropertyTypes: PropertyTypeModel[];
+  }> {
+    const { baseUri, version } = splitVersionedUri(params.versionedUri);
+    const { data: propertyTypeSubgraphs } =
+      await graphApi.getPropertyTypesByQuery({
+        dataTypeQueryDepth: params.dataTypeQueryDepth,
+        propertyTypeQueryDepth: params.propertyTypeQueryDepth,
+        query: {
+          all: [
+            { eq: [{ path: ["uri"] }, { literal: baseUri }] },
+            { eq: [{ path: ["version"] }, { literal: version }] },
+          ],
+        },
+      });
+    const propertyTypeSubgraph = propertyTypeSubgraphs.pop();
+    if (propertyTypeSubgraph === undefined) {
+      throw new Error(
+        `Unable to retrieve property type for URI: ${params.versionedUri}`,
+      );
+    }
+
+    return {
+      propertyType: PropertyTypeModel.fromPersistedPropertyType(
+        propertyTypeSubgraph.propertyType,
+      ),
+      referencedDataTypes: propertyTypeSubgraph.referencedDataTypes.map(
+        DataTypeModel.fromPersistedDataType,
+      ),
+      referencedPropertyTypes: propertyTypeSubgraph.referencedPropertyTypes.map(
+        PropertyTypeModel.fromPersistedPropertyType,
+      ),
+    };
   }
 
   /**

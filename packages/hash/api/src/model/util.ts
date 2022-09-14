@@ -93,19 +93,37 @@ export const generateSchemaUri = ({
   )}/v/1` as const;
 
 /**
- * @todo use `extractBaseUri from the type system package when they're unified,
+ * @todo use `extractBaseUri` from the type system package when they're unified,
  *  and we're able to use functional code in node and web environments:
  *  https://app.asana.com/0/1200211978612931/1202923896339225/f
  */
-export const extractBaseUri = (versionedUri: string) => {
-  const baseUri = versionedUri.split("v/")[0];
-  if (baseUri == null) {
+export const splitVersionedUri = (
+  versionedUri: string,
+): { baseUri: string; version: number } => {
+  const split = versionedUri.split("v/");
+  if (split == null) {
     throw new Error(
       `couldn't extract base URI, malformed Versioned URI: ${versionedUri}`,
     );
   }
 
-  return baseUri;
+  const version = Number(split.pop());
+  if (Number.isNaN(version)) {
+    throw new Error("version is not a valid number");
+  }
+
+  const baseUri = split.join("v/");
+
+  return { baseUri, version };
+};
+
+/**
+ * @todo use `extractBaseUri from the type system package when they're unified,
+ *  and we're able to use functional code in node and web environments:
+ *  https://app.asana.com/0/1200211978612931/1202923896339225/f
+ */
+export const extractBaseUri = (versionedUri: string): string => {
+  return splitVersionedUri(versionedUri).baseUri;
 };
 
 const primitiveDataTypeTitles = [

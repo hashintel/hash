@@ -1,6 +1,10 @@
 import { AxiosError } from "axios";
 
-import { GraphApi, UpdateDataTypeRequest } from "@hashintel/hash-graph-client";
+import {
+  GraphApi,
+  PersistedDataType,
+  UpdateDataTypeRequest,
+} from "@hashintel/hash-graph-client";
 import { DataType } from "@blockprotocol/type-system-web";
 import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
@@ -23,6 +27,27 @@ export default class {
   constructor({ schema, accountId }: DataTypeModelConstructorArgs) {
     this.accountId = accountId;
     this.schema = schema;
+  }
+
+  static fromPersistedDataType({
+    inner,
+    identifier,
+  }: PersistedDataType): DataTypeModel {
+    /**
+     * @todo and a warning, these type casts are here to compensate for
+     *   the differences between the Graph API package and the
+     *   type system package.
+     *
+     *   The type system package can be considered the source of truth in
+     *   terms of the shape of values returned from the API, but the API
+     *   client is unable to be given as type package types - it generates
+     *   its own types.
+     *   https://app.asana.com/0/1202805690238892/1202892835843657/f
+     */
+    return new DataTypeModel({
+      schema: inner as DataType,
+      accountId: identifier.createdBy,
+    });
   }
 
   /**
@@ -101,30 +126,13 @@ export default class {
   ): Promise<DataTypeModel[]> {
     /**
      * @todo: get all latest data types in specified account.
-     *   This may mean implictly filtering results by what an account is
+     *   This may mean implicitly filtering results by what an account is
      *   authorized to see.
      *   https://app.asana.com/0/1202805690238892/1202890446280569/f
      */
     const { data: persistedDataTypes } = await graphApi.getLatestDataTypes();
 
-    return persistedDataTypes.map(
-      (persistedDataType) =>
-        new DataTypeModel({
-          /**
-           * @todo and a warning, these type casts are here to compensate for
-           *   the differences between the Graph API package and the
-           *   type system package.
-           *
-           *   The type system package can be considered the source of truth in
-           *   terms of the shape of values returned from the API, but the API
-           *   client is unable to be given as type package types - it generates
-           *   its own types.
-           *   https://app.asana.com/0/1202805690238892/1202892835843657/f
-           */
-          schema: persistedDataType.inner as DataType,
-          accountId: persistedDataType.identifier.createdBy,
-        }),
-    );
+    return persistedDataTypes.map(DataTypeModel.fromPersistedDataType);
   }
 
   /**
@@ -144,21 +152,7 @@ export default class {
       versionedUri,
     );
 
-    return new DataTypeModel({
-      /**
-       * @todo and a warning, these type casts are here to compensate for
-       *   the differences between the Graph API package and the
-       *   type system package.
-       *
-       *   The type system package can be considered the source of truth in
-       *   terms of the shape of values returned from the API, but the API
-       *   client is unable to be given as type package types - it generates
-       *   its own types.
-       *   https://app.asana.com/0/1202805690238892/1202892835843657/f
-       */
-      schema: persistedDataType.inner as DataType,
-      accountId: persistedDataType.identifier.createdBy,
-    });
+    return DataTypeModel.fromPersistedDataType(persistedDataType);
   }
 
   /**

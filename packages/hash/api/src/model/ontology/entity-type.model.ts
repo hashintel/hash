@@ -101,7 +101,7 @@ export default class {
   ): Promise<EntityTypeModel[]> {
     /**
      * @todo: get all latest entity types in specified account.
-     *   This may mean implictly filtering results by what an account is
+     *   This may mean implicitly filtering results by what an account is
      *   authorized to see.
      *   https://app.asana.com/0/1202805690238892/1202890446280569/f
      */
