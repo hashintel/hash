@@ -11,15 +11,14 @@ use type_system::{uri::VersionedUri, LinkType};
 use crate::{
     ontology::{
         AccountId, LinkTypeQuery, LinkTypeRootedSubgraph, PersistedLinkType,
-        PersistedOntologyIdentifier,
+        PersistedOntologyIdentifier, QueryDepth,
     },
     store::{
-        crud::{QueryDepth, Read},
+        crud::Read,
         postgres::{context::PostgresContext, PersistedOntologyType},
         AsClient, InsertionError, LinkTypeStore, PostgresStore, QueryError, UpdateError,
     },
 };
-
 pub struct LinkTypeDependencyContext<'a> {
     pub link_type_references: &'a mut HashMap<VersionedUri, PersistedLinkType>,
     // `_link_type_query_depth` is unused as link types do not reference other link types

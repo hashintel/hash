@@ -16,9 +16,10 @@ use crate::{
     ontology::{
         AccountId, EntityTypeQuery, EntityTypeRootedSubgraph, PersistedDataType,
         PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier, PersistedPropertyType,
+        QueryDepth,
     },
     store::{
-        crud::{QueryDepth, Read},
+        crud::Read,
         postgres::{
             context::PostgresContext,
             ontology::{

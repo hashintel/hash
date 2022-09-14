@@ -15,10 +15,10 @@ use type_system::{uri::VersionedUri, PropertyType, PropertyTypeReference};
 use crate::{
     ontology::{
         AccountId, PersistedDataType, PersistedOntologyIdentifier, PersistedPropertyType,
-        PropertyTypeQuery, PropertyTypeRootedSubgraph,
+        PropertyTypeQuery, PropertyTypeRootedSubgraph, QueryDepth,
     },
     store::{
-        crud::{QueryDepth, Read},
+        crud::Read,
         postgres::{
             context::PostgresContext, ontology::data_type::DataTypeDependencyContext,
             PersistedOntologyType,

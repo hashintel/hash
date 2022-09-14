@@ -11,10 +11,10 @@ use type_system::{uri::VersionedUri, DataType};
 use crate::{
     ontology::{
         AccountId, DataTypeQuery, DataTypeRootedSubgraph, PersistedDataType,
-        PersistedOntologyIdentifier,
+        PersistedOntologyIdentifier, QueryDepth,
     },
     store::{
-        crud::{QueryDepth, Read},
+        crud::Read,
         postgres::{context::PostgresContext, PersistedOntologyType},
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },

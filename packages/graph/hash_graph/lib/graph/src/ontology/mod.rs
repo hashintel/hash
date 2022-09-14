@@ -12,7 +12,7 @@ use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyTyp
 use utoipa::Component;
 use uuid::Uuid;
 
-use crate::store::{crud::QueryDepth, query::Expression};
+use crate::store::query::Expression;
 
 // TODO - find a good place for AccountId, perhaps it will become redundant in a future design
 
@@ -127,6 +127,25 @@ where
     //  even though we only use it in places where we could move
     serde_json::Value::from(ontology_type.clone()).serialize(serializer)
 }
+
+/// Depth used to read referenced ontology types when querying a rooted subgraph.
+///
+/// Records may have references to other types, e.g. a [`PropertyType`] may reference other
+/// [`PropertyType`]s or [`DataType`]s. When a type is requested, a depth for each referenced
+/// type has to be provided. The depth specify, how far references are resolved when returning a
+/// rooted subgraph, a depth of `0` means, that no further references are returned.
+///
+/// # Example
+///
+/// When reading a [`PropertyType`], `data_type_query_depth` and `property_type_query_depth` needs
+/// to be specified. For a give [`PropertyType`], which is referring to another [`PropertyType`],
+/// which itself refers to a [`DataType`], referenced [`PropertyType`] will be returned as well if
+/// `property_type_query_depth` is at least `1`. If in addition `data_type_query_depth` is at least
+/// `1`, the [`DataType`] will be returned as well.
+///
+/// If `property_type_query_depth` is set to `0`, this will not return any referenced record,
+/// regardless of the `data_type_query_depth`.
+pub type QueryDepth = u8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
 pub struct PersistedDataType {
