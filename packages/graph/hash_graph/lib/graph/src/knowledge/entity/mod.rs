@@ -48,16 +48,16 @@ pub struct PersistedEntityIdentifier {
     entity_id: EntityId,
     #[component(value_type = String)]
     version: DateTime<Utc>,
-    created_by: AccountId,
+    owned_by_id: AccountId,
 }
 
 impl PersistedEntityIdentifier {
     #[must_use]
-    pub const fn new(entity_id: EntityId, version: DateTime<Utc>, created_by: AccountId) -> Self {
+    pub const fn new(entity_id: EntityId, version: DateTime<Utc>, owned_by_id: AccountId) -> Self {
         Self {
             entity_id,
             version,
-            created_by,
+            owned_by_id,
         }
     }
 
@@ -72,8 +72,8 @@ impl PersistedEntityIdentifier {
     }
 
     #[must_use]
-    pub const fn created_by(&self) -> AccountId {
-        self.created_by
+    pub const fn owned_by_id(&self) -> AccountId {
+        self.owned_by_id
     }
 }
 
@@ -95,11 +95,11 @@ impl PersistedEntity {
         entity_id: EntityId,
         version: DateTime<Utc>,
         type_versioned_uri: VersionedUri,
-        created_by: AccountId,
+        owned_by_id: AccountId,
     ) -> Self {
         Self {
             inner,
-            identifier: PersistedEntityIdentifier::new(entity_id, version, created_by),
+            identifier: PersistedEntityIdentifier::new(entity_id, version, owned_by_id),
             type_versioned_uri,
         }
     }

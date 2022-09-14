@@ -108,7 +108,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     async fn create_property_type(
         &mut self,
         property_type: PropertyType,
-        created_by: AccountId,
+        owned_by_id: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -122,7 +122,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_property_type_references` taking `&property_type`
         let (version_id, identifier) = transaction
-            .create(property_type.clone(), created_by)
+            .create(property_type.clone(), owned_by_id)
             .await?;
 
         transaction

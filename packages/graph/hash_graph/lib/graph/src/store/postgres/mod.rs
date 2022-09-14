@@ -319,7 +319,7 @@ where
     async fn create<T>(
         &self,
         database_type: T,
-        created_by: AccountId,
+        owned_by_id: AccountId,
     ) -> Result<(VersionId, PersistedOntologyIdentifier), InsertionError>
     where
         T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
@@ -352,12 +352,12 @@ where
         self.insert_version_id(version_id).await?;
         self.insert_uri(&uri, version_id).await?;
 
-        self.insert_with_id(version_id, database_type, created_by)
+        self.insert_with_id(version_id, database_type, owned_by_id)
             .await?;
 
         Ok((
             version_id,
-            PersistedOntologyIdentifier::new(uri, created_by),
+            PersistedOntologyIdentifier::new(uri, owned_by_id),
         ))
     }
 
@@ -418,7 +418,7 @@ where
         &self,
         version_id: VersionId,
         database_type: T,
-        created_by: AccountId,
+        owned_by_id: AccountId,
     ) -> Result<(), InsertionError>
     where
         T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
@@ -431,13 +431,13 @@ where
             .query_one(
                 &format!(
                     r#"
-                        INSERT INTO {} (version_id, schema, created_by)
+                        INSERT INTO {} (version_id, schema, owned_by_id)
                         VALUES ($1, $2, $3)
                         RETURNING version_id;
                     "#,
                     T::table()
                 ),
-                &[&version_id, &value, &created_by],
+                &[&version_id, &value, &owned_by_id],
             )
             .await
             .into_report()
@@ -652,7 +652,7 @@ where
             .change_context(InsertionError)?;
         let version = self.as_client().query_one(
                 r#"
-                    INSERT INTO entities (entity_id, version, entity_type_version_id, properties, created_by)
+                    INSERT INTO entities (entity_id, version, entity_type_version_id, properties, owned_by_id)
                     VALUES ($1, clock_timestamp(), $2, $3, $4)
                     RETURNING version;
                 "#,
@@ -699,7 +699,7 @@ where
     /// - if the [`Link`] exists already
     /// - if the [`Link`]s link type doesn't exist
     /// - if inserting the link failed.
-    async fn insert_link(&self, link: &Link, created_by: AccountId) -> Result<(), InsertionError> {
+    async fn insert_link(&self, link: &Link, owned_by_id: AccountId) -> Result<(), InsertionError> {
         let link_type_version_id = self
             .version_id_by_uri(link.link_type_uri())
             .await
@@ -712,16 +712,16 @@ where
             //   implement ordered links.
             //   https://app.asana.com/0/1202805690238892/1202937382769278/f
             r#"
-            INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, link_order, created_by, created_at)
+            INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, link_order, owned_by_id, created_at)
             VALUES ($1, $2, $3, null, $4, clock_timestamp())
             RETURNING source_entity_id, target_entity_id, link_type_version_id;
             "#,
-            &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &created_by],
+            &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &owned_by_id],
         )
         .await
         .into_report()
         .change_context(InsertionError)
-        .attach_printable(created_by)
+        .attach_printable(owned_by_id)
         .attach_lazy(|| link.clone())?;
 
         Ok(())
@@ -758,10 +758,10 @@ where
                         AND target_entity_id = $2
                         AND link_type_version_id = $3
                     RETURNING source_entity_id, target_entity_id, link_type_version_id,
-                    link_order, created_by, created_at
+                    link_order, owned_by_id, created_at
                 )
                 INSERT INTO link_histories(source_entity_id, target_entity_id, link_type_version_id,
-                    link_order, created_by, created_at, removed_by, removed_at)
+                    link_order, owned_by_id, created_at, removed_by, removed_at)
                 -- When inserting into `link_histories`, `removed_by` and `removed_at` are provided
                 SELECT *, $4, clock_timestamp() FROM removed
                 RETURNING source_entity_id, target_entity_id, link_type_version_id;

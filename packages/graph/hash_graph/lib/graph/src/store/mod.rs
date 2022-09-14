@@ -204,14 +204,14 @@ pub trait DataTypeStore: for<'q> crud::Read<PersistedDataType, Query<'q> = Expre
     ///
     /// # Errors:
     ///
-    /// - if the account referred to by `created_by` does not exist.
+    /// - if the account referred to by `owned_by_id` does not exist.
     /// - if the [`BaseUri`] of the `data_type` already exist.
     ///
     /// [`BaseUri`]: type_system::uri::BaseUri
     async fn create_data_type(
         &mut self,
         data_type: DataType,
-        created_by: AccountId,
+        owned_by_id: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError>;
 
     /// Get the [`DataType`]s specified by the [`Expression`].
@@ -245,14 +245,14 @@ pub trait PropertyTypeStore:
     ///
     /// # Errors:
     ///
-    /// - if the account referred to by `created_by` does not exist.
+    /// - if the account referred to by `owned_by_id` does not exist.
     /// - if the [`BaseUri`] of the `property_type` already exists.
     ///
     /// [`BaseUri`]: type_system::uri::BaseUri
     async fn create_property_type(
         &mut self,
         property_type: PropertyType,
-        created_by: AccountId,
+        owned_by_id: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError>;
 
     /// Get the [`PropertyType`]s specified by the [`Expression`].
@@ -284,14 +284,14 @@ pub trait EntityTypeStore: for<'q> crud::Read<PersistedEntityType, Query<'q> = E
     ///
     /// # Errors:
     ///
-    /// - if the account referred to by `created_by` does not exist.
+    /// - if the account referred to by `owned_by_id` does not exist.
     /// - if the [`BaseUri`] of the `entity_type` already exist.
     ///
     /// [`BaseUri`]: type_system::uri::BaseUri
     async fn create_entity_type(
         &mut self,
         entity_type: EntityType,
-        created_by: AccountId,
+        owned_by_id: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError>;
 
     /// Get the [`EntityType`]s specified by the [`Expression`].
@@ -323,14 +323,14 @@ pub trait LinkTypeStore: for<'q> crud::Read<PersistedLinkType, Query<'q> = Expre
     ///
     /// # Errors:
     ///
-    /// - if the account referred to by `created_by` does not exist.
+    /// - if the account referred to by `owned_by_id` does not exist.
     /// - if the [`BaseUri`] of the `property_type` already exists.
     ///
     /// [`BaseUri`]: type_system::uri::BaseUri
     async fn create_link_type(
         &mut self,
         link_type: LinkType,
-        created_by: AccountId,
+        owned_by_id: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError>;
 
     /// Get the [`LinkType`]s specified by the [`Expression`].
@@ -364,13 +364,13 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
     ///
     /// - if the [`EntityType`] doesn't exist
     /// - if the [`Entity`] is not valid with respect to the specified [`EntityType`]
-    /// - if the account referred to by `created_by` does not exist
+    /// - if the account referred to by `owned_by_id` does not exist
     /// - if an [`EntityId`] was supplied and already exists in the store
     async fn create_entity(
         &mut self,
         entity: Entity,
         entity_type_uri: VersionedUri,
-        created_by: AccountId,
+        owned_by_id: AccountId,
         entity_id: Option<EntityId>,
     ) -> Result<PersistedEntityIdentifier, InsertionError>;
 
@@ -409,11 +409,11 @@ pub trait LinkStore: for<'q> crud::Read<Link, Query<'q> = Expression> {
     ///
     /// - if the [`Link`] exists already
     /// - if the [`Link`]s [`LinkType`] doesn't exist
-    /// - if the account referred to by `created_by` does not exist
+    /// - if the account referred to by `owned_by_id` does not exist
     async fn create_link(
         &mut self,
         link: &Link,
-        created_by: AccountId,
+        owned_by_id: AccountId,
     ) -> Result<(), InsertionError>;
 
     /// Get the [`Link`]s specified by the [`Expression`].
@@ -431,7 +431,7 @@ pub trait LinkStore: for<'q> crud::Read<Link, Query<'q> = Expression> {
     ///
     /// - if the [`Link`] doesn't exist
     /// - if the[`Link`]s [`LinkType`] doesn't exist
-    /// - if the account referred to by `created_by` does not exist
+    /// - if the account referred to by `owned_by_id` does not exist
     async fn remove_link(
         &mut self,
         link: &Link,

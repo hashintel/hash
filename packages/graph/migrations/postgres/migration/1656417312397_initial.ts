@@ -72,7 +72,6 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     primaryKey: ["base_uri", "version"],
   });
 
-  // TODO: consider changing `created_by` to `author` or something in all tables : https://app.asana.com/0/1201095311341924/1202769355319303/f
   pgm.createTable(
     "data_types",
     {
@@ -85,7 +84,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "JSONB",
         notNull: true,
       },
-      created_by: {
+      owned_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",
@@ -108,7 +107,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "JSONB",
         notNull: true,
       },
-      created_by: {
+      owned_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",
@@ -130,7 +129,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "JSONB",
         notNull: true,
       },
-      created_by: {
+      owned_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",
@@ -153,7 +152,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "JSONB",
         notNull: true,
       },
-      created_by: {
+      owned_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",
@@ -293,7 +292,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "JSONB",
         notNull: true,
       },
-      created_by: {
+      owned_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",
@@ -331,7 +330,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "integer",
         notNull: false,
       },
-      created_by: {
+      owned_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",
@@ -381,7 +380,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "integer",
         notNull: false,
       },
-      created_by: {
+      owned_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",

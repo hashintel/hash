@@ -44,7 +44,7 @@ pub async fn read_all_entities(client: &impl AsClient) -> Result<RecordStream, Q
         .as_client()
         .query_raw(
             r#"
-            SELECT properties, entity_id, entities.version, type_ids.base_uri, type_ids.version, created_by, MAX(entities.version) OVER (PARTITION by entity_id) = entities.version as latest
+            SELECT properties, entity_id, entities.version, type_ids.base_uri, type_ids.version, owned_by_id, MAX(entities.version) OVER (PARTITION by entity_id) = entities.version as latest
             FROM entities
             INNER JOIN type_ids
             ON type_ids.version_id = entities.entity_type_version_id
@@ -65,7 +65,7 @@ pub async fn read_latest_entity_by_id(
         .as_client()
         .query_one(
             r#"
-            SELECT properties, entity_id, entities.version, type_ids.base_uri, type_ids.version, created_by
+            SELECT properties, entity_id, entities.version, type_ids.base_uri, type_ids.version, owned_by_id
             FROM entities
             INNER JOIN type_ids ON type_ids.version_id = entities.entity_type_version_id
             WHERE entity_id = $1 AND entities.version = (

@@ -124,7 +124,7 @@ export interface CreateLinkRequest {
    * @type {string}
    * @memberof CreateLinkRequest
    */
-  createdBy: string;
+  ownedById: string;
   /**
    *
    * @type {string}
@@ -605,7 +605,7 @@ export interface PersistedEntityIdentifier {
    * @type {string}
    * @memberof PersistedEntityIdentifier
    */
-  createdBy: string;
+  ownedById: string;
   /**
    *
    * @type {string}
@@ -668,7 +668,7 @@ export interface PersistedOntologyIdentifier {
    * @type {string}
    * @memberof PersistedOntologyIdentifier
    */
-  createdBy: string;
+  ownedById: string;
   /**
    *
    * @type {string}
