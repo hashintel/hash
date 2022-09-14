@@ -10,6 +10,7 @@ import {
   PersistedLinkType,
   PersistedPropertyType,
   PropertyTypeSubgraph,
+  EntityTypeSubgraph,
 } from "../../apiTypes.gen";
 
 export const dataTypeModelToGQL = (
@@ -58,4 +59,26 @@ export const entityTypeModelToGQL = (
   accountId: entityType.accountId,
   entityTypeVersionedUri: entityType.schema.$id,
   entityType: entityType.schema,
+});
+
+export const entityTypeSubgraphToGQL = ({
+  entityType,
+  referencedDataTypes,
+  referencedPropertyTypes,
+  referencedLinkTypes,
+  referencedEntityTypes,
+}: {
+  entityType: EntityTypeModel;
+  referencedDataTypes: DataTypeModel[];
+  referencedPropertyTypes: PropertyTypeModel[];
+  referencedLinkTypes: LinkTypeModel[];
+  referencedEntityTypes: EntityTypeModel[];
+}): EntityTypeSubgraph => ({
+  accountId: entityType.accountId,
+  entityTypeVersionedUri: entityType.schema.$id,
+  entityType: entityType.schema,
+  referencedDataTypes: referencedDataTypes.map(dataTypeModelToGQL),
+  referencedPropertyTypes: referencedPropertyTypes.map(propertyTypeModelToGQL),
+  referencedLinkTypes: referencedLinkTypes.map(linkTypeModelToGQL),
+  referencedEntityTypes: referencedEntityTypes.map(entityTypeModelToGQL),
 });

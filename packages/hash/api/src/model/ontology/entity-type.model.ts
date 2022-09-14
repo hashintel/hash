@@ -3,6 +3,7 @@ import { AxiosError } from "axios";
 import { EntityType } from "@blockprotocol/type-system-web";
 import {
   GraphApi,
+  PersistedEntityType,
   UpdateEntityTypeRequest,
 } from "@hashintel/hash-graph-client";
 import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
@@ -12,8 +13,15 @@ import {
   PropertyTypeModel,
   LinkTypeModel,
   UserModel,
+  DataTypeModel,
 } from "../index";
-import { generateSchemaUri, workspaceAccountId } from "../util";
+import {
+  generateSchemaUri,
+  splitVersionedUri,
+  workspaceAccountId,
+} from "../util";
+import dataTypeModel from "./data-type.model";
+import linkTypeModel from "./link-type.model";
 
 export type EntityTypeModelConstructorParams = {
   accountId: string;
@@ -36,6 +44,27 @@ export default class {
   constructor({ schema, accountId }: EntityTypeModelConstructorParams) {
     this.accountId = accountId;
     this.schema = schema;
+  }
+
+  static fromPersistedEntityType({
+    inner,
+    identifier,
+  }: PersistedEntityType): EntityTypeModel {
+    /**
+     * @todo and a warning, these type casts are here to compensate for
+     *   the differences between the Graph API package and the
+     *   type system package.
+     *
+     *   The type system package can be considered the source of truth in
+     *   terms of the shape of values returned from the API, but the API
+     *   client is unable to be given as type package types - it generates
+     *   its own types.
+     *   https://app.asana.com/0/1202805690238892/1202892835843657/f
+     */
+    return new EntityTypeModel({
+      schema: inner as EntityType,
+      accountId: identifier.createdBy,
+    });
   }
 
   /**
@@ -108,24 +137,69 @@ export default class {
     const { data: persistedEntityTypes } =
       await graphApi.getLatestEntityTypes();
 
-    return persistedEntityTypes.map(
-      (persistedEntityType) =>
-        new EntityTypeModel({
-          /**
-           * @todo and a warning, these type casts are here to compensate for
-           *   the differences between the Graph API package and the
-           *   type system package.
-           *
-           *   The type system package can be considered the source of truth in
-           *   terms of the shape of values returned from the API, but the API
-           *   client is unable to be given as type package types - it generates
-           *   its own types.
-           *   https://app.asana.com/0/1202805690238892/1202892835843657/f
-           */
-          schema: persistedEntityType.inner as EntityType,
-          accountId: persistedEntityType.identifier.createdBy,
-        }),
-    );
+    return persistedEntityTypes.map(EntityTypeModel.fromPersistedEntityType);
+  }
+
+  /**
+   * Get all entity types at their latest version with their references resolved as a list.
+   *
+   * @param params.accountId the accountId of the account creating the property type
+   * @param params.dataTypeQueryDepth recursion depth to use to resolve data types
+   * @param params.propertyTypeQueryDepth recursion depth to use to resolve property types
+   * @param params.linkTypeQueryDepth recursion depth to use to resolve link types
+   * @param params.entityTypeQueryDepth recursion depth to use to resolve entity types
+   */
+  static async getAllLatestResolved(
+    graphApi: GraphApi,
+    params: {
+      accountId: string;
+      dataTypeQueryDepth: number;
+      propertyTypeQueryDepth: number;
+      linkTypeQueryDepth: number;
+      entityTypeQueryDepth: number;
+    },
+  ): Promise<
+    {
+      entityType: EntityTypeModel;
+      referencedDataTypes: dataTypeModel[];
+      referencedPropertyTypes: PropertyTypeModel[];
+      referencedLinkTypes: LinkTypeModel[];
+      referencedEntityTypes: EntityTypeModel[];
+    }[]
+  > {
+    /**
+     * @todo: get all latest entity types in specified account.
+     *   This may mean implicitly filtering results by what an account is
+     *   authorized to see.
+     *   https://app.asana.com/0/1202805690238892/1202890446280569/f
+     */
+    const { data: entityTypeSubgraphs } = await graphApi.getEntityTypesByQuery({
+      dataTypeQueryDepth: params.dataTypeQueryDepth,
+      propertyTypeQueryDepth: params.propertyTypeQueryDepth,
+      linkTypeQueryDepth: params.linkTypeQueryDepth,
+      entityTypeQueryDepth: params.entityTypeQueryDepth,
+      query: {
+        eq: [{ path: ["version"] }, { literal: "latest" }],
+      },
+    });
+
+    return entityTypeSubgraphs.map((entityTypeSubgraph) => ({
+      entityType: EntityTypeModel.fromPersistedEntityType(
+        entityTypeSubgraph.entityType,
+      ),
+      referencedDataTypes: entityTypeSubgraph.referencedDataTypes.map(
+        DataTypeModel.fromPersistedDataType,
+      ),
+      referencedPropertyTypes: entityTypeSubgraph.referencedPropertyTypes.map(
+        PropertyTypeModel.fromPersistedPropertyType,
+      ),
+      referencedLinkTypes: entityTypeSubgraph.referencedLinkTypes.map(
+        linkTypeModel.fromPersistedLinkType,
+      ),
+      referencedEntityTypes: entityTypeSubgraph.referencedEntityTypes.map(
+        EntityTypeModel.fromPersistedEntityType,
+      ),
+    }));
   }
 
   /**
@@ -145,21 +219,72 @@ export default class {
       versionedUri,
     );
 
-    return new EntityTypeModel({
-      /**
-       * @todo and a warning, these type casts are here to compensate for
-       *   the differences between the Graph API package and the
-       *   type system package.
-       *
-       *   The type system package can be considered the source of truth in
-       *   terms of the shape of values returned from the API, but the API
-       *   client is unable to be given as type package types - it generates
-       *   its own types.
-       *   https://app.asana.com/0/1202805690238892/1202892835843657/f
-       */
-      schema: persistedEntityType.inner as EntityType,
-      accountId: persistedEntityType.identifier.createdBy,
-    });
+    return EntityTypeModel.fromPersistedEntityType(persistedEntityType);
+  }
+
+  /**
+   * Get an entity type by its versioned URI.
+   *
+   * @param params.accountId the accountId of the account requesting the entity type
+   * @param params.dataTypeQueryDepth recursion depth to use to resolve data types
+   * @param params.propertyTypeQueryDepth recursion depth to use to resolve property types
+   * @param params.linkTypeQueryDepth recursion depth to use to resolve link types
+   * @param params.entityTypeQueryDepth recursion depth to use to resolve entity types
+   */
+  static async getResolved(
+    graphApi: GraphApi,
+    params: {
+      versionedUri: string;
+      dataTypeQueryDepth: number;
+      propertyTypeQueryDepth: number;
+      linkTypeQueryDepth: number;
+      entityTypeQueryDepth: number;
+    },
+  ): Promise<{
+    entityType: EntityTypeModel;
+    referencedDataTypes: dataTypeModel[];
+    referencedPropertyTypes: PropertyTypeModel[];
+    referencedLinkTypes: LinkTypeModel[];
+    referencedEntityTypes: EntityTypeModel[];
+  }> {
+    const { baseUri, version } = splitVersionedUri(params.versionedUri);
+    const { data: propertyTypeSubgraphs } =
+      await graphApi.getEntityTypesByQuery({
+        dataTypeQueryDepth: params.dataTypeQueryDepth,
+        propertyTypeQueryDepth: params.propertyTypeQueryDepth,
+        linkTypeQueryDepth: params.linkTypeQueryDepth,
+        entityTypeQueryDepth: params.entityTypeQueryDepth,
+        query: {
+          all: [
+            { eq: [{ path: ["uri"] }, { literal: baseUri }] },
+            { eq: [{ path: ["version"] }, { literal: version }] },
+          ],
+        },
+      });
+    const entityTypeSubgraph = propertyTypeSubgraphs.pop();
+    if (entityTypeSubgraph === undefined) {
+      throw new Error(
+        `Unable to retrieve property type for URI: ${params.versionedUri}`,
+      );
+    }
+
+    return {
+      entityType: EntityTypeModel.fromPersistedEntityType(
+        entityTypeSubgraph.entityType,
+      ),
+      referencedDataTypes: entityTypeSubgraph.referencedDataTypes.map(
+        DataTypeModel.fromPersistedDataType,
+      ),
+      referencedPropertyTypes: entityTypeSubgraph.referencedPropertyTypes.map(
+        PropertyTypeModel.fromPersistedPropertyType,
+      ),
+      referencedLinkTypes: entityTypeSubgraph.referencedLinkTypes.map(
+        LinkTypeModel.fromPersistedLinkType,
+      ),
+      referencedEntityTypes: entityTypeSubgraph.referencedEntityTypes.map(
+        EntityTypeModel.fromPersistedEntityType,
+      ),
+    };
   }
 
   /**

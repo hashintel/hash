@@ -1,7 +1,11 @@
 import { AxiosError } from "axios";
 
 import { LinkType } from "@blockprotocol/type-system-web";
-import { GraphApi, UpdateLinkTypeRequest } from "@hashintel/hash-graph-client";
+import {
+  GraphApi,
+  PersistedLinkType,
+  UpdateLinkTypeRequest,
+} from "@hashintel/hash-graph-client";
 import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
 import { LinkTypeModel, UserModel } from "../index";
@@ -23,6 +27,27 @@ export default class {
   constructor({ schema, accountId }: LinkTypeModelConstructorParams) {
     this.accountId = accountId;
     this.schema = schema;
+  }
+
+  static fromPersistedLinkType({
+    inner,
+    identifier,
+  }: PersistedLinkType): LinkTypeModel {
+    /**
+     * @todo and a warning, these type casts are here to compensate for
+     *   the differences between the Graph API package and the
+     *   type system package.
+     *
+     *   The type system package can be considered the source of truth in
+     *   terms of the shape of values returned from the API, but the API
+     *   client is unable to be given as type package types - it generates
+     *   its own types.
+     *   https://app.asana.com/0/1202805690238892/1202892835843657/f
+     */
+    return new LinkTypeModel({
+      schema: inner as LinkType,
+      accountId: identifier.createdBy,
+    });
   }
 
   /**
@@ -91,19 +116,13 @@ export default class {
   ): Promise<LinkTypeModel[]> {
     /**
      * @todo: get all latest link types in specified account.
-     *   This may mean implictly filtering results by what an account is
+     *   This may mean implicitly filtering results by what an account is
      *   authorized to see.
      *   https://app.asana.com/0/1202805690238892/1202890446280569/f
      */
     const { data: persistedLinkTypes } = await graphApi.getLatestLinkTypes();
 
-    return persistedLinkTypes.map(
-      (persistedLinkType) =>
-        new LinkTypeModel({
-          schema: persistedLinkType.inner,
-          accountId: persistedLinkType.identifier.createdBy,
-        }),
-    );
+    return persistedLinkTypes.map(LinkTypeModel.fromPersistedLinkType);
   }
 
   /**
@@ -123,10 +142,7 @@ export default class {
       versionedUri,
     );
 
-    return new LinkTypeModel({
-      schema: persistedLinkType.inner,
-      accountId: persistedLinkType.identifier.createdBy,
-    });
+    return LinkTypeModel.fromPersistedLinkType(persistedLinkType);
   }
 
   /**
