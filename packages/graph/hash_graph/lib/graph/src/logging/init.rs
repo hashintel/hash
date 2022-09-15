@@ -60,12 +60,17 @@ pub fn init_logger<P: AsRef<Path>>(
     let log_folder = log_folder.as_ref();
 
     let filter = log_level.map_or_else(
-        || match std::env::var("RUST_LOG") {
-            Ok(env) => EnvFilter::new(env),
-            #[cfg(debug_assertions)]
-            _ => EnvFilter::default().add_directive(Directive::from(LevelFilter::DEBUG)),
-            #[cfg(not(debug_assertions))]
-            _ => EnvFilter::default().add_directive(Directive::from(LevelFilter::WARN)),
+        || {
+            std::env::var("RUST_LOG").map_or_else(
+                |_| {
+                    if cfg!(debug_assertions) {
+                        EnvFilter::default().add_directive(Directive::from(LevelFilter::DEBUG))
+                    } else {
+                        EnvFilter::default().add_directive(Directive::from(LevelFilter::WARN))
+                    }
+                },
+                EnvFilter::new,
+            )
         },
         |log_level| EnvFilter::default().add_directive(Directive::from(log_level)),
     );
