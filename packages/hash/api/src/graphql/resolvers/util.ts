@@ -80,3 +80,23 @@ export const dataTypeQueryDepth = (info: GraphQLResolveInfo): number => {
 export const propertyTypeQueryDepth = (info: GraphQLResolveInfo): number => {
   return queryDepthByFieldName(info, "referencedPropertyTypes");
 };
+
+/**
+ * Returns the requested query depth for referenced link types
+ *
+ * @param info the 'info' fourth argument to all resolvers
+ * @returns the depth requested
+ */
+export const linkTypeQueryDepth = (info: GraphQLResolveInfo): number => {
+  return queryDepthByFieldName(info, "referencedLinkTypes");
+};
+
+/**
+ * Returns the requested query depth for referenced entity types
+ *
+ * @param info the 'info' fourth argument to all resolvers
+ * @returns the depth requested
+ */
+export const entityTypeQueryDepth = (info: GraphQLResolveInfo): number => {
+  return queryDepthByFieldName(info, "referencedEntityTypes");
+};

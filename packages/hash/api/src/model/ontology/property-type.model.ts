@@ -156,7 +156,7 @@ export default class {
      *   authorized to see.
      *   https://app.asana.com/0/1202805690238892/1202890446280569/f
      */
-    const { data: propertyTypeSubgraphs } =
+    const { data: propertyTypeRootedSubgraphs } =
       await graphApi.getPropertyTypesByQuery({
         dataTypeQueryDepth: params.dataTypeQueryDepth,
         propertyTypeQueryDepth: params.propertyTypeQueryDepth,
@@ -165,16 +165,17 @@ export default class {
         },
       });
 
-    return propertyTypeSubgraphs.map((propertyTypeSubgraph) => ({
+    return propertyTypeRootedSubgraphs.map((propertyTypeRootedSubgraph) => ({
       propertyType: PropertyTypeModel.fromPersistedPropertyType(
-        propertyTypeSubgraph.propertyType,
+        propertyTypeRootedSubgraph.propertyType,
       ),
-      referencedDataTypes: propertyTypeSubgraph.referencedDataTypes.map(
+      referencedDataTypes: propertyTypeRootedSubgraph.referencedDataTypes.map(
         DataTypeModel.fromPersistedDataType,
       ),
-      referencedPropertyTypes: propertyTypeSubgraph.referencedPropertyTypes.map(
-        PropertyTypeModel.fromPersistedPropertyType,
-      ),
+      referencedPropertyTypes:
+        propertyTypeRootedSubgraph.referencedPropertyTypes.map(
+          PropertyTypeModel.fromPersistedPropertyType,
+        ),
     }));
   }
 
@@ -217,7 +218,7 @@ export default class {
     referencedPropertyTypes: PropertyTypeModel[];
   }> {
     const { baseUri, version } = splitVersionedUri(params.versionedUri);
-    const { data: propertyTypeSubgraphs } =
+    const { data: propertyTypeRootedSubgraphs } =
       await graphApi.getPropertyTypesByQuery({
         dataTypeQueryDepth: params.dataTypeQueryDepth,
         propertyTypeQueryDepth: params.propertyTypeQueryDepth,
@@ -228,8 +229,8 @@ export default class {
           ],
         },
       });
-    const propertyTypeSubgraph = propertyTypeSubgraphs.pop();
-    if (propertyTypeSubgraph === undefined) {
+    const propertyTypeRootedSubgraph = propertyTypeRootedSubgraphs.pop();
+    if (propertyTypeRootedSubgraph === undefined) {
       throw new Error(
         `Unable to retrieve property type for URI: ${params.versionedUri}`,
       );
@@ -237,14 +238,15 @@ export default class {
 
     return {
       propertyType: PropertyTypeModel.fromPersistedPropertyType(
-        propertyTypeSubgraph.propertyType,
+        propertyTypeRootedSubgraph.propertyType,
       ),
-      referencedDataTypes: propertyTypeSubgraph.referencedDataTypes.map(
+      referencedDataTypes: propertyTypeRootedSubgraph.referencedDataTypes.map(
         DataTypeModel.fromPersistedDataType,
       ),
-      referencedPropertyTypes: propertyTypeSubgraph.referencedPropertyTypes.map(
-        PropertyTypeModel.fromPersistedPropertyType,
-      ),
+      referencedPropertyTypes:
+        propertyTypeRootedSubgraph.referencedPropertyTypes.map(
+          PropertyTypeModel.fromPersistedPropertyType,
+        ),
     };
   }
 

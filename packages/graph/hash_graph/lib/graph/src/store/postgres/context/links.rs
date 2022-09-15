@@ -18,7 +18,9 @@ pub struct LinkRecord {
 
 pub type RecordStream = impl Stream<Item = Result<LinkRecord, QueryError>>;
 
-fn row_stream_to_record_stream(row_stream: RowStream) -> RecordStream {
+fn row_stream_to_record_stream(
+    row_stream: RowStream,
+) -> impl Stream<Item = Result<LinkRecord, QueryError>> {
     row_stream.map(|row_result| {
         let row = row_result.into_report().change_context(QueryError)?;
 
