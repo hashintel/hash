@@ -418,7 +418,7 @@ export default class extends EntityModel {
     );
 
     await this.createOutgoingLink(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.org,
+      linkTypeModel: WORKSPACE_TYPES.linkType.ofOrg,
       targetEntityModel: orgMembership,
     });
   }
@@ -435,7 +435,7 @@ export default class extends EntityModel {
               { path: ["type", "uri"] },
               {
                 literal: extractBaseUri(
-                  WORKSPACE_TYPES.linkType.org.schema.$id,
+                  WORKSPACE_TYPES.linkType.ofOrg.schema.$id,
                 ),
               },
             ],

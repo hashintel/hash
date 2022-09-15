@@ -37,10 +37,10 @@ export let WORKSPACE_TYPES: {
   };
   linkType: {
     // User-related
-    orgMembership: LinkTypeModel;
+    hasMembership: LinkTypeModel;
 
     // OrgMembership-related
-    org: LinkTypeModel;
+    ofOrg: LinkTypeModel;
   };
 };
 
@@ -115,7 +115,7 @@ const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
     graphApi,
   );
 
-  const orgLinkTypeModel = await WORKSPACE_TYPES_INITIALIZERS.linkType.org(
+  const ofOrgLinkTypeModel = await WORKSPACE_TYPES_INITIALIZERS.linkType.ofOrg(
     graphApi,
   );
   /* eslint-enable @typescript-eslint/no-use-before-define */
@@ -132,7 +132,7 @@ const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
     ],
     outgoingLinks: [
       {
-        versionedUri: orgLinkTypeModel.schema.$id,
+        versionedUri: ofOrgLinkTypeModel.schema.$id,
         destinationVersionedUri: orgEntityTypeModel.schema.$id,
         required: true,
       },
@@ -182,16 +182,16 @@ const responsibilityPropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
-const orgLinkTypeInitializer = linkTypeInitializer({
+const ofOrgLinkTypeInitializer = linkTypeInitializer({
   namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Org",
-  description: "The organization of an org membership",
+  title: "Of Org",
+  description: "Belonging to an organization",
 });
 
-const orgMembershipLinkTypeInitializer = linkTypeInitializer({
+const hasMembershipLinkTypeInitializer = linkTypeInitializer({
   namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Org Membership",
-  description: "An org membership of a user",
+  title: "Has Membership",
+  description: "Having a membership",
 });
 
 const userEntityTypeInitializer = async (graphApi: GraphApi) => {
@@ -208,8 +208,8 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
   const preferredNamePropertyTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.propertyType.preferredName(graphApi);
 
-  const orgMembershipLinkTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.linkType.orgMembership(graphApi);
+  const hasMembershipLinkTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.linkType.hasMembership(graphApi);
 
   const orgMembershipEntityTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.entityType.orgMembership(graphApi);
@@ -243,7 +243,7 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
     ],
     outgoingLinks: [
       {
-        versionedUri: orgMembershipLinkTypeModel.schema.$id,
+        versionedUri: hasMembershipLinkTypeModel.schema.$id,
         destinationVersionedUri: orgMembershipEntityTypeModel.schema.$id,
       },
     ],
@@ -281,8 +281,8 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     orgMembership: orgMembershipEntityTypeInitializer,
   },
   linkType: {
-    org: orgLinkTypeInitializer,
-    orgMembership: orgMembershipLinkTypeInitializer,
+    ofOrg: ofOrgLinkTypeInitializer,
+    hasMembership: hasMembershipLinkTypeInitializer,
   },
 };
 
