@@ -44,6 +44,7 @@ use crate::{
         PersistedEntity,
         Entity,
         EntityQuery,
+        EntityRootedSubgraph,
     ),
     tags(
         (name = "Entity", description = "entity management API")
@@ -125,10 +126,10 @@ async fn create_entity<P: StorePool + Send>(
 #[utoipa::path(
     post,
     path = "/entities/query",
-    request_body = Expression,
+    request_body = EntityQuery,
     tag = "Entity",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all entities matching the provided query", body = [PersistedEntity]),
+        (status = 200, content_type = "application/json", body = [EntityTypeRootedSubgraph], description = "A list of subgraphs rooted at entities that satisfy the given query, each resolved to the requested depth."),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
