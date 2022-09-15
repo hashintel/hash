@@ -77,6 +77,33 @@ export default class extends EntityModel {
   }
 
   /**
+   * Get a workspace user entity by its entity id.
+   *
+   * @param params.entityId - the entity id of the user
+   */
+  static async getUserById(
+    graphApi: GraphApi,
+    params: { entityId: string },
+  ): Promise<UserModel | null> {
+    const entity = await EntityModel.getLatest(graphApi, {
+      // assumption: `accountId` of user is always the workspace account id
+      accountId: workspaceAccountId,
+      entityId: params.entityId,
+    });
+
+    if (
+      entity.entityTypeModel.schema.$id !==
+      WORKSPACE_TYPES.entityType.user.schema.$id
+    ) {
+      throw new Error(
+        `Entity with id ${params.entityId} is not a workspace user`,
+      );
+    }
+
+    return entity ? new UserModel(entity) : null;
+  }
+
+  /**
    * Get a workspace user entity by their shortname.
    *
    * @param params.shortname - the shortname of the user
