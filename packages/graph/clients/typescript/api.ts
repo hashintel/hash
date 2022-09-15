@@ -124,13 +124,13 @@ export interface CreateLinkRequest {
    * @type {string}
    * @memberof CreateLinkRequest
    */
-  ownedById: string;
+  linkTypeUri: string;
   /**
    *
    * @type {string}
    * @memberof CreateLinkRequest
    */
-  linkTypeUri: string;
+  ownedById: string;
   /**
    *
    * @type {string}
@@ -605,13 +605,13 @@ export interface PersistedEntityIdentifier {
    * @type {string}
    * @memberof PersistedEntityIdentifier
    */
-  ownedById: string;
+  entityId: string;
   /**
    *
    * @type {string}
    * @memberof PersistedEntityIdentifier
    */
-  entityId: string;
+  ownedById: string;
   /**
    *
    * @type {string}
