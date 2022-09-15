@@ -54,7 +54,7 @@ struct CreateLinkRequest {
     target_entity_id: EntityId,
     #[component(value_type = String)]
     link_type_uri: VersionedUri,
-    created_by: AccountId,
+    owned_by_id: AccountId,
 }
 
 #[utoipa::path(
@@ -82,7 +82,7 @@ async fn create_link<P: StorePool + Send>(
     let Json(CreateLinkRequest {
         target_entity_id,
         link_type_uri,
-        created_by,
+        owned_by_id,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -93,7 +93,7 @@ async fn create_link<P: StorePool + Send>(
     let link = Link::new(source_entity_id, target_entity_id, link_type_uri);
 
     store
-        .create_link(&link, created_by)
+        .create_link(&link, owned_by_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create link");
@@ -162,7 +162,7 @@ struct RemoveLinkRequest {
     target_entity_id: EntityId,
     #[component(value_type = String)]
     link_type_uri: VersionedUri,
-    removed_by: AccountId,
+    removed_by_id: AccountId,
 }
 
 #[utoipa::path(
@@ -190,7 +190,7 @@ async fn remove_link<P: StorePool + Send>(
     let Json(RemoveLinkRequest {
         target_entity_id,
         link_type_uri,
-        removed_by,
+        removed_by_id,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -201,7 +201,7 @@ async fn remove_link<P: StorePool + Send>(
     store
         .remove_link(
             &Link::new(source_entity_id, target_entity_id, link_type_uri),
-            removed_by,
+            removed_by_id,
         )
         .await
         .map_err(|report| {

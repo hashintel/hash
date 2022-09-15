@@ -124,13 +124,13 @@ export interface CreateLinkRequest {
    * @type {string}
    * @memberof CreateLinkRequest
    */
-  createdBy: string;
+  linkTypeUri: string;
   /**
    *
    * @type {string}
    * @memberof CreateLinkRequest
    */
-  linkTypeUri: string;
+  ownedById: string;
   /**
    *
    * @type {string}
@@ -679,13 +679,13 @@ export interface PersistedEntityIdentifier {
    * @type {string}
    * @memberof PersistedEntityIdentifier
    */
-  createdBy: string;
+  entityId: string;
   /**
    *
    * @type {string}
    * @memberof PersistedEntityIdentifier
    */
-  entityId: string;
+  ownedById: string;
   /**
    *
    * @type {string}
@@ -742,7 +742,7 @@ export interface PersistedOntologyIdentifier {
    * @type {string}
    * @memberof PersistedOntologyIdentifier
    */
-  createdBy: string;
+  ownedById: string;
   /**
    *
    * @type {string}
@@ -1036,7 +1036,7 @@ export interface RemoveLinkRequest {
    * @type {string}
    * @memberof RemoveLinkRequest
    */
-  removedBy: string;
+  removedById: string;
   /**
    *
    * @type {string}

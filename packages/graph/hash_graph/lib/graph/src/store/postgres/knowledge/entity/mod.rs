@@ -28,7 +28,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         &mut self,
         entity: Entity,
         entity_type_uri: VersionedUri,
-        created_by: AccountId,
+        owned_by_id: AccountId,
         entity_id: Option<EntityId>,
     ) -> Result<PersistedEntityIdentifier, InsertionError> {
         let transaction = PostgresStore::new(
@@ -45,7 +45,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         //   https://app.asana.com/0/1200211978612931/1202574350052904/f
         transaction.insert_entity_id(entity_id).await?;
         let identifier = transaction
-            .insert_entity(entity_id, entity, entity_type_uri, created_by)
+            .insert_entity(entity_id, entity, entity_type_uri, owned_by_id)
             .await?;
 
         transaction

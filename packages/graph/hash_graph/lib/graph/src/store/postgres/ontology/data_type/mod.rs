@@ -56,7 +56,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     async fn create_data_type(
         &mut self,
         data_type: DataType,
-        created_by: AccountId,
+        owned_by_id: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -66,7 +66,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 .change_context(InsertionError)?,
         );
 
-        let (_, identifier) = transaction.create(data_type, created_by).await?;
+        let (_, identifier) = transaction.create(data_type, owned_by_id).await?;
 
         transaction
             .client
