@@ -28,7 +28,7 @@ export let WORKSPACE_TYPES: {
     orgProvidedInfo: PropertyTypeModel;
 
     // OrgMembership-related
-    role: PropertyTypeModel;
+    responsibility: PropertyTypeModel;
   };
   entityType: {
     user: EntityTypeModel;
@@ -108,8 +108,8 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
 
 const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
-  const rolePropertyTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.propertyType.role(graphApi);
+  const responsibilityPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.responsibility(graphApi);
 
   const orgEntityTypeModel = await WORKSPACE_TYPES_INITIALIZERS.entityType.org(
     graphApi,
@@ -125,8 +125,8 @@ const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
     title: "OrgMembership",
     properties: [
       {
-        baseUri: rolePropertyTypeModel.baseUri,
-        versionedUri: rolePropertyTypeModel.schema.$id,
+        baseUri: responsibilityPropertyTypeModel.baseUri,
+        versionedUri: responsibilityPropertyTypeModel.schema.$id,
         required: true,
       },
     ],
@@ -176,9 +176,9 @@ const preferredNamePropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
-const rolePropertyTypeInitializer = propertyTypeInitializer({
+const responsibilityPropertyTypeInitializer = propertyTypeInitializer({
   namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Role",
+  title: "responsibility",
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
@@ -273,7 +273,7 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     orgSize: orgSizePropertyTypeInitializer,
     orgProvidedInfo: orgProvidedInfoPropertyTypeInitializer,
 
-    role: rolePropertyTypeInitializer,
+    responsibility: responsibilityPropertyTypeInitializer,
   },
   entityType: {
     user: userEntityTypeInitializer,
