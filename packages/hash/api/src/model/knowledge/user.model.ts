@@ -6,6 +6,8 @@ import {
   UserModel,
   AccountFields,
   EntityModelCreateParams,
+  OrgModel,
+  OrgMembershipModel,
 } from "..";
 import {
   adminKratosSdk,
@@ -13,7 +15,7 @@ import {
   KratosUserIdentityTraits,
 } from "../../auth/ory-kratos";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
-import { workspaceAccountId } from "../util";
+import { extractBaseUri, workspaceAccountId } from "../util";
 
 type QualifiedEmail = { address: string; verified: boolean; primary: boolean };
 
@@ -412,19 +414,75 @@ export default class extends EntityModel {
   }
 
   async joinOrg(
-    _graphApi: GraphApi,
-    _params: { org: any; responsibility: string; updatedByAccountId: string },
+    graphApi: GraphApi,
+    params: {
+      org: OrgModel;
+      responsibility: string;
+    },
   ) {
-    /** @todo: re-implement this method */
-    throw new Error("user.joinOrg is not yet re-implemented");
+    const { org, responsibility } = params;
+
+    const orgMembership = await OrgMembershipModel.createOrgMembership(
+      graphApi,
+      { responsibility, org },
+    );
+
+    await this.createOutgoingLink(graphApi, {
+      linkTypeModel: WORKSPACE_TYPES.linkType.org,
+      targetEntityModel: orgMembership,
+    });
+  }
+
+  async getOrgMemberships(graphApi: GraphApi): Promise<OrgMembershipModel[]> {
+    const { data: outgoingOrgMembershipLinks } = await graphApi.getLinksByQuery(
+      {
+        all: [
+          {
+            eq: [{ path: ["source", "id"] }, { literal: this.entityId }],
+          },
+          {
+            eq: [
+              { path: ["type", "uri"] },
+              {
+                literal: extractBaseUri(
+                  WORKSPACE_TYPES.linkType.org.schema.$id,
+                ),
+              },
+            ],
+          },
+        ],
+      },
+    );
+
+    return await Promise.all(
+      outgoingOrgMembershipLinks.map(async ({ targetEntityId }) => {
+        const orgMembership = await OrgMembershipModel.getOrgMembershipById(
+          graphApi,
+          {
+            entityId: targetEntityId,
+          },
+        );
+
+        if (!orgMembership) {
+          throw new Error("");
+        }
+
+        return orgMembership;
+      }),
+    );
   }
 
   async isMemberOfOrg(
-    _graphApi: GraphApi,
-    _params: { orgEntityId: string },
+    graphApi: GraphApi,
+    params: { orgEntityId: string },
   ): Promise<boolean> {
-    /** @todo: re-implement this method */
-    throw new Error("user.isMemberOfOrg is not yet re-implemented");
+    const orgMemberships = await this.getOrgMemberships(graphApi);
+
+    const orgs = await Promise.all(
+      orgMemberships.map((orgMembership) => orgMembership.getOrg(graphApi)),
+    );
+
+    return !!orgs.find(({ entityId }) => entityId === params.orgEntityId);
   }
 
   isAccountSignupComplete(): boolean {

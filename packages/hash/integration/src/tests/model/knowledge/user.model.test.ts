@@ -3,8 +3,11 @@ import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { ensureWorkspaceTypesExist } from "@hashintel/hash-api/src/graph/workspace-types";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
-import { UserModel } from "@hashintel/hash-api/src/model";
-import { createKratosIdentity } from "@hashintel/hash-api/src/auth/ory-kratos";
+import { OrgModel, OrgSize, UserModel } from "@hashintel/hash-api/src/model";
+import {
+  adminKratosSdk,
+  createKratosIdentity,
+} from "@hashintel/hash-api/src/auth/ory-kratos";
 
 jest.setTimeout(60000);
 
@@ -93,5 +96,34 @@ describe("User model class", () => {
     expect(fetchedUser).not.toBeNull();
 
     expect(fetchedUser).toEqual(createdUser);
+  });
+
+  it("can join an org", async () => {
+    const testOrg = await OrgModel.createOrg(graphApi, {
+      name: "Test org",
+      shortname: "test-org",
+      providedInfo: {
+        orgSize: OrgSize.ElevenToFifty,
+      },
+    });
+
+    const { entityId: orgEntityId } = testOrg;
+
+    expect(await createdUser.isMemberOfOrg(graphApi, { orgEntityId })).toBe(
+      false,
+    );
+
+    await createdUser.joinOrg(graphApi, {
+      org: testOrg,
+      responsibility: "developer",
+    });
+
+    expect(await createdUser.isMemberOfOrg(graphApi, { orgEntityId })).toBe(
+      true,
+    );
+  });
+
+  afterAll(async () => {
+    await adminKratosSdk.adminDeleteIdentity(kratosIdentityId);
   });
 });

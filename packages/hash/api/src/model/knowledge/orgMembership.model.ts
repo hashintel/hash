@@ -71,9 +71,36 @@ export default class extends EntityModel {
   }
 
   /**
+   * Get a workspace organization entity by its entity id.
+   *
+   * @param params.entityId - the entity id of the organization
+   */
+  static async getOrgMembershipById(
+    graphApi: GraphApi,
+    params: { entityId: string },
+  ): Promise<OrgMembershipModel | null> {
+    const entity = await EntityModel.getLatest(graphApi, {
+      // assumption: `accountId` of organizations is always the workspace account id
+      accountId: workspaceAccountId,
+      entityId: params.entityId,
+    });
+
+    if (
+      entity.entityTypeModel.schema.$id !==
+      WORKSPACE_TYPES.entityType.orgMembership.schema.$id
+    ) {
+      throw new Error(
+        `Entity with id ${params.entityId} is not a workspace org membership`,
+      );
+    }
+
+    return entity ? new OrgMembershipModel(entity) : null;
+  }
+
+  /**
    * Get the org linked to the org membership.
    */
-  async getOrg(graphApi: GraphApi) {
+  async getOrg(graphApi: GraphApi): Promise<OrgModel> {
     const { data: outgoingOrgLinks } = await graphApi.getLinksByQuery({
       all: [
         {
@@ -103,9 +130,19 @@ export default class extends EntityModel {
       );
     }
 
-    return await OrgModel.getOrgById(graphApi, {
-      entityId: outgoingOrgLink.targetEntityId,
+    const { targetEntityId: orgEntityId } = outgoingOrgLink;
+
+    const orgModel = await OrgModel.getOrgById(graphApi, {
+      entityId: orgEntityId,
     });
+
+    if (!orgModel) {
+      throw new Error(
+        `Critical: org membership with entity id ${this.entityId} links to non-existent org with id ${orgEntityId}`,
+      );
+    }
+
+    return orgModel;
   }
 
   /**
