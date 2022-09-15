@@ -10,8 +10,6 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       account_id: {
         type: "UUID",
         primaryKey: true,
-        comment:
-          "Accounts are undecided and just here for satisfying the future schema",
       },
     },
     {
@@ -45,9 +43,8 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     },
   );
 
-  // TODO: rename ids to type_ids
   pgm.createTable(
-    "ids",
+    "type_ids",
     {
       base_uri: {
         type: "TEXT",
@@ -71,11 +68,10 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         `),
     },
   );
-  pgm.addConstraint("ids", "ids_primary_key", {
+  pgm.addConstraint("type_ids", "type_ids_primary_key", {
     primaryKey: ["base_uri", "version"],
   });
 
-  // TODO: consider changing `created_by` to `author` or something in all tables : https://app.asana.com/0/1201095311341924/1202769355319303/f
   pgm.createTable(
     "data_types",
     {
@@ -88,7 +84,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "JSONB",
         notNull: true,
       },
-      created_by: {
+      owned_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",
@@ -111,7 +107,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "JSONB",
         notNull: true,
       },
-      created_by: {
+      owned_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",
@@ -133,7 +129,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "JSONB",
         notNull: true,
       },
-      created_by: {
+      owned_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",
@@ -156,7 +152,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "JSONB",
         notNull: true,
       },
-      created_by: {
+      owned_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",
@@ -296,7 +292,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "JSONB",
         notNull: true,
       },
-      created_by: {
+      owned_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",
@@ -334,7 +330,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "integer",
         notNull: false,
       },
-      created_by: {
+      owned_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",
@@ -384,7 +380,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "integer",
         notNull: false,
       },
-      created_by: {
+      owned_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",
@@ -393,7 +389,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "TIMESTAMP WITH TIME ZONE",
         notNull: true,
       },
-      removed_by: {
+      removed_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",

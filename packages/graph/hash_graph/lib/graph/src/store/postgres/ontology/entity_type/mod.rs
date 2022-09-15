@@ -139,7 +139,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
     async fn create_entity_type(
         &mut self,
         entity_type: EntityType,
-        created_by: AccountId,
+        owned_by_id: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -152,7 +152,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         // This clone is currently necessary because we extract the references as we insert them.
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_entity_type_references` taking `&entity_type`
-        let (version_id, identifier) = transaction.create(entity_type.clone(), created_by).await?;
+        let (version_id, identifier) = transaction.create(entity_type.clone(), owned_by_id).await?;
 
         transaction
             .insert_entity_type_references(&entity_type, version_id)

@@ -86,7 +86,7 @@ export default class {
 
     return new EntityTypeModel({
       schema: fullEntityType,
-      accountId: identifier.createdBy,
+      accountId: identifier.ownedById,
     });
   }
 
@@ -123,7 +123,7 @@ export default class {
            *   https://app.asana.com/0/1202805690238892/1202892835843657/f
            */
           schema: persistedEntityType.inner as EntityType,
-          accountId: persistedEntityType.identifier.createdBy,
+          accountId: persistedEntityType.identifier.ownedById,
         }),
     );
   }
@@ -158,7 +158,7 @@ export default class {
        *   https://app.asana.com/0/1202805690238892/1202892835843657/f
        */
       schema: persistedEntityType.inner as EntityType,
-      accountId: persistedEntityType.identifier.createdBy,
+      accountId: persistedEntityType.identifier.ownedById,
     });
   }
 
@@ -188,7 +188,7 @@ export default class {
 
     return new EntityTypeModel({
       schema: { ...schema, $id: identifier.uri },
-      accountId: identifier.createdBy,
+      accountId: identifier.ownedById,
     });
   }
 

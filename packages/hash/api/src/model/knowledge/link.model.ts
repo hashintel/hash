@@ -60,7 +60,7 @@ export default class {
     const {
       data: { sourceEntityId, linkTypeUri, targetEntityId },
     } = await graphApi.createLink(sourceEntityModel.entityId, {
-      createdBy,
+      ownedById: createdBy,
       linkTypeUri: linkTypeModel.schema.$id,
       targetEntityId: targetEntityModel.entityId,
     });
@@ -95,7 +95,7 @@ export default class {
     await graphApi.removeLink(this.sourceEntityModel.entityId, {
       linkTypeUri: this.linkTypeModel.schema.$id,
       targetEntityId: this.targetEntityModel.entityId,
-      removedBy,
+      removedById: removedBy,
     });
   }
 

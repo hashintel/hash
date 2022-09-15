@@ -41,13 +41,13 @@ impl fmt::Display for AccountId {
 pub struct PersistedOntologyIdentifier {
     #[component(value_type = String)]
     uri: VersionedUri,
-    created_by: AccountId,
+    owned_by_id: AccountId,
 }
 
 impl PersistedOntologyIdentifier {
     #[must_use]
-    pub const fn new(uri: VersionedUri, created_by: AccountId) -> Self {
-        Self { uri, created_by }
+    pub const fn new(uri: VersionedUri, owned_by_id: AccountId) -> Self {
+        Self { uri, owned_by_id }
     }
 
     #[must_use]
@@ -56,8 +56,8 @@ impl PersistedOntologyIdentifier {
     }
 
     #[must_use]
-    pub const fn created_by(&self) -> AccountId {
-        self.created_by
+    pub const fn owned_by_id(&self) -> AccountId {
+        self.owned_by_id
     }
 }
 

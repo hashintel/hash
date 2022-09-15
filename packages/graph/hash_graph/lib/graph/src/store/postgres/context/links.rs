@@ -41,9 +41,9 @@ pub async fn read_all_links(client: &impl AsClient) -> Result<RecordStream, Quer
         .as_client()
         .query_raw(
             r#"
-            SELECT base_uri, version, source_entity_id, target_entity_id, created_by
+            SELECT base_uri, version, source_entity_id, target_entity_id, owned_by_id
             FROM links
-            JOIN ids ON version_id = link_type_version_id
+            JOIN type_ids ON version_id = link_type_version_id
             -- Nulls will be last with default ascending order (default is ASC NULLS LAST)
             ORDER BY link_order ASC
             "#,
@@ -63,9 +63,9 @@ pub async fn read_links_by_source(
         .as_client()
         .query_raw(
             r#"
-            SELECT base_uri, version, source_entity_id, target_entity_id, created_by
+            SELECT base_uri, version, source_entity_id, target_entity_id, owned_by_id
             FROM links
-            JOIN ids ON version_id = link_type_version_id
+            JOIN type_ids ON version_id = link_type_version_id
             WHERE source_entity_id = $1
             -- Nulls will be last with default ascending order (default is ASC NULLS LAST)
             ORDER BY link_order ASC
@@ -86,9 +86,9 @@ pub async fn read_links_by_target(
         .as_client()
         .query_raw(
             r#"
-            SELECT base_uri, version, source_entity_id, target_entity_id, created_by
+            SELECT base_uri, version, source_entity_id, target_entity_id, owned_by_id
             FROM links
-            JOIN ids ON version_id = link_type_version_id
+            JOIN type_ids ON version_id = link_type_version_id
             WHERE target_entity_id = $1
             "#,
             parameter_list([&entity_id]),
