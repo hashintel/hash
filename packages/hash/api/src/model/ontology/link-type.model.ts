@@ -46,7 +46,7 @@ export default class {
      */
     return new LinkTypeModel({
       schema: inner as LinkType,
-      accountId: identifier.createdBy,
+      accountId: identifier.ownedById,
     });
   }
 
