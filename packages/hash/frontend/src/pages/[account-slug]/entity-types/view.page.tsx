@@ -7,6 +7,7 @@ import {
   faSearch,
 } from "@fortawesome/free-solid-svg-icons";
 import {
+  Button,
   Chip,
   FontAwesomeIcon,
   IconButton,
@@ -33,6 +34,8 @@ import {
   ListItemText,
   listItemTextClasses,
   menuItemClasses,
+  Paper,
+  Popper,
   Stack,
   SxProps,
   Table,
@@ -49,10 +52,15 @@ import {
   Typography,
   useForkRef,
 } from "@mui/material";
-import { bindMenu, bindTrigger } from "material-ui-popup-state";
+import {
+  bindMenu,
+  bindTrigger,
+  bindFocus,
+  bindPopper,
+} from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import Image from "next/image";
-import { Ref, useId, useRef, useState } from "react";
+import { Ref, useId, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
 import { TopContextBar } from "../../shared/top-context-bar";
@@ -239,10 +247,34 @@ const PropertyMenu = (props: IconButtonProps) => {
 const NewPropertyRow = ({
   inputRef,
   onCancel,
+  onAdd,
 }: {
   inputRef: Ref<HTMLInputElement | null>;
   onCancel: VoidFunction;
+  onAdd: VoidFunction;
 }) => {
+  const id = useId();
+
+  const modifiers = useMemo(
+    () => [
+      {
+        name: "sameWidth",
+        enabled: true,
+        fn: ({ state }) => {
+          state.styles.popper.width = `${state.rects.reference.width}px`;
+        },
+        phase: "beforeWrite",
+        requires: ["computeStyles"],
+      },
+    ],
+    [],
+  );
+
+  const popupState = usePopupState({
+    variant: "popper",
+    popupId: `newPropertySuggester-${id}`,
+  });
+
   return (
     <TableRow data-disabled>
       <TableCell colSpan={2}>
@@ -267,7 +299,20 @@ const NewPropertyRow = ({
               onCancel();
             }
           }}
+          {...bindFocus(popupState)}
         />
+        <Popper
+          {...bindPopper(popupState)}
+          placeholder="bottom-start"
+          disablePortal
+          modifiers={modifiers}
+        >
+          <Paper elevation={2}>
+            <Button size="small" onClick={() => onAdd()}>
+              Add
+            </Button>
+          </Paper>
+        </Popper>
       </TableCell>
       <TableCell>
         <Checkbox disabled />
@@ -445,6 +490,10 @@ const InsertPropertyCard = ({
                   if (created) {
                     setAddingNewProperty(false);
                   }
+                }}
+                onAdd={() => {
+                  setAddingNewProperty(false);
+                  setCreated(true);
                 }}
               />
             )}
