@@ -1,9 +1,10 @@
 import { MutationCreateOrgArgs, ResolverFn } from "../../apiTypes.gen";
-import { Account, UnresolvedGQLEntity, Org } from "../../../model";
+import { Account, OrgModel } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
+import { mapOrgModelToGQL, UnresolvedGQLOrg } from "../user/util";
 
 export const createOrg: ResolverFn<
-  Promise<UnresolvedGQLEntity>,
+  Promise<UnresolvedGQLOrg>,
   {},
   LoggedInGraphQLContext,
   MutationCreateOrgArgs
@@ -19,24 +20,23 @@ export const createOrg: ResolverFn<
 
     await Account.validateShortname(client, shortname);
 
-    const org = await Org.createOrg(client, {
-      properties: {
-        shortname,
-        name,
-        infoProvidedAtCreation: {
-          orgSize,
-        },
+    const org = await OrgModel.createOrg(graphApi, {
+      providedInfo: {
+        orgSize,
       },
-      createdByAccountId: user.entityId,
+      shortname,
+      name,
     });
 
-    await org.acquireLock(client).then(() => org.refetchLatestVersion(client));
+    /** @todo: potentially deprecate these method calls depending on Graph API transaction implementation */
+    await (org as any)
+      .acquireLock(client)
+      .then(() => (org as any).refetchLatestVersion(client));
 
     await user.joinOrg(graphApi, {
-      updatedByAccountId: user.accountId,
       org,
       responsibility,
     });
 
-    return org.toGQLUnknownEntity();
+    return mapOrgModelToGQL(org);
   });

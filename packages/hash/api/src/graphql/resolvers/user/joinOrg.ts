@@ -1,6 +1,6 @@
 import { ApolloError } from "apollo-server-errors";
 import { MutationJoinOrgArgs, ResolverFn } from "../../apiTypes.gen";
-import { Org, OrgEmailInvitation } from "../../../model";
+import { OrgEmailInvitation, OrgModel } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 import { mapUserModelToGQL, UnresolvedGQLUser } from "./util";
 
@@ -19,7 +19,7 @@ export const joinOrg: ResolverFn<
 
     await (user as any).refetchLatestVersion(client);
 
-    const org = await Org.getOrgById(client, { entityId: orgEntityId });
+    const org = await OrgModel.getOrgById(graphApi, { entityId: orgEntityId });
 
     if (!org) {
       const msg = `Org with entityId ${orgEntityId} not found in datastore`;
@@ -28,13 +28,14 @@ export const joinOrg: ResolverFn<
 
     const { invitationLinkToken, invitationEmailToken } = verification;
 
+    /** @todo: potentially deprecate these method calls depending on the org invitation implementation */
     const invitation = invitationLinkToken
-      ? await org.getInvitationLinkWithToken(client, {
+      ? await (org as any).getInvitationLinkWithToken(client, {
           invitationLinkToken,
           errorCodePrefix: "INVITATION_",
         })
       : invitationEmailToken
-      ? await org.getEmailInvitationWithToken(client, {
+      ? await (org as any).getEmailInvitationWithToken(client, {
           invitationEmailToken,
           errorCodePrefix: "INVITATION_",
         })
@@ -48,7 +49,6 @@ export const joinOrg: ResolverFn<
     /** @todo: verify the invitation hasn't expired */
 
     await user.joinOrg(graphApi, {
-      updatedByAccountId: user.accountId,
       org,
       responsibility,
     });
