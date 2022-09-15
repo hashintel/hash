@@ -85,9 +85,9 @@ describe("OrgMembership model class", () => {
   });
 
   it("can get the user of an org membership", async () => {
-    const fetchedOrg = await testOrgMembership.getUser(graphApi);
+    const fetchedUser = await testOrgMembership.getUser(graphApi);
 
-    expect(fetchedOrg).toEqual(testUser);
+    expect(fetchedUser?.entityId).toEqual(testUser.entityId);
   });
 
   afterAll(async () => {
