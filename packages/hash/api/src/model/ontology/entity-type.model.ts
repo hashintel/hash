@@ -15,11 +15,7 @@ import {
   UserModel,
   DataTypeModel,
 } from "../index";
-import {
-  generateSchemaUri,
-  splitVersionedUri,
-  workspaceAccountId,
-} from "../util";
+import { generateSchemaUri, workspaceAccountId } from "../util";
 import dataTypeModel from "./data-type.model";
 import linkTypeModel from "./link-type.model";
 
@@ -249,7 +245,6 @@ export default class {
     referencedLinkTypes: LinkTypeModel[];
     referencedEntityTypes: EntityTypeModel[];
   }> {
-    const { baseUri, version } = splitVersionedUri(params.versionedUri);
     const { data: propertyTypeRootedSubgraphs } =
       await graphApi.getEntityTypesByQuery({
         dataTypeQueryDepth: params.dataTypeQueryDepth,
@@ -257,10 +252,7 @@ export default class {
         linkTypeQueryDepth: params.linkTypeQueryDepth,
         entityTypeQueryDepth: params.entityTypeQueryDepth,
         query: {
-          all: [
-            { eq: [{ path: ["uri"] }, { literal: baseUri }] },
-            { eq: [{ path: ["version"] }, { literal: version }] },
-          ],
+          eq: [{ path: ["versionedUri"] }, { literal: params.versionedUri }],
         },
       });
     const entityTypeRootedSubgraph = propertyTypeRootedSubgraphs.pop();

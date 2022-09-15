@@ -9,12 +9,7 @@ import {
 import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
 import { DataTypeModel, PropertyTypeModel, UserModel } from "../index";
-import {
-  extractBaseUri,
-  generateSchemaUri,
-  workspaceAccountId,
-  splitVersionedUri,
-} from "../util";
+import { extractBaseUri, generateSchemaUri, workspaceAccountId } from "../util";
 
 type PropertyTypeModelConstructorParams = {
   accountId: string;
@@ -217,16 +212,12 @@ export default class {
     referencedDataTypes: DataTypeModel[];
     referencedPropertyTypes: PropertyTypeModel[];
   }> {
-    const { baseUri, version } = splitVersionedUri(params.versionedUri);
     const { data: propertyTypeRootedSubgraphs } =
       await graphApi.getPropertyTypesByQuery({
         dataTypeQueryDepth: params.dataTypeQueryDepth,
         propertyTypeQueryDepth: params.propertyTypeQueryDepth,
         query: {
-          all: [
-            { eq: [{ path: ["uri"] }, { literal: baseUri }] },
-            { eq: [{ path: ["version"] }, { literal: version }] },
-          ],
+          eq: [{ path: ["versionedUri"] }, { literal: params.versionedUri }],
         },
       });
     const propertyTypeRootedSubgraph = propertyTypeRootedSubgraphs.pop();
