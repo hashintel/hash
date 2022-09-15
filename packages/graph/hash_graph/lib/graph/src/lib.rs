@@ -46,13 +46,15 @@
     clippy::use_debug,
     clippy::verbose_file_reads
 )]
-// Until we do optimization work, there should be no reason to use unsafe code. When allowing unsafe
-// again don't forget to enable miri in the `Makefile.toml`. When allowing unsafe code again, we
-// should prefer `#![deny(unsafe_code)]` and only allow it in a few places unless this gets very
-// verbose.
+// Until we do optimization work, there is unlikely to be any reason to use unsafe code. When it
+// becomes necessary/desirable to allow for unsafe code, we should:
+// - enable miri checks in the CI for the relevant code
+// - swap this lint with `#![deny(unsafe_code)]` and only allow it in a few places unless, or until,
+//   it gets very verbose to do so.
 #![forbid(
     unsafe_code,
-    reason = "At the current state, unsafe code should be avoided"
+    reason = "Unsafe code has been disabled until a good argument has been put forward for its \
+              usage"
 )]
 #![allow(
     clippy::module_name_repetitions,
