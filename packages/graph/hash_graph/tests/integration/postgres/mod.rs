@@ -336,7 +336,7 @@ impl DatabaseApi<'_> {
                                 identifier: "type".to_owned(),
                             },
                             PathSegment {
-                                identifier: "uri".to_owned(),
+                                identifier: "baseUri".to_owned(),
                             },
                         ],
                     }),

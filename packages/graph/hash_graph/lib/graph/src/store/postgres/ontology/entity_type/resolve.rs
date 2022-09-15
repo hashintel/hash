@@ -19,7 +19,8 @@ where
                 // TODO: Avoid cloning on literals
                 //   see https://app.asana.com/0/0/1202884883200947/f
                 let literal = match head_path_segment.identifier.as_str() {
-                    "uri" => Literal::String(self.record.id().base_uri().to_string()),
+                    "baseUri" => Literal::String(self.record.id().base_uri().to_string()),
+                    "versionedUri" => Literal::String(self.record.id().to_string()),
                     "version" => Literal::Version(
                         Version::Ontology(self.record.id().version()),
                         self.is_latest,

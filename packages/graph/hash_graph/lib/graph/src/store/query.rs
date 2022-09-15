@@ -188,23 +188,13 @@ impl Default for Expression {
 impl Expression {
     #[must_use]
     pub fn for_versioned_uri(uri: &VersionedUri) -> Self {
-        Self::All(vec![
-            Self::Eq(vec![
-                Self::Path(Path {
-                    segments: vec![PathSegment {
-                        identifier: "version".to_owned(),
-                    }],
-                }),
-                Self::Literal(Literal::Float(f64::from(uri.version()))),
-            ]),
-            Self::Eq(vec![
-                Self::Path(Path {
-                    segments: vec![PathSegment {
-                        identifier: "uri".to_owned(),
-                    }],
-                }),
-                Self::Literal(Literal::String(uri.base_uri().to_string())),
-            ]),
+        Self::Eq(vec![
+            Self::Path(Path {
+                segments: vec![PathSegment {
+                    identifier: "versionedUri".to_owned(),
+                }],
+            }),
+            Self::Literal(Literal::String(uri.to_string())),
         ])
     }
 
