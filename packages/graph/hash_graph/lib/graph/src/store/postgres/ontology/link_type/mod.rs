@@ -19,7 +19,7 @@ use crate::{
 };
 
 pub struct LinkTypeDependencyContext<'a> {
-    pub link_type_references: &'a mut DependencyMap<VersionedUri, PersistedLinkType>,
+    pub referenced_link_types: &'a mut DependencyMap<VersionedUri, PersistedLinkType>,
     // `link_type_query_depth` is unused as link types do not reference other link types
     pub link_type_query_depth: QueryDepth,
 }
@@ -34,11 +34,11 @@ impl<C: AsClient> PostgresStore<C> {
         context: LinkTypeDependencyContext<'_>,
     ) -> Result<(), QueryError> {
         let LinkTypeDependencyContext {
-            link_type_references,
+            referenced_link_types,
             link_type_query_depth,
         } = context;
 
-        let _unresolved_link_type = link_type_references
+        let _unresolved_link_type = referenced_link_types
             .insert(link_type_uri, link_type_query_depth, || async {
                 Ok(PersistedLinkType::from_record(
                     self.read_versioned_ontology_type(link_type_uri).await?,

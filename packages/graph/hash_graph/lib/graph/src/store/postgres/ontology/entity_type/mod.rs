@@ -28,10 +28,10 @@ use crate::{
 };
 
 pub struct EntityTypeDependencyContext<'a> {
-    pub data_type_references: &'a mut DependencyMap<VersionedUri, PersistedDataType>,
-    pub property_type_references: &'a mut DependencyMap<VersionedUri, PersistedPropertyType>,
-    pub link_type_references: &'a mut DependencyMap<VersionedUri, PersistedLinkType>,
-    pub entity_type_references: &'a mut DependencyMap<VersionedUri, PersistedEntityType>,
+    pub referenced_data_types: &'a mut DependencyMap<VersionedUri, PersistedDataType>,
+    pub referenced_property_types: &'a mut DependencyMap<VersionedUri, PersistedPropertyType>,
+    pub referenced_link_types: &'a mut DependencyMap<VersionedUri, PersistedLinkType>,
+    pub referenced_entity_types: &'a mut DependencyMap<VersionedUri, PersistedEntityType>,
     pub data_type_query_depth: QueryDepth,
     pub property_type_query_depth: QueryDepth,
     pub link_type_query_depth: QueryDepth,
@@ -48,10 +48,10 @@ impl<C: AsClient> PostgresStore<C> {
         context: EntityTypeDependencyContext<'a>,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         let EntityTypeDependencyContext {
-            data_type_references,
-            property_type_references,
-            link_type_references,
-            entity_type_references,
+            referenced_data_types,
+            referenced_property_types,
+            referenced_link_types,
+            referenced_entity_types,
             data_type_query_depth,
             property_type_query_depth,
             link_type_query_depth,
@@ -59,7 +59,7 @@ impl<C: AsClient> PostgresStore<C> {
         } = context;
 
         async move {
-            let unresolved_entity_type = entity_type_references
+            let unresolved_entity_type = referenced_entity_types
                 .insert(entity_type_uri, entity_type_query_depth, || async {
                     Ok(PersistedEntityType::from_record(
                         self.read_versioned_ontology_type(entity_type_uri).await?,
@@ -75,8 +75,8 @@ impl<C: AsClient> PostgresStore<C> {
                         self.get_property_type_as_dependency(
                             property_type_ref.uri(),
                             PropertyTypeDependencyContext {
-                                data_type_references,
-                                property_type_references,
+                                referenced_data_types,
+                                referenced_property_types,
                                 data_type_query_depth,
                                 property_type_query_depth: property_type_query_depth - 1,
                             },
@@ -102,7 +102,7 @@ impl<C: AsClient> PostgresStore<C> {
                             self.get_link_type_as_dependency(
                                 &link_type_uri,
                                 LinkTypeDependencyContext {
-                                    link_type_references,
+                                    referenced_link_types,
                                     link_type_query_depth: link_type_query_depth - 1,
                                 },
                             )
@@ -112,10 +112,10 @@ impl<C: AsClient> PostgresStore<C> {
                             self.get_entity_type_as_dependency(
                                 &entity_type_uri,
                                 EntityTypeDependencyContext {
-                                    data_type_references,
-                                    property_type_references,
-                                    link_type_references,
-                                    entity_type_references,
+                                    referenced_data_types,
+                                    referenced_property_types,
+                                    referenced_link_types,
+                                    referenced_entity_types,
                                     data_type_query_depth,
                                     property_type_query_depth,
                                     link_type_query_depth,
@@ -190,10 +190,10 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
         stream::iter(Read::<PersistedEntityType>::read(self, expression).await?)
             .then(|entity_type: PersistedEntityType| async {
-                let mut data_type_references = DependencyMap::new();
-                let mut property_type_references = DependencyMap::new();
-                let mut link_type_references = DependencyMap::new();
-                let mut entity_type_references = DependencyMap::new();
+                let mut referenced_data_types = DependencyMap::new();
+                let mut referenced_property_types = DependencyMap::new();
+                let mut referenced_link_types = DependencyMap::new();
+                let mut referenced_entity_types = DependencyMap::new();
 
                 if property_type_query_depth > 0 {
                     // TODO: Use relation tables
@@ -202,8 +202,8 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                         self.get_property_type_as_dependency(
                             data_type_ref.uri(),
                             PropertyTypeDependencyContext {
-                                data_type_references: &mut data_type_references,
-                                property_type_references: &mut property_type_references,
+                                referenced_data_types: &mut referenced_data_types,
+                                referenced_property_types: &mut referenced_property_types,
                                 data_type_query_depth,
                                 property_type_query_depth: property_type_query_depth - 1,
                             },
@@ -221,7 +221,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                             self.get_link_type_as_dependency(
                                 link_type_uri,
                                 LinkTypeDependencyContext {
-                                    link_type_references: &mut link_type_references,
+                                    referenced_link_types: &mut referenced_link_types,
                                     link_type_query_depth: link_type_query_depth - 1,
                                 },
                             )
@@ -231,10 +231,10 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                             self.get_entity_type_as_dependency(
                                 entity_type_ref.uri(),
                                 EntityTypeDependencyContext {
-                                    data_type_references: &mut data_type_references,
-                                    property_type_references: &mut property_type_references,
-                                    link_type_references: &mut link_type_references,
-                                    entity_type_references: &mut entity_type_references,
+                                    referenced_data_types: &mut referenced_data_types,
+                                    referenced_property_types: &mut referenced_property_types,
+                                    referenced_link_types: &mut referenced_link_types,
+                                    referenced_entity_types: &mut referenced_entity_types,
                                     data_type_query_depth,
                                     property_type_query_depth,
                                     link_type_query_depth,
@@ -248,10 +248,10 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
                 Ok(EntityTypeRootedSubgraph {
                     entity_type,
-                    referenced_data_types: data_type_references.into_vec(),
-                    referenced_property_types: property_type_references.into_vec(),
-                    referenced_link_types: link_type_references.into_vec(),
-                    referenced_entity_types: entity_type_references.into_vec(),
+                    referenced_data_types: referenced_data_types.into_vec(),
+                    referenced_property_types: referenced_property_types.into_vec(),
+                    referenced_link_types: referenced_link_types.into_vec(),
+                    referenced_entity_types: referenced_entity_types.into_vec(),
                 })
             })
             .try_collect()
