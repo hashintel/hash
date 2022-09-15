@@ -57,10 +57,10 @@ where
         .query_raw(
             &format!(
                 r#"
-                SELECT schema, created_by, MAX(version) OVER (PARTITION by base_uri) = version as latest
+                SELECT schema, owned_by_id, MAX(version) OVER (PARTITION by base_uri) = version as latest
                 FROM {table} type_table
-                INNER JOIN ids
-                ON type_table.version_id = ids.version_id
+                INNER JOIN type_ids
+                ON type_table.version_id = type_ids.version_id
                 ORDER BY base_uri, version DESC;
                 "#,
             ),
@@ -83,14 +83,14 @@ where
         .query_one(
             &format!(
                 r#"
-                SELECT schema, created_by, (
+                SELECT schema, owned_by_id, (
                     SELECT MAX(version) as latest
-                    FROM ids
+                    FROM type_ids
                     WHERE base_uri = $1
                 )
                 FROM {} type_table
-                INNER JOIN ids
-                ON type_table.version_id = ids.version_id
+                INNER JOIN type_ids
+                ON type_table.version_id = type_ids.version_id
                 WHERE base_uri = $1 AND version = $2;
                 "#,
                 T::table()

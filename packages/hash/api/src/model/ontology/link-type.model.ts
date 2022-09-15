@@ -76,7 +76,7 @@ export default class {
 
     return new LinkTypeModel({
       schema: fullLinkType,
-      accountId: identifier.createdBy,
+      accountId: identifier.ownedById,
     });
   }
 
@@ -101,7 +101,7 @@ export default class {
       (persistedLinkType) =>
         new LinkTypeModel({
           schema: persistedLinkType.inner,
-          accountId: persistedLinkType.identifier.createdBy,
+          accountId: persistedLinkType.identifier.ownedById,
         }),
     );
   }
@@ -125,7 +125,7 @@ export default class {
 
     return new LinkTypeModel({
       schema: persistedLinkType.inner,
-      accountId: persistedLinkType.identifier.createdBy,
+      accountId: persistedLinkType.identifier.ownedById,
     });
   }
 
@@ -153,7 +153,7 @@ export default class {
 
     return new LinkTypeModel({
       schema: { ...schema, $id: identifier.uri },
-      accountId: identifier.createdBy,
+      accountId: identifier.ownedById,
     });
   }
 }

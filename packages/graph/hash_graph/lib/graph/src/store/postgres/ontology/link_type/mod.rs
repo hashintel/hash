@@ -55,7 +55,7 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
     async fn create_link_type(
         &mut self,
         link_type: LinkType,
-        created_by: AccountId,
+        owned_by_id: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -65,7 +65,7 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
                 .change_context(InsertionError)?,
         );
 
-        let (_, identifier) = transaction.create(link_type, created_by).await?;
+        let (_, identifier) = transaction.create(link_type, owned_by_id).await?;
 
         transaction
             .client
