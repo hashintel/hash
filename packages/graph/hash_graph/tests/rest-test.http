@@ -383,7 +383,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "createdBy": "{{account_id}}",
+  "ownedById": "{{account_id}}",
   "targetEntityId": "{{person_b_entity_id}}",
   "linkTypeUri": "{{friend_of_link_type_uri_raw}}"
 }
@@ -416,7 +416,7 @@ Accept: application/json
 {
   "targetEntityId": "{{person_b_entity_id}}",
   "linkTypeUri": "{{friend_of_link_type_uri_raw}}",
-  "removedBy": "{{account_id}}"
+  "removedById": "{{account_id}}"
 }
 
 > {%

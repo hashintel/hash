@@ -51,7 +51,7 @@ export default class {
      */
     return new PropertyTypeModel({
       schema: inner as PropertyType,
-      accountId: identifier.createdBy,
+      accountId: identifier.ownedById,
     });
   }
 
@@ -106,7 +106,7 @@ export default class {
 
     return new PropertyTypeModel({
       schema: fullPropertyType,
-      accountId: identifier.createdBy,
+      accountId: identifier.ownedById,
     });
   }
 
@@ -276,7 +276,7 @@ export default class {
 
     return new PropertyTypeModel({
       schema: { ...schema, $id: identifier.uri },
-      accountId: identifier.createdBy,
+      accountId: identifier.ownedById,
     });
   }
 

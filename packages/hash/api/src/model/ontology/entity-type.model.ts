@@ -63,7 +63,7 @@ export default class {
      */
     return new EntityTypeModel({
       schema: inner as EntityType,
-      accountId: identifier.createdBy,
+      accountId: identifier.ownedById,
     });
   }
 
@@ -115,7 +115,7 @@ export default class {
 
     return new EntityTypeModel({
       schema: fullEntityType,
-      accountId: identifier.createdBy,
+      accountId: identifier.ownedById,
     });
   }
 
@@ -316,7 +316,7 @@ export default class {
 
     return new EntityTypeModel({
       schema: { ...schema, $id: identifier.uri },
-      accountId: identifier.createdBy,
+      accountId: identifier.ownedById,
     });
   }
 
