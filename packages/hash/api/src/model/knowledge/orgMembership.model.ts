@@ -6,7 +6,7 @@ import {
   OrgModel,
   UserModel,
 } from "..";
-import { extractBaseUri, workspaceAccountId } from "../util";
+import { workspaceAccountId } from "../util";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
 
 export type OrgMembershipModelCreateParams = Omit<
@@ -96,11 +96,9 @@ export default class extends EntityModel {
         },
         {
           eq: [
-            { path: ["type", "uri"] },
+            { path: ["type", "versionedUri"] },
             {
-              literal: extractBaseUri(
-                WORKSPACE_TYPES.linkType.ofOrg.schema.$id,
-              ),
+              literal: WORKSPACE_TYPES.linkType.ofOrg.schema.$id,
             },
           ],
         },
@@ -147,11 +145,9 @@ export default class extends EntityModel {
           },
           {
             eq: [
-              { path: ["type", "uri"] },
+              { path: ["type", "versionedUri"] },
               {
-                literal: extractBaseUri(
-                  WORKSPACE_TYPES.linkType.hasMembership.schema.$id,
-                ),
+                literal: WORKSPACE_TYPES.linkType.hasMembership.schema.$id,
               },
             ],
           },

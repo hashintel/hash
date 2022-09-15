@@ -14,7 +14,7 @@ import {
   KratosUserIdentityTraits,
 } from "../../auth/ory-kratos";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
-import { extractBaseUri, workspaceAccountId } from "../util";
+import { workspaceAccountId } from "../util";
 
 type QualifiedEmail = { address: string; verified: boolean; primary: boolean };
 
@@ -432,11 +432,9 @@ export default class extends EntityModel {
           },
           {
             eq: [
-              { path: ["type", "uri"] },
+              { path: ["type", "versionedUri"] },
               {
-                literal: extractBaseUri(
-                  WORKSPACE_TYPES.linkType.ofOrg.schema.$id,
-                ),
+                literal: WORKSPACE_TYPES.linkType.ofOrg.schema.$id,
               },
             ],
           },
