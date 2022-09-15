@@ -454,7 +454,7 @@ export default class extends EntityModel {
         );
 
         if (!orgMembership) {
-          throw new Error("");
+          throw new Error("Critical: could not find target of link");
         }
 
         return orgMembership;
