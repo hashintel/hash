@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 mod args;
 
 use std::{collections::HashMap, fmt, net::SocketAddr, sync::Arc};

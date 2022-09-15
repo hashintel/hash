@@ -46,6 +46,16 @@
     clippy::use_debug,
     clippy::verbose_file_reads
 )]
+// Until we do optimization work, there is unlikely to be any reason to use unsafe code. When it
+// becomes necessary/desirable to allow for unsafe code, we should:
+// - enable miri checks in the CI for the relevant code
+// - swap this lint with `#![deny(unsafe_code)]` and only allow it in a few places unless, or until,
+//   it gets very verbose to do so.
+#![forbid(
+    unsafe_code,
+    reason = "Unsafe code has been disabled until a good argument has been put forward for its \
+              usage"
+)]
 #![allow(
     clippy::module_name_repetitions,
     reason = "This encourages importing `as` which breaks IDEs"
