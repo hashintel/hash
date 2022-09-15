@@ -22,7 +22,7 @@ pub use self::eyre::EyreContext;
 /// [`Report`]: crate::Report
 /// [`IntoReport`]: crate::IntoReport
 /// [`Context`]: crate::Context
-/// [`Error`]: std::error::Error
+/// [`Error`]: core::error::Error
 pub trait IntoReportCompat: Sized {
     /// Type of the [`Ok`] value in the [`Result`]
     type Ok;
