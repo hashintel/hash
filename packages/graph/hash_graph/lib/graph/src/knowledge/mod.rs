@@ -19,7 +19,7 @@ use crate::{
     store::query::Expression,
 };
 
-/// Query to read [`Entities`], which are matching the [`Expression`].
+/// Query to read [`Entities`], which satisfy the [`Expression`].
 ///
 /// [`Entities`]: Entity
 #[derive(Debug, Deserialize, Component)]
