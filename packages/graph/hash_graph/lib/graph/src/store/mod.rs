@@ -17,7 +17,10 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    knowledge::{Entity, EntityId, Link, PersistedEntity, PersistedEntityIdentifier},
+    knowledge::{
+        Entity, EntityId, EntityQuery, EntityRootedSubgraph, Link, PersistedEntity,
+        PersistedEntityIdentifier,
+    },
     ontology::{
         AccountId, DataTypeQuery, DataTypeRootedSubgraph, EntityTypeQuery,
         EntityTypeRootedSubgraph, LinkTypeQuery, LinkTypeRootedSubgraph, PersistedDataType,
@@ -214,7 +217,7 @@ pub trait DataTypeStore: for<'q> crud::Read<PersistedDataType, Query<'q> = Expre
         owned_by_id: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError>;
 
-    /// Get the [`DataType`]s specified by the [`Expression`].
+    /// Get the [`DataTypeRootedSubgraph`]s specified by the [`DataTypeQuery`].
     ///
     /// # Errors
     ///
@@ -255,7 +258,7 @@ pub trait PropertyTypeStore:
         owned_by_id: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError>;
 
-    /// Get the [`PropertyType`]s specified by the [`Expression`].
+    /// Get the [`PropertyTypeRootedSubgraph`]s specified by the [`PropertyTypeQuery`].
     ///
     /// # Errors
     ///
@@ -294,7 +297,7 @@ pub trait EntityTypeStore: for<'q> crud::Read<PersistedEntityType, Query<'q> = E
         owned_by_id: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError>;
 
-    /// Get the [`EntityType`]s specified by the [`Expression`].
+    /// Get the [`EntityTypeRootedSubgraph`]s specified by the [`EntityTypeQuery`].
     ///
     /// # Errors
     ///
@@ -333,7 +336,7 @@ pub trait LinkTypeStore: for<'q> crud::Read<PersistedLinkType, Query<'q> = Expre
         owned_by_id: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError>;
 
-    /// Get the [`LinkType`]s specified by the [`Expression`].
+    /// Get the [`LinkTypeRootedSubgraph`]s specified by the [`LinkTypeQuery`].
     ///
     /// # Errors
     ///
@@ -374,14 +377,15 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
         entity_id: Option<EntityId>,
     ) -> Result<PersistedEntityIdentifier, InsertionError>;
 
-    /// Get the [`PersistedEntity`] specified by the [`Expression`].
+    /// Get the [`EntityRootedSubgraph`] specified by the [`EntityQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity(&self, query: &Expression) -> Result<Vec<PersistedEntity>, QueryError> {
-        self.read(query).await
-    }
+    async fn get_entity(
+        &self,
+        query: &EntityQuery,
+    ) -> Result<Vec<EntityRootedSubgraph>, QueryError>;
 
     /// Update an existing [`Entity`].
     ///

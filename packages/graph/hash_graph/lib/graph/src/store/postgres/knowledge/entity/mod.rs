@@ -3,16 +3,22 @@ mod resolve;
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
+use futures::{stream, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
 use type_system::uri::VersionedUri;
 use uuid::Uuid;
 
 use crate::{
-    knowledge::{Entity, EntityId, PersistedEntityIdentifier},
+    knowledge::{
+        Entity, EntityId, EntityQuery, EntityRootedSubgraph, PersistedEntity,
+        PersistedEntityIdentifier,
+    },
     ontology::AccountId,
     store::{
-        error::EntityDoesNotExist, AsClient, EntityStore, InsertionError, PostgresStore,
-        UpdateError,
+        crud::Read,
+        error::EntityDoesNotExist,
+        postgres::{ontology::EntityTypeDependencyContext, DependencyMap},
+        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
 };
 
@@ -50,6 +56,54 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .change_context(InsertionError)?;
 
         Ok(identifier)
+    }
+
+    async fn get_entity(
+        &self,
+        query: &EntityQuery,
+    ) -> Result<Vec<EntityRootedSubgraph>, QueryError> {
+        let EntityQuery {
+            ref expression,
+            data_type_query_depth,
+            property_type_query_depth,
+            link_type_query_depth,
+            entity_type_query_depth,
+        } = *query;
+
+        stream::iter(Read::<PersistedEntity>::read(self, expression).await?)
+            .then(|entity: PersistedEntity| async {
+                let mut data_type_references = DependencyMap::new();
+                let mut property_type_references = DependencyMap::new();
+                let mut link_type_references = DependencyMap::new();
+                let mut entity_type_references = DependencyMap::new();
+
+                if entity_type_query_depth > 0 {
+                    self.get_entity_type_as_dependency(
+                        entity.type_versioned_uri(),
+                        EntityTypeDependencyContext {
+                            data_type_references: &mut data_type_references,
+                            property_type_references: &mut property_type_references,
+                            link_type_references: &mut link_type_references,
+                            entity_type_references: &mut entity_type_references,
+                            data_type_query_depth,
+                            property_type_query_depth,
+                            link_type_query_depth,
+                            entity_type_query_depth: entity_type_query_depth - 1,
+                        },
+                    )
+                    .await?;
+                }
+
+                Ok(EntityRootedSubgraph {
+                    entity,
+                    referenced_data_types: data_type_references.into_vec(),
+                    referenced_property_types: property_type_references.into_vec(),
+                    referenced_link_types: link_type_references.into_vec(),
+                    referenced_entity_types: entity_type_references.into_vec(),
+                })
+            })
+            .try_collect()
+            .await
     }
 
     async fn update_entity(
