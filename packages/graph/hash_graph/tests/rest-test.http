@@ -367,8 +367,38 @@ Accept: application/json
     client.global.set("person_b_entity_id", encodeURIComponent(response.body.entityId));
 %}
 
-### Get all entities
+### Get all latest entities
 GET http://127.0.0.1:4000/entities
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.length === 2, "Unexpected number of entities");
+    });
+%}
+
+### Get all latest entities by using a query
+POST http://127.0.0.1:4000/entities/query
+Content-Type: application/json
+
+{
+  "query": {
+    "eq": [
+      {
+        "path": [
+          "version"
+        ]
+      },
+      {
+        "literal": "latest"
+      }
+    ]
+  },
+  "dataTypeQueryDepth": 255,
+  "propertyTypeQueryDepth": 255,
+  "linkTypeQueryDepth": 255,
+  "entityTypeQueryDepth": 255
+}
 
 > {%
     client.test("status", function() {

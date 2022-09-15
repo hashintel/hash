@@ -282,6 +282,80 @@ export interface DataTypeRootedSubgraph {
   dataType: PersistedDataType;
 }
 /**
+ * Query to read [`Entities`], which satisfy the [`Expression`].
+ * @export
+ * @interface EntityQuery
+ */
+export interface EntityQuery {
+  /**
+   *
+   * @type {number}
+   * @memberof EntityQuery
+   */
+  dataTypeQueryDepth: number;
+  /**
+   *
+   * @type {number}
+   * @memberof EntityQuery
+   */
+  entityTypeQueryDepth: number;
+  /**
+   *
+   * @type {number}
+   * @memberof EntityQuery
+   */
+  linkTypeQueryDepth: number;
+  /**
+   *
+   * @type {number}
+   * @memberof EntityQuery
+   */
+  propertyTypeQueryDepth: number;
+  /**
+   *
+   * @type {object}
+   * @memberof EntityQuery
+   */
+  query: object;
+}
+/**
+ *
+ * @export
+ * @interface EntityRootedSubgraph
+ */
+export interface EntityRootedSubgraph {
+  /**
+   *
+   * @type {PersistedEntity}
+   * @memberof EntityRootedSubgraph
+   */
+  entity: PersistedEntity;
+  /**
+   *
+   * @type {Array<PersistedDataType>}
+   * @memberof EntityRootedSubgraph
+   */
+  referencedDataTypes: Array<PersistedDataType>;
+  /**
+   *
+   * @type {Array<PersistedEntityType>}
+   * @memberof EntityRootedSubgraph
+   */
+  referencedEntityTypes: Array<PersistedEntityType>;
+  /**
+   *
+   * @type {Array<PersistedLinkType>}
+   * @memberof EntityRootedSubgraph
+   */
+  referencedLinkTypes: Array<PersistedLinkType>;
+  /**
+   *
+   * @type {Array<PersistedPropertyType>}
+   * @memberof EntityRootedSubgraph
+   */
+  referencedPropertyTypes: Array<PersistedPropertyType>;
+}
+/**
  * Specifies the structure of an Entity Type
  * @export
  * @interface EntityType
@@ -2124,16 +2198,16 @@ export const EntityApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {object} body
+     * @param {EntityQuery} entityQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntitiesByQuery: async (
-      body: object,
+      entityQuery: EntityQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'body' is not null or undefined
-      assertParamExists("getEntitiesByQuery", "body", body);
+      // verify required parameter 'entityQuery' is not null or undefined
+      assertParamExists("getEntitiesByQuery", "entityQuery", entityQuery);
       const localVarPath = `/entities/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -2161,7 +2235,7 @@ export const EntityApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        body,
+        entityQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -2345,21 +2419,24 @@ export const EntityApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {object} body
+     * @param {EntityQuery} entityQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getEntitiesByQuery(
-      body: object,
+      entityQuery: EntityQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<PersistedEntity>>
+      ) => AxiosPromise<Array<EntityRootedSubgraph>>
     > {
       const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getEntitiesByQuery(body, options);
+        await localVarAxiosParamCreator.getEntitiesByQuery(
+          entityQuery,
+          options,
+        );
       return createRequestFunction(
         localVarAxiosArgs,
         globalAxios,
@@ -2471,16 +2548,16 @@ export const EntityApiFactory = function (
     },
     /**
      *
-     * @param {object} body
+     * @param {EntityQuery} entityQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntitiesByQuery(
-      body: object,
+      entityQuery: EntityQuery,
       options?: any,
-    ): AxiosPromise<Array<PersistedEntity>> {
+    ): AxiosPromise<Array<EntityRootedSubgraph>> {
       return localVarFp
-        .getEntitiesByQuery(body, options)
+        .getEntitiesByQuery(entityQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -2541,15 +2618,15 @@ export interface EntityApiInterface {
 
   /**
    *
-   * @param {object} body
+   * @param {EntityQuery} entityQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof EntityApiInterface
    */
   getEntitiesByQuery(
-    body: object,
+    entityQuery: EntityQuery,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<PersistedEntity>>;
+  ): AxiosPromise<Array<EntityRootedSubgraph>>;
 
   /**
    *
@@ -2611,14 +2688,17 @@ export class EntityApi extends BaseAPI implements EntityApiInterface {
 
   /**
    *
-   * @param {object} body
+   * @param {EntityQuery} entityQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof EntityApi
    */
-  public getEntitiesByQuery(body: object, options?: AxiosRequestConfig) {
+  public getEntitiesByQuery(
+    entityQuery: EntityQuery,
+    options?: AxiosRequestConfig,
+  ) {
     return EntityApiFp(this.configuration)
-      .getEntitiesByQuery(body, options)
+      .getEntitiesByQuery(entityQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -3748,16 +3828,16 @@ export const GraphApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {object} body
+     * @param {EntityQuery} entityQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntitiesByQuery: async (
-      body: object,
+      entityQuery: EntityQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'body' is not null or undefined
-      assertParamExists("getEntitiesByQuery", "body", body);
+      // verify required parameter 'entityQuery' is not null or undefined
+      assertParamExists("getEntitiesByQuery", "entityQuery", entityQuery);
       const localVarPath = `/entities/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -3785,7 +3865,7 @@ export const GraphApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        body,
+        entityQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -4975,21 +5055,24 @@ export const GraphApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {object} body
+     * @param {EntityQuery} entityQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getEntitiesByQuery(
-      body: object,
+      entityQuery: EntityQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<PersistedEntity>>
+      ) => AxiosPromise<Array<EntityRootedSubgraph>>
     > {
       const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getEntitiesByQuery(body, options);
+        await localVarAxiosParamCreator.getEntitiesByQuery(
+          entityQuery,
+          options,
+        );
       return createRequestFunction(
         localVarAxiosArgs,
         globalAxios,
@@ -5633,16 +5716,16 @@ export const GraphApiFactory = function (
     },
     /**
      *
-     * @param {object} body
+     * @param {EntityQuery} entityQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntitiesByQuery(
-      body: object,
+      entityQuery: EntityQuery,
       options?: any,
-    ): AxiosPromise<Array<PersistedEntity>> {
+    ): AxiosPromise<Array<EntityRootedSubgraph>> {
       return localVarFp
-        .getEntitiesByQuery(body, options)
+        .getEntitiesByQuery(entityQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -6016,15 +6099,15 @@ export interface GraphApiInterface {
 
   /**
    *
-   * @param {object} body
+   * @param {EntityQuery} entityQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
   getEntitiesByQuery(
-    body: object,
+    entityQuery: EntityQuery,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<PersistedEntity>>;
+  ): AxiosPromise<Array<EntityRootedSubgraph>>;
 
   /**
    *
@@ -6404,14 +6487,17 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
 
   /**
    *
-   * @param {object} body
+   * @param {EntityQuery} entityQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApi
    */
-  public getEntitiesByQuery(body: object, options?: AxiosRequestConfig) {
+  public getEntitiesByQuery(
+    entityQuery: EntityQuery,
+    options?: AxiosRequestConfig,
+  ) {
     return GraphApiFp(this.configuration)
-      .getEntitiesByQuery(body, options)
+      .getEntitiesByQuery(entityQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
