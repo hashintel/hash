@@ -505,6 +505,6 @@ mod tests {
 
     #[test]
     fn test_size() {
-        assert_eq!(mem::size_of::<Report<()>>(), mem::size_of::<*const ()>())
+        assert_eq!(mem::size_of::<Report<()>>(), mem::size_of::<*const ()>());
     }
 }
