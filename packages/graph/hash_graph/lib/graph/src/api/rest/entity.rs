@@ -8,13 +8,17 @@ use axum::{
     routing::{get, post},
     Extension, Json, Router,
 };
+use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
 use utoipa::{Component, OpenApi};
 
 use crate::{
-    api::rest::{api_resource::RoutedResource, read_from_store},
-    knowledge::{Entity, EntityId, PersistedEntity, PersistedEntityIdentifier},
+    api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
+    knowledge::{
+        Entity, EntityId, EntityQuery, EntityRootedSubgraph, PersistedEntity,
+        PersistedEntityIdentifier,
+    },
     ontology::AccountId,
     store::{
         error::{EntityDoesNotExist, QueryError},
@@ -32,7 +36,15 @@ use crate::{
         get_latest_entities,
         update_entity
     ),
-    components(CreateEntityRequest, UpdateEntityRequest, EntityId, PersistedEntityIdentifier, PersistedEntity, Entity),
+    components(
+        CreateEntityRequest,
+        UpdateEntityRequest,
+        EntityId,
+        PersistedEntityIdentifier,
+        PersistedEntity,
+        Entity,
+        EntityQuery,
+    ),
     tags(
         (name = "Entity", description = "entity management API")
     )
@@ -124,9 +136,21 @@ async fn create_entity<P: StorePool + Send>(
 )]
 async fn get_entities_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    Json(expression): Json<Expression>,
-) -> Result<Json<Vec<PersistedEntity>>, StatusCode> {
-    read_from_store(pool.as_ref(), &expression).await.map(Json)
+    Json(query): Json<EntityQuery>,
+) -> Result<Json<Vec<EntityRootedSubgraph>>, StatusCode> {
+    pool.acquire()
+        .map_err(|error| {
+            tracing::error!(?error, "Could not acquire access to the store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })
+        .and_then(|store| async move {
+            store.get_entity(&query).await.map_err(|report| {
+                tracing::error!(error=?report, ?query, "Could not read entities from the store");
+                report_to_status_code(&report)
+            })
+        })
+        .await
+        .map(Json)
 }
 
 #[utoipa::path(

@@ -4,7 +4,43 @@
 mod entity;
 mod link;
 
+use serde::{Deserialize, Serialize};
+use utoipa::Component;
+
 pub use self::{
     entity::{Entity, EntityId, PersistedEntity, PersistedEntityIdentifier},
     link::Link,
 };
+use crate::{
+    ontology::{
+        PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedPropertyType,
+        QueryDepth,
+    },
+    store::query::Expression,
+};
+
+/// Query to read [`DataType`]s, which are matching the [`Expression`].
+#[derive(Debug, Deserialize, Component)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct EntityQuery {
+    #[serde(rename = "query")]
+    pub expression: Expression,
+    #[component(value_type = number)]
+    pub data_type_query_depth: QueryDepth,
+    #[component(value_type = number)]
+    pub property_type_query_depth: QueryDepth,
+    #[component(value_type = number)]
+    pub link_type_query_depth: QueryDepth,
+    #[component(value_type = number)]
+    pub entity_type_query_depth: QueryDepth,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
+#[serde(rename_all = "camelCase")]
+pub struct EntityRootedSubgraph {
+    pub entity: PersistedEntity,
+    pub referenced_data_types: Vec<PersistedDataType>,
+    pub referenced_property_types: Vec<PersistedPropertyType>,
+    pub referenced_link_types: Vec<PersistedLinkType>,
+    pub referenced_entity_types: Vec<PersistedEntityType>,
+}

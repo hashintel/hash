@@ -9,7 +9,7 @@ use std::str::FromStr;
 
 use error_stack::{Report, Result};
 use graph::{
-    knowledge::{Entity, EntityId, Link, PersistedEntity, PersistedEntityIdentifier},
+    knowledge::{Entity, EntityId, EntityQuery, Link, PersistedEntity, PersistedEntityIdentifier},
     ontology::{
         AccountId, DataTypeQuery, EntityTypeQuery, LinkTypeQuery, PersistedDataType,
         PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier, PersistedPropertyType,
@@ -293,10 +293,17 @@ impl DatabaseApi<'_> {
     pub async fn get_entity(&mut self, entity_id: EntityId) -> Result<PersistedEntity, QueryError> {
         Ok(self
             .store
-            .get_entity(&Expression::for_latest_entity_id(entity_id))
+            .get_entity(&EntityQuery {
+                expression: Expression::for_latest_entity_id(entity_id),
+                data_type_query_depth: 0,
+                property_type_query_depth: 0,
+                link_type_query_depth: 0,
+                entity_type_query_depth: 0,
+            })
             .await?
             .pop()
-            .expect("no entity found"))
+            .expect("no entity found")
+            .entity)
     }
 
     pub async fn update_entity(
