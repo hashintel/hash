@@ -19,7 +19,9 @@ use crate::{
     store::query::Expression,
 };
 
-/// Query to read [`DataType`]s, which are matching the [`Expression`].
+/// Query to read [`Entities`], which are matching the [`Expression`].
+///
+/// [`Entities`]: Entity
 #[derive(Debug, Deserialize, Component)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityQuery {
