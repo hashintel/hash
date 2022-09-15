@@ -93,6 +93,33 @@ export default class extends EntityModel {
   }
 
   /**
+   * Get a workspace organization entity by its entity id.
+   *
+   * @param params.entityId - the entity id of the organization
+   */
+  static async getOrgById(
+    graphApi: GraphApi,
+    params: { entityId: string },
+  ): Promise<OrgModel | null> {
+    const entity = await EntityModel.getLatest(graphApi, {
+      // assumption: `accountId` of organizations is always the workspace account id
+      accountId: workspaceAccountId,
+      entityId: params.entityId,
+    });
+
+    if (
+      entity.entityTypeModel.schema.$id !==
+      WORKSPACE_TYPES.entityType.org.schema.$id
+    ) {
+      throw new Error(
+        `Entity with id ${params.entityId} is not a workspace org`,
+      );
+    }
+
+    return entity ? new OrgModel(entity) : null;
+  }
+
+  /**
    * Get a workspace organization entity by its shortname.
    *
    * @param params.shortname - the shortname of the organization
