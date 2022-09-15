@@ -10,6 +10,7 @@ import {
   Chip,
   FontAwesomeIcon,
   IconButton,
+  IconButtonProps,
   Menu,
   MenuItem,
   TextField,
@@ -43,13 +44,16 @@ import {
   TableHead,
   TableRow,
   tableRowClasses,
+  TextFieldProps,
   Theme,
   Typography,
+  useForkRef,
 } from "@mui/material";
 import { bindMenu, bindTrigger } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import Image from "next/image";
-import { useId, useState } from "react";
+import { Ref, useId, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
 import { TopContextBar } from "../../shared/top-context-bar";
 import { OurChip, placeholderUri } from "./Chip";
@@ -113,9 +117,11 @@ const cardActionHoverBlue: SxProps<Theme> = (theme) => ({
   },
 });
 
-const input = <TextField placeholder="Add default value" sx={{ width: 165 }} />;
+const Input = (props: TextFieldProps) => (
+  <TextField {...props} placeholder="Add default value" sx={{ width: 165 }} />
+);
 
-const PropertyMenu = () => {
+const PropertyMenu = (props: IconButtonProps) => {
   const id = useId();
   const popupState = usePopupState({
     variant: "popover",
@@ -125,11 +131,14 @@ const PropertyMenu = () => {
   return (
     <>
       <IconButton
+        {...props}
         sx={{
           opacity: 0,
-          [`.${tableRowClasses.root}:hover &`]: {
-            opacity: 1,
-          },
+          ...(!props.disabled && {
+            [`.${tableRowClasses.root}:hover &`]: {
+              opacity: 1,
+            },
+          }),
         }}
         {...bindTrigger(popupState)}
       >
@@ -227,6 +236,56 @@ const PropertyMenu = () => {
   );
 };
 
+const NewPropertyRow = ({
+  inputRef,
+  onCancel,
+}: {
+  inputRef: Ref<HTMLInputElement | null>;
+  onCancel: VoidFunction;
+}) => {
+  return (
+    <TableRow data-disabled>
+      <TableCell colSpan={2}>
+        <TextField
+          placeholder="Search for a property type"
+          sx={{ width: "100%" }}
+          inputRef={inputRef}
+          InputProps={{
+            endAdornment: (
+              <FontAwesomeIcon
+                icon={faSearch}
+                sx={(theme) => ({
+                  fontSize: 12,
+                  mr: 2,
+                  color: theme.palette.gray[50],
+                })}
+              />
+            ),
+          }}
+          onKeyDown={(evt) => {
+            if (evt.key === "Escape") {
+              onCancel();
+            }
+          }}
+        />
+      </TableCell>
+      <TableCell>
+        <Checkbox disabled />
+      </TableCell>
+      <TableCell>
+        <Checkbox disabled />
+      </TableCell>
+      <TableCell>
+        {/** @todo invisible disabled styles */}
+        <Input disabled />
+      </TableCell>
+      <TableCell>
+        <PropertyMenu disabled />
+      </TableCell>
+    </TableRow>
+  );
+};
+
 const CreatePropertyCard = ({
   onClick,
 }: Pick<CardActionAreaProps, "onClick">) => (
@@ -276,169 +335,177 @@ const CreatePropertyCard = ({
   </WhiteCard>
 );
 
-const InsertPropertyCard = () => (
-  <WhiteCard>
-    <Box sx={{ p: 0.5 }}>
-      <Table
-        sx={(theme) => ({
-          [`.${tableCellClasses.root}`]: {
-            pl: 3.5,
-            pr: 1,
-            py: 1.5,
-            border: "none",
-          },
-          [`.${tableCellClasses.head}`]: {
-            py: 1.5,
-            borderBottom: "solid",
-            borderColor: theme.palette.gray[20],
-            fontWeight: "inherit",
-            lineHeight: "inherit",
-          },
-          [`.${tableBodyClasses.root}:before`]: {
-            lineHeight: "6px",
-            content: `"\\200C"`,
-            display: "block",
-          },
-          [`.${tableCellClasses.head}:not(:first-child)`]: {
-            width: 0,
-            whiteSpace: "nowrap",
-          },
-          [`.${tableCellClasses.body} .${checkboxClasses.root}`]: {
-            textAlign: "center",
-            display: "block",
-          },
-          [`.${tableBodyClasses.root} .${tableRowClasses.root}`]: {
+const InsertPropertyCard = ({
+  insertFieldRef,
+}: {
+  insertFieldRef: Ref<HTMLInputElement | null>;
+}) => {
+  const [addingNewProperty, setAddingNewProperty] = useState(true);
+  const [created, setCreated] = useState(false);
+  const addingNewPropertyRef = useRef<HTMLInputElement>(null);
+
+  const sharedRef = useForkRef(addingNewPropertyRef, insertFieldRef);
+
+  return (
+    <WhiteCard>
+      <Box sx={{ p: 0.5 }}>
+        <Table
+          sx={(theme) => ({
             [`.${tableCellClasses.root}`]: {
-              "&:first-child": {
-                borderTopLeftRadius: 1,
-                borderBottomLeftRadius: 1,
+              pl: 3.5,
+              pr: 1,
+              py: 1.5,
+              border: "none",
+            },
+            [`.${tableCellClasses.head}`]: {
+              py: 1.5,
+              borderBottom: "solid",
+              borderColor: theme.palette.gray[20],
+              fontWeight: "inherit",
+              lineHeight: "inherit",
+            },
+            [`.${tableBodyClasses.root}:before`]: {
+              lineHeight: "6px",
+              content: `"\\200C"`,
+              display: "block",
+            },
+            [`.${tableCellClasses.head}:not(:first-child)`]: {
+              width: 0,
+              whiteSpace: "nowrap",
+            },
+            [`.${tableCellClasses.body} .${checkboxClasses.root}`]: {
+              textAlign: "center",
+              display: "block",
+            },
+            // @todo move these styles to a component
+            [`.${tableBodyClasses.root} .${tableRowClasses.root}`]: {
+              [`.${tableCellClasses.root}`]: {
+                "&:first-child": {
+                  borderTopLeftRadius: 1,
+                  borderBottomLeftRadius: 1,
+                },
+                "&:last-child": {
+                  borderTopRightRadius: 1,
+                  borderBottomRightRadius: 1,
+                },
               },
-              "&:last-child": {
-                borderTopRightRadius: 1,
-                borderBottomRightRadius: 1,
+              [`&:not([data-disabled]):hover .${tableCellClasses.root}`]: {
+                background: theme.palette.gray[10],
               },
             },
-            [`&:hover .${tableCellClasses.root}`]: {
-              background: theme.palette.gray[10],
-            },
-          },
-        })}
-      >
-        <TableHead>
-          <Typography
-            component={TableRow}
-            variant="smallTextLabels"
-            sx={{
-              fontWeight: 600,
-            }}
-          >
-            <TableCell>Property name</TableCell>
-            <TableCell>Expected values</TableCell>
-            <TableCell>Allow multiple values</TableCell>
-            <TableCell>Required</TableCell>
-            <TableCell>Default value</TableCell>
-            <TableCell />
-          </Typography>
-        </TableHead>
-        <TableBody>
-          <TableRow>
+          })}
+        >
+          <TableHead>
             <Typography
-              component={TableCell}
+              component={TableRow}
               variant="smallTextLabels"
-              fontWeight={500}
-            >
-              Share Price
-            </Typography>
-            <TableCell>
-              <Chip label="Number" />
-            </TableCell>
-            <TableCell>
-              <Checkbox />
-            </TableCell>
-            <TableCell>
-              <Checkbox />
-            </TableCell>
-            <TableCell>{input}</TableCell>
-            <TableCell>
-              <PropertyMenu />
-            </TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell colSpan={2}>
-              <TextField
-                placeholder="Search for a property type"
-                sx={{ width: "100%" }}
-                InputProps={{
-                  endAdornment: (
-                    <FontAwesomeIcon
-                      icon={faSearch}
-                      sx={(theme) => ({
-                        fontSize: 12,
-                        mr: 2,
-                        color: theme.palette.gray[50],
-                      })}
-                    />
-                  ),
-                }}
-              />
-            </TableCell>
-            <TableCell>
-              <Checkbox />
-            </TableCell>
-            <TableCell>
-              <Checkbox />
-            </TableCell>
-            <TableCell>{input}</TableCell>
-            <TableCell>
-              <PropertyMenu />
-            </TableCell>
-          </TableRow>
-        </TableBody>
-        <TableFooter>
-          <TableRow>
-            <TableCell
-              colSpan={
-                // Sufficiently large to span full width
-                100
-              }
               sx={{
-                p: "0 !important",
+                fontWeight: 600,
               }}
             >
-              <ButtonBase
-                disableRipple
-                disableTouchRipple
-                onClick={() => alert("Add a property")}
-                sx={(theme) => ({
-                  color: theme.palette.gray[50],
-                  py: 1.5,
-                  width: "100%",
-                  borderRadius: 1,
-                  "&:hover": {
-                    backgroundColor: theme.palette.gray[10],
-                    color: theme.palette.gray[70],
-                  },
-                })}
-              >
-                {/*@todo must be outlijned*/}
-                <FontAwesomeIcon
-                  icon={faPlusCircle}
-                  sx={{ fontSize: 12, mr: 1 }}
-                />
-                <Typography variant="smallTextLabels" fontWeight={500}>
-                  Add a property
+              <TableCell>Property name</TableCell>
+              <TableCell>Expected values</TableCell>
+              <TableCell>Allow multiple values</TableCell>
+              <TableCell>Required</TableCell>
+              <TableCell>Default value</TableCell>
+              <TableCell />
+            </Typography>
+          </TableHead>
+          <TableBody>
+            {created ? (
+              <TableRow>
+                <Typography
+                  component={TableCell}
+                  variant="smallTextLabels"
+                  fontWeight={500}
+                >
+                  Share Price
                 </Typography>
-              </ButtonBase>
-            </TableCell>
-          </TableRow>
-        </TableFooter>
-      </Table>
-    </Box>
-  </WhiteCard>
-);
+                <TableCell>
+                  <Chip label="Number" />
+                </TableCell>
+                <TableCell>
+                  <Checkbox />
+                </TableCell>
+                <TableCell>
+                  <Checkbox />
+                </TableCell>
+                <TableCell>
+                  <Input />
+                </TableCell>
+                <TableCell>
+                  <PropertyMenu />
+                </TableCell>
+              </TableRow>
+            ) : null}
+            {!addingNewProperty ? null : (
+              <NewPropertyRow
+                inputRef={sharedRef}
+                onCancel={() => {
+                  if (created) {
+                    setAddingNewProperty(false);
+                  }
+                }}
+              />
+            )}
+          </TableBody>
+          {addingNewProperty ? null : (
+            <TableFooter>
+              <TableRow>
+                <TableCell
+                  colSpan={
+                    // Sufficiently large to span full width
+                    100
+                  }
+                  sx={{
+                    p: "0 !important",
+                  }}
+                >
+                  <ButtonBase
+                    disableRipple
+                    disableTouchRipple
+                    onClick={() => {
+                      flushSync(() => {
+                        setAddingNewProperty(true);
+                      });
+
+                      addingNewPropertyRef.current?.focus();
+                    }}
+                    sx={(theme) => ({
+                      color: theme.palette.gray[50],
+                      py: 1.5,
+                      width: "100%",
+                      borderRadius: 1,
+                      "&:hover": {
+                        backgroundColor: theme.palette.gray[10],
+                        color: theme.palette.gray[70],
+                      },
+                    })}
+                  >
+                    {/*@todo must be outlijned*/}
+                    <FontAwesomeIcon
+                      icon={faPlusCircle}
+                      sx={{ fontSize: 12, mr: 1 }}
+                    />
+                    <Typography variant="smallTextLabels" fontWeight={500}>
+                      Add a property
+                    </Typography>
+                  </ButtonBase>
+                </TableCell>
+              </TableRow>
+            </TableFooter>
+          )}
+        </Table>
+      </Box>
+    </WhiteCard>
+  );
+};
 
 const Page: NextPageWithLayout = () => {
   const [mode, setMode] = useState<"empty" | "inserting">("empty");
+
+  const insertFieldRef = useRef<HTMLInputElement>(null);
+
   return (
     <Box
       component={Stack}
@@ -523,11 +590,15 @@ const Page: NextPageWithLayout = () => {
           {mode === "empty" ? (
             <CreatePropertyCard
               onClick={() => {
-                setMode("inserting");
+                flushSync(() => {
+                  setMode("inserting");
+                });
+
+                insertFieldRef.current?.focus();
               }}
             />
           ) : (
-            <InsertPropertyCard />
+            <InsertPropertyCard insertFieldRef={insertFieldRef} />
           )}
         </Container>
       </Box>
