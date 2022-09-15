@@ -45,7 +45,7 @@ export const entityTypeTypedef = gql`
     # INTERFACE FIELDS END #
   }
 
-  type EntityTypeSubgraph implements PersistedEntityTypeInterface {
+  type EntityTypeRootedSubgraph implements PersistedEntityTypeInterface {
     """
     Data types indirectly referenced by this entity type
     """
@@ -83,12 +83,12 @@ export const entityTypeTypedef = gql`
     """
     Get all entity types at their latest version.
     """
-    getAllLatestEntityTypes: [EntityTypeSubgraph!]!
+    getAllLatestEntityTypes: [EntityTypeRootedSubgraph!]!
 
     """
     Get a entity type by its versioned URI.
     """
-    getEntityType(entityTypeVersionedUri: String!): EntityTypeSubgraph!
+    getEntityType(entityTypeVersionedUri: String!): EntityTypeRootedSubgraph!
   }
 
   extend type Mutation {

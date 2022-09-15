@@ -45,7 +45,7 @@ export const propertyTypeTypedef = gql`
     # INTERFACE FIELDS END #
   }
 
-  type PropertyTypeSubgraph implements PropertyTypeInterface {
+  type PropertyTypeRootedSubgraph implements PropertyTypeInterface {
     """
     Data types referenced directly or indirectly referenced by this property type
     """
@@ -75,12 +75,14 @@ export const propertyTypeTypedef = gql`
     """
     Get all property types at their latest version.
     """
-    getAllLatestPropertyTypes: [PropertyTypeSubgraph!]!
+    getAllLatestPropertyTypes: [PropertyTypeRootedSubgraph!]!
 
     """
     Get a property type by its versioned URI.
     """
-    getPropertyType(propertyTypeVersionedUri: String!): PropertyTypeSubgraph!
+    getPropertyType(
+      propertyTypeVersionedUri: String!
+    ): PropertyTypeRootedSubgraph!
   }
 
   extend type Mutation {

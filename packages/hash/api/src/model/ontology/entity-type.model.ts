@@ -173,30 +173,32 @@ export default class {
      *   authorized to see.
      *   https://app.asana.com/0/1202805690238892/1202890446280569/f
      */
-    const { data: entityTypeSubgraphs } = await graphApi.getEntityTypesByQuery({
-      dataTypeQueryDepth: params.dataTypeQueryDepth,
-      propertyTypeQueryDepth: params.propertyTypeQueryDepth,
-      linkTypeQueryDepth: params.linkTypeQueryDepth,
-      entityTypeQueryDepth: params.entityTypeQueryDepth,
-      query: {
-        eq: [{ path: ["version"] }, { literal: "latest" }],
-      },
-    });
+    const { data: entityTypeRootedSubgraphs } =
+      await graphApi.getEntityTypesByQuery({
+        dataTypeQueryDepth: params.dataTypeQueryDepth,
+        propertyTypeQueryDepth: params.propertyTypeQueryDepth,
+        linkTypeQueryDepth: params.linkTypeQueryDepth,
+        entityTypeQueryDepth: params.entityTypeQueryDepth,
+        query: {
+          eq: [{ path: ["version"] }, { literal: "latest" }],
+        },
+      });
 
-    return entityTypeSubgraphs.map((entityTypeSubgraph) => ({
+    return entityTypeRootedSubgraphs.map((entityTypeRootedSubgraph) => ({
       entityType: EntityTypeModel.fromPersistedEntityType(
-        entityTypeSubgraph.entityType,
+        entityTypeRootedSubgraph.entityType,
       ),
-      referencedDataTypes: entityTypeSubgraph.referencedDataTypes.map(
+      referencedDataTypes: entityTypeRootedSubgraph.referencedDataTypes.map(
         DataTypeModel.fromPersistedDataType,
       ),
-      referencedPropertyTypes: entityTypeSubgraph.referencedPropertyTypes.map(
-        PropertyTypeModel.fromPersistedPropertyType,
-      ),
-      referencedLinkTypes: entityTypeSubgraph.referencedLinkTypes.map(
+      referencedPropertyTypes:
+        entityTypeRootedSubgraph.referencedPropertyTypes.map(
+          PropertyTypeModel.fromPersistedPropertyType,
+        ),
+      referencedLinkTypes: entityTypeRootedSubgraph.referencedLinkTypes.map(
         linkTypeModel.fromPersistedLinkType,
       ),
-      referencedEntityTypes: entityTypeSubgraph.referencedEntityTypes.map(
+      referencedEntityTypes: entityTypeRootedSubgraph.referencedEntityTypes.map(
         EntityTypeModel.fromPersistedEntityType,
       ),
     }));
@@ -248,7 +250,7 @@ export default class {
     referencedEntityTypes: EntityTypeModel[];
   }> {
     const { baseUri, version } = splitVersionedUri(params.versionedUri);
-    const { data: propertyTypeSubgraphs } =
+    const { data: propertyTypeRootedSubgraphs } =
       await graphApi.getEntityTypesByQuery({
         dataTypeQueryDepth: params.dataTypeQueryDepth,
         propertyTypeQueryDepth: params.propertyTypeQueryDepth,
@@ -261,8 +263,8 @@ export default class {
           ],
         },
       });
-    const entityTypeSubgraph = propertyTypeSubgraphs.pop();
-    if (entityTypeSubgraph === undefined) {
+    const entityTypeRootedSubgraph = propertyTypeRootedSubgraphs.pop();
+    if (entityTypeRootedSubgraph === undefined) {
       throw new Error(
         `Unable to retrieve property type for URI: ${params.versionedUri}`,
       );
@@ -270,18 +272,19 @@ export default class {
 
     return {
       entityType: EntityTypeModel.fromPersistedEntityType(
-        entityTypeSubgraph.entityType,
+        entityTypeRootedSubgraph.entityType,
       ),
-      referencedDataTypes: entityTypeSubgraph.referencedDataTypes.map(
+      referencedDataTypes: entityTypeRootedSubgraph.referencedDataTypes.map(
         DataTypeModel.fromPersistedDataType,
       ),
-      referencedPropertyTypes: entityTypeSubgraph.referencedPropertyTypes.map(
-        PropertyTypeModel.fromPersistedPropertyType,
-      ),
-      referencedLinkTypes: entityTypeSubgraph.referencedLinkTypes.map(
+      referencedPropertyTypes:
+        entityTypeRootedSubgraph.referencedPropertyTypes.map(
+          PropertyTypeModel.fromPersistedPropertyType,
+        ),
+      referencedLinkTypes: entityTypeRootedSubgraph.referencedLinkTypes.map(
         LinkTypeModel.fromPersistedLinkType,
       ),
-      referencedEntityTypes: entityTypeSubgraph.referencedEntityTypes.map(
+      referencedEntityTypes: entityTypeRootedSubgraph.referencedEntityTypes.map(
         EntityTypeModel.fromPersistedEntityType,
       ),
     };

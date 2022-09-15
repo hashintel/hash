@@ -7,11 +7,14 @@ import {
   MutationUpdateEntityTypeArgs,
   QueryGetEntityTypeArgs,
   ResolverFn,
-  EntityTypeSubgraph,
+  EntityTypeRootedSubgraph,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { EntityTypeModel } from "../../../model";
-import { entityTypeModelToGQL, entityTypeSubgraphToGQL } from "./model-mapping";
+import {
+  entityTypeModelToGQL,
+  entityTypeRootedSubgraphToGQL,
+} from "./model-mapping";
 import {
   dataTypeQueryDepth,
   entityTypeQueryDepth,
@@ -39,14 +42,14 @@ export const createEntityType: ResolverFn<
 };
 
 export const getAllLatestEntityTypes: ResolverFn<
-  Promise<EntityTypeSubgraph[]>,
+  Promise<EntityTypeRootedSubgraph[]>,
   {},
   LoggedInGraphQLContext,
   {}
 > = async (_, __, { dataSources, user }, info) => {
   const { graphApi } = dataSources;
 
-  const entityTypeSubgraphs = await EntityTypeModel.getAllLatestResolved(
+  const entityTypeRootedSubgraphs = await EntityTypeModel.getAllLatestResolved(
     graphApi,
     {
       accountId: user.entityId,
@@ -62,18 +65,18 @@ export const getAllLatestEntityTypes: ResolverFn<
     );
   });
 
-  return entityTypeSubgraphs.map(entityTypeSubgraphToGQL);
+  return entityTypeRootedSubgraphs.map(entityTypeRootedSubgraphToGQL);
 };
 
 export const getEntityType: ResolverFn<
-  Promise<EntityTypeSubgraph>,
+  Promise<EntityTypeRootedSubgraph>,
   {},
   LoggedInGraphQLContext,
   QueryGetEntityTypeArgs
 > = async (_, { entityTypeVersionedUri }, { dataSources }, info) => {
   const { graphApi } = dataSources;
 
-  const entityTypeSubgraph = await EntityTypeModel.getResolved(graphApi, {
+  const entityTypeRootedSubgraph = await EntityTypeModel.getResolved(graphApi, {
     versionedUri: entityTypeVersionedUri,
     dataTypeQueryDepth: dataTypeQueryDepth(info),
     propertyTypeQueryDepth: propertyTypeQueryDepth(info),
@@ -86,7 +89,7 @@ export const getEntityType: ResolverFn<
     );
   });
 
-  return entityTypeSubgraphToGQL(entityTypeSubgraph);
+  return entityTypeRootedSubgraphToGQL(entityTypeRootedSubgraph);
 };
 
 export const updateEntityType: ResolverFn<

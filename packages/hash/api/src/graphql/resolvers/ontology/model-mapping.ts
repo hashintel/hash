@@ -9,8 +9,8 @@ import {
   PersistedEntityType,
   PersistedLinkType,
   PersistedPropertyType,
-  PropertyTypeSubgraph,
-  EntityTypeSubgraph,
+  PropertyTypeRootedSubgraph,
+  EntityTypeRootedSubgraph,
 } from "../../apiTypes.gen";
 
 export const dataTypeModelToGQL = (
@@ -29,7 +29,7 @@ export const propertyTypeModelToGQL = (
   propertyType: propertyType.schema,
 });
 
-export const propertyTypeSubgraphToGQL = ({
+export const propertyTypeRootedSubgraphToGQL = ({
   propertyType,
   referencedDataTypes,
   referencedPropertyTypes,
@@ -37,7 +37,7 @@ export const propertyTypeSubgraphToGQL = ({
   propertyType: PropertyTypeModel;
   referencedDataTypes: DataTypeModel[];
   referencedPropertyTypes: PropertyTypeModel[];
-}): PropertyTypeSubgraph => ({
+}): PropertyTypeRootedSubgraph => ({
   accountId: propertyType.accountId,
   propertyTypeVersionedUri: propertyType.schema.$id,
   propertyType: propertyType.schema,
@@ -61,7 +61,7 @@ export const entityTypeModelToGQL = (
   entityType: entityType.schema,
 });
 
-export const entityTypeSubgraphToGQL = ({
+export const entityTypeRootedSubgraphToGQL = ({
   entityType,
   referencedDataTypes,
   referencedPropertyTypes,
@@ -73,7 +73,7 @@ export const entityTypeSubgraphToGQL = ({
   referencedPropertyTypes: PropertyTypeModel[];
   referencedLinkTypes: LinkTypeModel[];
   referencedEntityTypes: EntityTypeModel[];
-}): EntityTypeSubgraph => ({
+}): EntityTypeRootedSubgraph => ({
   accountId: entityType.accountId,
   entityTypeVersionedUri: entityType.schema.$id,
   entityType: entityType.schema,
