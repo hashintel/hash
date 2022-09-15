@@ -5,6 +5,7 @@ import {
   EntityModelCreateParams,
   EntityTypeModel,
   OrgModel,
+  UserModel,
 } from "..";
 import { extractBaseUri, workspaceAccountId } from "../util";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
@@ -104,6 +105,43 @@ export default class extends EntityModel {
 
     return await OrgModel.getOrgById(graphApi, {
       entityId: outgoingOrgLink.targetEntityId,
+    });
+  }
+
+  /**
+   * Get the user linked to the org membership.
+   */
+  async getUser(graphApi: GraphApi) {
+    const { data: incomingOrgMembershipLinks } = await graphApi.getLinksByQuery(
+      {
+        all: [
+          {
+            eq: [{ path: ["target", "id"] }, { literal: this.entityId }],
+          },
+          {
+            eq: [
+              { path: ["type", "uri"] },
+              {
+                literal: extractBaseUri(
+                  WORKSPACE_TYPES.linkType.orgMembership.schema.$id,
+                ),
+              },
+            ],
+          },
+        ],
+      },
+    );
+
+    const [incomingOrgMembershipLink] = incomingOrgMembershipLinks;
+
+    if (!incomingOrgMembershipLink) {
+      throw new Error(
+        `Critical: org membership with entity id ${this.entityId} doesn't have a linked user`,
+      );
+    }
+
+    return await UserModel.getUserById(graphApi, {
+      entityId: incomingOrgMembershipLink.sourceEntityId,
     });
   }
 }
