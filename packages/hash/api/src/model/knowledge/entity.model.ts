@@ -54,7 +54,7 @@ export default class {
     { identifier, inner, typeVersionedUri }: PersistedEntity,
     cachedEntityTypeModels?: Map<string, EntityTypeModel>,
   ): Promise<EntityModel> {
-    const { createdBy: accountId, version } = identifier;
+    const { ownedById: accountId, version } = identifier;
     const cachedEntityTypeModel = cachedEntityTypeModels?.get(typeVersionedUri);
 
     let entityTypeModel: EntityTypeModel;

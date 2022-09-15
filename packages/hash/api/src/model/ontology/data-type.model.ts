@@ -46,7 +46,7 @@ export default class {
      */
     return new DataTypeModel({
       schema: inner as DataType,
-      accountId: identifier.createdBy,
+      accountId: identifier.ownedById,
     });
   }
 
@@ -111,7 +111,7 @@ export default class {
 
     return new DataTypeModel({
       schema: fullDataType,
-      accountId: identifier.createdBy,
+      accountId: identifier.ownedById,
     });
   }
 
@@ -190,7 +190,7 @@ export default class {
 
     return new DataTypeModel({
       schema: { ...schema, $id: identifier.uri },
-      accountId: identifier.createdBy,
+      accountId: identifier.ownedById,
     });
   }
 }
