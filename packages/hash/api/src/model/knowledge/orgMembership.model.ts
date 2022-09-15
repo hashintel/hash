@@ -3,7 +3,6 @@ import {
   OrgMembershipModel,
   EntityModel,
   EntityModelCreateParams,
-  EntityTypeModel,
   OrgModel,
   UserModel,
 } from "..";
@@ -56,17 +55,6 @@ export default class extends EntityModel {
       version: entity.version,
       entityTypeModel,
       properties,
-    });
-  }
-
-  /**
-   * Get the system OrgMembership entity type.
-   */
-  static async getOrgMembershipEntityType(graphApi: GraphApi) {
-    const versionedUri = WORKSPACE_TYPES.entityType.orgMembership.schema.$id;
-
-    return await EntityTypeModel.get(graphApi, {
-      versionedUri,
     });
   }
 

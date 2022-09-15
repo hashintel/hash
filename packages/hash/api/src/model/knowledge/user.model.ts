@@ -2,7 +2,6 @@ import { GraphApi } from "@hashintel/hash-graph-client";
 import { AxiosError } from "axios";
 import {
   EntityModel,
-  EntityTypeModel,
   UserModel,
   AccountFields,
   EntityModelCreateParams,
@@ -164,15 +163,6 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get the system User entity type.
-   */
-  static async getUserEntityType(graphApi: GraphApi): Promise<EntityTypeModel> {
-    return await EntityTypeModel.get(graphApi, {
-      versionedUri: WORKSPACE_TYPES.entityType.user.schema.$id,
-    });
-  }
-
-  /**
    * Create a workspace user entity.
    *
    * @param params.emails - the emails of the user
@@ -204,7 +194,7 @@ export default class extends EntityModel {
       [WORKSPACE_TYPES.propertyType.preferredName.baseUri]: undefined,
     };
 
-    const entityTypeModel = await UserModel.getUserEntityType(graphApi);
+    const entityTypeModel = WORKSPACE_TYPES.entityType.user;
 
     const userEntityAccountId = workspaceAccountId;
 

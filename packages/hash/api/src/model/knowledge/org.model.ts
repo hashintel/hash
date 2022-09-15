@@ -4,7 +4,6 @@ import {
   EntityModel,
   EntityModelCreateParams,
   AccountFields,
-  EntityTypeModel,
 } from "..";
 import { workspaceAccountId } from "../util";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
@@ -61,7 +60,7 @@ export default class extends EntityModel {
         : undefined,
     };
 
-    const entityTypeModel = await OrgModel.getOrgEntityType(graphApi);
+    const entityTypeModel = WORKSPACE_TYPES.entityType.org;
 
     const userEntityAccountId = workspaceAccountId;
 
@@ -78,17 +77,6 @@ export default class extends EntityModel {
       version,
       entityTypeModel,
       properties,
-    });
-  }
-
-  /**
-   * Get the system Organization entity type.
-   */
-  static async getOrgEntityType(graphApi: GraphApi) {
-    const versionedUri = WORKSPACE_TYPES.entityType.org.schema.$id;
-
-    return await EntityTypeModel.get(graphApi, {
-      versionedUri,
     });
   }
 
