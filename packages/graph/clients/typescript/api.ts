@@ -282,7 +282,7 @@ export interface DataTypeRootedSubgraph {
   dataType: PersistedDataType;
 }
 /**
- * Query to read [`Entities`], which are matching the [`Expression`].
+ * Query to read [`Entities`], which satisfy the [`Expression`].
  * @export
  * @interface EntityQuery
  */
@@ -2430,7 +2430,7 @@ export const EntityApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<EntityTypeRootedSubgraph>>
+      ) => AxiosPromise<Array<EntityRootedSubgraph>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getEntitiesByQuery(
@@ -2555,7 +2555,7 @@ export const EntityApiFactory = function (
     getEntitiesByQuery(
       entityQuery: EntityQuery,
       options?: any,
-    ): AxiosPromise<Array<EntityTypeRootedSubgraph>> {
+    ): AxiosPromise<Array<EntityRootedSubgraph>> {
       return localVarFp
         .getEntitiesByQuery(entityQuery, options)
         .then((request) => request(axios, basePath));
@@ -2626,7 +2626,7 @@ export interface EntityApiInterface {
   getEntitiesByQuery(
     entityQuery: EntityQuery,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<EntityTypeRootedSubgraph>>;
+  ): AxiosPromise<Array<EntityRootedSubgraph>>;
 
   /**
    *
@@ -5066,7 +5066,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<EntityTypeRootedSubgraph>>
+      ) => AxiosPromise<Array<EntityRootedSubgraph>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getEntitiesByQuery(
@@ -5723,7 +5723,7 @@ export const GraphApiFactory = function (
     getEntitiesByQuery(
       entityQuery: EntityQuery,
       options?: any,
-    ): AxiosPromise<Array<EntityTypeRootedSubgraph>> {
+    ): AxiosPromise<Array<EntityRootedSubgraph>> {
       return localVarFp
         .getEntitiesByQuery(entityQuery, options)
         .then((request) => request(axios, basePath));
@@ -6107,7 +6107,7 @@ export interface GraphApiInterface {
   getEntitiesByQuery(
     entityQuery: EntityQuery,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<EntityTypeRootedSubgraph>>;
+  ): AxiosPromise<Array<EntityRootedSubgraph>>;
 
   /**
    *
