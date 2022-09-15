@@ -42,13 +42,13 @@ describe("OrgMembership model class", () => {
   beforeAll(async () => {
     await ensureWorkspaceTypesExist({ graphApi, logger });
 
-    const testUseridentity = await createKratosIdentity({
+    const testUserIdentity = await createKratosIdentity({
       traits: {
         emails: ["test@example.com"],
       },
     });
 
-    kratosIdentityId = testUseridentity.id;
+    kratosIdentityId = testUserIdentity.id;
 
     testUser = await UserModel.createUser(graphApi, {
       emails: ["alice@example.com"],
