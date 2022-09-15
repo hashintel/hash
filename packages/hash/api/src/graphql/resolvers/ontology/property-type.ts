@@ -7,13 +7,13 @@ import {
   MutationUpdatePropertyTypeArgs,
   QueryGetPropertyTypeArgs,
   ResolverFn,
-  PropertyTypeSubgraph,
+  PropertyTypeRootedSubgraph,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { PropertyTypeModel } from "../../../model";
 import {
   propertyTypeModelToGQL,
-  propertyTypeSubgraphToGQL,
+  propertyTypeRootedSubgraphToGQL,
 } from "./model-mapping";
 import { dataTypeQueryDepth, propertyTypeQueryDepth } from "../util";
 
@@ -37,50 +37,51 @@ export const createPropertyType: ResolverFn<
 };
 
 export const getAllLatestPropertyTypes: ResolverFn<
-  Promise<PropertyTypeSubgraph[]>,
+  Promise<PropertyTypeRootedSubgraph[]>,
   {},
   LoggedInGraphQLContext,
   {}
 > = async (_, __, { dataSources, user }, info) => {
   const { graphApi } = dataSources;
 
-  const propertyTypeSubgraphs = await PropertyTypeModel.getAllLatestResolved(
-    graphApi,
-    {
+  const propertyTypeRootedSubgraphs =
+    await PropertyTypeModel.getAllLatestResolved(graphApi, {
       accountId: user.entityId,
       dataTypeQueryDepth: dataTypeQueryDepth(info),
       propertyTypeQueryDepth: propertyTypeQueryDepth(info),
-    },
-  ).catch((err: AxiosError) => {
-    throw new ApolloError(
-      `Unable to retrieve all latest property types. ${err.response?.data}`,
-      "GET_ALL_ERROR",
-    );
-  });
+    }).catch((err: AxiosError) => {
+      throw new ApolloError(
+        `Unable to retrieve all latest property types. ${err.response?.data}`,
+        "GET_ALL_ERROR",
+      );
+    });
 
-  return propertyTypeSubgraphs.map(propertyTypeSubgraphToGQL);
+  return propertyTypeRootedSubgraphs.map(propertyTypeRootedSubgraphToGQL);
 };
 
 export const getPropertyType: ResolverFn<
-  Promise<PropertyTypeSubgraph>,
+  Promise<PropertyTypeRootedSubgraph>,
   {},
   LoggedInGraphQLContext,
   QueryGetPropertyTypeArgs
 > = async (_, { propertyTypeVersionedUri }, { dataSources }, info) => {
   const { graphApi } = dataSources;
 
-  const propertyTypeSubgraph = await PropertyTypeModel.getResolved(graphApi, {
-    versionedUri: propertyTypeVersionedUri,
-    dataTypeQueryDepth: dataTypeQueryDepth(info),
-    propertyTypeQueryDepth: propertyTypeQueryDepth(info),
-  }).catch((err: AxiosError) => {
+  const propertyTypeRootedSubgraph = await PropertyTypeModel.getResolved(
+    graphApi,
+    {
+      versionedUri: propertyTypeVersionedUri,
+      dataTypeQueryDepth: dataTypeQueryDepth(info),
+      propertyTypeQueryDepth: propertyTypeQueryDepth(info),
+    },
+  ).catch((err: AxiosError) => {
     throw new ApolloError(
       `Unable to retrieve property type. ${err.response?.data}`,
       "GET_ERROR",
     );
   });
 
-  return propertyTypeSubgraphToGQL(propertyTypeSubgraph);
+  return propertyTypeRootedSubgraphToGQL(propertyTypeRootedSubgraph);
 };
 
 export const updatePropertyType: ResolverFn<

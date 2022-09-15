@@ -9,7 +9,8 @@ import {
   PersistedEntityType,
   PersistedLinkType,
   PersistedPropertyType,
-  PropertyTypeSubgraph,
+  PropertyTypeRootedSubgraph,
+  EntityTypeRootedSubgraph,
 } from "../../apiTypes.gen";
 
 export const dataTypeModelToGQL = (
@@ -28,7 +29,7 @@ export const propertyTypeModelToGQL = (
   propertyType: propertyType.schema,
 });
 
-export const propertyTypeSubgraphToGQL = ({
+export const propertyTypeRootedSubgraphToGQL = ({
   propertyType,
   referencedDataTypes,
   referencedPropertyTypes,
@@ -36,7 +37,7 @@ export const propertyTypeSubgraphToGQL = ({
   propertyType: PropertyTypeModel;
   referencedDataTypes: DataTypeModel[];
   referencedPropertyTypes: PropertyTypeModel[];
-}): PropertyTypeSubgraph => ({
+}): PropertyTypeRootedSubgraph => ({
   accountId: propertyType.accountId,
   propertyTypeVersionedUri: propertyType.schema.$id,
   propertyType: propertyType.schema,
@@ -58,4 +59,22 @@ export const entityTypeModelToGQL = (
   accountId: entityType.accountId,
   entityTypeVersionedUri: entityType.schema.$id,
   entityType: entityType.schema,
+});
+
+export const entityTypeRootedSubgraphToGQL = (params: {
+  entityType: EntityTypeModel;
+  referencedDataTypes: DataTypeModel[];
+  referencedPropertyTypes: PropertyTypeModel[];
+  referencedLinkTypes: LinkTypeModel[];
+  referencedEntityTypes: EntityTypeModel[];
+}): EntityTypeRootedSubgraph => ({
+  accountId: params.entityType.accountId,
+  entityTypeVersionedUri: params.entityType.schema.$id,
+  entityType: params.entityType.schema,
+  referencedDataTypes: params.referencedDataTypes.map(dataTypeModelToGQL),
+  referencedPropertyTypes: params.referencedPropertyTypes.map(
+    propertyTypeModelToGQL,
+  ),
+  referencedLinkTypes: params.referencedLinkTypes.map(linkTypeModelToGQL),
+  referencedEntityTypes: params.referencedEntityTypes.map(entityTypeModelToGQL),
 });
