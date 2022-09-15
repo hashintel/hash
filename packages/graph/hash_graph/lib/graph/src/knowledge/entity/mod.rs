@@ -9,7 +9,9 @@ use uuid::Uuid;
 
 use crate::ontology::AccountId;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, Component, FromSql, ToSql)]
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Component, FromSql, ToSql,
+)]
 #[repr(transparent)]
 #[postgres(transparent)]
 pub struct EntityId(Uuid);
