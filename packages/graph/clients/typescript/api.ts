@@ -282,7 +282,7 @@ export interface DataTypeRootedSubgraph {
   dataType: PersistedDataType;
 }
 /**
- * Query to read [`DataType`]s, which are matching the [`Expression`].
+ * Query to read [`Entities`], which are matching the [`Expression`].
  * @export
  * @interface EntityQuery
  */
