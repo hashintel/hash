@@ -42,7 +42,7 @@ fn row_stream_to_record_stream(
 }
 
 pub async fn read_all_entities(client: &impl AsClient) -> Result<RecordStream, QueryError> {
-    let row_stream= client
+    let row_stream = client
         .as_client()
         .query_raw(
             r#"
@@ -55,7 +55,8 @@ pub async fn read_all_entities(client: &impl AsClient) -> Result<RecordStream, Q
             parameter_list([]),
         )
         .await
-        .into_report().change_context(QueryError)?;
+        .into_report()
+        .change_context(QueryError)?;
     Ok(row_stream_to_record_stream(row_stream))
 }
 
