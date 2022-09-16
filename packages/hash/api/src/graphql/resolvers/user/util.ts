@@ -1,6 +1,6 @@
 import { ApolloError } from "apollo-server-express";
-import { User as GQLUser, Org as GQLOrg, Visibility } from "../../apiTypes.gen";
-import { UserModel, User, VerificationCode, OrgModel } from "../../../model";
+import { User as GQLUser, Visibility } from "../../apiTypes.gen";
+import { UserModel, User, VerificationCode } from "../../../model";
 import { DbClient } from "../../../db";
 
 type GQLUserExternalResolvers =
@@ -13,6 +13,7 @@ type GQLUserExternalResolvers =
 
 export type UnresolvedGQLUser = Omit<GQLUser, GQLUserExternalResolvers>;
 
+/** @todo: address the below todos as part of https://app.asana.com/0/0/1202996188015545/f */
 export const mapUserModelToGQL = async (
   user: UserModel,
 ): Promise<UnresolvedGQLUser> => {
@@ -27,41 +28,6 @@ export const mapUserModelToGQL = async (
     shortname: user.getShortname(),
     preferredName: user.getPreferredName(),
     emails: await user.getQualifiedEmails(),
-    entityVersionCreatedAt:
-      new Date().toISOString() /** @todo: stop hardcoding this */,
-    createdAt: new Date().toISOString() /** @todo: stop hardcoding this */,
-    updatedAt: new Date().toISOString() /** @todo: stop hardcoding this */,
-    createdByAccountId: "" /** @todo: stop hardcoding this */,
-    visibility:
-      Visibility.Public /** @todo: potentially deprecate or stop hardcoding this */,
-  };
-};
-
-type GQLOrgExternalResolvers =
-  | "emailInvitations"
-  | "invitationLinks"
-  | "memberships"
-  | "memberOf"
-  | "entityType"
-  | "linkGroups"
-  | "linkedEntities"
-  | "linkedAggregations";
-
-export type UnresolvedGQLOrg = Omit<GQLOrg, GQLOrgExternalResolvers>;
-
-export const mapOrgModelToGQL = async (
-  org: OrgModel,
-): Promise<UnresolvedGQLOrg> => {
-  return {
-    accountId: org.entityId,
-    id: org.entityId,
-    entityId: org.entityId,
-    entityVersionId: org.version,
-    entityTypeId: "" /** @todo: deprecate this field */,
-    entityTypeVersionId: org.entityTypeModel.schema.$id,
-    entityTypeName: org.entityTypeModel.schema.title,
-    shortname: org.getShortname(),
-    name: org.getOrgName(),
     entityVersionCreatedAt:
       new Date().toISOString() /** @todo: stop hardcoding this */,
     createdAt: new Date().toISOString() /** @todo: stop hardcoding this */,
