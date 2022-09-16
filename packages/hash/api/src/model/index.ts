@@ -44,6 +44,9 @@ export { default as UserModel } from "./knowledge/user.model";
 export * from "./knowledge/org.model";
 export { default as OrgModel } from "./knowledge/org.model";
 
+export * from "./knowledge/org.model";
+export { default as OrgMembershipModel } from "./knowledge/orgMembership.model";
+
 /** @todo: deprecate legacy model classes */
 
 export * from "./entityType.model";

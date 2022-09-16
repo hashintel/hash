@@ -1,4 +1,4 @@
-import { GraphApi } from "@hashintel/hash-graph-client";
+import { GraphApi, Link as PersistedLink } from "@hashintel/hash-graph-client";
 
 import { EntityModel, LinkModel, LinkTypeModel } from "../index";
 
@@ -37,6 +37,37 @@ export default class {
     this.sourceEntityModel = sourceEntityModel;
     this.linkTypeModel = linkTypeModel;
     this.targetEntityModel = targetEntityModel;
+  }
+
+  static async fromPersistedLink(
+    graphApi: GraphApi,
+    { sourceEntityId, targetEntityId, linkTypeUri }: PersistedLink,
+  ): Promise<LinkModel> {
+    const [sourceEntityModel, targetEntityModel, linkTypeModel] =
+      await Promise.all([
+        EntityModel.getLatest(graphApi, { entityId: sourceEntityId }),
+        EntityModel.getLatest(graphApi, { entityId: targetEntityId }),
+        LinkTypeModel.get(graphApi, { versionedUri: linkTypeUri }),
+      ]);
+
+    return new LinkModel({
+      /** @todo: assign this from the `PersistedLink` as part of https://app.asana.com/0/1201095311341924/1202980861294706/f */
+      accountId: "",
+      sourceEntityModel,
+      linkTypeModel,
+      targetEntityModel,
+    });
+  }
+
+  static async getByQuery(
+    graphApi: GraphApi,
+    query: object,
+  ): Promise<LinkModel[]> {
+    const { data: links } = await graphApi.getLinksByQuery(query);
+
+    return await Promise.all(
+      links.map((link) => LinkModel.fromPersistedLink(graphApi, link)),
+    );
   }
 
   /**
