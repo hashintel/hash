@@ -179,6 +179,7 @@ const preferredNamePropertyTypeInitializer = propertyTypeInitializer({
 const responsibilityPropertyTypeInitializer = propertyTypeInitializer({
   namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   title: "responsibility",
+  description: `The user's responsibility at the organization (e.g. "Marketing", "Sales", "Engineering", etc.)`,
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 

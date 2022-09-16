@@ -155,6 +155,7 @@ export const primitiveDataTypeVersionedUris = primitiveDataTypeTitles.reduce(
 export type PropertyTypeCreatorParams = {
   namespace: string;
   title: string;
+  description?: string;
   possibleValues: {
     primitiveDataType?: PrimitiveDataTypeTitle;
     propertyTypeObjectProperties?: { [_ in string]: { $ref: string } };
@@ -214,6 +215,7 @@ export const generateWorkspacePropertyTypeSchema = (
     $id,
     kind: "propertyType",
     title: params.title,
+    description: params.description,
     pluralTitle: params.title,
     oneOf: possibleValues,
   };
