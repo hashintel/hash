@@ -100,6 +100,10 @@ where
     pub fn into_vec(self) -> Vec<T> {
         self.resolved.into_values().map(|value| value.0).collect()
     }
+
+    pub fn remove(&mut self, identifier: &V) -> Option<T> {
+        self.resolved.remove(identifier).map(|(value, _)| value)
+    }
 }
 
 /// Utility function used for [`GenericClient::query_raw`] to infer the parameter as

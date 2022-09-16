@@ -310,6 +310,12 @@ export interface EntityQuery {
    * @type {number}
    * @memberof EntityQuery
    */
+  linkedEntityQueryDepth: number;
+  /**
+   *
+   * @type {number}
+   * @memberof EntityQuery
+   */
   propertyTypeQueryDepth: number;
   /**
    *
@@ -330,6 +336,12 @@ export interface EntityRootedSubgraph {
    * @memberof EntityRootedSubgraph
    */
   entity: PersistedEntity;
+  /**
+   *
+   * @type {Array<PersistedEntity>}
+   * @memberof EntityRootedSubgraph
+   */
+  linkedEntities: Array<PersistedEntity>;
   /**
    *
    * @type {Array<PersistedDataType>}

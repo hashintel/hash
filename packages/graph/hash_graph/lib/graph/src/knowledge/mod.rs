@@ -35,6 +35,8 @@ pub struct EntityQuery {
     pub link_type_query_depth: QueryDepth,
     #[component(value_type = number)]
     pub entity_type_query_depth: QueryDepth,
+    #[component(value_type = number)]
+    pub linked_entity_query_depth: QueryDepth,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
@@ -45,4 +47,5 @@ pub struct EntityRootedSubgraph {
     pub referenced_property_types: Vec<PersistedPropertyType>,
     pub referenced_link_types: Vec<PersistedLinkType>,
     pub referenced_entity_types: Vec<PersistedEntityType>,
+    pub linked_entities: Vec<PersistedEntity>,
 }

@@ -394,10 +394,11 @@ Content-Type: application/json
       }
     ]
   },
-  "dataTypeQueryDepth": 255,
-  "propertyTypeQueryDepth": 255,
-  "linkTypeQueryDepth": 255,
-  "entityTypeQueryDepth": 255
+  "dataTypeQueryDepth": 0,
+  "propertyTypeQueryDepth": 0,
+  "linkTypeQueryDepth": 1,
+  "entityTypeQueryDepth": 0,
+  "linkedEntityQueryDepth": 10
 }
 
 > {%

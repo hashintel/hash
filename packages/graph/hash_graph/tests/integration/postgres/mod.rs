@@ -299,6 +299,7 @@ impl DatabaseApi<'_> {
                 property_type_query_depth: 0,
                 link_type_query_depth: 0,
                 entity_type_query_depth: 0,
+                linked_entity_query_depth: 0,
             })
             .await?
             .pop()
