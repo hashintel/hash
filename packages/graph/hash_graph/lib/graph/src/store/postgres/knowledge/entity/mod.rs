@@ -225,71 +225,36 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         } = *query;
 
         stream::iter(Read::<PersistedEntity>::read(self, expression).await?)
-            .then(|entity: PersistedEntity| async {
+            .then(|entity| async move {
                 let mut referenced_data_types = DependencyMap::new();
                 let mut referenced_property_types = DependencyMap::new();
                 let mut referenced_link_types = DependencyMap::new();
                 let mut referenced_entity_types = DependencyMap::new();
                 let mut linked_entities = DependencyMap::new();
 
-                if entity_type_query_depth > 0 {
-                    self.get_entity_type_as_dependency(
-                        entity.type_versioned_uri(),
-                        EntityTypeDependencyContext {
-                            referenced_data_types: &mut referenced_data_types,
-                            referenced_property_types: &mut referenced_property_types,
-                            referenced_link_types: &mut referenced_link_types,
-                            referenced_entity_types: &mut referenced_entity_types,
-                            data_type_query_depth,
-                            property_type_query_depth,
-                            link_type_query_depth,
-                            entity_type_query_depth: entity_type_query_depth - 1,
-                        },
-                    )
-                    .await?;
-                }
+                self.get_entity_as_dependency(
+                    entity.identifier().entity_id(),
+                    EntityDependencyContext {
+                        referenced_data_types: &mut referenced_data_types,
+                        referenced_property_types: &mut referenced_property_types,
+                        referenced_link_types: &mut referenced_link_types,
+                        referenced_entity_types: &mut referenced_entity_types,
+                        linked_entities: &mut linked_entities,
+                        data_type_query_depth,
+                        property_type_query_depth,
+                        link_type_query_depth,
+                        entity_type_query_depth,
+                        linked_entity_query_depth,
+                    },
+                )
+                .await?;
 
-                if linked_entity_query_depth > 0 || link_type_query_depth > 0 {
-                    for (source_entity_id, link_type_uri) in self
-                        .get_linked_entities(entity.identifier().entity_id())
-                        .await?
-                    {
-                        if linked_entity_query_depth > 0 {
-                            self.get_entity_as_dependency(
-                                source_entity_id,
-                                EntityDependencyContext {
-                                    referenced_data_types: &mut referenced_data_types,
-                                    referenced_property_types: &mut referenced_property_types,
-                                    referenced_link_types: &mut referenced_link_types,
-                                    referenced_entity_types: &mut referenced_entity_types,
-                                    linked_entities: &mut linked_entities,
-                                    data_type_query_depth,
-                                    property_type_query_depth,
-                                    link_type_query_depth,
-                                    entity_type_query_depth,
-                                    linked_entity_query_depth: linked_entity_query_depth - 1,
-                                },
-                            )
-                            .await?;
-                        }
-
-                        if link_type_query_depth > 0 {
-                            self.get_link_type_as_dependency(
-                                &link_type_uri,
-                                LinkTypeDependencyContext {
-                                    referenced_link_types: &mut referenced_link_types,
-                                    link_type_query_depth: link_type_query_depth - 1,
-                                },
-                            )
-                            .await?;
-                        }
-                    }
-                }
-
-                linked_entities.remove(&entity.identifier().entity_id());
+                let root = linked_entities
+                    .remove(&entity.identifier().entity_id())
+                    .expect("root was not added to the subgraph");
 
                 Ok(EntityRootedSubgraph {
-                    entity,
+                    entity: root,
                     referenced_data_types: referenced_data_types.into_vec(),
                     referenced_property_types: referenced_property_types.into_vec(),
                     referenced_link_types: referenced_link_types.into_vec(),

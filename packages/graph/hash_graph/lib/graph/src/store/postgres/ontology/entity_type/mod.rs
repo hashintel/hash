@@ -189,67 +189,33 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         } = *query;
 
         stream::iter(Read::<PersistedEntityType>::read(self, expression).await?)
-            .then(|entity_type: PersistedEntityType| async {
+            .then(|entity_type| async move {
                 let mut referenced_data_types = DependencyMap::new();
                 let mut referenced_property_types = DependencyMap::new();
                 let mut referenced_link_types = DependencyMap::new();
                 let mut referenced_entity_types = DependencyMap::new();
 
-                if property_type_query_depth > 0 {
-                    // TODO: Use relation tables
-                    //   see https://app.asana.com/0/0/1202884883200942/f
-                    for data_type_ref in entity_type.inner.property_type_references() {
-                        self.get_property_type_as_dependency(
-                            data_type_ref.uri(),
-                            PropertyTypeDependencyContext {
-                                referenced_data_types: &mut referenced_data_types,
-                                referenced_property_types: &mut referenced_property_types,
-                                data_type_query_depth,
-                                property_type_query_depth: property_type_query_depth - 1,
-                            },
-                        )
-                        .await?;
-                    }
-                }
+                self.get_entity_type_as_dependency(
+                    entity_type.identifier.uri(),
+                    EntityTypeDependencyContext {
+                        referenced_data_types: &mut referenced_data_types,
+                        referenced_property_types: &mut referenced_property_types,
+                        referenced_link_types: &mut referenced_link_types,
+                        referenced_entity_types: &mut referenced_entity_types,
+                        data_type_query_depth,
+                        property_type_query_depth,
+                        link_type_query_depth,
+                        entity_type_query_depth,
+                    },
+                )
+                .await?;
 
-                if link_type_query_depth > 0 || entity_type_query_depth > 0 {
-                    // TODO: Use relation tables
-                    //   see https://app.asana.com/0/0/1202884883200942/f
-                    for (link_type_uri, entity_type_ref) in entity_type.inner.link_type_references()
-                    {
-                        if link_type_query_depth > 0 {
-                            self.get_link_type_as_dependency(
-                                link_type_uri,
-                                LinkTypeDependencyContext {
-                                    referenced_link_types: &mut referenced_link_types,
-                                    link_type_query_depth: link_type_query_depth - 1,
-                                },
-                            )
-                            .await?;
-                        }
-                        if entity_type_query_depth > 0 {
-                            self.get_entity_type_as_dependency(
-                                entity_type_ref.uri(),
-                                EntityTypeDependencyContext {
-                                    referenced_data_types: &mut referenced_data_types,
-                                    referenced_property_types: &mut referenced_property_types,
-                                    referenced_link_types: &mut referenced_link_types,
-                                    referenced_entity_types: &mut referenced_entity_types,
-                                    data_type_query_depth,
-                                    property_type_query_depth,
-                                    link_type_query_depth,
-                                    entity_type_query_depth: entity_type_query_depth - 1,
-                                },
-                            )
-                            .await?;
-                        }
-                    }
-                }
-
-                referenced_entity_types.remove(entity_type.identifier.uri());
+                let root = referenced_entity_types
+                    .remove(entity_type.identifier.uri())
+                    .expect("root was not added to the subgraph");
 
                 Ok(EntityTypeRootedSubgraph {
-                    entity_type,
+                    entity_type: root,
                     referenced_data_types: referenced_data_types.into_vec(),
                     referenced_property_types: referenced_property_types.into_vec(),
                     referenced_link_types: referenced_link_types.into_vec(),
