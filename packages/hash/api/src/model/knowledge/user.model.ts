@@ -77,6 +77,19 @@ export default class extends EntityModel {
     return new UserModel(entityModel);
   }
 
+  static fromEntityModel(entity: EntityModel): UserModel {
+    if (
+      entity.entityTypeModel.schema.$id !==
+      WORKSPACE_TYPES.entityType.user.schema.$id
+    ) {
+      throw new Error(
+        `Entity with id ${entity.entityId} is not a workspace user`,
+      );
+    }
+
+    return new UserModel(entity);
+  }
+
   /**
    * Get a workspace user entity by its entity id.
    *
@@ -85,23 +98,14 @@ export default class extends EntityModel {
   static async getUserById(
     graphApi: GraphApi,
     params: { entityId: string },
-  ): Promise<UserModel | null> {
+  ): Promise<UserModel> {
     const entity = await EntityModel.getLatest(graphApi, {
       // assumption: `accountId` of user is always the workspace account id
       accountId: workspaceAccountId,
       entityId: params.entityId,
     });
 
-    if (
-      entity.entityTypeModel.schema.$id !==
-      WORKSPACE_TYPES.entityType.user.schema.$id
-    ) {
-      throw new Error(
-        `Entity with id ${params.entityId} is not a workspace user`,
-      );
-    }
-
-    return entity ? new UserModel(entity) : null;
+    return UserModel.fromEntityModel(entity);
   }
 
   /**

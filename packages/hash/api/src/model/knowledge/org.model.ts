@@ -101,14 +101,14 @@ export default class extends EntityModel {
   static async getOrgById(
     graphApi: GraphApi,
     params: { entityId: string },
-  ): Promise<OrgModel | null> {
+  ): Promise<OrgModel> {
     const entity = await EntityModel.getLatest(graphApi, {
       // assumption: `accountId` of organizations is always the workspace account id
       accountId: workspaceAccountId,
       entityId: params.entityId,
     });
 
-    return entity ? OrgModel.fromEntityModel(entity) : null;
+    return OrgModel.fromEntityModel(entity);
   }
 
   /**
