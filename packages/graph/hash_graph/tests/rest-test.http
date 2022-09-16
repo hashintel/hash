@@ -398,7 +398,8 @@ Content-Type: application/json
   "propertyTypeQueryDepth": 0,
   "linkTypeQueryDepth": 1,
   "entityTypeQueryDepth": 0,
-  "linkedEntityQueryDepth": 10
+  "linkTargetEntityQueryDepth": 10,
+  "linkQueryDepth": 10
 }
 
 > {%

@@ -9,7 +9,7 @@ use super::EntityId;
 /// A Link between a source and a target entity identified by [`EntityId`]s.
 ///
 /// The link is described by a link type [`VersionedUri`].
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Component)]
 #[serde(rename_all = "camelCase")]
 pub struct Link {
     source_entity_id: EntityId,

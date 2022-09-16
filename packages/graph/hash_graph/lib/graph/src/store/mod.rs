@@ -18,8 +18,8 @@ pub use self::{
 };
 use crate::{
     knowledge::{
-        Entity, EntityId, EntityQuery, EntityRootedSubgraph, Link, PersistedEntity,
-        PersistedEntityIdentifier,
+        Entity, EntityId, EntityRootedSubgraph, KnowledgeGraphQuery, Link, LinkRootedSubgraph,
+        PersistedEntity, PersistedEntityIdentifier,
     },
     ontology::{
         AccountId, DataTypeQuery, DataTypeRootedSubgraph, EntityTypeQuery,
@@ -377,14 +377,14 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
         entity_id: Option<EntityId>,
     ) -> Result<PersistedEntityIdentifier, InsertionError>;
 
-    /// Get the [`EntityRootedSubgraph`]s specified by the [`EntityQuery`].
+    /// Get the [`EntityRootedSubgraph`]s specified by the [`KnowledgeGraphQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
     async fn get_entity(
         &self,
-        query: &EntityQuery,
+        query: &KnowledgeGraphQuery,
     ) -> Result<Vec<EntityRootedSubgraph>, QueryError>;
 
     /// Update an existing [`Entity`].
@@ -420,14 +420,15 @@ pub trait LinkStore: for<'q> crud::Read<Link, Query<'q> = Expression> {
         owned_by_id: AccountId,
     ) -> Result<(), InsertionError>;
 
-    /// Get the [`Link`]s specified by the [`Expression`].
+    /// Get the [`LinkRootedSubgraph`]s specified by the [`KnowledgeGraphQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Link`]s don't exist.
-    async fn get_links(&self, query: &Expression) -> Result<Vec<Link>, QueryError> {
-        self.read(query).await
-    }
+    async fn get_links(
+        &self,
+        query: &KnowledgeGraphQuery,
+    ) -> Result<Vec<LinkRootedSubgraph>, QueryError>;
 
     /// Removes a [`Link`] between a source and target [`Entity`].
     ///

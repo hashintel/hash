@@ -8,8 +8,8 @@ use type_system::{uri::VersionedUri, DataType};
 
 use crate::{
     ontology::{
-        AccountId, DataTypeQuery, DataTypeRootedSubgraph, PersistedDataType,
-        PersistedOntologyIdentifier, QueryDepth,
+        AccountId, DataTypeQuery, DataTypeRootedSubgraph, OntologyQueryDepth, PersistedDataType,
+        PersistedOntologyIdentifier,
     },
     store::{
         crud::Read,
@@ -19,10 +19,11 @@ use crate::{
 };
 
 pub struct DataTypeDependencyContext<'a> {
-    pub referenced_data_types: &'a mut DependencyMap<VersionedUri, PersistedDataType>,
+    pub referenced_data_types:
+        &'a mut DependencyMap<VersionedUri, PersistedDataType, OntologyQueryDepth>,
     // TODO: `data_type_query_depth` is unused until data types can reference other data types
     //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
-    pub data_type_query_depth: QueryDepth,
+    pub data_type_query_depth: OntologyQueryDepth,
 }
 
 impl<C: AsClient> PostgresStore<C> {

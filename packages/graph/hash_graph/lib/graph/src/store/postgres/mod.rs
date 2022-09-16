@@ -28,7 +28,7 @@ pub use self::{
 use super::error::LinkRemovalError;
 use crate::{
     knowledge::{Entity, EntityId, Link, PersistedEntityIdentifier},
-    ontology::{AccountId, PersistedOntologyIdentifier, QueryDepth},
+    ontology::{AccountId, PersistedOntologyIdentifier},
     store::{
         error::VersionedUriAlreadyExists,
         postgres::{ontology::OntologyDatabaseType, version_id::VersionId},
@@ -37,11 +37,11 @@ use crate::{
     },
 };
 
-pub struct DependencyMap<V, T> {
-    resolved: HashMap<V, (T, QueryDepth)>,
+pub struct DependencyMap<V, T, D> {
+    resolved: HashMap<V, (T, D)>,
 }
 
-impl<V, T> Default for DependencyMap<V, T> {
+impl<V, T, D> Default for DependencyMap<V, T, D> {
     fn default() -> Self {
         Self {
             resolved: HashMap::default(),
@@ -49,16 +49,17 @@ impl<V, T> Default for DependencyMap<V, T> {
     }
 }
 
-impl<V, T> DependencyMap<V, T> {
+impl<V, T, D> DependencyMap<V, T, D> {
     pub fn new() -> Self {
         Self::default()
     }
 }
 
-impl<V, T> DependencyMap<V, T>
+impl<V, T, D> DependencyMap<V, T, D>
 where
     V: Eq + Hash + Clone + Send + Sync,
     T: Send,
+    D: PartialOrd + Send,
 {
     /// Inserts a dependency into the map.
     ///
@@ -72,7 +73,7 @@ where
     pub async fn insert<F, R>(
         &mut self,
         identifier: &V,
-        depth: QueryDepth,
+        depth: D,
         resolver: F,
     ) -> Result<Option<&T>, QueryError>
     where
@@ -103,6 +104,65 @@ where
 
     pub fn remove(&mut self, identifier: &V) -> Option<T> {
         self.resolved.remove(identifier).map(|(value, _)| value)
+    }
+}
+
+pub struct DependencySet<T, D> {
+    resolved: HashMap<T, D>,
+}
+
+impl<T, D> Default for DependencySet<T, D> {
+    fn default() -> Self {
+        Self {
+            resolved: HashMap::default(),
+        }
+    }
+}
+
+impl<T, D> DependencySet<T, D> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl<T, D> DependencySet<T, D>
+where
+    T: Eq + Hash + Clone,
+    D: PartialOrd + Send,
+{
+    /// Inserts a dependency into the map.
+    ///
+    /// If the dependency does not already exist in the dependency set, it will be inserted with the
+    /// provided `depth` and a reference to this dependency will be returned in order to continue
+    /// resolving it. In the case, that the dependency already exists, the `depth` will be compared
+    /// with depth used when inserting it before:
+    /// - If the new depth is higher, the depth will be updated and a reference to the dependency
+    ///   will be returned in order to keep resolving it
+    /// - Otherwise, `None` will be returned as no further resolution is needed
+    pub fn insert(&mut self, identifier: &T, depth: D) -> Option<&T> {
+        match self.resolved.raw_entry_mut().from_key(identifier) {
+            RawEntryMut::Vacant(entry) => {
+                let (value, _depth) = entry.insert(identifier.clone(), depth);
+                Some(value)
+            }
+            RawEntryMut::Occupied(entry) => {
+                let (value, used_depth) = entry.into_key_value();
+                if *used_depth < depth {
+                    *used_depth = depth;
+                    Some(value)
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
+    pub fn into_vec(self) -> Vec<T> {
+        self.resolved.into_keys().collect()
+    }
+
+    pub fn remove(&mut self, value: &T) -> Option<T> {
+        self.resolved.remove_entry(value).map(|(value, _)| value)
     }
 }
 

@@ -3,13 +3,14 @@
 use std::sync::Arc;
 
 use axum::{extract::Path, http::StatusCode, routing::post, Extension, Json, Router};
+use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
 use utoipa::{Component, OpenApi};
 
 use crate::{
-    api::rest::{api_resource::RoutedResource, read_from_store},
-    knowledge::{EntityId, Link},
+    api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
+    knowledge::{EntityId, KnowledgeGraphQuery, Link, LinkRootedSubgraph},
     ontology::AccountId,
     store::{error::QueryError, query::Expression, LinkStore, StorePool},
 };
@@ -22,7 +23,14 @@ use crate::{
         get_entity_links,
         remove_link
     ),
-    components(AccountId, Link, CreateLinkRequest, RemoveLinkRequest),
+    components(
+        AccountId,
+        Link,
+        CreateLinkRequest,
+        RemoveLinkRequest,
+        KnowledgeGraphQuery,
+        LinkRootedSubgraph
+    ),
     tags(
         (name = "Link", description = "link management API")
     )
@@ -113,10 +121,10 @@ async fn create_link<P: StorePool + Send>(
 #[utoipa::path(
     post,
     path = "/links/query",
-    request_body = Expression,
+    request_body = KnowledgeGraphQuery,
     tag = "Link",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all links matching the provided query", body = [Link]),
+        (status = 200, content_type = "application/json", body = [LinkRootedSubgraph], description = "A list of subgraphs rooted at links that satisfy the given query, each resolved to the requested depth."),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
@@ -124,9 +132,21 @@ async fn create_link<P: StorePool + Send>(
 )]
 async fn get_links_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    Json(expression): Json<Expression>,
-) -> Result<Json<Vec<Link>>, StatusCode> {
-    read_from_store(pool.as_ref(), &expression).await.map(Json)
+    Json(query): Json<KnowledgeGraphQuery>,
+) -> Result<Json<Vec<LinkRootedSubgraph>>, StatusCode> {
+    pool.acquire()
+        .map_err(|error| {
+            tracing::error!(?error, "Could not acquire access to the store");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })
+        .and_then(|store| async move {
+            store.get_links(&query).await.map_err(|report| {
+                tracing::error!(error=?report, ?query, "Could not read links from the store");
+                report_to_status_code(&report)
+            })
+        })
+        .await
+        .map(Json)
 }
 
 #[utoipa::path(

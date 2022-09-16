@@ -8,8 +8,8 @@ use type_system::{uri::VersionedUri, LinkType};
 
 use crate::{
     ontology::{
-        AccountId, LinkTypeQuery, LinkTypeRootedSubgraph, PersistedLinkType,
-        PersistedOntologyIdentifier, QueryDepth,
+        AccountId, LinkTypeQuery, LinkTypeRootedSubgraph, OntologyQueryDepth, PersistedLinkType,
+        PersistedOntologyIdentifier,
     },
     store::{
         crud::Read,
@@ -19,9 +19,10 @@ use crate::{
 };
 
 pub struct LinkTypeDependencyContext<'a> {
-    pub referenced_link_types: &'a mut DependencyMap<VersionedUri, PersistedLinkType>,
+    pub referenced_link_types:
+        &'a mut DependencyMap<VersionedUri, PersistedLinkType, OntologyQueryDepth>,
     // `link_type_query_depth` is unused as link types do not reference other link types
-    pub link_type_query_depth: QueryDepth,
+    pub link_type_query_depth: OntologyQueryDepth,
 }
 
 impl<C: AsClient> PostgresStore<C> {
