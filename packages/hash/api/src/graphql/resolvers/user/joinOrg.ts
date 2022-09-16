@@ -28,7 +28,10 @@ export const joinOrg: ResolverFn<
 
     const { invitationLinkToken, invitationEmailToken } = verification;
 
-    /** @todo: potentially deprecate these method calls depending on the org invitation implementation */
+    /**
+     * @todo: potentially deprecate these method calls depending on the org invitation
+     * implementation (@see https://app.asana.com/0/1202805690238892/1202980861294704/f)
+     */
     const invitation = invitationLinkToken
       ? await (org as any).getInvitationLinkWithToken(client, {
           invitationLinkToken,

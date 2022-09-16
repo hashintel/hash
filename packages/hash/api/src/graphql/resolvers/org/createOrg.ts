@@ -28,7 +28,10 @@ export const createOrg: ResolverFn<
       name,
     });
 
-    /** @todo: potentially deprecate these method calls depending on Graph API transaction implementation */
+    /**
+     * @todo: potentially deprecate these method calls depending on Graph API
+     * transaction implementation (@see https://app.asana.com/0/1201095311341924/1202573572594586/f)
+     */
     await (org as any)
       .acquireLock(client)
       .then(() => (org as any).refetchLatestVersion(client));
