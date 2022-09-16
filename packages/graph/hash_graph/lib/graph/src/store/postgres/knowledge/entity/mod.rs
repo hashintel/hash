@@ -72,19 +72,19 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         stream::iter(Read::<PersistedEntity>::read(self, expression).await?)
             .then(|entity: PersistedEntity| async {
-                let mut data_type_references = DependencyMap::new();
-                let mut property_type_references = DependencyMap::new();
-                let mut link_type_references = DependencyMap::new();
-                let mut entity_type_references = DependencyMap::new();
+                let mut referenced_data_types = DependencyMap::new();
+                let mut referenced_property_types = DependencyMap::new();
+                let mut referenced_link_types = DependencyMap::new();
+                let mut referenced_entity_types = DependencyMap::new();
 
                 if entity_type_query_depth > 0 {
                     self.get_entity_type_as_dependency(
                         entity.type_versioned_uri(),
                         EntityTypeDependencyContext {
-                            data_type_references: &mut data_type_references,
-                            property_type_references: &mut property_type_references,
-                            link_type_references: &mut link_type_references,
-                            entity_type_references: &mut entity_type_references,
+                            referenced_data_types: &mut referenced_data_types,
+                            referenced_property_types: &mut referenced_property_types,
+                            referenced_link_types: &mut referenced_link_types,
+                            referenced_entity_types: &mut referenced_entity_types,
                             data_type_query_depth,
                             property_type_query_depth,
                             link_type_query_depth,
@@ -96,10 +96,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
                 Ok(EntityRootedSubgraph {
                     entity,
-                    referenced_data_types: data_type_references.into_vec(),
-                    referenced_property_types: property_type_references.into_vec(),
-                    referenced_link_types: link_type_references.into_vec(),
-                    referenced_entity_types: entity_type_references.into_vec(),
+                    referenced_data_types: referenced_data_types.into_vec(),
+                    referenced_property_types: referenced_property_types.into_vec(),
+                    referenced_link_types: referenced_link_types.into_vec(),
+                    referenced_entity_types: referenced_entity_types.into_vec(),
                 })
             })
             .try_collect()

@@ -19,7 +19,7 @@ use crate::{
 };
 
 pub struct DataTypeDependencyContext<'a> {
-    pub data_type_references: &'a mut DependencyMap<VersionedUri, PersistedDataType>,
+    pub referenced_data_types: &'a mut DependencyMap<VersionedUri, PersistedDataType>,
     // TODO: `data_type_query_depth` is unused until data types can reference other data types
     //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
     pub data_type_query_depth: QueryDepth,
@@ -35,11 +35,11 @@ impl<C: AsClient> PostgresStore<C> {
         context: DataTypeDependencyContext<'_>,
     ) -> Result<(), QueryError> {
         let DataTypeDependencyContext {
-            data_type_references,
+            referenced_data_types,
             data_type_query_depth,
         } = context;
 
-        let _unresolved_entity_type = data_type_references
+        let _unresolved_entity_type = referenced_data_types
             .insert(data_type_uri, data_type_query_depth, || async {
                 Ok(PersistedDataType::from_record(
                     self.read_versioned_ontology_type(data_type_uri).await?,
