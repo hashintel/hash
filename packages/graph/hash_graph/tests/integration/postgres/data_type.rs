@@ -6,7 +6,7 @@ use crate::postgres::DatabaseTestWrapper;
 
 #[tokio::test]
 async fn insert() {
-    let boolean_dt = DataType::from_str(crate::test_data::data_type::BOOLEAN_V1)
+    let boolean_dt = DataType::from_str(graph_test_data::data_type::BOOLEAN_V1)
         .expect("could not parse data type");
 
     let mut database = DatabaseTestWrapper::new().await;
@@ -22,7 +22,7 @@ async fn insert() {
 
 #[tokio::test]
 async fn query() {
-    let empty_list_dt = DataType::from_str(crate::test_data::data_type::EMPTY_LIST_V1)
+    let empty_list_dt = DataType::from_str(graph_test_data::data_type::EMPTY_LIST_V1)
         .expect("could not parse data type");
 
     let mut database = DatabaseTestWrapper::new().await;
@@ -45,9 +45,9 @@ async fn query() {
 
 #[tokio::test]
 async fn update() {
-    let object_dt_v1 = DataType::from_str(crate::test_data::data_type::OBJECT_V1)
+    let object_dt_v1 = DataType::from_str(graph_test_data::data_type::OBJECT_V1)
         .expect("could not parse data type");
-    let object_dt_v2 = DataType::from_str(crate::test_data::data_type::OBJECT_V2)
+    let object_dt_v2 = DataType::from_str(graph_test_data::data_type::OBJECT_V2)
         .expect("could not parse data type");
 
     let mut database = DatabaseTestWrapper::new().await;

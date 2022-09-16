@@ -1,10 +1,8 @@
 use graph::knowledge::Entity;
+use graph_test_data::{data_type, entity, entity_type, link_type, property_type};
 use type_system::uri::{BaseUri, VersionedUri};
 
-use crate::{
-    postgres::DatabaseTestWrapper,
-    test_data::{data_type, entity, entity_type, link_type, property_type},
-};
+use crate::postgres::DatabaseTestWrapper;
 
 #[tokio::test]
 async fn insert() {

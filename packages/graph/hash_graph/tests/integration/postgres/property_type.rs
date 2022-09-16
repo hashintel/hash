@@ -1,11 +1,9 @@
 use std::str::FromStr;
 
+use graph_test_data::{data_type, property_type};
 use type_system::PropertyType;
 
-use crate::{
-    postgres::DatabaseTestWrapper,
-    test_data::{data_type, property_type},
-};
+use crate::postgres::DatabaseTestWrapper;
 
 #[tokio::test]
 async fn insert() {

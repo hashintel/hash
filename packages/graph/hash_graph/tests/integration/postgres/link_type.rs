@@ -6,8 +6,8 @@ use crate::postgres::DatabaseTestWrapper;
 
 #[tokio::test]
 async fn insert() {
-    let owns_lt = LinkType::from_str(crate::test_data::link_type::OWNS_V1)
-        .expect("could not parse link type");
+    let owns_lt =
+        LinkType::from_str(graph_test_data::link_type::OWNS_V1).expect("could not parse link type");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -22,7 +22,7 @@ async fn insert() {
 
 #[tokio::test]
 async fn query() {
-    let submitted_by_lt = LinkType::from_str(crate::test_data::link_type::SUBMITTED_BY_V1)
+    let submitted_by_lt = LinkType::from_str(graph_test_data::link_type::SUBMITTED_BY_V1)
         .expect("could not parse link type");
 
     let mut database = DatabaseTestWrapper::new().await;
@@ -45,10 +45,10 @@ async fn query() {
 
 #[tokio::test]
 async fn update() {
-    let owns_lt_v1 = LinkType::from_str(crate::test_data::link_type::OWNS_V1)
-        .expect("could not parse link type");
-    let owns_lt_v2 = LinkType::from_str(crate::test_data::link_type::OWNS_V2)
-        .expect("could not parse link type");
+    let owns_lt_v1 =
+        LinkType::from_str(graph_test_data::link_type::OWNS_V1).expect("could not parse link type");
+    let owns_lt_v2 =
+        LinkType::from_str(graph_test_data::link_type::OWNS_V2).expect("could not parse link type");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
