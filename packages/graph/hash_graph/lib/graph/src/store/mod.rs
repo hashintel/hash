@@ -377,7 +377,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
         entity_id: Option<EntityId>,
     ) -> Result<PersistedEntityIdentifier, InsertionError>;
 
-    /// Get the [`EntityRootedSubgraph`] specified by the [`EntityQuery`].
+    /// Get the [`EntityRootedSubgraph`]s specified by the [`EntityQuery`].
     ///
     /// # Errors
     ///

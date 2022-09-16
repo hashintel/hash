@@ -100,6 +100,10 @@ where
     pub fn into_vec(self) -> Vec<T> {
         self.resolved.into_values().map(|value| value.0).collect()
     }
+
+    pub fn remove(&mut self, identifier: &V) -> Option<T> {
+        self.resolved.remove(identifier).map(|(value, _)| value)
+    }
 }
 
 /// Utility function used for [`GenericClient::query_raw`] to infer the parameter as
@@ -570,15 +574,15 @@ where
     // TODO: Tidy these up by having an `Into<VersionedUri>` method or something for the references
     async fn property_type_reference_ids<'p, I>(
         &self,
-        property_type_references: I,
+        referenced_property_types: I,
     ) -> Result<Vec<VersionId>, QueryError>
     where
         I: IntoIterator<Item = &'p PropertyTypeReference> + Send,
         I::IntoIter: Send,
     {
-        let property_type_references = property_type_references.into_iter();
-        let mut ids = Vec::with_capacity(property_type_references.size_hint().0);
-        for reference in property_type_references {
+        let referenced_property_types = referenced_property_types.into_iter();
+        let mut ids = Vec::with_capacity(referenced_property_types.size_hint().0);
+        for reference in referenced_property_types {
             ids.push(self.version_id_by_uri(reference.uri()).await?);
         }
         Ok(ids)
@@ -586,15 +590,15 @@ where
 
     async fn data_type_reference_ids<'p, I>(
         &self,
-        data_type_references: I,
+        referenced_data_types: I,
     ) -> Result<Vec<VersionId>, QueryError>
     where
         I: IntoIterator<Item = &'p DataTypeReference> + Send,
         I::IntoIter: Send,
     {
-        let data_type_references = data_type_references.into_iter();
-        let mut ids = Vec::with_capacity(data_type_references.size_hint().0);
-        for reference in data_type_references {
+        let referenced_data_types = referenced_data_types.into_iter();
+        let mut ids = Vec::with_capacity(referenced_data_types.size_hint().0);
+        for reference in referenced_data_types {
             ids.push(self.version_id_by_uri(reference.uri()).await?);
         }
         Ok(ids)
@@ -602,15 +606,15 @@ where
 
     async fn entity_type_reference_ids<'p, I>(
         &self,
-        entity_type_references: I,
+        referenced_entity_types: I,
     ) -> Result<Vec<VersionId>, QueryError>
     where
         I: IntoIterator<Item = &'p EntityTypeReference> + Send,
         I::IntoIter: Send,
     {
-        let entity_type_references = entity_type_references.into_iter();
-        let mut ids = Vec::with_capacity(entity_type_references.size_hint().0);
-        for reference in entity_type_references {
+        let referenced_entity_types = referenced_entity_types.into_iter();
+        let mut ids = Vec::with_capacity(referenced_entity_types.size_hint().0);
+        for reference in referenced_entity_types {
             ids.push(self.version_id_by_uri(reference.uri()).await?);
         }
         Ok(ids)

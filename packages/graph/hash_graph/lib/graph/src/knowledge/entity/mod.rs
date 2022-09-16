@@ -9,7 +9,9 @@ use uuid::Uuid;
 
 use crate::ontology::AccountId;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, Component, FromSql, ToSql)]
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Component, FromSql, ToSql,
+)]
 #[repr(transparent)]
 #[postgres(transparent)]
 pub struct EntityId(Uuid);
@@ -138,41 +140,41 @@ mod tests {
 
     #[test]
     fn book() {
-        test_entity(crate::test_data::entity::BOOK_V1);
+        test_entity(graph_test_data::entity::BOOK_V1);
     }
 
     #[test]
     fn address() {
-        test_entity(crate::test_data::entity::ADDRESS_V1);
+        test_entity(graph_test_data::entity::ADDRESS_V1);
     }
 
     #[test]
     fn organization() {
-        test_entity(crate::test_data::entity::ORGANIZATION_V1);
+        test_entity(graph_test_data::entity::ORGANIZATION_V1);
     }
 
     #[test]
     fn building() {
-        test_entity(crate::test_data::entity::BUILDING_V1);
+        test_entity(graph_test_data::entity::BUILDING_V1);
     }
 
     #[test]
     fn person() {
-        test_entity(crate::test_data::entity::PERSON_A_V1);
+        test_entity(graph_test_data::entity::PERSON_A_V1);
     }
 
     #[test]
     fn playlist() {
-        test_entity(crate::test_data::entity::PLAYLIST_V1);
+        test_entity(graph_test_data::entity::PLAYLIST_V1);
     }
 
     #[test]
     fn song() {
-        test_entity(crate::test_data::entity::SONG_V1);
+        test_entity(graph_test_data::entity::SONG_V1);
     }
 
     #[test]
     fn page() {
-        test_entity(crate::test_data::entity::PAGE_V1);
+        test_entity(graph_test_data::entity::PAGE_V1);
     }
 }

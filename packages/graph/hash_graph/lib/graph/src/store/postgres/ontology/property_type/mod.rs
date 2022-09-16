@@ -24,8 +24,8 @@ use crate::{
 };
 
 pub struct PropertyTypeDependencyContext<'a> {
-    pub data_type_references: &'a mut DependencyMap<VersionedUri, PersistedDataType>,
-    pub property_type_references: &'a mut DependencyMap<VersionedUri, PersistedPropertyType>,
+    pub referenced_data_types: &'a mut DependencyMap<VersionedUri, PersistedDataType>,
+    pub referenced_property_types: &'a mut DependencyMap<VersionedUri, PersistedPropertyType>,
     pub data_type_query_depth: QueryDepth,
     pub property_type_query_depth: QueryDepth,
 }
@@ -40,14 +40,14 @@ impl<C: AsClient> PostgresStore<C> {
         context: PropertyTypeDependencyContext<'a>,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         let PropertyTypeDependencyContext {
-            data_type_references,
-            property_type_references,
+            referenced_data_types,
+            referenced_property_types,
             data_type_query_depth,
             property_type_query_depth,
         } = context;
 
         async move {
-            let unresolved_property_type = property_type_references
+            let unresolved_property_type = referenced_property_types
                 .insert(property_type_uri, property_type_query_depth, || async {
                     Ok(PersistedPropertyType::from_record(
                         self.read_versioned_ontology_type(property_type_uri).await?,
@@ -63,7 +63,7 @@ impl<C: AsClient> PostgresStore<C> {
                         self.get_data_type_as_dependency(
                             data_type_ref.uri(),
                             DataTypeDependencyContext {
-                                data_type_references,
+                                referenced_data_types,
                                 data_type_query_depth: data_type_query_depth - 1,
                             },
                         )
@@ -86,8 +86,8 @@ impl<C: AsClient> PostgresStore<C> {
                         self.get_property_type_as_dependency(
                             &property_type_uri,
                             PropertyTypeDependencyContext {
-                                data_type_references,
-                                property_type_references,
+                                referenced_data_types,
+                                referenced_property_types,
                                 data_type_query_depth,
                                 property_type_query_depth: property_type_query_depth - 1,
                             },
@@ -158,46 +158,29 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         } = *query;
 
         stream::iter(Read::<PersistedPropertyType>::read(self, expression).await?)
-            .then(|property_type: PersistedPropertyType| async {
-                let mut data_type_references = DependencyMap::new();
-                let mut property_type_references = DependencyMap::new();
+            .then(|property_type| async move {
+                let mut referenced_data_types = DependencyMap::new();
+                let mut referenced_property_types = DependencyMap::new();
 
-                if data_type_query_depth > 0 {
-                    // TODO: Use relation tables
-                    //   see https://app.asana.com/0/0/1202884883200942/f
-                    for data_type_ref in property_type.inner.data_type_references() {
-                        self.get_data_type_as_dependency(
-                            data_type_ref.uri(),
-                            DataTypeDependencyContext {
-                                data_type_references: &mut data_type_references,
-                                data_type_query_depth: data_type_query_depth - 1,
-                            },
-                        )
-                        .await?;
-                    }
-                }
+                self.get_property_type_as_dependency(
+                    property_type.identifier.uri(),
+                    PropertyTypeDependencyContext {
+                        referenced_data_types: &mut referenced_data_types,
+                        referenced_property_types: &mut referenced_property_types,
+                        data_type_query_depth,
+                        property_type_query_depth,
+                    },
+                )
+                .await?;
 
-                if property_type_query_depth > 0 {
-                    // TODO: Use relation tables
-                    //   see https://app.asana.com/0/0/1202884883200942/f
-                    for property_type_ref in property_type.inner.property_type_references() {
-                        self.get_property_type_as_dependency(
-                            property_type_ref.uri(),
-                            PropertyTypeDependencyContext {
-                                data_type_references: &mut data_type_references,
-                                property_type_references: &mut property_type_references,
-                                data_type_query_depth,
-                                property_type_query_depth: property_type_query_depth - 1,
-                            },
-                        )
-                        .await?;
-                    }
-                }
+                let root = referenced_property_types
+                    .remove(property_type.identifier.uri())
+                    .expect("root was not added to the subgraph");
 
                 Ok(PropertyTypeRootedSubgraph {
-                    property_type,
-                    referenced_data_types: data_type_references.into_vec(),
-                    referenced_property_types: property_type_references.into_vec(),
+                    property_type: root,
+                    referenced_data_types: referenced_data_types.into_vec(),
+                    referenced_property_types: referenced_property_types.into_vec(),
                 })
             })
             .try_collect()

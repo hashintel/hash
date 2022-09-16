@@ -5,7 +5,7 @@ use tokio_postgres::{GenericClient, RowStream};
 use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::{
-    knowledge::{Entity, EntityId},
+    knowledge::{Entity, EntityId, PersistedEntity},
     ontology::AccountId,
     store::{postgres::parameter_list, AsClient, QueryError},
 };
@@ -17,6 +17,18 @@ pub struct EntityRecord {
     pub type_uri: VersionedUri,
     pub account_id: AccountId,
     pub is_latest: bool,
+}
+
+impl From<EntityRecord> for PersistedEntity {
+    fn from(record: EntityRecord) -> Self {
+        Self::new(
+            record.entity,
+            record.id,
+            record.version,
+            record.type_uri,
+            record.account_id,
+        )
+    }
 }
 
 pub type RecordStream = impl Stream<Item = Result<EntityRecord, QueryError>>;

@@ -19,7 +19,7 @@ use crate::{
 };
 
 pub struct DataTypeDependencyContext<'a> {
-    pub data_type_references: &'a mut DependencyMap<VersionedUri, PersistedDataType>,
+    pub referenced_data_types: &'a mut DependencyMap<VersionedUri, PersistedDataType>,
     // TODO: `data_type_query_depth` is unused until data types can reference other data types
     //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
     pub data_type_query_depth: QueryDepth,
@@ -35,11 +35,11 @@ impl<C: AsClient> PostgresStore<C> {
         context: DataTypeDependencyContext<'_>,
     ) -> Result<(), QueryError> {
         let DataTypeDependencyContext {
-            data_type_references,
+            referenced_data_types,
             data_type_query_depth,
         } = context;
 
-        let _unresolved_entity_type = data_type_references
+        let _unresolved_entity_type = referenced_data_types
             .insert(data_type_uri, data_type_query_depth, || async {
                 Ok(PersistedDataType::from_record(
                     self.read_versioned_ontology_type(data_type_uri).await?,
@@ -84,11 +84,28 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     ) -> Result<Vec<DataTypeRootedSubgraph>, QueryError> {
         let DataTypeQuery {
             ref expression,
-            data_type_query_depth: _,
+            data_type_query_depth,
         } = *query;
 
         stream::iter(Read::<PersistedDataType>::read(self, expression).await?)
-            .then(|data_type: PersistedDataType| async { Ok(DataTypeRootedSubgraph { data_type }) })
+            .then(|data_type| async move {
+                let mut referenced_data_types = DependencyMap::new();
+
+                self.get_data_type_as_dependency(
+                    data_type.identifier.uri(),
+                    DataTypeDependencyContext {
+                        referenced_data_types: &mut referenced_data_types,
+                        data_type_query_depth,
+                    },
+                )
+                .await?;
+
+                let root = referenced_data_types
+                    .remove(data_type.identifier.uri())
+                    .expect("root was not added to the subgraph");
+
+                Ok(DataTypeRootedSubgraph { data_type: root })
+            })
             .try_collect()
             .await
     }

@@ -19,7 +19,7 @@ use crate::{
 };
 
 pub struct LinkTypeDependencyContext<'a> {
-    pub link_type_references: &'a mut DependencyMap<VersionedUri, PersistedLinkType>,
+    pub referenced_link_types: &'a mut DependencyMap<VersionedUri, PersistedLinkType>,
     // `link_type_query_depth` is unused as link types do not reference other link types
     pub link_type_query_depth: QueryDepth,
 }
@@ -34,11 +34,11 @@ impl<C: AsClient> PostgresStore<C> {
         context: LinkTypeDependencyContext<'_>,
     ) -> Result<(), QueryError> {
         let LinkTypeDependencyContext {
-            link_type_references,
+            referenced_link_types,
             link_type_query_depth,
         } = context;
 
-        let _unresolved_link_type = link_type_references
+        let _unresolved_link_type = referenced_link_types
             .insert(link_type_uri, link_type_query_depth, || async {
                 Ok(PersistedLinkType::from_record(
                     self.read_versioned_ontology_type(link_type_uri).await?,
@@ -84,7 +84,24 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
         let LinkTypeQuery { ref expression } = *query;
 
         stream::iter(Read::<PersistedLinkType>::read(self, expression).await?)
-            .then(|link_type: PersistedLinkType| async { Ok(LinkTypeRootedSubgraph { link_type }) })
+            .then(|link_type| async move {
+                let mut referenced_link_types = DependencyMap::new();
+
+                self.get_link_type_as_dependency(
+                    link_type.identifier.uri(),
+                    LinkTypeDependencyContext {
+                        referenced_link_types: &mut referenced_link_types,
+                        link_type_query_depth: 0,
+                    },
+                )
+                .await?;
+
+                let root = referenced_link_types
+                    .remove(link_type.identifier.uri())
+                    .expect("root was not added to the subgraph");
+
+                Ok(LinkTypeRootedSubgraph { link_type: root })
+            })
             .try_collect()
             .await
     }
