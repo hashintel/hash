@@ -10,4 +10,18 @@ date: "2022-09-16"
 
 _This post is a guest contribution by Ross Gore, Research Assistant Professor at the Virginia Modeling, Analysis & Simulation Center (VMASC).
 
-**Lorem ipsum**
+# Sensitivity analysis
+
+Our story begins late at night wih a heroic researcher hard at work. Sat at their computer ahead of an important looming deadline, the researcher is busy analyzing the outcomes of various simulation runs. For some scenarios, the researcher’s simulation produces outcomes which match their expectations, but for others the results diverge dramatically.
+
+This sort of experience will be recognizable to anybody who has constructed an even remotely complex model of the real world before. Under circumstances where it is infeasible or impractical to study a system directly, researchers develop simulations using HASH to emulate a system's inner workings. When the outputs of these simulations fail to match experimental data, or prevailing expert opinions, researchers are faced with solving a challenging problem: **does the unexpected output reveal new knowledge about the system or is it due to a bug in code, incorrect data, or bad assumption?** Without the ability to easily conduct **sensitivity analyses**, making this determination requires checking source code, reviewing data integrity, and unpicking the logic that powers simulations.
+
+Motivated by the high cost and labor intensive nature of identifying conditions and source code statements that drive a simulation towards an unexpected output we have developed the VMASC [Sensitivity Assessor](https://vmasc.shinyapps.io/SensitivityAssessor/), an online tool built to identify conditions and variables within HASH models that may consistently drive simulation runs towards unexpected outcomes.
+
+In this post we'll explore how to take data generated directly from HASH simulations, convert that data into a form that is ingestible by the Sensitivity Assessor (using an [automated converter](https://vmasc.shinyapps.io/from-hash-to-sa/)), and then analyze the data using the Sensitivity Assessor. Both of these tools have been developed at the [Virginia Modeling, Analysis, and Simulation Center](https://vmasc.org/) of Old Dominion University by members of the Data Analytics Working Group. These tools are public facing and free to use.
+
+# Making it real with an actual HASH simulation
+
+Consider the following scenario using an actual HASH simulation of an epidemic. Within the simulation, agents are positioned randomly within the landscape. Some are initially ill; others are healthy but susceptible to illness. At each time step, agents move randomly throughout the simulated landscape. While moving randomly, if a healthy agent encounters an infected agent, the healthy agent becomes sick with a certain probability. When an agent becomes sick the agent is assigned a chance of recovery.  Every sick agent increments their accumulated sick time at the start of each new time step. Once the sick time exceeds the sickness duration value, the agent either (i) dies (based on their chance of recovery) or (ii) survives and becomes immune. Once an agent becomes immune, the immunity lasts only for a specified number of time steps. Once the immunity period for an agent is reached, the agent returns to a healthy state but remains susceptible to illness.
+
+The following figures show the HASH simulation as it progresses. Green squares represent the healthy agents, red squares represent the sick agents, and white squares represent the immune agents. The first screenshot displays the start of the simulation immediately following the initialization of all agents. The second figure shows the simulation after fifteen time steps and the third figure displays the simulation state after thirty time steps.
