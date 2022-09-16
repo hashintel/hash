@@ -106,6 +106,64 @@ where
     }
 }
 
+pub struct DependencySet<T> {
+    resolved: HashMap<T, QueryDepth>,
+}
+
+impl<T> Default for DependencySet<T> {
+    fn default() -> Self {
+        Self {
+            resolved: HashMap::default(),
+        }
+    }
+}
+
+impl<T> DependencySet<T> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl<T> DependencySet<T>
+where
+    T: Eq + Hash + Clone,
+{
+    /// Inserts a dependency into the map.
+    ///
+    /// If the dependency does not already exist in the dependency set, it will be inserted with the
+    /// provided `depth` and a reference to this dependency will be returned in order to continue
+    /// resolving it. In the case, that the dependency already exists, the `depth` will be compared
+    /// with depth used when inserting it before:
+    /// - If the new depth is higher, the depth will be updated and a reference to the dependency
+    ///   will be returned in order to keep resolving it
+    /// - Otherwise, `None` will be returned as no further resolution is needed
+    pub fn insert(&mut self, identifier: &T, depth: QueryDepth) -> Option<&T> {
+        match self.resolved.raw_entry_mut().from_key(identifier) {
+            RawEntryMut::Vacant(entry) => {
+                let (value, _depth) = entry.insert(identifier.clone(), depth);
+                Some(value)
+            }
+            RawEntryMut::Occupied(entry) => {
+                let (value, used_depth) = entry.into_key_value();
+                if *used_depth < depth {
+                    *used_depth = depth;
+                    Some(value)
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
+    pub fn into_vec(self) -> Vec<T> {
+        self.resolved.into_keys().collect()
+    }
+
+    pub fn remove(&mut self, value: &T) -> Option<T> {
+        self.resolved.remove_entry(value).map(|(value, _)| value)
+    }
+}
+
 /// Utility function used for [`GenericClient::query_raw`] to infer the parameter as
 /// [`dyn ToSql`][ToSql].
 ///

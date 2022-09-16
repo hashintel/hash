@@ -19,12 +19,12 @@ use crate::{
     store::query::Expression,
 };
 
-/// Query to read [`Entities`], which satisfy the [`Expression`].
+/// Query to read [`Entities`] or [`Link`]s, which satisfy the [`Expression`].
 ///
 /// [`Entities`]: Entity
 #[derive(Debug, Deserialize, Component)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct EntityQuery {
+pub struct KnowledgeQuery {
     #[serde(rename = "query")]
     pub expression: Expression,
     #[component(value_type = number)]
@@ -36,7 +36,9 @@ pub struct EntityQuery {
     #[component(value_type = number)]
     pub entity_type_query_depth: QueryDepth,
     #[component(value_type = number)]
-    pub linked_entity_query_depth: QueryDepth,
+    pub link_target_entity_query_depth: QueryDepth,
+    #[component(value_type = number)]
+    pub link_query_depth: QueryDepth,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
@@ -48,4 +50,17 @@ pub struct EntityRootedSubgraph {
     pub referenced_link_types: Vec<PersistedLinkType>,
     pub referenced_entity_types: Vec<PersistedEntityType>,
     pub linked_entities: Vec<PersistedEntity>,
+    pub links: Vec<Link>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
+#[serde(rename_all = "camelCase")]
+pub struct LinkRootedSubgraph {
+    pub link: Link,
+    pub referenced_data_types: Vec<PersistedDataType>,
+    pub referenced_property_types: Vec<PersistedPropertyType>,
+    pub referenced_link_types: Vec<PersistedLinkType>,
+    pub referenced_entity_types: Vec<PersistedEntityType>,
+    pub linked_entities: Vec<PersistedEntity>,
+    pub links: Vec<Link>,
 }

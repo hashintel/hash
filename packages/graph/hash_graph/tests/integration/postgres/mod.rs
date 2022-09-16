@@ -9,7 +9,9 @@ use std::str::FromStr;
 
 use error_stack::{Report, Result};
 use graph::{
-    knowledge::{Entity, EntityId, EntityQuery, Link, PersistedEntity, PersistedEntityIdentifier},
+    knowledge::{
+        Entity, EntityId, KnowledgeQuery, Link, PersistedEntity, PersistedEntityIdentifier,
+    },
     ontology::{
         AccountId, DataTypeQuery, EntityTypeQuery, LinkTypeQuery, PersistedDataType,
         PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier, PersistedPropertyType,
@@ -293,13 +295,14 @@ impl DatabaseApi<'_> {
     pub async fn get_entity(&mut self, entity_id: EntityId) -> Result<PersistedEntity, QueryError> {
         Ok(self
             .store
-            .get_entity(&EntityQuery {
+            .get_entity(&KnowledgeQuery {
                 expression: Expression::for_latest_entity_id(entity_id),
                 data_type_query_depth: 0,
                 property_type_query_depth: 0,
                 link_type_query_depth: 0,
                 entity_type_query_depth: 0,
-                linked_entity_query_depth: 0,
+                link_target_entity_query_depth: 0,
+                link_query_depth: 0,
             })
             .await?
             .pop()
@@ -335,38 +338,47 @@ impl DatabaseApi<'_> {
     ) -> Result<Link, QueryError> {
         Ok(self
             .store
-            .get_links(&Expression::All(vec![
-                Expression::for_link_by_source_entity_id(source_entity_id),
-                Expression::Eq(vec![
-                    Expression::Path(Path {
-                        segments: vec![
-                            PathSegment {
-                                identifier: "type".to_owned(),
-                            },
-                            PathSegment {
-                                identifier: "baseUri".to_owned(),
-                            },
-                        ],
-                    }),
-                    Expression::Literal(Literal::String(link_type_uri.base_uri().to_string())),
+            .get_links(&KnowledgeQuery {
+                expression: Expression::All(vec![
+                    Expression::for_link_by_source_entity_id(source_entity_id),
+                    Expression::Eq(vec![
+                        Expression::Path(Path {
+                            segments: vec![
+                                PathSegment {
+                                    identifier: "type".to_owned(),
+                                },
+                                PathSegment {
+                                    identifier: "baseUri".to_owned(),
+                                },
+                            ],
+                        }),
+                        Expression::Literal(Literal::String(link_type_uri.base_uri().to_string())),
+                    ]),
+                    Expression::Eq(vec![
+                        Expression::Path(Path {
+                            segments: vec![
+                                PathSegment {
+                                    identifier: "type".to_owned(),
+                                },
+                                PathSegment {
+                                    identifier: "version".to_owned(),
+                                },
+                            ],
+                        }),
+                        Expression::Literal(Literal::Float(link_type_uri.version() as f64)),
+                    ]),
                 ]),
-                Expression::Eq(vec![
-                    Expression::Path(Path {
-                        segments: vec![
-                            PathSegment {
-                                identifier: "type".to_owned(),
-                            },
-                            PathSegment {
-                                identifier: "version".to_owned(),
-                            },
-                        ],
-                    }),
-                    Expression::Literal(Literal::Float(link_type_uri.version() as f64)),
-                ]),
-            ]))
+                data_type_query_depth: 0,
+                property_type_query_depth: 0,
+                link_type_query_depth: 0,
+                entity_type_query_depth: 0,
+                link_target_entity_query_depth: 0,
+                link_query_depth: 0,
+            })
             .await?
             .pop()
             .ok_or_else(|| Report::new(QueryError).attach_printable("no link found"))?
+            .link
             .clone())
     }
 
@@ -374,9 +386,21 @@ impl DatabaseApi<'_> {
         &self,
         source_entity_id: EntityId,
     ) -> Result<Vec<Link>, QueryError> {
-        self.store
-            .get_links(&Expression::for_link_by_source_entity_id(source_entity_id))
-            .await
+        Ok(self
+            .store
+            .get_links(&KnowledgeQuery {
+                expression: Expression::for_link_by_source_entity_id(source_entity_id),
+                data_type_query_depth: 0,
+                property_type_query_depth: 0,
+                link_type_query_depth: 0,
+                entity_type_query_depth: 0,
+                link_target_entity_query_depth: 0,
+                link_query_depth: 0,
+            })
+            .await?
+            .into_iter()
+            .map(|link_rooted_subgraph| link_rooted_subgraph.link)
+            .collect())
     }
 
     async fn remove_link(
