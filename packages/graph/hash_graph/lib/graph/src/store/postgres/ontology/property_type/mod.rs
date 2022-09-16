@@ -158,46 +158,27 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         } = *query;
 
         stream::iter(Read::<PersistedPropertyType>::read(self, expression).await?)
-            .then(|property_type: PersistedPropertyType| async {
+            .then(|property_type| async move {
                 let mut referenced_data_types = DependencyMap::new();
                 let mut referenced_property_types = DependencyMap::new();
 
-                if data_type_query_depth > 0 {
-                    // TODO: Use relation tables
-                    //   see https://app.asana.com/0/0/1202884883200942/f
-                    for data_type_ref in property_type.inner.data_type_references() {
-                        self.get_data_type_as_dependency(
-                            data_type_ref.uri(),
-                            DataTypeDependencyContext {
-                                referenced_data_types: &mut referenced_data_types,
-                                data_type_query_depth: data_type_query_depth - 1,
-                            },
-                        )
-                        .await?;
-                    }
-                }
+                self.get_property_type_as_dependency(
+                    property_type.identifier.uri(),
+                    PropertyTypeDependencyContext {
+                        referenced_data_types: &mut referenced_data_types,
+                        referenced_property_types: &mut referenced_property_types,
+                        data_type_query_depth,
+                        property_type_query_depth,
+                    },
+                )
+                .await?;
 
-                if property_type_query_depth > 0 {
-                    // TODO: Use relation tables
-                    //   see https://app.asana.com/0/0/1202884883200942/f
-                    for property_type_ref in property_type.inner.property_type_references() {
-                        self.get_property_type_as_dependency(
-                            property_type_ref.uri(),
-                            PropertyTypeDependencyContext {
-                                referenced_data_types: &mut referenced_data_types,
-                                referenced_property_types: &mut referenced_property_types,
-                                data_type_query_depth,
-                                property_type_query_depth: property_type_query_depth - 1,
-                            },
-                        )
-                        .await?;
-                    }
-                }
-
-                referenced_property_types.remove(property_type.identifier.uri());
+                let root = referenced_property_types
+                    .remove(property_type.identifier.uri())
+                    .expect("root was not added to the subgraph");
 
                 Ok(PropertyTypeRootedSubgraph {
-                    property_type,
+                    property_type: root,
                     referenced_data_types: referenced_data_types.into_vec(),
                     referenced_property_types: referenced_property_types.into_vec(),
                 })

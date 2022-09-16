@@ -84,7 +84,24 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
         let LinkTypeQuery { ref expression } = *query;
 
         stream::iter(Read::<PersistedLinkType>::read(self, expression).await?)
-            .then(|link_type: PersistedLinkType| async { Ok(LinkTypeRootedSubgraph { link_type }) })
+            .then(|link_type| async move {
+                let mut referenced_link_types = DependencyMap::new();
+
+                self.get_link_type_as_dependency(
+                    link_type.identifier.uri(),
+                    LinkTypeDependencyContext {
+                        referenced_link_types: &mut referenced_link_types,
+                        link_type_query_depth: 0,
+                    },
+                )
+                .await?;
+
+                let root = referenced_link_types
+                    .remove(link_type.identifier.uri())
+                    .expect("root was not added to the subgraph");
+
+                Ok(LinkTypeRootedSubgraph { link_type: root })
+            })
             .try_collect()
             .await
     }
