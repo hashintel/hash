@@ -4,7 +4,10 @@ import { ensureWorkspaceTypesExist } from "@hashintel/hash-api/src/graph/workspa
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { OrgModel, OrgSize, UserModel } from "@hashintel/hash-api/src/model";
-import { createKratosIdentity } from "@hashintel/hash-api/src/auth/ory-kratos";
+import {
+  adminKratosSdk,
+  createKratosIdentity,
+} from "@hashintel/hash-api/src/auth/ory-kratos";
 
 jest.setTimeout(60000);
 
@@ -118,5 +121,9 @@ describe("User model class", () => {
     expect(await createdUser.isMemberOfOrg(graphApi, { orgEntityId })).toBe(
       true,
     );
+  });
+
+  afterAll(async () => {
+    await adminKratosSdk.adminDeleteIdentity(kratosIdentityId);
   });
 });
