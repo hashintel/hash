@@ -448,7 +448,7 @@ export const generateWorkspaceLinkTypeSchema = (
  * likely to cause problems if we introduce circular dependencies)
  *
  * @param params the data required to create a new entity type
- * @returns an async function which can be called to initialize the entity type, returning its EntityTypeModel
+ * @returns an async function which can be called to initialize the entity type, returning its LinkTypeModel
  */
 export const linkTypeInitializer = (
   params: LinkTypeCreatorParams,
