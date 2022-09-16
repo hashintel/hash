@@ -480,7 +480,7 @@ export const linkTypeInitializer = (
           });
         } else {
           logger.warn(
-            `Failed to check existence of entity type: ${params.title}`,
+            `Failed to check existence of link type: ${params.title}`,
           );
           throw error;
         }
