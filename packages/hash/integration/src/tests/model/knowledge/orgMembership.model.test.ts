@@ -11,10 +11,7 @@ import {
   UserModel,
 } from "@hashintel/hash-api/src/model";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import {
-  createKratosIdentity,
-  adminKratosSdk,
-} from "@hashintel/hash-api/src/auth/ory-kratos";
+import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
 
@@ -33,27 +30,13 @@ const graphApi = createGraphClient(logger, {
 });
 
 describe("OrgMembership model class", () => {
-  let kratosIdentityId: string;
-
   let testUser: UserModel;
 
   let testOrg: OrgModel;
 
   beforeAll(async () => {
     await ensureWorkspaceTypesExist({ graphApi, logger });
-
-    const testUserIdentity = await createKratosIdentity({
-      traits: {
-        emails: ["test@example.com"],
-      },
-    });
-
-    kratosIdentityId = testUserIdentity.id;
-
-    testUser = await UserModel.createUser(graphApi, {
-      emails: ["alice@example.com"],
-      kratosIdentityId,
-    });
+    testUser = await createTestUser(graphApi, "orgMembershipTest", logger);
 
     testOrg = await OrgModel.createOrg(graphApi, {
       name: "Test org",
@@ -88,9 +71,5 @@ describe("OrgMembership model class", () => {
     const fetchedUser = await testOrgMembership.getUser(graphApi);
 
     expect(fetchedUser?.entityId).toEqual(testUser.entityId);
-  });
-
-  afterAll(async () => {
-    await adminKratosSdk.adminDeleteIdentity(kratosIdentityId);
   });
 });
