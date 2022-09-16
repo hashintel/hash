@@ -377,7 +377,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
         entity_id: Option<EntityId>,
     ) -> Result<PersistedEntityIdentifier, InsertionError>;
 
-    /// Get the [`EntityRootedSubgraph`]s specified by the [`KnowledgeQuery`].
+    /// Get the [`EntityRootedSubgraph`]s specified by the [`KnowledgeGraphQuery`].
     ///
     /// # Errors
     ///
@@ -420,7 +420,7 @@ pub trait LinkStore: for<'q> crud::Read<Link, Query<'q> = Expression> {
         owned_by_id: AccountId,
     ) -> Result<(), InsertionError>;
 
-    /// Get the [`LinkRootedSubgraph`]s specified by the [`KnowledgeQuery`].
+    /// Get the [`LinkRootedSubgraph`]s specified by the [`KnowledgeGraphQuery`].
     ///
     /// # Errors
     ///

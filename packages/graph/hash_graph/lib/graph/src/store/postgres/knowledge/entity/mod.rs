@@ -53,7 +53,7 @@ impl<C: AsClient> PostgresStore<C> {
 
         async move {
             let unresolved_entity = linked_entities
-                .insert(&entity_id, entity_type_query_depth, || async {
+                .insert(&entity_id, link_target_entity_query_depth, || async {
                     Ok(PersistedEntity::from(
                         self.read_latest_entity_by_id(entity_id).await?,
                     ))

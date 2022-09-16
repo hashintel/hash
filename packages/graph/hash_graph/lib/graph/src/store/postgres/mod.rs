@@ -28,7 +28,7 @@ pub use self::{
 use super::error::LinkRemovalError;
 use crate::{
     knowledge::{Entity, EntityId, Link, PersistedEntityIdentifier},
-    ontology::{AccountId, PersistedOntologyIdentifier, QueryDepth},
+    ontology::{AccountId, PersistedOntologyIdentifier},
     store::{
         error::VersionedUriAlreadyExists,
         postgres::{ontology::OntologyDatabaseType, version_id::VersionId},
@@ -37,11 +37,11 @@ use crate::{
     },
 };
 
-pub struct DependencyMap<V, T> {
-    resolved: HashMap<V, (T, QueryDepth)>,
+pub struct DependencyMap<V, T, D> {
+    resolved: HashMap<V, (T, D)>,
 }
 
-impl<V, T> Default for DependencyMap<V, T> {
+impl<V, T, D> Default for DependencyMap<V, T, D> {
     fn default() -> Self {
         Self {
             resolved: HashMap::default(),
@@ -49,16 +49,17 @@ impl<V, T> Default for DependencyMap<V, T> {
     }
 }
 
-impl<V, T> DependencyMap<V, T> {
+impl<V, T, D> DependencyMap<V, T, D> {
     pub fn new() -> Self {
         Self::default()
     }
 }
 
-impl<V, T> DependencyMap<V, T>
+impl<V, T, D> DependencyMap<V, T, D>
 where
     V: Eq + Hash + Clone + Send + Sync,
     T: Send,
+    D: PartialOrd + Send,
 {
     /// Inserts a dependency into the map.
     ///
@@ -72,7 +73,7 @@ where
     pub async fn insert<F, R>(
         &mut self,
         identifier: &V,
-        depth: QueryDepth,
+        depth: D,
         resolver: F,
     ) -> Result<Option<&T>, QueryError>
     where
@@ -106,11 +107,11 @@ where
     }
 }
 
-pub struct DependencySet<T> {
-    resolved: HashMap<T, QueryDepth>,
+pub struct DependencySet<T, D> {
+    resolved: HashMap<T, D>,
 }
 
-impl<T> Default for DependencySet<T> {
+impl<T, D> Default for DependencySet<T, D> {
     fn default() -> Self {
         Self {
             resolved: HashMap::default(),
@@ -118,15 +119,16 @@ impl<T> Default for DependencySet<T> {
     }
 }
 
-impl<T> DependencySet<T> {
+impl<T, D> DependencySet<T, D> {
     pub fn new() -> Self {
         Self::default()
     }
 }
 
-impl<T> DependencySet<T>
+impl<T, D> DependencySet<T, D>
 where
     T: Eq + Hash + Clone,
+    D: PartialOrd + Send,
 {
     /// Inserts a dependency into the map.
     ///
@@ -137,7 +139,7 @@ where
     /// - If the new depth is higher, the depth will be updated and a reference to the dependency
     ///   will be returned in order to keep resolving it
     /// - Otherwise, `None` will be returned as no further resolution is needed
-    pub fn insert(&mut self, identifier: &T, depth: QueryDepth) -> Option<&T> {
+    pub fn insert(&mut self, identifier: &T, depth: D) -> Option<&T> {
         match self.resolved.raw_entry_mut().from_key(identifier) {
             RawEntryMut::Vacant(entry) => {
                 let (value, _depth) = entry.insert(identifier.clone(), depth);

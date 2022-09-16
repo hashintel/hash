@@ -165,7 +165,7 @@ where
 ///
 /// When `EntityType2` is explored its referenced property types get explored. The chain of
 /// _property type_ references is then resolved to a depth of `property_type_query_depth`.
-pub type QueryDepth = u8;
+pub type OntologyQueryDepth = u8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
 pub struct PersistedDataType {
@@ -185,7 +185,7 @@ pub struct DataTypeQuery {
     //       used to resolve user defined data types.
     //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
     #[component(value_type = number)]
-    pub data_type_query_depth: QueryDepth,
+    pub data_type_query_depth: OntologyQueryDepth,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
@@ -211,9 +211,9 @@ pub struct PropertyTypeQuery {
     // TODO: A value greater than `1` currently does not have any effect.
     //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
     #[component(value_type = number)]
-    pub data_type_query_depth: QueryDepth,
+    pub data_type_query_depth: OntologyQueryDepth,
     #[component(value_type = number)]
-    pub property_type_query_depth: QueryDepth,
+    pub property_type_query_depth: OntologyQueryDepth,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
@@ -263,13 +263,13 @@ pub struct EntityTypeQuery {
     // TODO: A value greater than `1` currently does not have any effect.
     //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
     #[component(value_type = number)]
-    pub data_type_query_depth: QueryDepth,
+    pub data_type_query_depth: OntologyQueryDepth,
     #[component(value_type = number)]
-    pub property_type_query_depth: QueryDepth,
+    pub property_type_query_depth: OntologyQueryDepth,
     #[component(value_type = number)]
-    pub link_type_query_depth: QueryDepth,
+    pub link_type_query_depth: OntologyQueryDepth,
     #[component(value_type = number)]
-    pub entity_type_query_depth: QueryDepth,
+    pub entity_type_query_depth: OntologyQueryDepth,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]

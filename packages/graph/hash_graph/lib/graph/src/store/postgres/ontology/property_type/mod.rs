@@ -10,8 +10,8 @@ use type_system::{uri::VersionedUri, PropertyType, PropertyTypeReference};
 
 use crate::{
     ontology::{
-        AccountId, PersistedDataType, PersistedOntologyIdentifier, PersistedPropertyType,
-        PropertyTypeQuery, PropertyTypeRootedSubgraph, QueryDepth,
+        AccountId, OntologyQueryDepth, PersistedDataType, PersistedOntologyIdentifier,
+        PersistedPropertyType, PropertyTypeQuery, PropertyTypeRootedSubgraph,
     },
     store::{
         crud::Read,
@@ -24,10 +24,12 @@ use crate::{
 };
 
 pub struct PropertyTypeDependencyContext<'a> {
-    pub referenced_data_types: &'a mut DependencyMap<VersionedUri, PersistedDataType>,
-    pub referenced_property_types: &'a mut DependencyMap<VersionedUri, PersistedPropertyType>,
-    pub data_type_query_depth: QueryDepth,
-    pub property_type_query_depth: QueryDepth,
+    pub referenced_data_types:
+        &'a mut DependencyMap<VersionedUri, PersistedDataType, OntologyQueryDepth>,
+    pub referenced_property_types:
+        &'a mut DependencyMap<VersionedUri, PersistedPropertyType, OntologyQueryDepth>,
+    pub data_type_query_depth: OntologyQueryDepth,
+    pub property_type_query_depth: OntologyQueryDepth,
 }
 
 impl<C: AsClient> PostgresStore<C> {
