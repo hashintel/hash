@@ -130,32 +130,41 @@ export default class extends EntityModel {
   async getUser(graphApi: GraphApi) {
     const { data: incomingOrgMembershipLinks } = await graphApi.getLinksByQuery(
       {
-        all: [
-          {
-            eq: [{ path: ["target", "id"] }, { literal: this.entityId }],
-          },
-          {
-            eq: [
-              { path: ["type", "versionedUri"] },
-              {
-                literal: WORKSPACE_TYPES.linkType.hasMembership.schema.$id,
-              },
-            ],
-          },
-        ],
+        query: {
+          all: [
+            {
+              eq: [{ path: ["target", "id"] }, { literal: this.entityId }],
+            },
+            {
+              eq: [
+                { path: ["type", "versionedUri"] },
+                {
+                  literal: WORKSPACE_TYPES.linkType.hasMembership.schema.$id,
+                },
+              ],
+            },
+          ],
+        },
+        dataTypeQueryDepth: 0,
+        propertyTypeQueryDepth: 0,
+        linkTypeQueryDepth: 0,
+        entityTypeQueryDepth: 0,
+        linkTargetEntityQueryDepth: 0,
+        linkQueryDepth: 0,
       },
     );
 
-    const [incomingOrgMembershipLink] = incomingOrgMembershipLinks;
+    const [incomingOrgMembershipLinkRootedSubgraph] =
+      incomingOrgMembershipLinks;
 
-    if (!incomingOrgMembershipLink) {
+    if (!incomingOrgMembershipLinkRootedSubgraph) {
       throw new Error(
         `Critical: org membership with entity id ${this.entityId} doesn't have a linked user`,
       );
     }
 
     return await UserModel.getUserById(graphApi, {
-      entityId: incomingOrgMembershipLink.sourceEntityId,
+      entityId: incomingOrgMembershipLinkRootedSubgraph.link.sourceEntityId,
     });
   }
 }

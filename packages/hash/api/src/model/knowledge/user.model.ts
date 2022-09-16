@@ -428,30 +428,37 @@ export default class extends EntityModel {
   }
 
   async getOrgMemberships(graphApi: GraphApi): Promise<OrgMembershipModel[]> {
-    const { data: outgoingOrgMembershipLinks } = await graphApi.getLinksByQuery(
-      {
-        all: [
-          {
-            eq: [{ path: ["source", "id"] }, { literal: this.entityId }],
-          },
-          {
-            eq: [
-              { path: ["type", "versionedUri"] },
-              {
-                literal: WORKSPACE_TYPES.linkType.ofOrg.schema.$id,
-              },
-            ],
-          },
-        ],
-      },
-    );
+    const { data: outgoingOrgMembershipLinkRootedSubgraphs } =
+      await graphApi.getLinksByQuery({
+        query: {
+          all: [
+            {
+              eq: [{ path: ["source", "id"] }, { literal: this.entityId }],
+            },
+            {
+              eq: [
+                { path: ["type", "versionedUri"] },
+                {
+                  literal: WORKSPACE_TYPES.linkType.ofOrg.schema.$id,
+                },
+              ],
+            },
+          ],
+        },
+        dataTypeQueryDepth: 0,
+        propertyTypeQueryDepth: 0,
+        linkTypeQueryDepth: 0,
+        entityTypeQueryDepth: 0,
+        linkTargetEntityQueryDepth: 0,
+        linkQueryDepth: 0,
+      });
 
     return await Promise.all(
-      outgoingOrgMembershipLinks.map(async ({ targetEntityId }) => {
+      outgoingOrgMembershipLinkRootedSubgraphs.map(async ({ link }) => {
         const orgMembership = await OrgMembershipModel.getOrgMembershipById(
           graphApi,
           {
-            entityId: targetEntityId,
+            entityId: link.targetEntityId,
           },
         );
 

@@ -63,10 +63,20 @@ export default class {
     graphApi: GraphApi,
     query: object,
   ): Promise<LinkModel[]> {
-    const { data: links } = await graphApi.getLinksByQuery(query);
+    const { data: linkRootedSubgraphs } = await graphApi.getLinksByQuery({
+      query,
+      dataTypeQueryDepth: 0,
+      propertyTypeQueryDepth: 0,
+      linkTypeQueryDepth: 0,
+      entityTypeQueryDepth: 0,
+      linkTargetEntityQueryDepth: 0,
+      linkQueryDepth: 0,
+    });
 
     return await Promise.all(
-      links.map((link) => LinkModel.fromPersistedLink(graphApi, link)),
+      linkRootedSubgraphs.map((linkRootedSubgraph) =>
+        LinkModel.fromPersistedLink(graphApi, linkRootedSubgraph.link),
+      ),
     );
   }
 
