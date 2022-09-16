@@ -475,7 +475,7 @@ export const linkTypeInitializer = (
             accountId: workspaceAccountId,
             schema: linkType,
           }).catch((createError: AxiosError) => {
-            logger.warn(`Failed to create entity type: ${params.title}`);
+            logger.warn(`Failed to create link type: ${params.title}`);
             throw createError;
           });
         } else {
