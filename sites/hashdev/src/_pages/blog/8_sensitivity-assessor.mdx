@@ -8,7 +8,7 @@ jobTitle: "Research Assistant Professor, VMASC"
 date: "2022-09-16"
 ---
 
-_This post is a guest contribution by Ross Gore, Research Assistant Professor at the Virginia Modeling, Analysis & Simulation Center (VMASC).
+_This guest post was written by Ross Gore, Research Assistant Professor at the Virginia Modeling, Analysis & Simulation Center (VMASC)._
 
 ## Sensitivity analysis
 
@@ -18,11 +18,11 @@ This sort of experience will be recognizable to anybody who has constructed an e
 
 Motivated by the high cost and labor intensive nature of identifying conditions and source code statements that drive a simulation towards an unexpected output we have developed the VMASC [Sensitivity Assessor](https://vmasc.shinyapps.io/SensitivityAssessor/), an online tool built to identify conditions and variables within HASH models that may consistently drive simulation runs towards unexpected outcomes.
 
-In this post we'll explore how to take data generated directly from HASH simulations, convert that data into a form that is ingestible by the Sensitivity Assessor (using an [automated converter](https://vmasc.shinyapps.io/from-hash-to-sa/)), and then analyze the data using the Sensitivity Assessor. Both of these tools have been developed at the [Virginia Modeling, Analysis, and Simulation Center](https://vmasc.org/) of Old Dominion University by members of the Data Analytics Working Group. These tools are public facing and free to use.
+In this post we'll explore how to download, process, and then analyze the outputs of HASH simulation model experiment runs. The data transformation and sensitivity analysis tools used in this post were developed at the [Virginia Modeling, Analysis, and Simulation Center](https://vmasc.org/) of Old Dominion University by members of the Data Analytics Working Group. These tools are public facing and free to use.
 
 ## Making it real with an actual HASH simulation
 
-Consider the following scenario using an actual HASH simulation of an epidemic. Within the simulation, agents are positioned randomly within the landscape. Some are initially ill; others are healthy but susceptible to illness. At each time step, agents move randomly throughout the simulated landscape. While moving randomly, if a healthy agent encounters an infected agent, the healthy agent becomes sick with a certain probability. When an agent becomes sick the agent is assigned a chance of recovery.  Every sick agent increments their accumulated sick time at the start of each new time step. Once the sick time exceeds the sickness duration value, the agent either (i) dies (based on their chance of recovery) or (ii) survives and becomes immune. Once an agent becomes immune, the immunity lasts only for a specified number of time steps. Once the immunity period for an agent is reached, the agent returns to a healthy state but remains susceptible to illness.
+We'll explore how the _Sensitivity Assessor_ can be used to improve our understanding of disease transmission using an epidemiological HASH simulation model. Within our chosen simulation, agents are positioned randomly within the landscape. Some are initially ill; others are healthy but susceptible to illness. At each time step, agents move randomly throughout the simulated landscape. While moving randomly, if a healthy agent encounters an infected agent, the healthy agent becomes sick with a certain probability. When an agent becomes sick the agent is assigned a chance of recovery.  Every sick agent increments their accumulated sick time at the start of each new time step. Once the sick time exceeds the sickness duration value, the agent either (i) dies (based on their chance of recovery) or (ii) survives and becomes immune. Once an agent becomes immune, the immunity lasts only for a specified number of time steps. Once the immunity period for an agent is reached, the agent returns to a healthy state but remains susceptible to illness.
 
 The following figures show the HASH simulation as it progresses. Green squares represent the healthy agents, red squares represent the sick agents, and white squares represent the immune agents. The first screenshot displays the start of the simulation immediately following the initialization of all agents. The second figure shows the simulation after fifteen time steps and the third figure displays the simulation state after thirty time steps.
 
@@ -240,7 +240,7 @@ Before beginning our work with the _Sensitivity Assessor_ we formed a number of 
 - The virus might be very infectious causing it to pass through the population quickly no matter how many (or how few) agents are in the simulation.
 - Perhaps - independent of the chance of recovery from the virus or the infectiousness of the virus - if enough agents initially are infected, then the virus may pass very quickly to the few remaining healthy agents resulting in a simulation run. Thus, resulting in zero healthy agents at a certain point in time.
 
-To identify which, if any, of these hypotheses were correct we applied the the Sensitivity Assessor to generate a variety of predicates related to conditions in simulation runs that: (1) are true in runs where zero healthy individuals exist at a certain point in time and (2) are not true in simulation runs where at least one healthy individual exists at a certain point in time. The two predicates with the highest sensitivity assessments were:
+To identify which, if any, of these hypotheses were correct we applied the the _Sensitivity Assessor_ to generate a variety of predicates related to conditions in simulation runs that: (1) are true in runs where zero healthy individuals exist at a certain point in time and (2) are not true in simulation runs where at least one healthy individual exists at a certain point in time. The two predicates with the highest sensitivity assessments were:
 
 1. `infectiousness` > 1.4: i.e., how many uninfected agents, on average, an infected agent will infect
 1. `infectedPeople` > 28: i.e., the initial count of infected individuals
@@ -250,3 +250,23 @@ This enabled us to definitively identify what factors were contributing to runs 
 The takeaway message, under the assumptions present in this simulation, is that for a virus with a reproductive number greater than 1.4 (similar to that of influenza) minimizing the chance that those initially infected with the virus spread it to others is paramount. Otherwise, it is just a matter of time before there are very few and possibly no healthy folks to provide essential services. 
  
 It is important to note that while this explanation seems simple it does completely match any of our original hypotheses. Instead it involves two input parameters acting in combination, while two others do not contribute to the explanation. Researchers often are forced to spend an enormous amount of time and effort quantitatively demonstrating the dynamics that contribute to unanticipated outcomes. Even when they have a partially correct initial hypothesis about what is driving the outcome it can be painstaking to formally quantify the contribution of a condition or set of conditions on the output. By consuming HASH simulation model experiment run outputs, the _Sensitivity Assessor_ helps facilitate this process and reduce the effort needed to gain insight into these types of outcomes.
+
+**The _Sensitivity Assessor_ team**
+
+- **Ross Gore, Ph.D.** ([Bio](https://rossgore.github.io/), [Twitter](https://twitter.com/rossgore)) is a Research Associate Professor at the Virginia Modeling, Analysis and Simulation Center (VMASC) at Old Dominion University (ODU). His current work focuses on data science and predictive analytics.
+- **Christopher J. Lynch, Ph.D.** ([Bio](https://vmasc.org/staff-profiles/dr-christopher-lynch/), [Twitter](https://twitter.com/Chris_Lynch_ODU)) leads the Data Analytics Working Group at VMASC of Old Dominion University. His research focuses on data analytics, simulation analytics, and health informatics. [cjlynch@odu.edu](mailto:cjlynch@odu.edu)
+- **Craig Jordan** ([Bio](https://www.odu.edu/directory/people/c/cjord023)) is the PI and team lead for a project developing a series of simulation models to examine the impact of possible changes to the organ transplant ecosystem. [cajordan@odu.edu](mailto:cajordan@odu.edu)
+- **Virginia Zamponi** ([LinkedIn](https://www.linkedin.com/in/virginia-zamponi-536052209/))is a Graduate Research Assistant at VMASC and a Graduate Student in the Old Dominion University Computational Modeling and Simulation Engineering (CMSE) Department. [vzamp001@odu.edu](mailto:vzamp001@odu.edu)
+- **Kevin O’Brien** ([LinkedIn](https://www.linkedin.com/in/kevin-o-brien-0334321bb/)) is a Computer Systems Analyst at VMASC. His current work focuses on simulating systems and data analysis. [kobrien@odu.edu](mailto:kobrien@odu.edu)
+- **Erik Jensen** ([Google Scholar](https://scholar.google.com/citations?hl=en&user=OHIeH5YAAAAJ)) is a Graduate Research Assistant at VMASC and a Graduate Student in the Computational Modeling and Simulation Engineering (CMSE) Department of Old Dominion University. [ejens005@odu.edu](mailto:ejens005@odu.edu)
+
+**About _HASH_**
+
+HASH is building the next generation of decision-making, data modeling, and knowledge management tools. Through an integrated [global entity graph](https://hash.ai/platform/hash) and [rich simulations](https://hash.ai/simulations), [HASH](https://hash.ai/about) aims to enable everybody to make the right decisions.
+
+**Useful links**
+
+- VMASC [Sensitivity Assessor](https://vmasc.shinyapps.io/SensitivityAssessor/)
+- VMASC [HASH to Sensitivity Assessor](https://vmasc.shinyapps.io/from-hash-to-sa/) conversion tool
+- [HASH Core](https://hash.ai/platform/core) simulation development, exploration and experimentation environment
+- [HASH Engine](https://hash.ai/platform/engine) simulation engine
