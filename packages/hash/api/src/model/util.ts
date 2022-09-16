@@ -460,7 +460,7 @@ export const linkTypeInitializer = (
       return linkTypeModel;
     } else if (graphApi == null) {
       throw new Error(
-        `entity type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
+        `link type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
       );
     } else {
       const linkType = generateWorkspaceLinkTypeSchema(params);
