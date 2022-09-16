@@ -570,7 +570,7 @@ where
     // TODO: Tidy these up by having an `Into<VersionedUri>` method or something for the references
     async fn property_type_reference_ids<'p, I>(
         &self,
-        property_type_references: I,
+        referenced_property_types: I,
     ) -> Result<Vec<VersionId>, QueryError>
     where
         I: IntoIterator<Item = &'p PropertyTypeReference> + Send,
