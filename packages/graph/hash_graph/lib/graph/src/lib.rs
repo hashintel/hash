@@ -74,7 +74,3 @@ pub mod ontology;
 pub mod store;
 
 pub mod logging;
-
-#[cfg(test)]
-#[path = "../../../tests/test_data/lib.rs"]
-mod test_data;

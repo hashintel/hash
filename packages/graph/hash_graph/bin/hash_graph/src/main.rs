@@ -31,7 +31,7 @@ impl fmt::Display for GraphError {
     }
 }
 
-/// A place to collect temporary implementations that are useful before stabilisation of the Graph.
+/// A place to collect temporary implementations that are useful before stabilization of the Graph.
 ///
 /// This will include things that are mocks or stubs to make up for missing pieces of infrastructure
 /// that haven't been created yet.
