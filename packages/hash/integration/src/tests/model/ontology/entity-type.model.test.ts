@@ -36,7 +36,9 @@ let favoriteBookPropertyTypeModel: PropertyTypeModel;
 let knowsLinkTypeModel: LinkTypeModel;
 
 beforeAll(async () => {
-  accountId = await createTestUser(graphApi, "entity-type-test", logger);
+  const testUser = await createTestUser(graphApi, "entity-type-test", logger);
+
+  accountId = testUser.entityId;
 
   textDataTypeModel = await DataTypeModel.create(graphApi, {
     accountId,

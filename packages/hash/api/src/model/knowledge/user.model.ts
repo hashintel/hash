@@ -2,10 +2,11 @@ import { GraphApi } from "@hashintel/hash-graph-client";
 import { AxiosError } from "axios";
 import {
   EntityModel,
-  EntityTypeModel,
   UserModel,
   AccountFields,
   EntityModelCreateParams,
+  OrgModel,
+  OrgMembershipModel,
 } from "..";
 import {
   adminKratosSdk,
@@ -76,6 +77,37 @@ export default class extends EntityModel {
     return new UserModel(entityModel);
   }
 
+  static fromEntityModel(entity: EntityModel): UserModel {
+    if (
+      entity.entityTypeModel.schema.$id !==
+      WORKSPACE_TYPES.entityType.user.schema.$id
+    ) {
+      throw new Error(
+        `Entity with id ${entity.entityId} is not a workspace user`,
+      );
+    }
+
+    return new UserModel(entity);
+  }
+
+  /**
+   * Get a workspace user entity by its entity id.
+   *
+   * @param params.entityId - the entity id of the user
+   */
+  static async getUserById(
+    graphApi: GraphApi,
+    params: { entityId: string },
+  ): Promise<UserModel> {
+    const entity = await EntityModel.getLatest(graphApi, {
+      // assumption: `accountId` of user is always the workspace account id
+      accountId: workspaceAccountId,
+      entityId: params.entityId,
+    });
+
+    return UserModel.fromEntityModel(entity);
+  }
+
   /**
    * Get a workspace user entity by their shortname.
    *
@@ -135,15 +167,6 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get the system User entity type.
-   */
-  static async getUserEntityType(graphApi: GraphApi): Promise<EntityTypeModel> {
-    return await EntityTypeModel.get(graphApi, {
-      versionedUri: WORKSPACE_TYPES.entityType.user.schema.$id,
-    });
-  }
-
-  /**
    * Create a workspace user entity.
    *
    * @param params.emails - the emails of the user
@@ -175,7 +198,7 @@ export default class extends EntityModel {
       [WORKSPACE_TYPES.propertyType.preferredName.baseUri]: undefined,
     };
 
-    const entityTypeModel = await UserModel.getUserEntityType(graphApi);
+    const entityTypeModel = WORKSPACE_TYPES.entityType.user;
 
     const userEntityAccountId = workspaceAccountId;
 
@@ -385,19 +408,73 @@ export default class extends EntityModel {
   }
 
   async joinOrg(
-    _graphApi: GraphApi,
-    _params: { org: any; responsibility: string; updatedByAccountId: string },
+    graphApi: GraphApi,
+    params: {
+      org: OrgModel;
+      responsibility: string;
+    },
   ) {
-    /** @todo: re-implement this method */
-    throw new Error("user.joinOrg is not yet re-implemented");
+    const { org, responsibility } = params;
+
+    const orgMembership = await OrgMembershipModel.createOrgMembership(
+      graphApi,
+      { responsibility, org },
+    );
+
+    await this.createOutgoingLink(graphApi, {
+      linkTypeModel: WORKSPACE_TYPES.linkType.ofOrg,
+      targetEntityModel: orgMembership,
+    });
+  }
+
+  async getOrgMemberships(graphApi: GraphApi): Promise<OrgMembershipModel[]> {
+    const { data: outgoingOrgMembershipLinks } = await graphApi.getLinksByQuery(
+      {
+        all: [
+          {
+            eq: [{ path: ["source", "id"] }, { literal: this.entityId }],
+          },
+          {
+            eq: [
+              { path: ["type", "versionedUri"] },
+              {
+                literal: WORKSPACE_TYPES.linkType.ofOrg.schema.$id,
+              },
+            ],
+          },
+        ],
+      },
+    );
+
+    return await Promise.all(
+      outgoingOrgMembershipLinks.map(async ({ targetEntityId }) => {
+        const orgMembership = await OrgMembershipModel.getOrgMembershipById(
+          graphApi,
+          {
+            entityId: targetEntityId,
+          },
+        );
+
+        if (!orgMembership) {
+          throw new Error("Critical: could not find target of link");
+        }
+
+        return orgMembership;
+      }),
+    );
   }
 
   async isMemberOfOrg(
-    _graphApi: GraphApi,
-    _params: { orgEntityId: string },
+    graphApi: GraphApi,
+    params: { orgEntityId: string },
   ): Promise<boolean> {
-    /** @todo: re-implement this method */
-    throw new Error("user.isMemberOfOrg is not yet re-implemented");
+    const orgMemberships = await this.getOrgMemberships(graphApi);
+
+    const orgs = await Promise.all(
+      orgMemberships.map((orgMembership) => orgMembership.getOrg(graphApi)),
+    );
+
+    return !!orgs.find(({ entityId }) => entityId === params.orgEntityId);
   }
 
   isAccountSignupComplete(): boolean {

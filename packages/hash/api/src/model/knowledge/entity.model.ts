@@ -151,7 +151,7 @@ export default class {
   static async getLatest(
     graphApi: GraphApi,
     params: {
-      accountId: string;
+      accountId?: string;
       entityId: string;
     },
   ): Promise<EntityModel> {

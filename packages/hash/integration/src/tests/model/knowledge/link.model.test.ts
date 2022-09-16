@@ -36,7 +36,9 @@ describe("Link model class", () => {
   let targetEntityAcquaintance: EntityModel;
 
   beforeAll(async () => {
-    accountId = await createTestUser(graphApi, "linktest", logger);
+    const testUser = await createTestUser(graphApi, "linktest", logger);
+
+    accountId = testUser.entityId;
 
     testEntityType = await EntityTypeModel.create(graphApi, {
       accountId,

@@ -3,8 +3,12 @@ import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/syste
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { logger } from "../logger";
 
-import { EntityTypeModel, PropertyTypeModel } from "../model";
-import { propertyTypeInitializer, entityTypeInitializer } from "../model/util";
+import { EntityTypeModel, LinkTypeModel, PropertyTypeModel } from "../model";
+import {
+  propertyTypeInitializer,
+  entityTypeInitializer,
+  linkTypeInitializer,
+} from "../model/util";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let WORKSPACE_TYPES: {
@@ -22,12 +26,22 @@ export let WORKSPACE_TYPES: {
     orgName: PropertyTypeModel;
     orgSize: PropertyTypeModel;
     orgProvidedInfo: PropertyTypeModel;
+
+    // OrgMembership-related
+    responsibility: PropertyTypeModel;
   };
   entityType: {
     user: EntityTypeModel;
     org: EntityTypeModel;
+    orgMembership: EntityTypeModel;
   };
-  linkType: {};
+  linkType: {
+    // User-related
+    hasMembership: LinkTypeModel;
+
+    // OrgMembership-related
+    ofOrg: LinkTypeModel;
+  };
 };
 
 // Generate the schema for the org provided info property type
@@ -73,19 +87,54 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
     title: "Organization",
     properties: [
       {
-        baseUri: shortnamePropertyTypeModel.baseUri,
-        versionedUri: shortnamePropertyTypeModel.schema.$id,
+        propertyTypeBaseUri: shortnamePropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: shortnamePropertyTypeModel.schema.$id,
         required: true,
       },
       {
-        baseUri: orgNamePropertyTypeModel.baseUri,
-        versionedUri: orgNamePropertyTypeModel.schema.$id,
+        propertyTypeBaseUri: orgNamePropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: orgNamePropertyTypeModel.schema.$id,
         required: true,
       },
       {
-        baseUri: orgProvidedInfoPropertyTypeModel.baseUri,
-        versionedUri: orgProvidedInfoPropertyTypeModel.schema.$id,
+        propertyTypeBaseUri: orgProvidedInfoPropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: orgProvidedInfoPropertyTypeModel.schema.$id,
         required: false,
+      },
+    ],
+    outgoingLinks: [],
+  })(graphApi);
+};
+
+const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+  const responsibilityPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.responsibility(graphApi);
+
+  const orgEntityTypeModel = await WORKSPACE_TYPES_INITIALIZERS.entityType.org(
+    graphApi,
+  );
+
+  const ofOrgLinkTypeModel = await WORKSPACE_TYPES_INITIALIZERS.linkType.ofOrg(
+    graphApi,
+  );
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+    title: "OrgMembership",
+    properties: [
+      {
+        propertyTypeBaseUri: responsibilityPropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: responsibilityPropertyTypeModel.schema.$id,
+        required: true,
+      },
+    ],
+    outgoingLinks: [
+      {
+        linkTypeVersionedUri: ofOrgLinkTypeModel.schema.$id,
+        destinationEntityTypeVersionedUri: orgEntityTypeModel.schema.$id,
+        required: true,
       },
     ],
   })(graphApi);
@@ -127,6 +176,25 @@ const preferredNamePropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
+const responsibilityPropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "responsibility",
+  description: `The user's responsibility at the organization (e.g. "Marketing", "Sales", "Engineering", etc.)`,
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+const ofOrgLinkTypeInitializer = linkTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Of Org",
+  description: "Belonging to an organization",
+});
+
+const hasMembershipLinkTypeInitializer = linkTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Has Membership",
+  description: "Having a membership",
+});
+
 const userEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
   const shortnamePropertyTypeModel =
@@ -140,6 +208,13 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
 
   const preferredNamePropertyTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.propertyType.preferredName(graphApi);
+
+  const hasMembershipLinkTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.linkType.hasMembership(graphApi);
+
+  const orgMembershipEntityTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.entityType.orgMembership(graphApi);
+
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -147,24 +222,31 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
     title: "User",
     properties: [
       {
-        baseUri: shortnamePropertyTypeModel.baseUri,
-        versionedUri: shortnamePropertyTypeModel.schema.$id,
+        propertyTypeBaseUri: shortnamePropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: shortnamePropertyTypeModel.schema.$id,
       },
       {
-        baseUri: emailPropertyTypeModel.baseUri,
-        versionedUri: emailPropertyTypeModel.schema.$id,
+        propertyTypeBaseUri: emailPropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: emailPropertyTypeModel.schema.$id,
         required: true,
         array: { minItems: 1 },
       },
       {
-        baseUri: kratosIdentityIdPropertyTypeModel.baseUri,
-        versionedUri: kratosIdentityIdPropertyTypeModel.schema.$id,
+        propertyTypeBaseUri: kratosIdentityIdPropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: kratosIdentityIdPropertyTypeModel.schema.$id,
         required: true,
       },
       {
-        baseUri: preferredNamePropertyTypeModel.baseUri,
-        versionedUri: preferredNamePropertyTypeModel.schema.$id,
+        propertyTypeBaseUri: preferredNamePropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: preferredNamePropertyTypeModel.schema.$id,
         required: true,
+      },
+    ],
+    outgoingLinks: [
+      {
+        linkTypeVersionedUri: hasMembershipLinkTypeModel.schema.$id,
+        destinationEntityTypeVersionedUri:
+          orgMembershipEntityTypeModel.schema.$id,
       },
     ],
   })(graphApi);
@@ -192,12 +274,18 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     orgName: orgNamePropertyTypeInitializer,
     orgSize: orgSizePropertyTypeInitializer,
     orgProvidedInfo: orgProvidedInfoPropertyTypeInitializer,
+
+    responsibility: responsibilityPropertyTypeInitializer,
   },
   entityType: {
     user: userEntityTypeInitializer,
     org: orgEntityTypeInitializer,
+    orgMembership: orgMembershipEntityTypeInitializer,
   },
-  linkType: {},
+  linkType: {
+    ofOrg: ofOrgLinkTypeInitializer,
+    hasMembership: hasMembershipLinkTypeInitializer,
+  },
 };
 
 /**

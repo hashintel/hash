@@ -33,7 +33,9 @@ let namePropertyTypeModel: PropertyTypeModel;
 let favoriteBookPropertyTypeModel: PropertyTypeModel;
 
 beforeAll(async () => {
-  accountId = await createTestUser(graphApi, "entitytest", logger);
+  const testUser = await createTestUser(graphApi, "entitytest", logger);
+
+  accountId = testUser.entityId;
 
   textDataTypeModel = await DataTypeModel.create(graphApi, {
     accountId,
