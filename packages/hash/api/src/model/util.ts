@@ -418,7 +418,7 @@ export type LinkTypeCreatorParams = {
 };
 
 /**
- * Helper method for generating an link type schema for the Graph API.
+ * Helper method for generating a link type schema for the Graph API.
  *
  * @todo make use of new type system package instead of ad-hoc types.
  *   https://app.asana.com/0/1202805690238892/1202892835843657/f
