@@ -358,7 +358,7 @@ export const generateWorkspaceEntityTypeSchema = (
     type: "object",
     kind: "entityType",
     properties,
-    required: requiredProperties,
+    required: requiredProperties.length > 0 ? requiredProperties : undefined,
     links,
     requiredLinks: requiredLinks.length > 0 ? requiredLinks : undefined,
   };
