@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 use crate::{
     knowledge::{
-        Entity, EntityId, EntityRootedSubgraph, KnowledgeQuery, Link, PersistedEntity,
+        Entity, EntityId, EntityRootedSubgraph, KnowledgeGraphQuery, Link, PersistedEntity,
         PersistedEntityIdentifier,
     },
     ontology::AccountId,
@@ -154,9 +154,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
     async fn get_entity(
         &self,
-        query: &KnowledgeQuery,
+        query: &KnowledgeGraphQuery,
     ) -> Result<Vec<EntityRootedSubgraph>, QueryError> {
-        let KnowledgeQuery {
+        let KnowledgeGraphQuery {
             ref expression,
             data_type_query_depth,
             property_type_query_depth,

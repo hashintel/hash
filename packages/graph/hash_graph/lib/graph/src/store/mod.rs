@@ -18,7 +18,7 @@ pub use self::{
 };
 use crate::{
     knowledge::{
-        Entity, EntityId, EntityRootedSubgraph, KnowledgeQuery, Link, LinkRootedSubgraph,
+        Entity, EntityId, EntityRootedSubgraph, KnowledgeGraphQuery, Link, LinkRootedSubgraph,
         PersistedEntity, PersistedEntityIdentifier,
     },
     ontology::{
@@ -384,7 +384,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
     /// - if the requested [`Entity`] doesn't exist
     async fn get_entity(
         &self,
-        query: &KnowledgeQuery,
+        query: &KnowledgeGraphQuery,
     ) -> Result<Vec<EntityRootedSubgraph>, QueryError>;
 
     /// Update an existing [`Entity`].
@@ -427,7 +427,7 @@ pub trait LinkStore: for<'q> crud::Read<Link, Query<'q> = Expression> {
     /// - if the requested [`Link`]s don't exist.
     async fn get_links(
         &self,
-        query: &KnowledgeQuery,
+        query: &KnowledgeGraphQuery,
     ) -> Result<Vec<LinkRootedSubgraph>, QueryError>;
 
     /// Removes a [`Link`] between a source and target [`Entity`].

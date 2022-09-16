@@ -500,49 +500,49 @@ export interface EntityTypeRootedSubgraph {
 /**
  * Query to read [`Entities`] or [`Link`]s, which satisfy the [`Expression`].
  * @export
- * @interface KnowledgeQuery
+ * @interface KnowledgeGraphQuery
  */
-export interface KnowledgeQuery {
+export interface KnowledgeGraphQuery {
   /**
    *
    * @type {number}
-   * @memberof KnowledgeQuery
+   * @memberof KnowledgeGraphQuery
    */
   dataTypeQueryDepth: number;
   /**
    *
    * @type {number}
-   * @memberof KnowledgeQuery
+   * @memberof KnowledgeGraphQuery
    */
   entityTypeQueryDepth: number;
   /**
    *
    * @type {number}
-   * @memberof KnowledgeQuery
+   * @memberof KnowledgeGraphQuery
    */
   linkQueryDepth: number;
   /**
    *
    * @type {number}
-   * @memberof KnowledgeQuery
+   * @memberof KnowledgeGraphQuery
    */
   linkTargetEntityQueryDepth: number;
   /**
    *
    * @type {number}
-   * @memberof KnowledgeQuery
+   * @memberof KnowledgeGraphQuery
    */
   linkTypeQueryDepth: number;
   /**
    *
    * @type {number}
-   * @memberof KnowledgeQuery
+   * @memberof KnowledgeGraphQuery
    */
   propertyTypeQueryDepth: number;
   /**
    *
    * @type {object}
-   * @memberof KnowledgeQuery
+   * @memberof KnowledgeGraphQuery
    */
   query: object;
 }
@@ -2271,16 +2271,20 @@ export const EntityApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {KnowledgeQuery} knowledgeQuery
+     * @param {KnowledgeGraphQuery} knowledgeGraphQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntitiesByQuery: async (
-      knowledgeQuery: KnowledgeQuery,
+      knowledgeGraphQuery: KnowledgeGraphQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'knowledgeQuery' is not null or undefined
-      assertParamExists("getEntitiesByQuery", "knowledgeQuery", knowledgeQuery);
+      // verify required parameter 'knowledgeGraphQuery' is not null or undefined
+      assertParamExists(
+        "getEntitiesByQuery",
+        "knowledgeGraphQuery",
+        knowledgeGraphQuery,
+      );
       const localVarPath = `/entities/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -2308,7 +2312,7 @@ export const EntityApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        knowledgeQuery,
+        knowledgeGraphQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -2492,12 +2496,12 @@ export const EntityApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {KnowledgeQuery} knowledgeQuery
+     * @param {KnowledgeGraphQuery} knowledgeGraphQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getEntitiesByQuery(
-      knowledgeQuery: KnowledgeQuery,
+      knowledgeGraphQuery: KnowledgeGraphQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (
@@ -2507,7 +2511,7 @@ export const EntityApiFp = function (configuration?: Configuration) {
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getEntitiesByQuery(
-          knowledgeQuery,
+          knowledgeGraphQuery,
           options,
         );
       return createRequestFunction(
@@ -2621,16 +2625,16 @@ export const EntityApiFactory = function (
     },
     /**
      *
-     * @param {KnowledgeQuery} knowledgeQuery
+     * @param {KnowledgeGraphQuery} knowledgeGraphQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntitiesByQuery(
-      knowledgeQuery: KnowledgeQuery,
+      knowledgeGraphQuery: KnowledgeGraphQuery,
       options?: any,
     ): AxiosPromise<Array<EntityRootedSubgraph>> {
       return localVarFp
-        .getEntitiesByQuery(knowledgeQuery, options)
+        .getEntitiesByQuery(knowledgeGraphQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -2691,13 +2695,13 @@ export interface EntityApiInterface {
 
   /**
    *
-   * @param {KnowledgeQuery} knowledgeQuery
+   * @param {KnowledgeGraphQuery} knowledgeGraphQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof EntityApiInterface
    */
   getEntitiesByQuery(
-    knowledgeQuery: KnowledgeQuery,
+    knowledgeGraphQuery: KnowledgeGraphQuery,
     options?: AxiosRequestConfig,
   ): AxiosPromise<Array<EntityRootedSubgraph>>;
 
@@ -2761,17 +2765,17 @@ export class EntityApi extends BaseAPI implements EntityApiInterface {
 
   /**
    *
-   * @param {KnowledgeQuery} knowledgeQuery
+   * @param {KnowledgeGraphQuery} knowledgeGraphQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof EntityApi
    */
   public getEntitiesByQuery(
-    knowledgeQuery: KnowledgeQuery,
+    knowledgeGraphQuery: KnowledgeGraphQuery,
     options?: AxiosRequestConfig,
   ) {
     return EntityApiFp(this.configuration)
-      .getEntitiesByQuery(knowledgeQuery, options)
+      .getEntitiesByQuery(knowledgeGraphQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -3901,16 +3905,20 @@ export const GraphApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {KnowledgeQuery} knowledgeQuery
+     * @param {KnowledgeGraphQuery} knowledgeGraphQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntitiesByQuery: async (
-      knowledgeQuery: KnowledgeQuery,
+      knowledgeGraphQuery: KnowledgeGraphQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'knowledgeQuery' is not null or undefined
-      assertParamExists("getEntitiesByQuery", "knowledgeQuery", knowledgeQuery);
+      // verify required parameter 'knowledgeGraphQuery' is not null or undefined
+      assertParamExists(
+        "getEntitiesByQuery",
+        "knowledgeGraphQuery",
+        knowledgeGraphQuery,
+      );
       const localVarPath = `/entities/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -3938,7 +3946,7 @@ export const GraphApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        knowledgeQuery,
+        knowledgeGraphQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -4422,16 +4430,20 @@ export const GraphApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {KnowledgeQuery} knowledgeQuery
+     * @param {KnowledgeGraphQuery} knowledgeGraphQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getLinksByQuery: async (
-      knowledgeQuery: KnowledgeQuery,
+      knowledgeGraphQuery: KnowledgeGraphQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'knowledgeQuery' is not null or undefined
-      assertParamExists("getLinksByQuery", "knowledgeQuery", knowledgeQuery);
+      // verify required parameter 'knowledgeGraphQuery' is not null or undefined
+      assertParamExists(
+        "getLinksByQuery",
+        "knowledgeGraphQuery",
+        knowledgeGraphQuery,
+      );
       const localVarPath = `/links/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -4459,7 +4471,7 @@ export const GraphApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        knowledgeQuery,
+        knowledgeGraphQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -5128,12 +5140,12 @@ export const GraphApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {KnowledgeQuery} knowledgeQuery
+     * @param {KnowledgeGraphQuery} knowledgeGraphQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getEntitiesByQuery(
-      knowledgeQuery: KnowledgeQuery,
+      knowledgeGraphQuery: KnowledgeGraphQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (
@@ -5143,7 +5155,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getEntitiesByQuery(
-          knowledgeQuery,
+          knowledgeGraphQuery,
           options,
         );
       return createRequestFunction(
@@ -5420,12 +5432,12 @@ export const GraphApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {KnowledgeQuery} knowledgeQuery
+     * @param {KnowledgeGraphQuery} knowledgeGraphQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getLinksByQuery(
-      knowledgeQuery: KnowledgeQuery,
+      knowledgeGraphQuery: KnowledgeGraphQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (
@@ -5434,7 +5446,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       ) => AxiosPromise<Array<LinkRootedSubgraph>>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getLinksByQuery(
-        knowledgeQuery,
+        knowledgeGraphQuery,
         options,
       );
       return createRequestFunction(
@@ -5792,16 +5804,16 @@ export const GraphApiFactory = function (
     },
     /**
      *
-     * @param {KnowledgeQuery} knowledgeQuery
+     * @param {KnowledgeGraphQuery} knowledgeGraphQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntitiesByQuery(
-      knowledgeQuery: KnowledgeQuery,
+      knowledgeGraphQuery: KnowledgeGraphQuery,
       options?: any,
     ): AxiosPromise<Array<EntityRootedSubgraph>> {
       return localVarFp
-        .getEntitiesByQuery(knowledgeQuery, options)
+        .getEntitiesByQuery(knowledgeGraphQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -5935,16 +5947,16 @@ export const GraphApiFactory = function (
     },
     /**
      *
-     * @param {KnowledgeQuery} knowledgeQuery
+     * @param {KnowledgeGraphQuery} knowledgeGraphQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getLinksByQuery(
-      knowledgeQuery: KnowledgeQuery,
+      knowledgeGraphQuery: KnowledgeGraphQuery,
       options?: any,
     ): AxiosPromise<Array<LinkRootedSubgraph>> {
       return localVarFp
-        .getLinksByQuery(knowledgeQuery, options)
+        .getLinksByQuery(knowledgeGraphQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -6178,13 +6190,13 @@ export interface GraphApiInterface {
 
   /**
    *
-   * @param {KnowledgeQuery} knowledgeQuery
+   * @param {KnowledgeGraphQuery} knowledgeGraphQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
   getEntitiesByQuery(
-    knowledgeQuery: KnowledgeQuery,
+    knowledgeGraphQuery: KnowledgeGraphQuery,
     options?: AxiosRequestConfig,
   ): AxiosPromise<Array<EntityRootedSubgraph>>;
 
@@ -6312,13 +6324,13 @@ export interface GraphApiInterface {
 
   /**
    *
-   * @param {KnowledgeQuery} knowledgeQuery
+   * @param {KnowledgeGraphQuery} knowledgeGraphQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
   getLinksByQuery(
-    knowledgeQuery: KnowledgeQuery,
+    knowledgeGraphQuery: KnowledgeGraphQuery,
     options?: AxiosRequestConfig,
   ): AxiosPromise<Array<LinkRootedSubgraph>>;
 
@@ -6566,17 +6578,17 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
 
   /**
    *
-   * @param {KnowledgeQuery} knowledgeQuery
+   * @param {KnowledgeGraphQuery} knowledgeGraphQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApi
    */
   public getEntitiesByQuery(
-    knowledgeQuery: KnowledgeQuery,
+    knowledgeGraphQuery: KnowledgeGraphQuery,
     options?: AxiosRequestConfig,
   ) {
     return GraphApiFp(this.configuration)
-      .getEntitiesByQuery(knowledgeQuery, options)
+      .getEntitiesByQuery(knowledgeGraphQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -6726,17 +6738,17 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
 
   /**
    *
-   * @param {KnowledgeQuery} knowledgeQuery
+   * @param {KnowledgeGraphQuery} knowledgeGraphQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApi
    */
   public getLinksByQuery(
-    knowledgeQuery: KnowledgeQuery,
+    knowledgeGraphQuery: KnowledgeGraphQuery,
     options?: AxiosRequestConfig,
   ) {
     return GraphApiFp(this.configuration)
-      .getLinksByQuery(knowledgeQuery, options)
+      .getLinksByQuery(knowledgeGraphQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -6979,16 +6991,20 @@ export const LinkApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {KnowledgeQuery} knowledgeQuery
+     * @param {KnowledgeGraphQuery} knowledgeGraphQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getLinksByQuery: async (
-      knowledgeQuery: KnowledgeQuery,
+      knowledgeGraphQuery: KnowledgeGraphQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'knowledgeQuery' is not null or undefined
-      assertParamExists("getLinksByQuery", "knowledgeQuery", knowledgeQuery);
+      // verify required parameter 'knowledgeGraphQuery' is not null or undefined
+      assertParamExists(
+        "getLinksByQuery",
+        "knowledgeGraphQuery",
+        knowledgeGraphQuery,
+      );
       const localVarPath = `/links/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -7016,7 +7032,7 @@ export const LinkApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        knowledgeQuery,
+        knowledgeGraphQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -7143,12 +7159,12 @@ export const LinkApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {KnowledgeQuery} knowledgeQuery
+     * @param {KnowledgeGraphQuery} knowledgeGraphQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getLinksByQuery(
-      knowledgeQuery: KnowledgeQuery,
+      knowledgeGraphQuery: KnowledgeGraphQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (
@@ -7157,7 +7173,7 @@ export const LinkApiFp = function (configuration?: Configuration) {
       ) => AxiosPromise<Array<LinkRootedSubgraph>>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getLinksByQuery(
-        knowledgeQuery,
+        knowledgeGraphQuery,
         options,
       );
       return createRequestFunction(
@@ -7236,16 +7252,16 @@ export const LinkApiFactory = function (
     },
     /**
      *
-     * @param {KnowledgeQuery} knowledgeQuery
+     * @param {KnowledgeGraphQuery} knowledgeGraphQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getLinksByQuery(
-      knowledgeQuery: KnowledgeQuery,
+      knowledgeGraphQuery: KnowledgeGraphQuery,
       options?: any,
     ): AxiosPromise<Array<LinkRootedSubgraph>> {
       return localVarFp
-        .getLinksByQuery(knowledgeQuery, options)
+        .getLinksByQuery(knowledgeGraphQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -7301,13 +7317,13 @@ export interface LinkApiInterface {
 
   /**
    *
-   * @param {KnowledgeQuery} knowledgeQuery
+   * @param {KnowledgeGraphQuery} knowledgeGraphQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof LinkApiInterface
    */
   getLinksByQuery(
-    knowledgeQuery: KnowledgeQuery,
+    knowledgeGraphQuery: KnowledgeGraphQuery,
     options?: AxiosRequestConfig,
   ): AxiosPromise<Array<LinkRootedSubgraph>>;
 
@@ -7366,17 +7382,17 @@ export class LinkApi extends BaseAPI implements LinkApiInterface {
 
   /**
    *
-   * @param {KnowledgeQuery} knowledgeQuery
+   * @param {KnowledgeGraphQuery} knowledgeGraphQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof LinkApi
    */
   public getLinksByQuery(
-    knowledgeQuery: KnowledgeQuery,
+    knowledgeGraphQuery: KnowledgeGraphQuery,
     options?: AxiosRequestConfig,
   ) {
     return LinkApiFp(this.configuration)
-      .getLinksByQuery(knowledgeQuery, options)
+      .getLinksByQuery(knowledgeGraphQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 

@@ -10,7 +10,7 @@ use std::str::FromStr;
 use error_stack::{Report, Result};
 use graph::{
     knowledge::{
-        Entity, EntityId, KnowledgeQuery, Link, PersistedEntity, PersistedEntityIdentifier,
+        Entity, EntityId, KnowledgeGraphQuery, Link, PersistedEntity, PersistedEntityIdentifier,
     },
     ontology::{
         AccountId, DataTypeQuery, EntityTypeQuery, LinkTypeQuery, PersistedDataType,
@@ -295,7 +295,7 @@ impl DatabaseApi<'_> {
     pub async fn get_entity(&mut self, entity_id: EntityId) -> Result<PersistedEntity, QueryError> {
         Ok(self
             .store
-            .get_entity(&KnowledgeQuery {
+            .get_entity(&KnowledgeGraphQuery {
                 expression: Expression::for_latest_entity_id(entity_id),
                 data_type_query_depth: 0,
                 property_type_query_depth: 0,
@@ -338,7 +338,7 @@ impl DatabaseApi<'_> {
     ) -> Result<Link, QueryError> {
         Ok(self
             .store
-            .get_links(&KnowledgeQuery {
+            .get_links(&KnowledgeGraphQuery {
                 expression: Expression::All(vec![
                     Expression::for_link_by_source_entity_id(source_entity_id),
                     Expression::Eq(vec![
@@ -388,7 +388,7 @@ impl DatabaseApi<'_> {
     ) -> Result<Vec<Link>, QueryError> {
         Ok(self
             .store
-            .get_links(&KnowledgeQuery {
+            .get_links(&KnowledgeGraphQuery {
                 expression: Expression::for_link_by_source_entity_id(source_entity_id),
                 data_type_query_depth: 0,
                 property_type_query_depth: 0,

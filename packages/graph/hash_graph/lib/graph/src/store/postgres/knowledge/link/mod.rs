@@ -9,7 +9,7 @@ use futures::{future::FutureExt, stream, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
 
 use crate::{
-    knowledge::{KnowledgeQuery, Link, LinkRootedSubgraph},
+    knowledge::{KnowledgeGraphQuery, Link, LinkRootedSubgraph},
     ontology::AccountId,
     store::{
         crud::Read,
@@ -114,9 +114,9 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
 
     async fn get_links(
         &self,
-        query: &KnowledgeQuery,
+        query: &KnowledgeGraphQuery,
     ) -> Result<Vec<LinkRootedSubgraph>, QueryError> {
-        let KnowledgeQuery {
+        let KnowledgeGraphQuery {
             ref expression,
             data_type_query_depth,
             property_type_query_depth,

@@ -24,7 +24,7 @@ use crate::{
 /// [`Entities`]: Entity
 #[derive(Debug, Deserialize, Component)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct KnowledgeQuery {
+pub struct KnowledgeGraphQuery {
     #[serde(rename = "query")]
     pub expression: Expression,
     #[component(value_type = number)]

@@ -16,7 +16,7 @@ use utoipa::{Component, OpenApi};
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     knowledge::{
-        Entity, EntityId, EntityRootedSubgraph, KnowledgeQuery, PersistedEntity,
+        Entity, EntityId, EntityRootedSubgraph, KnowledgeGraphQuery, PersistedEntity,
         PersistedEntityIdentifier,
     },
     ontology::AccountId,
@@ -43,7 +43,7 @@ use crate::{
         PersistedEntityIdentifier,
         PersistedEntity,
         Entity,
-        KnowledgeQuery,
+        KnowledgeGraphQuery,
         EntityRootedSubgraph,
     ),
     tags(
@@ -126,7 +126,7 @@ async fn create_entity<P: StorePool + Send>(
 #[utoipa::path(
     post,
     path = "/entities/query",
-    request_body = KnowledgeQuery,
+    request_body = KnowledgeGraphQuery,
     tag = "Entity",
     responses(
         (status = 200, content_type = "application/json", body = [EntityRootedSubgraph], description = "A list of subgraphs rooted at entities that satisfy the given query, each resolved to the requested depth."),
@@ -137,7 +137,7 @@ async fn create_entity<P: StorePool + Send>(
 )]
 async fn get_entities_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    Json(query): Json<KnowledgeQuery>,
+    Json(query): Json<KnowledgeGraphQuery>,
 ) -> Result<Json<Vec<EntityRootedSubgraph>>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
