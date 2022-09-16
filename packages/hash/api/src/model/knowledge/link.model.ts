@@ -51,7 +51,7 @@ export default class {
       ]);
 
     return new LinkModel({
-      /** @todo: figure out how this can be obtained from `PersistedLink`, or whether it should be removed from the `LinkModel` class */
+      /** @todo: assign this from the `PersistedLink` as part of https://app.asana.com/0/1201095311341924/1202980861294706/f */
       accountId: "",
       sourceEntityModel,
       linkTypeModel,
