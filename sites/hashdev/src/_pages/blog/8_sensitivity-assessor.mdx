@@ -25,3 +25,31 @@ In this post we'll explore how to take data generated directly from HASH simulat
 Consider the following scenario using an actual HASH simulation of an epidemic. Within the simulation, agents are positioned randomly within the landscape. Some are initially ill; others are healthy but susceptible to illness. At each time step, agents move randomly throughout the simulated landscape. While moving randomly, if a healthy agent encounters an infected agent, the healthy agent becomes sick with a certain probability. When an agent becomes sick the agent is assigned a chance of recovery.  Every sick agent increments their accumulated sick time at the start of each new time step. Once the sick time exceeds the sickness duration value, the agent either (i) dies (based on their chance of recovery) or (ii) survives and becomes immune. Once an agent becomes immune, the immunity lasts only for a specified number of time steps. Once the immunity period for an agent is reached, the agent returns to a healthy state but remains susceptible to illness.
 
 The following figures show the HASH simulation as it progresses. Green squares represent the healthy agents, red squares represent the sick agents, and white squares represent the immune agents. The first screenshot displays the start of the simulation immediately following the initialization of all agents. The second figure shows the simulation after fifteen time steps and the third figure displays the simulation state after thirty time steps.
+
+<TalkSlide width="766" height="448" src="/blog/8_sensitivity-assessor/figure-1_simulation-init-state.png">
+
+Figure 1: Start of the simulation immediately following initialization
+
+</TalkSlide>
+
+<TalkSlide width="768" height="436" src="/blog/8_sensitivity-assessor/figure-2_simulation-step-15.png">
+
+Figure 2: The state of the simulation after 15 time steps
+
+</TalkSlide>
+
+<TalkSlide width="774" height="464" src="/blog/8_sensitivity-assessor/figure-2_simulation-step-15.png">
+
+Figure 3: The state of the simulation after 30 time steps
+
+</TalkSlide>
+
+The simulation is meant to represent the spread of a virus and its effects on the population. However, there are times when the number of healthy agents within the simulation falls to zero depending on input values. Initially one may not anticipate that all agents in the simulation can become sick. This is an alarming outcome as it would imply that there are not any healthy people to provide healthcare or other essential services.
+
+The following screen capture shows the graph of the infection process for one of the experiments that was created. It highlights a simulation run where the number of healthy agents falls to zero.
+
+<TalkSlide width="958" height="450" src="/blog/8_sensitivity-assessor/figure-2_simulation-step-15.png">
+
+Figure 4: A times series of the immune, infected and healthy agents for a simulation run.
+
+</TalkSlide>
