@@ -87,18 +87,18 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
     title: "Organization",
     properties: [
       {
-        baseUri: shortnamePropertyTypeModel.baseUri,
-        versionedUri: shortnamePropertyTypeModel.schema.$id,
+        propertyTypeBaseUri: shortnamePropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: shortnamePropertyTypeModel.schema.$id,
         required: true,
       },
       {
-        baseUri: orgNamePropertyTypeModel.baseUri,
-        versionedUri: orgNamePropertyTypeModel.schema.$id,
+        propertyTypeBaseUri: orgNamePropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: orgNamePropertyTypeModel.schema.$id,
         required: true,
       },
       {
-        baseUri: orgProvidedInfoPropertyTypeModel.baseUri,
-        versionedUri: orgProvidedInfoPropertyTypeModel.schema.$id,
+        propertyTypeBaseUri: orgProvidedInfoPropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: orgProvidedInfoPropertyTypeModel.schema.$id,
         required: false,
       },
     ],
@@ -125,15 +125,15 @@ const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
     title: "OrgMembership",
     properties: [
       {
-        baseUri: responsibilityPropertyTypeModel.baseUri,
-        versionedUri: responsibilityPropertyTypeModel.schema.$id,
+        propertyTypeBaseUri: responsibilityPropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: responsibilityPropertyTypeModel.schema.$id,
         required: true,
       },
     ],
     outgoingLinks: [
       {
-        versionedUri: ofOrgLinkTypeModel.schema.$id,
-        destinationVersionedUri: orgEntityTypeModel.schema.$id,
+        linkTypeVersionedUri: ofOrgLinkTypeModel.schema.$id,
+        destinationEntityTypeVersionedUri: orgEntityTypeModel.schema.$id,
         required: true,
       },
     ],
@@ -222,30 +222,31 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
     title: "User",
     properties: [
       {
-        baseUri: shortnamePropertyTypeModel.baseUri,
-        versionedUri: shortnamePropertyTypeModel.schema.$id,
+        propertyTypeBaseUri: shortnamePropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: shortnamePropertyTypeModel.schema.$id,
       },
       {
-        baseUri: emailPropertyTypeModel.baseUri,
-        versionedUri: emailPropertyTypeModel.schema.$id,
+        propertyTypeBaseUri: emailPropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: emailPropertyTypeModel.schema.$id,
         required: true,
         array: { minItems: 1 },
       },
       {
-        baseUri: kratosIdentityIdPropertyTypeModel.baseUri,
-        versionedUri: kratosIdentityIdPropertyTypeModel.schema.$id,
+        propertyTypeBaseUri: kratosIdentityIdPropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: kratosIdentityIdPropertyTypeModel.schema.$id,
         required: true,
       },
       {
-        baseUri: preferredNamePropertyTypeModel.baseUri,
-        versionedUri: preferredNamePropertyTypeModel.schema.$id,
+        propertyTypeBaseUri: preferredNamePropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: preferredNamePropertyTypeModel.schema.$id,
         required: true,
       },
     ],
     outgoingLinks: [
       {
-        versionedUri: hasMembershipLinkTypeModel.schema.$id,
-        destinationVersionedUri: orgMembershipEntityTypeModel.schema.$id,
+        linkTypeVersionedUri: hasMembershipLinkTypeModel.schema.$id,
+        destinationEntityTypeVersionedUri:
+          orgMembershipEntityTypeModel.schema.$id,
       },
     ],
   })(graphApi);

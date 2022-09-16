@@ -274,14 +274,14 @@ export type EntityTypeCreatorParams = {
   namespace: string;
   title: string;
   properties: {
-    baseUri: BaseUri;
-    versionedUri: string;
+    propertyTypeBaseUri: BaseUri;
+    propertyTypeVersionedUri: string;
     required?: boolean;
     array?: { minItems?: number; maxItems?: number } | boolean;
   }[];
   outgoingLinks: {
-    versionedUri: string;
-    destinationVersionedUri: string;
+    linkTypeVersionedUri: string;
+    destinationEntityTypeVersionedUri: string;
     required?: boolean;
     array?: { minItems?: number; maxItems?: number } | boolean;
   }[];
@@ -304,44 +304,38 @@ export const generateWorkspaceEntityTypeSchema = (
 
   /** @todo - clean this up to be more readable: https://app.asana.com/0/1202805690238892/1202931031833226/f */
   const properties = params.properties.reduce(
-    (prev, { versionedUri, array }) => {
-      /**
-       *  @todo - use the Type System package to extract the base URI, this is currently blocked by unifying the packages
-       *  so we can use the node/web version within API depending on env:
-       *  https://app.asana.com/0/1200211978612931/1202923896339225/f
-       */
-      const baseUri = versionedUri.split("v/")[0]!;
-
-      return {
-        ...prev,
-        [baseUri]: array
-          ? {
-              type: "array",
-              items: { $ref: versionedUri },
-              ...(array === true ? {} : array),
-            }
-          : { $ref: versionedUri },
-      };
-    },
+    (prev, { propertyTypeVersionedUri, propertyTypeBaseUri, array }) => ({
+      ...prev,
+      [propertyTypeBaseUri]: array
+        ? {
+            type: "array",
+            items: { $ref: propertyTypeVersionedUri },
+            ...(array === true ? {} : array),
+          }
+        : { $ref: propertyTypeVersionedUri },
+    }),
     {},
   );
 
   const requiredProperties = params.properties
     .filter(({ required }) => !!required)
-    .map(({ baseUri }) => baseUri);
+    .map(({ propertyTypeBaseUri }) => propertyTypeBaseUri);
 
   const links: EntityType["links"] =
     params.outgoingLinks.length > 0
       ? params.outgoingLinks.reduce(
-          (prev, { versionedUri, destinationVersionedUri, array }) => ({
+          (
+            prev,
+            { linkTypeVersionedUri, destinationEntityTypeVersionedUri, array },
+          ) => ({
             ...prev,
-            [versionedUri]: array
+            [linkTypeVersionedUri]: array
               ? {
                   type: "array",
-                  items: { $ref: destinationVersionedUri },
+                  items: { $ref: destinationEntityTypeVersionedUri },
                   ...(array === true ? {} : array),
                 }
-              : { $ref: destinationVersionedUri },
+              : { $ref: destinationEntityTypeVersionedUri },
           }),
           {},
         )
@@ -349,7 +343,7 @@ export const generateWorkspaceEntityTypeSchema = (
 
   const requiredLinks = params.outgoingLinks
     .filter(({ required }) => !!required)
-    .map(({ versionedUri }) => versionedUri);
+    .map(({ linkTypeVersionedUri }) => linkTypeVersionedUri);
 
   return {
     $id,
