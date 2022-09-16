@@ -22,11 +22,12 @@ use crate::{
 /// Distance to explore when querying a rooted subgraph on entities and links.
 ///
 /// Entities may link to other entities through links. The depths provided alongside a query specify
-/// how many steps to explore along a chain of references _of a certain kind of type_. Meaning, any
-/// chain of entities and links will be resolved up to the given depth. These can be composed with
-/// [`OntologyQueryDepth`] to explore ontology types.
+/// how many steps to explore along a chain of entities/links. Meaning, any chain of entities and
+/// links will be resolved up to the given depth. These can be composed with [`OntologyQueryDepth`]
+/// to explore ontology types.
 ///
-/// A depth of `0` means that links are explored for that specific kind of type.
+/// A `link_target_entity_query_depth`/`link_query_depth` of `0` means that no entities/links are
+/// explored respectively.
 ///
 /// **Note**: The concept is the same as the [`OntologyQueryDepth`] but it feels a little different
 /// as entities and links are chained in an alternate way, between every entity there is a
