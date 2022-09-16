@@ -286,6 +286,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     }
                 }
 
+                linked_entities.remove(&entity.identifier().entity_id());
+
                 Ok(EntityRootedSubgraph {
                     entity,
                     referenced_data_types: referenced_data_types.into_vec(),

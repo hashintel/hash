@@ -194,6 +194,8 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                     }
                 }
 
+                referenced_property_types.remove(property_type.identifier.uri());
+
                 Ok(PropertyTypeRootedSubgraph {
                     property_type,
                     referenced_data_types: referenced_data_types.into_vec(),
