@@ -85,7 +85,7 @@ describe("User model class", () => {
 
     expect(fetchedUser).not.toBeNull();
 
-    expect(fetchedUser?.entityId).toEqual(createdUser?.entityId);
+    expect(fetchedUser).toEqual(createdUser);
   });
 
   it("can get a user by its kratos identity id", async () => {
@@ -95,7 +95,7 @@ describe("User model class", () => {
 
     expect(fetchedUser).not.toBeNull();
 
-    expect(fetchedUser?.entityId).toEqual(createdUser?.entityId);
+    expect(fetchedUser).toEqual(createdUser);
   });
 
   it("can join an org", async () => {

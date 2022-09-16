@@ -330,19 +330,22 @@ export const generateWorkspaceEntityTypeSchema = (
     .filter(({ required }) => !!required)
     .map(({ baseUri }) => baseUri);
 
-  const links: EntityType["links"] = params.outgoingLinks.reduce(
-    (prev, { versionedUri, destinationVersionedUri, array }) => ({
-      ...prev,
-      [versionedUri]: array
-        ? {
-            type: "array",
-            items: { $ref: destinationVersionedUri },
-            ...(array === true ? {} : array),
-          }
-        : { $ref: destinationVersionedUri },
-    }),
-    {},
-  );
+  const links: EntityType["links"] =
+    params.outgoingLinks.length > 0
+      ? params.outgoingLinks.reduce(
+          (prev, { versionedUri, destinationVersionedUri, array }) => ({
+            ...prev,
+            [versionedUri]: array
+              ? {
+                  type: "array",
+                  items: { $ref: destinationVersionedUri },
+                  ...(array === true ? {} : array),
+                }
+              : { $ref: destinationVersionedUri },
+          }),
+          {},
+        )
+      : undefined;
 
   const requiredLinks = params.outgoingLinks
     .filter(({ required }) => !!required)
@@ -357,7 +360,7 @@ export const generateWorkspaceEntityTypeSchema = (
     properties,
     required: requiredProperties,
     links,
-    requiredLinks,
+    requiredLinks: requiredLinks.length > 0 ? requiredLinks : undefined,
   };
 };
 
