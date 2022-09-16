@@ -44,7 +44,7 @@ use crate::{
 /// the query will resolve up to two links, but only a single entity:
 /// - `linkedEntities`: \[`Entity2`]
 /// - `links`: \[`Link1`, `Link2`]
-pub type KnowledgeQueryDepth = u8;
+pub type KnowledgeGraphQueryDepth = u8;
 
 /// Query to read [`Entities`] or [`Link`]s, which satisfy the [`Expression`].
 ///
@@ -63,9 +63,9 @@ pub struct KnowledgeGraphQuery {
     #[component(value_type = number)]
     pub entity_type_query_depth: OntologyQueryDepth,
     #[component(value_type = number)]
-    pub link_target_entity_query_depth: KnowledgeQueryDepth,
+    pub link_target_entity_query_depth: KnowledgeGraphQueryDepth,
     #[component(value_type = number)]
-    pub link_query_depth: KnowledgeQueryDepth,
+    pub link_query_depth: KnowledgeGraphQueryDepth,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
