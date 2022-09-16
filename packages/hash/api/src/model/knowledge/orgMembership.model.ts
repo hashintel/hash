@@ -5,6 +5,7 @@ import {
   EntityModelCreateParams,
   OrgModel,
   UserModel,
+  LinkModel,
 } from "..";
 import { workspaceAccountId } from "../util";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
@@ -89,7 +90,7 @@ export default class extends EntityModel {
    * Get the org linked to the org membership.
    */
   async getOrg(graphApi: GraphApi): Promise<OrgModel> {
-    const { data: outgoingOrgLinks } = await graphApi.getLinksByQuery({
+    const outgoingOrgLinks = await LinkModel.getByQuery(graphApi, {
       all: [
         {
           eq: [{ path: ["source", "id"] }, { literal: this.entityId }],
@@ -118,19 +119,9 @@ export default class extends EntityModel {
       );
     }
 
-    const { targetEntityId: orgEntityId } = outgoingOrgLink;
+    const { targetEntityModel: orgEntityModel } = outgoingOrgLink;
 
-    const orgModel = await OrgModel.getOrgById(graphApi, {
-      entityId: orgEntityId,
-    });
-
-    if (!orgModel) {
-      throw new Error(
-        `Critical: org membership with entity id ${this.entityId} links to non-existent org with id ${orgEntityId}`,
-      );
-    }
-
-    return orgModel;
+    return OrgModel.fromEntityModel(orgEntityModel);
   }
 
   /**

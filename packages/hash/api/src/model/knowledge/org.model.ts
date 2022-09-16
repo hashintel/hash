@@ -80,6 +80,19 @@ export default class extends EntityModel {
     });
   }
 
+  static fromEntityModel(entity: EntityModel): OrgModel {
+    if (
+      entity.entityTypeModel.schema.$id !==
+      WORKSPACE_TYPES.entityType.org.schema.$id
+    ) {
+      throw new Error(
+        `Entity with id ${entity.entityId} is not a workspace org`,
+      );
+    }
+
+    return new OrgModel(entity);
+  }
+
   /**
    * Get a workspace organization entity by its entity id.
    *
@@ -95,16 +108,7 @@ export default class extends EntityModel {
       entityId: params.entityId,
     });
 
-    if (
-      entity.entityTypeModel.schema.$id !==
-      WORKSPACE_TYPES.entityType.org.schema.$id
-    ) {
-      throw new Error(
-        `Entity with id ${params.entityId} is not a workspace org`,
-      );
-    }
-
-    return entity ? new OrgModel(entity) : null;
+    return entity ? OrgModel.fromEntityModel(entity) : null;
   }
 
   /**
