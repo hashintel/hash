@@ -19,7 +19,7 @@ export const mapOrgModelToGQL = async (
 ): Promise<UnresolvedGQLOrg> => {
   return {
     accountId: org.entityId,
-    id: org.entityId,
+    id: org.entityId /** @todo: verify if we still need this in https://app.asana.com/0/0/1202980861294716/f */,
     entityId: org.entityId,
     entityVersionId: org.version,
     entityTypeId: "" /** @todo: deprecate this field */,

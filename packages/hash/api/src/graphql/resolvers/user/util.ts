@@ -19,7 +19,7 @@ export const mapUserModelToGQL = async (
 ): Promise<UnresolvedGQLUser> => {
   return {
     accountId: user.entityId,
-    id: user.entityId,
+    id: user.entityId /** @todo: verify if we still need this in https://app.asana.com/0/0/1202980861294716/f */,
     entityId: user.entityId,
     entityVersionId: user.version,
     entityTypeId: "" /** @todo: deprecate this field */,
