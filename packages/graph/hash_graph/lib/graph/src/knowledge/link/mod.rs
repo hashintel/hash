@@ -16,7 +16,7 @@ pub struct Link {
     source_entity_id: EntityId,
     target_entity_id: EntityId,
     #[component(value_type = String)]
-    link_type_uri: VersionedUri,
+    link_type_id: VersionedUri,
 }
 
 impl Link {
@@ -24,12 +24,12 @@ impl Link {
     pub const fn new(
         source_entity_id: EntityId,
         target_entity_id: EntityId,
-        link_type_uri: VersionedUri,
+        link_type_id: VersionedUri,
     ) -> Self {
         Self {
             source_entity_id,
             target_entity_id,
-            link_type_uri,
+            link_type_id,
         }
     }
 
@@ -44,8 +44,8 @@ impl Link {
     }
 
     #[must_use]
-    pub const fn link_type_uri(&self) -> &VersionedUri {
-        &self.link_type_uri
+    pub const fn link_type_id(&self) -> &VersionedUri {
+        &self.link_type_id
     }
 }
 

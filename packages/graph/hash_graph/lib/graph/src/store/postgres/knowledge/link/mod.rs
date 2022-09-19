@@ -50,7 +50,7 @@ impl<C: AsClient> PostgresStore<C> {
             if let Some(link) = links.insert(link, link_query_depth) {
                 if link_type_query_depth > 0 {
                     self.get_link_type_as_dependency(
-                        link.inner().link_type_uri(),
+                        link.inner().link_type_id(),
                         LinkTypeDependencyContext {
                             referenced_link_types,
                             link_type_query_depth: link_type_query_depth - 1,

@@ -10,7 +10,7 @@ use crate::{
 };
 
 pub struct LinkRecord {
-    pub type_uri: VersionedUri,
+    pub link_type_id: VersionedUri,
     pub source_entity_id: EntityId,
     pub target_entity_id: EntityId,
     pub account_id: AccountId, // TODO - rename to owned_by_id
@@ -22,7 +22,7 @@ impl From<LinkRecord> for PersistedLink {
             Link::new(
                 record.source_entity_id,
                 record.target_entity_id,
-                record.type_uri,
+                record.link_type_id,
             ),
             record.account_id,
         )
@@ -38,7 +38,7 @@ fn row_stream_to_record_stream(
         let row = row_result.into_report().change_context(QueryError)?;
 
         Ok(LinkRecord {
-            type_uri: VersionedUri::new(
+            link_type_id: VersionedUri::new(
                 BaseUri::new(row.get(0)).expect("invalid BaseUri"),
                 row.get::<_, i64>(1) as u32,
             ),

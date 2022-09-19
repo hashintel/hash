@@ -39,11 +39,11 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("text_data_type_uri", encodeURIComponent(response.body.uri));
+    client.global.set("text_data_type_id", encodeURIComponent(response.body.uri));
 %}
 
 ### Get Text data type
-GET http://127.0.0.1:4000/data-types/{{text_data_type_uri}}
+GET http://127.0.0.1:4000/data-types/{{text_data_type_id}}
 
 > {%
     client.test("status", function() {
@@ -97,11 +97,11 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_property_type_uri", encodeURIComponent(response.body.uri));
+    client.global.set("person_property_type_id", encodeURIComponent(response.body.uri));
 %}
 
 ### Get Name property type
-GET http://127.0.0.1:4000/property-types/{{person_property_type_uri}}
+GET http://127.0.0.1:4000/property-types/{{person_property_type_id}}
 
 > {%
     client.test("status", function() {
@@ -166,12 +166,12 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("friend_of_link_type_uri", encodeURIComponent(response.body.uri));
-    client.global.set("friend_of_link_type_uri_raw", response.body.uri);
+    client.global.set("friend_of_link_type_id", encodeURIComponent(response.body.uri));
+    client.global.set("friend_of_link_type_id_raw", response.body.uri);
 %}
 
 ### Get FriendOf link type
-GET http://127.0.0.1:4000/link-types/{{friend_of_link_type_uri}}
+GET http://127.0.0.1:4000/link-types/{{friend_of_link_type_id}}
 
 > {%
     client.test("status", function() {
@@ -239,11 +239,11 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_entity_type_uri", encodeURIComponent(response.body.uri));
+    client.global.set("person_entity_type_id", encodeURIComponent(response.body.uri));
 %}
 
 ### Get Person entity type
-GET http://127.0.0.1:4000/entity-types/{{person_entity_type_uri}}
+GET http://127.0.0.1:4000/entity-types/{{person_entity_type_id}}
 
 > {%
     client.test("status", function() {
@@ -308,7 +308,7 @@ Accept: application/json
   "entity": {
     "http://localhost:3000/@alice/types/property-type/name/": "Alice"
   },
-  "entityTypeUri": "http://localhost:3000/@alice/types/entity-type/person/v/1"
+  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1"
 }
 
 > {%
@@ -335,7 +335,7 @@ Accept: application/json
 {
   "accountId": "{{account_id}}",
   "entityId": "{{person_a_entity_id}}",
-  "entityTypeUri": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
   "entity": {
     "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
   }
@@ -357,7 +357,7 @@ Accept: application/json
   "entity": {
     "http://localhost:3000/@alice/types/property-type/name/": "Bob"
   },
-  "entityTypeUri": "http://localhost:3000/@alice/types/entity-type/person/v/1"
+  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1"
 }
 
 > {%
@@ -417,7 +417,7 @@ Accept: application/json
 {
   "ownedById": "{{account_id}}",
   "targetEntityId": "{{person_b_entity_id}}",
-  "linkTypeUri": "{{friend_of_link_type_uri_raw}}"
+  "linkTypeId": "{{friend_of_link_type_id_raw}}"
 }
 
 > {%
@@ -447,7 +447,7 @@ Accept: application/json
 
 {
   "targetEntityId": "{{person_b_entity_id}}",
-  "linkTypeUri": "{{friend_of_link_type_uri_raw}}",
+  "linkTypeId": "{{friend_of_link_type_id_raw}}",
   "removedById": "{{account_id}}"
 }
 

@@ -32,7 +32,7 @@ impl<C: AsClient> PostgresStore<C> {
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) async fn get_data_type_as_dependency(
         &self,
-        data_type_uri: &VersionedUri,
+        data_type_id: &VersionedUri,
         context: DataTypeDependencyContext<'_>,
     ) -> Result<(), QueryError> {
         let DataTypeDependencyContext {
@@ -41,9 +41,9 @@ impl<C: AsClient> PostgresStore<C> {
         } = context;
 
         let _unresolved_entity_type = referenced_data_types
-            .insert(data_type_uri, data_type_query_depth, || async {
+            .insert(data_type_id, data_type_query_depth, || async {
                 Ok(PersistedDataType::from_record(
-                    self.read_versioned_ontology_type(data_type_uri).await?,
+                    self.read_versioned_ontology_type(data_type_id).await?,
                 ))
             })
             .await?;

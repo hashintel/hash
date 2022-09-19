@@ -63,7 +63,7 @@ impl<C: AsClient> PostgresStore<C> {
             if let Some(entity) = unresolved_entity {
                 if entity_type_query_depth > 0 {
                     self.get_entity_type_as_dependency(
-                        entity.type_versioned_uri(),
+                        entity.entity_type_id(),
                         EntityTypeDependencyContext {
                             referenced_data_types,
                             referenced_property_types,
@@ -117,7 +117,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn create_entity(
         &mut self,
         entity: Entity,
-        entity_type_uri: VersionedUri,
+        entity_type_id: VersionedUri,
         owned_by_id: AccountId,
         entity_id: Option<EntityId>,
     ) -> Result<PersistedEntityIdentifier, InsertionError> {
@@ -135,7 +135,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         //   https://app.asana.com/0/1200211978612931/1202574350052904/f
         transaction.insert_entity_id(entity_id).await?;
         let identifier = transaction
-            .insert_entity(entity_id, entity, entity_type_uri, owned_by_id)
+            .insert_entity(entity_id, entity, entity_type_id, owned_by_id)
             .await?;
 
         transaction
@@ -212,7 +212,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         &mut self,
         entity_id: EntityId,
         entity: Entity,
-        entity_type_uri: VersionedUri,
+        entity_type_id: VersionedUri,
         updated_by: AccountId,
     ) -> Result<PersistedEntityIdentifier, UpdateError> {
         let transaction = PostgresStore::new(
@@ -234,7 +234,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         }
 
         let identifier = transaction
-            .insert_entity(entity_id, entity, entity_type_uri, updated_by)
+            .insert_entity(entity_id, entity, entity_type_id, updated_by)
             .await
             .change_context(UpdateError)?;
 

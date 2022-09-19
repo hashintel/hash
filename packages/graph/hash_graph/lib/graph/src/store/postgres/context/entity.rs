@@ -14,7 +14,7 @@ pub struct EntityRecord {
     pub entity: Entity,
     pub id: EntityId,
     pub version: DateTime<Utc>,
-    pub type_uri: VersionedUri,
+    pub entity_type_id: VersionedUri,
     pub account_id: AccountId, // TODO - rename to owned_by_id
     pub is_latest: bool,
 }
@@ -25,7 +25,7 @@ impl From<EntityRecord> for PersistedEntity {
             record.entity,
             record.id,
             record.version,
-            record.type_uri,
+            record.entity_type_id,
             record.account_id,
         )
     }
@@ -43,7 +43,7 @@ fn row_stream_to_record_stream(
             entity: serde_json::from_value(row.get(0)).expect("invalid entity"),
             id: row.get(1),
             version: row.get(2),
-            type_uri: VersionedUri::new(
+            entity_type_id: VersionedUri::new(
                 BaseUri::new(row.get(3)).expect("invalid BaseUri"),
                 row.get::<_, i64>(4) as u32,
             ),
@@ -99,7 +99,7 @@ pub async fn read_latest_entity_by_id(
         entity: serde_json::from_value(row.get(0)).expect("invalid entity"),
         id: row.get(1),
         version: row.get(2),
-        type_uri: VersionedUri::new(
+        entity_type_id: VersionedUri::new(
             BaseUri::new(row.get(3)).expect("invalid BaseUri"),
             row.get::<_, i64>(4) as u32,
         ),

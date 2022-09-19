@@ -33,7 +33,7 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
                             record.entity,
                             record.id,
                             record.version,
-                            record.type_uri,
+                            record.entity_type_id,
                             record.account_id,
                         )
                     }))

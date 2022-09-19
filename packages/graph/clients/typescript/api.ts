@@ -92,7 +92,7 @@ export interface CreateEntityRequest {
    * @type {string}
    * @memberof CreateEntityRequest
    */
-  entityTypeUri: string;
+  entityTypeId: string;
 }
 /**
  *
@@ -124,7 +124,7 @@ export interface CreateLinkRequest {
    * @type {string}
    * @memberof CreateLinkRequest
    */
-  linkTypeUri: string;
+  linkTypeId: string;
   /**
    *
    * @type {string}
@@ -557,7 +557,7 @@ export interface Link {
    * @type {string}
    * @memberof Link
    */
-  linkTypeUri: string;
+  linkTypeId: string;
   /**
    *
    * @type {string}
@@ -1103,7 +1103,7 @@ export interface RemoveLinkRequest {
    * @type {string}
    * @memberof RemoveLinkRequest
    */
-  linkTypeUri: string;
+  linkTypeId: string;
   /**
    *
    * @type {string}
@@ -1212,7 +1212,7 @@ export interface UpdateEntityRequest {
    * @type {string}
    * @memberof UpdateEntityRequest
    */
-  entityTypeUri: string;
+  entityTypeId: string;
 }
 /**
  * The contents of an Entity Type update request

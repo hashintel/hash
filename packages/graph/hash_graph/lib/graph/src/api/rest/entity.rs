@@ -76,7 +76,7 @@ impl RoutedResource for EntityResource {
 struct CreateEntityRequest {
     entity: Entity,
     #[component(value_type = String)]
-    entity_type_uri: VersionedUri,
+    entity_type_id: VersionedUri,
     account_id: AccountId,
     entity_id: Option<EntityId>,
 }
@@ -101,7 +101,7 @@ async fn create_entity<P: StorePool + Send>(
 ) -> Result<Json<PersistedEntityIdentifier>, StatusCode> {
     let Json(CreateEntityRequest {
         entity,
-        entity_type_uri,
+        entity_type_id,
         account_id,
         entity_id,
     }) = body;
@@ -112,7 +112,7 @@ async fn create_entity<P: StorePool + Send>(
     })?;
 
     store
-        .create_entity(entity, entity_type_uri, account_id, entity_id)
+        .create_entity(entity, entity_type_id, account_id, entity_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create entity");
@@ -203,7 +203,7 @@ struct UpdateEntityRequest {
     entity: Entity,
     entity_id: EntityId,
     #[component(value_type = String)]
-    entity_type_uri: VersionedUri,
+    entity_type_id: VersionedUri,
     account_id: AccountId,
 }
 
@@ -227,7 +227,7 @@ async fn update_entity<P: StorePool + Send>(
     let Json(UpdateEntityRequest {
         entity,
         entity_id,
-        entity_type_uri,
+        entity_type_id,
         account_id,
     }) = body;
 
@@ -237,7 +237,7 @@ async fn update_entity<P: StorePool + Send>(
     })?;
 
     store
-        .update_entity(entity_id, entity, entity_type_uri, account_id)
+        .update_entity(entity_id, entity, entity_type_id, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity");

@@ -583,13 +583,13 @@ where
                 .change_context(InsertionError)?;
         }
 
-        let (link_type_uris, entity_type_references): (
+        let (link_type_ids, entity_type_references): (
             Vec<&VersionedUri>,
             Vec<&EntityTypeReference>,
         ) = entity_type.link_type_references().into_iter().unzip();
 
         let link_type_ids = self
-            .link_type_uris_to_version_ids(link_type_uris)
+            .link_type_ids_to_version_ids(link_type_ids)
             .await
             .change_context(InsertionError)
             .attach_printable("Could not find referenced link types")?;
@@ -680,17 +680,17 @@ where
         Ok(ids)
     }
 
-    async fn link_type_uris_to_version_ids<'p, I>(
+    async fn link_type_ids_to_version_ids<'p, I>(
         &self,
-        link_type_uris: I,
+        link_type_ids: I,
     ) -> Result<Vec<VersionId>, QueryError>
     where
         I: IntoIterator<Item = &'p VersionedUri> + Send,
         I::IntoIter: Send,
     {
-        let link_type_uris = link_type_uris.into_iter();
-        let mut ids = Vec::with_capacity(link_type_uris.size_hint().0);
-        for uri in link_type_uris {
+        let link_type_ids = link_type_ids.into_iter();
+        let mut ids = Vec::with_capacity(link_type_ids.size_hint().0);
+        for uri in link_type_ids {
             ids.push(self.version_id_by_uri(uri).await?);
         }
         Ok(ids)
@@ -700,11 +700,11 @@ where
         &self,
         entity_id: EntityId,
         entity: Entity,
-        entity_type_uri: VersionedUri,
+        entity_type_id: VersionedUri,
         account_id: AccountId,
     ) -> Result<PersistedEntityIdentifier, InsertionError> {
         let entity_type_id = self
-            .version_id_by_uri(&entity_type_uri)
+            .version_id_by_uri(&entity_type_id)
             .await
             .change_context(InsertionError)?;
 
@@ -765,7 +765,7 @@ where
     /// - if inserting the link failed.
     async fn insert_link(&self, link: &Link, owned_by_id: AccountId) -> Result<(), InsertionError> {
         let link_type_version_id = self
-            .version_id_by_uri(link.link_type_uri())
+            .version_id_by_uri(link.link_type_id())
             .await
             .change_context(InsertionError)
             .attach_printable(link.source_entity())?;
@@ -805,7 +805,7 @@ where
         removed_by_id: AccountId,
     ) -> Result<(), LinkRemovalError> {
         let link_type_version_id = self
-            .version_id_by_uri(link.link_type_uri())
+            .version_id_by_uri(link.link_type_id())
             .await
             .change_context(InsertionError)
             .attach_printable(link.source_entity())

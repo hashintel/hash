@@ -374,7 +374,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
     async fn create_entity(
         &mut self,
         entity: Entity,
-        entity_type_uri: VersionedUri,
+        entity_type_id: VersionedUri,
         owned_by_id: AccountId,
         entity_id: Option<EntityId>,
     ) -> Result<PersistedEntityIdentifier, InsertionError>;
@@ -401,7 +401,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
         &mut self,
         entity_id: EntityId,
         entity: Entity,
-        entity_type_uri: VersionedUri,
+        entity_type_id: VersionedUri,
         updated_by: AccountId,
     ) -> Result<PersistedEntityIdentifier, UpdateError>;
 }
