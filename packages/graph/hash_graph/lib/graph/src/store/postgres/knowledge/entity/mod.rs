@@ -12,8 +12,8 @@ use uuid::Uuid;
 
 use crate::{
     knowledge::{
-        Entity, EntityId, EntityRootedSubgraph, KnowledgeGraphQuery, Link, PersistedEntity,
-        PersistedEntityIdentifier,
+        Entity, EntityId, EntityRootedSubgraph, KnowledgeGraphQuery, PersistedEntity,
+        PersistedEntityIdentifier, PersistedLink,
     },
     ontology::AccountId,
     store::{
@@ -85,11 +85,7 @@ impl<C: AsClient> PostgresStore<C> {
                         .try_collect::<Vec<_>>()
                         .await?
                     {
-                        let link = Link::new(
-                            link_record.source_entity_id,
-                            link_record.target_entity_id,
-                            link_record.type_uri,
-                        );
+                        let link = PersistedLink::from(link_record);
 
                         self.get_link_as_dependency(&link, KnowledgeDependencyContext {
                             referenced_data_types,

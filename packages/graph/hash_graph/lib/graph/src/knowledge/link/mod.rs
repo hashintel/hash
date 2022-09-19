@@ -51,7 +51,7 @@ impl Link {
 
 /// A record of a [`Link`] that has been persisted in the datastore, with its associated
 /// metadata.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Component)]
 #[serde(rename_all = "camelCase")]
 pub struct PersistedLink {
     inner: Link,

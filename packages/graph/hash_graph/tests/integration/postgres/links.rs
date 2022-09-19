@@ -54,7 +54,10 @@ async fn insert() {
         .await
         .expect("could not fetch link");
 
-    assert_eq!(link_target.target_entity(), person_b_identifier.entity_id());
+    assert_eq!(
+        link_target.inner().target_entity(),
+        person_b_identifier.entity_id()
+    );
 }
 
 #[tokio::test]
@@ -135,13 +138,13 @@ async fn get_entity_links() {
     assert!(
         links_from_source
             .iter()
-            .find(|link| link.link_type_uri() == &acquaintance_link_type_uri)
+            .find(|link| link.inner().link_type_uri() == &acquaintance_link_type_id)
             .is_some()
     );
     assert!(
         links_from_source
             .iter()
-            .find(|link| link.link_type_uri() == &friend_link_type_uri)
+            .find(|link| link.inner().link_type_uri() == &friend_link_type_id)
             .is_some()
     );
 }

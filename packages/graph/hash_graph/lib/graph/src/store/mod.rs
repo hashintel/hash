@@ -19,7 +19,7 @@ pub use self::{
 use crate::{
     knowledge::{
         Entity, EntityId, EntityRootedSubgraph, KnowledgeGraphQuery, Link, LinkRootedSubgraph,
-        PersistedEntity, PersistedEntityIdentifier,
+        PersistedEntity, PersistedEntityIdentifier, PersistedLink,
     },
     ontology::{
         AccountId, DataTypeQuery, DataTypeRootedSubgraph, EntityTypeQuery,
@@ -358,7 +358,9 @@ pub trait LinkTypeStore: for<'q> crud::Read<PersistedLinkType, Query<'q> = Expre
     ) -> Result<PersistedOntologyIdentifier, UpdateError>;
 }
 
-/// Describes the API of a store implementation for Entities.
+/// Describes the API of a store implementation for [Entities].
+///
+/// [Entities]: crate::knowledge::Entity
 #[async_trait]
 pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expression> {
     /// Creates a new [`Entity`].
@@ -406,7 +408,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
 
 /// Describes the API of a store implementation for [`Link`]s.
 #[async_trait]
-pub trait LinkStore: for<'q> crud::Read<Link, Query<'q> = Expression> {
+pub trait LinkStore: for<'q> crud::Read<PersistedLink, Query<'q> = Expression> {
     /// Creates a new [`Link`].
     ///
     /// # Errors:

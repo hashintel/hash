@@ -11,6 +11,7 @@ use error_stack::{Report, Result};
 use graph::{
     knowledge::{
         Entity, EntityId, KnowledgeGraphQuery, Link, PersistedEntity, PersistedEntityIdentifier,
+        PersistedLink,
     },
     ontology::{
         AccountId, DataTypeQuery, EntityTypeQuery, LinkTypeQuery, PersistedDataType,
@@ -335,7 +336,7 @@ impl DatabaseApi<'_> {
         &self,
         source_entity_id: EntityId,
         link_type_uri: VersionedUri,
-    ) -> Result<Link, QueryError> {
+    ) -> Result<PersistedLink, QueryError> {
         Ok(self
             .store
             .get_links(&KnowledgeGraphQuery {
@@ -385,7 +386,7 @@ impl DatabaseApi<'_> {
     pub async fn get_entity_links(
         &self,
         source_entity_id: EntityId,
-    ) -> Result<Vec<Link>, QueryError> {
+    ) -> Result<Vec<PersistedLink>, QueryError> {
         Ok(self
             .store
             .get_links(&KnowledgeGraphQuery {
