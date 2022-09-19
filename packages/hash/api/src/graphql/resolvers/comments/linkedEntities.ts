@@ -1,4 +1,4 @@
-import { TextToken } from "@hashintel/hash-shared/graphql/types";
+import { JsonValue } from "@blockprotocol/core";
 import { ApolloError } from "apollo-server-express";
 import {
   Comment,
@@ -9,7 +9,7 @@ import { ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 
 const contents: ResolverFn<
-  Promise<TextToken[]>,
+  Promise<JsonValue>,
   UnresolvedGQLComment,
   GraphQLContext,
   {}
@@ -26,7 +26,7 @@ const contents: ResolverFn<
 
   const content = await comment.getContents(db);
 
-  return (content.properties.tokens || []) as TextToken[];
+  return content.properties.tokens || [];
 };
 
 const parent: ResolverFn<
