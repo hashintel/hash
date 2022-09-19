@@ -123,7 +123,6 @@ jobs:
 
   backend-integration-tests:
     name: Backend integration tests
-    if: ${{ github.base_ref != 'dev/graph' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -138,21 +137,7 @@ jobs:
       - name: Launch external services
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file packages/hash/external-services/docker-compose.yml build
-          docker-compose --file packages/hash/external-services/docker-compose.yml up --detach
-
-      - name: Seed data
-        if: ${{ success() || failure() }}
-        run: |
-          yarn seed-data
-
-      - name: Launch backend in test mode
-        if: ${{ success() || failure() }}
-        run: |
-          yarn dev:backend 2>&1 | tee var/logs/backend.log & ## ampersand enables background mode
-          yarn wait-on --timeout 30000 http://0.0.0.0:5001
-        env:
-          NODE_ENV: test
+          yarn test-external-services up --detach
 
       - run: yarn test:backend-integration
         if: ${{ success() || failure() }}
@@ -161,10 +146,6 @@ jobs:
         if: ${{ success() || failure() }}
         run: |
           docker-compose --file packages/hash/external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
-
-      - name: Show backend logs
-        if: ${{ success() || failure() }}
-        run: cat var/logs/backend.log
 
       - name: Upload artifact backend-integration-tests-var
         uses: actions/upload-artifact@v2
