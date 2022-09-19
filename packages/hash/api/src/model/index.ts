@@ -44,8 +44,11 @@ export { default as UserModel } from "./knowledge/user.model";
 export * from "./knowledge/org.model";
 export { default as OrgModel } from "./knowledge/org.model";
 
-export * from "./knowledge/org.model";
+export * from "./knowledge/orgMembership.model";
 export { default as OrgMembershipModel } from "./knowledge/orgMembership.model";
+
+export * from "./knowledge/block.model";
+export { default as BlockModel } from "./knowledge/block.model";
 
 /** @todo: deprecate legacy model classes */
 
