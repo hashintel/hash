@@ -203,7 +203,11 @@ const NewPropertyTypeForm = ({
   </Box>
 );
 
-const PropertyMenu = ({ disabled, ...props }: IconButtonProps) => {
+const PropertyMenu = ({
+  disabled,
+  onRemove,
+  ...props
+}: IconButtonProps & { onRemove?: () => void }) => {
   const id = useId();
   const popupState = usePopupState({
     variant: "popover",
@@ -276,7 +280,12 @@ const PropertyMenu = ({ disabled, ...props }: IconButtonProps) => {
         <MenuItem>
           <ListItemText primary="Copy link" />
         </MenuItem>
-        <MenuItem>
+        <MenuItem
+          onClick={() => {
+            popupState.close();
+            onRemove?.();
+          }}
+        >
           <ListItemText primary="Remove property" />
         </MenuItem>
         <Divider />
@@ -618,7 +627,11 @@ const InsertPropertyCard = ({
                   <Input />
                 </TableCell>
                 <TableCell>
-                  <PropertyMenu />
+                  <PropertyMenu
+                    onRemove={() => {
+                      setCreated((list) => list.filter((item) => item !== id));
+                    }}
+                  />
                 </TableCell>
               </TableRow>
             ))}
