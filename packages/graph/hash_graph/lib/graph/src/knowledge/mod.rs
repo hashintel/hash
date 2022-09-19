@@ -9,7 +9,7 @@ use utoipa::Component;
 
 pub use self::{
     entity::{Entity, EntityId, PersistedEntity, PersistedEntityIdentifier},
-    link::Link,
+    link::{Link, PersistedLink},
 };
 use crate::{
     ontology::{
