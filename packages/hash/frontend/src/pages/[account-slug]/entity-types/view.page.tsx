@@ -31,6 +31,7 @@ import {
   checkboxClasses,
   Container,
   Divider,
+  experimental_sx as sx,
   ListItem,
   listItemClasses,
   ListItemText,
@@ -53,8 +54,9 @@ import {
   Theme,
   Typography,
   useForkRef,
+  styled,
+  PopperProps,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
 import {
   bindFocus,
   bindMenu,
@@ -69,14 +71,13 @@ import { Modal } from "../../../components/Modals/Modal";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
 import { TopContextBar } from "../../shared/top-context-bar";
 import { OurChip, placeholderUri } from "./Chip";
-import { experimental_sx as sx } from "@mui/material";
 
 const QuestionIcon = styled(
   (props: Omit<ComponentProps<typeof FontAwesomeIcon>, "icon">) => (
     <FontAwesomeIcon {...props} icon={faQuestionCircle} />
   ),
 )(
-  sx((theme) => ({
+  sx<Theme>((theme) => ({
     color: theme.palette.gray[40],
   })),
 );
@@ -144,7 +145,7 @@ const Input = (props: TextFieldProps) => (
   <TextField {...props} placeholder="Add default value" sx={{ width: 165 }} />
 );
 
-const PropertyMenu = (props: IconButtonProps) => {
+const PropertyMenu = ({ disabled, ...props }: IconButtonProps) => {
   const id = useId();
   const popupState = usePopupState({
     variant: "popover",
@@ -155,9 +156,10 @@ const PropertyMenu = (props: IconButtonProps) => {
     <>
       <IconButton
         {...props}
+        disabled={disabled}
         sx={{
           opacity: 0,
-          ...(!props.disabled && {
+          ...(!disabled && {
             [`.${tableRowClasses.root}:hover &`]: {
               opacity: 1,
             },
@@ -269,12 +271,15 @@ const NewPropertyRow = ({
   onAdd: VoidFunction;
 }) => {
   const modifiers = useMemo(
-    () => [
+    (): PopperProps["modifiers"] => [
       {
         name: "sameWidth",
         enabled: true,
         fn: ({ state }) => {
-          state.styles.popper.width = `${state.rects.reference.width}px`;
+          if (state.styles.popper) {
+            // eslint-disable-next-line no-param-reassign
+            state.styles.popper.width = `${state.rects.reference.width}px`;
+          }
         },
         phase: "beforeWrite",
         requires: ["computeStyles"],
@@ -295,7 +300,8 @@ const NewPropertyRow = ({
     popupId: `createProperty-${modalTooltipId}`,
   });
 
-  let modalPopoverProps = bindPopover(modalPopupState);
+  const modalPopoverProps = bindPopover(modalPopupState);
+
   return (
     <TableRow data-disabled>
       <TableCell colSpan={2}>
@@ -342,40 +348,50 @@ const NewPropertyRow = ({
               onClose={() => {}}
               contentStyle={{ p: 0 }}
             >
-              <Box
-                sx={(theme) => ({
-                  px: 2.5,
-                  pr: 1.5,
-                  pb: 1.5,
-                  pt: 2,
-                  borderBottom: "solid",
-                  borderColor: theme.palette.gray[20],
-                  alignItems: "center",
-                  display: "flex",
-                })}
-              >
-                <Typography variant="hashBodyCopy" sx={{ fontWeight: 500 }}>
-                  Create new property type
-                </Typography>
-                <QuestionIcon
-                  sx={{
-                    ml: 1.25,
-                  }}
-                />
-                <IconButton
-                  onClick={modalPopoverProps.onClose}
+              <>
+                <Box
                   sx={(theme) => ({
-                    ml: "auto",
-                    svg: {
-                      color: theme.palette.gray[50],
-                      fontSize: 20,
-                    },
+                    px: 2.5,
+                    pr: 1.5,
+                    pb: 1.5,
+                    pt: 2,
+                    borderBottom: "solid",
+                    borderColor: theme.palette.gray[20],
+                    alignItems: "center",
+                    display: "flex",
                   })}
                 >
-                  <FontAwesomeIcon icon={faClose} sx={(theme) => ({})} />
-                </IconButton>
-              </Box>
-              <Box sx={{ p: 5 }} />
+                  <Typography
+                    variant="regularTextLabels"
+                    sx={{ fontWeight: 500 }}
+                  >
+                    Create new property type
+                  </Typography>
+                  <QuestionIcon
+                    sx={{
+                      ml: 1.25,
+                    }}
+                  />
+                  <IconButton
+                    onClick={modalPopoverProps.onClose}
+                    sx={(theme) => ({
+                      ml: "auto",
+                      svg: {
+                        color: theme.palette.gray[50],
+                        fontSize: 20,
+                      },
+                    })}
+                  >
+                    <FontAwesomeIcon icon={faClose} />
+                  </IconButton>
+                </Box>
+                <Box sx={{ p: 3 }}>
+                  <Box sx={{ display: "flex" }}>
+                    <TextField sx={{ flex: 1, mr: 0.75 }} />
+                    <TextField sx={{ flex: 1 }} />
+                  </Box>
+                </Box>
+              </>
             </Modal>
           </Paper>
         </Popper>
@@ -525,13 +541,11 @@ const InsertPropertyCard = ({
           <TableBody>
             {created ? (
               <TableRow>
-                <Typography
-                  component={TableCell}
-                  variant="smallTextLabels"
-                  fontWeight={500}
-                >
-                  Share Price
-                </Typography>
+                <TableCell>
+                  <Typography variant="smallTextLabels" fontWeight={500}>
+                    Share Price
+                  </Typography>
+                </TableCell>
                 <TableCell>
                   <Chip label="Number" />
                 </TableCell>
@@ -597,7 +611,7 @@ const InsertPropertyCard = ({
                       },
                     })}
                   >
-                    {/*@todo must be outlijned*/}
+                    {/** @todo must be outlined */}
                     <FontAwesomeIcon
                       icon={faPlusCircle}
                       sx={{ fontSize: 12, mr: 1 }}
