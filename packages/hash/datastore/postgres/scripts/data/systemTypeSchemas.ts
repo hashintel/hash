@@ -209,7 +209,7 @@ const systemTypeSchemas: {
         description: "Timestamp of when the comment was resolved",
       },
     },
-    labelProperty: "entityId",
+    labelProperty: "",
     required: [],
   },
 };
