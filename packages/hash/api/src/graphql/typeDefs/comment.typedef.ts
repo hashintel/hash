@@ -84,7 +84,7 @@ export const commentTypedef = gql`
   }
 
   type CommentProperties {
-    createdAt: Date
+    createdAt: Date!
     resolvedAt: Date
     editedAt: Date
   }
