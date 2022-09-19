@@ -1,5 +1,7 @@
+import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 import {
   faBriefcase,
+  faClose,
   faEllipsis,
   faList,
   faPlus,
@@ -52,19 +54,32 @@ import {
   Typography,
   useForkRef,
 } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import {
-  bindMenu,
-  bindTrigger,
   bindFocus,
+  bindMenu,
   bindPopper,
+  bindTrigger,
 } from "material-ui-popup-state";
-import { usePopupState } from "material-ui-popup-state/hooks";
+import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
 import Image from "next/image";
-import { Ref, useId, useMemo, useRef, useState } from "react";
+import { ComponentProps, Ref, useId, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import { Modal } from "../../../components/Modals/Modal";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
 import { TopContextBar } from "../../shared/top-context-bar";
 import { OurChip, placeholderUri } from "./Chip";
+import { experimental_sx as sx } from "@mui/material";
+
+const QuestionIcon = styled(
+  (props: Omit<ComponentProps<typeof FontAwesomeIcon>, "icon">) => (
+    <FontAwesomeIcon {...props} icon={faQuestionCircle} />
+  ),
+)(
+  sx((theme) => ({
+    color: theme.palette.gray[40],
+  })),
+);
 
 const WhiteCard = ({
   onClick,
@@ -253,8 +268,6 @@ const NewPropertyRow = ({
   onCancel: VoidFunction;
   onAdd: VoidFunction;
 }) => {
-  const id = useId();
-
   const modifiers = useMemo(
     () => [
       {
@@ -270,11 +283,19 @@ const NewPropertyRow = ({
     [],
   );
 
-  const popupState = usePopupState({
+  const fieldTooltipId = useId();
+  const fieldPopupState = usePopupState({
     variant: "popper",
-    popupId: `newPropertySuggester-${id}`,
+    popupId: `newPropertySuggester-${fieldTooltipId}`,
   });
 
+  const modalTooltipId = useId();
+  const modalPopupState = usePopupState({
+    variant: "popover",
+    popupId: `createProperty-${modalTooltipId}`,
+  });
+
+  let modalPopoverProps = bindPopover(modalPopupState);
   return (
     <TableRow data-disabled>
       <TableCell colSpan={2}>
@@ -299,10 +320,11 @@ const NewPropertyRow = ({
               onCancel();
             }
           }}
-          {...bindFocus(popupState)}
+          {...bindFocus(fieldPopupState)}
         />
+        {/** @todo move this into design system */}
         <Popper
-          {...bindPopper(popupState)}
+          {...bindPopper(fieldPopupState)}
           placeholder="bottom-start"
           disablePortal
           modifiers={modifiers}
@@ -311,6 +333,50 @@ const NewPropertyRow = ({
             <Button size="small" onClick={() => onAdd()}>
               Add
             </Button>
+            <Button size="small" {...bindTrigger(modalPopupState)}>
+              Create
+            </Button>
+            <Modal
+              {...modalPopoverProps}
+              disableEscapeKeyDown
+              onClose={() => {}}
+              contentStyle={{ p: 0 }}
+            >
+              <Box
+                sx={(theme) => ({
+                  px: 2.5,
+                  pr: 1.5,
+                  pb: 1.5,
+                  pt: 2,
+                  borderBottom: "solid",
+                  borderColor: theme.palette.gray[20],
+                  alignItems: "center",
+                  display: "flex",
+                })}
+              >
+                <Typography variant="hashBodyCopy" sx={{ fontWeight: 500 }}>
+                  Create new property type
+                </Typography>
+                <QuestionIcon
+                  sx={{
+                    ml: 1.25,
+                  }}
+                />
+                <IconButton
+                  onClick={modalPopoverProps.onClose}
+                  sx={(theme) => ({
+                    ml: "auto",
+                    svg: {
+                      color: theme.palette.gray[50],
+                      fontSize: 20,
+                    },
+                  })}
+                >
+                  <FontAwesomeIcon icon={faClose} sx={(theme) => ({})} />
+                </IconButton>
+              </Box>
+              <Box sx={{ p: 5 }} />
+            </Modal>
           </Paper>
         </Popper>
       </TableCell>
