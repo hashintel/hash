@@ -89,13 +89,6 @@ export const commentTypedef = gql`
     editedAt: Date
   }
 
-  extend type Query {
-    """
-    Return a list of comments belonging to an account
-    """
-    accountComments(accountId: ID!): [Comment!]!
-  }
-
   extend type Mutation {
     createComment(
       accountId: ID!
