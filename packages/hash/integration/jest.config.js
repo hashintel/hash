@@ -10,4 +10,8 @@ module.exports = {
     "@hashintel/hash-shared(.*)": "<rootDir>/../shared/src$1",
     "@hashintel/hash-graph-client": "<rootDir>/../../graph/clients/typescript",
   },
+  testMatch: [
+    "<rootDir>/src/tests/model/knowledge/**",
+    "<rootDir>/src/tests/model/ontology/**",
+  ],
 };
