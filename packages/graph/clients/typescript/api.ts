@@ -301,10 +301,10 @@ export interface EntityRootedSubgraph {
   linkedEntities: Array<PersistedEntity>;
   /**
    *
-   * @type {Array<Link>}
+   * @type {Array<PersistedLink>}
    * @memberof EntityRootedSubgraph
    */
-  links: Array<Link>;
+  links: Array<PersistedLink>;
   /**
    *
    * @type {Array<PersistedDataType>}
@@ -579,10 +579,10 @@ export interface Link {
 export interface LinkRootedSubgraph {
   /**
    *
-   * @type {Link}
+   * @type {PersistedLink}
    * @memberof LinkRootedSubgraph
    */
-  link: Link;
+  link: PersistedLink;
   /**
    *
    * @type {Array<PersistedEntity>}
@@ -591,10 +591,10 @@ export interface LinkRootedSubgraph {
   linkedEntities: Array<PersistedEntity>;
   /**
    *
-   * @type {Array<Link>}
+   * @type {Array<PersistedLink>}
    * @memberof LinkRootedSubgraph
    */
-  links: Array<Link>;
+  links: Array<PersistedLink>;
   /**
    *
    * @type {Array<PersistedDataType>}
@@ -724,6 +724,12 @@ export interface PersistedDataType {
 export interface PersistedEntity {
   /**
    *
+   * @type {string}
+   * @memberof PersistedEntity
+   */
+  entityTypeId: string;
+  /**
+   *
    * @type {PersistedEntityIdentifier}
    * @memberof PersistedEntity
    */
@@ -734,12 +740,6 @@ export interface PersistedEntity {
    * @memberof PersistedEntity
    */
   inner: object;
-  /**
-   *
-   * @type {string}
-   * @memberof PersistedEntity
-   */
-  typeVersionedUri: string;
 }
 /**
  * The metadata required to uniquely identify an instance of an [`Entity`] that has been persisted
@@ -784,6 +784,25 @@ export interface PersistedEntityType {
    * @memberof PersistedEntityType
    */
   inner: EntityType;
+}
+/**
+ * A record of a [`Link`] that has been persisted in the datastore, with its associated
+ * @export
+ * @interface PersistedLink
+ */
+export interface PersistedLink {
+  /**
+   *
+   * @type {Link}
+   * @memberof PersistedLink
+   */
+  inner: Link;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedLink
+   */
+  ownedById: string;
 }
 /**
  *
@@ -5201,7 +5220,10 @@ export const GraphApiFp = function (configuration?: Configuration) {
       entityId: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<Link>>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<Array<PersistedLink>>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getEntityLinks(
         entityId,
@@ -5833,7 +5855,10 @@ export const GraphApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getEntityLinks(entityId: string, options?: any): AxiosPromise<Array<Link>> {
+    getEntityLinks(
+      entityId: string,
+      options?: any,
+    ): AxiosPromise<Array<PersistedLink>> {
       return localVarFp
         .getEntityLinks(entityId, options)
         .then((request) => request(axios, basePath));
@@ -6222,7 +6247,7 @@ export interface GraphApiInterface {
   getEntityLinks(
     entityId: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<Link>>;
+  ): AxiosPromise<Array<PersistedLink>>;
 
   /**
    *
@@ -7144,7 +7169,10 @@ export const LinkApiFp = function (configuration?: Configuration) {
       entityId: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<Link>>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<Array<PersistedLink>>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getEntityLinks(
         entityId,
@@ -7245,7 +7273,10 @@ export const LinkApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getEntityLinks(entityId: string, options?: any): AxiosPromise<Array<Link>> {
+    getEntityLinks(
+      entityId: string,
+      options?: any,
+    ): AxiosPromise<Array<PersistedLink>> {
       return localVarFp
         .getEntityLinks(entityId, options)
         .then((request) => request(axios, basePath));
@@ -7313,7 +7344,7 @@ export interface LinkApiInterface {
   getEntityLinks(
     entityId: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<Link>>;
+  ): AxiosPromise<Array<PersistedLink>>;
 
   /**
    *
