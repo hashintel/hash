@@ -436,8 +436,8 @@ Accept: application/json
         client.assert(response.status === 200, "Response status is not 200");
     });
     const expected = client.global.get("person_b_entity_id")
-    const actual = response.body[0]["targetEntityId"];
-    client.assert(expected == actual, "Link has wrong target entity ID")
+    const actual = response.body[0]["inner"]["targetEntityId"];
+    client.assert(expected == actual, "Link has wrong target entity ID, expected " + expected + " but received " + actual)
 %}
 
 ### Remove person "a" to person "b" link
