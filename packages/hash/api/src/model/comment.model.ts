@@ -96,7 +96,7 @@ class __Comment extends Entity {
       },
     ];
 
-    const commentProperties = {
+    const commentProperties: DbCommentProperties = {
       createdAt: new Date().toISOString(),
     };
 
