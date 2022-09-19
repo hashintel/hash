@@ -53,12 +53,7 @@
     },
     "displayName": "GitHub Pull-Request Overview",
     "examples": [
-      {
-        "selectedPullRequest": {
-          "repository": "blockprotocol/blockprotocol",
-          "number": 298
-        }
-      }
+      {}
     ],
     "icon": "public/pull-request.svg",
     "image": "public/block-preview.svg",

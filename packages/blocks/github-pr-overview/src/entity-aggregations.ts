@@ -227,9 +227,11 @@ export const getEntityTypeIdsAndPrs = async (
       ({ data }) => aggregateEntities({ data }),
     );
 
+    console.log(JSON.stringify(prs));
     const mappedPullRequests = new Map();
 
     for (const pullRequest of prs) {
+      console.log(JSON.stringify(pullRequest.properties));
       const pullRequestId = `${pullRequest.properties.repository}/${pullRequest.properties.number}`;
       mappedPullRequests.set(pullRequestId, pullRequest);
     }
