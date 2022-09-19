@@ -458,7 +458,7 @@ export default class extends EntityModel {
         const orgMembership = await OrgMembershipModel.getOrgMembershipById(
           graphApi,
           {
-            entityId: link.targetEntityId,
+            entityId: link.inner.targetEntityId,
           },
         );
 

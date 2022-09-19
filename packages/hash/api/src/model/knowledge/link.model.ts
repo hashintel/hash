@@ -1,4 +1,4 @@
-import { GraphApi, Link as PersistedLink } from "@hashintel/hash-graph-client";
+import { GraphApi, PersistedLink } from "@hashintel/hash-graph-client";
 
 import { EntityModel, LinkModel, LinkTypeModel } from "../index";
 
@@ -41,13 +41,13 @@ export default class {
 
   static async fromPersistedLink(
     graphApi: GraphApi,
-    { sourceEntityId, targetEntityId, linkTypeUri }: PersistedLink,
+    { inner: { sourceEntityId, targetEntityId, linkTypeId } }: PersistedLink,
   ): Promise<LinkModel> {
     const [sourceEntityModel, targetEntityModel, linkTypeModel] =
       await Promise.all([
         EntityModel.getLatest(graphApi, { entityId: sourceEntityId }),
         EntityModel.getLatest(graphApi, { entityId: targetEntityId }),
-        LinkTypeModel.get(graphApi, { versionedUri: linkTypeUri }),
+        LinkTypeModel.get(graphApi, { versionedUri: linkTypeId }),
       ]);
 
     return new LinkModel({
@@ -99,10 +99,10 @@ export default class {
     }: LinkModelCreateParams,
   ): Promise<LinkModel> {
     const {
-      data: { sourceEntityId, linkTypeUri, targetEntityId },
+      data: { sourceEntityId, linkTypeId, targetEntityId },
     } = await graphApi.createLink(sourceEntityModel.entityId, {
       ownedById: createdBy,
-      linkTypeUri: linkTypeModel.schema.$id,
+      linkTypeId: linkTypeModel.schema.$id,
       targetEntityId: targetEntityModel.entityId,
     });
 
@@ -112,7 +112,7 @@ export default class {
         entityId: sourceEntityId,
       }),
       linkTypeModel: await LinkTypeModel.get(graphApi, {
-        versionedUri: linkTypeUri,
+        versionedUri: linkTypeId,
       }),
       targetEntityModel: await EntityModel.getLatest(graphApi, {
         accountId: createdBy,
@@ -134,7 +134,7 @@ export default class {
     { removedBy }: { removedBy: string },
   ): Promise<void> {
     await graphApi.removeLink(this.sourceEntityModel.entityId, {
-      linkTypeUri: this.linkTypeModel.schema.$id,
+      linkTypeId: this.linkTypeModel.schema.$id,
       targetEntityId: this.targetEntityModel.entityId,
       removedById: removedBy,
     });
@@ -166,7 +166,7 @@ export default class {
              */
             accountId: sourceEntityModel.accountId,
             linkTypeModel: await LinkTypeModel.get(graphApi, {
-              versionedUri: link.linkTypeUri,
+              versionedUri: link.inner.linkTypeId,
             }),
             sourceEntityModel,
             targetEntityModel: await EntityModel.getLatest(graphApi, {
@@ -174,7 +174,7 @@ export default class {
                * @todo figure out what account ID we use here
                *   https://app.asana.com/0/1202805690238892/1202883599104674/f */
               accountId: sourceEntityModel.accountId,
-              entityId: link.targetEntityId,
+              entityId: link.inner.targetEntityId,
             }),
           }),
       ),

@@ -164,7 +164,8 @@ export default class extends EntityModel {
     }
 
     return await UserModel.getUserById(graphApi, {
-      entityId: incomingOrgMembershipLinkRootedSubgraph.link.sourceEntityId,
+      entityId:
+        incomingOrgMembershipLinkRootedSubgraph.link.inner.sourceEntityId,
     });
   }
 }
