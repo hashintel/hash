@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.0.16",
-    "@blockprotocol/hook": "0.0.1",
+    "@blockprotocol/hook": "0.0.4",
     "@rooks/use-fork-ref": "4.11.2"
   },
   "devDependencies": {
