@@ -46,7 +46,14 @@ const parent: ResolverFn<
 
   const parentEntity = await comment.getParent(db);
 
-  return parentEntity?.toGQLUnknownEntity() ?? null;
+  if (!parentEntity) {
+    throw new ApolloError(
+      `Parent Entity not found in account ${accountId} for comment with entityId ${entityId}`,
+      "NOT_FOUND",
+    );
+  }
+
+  return parentEntity?.toGQLUnknownEntity();
 };
 
 const owner: ResolverFn<
@@ -66,7 +73,14 @@ const owner: ResolverFn<
 
   const ownerEntity = await comment.getOwner(db);
 
-  return ownerEntity?.toGQLUnknownEntity() ?? null;
+  if (!ownerEntity) {
+    throw new ApolloError(
+      `Owner Entity not found in account ${accountId} for comment with entityId ${entityId}`,
+      "NOT_FOUND",
+    );
+  }
+
+  return ownerEntity?.toGQLUnknownEntity();
 };
 
 export const commentLinkedEntities = {
