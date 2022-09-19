@@ -137,7 +137,7 @@ jobs:
       - name: Launch external services
         if: ${{ success() || failure() }}
         run: |
-          yarn test-external-services up --detach
+          yarn external-services-test up --detach
 
       - run: yarn test:backend-integration
         if: ${{ success() || failure() }}
