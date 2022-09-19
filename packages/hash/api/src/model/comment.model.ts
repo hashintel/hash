@@ -31,7 +31,6 @@ export type UnresolvedGQLComment = Omit<
 
 export type CommentConstructorArgs = {
   properties: DbCommentProperties;
-  outgoingEntityIds?: string[];
 } & EntityConstructorArgs;
 
 class __Comment extends Entity {
