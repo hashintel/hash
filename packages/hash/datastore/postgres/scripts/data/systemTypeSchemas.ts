@@ -210,7 +210,7 @@ const systemTypeSchemas: {
       },
     },
     labelProperty: "",
-    required: [],
+    required: ["createdAt"],
   },
 };
 
