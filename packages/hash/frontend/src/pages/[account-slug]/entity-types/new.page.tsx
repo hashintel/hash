@@ -138,8 +138,8 @@ const Page: NextPageWithLayout = () => {
                 onChange={(evt) => setName(evt.target.value)}
                 required
               />
-              {/** @todo should be a text area */}
               <TextField
+                multiline
                 label="Description"
                 name="description"
                 type="text"

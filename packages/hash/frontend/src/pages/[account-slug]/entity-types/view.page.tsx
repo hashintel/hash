@@ -56,6 +56,7 @@ import {
   useForkRef,
   styled,
   PopperProps,
+  inputLabelClasses,
 } from "@mui/material";
 import {
   bindFocus,
@@ -143,6 +144,63 @@ const cardActionHoverBlue: SxProps<Theme> = (theme) => ({
 
 const Input = (props: TextFieldProps) => (
   <TextField {...props} placeholder="Add default value" sx={{ width: 165 }} />
+);
+
+// @todo move into design system
+const NewPropertyTypeForm = ({
+  onCreate,
+  onDiscard,
+}: {
+  onCreate: () => void;
+  onDiscard: () => void;
+}) => (
+  <Box minWidth={500} p={3}>
+    <Stack
+      alignItems="stretch"
+      spacing={3}
+      sx={(theme) => ({
+        [`.${inputLabelClasses.root}`]: {
+          display: "flex",
+          alignItems: "center",
+        },
+        [`.${inputLabelClasses.asterisk}`]: {
+          color: theme.palette.blue[70],
+        },
+      })}
+    >
+      <TextField
+        label="Singular name"
+        required
+        placeholder="e.g. Stock Price"
+      />
+      <TextField
+        multiline
+        inputProps={{ minRows: 1 }}
+        label={
+          <>
+            Description <QuestionIcon sx={{ order: 1, ml: 0.75 }} />
+          </>
+        }
+        required
+        placeholder="Describe this property type in one or two sentences"
+      />
+      <TextField
+        label="Expected values"
+        sx={{ alignSelf: "flex-start", width: "70%" }}
+        required
+        placeholder="Select acceptable values"
+      />
+    </Stack>
+    <Divider sx={{ mt: 2, mb: 3 }} />
+    <Stack direction="row" spacing={1.25}>
+      <Button size="small" onClick={onCreate}>
+        Create new property type
+      </Button>
+      <Button size="small" variant="tertiary" onClick={onDiscard}>
+        Discard draft
+      </Button>
+    </Stack>
+  </Box>
 );
 
 const PropertyMenu = ({ disabled, ...props }: IconButtonProps) => {
@@ -267,8 +325,8 @@ const NewPropertyRow = ({
   onAdd,
 }: {
   inputRef: Ref<HTMLInputElement | null>;
-  onCancel: VoidFunction;
-  onAdd: VoidFunction;
+  onCancel: () => void;
+  onAdd: () => void;
 }) => {
   const modifiers = useMemo(
     (): PopperProps["modifiers"] => [
@@ -385,12 +443,13 @@ const NewPropertyRow = ({
                     <FontAwesomeIcon icon={faClose} />
                   </IconButton>
                 </Box>
-                <Box sx={{ p: 3 }}>
-                  <Box sx={{ display: "flex" }}>
-                    <TextField sx={{ flex: 1, mr: 0.75 }} />
-                    <TextField sx={{ flex: 1 }} />
-                  </Box>
-                </Box>
+                <NewPropertyTypeForm
+                  onCreate={() => {
+                    modalPopoverProps.onClose();
+                    onAdd();
+                  }}
+                  onDiscard={modalPopoverProps.onClose}
+                />
               </>
             </Modal>
           </Paper>
@@ -468,7 +527,7 @@ const InsertPropertyCard = ({
   insertFieldRef: Ref<HTMLInputElement | null>;
 }) => {
   const [addingNewProperty, setAddingNewProperty] = useState(true);
-  const [created, setCreated] = useState(false);
+  const [created, setCreated] = useState<string[]>([]);
   const addingNewPropertyRef = useRef<HTMLInputElement>(null);
 
   const sharedRef = useForkRef(addingNewPropertyRef, insertFieldRef);
@@ -539,8 +598,8 @@ const InsertPropertyCard = ({
             </Typography>
           </TableHead>
           <TableBody>
-            {created ? (
-              <TableRow>
+            {created.map((id) => (
+              <TableRow key={id}>
                 <TableCell>
                   <Typography variant="smallTextLabels" fontWeight={500}>
                     Share Price
@@ -562,18 +621,19 @@ const InsertPropertyCard = ({
                   <PropertyMenu />
                 </TableCell>
               </TableRow>
-            ) : null}
+            ))}
             {!addingNewProperty ? null : (
               <NewPropertyRow
                 inputRef={sharedRef}
                 onCancel={() => {
-                  if (created) {
-                    setAddingNewProperty(false);
-                  }
+                  setAddingNewProperty(false);
                 }}
                 onAdd={() => {
                   setAddingNewProperty(false);
-                  setCreated(true);
+                  setCreated((list) => [
+                    ...list,
+                    (Math.random() + 1).toString(36).substring(7),
+                  ]);
                 }}
               />
             )}
