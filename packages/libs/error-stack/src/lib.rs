@@ -402,26 +402,20 @@
 //! [`Result`] directly, but also a lazy variant that receives a function which is only called if
 //! an error happens.
 //!
-//! In addition to [`ResultExt`], this crate also comes with [`FutureExt`] (enabled by the
-//! `futures` feature flag), which provides the same functionality for [`Future`]s.
-//!
-//! Adding adaptors for [`Iterator`] and [`Stream`]  is a considered feature and can be prioritized
-//! depending on demand.
+//! In addition to [`ResultExt`], this crate also comes with [`FutureExt`], which provides the same
+//! functionality for [`Future`]s.
 //!
 //! [`Future`]: core::future::Future
-//! [`Stream`]: futures_core::stream::Stream
 //!
 //! ### Feature Flags
 //!
-//!  Feature   | Description                                                    | implies | default
-//! -----------|----------------------------------------------------------------|---------|--------
-//!  `std`     | Enables support for [`Error`] and, on nightly, [`Backtrace`]   |         | enabled
-//! `spantrace`| Enables the capturing of [`SpanTrace`]s                        |         | disabled
-//!  `futures` | Provides a [`FutureExt`] adaptor                               |         | disabled
-//! `small`    | Enable optimizations for the memory footprint of [`Report`]    |         | enabled
-//!  `anyhow`  | Provides conversion from [`anyhow::Error`] to [`Report`]       |         | disabled
-//!   `eyre`   | Provides conversion from [`eyre::Report`] to [`Report`]        |         | disabled
-//! `pretty-print` | Provide color[^color] and use of unicode in [`Debug`] output |     | enabled
+//!  Feature       | Description                                                        | default
+//! ---------------|--------------------------------------------------------------------|----------
+//! `std`          | Enables support for [`Error`] and, on nightly, [`Backtrace`]       | enabled
+//! `pretty-print` | Provide color[^color] and use of unicode in [`Debug`] output       | enabled
+//! `spantrace`    | Enables automatic capturing of [`SpanTrace`]s                      | disabled
+//! `anyhow`       | Provides `into_report` to convert [`anyhow::Error`] to [`Report`]  | disabled
+//! `eyre`         | Provides `into_report` to convert [`eyre::Report`] to [`Report`]   | disabled
 //!
 //! [^color]: error-stack supports the [`NO_COLOR`](http://no-color.org/)
 //!     and `FORCE_COLOR` environment variables through the [owo-colors crate](https://crates.io/crates/owo-colors)
@@ -430,8 +424,8 @@
 //! [`set_display_hook`]: Report::set_display_hook
 //! [`set_debug_hook`]: Report::set_debug_hook
 //!
-//! [`Error`]: std::error::Error
-//! [`Error::provide`]: std::error::Error::provide
+//! [`Error`]: core::error::Error
+//! [`Error::provide`]: core::error::Error::provide
 //! [`Backtrace`]: std::backtrace::Backtrace
 //! [`Display`]: core::fmt::Display
 //! [`Debug`]: core::fmt::Debug
@@ -478,18 +472,13 @@ mod fmt;
 mod hook;
 
 #[doc(inline)]
-#[cfg(feature = "futures")]
-pub use self::ext::{future::FutureExt, stream::StreamExt};
-#[doc(inline)]
-pub use self::ext::{
-    iter::IteratorExt,
-    result::{IntoReport, ResultExt},
-};
+pub use self::ext::result::{IntoReport, ResultExt};
 #[cfg(feature = "std")]
 #[allow(deprecated)]
 pub use self::hook::HookAlreadySet;
 pub use self::{
     context::Context,
+    ext::future::FutureExt,
     frame::{AttachmentKind, Frame, FrameKind},
     macros::*,
     report::Report,
@@ -499,6 +488,8 @@ pub use self::{
 #[cfg(test)]
 mod tests {
     #![allow(dead_code)]
+
+    use core::mem;
 
     use crate::Report;
 
@@ -510,5 +501,10 @@ mod tests {
         test_send::<Report<()>>();
         test_sync::<Report<()>>();
         test_static::<Report<()>>();
+    }
+
+    #[test]
+    fn test_size() {
+        assert_eq!(mem::size_of::<Report<()>>(), mem::size_of::<*const ()>());
     }
 }

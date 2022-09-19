@@ -142,7 +142,7 @@
 //! [`SpanTrace`]: tracing_error::SpanTrace
 //! [`error_stack::fmt::builtin_debug_hook_fallback`]: crate::fmt::builtin_debug_hook_fallback
 //! [`atomic`]: std::sync::atomic
-//! [`Error::provide`]: std::error::Error::provide
+//! [`Error::provide`]: core::error::Error::provide
 
 #[cfg(feature = "std")]
 mod hook;
