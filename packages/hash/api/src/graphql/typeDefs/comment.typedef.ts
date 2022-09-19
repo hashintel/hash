@@ -89,12 +89,6 @@ export const commentTypedef = gql`
     editedAt: Date
   }
 
-  type EntityRef {
-    accountId: ID!
-    entityId: ID!
-    entityVersionId: ID!
-  }
-
   extend type Query {
     """
     Return a list of comments belonging to an account
