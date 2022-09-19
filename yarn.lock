@@ -3088,14 +3088,6 @@
   dependencies:
     uuid "^8.3.2"
 
-"@blockprotocol/core@0.0.8":
-  version "0.0.8"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.0.8.tgz#21924dfd24315120427d3ccef4f3c836eaf6a782"
-  integrity sha512-Xy9litxz1gn6192zgXIPTg7vRdFGLANDtXfC70JlA7375H3voW15+SZnYvo/8UARyIcBMhm4d/0XZDa+uqE2Kw==
-  dependencies:
-    es-module-lexer "^0.10.5"
-    uuid "^8.3.2"
-
 "@blockprotocol/graph@0.0.16":
   version "0.0.16"
   resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.16.tgz#1a1026633df9ea8bfdf2f763cb124441d392cb3e"
@@ -3104,12 +3096,12 @@
     "@blockprotocol/core" "0.0.11"
     lit "^2.2.5"
 
-"@blockprotocol/hook@0.0.1":
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/hook/-/hook-0.0.1.tgz#e98e0ec0453d64891cebaf9721369b7405a04b8e"
-  integrity sha512-t2g0cImU3Tt5HgjLc8VSvxWKE/F6uCsAmtgY8yevwFHIF+QiLZoP3URiILL97QxH1QIrk7kid5hsJlw0wzHVRQ==
+"@blockprotocol/hook@0.0.4":
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/hook/-/hook-0.0.4.tgz#da1f64bb87c805ad1681efb65abd58bfff769a54"
+  integrity sha512-SCWyp/6BopRFkwHckVUrAo7Vxx/NRclJsNl3GLdrGLX0awzUIDoMBfdarVc8aIZaMocXDN/Rp4wZf/iV3FoY6w==
   dependencies:
-    "@blockprotocol/core" "0.0.8"
+    "@blockprotocol/core" "0.0.11"
 
 "@cspotcode/source-map-consumer@0.8.0":
   version "0.8.0"

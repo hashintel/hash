@@ -1,61 +1,24 @@
 extend = { path = "../../../.github/scripts/rust/Makefile.toml" }
 
 [env]
-CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default"
-CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default"
+CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default,hooks,futures"
+CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default,hooks,futures"
 CARGO_MIRI_FLAGS = "--tests --lib"
 CARGO_INSTA_TEST_FLAGS = "--no-fail-fast"
 CARGO_RUSTDOC_HACK_FLAGS = ""
 CARGO_DOC_HACK_FLAGS = ""
-# The only features that are of relevance are: spantrace, pretty-print, std, hooks
+# The only features that are of relevance are: spantrace, pretty-print, std
 # all others do not change the output
 CARGO_INSTA_TEST_HACK_FLAGS = "--keep-going --feature-powerset --include-features spantrace,pretty-print,std --ignore-unknown-features"
 
 
 [tasks.test]
-run_task = [
-    { name = ["test-task"], condition = { profiles = ["release"] } },
-    { name = ["test-each-feature", "test-default-features", "test-all-features"] },
-]
 dependencies = ["install-rust-src"]
-
-[tasks.test-each-feature]
-env = { CARGO_TEST_HACK_FLAGS = "--workspace --each-feature", CARGO_TEST_FLAGS = "" }
-run_task = { name = ["test-task-lib"] }
-
-[tasks.test-default-features]
-env = { CARGO_TEST_HACK_FLAGS = "--workspace", CARGO_TEST_FLAGS = "" }
-run_task = { name = ["test-task-lib"] }
-
-[tasks.test-all-features]
-env = { CARGO_TEST_HACK_FLAGS = "--workspace", CARGO_TEST_FLAGS = "--all-features" }
-run_task = { name = ["test-task"] }
-
 
 # Required for UI tests
 [tasks.install-rust-src]
 private = true
 install_crate = { rustup_component_name = "rust-src" }
-
-
-[tasks.clippy]
-run_task = [
-    { name = ["clippy-task"], condition = { profiles = ["release"] } },
-    { name = ["clippy-each-feature", "clippy-default-features", "clippy-all-features"] },
-]
-
-[tasks.clippy-each-feature]
-env = { CARGO_CLIPPY_HACK_FLAGS = "--workspace --each-feature", CARGO_CLIPPY_FLAGS = "" }
-run_task = { name = ["clippy-task"] }
-
-[tasks.clippy-default-features]
-env = { CARGO_CLIPPY_HACK_FLAGS = "--workspace", CARGO_CLIPPY_FLAGS = "" }
-run_task = { name = ["clippy-task"] }
-
-[tasks.clippy-all-features]
-env = { CARGO_CLIPPY_HACK_FLAGS = "--workspace", CARGO_CLIPPY_FLAGS = "--all-features" }
-run_task = { name = ["clippy-task"] }
-
 
 
 [tasks.rustdoc]

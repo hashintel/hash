@@ -18,7 +18,6 @@ categories = ["rust-patterns", "no-std"]
 
 [dependencies]
 tracing-error = { version = "0.2", optional = true, default_features = false }
-futures-core = { version = "0.3", optional = true, default-features = false }
 anyhow = { version = "1", default-features = false, optional = true }
 eyre = { version = "0.6", default-features = false, optional = true }
 owo-colors = { version = "3.4.0", default-features = false, optional = true, features = ['supports-colors'] }
@@ -42,7 +41,7 @@ rustc_version = "0.4"
 [features]
 default = ["std", "pretty-print"]
 
-futures = ["dep:futures-core"]
+futures = []
 hooks = ["std"]
 pretty-print = ["dep:owo-colors"]
 spantrace = ["dep:tracing-error", "std"]
