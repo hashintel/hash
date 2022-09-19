@@ -8,6 +8,7 @@ import {
   adminKratosSdk,
   createKratosIdentity,
 } from "@hashintel/hash-api/src/auth/ory-kratos";
+import { generateRandomShortname } from "../../util";
 
 jest.setTimeout(60000);
 
@@ -25,7 +26,7 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-const shortname = "alice";
+const shortname = generateRandomShortname("userTest");
 
 describe("User model class", () => {
   beforeAll(async () => {
