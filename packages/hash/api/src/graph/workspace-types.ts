@@ -300,7 +300,10 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
     outgoingLinks: [
       {
         linkTypeVersionedUri: blockDataLinkTypeModel.schema.$id,
-        /** @todo: unset this when the destination entity type can be undefined */
+        /**
+         * @todo: unset this when the destination entity type can be undefined
+         * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
+         */
         destinationEntityTypeVersionedUri: dummyEntityTypeModel.schema.$id,
         required: true,
       },
@@ -308,7 +311,10 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
   })(graphApi);
 };
 
-/** @todo: remove this dummy entity type once we are able to define the block data link type without it */
+/**
+ * @todo: remove this dummy entity type once we are able to define the block data link type without it
+ * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
+ */
 const dummyEntityTypeInitializer = async (graphApi: GraphApi) => {
   return entityTypeInitializer({
     namespace: WORKSPACE_ACCOUNT_SHORTNAME,
