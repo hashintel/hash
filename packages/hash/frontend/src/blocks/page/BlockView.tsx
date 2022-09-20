@@ -39,6 +39,7 @@ export class BlockView implements NodeView<Schema> {
   insertBlockBottomContainer: HTMLDivElement;
   insertBlockTopContainer?: HTMLDivElement;
   contentDOM: HTMLDivElement;
+  rootNode: HTMLElement;
 
   allowDragging = false;
   dragging = false;
@@ -89,7 +90,9 @@ export class BlockView implements NodeView<Schema> {
     public getPos: () => number,
     public renderPortal: RenderPortal,
     public manager: ProsemirrorManager,
+    public rootNode: HTMLElement,
   ) {
+    this.rootNode = rootNode;
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block!);
     this.dom.setAttribute("data-testid", "block");
@@ -272,6 +275,7 @@ export class BlockView implements NodeView<Schema> {
               <CommentButton
                 blockId={blockEntityId}
                 className={styles.Block__Comments_Button!}
+                rootNode={this.rootNode}
               />
             </BlockViewContext.Provider>
           );

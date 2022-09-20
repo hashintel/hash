@@ -11,7 +11,6 @@ import { LoadingView } from "./LoadingView";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
 import { ComponentView } from "./ComponentView";
-import { createCommentPlugin } from "./createCommentPlugin";
 import { createErrorPlugin } from "./createErrorPlugin";
 import { createFormatPlugins } from "./createFormatPlugins";
 import { createPlaceholderPlugin } from "./createPlaceholderPlugin/createPlaceholderPlugin";
@@ -47,7 +46,6 @@ export const createEditorView = (
     createPlaceholderPlugin(renderPortal),
     errorPlugin,
     createFocusPageTitlePlugin(pageTitleRef),
-    createCommentPlugin(renderPortal, renderNode),
   ];
 
   const state = createProseMirrorState({ accountId, plugins });
@@ -72,6 +70,7 @@ export const createEditorView = (
           getPos,
           renderPortal,
           manager,
+          renderNode,
         );
       },
       // Reason for adding unused params e.g. `_decorations`:

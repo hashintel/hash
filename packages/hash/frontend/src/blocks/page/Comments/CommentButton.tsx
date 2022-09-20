@@ -1,26 +1,29 @@
-import { FunctionComponent, useCallback, useRef } from "react";
+import { FunctionComponent, useCallback, useRef, useState } from "react";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
 import Box from "@mui/material/Box";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
+import Popper from "@mui/material/Popper";
 import { useBlockView } from "../BlockViewContext";
-import { createCommentPluginKey } from "../createCommentPlugin";
 import { useCreateComment } from "../../../components/hooks/useCreateComment";
 import { useRouteAccountInfo } from "../../../shared/routing";
+import { CommentTextField } from "./CommentTextField";
 
 type CommentButtonProps = {
   blockId: string | null;
   className: string;
+  rootNode: HTMLElement;
 };
 
 export const CommentButton: FunctionComponent<CommentButtonProps> = ({
   blockId,
   className,
+  rootNode,
 }) => {
   const { accountId } = useRouteAccountInfo();
   const blockView = useBlockView();
-  const containerRef = useRef<HTMLButtonElement>(null);
-
+  const [open, setOpen] = useState(false);
+  const anchorRef = useRef<HTMLButtonElement>(null);
   const [createComment] = useCreateComment(accountId);
 
   const submitComment = useCallback(
@@ -32,24 +35,14 @@ export const CommentButton: FunctionComponent<CommentButtonProps> = ({
     [createComment, blockId],
   );
 
-  const openCommentInput = () => {
-    const view = blockView.editorView;
-    const { tr } = view.state;
-    tr.setMeta(createCommentPluginKey, {
-      type: "open",
-      payload: {
-        anchorNode: containerRef.current,
-        blockId,
-        onSubmit: submitComment,
-      },
-    });
-    view.dispatch(tr);
-  };
+  const closeInput = () => setOpen(false);
+
+  const anchorNode = anchorRef.current;
 
   return (
-    <Box ref={containerRef} className={className}>
+    <Box ref={anchorRef} className={className}>
       <IconButton
-        onClick={openCommentInput}
+        onClick={() => setOpen(true)}
         sx={{
           padding: 0.5,
           borderRadius: 1,
@@ -59,6 +52,41 @@ export const CommentButton: FunctionComponent<CommentButtonProps> = ({
       >
         <FontAwesomeIcon icon={faComment} />
       </IconButton>
+
+      <Popper
+        open={open}
+        placement="bottom-start"
+        container={rootNode}
+        modifiers={[
+          {
+            name: "flip",
+            enabled: false,
+          },
+          {
+            name: "offset",
+            options: {
+              offset: () => [
+                -13,
+                -(anchorNode?.getBoundingClientRect().height ?? 0) - 13,
+              ],
+            },
+          },
+          {
+            name: "preventOverflow",
+            enabled: true,
+            options: {
+              padding: 20,
+            },
+          },
+        ]}
+        anchorEl={anchorNode}
+      >
+        <CommentTextField
+          blockId={blockId!}
+          onClose={closeInput}
+          onSubmit={submitComment}
+        />
+      </Popper>
     </Box>
   );
 };

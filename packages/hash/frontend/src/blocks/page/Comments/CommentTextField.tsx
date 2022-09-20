@@ -87,23 +87,33 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
           mention: mentionNodeView(renderPortal, accountId),
         },
         handleKeyDown: (_, { shiftKey, key }) => {
-          if (!shiftKey && key === "Enter") {
-            if (onSubmit && viewRef.current?.state.doc.content) {
-              const { tokens } = textBlockNodeToEntityProperties(
-                viewRef.current.state.doc,
-              );
+          if (!shiftKey) {
+            switch (key) {
+              case "Enter":
+                if (onSubmit && viewRef.current?.state.doc.content) {
+                  const { tokens } = textBlockNodeToEntityProperties(
+                    viewRef.current.state.doc,
+                  );
 
-              setLoading(true);
-              onSubmit(tokens)
-                .then(() => {
-                  onClose();
-                })
-                .finally(() => {
-                  setLoading(false);
-                });
+                  setLoading(true);
+                  onSubmit(tokens)
+                    .then(() => {
+                      onClose();
+                    })
+                    .finally(() => {
+                      setLoading(false);
+                    });
+                }
+
+                return true;
+
+              case "Escape":
+                onClose();
+                break;
+
+              default:
+                break;
             }
-
-            return true;
           }
 
           return false;
