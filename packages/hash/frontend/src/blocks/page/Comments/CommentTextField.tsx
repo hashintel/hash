@@ -1,4 +1,10 @@
-import { FunctionComponent, useCallback, useRef, useState } from "react";
+import {
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Schema } from "prosemirror-model";
@@ -36,7 +42,7 @@ import { mentionNodeView } from "../MentionView/MentionNodeView";
 type CommentTextFieldProps = {
   blockId: string;
   onClose: () => void;
-  onSubmit: ((content: TextToken[]) => Promise<void>) | null;
+  onSubmit: (content: TextToken[]) => Promise<void>;
 };
 
 export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
@@ -86,38 +92,6 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         nodeViews: {
           mention: mentionNodeView(renderPortal, accountId),
         },
-        handleKeyDown: (_, { shiftKey, key }) => {
-          if (!shiftKey) {
-            switch (key) {
-              case "Enter":
-                if (onSubmit && viewRef.current?.state.doc.content) {
-                  const { tokens } = textBlockNodeToEntityProperties(
-                    viewRef.current.state.doc,
-                  );
-
-                  setLoading(true);
-                  onSubmit(tokens)
-                    .then(() => {
-                      onClose();
-                    })
-                    .finally(() => {
-                      setLoading(false);
-                    });
-                }
-
-                return true;
-
-              case "Escape":
-                onClose();
-                break;
-
-              default:
-                break;
-            }
-          }
-
-          return false;
-        },
       });
 
       view.dom.classList.add(styles.Prosemirror_Input!);
@@ -126,8 +100,46 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
 
       viewRef.current = view;
     },
-    [accountId, onSubmit, renderPortal, onClose],
+    [accountId, renderPortal],
   );
+
+  useEffect(() => {
+    viewRef.current?.update({
+      state: viewRef.current.state,
+      handleKeyDown: (_, { shiftKey, key }) => {
+        if (!loading && !shiftKey) {
+          switch (key) {
+            case "Enter":
+              if (viewRef.current?.state.doc.content) {
+                const { tokens } = textBlockNodeToEntityProperties(
+                  viewRef.current.state.doc,
+                );
+
+                setLoading(true);
+                onSubmit(tokens)
+                  .then(() => {
+                    onClose();
+                  })
+                  .finally(() => {
+                    setLoading(false);
+                  });
+              }
+
+              return true;
+
+            case "Escape":
+              onClose();
+              break;
+
+            default:
+              break;
+          }
+        }
+
+        return false;
+      },
+    });
+  }, [loading, onClose, onSubmit]);
 
   if (editorContainer && prevBlockId !== blockId) {
     setPrevBlockId(blockId);
