@@ -635,52 +635,50 @@ const InsertPropertyCard = ({
               />
             )}
           </TableBody>
-          {addingNewProperty ? null : (
-            <TableFooter>
-              <TableRow>
-                <TableCell
-                  colSpan={
-                    // Sufficiently large to span full width
-                    100
-                  }
-                  sx={{
-                    p: "0 !important",
-                  }}
-                >
-                  <ButtonBase
-                    disableRipple
-                    disableTouchRipple
-                    onClick={() => {
-                      flushSync(() => {
-                        setAddingNewProperty(true);
-                      });
+          <TableFooter>
+            <TableRow>
+              <TableCell
+                colSpan={
+                  // Sufficiently large to span full width
+                  100
+                }
+                sx={{
+                  p: "0 !important",
+                }}
+              >
+                <ButtonBase
+                  disableRipple
+                  disableTouchRipple
+                  onClick={() => {
+                    flushSync(() => {
+                      setAddingNewProperty(true);
+                    });
 
-                      addingNewPropertyRef.current?.focus();
-                    }}
-                    sx={(theme) => ({
-                      color: theme.palette.gray[50],
-                      py: 1.5,
-                      width: "100%",
-                      borderRadius: 1,
-                      "&:hover": {
-                        backgroundColor: theme.palette.gray[10],
-                        color: theme.palette.gray[70],
-                      },
-                    })}
-                  >
-                    {/** @todo must be outlined */}
-                    <FontAwesomeIcon
-                      icon={faPlusCircle}
-                      sx={{ fontSize: 12, mr: 1 }}
-                    />
-                    <Typography variant="smallTextLabels" fontWeight={500}>
-                      Add a property
-                    </Typography>
-                  </ButtonBase>
-                </TableCell>
-              </TableRow>
-            </TableFooter>
-          )}
+                    addingNewPropertyRef.current?.focus();
+                  }}
+                  sx={(theme) => ({
+                    color: theme.palette.gray[50],
+                    py: 1.5,
+                    width: "100%",
+                    borderRadius: 1,
+                    "&:hover": {
+                      backgroundColor: theme.palette.gray[10],
+                      color: theme.palette.gray[70],
+                    },
+                  })}
+                >
+                  {/** @todo must be outlined */}
+                  <FontAwesomeIcon
+                    icon={faPlusCircle}
+                    sx={{ fontSize: 12, mr: 1 }}
+                  />
+                  <Typography variant="smallTextLabels" fontWeight={500}>
+                    Add a property
+                  </Typography>
+                </ButtonBase>
+              </TableCell>
+            </TableRow>
+          </TableFooter>
         </Table>
       </Box>
     </WhiteCard>
