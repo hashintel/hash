@@ -38,6 +38,8 @@ export let WORKSPACE_TYPES: {
     org: EntityTypeModel;
     orgMembership: EntityTypeModel;
     block: EntityTypeModel;
+    /** @todo: deprecate all uses of this dummy entity type */
+    dummy: EntityTypeModel;
   };
   linkType: {
     // User-related
@@ -280,10 +282,8 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
   const blockDataLinkTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.linkType.blockData(graphApi);
 
-  /** @todo: unset this when the destination entity type can be undefined */
-  const blockDataTypeModel = await WORKSPACE_TYPES_INITIALIZERS.entityType.org(
-    graphApi,
-  );
+  const dummyEntityTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.entityType.dummy(graphApi);
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
@@ -300,10 +300,21 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
     outgoingLinks: [
       {
         linkTypeVersionedUri: blockDataLinkTypeModel.schema.$id,
-        destinationEntityTypeVersionedUri: blockDataTypeModel.schema.$id,
+        /** @todo: unset this when the destination entity type can be undefined */
+        destinationEntityTypeVersionedUri: dummyEntityTypeModel.schema.$id,
         required: true,
       },
     ],
+  })(graphApi);
+};
+
+/** @todo: remove this dummy entity type once we are able to define the block data link type without it */
+const dummyEntityTypeInitializer = async (graphApi: GraphApi) => {
+  return entityTypeInitializer({
+    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+    title: "Dummy",
+    properties: [],
+    outgoingLinks: [],
   })(graphApi);
 };
 
@@ -339,6 +350,7 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     org: orgEntityTypeInitializer,
     orgMembership: orgMembershipEntityTypeInitializer,
     block: blockEntityTypeInitializer,
+    dummy: dummyEntityTypeInitializer,
   },
   linkType: {
     ofOrg: ofOrgLinkTypeInitializer,
