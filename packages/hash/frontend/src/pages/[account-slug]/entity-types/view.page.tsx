@@ -10,6 +10,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
+  ButtonProps,
   Chip,
   FontAwesomeIcon,
   IconButton,
@@ -39,7 +40,6 @@ import {
   ListItemText,
   listItemTextClasses,
   menuItemClasses,
-  PopperProps,
   Stack,
   styled,
   SxProps,
@@ -57,15 +57,40 @@ import {
   Typography,
   useForkRef,
 } from "@mui/material";
-import { bindMenu, bindTrigger } from "material-ui-popup-state";
-import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
+import {
+  bindPopover,
+  usePopupState,
+  bindMenu,
+  bindTrigger,
+  bindToggle,
+} from "material-ui-popup-state/hooks";
 import Image from "next/image";
-import { ComponentProps, Ref, useId, useMemo, useRef, useState } from "react";
+import { ComponentProps, Ref, useId, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { Modal } from "../../../components/Modals/Modal";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
 import { TopContextBar } from "../../shared/top-context-bar";
 import { OurChip, placeholderUri } from "./Chip";
+
+// Call a function in addition to handling popup state on click
+const withHandler = <
+  T extends ReturnType<typeof bindTrigger> | ReturnType<typeof bindToggle>,
+>(
+  trigger: T,
+  handler: () => void,
+): T => {
+  return {
+    ...trigger,
+    onClick: (...args) => {
+      handler();
+      return trigger.onClick(...args);
+    },
+    onTouchStart: (...args) => {
+      handler();
+      return trigger.onTouchStart(...args);
+    },
+  };
+};
 
 const QuestionIcon = styled(
   (props: Omit<ComponentProps<typeof FontAwesomeIcon>, "icon">) => (
@@ -142,11 +167,11 @@ const Input = (props: TextFieldProps) => (
 
 // @todo move into design system
 const NewPropertyTypeForm = ({
-  onCreate,
-  onDiscard,
+  createButtonProps,
+  discardButtonProps,
 }: {
-  onCreate: () => void;
-  onDiscard: () => void;
+  createButtonProps: Omit<ButtonProps, "size" | "variant" | "children">;
+  discardButtonProps: Omit<ButtonProps, "size" | "variant" | "children">;
 }) => (
   <Box minWidth={500} p={3}>
     <Stack
@@ -187,10 +212,10 @@ const NewPropertyTypeForm = ({
     </Stack>
     <Divider sx={{ mt: 2, mb: 3 }} />
     <Stack direction="row" spacing={1.25}>
-      <Button size="small" onClick={onCreate}>
+      <Button {...createButtonProps} size="small">
         Create new property type
       </Button>
-      <Button size="small" variant="tertiary" onClick={onDiscard}>
+      <Button {...discardButtonProps} size="small" variant="tertiary">
         Discard draft
       </Button>
     </Stack>
@@ -324,31 +349,13 @@ const PropertyMenu = ({
 
 const NewPropertyRow = ({
   inputRef,
-  onCancel,
+  // onCancel,
   onAdd,
 }: {
   inputRef: Ref<HTMLInputElement | null>;
   onCancel: () => void;
   onAdd: () => void;
 }) => {
-  const modifiers = useMemo(
-    (): PopperProps["modifiers"] => [
-      {
-        name: "sameWidth",
-        enabled: true,
-        fn: ({ state }) => {
-          if (state.styles.popper) {
-            // eslint-disable-next-line no-param-reassign
-            state.styles.popper.width = `${state.rects.reference.width}px`;
-          }
-        },
-        phase: "beforeWrite",
-        requires: ["computeStyles"],
-      },
-    ],
-    [],
-  );
-
   const modalTooltipId = useId();
   const modalPopupState = usePopupState({
     variant: "popover",
@@ -426,7 +433,7 @@ const NewPropertyRow = ({
                 }}
               />
               <IconButton
-                onClick={modalPopoverProps.onClose}
+                {...bindToggle(modalPopupState)}
                 sx={(theme) => ({
                   ml: "auto",
                   svg: {
@@ -439,11 +446,10 @@ const NewPropertyRow = ({
               </IconButton>
             </Box>
             <NewPropertyTypeForm
-              onCreate={() => {
-                modalPopoverProps.onClose();
-                onAdd();
-              }}
-              onDiscard={modalPopoverProps.onClose}
+              createButtonProps={withHandler(bindToggle(modalPopupState), () =>
+                onAdd(),
+              )}
+              discardButtonProps={bindToggle(modalPopupState)}
             />
           </>
         </Modal>
