@@ -20,6 +20,7 @@ import {
 } from "@hashintel/hash-design-system";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
+import { textBlockNodeToEntityProperties } from "@hashintel/hash-shared/text";
 import { usePortals } from "../usePortals";
 import { createFormatPlugins } from "../createFormatPlugins";
 import {
@@ -88,8 +89,9 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         handleKeyDown: (_, { shiftKey, key }) => {
           if (!shiftKey && key === "Enter") {
             if (onSubmit && viewRef.current?.state.doc.content) {
-              const tokens =
-                viewRef.current.state.doc.content.toJSON() as TextToken[];
+              const { tokens } = textBlockNodeToEntityProperties(
+                viewRef.current.state.doc,
+              );
 
               setLoading(true);
               onSubmit(tokens)
