@@ -19,6 +19,7 @@ import {
   TextField,
 } from "@hashintel/hash-design-system";
 import {
+  Autocomplete,
   Box,
   ButtonBase,
   Card,
@@ -32,14 +33,15 @@ import {
   Container,
   Divider,
   experimental_sx as sx,
+  inputLabelClasses,
   ListItem,
   listItemClasses,
   ListItemText,
   listItemTextClasses,
   menuItemClasses,
-  Paper,
-  Popper,
+  PopperProps,
   Stack,
+  styled,
   SxProps,
   Table,
   TableBody,
@@ -54,16 +56,8 @@ import {
   Theme,
   Typography,
   useForkRef,
-  styled,
-  PopperProps,
-  inputLabelClasses,
 } from "@mui/material";
-import {
-  bindFocus,
-  bindMenu,
-  bindPopper,
-  bindTrigger,
-} from "material-ui-popup-state";
+import { bindMenu, bindTrigger } from "material-ui-popup-state";
 import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
 import Image from "next/image";
 import { ComponentProps, Ref, useId, useMemo, useRef, useState } from "react";
@@ -355,12 +349,6 @@ const NewPropertyRow = ({
     [],
   );
 
-  const fieldTooltipId = useId();
-  const fieldPopupState = usePopupState({
-    variant: "popper",
-    popupId: `newPropertySuggester-${fieldTooltipId}`,
-  });
-
   const modalTooltipId = useId();
   const modalPopupState = usePopupState({
     variant: "popover",
@@ -369,100 +357,96 @@ const NewPropertyRow = ({
 
   const modalPopoverProps = bindPopover(modalPopupState);
 
+  const [searchText, setSearchText] = useState("");
+
   return (
     <TableRow data-disabled>
       <TableCell colSpan={2}>
-        <TextField
-          placeholder="Search for a property type"
-          sx={{ width: "100%" }}
-          inputRef={inputRef}
-          InputProps={{
-            endAdornment: (
-              <FontAwesomeIcon
-                icon={faSearch}
-                sx={(theme) => ({
-                  fontSize: 12,
-                  mr: 2,
-                  color: theme.palette.gray[50],
-                })}
-              />
-            ),
-          }}
-          onKeyDown={(evt) => {
-            if (evt.key === "Escape") {
-              onCancel();
-            }
-          }}
-          {...bindFocus(fieldPopupState)}
-        />
-        {/** @todo move this into design system */}
-        <Popper
-          {...bindPopper(fieldPopupState)}
-          placeholder="bottom-start"
-          disablePortal
-          modifiers={modifiers}
-        >
-          <Paper elevation={2}>
-            <Button size="small" onClick={() => onAdd()}>
-              Add
-            </Button>
-            <Button size="small" {...bindTrigger(modalPopupState)}>
-              Create
-            </Button>
-            <Modal
-              {...modalPopoverProps}
-              disableEscapeKeyDown
-              onClose={() => {}}
-              contentStyle={{ p: 0 }}
-            >
-              <>
-                <Box
-                  sx={(theme) => ({
-                    px: 2.5,
-                    pr: 1.5,
-                    pb: 1.5,
-                    pt: 2,
-                    borderBottom: "solid",
-                    borderColor: theme.palette.gray[20],
-                    alignItems: "center",
-                    display: "flex",
-                  })}
-                >
-                  <Typography
-                    variant="regularTextLabels"
-                    sx={{ fontWeight: 500 }}
-                  >
-                    Create new property type
-                  </Typography>
-                  <QuestionIcon
-                    sx={{
-                      ml: 1.25,
-                    }}
-                  />
-                  <IconButton
-                    onClick={modalPopoverProps.onClose}
+        <Autocomplete
+          popupIcon={null}
+          forcePopupIcon={false}
+          open
+          renderInput={(props) => (
+            <TextField
+              {...props}
+              value={searchText}
+              onChange={(evt) => setSearchText(evt.target.value)}
+              placeholder="Search for a property type"
+              sx={{ width: "100%" }}
+              inputRef={inputRef}
+              InputProps={{
+                ...props.InputProps,
+                endAdornment: (
+                  <FontAwesomeIcon
+                    icon={faSearch}
                     sx={(theme) => ({
-                      ml: "auto",
-                      svg: {
-                        color: theme.palette.gray[50],
-                        fontSize: 20,
-                      },
+                      fontSize: 12,
+                      mr: 2,
+                      color: theme.palette.gray[50],
                     })}
-                  >
-                    <FontAwesomeIcon icon={faClose} />
-                  </IconButton>
-                </Box>
-                <NewPropertyTypeForm
-                  onCreate={() => {
-                    modalPopoverProps.onClose();
-                    onAdd();
-                  }}
-                  onDiscard={modalPopoverProps.onClose}
-                />
-              </>
-            </Modal>
-          </Paper>
-        </Popper>
+                  />
+                ),
+              }}
+            />
+          )}
+          options={[]}
+          noOptionsText={
+            <Box>
+              <Button {...bindTrigger(modalPopupState)}>
+                Create {searchText}
+              </Button>
+            </Box>
+          }
+        />
+        <Modal
+          {...modalPopoverProps}
+          disableEscapeKeyDown
+          onClose={() => {}}
+          contentStyle={{ p: 0 }}
+        >
+          <>
+            <Box
+              sx={(theme) => ({
+                px: 2.5,
+                pr: 1.5,
+                pb: 1.5,
+                pt: 2,
+                borderBottom: "solid",
+                borderColor: theme.palette.gray[20],
+                alignItems: "center",
+                display: "flex",
+              })}
+            >
+              <Typography variant="regularTextLabels" sx={{ fontWeight: 500 }}>
+                Create new property type
+              </Typography>
+              <QuestionIcon
+                sx={{
+                  ml: 1.25,
+                }}
+              />
+              <IconButton
+                onClick={modalPopoverProps.onClose}
+                sx={(theme) => ({
+                  ml: "auto",
+                  svg: {
+                    color: theme.palette.gray[50],
+                    fontSize: 20,
+                  },
+                })}
+              >
+                <FontAwesomeIcon icon={faClose} />
+              </IconButton>
+            </Box>
+            <NewPropertyTypeForm
+              onCreate={() => {
+                modalPopoverProps.onClose();
+                onAdd();
+              }}
+              onDiscard={modalPopoverProps.onClose}
+            />
+          </>
+        </Modal>
       </TableCell>
       <TableCell>
         <Checkbox disabled />
