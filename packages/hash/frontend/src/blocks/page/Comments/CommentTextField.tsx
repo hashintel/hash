@@ -63,10 +63,8 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         ...textTokenNodes,
       });
 
-      const doc = schema.node("doc", {}, []);
-
       const state = EditorState.create<Schema>({
-        doc,
+        schema,
         plugins: [
           keymap<Schema>(baseKeymap),
           ...createFormatPlugins(renderPortal),
