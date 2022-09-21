@@ -38,7 +38,7 @@ impl<C: AsClient> PostgresStore<C> {
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) fn get_property_type_as_dependency<'a>(
         &'a self,
-        property_type_uri: &'a VersionedUri,
+        property_type_id: &'a VersionedUri,
         context: PropertyTypeDependencyContext<'a>,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         let PropertyTypeDependencyContext {
@@ -50,9 +50,9 @@ impl<C: AsClient> PostgresStore<C> {
 
         async move {
             let unresolved_property_type = referenced_property_types
-                .insert(property_type_uri, property_type_query_depth, || async {
+                .insert(property_type_id, property_type_query_depth, || async {
                     Ok(PersistedPropertyType::from_record(
-                        self.read_versioned_ontology_type(property_type_uri).await?,
+                        self.read_versioned_ontology_type(property_type_id).await?,
                     ))
                 })
                 .await?;
@@ -76,7 +76,7 @@ impl<C: AsClient> PostgresStore<C> {
                 if property_type_query_depth > 0 {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
-                    let property_type_uris = property_type
+                    let property_type_ids = property_type
                         .inner
                         .property_type_references()
                         .into_iter()
@@ -84,9 +84,9 @@ impl<C: AsClient> PostgresStore<C> {
                         .cloned()
                         .collect::<Vec<_>>();
 
-                    for property_type_uri in property_type_uris {
+                    for property_type_id in property_type_ids {
                         self.get_property_type_as_dependency(
-                            &property_type_uri,
+                            &property_type_id,
                             PropertyTypeDependencyContext {
                                 referenced_data_types,
                                 referenced_property_types,

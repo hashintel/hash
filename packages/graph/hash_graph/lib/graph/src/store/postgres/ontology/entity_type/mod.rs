@@ -48,7 +48,7 @@ impl<C: AsClient> PostgresStore<C> {
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) fn get_entity_type_as_dependency<'a>(
         &'a self,
-        entity_type_uri: &'a VersionedUri,
+        entity_type_id: &'a VersionedUri,
         context: EntityTypeDependencyContext<'a>,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         let EntityTypeDependencyContext {
@@ -64,9 +64,9 @@ impl<C: AsClient> PostgresStore<C> {
 
         async move {
             let unresolved_entity_type = referenced_entity_types
-                .insert(entity_type_uri, entity_type_query_depth, || async {
+                .insert(entity_type_id, entity_type_query_depth, || async {
                     Ok(PersistedEntityType::from_record(
-                        self.read_versioned_ontology_type(entity_type_uri).await?,
+                        self.read_versioned_ontology_type(entity_type_id).await?,
                     ))
                 })
                 .await?;
@@ -94,17 +94,17 @@ impl<C: AsClient> PostgresStore<C> {
                         .inner
                         .link_type_references()
                         .into_iter()
-                        .map(|(link_type_uri, entity_type_uri)| {
-                            (link_type_uri.clone(), entity_type_uri.uri().clone())
+                        .map(|(link_type_id, entity_type_id)| {
+                            (link_type_id.clone(), entity_type_id.uri().clone())
                         })
                         .collect::<Vec<_>>();
 
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
-                    for (link_type_uri, entity_type_uri) in linked_uris {
+                    for (link_type_id, entity_type_id) in linked_uris {
                         if link_type_query_depth > 0 {
                             self.get_link_type_as_dependency(
-                                &link_type_uri,
+                                &link_type_id,
                                 LinkTypeDependencyContext {
                                     referenced_link_types,
                                     link_type_query_depth: link_type_query_depth - 1,
@@ -114,7 +114,7 @@ impl<C: AsClient> PostgresStore<C> {
                         }
                         if entity_type_query_depth > 0 {
                             self.get_entity_type_as_dependency(
-                                &entity_type_uri,
+                                &entity_type_id,
                                 EntityTypeDependencyContext {
                                     referenced_data_types,
                                     referenced_property_types,

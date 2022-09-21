@@ -51,11 +51,11 @@ export default class {
 
   private static async fromPersistedEntity(
     graphApi: GraphApi,
-    { identifier, inner, typeVersionedUri }: PersistedEntity,
+    { identifier, inner, entityTypeId }: PersistedEntity,
     cachedEntityTypeModels?: Map<string, EntityTypeModel>,
   ): Promise<EntityModel> {
     const { ownedById: accountId, version } = identifier;
-    const cachedEntityTypeModel = cachedEntityTypeModels?.get(typeVersionedUri);
+    const cachedEntityTypeModel = cachedEntityTypeModels?.get(entityTypeId);
 
     let entityTypeModel: EntityTypeModel;
 
@@ -63,10 +63,10 @@ export default class {
       entityTypeModel = cachedEntityTypeModel;
     } else {
       entityTypeModel = await EntityTypeModel.get(graphApi, {
-        versionedUri: typeVersionedUri,
+        versionedUri: entityTypeId,
       });
       if (cachedEntityTypeModels) {
-        cachedEntityTypeModels.set(typeVersionedUri, entityTypeModel);
+        cachedEntityTypeModels.set(entityTypeId, entityTypeModel);
       }
     }
 
@@ -98,7 +98,7 @@ export default class {
       data: { entityId, version },
     } = await graphApi.createEntity({
       accountId,
-      entityTypeUri: entityTypeModel.schema.$id,
+      entityTypeId: entityTypeModel.schema.$id,
       entity: properties,
       entityId: overrideEntityId,
     });
@@ -183,7 +183,7 @@ export default class {
       accountId,
       entityId,
       /** @todo: make this argument optional */
-      entityTypeUri: entityTypeModel.schema.$id,
+      entityTypeId: entityTypeModel.schema.$id,
       entity: properties,
     });
 

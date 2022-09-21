@@ -16,7 +16,9 @@ use crate::store::query::Expression;
 
 // TODO - find a good place for AccountId, perhaps it will become redundant in a future design
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, Component, FromSql, ToSql)]
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Component, FromSql, ToSql,
+)]
 #[repr(transparent)]
 #[postgres(transparent)]
 pub struct AccountId(Uuid);

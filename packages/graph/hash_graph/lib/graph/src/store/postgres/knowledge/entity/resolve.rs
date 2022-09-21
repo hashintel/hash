@@ -29,7 +29,7 @@ where
                     "version" => Literal::Version(Version::Entity(self.version), self.is_latest),
                     "type" => {
                         return context
-                            .read_versioned_ontology_type::<EntityType>(&self.type_uri)
+                            .read_versioned_ontology_type::<EntityType>(&self.entity_type_id)
                             .await
                             .change_context(ResolveError::StoreReadError)?
                             .resolve(tail_path_segments, context)

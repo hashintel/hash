@@ -125,7 +125,6 @@ describe("Link model class", () => {
     const allLinks = await LinkModel.getAllOutgoing(graphApi, {
       sourceEntityModel,
     });
-
     expect(allLinks).toHaveLength(2);
     expect(allLinks).toContainEqual(friendLink);
     expect(allLinks).toContainEqual(acquaintanceLink);

@@ -19,7 +19,7 @@ where
                 let literal = match head_path_segment.identifier.as_str() {
                     "type" => {
                         return context
-                            .read_versioned_ontology_type::<LinkType>(&self.type_uri)
+                            .read_versioned_ontology_type::<LinkType>(&self.link_type_id)
                             .await
                             .change_context(ResolveError::StoreReadError)?
                             .resolve(tail_path_segments, context)

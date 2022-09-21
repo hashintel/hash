@@ -87,7 +87,7 @@ pub struct PersistedEntity {
     inner: Entity,
     identifier: PersistedEntityIdentifier,
     #[component(value_type = String)]
-    type_versioned_uri: VersionedUri,
+    entity_type_id: VersionedUri,
 }
 
 impl PersistedEntity {
@@ -96,13 +96,13 @@ impl PersistedEntity {
         inner: Entity,
         entity_id: EntityId,
         version: DateTime<Utc>,
-        type_versioned_uri: VersionedUri,
+        entity_type_id: VersionedUri,
         owned_by_id: AccountId,
     ) -> Self {
         Self {
             inner,
             identifier: PersistedEntityIdentifier::new(entity_id, version, owned_by_id),
-            type_versioned_uri,
+            entity_type_id,
         }
     }
 
@@ -117,8 +117,8 @@ impl PersistedEntity {
     }
 
     #[must_use]
-    pub const fn type_versioned_uri(&self) -> &VersionedUri {
-        &self.type_versioned_uri
+    pub const fn entity_type_id(&self) -> &VersionedUri {
+        &self.entity_type_id
     }
 }
 

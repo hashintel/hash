@@ -19,7 +19,7 @@ pub use self::{
 use crate::{
     knowledge::{
         Entity, EntityId, EntityRootedSubgraph, KnowledgeGraphQuery, Link, LinkRootedSubgraph,
-        PersistedEntity, PersistedEntityIdentifier,
+        PersistedEntity, PersistedEntityIdentifier, PersistedLink,
     },
     ontology::{
         AccountId, DataTypeQuery, DataTypeRootedSubgraph, EntityTypeQuery,
@@ -358,7 +358,9 @@ pub trait LinkTypeStore: for<'q> crud::Read<PersistedLinkType, Query<'q> = Expre
     ) -> Result<PersistedOntologyIdentifier, UpdateError>;
 }
 
-/// Describes the API of a store implementation for Entities.
+/// Describes the API of a store implementation for [Entities].
+///
+/// [Entities]: crate::knowledge::Entity
 #[async_trait]
 pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expression> {
     /// Creates a new [`Entity`].
@@ -372,7 +374,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
     async fn create_entity(
         &mut self,
         entity: Entity,
-        entity_type_uri: VersionedUri,
+        entity_type_id: VersionedUri,
         owned_by_id: AccountId,
         entity_id: Option<EntityId>,
     ) -> Result<PersistedEntityIdentifier, InsertionError>;
@@ -399,14 +401,14 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
         &mut self,
         entity_id: EntityId,
         entity: Entity,
-        entity_type_uri: VersionedUri,
+        entity_type_id: VersionedUri,
         updated_by: AccountId,
     ) -> Result<PersistedEntityIdentifier, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [`Link`]s.
 #[async_trait]
-pub trait LinkStore: for<'q> crud::Read<Link, Query<'q> = Expression> {
+pub trait LinkStore: for<'q> crud::Read<PersistedLink, Query<'q> = Expression> {
     /// Creates a new [`Link`].
     ///
     /// # Errors:

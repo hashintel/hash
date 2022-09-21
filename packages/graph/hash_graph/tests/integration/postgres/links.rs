@@ -19,42 +19,45 @@ async fn insert() {
         .await
         .expect("could not seed database");
 
-    let person_type_uri = VersionedUri::new(
+    let person_type_id = VersionedUri::new(
         BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/person/".to_owned())
             .expect("couldn't construct Base URI"),
         1,
     );
 
-    let link_type_uri = VersionedUri::new(
+    let link_type_id = VersionedUri::new(
         BaseUri::new("https://blockprotocol.org/@alice/types/link-type/friend-of/".to_owned())
             .expect("couldn't construct Base URI"),
         1,
     );
 
     let person_a_identifier = api
-        .create_entity(person_a, person_type_uri.clone(), None)
+        .create_entity(person_a, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
     let person_b_identifier = api
-        .create_entity(person_b, person_type_uri.clone(), None)
+        .create_entity(person_b, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
     api.create_link(
         person_a_identifier.entity_id(),
         person_b_identifier.entity_id(),
-        link_type_uri.clone(),
+        link_type_id.clone(),
     )
     .await
     .expect("could not create link");
 
     let link_target = api
-        .get_link_target(person_a_identifier.entity_id(), link_type_uri.clone())
+        .get_link_target(person_a_identifier.entity_id(), link_type_id.clone())
         .await
         .expect("could not fetch link");
 
-    assert_eq!(link_target.target_entity(), person_b_identifier.entity_id());
+    assert_eq!(
+        link_target.inner().target_entity(),
+        person_b_identifier.entity_id()
+    );
 }
 
 #[tokio::test]
@@ -74,19 +77,19 @@ async fn get_entity_links() {
         .await
         .expect("could not seed database");
 
-    let person_type_uri = VersionedUri::new(
+    let person_type_id = VersionedUri::new(
         BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/person/".to_owned())
             .expect("couldn't construct Base URI"),
         1,
     );
 
-    let friend_link_type_uri = VersionedUri::new(
+    let friend_link_type_id = VersionedUri::new(
         BaseUri::new("https://blockprotocol.org/@alice/types/link-type/friend-of/".to_owned())
             .expect("couldn't construct Base URI"),
         1,
     );
 
-    let acquaintance_link_type_uri = VersionedUri::new(
+    let acquaintance_link_type_id = VersionedUri::new(
         BaseUri::new(
             "https://blockprotocol.org/@alice/types/link-type/acquaintance-of/".to_owned(),
         )
@@ -95,17 +98,17 @@ async fn get_entity_links() {
     );
 
     let person_a_identifier = api
-        .create_entity(person_a, person_type_uri.clone(), None)
+        .create_entity(person_a, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
     let person_b_identifier = api
-        .create_entity(person_b, person_type_uri.clone(), None)
+        .create_entity(person_b, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
     let person_c_identifier = api
-        .create_entity(person_c, person_type_uri.clone(), None)
+        .create_entity(person_c, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
@@ -113,7 +116,7 @@ async fn get_entity_links() {
         .create_link(
             person_a_identifier.entity_id(),
             person_b_identifier.entity_id(),
-            friend_link_type_uri.clone(),
+            friend_link_type_id.clone(),
         )
         .await
         .expect("could not create link");
@@ -122,7 +125,7 @@ async fn get_entity_links() {
         .create_link(
             person_a_identifier.entity_id(),
             person_c_identifier.entity_id(),
-            acquaintance_link_type_uri.clone(),
+            acquaintance_link_type_id.clone(),
         )
         .await
         .expect("could not create link");
@@ -135,13 +138,13 @@ async fn get_entity_links() {
     assert!(
         links_from_source
             .iter()
-            .find(|link| link.link_type_uri() == &acquaintance_link_type_uri)
+            .find(|link| link.inner().link_type_id() == &acquaintance_link_type_id)
             .is_some()
     );
     assert!(
         links_from_source
             .iter()
-            .find(|link| link.link_type_uri() == &friend_link_type_uri)
+            .find(|link| link.inner().link_type_id() == &friend_link_type_id)
             .is_some()
     );
 }
@@ -162,25 +165,25 @@ async fn remove_link() {
         .await
         .expect("could not seed database");
 
-    let person_type_uri = VersionedUri::new(
+    let person_type_id = VersionedUri::new(
         BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/person/".to_owned())
             .expect("couldn't construct Base URI"),
         1,
     );
 
-    let link_type_uri = VersionedUri::new(
+    let link_type_id = VersionedUri::new(
         BaseUri::new("https://blockprotocol.org/@alice/types/link-type/friend-of/".to_owned())
             .expect("couldn't construct Base URI"),
         1,
     );
 
     let person_a_identifier = api
-        .create_entity(person_a, person_type_uri.clone(), None)
+        .create_entity(person_a, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
     let person_b_identifier = api
-        .create_entity(person_b, person_type_uri.clone(), None)
+        .create_entity(person_b, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
@@ -188,7 +191,7 @@ async fn remove_link() {
         .create_link(
             person_a_identifier.entity_id(),
             person_b_identifier.entity_id(),
-            link_type_uri.clone(),
+            link_type_id.clone(),
         )
         .await
         .expect("could not create link");
@@ -196,13 +199,13 @@ async fn remove_link() {
     api.remove_link(
         person_a_identifier.entity_id(),
         person_b_identifier.entity_id(),
-        link_type_uri.clone(),
+        link_type_id.clone(),
     )
     .await
     .expect("could not remove link");
 
     let _ = api
-        .get_link_target(person_a_identifier.entity_id(), link_type_uri)
+        .get_link_target(person_a_identifier.entity_id(), link_type_id)
         .await
         .expect_err("found link that should have been deleted");
 }

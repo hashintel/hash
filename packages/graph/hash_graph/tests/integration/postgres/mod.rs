@@ -11,6 +11,7 @@ use error_stack::{Report, Result};
 use graph::{
     knowledge::{
         Entity, EntityId, KnowledgeGraphQuery, Link, PersistedEntity, PersistedEntityIdentifier,
+        PersistedLink,
     },
     ontology::{
         AccountId, DataTypeQuery, EntityTypeQuery, LinkTypeQuery, PersistedDataType,
@@ -284,11 +285,11 @@ impl DatabaseApi<'_> {
     pub async fn create_entity(
         &mut self,
         entity: Entity,
-        entity_type_uri: VersionedUri,
+        entity_type_id: VersionedUri,
         entity_id: Option<EntityId>,
     ) -> Result<PersistedEntityIdentifier, InsertionError> {
         self.store
-            .create_entity(entity, entity_type_uri, self.account_id, entity_id)
+            .create_entity(entity, entity_type_id, self.account_id, entity_id)
             .await
     }
 
@@ -314,10 +315,10 @@ impl DatabaseApi<'_> {
         &mut self,
         entity_id: EntityId,
         entity: Entity,
-        entity_type_uri: VersionedUri,
+        entity_type_id: VersionedUri,
     ) -> Result<PersistedEntityIdentifier, UpdateError> {
         self.store
-            .update_entity(entity_id, entity, entity_type_uri, self.account_id)
+            .update_entity(entity_id, entity, entity_type_id, self.account_id)
             .await
     }
 
@@ -325,17 +326,17 @@ impl DatabaseApi<'_> {
         &mut self,
         source_entity_id: EntityId,
         target_entity_id: EntityId,
-        link_type_uri: VersionedUri,
+        link_type_id: VersionedUri,
     ) -> Result<(), InsertionError> {
-        let link = Link::new(source_entity_id, target_entity_id, link_type_uri);
+        let link = Link::new(source_entity_id, target_entity_id, link_type_id);
         self.store.create_link(&link, self.account_id).await
     }
 
     pub async fn get_link_target(
         &self,
         source_entity_id: EntityId,
-        link_type_uri: VersionedUri,
-    ) -> Result<Link, QueryError> {
+        link_type_id: VersionedUri,
+    ) -> Result<PersistedLink, QueryError> {
         Ok(self
             .store
             .get_links(&KnowledgeGraphQuery {
@@ -352,7 +353,7 @@ impl DatabaseApi<'_> {
                                 },
                             ],
                         }),
-                        Expression::Literal(Literal::String(link_type_uri.base_uri().to_string())),
+                        Expression::Literal(Literal::String(link_type_id.base_uri().to_string())),
                     ]),
                     Expression::Eq(vec![
                         Expression::Path(Path {
@@ -365,7 +366,7 @@ impl DatabaseApi<'_> {
                                 },
                             ],
                         }),
-                        Expression::Literal(Literal::Float(link_type_uri.version() as f64)),
+                        Expression::Literal(Literal::Float(link_type_id.version() as f64)),
                     ]),
                 ]),
                 data_type_query_depth: 0,
@@ -385,7 +386,7 @@ impl DatabaseApi<'_> {
     pub async fn get_entity_links(
         &self,
         source_entity_id: EntityId,
-    ) -> Result<Vec<Link>, QueryError> {
+    ) -> Result<Vec<PersistedLink>, QueryError> {
         Ok(self
             .store
             .get_links(&KnowledgeGraphQuery {
@@ -407,9 +408,9 @@ impl DatabaseApi<'_> {
         &mut self,
         source_entity_id: EntityId,
         target_entity_id: EntityId,
-        link_type_uri: VersionedUri,
+        link_type_id: VersionedUri,
     ) -> Result<(), LinkRemovalError> {
-        let link = Link::new(source_entity_id, target_entity_id, link_type_uri);
+        let link = Link::new(source_entity_id, target_entity_id, link_type_id);
         self.store.remove_link(&link, self.account_id).await
     }
 }
