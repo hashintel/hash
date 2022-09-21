@@ -74,7 +74,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         plugins: [
           keymap<Schema>(baseKeymap),
           ...createFormatPlugins(renderPortal),
-          formatKeymap(doc),
+          formatKeymap(schema),
           createSuggester(renderPortal, accountId, container),
           placeholderPlugin(renderPortal, "Leave a comment"),
         ],
