@@ -98,13 +98,13 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
   useEffect(() => {
     viewRef.current?.update({
       state: viewRef.current.state,
-      handleKeyDown: (_, { shiftKey, key }) => {
+      handleKeyDown: (view, { shiftKey, key }) => {
         if (!loading && !shiftKey) {
           switch (key) {
             case "Enter":
-              if (viewRef.current?.state.doc.content) {
+              if (view.state.doc.content) {
                 const { tokens } = textBlockNodeToEntityProperties(
-                  viewRef.current.state.doc,
+                  view.state.doc,
                 );
 
                 setLoading(true);
