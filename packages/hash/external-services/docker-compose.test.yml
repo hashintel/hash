@@ -1,16 +1,10 @@
 version: "3.9"
 
-volumes:
-  hash-postgres-test-data:
-
 services:
   postgres:
     environment:
       HASH_KRATOS_PG_DATABASE: "${HASH_KRATOS_PG_TEST_DATABASE}"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_TEST_DATABASE}"
-    volumes:
-      - hash-postgres-test-data:/var/lib/postgresql/data
-      # - ./postgres/postgresql-test.conf:/etc/postgresql/postgresql.conf:ro
 
   graph-migrate:
     environment:
