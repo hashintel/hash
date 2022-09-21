@@ -1,3 +1,4 @@
+import { cloneDeep } from "lodash";
 import { baseKeymap, toggleMark } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
 import { keymap } from "prosemirror-keymap";
@@ -15,7 +16,7 @@ const nodes = {
   ...pageEditorNodes,
 };
 
-const createInitialDoc = (schema: Schema = createSchema(nodes)) =>
+const createInitialDoc = (schema: Schema = createSchema(cloneDeep(nodes))) =>
   schema.node("doc", {}, [schema.node("loading")]);
 
 const defaultPlugins: Plugin<any, Schema>[] = [

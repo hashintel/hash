@@ -131,7 +131,7 @@ export const textTokenNodes = {
 };
 
 export const pageEditorNodes = {
-  loading: { ...loadingNode },
+  loading: loadingNode,
   block: blockNode,
   entity: entityNode,
 };
