@@ -204,11 +204,11 @@ export const createSuggester = (
           docChangedInTransaction(tr)
             ? null
             : tr.mapping.map(state.suggestedBlockPosition);
-        const trigger =
-          state.trigger?.triggeredBy === "event" &&
-          findTrigger(nextEditorState) === null
-            ? state.trigger
-            : findTrigger(nextEditorState);
+
+        let trigger = findTrigger(nextEditorState);
+        if (trigger === null && state.trigger?.triggeredBy === "event") {
+          trigger = state.trigger;
+        }
 
         const disabled = state.disabled && trigger !== null;
 
