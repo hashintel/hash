@@ -124,17 +124,17 @@ export const entityNode: NodeSpec = {
   ],
 };
 
-export const getPageEditorNodes = (): NodeSpecs => ({
-  doc: {
-    content: "((componentNode|block)+)|loading",
-  },
+export const textTokenNodes = {
   text: textNode,
   hardBreak: hardBreakNode,
   mention: mentionNode,
+};
+
+export const pageEditorNodes = {
   loading: { ...loadingNode },
   block: blockNode,
   entity: entityNode,
-});
+};
 
 export const createSchema = (nodes: NodeSpecs) =>
   new Schema({

@@ -4,12 +4,19 @@ import { keymap } from "prosemirror-keymap";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
 import { createEntityStorePlugin } from "./entityStorePlugin";
-import { createSchema, getPageEditorNodes } from "./prosemirror";
+import { createSchema, textTokenNodes, pageEditorNodes } from "./prosemirror";
 import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
 
-const createInitialDoc = (
-  schema: Schema = createSchema(getPageEditorNodes()),
-) => schema.node("doc", {}, [schema.node("loading")]);
+const nodes = {
+  doc: {
+    content: "((componentNode|block)+)|loading",
+  },
+  ...textTokenNodes,
+  ...pageEditorNodes,
+};
+
+const createInitialDoc = (schema: Schema = createSchema(nodes)) =>
+  schema.node("doc", {}, [schema.node("loading")]);
 
 const defaultPlugins: Plugin<any, Schema>[] = [
   ...wrapEntitiesPlugin(baseKeymap),

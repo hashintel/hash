@@ -13,9 +13,7 @@ import { baseKeymap } from "prosemirror-commands";
 import { keymap } from "prosemirror-keymap";
 import {
   createSchema,
-  hardBreakNode,
-  mentionNode,
-  textNode,
+  textTokenNodes,
 } from "@hashintel/hash-shared/prosemirror";
 import { Box } from "@mui/material";
 import { faAt } from "@fortawesome/free-solid-svg-icons";
@@ -62,9 +60,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         doc: {
           content: "inline*",
         },
-        text: textNode,
-        hardBreak: hardBreakNode,
-        mention: mentionNode,
+        ...textTokenNodes,
       });
 
       const doc = schema.node("doc", {}, []);
