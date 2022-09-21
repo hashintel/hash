@@ -22,8 +22,7 @@ export const CommentButton: FunctionComponent<CommentButtonProps> = ({
 }) => {
   const { accountId } = useRouteAccountInfo();
   const blockView = useBlockView();
-  const [open, setOpen] = useState(false);
-  const anchorRef = useRef<HTMLButtonElement>(null);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [createComment] = useCreateComment(accountId);
 
   const submitComment = useCallback(
@@ -35,14 +34,12 @@ export const CommentButton: FunctionComponent<CommentButtonProps> = ({
     [createComment, blockId],
   );
 
-  const closeInput = () => setOpen(false);
-
-  const anchorNode = anchorRef.current;
+  const closeInput = () => setAnchorEl(null);
 
   return (
-    <Box ref={anchorRef} className={className}>
+    <Box className={className}>
       <IconButton
-        onClick={() => setOpen(true)}
+        onClick={(event) => setAnchorEl(anchorEl ? null : event.currentTarget)}
         sx={{
           padding: 0.5,
           borderRadius: 1,
@@ -54,7 +51,7 @@ export const CommentButton: FunctionComponent<CommentButtonProps> = ({
       </IconButton>
 
       <Popper
-        open={open}
+        open={!!anchorEl}
         placement="bottom-start"
         container={rootNode}
         modifiers={[
@@ -67,7 +64,7 @@ export const CommentButton: FunctionComponent<CommentButtonProps> = ({
             options: {
               offset: () => [
                 -13,
-                -(anchorNode?.getBoundingClientRect().height ?? 0) - 13,
+                -(anchorEl?.getBoundingClientRect().height ?? 0) - 13,
               ],
             },
           },
@@ -79,7 +76,7 @@ export const CommentButton: FunctionComponent<CommentButtonProps> = ({
             },
           },
         ]}
-        anchorEl={anchorNode}
+        anchorEl={anchorEl}
       >
         <CommentTextField onClose={closeInput} onSubmit={submitComment} />
       </Popper>
