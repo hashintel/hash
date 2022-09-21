@@ -81,11 +81,7 @@ export const CommentButton: FunctionComponent<CommentButtonProps> = ({
         ]}
         anchorEl={anchorNode}
       >
-        <CommentTextField
-          blockId={blockId!}
-          onClose={closeInput}
-          onSubmit={submitComment}
-        />
+        <CommentTextField onClose={closeInput} onSubmit={submitComment} />
       </Popper>
     </Box>
   );

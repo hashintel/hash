@@ -40,13 +40,11 @@ import { clipboardTextSerializer } from "../clipboardTextSerializer";
 import { mentionNodeView } from "../MentionView/MentionNodeView";
 
 type CommentTextFieldProps = {
-  blockId: string;
   onClose: () => void;
   onSubmit: (content: TextToken[]) => Promise<void>;
 };
 
 export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
-  blockId,
   onClose,
   onSubmit,
 }) => {
@@ -54,8 +52,6 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
   const [portals, renderPortal] = usePortals();
   const { accountId } = useRouteAccountInfo();
   const [loading, setLoading] = useState(false);
-
-  const [prevBlockId, setPrevBlockId] = useState("");
   const [editorContainer, setEditorContainer] = useState<HTMLDivElement | null>(
     null,
   );
@@ -141,12 +137,12 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
     });
   }, [loading, onClose, onSubmit]);
 
-  if (editorContainer && prevBlockId !== blockId) {
-    setPrevBlockId(blockId);
-
-    editorContainer.innerHTML = "";
-    createEditor(editorContainer);
-  }
+  useEffect(() => {
+    if (editorContainer) {
+      editorContainer.innerHTML = "";
+      createEditor(editorContainer);
+    }
+  }, [editorContainer, createEditor]);
 
   return (
     <Box
