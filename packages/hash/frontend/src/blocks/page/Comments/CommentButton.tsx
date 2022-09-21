@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback, useRef, useState } from "react";
+import { FunctionComponent, useCallback, useState } from "react";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
 import Box from "@mui/material/Box";
