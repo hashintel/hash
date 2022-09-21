@@ -8,6 +8,7 @@ import {
   propertyTypeInitializer,
   entityTypeInitializer,
   linkTypeInitializer,
+  generateSchemaUri,
 } from "../model/util";
 
 // eslint-disable-next-line import/no-mutable-exports
@@ -32,12 +33,19 @@ export let WORKSPACE_TYPES: {
 
     // Block-related
     componentId: PropertyTypeModel;
+
+    // Page-related
+    archived: PropertyTypeModel;
+    summary: PropertyTypeModel;
+    title: PropertyTypeModel;
+    index: PropertyTypeModel;
   };
   entityType: {
     user: EntityTypeModel;
     org: EntityTypeModel;
     orgMembership: EntityTypeModel;
     block: EntityTypeModel;
+    page: EntityTypeModel;
     /**
      * @todo: deprecate all uses of this dummy entity type
      * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
@@ -53,6 +61,10 @@ export let WORKSPACE_TYPES: {
 
     // Block-related
     blockData: LinkTypeModel;
+
+    // Page-related
+    contain: LinkTypeModel;
+    parent: LinkTypeModel;
   };
 };
 
@@ -327,6 +339,121 @@ const dummyEntityTypeInitializer = async (graphApi: GraphApi) => {
   })(graphApi);
 };
 
+const archivedPropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Archived",
+  description: "Whether or not something has been archived.",
+  possibleValues: [{ primitiveDataType: "Boolean" }],
+});
+
+const summaryPropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Summary",
+  description: "The summary of the something.",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+const titlePropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Summary",
+  description: "The title of something.",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+const indexPropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Index",
+  description:
+    "The (fractional) index indicating the current position of something.",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+const containLinkTypeInitializer = linkTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Contain",
+  description: "Containing something.",
+});
+
+const parentLinkTypeInitializer = linkTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Parent",
+  description: "The parent of something.",
+});
+
+const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const summaryPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.summary(graphApi);
+
+  const archivedPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.archived(graphApi);
+
+  const titlePropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.title(graphApi);
+
+  const indexPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.index(graphApi);
+
+  const containLinkTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.linkType.contain(graphApi);
+
+  const parentLinkTypeTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.linkType.parent(graphApi);
+
+  const blockEntityTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.entityType.block(graphApi);
+
+  const namespace = WORKSPACE_ACCOUNT_SHORTNAME;
+
+  const title = "Page";
+
+  const pageVersionedUri = generateSchemaUri({
+    namespace,
+    title,
+    kind: "entity-type",
+  });
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    namespace,
+    title,
+    properties: [
+      {
+        propertyTypeBaseUri: summaryPropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: summaryPropertyTypeModel.schema.$id,
+      },
+      {
+        propertyTypeBaseUri: archivedPropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: archivedPropertyTypeModel.schema.$id,
+      },
+      {
+        propertyTypeBaseUri: titlePropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: titlePropertyTypeModel.schema.$id,
+        required: true,
+      },
+      {
+        propertyTypeBaseUri: indexPropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: indexPropertyTypeModel.schema.$id,
+        required: true,
+      },
+    ],
+    outgoingLinks: [
+      {
+        linkTypeVersionedUri: containLinkTypeModel.schema.$id,
+        destinationEntityTypeVersionedUri: blockEntityTypeModel.schema.$id,
+        required: true,
+        array: true,
+      },
+      {
+        linkTypeVersionedUri: parentLinkTypeTypeModel.schema.$id,
+        destinationEntityTypeVersionedUri: pageVersionedUri,
+      },
+    ],
+  })(graphApi);
+};
+
 type LazyPromise<T> = (graphApi: GraphApi) => Promise<T>;
 
 type FlattenAndPromisify<T> = {
@@ -353,18 +480,26 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     responsibility: responsibilityPropertyTypeInitializer,
 
     componentId: componentIdPropertyTypeInitializer,
+
+    summary: summaryPropertyTypeInitializer,
+    archived: archivedPropertyTypeInitializer,
+    title: titlePropertyTypeInitializer,
+    index: indexPropertyTypeInitializer,
   },
   entityType: {
     user: userEntityTypeInitializer,
     org: orgEntityTypeInitializer,
     orgMembership: orgMembershipEntityTypeInitializer,
     block: blockEntityTypeInitializer,
+    page: pageEntityTypeInitializer,
     dummy: dummyEntityTypeInitializer,
   },
   linkType: {
     ofOrg: ofOrgLinkTypeInitializer,
     hasMembership: hasMembershipLinkTypeInitializer,
     blockData: blockDataLinkTypeInitializer,
+    contain: containLinkTypeInitializer,
+    parent: parentLinkTypeInitializer,
   },
 };
 
