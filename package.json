@@ -32,6 +32,7 @@
     "dev:backend:realtime": "yarn workspace @hashintel/hash-realtime dev",
     "dev:backend:search-loader": "yarn workspace @hashintel/hash-search-loader dev",
     "dev:frontend": "yarn workspace @hashintel/hash-frontend dev",
+    "external-services-test": "docker compose --project-name external-services-test --file packages/hash/external-services/docker-compose.yml --file packages/hash/external-services/docker-compose.test.yml --env-file .env",
     "external-services": "docker compose --file packages/hash/external-services/docker-compose.yml --env-file .env",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "@todo.1": "Remove the ignore argument below for mock-block-dock once repo is upgraded fully to 0.2 spec",
