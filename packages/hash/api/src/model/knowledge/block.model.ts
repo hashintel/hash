@@ -45,6 +45,7 @@ export default class extends EntityModel {
    * Create a workspace block entity.
    *
    * @param params.componentId - the component id of the block
+   * @param params.blockData - the linked block data entity
    */
   static async createBlock(
     graphApi: GraphApi,
