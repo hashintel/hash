@@ -1,7 +1,6 @@
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { EntityModel, BlockModel, EntityModelCreateParams } from "..";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
-import { workspaceAccountId } from "../util";
 
 type BlockModelCreateParams = Omit<
   EntityModelCreateParams,
@@ -40,35 +39,6 @@ export default class extends EntityModel {
     const entity = await EntityModel.getLatest(graphApi, params);
 
     return BlockModel.fromEntityModel(entity);
-  }
-
-  /**
-   * Get a workspace block entity by its component id.
-   *
-   * @param params.componentId - the component id
-   */
-  static async getBlockByComponentId(
-    graphApi: GraphApi,
-    params: { componentId: string },
-  ): Promise<BlockModel | null> {
-    /**
-     * @todo: use upcoming Graph API method to filter entities in the datastore
-     *   https://app.asana.com/0/1202805690238892/1202890614880643/f
-     */
-    const allEntities = await EntityModel.getAllLatest(graphApi, {
-      accountId: workspaceAccountId,
-    });
-
-    const matchingBlock = allEntities
-      .filter(
-        ({ entityTypeModel }) =>
-          entityTypeModel.schema.$id ===
-          WORKSPACE_TYPES.entityType.block.schema.$id,
-      )
-      .map((entityModel) => new BlockModel(entityModel))
-      .find((block) => block.getComponentId() === params.componentId);
-
-    return matchingBlock ?? null;
   }
 
   /**
