@@ -21,6 +21,7 @@ import {
 } from "@hashintel/hash-design-system";
 import {
   Autocomplete,
+  autocompleteClasses,
   Box,
   ButtonBase,
   Card,
@@ -40,6 +41,8 @@ import {
   ListItemText,
   listItemTextClasses,
   menuItemClasses,
+  Paper,
+  PaperProps,
   Stack,
   styled,
   SxProps,
@@ -58,16 +61,25 @@ import {
   useForkRef,
 } from "@mui/material";
 import {
-  bindPopover,
-  usePopupState,
   bindMenu,
-  bindTrigger,
+  bindPopover,
   bindToggle,
+  bindTrigger,
+  usePopupState,
 } from "material-ui-popup-state/hooks";
 import Image from "next/image";
-import { ComponentProps, Ref, useId, useRef, useState } from "react";
+import {
+  ComponentProps,
+  createContext,
+  Ref,
+  useContext,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import { flushSync } from "react-dom";
 import { Modal } from "../../../components/Modals/Modal";
+import { ArrowUpRightIcon, PlusCircleIcon } from "../../../shared/icons/svg";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
 import { TopContextBar } from "../../shared/top-context-bar";
 import { OurChip, placeholderUri } from "./Chip";
@@ -169,9 +181,11 @@ const Input = (props: TextFieldProps) => (
 const NewPropertyTypeForm = ({
   createButtonProps,
   discardButtonProps,
+  initialTitle,
 }: {
   createButtonProps: Omit<ButtonProps, "size" | "variant" | "children">;
   discardButtonProps: Omit<ButtonProps, "size" | "variant" | "children">;
+  initialTitle?: string;
 }) => (
   <Box minWidth={500} p={3}>
     <Stack
@@ -191,6 +205,7 @@ const NewPropertyTypeForm = ({
         label="Singular name"
         required
         placeholder="e.g. Stock Price"
+        defaultValue={initialTitle}
       />
       <TextField
         multiline
@@ -347,6 +362,73 @@ const PropertyMenu = ({
   );
 };
 
+type PaperWithCreateButtonProps = {
+  query: string;
+  createButtonProps: Omit<ButtonProps, "children" | "variant" | "size">;
+};
+
+const PaperWithCreateButtonContext =
+  createContext<PaperWithCreateButtonProps | null>(null);
+const usePaperWithCreateButtonContext = () => {
+  const value = useContext(PaperWithCreateButtonContext);
+  if (value === null) {
+    throw new Error("Must wrap with PaperWithCreateButtonContext.Provider");
+  }
+  return value;
+};
+
+const PaperWithCreateButton = ({ children, ...props }: PaperProps) => {
+  const { query, createButtonProps } = usePaperWithCreateButtonContext();
+  return (
+    <Paper
+      {...props}
+      sx={{
+        p: 1,
+        [`.${autocompleteClasses.listbox}`]: { p: 0 },
+        [`.${autocompleteClasses.noOptions}`]: { display: "none" },
+        [`.${autocompleteClasses.option}`]: { borderRadius: 1 },
+      }}
+    >
+      {children}
+      <Button
+        variant="tertiary"
+        startIcon={<PlusCircleIcon />}
+        sx={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+        }}
+        {...createButtonProps}
+      >
+        <Typography
+          variant="smallTextLabels"
+          sx={(theme) => ({
+            color: theme.palette.gray[60],
+            fontWeight: 500,
+          })}
+        >
+          Create
+        </Typography>
+        {query ? (
+          <>
+            &nbsp;
+            <Typography
+              variant="smallTextLabels"
+              sx={(theme) => ({
+                color: theme.palette.gray[60],
+                fontWeight: 600,
+              })}
+            >
+              {query}
+            </Typography>
+          </>
+        ) : null}
+        <Chip color="purple" label="PROPERTY TYPE" sx={{ ml: 1.5 }} />
+      </Button>
+    </Paper>
+  );
+};
+
 const NewPropertyRow = ({
   inputRef,
   // onCancel,
@@ -362,54 +444,153 @@ const NewPropertyRow = ({
     popupId: `createProperty-${modalTooltipId}`,
   });
 
-  const modalPopoverProps = bindPopover(modalPopupState);
-
   const [searchText, setSearchText] = useState("");
+
+  const ourInputRef = useRef<HTMLInputElement>(null);
+  const sharedRef = useForkRef(inputRef, ourInputRef);
+
+  const options = [
+    {
+      title: "Share Price",
+      icon: placeholderUri,
+      domain: "hash.ai",
+      path: "@nasdaq",
+      expectedValues: ["Currency"],
+      description: "A company's current price per share",
+    },
+    {
+      title: "Stock Symbol ",
+      icon: placeholderUri,
+      domain: "hash.ai",
+      path: "@acme-corp",
+      expectedValues: ["Text"],
+      description:
+        "An abbreviation used to uniquely identify public traded shares",
+    },
+    {
+      title: "Ownership Percentage",
+      icon: placeholderUri,
+      domain: "hash.ai",
+      path: "@wrapped-text-that-is-long-enough",
+      expectedValues: ["Number"],
+      description:
+        "An entity’s ownership stake in another entity expressed as a property",
+    },
+  ];
 
   return (
     <TableRow data-disabled>
       <TableCell colSpan={2}>
-        <Autocomplete
-          popupIcon={null}
-          forcePopupIcon={false}
-          open
-          renderInput={(props) => (
-            <TextField
-              {...props}
-              value={searchText}
-              onChange={(evt) => setSearchText(evt.target.value)}
-              placeholder="Search for a property type"
-              sx={{ width: "100%" }}
-              inputRef={inputRef}
-              InputProps={{
-                ...props.InputProps,
-                endAdornment: (
-                  <FontAwesomeIcon
-                    icon={faSearch}
-                    sx={(theme) => ({
-                      fontSize: 12,
-                      mr: 2,
-                      color: theme.palette.gray[50],
-                    })}
-                  />
-                ),
-              }}
-            />
-          )}
-          options={[]}
-          noOptionsText={
-            <Box>
-              <Button {...bindTrigger(modalPopupState)}>
-                Create {searchText}
-              </Button>
-            </Box>
-          }
-        />
+        <PaperWithCreateButtonContext.Provider
+          value={{
+            query: searchText,
+            createButtonProps: {
+              ...withHandler(bindTrigger(modalPopupState), () => {
+                ourInputRef.current?.focus();
+              }),
+              onMouseDown: (evt) => {
+                evt.preventDefault();
+                evt.stopPropagation();
+              },
+            },
+          }}
+        >
+          <Autocomplete
+            popupIcon={null}
+            clearIcon={null}
+            forcePopupIcon={false}
+            selectOnFocus={false}
+            openOnFocus
+            inputValue={searchText}
+            clearOnBlur={false}
+            onInputChange={(_, value) => setSearchText(value)}
+            onChange={() => onAdd()}
+            renderInput={(props) => (
+              <TextField
+                {...props}
+                placeholder="Search for a property type"
+                sx={{ width: "100%" }}
+                inputRef={sharedRef}
+                InputProps={{
+                  ...props.InputProps,
+                  endAdornment: (
+                    <FontAwesomeIcon
+                      icon={faSearch}
+                      sx={(theme) => ({
+                        fontSize: 12,
+                        mr: 2,
+                        color: theme.palette.gray[50],
+                      })}
+                    />
+                  ),
+                }}
+              />
+            )}
+            options={options}
+            getOptionLabel={(obj) => obj.title}
+            renderOption={(props, option) => (
+              <li {...props}>
+                <Box width="100%">
+                  <Box width="100%" display="flex" alignItems="center" mb={0.5}>
+                    <Typography
+                      variant="smallTextLabels"
+                      fontWeight={500}
+                      mr={0.5}
+                      color="black"
+                    >
+                      {option.title}
+                    </Typography>
+                    <ArrowUpRightIcon />
+                    <OurChip
+                      icon={
+                        <Box
+                          component={Image}
+                          src={option.icon}
+                          layout="fill"
+                          alt=""
+                        />
+                      }
+                      domain={option.domain}
+                      path={
+                        <Typography
+                          component="span"
+                          fontWeight="bold"
+                          color={(theme) => theme.palette.blue[70]}
+                        >
+                          {option.path}
+                        </Typography>
+                      }
+                      sx={{ flexShrink: 1, ml: 1.25, mr: 2 }}
+                    />
+                    <Box ml="auto">
+                      {option.expectedValues.map((value) => (
+                        <Chip key={value} color="gray" label={value} />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Box>
+                    <Typography
+                      variant="microText"
+                      sx={(theme) => ({ color: theme.palette.gray[50] })}
+                    >
+                      {option.description}
+                    </Typography>
+                  </Box>
+                </Box>
+              </li>
+            )}
+            PaperComponent={PaperWithCreateButton}
+          />
+        </PaperWithCreateButtonContext.Provider>
         <Modal
-          {...modalPopoverProps}
+          {...bindPopover(modalPopupState)}
           disableEscapeKeyDown
           onClose={() => {}}
-          contentStyle={{ p: 0 }}
+          contentStyle={(theme) => ({
+            p: "0px !important",
+            border: 1,
+            borderColor: theme.palette.gray[20],
+          })}
         >
           <>
             <Box
@@ -418,7 +599,7 @@ const NewPropertyRow = ({
                 pr: 1.5,
                 pb: 1.5,
                 pt: 2,
-                borderBottom: "solid",
+                borderBottom: 1,
                 borderColor: theme.palette.gray[20],
                 alignItems: "center",
                 display: "flex",
@@ -450,6 +631,7 @@ const NewPropertyRow = ({
                 onAdd(),
               )}
               discardButtonProps={bindToggle(modalPopupState)}
+              initialTitle={searchText}
             />
           </>
         </Modal>
