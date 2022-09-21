@@ -4,24 +4,21 @@ import { faComment } from "@fortawesome/free-regular-svg-icons";
 import Box from "@mui/material/Box";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import Popper from "@mui/material/Popper";
-import { useBlockView } from "../BlockViewContext";
 import { useCreateComment } from "../../../components/hooks/useCreateComment";
 import { useRouteAccountInfo } from "../../../shared/routing";
 import { CommentTextField } from "./CommentTextField";
+import styles from "../style.module.css";
 
 type CommentButtonProps = {
   blockId: string | null;
-  className: string;
   rootNode: HTMLElement;
 };
 
 export const CommentButton: FunctionComponent<CommentButtonProps> = ({
   blockId,
-  className,
   rootNode,
 }) => {
   const { accountId } = useRouteAccountInfo();
-  const blockView = useBlockView();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [createComment] = useCreateComment(accountId);
 
@@ -37,13 +34,12 @@ export const CommentButton: FunctionComponent<CommentButtonProps> = ({
   const closeInput = () => setAnchorEl(null);
 
   return (
-    <Box className={className}>
+    <Box className={styles.Block__Comments_Button}>
       <IconButton
         onClick={(event) => setAnchorEl(anchorEl ? null : event.currentTarget)}
         sx={{
           padding: 0.5,
           borderRadius: 1,
-          opacity: blockView.hovered ? 1 : 0,
           transition: ({ transitions }) => transitions.create("opacity"),
         }}
       >

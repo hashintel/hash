@@ -272,11 +272,7 @@ export class BlockView implements NodeView<Schema> {
                   ctx?.setShowDataMappingUi(!ctx.showDataMappingUi)
                 }
               />
-              <CommentButton
-                blockId={blockEntityId}
-                className={styles.Block__Comments_Button!}
-                rootNode={this.rootNode}
-              />
+              <CommentButton blockId={blockEntityId} rootNode={this.rootNode} />
             </BlockViewContext.Provider>
           );
         }}

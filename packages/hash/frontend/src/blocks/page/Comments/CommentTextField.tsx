@@ -32,7 +32,7 @@ import {
   suggesterPluginKey,
 } from "../createSuggester/createSuggester";
 import { useRouteAccountInfo } from "../../../shared/routing";
-import styles from "./style.module.css";
+import styles from "../style.module.css";
 import { placeholderPlugin } from "./placeholderPlugin";
 import { clipboardTextSerializer } from "../clipboardTextSerializer";
 import { mentionNodeView } from "../MentionView/MentionNodeView";
@@ -84,7 +84,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         },
       });
 
-      view.dom.classList.add(styles.Prosemirror_Input!);
+      view.dom.classList.add(styles.Comment__TextField_Prosemirror_Input!);
 
       view.focus();
 
