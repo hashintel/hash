@@ -104,6 +104,9 @@ const randomStringSuffix = () => {
     .join("");
 };
 
+export const generateRandomShortname = (prefix?: string) =>
+  `${prefix ?? ""}${randomStringSuffix()}`;
+
 export const createTestUser = async (
   graphApi: GraphApi,
   shortNamePrefix: string,
@@ -111,7 +114,7 @@ export const createTestUser = async (
 ) => {
   await ensureWorkspaceTypesExist({ graphApi, logger });
 
-  const shortname = `${shortNamePrefix}${randomStringSuffix()}`;
+  const shortname = generateRandomShortname(shortNamePrefix);
 
   const identity = await createKratosIdentity({
     traits: {
