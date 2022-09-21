@@ -10,12 +10,7 @@ import {
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { createPage, setParentPage } from "../../graphql/queries/page.queries";
 
-export const useCreateSubPage = (
-  accountId: string,
-): [
-  (parentPageEntityId: string, prevIndex: string | null) => Promise<void>,
-  { loading: boolean },
-] => {
+export const useCreateSubPage = (accountId: string) => {
   const router = useRouter();
 
   const [createPageFn, { loading: createPageLoading }] = useMutation<
@@ -64,5 +59,5 @@ export const useCreateSubPage = (
   return [
     createSubPage,
     { loading: createPageLoading || setParentPageLoading },
-  ];
+  ] as const;
 };

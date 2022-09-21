@@ -7,12 +7,7 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { createComment } from "../../graphql/queries/comment.queries";
 
-export const useCreateComment = (
-  accountId: string,
-): [
-  (parentId: string, content: TextToken[]) => Promise<void>,
-  { loading: boolean },
-] => {
+export const useCreateComment = (accountId: string) => {
   const [createCommentFn, { loading }] = useMutation<
     CreateCommentMutation,
     CreateCommentMutationVariables
@@ -27,5 +22,5 @@ export const useCreateComment = (
     [createCommentFn, accountId],
   );
 
-  return [createBlockComment, { loading }];
+  return [createBlockComment, { loading }] as const;
 };
