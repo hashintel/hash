@@ -38,7 +38,10 @@ export let WORKSPACE_TYPES: {
     org: EntityTypeModel;
     orgMembership: EntityTypeModel;
     block: EntityTypeModel;
-    /** @todo: deprecate all uses of this dummy entity type */
+    /**
+     * @todo: deprecate all uses of this dummy entity type
+     * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
+     */
     dummy: EntityTypeModel;
   };
   linkType: {
