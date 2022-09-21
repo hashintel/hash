@@ -6,7 +6,7 @@ import {
   LinkModel,
   LinkModelCreateParams,
   LinkTypeModel,
-} from "../index";
+} from "..";
 
 export type EntityModelConstructorParams = {
   accountId: string;

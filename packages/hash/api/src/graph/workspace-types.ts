@@ -29,11 +29,20 @@ export let WORKSPACE_TYPES: {
 
     // OrgMembership-related
     responsibility: PropertyTypeModel;
+
+    // Block-related
+    componentId: PropertyTypeModel;
   };
   entityType: {
     user: EntityTypeModel;
     org: EntityTypeModel;
     orgMembership: EntityTypeModel;
+    block: EntityTypeModel;
+    /**
+     * @todo: deprecate all uses of this dummy entity type
+     * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
+     */
+    dummy: EntityTypeModel;
   };
   linkType: {
     // User-related
@@ -41,6 +50,9 @@ export let WORKSPACE_TYPES: {
 
     // OrgMembership-related
     ofOrg: LinkTypeModel;
+
+    // Block-related
+    blockData: LinkTypeModel;
   };
 };
 
@@ -252,6 +264,69 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
   })(graphApi);
 };
 
+const componentIdPropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Component ID",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+const blockDataLinkTypeInitializer = linkTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Block Data",
+  description: "The entity representing the data in a block.",
+});
+
+const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const componentIdPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.componentId(graphApi);
+
+  const blockDataLinkTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.linkType.blockData(graphApi);
+
+  const dummyEntityTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.entityType.dummy(graphApi);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+    title: "Block",
+    properties: [
+      {
+        propertyTypeBaseUri: componentIdPropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: componentIdPropertyTypeModel.schema.$id,
+        required: true,
+      },
+    ],
+    outgoingLinks: [
+      {
+        linkTypeVersionedUri: blockDataLinkTypeModel.schema.$id,
+        /**
+         * @todo: unset this when the destination entity type can be undefined
+         * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
+         */
+        destinationEntityTypeVersionedUri: dummyEntityTypeModel.schema.$id,
+        required: true,
+      },
+    ],
+  })(graphApi);
+};
+
+/**
+ * @todo: remove this dummy entity type once we are able to define the block data link type without it
+ * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
+ */
+const dummyEntityTypeInitializer = async (graphApi: GraphApi) => {
+  return entityTypeInitializer({
+    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+    title: "Dummy",
+    properties: [],
+    outgoingLinks: [],
+  })(graphApi);
+};
+
 type LazyPromise<T> = (graphApi: GraphApi) => Promise<T>;
 
 type FlattenAndPromisify<T> = {
@@ -276,15 +351,20 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     orgProvidedInfo: orgProvidedInfoPropertyTypeInitializer,
 
     responsibility: responsibilityPropertyTypeInitializer,
+
+    componentId: componentIdPropertyTypeInitializer,
   },
   entityType: {
     user: userEntityTypeInitializer,
     org: orgEntityTypeInitializer,
     orgMembership: orgMembershipEntityTypeInitializer,
+    block: blockEntityTypeInitializer,
+    dummy: dummyEntityTypeInitializer,
   },
   linkType: {
     ofOrg: ofOrgLinkTypeInitializer,
     hasMembership: hasMembershipLinkTypeInitializer,
+    blockData: blockDataLinkTypeInitializer,
   },
 };
 
