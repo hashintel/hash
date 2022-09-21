@@ -37,11 +37,7 @@ export default class extends EntityModel {
     graphApi: GraphApi,
     params: { entityId: string },
   ): Promise<BlockModel> {
-    const entity = await EntityModel.getLatest(graphApi, {
-      // assumption: `accountId` of block is always the workspace account id
-      accountId: workspaceAccountId,
-      entityId: params.entityId,
-    });
+    const entity = await EntityModel.getLatest(graphApi, params);
 
     return BlockModel.fromEntityModel(entity);
   }
