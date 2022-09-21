@@ -15,8 +15,6 @@ use core::{
 };
 
 use error_stack::{AttachmentKind, Context, Frame, FrameKind, Report, Result};
-#[cfg(feature = "futures")]
-use futures_core::Stream;
 #[allow(unused_imports)]
 use once_cell::sync::Lazy;
 
@@ -153,17 +151,8 @@ pub fn create_error() -> Result<(), RootError> {
     Err(create_report())
 }
 
-pub fn create_iterator(num_elements: usize) -> impl Iterator<Item = Result<(), RootError>> {
-    iter::repeat_with(create_error).take(num_elements)
-}
-
 pub fn create_future() -> impl Future<Output = Result<(), RootError>> {
     futures::future::err(create_report())
-}
-
-#[cfg(feature = "futures")]
-pub fn create_stream(num_elements: usize) -> impl Stream<Item = Result<(), RootError>> {
-    futures::stream::iter(create_iterator(num_elements))
 }
 
 pub fn capture_ok<E>(closure: impl FnOnce() -> Result<(), E>) {
