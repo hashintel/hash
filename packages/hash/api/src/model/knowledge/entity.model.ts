@@ -112,6 +112,27 @@ export default class {
     });
   }
 
+  static async getByQuery(
+    graphApi: GraphApi,
+    query: object,
+  ): Promise<EntityModel[]> {
+    const { data: entityRootedSubgraphs } = await graphApi.getEntitiesByQuery({
+      query,
+      dataTypeQueryDepth: 0,
+      propertyTypeQueryDepth: 0,
+      linkTypeQueryDepth: 0,
+      entityTypeQueryDepth: 0,
+      linkTargetEntityQueryDepth: 0,
+      linkQueryDepth: 0,
+    });
+
+    return await Promise.all(
+      entityRootedSubgraphs.map(({ entity }) =>
+        EntityModel.fromPersistedEntity(graphApi, entity),
+      ),
+    );
+  }
+
   /**
    * Get all entities at their latest version.
    *
@@ -119,7 +140,7 @@ export default class {
    */
   static async getAllLatest(
     graphApi: GraphApi,
-    _params: { accountId: string },
+    params: { accountId: string },
   ): Promise<EntityModel[]> {
     /**
      * @todo: get all latest entities in specified account.
@@ -132,13 +153,15 @@ export default class {
     const cachedEntityTypeModels = new Map<string, EntityTypeModel>();
 
     return await Promise.all(
-      entities.map((entity) =>
-        EntityModel.fromPersistedEntity(
-          graphApi,
-          entity,
-          cachedEntityTypeModels,
+      entities
+        .filter(({ identifier }) => identifier.ownedById === params.accountId)
+        .map((entity) =>
+          EntityModel.fromPersistedEntity(
+            graphApi,
+            entity,
+            cachedEntityTypeModels,
+          ),
         ),
-      ),
     );
   }
 
