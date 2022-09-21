@@ -43,6 +43,10 @@ describe("Block model class", () => {
 
     testUser = await createTestUser(graphApi, "blockModelTest", logger);
 
+    /**
+     * @todo: rename to something more representative of a real-world use-case,
+     * once the exact role of the block data entity's entity type is known.
+     */
     dummyEntityType = await EntityTypeModel.create(graphApi, {
       accountId: testUser.entityId,
       schema: generateWorkspaceEntityTypeSchema({
