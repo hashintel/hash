@@ -31,7 +31,7 @@ impl<C: AsClient> PostgresStore<C> {
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) async fn get_link_type_as_dependency(
         &self,
-        link_type_uri: &VersionedUri,
+        link_type_id: &VersionedUri,
         context: LinkTypeDependencyContext<'_>,
     ) -> Result<(), QueryError> {
         let LinkTypeDependencyContext {
@@ -40,9 +40,9 @@ impl<C: AsClient> PostgresStore<C> {
         } = context;
 
         let _unresolved_link_type = referenced_link_types
-            .insert(link_type_uri, link_type_query_depth, || async {
+            .insert(link_type_id, link_type_query_depth, || async {
                 Ok(PersistedLinkType::from_record(
-                    self.read_versioned_ontology_type(link_type_uri).await?,
+                    self.read_versioned_ontology_type(link_type_id).await?,
                 ))
             })
             .await?;

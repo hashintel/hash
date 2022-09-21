@@ -9,7 +9,7 @@ use futures::{future::FutureExt, stream, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
 
 use crate::{
-    knowledge::{KnowledgeGraphQuery, Link, LinkRootedSubgraph},
+    knowledge::{KnowledgeGraphQuery, Link, LinkRootedSubgraph, PersistedLink},
     ontology::AccountId,
     store::{
         crud::Read,
@@ -28,7 +28,7 @@ impl<C: AsClient> PostgresStore<C> {
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) fn get_link_as_dependency<'a>(
         &'a self,
-        link: &'a Link,
+        link: &'a PersistedLink,
         context: KnowledgeDependencyContext<'a>,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         let KnowledgeDependencyContext {
@@ -50,7 +50,7 @@ impl<C: AsClient> PostgresStore<C> {
             if let Some(link) = links.insert(link, link_query_depth) {
                 if link_type_query_depth > 0 {
                     self.get_link_type_as_dependency(
-                        link.link_type_uri(),
+                        link.inner().link_type_id(),
                         LinkTypeDependencyContext {
                             referenced_link_types,
                             link_type_query_depth: link_type_query_depth - 1,
@@ -60,7 +60,7 @@ impl<C: AsClient> PostgresStore<C> {
                 }
 
                 if link_target_entity_query_depth > 0 {
-                    let target_entity_id = link.target_entity();
+                    let target_entity_id = link.inner().target_entity();
                     self.get_entity_as_dependency(target_entity_id, KnowledgeDependencyContext {
                         referenced_data_types,
                         referenced_property_types,
@@ -126,7 +126,7 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
             link_query_depth,
         } = *query;
 
-        stream::iter(Read::<Link>::read(self, expression).await?)
+        stream::iter(Read::<PersistedLink>::read(self, expression).await?)
             .then(|link| async move {
                 let mut referenced_data_types = DependencyMap::new();
                 let mut referenced_property_types = DependencyMap::new();

@@ -4,16 +4,29 @@ use tokio_postgres::{GenericClient, RowStream};
 use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::{
-    knowledge::EntityId,
+    knowledge::{EntityId, Link, PersistedLink},
     ontology::AccountId,
     store::{postgres::parameter_list, AsClient, QueryError},
 };
 
 pub struct LinkRecord {
-    pub type_uri: VersionedUri,
+    pub link_type_id: VersionedUri,
     pub source_entity_id: EntityId,
     pub target_entity_id: EntityId,
-    pub account_id: AccountId,
+    pub account_id: AccountId, // TODO - rename to owned_by_id
+}
+
+impl From<LinkRecord> for PersistedLink {
+    fn from(record: LinkRecord) -> Self {
+        Self::new(
+            Link::new(
+                record.source_entity_id,
+                record.target_entity_id,
+                record.link_type_id,
+            ),
+            record.account_id,
+        )
+    }
 }
 
 pub type RecordStream = impl Stream<Item = Result<LinkRecord, QueryError>>;
@@ -25,7 +38,7 @@ fn row_stream_to_record_stream(
         let row = row_result.into_report().change_context(QueryError)?;
 
         Ok(LinkRecord {
-            type_uri: VersionedUri::new(
+            link_type_id: VersionedUri::new(
                 BaseUri::new(row.get(0)).expect("invalid BaseUri"),
                 row.get::<_, i64>(1) as u32,
             ),

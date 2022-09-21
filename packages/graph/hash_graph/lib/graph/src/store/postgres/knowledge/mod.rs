@@ -4,7 +4,7 @@ mod link;
 use type_system::uri::VersionedUri;
 
 use crate::{
-    knowledge::{EntityId, KnowledgeGraphQueryDepth, Link, PersistedEntity},
+    knowledge::{EntityId, KnowledgeGraphQueryDepth, PersistedEntity, PersistedLink},
     ontology::{
         OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedLinkType,
         PersistedPropertyType,
@@ -22,7 +22,7 @@ pub struct KnowledgeDependencyContext<'a> {
     pub referenced_entity_types:
         &'a mut DependencyMap<VersionedUri, PersistedEntityType, OntologyQueryDepth>,
     pub linked_entities: &'a mut DependencyMap<EntityId, PersistedEntity, KnowledgeGraphQueryDepth>,
-    pub links: &'a mut DependencySet<Link, KnowledgeGraphQueryDepth>,
+    pub links: &'a mut DependencySet<PersistedLink, KnowledgeGraphQueryDepth>,
     pub data_type_query_depth: OntologyQueryDepth,
     pub property_type_query_depth: OntologyQueryDepth,
     pub link_type_query_depth: OntologyQueryDepth,

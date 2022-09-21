@@ -9,7 +9,7 @@ use utoipa::Component;
 
 pub use self::{
     entity::{Entity, EntityId, PersistedEntity, PersistedEntityIdentifier},
-    link::Link,
+    link::{Link, PersistedLink},
 };
 use crate::{
     ontology::{
@@ -78,17 +78,17 @@ pub struct EntityRootedSubgraph {
     pub referenced_link_types: Vec<PersistedLinkType>,
     pub referenced_entity_types: Vec<PersistedEntityType>,
     pub linked_entities: Vec<PersistedEntity>,
-    pub links: Vec<Link>,
+    pub links: Vec<PersistedLink>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkRootedSubgraph {
-    pub link: Link,
+    pub link: PersistedLink,
     pub referenced_data_types: Vec<PersistedDataType>,
     pub referenced_property_types: Vec<PersistedPropertyType>,
     pub referenced_link_types: Vec<PersistedLinkType>,
     pub referenced_entity_types: Vec<PersistedEntityType>,
     pub linked_entities: Vec<PersistedEntity>,
-    pub links: Vec<Link>,
+    pub links: Vec<PersistedLink>,
 }

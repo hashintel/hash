@@ -40,8 +40,8 @@ where
                                 .await?,
                         ))
                     }
-                    link_type_uri => {
-                        let versioned_uri = VersionedUri::from_str(link_type_uri)
+                    link_type_id => {
+                        let versioned_uri = VersionedUri::from_str(link_type_id)
                             .into_report()
                             .change_context(ResolveError::Custom)?;
                         if let Some(entity_type_ref) = self.get(&versioned_uri) {

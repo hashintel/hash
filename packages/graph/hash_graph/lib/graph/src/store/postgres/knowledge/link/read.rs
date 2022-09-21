@@ -3,7 +3,7 @@ use error_stack::{bail, Report, Result, ResultExt};
 use futures::TryStreamExt;
 
 use crate::{
-    knowledge::Link,
+    knowledge::PersistedLink,
     store::{
         crud,
         postgres::context::PostgresContext,
@@ -13,10 +13,13 @@ use crate::{
 };
 
 #[async_trait]
-impl<C: AsClient> crud::Read<Link> for PostgresStore<C> {
+impl<C: AsClient> crud::Read<PersistedLink> for PostgresStore<C> {
     type Query<'q> = Expression;
 
-    async fn read<'query>(&self, query: &Self::Query<'query>) -> Result<Vec<Link>, QueryError> {
+    async fn read<'query>(
+        &self,
+        query: &Self::Query<'query>,
+    ) -> Result<Vec<PersistedLink>, QueryError> {
         self.read_all_links()
             .await?
             .try_filter_map(|record| async move {
@@ -25,13 +28,7 @@ impl<C: AsClient> crud::Read<Link> for PostgresStore<C> {
                     .await
                     .change_context(QueryError)?
                 {
-                    Ok(result.then(|| {
-                        Link::new(
-                            record.source_entity_id,
-                            record.target_entity_id,
-                            record.type_uri,
-                        )
-                    }))
+                    Ok(result.then(|| PersistedLink::from(record)))
                 } else {
                     bail!(
                         Report::new(ExpressionError)

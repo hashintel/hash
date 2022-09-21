@@ -10,7 +10,7 @@ use utoipa::{Component, OpenApi};
 
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
-    knowledge::{EntityId, KnowledgeGraphQuery, Link, LinkRootedSubgraph},
+    knowledge::{EntityId, KnowledgeGraphQuery, Link, LinkRootedSubgraph, PersistedLink},
     ontology::AccountId,
     store::{error::QueryError, query::Expression, LinkStore, StorePool},
 };
@@ -25,6 +25,7 @@ use crate::{
     ),
     components(
         AccountId,
+        PersistedLink,
         Link,
         CreateLinkRequest,
         RemoveLinkRequest,
@@ -61,7 +62,7 @@ impl RoutedResource for LinkResource {
 struct CreateLinkRequest {
     target_entity_id: EntityId,
     #[component(value_type = String)]
-    link_type_uri: VersionedUri,
+    link_type_id: VersionedUri,
     owned_by_id: AccountId,
 }
 
@@ -89,7 +90,7 @@ async fn create_link<P: StorePool + Send>(
     let Path(source_entity_id) = source_entity_id;
     let Json(CreateLinkRequest {
         target_entity_id,
-        link_type_uri,
+        link_type_id,
         owned_by_id,
     }) = body;
 
@@ -98,7 +99,7 @@ async fn create_link<P: StorePool + Send>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let link = Link::new(source_entity_id, target_entity_id, link_type_uri);
+    let link = Link::new(source_entity_id, target_entity_id, link_type_id);
 
     store
         .create_link(&link, owned_by_id)
@@ -154,7 +155,7 @@ async fn get_links_by_query<P: StorePool + Send>(
     path = "/entities/{entityId}/links",
     tag = "Link",
     responses(
-        (status = 200, content_type = "application/json", description = "The requested links on the given source entity", body = [Link]),
+        (status = 200, content_type = "application/json", description = "The requested links on the given source entity", body = [PersistedLink]),
         (status = 422, content_type = "text/plain", description = "Provided source entity id is invalid"),
 
         (status = 404, description = "No links were found"),
@@ -167,7 +168,7 @@ async fn get_links_by_query<P: StorePool + Send>(
 async fn get_entity_links<P: StorePool + Send>(
     Path(source_entity_id): Path<EntityId>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<Vec<Link>>, StatusCode> {
+) -> Result<Json<Vec<PersistedLink>>, StatusCode> {
     read_from_store(
         pool.as_ref(),
         &Expression::for_link_by_source_entity_id(source_entity_id),
@@ -181,7 +182,7 @@ async fn get_entity_links<P: StorePool + Send>(
 struct RemoveLinkRequest {
     target_entity_id: EntityId,
     #[component(value_type = String)]
-    link_type_uri: VersionedUri,
+    link_type_id: VersionedUri,
     removed_by_id: AccountId,
 }
 
@@ -209,7 +210,7 @@ async fn remove_link<P: StorePool + Send>(
     let Path(source_entity_id) = source_entity_id;
     let Json(RemoveLinkRequest {
         target_entity_id,
-        link_type_uri,
+        link_type_id,
         removed_by_id,
     }) = body;
 
@@ -220,7 +221,7 @@ async fn remove_link<P: StorePool + Send>(
 
     store
         .remove_link(
-            &Link::new(source_entity_id, target_entity_id, link_type_uri),
+            &Link::new(source_entity_id, target_entity_id, link_type_id),
             removed_by_id,
         )
         .await
