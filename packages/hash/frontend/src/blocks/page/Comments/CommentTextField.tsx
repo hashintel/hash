@@ -33,7 +33,7 @@ import {
 } from "../createSuggester/createSuggester";
 import { useRouteAccountInfo } from "../../../shared/routing";
 import styles from "../style.module.css";
-import { placeholderPlugin } from "./placeholderPlugin";
+import { commentPlaceholderPlugin } from "./commentPlaceholderPlugin";
 import { createTextEditorView } from "../createEditorView";
 
 type CommentTextFieldProps = {
@@ -109,7 +109,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
           ...createFormatPlugins(renderPortal),
           formatKeymap(schema),
           createSuggester(renderPortal, accountId, container),
-          placeholderPlugin(renderPortal, "Leave a comment"),
+          commentPlaceholderPlugin(renderPortal, "Leave a comment"),
         ],
       });
 

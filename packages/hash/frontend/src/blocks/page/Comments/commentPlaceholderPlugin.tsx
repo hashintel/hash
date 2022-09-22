@@ -4,7 +4,11 @@ import { Plugin } from "prosemirror-state";
 import { Decoration, DecorationSet } from "prosemirror-view";
 import { RenderPortal } from "../usePortals";
 
-export const placeholderPlugin = (renderPortal: RenderPortal, text: string) =>
+// Simplified version of createPlaceholderPlugin to be used in Comments
+export const commentPlaceholderPlugin = (
+  renderPortal: RenderPortal,
+  text: string,
+) =>
   new Plugin<Schema, Schema>({
     props: {
       decorations(state) {
