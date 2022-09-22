@@ -14,6 +14,7 @@ pub struct LinkRecord {
     pub source_entity_id: EntityId,
     pub target_entity_id: EntityId,
     pub account_id: AccountId, // TODO - rename to owned_by_id
+    pub order: Option<i32>,
 }
 
 impl From<LinkRecord> for PersistedLink {
@@ -23,6 +24,7 @@ impl From<LinkRecord> for PersistedLink {
                 record.source_entity_id,
                 record.target_entity_id,
                 record.link_type_id,
+                record.order,
             ),
             record.account_id,
         )
@@ -45,6 +47,7 @@ fn row_stream_to_record_stream(
             source_entity_id: row.get(2),
             target_entity_id: row.get(3),
             account_id: row.get(4),
+            order: row.get(5),
         })
     })
 }
@@ -54,7 +57,7 @@ pub async fn read_all_links(client: &impl AsClient) -> Result<RecordStream, Quer
         .as_client()
         .query_raw(
             r#"
-            SELECT base_uri, version, source_entity_id, target_entity_id, owned_by_id
+            SELECT base_uri, version, source_entity_id, target_entity_id, owned_by_id, link_order
             FROM links
             JOIN type_ids ON version_id = link_type_version_id
             -- Nulls will be last with default ascending order (default is ASC NULLS LAST)
@@ -76,7 +79,7 @@ pub async fn read_links_by_source(
         .as_client()
         .query_raw(
             r#"
-            SELECT base_uri, version, source_entity_id, target_entity_id, owned_by_id
+            SELECT base_uri, version, source_entity_id, target_entity_id, owned_by_id, link_order
             FROM links
             JOIN type_ids ON version_id = link_type_version_id
             WHERE source_entity_id = $1
@@ -103,6 +106,8 @@ pub async fn read_links_by_target(
             FROM links
             JOIN type_ids ON version_id = link_type_version_id
             WHERE target_entity_id = $1
+            -- When reading links by target, the ordering becomes irrelevant, as the target could 
+            -- have a variety of link that are meaningless to sort by their order.
             "#,
             parameter_list([&entity_id]),
         )

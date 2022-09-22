@@ -772,15 +772,15 @@ where
 
         self.as_client()
         .query_one(
-            // TODO: Currently we insert `null` for the `link_order`, this needs to change as we
-            //   implement ordered links.
+            // TODO: Revisit insertion strategy, currently the burden of ordering is put on the
+            //   consumer of the API.
             //   https://app.asana.com/0/1202805690238892/1202937382769278/f
             r#"
-            INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, link_order, owned_by_id, created_at)
-            VALUES ($1, $2, $3, null, $4, clock_timestamp())
+            INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, owned_by_id, link_order, created_at)
+            VALUES ($1, $2, $3, $4, $5, clock_timestamp())
             RETURNING source_entity_id, target_entity_id, link_type_version_id;
             "#,
-            &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &owned_by_id],
+            &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &owned_by_id, &link.order()],
         )
         .await
         .into_report()
