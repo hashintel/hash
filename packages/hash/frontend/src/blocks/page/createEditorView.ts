@@ -4,8 +4,8 @@ import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 // import applyDevTools from "prosemirror-dev-tools";
 import { Schema } from "prosemirror-model";
-import { Plugin } from "prosemirror-state";
-import { EditorView } from "prosemirror-view";
+import { EditorState, Plugin } from "prosemirror-state";
+import { DirectEditorProps, EditorView } from "prosemirror-view";
 import { RefObject } from "react";
 import { LoadingView } from "./LoadingView";
 import { BlockView } from "./BlockView";
@@ -22,6 +22,25 @@ import { mentionNodeView } from "./MentionView/MentionNodeView";
 import { clipboardTextSerializer } from "./clipboardTextSerializer";
 
 export type BlocksMap = Record<string, HashBlock>;
+
+export const createTextEditorView = (
+  state: EditorState<Schema>,
+  renderNode: HTMLElement,
+  renderPortal: RenderPortal,
+  accountId: string,
+  editorProps?: Partial<DirectEditorProps<Schema>>,
+) =>
+  new EditorView<Schema>(renderNode, {
+    state,
+    clipboardTextSerializer: clipboardTextSerializer(
+      state.schema.nodes.hardBreak,
+    ),
+    nodeViews: {
+      mention: mentionNodeView(renderPortal, accountId),
+      ...editorProps?.nodeViews,
+    },
+    ...editorProps,
+  });
 
 /**
  * An editor view manages the DOM structure that represents an editable document.
@@ -52,37 +71,38 @@ export const createEditorView = (
 
   let connection: EditorConnection;
 
-  const view = new EditorView<Schema>(renderNode, {
+  const view = createTextEditorView(
     state,
-    clipboardTextSerializer: clipboardTextSerializer(
-      state.schema.nodes.hardBreak,
-    ),
-    nodeViews: {
-      // Reason for adding `_decorations`:
-      // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
-      block(currentNode, currentView, getPos, _decorations) {
-        if (typeof getPos === "boolean") {
-          throw new Error("Invalid config for nodeview");
-        }
-        return new BlockView(
-          currentNode,
-          currentView,
-          getPos,
-          renderPortal,
-          manager,
-          renderNode,
-        );
+    renderNode,
+    renderPortal,
+    accountId,
+    {
+      nodeViews: {
+        // Reason for adding `_decorations`:
+        // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
+        block(currentNode, currentView, getPos, _decorations) {
+          if (typeof getPos === "boolean") {
+            throw new Error("Invalid config for nodeview");
+          }
+          return new BlockView(
+            currentNode,
+            currentView,
+            getPos,
+            renderPortal,
+            manager,
+            renderNode,
+          );
+        },
+        // Reason for adding unused params e.g. `_decorations`:
+        // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
+        loading(currentNode, _currentView, _getPos, _decorations) {
+          return new LoadingView(currentNode, renderPortal);
+        },
       },
-      // Reason for adding unused params e.g. `_decorations`:
-      // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
-      loading(currentNode, _currentView, _getPos, _decorations) {
-        return new LoadingView(currentNode, renderPortal);
-      },
-      mention: mentionNodeView(renderPortal, accountId),
+      dispatchTransaction: (tr) => connection?.dispatchTransaction(tr),
+      editable: () => !readonly,
     },
-    dispatchTransaction: (tr) => connection?.dispatchTransaction(tr),
-    editable: () => !readonly,
-  });
+  );
 
   manager = new ProsemirrorManager(
     state.schema,

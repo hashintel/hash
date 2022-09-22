@@ -34,8 +34,7 @@ import {
 import { useRouteAccountInfo } from "../../../shared/routing";
 import styles from "../style.module.css";
 import { placeholderPlugin } from "./placeholderPlugin";
-import { clipboardTextSerializer } from "../clipboardTextSerializer";
-import { mentionNodeView } from "../MentionView/MentionNodeView";
+import { createTextEditorView } from "../createEditorView";
 
 type CommentTextFieldProps = {
   onClose: () => void;
@@ -74,15 +73,12 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         ],
       });
 
-      const view = new EditorView<Schema>(container, {
+      const view = createTextEditorView(
         state,
-        clipboardTextSerializer: clipboardTextSerializer(
-          state.schema.nodes.hardBreak,
-        ),
-        nodeViews: {
-          mention: mentionNodeView(renderPortal, accountId),
-        },
-      });
+        container,
+        renderPortal,
+        accountId,
+      );
 
       view.dom.classList.add(styles.Comment__TextField_Prosemirror_Input!);
 
