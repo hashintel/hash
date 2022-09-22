@@ -3,7 +3,7 @@ import { GraphApi, PersistedLink } from "@hashintel/hash-graph-client";
 import { EntityModel, LinkModel, LinkTypeModel } from "../index";
 
 export type LinkModelConstructorParams = {
-  accountId: string;
+  ownedById: string;
   sourceEntityModel: EntityModel;
   linkTypeModel: LinkTypeModel;
   targetEntityModel: EntityModel;
@@ -20,19 +20,19 @@ export type LinkModelCreateParams = {
  * @class {@link LinkModel}
  */
 export default class {
-  accountId: string;
+  ownedById: string;
 
   sourceEntityModel: EntityModel;
   linkTypeModel: LinkTypeModel;
   targetEntityModel: EntityModel;
 
   constructor({
-    accountId,
+    ownedById,
     sourceEntityModel,
     linkTypeModel,
     targetEntityModel,
   }: LinkModelConstructorParams) {
-    this.accountId = accountId;
+    this.ownedById = ownedById;
 
     this.sourceEntityModel = sourceEntityModel;
     this.linkTypeModel = linkTypeModel;
@@ -41,7 +41,10 @@ export default class {
 
   static async fromPersistedLink(
     graphApi: GraphApi,
-    { inner: { sourceEntityId, targetEntityId, linkTypeId } }: PersistedLink,
+    {
+      ownedById,
+      inner: { sourceEntityId, targetEntityId, linkTypeId },
+    }: PersistedLink,
   ): Promise<LinkModel> {
     const [sourceEntityModel, targetEntityModel, linkTypeModel] =
       await Promise.all([
@@ -51,8 +54,7 @@ export default class {
       ]);
 
     return new LinkModel({
-      /** @todo: assign this from the `PersistedLink` as part of https://app.asana.com/0/1201095311341924/1202980861294706/f */
-      accountId: "",
+      ownedById,
       sourceEntityModel,
       linkTypeModel,
       targetEntityModel,
@@ -98,31 +100,25 @@ export default class {
       targetEntityModel,
     }: LinkModelCreateParams,
   ): Promise<LinkModel> {
-    const {
-      data: { sourceEntityId, linkTypeId, targetEntityId },
-    } = await graphApi.createLink(sourceEntityModel.entityId, {
+    const { data: link } = await graphApi.createLink(
+      sourceEntityModel.entityId,
+      {
+        /**
+         * @todo figure out what account ID we use here
+         *   Directly related to
+         *   https://app.asana.com/0/1202805690238892/1202883599104674/f
+         *   And may require consideration for
+         *   https://app.asana.com/0/1202805690238892/1202890446280569/f
+         */
+        ownedById: createdBy,
+        linkTypeId: linkTypeModel.schema.$id,
+        targetEntityId: targetEntityModel.entityId,
+      },
+    );
+
+    return LinkModel.fromPersistedLink(graphApi, {
+      inner: link,
       ownedById: createdBy,
-      linkTypeId: linkTypeModel.schema.$id,
-      targetEntityId: targetEntityModel.entityId,
-    });
-
-    const fetchedParams = {
-      sourceEntityModel: await EntityModel.getLatest(graphApi, {
-        accountId: createdBy,
-        entityId: sourceEntityId,
-      }),
-      linkTypeModel: await LinkTypeModel.get(graphApi, {
-        versionedUri: linkTypeId,
-      }),
-      targetEntityModel: await EntityModel.getLatest(graphApi, {
-        accountId: createdBy,
-        entityId: targetEntityId,
-      }),
-    };
-
-    return new LinkModel({
-      accountId: createdBy,
-      ...fetchedParams,
     });
   }
 
@@ -157,14 +153,7 @@ export default class {
       entityLinks.map(
         async (link) =>
           new LinkModel({
-            /**
-             * @todo figure out what account ID we use here
-             *   Directly related to
-             *   https://app.asana.com/0/1202805690238892/1202883599104674/f
-             *   And may require consideration for
-             *   https://app.asana.com/0/1202805690238892/1202890446280569/f
-             */
-            accountId: sourceEntityModel.accountId,
+            ownedById: link.ownedById,
             linkTypeModel: await LinkTypeModel.get(graphApi, {
               versionedUri: link.inner.linkTypeId,
             }),
