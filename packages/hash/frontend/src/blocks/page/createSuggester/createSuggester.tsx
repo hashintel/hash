@@ -321,6 +321,7 @@ export const createSuggester = (
             renderPortal(
               <Popper
                 open
+                onMouseDown={(event) => event.preventDefault()}
                 placement="bottom-start"
                 container={documentRoot}
                 modifiers={[
