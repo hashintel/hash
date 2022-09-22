@@ -127,6 +127,12 @@ export interface CreateLinkRequest {
   linkTypeId: string;
   /**
    *
+   * @type {number}
+   * @memberof CreateLinkRequest
+   */
+  order?: number;
+  /**
+   *
    * @type {string}
    * @memberof CreateLinkRequest
    */
@@ -558,6 +564,12 @@ export interface Link {
    * @memberof Link
    */
   linkTypeId: string;
+  /**
+   *
+   * @type {number}
+   * @memberof Link
+   */
+  order?: number;
   /**
    *
    * @type {string}
