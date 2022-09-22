@@ -86,7 +86,7 @@ export default class extends EntityModel {
    * Get the linked block data entity of the block.
    */
   async getBlockData(graphApi: GraphApi): Promise<EntityModel> {
-    const outgoingBlockDataLinks = await this.getOutgoingLink(graphApi, {
+    const outgoingBlockDataLinks = await this.getOutgoingLinks(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.blockData,
     });
 
@@ -116,7 +116,7 @@ export default class extends EntityModel {
     },
   ): Promise<void> {
     const { updatedByAccountId, newBlockDataEntity } = params;
-    const outgoingBlockDataLinks = await this.getOutgoingLink(graphApi, {
+    const outgoingBlockDataLinks = await this.getOutgoingLinks(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.blockData,
     });
 
