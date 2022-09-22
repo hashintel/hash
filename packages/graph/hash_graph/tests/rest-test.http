@@ -347,7 +347,7 @@ Accept: application/json
     });
 %}
 
-### Insert another Person entity
+### Insert second Person entity
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
@@ -457,6 +457,26 @@ Accept: application/json
     });
 %}
 
+### Insert third Person entity for linking
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+
+{
+  "accountId": "{{account_id}}",
+  "entity": {
+    "http://localhost:3000/@alice/types/property-type/name/": "Charles"
+  },
+  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1"
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("person_c_entity_id", encodeURIComponent(response.body.entityId));
+%}
+
 ### Check that person "a" to person "b" link is removed
 GET http://127.0.0.1:4000/entities/{{person_a_entity_id}}/links
 Content-Type: application/json
@@ -467,4 +487,59 @@ Accept: application/json
         client.assert(response.status === 200, "Response status is not 200");
     });
     client.assert(Object.keys(response.body).length === 0, "Link has wrong target entity ID")
+%}
+
+### Insert ordered link between person "a" and "b"
+POST http://127.0.0.1:4000/entities/{{person_a_entity_id}}/links
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "targetEntityId": "{{person_b_entity_id}}",
+  "linkTypeId": "{{friend_of_link_type_id_raw}}",
+  "index": 1
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert ordered link between person "a" and "c"
+POST http://127.0.0.1:4000/entities/{{person_a_entity_id}}/links
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "targetEntityId": "{{person_c_entity_id}}",
+  "linkTypeId": "{{friend_of_link_type_id_raw}}",
+  "index": 0
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+### Get person "a" links which should be ordered
+GET http://127.0.0.1:4000/entities/{{person_a_entity_id}}/links
+Content-Type: application/json
+Accept: application/json
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    // Person C is at index 0
+    const c_expected = client.global.get("person_c_entity_id")
+    const c_actual = response.body[0]["inner"]["targetEntityId"];
+    client.assert(c_expected == c_actual, "Ordered link has wrong target entity ID, expected " + c_expected + " but received " + c_actual)
+
+    // Person B is at index 1
+    const b_expected = client.global.get("person_b_entity_id")
+    const b_actual = response.body[1]["inner"]["targetEntityId"];
+    client.assert(b_expected == b_actual, "Ordered link has wrong target entity ID, expected " + b_expected + " but received " + b_actual)
 %}
