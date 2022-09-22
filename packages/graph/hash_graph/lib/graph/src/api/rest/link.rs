@@ -58,7 +58,7 @@ impl RoutedResource for LinkResource {
 }
 
 #[derive(Serialize, Deserialize, Component)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct CreateLinkRequest {
     target_entity_id: EntityId,
     #[component(value_type = String)]
