@@ -14,9 +14,9 @@ export const useCreateComment = (accountId: string) => {
   >(createComment);
 
   const createBlockComment = useCallback(
-    async (parentId: string, content: TextToken[]) => {
+    async (parentId: string, tokens: TextToken[]) => {
       await createCommentFn({
-        variables: { accountId, parentId, content },
+        variables: { accountId, parentId, tokens },
       });
     },
     [createCommentFn, accountId],
