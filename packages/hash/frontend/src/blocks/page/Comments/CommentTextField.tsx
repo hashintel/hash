@@ -51,6 +51,47 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
   const [loading, setLoading] = useState(false);
   const editorContainerRef = useRef<HTMLDivElement>();
 
+  const updateEditorHandleKeyDown = useCallback(
+    (container: EditorView<Schema>, preventActions: boolean) => {
+      container.update({
+        state: container.state,
+        handleKeyDown: (view, { shiftKey, key }) => {
+          if (!preventActions && !shiftKey) {
+            switch (key) {
+              case "Enter":
+                if (view.state.doc.content) {
+                  const { tokens } = textBlockNodeToEntityProperties(
+                    view.state.doc,
+                  );
+
+                  setLoading(true);
+                  onSubmit(tokens)
+                    .then(() => {
+                      onClose();
+                    })
+                    .finally(() => {
+                      setLoading(false);
+                    });
+                }
+
+                return true;
+
+              case "Escape":
+                onClose();
+                break;
+
+              default:
+                break;
+            }
+          }
+
+          return false;
+        },
+      });
+    },
+    [onClose, onSubmit],
+  );
+
   const createEditor = useCallback(
     (container: HTMLDivElement) => {
       container.setAttribute("innerHTML", "");
@@ -82,50 +123,19 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
 
       view.dom.classList.add(styles.Comment__TextField_Prosemirror_Input!);
 
+      updateEditorHandleKeyDown(view, false);
       view.focus();
 
       viewRef.current = view;
     },
-    [accountId, renderPortal],
+    [accountId, renderPortal, updateEditorHandleKeyDown],
   );
 
   useEffect(() => {
-    viewRef.current?.update({
-      state: viewRef.current.state,
-      handleKeyDown: (view, { shiftKey, key }) => {
-        if (!loading && !shiftKey) {
-          switch (key) {
-            case "Enter":
-              if (view.state.doc.content) {
-                const { tokens } = textBlockNodeToEntityProperties(
-                  view.state.doc,
-                );
-
-                setLoading(true);
-                onSubmit(tokens)
-                  .then(() => {
-                    onClose();
-                  })
-                  .finally(() => {
-                    setLoading(false);
-                  });
-              }
-
-              return true;
-
-            case "Escape":
-              onClose();
-              break;
-
-            default:
-              break;
-          }
-        }
-
-        return false;
-      },
-    });
-  }, [loading, onClose, onSubmit]);
+    if (viewRef.current) {
+      updateEditorHandleKeyDown(viewRef.current, loading);
+    }
+  }, [updateEditorHandleKeyDown, loading]);
 
   useEffect(() => {
     const editorContainer = editorContainerRef.current;
