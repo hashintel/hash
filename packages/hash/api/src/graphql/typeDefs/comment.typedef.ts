@@ -4,10 +4,19 @@ export const commentTypedef = gql`
   type Comment implements Entity {
     properties: CommentProperties!
 
+    """
+    Text contents of the comment
+    """
     tokens: [TextToken!]!
 
+    """
+    User that created the comment
+    """
     owner: User!
 
+    """
+    Parent block the comment belongs to
+    """
     parent: Block!
 
     # ENTITY INTERFACE FIELDS BEGIN #
@@ -84,15 +93,33 @@ export const commentTypedef = gql`
   }
 
   type CommentProperties {
+    """
+    Timestamp of when the comment was created
+    """
     createdAt: Date!
+    """
+    Timestamp of when the comment was resolved
+    """
     resolvedAt: Date
+    """
+    # Timestamp of when the comment was last edited
+    """
     editedAt: Date
   }
 
   extend type Mutation {
     createComment(
+      """
+      AccountId of the page block comment belongs to
+      """
       accountId: ID!
+      """
+      Id of the block the comment belongs to
+      """
       parentId: ID!
+      """
+      Text contents of the comment
+      """
       tokens: [TextToken!]!
     ): Comment!
   }
