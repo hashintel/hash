@@ -53,8 +53,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
 
   const updateEditorHandleKeyDown = useCallback(
     (container: EditorView<Schema>, preventActions: boolean) => {
-      container.update({
-        state: container.state,
+      container.setProps({
         handleKeyDown: (view, { shiftKey, key }) => {
           if (!preventActions && !shiftKey) {
             switch (key) {

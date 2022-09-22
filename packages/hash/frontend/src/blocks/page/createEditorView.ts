@@ -31,15 +31,15 @@ export const createTextEditorView = (
   editorProps?: Partial<DirectEditorProps<Schema>>,
 ) =>
   new EditorView<Schema>(renderNode, {
+    ...editorProps,
     state,
     clipboardTextSerializer: clipboardTextSerializer(
       state.schema.nodes.hardBreak,
     ),
     nodeViews: {
+      ...(editorProps?.nodeViews || {}),
       mention: mentionNodeView(renderPortal, accountId),
-      ...editorProps?.nodeViews,
     },
-    ...editorProps,
   });
 
 /**
