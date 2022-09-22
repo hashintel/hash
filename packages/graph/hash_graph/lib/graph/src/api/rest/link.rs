@@ -65,9 +65,9 @@ struct CreateLinkRequest {
     link_type_id: VersionedUri,
     owned_by_id: AccountId,
     // TODO: Consider if ordering should be exposed on links as they are here. The API consumer
-    //   manages ordering currently.
+    //   manages indexes currently.
     //   https://app.asana.com/0/1202805690238892/1202937382769278/f
-    order: Option<i32>,
+    index: Option<i32>,
 }
 
 #[utoipa::path(
@@ -96,7 +96,7 @@ async fn create_link<P: StorePool + Send>(
         target_entity_id,
         link_type_id,
         owned_by_id,
-        order,
+        index,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -104,7 +104,7 @@ async fn create_link<P: StorePool + Send>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let link = Link::new(source_entity_id, target_entity_id, link_type_id, order);
+    let link = Link::new(source_entity_id, target_entity_id, link_type_id, index);
 
     store
         .create_link(&link, owned_by_id)

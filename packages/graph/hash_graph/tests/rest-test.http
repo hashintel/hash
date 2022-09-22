@@ -498,7 +498,7 @@ Accept: application/json
   "ownedById": "{{account_id}}",
   "targetEntityId": "{{person_b_entity_id}}",
   "linkTypeId": "{{friend_of_link_type_id_raw}}",
-  "order": 1
+  "index": 1
 }
 
 > {%
@@ -516,7 +516,7 @@ Accept: application/json
   "ownedById": "{{account_id}}",
   "targetEntityId": "{{person_c_entity_id}}",
   "linkTypeId": "{{friend_of_link_type_id_raw}}",
-  "order": 0
+  "index": 0
 }
 
 > {%

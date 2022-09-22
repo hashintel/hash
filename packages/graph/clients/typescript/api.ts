@@ -121,16 +121,16 @@ export interface CreateEntityTypeRequest {
 export interface CreateLinkRequest {
   /**
    *
+   * @type {number}
+   * @memberof CreateLinkRequest
+   */
+  index?: number;
+  /**
+   *
    * @type {string}
    * @memberof CreateLinkRequest
    */
   linkTypeId: string;
-  /**
-   *
-   * @type {number}
-   * @memberof CreateLinkRequest
-   */
-  order?: number;
   /**
    *
    * @type {string}
@@ -560,16 +560,16 @@ export interface KnowledgeGraphQuery {
 export interface Link {
   /**
    *
+   * @type {number}
+   * @memberof Link
+   */
+  index?: number;
+  /**
+   *
    * @type {string}
    * @memberof Link
    */
   linkTypeId: string;
-  /**
-   *
-   * @type {number}
-   * @memberof Link
-   */
-  order?: number;
   /**
    *
    * @type {string}
