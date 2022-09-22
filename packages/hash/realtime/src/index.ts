@@ -84,6 +84,12 @@ const acquireReplicationSlot = async (
 
   // Attempt to take ownership of the slot
   return await pool.transaction(async (tx) => {
+    /**
+     * @todo the 'for update' clause only works for single-shard queries in citus
+     *   make sure that this use case falls under that category.
+     *   See: https://docs.citusdata.com/en/stable/develop/reference_workarounds.html#sql-support-and-workarounds
+     *   Task: https://app.asana.com/0/1200211978612931/1200903211677806/f
+     */
     const slotIsOwned = await tx.maybeOneFirst(sql`
       select ownership_expires_at > now() as owned from realtime.ownership
       where slot_name = ${slotName}
