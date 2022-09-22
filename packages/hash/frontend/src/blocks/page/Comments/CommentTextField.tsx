@@ -49,12 +49,12 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
   const [portals, renderPortal] = usePortals();
   const { accountId } = useRouteAccountInfo();
   const [loading, setLoading] = useState(false);
-  const [editorContainer, setEditorContainer] = useState<HTMLDivElement | null>(
-    null,
-  );
+  const editorContainerRef = useRef<HTMLDivElement>();
 
   const createEditor = useCallback(
     (container: HTMLDivElement) => {
+      container.setAttribute("innerHTML", "");
+
       const schema = createSchema({
         doc: {
           content: "inline*",
@@ -128,11 +128,11 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
   }, [loading, onClose, onSubmit]);
 
   useEffect(() => {
+    const editorContainer = editorContainerRef.current;
     if (editorContainer) {
-      editorContainer.innerHTML = "";
       createEditor(editorContainer);
     }
-  }, [editorContainer, createEditor]);
+  }, [editorContainerRef, createEditor]);
 
   return (
     <Box
@@ -162,7 +162,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
       </IconButton>
 
       <Box
-        ref={(ref: HTMLDivElement) => setEditorContainer(ref)}
+        ref={editorContainerRef}
         sx={({ palette }) => ({
           overflow: "hidden",
           flexGrow: 1,

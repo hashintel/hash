@@ -31,7 +31,7 @@ export const CommentButton: FunctionComponent<CommentButtonProps> = ({
     [createComment, blockId],
   );
 
-  const closeInput = () => setAnchorEl(null);
+  const closeInput = useCallback(() => setAnchorEl(null), []);
 
   return (
     <Box className={styles.Block__Comments_Button}>
