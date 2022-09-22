@@ -122,17 +122,14 @@ describe("Link model class", () => {
   });
 
   it("can get all entity links", async () => {
-    const allLinks = await LinkModel.getAllOutgoing(graphApi, {
-      sourceEntityModel,
-    });
+    const allLinks = await sourceEntityModel.getOutgoingLinks(graphApi);
     expect(allLinks).toHaveLength(2);
     expect(allLinks).toContainEqual(friendLink);
     expect(allLinks).toContainEqual(acquaintanceLink);
   });
 
   it("can get a single entity link", async () => {
-    const links = await LinkModel.getOutgoing(graphApi, {
-      sourceEntityModel,
+    const links = await sourceEntityModel.getOutgoingLinks(graphApi, {
       linkTypeModel: linkTypeFriend,
     });
 
@@ -147,8 +144,7 @@ describe("Link model class", () => {
   it("can remove a link", async () => {
     await acquaintanceLink.remove(graphApi, { removedBy: accountId });
 
-    const links = await LinkModel.getOutgoing(graphApi, {
-      sourceEntityModel,
+    const links = await sourceEntityModel.getOutgoingLinks(graphApi, {
       linkTypeModel: linkTypeAcquaintance,
     });
 
