@@ -84,7 +84,7 @@ export const OurChip = ({
           overflow: "hidden",
           textOverflow: "ellipsis",
 
-          "&:last-child": {
+          "&:last-child:not(:nth-child(1))": {
             // Place the overflow ellipsis at the beginning, not the end
             "&:before": {
               // Ensure special characters aren't placed at the end
