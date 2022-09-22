@@ -8,11 +8,11 @@ import {
 import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Schema } from "prosemirror-model";
-import { formatKeymap } from "@hashintel/hash-shared/createProseMirrorState";
 import { baseKeymap } from "prosemirror-commands";
 import { keymap } from "prosemirror-keymap";
 import {
   createSchema,
+  formatKeymap,
   textTokenNodes,
 } from "@hashintel/hash-shared/prosemirror";
 import { Box } from "@mui/material";
