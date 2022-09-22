@@ -106,7 +106,7 @@ pub async fn read_links_by_target(
             FROM links
             JOIN type_ids ON version_id = link_type_version_id
             WHERE target_entity_id = $1
-            -- When reading links by target, the ordering becomes irrelevant, as the target could 
+            -- When reading links by target, the ordering becomes irrelevant, as the target could
             -- have a variety of link that are meaningless to sort by their order.
             "#,
             parameter_list([&entity_id]),
