@@ -20,7 +20,7 @@ import {
   LinkedEntityDefinition,
 } from "../graphql/apiTypes.gen";
 
-export type CommentExternalResolvers = EntityExternalResolvers | "contents"; // contents resolved in `src/graphql/resolvers/Comments/linkedEntities.ts`
+export type CommentExternalResolvers = EntityExternalResolvers | "tokens"; // tokens resolved in `src/graphql/resolvers/Comments/linkedEntities.ts`
 
 export type UnresolvedGQLComment = Omit<
   GQLComment,
@@ -54,18 +54,18 @@ class __Comment extends Entity {
       createdBy: User;
       parent: Block;
       accountId: string;
-      content: TextToken[];
+      tokens: TextToken[];
     },
   ): Promise<Comment> {
-    const { createdBy, parent, accountId, content } = params;
+    const { createdBy, parent, accountId, tokens } = params;
 
     const textProperties: DbTextProperties = {
-      tokens: content,
+      tokens,
     };
 
     const linkedEntities: LinkedEntityDefinition[] = [
       {
-        path: "$.contents",
+        path: "$.tokens",
         destinationAccountId: accountId,
         entity: {
           entityType: {
@@ -141,25 +141,25 @@ class __Comment extends Entity {
     return null;
   }
 
-  async getContents(client: DbClient): Promise<Entity> {
-    const contentsLinks = await this.getOutgoingLinks(client, {
-      path: ["contents"],
+  async getTokens(client: DbClient): Promise<Entity> {
+    const tokensLinks = await this.getOutgoingLinks(client, {
+      path: ["tokens"],
     });
 
-    const [contentLink, ...unexpectedContentLinks] = contentsLinks;
+    const [tokensLink, ...unexpectedTokensLinks] = tokensLinks;
 
-    if (!contentLink) {
+    if (!tokensLink) {
       throw new Error(
-        `Critical: comment with entityId ${this.entityId} in account with accountId ${this.accountId} has no linked contents entity`,
+        `Critical: comment with entityId ${this.entityId} in account with accountId ${this.accountId} has no linked tokens entity`,
       );
     }
-    if (unexpectedContentLinks.length > 0) {
+    if (unexpectedTokensLinks.length > 0) {
       throw new Error(
-        `Critical: comment with entityId ${this.entityId} in account with accountId ${this.accountId} has more than one linked contents entity`,
+        `Critical: comment with entityId ${this.entityId} in account with accountId ${this.accountId} has more than one linked tokens entity`,
       );
     }
 
-    return contentLink.getDestination(client);
+    return tokensLink.getDestination(client);
   }
 
   async getParent(client: DbClient): Promise<Block | null> {

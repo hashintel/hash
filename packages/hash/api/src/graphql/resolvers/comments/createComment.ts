@@ -10,7 +10,7 @@ export const createComment: ResolverFn<
   MutationCreateCommentArgs
 > = async (
   _,
-  { accountId, parentId, content },
+  { accountId, parentId, tokens },
   { dataSources: { db }, user },
 ) => {
   return await db.transaction(async (client) => {
@@ -30,7 +30,7 @@ export const createComment: ResolverFn<
       accountId,
       parent,
       createdBy: user,
-      content,
+      tokens,
     });
 
     return comment.toGQLUnknownEntity();

@@ -4,7 +4,7 @@ export const commentTypedef = gql`
   type Comment implements Entity {
     properties: CommentProperties!
 
-    contents: [TextToken!]!
+    tokens: [TextToken!]!
 
     owner: User!
 
@@ -93,7 +93,7 @@ export const commentTypedef = gql`
     createComment(
       accountId: ID!
       parentId: ID!
-      content: [TextToken!]!
+      tokens: [TextToken!]!
     ): Comment!
   }
 `;

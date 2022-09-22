@@ -8,7 +8,7 @@ import {
 import { ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 
-const contents: ResolverFn<
+const tokens: ResolverFn<
   Promise<JsonValue>,
   UnresolvedGQLComment,
   GraphQLContext,
@@ -24,9 +24,9 @@ const contents: ResolverFn<
     );
   }
 
-  const content = await comment.getContents(db);
+  const textTokens = await comment.getTokens(db);
 
-  return content.properties.tokens || [];
+  return textTokens.properties.tokens || [];
 };
 
 const parent: ResolverFn<
@@ -84,7 +84,7 @@ const owner: ResolverFn<
 };
 
 export const commentLinkedEntities = {
-  contents,
+  tokens,
   parent,
   owner,
 };
