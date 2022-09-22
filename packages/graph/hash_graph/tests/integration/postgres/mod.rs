@@ -328,8 +328,8 @@ impl DatabaseApi<'_> {
         target_entity_id: EntityId,
         link_type_id: VersionedUri,
     ) -> Result<(), InsertionError> {
-        self.create_ordered_link(source_entity_id, target_entity_id, link_type_id, None)
-            .await
+        let link = Link::new(source_entity_id, target_entity_id, link_type_id, None);
+        self.store.create_link(&link, self.account_id).await
     }
 
     async fn create_ordered_link(
@@ -337,9 +337,14 @@ impl DatabaseApi<'_> {
         source_entity_id: EntityId,
         target_entity_id: EntityId,
         link_type_id: VersionedUri,
-        order: Option<i32>,
+        order: i32,
     ) -> Result<(), InsertionError> {
-        let link = Link::new(source_entity_id, target_entity_id, link_type_id, order);
+        let link = Link::new(
+            source_entity_id,
+            target_entity_id,
+            link_type_id,
+            Some(order),
+        );
         self.store.create_link(&link, self.account_id).await
     }
 

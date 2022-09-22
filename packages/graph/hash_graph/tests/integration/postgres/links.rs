@@ -259,7 +259,7 @@ async fn ordered_links() {
             person_a_identifier.entity_id(),
             person_b_identifier.entity_id(),
             friend_link_type_id.clone(),
-            Some(2),
+            2,
         )
         .await
         .expect("could not create link");
@@ -269,7 +269,7 @@ async fn ordered_links() {
             person_a_identifier.entity_id(),
             person_c_identifier.entity_id(),
             friend_link_type_id.clone(),
-            Some(1),
+            1,
         )
         .await
         .expect("could not create link");
