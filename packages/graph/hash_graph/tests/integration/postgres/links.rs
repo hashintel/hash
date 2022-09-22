@@ -255,7 +255,7 @@ async fn ordered_links() {
         .expect("could not create entity");
 
     let _a_b_link = api
-        .create_indexed_link(
+        .create_ordered_link(
             person_a_identifier.entity_id(),
             person_b_identifier.entity_id(),
             friend_link_type_id.clone(),
@@ -265,7 +265,7 @@ async fn ordered_links() {
         .expect("could not create link");
 
     let _a_c_link = api
-        .create_indexed_link(
+        .create_ordered_link(
             person_a_identifier.entity_id(),
             person_c_identifier.entity_id(),
             friend_link_type_id.clone(),

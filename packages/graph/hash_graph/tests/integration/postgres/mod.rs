@@ -332,7 +332,7 @@ impl DatabaseApi<'_> {
         self.store.create_link(&link, self.account_id).await
     }
 
-    async fn create_indexed_link(
+    async fn create_ordered_link(
         &mut self,
         source_entity_id: EntityId,
         target_entity_id: EntityId,
