@@ -181,9 +181,9 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         })}
       />
 
-      <Box sx={{ display: "flex", alignItems: "flex-end", margin: 1.5 }}>
+      <Box display="flex" alignItems="flex-end" margin={1.5}>
         {loading ? (
-          <Box sx={{ margin: 0.75 }}>
+          <Box m={0.75}>
             <LoadingSpinner size={12} thickness={2} />
           </Box>
         ) : (
