@@ -266,21 +266,33 @@ export default class {
     });
   }
 
-  /** @see {@link LinkModel.getAllOutgoing} */
-  async getAllOutgoingLinks(graphApi: GraphApi): Promise<LinkModel[]> {
-    return await LinkModel.getAllOutgoing(graphApi, {
-      sourceEntityModel: this,
-    });
-  }
-
-  /** @see {@link LinkModel.getOutgoing} */
-  async getOutgoingLink(
+  /**
+   * Get the outgoing links of an entity.
+   *
+   * @param params.linkTypeModel (optional) - the specific link type of the outgoing links
+   */
+  async getOutgoingLinks(
     graphApi: GraphApi,
-    params: { linkTypeModel: LinkTypeModel },
+    params?: { linkTypeModel?: LinkTypeModel },
   ): Promise<LinkModel[]> {
-    return await LinkModel.getOutgoing(graphApi, {
-      sourceEntityModel: this,
-      ...params,
+    const outgoingLinks = await LinkModel.getByQuery(graphApi, {
+      all: [
+        {
+          eq: [{ path: ["source", "id"] }, { literal: this.entityId }],
+        },
+        params?.linkTypeModel
+          ? {
+              eq: [
+                { path: ["type", "versionedUri"] },
+                {
+                  literal: params.linkTypeModel.schema.$id,
+                },
+              ],
+            }
+          : [],
+      ].flat(),
     });
+
+    return outgoingLinks;
   }
 }
