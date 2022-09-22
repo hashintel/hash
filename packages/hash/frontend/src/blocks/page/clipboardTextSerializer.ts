@@ -10,13 +10,13 @@ import { NodeType, ProsemirrorNode, Schema, Slice } from "prosemirror-model";
 //  * @todo look into whether this is needed for mentions and for links
 //  */
 export const clipboardTextSerializer =
-  (nodeType?: NodeType<Schema>) => (slice: Slice<Schema>) => {
+  (lineBreakNodetype?: NodeType<Schema>) => (slice: Slice<Schema>) => {
     return slice.content.textBetween(
       0,
       slice.content.size,
       "\n\n",
       (node: ProsemirrorNode<Schema>) => {
-        if (node.type === nodeType) {
+        if (node.type === lineBreakNodetype) {
           return "\n";
         }
 
