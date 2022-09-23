@@ -121,20 +121,23 @@ export default class extends EntityModel {
      * @todo: use upcoming Graph API method to filter entities in the datastore
      *   https://app.asana.com/0/1202805690238892/1202890614880643/f
      */
-    const allEntities = await EntityModel.getAllLatest(graphApi, {
-      accountId: workspaceAccountId,
+    const userEntities = await EntityModel.getByQuery(graphApi, {
+      all: [
+        { eq: [{ path: ["version"] }, { literal: "latest" }] },
+        {
+          eq: [
+            { path: ["type", "versionedUri"] },
+            { literal: WORKSPACE_TYPES.entityType.user.schema.$id },
+          ],
+        },
+      ],
     });
 
-    const matchingUser = allEntities
-      .filter(
-        ({ entityTypeModel }) =>
-          entityTypeModel.schema.$id ===
-          WORKSPACE_TYPES.entityType.user.schema.$id,
-      )
-      .map((entityModel) => new UserModel(entityModel))
-      .find((user) => user.getShortname() === params.shortname);
-
-    return matchingUser ?? null;
+    return (
+      userEntities
+        .map(UserModel.fromEntityModel)
+        .find((user) => user.getShortname() === params.shortname) ?? null
+    );
   }
 
   /**
@@ -150,20 +153,25 @@ export default class extends EntityModel {
      * @todo: use upcoming Graph API method to filter entities in the datastore
      *   https://app.asana.com/0/1202805690238892/1202890614880643/f
      */
-    const allEntities = await EntityModel.getAllLatest(graphApi, {
-      accountId: workspaceAccountId,
+    const userEntities = await EntityModel.getByQuery(graphApi, {
+      all: [
+        { eq: [{ path: ["version"] }, { literal: "latest" }] },
+        {
+          eq: [
+            { path: ["type", "versionedUri"] },
+            { literal: WORKSPACE_TYPES.entityType.user.schema.$id },
+          ],
+        },
+      ],
     });
 
-    const matchingUser = allEntities
-      .filter(
-        ({ entityTypeModel }) =>
-          entityTypeModel.schema.$id ===
-          WORKSPACE_TYPES.entityType.user.schema.$id,
-      )
-      .map((entityModel) => new UserModel(entityModel))
-      .find((user) => user.getKratosIdentityId() === params.kratosIdentityId);
-
-    return matchingUser ?? null;
+    return (
+      userEntities
+        .map(UserModel.fromEntityModel)
+        .find(
+          (user) => user.getKratosIdentityId() === params.kratosIdentityId,
+        ) ?? null
+    );
   }
 
   /**

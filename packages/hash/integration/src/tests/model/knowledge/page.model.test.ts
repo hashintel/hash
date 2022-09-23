@@ -72,6 +72,7 @@ describe("Page model class", () => {
     testPage2 = await PageModel.createPage(graphApi, {
       accountId: testUser.entityId,
       title: "Test Page 2",
+      summary: "Test page 2 summary",
       initialBlocks: [initialBlock1, initialBlock2],
     });
 
@@ -93,7 +94,7 @@ describe("Page model class", () => {
       account: testUser,
     });
 
-    expect(allPages).toEqual([testPage, testPage2]);
+    expect(allPages.sort()).toEqual([testPage, testPage2].sort());
   });
 
   let parentPage: PageModel;
@@ -102,6 +103,7 @@ describe("Page model class", () => {
     parentPage = await PageModel.createPage(graphApi, {
       accountId: testUser.entityId,
       title: "Test Parent Page",
+      summary: "Test page summary",
     });
 
     expect(await testPage.getParentPage(graphApi)).toBeNull();
