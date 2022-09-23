@@ -397,6 +397,7 @@ const PaperWithCreateButton = ({ children, ...props }: PaperProps) => {
           width: "100%",
           display: "flex",
           alignItems: "center",
+          mt: 1,
         }}
         {...createButtonProps}
       >
@@ -474,7 +475,7 @@ const NewPropertyRow = ({
       path: "@wrapped-text-that-is-long-enough",
       expectedValues: ["Number"],
       description:
-        "An entity’s ownership stake in another entity expressed as a property",
+        "An entity’s ownership stake in another entity expressed as a property with a bunch of text long enough to make it wrap",
     },
   ];
 
@@ -496,6 +497,7 @@ const NewPropertyRow = ({
           }}
         >
           <Autocomplete
+            open
             popupIcon={null}
             clearIcon={null}
             forcePopupIcon={false}
@@ -531,16 +533,29 @@ const NewPropertyRow = ({
             renderOption={(props, option) => (
               <li {...props}>
                 <Box width="100%">
-                  <Box width="100%" display="flex" alignItems="center" mb={0.5}>
-                    <Typography
-                      variant="smallTextLabels"
-                      fontWeight={500}
-                      mr={0.5}
-                      color="black"
+                  <Box
+                    width="100%"
+                    display="flex"
+                    alignItems="center"
+                    mb={0.5}
+                    whiteSpace="nowrap"
+                  >
+                    <Box
+                      component="span"
+                      flexShrink={0}
+                      display="flex"
+                      alignItems="center"
                     >
-                      {option.title}
-                    </Typography>
-                    <ArrowUpRightIcon />
+                      <Typography
+                        variant="smallTextLabels"
+                        fontWeight={500}
+                        mr={0.5}
+                        color="black"
+                      >
+                        {option.title}
+                      </Typography>
+                      <ArrowUpRightIcon />
+                    </Box>
                     <OurChip
                       icon={
                         <Box
@@ -568,14 +583,19 @@ const NewPropertyRow = ({
                       ))}
                     </Box>
                   </Box>
-                  <Box>
-                    <Typography
-                      variant="microText"
-                      sx={(theme) => ({ color: theme.palette.gray[50] })}
-                    >
-                      {option.description}
-                    </Typography>
-                  </Box>
+                  <Typography
+                    component={Box}
+                    variant="microText"
+                    sx={(theme) => ({
+                      color: theme.palette.gray[50],
+                      whiteSpace: "nowrap",
+                      textOverflow: "ellipsis",
+                      overflow: "hidden",
+                      width: "100%",
+                    })}
+                  >
+                    {option.description}
+                  </Typography>
                 </Box>
               </li>
             )}
