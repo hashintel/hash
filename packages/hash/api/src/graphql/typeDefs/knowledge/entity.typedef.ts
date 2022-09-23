@@ -25,7 +25,7 @@ export const knowledgeEntityTypedef = gql`
     """
     The fixed id of the type this entity is of.
     """
-    entityTypeId: ID!
+    entityTypeVersionedUri: ID!
     """
     The full entity type definition.
     """
