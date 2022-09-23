@@ -17,6 +17,7 @@ type PageModelCreateParams = Omit<
   title: string;
   summary?: string;
   prevIndex?: string;
+  initialBlocks?: BlockModel[];
 };
 
 /**
@@ -77,9 +78,33 @@ export default class extends EntityModel {
       entityTypeModel,
     });
 
-    /** @todo: add an empty paragraph block */
+    const page = PageModel.fromEntityModel(entity);
 
-    return PageModel.fromEntityModel(entity);
+    const initialBlocks =
+      params.initialBlocks && params.initialBlocks.length > 0
+        ? params.initialBlocks
+        : [
+            await BlockModel.createBlock(graphApi, {
+              accountId,
+              componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
+              blockData: await EntityModel.create(graphApi, {
+                accountId,
+                properties: {
+                  [WORKSPACE_TYPES.propertyType.tokens.baseUri]: [],
+                },
+                entityTypeModel: WORKSPACE_TYPES.entityType.text,
+              }),
+            }),
+          ];
+
+    for (const block of initialBlocks) {
+      await page.insertBlock(graphApi, {
+        block,
+        insertedBy: accountId,
+      });
+    }
+
+    return page;
   }
 
   static async getAllPagesInAccount(

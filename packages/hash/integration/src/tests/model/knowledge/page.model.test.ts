@@ -55,6 +55,29 @@ describe("Page model class", () => {
       accountId: testUser.entityId,
       title: "Test Page",
     });
+
+    const initialBlocks = await testPage.getBlocks(graphApi);
+
+    expect(initialBlocks).toHaveLength(1);
+  });
+
+  let testPage2: PageModel;
+
+  it("can create a page with initial blocks", async () => {
+    const [initialBlock1, initialBlock2] = await Promise.all([
+      createBlock(),
+      createBlock(),
+    ]);
+
+    testPage2 = await PageModel.createPage(graphApi, {
+      accountId: testUser.entityId,
+      title: "Test Page 2",
+      initialBlocks: [initialBlock1, initialBlock2],
+    });
+
+    const initialBlocks = await testPage2.getBlocks(graphApi);
+
+    expect(initialBlocks).toEqual([initialBlock1, initialBlock2]);
   });
 
   it("can get a page by its entity id", async () => {
@@ -70,7 +93,7 @@ describe("Page model class", () => {
       accountId: testUser.entityId,
     });
 
-    expect(allPages).toEqual([testPage]);
+    expect(allPages).toEqual([testPage, testPage2]);
   });
 
   let parentPage: PageModel;
@@ -100,18 +123,16 @@ describe("Page model class", () => {
   let testBlock3: BlockModel;
 
   it("can insert blocks", async () => {
-    expect(await testPage.getBlocks(graphApi)).toEqual([]);
+    const existingBlocks = await testPage.getBlocks(graphApi);
 
-    [testBlock1, testBlock2, testBlock3] = await Promise.all([
-      createBlock(),
+    expect(existingBlocks).toHaveLength(1);
+
+    testBlock1 = existingBlocks[0]!;
+
+    [testBlock2, testBlock3] = await Promise.all([
       createBlock(),
       createBlock(),
     ]);
-
-    await testPage.insertBlock(graphApi, {
-      block: testBlock1,
-      insertedBy: testUser.accountId,
-    });
 
     // insert block at un-specified position
     await testPage.insertBlock(graphApi, {
