@@ -231,7 +231,7 @@ export default class {
 
     const { index: previousIndex, linkTypeModel } = this;
 
-    const updatedLink = this.updateWithoutUpdatingSiblings(graphApi, {
+    const updatedLink = await this.updateWithoutUpdatingSiblings(graphApi, {
       updatedIndex,
       updatedBy,
     });
