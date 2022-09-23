@@ -90,9 +90,9 @@ export class BlockView implements NodeView<Schema> {
     public getPos: () => number,
     public renderPortal: RenderPortal,
     public manager: ProsemirrorManager,
-    public rootNode: HTMLElement,
+    public documentRoot: HTMLElement,
   ) {
-    this.rootNode = rootNode;
+    this.rootNode = documentRoot;
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block!);
     this.dom.setAttribute("data-testid", "block");
