@@ -143,18 +143,24 @@ export default class {
       linkTypeModel,
     });
 
-    /** @todo: rely on Graph API validation instead */
+    /** @todo: rely on Graph API validation instead of manually checking whether sibling links are ordered */
     const hasOrderedSiblingLink = siblingLinks[0]?.index !== undefined;
 
     const index = hasOrderedSiblingLink
-      ? params.index ?? siblingLinks.length
+      ? // if siblings are ordered and an index is provided, use the provided index
+        params.index ??
+        // if siblings are ordered and no index is provided, default to the end of the list of links
+        siblingLinks.length
       : siblingLinks.length === 0
-      ? params.index
-      : undefined;
+      ? // if siblings are not ordered because there are no siblings, allow the link to be ordered
+        params.index
+      : // if siblings are not ordered and there are siblings, don't allow the link to be ordered
+        undefined;
 
     if (index !== undefined) {
+      /** @todo: rely on Graph API to validate the index */
       if (index < 0 || index > siblingLinks.length) {
-        throw new Error("Index is out of bounds");
+        throw new Error("Provided link index is out of bounds");
       }
 
       await Promise.all(
@@ -184,15 +190,17 @@ export default class {
     const { index: previousIndex } = this;
 
     if (previousIndex === undefined) {
-      throw new Error("Cannot update the index of an un-ordered link");
+      throw new Error("Cannot make an un-ordered link ordered");
     }
 
     if (previousIndex === updatedIndex) {
-      throw new Error("No-op");
+      throw new Error("No-op: link already has this index");
     }
 
-    /** @todo: call dedicated Graph API method to update the index of a link instead of re-creating the link */
-
+    /**
+     * @todo: call dedicated Graph API method to update the index of a link instead of re-creating the link manually
+     * @see https://app.asana.com/0/1202805690238892/1203031430417465/f
+     */
     await this.removeWithoutUpdatingSiblings(graphApi, {
       removedBy: updatedBy,
     });
@@ -221,22 +229,21 @@ export default class {
   ) {
     const { updatedIndex, updatedBy } = params;
 
-    const { index: previousIndex } = this;
+    const { index: previousIndex, linkTypeModel } = this;
 
-    if (previousIndex === undefined) {
-      throw new Error("Cannot update the index of an un-ordered link");
-    }
-
-    if (previousIndex === updatedIndex) {
-      throw new Error("No-op");
-    }
+    const updatedLink = this.updateWithoutUpdatingSiblings(graphApi, {
+      updatedIndex,
+      updatedBy,
+    });
 
     const siblingLinks = await this.sourceEntityModel.getOutgoingLinks(
       graphApi,
-      {
-        linkTypeModel: this.linkTypeModel,
-      },
+      { linkTypeModel },
     );
+
+    if (previousIndex === undefined) {
+      throw new Error("Cannot make an un-ordered link ordered");
+    }
 
     // Whether the index of the link is being increased
     const isIncreasingIndex = updatedIndex > previousIndex;
@@ -257,6 +264,10 @@ export default class {
         sibling.index! <= affectedSiblingsMaximumIndex,
     );
 
+    /**
+     * @todo: rely on the Graph API to maintain index integrity of sibling links on updates
+     * @see https://app.asana.com/0/1202805690238892/1203031430417465/f
+     */
     await Promise.all(
       affectedSiblings.map((sibling) =>
         sibling.updateWithoutUpdatingSiblings(graphApi, {
@@ -266,16 +277,10 @@ export default class {
       ),
     );
 
-    return this.updateWithoutUpdatingSiblings(graphApi, {
-      updatedIndex,
-      updatedBy,
-    });
+    return updatedLink;
   }
 
-  /**
-   * Remove a link.
-   */
-  async removeWithoutUpdatingSiblings(
+  private async removeWithoutUpdatingSiblings(
     graphApi: GraphApi,
     { removedBy }: { removedBy: string },
   ): Promise<void> {
@@ -313,6 +318,10 @@ export default class {
         (sibling) => sibling.index! >= this.index!,
       );
 
+      /**
+       * @todo: rely on the Graph API to maintain index integrity of sibling links on updates
+       * @see https://app.asana.com/0/1202805690238892/1203031430417465/f
+       */
       await Promise.all(
         affectedSiblings.map((sibling) =>
           sibling.updateWithoutUpdatingSiblings(graphApi, {

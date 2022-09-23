@@ -90,7 +90,7 @@ describe("Page model class", () => {
 
   it("can get all pages in an account", async () => {
     const allPages = await PageModel.getAllPagesInAccount(graphApi, {
-      accountId: testUser.entityId,
+      account: testUser,
     });
 
     expect(allPages).toEqual([testPage, testPage2]);
@@ -108,7 +108,7 @@ describe("Page model class", () => {
 
     await testPage.setParentPage(graphApi, {
       parentPage,
-      setByAccountId: testUser.accountId,
+      setBy: testUser.accountId,
       prevIndex: null,
       nextIndex: null,
     });
@@ -158,7 +158,7 @@ describe("Page model class", () => {
     await testPage.moveBlock(graphApi, {
       currentPosition: 0,
       newPosition: 2,
-      movedByAccountId: testUser.accountId,
+      movedBy: testUser.accountId,
     });
 
     expect(await testPage.getBlocks(graphApi)).toEqual([
@@ -170,7 +170,7 @@ describe("Page model class", () => {
     await testPage.moveBlock(graphApi, {
       currentPosition: 2,
       newPosition: 0,
-      movedByAccountId: testUser.accountId,
+      movedBy: testUser.accountId,
     });
 
     expect(await testPage.getBlocks(graphApi)).toEqual([
@@ -183,7 +183,7 @@ describe("Page model class", () => {
   it("can remove blocks", async () => {
     await testPage.removeBlock(graphApi, {
       position: 0,
-      removedByAccountId: testUser.accountId,
+      removedBy: testUser.accountId,
     });
 
     expect(await testPage.getBlocks(graphApi)).toEqual([

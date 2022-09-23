@@ -7,6 +7,8 @@ import {
   EntityModelCreateParams,
   BlockModel,
   LinkModel,
+  UserModel,
+  OrgModel,
 } from "..";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
 
@@ -107,10 +109,15 @@ export default class extends EntityModel {
     return page;
   }
 
+  /**
+   * Get all the pages in an account.
+   *
+   * @param params.account - the user or org whose pages will be returned
+   */
   static async getAllPagesInAccount(
     graphApi: GraphApi,
     params: {
-      accountId: string;
+      account: UserModel | OrgModel;
     },
   ): Promise<PageModel[]> {
     const pageEntityModels = await EntityModel.getByQuery(graphApi, {
@@ -130,7 +137,7 @@ export default class extends EntityModel {
        * @todo: filter the pages by their ownedById in the query instead once it's supported
        * @see https://app.asana.com/0/1202805690238892/1203015527055374/f
        */
-      .filter(({ accountId }) => accountId === params.accountId)
+      .filter(({ accountId }) => accountId === params.account.entityId)
       .map(PageModel.fromEntityModel);
 
     return await Promise.all(
@@ -143,26 +150,41 @@ export default class extends EntityModel {
     ).then((filteredPages) => filteredPages.flat());
   }
 
+  /**
+   * Get the value of the "Title" property of the page.
+   */
   getTitle(): string {
     return (this.properties as any)[WORKSPACE_TYPES.propertyType.title.baseUri];
   }
 
+  /**
+   * Get the value of the "Summary" property of the page.
+   */
   getSummary(): string | undefined {
     return (this.properties as any)[
       WORKSPACE_TYPES.propertyType.summary.baseUri
     ];
   }
 
+  /**
+   * Get the value of the "Index" property of the page.
+   */
   getIndex(): string | undefined {
     return (this.properties as any)[WORKSPACE_TYPES.propertyType.index.baseUri];
   }
 
+  /**
+   * Get the value of the "Archived" property of the page.
+   */
   getArchived(): boolean | undefined {
     return (this.properties as any)[
       WORKSPACE_TYPES.propertyType.archived.baseUri
     ];
   }
 
+  /**
+   * Whether or not the page (or an ancestor of the page) is archived.
+   */
   async isArchived(graphApi: GraphApi): Promise<Boolean> {
     if (this.getArchived()) {
       return true;
@@ -173,6 +195,9 @@ export default class extends EntityModel {
     return parentPage ? await parentPage.isArchived(graphApi) : false;
   }
 
+  /**
+   * Get the parent page of the page.
+   */
   async getParentPage(graphApi: GraphApi): Promise<PageModel | null> {
     const parentPageLinks = await this.getOutgoingLinks(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.parent,
@@ -193,6 +218,11 @@ export default class extends EntityModel {
     return PageModel.fromEntityModel(parentPageLink.targetEntityModel);
   }
 
+  /**
+   * Whether the page (or an ancestor of the page) has a specific page as its parent.
+   *
+   * @param params.page - the page that may or not be the parent of this page.
+   */
   async hasParentPage(
     graphApi: GraphApi,
     params: {
@@ -218,10 +248,15 @@ export default class extends EntityModel {
     return parentPage.hasParentPage(graphApi, params);
   }
 
+  /**
+   * Remove the current parent page of the page.
+   *
+   * @param params.removedBy - the account that is removing the parent page
+   */
   async removeParentPage(
     graphApi: GraphApi,
     params: {
-      removedByAccountId: string;
+      removedBy: string;
     },
   ): Promise<void> {
     const parentPageLinks = await this.getOutgoingLinks(graphApi, {
@@ -242,21 +277,29 @@ export default class extends EntityModel {
       );
     }
 
-    const { removedByAccountId } = params;
+    const { removedBy } = params;
 
-    await parentPageLink.remove(graphApi, { removedBy: removedByAccountId });
+    await parentPageLink.remove(graphApi, { removedBy });
   }
 
+  /**
+   * Set (or unset) the parent page of this page.
+   *
+   * @param params.parentPage - the new parent page (or `null`)
+   * @param params.setBy - the account that is setting the parent page
+   * @param params.prevIndex - the index of the previous page
+   * @param params.nextIndex- the index of the next page
+   */
   async setParentPage(
     graphApi: GraphApi,
     params: {
       parentPage: PageModel | null;
-      setByAccountId: string;
+      setBy: string;
       prevIndex: string | null;
       nextIndex: string | null;
     },
   ): Promise<void> {
-    const { setByAccountId, parentPage, prevIndex, nextIndex } = params;
+    const { setBy, parentPage, prevIndex, nextIndex } = params;
 
     const newIndex = generateKeyBetween(prevIndex, nextIndex);
 
@@ -264,12 +307,12 @@ export default class extends EntityModel {
 
     if (existingParentPage) {
       await this.removeParentPage(graphApi, {
-        removedByAccountId: setByAccountId,
+        removedBy: setBy,
       });
     }
 
     if (parentPage) {
-      /** Check whether adding the parent page would create a cycle */
+      // Check whether adding the parent page would create a cycle
       if (await parentPage.hasParentPage(graphApi, { page: this })) {
         throw new ApolloError(
           `Could not set '${parentPage.entityId}' as parent of '${this.entityId}', this would create a cyclic dependency.`,
@@ -280,7 +323,7 @@ export default class extends EntityModel {
       await this.createOutgoingLink(graphApi, {
         linkTypeModel: WORKSPACE_TYPES.linkType.parent,
         targetEntityModel: parentPage,
-        createdBy: setByAccountId,
+        createdBy: setBy,
       });
     }
 
@@ -293,6 +336,9 @@ export default class extends EntityModel {
     }
   }
 
+  /**
+   * Get the blocks in this page.
+   */
   async getBlocks(graphApi: GraphApi): Promise<BlockModel[]> {
     const outgoingBlockDataLinks = await LinkModel.getByQuery(graphApi, {
       all: [
@@ -315,6 +361,13 @@ export default class extends EntityModel {
     );
   }
 
+  /**
+   * Insert a block into this page
+   *
+   * @param params.block - the block to insert in the page
+   * @param params.insertedBy - the account that is inserting the block
+   * @param params.position (optional) - the position of the block in the page
+   */
   async insertBlock(
     graphApi: GraphApi,
     params: {
@@ -332,17 +385,25 @@ export default class extends EntityModel {
       linkTypeModel: WORKSPACE_TYPES.linkType.contain,
       index:
         specifiedPosition ??
+        // if position is not specified and there are no blocks currently in the page, specify the index of the link is `0`
         ((await this.getBlocks(graphApi)).length === 0 ? 0 : undefined),
       createdBy: insertedBy,
     });
   }
 
+  /**
+   * Move a block in the page from one position to another.
+   *
+   * @param params.currentPosition - the current position of the block being moved
+   * @param params.newPosition - the new position of the block being moved
+   * @param params.movedBy (optional) - the account that is moving the block
+   */
   async moveBlock(
     graphApi: GraphApi,
     params: {
       currentPosition: number;
       newPosition: number;
-      movedByAccountId: string;
+      movedBy: string;
     },
   ) {
     const { currentPosition, newPosition } = params;
@@ -368,23 +429,30 @@ export default class extends EntityModel {
       );
     }
 
-    const { movedByAccountId } = params;
+    const { movedBy } = params;
 
     await link.update(graphApi, {
       updatedIndex: newPosition,
-      updatedBy: movedByAccountId,
+      updatedBy: movedBy,
     });
   }
 
+  /**
+   * Remove a block from the page.
+   *
+   * @param params.position - the position of the block being removed
+   * @param params.removedBy - the account that is removing the block
+   * @param params.allowRemovingFinal (optional) - whether or not removing the final block in the page should be permitted (defaults to `true`)
+   */
   async removeBlock(
     graphApi: GraphApi,
     params: {
       position: number;
-      removedByAccountId: string;
+      removedBy: string;
       allowRemovingFinal?: boolean;
     },
   ) {
-    const { allowRemovingFinal, position } = params;
+    const { allowRemovingFinal = false, position } = params;
 
     const contentLinks = await this.getOutgoingLinks(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.contain,
@@ -406,8 +474,8 @@ export default class extends EntityModel {
       throw new Error("Cannot remove final block from page");
     }
 
-    const { removedByAccountId } = params;
+    const { removedBy } = params;
 
-    await link.remove(graphApi, { removedBy: removedByAccountId });
+    await link.remove(graphApi, { removedBy });
   }
 }
