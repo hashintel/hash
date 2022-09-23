@@ -39,6 +39,9 @@ export let WORKSPACE_TYPES: {
     summary: PropertyTypeModel;
     title: PropertyTypeModel;
     index: PropertyTypeModel;
+
+    // Text-related
+    tokens: PropertyTypeModel;
   };
   entityType: {
     user: EntityTypeModel;
@@ -46,6 +49,7 @@ export let WORKSPACE_TYPES: {
     orgMembership: EntityTypeModel;
     block: EntityTypeModel;
     page: EntityTypeModel;
+    text: EntityTypeModel;
     /**
      * @todo: deprecate all uses of this dummy entity type
      * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
@@ -326,6 +330,35 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
   })(graphApi);
 };
 
+const tokensPropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Text Tokens",
+  /** @todo: properly type this */
+  possibleValues: [{ primitiveDataType: "Object" }],
+});
+
+const textEntityTypeInitializer = async (graphApi: GraphApi) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const tokensPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.tokens(graphApi);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+  return entityTypeInitializer({
+    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+    title: "Text",
+    properties: [
+      {
+        propertyTypeBaseUri: tokensPropertyTypeModel.baseUri,
+        propertyTypeVersionedUri: tokensPropertyTypeModel.schema.$id,
+        required: true,
+        array: true,
+      },
+    ],
+    outgoingLinks: [],
+  })(graphApi);
+};
+
 /**
  * @todo: remove this dummy entity type once we are able to define the block data link type without it
  * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
@@ -485,6 +518,8 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     archived: archivedPropertyTypeInitializer,
     title: titlePropertyTypeInitializer,
     index: indexPropertyTypeInitializer,
+
+    tokens: tokensPropertyTypeInitializer,
   },
   entityType: {
     user: userEntityTypeInitializer,
@@ -492,6 +527,7 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     orgMembership: orgMembershipEntityTypeInitializer,
     block: blockEntityTypeInitializer,
     page: pageEntityTypeInitializer,
+    text: textEntityTypeInitializer,
     dummy: dummyEntityTypeInitializer,
   },
   linkType: {
