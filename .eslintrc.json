@@ -2,7 +2,7 @@
   "root": true,
   // this is the highest config lower ones will automatically extend
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint", "react-hooks", "jest", "unicorn"],
+  "plugins": ["@typescript-eslint", "react-hooks", "jest", "unicorn", "github"],
   "extends": [
     "plugin:@typescript-eslint/recommended-requiring-type-checking",
     "airbnb",
@@ -300,7 +300,8 @@
         }
       }
     ],
-    "@typescript-eslint/prefer-nullish-coalescing": ["error"]
+    "@typescript-eslint/prefer-nullish-coalescing": ["error"],
+    "github/array-foreach": ["error"]
   },
   "settings": {
     "import/resolver": {
@@ -360,7 +361,8 @@
         "packages/hash/playwright/**"
       ],
       "rules": {
-        "@typescript-eslint/prefer-nullish-coalescing": ["off"]
+        "@typescript-eslint/prefer-nullish-coalescing": ["off"],
+        "github/array-foreach": ["off"]
       }
     }
   ]
