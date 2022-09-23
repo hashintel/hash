@@ -1,4 +1,5 @@
 import { PersistedEntity, GraphApi } from "@hashintel/hash-graph-client";
+import { ApolloError } from "apollo-server-errors";
 
 import {
   EntityModel,
@@ -7,6 +8,8 @@ import {
   LinkModelCreateParams,
   LinkTypeModel,
 } from "..";
+import { KnowledgeEntityDefinition } from "../../graphql/apiTypes.gen";
+import { exactlyOne } from "../../util";
 
 export type EntityModelConstructorParams = {
   accountId: string;
@@ -110,6 +113,71 @@ export default class {
       entityTypeModel,
       properties,
     });
+  }
+
+  /**
+   * Get or create an entity given either by new entity properties or a reference
+   * to an existing entity.
+   *
+   * @param params.createdById the account id that is creating the entity
+   * @param params.entityDefinition the definition of how to get or create the entity
+   */
+  static async getOrCreate(
+    graphApi: any,
+    params: {
+      createdById: string;
+      entityDefinition: Omit<KnowledgeEntityDefinition, "linkedEntities">;
+    },
+  ): Promise<EntityModel> {
+    const { entityDefinition } = params;
+    const { entityProperties, existingEntity } = params.entityDefinition;
+
+    let entity;
+
+    if (existingEntity) {
+      entity = await EntityModel.getLatest(graphApi, {
+        entityId: existingEntity.entityId,
+        accountId: existingEntity.ownedById,
+      });
+      if (!entity) {
+        throw new ApolloError(
+          `Entity ${existingEntity.entityId} owned by ${existingEntity.ownedById} not found`,
+          "NOT_FOUND",
+        );
+      }
+    } else if (entityProperties) {
+      const { entityType } = entityDefinition;
+      const { componentId, entityTypeVersionedUri } = entityType ?? {};
+
+      if (!exactlyOne(entityTypeVersionedUri, componentId)) {
+        throw new ApolloError(
+          `Given no valid type identifier. Must be one of entityTypeVersionedUri or componentId`,
+          "NOT_FOUND",
+        );
+      }
+
+      /** @todo figure out what to do about component ID */
+      if (componentId) {
+        throw new Error(`Component ID is unimplemented.`);
+      }
+
+      const entityTypeModel = await EntityTypeModel.get(graphApi, {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+        versionedUri: entityTypeVersionedUri!,
+      });
+
+      entity = await EntityModel.create(graphApi, {
+        accountId: params.createdById,
+        entityTypeModel,
+        properties: entityProperties,
+      });
+    } else {
+      throw new Error(
+        `One of entityId OR entityProperties and entityType must be provided`,
+      );
+    }
+
+    return entity;
   }
 
   /**
