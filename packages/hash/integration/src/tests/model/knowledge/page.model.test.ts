@@ -94,7 +94,13 @@ describe("Page model class", () => {
       account: testUser,
     });
 
-    expect(allPages.sort()).toEqual([testPage, testPage2].sort());
+    expect(
+      allPages.sort((a, b) => a.entityId.localeCompare(b.entityId)),
+    ).toEqual(
+      [testPage, testPage2].sort((a, b) =>
+        a.entityId.localeCompare(b.entityId),
+      ),
+    );
   });
 
   let parentPage: PageModel;
