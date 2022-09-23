@@ -14,6 +14,7 @@ export type LinkModelCreateParams = {
   sourceEntityModel: EntityModel;
   linkTypeModel: LinkTypeModel;
   targetEntityModel: EntityModel;
+  index?: number;
 };
 
 /**
@@ -98,6 +99,7 @@ export default class {
       sourceEntityModel,
       linkTypeModel,
       targetEntityModel,
+      index,
     }: LinkModelCreateParams,
   ): Promise<LinkModel> {
     const { data: link } = await graphApi.createLink(
@@ -113,6 +115,7 @@ export default class {
         ownedById: createdBy,
         linkTypeId: linkTypeModel.schema.$id,
         targetEntityId: targetEntityModel.entityId,
+        index,
       },
     );
 

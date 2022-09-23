@@ -67,6 +67,7 @@ export const knowledgeEntityTypedef = gql`
 
   input KnowledgeLinkedEntityDefinition {
     destinationAccountId: ID!
+    linkTypeVersionedUri: String!
     """
     The index of the link (if any)
     """

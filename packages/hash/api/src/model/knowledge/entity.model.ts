@@ -8,8 +8,11 @@ import {
   LinkModelCreateParams,
   LinkTypeModel,
 } from "..";
-import { KnowledgeEntityDefinition } from "../../graphql/apiTypes.gen";
-import { exactlyOne } from "../../util";
+import {
+  KnowledgeEntityDefinition,
+  KnowledgeLinkedEntityDefinition,
+} from "../../graphql/apiTypes.gen";
+import { exactlyOne, linkedTreeFlatten } from "../../util";
 
 export type EntityModelConstructorParams = {
   accountId: string;
@@ -116,11 +119,80 @@ export default class {
   }
 
   /**
+   * Create an entity along with any new/existing entities specified through links.
+   *
+   * @param params.createdById the account id that is creating the entity
+   * @param params.entityDefinition the definition of how to get or create the entity optionally with linked entities
+   */
+  static async createEntityWithLinks(
+    graphApi: GraphApi,
+    params: {
+      createdById: string;
+      entityDefinition: KnowledgeEntityDefinition;
+    },
+  ): Promise<EntityModel> {
+    const { createdById, entityDefinition: entityDefinitions } = params;
+
+    const entitiesInTree = linkedTreeFlatten<
+      KnowledgeEntityDefinition,
+      KnowledgeLinkedEntityDefinition,
+      "linkedEntities",
+      "entity"
+    >(entityDefinitions, "linkedEntities", "entity");
+
+    const entities = await Promise.all(
+      entitiesInTree.map(async (entityDefinition) => ({
+        link: entityDefinition.meta
+          ? {
+              parentIndex: entityDefinition.parentIndex,
+              meta: entityDefinition.meta,
+            }
+          : undefined,
+        entity: await EntityModel.getOrCreate(graphApi, {
+          createdById,
+          entityDefinition,
+        }),
+      })),
+    );
+
+    await Promise.all(
+      entities.map(async ({ link, entity }) => {
+        if (link) {
+          const parentEntity = entities[link.parentIndex];
+          if (!parentEntity) {
+            throw new ApolloError("Could not find parent entity");
+          }
+          const linkTypeModel = await LinkTypeModel.get(graphApi, {
+            versionedUri: link.meta.linkTypeVersionedUri,
+          });
+
+          // links are created as an outgoing link from the parent entity to the children.
+          await parentEntity.entity.createOutgoingLink(graphApi, {
+            linkTypeModel,
+            targetEntityModel: entity,
+            index: link.meta.index ?? undefined,
+          });
+        }
+      }),
+    );
+
+    if (entities.length > 0) {
+      // First element will be the root entity.
+      return entities[0]!.entity;
+    } else {
+      throw new ApolloError(
+        "Could not create entity tree",
+        "INTERNAL_SERVER_ERROR",
+      );
+    }
+  }
+
+  /**
    * Get or create an entity given either by new entity properties or a reference
    * to an existing entity.
    *
    * @param params.createdById the account id that is creating the entity
-   * @param params.entityDefinition the definition of how to get or create the entity
+   * @param params.entityDefinition the definition of how to get or create the entity (excluding any linked entities)
    */
   static async getOrCreate(
     graphApi: any,
