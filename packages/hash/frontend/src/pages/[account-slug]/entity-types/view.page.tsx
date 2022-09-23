@@ -405,7 +405,12 @@ const PaperWithCreateButton = ({ children, ...props }: PaperProps) => {
 
         [`.${autocompleteClasses.listbox}`]: { p: 0 },
         [`.${autocompleteClasses.noOptions}`]: { display: "none" },
-        [`.${autocompleteClasses.option}`]: { borderRadius: 1 },
+        [`.${autocompleteClasses.option}`]: {
+          borderRadius: 1,
+          "&.Mui-focused": {
+            backgroundColor: theme.palette.gray[10],
+          },
+        },
       })}
     >
       {children}
