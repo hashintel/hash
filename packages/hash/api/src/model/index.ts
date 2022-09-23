@@ -50,6 +50,9 @@ export { default as OrgMembershipModel } from "./knowledge/orgMembership.model";
 export * from "./knowledge/block.model";
 export { default as BlockModel } from "./knowledge/block.model";
 
+export * from "./knowledge/page.model";
+export { default as PageModel } from "./knowledge/page.model";
+
 /** @todo: deprecate legacy model classes */
 
 export * from "./entityType.model";

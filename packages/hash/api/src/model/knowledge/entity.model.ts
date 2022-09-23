@@ -280,11 +280,13 @@ export default class {
   /** @see {@link LinkModel.create} */
   async createOutgoingLink(
     graphApi: GraphApi,
-    params: Omit<LinkModelCreateParams, "sourceEntityModel" | "createdBy">,
+    params: Omit<LinkModelCreateParams, "sourceEntityModel" | "createdBy"> & {
+      createdBy?: string;
+    },
   ): Promise<LinkModel> {
     return await LinkModel.create(graphApi, {
-      createdBy: this.accountId,
       sourceEntityModel: this,
+      createdBy: params.createdBy ?? this.accountId,
       ...params,
     });
   }
