@@ -4,6 +4,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useLayoutEffect,
 } from "react";
 import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
@@ -48,53 +49,18 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
   const viewRef = useRef<EditorView<Schema>>();
   const [portals, renderPortal] = usePortals();
   const { accountId } = useRouteAccountInfo();
-  const [loading, setLoading] = useState(false);
   const editorContainerRef = useRef<HTMLDivElement>();
+  const loadingRef = useRef(false);
+  const eventsRef = useRef({ onClose, onSubmit });
 
-  const updateEditorHandleKeyDown = useCallback(
-    (container: EditorView<Schema>, preventActions: boolean) => {
-      container.setProps({
-        handleKeyDown: (view, { shiftKey, key }) => {
-          if (!preventActions && !shiftKey) {
-            switch (key) {
-              case "Enter":
-                if (view.state.doc.content) {
-                  const { tokens } = textBlockNodeToEntityProperties(
-                    view.state.doc,
-                  );
+  useLayoutEffect(() => {
+    eventsRef.current = { onClose, onSubmit };
+  });
 
-                  setLoading(true);
-                  onSubmit(tokens)
-                    .then(() => {
-                      onClose();
-                    })
-                    .finally(() => {
-                      setLoading(false);
-                    });
-                }
+  useEffect(() => {
+    const editorContainer = editorContainerRef.current;
 
-                return true;
-
-              case "Escape":
-                onClose();
-                break;
-
-              default:
-                break;
-            }
-          }
-
-          return false;
-        },
-      });
-    },
-    [onClose, onSubmit],
-  );
-
-  const createEditor = useCallback(
-    (container: HTMLDivElement) => {
-      container.setAttribute("innerHTML", "");
-
+    if (editorContainer) {
       const schema = createSchema({
         doc: {
           content: "inline*",
@@ -105,43 +71,58 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
       const state = EditorState.create<Schema>({
         schema,
         plugins: [
+          keymap<Schema>({
+            Enter(_, __, view) {
+              if (!loadingRef.current && view?.state.doc.content) {
+                const { tokens } = textBlockNodeToEntityProperties(
+                  view.state.doc,
+                );
+                loadingRef.current = true;
+                eventsRef.current
+                  .onSubmit(tokens)
+                  .then(() => {
+                    eventsRef.current.onClose();
+                  })
+                  .finally(() => {
+                    loadingRef.current = false;
+                  });
+                return true;
+              }
+              return false;
+            },
+            Escape() {
+              if (!loadingRef.current) {
+                eventsRef.current.onClose();
+                return true;
+              }
+              return false;
+            },
+          }),
           keymap<Schema>(baseKeymap),
           ...createFormatPlugins(renderPortal),
           formatKeymap(schema),
-          createSuggester(renderPortal, accountId, container),
+          createSuggester(renderPortal, accountId, editorContainer),
           commentPlaceholderPlugin(renderPortal, "Leave a comment"),
         ],
       });
 
       const view = createTextEditorView(
         state,
-        container,
+        editorContainer,
         renderPortal,
         accountId,
       );
 
       view.dom.classList.add(styles.Comment__TextField_Prosemirror_Input!);
-
-      updateEditorHandleKeyDown(view, false);
       view.focus();
-
       viewRef.current = view;
-    },
-    [accountId, renderPortal, updateEditorHandleKeyDown],
-  );
 
-  useEffect(() => {
-    if (viewRef.current) {
-      updateEditorHandleKeyDown(viewRef.current, loading);
+      return () => {
+        view.destroy();
+        viewRef.current = undefined;
+      };
     }
-  }, [updateEditorHandleKeyDown, loading]);
-
-  useEffect(() => {
-    const editorContainer = editorContainerRef.current;
-    if (editorContainer) {
-      createEditor(editorContainer);
-    }
-  }, [editorContainerRef, createEditor]);
+  }, [accountId, renderPortal]);
 
   return (
     <Box
@@ -182,7 +163,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
       />
 
       <Box display="flex" alignItems="flex-end" margin={1.5}>
-        {loading ? (
+        {loadingRef.current ? (
           <Box m={0.75}>
             <LoadingSpinner size={12} thickness={2} />
           </Box>
