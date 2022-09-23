@@ -4,6 +4,7 @@ import { EntityModel, LinkModel, LinkTypeModel } from "../index";
 
 export type LinkModelConstructorParams = {
   ownedById: string;
+  index?: number;
   sourceEntityModel: EntityModel;
   linkTypeModel: LinkTypeModel;
   targetEntityModel: EntityModel;
@@ -11,6 +12,7 @@ export type LinkModelConstructorParams = {
 
 export type LinkModelCreateParams = {
   createdBy: string;
+  index?: number;
   sourceEntityModel: EntityModel;
   linkTypeModel: LinkTypeModel;
   targetEntityModel: EntityModel;
@@ -22,17 +24,21 @@ export type LinkModelCreateParams = {
 export default class {
   ownedById: string;
 
+  index?: number;
+
   sourceEntityModel: EntityModel;
   linkTypeModel: LinkTypeModel;
   targetEntityModel: EntityModel;
 
   constructor({
     ownedById,
+    index,
     sourceEntityModel,
     linkTypeModel,
     targetEntityModel,
   }: LinkModelConstructorParams) {
     this.ownedById = ownedById;
+    this.index = index;
 
     this.sourceEntityModel = sourceEntityModel;
     this.linkTypeModel = linkTypeModel;
@@ -43,7 +49,7 @@ export default class {
     graphApi: GraphApi,
     {
       ownedById,
-      inner: { sourceEntityId, targetEntityId, linkTypeId },
+      inner: { sourceEntityId, targetEntityId, linkTypeId, index },
     }: PersistedLink,
   ): Promise<LinkModel> {
     const [sourceEntityModel, targetEntityModel, linkTypeModel] =
@@ -55,6 +61,7 @@ export default class {
 
     return new LinkModel({
       ownedById,
+      index,
       sourceEntityModel,
       linkTypeModel,
       targetEntityModel,
@@ -82,22 +89,14 @@ export default class {
     );
   }
 
-  /**
-   * Create a link between a source and a target entity using a specific link
-   * type.
-   *
-   * @param params.accountId the accountId of the account creating the link
-   * @param params.sourceEntityModel the source entity of the link
-   * @param params.linkTypeModel the Link Type of the link
-   * @param params.targetEntityModel the target entity of the link
-   */
-  static async create(
+  private static async createLinkWithoutUpdatingSiblings(
     graphApi: GraphApi,
     {
       createdBy,
       sourceEntityModel,
       linkTypeModel,
       targetEntityModel,
+      index,
     }: LinkModelCreateParams,
   ): Promise<LinkModel> {
     const { data: link } = await graphApi.createLink(
@@ -111,19 +110,186 @@ export default class {
          *   https://app.asana.com/0/1202805690238892/1202890446280569/f
          */
         ownedById: createdBy,
+        index,
         linkTypeId: linkTypeModel.schema.$id,
         targetEntityId: targetEntityModel.entityId,
       },
     );
 
-    return LinkModel.fromPersistedLink(graphApi, {
+    /** @todo: this should be returned directly from the `createLink` method */
+    const persistedLink = {
       inner: link,
       ownedById: createdBy,
+    };
+
+    return LinkModel.fromPersistedLink(graphApi, persistedLink);
+  }
+
+  /**
+   * Create a link between a source and a target entity using a specific link
+   * type.
+   *
+   * @param params.accountId the accountId of the account creating the link
+   * @param params.sourceEntityModel the source entity of the link
+   * @param params.linkTypeModel the Link Type of the link
+   * @param params.targetEntityModel the target entity of the link
+   */
+  static async create(
+    graphApi: GraphApi,
+    params: LinkModelCreateParams,
+  ): Promise<LinkModel> {
+    const { sourceEntityModel, linkTypeModel, createdBy } = params;
+    const siblingLinks = await sourceEntityModel.getOutgoingLinks(graphApi, {
+      linkTypeModel,
+    });
+
+    /** @todo: rely on Graph API validation instead */
+    const hasOrderedSiblingLink = siblingLinks[0]?.index !== undefined;
+
+    const index = hasOrderedSiblingLink
+      ? params.index ?? siblingLinks.length
+      : siblingLinks.length === 0
+      ? params.index
+      : undefined;
+
+    if (index !== undefined) {
+      if (index < 0 || index > siblingLinks.length) {
+        throw new Error("Index is out of bounds");
+      }
+
+      await Promise.all(
+        siblingLinks
+          .filter((sibling) => sibling.index! >= index)
+          .map((sibling) =>
+            sibling.updateWithoutUpdatingSiblings(graphApi, {
+              updatedIndex: sibling.index! + 1,
+              updatedBy: createdBy,
+            }),
+          ),
+      );
+    }
+
+    return await LinkModel.createLinkWithoutUpdatingSiblings(graphApi, {
+      ...params,
+      index,
+    });
+  }
+
+  private async updateWithoutUpdatingSiblings(
+    graphApi: GraphApi,
+    params: { updatedIndex: number; updatedBy: string },
+  ) {
+    const { updatedIndex, updatedBy } = params;
+
+    const { index: previousIndex } = this;
+
+    if (previousIndex === undefined) {
+      throw new Error("Cannot update the index of an un-ordered link");
+    }
+
+    if (previousIndex === updatedIndex) {
+      throw new Error("No-op");
+    }
+
+    /** @todo: call dedicated Graph API method to update the index of a link instead of re-creating the link */
+
+    await this.removeWithoutUpdatingSiblings(graphApi, {
+      removedBy: updatedBy,
+    });
+
+    const updatedLink = await LinkModel.createLinkWithoutUpdatingSiblings(
+      graphApi,
+      {
+        ...this,
+        index: updatedIndex,
+        createdBy: updatedBy,
+      },
+    );
+
+    return updatedLink;
+  }
+
+  /**
+   * Update the link
+   *
+   * @param params.updatedIndex - the updated index of the link
+   * @param params.updatedBy - the account updating the link
+   */
+  async update(
+    graphApi: GraphApi,
+    params: { updatedIndex: number; updatedBy: string },
+  ) {
+    const { updatedIndex, updatedBy } = params;
+
+    const { index: previousIndex } = this;
+
+    if (previousIndex === undefined) {
+      throw new Error("Cannot update the index of an un-ordered link");
+    }
+
+    if (previousIndex === updatedIndex) {
+      throw new Error("No-op");
+    }
+
+    const siblingLinks = await this.sourceEntityModel.getOutgoingLinks(
+      graphApi,
+      {
+        linkTypeModel: this.linkTypeModel,
+      },
+    );
+
+    // Whether the index of the link is being increased
+    const isIncreasingIndex = updatedIndex > previousIndex;
+
+    // The minimum index of the affected sibling links
+    const affectedSiblingsMinimumIndex = isIncreasingIndex
+      ? previousIndex + 1
+      : updatedIndex;
+
+    // The maximum index of the affected sibling links
+    const affectedSiblingsMaximumIndex = isIncreasingIndex
+      ? updatedIndex
+      : previousIndex - 1;
+
+    const affectedSiblings = siblingLinks.filter(
+      (sibling) =>
+        sibling.index! >= affectedSiblingsMinimumIndex &&
+        sibling.index! <= affectedSiblingsMaximumIndex,
+    );
+
+    await Promise.all(
+      affectedSiblings.map((sibling) =>
+        sibling.updateWithoutUpdatingSiblings(graphApi, {
+          updatedIndex: sibling.index! + (isIncreasingIndex ? -1 : 1),
+          updatedBy,
+        }),
+      ),
+    );
+
+    return this.updateWithoutUpdatingSiblings(graphApi, {
+      updatedIndex,
+      updatedBy,
     });
   }
 
   /**
    * Remove a link.
+   */
+  async removeWithoutUpdatingSiblings(
+    graphApi: GraphApi,
+    { removedBy }: { removedBy: string },
+  ): Promise<void> {
+    await graphApi.removeLink(this.sourceEntityModel.entityId, {
+      linkTypeId: this.linkTypeModel.schema.$id,
+      targetEntityId: this.targetEntityModel.entityId,
+      removedById: removedBy,
+    });
+  }
+
+  /**
+   * Remove the link.
+   *
+   * @param removedBy - the account removing the link
    */
   async remove(
     graphApi: GraphApi,
@@ -134,5 +300,27 @@ export default class {
       targetEntityId: this.targetEntityModel.entityId,
       removedById: removedBy,
     });
+
+    if (this.index !== undefined) {
+      const siblingLinks = await this.sourceEntityModel.getOutgoingLinks(
+        graphApi,
+        {
+          linkTypeModel: this.linkTypeModel,
+        },
+      );
+
+      const affectedSiblings = siblingLinks.filter(
+        (sibling) => sibling.index! >= this.index!,
+      );
+
+      await Promise.all(
+        affectedSiblings.map((sibling) =>
+          sibling.updateWithoutUpdatingSiblings(graphApi, {
+            updatedIndex: sibling.index! - 1,
+            updatedBy: removedBy,
+          }),
+        ),
+      );
+    }
   }
 }
