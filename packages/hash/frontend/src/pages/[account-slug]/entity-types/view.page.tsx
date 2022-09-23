@@ -497,7 +497,6 @@ const NewPropertyRow = ({
           }}
         >
           <Autocomplete
-            open
             popupIcon={null}
             clearIcon={null}
             forcePopupIcon={false}
