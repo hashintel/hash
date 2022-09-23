@@ -35,14 +35,17 @@ import {
   Container,
   Divider,
   experimental_sx as sx,
+  inputClasses,
   inputLabelClasses,
   ListItem,
   listItemClasses,
   ListItemText,
   listItemTextClasses,
   menuItemClasses,
+  outlinedInputClasses,
   Paper,
   PaperProps,
+  PopperProps,
   Stack,
   styled,
   SxProps,
@@ -74,6 +77,7 @@ import {
   Ref,
   useContext,
   useId,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -382,12 +386,27 @@ const PaperWithCreateButton = ({ children, ...props }: PaperProps) => {
   return (
     <Paper
       {...props}
-      sx={{
+      sx={(theme) => ({
         p: 1,
+        border: 1,
+        borderColor: theme.palette.gray[30],
+        boxShadow: "none",
+
+        [`[data-popper-placement="top"] &`]: {
+          borderBottom: 0,
+          borderBottomLeftRadius: 0,
+          borderBottomRightRadius: 0,
+        },
+        [`[data-popper-placement="bottom"] &`]: {
+          borderTop: 0,
+          borderTopLeftRadius: 0,
+          borderTopRightRadius: 0,
+        },
+
         [`.${autocompleteClasses.listbox}`]: { p: 0 },
         [`.${autocompleteClasses.noOptions}`]: { display: "none" },
         [`.${autocompleteClasses.option}`]: { borderRadius: 1 },
-      }}
+      })}
     >
       {children}
       <Button
@@ -479,6 +498,26 @@ const NewPropertyRow = ({
     },
   ];
 
+  const modifiers = useMemo(
+    (): PopperProps["modifiers"] => [
+      {
+        name: "addPositionClass",
+        enabled: true,
+        phase: "write",
+        fn({ state }) {
+          if (state.elements.reference instanceof HTMLElement) {
+            state.elements.reference.setAttribute(
+              "data-popper-placement",
+              state.placement,
+            );
+          }
+          // state.elements.popper.setAttribute("data-placement", state.placement);
+        },
+      },
+    ],
+    [],
+  );
+
   return (
     <TableRow data-disabled>
       <TableCell colSpan={2}>
@@ -510,7 +549,9 @@ const NewPropertyRow = ({
               <TextField
                 {...props}
                 placeholder="Search for a property type"
-                sx={{ width: "100%" }}
+                sx={{
+                  width: "100%",
+                }}
                 inputRef={sharedRef}
                 InputProps={{
                   ...props.InputProps,
@@ -524,6 +565,24 @@ const NewPropertyRow = ({
                       })}
                     />
                   ),
+                  sx: (theme) => ({
+                    boxShadow: "none",
+
+                    [`.${outlinedInputClasses.notchedOutline}`]: {
+                      border: `1px solid ${theme.palette.gray[30]} !important`,
+                    },
+
+                    [`&[data-popper-placement="bottom"]`]: {
+                      borderBottom: 0,
+                      borderBottomLeftRadius: 0,
+                      borderBottomRightRadius: 0,
+                    },
+                    [`&[data-popper-placement="top"]`]: {
+                      borderTop: 0,
+                      borderTopLeftRadius: 0,
+                      borderTopRightRadius: 0,
+                    },
+                  }),
                 }}
               />
             )}
@@ -599,6 +658,9 @@ const NewPropertyRow = ({
               </li>
             )}
             PaperComponent={PaperWithCreateButton}
+            componentsProps={{
+              popper: { modifiers },
+            }}
           />
         </PaperWithCreateButtonContext.Provider>
         <Modal
@@ -662,8 +724,7 @@ const NewPropertyRow = ({
         <Checkbox disabled />
       </TableCell>
       <TableCell>
-        {/** @todo invisible disabled styles */}
-        <Input disabled />
+        <Input />
       </TableCell>
       <TableCell>
         <PropertyMenu disabled />
