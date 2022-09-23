@@ -34,7 +34,7 @@ import {
 import { useRouteAccountInfo } from "../../../shared/routing";
 import styles from "../style.module.css";
 import { commentPlaceholderPlugin } from "./commentPlaceholderPlugin";
-import { createTextEditorView } from "../createEditorView";
+import { createTextEditorView } from "../createTextEditorView";
 
 type CommentTextFieldProps = {
   onClose: () => void;

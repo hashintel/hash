@@ -4,8 +4,7 @@ import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 // import applyDevTools from "prosemirror-dev-tools";
 import { Schema } from "prosemirror-model";
-import { EditorState, Plugin } from "prosemirror-state";
-import { DirectEditorProps, EditorView } from "prosemirror-view";
+import { Plugin } from "prosemirror-state";
 import { RefObject } from "react";
 import { LoadingView } from "./LoadingView";
 import { BlockView } from "./BlockView";
@@ -18,29 +17,9 @@ import { createSuggester } from "./createSuggester/createSuggester";
 import { createFocusPageTitlePlugin } from "./focusPageTitlePlugin";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
-import { mentionNodeView } from "./MentionView/MentionNodeView";
-import { clipboardTextSerializer } from "./clipboardTextSerializer";
+import { createTextEditorView } from "./createTextEditorView";
 
 export type BlocksMap = Record<string, HashBlock>;
-
-export const createTextEditorView = (
-  state: EditorState<Schema>,
-  renderNode: HTMLElement,
-  renderPortal: RenderPortal,
-  accountId: string,
-  editorProps?: Partial<DirectEditorProps<Schema>>,
-) =>
-  new EditorView<Schema>(renderNode, {
-    ...editorProps,
-    state,
-    clipboardTextSerializer: clipboardTextSerializer(
-      state.schema.nodes.hardBreak,
-    ),
-    nodeViews: {
-      ...(editorProps?.nodeViews || {}),
-      mention: mentionNodeView(renderPortal, accountId),
-    },
-  });
 
 /**
  * An editor view manages the DOM structure that represents an editable document.
