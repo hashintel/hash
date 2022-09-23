@@ -85,9 +85,9 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   const [offsetLeft, setOffsetLeft] = useState(0);
 
   const [treeItems, setTreeItems] = useState<TreeItem[]>([]);
-  const [prevData, setPrevData] = useState(data);
+  const [prevData, setPrevData] = useState<typeof data>([]);
 
-  if (data !== prevData && !loading) {
+  if (!loading && data !== prevData) {
     setPrevData(data);
     setTreeItems(getTreeItemList(data));
   }
