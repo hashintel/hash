@@ -116,7 +116,7 @@ describe("Page model class", () => {
 
     await testPage.setParentPage(graphApi, {
       parentPage,
-      setBy: testUser.accountId,
+      setById: testUser.accountId,
       prevIndex: null,
       nextIndex: null,
     });
@@ -145,13 +145,13 @@ describe("Page model class", () => {
     // insert block at un-specified position
     await testPage.insertBlock(graphApi, {
       block: testBlock3,
-      insertedBy: testUser.accountId,
+      insertedById: testUser.accountId,
     });
 
     // insert block at specified position
     await testPage.insertBlock(graphApi, {
       block: testBlock2,
-      insertedBy: testUser.accountId,
+      insertedById: testUser.accountId,
       position: 1,
     });
 
@@ -166,7 +166,7 @@ describe("Page model class", () => {
     await testPage.moveBlock(graphApi, {
       currentPosition: 0,
       newPosition: 2,
-      movedBy: testUser.accountId,
+      movedById: testUser.accountId,
     });
 
     expect(await testPage.getBlocks(graphApi)).toEqual([
@@ -178,7 +178,7 @@ describe("Page model class", () => {
     await testPage.moveBlock(graphApi, {
       currentPosition: 2,
       newPosition: 0,
-      movedBy: testUser.accountId,
+      movedById: testUser.accountId,
     });
 
     expect(await testPage.getBlocks(graphApi)).toEqual([
@@ -191,7 +191,7 @@ describe("Page model class", () => {
   it("can remove blocks", async () => {
     await testPage.removeBlock(graphApi, {
       position: 0,
-      removedBy: testUser.accountId,
+      removedById: testUser.accountId,
     });
 
     expect(await testPage.getBlocks(graphApi)).toEqual([

@@ -102,7 +102,7 @@ export default class extends EntityModel {
     for (const block of initialBlocks) {
       await page.insertBlock(graphApi, {
         block,
-        insertedBy: accountId,
+        insertedById: accountId,
       });
     }
 
@@ -251,12 +251,12 @@ export default class extends EntityModel {
   /**
    * Remove the current parent page of the page.
    *
-   * @param params.removedBy - the account that is removing the parent page
+   * @param params.removedById - the account that is removing the parent page
    */
   async removeParentPage(
     graphApi: GraphApi,
     params: {
-      removedBy: string;
+      removedById: string;
     },
   ): Promise<void> {
     const parentPageLinks = await this.getOutgoingLinks(graphApi, {
@@ -277,16 +277,16 @@ export default class extends EntityModel {
       );
     }
 
-    const { removedBy } = params;
+    const { removedById } = params;
 
-    await parentPageLink.remove(graphApi, { removedBy });
+    await parentPageLink.remove(graphApi, { removedById });
   }
 
   /**
    * Set (or unset) the parent page of this page.
    *
    * @param params.parentPage - the new parent page (or `null`)
-   * @param params.setBy - the account that is setting the parent page
+   * @param params.setById - the account that is setting the parent page
    * @param params.prevIndex - the index of the previous page
    * @param params.nextIndex- the index of the next page
    */
@@ -294,12 +294,12 @@ export default class extends EntityModel {
     graphApi: GraphApi,
     params: {
       parentPage: PageModel | null;
-      setBy: string;
+      setById: string;
       prevIndex: string | null;
       nextIndex: string | null;
     },
   ): Promise<void> {
-    const { setBy, parentPage, prevIndex, nextIndex } = params;
+    const { setById, parentPage, prevIndex, nextIndex } = params;
 
     const newIndex = generateKeyBetween(prevIndex, nextIndex);
 
@@ -307,7 +307,7 @@ export default class extends EntityModel {
 
     if (existingParentPage) {
       await this.removeParentPage(graphApi, {
-        removedBy: setBy,
+        removedById: setById,
       });
     }
 
@@ -323,7 +323,7 @@ export default class extends EntityModel {
       await this.createOutgoingLink(graphApi, {
         linkTypeModel: WORKSPACE_TYPES.linkType.parent,
         targetEntityModel: parentPage,
-        createdBy: setBy,
+        createdById: setById,
       });
     }
 
@@ -365,20 +365,20 @@ export default class extends EntityModel {
    * Insert a block into this page
    *
    * @param params.block - the block to insert in the page
-   * @param params.insertedBy - the account that is inserting the block
+   * @param params.insertedById - the account that is inserting the block
    * @param params.position (optional) - the position of the block in the page
    */
   async insertBlock(
     graphApi: GraphApi,
     params: {
       block: BlockModel;
-      insertedBy: string;
+      insertedById: string;
       position?: number;
     },
   ) {
     const { position: specifiedPosition } = params;
 
-    const { block, insertedBy } = params;
+    const { block, insertedById } = params;
 
     await this.createOutgoingLink(graphApi, {
       targetEntityModel: block,
@@ -387,7 +387,7 @@ export default class extends EntityModel {
         specifiedPosition ??
         // if position is not specified and there are no blocks currently in the page, specify the index of the link is `0`
         ((await this.getBlocks(graphApi)).length === 0 ? 0 : undefined),
-      createdBy: insertedBy,
+      createdById: insertedById,
     });
   }
 
@@ -396,14 +396,14 @@ export default class extends EntityModel {
    *
    * @param params.currentPosition - the current position of the block being moved
    * @param params.newPosition - the new position of the block being moved
-   * @param params.movedBy (optional) - the account that is moving the block
+   * @param params.movedById (optional) - the account that is moving the block
    */
   async moveBlock(
     graphApi: GraphApi,
     params: {
       currentPosition: number;
       newPosition: number;
-      movedBy: string;
+      movedById: string;
     },
   ) {
     const { currentPosition, newPosition } = params;
@@ -429,11 +429,11 @@ export default class extends EntityModel {
       );
     }
 
-    const { movedBy } = params;
+    const { movedById } = params;
 
     await link.update(graphApi, {
       updatedIndex: newPosition,
-      updatedBy: movedBy,
+      updatedById: movedById,
     });
   }
 
@@ -441,14 +441,14 @@ export default class extends EntityModel {
    * Remove a block from the page.
    *
    * @param params.position - the position of the block being removed
-   * @param params.removedBy - the account that is removing the block
+   * @param params.removedById - the account that is removing the block
    * @param params.allowRemovingFinal (optional) - whether or not removing the final block in the page should be permitted (defaults to `true`)
    */
   async removeBlock(
     graphApi: GraphApi,
     params: {
       position: number;
-      removedBy: string;
+      removedById: string;
       allowRemovingFinal?: boolean;
     },
   ) {
@@ -474,8 +474,8 @@ export default class extends EntityModel {
       throw new Error("Cannot remove final block from page");
     }
 
-    const { removedBy } = params;
+    const { removedById } = params;
 
-    await link.remove(graphApi, { removedBy });
+    await link.remove(graphApi, { removedById });
   }
 }

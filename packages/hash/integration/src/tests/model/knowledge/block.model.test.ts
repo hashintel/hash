@@ -99,7 +99,7 @@ describe("Block model class", () => {
     expect(await testBlock.getBlockData(graphApi)).toEqual(testBlockDataEntity);
 
     await testBlock.updateBlockDataEntity(graphApi, {
-      updatedByAccountId: testUser.entityId,
+      updatedById: testUser.entityId,
       newBlockDataEntity,
     });
 
@@ -111,7 +111,7 @@ describe("Block model class", () => {
 
     await expect(
       testBlock.updateBlockDataEntity(graphApi, {
-        updatedByAccountId: testUser.entityId,
+        updatedById: testUser.entityId,
         newBlockDataEntity: currentDataEntity,
       }),
     ).rejects.toThrow(/already has a linked block data entity with entity id/);

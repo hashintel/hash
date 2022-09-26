@@ -126,14 +126,14 @@ describe("Link model class", () => {
 
   it("can link entities", async () => {
     friendLink = await LinkModel.create(graphApi, {
-      createdBy: accountId,
+      createdById: accountId,
       sourceEntityModel,
       linkTypeModel: linkTypeFriend,
       targetEntityModel: targetEntityFriend,
     });
 
     acquaintanceLink = await LinkModel.create(graphApi, {
-      createdBy: accountId,
+      createdById: accountId,
       sourceEntityModel,
       linkTypeModel: linkTypeAcquaintance,
       targetEntityModel: targetEntityAcquaintance,
@@ -161,7 +161,7 @@ describe("Link model class", () => {
   });
 
   it("can remove a link", async () => {
-    await acquaintanceLink.remove(graphApi, { removedBy: accountId });
+    await acquaintanceLink.remove(graphApi, { removedById: accountId });
 
     const links = await sourceEntityModel.getOutgoingLinks(graphApi, {
       linkTypeModel: linkTypeAcquaintance,
@@ -217,7 +217,7 @@ describe("Link model class", () => {
 
     // create link at specified index which is currently unoccupied
     hasSongLink2 = await LinkModel.create(graphApi, {
-      createdBy: accountId,
+      createdById: accountId,
       index: 0,
       linkTypeModel: hasSongLinkType,
       sourceEntityModel: playlistEntity,
@@ -228,7 +228,7 @@ describe("Link model class", () => {
 
     // create link at un-specified index
     hasSongLink3 = await LinkModel.create(graphApi, {
-      createdBy: accountId,
+      createdById: accountId,
       linkTypeModel: hasSongLinkType,
       sourceEntityModel: playlistEntity,
       targetEntityModel: songEntity3,
@@ -238,7 +238,7 @@ describe("Link model class", () => {
 
     // create link at specified index which is currently occupied
     hasSongLink1 = await LinkModel.create(graphApi, {
-      createdBy: accountId,
+      createdById: accountId,
       index: 0,
       linkTypeModel: hasSongLinkType,
       sourceEntityModel: playlistEntity,
@@ -281,7 +281,7 @@ describe("Link model class", () => {
 
     await hasSongLink1.update(graphApi, {
       updatedIndex: 1,
-      updatedBy: accountId,
+      updatedById: accountId,
     });
 
     const playlistHasSongLinks = (await playlistEntity.getOutgoingLinks(
@@ -311,7 +311,7 @@ describe("Link model class", () => {
 
     await hasSongLink1.update(graphApi, {
       updatedIndex: 0,
-      updatedBy: accountId,
+      updatedById: accountId,
     });
 
     const playlistHasSongLinks = (await playlistEntity.getOutgoingLinks(
@@ -331,7 +331,7 @@ describe("Link model class", () => {
   });
 
   it("can remove an ordered link", async () => {
-    await hasSongLink2.remove(graphApi, { removedBy: accountId });
+    await hasSongLink2.remove(graphApi, { removedById: accountId });
 
     const playlistHasSongLinks = (await playlistEntity.getOutgoingLinks(
       graphApi,

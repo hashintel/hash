@@ -15,7 +15,7 @@ export type LinkModelConstructorParams = {
 };
 
 export type LinkModelCreateParams = {
-  createdBy: string;
+  createdById: string;
   index?: number;
   sourceEntityModel: EntityModel;
   linkTypeModel: LinkTypeModel;
@@ -111,7 +111,7 @@ export default class {
     params: LinkModelCreateParams,
   ): Promise<LinkModel> {
     const {
-      createdBy,
+      createdById,
       sourceEntityModel,
       linkTypeModel,
       targetEntityModel,
@@ -128,7 +128,7 @@ export default class {
          *   And may require consideration for
          *   https://app.asana.com/0/1202805690238892/1202890446280569/f
          */
-        ownedById: createdBy,
+        ownedById: createdById,
         index,
         linkTypeId: linkTypeModel.schema.$id,
         targetEntityId: targetEntityModel.entityId,
@@ -141,7 +141,7 @@ export default class {
      */
     const persistedLink = {
       inner: link,
-      ownedById: createdBy,
+      ownedById: createdById,
     };
 
     return LinkModel.fromPersistedLink(graphApi, persistedLink);
@@ -160,7 +160,7 @@ export default class {
     graphApi: GraphApi,
     params: LinkModelCreateParams,
   ): Promise<LinkModel> {
-    const { sourceEntityModel, linkTypeModel, createdBy } = params;
+    const { sourceEntityModel, linkTypeModel, createdById } = params;
     const siblingLinks = await sourceEntityModel.getOutgoingLinks(graphApi, {
       linkTypeModel,
     });
@@ -197,7 +197,7 @@ export default class {
           .map((sibling) =>
             sibling.updateWithoutUpdatingSiblings(graphApi, {
               updatedIndex: sibling.index! + 1,
-              updatedBy: createdBy,
+              updatedById: createdById,
             }),
           ),
       );
@@ -216,13 +216,13 @@ export default class {
    * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
    *
    * @param params.updatedIndex - the updated index of the link
-   * @param params.updatedBy - the account updating the link
+   * @param params.updatedbyId - the account updating the link
    */
   private async updateWithoutUpdatingSiblings(
     graphApi: GraphApi,
-    params: { updatedIndex: number; updatedBy: string },
+    params: { updatedIndex: number; updatedById: string },
   ) {
-    const { updatedIndex, updatedBy } = params;
+    const { updatedIndex, updatedById } = params;
 
     const { index: previousIndex } = this;
 
@@ -239,7 +239,7 @@ export default class {
      * @see https://app.asana.com/0/1202805690238892/1203031430417465/f
      */
     await this.removeWithoutUpdatingSiblings(graphApi, {
-      removedBy: updatedBy,
+      removedById: updatedById,
     });
 
     const updatedLink = await LinkModel.createLinkWithoutUpdatingSiblings(
@@ -247,7 +247,7 @@ export default class {
       {
         ...this,
         index: updatedIndex,
-        createdBy: updatedBy,
+        createdById: updatedById,
       },
     );
 
@@ -258,13 +258,13 @@ export default class {
    * Update the link
    *
    * @param params.updatedIndex - the updated index of the link
-   * @param params.updatedBy - the account updating the link
+   * @param params.updatedbyId - the account updating the link
    */
   async update(
     graphApi: GraphApi,
-    params: { updatedIndex: number; updatedBy: string },
+    params: { updatedIndex: number; updatedById: string },
   ) {
-    const { updatedIndex, updatedBy } = params;
+    const { updatedIndex, updatedById } = params;
 
     const { index: previousIndex, linkTypeModel } = this;
 
@@ -304,14 +304,14 @@ export default class {
       affectedSiblings.map((sibling) =>
         sibling.updateWithoutUpdatingSiblings(graphApi, {
           updatedIndex: sibling.index! + (isIncreasingIndex ? -1 : 1),
-          updatedBy,
+          updatedById,
         }),
       ),
     );
 
     return await this.updateWithoutUpdatingSiblings(graphApi, {
       updatedIndex,
-      updatedBy,
+      updatedById,
     });
   }
 
@@ -321,32 +321,32 @@ export default class {
    * @todo: deprecate this method when the Graph API handles updating the sibling indexes
    * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
    *
-   * @param removedBy - the account removing the link
+   * @param removedById - the account removing the link
    */
   private async removeWithoutUpdatingSiblings(
     graphApi: GraphApi,
-    { removedBy }: { removedBy: string },
+    { removedById }: { removedById: string },
   ): Promise<void> {
     await graphApi.removeLink(this.sourceEntityModel.entityId, {
       linkTypeId: this.linkTypeModel.schema.$id,
       targetEntityId: this.targetEntityModel.entityId,
-      removedById: removedBy,
+      removedById,
     });
   }
 
   /**
    * Remove the link.
    *
-   * @param removedBy - the account removing the link
+   * @param removedbyId - the account removing the link
    */
   async remove(
     graphApi: GraphApi,
-    { removedBy }: { removedBy: string },
+    { removedById }: { removedById: string },
   ): Promise<void> {
     await graphApi.removeLink(this.sourceEntityModel.entityId, {
       linkTypeId: this.linkTypeModel.schema.$id,
       targetEntityId: this.targetEntityModel.entityId,
-      removedById: removedBy,
+      removedById,
     });
 
     if (this.index !== undefined) {
@@ -369,7 +369,7 @@ export default class {
         affectedSiblings.map((sibling) =>
           sibling.updateWithoutUpdatingSiblings(graphApi, {
             updatedIndex: sibling.index! - 1,
-            updatedBy: removedBy,
+            updatedById: removedById,
           }),
         ),
       );
