@@ -10,12 +10,14 @@ mod common;
 use common::*;
 use error_stack::compat::IntoReportCompat;
 
+// All frames except backtraces in this file are printable (either a printable attachment or a
+// context), so only backtraces are "Opaque". Depending on how the backtrace is generated, it will
+// appear at different locations. To simplify the general tests, we remove backtraces, they are
+// tested explicitly in other tests. On nightly, anyhow/eyre will capture the backtrace and provide
+// it by `Error::provide`. On non-nightly toolchains since 1.65 the backtrace will be captured by
+// `Report.
 #[cfg(all(rust_1_65, feature = "std"))]
 fn remove_opaque_frames(messages: &mut Vec<String>) {
-    /// Depending on how the backtrace is generated, it will appear at different locations. To
-    /// simplify the general tests, we remove backtraces, they are tested explicitly in other tests.
-    /// On nightly, anyhow/eyre will capture the backtrace and provide it by `Error::provide`. On
-    /// non-nightly toolchains since 1.65 the backtrace will be captured by `Report.
     messages.retain(|message| message != "Opaque")
 }
 
