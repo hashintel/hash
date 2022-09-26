@@ -1,6 +1,8 @@
 import { gql } from "apollo-server-express";
 
 export const knowledgeEntityTypedef = gql`
+  # @todo add 'links' field to KnowledgeEntity
+  #   see https://app.asana.com/0/1202805690238892/1203046447168470/f
   interface KnowledgeEntity {
     # These fields are repeated everywhere they're used because
     # (a) GQL requires it - https://github.com/graphql/graphql-spec/issues/533
@@ -25,11 +27,11 @@ export const knowledgeEntityTypedef = gql`
     """
     The fixed id of the type this entity is of.
     """
-    entityTypeVersionedUri: ID!
+    entityTypeId: ID!
     """
     The full entity type definition.
     """
-    entityType: EntityType
+    entityType: EntityType!
     """
     The linked entities of the entity.
     """
@@ -52,7 +54,7 @@ export const knowledgeEntityTypedef = gql`
   }
 
   """
-  Select entity types by ONE of componentId, entityTypeVersionedUri
+  Select entity types by ONE of componentId, entityTypeId
   """
   input KnowledgeEntityTypeChoice {
     """
@@ -62,7 +64,7 @@ export const knowledgeEntityTypedef = gql`
     """
     A fixed entity type ID. This may be a reference to a placeholder set using a previous createEntityTypeAction.
     """
-    entityTypeVersionedUri: String
+    entityTypeId: String
   }
 
   input KnowledgeLinkedEntityDefinition {

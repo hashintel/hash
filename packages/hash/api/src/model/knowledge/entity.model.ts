@@ -228,11 +228,11 @@ export default class {
       }
     } else if (entityProperties) {
       const { entityType } = entityDefinition;
-      const { componentId, entityTypeVersionedUri } = entityType ?? {};
+      const { componentId, entityTypeId } = entityType ?? {};
 
-      if (!exactlyOne(entityTypeVersionedUri, componentId)) {
+      if (!exactlyOne(entityTypeId, componentId)) {
         throw new ApolloError(
-          `Given no valid type identifier. Must be one of entityTypeVersionedUri or componentId`,
+          `Given no valid type identifier. Must be one of entityTypeId or componentId`,
           "NOT_FOUND",
         );
       }
@@ -243,7 +243,8 @@ export default class {
       }
 
       const entityTypeModel = await EntityTypeModel.get(graphApi, {
-        versionedUri: entityTypeVersionedUri!,
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+        versionedUri: entityTypeId!,
       });
 
       entity = await EntityModel.create(graphApi, {

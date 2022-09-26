@@ -176,7 +176,7 @@ describe("Entity CRU", () => {
       entityDefinition: {
         // First create a new entity given the following definition
         entityType: {
-          entityTypeVersionedUri: entityTypeModel.schema.$id,
+          entityTypeId: entityTypeModel.schema.$id,
         },
         entityProperties: {
           [namePropertyTypeModel.baseUri]: "Alice",
