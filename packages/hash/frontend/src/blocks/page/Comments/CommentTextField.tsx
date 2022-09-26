@@ -56,9 +56,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
   useLayoutEffect(() => {
     eventsRef.current = { onClose, onSubmit };
 
-    if (loading !== loadingRef.current) {
-      setLoading(loadingRef.current);
-    }
+    setLoading(loadingRef.current);
   });
 
   useEffect(() => {
