@@ -131,17 +131,17 @@ export default class {
       entityDefinition: KnowledgeEntityDefinition;
     },
   ): Promise<EntityModel> {
-    const { createdById, entityDefinition: entityDefinitions } = params;
+    const { createdById, entityDefinition } = params;
 
     const entitiesInTree = linkedTreeFlatten<
       KnowledgeEntityDefinition,
       KnowledgeLinkedEntityDefinition,
       "linkedEntities",
       "entity"
-    >(entityDefinitions, "linkedEntities", "entity");
+    >(entityDefinition, "linkedEntities", "entity");
 
     const entities = await Promise.all(
-      entitiesInTree.map(async (entityDefinition) => ({
+      entitiesInTree.map(async (definition) => ({
         link: entityDefinition.meta
           ? {
               parentIndex: entityDefinition.parentIndex,
@@ -176,9 +176,9 @@ export default class {
       }),
     );
 
-    if (entities.length > 0) {
+    if (entities[0]) {
       // First element will be the root entity.
-      return entities[0]!.entity;
+      return entities[0].entity;
     } else {
       throw new ApolloError(
         "Could not create entity tree",
@@ -202,7 +202,7 @@ export default class {
     },
   ): Promise<EntityModel> {
     const { entityDefinition } = params;
-    const { entityProperties, existingEntity } = params.entityDefinition;
+    const { entityProperties, existingEntity } = entityDefinition;
 
     let entity;
 
