@@ -7,35 +7,16 @@
 
 mod common;
 
-#[cfg(feature = "eyre")]
-use std::sync::Once;
-#[cfg(all(nightly, feature = "std"))]
-use std::{
-    backtrace::{Backtrace, BacktraceStatus},
-    error::Error,
-    ops::Deref,
-};
-
 use common::*;
 use error_stack::compat::IntoReportCompat;
 
-#[cfg(all(nightly, feature = "std"))]
-fn has_provided_backtrace<E: Deref<Target = dyn Error + Send + Sync>>(err: &Result<(), E>) -> bool {
-    err.as_ref()
-        .unwrap_err()
-        .deref()
-        .request_ref::<Backtrace>()
-        .filter(|bt| bt.status() == BacktraceStatus::Captured)
-        .is_some()
-}
-
-#[cfg(all(nightly, feature = "std"))]
-fn remove_backtrace_context(messages: &mut Vec<String>) {
-    // anyhow/eyre has a backtrace, this means we don't add it ourselves,
-    // therefore we need to remove the context (if it supports backtrace)
-    let last = messages.pop().unwrap();
-    messages.pop();
-    messages.push(last)
+#[cfg(all(rust_1_65, feature = "std"))]
+fn remove_opaque_attachment(messages: &mut Vec<String>) {
+    /// Depending on how the backtrace is generated, it will appear at different locations. To
+    /// simplify the general tests, we remove backtraces, they are tested explicitly in other tests.
+    /// On nightly, anyhow/eyre will capture the backtrace and provide it by `Error::provide`. On
+    /// non-nightly toolchains since 1.65 the backtrace will be captured by `Report.
+    messages.retain(|message| message != "Opaque")
 }
 
 #[test]
@@ -51,36 +32,20 @@ fn anyhow() {
 
     #[allow(unused_mut)]
     let mut report_messages = messages(&report);
-
-    let mut swap = false;
-
-    #[cfg(nightly)]
-    if has_provided_backtrace(&anyhow) {
-        // Backtrace is provided through `anyhow::Error` by `Error::provide`
-        remove_backtrace_context(&mut report_messages);
-    }
-
-    if !cfg!(nightly) && supports_backtrace() {
-        swap = true;
-    }
+    #[cfg(rust_1_65)]
+    remove_opaque_attachment(&mut report_messages);
 
     let anyhow_report = anyhow.into_report().unwrap_err();
 
+    #[allow(unused_mut)]
     let mut anyhow_messages = messages(&anyhow_report);
+    #[cfg(rust_1_65)]
+    remove_opaque_attachment(&mut anyhow_messages);
 
-    if swap {
-        // we're reversing the whole thing, but that also means that the optional opaque layer
-        // isn't at the correct place when looking at the messages.
-        // ["Root error", "Printable A", "Opaque", "Printable B"]
-        // ["Printable B", "Opaque", "Printable A", "Root error"]
-        // which isn't correct as opaque needs to be before `Root` to be represented correctly.
-
-        anyhow_messages.swap(1, 2);
-    }
-
-    for (anyhow, error_stack) in anyhow_messages.into_iter().rev().zip(report_messages) {
-        assert_eq!(anyhow, error_stack);
-    }
+    assert_eq!(
+        anyhow_messages.into_iter().rev().collect::<Vec<_>>(),
+        report_messages,
+    );
 }
 
 #[test]
@@ -125,7 +90,7 @@ fn anyhow_backtrace() {
     let frame = report.frames().next().unwrap();
 
     let report_backtrace = frame
-        .request_ref::<Backtrace>()
+        .request_ref::<std::backtrace::Backtrace>()
         .expect("No backtrace captured");
     let report_backtrace_len = report_backtrace.frames().len();
     #[cfg(not(miri))]
@@ -175,6 +140,8 @@ fn anyhow_output() {
 
 #[cfg(feature = "eyre")]
 fn install_eyre_hook() {
+    use std::sync::Once;
+
     static ONCE: Once = Once::new();
 
     ONCE.call_once(|| {
@@ -201,31 +168,20 @@ fn eyre() {
 
     #[allow(unused_mut)]
     let mut report_messages = messages(&report);
-
-    #[cfg(all(nightly, feature = "std"))]
-    if has_provided_backtrace(&eyre) {
-        // Backtrace is provided through `anyhow::Error` by `Error::provide`
-        remove_backtrace_context(&mut report_messages);
-    }
+    #[cfg(all(rust_1_65, feature = "std"))]
+    remove_opaque_attachment(&mut report_messages);
 
     let eyre_report = eyre.into_report().unwrap_err();
+
     #[allow(unused_mut)]
     let mut eyre_messages = messages(&eyre_report);
+    #[cfg(all(rust_1_65, feature = "std"))]
+    remove_opaque_attachment(&mut eyre_messages);
 
-    #[cfg(feature = "std")]
-    if supports_backtrace() {
-        // we're reversing the whole thing, but that also means that the optional opaque layer
-        // isn't at the correct place when looking at the messages.
-        // ["Root error", "Printable A", "Opaque", "Printable B"]
-        // ["Printable B", "Opaque", "Printable A", "Root error"]
-        // which isn't correct as opaque needs to be before `Root` to be represented correctly.
-
-        eyre_messages.swap(1, 2);
-    }
-
-    for (eyre, error_stack) in eyre_messages.into_iter().rev().zip(report_messages) {
-        assert_eq!(eyre, error_stack);
-    }
+    assert_eq!(
+        eyre_messages.into_iter().rev().collect::<Vec<_>>(),
+        report_messages,
+    );
 }
 
 #[test]
@@ -266,7 +222,7 @@ fn eyre_backtrace() {
     let frame = report.frames().next().unwrap();
 
     let backtrace = frame
-        .request_ref::<Backtrace>()
+        .request_ref::<std::backtrace::Backtrace>()
         .expect("No backtrace captured");
 
     assert_eq!(error_backtrace, backtrace.to_string());
