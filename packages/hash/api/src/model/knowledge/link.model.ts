@@ -94,16 +94,30 @@ export default class {
     );
   }
 
+  /**
+   * Create a link between a source and a target entity using a specific link
+   * type, without modifying the indexes of its sibling links.
+   *
+   * @todo: deprecate this method when the Graph API handles updating the sibling indexes
+   * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
+   *
+   * @param params.accountId the accountId of the account creating the link
+   * @param params.sourceEntityModel the source entity of the link
+   * @param params.linkTypeModel the Link Type of the link
+   * @param params.targetEntityModel the target entity of the link
+   */
   private static async createLinkWithoutUpdatingSiblings(
     graphApi: GraphApi,
-    {
+    params: LinkModelCreateParams,
+  ): Promise<LinkModel> {
+    const {
       createdBy,
       sourceEntityModel,
       linkTypeModel,
       targetEntityModel,
       index,
-    }: LinkModelCreateParams,
-  ): Promise<LinkModel> {
+    } = params;
+
     const { data: link } = await graphApi.createLink(
       sourceEntityModel.entityId,
       {
@@ -186,6 +200,15 @@ export default class {
     });
   }
 
+  /**
+   * Update the link without modifying the indexes of its sibling links.
+   *
+   * @todo: deprecate this method when the Graph API handles updating the sibling indexes
+   * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
+   *
+   * @param params.updatedIndex - the updated index of the link
+   * @param params.updatedBy - the account updating the link
+   */
   private async updateWithoutUpdatingSiblings(
     graphApi: GraphApi,
     params: { updatedIndex: number; updatedBy: string },
@@ -283,6 +306,14 @@ export default class {
     });
   }
 
+  /**
+   * Remove the link without modifying the indexes of its sibling links.
+   *
+   * @todo: deprecate this method when the Graph API handles updating the sibling indexes
+   * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
+   *
+   * @param removedBy - the account removing the link
+   */
   private async removeWithoutUpdatingSiblings(
     graphApi: GraphApi,
     { removedBy }: { removedBy: string },
