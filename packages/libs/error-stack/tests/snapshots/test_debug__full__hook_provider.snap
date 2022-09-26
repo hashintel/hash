@@ -8,7 +8,7 @@ Context D
 ├╴&'static str: Invalid User Input
 │
 ╰─▶ Root error
-    ├╴tests/common.rs:149:5
+    ├╴tests/common.rs:147:5
     ├╴backtrace with [n] frames (1)
     ╰╴spantrace with 2 frames (1)
 

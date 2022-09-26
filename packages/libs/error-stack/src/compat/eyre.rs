@@ -10,7 +10,7 @@ use crate::{compat::IntoReportCompat, Context, Report, Result};
 ///
 /// It provides the [`eyre::Report`] and forwards the [`Demand`] to [`Error::provide`].
 ///
-/// [`Error::provide`]: std::error::Error::provide
+/// [`Error::provide`]: core::error::Error::provide
 #[repr(transparent)]
 pub struct EyreContext(EyreReport);
 
