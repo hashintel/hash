@@ -165,7 +165,10 @@ export default class {
       linkTypeModel,
     });
 
-    /** @todo: rely on Graph API validation instead of manually checking whether sibling links are ordered */
+    /**
+     * @todo: rely on Graph API validation instead of manually checking whether sibling links are ordered
+     * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
+     */
     const hasOrderedSiblingLink = siblingLinks[0]?.index !== undefined;
 
     const index = hasOrderedSiblingLink
@@ -180,7 +183,10 @@ export default class {
         undefined;
 
     if (index !== undefined) {
-      /** @todo: rely on Graph API to validate the index */
+      /**
+       * @todo: rely on Graph API to validate the index
+       * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
+       */
       if (index < 0 || index > siblingLinks.length) {
         throw new Error("Provided link index is out of bounds");
       }
@@ -357,7 +363,7 @@ export default class {
 
       /**
        * @todo: rely on the Graph API to maintain index integrity of sibling links on updates
-       * @see https://app.asana.com/0/1202805690238892/1203031430417465/f
+       * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
        */
       await Promise.all(
         affectedSiblings.map((sibling) =>
