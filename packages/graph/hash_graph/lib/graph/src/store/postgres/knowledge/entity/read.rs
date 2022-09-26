@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use error_stack::{bail, Report, Result, ResultExt};
-use futures::TryStreamExt;
+use futures::{stream, StreamExt, TryStreamExt};
 
 use crate::{
     knowledge::PersistedEntity,
@@ -20,8 +20,9 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
         &self,
         query: &Self::Query<'query>,
     ) -> Result<Vec<PersistedEntity>, QueryError> {
-        self.read_all_entities()
-            .await?
+        // TODO: We need to work around collecting all records before filtering
+        //   related: https://app.asana.com/0/1202805690238892/1202923536131158/f
+        stream::iter(self.read_all_entities().await?.collect::<Vec<_>>().await)
             .try_filter_map(|record| async move {
                 if let Literal::Bool(result) = query
                     .evaluate(&record, self)
