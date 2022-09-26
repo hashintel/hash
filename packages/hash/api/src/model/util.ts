@@ -3,7 +3,6 @@ import {
   EntityType,
   PropertyValues,
   VersionedUri,
-  BaseUri,
   LinkType,
 } from "@blockprotocol/type-system-web";
 import { AxiosError } from "axios";
@@ -273,15 +272,15 @@ export const propertyTypeInitializer = (
 export type EntityTypeCreatorParams = {
   namespace: string;
   title: string;
+  /** @todo - Take in the PropertyTypeModels here instead */
   properties: {
-    propertyTypeBaseUri: BaseUri;
-    propertyTypeVersionedUri: string;
+    propertyTypeModel: PropertyTypeModel;
     required?: boolean;
     array?: { minItems?: number; maxItems?: number } | boolean;
   }[];
   outgoingLinks: {
-    linkTypeVersionedUri: string;
-    destinationEntityTypeVersionedUri: string;
+    linkTypeId: string;
+    destinationEntityTypeIds: string[];
     required?: boolean;
     array?: { minItems?: number; maxItems?: number } | boolean;
   }[];
@@ -304,38 +303,50 @@ export const generateWorkspaceEntityTypeSchema = (
 
   /** @todo - clean this up to be more readable: https://app.asana.com/0/1202805690238892/1202931031833226/f */
   const properties = params.properties.reduce(
-    (prev, { propertyTypeVersionedUri, propertyTypeBaseUri, array }) => ({
+    (prev, { propertyTypeModel, array }) => ({
       ...prev,
-      [propertyTypeBaseUri]: array
+      [propertyTypeModel.baseUri]: array
         ? {
             type: "array",
-            items: { $ref: propertyTypeVersionedUri },
+            items: { $ref: propertyTypeModel.schema.$id },
             ...(array === true ? {} : array),
           }
-        : { $ref: propertyTypeVersionedUri },
+        : { $ref: propertyTypeModel.schema.$id },
     }),
     {},
   );
 
   const requiredProperties = params.properties
     .filter(({ required }) => !!required)
-    .map(({ propertyTypeBaseUri }) => propertyTypeBaseUri);
+    .map(({ propertyTypeModel }) => propertyTypeModel.baseUri);
 
   const links: EntityType["links"] =
     params.outgoingLinks.length > 0
       ? params.outgoingLinks.reduce(
           (
             prev,
-            { linkTypeVersionedUri, destinationEntityTypeVersionedUri, array },
+            {
+              linkTypeId: linkTypeVersionedUri,
+              destinationEntityTypeIds,
+              array,
+            },
           ) => ({
             ...prev,
             [linkTypeVersionedUri]: array
               ? {
                   type: "array",
-                  items: { $ref: destinationEntityTypeVersionedUri },
+                  items: {
+                    oneOf: destinationEntityTypeIds.map((entityTypeId) => {
+                      return { $ref: entityTypeId };
+                    }),
+                  },
                   ...(array === true ? {} : array),
                 }
-              : { $ref: destinationEntityTypeVersionedUri },
+              : {
+                  oneOf: destinationEntityTypeIds.map((entityTypeId) => {
+                    return { $ref: entityTypeId };
+                  }),
+                },
           }),
           {},
         )
@@ -343,7 +354,7 @@ export const generateWorkspaceEntityTypeSchema = (
 
   const requiredLinks = params.outgoingLinks
     .filter(({ required }) => !!required)
-    .map(({ linkTypeVersionedUri }) => linkTypeVersionedUri);
+    .map(({ linkTypeId: linkTypeVersionedUri }) => linkTypeVersionedUri);
 
   return {
     $id,

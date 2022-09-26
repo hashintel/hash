@@ -99,18 +99,15 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
     title: "Organization",
     properties: [
       {
-        propertyTypeBaseUri: shortnamePropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: shortnamePropertyTypeModel.schema.$id,
+        propertyTypeModel: shortnamePropertyTypeModel,
         required: true,
       },
       {
-        propertyTypeBaseUri: orgNamePropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: orgNamePropertyTypeModel.schema.$id,
+        propertyTypeModel: orgNamePropertyTypeModel,
         required: true,
       },
       {
-        propertyTypeBaseUri: orgProvidedInfoPropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: orgProvidedInfoPropertyTypeModel.schema.$id,
+        propertyTypeModel: orgProvidedInfoPropertyTypeModel,
         required: false,
       },
     ],
@@ -137,15 +134,14 @@ const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
     title: "OrgMembership",
     properties: [
       {
-        propertyTypeBaseUri: responsibilityPropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: responsibilityPropertyTypeModel.schema.$id,
+        propertyTypeModel: responsibilityPropertyTypeModel,
         required: true,
       },
     ],
     outgoingLinks: [
       {
-        linkTypeVersionedUri: ofOrgLinkTypeModel.schema.$id,
-        destinationEntityTypeVersionedUri: orgEntityTypeModel.schema.$id,
+        linkTypeId: ofOrgLinkTypeModel.schema.$id,
+        destinationEntityTypeIds: [orgEntityTypeModel.schema.$id],
         required: true,
       },
     ],
@@ -234,31 +230,26 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
     title: "User",
     properties: [
       {
-        propertyTypeBaseUri: shortnamePropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: shortnamePropertyTypeModel.schema.$id,
+        propertyTypeModel: shortnamePropertyTypeModel,
       },
       {
-        propertyTypeBaseUri: emailPropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: emailPropertyTypeModel.schema.$id,
+        propertyTypeModel: emailPropertyTypeModel,
         required: true,
         array: { minItems: 1 },
       },
       {
-        propertyTypeBaseUri: kratosIdentityIdPropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: kratosIdentityIdPropertyTypeModel.schema.$id,
+        propertyTypeModel: kratosIdentityIdPropertyTypeModel,
         required: true,
       },
       {
-        propertyTypeBaseUri: preferredNamePropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: preferredNamePropertyTypeModel.schema.$id,
+        propertyTypeModel: preferredNamePropertyTypeModel,
         required: true,
       },
     ],
     outgoingLinks: [
       {
-        linkTypeVersionedUri: hasMembershipLinkTypeModel.schema.$id,
-        destinationEntityTypeVersionedUri:
-          orgMembershipEntityTypeModel.schema.$id,
+        linkTypeId: hasMembershipLinkTypeModel.schema.$id,
+        destinationEntityTypeIds: [orgMembershipEntityTypeModel.schema.$id],
       },
     ],
   })(graphApi);
@@ -295,19 +286,18 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
     title: "Block",
     properties: [
       {
-        propertyTypeBaseUri: componentIdPropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: componentIdPropertyTypeModel.schema.$id,
+        propertyTypeModel: componentIdPropertyTypeModel,
         required: true,
       },
     ],
     outgoingLinks: [
       {
-        linkTypeVersionedUri: blockDataLinkTypeModel.schema.$id,
+        linkTypeId: blockDataLinkTypeModel.schema.$id,
         /**
          * @todo: unset this when the destination entity type can be undefined
          * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
          */
-        destinationEntityTypeVersionedUri: dummyEntityTypeModel.schema.$id,
+        destinationEntityTypeIds: [dummyEntityTypeModel.schema.$id],
         required: true,
       },
     ],
