@@ -57,7 +57,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
     eventsRef.current = { onClose, onSubmit };
 
     setLoading(loadingRef.current);
-  });
+  }, [onClose, onSubmit, setLoading]);
 
   useEffect(() => {
     const editorContainer = editorContainerRef.current;
