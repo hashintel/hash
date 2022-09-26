@@ -318,7 +318,7 @@ export default class {
       );
 
       const affectedSiblings = siblingLinks.filter(
-        (sibling) => sibling.index! >= this.index!,
+        (sibling) => sibling.index! > this.index!,
       );
 
       /**
