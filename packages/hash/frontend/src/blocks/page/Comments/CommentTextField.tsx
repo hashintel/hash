@@ -49,11 +49,16 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
   const [portals, renderPortal] = usePortals();
   const { accountId } = useRouteAccountInfo();
   const editorContainerRef = useRef<HTMLDivElement>();
+  const loadingRef = useRef(false);
   const [loading, setLoading] = useState(false);
   const eventsRef = useRef({ onClose, onSubmit });
 
   useLayoutEffect(() => {
     eventsRef.current = { onClose, onSubmit };
+
+    if (loading !== loadingRef.current) {
+      setLoading(loadingRef.current);
+    }
   });
 
   useEffect(() => {
@@ -72,28 +77,28 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         plugins: [
           keymap<Schema>({
             Enter(_, __, view) {
-              if (!loading && view?.state.doc.content) {
+              if (!loadingRef.current && view?.state.doc.content) {
                 const { tokens } = textBlockNodeToEntityProperties(
                   view.state.doc,
                 );
 
                 if (!tokens.length) return true;
 
-                setLoading(true);
+                loadingRef.current = true;
                 eventsRef.current
                   .onSubmit(tokens)
                   .then(() => {
                     eventsRef.current.onClose();
                   })
                   .finally(() => {
-                    setLoading(false);
+                    loadingRef.current = false;
                   });
                 return true;
               }
               return false;
             },
             Escape() {
-              if (!loading) {
+              if (!loadingRef.current) {
                 eventsRef.current.onClose();
                 return true;
               }
@@ -124,7 +129,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         viewRef.current = undefined;
       };
     }
-  }, [accountId, renderPortal, loading]);
+  }, [accountId, renderPortal]);
 
   return (
     <Box
