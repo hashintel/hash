@@ -148,7 +148,7 @@ describe("Page model class", () => {
       insertedBy: testUser.accountId,
     });
 
-    // insert bock at specified position
+    // insert block at specified position
     await testPage.insertBlock(graphApi, {
       block: testBlock2,
       insertedBy: testUser.accountId,
