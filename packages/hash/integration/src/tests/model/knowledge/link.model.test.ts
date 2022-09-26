@@ -35,11 +35,11 @@ describe("Link model class", () => {
   let targetEntityFriend: EntityModel;
   let targetEntityAcquaintance: EntityModel;
 
-  const createEntityType = (params: { title: string }) =>
+  const createEntityType = (params: { title: string; pluralTitle?: string }) =>
     EntityTypeModel.create(graphApi, {
       accountId,
       schema: {
-        pluralTitle: `${params.title}s`,
+        pluralTitle: params.pluralTitle ?? `${params.title}s`,
         kind: "entityType",
         type: "object",
         properties: {},
@@ -59,15 +59,9 @@ describe("Link model class", () => {
 
     accountId = testUser.entityId;
 
-    testEntityType = await EntityTypeModel.create(graphApi, {
-      accountId,
-      schema: {
-        kind: "entityType",
-        title: "Person",
-        pluralTitle: "People",
-        type: "object",
-        properties: {},
-      },
+    testEntityType = await createEntityType({
+      title: "Person",
+      pluralTitle: "People",
     });
 
     await Promise.all([
