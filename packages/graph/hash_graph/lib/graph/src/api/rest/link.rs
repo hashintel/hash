@@ -58,12 +58,16 @@ impl RoutedResource for LinkResource {
 }
 
 #[derive(Serialize, Deserialize, Component)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct CreateLinkRequest {
     target_entity_id: EntityId,
     #[component(value_type = String)]
     link_type_id: VersionedUri,
     owned_by_id: AccountId,
+    // TODO: Consider if ordering should be exposed on links as they are here. The API consumer
+    //   manages indexes currently.
+    //   https://app.asana.com/0/1202805690238892/1202937382769278/f
+    index: Option<i32>,
 }
 
 #[utoipa::path(
@@ -92,6 +96,7 @@ async fn create_link<P: StorePool + Send>(
         target_entity_id,
         link_type_id,
         owned_by_id,
+        index,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -99,7 +104,7 @@ async fn create_link<P: StorePool + Send>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let link = Link::new(source_entity_id, target_entity_id, link_type_id);
+    let link = Link::new(source_entity_id, target_entity_id, link_type_id, index);
 
     store
         .create_link(&link, owned_by_id)
@@ -221,7 +226,7 @@ async fn remove_link<P: StorePool + Send>(
 
     store
         .remove_link(
-            &Link::new(source_entity_id, target_entity_id, link_type_id),
+            &Link::new(source_entity_id, target_entity_id, link_type_id, None),
             removed_by_id,
         )
         .await

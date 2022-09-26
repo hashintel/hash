@@ -324,7 +324,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         notNull: true,
         references: "link_types",
       },
-      link_order: {
+      link_index: {
         // TODO: this is where we could do fractional indexing
         //  https://app.asana.com/0/1200211978612931/1202085856561975/f
         type: "integer",
@@ -374,7 +374,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         notNull: true,
         references: "link_types",
       },
-      link_order: {
+      link_index: {
         // TODO: this is where we could do fractional indexing
         //  https://app.asana.com/0/1200211978612931/1202085856561975/f
         type: "integer",

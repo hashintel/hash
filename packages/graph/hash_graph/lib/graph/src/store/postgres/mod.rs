@@ -772,15 +772,15 @@ where
 
         self.as_client()
         .query_one(
-            // TODO: Currently we insert `null` for the `link_order`, this needs to change as we
-            //   implement ordered links.
+            // TODO: Revisit insertion strategy, currently the burden of ordering is put on the
+            //   consumer of the API.
             //   https://app.asana.com/0/1202805690238892/1202937382769278/f
             r#"
-            INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, link_order, owned_by_id, created_at)
-            VALUES ($1, $2, $3, null, $4, clock_timestamp())
+            INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, owned_by_id, link_index, created_at)
+            VALUES ($1, $2, $3, $4, $5, clock_timestamp())
             RETURNING source_entity_id, target_entity_id, link_type_version_id;
             "#,
-            &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &owned_by_id],
+            &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &owned_by_id, &link.index()],
         )
         .await
         .into_report()
@@ -822,10 +822,10 @@ where
                         AND target_entity_id = $2
                         AND link_type_version_id = $3
                     RETURNING source_entity_id, target_entity_id, link_type_version_id,
-                    link_order, owned_by_id, created_at
+                    link_index, owned_by_id, created_at
                 )
                 INSERT INTO link_histories(source_entity_id, target_entity_id, link_type_version_id,
-                    link_order, owned_by_id, created_at, removed_by_id, removed_at)
+                    link_index, owned_by_id, created_at, removed_by_id, removed_at)
                 -- When inserting into `link_histories`, `removed_by_id` and `removed_at` are provided
                 SELECT *, $4, clock_timestamp() FROM removed
                 RETURNING source_entity_id, target_entity_id, link_type_version_id;
