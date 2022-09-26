@@ -29,7 +29,7 @@ export const knowledgeEntityTypedef = gql`
     """
     The full entity type definition.
     """
-    entityType: EntityType
+    entityType: EntityType!
     """
     The linked entities of the entity.
     """
