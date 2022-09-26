@@ -585,7 +585,7 @@ where
 
         let (link_type_ids, entity_type_references): (
             Vec<&VersionedUri>,
-            Vec<&EntityTypeReference>,
+            Vec<&[EntityTypeReference]>,
         ) = entity_type.link_type_references().into_iter().unzip();
 
         let link_type_ids = self
@@ -609,7 +609,7 @@ where
         }
 
         let entity_type_reference_ids = self
-            .entity_type_reference_ids(entity_type_references)
+            .entity_type_reference_ids(entity_type_references.into_iter().flatten())
             .await
             .change_context(InsertionError)
             .attach_printable("Could not find referenced entity types")?;
