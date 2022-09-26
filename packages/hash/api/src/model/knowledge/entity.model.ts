@@ -169,7 +169,7 @@ export default class {
             throw new ApolloError("Could not find parent entity");
           }
           const linkTypeModel = await LinkTypeModel.get(graphApi, {
-            versionedUri: link.meta.linkTypeVersionedUri,
+            versionedUri: link.meta.linkTypeId,
           });
 
           // links are created as an outgoing link from the parent entity to the children.

@@ -186,7 +186,7 @@ describe("Entity CRU", () => {
           {
             // Then create an entity + link
             destinationAccountId: accountId,
-            linkTypeVersionedUri: linkTypeFriend.schema.$id,
+            linkTypeId: linkTypeFriend.schema.$id,
             entity: {
               // The "new" entity is in fact just an existing entity, so only a link will be created.
               existingEntity: {
