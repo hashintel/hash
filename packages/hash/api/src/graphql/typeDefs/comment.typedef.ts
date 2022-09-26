@@ -12,7 +12,7 @@ export const commentTypedef = gql`
     """
     User that created the comment
     """
-    owner: User!
+    author: User!
 
     """
     Parent block the comment belongs to

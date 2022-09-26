@@ -56,7 +56,7 @@ const parent: ResolverFn<
   return parentEntity?.toGQLUnknownEntity();
 };
 
-const owner: ResolverFn<
+const author: ResolverFn<
   Promise<UnresolvedGQLUnknownEntity | null>,
   UnresolvedGQLComment,
   GraphQLContext,
@@ -71,20 +71,20 @@ const owner: ResolverFn<
     );
   }
 
-  const ownerEntity = await comment.getOwner(db);
+  const authorEntity = await comment.getAuthor(db);
 
-  if (!ownerEntity) {
+  if (!authorEntity) {
     throw new ApolloError(
-      `Owner Entity not found in account ${accountId} for comment with entityId ${entityId}`,
+      `Author Entity not found in account ${accountId} for comment with entityId ${entityId}`,
       "NOT_FOUND",
     );
   }
 
-  return ownerEntity?.toGQLUnknownEntity();
+  return authorEntity?.toGQLUnknownEntity();
 };
 
 export const commentLinkedEntities = {
   tokens,
   parent,
-  owner,
+  author,
 };

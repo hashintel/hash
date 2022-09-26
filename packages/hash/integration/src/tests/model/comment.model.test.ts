@@ -73,8 +73,8 @@ describe("Comment model class ", () => {
     const textTokens = await comment.getTokens(db);
     expect(textTokens.properties.tokens).toEqual([]);
 
-    const commentOwner = await comment.getOwner(db);
-    expect(commentOwner).toEqual(existingUser);
+    const commentAuthor = await comment.getAuthor(db);
+    expect(commentAuthor).toEqual(existingUser);
 
     const parentBlock = await comment.getParent(db);
     expect(parentBlock).toEqual(existingBlock);

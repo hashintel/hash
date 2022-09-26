@@ -75,7 +75,7 @@ class __Comment extends Entity {
         },
       },
       {
-        path: "$.owner",
+        path: "$.author",
         destinationAccountId: accountId,
         entity: {
           existingEntity: {
@@ -185,26 +185,26 @@ class __Comment extends Entity {
     return await Block.fromEntity(client, destinationEntity);
   }
 
-  async getOwner(client: DbClient): Promise<Entity> {
-    const ownerLinks = await this.getOutgoingLinks(client, {
-      path: ["owner"],
+  async getAuthor(client: DbClient): Promise<Entity> {
+    const authorLinks = await this.getOutgoingLinks(client, {
+      path: ["author"],
     });
 
-    const [ownerLink, ...unexpectedOwnerLinks] = ownerLinks;
+    const [authorLink, ...unexpectedAuthorLinks] = authorLinks;
 
-    if (!ownerLink) {
+    if (!authorLink) {
       throw new Error(
-        `Critical: comment with entityId ${this.entityId} in account with accountId ${this.accountId} has no linked owner entity`,
+        `Critical: comment with entityId ${this.entityId} in account with accountId ${this.accountId} has no linked author entity`,
       );
     }
 
-    if (unexpectedOwnerLinks.length > 0) {
+    if (unexpectedAuthorLinks.length > 0) {
       throw new Error(
-        `Critical: Comment with entityId ${this.entityId} in account ${this.accountId} has more than one linked owner entity`,
+        `Critical: Comment with entityId ${this.entityId} in account ${this.accountId} has more than one linked author entity`,
       );
     }
 
-    return await ownerLink.getDestination(client);
+    return await authorLink.getDestination(client);
   }
 }
 
