@@ -140,6 +140,12 @@ export default class {
       "entity"
     >(entityDefinition, "linkedEntities", "entity");
 
+    /**
+     * @todo Once the graph API validates the required links of entities on creation, this may have to be reworked in order
+     *   to create valid entities.
+     *   this code currently creates entities first, then links them together.
+     *   See https://app.asana.com/0/1202805690238892/1203046447168478/f
+     */
     const entities = await Promise.all(
       entitiesInTree.map(async (definition) => ({
         link: definition.meta
