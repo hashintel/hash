@@ -52,7 +52,7 @@ describe("Entity CRU", () => {
       throw err;
     });
 
-    const results = await Promise.all([
+    await Promise.all([
       EntityTypeModel.create(graphApi, {
         accountId,
         schema: {
@@ -210,9 +210,9 @@ describe("Entity CRU", () => {
       },
     });
 
-    let linkedEntity = (await aliceEntityModel.getOutgoingLinks(graphApi)).map(
-      (linkModel) => linkModel,
-    )[0]!;
+    const linkedEntity = (
+      await aliceEntityModel.getOutgoingLinks(graphApi)
+    ).map((linkModel) => linkModel)[0]!;
 
     expect(linkedEntity.targetEntityModel).toEqual(updatedEntityModel);
     expect(linkedEntity.linkTypeModel).toEqual(linkTypeFriend);

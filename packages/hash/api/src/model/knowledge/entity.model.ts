@@ -234,7 +234,6 @@ export default class {
       }
 
       const entityTypeModel = await EntityTypeModel.get(graphApi, {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         versionedUri: entityTypeVersionedUri!,
       });
 
