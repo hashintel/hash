@@ -818,11 +818,14 @@ mod default {
         let idx = ctx.increment_counter();
 
         ctx.push_appendix(format!("Backtrace No. {}\n{}", idx + 1, backtrace));
+        #[cfg(nightly)]
         ctx.push_body(format!(
             "backtrace with {} frames ({})",
             backtrace.frames().len(),
             idx + 1
         ));
+        #[cfg(not(nightly))]
+        ctx.push_body(format!("backtrace ({})", idx + 1));
     }
 
     #[cfg(feature = "spantrace")]
