@@ -1,6 +1,5 @@
 import {
   FunctionComponent,
-  useCallback,
   useEffect,
   useRef,
   useState,
@@ -125,7 +124,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         viewRef.current = undefined;
       };
     }
-  }, [accountId, renderPortal]);
+  }, [accountId, renderPortal, loading]);
 
   return (
     <Box
