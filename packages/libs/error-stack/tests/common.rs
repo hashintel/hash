@@ -189,6 +189,11 @@ pub fn supports_backtrace() -> bool {
     *STATE
 }
 
+#[cfg(all(not(rust_1_65), feature = "std"))]
+pub fn supports_backtrace() -> bool {
+    false
+}
+
 #[cfg(feature = "spantrace")]
 pub fn supports_spantrace() -> bool {
     static STATE: Lazy<bool> = Lazy::new(|| {
