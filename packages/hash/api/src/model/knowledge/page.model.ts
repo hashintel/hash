@@ -137,7 +137,7 @@ export default class extends EntityModel {
        * @todo: filter the pages by their ownedById in the query instead once it's supported
        * @see https://app.asana.com/0/1202805690238892/1203015527055374/f
        */
-      .filter(({ accountId }) => accountId === params.account.entityId)
+      .filter(({ accountId }) => accountId === params.accountModel.entityId)
       .map(PageModel.fromEntityModel);
 
     return await Promise.all(
