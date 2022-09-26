@@ -67,7 +67,7 @@ export let WORKSPACE_TYPES: {
     blockData: LinkTypeModel;
 
     // Page-related
-    contain: LinkTypeModel;
+    contains: LinkTypeModel;
     parent: LinkTypeModel;
   };
 };
@@ -401,10 +401,10 @@ const indexPropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
-const containLinkTypeInitializer = linkTypeInitializer({
+const containsLinkTypeInitializer = linkTypeInitializer({
   namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Contain",
-  description: "Containing something.",
+  title: "Contains",
+  description: "Something containing something.",
 });
 
 const parentLinkTypeInitializer = linkTypeInitializer({
@@ -428,8 +428,8 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
   const indexPropertyTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.propertyType.index(graphApi);
 
-  const containLinkTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.linkType.contain(graphApi);
+  const containsLinkTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.linkType.contains(graphApi);
 
   const parentLinkTypeTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.linkType.parent(graphApi);
@@ -474,7 +474,7 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
     ],
     outgoingLinks: [
       {
-        linkTypeVersionedUri: containLinkTypeModel.schema.$id,
+        linkTypeVersionedUri: containsLinkTypeModel.schema.$id,
         destinationEntityTypeVersionedUri: blockEntityTypeModel.schema.$id,
         required: true,
         array: true,
@@ -534,7 +534,7 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     ofOrg: ofOrgLinkTypeInitializer,
     hasMembership: hasMembershipLinkTypeInitializer,
     blockData: blockDataLinkTypeInitializer,
-    contain: containLinkTypeInitializer,
+    contains: containsLinkTypeInitializer,
     parent: parentLinkTypeInitializer,
   },
 };

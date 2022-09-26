@@ -349,7 +349,7 @@ export default class extends EntityModel {
           eq: [
             { path: ["type", "versionedUri"] },
             {
-              literal: WORKSPACE_TYPES.linkType.contain.schema.$id,
+              literal: WORKSPACE_TYPES.linkType.contains.schema.$id,
             },
           ],
         },
@@ -382,7 +382,7 @@ export default class extends EntityModel {
 
     await this.createOutgoingLink(graphApi, {
       targetEntityModel: block,
-      linkTypeModel: WORKSPACE_TYPES.linkType.contain,
+      linkTypeModel: WORKSPACE_TYPES.linkType.contains,
       index:
         specifiedPosition ??
         // if position is not specified and there are no blocks currently in the page, specify the index of the link is `0`
@@ -409,7 +409,7 @@ export default class extends EntityModel {
     const { currentPosition, newPosition } = params;
 
     const contentLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.contain,
+      linkTypeModel: WORKSPACE_TYPES.linkType.contains,
     });
 
     if (currentPosition < 0 || currentPosition >= contentLinks.length) {
@@ -455,7 +455,7 @@ export default class extends EntityModel {
     const { allowRemovingFinal = false, position } = params;
 
     const contentLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.contain,
+      linkTypeModel: WORKSPACE_TYPES.linkType.contains,
     });
 
     if (position < 0 || position >= contentLinks.length) {
