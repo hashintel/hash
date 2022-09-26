@@ -91,7 +91,7 @@ describe("Page model class", () => {
 
   it("can get all pages in an account", async () => {
     const allPages = await PageModel.getAllPagesInAccount(graphApi, {
-      account: testUser,
+      accountModel: testUser,
     });
 
     expect(
