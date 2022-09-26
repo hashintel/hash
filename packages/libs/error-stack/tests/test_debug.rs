@@ -28,12 +28,12 @@ fn setup_tracing() {
 #[cfg(not(feature = "spantrace"))]
 fn setup_tracing() {}
 
-#[cfg(not(all(nightly, feature = "std")))]
+#[cfg(not(all(rust_1_65, feature = "std")))]
 fn setup_backtrace() {
     std::env::set_var("RUST_LIB_BACKTRACE", "0");
 }
 
-#[cfg(all(nightly, feature = "std"))]
+#[cfg(all(rust_1_65, feature = "std"))]
 fn setup_backtrace() {
     std::env::set_var("RUST_LIB_BACKTRACE", "1");
 }
@@ -61,7 +61,7 @@ fn snap_suffix() -> String {
         suffix.push("spantrace");
     }
 
-    #[cfg(all(nightly, feature = "std"))]
+    #[cfg(all(rust_1_65, feature = "std"))]
     if supports_backtrace() {
         suffix.push("backtrace");
     }
@@ -107,8 +107,8 @@ fn prepare(suffix: bool) -> impl Drop {
         "Span Trace No. $1\n  [redacted]",
     );
     settings.add_filter(
-        r"backtrace with (\d+) frames \((\d+)\)",
-        "backtrace with [n] frames ($2)",
+        r"backtrace with( (\d+) frames)? \((\d+)\)",
+        "backtrace ($3)",
     );
 
     settings.bind_to_scope()

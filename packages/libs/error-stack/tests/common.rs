@@ -107,7 +107,7 @@ impl fmt::Display for ErrorB {
     }
 }
 
-#[cfg(all(rust_1_65, feature = "std"))]
+#[cfg(all(nightly, feature = "std"))]
 impl std::error::Error for ErrorB {
     fn provide<'a>(&'a self, demand: &mut core::any::Demand<'a>) {
         demand.provide_ref(&self.1);

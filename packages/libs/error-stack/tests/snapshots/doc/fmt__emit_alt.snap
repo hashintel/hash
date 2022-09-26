@@ -1,6 +1,6 @@
 <b>invalid input parameter</b>
 <span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/fmt/hook.rs:49:14</span>
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>backtrace with [n] frames (1)
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>backtrace (1)
 <span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Error code: 404
 <span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Suggestion 0:
 <span style='color:#a00'>│</span><span style='color:#a00'> </span>  Do you have a connection to the internet?
