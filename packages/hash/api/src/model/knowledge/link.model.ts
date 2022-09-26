@@ -1,4 +1,8 @@
-import { GraphApi, PersistedLink } from "@hashintel/hash-graph-client";
+import {
+  GraphApi,
+  KnowledgeGraphQuery,
+  PersistedLink,
+} from "@hashintel/hash-graph-client";
 
 import { EntityModel, LinkModel, LinkTypeModel } from "../index";
 
@@ -71,15 +75,16 @@ export default class {
   static async getByQuery(
     graphApi: GraphApi,
     query: object,
+    options?: Omit<Partial<KnowledgeGraphQuery>, "query">,
   ): Promise<LinkModel[]> {
     const { data: linkRootedSubgraphs } = await graphApi.getLinksByQuery({
       query,
-      dataTypeQueryDepth: 0,
-      propertyTypeQueryDepth: 0,
-      linkTypeQueryDepth: 0,
-      entityTypeQueryDepth: 0,
-      linkTargetEntityQueryDepth: 0,
-      linkQueryDepth: 0,
+      dataTypeQueryDepth: options?.dataTypeQueryDepth ?? 0,
+      propertyTypeQueryDepth: options?.propertyTypeQueryDepth ?? 0,
+      linkTypeQueryDepth: options?.linkTypeQueryDepth ?? 0,
+      entityTypeQueryDepth: options?.entityTypeQueryDepth ?? 0,
+      linkTargetEntityQueryDepth: options?.linkTargetEntityQueryDepth ?? 0,
+      linkQueryDepth: options?.linkQueryDepth ?? 0,
     });
 
     return await Promise.all(
