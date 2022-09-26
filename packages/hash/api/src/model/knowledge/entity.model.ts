@@ -253,7 +253,7 @@ export default class {
       });
     } else {
       throw new Error(
-        `One of entityId OR entityProperties and entityType must be provided`,
+        `entityType and one of entityId OR entityProperties must be provided`,
       );
     }
 
