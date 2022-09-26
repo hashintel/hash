@@ -110,7 +110,7 @@ export const commentTypedef = gql`
   extend type Mutation {
     createComment(
       """
-      AccountId of the page block comment belongs to
+      Account id of the block the comment belongs to
       """
       accountId: ID!
       """
