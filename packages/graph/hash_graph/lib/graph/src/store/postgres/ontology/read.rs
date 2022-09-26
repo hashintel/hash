@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use error_stack::{bail, Context, Report, Result, ResultExt};
-use futures::TryStreamExt;
+use futures::{stream, StreamExt, TryStreamExt};
 use type_system::{DataType, EntityType, LinkType, PropertyType};
 
 use crate::{
@@ -91,24 +91,30 @@ where
     type Query<'q> = Expression;
 
     async fn read<'query>(&self, query: &Self::Query<'query>) -> Result<Vec<T>, QueryError> {
-        self.read_all_ontology_types::<T::Inner>()
-            .await?
-            .try_filter_map(|ontology_type| async move {
-                if let Literal::Bool(result) = query
-                    .evaluate(&ontology_type, self)
-                    .await
-                    .change_context(QueryError)?
-                {
-                    Ok(result.then(|| T::from_record(ontology_type)))
-                } else {
-                    bail!(
-                        Report::new(ExpressionError)
-                            .attach_printable("does not result in a boolean value")
-                            .change_context(QueryError)
-                    );
-                }
-            })
-            .try_collect()
-            .await
+        // TODO: We need to work around collecting all records before filtering
+        //   related: https://app.asana.com/0/1202805690238892/1202923536131158/f
+        stream::iter(
+            self.read_all_ontology_types::<T::Inner>()
+                .await?
+                .collect::<Vec<_>>()
+                .await,
+        )
+        .try_filter_map(|ontology_type| async move {
+            if let Literal::Bool(result) = query
+                .evaluate(&ontology_type, self)
+                .await
+                .change_context(QueryError)?
+            {
+                Ok(result.then(|| T::from_record(ontology_type)))
+            } else {
+                bail!(
+                    Report::new(ExpressionError)
+                        .attach_printable("does not result in a boolean value")
+                        .change_context(QueryError)
+                );
+            }
+        })
+        .try_collect()
+        .await
     }
 }
