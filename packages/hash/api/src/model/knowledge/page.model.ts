@@ -117,7 +117,7 @@ export default class extends EntityModel {
   static async getAllPagesInAccount(
     graphApi: GraphApi,
     params: {
-      account: UserModel | OrgModel;
+      accountModel: UserModel | OrgModel;
     },
   ): Promise<PageModel[]> {
     const pageEntityModels = await EntityModel.getByQuery(graphApi, {
