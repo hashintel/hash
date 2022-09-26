@@ -231,11 +231,6 @@ export default class {
 
     const { index: previousIndex, linkTypeModel } = this;
 
-    const updatedLink = await this.updateWithoutUpdatingSiblings(graphApi, {
-      updatedIndex,
-      updatedBy,
-    });
-
     const siblingLinks = await this.sourceEntityModel.getOutgoingLinks(
       graphApi,
       { linkTypeModel },
@@ -277,7 +272,10 @@ export default class {
       ),
     );
 
-    return updatedLink;
+    return await this.updateWithoutUpdatingSiblings(graphApi, {
+      updatedIndex,
+      updatedBy,
+    });
   }
 
   private async removeWithoutUpdatingSiblings(
