@@ -52,7 +52,12 @@ describe("Entity CRU", () => {
       throw err;
     });
 
-    await Promise.all([
+    [
+      entityTypeModel,
+      linkTypeFriend,
+      favoriteBookPropertyTypeModel,
+      namePropertyTypeModel,
+    ] = await Promise.all([
       EntityTypeModel.create(graphApi, {
         accountId,
         schema: {
@@ -62,14 +67,10 @@ describe("Entity CRU", () => {
           type: "object",
           properties: {},
         },
-      })
-        .then((val) => {
-          entityTypeModel = val;
-        })
-        .catch((err) => {
-          logger.error(`Something went wrong making Person: ${err}`);
-          throw err;
-        }),
+      }).catch((err) => {
+        logger.error(`Something went wrong making Person: ${err}`);
+        throw err;
+      }),
       LinkTypeModel.create(graphApi, {
         accountId,
         schema: {
@@ -78,14 +79,10 @@ describe("Entity CRU", () => {
           pluralTitle: "Friends",
           description: "Friend of",
         },
-      })
-        .then((val) => {
-          linkTypeFriend = val;
-        })
-        .catch((err) => {
-          logger.error(`Something went wrong making link type Friends: ${err}`);
-          throw err;
-        }),
+      }).catch((err) => {
+        logger.error(`Something went wrong making link type Friends: ${err}`);
+        throw err;
+      }),
 
       PropertyTypeModel.create(graphApi, {
         accountId,
@@ -95,14 +92,10 @@ describe("Entity CRU", () => {
           pluralTitle: "Favorite Books",
           oneOf: [{ $ref: textDataTypeModel.schema.$id }],
         },
-      })
-        .then((val) => {
-          favoriteBookPropertyTypeModel = val;
-        })
-        .catch((err) => {
-          logger.error(`Something went wrong making Favorite Book: ${err}`);
-          throw err;
-        }),
+      }).catch((err) => {
+        logger.error(`Something went wrong making Favorite Book: ${err}`);
+        throw err;
+      }),
       PropertyTypeModel.create(graphApi, {
         accountId,
         schema: {
@@ -111,14 +104,10 @@ describe("Entity CRU", () => {
           pluralTitle: "Names",
           oneOf: [{ $ref: textDataTypeModel.schema.$id }],
         },
-      })
-        .then((val) => {
-          namePropertyTypeModel = val;
-        })
-        .catch((err) => {
-          logger.error(`Something went wrong making Names: ${err}`);
-          throw err;
-        }),
+      }).catch((err) => {
+        logger.error(`Something went wrong making Names: ${err}`);
+        throw err;
+      }),
     ]);
   });
 
