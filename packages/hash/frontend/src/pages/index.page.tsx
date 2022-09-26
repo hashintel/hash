@@ -28,7 +28,7 @@ const Page: NextPageWithLayout = () => {
         variant="h1"
         sx={({ palette }) => ({ color: palette.gray[70], fontWeight: 400 })}
       >
-        Loading...
+        Loading....
       </Typography>
     </Box>
   );
