@@ -49,7 +49,7 @@ export const knowledgePageTypedef = gql`
   """
   Insert a block into a page with a corresponding entity.
   """
-  input KnowledgeInsertBlock {
+  input KnowledgeInsertBlockAction {
     """
     The account ID to create the block and associated entity in.
     """
@@ -84,7 +84,7 @@ export const knowledgePageTypedef = gql`
   """
   Remove a block from a page.
   """
-  input KnowledgeRemoveBlock {
+  input KnowledgeRemoveBlockAction {
     """
     The position of the block to remove from the page.
     """
@@ -94,7 +94,7 @@ export const knowledgePageTypedef = gql`
   """
   Move a block within a page.
   """
-  input MoveBlock {
+  input MoveBlockAction {
     """
     The current position of the block.
     """
@@ -108,7 +108,7 @@ export const knowledgePageTypedef = gql`
   """
   Update an entity in a page.
   """
-  input KnowledgeUpdateEntity {
+  input KnowledgeUpdateEntityAction {
     """
     The account the entity resides in.
     """
@@ -126,7 +126,7 @@ export const knowledgePageTypedef = gql`
   """
   Swap a blocks data
   """
-  input KnowledgeSwapBlockData {
+  input KnowledgeSwapBlockDataAction {
     """
     The account the block resides in
     """
@@ -188,11 +188,11 @@ export const knowledgePageTypedef = gql`
   permit unions as input to a mutation
   """
   input KnowledgeUpdatePageAction {
-    insertBlock: KnowledgeInsertBlock
-    removeBlock: KnowledgeRemoveBlock
-    moveBlock: MoveBlock
-    updateEntity: KnowledgeUpdateEntity
-    swapBlockData: KnowledgeSwapBlockData
+    insertBlock: KnowledgeInsertBlockAction
+    removeBlock: KnowledgeRemoveBlockAction
+    moveBlock: MoveBlockAction
+    updateEntity: KnowledgeUpdateEntityAction
+    swapBlockData: KnowledgeSwapBlockDataAction
     createEntity: KnowledgeCreateEntityAction
     createEntityType: KnowledgeCreateEntityTypeAction
   }

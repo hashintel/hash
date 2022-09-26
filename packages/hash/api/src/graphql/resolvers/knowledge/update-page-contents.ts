@@ -1,20 +1,46 @@
 // import { JsonObject } from "@blockprotocol/core";
 
-import { ApolloError, UserInputError } from "apollo-server-errors";
+import { UserInputError } from "apollo-server-errors";
 import produce from "immer";
-import { BlockModel, EntityModel, EntityTypeModel } from "../../../model";
+import { GraphApi } from "@hashintel/hash-graph-client";
+
+import {
+  BlockModel,
+  EntityModel,
+  EntityTypeModel,
+  UserModel,
+} from "../../../model";
 import { exactlyOne } from "../../../util";
 import {
+  KnowledgeCreateEntityAction,
   KnowledgeEntity,
   KnowledgeEntityDefinition,
-  KnowledgeSwapBlockData,
-  KnowledgeUpdateEntity,
+  KnowledgeInsertBlockAction,
+  KnowledgeSwapBlockDataAction,
+  KnowledgeUpdateEntityAction,
   KnowledgeUpdatePageAction,
   KnowledgeUpdatePageContentsResult,
   MutationKnowledgeUpdatePageContentsArgs,
   ResolverFn,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
+
+type UpdatePageActionKey = keyof KnowledgeUpdatePageAction;
+
+const filterForAction = <T extends UpdatePageActionKey>(
+  actions: KnowledgeUpdatePageAction[],
+  key: T,
+): { action: NonNullable<KnowledgeUpdatePageAction[T]>; index: number }[] =>
+  actions
+    .map((action, index) => ({
+      // We ensure the assertion in the filter step. The cast happens here to
+      // make sure the index is correct across actions.
+      action: action as NonNullable<KnowledgeUpdatePageAction[T]>,
+      index,
+    }))
+    .filter(
+      ({ action }) => action !== undefined && action != null && key in action,
+    );
 
 const validateActionsInput = (actions: KnowledgeUpdatePageAction[]) => {
   for (const [i, action] of actions.entries()) {
@@ -66,6 +92,166 @@ class PlaceholderResultsMap {
     }));
   }
 }
+
+const createNewEntity = async (params: {
+  createEntityAction: KnowledgeCreateEntityAction;
+  index: number;
+  placeholderResults: PlaceholderResultsMap;
+  createEntityWithPlaceholders: (
+    originalDefinition: KnowledgeEntityDefinition,
+    entityAccountId: string,
+  ) => Promise<EntityModel>;
+}): Promise<void> => {
+  try {
+    const {
+      createEntityAction: {
+        entity: entityDefinition,
+        accountId: entityAccountId,
+        entityPlaceholderId,
+      },
+      createEntityWithPlaceholders,
+      placeholderResults,
+    } = params;
+
+    placeholderResults.set(
+      entityPlaceholderId,
+      await createEntityWithPlaceholders(entityDefinition, entityAccountId),
+    );
+  } catch (error) {
+    if (error instanceof UserInputError) {
+      throw new UserInputError(`action ${params.index}: ${error}`);
+    }
+    throw new Error(
+      `createEntity: Could not create new entity: ${JSON.stringify(error)}`,
+    );
+  }
+};
+
+const insertNewBlock = async (
+  graphApi: GraphApi,
+  params: {
+    user: UserModel;
+    insertBlockAction: KnowledgeInsertBlockAction;
+    index: number;
+    createEntityWithPlaceholders: (
+      originalDefinition: KnowledgeEntityDefinition,
+      entityAccountId: string,
+    ) => Promise<EntityModel>;
+    placeholderResults: PlaceholderResultsMap;
+  },
+): Promise<BlockModel> => {
+  try {
+    const {
+      user,
+      insertBlockAction: {
+        accountId: blockAccountId,
+        componentId: blockComponentId,
+        existingBlockEntity,
+        blockPlaceholderId,
+        entityPlaceholderId,
+        entity,
+      },
+      createEntityWithPlaceholders,
+      placeholderResults,
+    } = params;
+
+    const blockData = await createEntityWithPlaceholders(
+      entity,
+      // assume that the "block entity" is in the same account as the block itself
+      blockAccountId,
+    );
+
+    placeholderResults.set(entityPlaceholderId, blockData);
+
+    let block: BlockModel;
+
+    if (existingBlockEntity) {
+      if (blockComponentId) {
+        throw new Error(
+          "InsertNewBlock: cannot set component id when using existing block entity",
+        );
+      }
+      const existingBlock = await BlockModel.getBlockById(
+        graphApi,
+        existingBlockEntity,
+      );
+
+      if (!existingBlock) {
+        throw new Error("InsertBlock: provided block id does not exist");
+      }
+
+      block = existingBlock;
+    } else if (blockComponentId) {
+      block = await BlockModel.createBlock(graphApi, {
+        blockData,
+        accountId: user.accountId,
+        componentId: blockComponentId,
+      });
+    } else {
+      throw new Error(
+        `InsertBlock: exactly one of existingBlockEntity or componentId must be provided`,
+      );
+    }
+
+    placeholderResults.set(blockPlaceholderId, block);
+
+    return block;
+  } catch (error) {
+    if (error instanceof UserInputError) {
+      throw new UserInputError(`action ${params.index}: ${error}`);
+    }
+    throw new Error(
+      `insertBlock: Could not create insert new or existing block: ${JSON.stringify(
+        error,
+      )}`,
+    );
+  }
+};
+
+const blockSwapAction = async (
+  graphApi: GraphApi,
+  params: {
+    swapBlockDataAction: KnowledgeSwapBlockDataAction;
+  },
+): Promise<BlockModel> => {
+  const { entityId } = params.swapBlockDataAction;
+  const block = await BlockModel.getBlockById(graphApi, {
+    entityId,
+  });
+
+  if (!block) {
+    throw new Error(`Block with entityId ${entityId} not found`);
+  }
+
+  /** @todo: fix with real impl, replace return value. */
+  // return await block.swapBlockData(client, {
+  //   targetDataAccountId: swapBlockData.newEntityAccountId,
+  //   targetDataEntityId: swapBlockData.newEntityEntityId,
+  //   updatedByAccountId: user.accountId,
+  // });
+  return block;
+};
+
+const updateEntity = async (
+  graphApi: GraphApi,
+  params: {
+    action: KnowledgeUpdateEntityAction;
+    user: UserModel;
+  },
+): Promise<void> => {
+  const { action, user } = params;
+  const entityModel = await EntityModel.getLatest(graphApi, {
+    accountId: action.accountId,
+    entityId: action.entityId,
+  });
+
+  await entityModel.updateProperties(graphApi, {
+    updatedProperties: Object.entries(action.properties).map(
+      ([key, value]) => ({ propertyTypeBaseUri: key, value }),
+    ),
+    updatedByAccountId: user.accountId,
+  });
+};
 
 export const knowledgeUpdatePageContents: ResolverFn<
   Promise<
@@ -126,152 +312,41 @@ export const knowledgeUpdatePageContents: ResolverFn<
    * Create any _new_ entities. This is done one at a time in order to allow
    * you to reference a previous created entity using its placeholder.
    */
-  for (const { action, i } of actions
-    // eslint-disable-next-line @typescript-eslint/no-shadow
-    .map((action, i) => ({ action, i }))
-    // eslint-disable-next-line @typescript-eslint/no-shadow
-    .filter(({ action }) => action.createEntity)) {
-    try {
-      const {
-        entity: entityDefinition,
-        accountId: entityAccountId,
-        entityPlaceholderId,
-      } = action.createEntity!;
-
-      placeholderResults.set(
-        entityPlaceholderId,
-        await createEntityWithPlaceholders(entityDefinition, entityAccountId),
-      );
-    } catch (error) {
-      if (error instanceof UserInputError) {
-        throw new UserInputError(`action ${i}: ${error}`);
-      }
-      throw new Error(
-        `createEntity: Could not create new entity: ${JSON.stringify(error)}`,
-      );
-    }
+  for (const { action, index } of filterForAction(actions, "createEntity")) {
+    await createNewEntity({
+      createEntityAction: action,
+      index,
+      placeholderResults,
+      createEntityWithPlaceholders,
+    });
   }
 
   // Create any _new_ blocks
-  const insertedBlocks = await Promise.all(
-    actions
-      .map((action, i) => ({ action, i }))
-      .filter(({ action }) => action.insertBlock)
-      .map(async ({ action, i }) => {
-        try {
-          const {
-            accountId: blockAccountId,
-            componentId: blockComponentId,
-            existingBlockEntity,
-            blockPlaceholderId,
-            entityPlaceholderId,
-            entity,
-          } = action.insertBlock!;
-
-          const blockData = await createEntityWithPlaceholders(
-            entity,
-            // assume that the "block entity" is in the same account as the block itself
-            blockAccountId,
-          );
-
-          placeholderResults.set(entityPlaceholderId, blockData);
-
-          let block: BlockModel;
-
-          if (existingBlockEntity) {
-            if (blockComponentId) {
-              throw new Error(
-                "InsertNewBlock: cannot set component id when using existing block entity",
-              );
-            }
-            const existingBlock = await BlockModel.getBlockById(
-              graphApi,
-              existingBlockEntity,
-            );
-
-            if (!existingBlock) {
-              throw new Error("InsertBlock: provided block id does not exist");
-            }
-
-            block = existingBlock;
-          } else if (blockComponentId) {
-            block = await BlockModel.createBlock(graphApi, {
-              blockData,
-              accountId: user.accountId,
-              componentId: blockComponentId,
-            });
-          } else {
-            throw new Error(
-              `InsertBlock: exactly one of existingBlockEntity or componentId must be provided`,
-            );
-          }
-
-          placeholderResults.set(blockPlaceholderId, block);
-
-          return block;
-        } catch (error) {
-          if (error instanceof UserInputError) {
-            throw new UserInputError(`action ${i}: ${error}`);
-          }
-          throw new Error(
-            `insertBlock: Could not create insert new or existing block: ${JSON.stringify(
-              error,
-            )}`,
-          );
-        }
+  const _insertBlockActions = Promise.all(
+    filterForAction(actions, "insertBlock").map(({ action, index }) =>
+      insertNewBlock(graphApi, {
+        user,
+        insertBlockAction: action,
+        index,
+        createEntityWithPlaceholders,
+        placeholderResults,
       }),
+    ),
   );
 
   // Perform any block data swapping updates.
+
   await Promise.all(
-    actions
-      .map(({ swapBlockData }) => swapBlockData)
-      .filter(
-        (swapBlockData): swapBlockData is KnowledgeSwapBlockData =>
-          !!swapBlockData,
-      )
-      .map(async (swapBlockData) => {
-        const block = await BlockModel.getBlockById(graphApi, {
-          entityId: swapBlockData.entityId,
-        });
-
-        if (!block) {
-          throw new Error(
-            `Block with entityId ${swapBlockData.entityId} not found`,
-          );
-        }
-
-        /** @todo: fix with real impl, replace return value. */
-        // return await block.swapBlockData(client, {
-        //   targetDataAccountId: swapBlockData.newEntityAccountId,
-        //   targetDataEntityId: swapBlockData.newEntityEntityId,
-        //   updatedByAccountId: user.accountId,
-        // });
-
-        return block;
-      }),
+    filterForAction(actions, "swapBlockData").map(({ action }) =>
+      blockSwapAction(graphApi, { swapBlockDataAction: action }),
+    ),
   );
 
   // Perform any entity updates.
   await Promise.all(
-    actions
-      .map(({ updateEntity }) => updateEntity)
-      .filter(
-        (updateEntity): updateEntity is KnowledgeUpdateEntity => !!updateEntity,
-      )
-      .map(async (updateEntity) => {
-        const entityModel = await EntityModel.getLatest(graphApi, {
-          accountId: updateEntity.accountId,
-          entityId: updateEntity.entityId,
-        });
-
-        return entityModel.updateProperties(graphApi, {
-          updatedProperties: Object.entries(updateEntity.properties).map(
-            ([key, value]) => ({ propertyTypeBaseUri: key, value }),
-          ),
-          updatedByAccountId: user.accountId,
-        });
-      }),
+    filterForAction(actions, "updateEntity").map(async ({ action }) =>
+      updateEntity(graphApi, { action, user }),
+    ),
   );
 
   /** @todo rest of page updating. */
