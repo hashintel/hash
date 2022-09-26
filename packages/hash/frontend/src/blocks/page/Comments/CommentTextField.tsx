@@ -50,7 +50,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
   const [portals, renderPortal] = usePortals();
   const { accountId } = useRouteAccountInfo();
   const editorContainerRef = useRef<HTMLDivElement>();
-  const loadingRef = useRef(false);
+  const [loading, setLoading] = useState(false);
   const eventsRef = useRef({ onClose, onSubmit });
 
   useLayoutEffect(() => {
@@ -73,25 +73,28 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         plugins: [
           keymap<Schema>({
             Enter(_, __, view) {
-              if (!loadingRef.current && view?.state.doc.content) {
+              if (!loading && view?.state.doc.content) {
                 const { tokens } = textBlockNodeToEntityProperties(
                   view.state.doc,
                 );
-                loadingRef.current = true;
+
+                if (!tokens.length) return true;
+
+                setLoading(true);
                 eventsRef.current
                   .onSubmit(tokens)
                   .then(() => {
                     eventsRef.current.onClose();
                   })
                   .finally(() => {
-                    loadingRef.current = false;
+                    setLoading(false);
                   });
                 return true;
               }
               return false;
             },
             Escape() {
-              if (!loadingRef.current) {
+              if (!loading) {
                 eventsRef.current.onClose();
                 return true;
               }
@@ -163,7 +166,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
       />
 
       <Box display="flex" alignItems="flex-end" margin={1.5}>
-        {loadingRef.current ? (
+        {loading ? (
           <Box m={0.75}>
             <LoadingSpinner size={12} thickness={2} />
           </Box>
