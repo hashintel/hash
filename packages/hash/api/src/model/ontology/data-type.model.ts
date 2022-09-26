@@ -9,7 +9,7 @@ import { DataType } from "@blockprotocol/type-system-web";
 import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
 import { DataTypeModel, UserModel } from "../index";
-import { generateSchemaUri, workspaceAccountId } from "../util";
+import { generateTypeId, workspaceAccountId } from "../util";
 
 type DataTypeModelConstructorArgs = {
   accountId: string;
@@ -89,7 +89,7 @@ export default class {
       );
     }
 
-    const dataTypeUri = generateSchemaUri({
+    const dataTypeUri = generateTypeId({
       namespace,
       kind: "data-type",
       title: params.schema.title,
@@ -139,18 +139,16 @@ export default class {
    * Get a data type by its versioned URI.
    *
    * @param params.accountId the accountId of the account requesting the data type
-   * @param params.versionedUri the unique versioned URI for a data type.
+   * @param params.dataTypeId the unique versioned URI for a data type.
    */
   static async get(
     graphApi: GraphApi,
     params: {
-      versionedUri: string;
+      dataTypeId: string;
     },
   ): Promise<DataTypeModel> {
-    const { versionedUri } = params;
-    const { data: persistedDataType } = await graphApi.getDataType(
-      versionedUri,
-    );
+    const { dataTypeId } = params;
+    const { data: persistedDataType } = await graphApi.getDataType(dataTypeId);
 
     return DataTypeModel.fromPersistedDataType(persistedDataType);
   }

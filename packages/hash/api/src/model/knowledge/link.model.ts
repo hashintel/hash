@@ -56,7 +56,7 @@ export default class {
       await Promise.all([
         EntityModel.getLatest(graphApi, { entityId: sourceEntityId }),
         EntityModel.getLatest(graphApi, { entityId: targetEntityId }),
-        LinkTypeModel.get(graphApi, { versionedUri: linkTypeId }),
+        LinkTypeModel.get(graphApi, { linkTypeId }),
       ]);
 
     return new LinkModel({

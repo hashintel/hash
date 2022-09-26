@@ -62,9 +62,7 @@ export default class {
     if (cachedEntityTypeModel) {
       entityTypeModel = cachedEntityTypeModel;
     } else {
-      entityTypeModel = await EntityTypeModel.get(graphApi, {
-        versionedUri: entityTypeId,
-      });
+      entityTypeModel = await EntityTypeModel.get(graphApi, { entityTypeId });
       if (cachedEntityTypeModels) {
         cachedEntityTypeModels.set(entityTypeId, entityTypeModel);
       }

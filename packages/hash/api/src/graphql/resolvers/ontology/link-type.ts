@@ -62,7 +62,7 @@ export const getLinkType: ResolverFn<
   const { graphApi } = dataSources;
 
   const linkTypeModel = await LinkTypeModel.get(graphApi, {
-    versionedUri: linkTypeVersionedUri,
+    linkTypeId: linkTypeVersionedUri,
   }).catch((err: AxiosError) => {
     throw new ApolloError(
       `Unable to retrieve link type. ${err.response?.data} [URI=${linkTypeVersionedUri}]`,
@@ -83,7 +83,7 @@ export const updateLinkType: ResolverFn<
   const { accountId, linkTypeVersionedUri, updatedLinkType } = params;
 
   const linkTypeModel = await LinkTypeModel.get(graphApi, {
-    versionedUri: linkTypeVersionedUri,
+    linkTypeId: linkTypeVersionedUri,
   }).catch((err: AxiosError) => {
     throw new ApolloError(
       `Unable to retrieve link type. ${err.response?.data} [URI=${linkTypeVersionedUri}]`,

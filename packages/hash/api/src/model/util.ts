@@ -79,7 +79,7 @@ type SchemaKind = "data-type" | "property-type" | "entity-type" | "link-type";
 const slugifySchemaTitle = (title: string): string =>
   slugify(title, { lower: true });
 
-export const generateSchemaUri = ({
+export const generateTypeId = ({
   domain = FRONTEND_URL,
   namespace,
   kind,
@@ -139,10 +139,10 @@ const primitiveDataTypeTitles = [
 
 export type PrimitiveDataTypeTitle = typeof primitiveDataTypeTitles[number];
 
-export const primitiveDataTypeVersionedUris = primitiveDataTypeTitles.reduce(
+export const primitiveDataTypeIds = primitiveDataTypeTitles.reduce(
   (prev, title) => ({
     ...prev,
-    [title]: generateSchemaUri({
+    [title]: generateTypeId({
       domain: "https://blockprotocol.org",
       namespace: "blockprotocol",
       kind: "data-type",
@@ -169,7 +169,7 @@ export type PropertyTypeCreatorParams = {
 export const generateWorkspacePropertyTypeSchema = (
   params: PropertyTypeCreatorParams,
 ): PropertyType => {
-  const $id = generateSchemaUri({
+  const $id = generateTypeId({
     namespace: params.namespace,
     title: params.title,
     kind: "property-type",
@@ -181,7 +181,7 @@ export const generateWorkspacePropertyTypeSchema = (
 
       if (primitiveDataType) {
         const dataTypeReference: PropertyValues.DataTypeReference = {
-          $ref: primitiveDataTypeVersionedUris[primitiveDataType],
+          $ref: primitiveDataTypeIds[primitiveDataType],
         };
         inner = dataTypeReference;
       } else if (propertyTypeObjectProperties) {
@@ -246,7 +246,7 @@ export const propertyTypeInitializer = (
 
       // initialize
       propertyTypeModel = await PropertyTypeModel.get(graphApi, {
-        versionedUri: propertyType.$id,
+        propertyTypeId: propertyType.$id,
       }).catch(async (error: AxiosError) => {
         if (error.response?.status === 404) {
           // The type was missing, try and create it
@@ -275,13 +275,13 @@ export type EntityTypeCreatorParams = {
   title: string;
   properties: {
     propertyTypeBaseUri: BaseUri;
-    propertyTypeVersionedUri: string;
+    propertyTypeId: string;
     required?: boolean;
     array?: { minItems?: number; maxItems?: number } | boolean;
   }[];
   outgoingLinks: {
-    linkTypeVersionedUri: string;
-    destinationEntityTypeVersionedUri: string;
+    linkTypeId: string;
+    destinationEntityTypeId: string;
     required?: boolean;
     array?: { minItems?: number; maxItems?: number } | boolean;
   }[];
@@ -296,7 +296,7 @@ export type EntityTypeCreatorParams = {
 export const generateWorkspaceEntityTypeSchema = (
   params: EntityTypeCreatorParams,
 ): EntityType => {
-  const $id = generateSchemaUri({
+  const $id = generateTypeId({
     namespace: params.namespace,
     title: params.title,
     kind: "entity-type",
@@ -304,15 +304,15 @@ export const generateWorkspaceEntityTypeSchema = (
 
   /** @todo - clean this up to be more readable: https://app.asana.com/0/1202805690238892/1202931031833226/f */
   const properties = params.properties.reduce(
-    (prev, { propertyTypeVersionedUri, propertyTypeBaseUri, array }) => ({
+    (prev, { propertyTypeId, propertyTypeBaseUri, array }) => ({
       ...prev,
       [propertyTypeBaseUri]: array
         ? {
             type: "array",
-            items: { $ref: propertyTypeVersionedUri },
+            items: { $ref: propertyTypeId },
             ...(array === true ? {} : array),
           }
-        : { $ref: propertyTypeVersionedUri },
+        : { $ref: propertyTypeId },
     }),
     {},
   );
@@ -324,18 +324,15 @@ export const generateWorkspaceEntityTypeSchema = (
   const links: EntityType["links"] =
     params.outgoingLinks.length > 0
       ? params.outgoingLinks.reduce(
-          (
-            prev,
-            { linkTypeVersionedUri, destinationEntityTypeVersionedUri, array },
-          ) => ({
+          (prev, { linkTypeId, destinationEntityTypeId, array }) => ({
             ...prev,
-            [linkTypeVersionedUri]: array
+            [linkTypeId]: array
               ? {
                   type: "array",
-                  items: { $ref: destinationEntityTypeVersionedUri },
+                  items: { $ref: destinationEntityTypeId },
                   ...(array === true ? {} : array),
                 }
-              : { $ref: destinationEntityTypeVersionedUri },
+              : { $ref: destinationEntityTypeId },
           }),
           {},
         )
@@ -343,7 +340,7 @@ export const generateWorkspaceEntityTypeSchema = (
 
   const requiredLinks = params.outgoingLinks
     .filter(({ required }) => !!required)
-    .map(({ linkTypeVersionedUri }) => linkTypeVersionedUri);
+    .map(({ linkTypeId }) => linkTypeId);
 
   return {
     $id,
@@ -383,7 +380,7 @@ export const entityTypeInitializer = (
 
       // initialize
       entityTypeModel = await EntityTypeModel.get(graphApi, {
-        versionedUri: entityType.$id,
+        entityTypeId: entityType.$id,
       }).catch(async (error: AxiosError) => {
         if (error.response?.status === 404) {
           // The type was missing, try and create it
@@ -423,7 +420,7 @@ export type LinkTypeCreatorParams = {
 export const generateWorkspaceLinkTypeSchema = (
   params: LinkTypeCreatorParams,
 ): LinkType => {
-  const $id = generateSchemaUri({
+  const $id = generateTypeId({
     namespace: params.namespace,
     title: params.title,
     kind: "link-type",
@@ -464,7 +461,7 @@ export const linkTypeInitializer = (
 
       // initialize
       linkTypeModel = await LinkTypeModel.get(graphApi, {
-        versionedUri: linkType.$id,
+        linkTypeId: linkType.$id,
       }).catch(async (error: AxiosError) => {
         if (error.response?.status === 404) {
           // The type was missing, try and create it

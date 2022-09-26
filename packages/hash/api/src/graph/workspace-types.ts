@@ -8,7 +8,7 @@ import {
   propertyTypeInitializer,
   entityTypeInitializer,
   linkTypeInitializer,
-  generateSchemaUri,
+  generateTypeId,
 } from "../model/util";
 
 // eslint-disable-next-line import/no-mutable-exports
@@ -116,17 +116,17 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
     properties: [
       {
         propertyTypeBaseUri: shortnamePropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: shortnamePropertyTypeModel.schema.$id,
+        propertyTypeId: shortnamePropertyTypeModel.schema.$id,
         required: true,
       },
       {
         propertyTypeBaseUri: orgNamePropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: orgNamePropertyTypeModel.schema.$id,
+        propertyTypeId: orgNamePropertyTypeModel.schema.$id,
         required: true,
       },
       {
         propertyTypeBaseUri: orgProvidedInfoPropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: orgProvidedInfoPropertyTypeModel.schema.$id,
+        propertyTypeId: orgProvidedInfoPropertyTypeModel.schema.$id,
         required: false,
       },
     ],
@@ -154,14 +154,14 @@ const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
     properties: [
       {
         propertyTypeBaseUri: responsibilityPropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: responsibilityPropertyTypeModel.schema.$id,
+        propertyTypeId: responsibilityPropertyTypeModel.schema.$id,
         required: true,
       },
     ],
     outgoingLinks: [
       {
-        linkTypeVersionedUri: ofOrgLinkTypeModel.schema.$id,
-        destinationEntityTypeVersionedUri: orgEntityTypeModel.schema.$id,
+        linkTypeId: ofOrgLinkTypeModel.schema.$id,
+        destinationEntityTypeId: orgEntityTypeModel.schema.$id,
         required: true,
       },
     ],
@@ -251,30 +251,29 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
     properties: [
       {
         propertyTypeBaseUri: shortnamePropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: shortnamePropertyTypeModel.schema.$id,
+        propertyTypeId: shortnamePropertyTypeModel.schema.$id,
       },
       {
         propertyTypeBaseUri: emailPropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: emailPropertyTypeModel.schema.$id,
+        propertyTypeId: emailPropertyTypeModel.schema.$id,
         required: true,
         array: { minItems: 1 },
       },
       {
         propertyTypeBaseUri: kratosIdentityIdPropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: kratosIdentityIdPropertyTypeModel.schema.$id,
+        propertyTypeId: kratosIdentityIdPropertyTypeModel.schema.$id,
         required: true,
       },
       {
         propertyTypeBaseUri: preferredNamePropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: preferredNamePropertyTypeModel.schema.$id,
+        propertyTypeId: preferredNamePropertyTypeModel.schema.$id,
         required: true,
       },
     ],
     outgoingLinks: [
       {
-        linkTypeVersionedUri: hasMembershipLinkTypeModel.schema.$id,
-        destinationEntityTypeVersionedUri:
-          orgMembershipEntityTypeModel.schema.$id,
+        linkTypeId: hasMembershipLinkTypeModel.schema.$id,
+        destinationEntityTypeId: orgMembershipEntityTypeModel.schema.$id,
       },
     ],
   })(graphApi);
@@ -312,18 +311,18 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
     properties: [
       {
         propertyTypeBaseUri: componentIdPropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: componentIdPropertyTypeModel.schema.$id,
+        propertyTypeId: componentIdPropertyTypeModel.schema.$id,
         required: true,
       },
     ],
     outgoingLinks: [
       {
-        linkTypeVersionedUri: blockDataLinkTypeModel.schema.$id,
+        linkTypeId: blockDataLinkTypeModel.schema.$id,
         /**
          * @todo: unset this when the destination entity type can be undefined
          * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
          */
-        destinationEntityTypeVersionedUri: dummyEntityTypeModel.schema.$id,
+        destinationEntityTypeId: dummyEntityTypeModel.schema.$id,
         required: true,
       },
     ],
@@ -350,7 +349,7 @@ const textEntityTypeInitializer = async (graphApi: GraphApi) => {
     properties: [
       {
         propertyTypeBaseUri: tokensPropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: tokensPropertyTypeModel.schema.$id,
+        propertyTypeId: tokensPropertyTypeModel.schema.$id,
         required: true,
         array: true,
       },
@@ -441,7 +440,7 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
 
   const title = "Page";
 
-  const pageVersionedUri = generateSchemaUri({
+  const pageEntityTypeId = generateTypeId({
     namespace,
     title,
     kind: "entity-type",
@@ -455,33 +454,33 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
     properties: [
       {
         propertyTypeBaseUri: summaryPropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: summaryPropertyTypeModel.schema.$id,
+        propertyTypeId: summaryPropertyTypeModel.schema.$id,
       },
       {
         propertyTypeBaseUri: archivedPropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: archivedPropertyTypeModel.schema.$id,
+        propertyTypeId: archivedPropertyTypeModel.schema.$id,
       },
       {
         propertyTypeBaseUri: titlePropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: titlePropertyTypeModel.schema.$id,
+        propertyTypeId: titlePropertyTypeModel.schema.$id,
         required: true,
       },
       {
         propertyTypeBaseUri: indexPropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: indexPropertyTypeModel.schema.$id,
+        propertyTypeId: indexPropertyTypeModel.schema.$id,
         required: true,
       },
     ],
     outgoingLinks: [
       {
-        linkTypeVersionedUri: containsLinkTypeModel.schema.$id,
-        destinationEntityTypeVersionedUri: blockEntityTypeModel.schema.$id,
+        linkTypeId: containsLinkTypeModel.schema.$id,
+        destinationEntityTypeId: blockEntityTypeModel.schema.$id,
         required: true,
         array: true,
       },
       {
-        linkTypeVersionedUri: parentLinkTypeTypeModel.schema.$id,
-        destinationEntityTypeVersionedUri: pageVersionedUri,
+        linkTypeId: parentLinkTypeTypeModel.schema.$id,
+        destinationEntityTypeId: pageEntityTypeId,
       },
     ],
   })(graphApi);
