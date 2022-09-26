@@ -388,7 +388,7 @@ const summaryPropertyTypeInitializer = propertyTypeInitializer({
 
 const titlePropertyTypeInitializer = propertyTypeInitializer({
   namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Summary",
+  title: "Title",
   description: "The title of something.",
   possibleValues: [{ primitiveDataType: "Text" }],
 });
