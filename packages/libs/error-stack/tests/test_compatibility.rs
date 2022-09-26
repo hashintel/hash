@@ -11,7 +11,7 @@ use common::*;
 use error_stack::compat::IntoReportCompat;
 
 #[cfg(all(rust_1_65, feature = "std"))]
-fn remove_opaque_attachment(messages: &mut Vec<String>) {
+fn remove_opaque_frames(messages: &mut Vec<String>) {
     /// Depending on how the backtrace is generated, it will appear at different locations. To
     /// simplify the general tests, we remove backtraces, they are tested explicitly in other tests.
     /// On nightly, anyhow/eyre will capture the backtrace and provide it by `Error::provide`. On
@@ -33,14 +33,14 @@ fn anyhow() {
     #[allow(unused_mut)]
     let mut report_messages = messages(&report);
     #[cfg(rust_1_65)]
-    remove_opaque_attachment(&mut report_messages);
+    remove_opaque_frames(&mut report_messages);
 
     let anyhow_report = anyhow.into_report().unwrap_err();
 
     #[allow(unused_mut)]
     let mut anyhow_messages = messages(&anyhow_report);
     #[cfg(rust_1_65)]
-    remove_opaque_attachment(&mut anyhow_messages);
+    remove_opaque_frames(&mut anyhow_messages);
 
     assert_eq!(
         anyhow_messages.into_iter().rev().collect::<Vec<_>>(),
@@ -169,14 +169,14 @@ fn eyre() {
     #[allow(unused_mut)]
     let mut report_messages = messages(&report);
     #[cfg(all(rust_1_65, feature = "std"))]
-    remove_opaque_attachment(&mut report_messages);
+    remove_opaque_frames(&mut report_messages);
 
     let eyre_report = eyre.into_report().unwrap_err();
 
     #[allow(unused_mut)]
     let mut eyre_messages = messages(&eyre_report);
     #[cfg(all(rust_1_65, feature = "std"))]
-    remove_opaque_attachment(&mut eyre_messages);
+    remove_opaque_frames(&mut eyre_messages);
 
     assert_eq!(
         eyre_messages.into_iter().rev().collect::<Vec<_>>(),
