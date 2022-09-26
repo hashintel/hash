@@ -35,12 +35,12 @@ const filterForAction = <T extends UpdatePageActionKey>(
     .map((action, index) => ({
       // We ensure the assertion in the filter step. The cast happens here to
       // make sure the index is correct across actions.
-      action: action as NonNullable<KnowledgeUpdatePageAction[T]>,
+      action: (action[key] ?? undefined) as NonNullable<
+        KnowledgeUpdatePageAction[T]
+      >,
       index,
     }))
-    .filter(
-      ({ action }) => action !== undefined && action != null && key in action,
-    );
+    .filter(({ action }) => action !== undefined);
 
 const validateActionsInput = (actions: KnowledgeUpdatePageAction[]) => {
   for (const [i, action] of actions.entries()) {
@@ -112,6 +112,7 @@ const createNewEntity = async (params: {
       createEntityWithPlaceholders,
       placeholderResults,
     } = params;
+    console.info("entities", { entityDefinition });
 
     placeholderResults.set(
       entityPlaceholderId,
