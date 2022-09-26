@@ -142,15 +142,15 @@ export default class {
 
     const entities = await Promise.all(
       entitiesInTree.map(async (definition) => ({
-        link: entityDefinition.meta
+        link: definition.meta
           ? {
-              parentIndex: entityDefinition.parentIndex,
-              meta: entityDefinition.meta,
+              parentIndex: definition.parentIndex,
+              meta: definition.meta,
             }
           : undefined,
         entity: await EntityModel.getOrCreate(graphApi, {
           createdById,
-          entityDefinition,
+          entityDefinition: definition,
         }),
       })),
     );
