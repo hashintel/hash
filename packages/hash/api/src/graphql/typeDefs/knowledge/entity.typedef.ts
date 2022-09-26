@@ -25,7 +25,7 @@ export const knowledgeEntityTypedef = gql`
     """
     The fixed id of the type this entity is of.
     """
-    entityTypeVersionedUri: ID!
+    entityTypeId: ID!
     """
     The full entity type definition.
     """
@@ -52,7 +52,7 @@ export const knowledgeEntityTypedef = gql`
   }
 
   """
-  Select entity types by ONE of componentId, entityTypeVersionedUri
+  Select entity types by ONE of componentId, entityTypeId
   """
   input KnowledgeEntityTypeChoice {
     """
@@ -62,7 +62,7 @@ export const knowledgeEntityTypedef = gql`
     """
     A fixed entity type ID. This may be a reference to a placeholder set using a previous createEntityTypeAction.
     """
-    entityTypeVersionedUri: String
+    entityTypeId: String
   }
 
   input KnowledgeLinkedEntityDefinition {
