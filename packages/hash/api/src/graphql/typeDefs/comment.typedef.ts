@@ -96,7 +96,7 @@ export const commentTypedef = gql`
     """
     Timestamp of when the comment was created
     """
-    createdAt: Date!
+    createdAt: Date
     """
     Timestamp of when the comment was resolved
     """
@@ -104,7 +104,7 @@ export const commentTypedef = gql`
     """
     # Timestamp of when the comment was last edited
     """
-    editedAt: Date
+    textUpdatedAt: Date
   }
 
   extend type Mutation {

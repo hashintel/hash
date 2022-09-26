@@ -96,15 +96,11 @@ class __Comment extends Entity {
       },
     ];
 
-    const commentProperties: DbCommentProperties = {
-      createdAt: new Date().toISOString(),
-    };
-
     const entity = await Entity.createEntityWithLinks(client, {
       user: createdBy,
       accountId,
       entityDefinition: {
-        entityProperties: commentProperties,
+        entityProperties: {},
         versioned: true,
         entityType: {
           systemTypeName: SystemTypeName.Comment,
@@ -113,7 +109,7 @@ class __Comment extends Entity {
       },
     });
 
-    return new Comment({ ...entity, properties: commentProperties });
+    return new Comment(entity);
   }
 
   static async getCommentById(

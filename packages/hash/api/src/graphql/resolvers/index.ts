@@ -25,7 +25,11 @@ import {
   setParentPage,
   pageLinkedEntities,
 } from "./pages";
-import { createComment, commentLinkedEntities } from "./comments";
+import {
+  createComment,
+  commentLinkedEntities,
+  commentProperties,
+} from "./comments";
 import { accounts } from "./account/accounts";
 import { createUser } from "./user/createUser";
 import { createUserWithOrgEmailInvitation } from "./user/createUserWithOrgEmailInvitation";
@@ -169,7 +173,7 @@ export const resolvers = {
   },
 
   Comment: {
-    properties: entityFields.properties,
+    properties: commentProperties,
     ...commentLinkedEntities,
   },
 

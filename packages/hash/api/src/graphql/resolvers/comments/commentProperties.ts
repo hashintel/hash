@@ -1,0 +1,39 @@
+import { ApolloError } from "apollo-server-express";
+import { Comment, UnresolvedGQLComment } from "../../../model";
+import {
+  CommentProperties as GQLCommentProperties,
+  ResolverFn,
+} from "../../apiTypes.gen";
+import { GraphQLContext } from "../../context";
+
+export const commentProperties: ResolverFn<
+  Promise<GQLCommentProperties>,
+  UnresolvedGQLComment,
+  GraphQLContext,
+  {}
+> = async ({ accountId, entityId }, _, { dataSources }) => {
+  const { db } = dataSources;
+  const comment = await Comment.getCommentById(db, { accountId, entityId });
+
+  if (!comment) {
+    throw new ApolloError(
+      `Comment with entityId ${entityId} not found in account ${accountId}`,
+      "NOT_FOUND",
+    );
+  }
+
+  const textTokens = await comment.getTokens(db);
+
+  if (!textTokens) {
+    throw new ApolloError(
+      `Text Entity not found for Comment with entityId ${entityId} in account ${accountId}`,
+      "NOT_FOUND",
+    );
+  }
+
+  return {
+    ...comment.properties,
+    createdAt: comment.createdAt.toISOString(),
+    textUpdatedAt: textTokens.updatedAt.toISOString(),
+  };
+};

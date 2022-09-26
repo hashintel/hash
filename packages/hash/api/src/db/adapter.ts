@@ -236,9 +236,9 @@ export type DbPageEntity = Omit<DbEntity, "properties"> & {
 };
 
 export type DbCommentProperties = {
-  createdAt: string;
-  editedAt?: string;
+  createdAt?: string;
   resolvedAt?: string;
+  textEditedAt?: string;
 };
 
 export type DbUnknownEntity = DbEntity;

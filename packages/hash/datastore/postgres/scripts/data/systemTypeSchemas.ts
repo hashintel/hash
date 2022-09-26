@@ -196,21 +196,13 @@ const systemTypeSchemas: {
     description: "A Comment belonging to a block.",
     type: "object",
     properties: {
-      createdAt: {
-        type: "date",
-        description: "Timestamp of when the comment was created",
-      },
-      editedAt: {
-        type: "date",
-        description: "Timestamp of when the comment was last edited",
-      },
       resolvedAt: {
         type: "date",
         description: "Timestamp of when the comment was resolved",
       },
     },
     labelProperty: "",
-    required: ["createdAt"],
+    required: [],
   },
 };
 
