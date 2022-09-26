@@ -5,7 +5,7 @@
 <span style='color:#a00'>│</span>
 <span style='color:#a00'>╰</span><span style='color:#a00'>─</span><span style='color:#a00'>▶</span><span style='color:#a00'> </span><b>No such file or directory (os error 2)</b>
 <span style='color:#a00'> </span><span style='color:#a00'> </span><span style='color:#a00'> </span><span style='color:#a00'> </span><span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/lib.rs:24:10</span>
-<span style='color:#a00'> </span><span style='color:#a00'> </span><span style='color:#a00'> </span><span style='color:#a00'> </span><span style='color:#a00'>╰</span><span style='color:#a00'>╴</span>backtrace with [n] frames (1)
+<span style='color:#a00'> </span><span style='color:#a00'> </span><span style='color:#a00'> </span><span style='color:#a00'> </span><span style='color:#a00'>╰</span><span style='color:#a00'>╴</span>backtrace (1)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

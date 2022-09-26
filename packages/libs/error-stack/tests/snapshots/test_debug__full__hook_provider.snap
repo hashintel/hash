@@ -9,7 +9,7 @@ Context D
 │
 ╰─▶ Root error
     ├╴tests/common.rs:147:5
-    ├╴backtrace with [n] frames (1)
+    ├╴backtrace (1)
     ╰╴spantrace with 2 frames (1)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

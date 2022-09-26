@@ -67,10 +67,10 @@ impl Report<()> {
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
     /// #
     /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
@@ -142,10 +142,10 @@ impl Report<()> {
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
     /// #
     /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
@@ -206,10 +206,10 @@ impl Report<()> {
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
     /// #
     /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
@@ -273,10 +273,10 @@ impl Report<()> {
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
     /// #
     /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
