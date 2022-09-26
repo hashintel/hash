@@ -161,6 +161,17 @@ export default class {
       })),
     );
 
+    let rootEntityModel: EntityModel;
+    if (entities[0]) {
+      // First element will be the root entity.
+      rootEntityModel = entities[0].entity;
+    } else {
+      throw new ApolloError(
+        "Could not create entity tree",
+        "INTERNAL_SERVER_ERROR",
+      );
+    }
+
     await Promise.all(
       entities.map(async ({ link, entity }) => {
         if (link) {
@@ -182,15 +193,7 @@ export default class {
       }),
     );
 
-    if (entities[0]) {
-      // First element will be the root entity.
-      return entities[0].entity;
-    } else {
-      throw new ApolloError(
-        "Could not create entity tree",
-        "INTERNAL_SERVER_ERROR",
-      );
-    }
+    return rootEntityModel;
   }
 
   /**
