@@ -332,7 +332,10 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
 const tokensPropertyTypeInitializer = propertyTypeInitializer({
   namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   title: "Text Tokens",
-  /** @todo: properly type this */
+  /**
+   * @todo: potentially improve this property type to be composed of nested property type definitions
+   * @see https://app.asana.com/0/1202805690238892/1203045933021778/f
+   */
   possibleValues: [{ primitiveDataType: "Object" }],
 });
 
