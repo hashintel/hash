@@ -7,11 +7,14 @@
 
 mod common;
 
-#[cfg(all(nightly, feature = "std"))]
-use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(feature = "eyre")]
 use std::sync::Once;
-use std::{error::Error, ops::Deref};
+#[cfg(all(nightly, feature = "std"))]
+use std::{
+    backtrace::{Backtrace, BacktraceStatus},
+    error::Error,
+    ops::Deref,
+};
 
 use common::*;
 use error_stack::compat::IntoReportCompat;
@@ -51,17 +54,18 @@ fn anyhow() {
 
     let mut swap = false;
 
+    #[cfg(nightly)]
     if has_provided_backtrace(&anyhow) {
         // Backtrace is provided through `anyhow::Error` by `Error::provide`
-        #[cfg(nightly)]
         remove_backtrace_context(&mut report_messages);
-    } else if supports_backtrace() {
+    }
+
+    if !cfg!(nightly) && supports_backtrace() {
         swap = true;
     }
 
     let anyhow_report = anyhow.into_report().unwrap_err();
 
-    #[allow(unused_mut)]
     let mut anyhow_messages = messages(&anyhow_report);
 
     if swap {
@@ -205,6 +209,7 @@ fn eyre() {
     }
 
     let eyre_report = eyre.into_report().unwrap_err();
+    #[allow(unused_mut)]
     let mut eyre_messages = messages(&eyre_report);
 
     #[cfg(feature = "std")]
