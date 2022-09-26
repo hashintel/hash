@@ -195,7 +195,7 @@ export default class {
    * @param params.entityDefinition the definition of how to get or create the entity (excluding any linked entities)
    */
   static async getOrCreate(
-    graphApi: any,
+    graphApi: GraphApi,
     params: {
       createdById: string;
       entityDefinition: Omit<KnowledgeEntityDefinition, "linkedEntities">;
