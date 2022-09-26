@@ -135,7 +135,10 @@ export default class {
       },
     );
 
-    /** @todo: this should be returned directly from the `createLink` method */
+    /**
+     * @todo: this should be returned directly from the `createLink` method
+     * @see https://app.asana.com/0/1202805690238892/1203045933021776/f
+     */
     const persistedLink = {
       inner: link,
       ownedById: createdBy,
