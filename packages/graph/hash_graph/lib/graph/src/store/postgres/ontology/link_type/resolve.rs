@@ -46,7 +46,7 @@ where
                             .change_context(ResolveError::Custom)?;
                         if let Some(entity_type_refs) = self.get(&versioned_uri) {
                             Ok(Literal::List(
-                                stream::iter(entity_type_refs.into_iter())
+                                stream::iter(entity_type_refs.iter())
                                     .then(|entity_type_ref| async move {
                                         context
                                             .read_versioned_ontology_type::<EntityType>(
