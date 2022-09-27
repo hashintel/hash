@@ -1,8 +1,6 @@
 import { gql } from "apollo-server-express";
 
 export const knowledgeEntityTypedef = gql`
-  # @todo add 'links' field to KnowledgeEntity
-  #   see https://app.asana.com/0/1202805690238892/1203046447168470/f
   interface KnowledgeEntity {
     # These fields are repeated everywhere they're used because
     # (a) GQL requires it - https://github.com/graphql/graphql-spec/issues/533
