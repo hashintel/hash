@@ -1,3 +1,4 @@
+import { sleep } from "@hashintel/hash-shared/sleep";
 import { test, expect } from "@playwright/test";
 import { loginUsingUi } from "./utils/login-using-ui";
 import { resetDb } from "./utils/reset-db";
@@ -14,7 +15,8 @@ test("user can view page in read-only mode but not update", async ({
     accountShortName: "alice",
   });
 
-  // Create the new page
+  // TODO: investigate why delay is required for create page button to work
+  await sleep(500);
   await page.locator('[data-testid="create-page-btn"]').click();
 
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
