@@ -1,0 +1,13 @@
+[package]
+name = "hash-graph-benches"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+criterion = "0.4.0"
+criterion-macro = "0.4.0"
+graph = { path = "../lib/graph", features = ["clap"] }
+
+[[bench]]
+name = "bench"
+bench = true

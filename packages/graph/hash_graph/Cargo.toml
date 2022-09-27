@@ -1,5 +1,5 @@
 [workspace]
-members = ["lib/*", "bin/*"]
+members = ["lib/*", "bin/*", "bench"]
 default-members = ["bin/hash_graph"]
 
 [workspace.package]
