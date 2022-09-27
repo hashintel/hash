@@ -30,25 +30,29 @@ type UserModelCreateParams = Omit<
  * @class {@link UserModel}
  */
 export default class extends EntityModel {
+  /**
+   * @todo: This method and `getUserByEntityId` is confusing. Should be fixed as part of:
+   *  https://app.asana.com/0/1200211978612931/1202937382769276/f
+   */
   static async getUserByAccountId(
     graphApi: GraphApi,
     params: { accountId: string },
   ): Promise<UserModel | null> {
-    /**
-     * @todo: This method and `getUserByEntityId` is confusing. Should be fixed as part of:
-     *  https://app.asana.com/0/1200211978612931/1202937382769276/f
-     */
-    const allEntities = await EntityModel.getAllLatest(graphApi, {
-      accountId: workspaceAccountId,
+    const allUsers = await EntityModel.getByQuery(graphApi, {
+      all: [
+        { eq: [{ path: ["version"] }, { literal: "latest" }] },
+        {
+          eq: [
+            { path: ["type", "versionedUri"] },
+            { literal: WORKSPACE_TYPES.entityType.user.schema.$id },
+          ],
+        },
+      ],
     });
 
-    const matchingUser = allEntities
-      .filter(
-        ({ entityTypeModel }) =>
-          entityTypeModel.schema.$id ===
-          WORKSPACE_TYPES.entityType.user.schema.$id,
-      )
-      .map((entityModel) => new UserModel(entityModel))
+    const matchingUser = allUsers
+      .filter(({ accountId }) => accountId === workspaceAccountId)
+      .map(UserModel.fromEntityModel)
       .find((user) => user.entityId === params.accountId);
 
     return matchingUser ?? null;
