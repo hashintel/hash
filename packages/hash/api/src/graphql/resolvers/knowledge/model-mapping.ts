@@ -2,9 +2,15 @@ import { EntityModel, PageModel } from "../../../model";
 import { KnowledgeEntity, KnowledgePage } from "../../apiTypes.gen";
 import { entityTypeModelToGQL } from "../ontology/model-mapping";
 
+export type ExternalEntityResolversGQL = "linkedEntities";
+export type UnresolvedEntityGQL = Omit<
+  KnowledgeEntity,
+  ExternalEntityResolversGQL
+>;
+
 export const entityModelToGQL = (
   entityModel: EntityModel,
-): KnowledgeEntity => ({
+): UnresolvedEntityGQL => ({
   entityId: entityModel.entityId,
   entityType: entityTypeModelToGQL(entityModel.entityTypeModel),
   entityTypeId: entityModel.entityTypeModel.schema.$id,
@@ -13,7 +19,7 @@ export const entityModelToGQL = (
   properties: entityModel.properties,
 });
 
-export type ExternalPageResolversGQL = "contents";
+export type ExternalPageResolversGQL = ExternalEntityResolversGQL | "contents";
 export type UnresolvedPageGQL = Omit<KnowledgePage, ExternalPageResolversGQL>;
 
 export const pageModelToGQL = (pageModel: PageModel): UnresolvedPageGQL => ({

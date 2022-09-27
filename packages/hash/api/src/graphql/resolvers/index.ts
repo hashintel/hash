@@ -96,7 +96,10 @@ import {
   getEntityType,
   updateEntityType,
 } from "./ontology/entity-type";
-import { knowledgeUpdatePageContents } from "./knowledge/page";
+import {
+  knowledgeUpdatePageContents,
+  knowledgePageContents,
+} from "./knowledge/page";
 
 export const resolvers = {
   Query: {
@@ -268,11 +271,10 @@ export const resolvers = {
     },
   },
 
-  /**
-   * @todo Add KnowledgePage.contents field resolver for resolving page contents
-   *   KnowledgePage: { contents .. }
-   *   see https://app.asana.com/0/0/1203057486837594/f
-   */
+  // New knowledge field resolvers
+  KnowledgePage: {
+    contents: knowledgePageContents,
+  },
 
   /**
    * @todo Add Entity.linkedEntities field resolver for resolving linked entities
