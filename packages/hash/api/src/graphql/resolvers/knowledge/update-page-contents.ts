@@ -31,16 +31,14 @@ const filterForAction = <T extends UpdatePageActionKey>(
   actions: KnowledgeUpdatePageAction[],
   key: T,
 ): { action: NonNullable<KnowledgeUpdatePageAction[T]>; index: number }[] =>
-  actions
-    .map((action, index) => ({
-      // We ensure the assertion in the filter step. The cast happens here to
-      // make sure the index is correct across actions.
-      action: (action[key] ?? undefined) as NonNullable<
-        KnowledgeUpdatePageAction[T]
-      >,
-      index,
-    }))
-    .filter(({ action }) => action !== undefined);
+  actions.reduce<
+    { action: NonNullable<KnowledgeUpdatePageAction[T]>; index: number }[]
+  >((acc, current, index) => {
+    if (current != null && key in current) {
+      acc.push({ action: current[key]!, index });
+    }
+    return acc;
+  }, []);
 
 const validateActionsInput = (actions: KnowledgeUpdatePageAction[]) => {
   for (const [i, action] of actions.entries()) {
