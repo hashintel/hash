@@ -16,6 +16,11 @@ import { BlocksMap, createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
 import { useReadonlyMode } from "../../shared/readonly-mode";
 import { usePageContext } from "./PageContext";
+import {
+  PAGE_CONTENT_WIDTH,
+  PAGE_HORIZONTAL_PADDING_FORMULA,
+  PAGE_MIN_PADDING,
+} from "../../pages/[account-slug]/[page-slug].page";
 
 type PageBlockProps = {
   blocks: BlocksMap;
@@ -104,8 +109,18 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     <UserBlocksProvider value={blocks}>
       <BlockLoadedProvider routeHash={routeHash}>
         <GlobalStyles
-          // prevents blue outline on selected nodes
-          styles={{ ".ProseMirror-selectednode": { outline: "none" } }}
+          styles={{
+            /**
+             * to handle margin-clicking, prosemirror should take full width, and give padding to it's content
+             * so it automatically handles focusing on closest node on margin-clicking
+             */
+            ".ProseMirror": {
+              padding: `0 ${PAGE_HORIZONTAL_PADDING_FORMULA} 320px`,
+              minWidth: `calc(${PAGE_CONTENT_WIDTH}px + (${PAGE_MIN_PADDING}px * 2))`,
+            },
+            // prevents blue outline on selected nodes
+            ".ProseMirror-selectednode": { outline: "none" },
+          }}
         />
         <Box id="root" ref={root} position="relative" />
         {portals}
