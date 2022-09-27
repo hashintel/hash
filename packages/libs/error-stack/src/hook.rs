@@ -2,15 +2,12 @@ use std::{error::Error, fmt, sync::RwLock};
 
 use crate::{
     fmt::{install_builtin_hooks, HookContext, Hooks},
-    Frame, Report, Result,
+    Report, Result,
 };
 
 type FormatterHook = Box<dyn Fn(&Report<()>, &mut fmt::Formatter<'_>) -> fmt::Result + Send + Sync>;
 
-static FMT_HOOK: RwLock<Hooks> = RwLock::new(Hooks {
-    inner: Vec::new(),
-    fallback: None,
-});
+static FMT_HOOK: RwLock<Hooks> = RwLock::new(Hooks { inner: Vec::new() });
 static DEBUG_HOOK: RwLock<Option<FormatterHook>> = RwLock::new(None);
 static DISPLAY_HOOK: RwLock<Option<FormatterHook>> = RwLock::new(None);
 
@@ -176,135 +173,11 @@ impl Report<()> {
         lock.insert(hook);
     }
 
-    /// Can be used to globally set the fallback [`Debug`] hook, which is called for every
-    /// attachment for which a hook wasn't registered using [`install_debug_hook`].
-    ///
-    /// You can refer to the `debug_stack` for a more in-depth look, as to how to potentially
-    /// exploit the fallback for more advanced use-cases, like using a, immutable builder pattern
-    /// instead, or a trait based approach.
-    ///
-    /// [`Debug`]: core::fmt::Debug
-    /// [`install_debug_hook`]: Self::install_debug_hook
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # // we only test the snapshot on rust 1.65, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
-    /// use std::io::{Error, ErrorKind};
-    /// use error_stack::{report, Report};
-    ///
-    /// struct Suggestion(&'static str);
-    ///
-    /// Report::install_debug_hook_fallback(|_, ctx| {
-    ///     ctx.push_body("unknown");
-    /// });
-    ///
-    /// let report =
-    ///     report!(Error::from(ErrorKind::InvalidInput)).attach(Suggestion("O no, try again"));
-    ///
-    /// # owo_colors::set_override(true);
-    /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
-    /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
-    /// #
-    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
-    /// # }
-    /// #
-    /// # #[cfg(rust_1_65)]
-    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback.snap")].assert_eq(&render(format!("{report:?}")));
-    /// #
-    /// println!("{report:?}");
-    /// ```
-    ///
-    /// Which will result in something like:
-    ///
-    /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback.snap"))]
-    /// </pre>
-    ///
-    /// This example showcases how we can use the fallback hook to downcast `UserError` and provide
-    /// custom formatting for it's content:
-    ///
-    /// ```
-    /// # // we only test the snapshot on rust 1.65, therefore report is unused (so is render)
-    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
-    /// use std::{
-    ///     error::Error,
-    ///     fmt::{Display, Formatter},
-    /// };
-    ///
-    /// use error_stack::{report, Report};
-    ///
-    /// #[derive(Debug)]
-    /// struct ErrorCode(u64);
-    ///
-    /// #[derive(Debug)]
-    /// struct UserError {
-    ///     code: ErrorCode,
-    /// }
-    ///
-    /// impl Display for UserError {
-    ///     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-    ///         f.write_str("Invalid user input")
-    ///     }
-    /// }
-    ///
-    /// impl Error for UserError {}
-    ///
-    /// // this will never called, because we **do not** provide `ErrorCode` in `UserError`
-    /// // we instead use fallback to provide better diagnostics.
-    /// Report::install_debug_hook::<ErrorCode>(|_, ctx| {
-    ///     ctx.push_body("Error Code");
-    /// });
-    ///
-    /// Report::install_debug_hook_fallback(|frame, ctx| {
-    ///     // add additional attachments, but only if we're a context of type `UserError`
-    ///     if let Some(error) = frame.downcast_ref::<UserError>() {
-    ///         ctx.push_body(format!("Error Code: {}", error.code.0));
-    ///     }
-    /// });
-    ///
-    /// let report = report!(UserError {code: ErrorCode(404)});
-    ///
-    /// # owo_colors::set_override(true);
-    /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
-    /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
-    /// #
-    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
-    /// # }
-    /// #
-    /// # #[cfg(rust_1_65)]
-    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback_context.snap")].assert_eq(&render(format!("{report:?}")));
-    /// #
-    /// println!("{report:?}");
-    /// ```
-    ///
-    /// Which will result in something like:
-    ///
-    /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__fallback_context.snap"))]
-    /// </pre>
-    #[cfg(feature = "std")]
-    pub fn install_debug_hook_fallback(
-        hook: impl Fn(&Frame, &mut HookContext<Frame>) + Send + Sync + 'static,
-    ) {
-        let mut lock = FMT_HOOK.write().expect("should not be poisoned");
-        lock.fallback(hook);
-    }
-
     /// Returns the hook that was previously set by [`install_debug_hook`]
     ///
     /// [`install_debug_hook`]: Self::install_debug_hook
     #[cfg(feature = "std")]
-    pub(crate) fn get_debug_format_hook<T>(closure: impl FnOnce(&Hooks) -> T) -> T {
+    pub(crate) fn invoke_debug_format_hook<T>(closure: impl FnOnce(&Hooks) -> T) -> T {
         install_builtin_hooks();
 
         let hook = FMT_HOOK.read().expect("should not be poisoned");
@@ -369,7 +242,7 @@ impl Report<()> {
     ///
     /// [`set_debug_hook`]: Self::set_debug_hook
     #[cfg(feature = "std")]
-    pub(crate) fn get_debug_hook<T>(closure: impl FnOnce(&FormatterHook) -> T) -> Option<T> {
+    pub(crate) fn invoke_debug_hook<T>(closure: impl FnOnce(&FormatterHook) -> T) -> Option<T> {
         let hook = DEBUG_HOOK.read().expect("should not poisoned");
         hook.as_ref().map(|hook| closure(hook))
     }
@@ -428,7 +301,7 @@ impl Report<()> {
     ///
     /// [`set_display_hook`]: Self::set_display_hook
     #[cfg(feature = "std")]
-    pub(crate) fn get_display_hook<T>(closure: impl FnOnce(&FormatterHook) -> T) -> Option<T> {
+    pub(crate) fn invoke_display_hook<T>(closure: impl FnOnce(&FormatterHook) -> T) -> Option<T> {
         let hook = DISPLAY_HOOK.read().expect("should not poisoned");
         hook.as_ref().map(|hook| closure(hook))
     }
@@ -437,11 +310,11 @@ impl Report<()> {
 impl<T> Report<T> {
     /// Converts the `&Report<T>` to `&Report<()>` without modifying the frame stack.
     ///
-    /// Changing `Report<T>` to `Report<()>` is only used internally for calling [`get_debug_hook`]
-    /// and [`get_display_hook`] and is intentionally not exposed.
+    /// Changing `Report<T>` to `Report<()>` is only used internally for calling
+    /// [`invoke_debug_hook`] and [`invoke_display_hook`] and is intentionally not exposed.
     ///
-    /// [`get_debug_hook`]: Self::get_debug_hook
-    /// [`get_display_hook`]: Self::get_display_hook
+    /// [`invoke_debug_hook`]: Self::invoke_debug_hook
+    /// [`invoke_display_hook`]: Self::invoke_display_hook
     pub(crate) const fn generalized(&self) -> &Report<()> {
         // SAFETY: `Report` is repr(transparent), so it's safe to cast between `Report<A>` and
         //         `Report<B>`
