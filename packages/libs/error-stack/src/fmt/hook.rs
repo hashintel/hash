@@ -681,15 +681,18 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
                 .or_else(|| {
                     frame
                         .request_value::<T>()
-                        .as_ref()
-                        .map(|val| hook(val, ctx.cast()))
+                        .map(|ref val| hook(val, ctx.cast()))
                 })
         }
 
+        // emulate the behavior from nightly by searching for
+        //  - `Context::provide`: not available
+        //  - `Attachment`s: provide themself, emulated by `downcast_ref`
         #[cfg(not(nightly))]
-        {
-            frame.downcast_ref::<T>().map(|val| hook(val, ctx.cast()))
-        }
+        matches!(frame.kind(), crate::FrameKind::Attachment(_))
+            .then_some(frame)
+            .and_then(Frame::downcast_ref::<T>)
+            .map(|val| hook(val, ctx.cast()))
     })
 }
 

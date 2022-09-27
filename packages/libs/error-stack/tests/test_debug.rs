@@ -471,6 +471,21 @@ mod full {
     }
 
     #[test]
+    fn hook_for_context() {
+        let _guard = prepare(false);
+
+        let report = create_report().attach(2u32);
+
+        Report::install_debug_hook::<RootError>(|_, _| {
+            // This should not be displayed as `RootError` is only used as `Context`, never as
+            // attachment.
+            unreachable!("A context should never be used as hook");
+        });
+
+        assert_snapshot!(format!("{report:?}"));
+    }
+
+    #[test]
     fn hook_multiple() {
         let _guard = prepare(false);
 
