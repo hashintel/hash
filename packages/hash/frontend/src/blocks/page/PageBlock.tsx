@@ -16,17 +16,16 @@ import { BlocksMap, createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
 import { useReadonlyMode } from "../../shared/readonly-mode";
 import { usePageContext } from "./PageContext";
-import {
-  PAGE_CONTENT_WIDTH,
-  PAGE_HORIZONTAL_PADDING_FORMULA,
-  PAGE_MIN_PADDING,
-} from "../../pages/[account-slug]/[page-slug].page";
 
 type PageBlockProps = {
   blocks: BlocksMap;
   accountId: string;
   entityId: string;
 };
+
+const PAGE_CONTENT_WIDTH = 696;
+export const PAGE_MIN_PADDING = 48;
+export const PAGE_HORIZONTAL_PADDING_FORMULA = `max(calc((100% - ${PAGE_CONTENT_WIDTH}px) / 2), ${PAGE_MIN_PADDING}px)`;
 
 /**
  * The naming of this as a "Block" is… interesting, considering it doesn't

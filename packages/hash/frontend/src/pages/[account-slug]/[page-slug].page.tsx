@@ -16,7 +16,11 @@ import { useEffect, useMemo, useState, FunctionComponent, useRef } from "react";
 import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
-import { PageBlock } from "../../blocks/page/PageBlock";
+import {
+  PageBlock,
+  PAGE_HORIZONTAL_PADDING_FORMULA,
+  PAGE_MIN_PADDING,
+} from "../../blocks/page/PageBlock";
 import { PageContextProvider } from "../../blocks/page/PageContext";
 import { PageTitle } from "../../blocks/page/PageTitle/PageTitle";
 import {
@@ -170,11 +174,6 @@ const generateCrumbsFromPages = ({
 
   return arr;
 };
-
-export const PAGE_CONTENT_WIDTH = 696;
-export const PAGE_MIN_PADDING = 48;
-
-export const PAGE_HORIZONTAL_PADDING_FORMULA = `max(calc((100% - ${PAGE_CONTENT_WIDTH}px) / 2), ${PAGE_MIN_PADDING}px)`;
 
 const Container = styled("div")({
   padding: `${PAGE_MIN_PADDING}px ${PAGE_HORIZONTAL_PADDING_FORMULA} 0`,
