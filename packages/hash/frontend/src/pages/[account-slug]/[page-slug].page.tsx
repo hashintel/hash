@@ -313,7 +313,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
               entityId={pageEntityId}
               versionId={versionId}
               sx={({ breakpoints }) => ({
-                [breakpoints.down("lg")]: { mb: 2 },
+                mb: 2,
                 [breakpoints.up("lg")]: {
                   position: "absolute",
                   top: 0,
