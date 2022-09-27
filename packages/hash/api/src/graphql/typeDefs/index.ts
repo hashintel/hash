@@ -22,6 +22,7 @@ import { dataTypeTypedef } from "./ontology/data-type.typedef";
 import { propertyTypeTypedef } from "./ontology/property-type.typedef";
 import { linkTypeTypedef } from "./ontology/link-type.typedef";
 import { entityTypeTypedef } from "./ontology/entity-type.typedef";
+import { knowledgeEntityTypedef } from "./knowledge/entity.typedef";
 
 const baseSchema = gql`
   scalar Date
@@ -50,6 +51,8 @@ const ontology = [
   entityTypeTypedef,
 ];
 
+const knowledge = [knowledgeEntityTypedef];
+
 // This needs to be called 'schema' to be picked up by codegen -
 // It could alternatively be a default export.
 export const schema = [
@@ -73,4 +76,5 @@ export const schema = [
   fileTypedef,
   executeTaskTypedef,
   ...ontology,
+  ...knowledge,
 ];
