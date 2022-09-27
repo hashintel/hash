@@ -8,6 +8,7 @@ import {
 } from "react";
 import { useBlockProtocolUpdateEntity } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
 import { rewriteEntityIdentifier } from "../../../lib/entities";
+import { useReadonlyMode } from "../../../shared/readonly-mode";
 import { usePageContext } from "../PageContext";
 import { cleanUpTitle, focusEditorBeginning } from "./utils";
 
@@ -24,6 +25,7 @@ const StyledTextarea = styled(TextareaAutosize)(({ theme }) =>
     fontSize: PAGE_TITLE_FONT_SIZE,
     lineHeight: PAGE_TITLE_LINE_HEIGHT,
     fontWeight: 500,
+    color: theme.palette.black,
 
     "&::placeholder": {
       color: theme.palette.gray[40],
@@ -31,7 +33,8 @@ const StyledTextarea = styled(TextareaAutosize)(({ theme }) =>
     },
 
     ":disabled": {
-      opacity: 0.5,
+      opacity: 1,
+      background: "transparent",
     },
   }),
 );
@@ -44,13 +47,13 @@ type PageTitleProps = {
 
 export const PAGE_TITLE_PLACEHOLDER = "Untitled";
 
-// TODO: Add read-only mode based on page permissions
 export const PageTitle: FunctionComponent<PageTitleProps> = ({
   accountId,
   entityId,
   value,
 }) => {
   // TODO: Display update error once expected UX is discussed
+  const { readonlyMode } = useReadonlyMode();
   const { updateEntity, updateEntityLoading } =
     useBlockProtocolUpdateEntity(true);
   const [prevValue, setPrevValue] = useState(value);
@@ -107,7 +110,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
     <StyledTextarea
       ref={pageTitleRef}
       placeholder={PAGE_TITLE_PLACEHOLDER}
-      disabled={updateEntityLoading}
+      disabled={updateEntityLoading || readonlyMode}
       onChange={handleInputChange}
       onKeyDown={handleInputKeyDown}
       onBlur={handleInputBlur}
