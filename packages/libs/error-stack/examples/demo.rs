@@ -26,19 +26,19 @@ fn parse_experiment(description: &str) -> Result<Vec<(u64, u64)>, ParseExperimen
                 .attach_printable_lazy(|| format!("{value:?} could not be parsed as experiment"))
         })
         .map(|value| value.map(|ok| (ok, 2 * ok)))
-        .fold(Ok(vec![]), |acc, value| match (acc, value) {
-            (Ok(mut acc), Ok(value)) => Ok({
-                acc.push(value);
+        .fold(Ok(vec![]), |accum, value| match (accum, value) {
+            (Ok(mut accum), Ok(value)) => {
+                accum.push(value);
 
-                acc
-            }),
+                Ok(accum)
+            }
             (Ok(_), Err(err)) => Err(err),
-            (Err(acc), Ok(_)) => Err(acc),
-            (Err(mut acc), Err(err)) => Err({
-                acc.extend_one(err);
+            (Err(accum), Ok(_)) => Err(accum),
+            (Err(mut accum), Err(err)) => {
+                accum.extend_one(err);
 
-                acc
-            }),
+                Err(accum)
+            }
         })
         .change_context(ParseExperimentError)?;
 
@@ -81,19 +81,19 @@ fn start_experiments(
         })
         .fold(
             Ok(vec![]),
-            |acc: Result<_, ExperimentError>, value| match (acc, value) {
-                (Ok(mut acc), Ok(value)) => Ok({
-                    acc.extend(value);
+            |accum: Result<_, ExperimentError>, value| match (accum, value) {
+                (Ok(mut accum), Ok(value)) => {
+                    accum.extend(value);
 
-                    acc
-                }),
+                    Ok(accum)
+                }
                 (Ok(_), Err(err)) => Err(err),
-                (Err(acc), Ok(_)) => Err(acc),
-                (Err(mut acc), Err(err)) => Err({
-                    acc.extend_one(err);
+                (Err(accum), Ok(_)) => Err(accum),
+                (Err(mut accum), Err(err)) => {
+                    accum.extend_one(err);
 
-                    acc
-                }),
+                    Err(accum)
+                }
             },
         )
         .attach_printable("Unable to set up experiments")?;
