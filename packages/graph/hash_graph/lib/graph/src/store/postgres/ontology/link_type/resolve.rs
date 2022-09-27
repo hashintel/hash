@@ -44,13 +44,13 @@ where
                         let versioned_uri = VersionedUri::from_str(link_type_id)
                             .into_report()
                             .change_context(ResolveError::Custom)?;
-                        if let Some(entity_type_ids) = self.get(&versioned_uri) {
+                        if let Some(entity_type_refs) = self.get(&versioned_uri) {
                             Ok(Literal::List(
-                                stream::iter(entity_type_ids.into_iter())
-                                    .then(|entity_type_id| async move {
+                                stream::iter(entity_type_refs.into_iter())
+                                    .then(|entity_type_ref| async move {
                                         context
                                             .read_versioned_ontology_type::<EntityType>(
-                                                entity_type_id.uri(),
+                                                entity_type_ref.uri(),
                                             )
                                             .await
                                             .change_context(ResolveError::StoreReadError)?
