@@ -23,7 +23,7 @@ where
 #[derive(Debug)]
 pub struct OntologyRecord<T> {
     pub record: T,
-    pub account_id: AccountId,
+    pub account_id: AccountId, // TODO - rename to owned_by_id
     pub is_latest: bool,
 }
 
