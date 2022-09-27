@@ -5,6 +5,11 @@ export const commentTypedef = gql`
     properties: CommentProperties!
 
     """
+    # Timestamp of when the comment was last edited
+    """
+    textUpdatedAt: Date
+
+    """
     Text contents of the comment
     """
     tokens: [TextToken!]!
@@ -94,17 +99,9 @@ export const commentTypedef = gql`
 
   type CommentProperties {
     """
-    Timestamp of when the comment was created
-    """
-    createdAt: Date
-    """
     Timestamp of when the comment was resolved
     """
     resolvedAt: Date
-    """
-    # Timestamp of when the comment was last edited
-    """
-    textUpdatedAt: Date
   }
 
   extend type Mutation {

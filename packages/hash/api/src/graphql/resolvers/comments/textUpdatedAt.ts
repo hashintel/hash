@@ -1,13 +1,10 @@
 import { ApolloError } from "apollo-server-express";
 import { Comment, UnresolvedGQLComment } from "../../../model";
-import {
-  CommentProperties as GQLCommentProperties,
-  ResolverFn,
-} from "../../apiTypes.gen";
+import { ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 
-export const commentProperties: ResolverFn<
-  Promise<GQLCommentProperties>,
+export const textUpdatedAt: ResolverFn<
+  Promise<string>,
   UnresolvedGQLComment,
   GraphQLContext,
   {}
@@ -31,9 +28,5 @@ export const commentProperties: ResolverFn<
     );
   }
 
-  return {
-    ...comment.properties,
-    createdAt: comment.createdAt.toISOString(),
-    textUpdatedAt: textTokens.updatedAt.toISOString(),
-  };
+  return textTokens.updatedAt.toISOString();
 };

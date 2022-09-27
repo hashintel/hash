@@ -28,7 +28,7 @@ import {
 import {
   createComment,
   commentLinkedEntities,
-  commentProperties,
+  textUpdatedAtFieldResolver,
 } from "./comments";
 import { accounts } from "./account/accounts";
 import { createUser } from "./user/createUser";
@@ -173,7 +173,10 @@ export const resolvers = {
   },
 
   Comment: {
-    properties: commentProperties,
+    properties: {
+      ...entityFields.properties,
+    },
+    textUpdatedAt: textUpdatedAtFieldResolver,
     ...commentLinkedEntities,
   },
 
