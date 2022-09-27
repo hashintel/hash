@@ -43,7 +43,6 @@ pub struct DatabaseApi<'pool> {
 impl DatabaseTestWrapper {
     pub async fn new() -> Self {
         const USER: &str = "graph";
-
         const PASSWORD: &str = "graph";
         const HOST: &str = "localhost";
         const PORT: u16 = 5432;
@@ -112,7 +111,7 @@ impl DatabaseTestWrapper {
         for property_type in property_types {
             store
                 .create_property_type(
-                    PropertyType::from_str(property_type).expect("could not parse data type"),
+                    PropertyType::from_str(property_type).expect("could not parse property type"),
                     account_id,
                 )
                 .await?;

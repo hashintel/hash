@@ -319,6 +319,7 @@ dependencies = [
  "ciborium",
  "clap",
  "criterion-plot",
+ "futures",
  "itertools",
  "lazy_static",
  "num-traits",
@@ -330,6 +331,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "tinytemplate",
+ "tokio",
  "walkdir",
 ]
 
@@ -664,12 +666,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "hash-graph-benches"
+name = "hash_graph_bench_utils"
 version = "0.0.0"
 dependencies = [
  "criterion",
  "criterion-macro",
  "graph",
+ "graph-test-data",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-postgres",
+ "type-system",
+ "uuid",
 ]
 
 [[package]]

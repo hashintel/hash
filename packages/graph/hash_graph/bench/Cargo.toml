@@ -1,13 +1,19 @@
 [package]
-name = "hash-graph-benches"
+name = "hash_graph_bench_utils"
 version = "0.0.0"
 edition = "2021"
+publish = false
 
 [dependencies]
-criterion = "0.4.0"
-criterion-macro = "0.4.0"
 graph = { path = "../lib/graph", features = ["clap"] }
+serde = { version = "1.0.137", features = ["derive"] }
+serde_json = "1.0.83"
+tokio = { version = "1.18.2", features = ["rt-multi-thread", "macros"] }
+tokio-postgres = { version = "0.7.6", default-features = false }
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "6526c0e" }
+uuid = { version = "1.1.2", features = ["v4", "serde"] }
 
-[[bench]]
-name = "bench"
-bench = true
+[dev-dependencies]
+criterion = { version = "0.4.0", features = ["async_tokio"] }
+criterion-macro = "0.4.0"
+graph-test-data = { path = "../tests/test_data" }
