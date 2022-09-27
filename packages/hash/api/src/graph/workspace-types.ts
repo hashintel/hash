@@ -480,6 +480,7 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
         destinationEntityTypeId: blockEntityTypeModel.schema.$id,
         required: true,
         array: true,
+        ordered: true,
       },
       {
         linkTypeId: parentLinkTypeTypeModel.schema.$id,

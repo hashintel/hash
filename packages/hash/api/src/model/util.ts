@@ -284,6 +284,7 @@ export type EntityTypeCreatorParams = {
     destinationEntityTypeId: string;
     required?: boolean;
     array?: { minItems?: number; maxItems?: number } | boolean;
+    ordered?: boolean;
   }[];
 };
 
@@ -321,15 +322,16 @@ export const generateWorkspaceEntityTypeSchema = (
     .filter(({ required }) => !!required)
     .map(({ propertyTypeBaseUri }) => propertyTypeBaseUri);
 
-  const links: EntityType["links"] =
+  const links =
     params.outgoingLinks.length > 0
-      ? params.outgoingLinks.reduce(
-          (prev, { linkTypeId, destinationEntityTypeId, array }) => ({
+      ? params.outgoingLinks.reduce<EntityType["links"]>(
+          (prev, { linkTypeId, destinationEntityTypeId, array, ordered }) => ({
             ...prev,
             [linkTypeId]: array
               ? {
                   type: "array",
                   items: { $ref: destinationEntityTypeId },
+                  ordered,
                   ...(array === true ? {} : array),
                 }
               : { $ref: destinationEntityTypeId },
