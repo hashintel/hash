@@ -4,13 +4,7 @@ import { ApolloError, UserInputError } from "apollo-server-errors";
 import produce from "immer";
 import { GraphApi } from "@hashintel/hash-graph-client";
 
-import {
-  BlockModel,
-  EntityModel,
-  EntityTypeModel,
-  PageModel,
-  UserModel,
-} from "../../../model";
+import { BlockModel, EntityModel, PageModel, UserModel } from "../../../model";
 import { exactlyOne } from "../../../util";
 import {
   KnowledgeCreateEntityAction,
@@ -25,6 +19,7 @@ import {
   ResolverFn,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
+import { pageModelToGQL } from "./model-mapping";
 
 type UpdatePageActionKey = keyof KnowledgeUpdatePageAction;
 
@@ -375,11 +370,11 @@ export const knowledgeUpdatePageContents: ResolverFn<
   );
 
   // @todo, perhaps check this exists first?
-  const page = await PageModel.getPageById(graphApi, {
+  const pageModel = await PageModel.getPageById(graphApi, {
     entityId: pageEntityId,
   });
 
-  if (!page) {
+  if (!pageModel) {
     const msg = `Page with fixed ID ${pageEntityId} not found in account ${accountId}`;
     throw new ApolloError(msg, "NOT_FOUND");
   }
@@ -388,19 +383,19 @@ export const knowledgeUpdatePageContents: ResolverFn<
   for (const [i, action] of actions.entries()) {
     try {
       if (action.insertBlock) {
-        await page.insertBlock(graphApi, {
+        await pageModel.insertBlock(graphApi, {
           block: insertedBlocks[insertCount]!,
           position: action.insertBlock.position,
           insertedById: userModel.accountId,
         });
         insertCount += 1;
       } else if (action.moveBlock) {
-        await page.moveBlock(graphApi, {
+        await pageModel.moveBlock(graphApi, {
           ...action.moveBlock,
           movedById: userModel.accountId,
         });
       } else if (action.removeBlock) {
-        await page.removeBlock(graphApi, {
+        await pageModel.removeBlock(graphApi, {
           ...action.removeBlock,
           removedById: userModel.accountId,
           allowRemovingFinal: actions
@@ -416,6 +411,8 @@ export const knowledgeUpdatePageContents: ResolverFn<
     }
   }
 
-  /** @todo rest of page updating. */
-  throw new Error("unimplemented");
+  return {
+    page: await pageModelToGQL(graphApi, pageModel),
+    placeholders: placeholderResults.getResults(),
+  };
 };
