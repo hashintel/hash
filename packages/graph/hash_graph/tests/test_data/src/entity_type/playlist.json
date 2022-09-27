@@ -13,7 +13,11 @@
     "https://blockprotocol.org/@alice/types/link-type/contains/v/1": {
       "type": "array",
       "items": {
-        "$ref": "https://blockprotocol.org/@alice/types/entity-type/song/v/1"
+        "oneOf": [
+          {
+            "$ref": "https://blockprotocol.org/@alice/types/entity-type/song/v/1"
+          }
+        ]
       },
       "ordered": true
     }

@@ -8,7 +8,6 @@ import {
   propertyTypeInitializer,
   entityTypeInitializer,
   linkTypeInitializer,
-  generateTypeId,
 } from "../model/util";
 
 // eslint-disable-next-line import/no-mutable-exports
@@ -115,18 +114,15 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
     title: "Organization",
     properties: [
       {
-        propertyTypeBaseUri: shortnamePropertyTypeModel.baseUri,
-        propertyTypeId: shortnamePropertyTypeModel.schema.$id,
+        propertyTypeModel: shortnamePropertyTypeModel,
         required: true,
       },
       {
-        propertyTypeBaseUri: orgNamePropertyTypeModel.baseUri,
-        propertyTypeId: orgNamePropertyTypeModel.schema.$id,
+        propertyTypeModel: orgNamePropertyTypeModel,
         required: true,
       },
       {
-        propertyTypeBaseUri: orgProvidedInfoPropertyTypeModel.baseUri,
-        propertyTypeId: orgProvidedInfoPropertyTypeModel.schema.$id,
+        propertyTypeModel: orgProvidedInfoPropertyTypeModel,
         required: false,
       },
     ],
@@ -153,15 +149,14 @@ const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
     title: "OrgMembership",
     properties: [
       {
-        propertyTypeBaseUri: responsibilityPropertyTypeModel.baseUri,
-        propertyTypeId: responsibilityPropertyTypeModel.schema.$id,
+        propertyTypeModel: responsibilityPropertyTypeModel,
         required: true,
       },
     ],
     outgoingLinks: [
       {
-        linkTypeId: ofOrgLinkTypeModel.schema.$id,
-        destinationEntityTypeId: orgEntityTypeModel.schema.$id,
+        linkTypeModel: ofOrgLinkTypeModel,
+        destinationEntityTypeModels: [orgEntityTypeModel],
         required: true,
       },
     ],
@@ -250,30 +245,26 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
     title: "User",
     properties: [
       {
-        propertyTypeBaseUri: shortnamePropertyTypeModel.baseUri,
-        propertyTypeId: shortnamePropertyTypeModel.schema.$id,
+        propertyTypeModel: shortnamePropertyTypeModel,
       },
       {
-        propertyTypeBaseUri: emailPropertyTypeModel.baseUri,
-        propertyTypeId: emailPropertyTypeModel.schema.$id,
+        propertyTypeModel: emailPropertyTypeModel,
         required: true,
         array: { minItems: 1 },
       },
       {
-        propertyTypeBaseUri: kratosIdentityIdPropertyTypeModel.baseUri,
-        propertyTypeId: kratosIdentityIdPropertyTypeModel.schema.$id,
+        propertyTypeModel: kratosIdentityIdPropertyTypeModel,
         required: true,
       },
       {
-        propertyTypeBaseUri: preferredNamePropertyTypeModel.baseUri,
-        propertyTypeId: preferredNamePropertyTypeModel.schema.$id,
+        propertyTypeModel: preferredNamePropertyTypeModel,
         required: true,
       },
     ],
     outgoingLinks: [
       {
-        linkTypeId: hasMembershipLinkTypeModel.schema.$id,
-        destinationEntityTypeId: orgMembershipEntityTypeModel.schema.$id,
+        linkTypeModel: hasMembershipLinkTypeModel,
+        destinationEntityTypeModels: [orgMembershipEntityTypeModel],
       },
     ],
   })(graphApi);
@@ -310,19 +301,18 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
     title: "Block",
     properties: [
       {
-        propertyTypeBaseUri: componentIdPropertyTypeModel.baseUri,
-        propertyTypeId: componentIdPropertyTypeModel.schema.$id,
+        propertyTypeModel: componentIdPropertyTypeModel,
         required: true,
       },
     ],
     outgoingLinks: [
       {
-        linkTypeId: blockDataLinkTypeModel.schema.$id,
+        linkTypeModel: blockDataLinkTypeModel,
         /**
          * @todo: unset this when the destination entity type can be undefined
          * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
          */
-        destinationEntityTypeId: dummyEntityTypeModel.schema.$id,
+        destinationEntityTypeModels: [dummyEntityTypeModel],
         required: true,
       },
     ],
@@ -351,8 +341,7 @@ const textEntityTypeInitializer = async (graphApi: GraphApi) => {
     title: "Text",
     properties: [
       {
-        propertyTypeBaseUri: tokensPropertyTypeModel.baseUri,
-        propertyTypeId: tokensPropertyTypeModel.schema.$id,
+        propertyTypeModel: tokensPropertyTypeModel,
         required: true,
         array: true,
       },
@@ -443,12 +432,6 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
 
   const title = "Page";
 
-  const pageEntityTypeId = generateTypeId({
-    namespace,
-    title,
-    kind: "entity-type",
-  });
-
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -456,35 +439,31 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
     title,
     properties: [
       {
-        propertyTypeBaseUri: summaryPropertyTypeModel.baseUri,
-        propertyTypeId: summaryPropertyTypeModel.schema.$id,
+        propertyTypeModel: summaryPropertyTypeModel,
       },
       {
-        propertyTypeBaseUri: archivedPropertyTypeModel.baseUri,
-        propertyTypeId: archivedPropertyTypeModel.schema.$id,
+        propertyTypeModel: archivedPropertyTypeModel,
       },
       {
-        propertyTypeBaseUri: titlePropertyTypeModel.baseUri,
-        propertyTypeId: titlePropertyTypeModel.schema.$id,
+        propertyTypeModel: titlePropertyTypeModel,
         required: true,
       },
       {
-        propertyTypeBaseUri: indexPropertyTypeModel.baseUri,
-        propertyTypeId: indexPropertyTypeModel.schema.$id,
+        propertyTypeModel: indexPropertyTypeModel,
         required: true,
       },
     ],
     outgoingLinks: [
       {
-        linkTypeId: containsLinkTypeModel.schema.$id,
-        destinationEntityTypeId: blockEntityTypeModel.schema.$id,
+        linkTypeModel: containsLinkTypeModel,
+        destinationEntityTypeModels: [blockEntityTypeModel],
         required: true,
         array: true,
         ordered: true,
       },
       {
-        linkTypeId: parentLinkTypeTypeModel.schema.$id,
-        destinationEntityTypeId: pageEntityTypeId,
+        linkTypeModel: parentLinkTypeTypeModel,
+        destinationEntityTypeModels: ["SELF_REFERENCE"],
       },
     ],
   })(graphApi);
