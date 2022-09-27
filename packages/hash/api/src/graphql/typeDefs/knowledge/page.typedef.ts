@@ -2,7 +2,7 @@ import { gql } from "apollo-server-express";
 
 export const knowledgePageTypedef = gql`
   type KnowledgePage implements KnowledgeEntity {
-    contents: [Block!]!
+    contents: [KnowledgeBlock!]!
     archived: Boolean
     summary: String
     title: String!
@@ -28,7 +28,7 @@ export const knowledgePageTypedef = gql`
     """
     The full entity type definition.
     """
-    entityType: EntityType!
+    entityType: PersistedEntityType!
     """
     The linked entities of the entity.
     """
