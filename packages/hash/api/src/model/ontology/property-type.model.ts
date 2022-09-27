@@ -9,7 +9,7 @@ import {
 import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
 import { DataTypeModel, PropertyTypeModel, UserModel } from "../index";
-import { extractBaseUri, generateSchemaUri, workspaceAccountId } from "../util";
+import { extractBaseUri, generateTypeId, workspaceAccountId } from "../util";
 
 type PropertyTypeModelConstructorParams = {
   accountId: string;
@@ -79,12 +79,12 @@ export default class {
       );
     }
 
-    const propertyTypeUri = generateSchemaUri({
+    const propertyTypeId = generateTypeId({
       namespace,
       kind: "property-type",
       title: params.schema.title,
     });
-    const fullPropertyType = { $id: propertyTypeUri, ...params.schema };
+    const fullPropertyType = { $id: propertyTypeId, ...params.schema };
 
     const { data: identifier } = await graphApi
       .createPropertyType({
@@ -177,17 +177,17 @@ export default class {
   /**
    * Get a property type by its versioned URI.
    *
-   * @param params.versionedUri the unique versioned URI for a property type.
+   * @param params.propertyTypeId the unique versioned URI for a property type.
    */
   static async get(
     graphApi: GraphApi,
     params: {
-      versionedUri: string;
+      propertyTypeId: string;
     },
   ): Promise<PropertyTypeModel> {
-    const { versionedUri } = params;
+    const { propertyTypeId } = params;
     const { data: persistedPropertyType } = await graphApi.getPropertyType(
-      versionedUri,
+      propertyTypeId,
     );
 
     return PropertyTypeModel.fromPersistedPropertyType(persistedPropertyType);
@@ -196,14 +196,14 @@ export default class {
   /**
    * Get a property type by its versioned URI.
    *
-   * @param params.versionedUri the unique versioned URI for a property type.
+   * @param params.propertyTypeId the unique versioned URI for a property type.
    * @param params.dataTypeQueryDepth recursion depth to use to resolve data types
    * @param params.propertyTypeQueryDepth recursion depth to use to resolve property types
    */
   static async getResolved(
     graphApi: GraphApi,
     params: {
-      versionedUri: string;
+      propertyTypeId: string;
       dataTypeQueryDepth: number;
       propertyTypeQueryDepth: number;
     },
@@ -217,13 +217,13 @@ export default class {
         dataTypeQueryDepth: params.dataTypeQueryDepth,
         propertyTypeQueryDepth: params.propertyTypeQueryDepth,
         query: {
-          eq: [{ path: ["versionedUri"] }, { literal: params.versionedUri }],
+          eq: [{ path: ["versionedUri"] }, { literal: params.propertyTypeId }],
         },
       });
     const propertyTypeRootedSubgraph = propertyTypeRootedSubgraphs.pop();
     if (propertyTypeRootedSubgraph === undefined) {
       throw new Error(
-        `Unable to retrieve property type for URI: ${params.versionedUri}`,
+        `Unable to retrieve property type for URI: ${params.propertyTypeId}`,
       );
     }
 

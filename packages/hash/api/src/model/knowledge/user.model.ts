@@ -30,25 +30,29 @@ type UserModelCreateParams = Omit<
  * @class {@link UserModel}
  */
 export default class extends EntityModel {
+  /**
+   * @todo: This method and `getUserByEntityId` is confusing. Should be fixed as part of:
+   *  https://app.asana.com/0/1200211978612931/1202937382769276/f
+   */
   static async getUserByAccountId(
     graphApi: GraphApi,
     params: { accountId: string },
   ): Promise<UserModel | null> {
-    /**
-     * @todo: This method and `getUserByEntityId` is confusing. Should be fixed as part of:
-     *  https://app.asana.com/0/1200211978612931/1202937382769276/f
-     */
-    const allEntities = await EntityModel.getAllLatest(graphApi, {
-      accountId: workspaceAccountId,
+    const allUsers = await EntityModel.getByQuery(graphApi, {
+      all: [
+        { eq: [{ path: ["version"] }, { literal: "latest" }] },
+        {
+          eq: [
+            { path: ["type", "versionedUri"] },
+            { literal: WORKSPACE_TYPES.entityType.user.schema.$id },
+          ],
+        },
+      ],
     });
 
-    const matchingUser = allEntities
-      .filter(
-        ({ entityTypeModel }) =>
-          entityTypeModel.schema.$id ===
-          WORKSPACE_TYPES.entityType.user.schema.$id,
-      )
-      .map((entityModel) => new UserModel(entityModel))
+    const matchingUser = allUsers
+      .filter(({ accountId }) => accountId === workspaceAccountId)
+      .map(UserModel.fromEntityModel)
       .find((user) => user.entityId === params.accountId);
 
     return matchingUser ?? null;
@@ -121,20 +125,23 @@ export default class extends EntityModel {
      * @todo: use upcoming Graph API method to filter entities in the datastore
      *   https://app.asana.com/0/1202805690238892/1202890614880643/f
      */
-    const allEntities = await EntityModel.getAllLatest(graphApi, {
-      accountId: workspaceAccountId,
+    const userEntities = await EntityModel.getByQuery(graphApi, {
+      all: [
+        { eq: [{ path: ["version"] }, { literal: "latest" }] },
+        {
+          eq: [
+            { path: ["type", "versionedUri"] },
+            { literal: WORKSPACE_TYPES.entityType.user.schema.$id },
+          ],
+        },
+      ],
     });
 
-    const matchingUser = allEntities
-      .filter(
-        ({ entityTypeModel }) =>
-          entityTypeModel.schema.$id ===
-          WORKSPACE_TYPES.entityType.user.schema.$id,
-      )
-      .map((entityModel) => new UserModel(entityModel))
-      .find((user) => user.getShortname() === params.shortname);
-
-    return matchingUser ?? null;
+    return (
+      userEntities
+        .map(UserModel.fromEntityModel)
+        .find((user) => user.getShortname() === params.shortname) ?? null
+    );
   }
 
   /**
@@ -150,20 +157,25 @@ export default class extends EntityModel {
      * @todo: use upcoming Graph API method to filter entities in the datastore
      *   https://app.asana.com/0/1202805690238892/1202890614880643/f
      */
-    const allEntities = await EntityModel.getAllLatest(graphApi, {
-      accountId: workspaceAccountId,
+    const userEntities = await EntityModel.getByQuery(graphApi, {
+      all: [
+        { eq: [{ path: ["version"] }, { literal: "latest" }] },
+        {
+          eq: [
+            { path: ["type", "versionedUri"] },
+            { literal: WORKSPACE_TYPES.entityType.user.schema.$id },
+          ],
+        },
+      ],
     });
 
-    const matchingUser = allEntities
-      .filter(
-        ({ entityTypeModel }) =>
-          entityTypeModel.schema.$id ===
-          WORKSPACE_TYPES.entityType.user.schema.$id,
-      )
-      .map((entityModel) => new UserModel(entityModel))
-      .find((user) => user.getKratosIdentityId() === params.kratosIdentityId);
-
-    return matchingUser ?? null;
+    return (
+      userEntities
+        .map(UserModel.fromEntityModel)
+        .find(
+          (user) => user.getKratosIdentityId() === params.kratosIdentityId,
+        ) ?? null
+    );
   }
 
   /**
@@ -424,6 +436,7 @@ export default class extends EntityModel {
     await this.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.ofOrg,
       targetEntityModel: orgMembership,
+      createdById: workspaceAccountId,
     });
   }
 

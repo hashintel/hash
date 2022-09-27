@@ -77,7 +77,7 @@ export const getEntityType: ResolverFn<
   const { graphApi } = dataSources;
 
   const entityTypeRootedSubgraph = await EntityTypeModel.getResolved(graphApi, {
-    versionedUri: entityTypeVersionedUri,
+    entityTypeId: entityTypeVersionedUri,
     dataTypeQueryDepth: dataTypeQueryDepth(info),
     propertyTypeQueryDepth: propertyTypeQueryDepth(info),
     linkTypeQueryDepth: linkTypeQueryDepth(info),
@@ -102,7 +102,7 @@ export const updateEntityType: ResolverFn<
   const { accountId, entityTypeVersionedUri, updatedEntityType } = params;
 
   const entityTypeModel = await EntityTypeModel.get(graphApi, {
-    versionedUri: entityTypeVersionedUri,
+    entityTypeId: entityTypeVersionedUri,
   }).catch((err: AxiosError) => {
     throw new ApolloError(
       `Unable to retrieve entity type. ${err.response?.data} [URI=${entityTypeVersionedUri}]`,

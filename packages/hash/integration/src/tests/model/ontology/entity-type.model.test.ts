@@ -139,7 +139,7 @@ describe("Entity type CRU", () => {
 
   it("can read an entity type", async () => {
     const fetchedEntityType = await EntityTypeModel.get(graphApi, {
-      versionedUri: createdEntityType.schema.$id,
+      entityTypeId: createdEntityType.schema.$id,
     });
 
     expect(fetchedEntityType.schema).toEqual(createdEntityType.schema);

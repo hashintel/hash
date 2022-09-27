@@ -8,6 +8,7 @@ import {
   propertyTypeInitializer,
   entityTypeInitializer,
   linkTypeInitializer,
+  generateTypeId,
 } from "../model/util";
 
 // eslint-disable-next-line import/no-mutable-exports
@@ -32,12 +33,23 @@ export let WORKSPACE_TYPES: {
 
     // Block-related
     componentId: PropertyTypeModel;
+
+    // Page-related
+    archived: PropertyTypeModel;
+    summary: PropertyTypeModel;
+    title: PropertyTypeModel;
+    index: PropertyTypeModel;
+
+    // Text-related
+    tokens: PropertyTypeModel;
   };
   entityType: {
     user: EntityTypeModel;
     org: EntityTypeModel;
     orgMembership: EntityTypeModel;
     block: EntityTypeModel;
+    page: EntityTypeModel;
+    text: EntityTypeModel;
     /**
      * @todo: deprecate all uses of this dummy entity type
      * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
@@ -53,6 +65,10 @@ export let WORKSPACE_TYPES: {
 
     // Block-related
     blockData: LinkTypeModel;
+
+    // Page-related
+    contains: LinkTypeModel;
+    parent: LinkTypeModel;
   };
 };
 
@@ -304,6 +320,37 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
   })(graphApi);
 };
 
+const tokensPropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Text Tokens",
+  /**
+   * @todo: potentially improve this property type to be composed of nested property type definitions
+   * @see https://app.asana.com/0/1202805690238892/1203045933021778/f
+   */
+  possibleValues: [{ primitiveDataType: "Object" }],
+});
+
+const textEntityTypeInitializer = async (graphApi: GraphApi) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const tokensPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.tokens(graphApi);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+  return entityTypeInitializer({
+    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+    title: "Text",
+    properties: [
+      {
+        propertyTypeModel: tokensPropertyTypeModel,
+        required: true,
+        array: true,
+      },
+    ],
+    outgoingLinks: [],
+  })(graphApi);
+};
+
 /**
  * @todo: remove this dummy entity type once we are able to define the block data link type without it
  * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
@@ -314,6 +361,118 @@ const dummyEntityTypeInitializer = async (graphApi: GraphApi) => {
     title: "Dummy",
     properties: [],
     outgoingLinks: [],
+  })(graphApi);
+};
+
+const archivedPropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Archived",
+  description: "Whether or not something has been archived.",
+  possibleValues: [{ primitiveDataType: "Boolean" }],
+});
+
+const summaryPropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Summary",
+  description: "The summary of the something.",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+const titlePropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Title",
+  description: "The title of something.",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+const indexPropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Index",
+  description:
+    "The (fractional) index indicating the current position of something.",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+const containsLinkTypeInitializer = linkTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Contains",
+  description: "Something containing something.",
+});
+
+const parentLinkTypeInitializer = linkTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Parent",
+  description: "The parent of something.",
+});
+
+const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const summaryPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.summary(graphApi);
+
+  const archivedPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.archived(graphApi);
+
+  const titlePropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.title(graphApi);
+
+  const indexPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.index(graphApi);
+
+  const containsLinkTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.linkType.contains(graphApi);
+
+  const parentLinkTypeTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.linkType.parent(graphApi);
+
+  const blockEntityTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.entityType.block(graphApi);
+
+  const namespace = WORKSPACE_ACCOUNT_SHORTNAME;
+
+  const title = "Page";
+
+  const pageEntityTypeId = generateTypeId({
+    namespace,
+    title,
+    kind: "entity-type",
+  });
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    namespace,
+    title,
+    properties: [
+      {
+        propertyTypeModel: summaryPropertyTypeModel
+      },
+      {
+        propertyTypeModel: archivedPropertyTypeModel
+      },
+      {
+        propertyTypeModel: titlePropertyTypeModel,
+        required: true,
+      },
+      {
+        propertyTypeModel: indexPropertyTypeModel,
+        required: true,
+      },
+    ],
+    outgoingLinks: [
+      {
+        linkTypeId: containsLinkTypeModel.schema.$id,
+        destinationEntityTypeIds: [blockEntityTypeModel.schema.$id],
+        required: true,
+        array: true,
+        ordered: true,
+      },
+      {
+        linkTypeId: parentLinkTypeTypeModel.schema.$id,
+        destinationEntityTypeIds: [pageEntityTypeId],
+      },
+    ],
   })(graphApi);
 };
 
@@ -343,18 +502,29 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     responsibility: responsibilityPropertyTypeInitializer,
 
     componentId: componentIdPropertyTypeInitializer,
+
+    summary: summaryPropertyTypeInitializer,
+    archived: archivedPropertyTypeInitializer,
+    title: titlePropertyTypeInitializer,
+    index: indexPropertyTypeInitializer,
+
+    tokens: tokensPropertyTypeInitializer,
   },
   entityType: {
     user: userEntityTypeInitializer,
     org: orgEntityTypeInitializer,
     orgMembership: orgMembershipEntityTypeInitializer,
     block: blockEntityTypeInitializer,
+    page: pageEntityTypeInitializer,
+    text: textEntityTypeInitializer,
     dummy: dummyEntityTypeInitializer,
   },
   linkType: {
     ofOrg: ofOrgLinkTypeInitializer,
     hasMembership: hasMembershipLinkTypeInitializer,
     blockData: blockDataLinkTypeInitializer,
+    contains: containsLinkTypeInitializer,
+    parent: parentLinkTypeInitializer,
   },
 };
 

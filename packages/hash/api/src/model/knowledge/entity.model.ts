@@ -1,4 +1,8 @@
-import { PersistedEntity, GraphApi } from "@hashintel/hash-graph-client";
+import {
+  PersistedEntity,
+  GraphApi,
+  KnowledgeGraphQuery,
+} from "@hashintel/hash-graph-client";
 
 import {
   EntityModel,
@@ -62,9 +66,7 @@ export default class {
     if (cachedEntityTypeModel) {
       entityTypeModel = cachedEntityTypeModel;
     } else {
-      entityTypeModel = await EntityTypeModel.get(graphApi, {
-        versionedUri: entityTypeId,
-      });
+      entityTypeModel = await EntityTypeModel.get(graphApi, { entityTypeId });
       if (cachedEntityTypeModels) {
         cachedEntityTypeModels.set(entityTypeId, entityTypeModel);
       }
@@ -112,32 +114,24 @@ export default class {
     });
   }
 
-  /**
-   * Get all entities at their latest version.
-   *
-   * @param params.accountId the accountId of the account requesting the entities
-   */
-  static async getAllLatest(
+  static async getByQuery(
     graphApi: GraphApi,
-    _params: { accountId: string },
+    query: object,
+    options?: Omit<Partial<KnowledgeGraphQuery>, "query">,
   ): Promise<EntityModel[]> {
-    /**
-     * @todo: get all latest entities in specified account.
-     *   This may mean implictly filtering results by what an account is
-     *   authorized to see.
-     *   https://app.asana.com/0/1202805690238892/1202890446280569/f
-     */
-    const { data: entities } = await graphApi.getLatestEntities();
-
-    const cachedEntityTypeModels = new Map<string, EntityTypeModel>();
+    const { data: entityRootedSubgraphs } = await graphApi.getEntitiesByQuery({
+      query,
+      dataTypeQueryDepth: options?.dataTypeQueryDepth ?? 0,
+      propertyTypeQueryDepth: options?.propertyTypeQueryDepth ?? 0,
+      linkTypeQueryDepth: options?.linkTypeQueryDepth ?? 0,
+      entityTypeQueryDepth: options?.entityTypeQueryDepth ?? 0,
+      linkTargetEntityQueryDepth: options?.linkTargetEntityQueryDepth ?? 0,
+      linkQueryDepth: options?.linkQueryDepth ?? 0,
+    });
 
     return await Promise.all(
-      entities.map((entity) =>
-        EntityModel.fromPersistedEntity(
-          graphApi,
-          entity,
-          cachedEntityTypeModels,
-        ),
+      entityRootedSubgraphs.map(({ entity }) =>
+        EntityModel.fromPersistedEntity(graphApi, entity),
       ),
     );
   }
@@ -257,10 +251,9 @@ export default class {
   /** @see {@link LinkModel.create} */
   async createOutgoingLink(
     graphApi: GraphApi,
-    params: Omit<LinkModelCreateParams, "sourceEntityModel" | "createdBy">,
+    params: Omit<LinkModelCreateParams, "sourceEntityModel">,
   ): Promise<LinkModel> {
     return await LinkModel.create(graphApi, {
-      createdBy: this.accountId,
       sourceEntityModel: this,
       ...params,
     });
