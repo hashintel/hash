@@ -1,15 +1,15 @@
 extend = { path = "../../../.github/scripts/rust/Makefile.toml" }
 
 [env]
-CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default,hooks,futures"
-CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default,hooks,futures"
+CARGO_CLIPPY_HACK_FLAGS = "--workspace --optional-deps --feature-powerset --exclude-features default,hooks,futures"
+CARGO_TEST_HACK_FLAGS = "--workspace --optional-deps --feature-powerset --exclude-features default,hooks,futures"
 CARGO_MIRI_FLAGS = "--tests --lib"
 CARGO_INSTA_TEST_FLAGS = "--no-fail-fast"
 CARGO_RUSTDOC_HACK_FLAGS = ""
 CARGO_DOC_HACK_FLAGS = ""
 # The only features that are of relevance are: spantrace, pretty-print, std
 # all others do not change the output
-CARGO_INSTA_TEST_HACK_FLAGS = "--keep-going --feature-powerset --include-features spantrace,pretty-print,std --ignore-unknown-features"
+CARGO_INSTA_TEST_HACK_FLAGS = "--keep-going --feature-powerset --include-features spantrace,pretty-print,std"
 
 
 [tasks.test]
