@@ -98,3 +98,5 @@ This will most likely result in an error and print
 ![](assets/full.png)
 
 Please see the [documentation] for a full description.
+
+For more examples, please check out the [examples](./examples) folder.
