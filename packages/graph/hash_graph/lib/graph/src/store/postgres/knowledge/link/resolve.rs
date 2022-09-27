@@ -17,6 +17,7 @@ where
             [] => todo!("{}", UNIMPLEMENTED_LITERAL_OBJECT),
             [head_path_segment, tail_path_segments @ ..] => {
                 let literal = match head_path_segment.identifier.as_str() {
+                    "ownedById" => Literal::String(self.account_id.to_string()),
                     "type" => {
                         return context
                             .read_versioned_ontology_type::<LinkType>(&self.link_type_id)
