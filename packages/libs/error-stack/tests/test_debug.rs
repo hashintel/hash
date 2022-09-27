@@ -237,7 +237,7 @@ fn sources_nested_alternate() {
 }
 
 #[cfg(all(
-    nightly,
+    rust_1_65,
     feature = "std",
     feature = "spantrace",
     feature = "pretty-print"
@@ -263,14 +263,12 @@ mod full {
     //!
     //! There are still some big snapshot tests, which are used evaluate all of the above.
 
+    #[cfg(nightly)]
+    use std::any::Demand;
     use std::{
-        any::Demand,
         error::Error,
         fmt::{Display, Formatter},
     };
-
-    #[cfg(all(nightly, feature = "unstable"))]
-    use error_stack::fmt::DebugDiagnostic;
 
     use super::*;
 
@@ -552,18 +550,21 @@ mod full {
         assert_snapshot!("alt", format!("{report:#?}"));
     }
 
+    #[cfg(nightly)]
     #[derive(Debug)]
     struct ContextD {
         code: usize,
         reason: &'static str,
     }
 
+    #[cfg(nightly)]
     impl Display for ContextD {
         fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
             f.write_str("Context D")
         }
     }
 
+    #[cfg(nightly)]
     impl Error for ContextD {
         fn provide<'a>(&'a self, req: &mut Demand<'a>) {
             req.provide_ref(&self.code);
@@ -572,6 +573,7 @@ mod full {
     }
 
     #[test]
+    #[cfg(nightly)]
     fn hook_provider() {
         let _guard = prepare(false);
 
