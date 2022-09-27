@@ -54,7 +54,7 @@ const validateActionsInput = (actions: KnowledgeUpdatePageAction[]) => {
       )
     ) {
       throw new UserInputError(
-        `at action ${i}: exactly one of insertBlock, moveBlock, removeBlock or updateEntity must be specified`,
+        `at action ${i}: exactly one of the fields on KnowledgeUpdatePageAction must be specified`,
       );
     }
   }
@@ -91,6 +91,10 @@ class PlaceholderResultsMap {
   }
 }
 
+/**
+ * Create new entity.
+ * Acts on {@link KnowledgeCreateEntityAction}
+ */
 const createNewEntity = async (params: {
   createEntityAction: KnowledgeCreateEntityAction;
   index: number;
@@ -124,10 +128,14 @@ const createNewEntity = async (params: {
   }
 };
 
+/**
+ * Insert new block onto page.
+ * Acts on {@link KnowledgeInsertBlockAction}
+ */
 const insertNewBlock = async (
   graphApi: GraphApi,
   params: {
-    user: UserModel;
+    userModel: UserModel;
     insertBlockAction: KnowledgeInsertBlockAction;
     index: number;
     createEntityWithPlaceholders: (
@@ -139,7 +147,7 @@ const insertNewBlock = async (
 ): Promise<BlockModel> => {
   try {
     const {
-      user,
+      userModel,
       insertBlockAction: {
         accountId: blockAccountId,
         componentId: blockComponentId,
@@ -181,7 +189,7 @@ const insertNewBlock = async (
     } else if (blockComponentId) {
       block = await BlockModel.createBlock(graphApi, {
         blockData,
-        accountId: user.accountId,
+        accountId: userModel.accountId,
         componentId: blockComponentId,
       });
     } else {
@@ -205,13 +213,22 @@ const insertNewBlock = async (
   }
 };
 
-const blockSwapAction = async (
+/**
+ * Swap a block's data entity to another entity.
+ * Acts on {@link KnowledgeSwapBlockDataAction}
+ */
+const swapBlockData = async (
   graphApi: GraphApi,
   params: {
+    userModel: UserModel;
     swapBlockDataAction: KnowledgeSwapBlockDataAction;
   },
-): Promise<BlockModel> => {
-  const { entityId } = params.swapBlockDataAction;
+): Promise<void> => {
+  const {
+    userModel,
+    swapBlockDataAction: { entityId },
+  } = params;
+
   const block = await BlockModel.getBlockById(graphApi, {
     entityId,
   });
@@ -220,23 +237,31 @@ const blockSwapAction = async (
     throw new Error(`Block with entityId ${entityId} not found`);
   }
 
-  /** @todo: fix with real impl, replace return value. */
-  // return await block.swapBlockData(client, {
-  //   targetDataAccountId: swapBlockData.newEntityAccountId,
-  //   targetDataEntityId: swapBlockData.newEntityEntityId,
-  //   updatedByAccountId: user.accountId,
-  // });
-  return block;
+  const { newEntityAccountId, newEntityEntityId } = params.swapBlockDataAction;
+
+  const newBlockDataEntity = await EntityModel.getLatest(graphApi, {
+    entityId: newEntityEntityId,
+    accountId: newEntityAccountId,
+  });
+
+  await block.updateBlockDataEntity(graphApi, {
+    updatedById: userModel.accountId,
+    newBlockDataEntity,
+  });
 };
 
+/**
+ * Update properties of an entity.
+ * Acts on {@link KnowledgeUpdateEntityAction}
+ */
 const updateEntity = async (
   graphApi: GraphApi,
   params: {
+    userModel: UserModel;
     action: KnowledgeUpdateEntityAction;
-    user: UserModel;
   },
 ): Promise<void> => {
-  const { action, user } = params;
+  const { action, userModel } = params;
   const entityModel = await EntityModel.getLatest(graphApi, {
     accountId: action.accountId,
     entityId: action.entityId,
@@ -246,7 +271,7 @@ const updateEntity = async (
     updatedProperties: Object.entries(action.properties).map(
       ([key, value]) => ({ propertyTypeBaseUri: key, value }),
     ),
-    updatedByAccountId: user.accountId,
+    updatedByAccountId: userModel.accountId,
   });
 };
 
@@ -262,7 +287,7 @@ export const knowledgeUpdatePageContents: ResolverFn<
 > = async (
   _,
   { accountId, entityId: pageEntityId, actions },
-  { dataSources, user },
+  { dataSources, user: userModel },
 ) => {
   validateActionsInput(actions);
   const placeholderResults = new PlaceholderResultsMap();
@@ -322,7 +347,7 @@ export const knowledgeUpdatePageContents: ResolverFn<
   const _insertBlockActions = Promise.all(
     filterForAction(actions, "insertBlock").map(({ action, index }) =>
       insertNewBlock(graphApi, {
-        user,
+        userModel,
         insertBlockAction: action,
         index,
         createEntityWithPlaceholders,
@@ -332,17 +357,19 @@ export const knowledgeUpdatePageContents: ResolverFn<
   );
 
   // Perform any block data swapping updates.
-
   await Promise.all(
     filterForAction(actions, "swapBlockData").map(({ action }) =>
-      blockSwapAction(graphApi, { swapBlockDataAction: action }),
+      swapBlockData(graphApi, {
+        userModel,
+        swapBlockDataAction: action,
+      }),
     ),
   );
 
   // Perform any entity updates.
   await Promise.all(
     filterForAction(actions, "updateEntity").map(async ({ action }) =>
-      updateEntity(graphApi, { action, user }),
+      updateEntity(graphApi, { userModel, action }),
     ),
   );
 
