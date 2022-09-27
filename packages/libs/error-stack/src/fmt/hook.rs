@@ -162,10 +162,10 @@ impl HookContextInner {
 /// # owo_colors::set_override(true);
 /// # fn render(value: String) -> String {
 /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-/// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+/// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
 /// #
 /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-/// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+/// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
 /// #
 /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 /// # }
@@ -242,10 +242,10 @@ impl HookContextInner {
 /// # owo_colors::set_override(true);
 /// # fn render(value: String) -> String {
 /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-/// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+/// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
 /// #
 /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-/// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+/// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
 /// #
 /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 /// # }
@@ -323,10 +323,10 @@ impl<T> HookContext<T> {
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
     /// #
     /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
@@ -370,10 +370,10 @@ impl<T> HookContext<T> {
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
     /// #
     /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
@@ -437,10 +437,10 @@ impl<T> HookContext<T> {
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
     /// #
     /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
@@ -563,10 +563,10 @@ impl<T: 'static> HookContext<T> {
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
     /// #
     /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
@@ -628,10 +628,10 @@ impl<T: 'static> HookContext<T> {
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
     /// #
     /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
@@ -681,15 +681,18 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
                 .or_else(|| {
                     frame
                         .request_value::<T>()
-                        .as_ref()
-                        .map(|val| hook(val, ctx.cast()))
+                        .map(|ref val| hook(val, ctx.cast()))
                 })
         }
 
+        // emulate the behavior from nightly by searching for
+        //  - `Context::provide`: not available
+        //  - `Attachment`s: provide themself, emulated by `downcast_ref`
         #[cfg(not(nightly))]
-        {
-            frame.downcast_ref::<T>().map(|val| hook(val, ctx.cast()))
-        }
+        matches!(frame.kind(), crate::FrameKind::Attachment(_))
+            .then_some(frame)
+            .and_then(Frame::downcast_ref::<T>)
+            .map(|val| hook(val, ctx.cast()))
     })
 }
 
@@ -818,11 +821,14 @@ mod default {
         let idx = ctx.increment_counter();
 
         ctx.push_appendix(format!("Backtrace No. {}\n{}", idx + 1, backtrace));
+        #[cfg(nightly)]
         ctx.push_body(format!(
             "backtrace with {} frames ({})",
             backtrace.frames().len(),
             idx + 1
         ));
+        #[cfg(not(nightly))]
+        ctx.push_body(format!("backtrace ({})", idx + 1));
     }
 
     #[cfg(feature = "spantrace")]

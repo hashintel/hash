@@ -14,7 +14,7 @@ Context A
  |  |
  |  |-> Root error
  |      |-at tests/common.rs:147:5
- |      |-backtrace with [n] frames (1)
+ |      |-backtrace (1)
  |      |-6
  |
  |> Context A
@@ -33,7 +33,7 @@ Context A
      |  |
      |  |-> Root error
      |      |-at tests/common.rs:147:5
-     |      |-backtrace with [n] frames (2)
+     |      |-backtrace (2)
      |
      |> Context A
      |  |-at tests/test_debug.rs:186:10
@@ -45,7 +45,7 @@ Context A
      |  |
      |  |-> Root error
      |      |-at tests/common.rs:147:5
-     |      |-backtrace with [n] frames (3)
+     |      |-backtrace (3)
      |
      |> Context A
      |  |-at tests/test_debug.rs:172:10
@@ -58,7 +58,7 @@ Context A
      |  |
      |  |-> Root error
      |      |-at tests/common.rs:147:5
-     |      |-backtrace with [n] frames (4)
+     |      |-backtrace (4)
      |
      |> Context A
      |  |-at tests/test_debug.rs:182:10
@@ -68,7 +68,7 @@ Context A
      |  |
      |  |-> Root error
      |      |-at tests/common.rs:147:5
-     |      |-backtrace with [n] frames (5)
+     |      |-backtrace (5)
      |
      |> Context A
         |-at tests/test_debug.rs:178:10
@@ -81,7 +81,7 @@ Context A
         |
         |-> Root error
             |-at tests/common.rs:147:5
-            |-backtrace with [n] frames (6)
+            |-backtrace (6)
 
 ========================================
 
