@@ -228,18 +228,13 @@ export default class {
       }
     } else if (entityProperties) {
       const { entityType } = entityDefinition;
-      const { componentId, entityTypeId } = entityType ?? {};
+      const { entityTypeId } = entityType ?? {};
 
-      if (!exactlyOne(entityTypeId, componentId)) {
+      if (!exactlyOne(entityTypeId)) {
         throw new ApolloError(
-          `Given no valid type identifier. Must be one of entityTypeId or componentId`,
+          `Given no valid type identifier. Must be one of entityTypeId`,
           "NOT_FOUND",
         );
-      }
-
-      /** @todo figure out what to do about component ID */
-      if (componentId) {
-        throw new Error(`Component ID is unimplemented.`);
       }
 
       const entityTypeModel = await EntityTypeModel.get(graphApi, {
