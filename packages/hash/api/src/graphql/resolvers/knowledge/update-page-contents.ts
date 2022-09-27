@@ -1,6 +1,6 @@
 // import { JsonObject } from "@blockprotocol/core";
 
-import { UserInputError } from "apollo-server-errors";
+import { ApolloError, UserInputError } from "apollo-server-errors";
 import produce from "immer";
 import { GraphApi } from "@hashintel/hash-graph-client";
 
@@ -8,6 +8,7 @@ import {
   BlockModel,
   EntityModel,
   EntityTypeModel,
+  PageModel,
   UserModel,
 } from "../../../model";
 import { exactlyOne } from "../../../util";
@@ -310,9 +311,9 @@ export const knowledgeUpdatePageContents: ResolverFn<
         );
       }
 
-      // /**
-      //  * @todo remove this when legacy links are removed
-      //  */
+      /**
+       * @todo Figure out what would be the equivalent ot linked data in the new graph api.
+       */
       // if (draft.entityProperties?.text?.__linkedData?.entityId) {
       //   draft.entityProperties.text.__linkedData.entityId =
       //     placeholderResults.get(
@@ -327,7 +328,7 @@ export const knowledgeUpdatePageContents: ResolverFn<
     });
   };
 
-  /** @todo */
+  /** @todo Implement entity type creation */
   // Create any _new_ entity types
 
   /**
@@ -344,7 +345,7 @@ export const knowledgeUpdatePageContents: ResolverFn<
   }
 
   // Create any _new_ blocks
-  const _insertBlockActions = Promise.all(
+  const insertedBlocks = await Promise.all(
     filterForAction(actions, "insertBlock").map(({ action, index }) =>
       insertNewBlock(graphApi, {
         userModel,
@@ -372,6 +373,48 @@ export const knowledgeUpdatePageContents: ResolverFn<
       updateEntity(graphApi, { userModel, action }),
     ),
   );
+
+  // @todo, perhaps check this exists first?
+  const page = await PageModel.getPageById(graphApi, {
+    entityId: pageEntityId,
+  });
+
+  if (!page) {
+    const msg = `Page with fixed ID ${pageEntityId} not found in account ${accountId}`;
+    throw new ApolloError(msg, "NOT_FOUND");
+  }
+
+  let insertCount = 0;
+  for (const [i, action] of actions.entries()) {
+    try {
+      if (action.insertBlock) {
+        await page.insertBlock(graphApi, {
+          block: insertedBlocks[insertCount]!,
+          position: action.insertBlock.position,
+          insertedById: userModel.accountId,
+        });
+        insertCount += 1;
+      } else if (action.moveBlock) {
+        await page.moveBlock(graphApi, {
+          ...action.moveBlock,
+          movedById: userModel.accountId,
+        });
+      } else if (action.removeBlock) {
+        await page.removeBlock(graphApi, {
+          ...action.removeBlock,
+          removedById: userModel.accountId,
+          allowRemovingFinal: actions
+            .slice(i + 1)
+            .some((actionToFollow) => actionToFollow.insertBlock),
+        });
+      }
+    } catch (err) {
+      if (err instanceof UserInputError) {
+        throw new UserInputError(`action ${i}: ${err}`);
+      }
+      throw err;
+    }
+  }
 
   /** @todo rest of page updating. */
   throw new Error("unimplemented");
