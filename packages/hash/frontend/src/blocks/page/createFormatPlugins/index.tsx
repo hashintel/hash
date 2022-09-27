@@ -95,6 +95,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
 
       return {
         destroy() {
+          clearTimeout(timeout);
           renderPortal(null, mountNode);
           mountNode.remove();
         },

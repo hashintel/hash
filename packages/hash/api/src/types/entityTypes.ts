@@ -1,5 +1,6 @@
 export const SYSTEM_TYPES = [
   "Block",
+  "Comment",
   "EntityType",
   "Org",
   "Page",

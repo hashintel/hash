@@ -11,10 +11,7 @@ import {
 import { useCallback } from "react";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 
-export const useArchivePage = (): [
-  (value: boolean, accountId: string, pageEntityId: string) => Promise<void>,
-  { loading: boolean },
-] => {
+export const useArchivePage = () => {
   const [updatePageFn, { loading }] = useMutation<
     UpdatePageMutation,
     UpdatePageMutationVariables
@@ -51,5 +48,5 @@ export const useArchivePage = (): [
     [updatePageFn, getRefetchQueries],
   );
 
-  return [archivePage, { loading }];
+  return [archivePage, { loading }] as const;
 };

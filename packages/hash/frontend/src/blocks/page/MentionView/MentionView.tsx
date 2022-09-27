@@ -1,6 +1,5 @@
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
-import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { RenderPortal } from "../usePortals";
 import { MentionDisplay } from "./MentionDisplay";
 
@@ -12,7 +11,6 @@ export class MentionView implements NodeView<Schema> {
     public view: EditorView<Schema>,
     public getPos: () => number,
     public renderPortal: RenderPortal,
-    public manager: ProsemirrorManager,
     public accountId: string,
   ) {
     this.dom = document.createElement("span");
