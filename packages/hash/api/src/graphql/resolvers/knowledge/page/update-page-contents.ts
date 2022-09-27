@@ -13,7 +13,6 @@ import {
 import { exactlyOne } from "../../../../util";
 import {
   KnowledgeCreateEntityAction,
-  KnowledgeEntity,
   KnowledgeEntityDefinition,
   KnowledgeInsertBlockAction,
   KnowledgeSwapBlockDataAction,
@@ -24,7 +23,7 @@ import {
   ResolverFn,
 } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { pageModelToGQL } from "../model-mapping";
+import { pageModelToGQL, UnresolvedPageGQL } from "../model-mapping";
 
 type UpdatePageActionKey = keyof KnowledgeUpdatePageAction;
 
@@ -278,9 +277,9 @@ const updateEntity = async (
 
 export const knowledgeUpdatePageContents: ResolverFn<
   Promise<
-    {
-      page: KnowledgeEntity;
-    } & Omit<KnowledgeUpdatePageContentsResult, "page">
+    Omit<KnowledgeUpdatePageContentsResult, "page"> & {
+      page: UnresolvedPageGQL;
+    }
   >,
   {},
   LoggedInGraphQLContext,

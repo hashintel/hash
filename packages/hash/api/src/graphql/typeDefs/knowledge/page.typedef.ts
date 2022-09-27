@@ -206,7 +206,7 @@ export const knowledgePageTypedef = gql`
   }
 
   type KnowledgeUpdatePageContentsResult {
-    page: Page!
+    page: KnowledgePage!
     placeholders: [KnowledgeUpdatePageContentsResultPlaceholder!]!
   }
 
