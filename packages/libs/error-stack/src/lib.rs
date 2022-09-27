@@ -2,7 +2,7 @@
 //!
 //! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 //! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-//! [![rust-version](https://img.shields.io/badge/Rust-1.63.0/nightly--2022--08--27-blue)][rust-version]
+//! [![rust-version](https://img.shields.io/badge/Rust-1.63.0/nightly--2022--09--27-blue)][rust-version]
 //! [![discord](https://img.shields.io/discord/840573247803097118)][discord]
 //!
 //! [crates.io]: https://crates.io/crates/error-stack
@@ -474,7 +474,7 @@ mod hook;
 #[doc(inline)]
 pub use self::ext::result::{IntoReport, ResultExt};
 #[cfg(feature = "std")]
-#[allow(deprecated)]
+#[allow(deprecated, unreachable_pub)]
 pub use self::hook::HookAlreadySet;
 pub use self::{
     context::Context,
