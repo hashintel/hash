@@ -585,6 +585,8 @@ impl<T: 'static> HookContext<T> {
     pub fn increment_counter(&mut self) -> isize {
         let counter = self.get_mut::<Counter>();
 
+        // reason: This would fail as we cannot move out of `self` because it is borrowed
+        #[allow(clippy::option_if_let_else)]
         match counter {
             None => {
                 // if the counter hasn't been set yet, default to `0`
@@ -648,6 +650,8 @@ impl<T: 'static> HookContext<T> {
     pub fn decrement_counter(&mut self) -> isize {
         let counter = self.get_mut::<Counter>();
 
+        // reason: This would fail as we cannot move out of `self` because it is borrowed
+        #[allow(clippy::option_if_let_else)]
         match counter {
             None => {
                 // given that increment starts with `0` (which is therefore the implicit default
