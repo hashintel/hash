@@ -237,7 +237,7 @@ fn sources_nested_alternate() {
 }
 
 #[cfg(all(
-    nightly,
+    rust_1_65,
     feature = "std",
     feature = "spantrace",
     feature = "pretty-print"
@@ -263,14 +263,12 @@ mod full {
     //!
     //! There are still some big snapshot tests, which are used evaluate all of the above.
 
+    #[cfg(nightly)]
+    use std::any::Demand;
     use std::{
-        any::Demand,
         error::Error,
         fmt::{Display, Formatter},
     };
-
-    #[cfg(all(nightly, feature = "unstable"))]
-    use error_stack::fmt::DebugDiagnostic;
 
     use super::*;
 
@@ -473,6 +471,21 @@ mod full {
     }
 
     #[test]
+    fn hook_for_context() {
+        let _guard = prepare(false);
+
+        let report = create_report().attach(2u32);
+
+        Report::install_debug_hook::<RootError>(|_, _| {
+            // This should not be displayed as `RootError` is only used as `Context`, never as
+            // attachment.
+            unreachable!("A context should never be used as hook");
+        });
+
+        assert_snapshot!(format!("{report:?}"));
+    }
+
+    #[test]
     fn hook_multiple() {
         let _guard = prepare(false);
 
@@ -541,18 +554,21 @@ mod full {
         assert_snapshot!("alt", format!("{report:#?}"));
     }
 
+    #[cfg(nightly)]
     #[derive(Debug)]
     struct ContextD {
         code: usize,
         reason: &'static str,
     }
 
+    #[cfg(nightly)]
     impl Display for ContextD {
         fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
             f.write_str("Context D")
         }
     }
 
+    #[cfg(nightly)]
     impl Error for ContextD {
         fn provide<'a>(&'a self, req: &mut Demand<'a>) {
             req.provide_ref(&self.code);
@@ -561,6 +577,7 @@ mod full {
     }
 
     #[test]
+    #[cfg(nightly)]
     fn hook_provider() {
         let _guard = prepare(false);
 
