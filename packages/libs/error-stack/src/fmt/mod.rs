@@ -18,11 +18,6 @@
 //! [`Frame::request_value`], the rendering order is determined by the order of
 //! [`Report::install_debug_hook`] calls.
 //!
-//! You can also provide a fallback function, which is called whenever a hook hasn't been added for
-//! a specific type of attachment.
-//! The fallback function needs to have a signature of
-//! `Fn(&Frame, &mut HookContext<T>)` and can be set via [`Report::install_debug_hook_fallback`].
-//!
 //! Hook functions need to be [`Fn`] and **not** [`FnMut`], which means they are unable to directly
 //! mutate state outside of the closure.
 //! You can still achieve mutable state outside of the scope of your closure through interior
@@ -75,8 +70,7 @@
 //! });
 //!
 //! // Even though we used `attach_printable`, we can still use hooks, `Display` of a type attached
-//! // via `attach_printable` is only ever used when no hook was found and the fallback returned
-//! // nothing.
+//! // via `attach_printable` is only ever used when no hook was found.
 //! Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), ctx| {
 //!     ctx.push_body(format!("Error ({val})"));
 //! });
@@ -140,7 +134,6 @@
 //! [`RwLock`]: std::sync::RwLock
 //! [`Backtrace`]: std::backtrace::Backtrace
 //! [`SpanTrace`]: tracing_error::SpanTrace
-//! [`error_stack::fmt::builtin_debug_hook_fallback`]: crate::fmt::builtin_debug_hook_fallback
 //! [`atomic`]: std::sync::atomic
 //! [`Error::provide`]: core::error::Error::provide
 
@@ -716,7 +709,7 @@ fn debug_attachments_invoke(
         .map(|frame| match frame.kind() {
             #[cfg(feature = "std")]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
-                Report::get_debug_format_hook(|hooks| hooks.call(frame, ctx));
+                Report::invoke_debug_format_hook(|hooks| hooks.call(frame, ctx));
                 ctx.take_body()
             }
             #[cfg(not(feature = "std"))]
@@ -725,7 +718,7 @@ fn debug_attachments_invoke(
             }
             #[cfg(feature = "std")]
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                Report::get_debug_format_hook(|hooks| hooks.call(frame, ctx));
+                Report::invoke_debug_format_hook(|hooks| hooks.call(frame, ctx));
                 let mut body = ctx.take_body();
 
                 if body.is_empty() {
@@ -974,7 +967,7 @@ fn debug_frame(
 impl<C> Debug for Report<C> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "std")]
-        if let Some(result) = Report::get_debug_hook(|hook| hook(self.generalized(), fmt)) {
+        if let Some(result) = Report::invoke_debug_hook(|hook| hook(self.generalized(), fmt)) {
             return result;
         }
 
@@ -1048,7 +1041,7 @@ impl<C> Debug for Report<C> {
 impl<Context> Display for Report<Context> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "std")]
-        if let Some(result) = Report::get_display_hook(|hook| hook(self.generalized(), fmt)) {
+        if let Some(result) = Report::invoke_display_hook(|hook| hook(self.generalized(), fmt)) {
             return result;
         }
 
