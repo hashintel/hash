@@ -436,6 +436,7 @@ export default class extends EntityModel {
     await this.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.ofOrg,
       targetEntityModel: orgMembership,
+      createdById: workspaceAccountId,
     });
   }
 

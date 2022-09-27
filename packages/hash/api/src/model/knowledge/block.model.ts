@@ -68,6 +68,7 @@ export default class extends EntityModel {
     await entity.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.blockData,
       targetEntityModel: blockData,
+      createdById: accountId,
     });
 
     return BlockModel.fromEntityModel(entity);
@@ -144,6 +145,7 @@ export default class extends EntityModel {
     await this.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.blockData,
       targetEntityModel: newBlockDataEntity,
+      createdById: updatedById,
     });
   }
 }
