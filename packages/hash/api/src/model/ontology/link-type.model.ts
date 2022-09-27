@@ -9,7 +9,7 @@ import {
 import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
 import { LinkTypeModel, UserModel } from "../index";
-import { generateSchemaUri, workspaceAccountId } from "../util";
+import { generateTypeId, workspaceAccountId } from "../util";
 
 type LinkTypeModelConstructorParams = {
   accountId: string;
@@ -79,12 +79,12 @@ export default class {
       );
     }
 
-    const linkTypeUri = generateSchemaUri({
+    const linkTypeId = generateTypeId({
       namespace,
       kind: "link-type",
       title: params.schema.title,
     });
-    const fullLinkType = { $id: linkTypeUri, ...params.schema };
+    const fullLinkType = { $id: linkTypeId, ...params.schema };
 
     const { data: identifier } = await graphApi
       .createLinkType({
@@ -129,18 +129,16 @@ export default class {
    * Get a link type by its versioned URI.
    *
    * @param params.accountId the accountId of the account requesting the link type
-   * @param params.versionedUri the unique versioned URI for a link type.
+   * @param params.linkTypeId the unique versioned URI for a link type.
    */
   static async get(
     graphApi: GraphApi,
     params: {
-      versionedUri: string;
+      linkTypeId: string;
     },
   ): Promise<LinkTypeModel> {
-    const { versionedUri } = params;
-    const { data: persistedLinkType } = await graphApi.getLinkType(
-      versionedUri,
-    );
+    const { linkTypeId } = params;
+    const { data: persistedLinkType } = await graphApi.getLinkType(linkTypeId);
 
     return LinkTypeModel.fromPersistedLinkType(persistedLinkType);
   }

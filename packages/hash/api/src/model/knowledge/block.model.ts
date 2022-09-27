@@ -68,6 +68,7 @@ export default class extends EntityModel {
     await entity.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.blockData,
       targetEntityModel: blockData,
+      createdById: accountId,
     });
 
     return BlockModel.fromEntityModel(entity);
@@ -104,18 +105,18 @@ export default class extends EntityModel {
   /**
    * Update the linked block data entity of a block.
    *
-   * @param params.updatedByAccountId - the account id of the user that updated the
+   * @param params.updatedById - the account id of the user that updated the
    * @param params.newBlockDataEntity - the new block data entity
    */
   async updateBlockDataEntity(
     graphApi: GraphApi,
     params: {
       /** @todo: rename this argument to something that doesn't include `accountId` */
-      updatedByAccountId: string;
+      updatedById: string;
       newBlockDataEntity: EntityModel;
     },
   ): Promise<void> {
-    const { updatedByAccountId, newBlockDataEntity } = params;
+    const { updatedById, newBlockDataEntity } = params;
     const outgoingBlockDataLinks = await this.getOutgoingLinks(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.blockData,
     });
@@ -138,12 +139,13 @@ export default class extends EntityModel {
     }
 
     await outgoingBlockDataLink.remove(graphApi, {
-      removedBy: updatedByAccountId,
+      removedById: updatedById,
     });
 
     await this.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.blockData,
       targetEntityModel: newBlockDataEntity,
+      createdById: updatedById,
     });
   }
 }

@@ -120,21 +120,24 @@ export default class extends EntityModel {
     graphApi: GraphApi,
     params: { shortname: string },
   ): Promise<OrgModel | null> {
-    const versionedUri = WORKSPACE_TYPES.entityType.org.schema.$id;
-
     /** @todo: use upcoming Graph API method to filter entities in the datastore */
-    const allEntities = await EntityModel.getAllLatest(graphApi, {
-      accountId: workspaceAccountId,
+    const orgEntities = await EntityModel.getByQuery(graphApi, {
+      all: [
+        { eq: [{ path: ["version"] }, { literal: "latest" }] },
+        {
+          eq: [
+            { path: ["type", "versionedUri"] },
+            { literal: WORKSPACE_TYPES.entityType.org.schema.$id },
+          ],
+        },
+      ],
     });
 
-    const matchingOrg = allEntities
-      .filter(
-        ({ entityTypeModel }) => entityTypeModel.schema.$id === versionedUri,
-      )
-      .map((entityModel) => new OrgModel(entityModel))
-      .find((org) => org.getShortname() === params.shortname);
-
-    return matchingOrg ?? null;
+    return (
+      orgEntities
+        .map(OrgModel.fromEntityModel)
+        .find((org) => org.getShortname() === params.shortname) ?? null
+    );
   }
 
   getShortname(): string {

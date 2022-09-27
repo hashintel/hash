@@ -70,7 +70,7 @@ export const getPropertyType: ResolverFn<
   const propertyTypeRootedSubgraph = await PropertyTypeModel.getResolved(
     graphApi,
     {
-      versionedUri: propertyTypeVersionedUri,
+      propertyTypeId: propertyTypeVersionedUri,
       dataTypeQueryDepth: dataTypeQueryDepth(info),
       propertyTypeQueryDepth: propertyTypeQueryDepth(info),
     },
@@ -94,7 +94,7 @@ export const updatePropertyType: ResolverFn<
   const { accountId, propertyTypeVersionedUri, updatedPropertyType } = params;
 
   const propertyTypeModel = await PropertyTypeModel.get(graphApi, {
-    versionedUri: propertyTypeVersionedUri,
+    propertyTypeId: propertyTypeVersionedUri,
   }).catch((err: AxiosError) => {
     throw new ApolloError(
       `Unable to retrieve property type. ${err.response?.data} [URI=${propertyTypeVersionedUri}]`,
