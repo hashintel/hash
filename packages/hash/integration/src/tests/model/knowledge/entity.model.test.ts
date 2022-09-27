@@ -137,9 +137,11 @@ describe("Entity CRU", () => {
   });
 
   it("can read all latest entities", async () => {
-    const allEntityModels = await EntityModel.getAllLatest(graphApi, {
-      accountId,
-    });
+    const allEntityModels = (
+      await EntityModel.getByQuery(graphApi, {
+        all: [{ eq: [{ path: ["version"] }, { literal: "latest" }] }],
+      })
+    ).filter((entity) => entity.accountId === accountId);
 
     const newlyUpdatedModel = allEntityModels.find(
       (ent) => ent.entityId === updatedEntityModel.entityId,
