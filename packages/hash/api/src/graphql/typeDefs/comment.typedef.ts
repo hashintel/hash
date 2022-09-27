@@ -7,7 +7,7 @@ export const commentTypedef = gql`
     """
     # Timestamp of when the comment was last edited
     """
-    textUpdatedAt: Date
+    textUpdatedAt: Date!
 
     """
     Text contents of the comment
