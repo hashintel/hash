@@ -23,13 +23,14 @@
 //! You can still achieve mutable state outside of the scope of your closure through interior
 //! mutability, e.g. by using the [`std::sync`] module like [`Mutex`], [`RwLock`], and [`atomic`]s.
 //!
-//! The type a hook will be called for is determined by the type of the first argument.
-//! This type can either be specified at the closure level or when calling
+//! The type, a hook will be called for, is determined by the type of the first argument to the
+//! closure. This type can either be specified at the closure level or when calling
 //! [`Report::install_debug_hook`].
 //! This type needs to be `'static`, [`Send`], and [`Sync`].
 //!
-//! You can add additional entries to the body with [`HookContext::push_body`], refer to the
-//! documentation of [`HookContext`] for further information.
+//! You can then add additional entries to the body with [`HookContext::push_body`], and entries to
+//! the appendix with [`HookContext::push_appendix`], refer to the documentation of [`HookContext`]
+//! for further information.
 //!
 //! ## Example
 //!
