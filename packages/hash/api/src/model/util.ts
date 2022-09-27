@@ -272,6 +272,7 @@ export const propertyTypeInitializer = (
 export type EntityTypeCreatorParams = {
   namespace: string;
   title: string;
+  pluralTitle?: string;
   properties: {
     propertyTypeModel: PropertyTypeModel;
     required?: boolean;
@@ -329,7 +330,12 @@ export const generateWorkspaceEntityTypeSchema = (
       ? params.outgoingLinks.reduce<EntityType["links"]>(
           (
             prev,
-            { linkTypeModel, destinationEntityTypeModels, array, ordered },
+            {
+              linkTypeModel,
+              destinationEntityTypeModels,
+              array,
+              ordered = false,
+            },
           ) => {
             const oneOf = {
               oneOf: destinationEntityTypeModels.map(
@@ -365,7 +371,7 @@ export const generateWorkspaceEntityTypeSchema = (
   return {
     $id,
     title: params.title,
-    pluralTitle: params.title,
+    pluralTitle: params.pluralTitle ?? params.title,
     type: "object",
     kind: "entityType",
     properties,

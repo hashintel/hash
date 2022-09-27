@@ -8,6 +8,10 @@ import {
   LinkModel,
   LinkTypeModel,
 } from "@hashintel/hash-api/src/model";
+import {
+  EntityTypeCreatorParams,
+  generateWorkspaceEntityTypeSchema,
+} from "@hashintel/hash-api/src/model/util";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -27,6 +31,8 @@ const graphApi = createGraphClient(logger, {
 });
 
 describe("Link model class", () => {
+  let namespace: string;
+
   let accountId: string;
   let testEntityType: EntityTypeModel;
   let linkTypeFriend: LinkTypeModel;
@@ -35,16 +41,12 @@ describe("Link model class", () => {
   let targetEntityFriend: EntityModel;
   let targetEntityAcquaintance: EntityModel;
 
-  const createEntityType = (params: { title: string; pluralTitle?: string }) =>
+  const createEntityType = (
+    params: Omit<EntityTypeCreatorParams, "namespace">,
+  ) =>
     EntityTypeModel.create(graphApi, {
       accountId,
-      schema: {
-        pluralTitle: params.pluralTitle ?? `${params.title}s`,
-        kind: "entityType",
-        type: "object",
-        properties: {},
-        ...params,
-      },
+      schema: generateWorkspaceEntityTypeSchema({ namespace, ...params }),
     });
 
   const createEntity = (params: { entityTypeModel: EntityTypeModel }) =>
@@ -57,12 +59,9 @@ describe("Link model class", () => {
   beforeAll(async () => {
     const testUser = await createTestUser(graphApi, "linktest", logger);
 
-    accountId = testUser.entityId;
+    namespace = testUser.getShortname()!;
 
-    testEntityType = await createEntityType({
-      title: "Person",
-      pluralTitle: "People",
-    });
+    accountId = testUser.entityId;
 
     await Promise.all([
       LinkTypeModel.create(graphApi, {
@@ -73,10 +72,9 @@ describe("Link model class", () => {
           pluralTitle: "Friends",
           description: "Friend of",
         },
-      }).then((val) => {
-        linkTypeFriend = val;
+      }).then((linkType) => {
+        linkTypeFriend = linkType;
       }),
-
       LinkTypeModel.create(graphApi, {
         accountId,
         schema: {
@@ -85,32 +83,51 @@ describe("Link model class", () => {
           pluralTitle: "Acquaintances",
           description: "Acquainted with",
         },
-      }).then((val) => {
-        linkTypeAcquaintance = val;
+      }).then((linkType) => {
+        linkTypeAcquaintance = linkType;
       }),
+    ]);
 
+    testEntityType = await createEntityType({
+      title: "Person",
+      properties: [],
+      outgoingLinks: [
+        {
+          linkTypeModel: linkTypeFriend,
+          destinationEntityTypeModels: ["SELF_REFERENCE"],
+          array: true,
+          ordered: false,
+        },
+        {
+          linkTypeModel: linkTypeAcquaintance,
+          destinationEntityTypeModels: ["SELF_REFERENCE"],
+          array: true,
+          ordered: false,
+        },
+      ],
+    });
+
+    await Promise.all([
       EntityModel.create(graphApi, {
         accountId,
         entityTypeModel: testEntityType,
         properties: {},
-      }).then((val) => {
-        sourceEntityModel = val;
+      }).then((entity) => {
+        sourceEntityModel = entity;
       }),
-
       EntityModel.create(graphApi, {
         accountId,
         entityTypeModel: testEntityType,
         properties: {},
-      }).then((val) => {
-        targetEntityFriend = val;
+      }).then((entity) => {
+        targetEntityFriend = entity;
       }),
-
       EntityModel.create(graphApi, {
         accountId,
         entityTypeModel: testEntityType,
         properties: {},
-      }).then((val) => {
-        targetEntityAcquaintance = val;
+      }).then((entity) => {
+        targetEntityAcquaintance = entity;
       }),
     ]);
   });
@@ -185,19 +202,11 @@ describe("Link model class", () => {
   let hasSongLink3: LinkModel;
 
   it("can create an ordered link", async () => {
-    playlistEntityType = await createEntityType({ title: "Playlist" });
-
-    playlistEntity = await createEntity({
-      entityTypeModel: playlistEntityType,
+    songEntityType = await createEntityType({
+      title: "Song",
+      properties: [],
+      outgoingLinks: [],
     });
-
-    songEntityType = await createEntityType({ title: "Song" });
-
-    [songEntity1, songEntity2, songEntity3] = await Promise.all([
-      createEntity({ entityTypeModel: songEntityType }),
-      createEntity({ entityTypeModel: songEntityType }),
-      createEntity({ entityTypeModel: songEntityType }),
-    ]);
 
     hasSongLinkType = await LinkTypeModel.create(graphApi, {
       accountId,
@@ -208,6 +217,29 @@ describe("Link model class", () => {
         description: "Has song",
       },
     });
+
+    playlistEntityType = await createEntityType({
+      title: "Playlist",
+      properties: [],
+      outgoingLinks: [
+        {
+          linkTypeModel: hasSongLinkType,
+          destinationEntityTypeModels: [songEntityType],
+          array: true,
+          ordered: true,
+        },
+      ],
+    });
+
+    playlistEntity = await createEntity({
+      entityTypeModel: playlistEntityType,
+    });
+
+    [songEntity1, songEntity2, songEntity3] = await Promise.all([
+      createEntity({ entityTypeModel: songEntityType }),
+      createEntity({ entityTypeModel: songEntityType }),
+      createEntity({ entityTypeModel: songEntityType }),
+    ]);
 
     // create link at specified index which is currently unoccupied
     hasSongLink2 = await LinkModel.create(graphApi, {

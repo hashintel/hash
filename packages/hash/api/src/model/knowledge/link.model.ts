@@ -169,18 +169,22 @@ export default class {
      * @todo: rely on Graph API validation instead of manually checking whether sibling links are ordered
      * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
      */
-    const hasOrderedSiblingLink = siblingLinks[0]?.index !== undefined;
+    const isOrdered = sourceEntityModel.entityTypeModel.isOutgoingLinkOrdered({
+      outgoingLinkType: linkTypeModel,
+    });
 
-    const index = hasOrderedSiblingLink
-      ? // if siblings are ordered and an index is provided, use the provided index
+    if (!isOrdered && params.index !== undefined) {
+      throw new Error(
+        "Cannot create indexed link on un-ordered outgoing links",
+      );
+    }
+
+    const index = isOrdered
+      ? // if link is ordered and an index is provided, use the provided index
         params.index ??
-        // if siblings are ordered and no index is provided, default to the end of the list of links
+        // if link is ordered and no index is provided, default to the end of the list of links
         siblingLinks.length
-      : siblingLinks.length === 0
-      ? // if siblings are not ordered because there are no siblings, allow the link to be ordered
-        params.index
-      : // if siblings are not ordered and there are siblings, don't allow the link to be ordered
-        undefined;
+      : undefined;
 
     if (index !== undefined) {
       /**
@@ -268,14 +272,27 @@ export default class {
 
     const { index: previousIndex, linkTypeModel } = this;
 
-    if (previousIndex === undefined) {
-      throw new Error("Cannot make an un-ordered link ordered");
+    /**
+     * @todo: rely on Graph API validation instead of manually checking whether sibling links are ordered
+     * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
+     */
+    const isOrdered =
+      this.sourceEntityModel.entityTypeModel.isOutgoingLinkOrdered({
+        outgoingLinkType: linkTypeModel,
+      });
+
+    if (!isOrdered) {
+      throw new Error("Cannot update the index of an un-ordered link");
     }
 
     const siblingLinks = await this.sourceEntityModel.getOutgoingLinks(
       graphApi,
       { linkTypeModel },
     );
+
+    if (previousIndex === undefined) {
+      throw new Error("Critical: existing ordered link doesn't have an index");
+    }
 
     // Whether the index of the link is being increased
     const isIncreasingIndex = updatedIndex > previousIndex;
@@ -349,7 +366,22 @@ export default class {
       removedById,
     });
 
-    if (this.index !== undefined) {
+    /**
+     * @todo: rely on Graph API validation instead of manually checking whether sibling links are ordered
+     * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
+     */
+    const isOrdered =
+      this.sourceEntityModel.entityTypeModel.isOutgoingLinkOrdered({
+        outgoingLinkType: this.linkTypeModel,
+      });
+
+    if (isOrdered) {
+      if (this.index === undefined) {
+        throw new Error(
+          "Critical: existing ordered link doesn't have an index",
+        );
+      }
+
       const siblingLinks = await this.sourceEntityModel.getOutgoingLinks(
         graphApi,
         {
