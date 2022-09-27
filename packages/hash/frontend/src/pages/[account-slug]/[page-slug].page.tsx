@@ -34,6 +34,7 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
+import { useReadonlyMode } from "../../shared/readonly-mode";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 import { Button } from "../../shared/ui/button";
 import {
@@ -208,7 +209,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
     variables: { entityId: pageEntityId, accountId, versionId },
   });
   const pageHeaderRef = useRef<HTMLElement>();
-
+  const { readonlyMode } = useReadonlyMode();
   const collabPositions = useCollabPositions(accountId, pageEntityId);
   const reportPosition = useCollabPositionReporter(accountId, pageEntityId);
   useCollabPositionTracking(reportPosition);
@@ -316,6 +317,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
               entityId={pageEntityId}
               versionId={versionId}
               sx={{ mr: 3, alignSelf: "flex-start" }}
+              readonly={readonlyMode}
             />
 
             <Box flex={1}>
