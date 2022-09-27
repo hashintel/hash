@@ -8,7 +8,7 @@ import {
   propertyTypeInitializer,
   entityTypeInitializer,
   linkTypeInitializer,
-  generateTypeId,
+  SELF_REFERENCE_MARKER,
 } from "../model/util";
 
 // eslint-disable-next-line import/no-mutable-exports
@@ -156,8 +156,8 @@ const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
     ],
     outgoingLinks: [
       {
-        linkTypeId: ofOrgLinkTypeModel.schema.$id,
-        destinationEntityTypeIds: [orgEntityTypeModel.schema.$id],
+        linkTypeModel: ofOrgLinkTypeModel,
+        destinationEntityTypeModels: [orgEntityTypeModel],
         required: true,
       },
     ],
@@ -264,8 +264,8 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
     ],
     outgoingLinks: [
       {
-        linkTypeId: hasMembershipLinkTypeModel.schema.$id,
-        destinationEntityTypeIds: [orgMembershipEntityTypeModel.schema.$id],
+        linkTypeModel: hasMembershipLinkTypeModel,
+        destinationEntityTypeModels: [orgMembershipEntityTypeModel],
       },
     ],
   })(graphApi);
@@ -308,12 +308,12 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
     ],
     outgoingLinks: [
       {
-        linkTypeId: blockDataLinkTypeModel.schema.$id,
+        linkTypeModel: blockDataLinkTypeModel,
         /**
          * @todo: unset this when the destination entity type can be undefined
          * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
          */
-        destinationEntityTypeIds: [dummyEntityTypeModel.schema.$id],
+        destinationEntityTypeModels: [dummyEntityTypeModel],
         required: true,
       },
     ],
@@ -433,12 +433,6 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
 
   const title = "Page";
 
-  const pageEntityTypeId = generateTypeId({
-    namespace,
-    title,
-    kind: "entity-type",
-  });
-
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -446,10 +440,10 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
     title,
     properties: [
       {
-        propertyTypeModel: summaryPropertyTypeModel
+        propertyTypeModel: summaryPropertyTypeModel,
       },
       {
-        propertyTypeModel: archivedPropertyTypeModel
+        propertyTypeModel: archivedPropertyTypeModel,
       },
       {
         propertyTypeModel: titlePropertyTypeModel,
@@ -462,15 +456,15 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
     ],
     outgoingLinks: [
       {
-        linkTypeId: containsLinkTypeModel.schema.$id,
-        destinationEntityTypeIds: [blockEntityTypeModel.schema.$id],
+        linkTypeModel: containsLinkTypeModel,
+        destinationEntityTypeModels: [blockEntityTypeModel],
         required: true,
         array: true,
         ordered: true,
       },
       {
-        linkTypeId: parentLinkTypeTypeModel.schema.$id,
-        destinationEntityTypeIds: [pageEntityTypeId],
+        linkTypeModel: parentLinkTypeTypeModel,
+        destinationEntityTypeModels: [SELF_REFERENCE_MARKER],
       },
     ],
   })(graphApi);

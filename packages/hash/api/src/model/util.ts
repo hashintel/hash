@@ -269,6 +269,11 @@ export const propertyTypeInitializer = (
   };
 };
 
+/**
+ * Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
+ */
+export const SELF_REFERENCE_MARKER = "SELF_REFERENCE";
+
 export type EntityTypeCreatorParams = {
   namespace: string;
   title: string;
@@ -278,8 +283,11 @@ export type EntityTypeCreatorParams = {
     array?: { minItems?: number; maxItems?: number } | boolean;
   }[];
   outgoingLinks: {
-    linkTypeId: string;
-    destinationEntityTypeIds: string[];
+    linkTypeModel: LinkTypeModel;
+    destinationEntityTypeModels: (
+      | EntityTypeModel
+      | typeof SELF_REFERENCE_MARKER
+    )[];
     required?: boolean;
     array?: { minItems?: number; maxItems?: number } | boolean;
     ordered?: boolean;
@@ -323,32 +331,43 @@ export const generateWorkspaceEntityTypeSchema = (
   const links =
     params.outgoingLinks.length > 0
       ? params.outgoingLinks.reduce<EntityType["links"]>(
-          (prev, { linkTypeId, destinationEntityTypeIds, array, ordered }) => ({
-            ...prev,
-            [linkTypeId]: array
-              ? {
-                  type: "array",
-                  items: {
-                    oneOf: destinationEntityTypeIds.map((entityTypeId) => {
-                      return { $ref: entityTypeId };
-                    }),
-                  },
-                  ordered,
-                  ...(array === true ? {} : array),
-                }
-              : {
-                  oneOf: destinationEntityTypeIds.map((entityTypeId) => {
-                    return { $ref: entityTypeId };
-                  }),
+          (
+            prev,
+            { linkTypeModel, destinationEntityTypeModels, array, ordered },
+          ) => {
+            const oneOf = {
+              oneOf: destinationEntityTypeModels.map(
+                (entityTypeModelOrReference) => {
+                  let referenceId;
+                  if (entityTypeModelOrReference === SELF_REFERENCE_MARKER) {
+                    referenceId = $id;
+                  } else {
+                    referenceId = entityTypeModelOrReference.schema.$id;
+                  }
+                  return { $ref: referenceId };
                 },
-          }),
+              ),
+            };
+
+            return {
+              ...prev,
+              [linkTypeModel.schema.$id]: array
+                ? {
+                    type: "array",
+                    items: oneOf,
+                    ordered,
+                    ...(array === true ? {} : array),
+                  }
+                : oneOf,
+            };
+          },
           {},
         )
       : undefined;
 
   const requiredLinks = params.outgoingLinks
     .filter(({ required }) => !!required)
-    .map(({ linkTypeId }) => linkTypeId);
+    .map(({ linkTypeModel }) => linkTypeModel.schema.$id);
 
   return {
     $id,
