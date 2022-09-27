@@ -10,6 +10,8 @@ use crate::{compat::IntoReportCompat, Context, Report, Result};
 ///
 /// It provides the [`eyre::Report`] and forwards the [`Demand`] to [`Error::provide`].
 ///
+/// Use [`IntoReportCompat::into_report()`] to convert [`eyre::Report`] to a `Report<EyreContext>`.
+///
 /// [`Error::provide`]: core::error::Error::provide
 #[repr(transparent)]
 pub struct EyreContext(EyreReport);

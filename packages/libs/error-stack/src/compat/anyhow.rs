@@ -10,6 +10,8 @@ use crate::{compat::IntoReportCompat, Context, Report, Result};
 ///
 /// It provides the [`anyhow::Error`] and forwards the [`Demand`] to [`Error::provide`].
 ///
+/// Use [`IntoReportCompat::into_report()`] to convert [`anyhow::Error`] to a `Report<AnyhowError>`.
+///
 /// [`Error::provide`]: core::error::Error::provide
 #[repr(transparent)]
 pub struct AnyhowContext(AnyhowError);

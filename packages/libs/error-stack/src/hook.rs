@@ -284,7 +284,7 @@ impl Report<()> {
     /// assert_eq!(report.to_string(), "custom display implementation");
     /// # Ok(()) }
     /// ```
-    #[deprecated]
+    #[deprecated(since = "0.2.0")]
     #[cfg(feature = "std")]
     #[allow(deprecated)]
     pub fn set_display_hook<H>(hook: H) -> Result<(), HookAlreadySet>
