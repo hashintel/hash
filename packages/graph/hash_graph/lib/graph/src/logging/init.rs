@@ -38,10 +38,10 @@ where
         event: &Event<'_>,
     ) -> std::fmt::Result {
         match self {
-            OutputFormatter::Full(fmt) => fmt.format_event(ctx, writer, event),
-            OutputFormatter::Pretty(fmt) => fmt.format_event(ctx, writer, event),
-            OutputFormatter::Json(fmt) => fmt.format_event(ctx, writer, event),
-            OutputFormatter::Compact(fmt) => fmt.format_event(ctx, writer, event),
+            Self::Full(fmt) => fmt.format_event(ctx, writer, event),
+            Self::Pretty(fmt) => fmt.format_event(ctx, writer, event),
+            Self::Json(fmt) => fmt.format_event(ctx, writer, event),
+            Self::Compact(fmt) => fmt.format_event(ctx, writer, event),
         }
     }
 }
