@@ -61,7 +61,6 @@ fn compare(lhs: &Literal, rhs: &Literal) -> Result<bool, ExpressionError> {
         (Literal::String(lhs), Literal::String(rhs)) => lhs == rhs,
         (Literal::Float(lhs), Literal::Float(rhs)) => (lhs - rhs).abs() < f64::EPSILON,
         (Literal::Bool(lhs), Literal::Bool(rhs)) => lhs == rhs,
-        (Literal::Null, Literal::Null) => true,
 
         // List comparisons
         (Literal::List(lhs), Literal::List(rhs)) => {
@@ -106,6 +105,10 @@ fn compare(lhs: &Literal, rhs: &Literal) -> Result<bool, ExpressionError> {
         }
         // version == version
         (Literal::Version(lhs, _), Literal::Version(rhs, _)) => lhs == rhs,
+
+        // anything compared to null (except null) will return `false`
+        (Literal::Null, Literal::Null) => true,
+        (Literal::Null, _) | (_, Literal::Null) => false,
 
         // unmatched
         (lhs, rhs) => {
