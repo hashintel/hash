@@ -23,7 +23,7 @@ type PageBlockProps = {
   entityId: string;
 };
 
-const PAGE_CONTENT_WIDTH = 696;
+export const PAGE_CONTENT_WIDTH = 696;
 export const PAGE_MIN_PADDING = 48;
 export const PAGE_HORIZONTAL_PADDING_FORMULA = `max(calc((100% - ${PAGE_CONTENT_WIDTH}px) / 2), ${PAGE_MIN_PADDING}px)`;
 
