@@ -268,14 +268,14 @@ export default class {
 
     const { index: previousIndex, linkTypeModel } = this;
 
+    if (previousIndex === undefined) {
+      throw new Error("Cannot make an un-ordered link ordered");
+    }
+
     const siblingLinks = await this.sourceEntityModel.getOutgoingLinks(
       graphApi,
       { linkTypeModel },
     );
-
-    if (previousIndex === undefined) {
-      throw new Error("Cannot make an un-ordered link ordered");
-    }
 
     // Whether the index of the link is being increased
     const isIncreasingIndex = updatedIndex > previousIndex;
