@@ -39,7 +39,7 @@ export const getDataType: ResolverFn<
   const { graphApi } = dataSources;
 
   const dataTypeModel = await DataTypeModel.get(graphApi, {
-    versionedUri: dataTypeVersionedUri,
+    dataTypeId: dataTypeVersionedUri,
   }).catch((err: AxiosError) => {
     throw new ApolloError(
       `Unable to retrieve data type. ${err.response?.data}`,

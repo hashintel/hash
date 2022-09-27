@@ -15,7 +15,7 @@ import {
   UserModel,
   DataTypeModel,
 } from "../index";
-import { generateSchemaUri, workspaceAccountId } from "../util";
+import { generateTypeId, workspaceAccountId } from "../util";
 import dataTypeModel from "./data-type.model";
 import linkTypeModel from "./link-type.model";
 
@@ -89,12 +89,12 @@ export default class {
       );
     }
 
-    const entityTypeUri = generateSchemaUri({
+    const entityTypeId = generateTypeId({
       namespace,
       kind: "entity-type",
       title: params.schema.title,
     });
-    const fullEntityType = { $id: entityTypeUri, ...params.schema };
+    const fullEntityType = { $id: entityTypeId, ...params.schema };
 
     const { data: identifier } = await graphApi
       .createEntityType({
@@ -204,17 +204,17 @@ export default class {
    * Get an entity type by its versioned URI.
    *
    * @param params.accountId the accountId of the account requesting the entity type
-   * @param params.versionedUri the unique versioned URI for an entity type.
+   * @param params.entityTypeId the unique versioned URI for an entity type.
    */
   static async get(
     graphApi: GraphApi,
     params: {
-      versionedUri: string;
+      entityTypeId: string;
     },
   ): Promise<EntityTypeModel> {
-    const { versionedUri } = params;
+    const { entityTypeId } = params;
     const { data: persistedEntityType } = await graphApi.getEntityType(
-      versionedUri,
+      entityTypeId,
     );
 
     return EntityTypeModel.fromPersistedEntityType(persistedEntityType);
@@ -232,7 +232,7 @@ export default class {
   static async getResolved(
     graphApi: GraphApi,
     params: {
-      versionedUri: string;
+      entityTypeId: string;
       dataTypeQueryDepth: number;
       propertyTypeQueryDepth: number;
       linkTypeQueryDepth: number;
@@ -252,13 +252,13 @@ export default class {
         linkTypeQueryDepth: params.linkTypeQueryDepth,
         entityTypeQueryDepth: params.entityTypeQueryDepth,
         query: {
-          eq: [{ path: ["versionedUri"] }, { literal: params.versionedUri }],
+          eq: [{ path: ["versionedUri"] }, { literal: params.entityTypeId }],
         },
       });
     const entityTypeRootedSubgraph = propertyTypeRootedSubgraphs.pop();
     if (entityTypeRootedSubgraph === undefined) {
       throw new Error(
-        `Unable to retrieve property type for URI: ${params.versionedUri}`,
+        `Unable to retrieve property type for URI: ${params.entityTypeId}`,
       );
     }
 
@@ -316,13 +316,11 @@ export default class {
    * Get all outgoing link types of the entity type.
    */
   async getOutgoingLinkTypes(graphApi: GraphApi): Promise<LinkTypeModel[]> {
-    const linkTypeVersionedUris = Object.keys(this.schema.links ?? {});
+    const linkTypeIds = Object.keys(this.schema.links ?? {});
 
     return await Promise.all(
-      linkTypeVersionedUris.map((versionedUri) =>
-        LinkTypeModel.get(graphApi, {
-          versionedUri,
-        }),
+      linkTypeIds.map((linkTypeId) =>
+        LinkTypeModel.get(graphApi, { linkTypeId }),
       ),
     );
   }
@@ -331,26 +329,26 @@ export default class {
    * Get all property types of the entity type.
    */
   async getPropertyTypes(graphApi: GraphApi): Promise<PropertyTypeModel[]> {
-    const propertyTypeVersionedUris = Object.entries(
-      this.schema.properties,
-    ).map(([property, valueOrArray]) => {
-      if ("$ref" in valueOrArray) {
-        return valueOrArray.$ref;
-      } else if ("items" in valueOrArray) {
-        return valueOrArray.items.$ref;
-      } else {
-        throw new Error(
-          `unexpected format for property ${property}: ${JSON.stringify(
-            valueOrArray,
-          )}`,
-        );
-      }
-    });
+    const propertyTypeIds = Object.entries(this.schema.properties).map(
+      ([property, valueOrArray]) => {
+        if ("$ref" in valueOrArray) {
+          return valueOrArray.$ref;
+        } else if ("items" in valueOrArray) {
+          return valueOrArray.items.$ref;
+        } else {
+          throw new Error(
+            `unexpected format for property ${property}: ${JSON.stringify(
+              valueOrArray,
+            )}`,
+          );
+        }
+      },
+    );
 
     return await Promise.all(
-      propertyTypeVersionedUris.map((versionedUri) =>
+      propertyTypeIds.map((propertyTypeId) =>
         PropertyTypeModel.get(graphApi, {
-          versionedUri,
+          propertyTypeId,
         }),
       ),
     );
