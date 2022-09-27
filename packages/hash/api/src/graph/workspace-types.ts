@@ -8,7 +8,6 @@ import {
   propertyTypeInitializer,
   entityTypeInitializer,
   linkTypeInitializer,
-  SELF_REFERENCE_MARKER,
 } from "../model/util";
 
 // eslint-disable-next-line import/no-mutable-exports
@@ -464,7 +463,7 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
       {
         linkTypeModel: parentLinkTypeTypeModel,
-        destinationEntityTypeModels: [SELF_REFERENCE_MARKER],
+        destinationEntityTypeModels: ["SELF_REFERENCE"],
       },
     ],
   })(graphApi);

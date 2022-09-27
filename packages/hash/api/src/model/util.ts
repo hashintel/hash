@@ -269,11 +269,6 @@ export const propertyTypeInitializer = (
   };
 };
 
-/**
- * Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
- */
-export const SELF_REFERENCE_MARKER = "SELF_REFERENCE";
-
 export type EntityTypeCreatorParams = {
   namespace: string;
   title: string;
@@ -286,7 +281,8 @@ export type EntityTypeCreatorParams = {
     linkTypeModel: LinkTypeModel;
     destinationEntityTypeModels: (
       | EntityTypeModel
-      | typeof SELF_REFERENCE_MARKER
+      // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
+      | "SELF_REFERENCE"
     )[];
     required?: boolean;
     array?: { minItems?: number; maxItems?: number } | boolean;
@@ -337,15 +333,12 @@ export const generateWorkspaceEntityTypeSchema = (
           ) => {
             const oneOf = {
               oneOf: destinationEntityTypeModels.map(
-                (entityTypeModelOrReference) => {
-                  let referenceId;
-                  if (entityTypeModelOrReference === SELF_REFERENCE_MARKER) {
-                    referenceId = $id;
-                  } else {
-                    referenceId = entityTypeModelOrReference.schema.$id;
-                  }
-                  return { $ref: referenceId };
-                },
+                (entityTypeModelOrReference) => ({
+                  $ref:
+                    entityTypeModelOrReference === "SELF_REFERENCE"
+                      ? $id
+                      : entityTypeModelOrReference.schema.$id,
+                }),
               ),
             };
 
