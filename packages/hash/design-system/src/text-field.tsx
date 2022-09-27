@@ -5,6 +5,7 @@ import {
 import {
   Box,
   Collapse,
+  formHelperTextClasses,
   InputAdornment,
   outlinedInputClasses,
   TextField as MuiTextField,
@@ -56,7 +57,16 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
     return (
       <MuiTextField
         ref={ref}
-        sx={sx}
+        sx={[
+          {
+            ...(!helperText && {
+              [`.${formHelperTextClasses.root}`]: {
+                marginTop: 0,
+              },
+            }),
+          },
+          ...(Array.isArray(sx) ? sx : [sx]),
+        ]}
         {...textFieldProps}
         error={error}
         label={

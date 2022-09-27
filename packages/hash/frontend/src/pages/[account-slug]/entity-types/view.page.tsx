@@ -1,11 +1,8 @@
-import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 import {
-  faBriefcase,
   faClose,
   faEllipsis,
   faList,
   faPlus,
-  faPlusCircle,
   faSearch,
 } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -19,6 +16,7 @@ import {
   MenuItem,
   TextField,
 } from "@hashintel/hash-design-system";
+import { textFieldBorderRadius } from "@hashintel/hash-design-system/theme/components/inputs/mui-outlined-input-theme-options";
 import {
   Autocomplete,
   autocompleteClasses,
@@ -32,10 +30,10 @@ import {
   CardContentProps,
   Checkbox,
   checkboxClasses,
+  Collapse,
   Container,
   Divider,
-  experimental_sx as sx,
-  inputClasses,
+  experimental_sx,
   inputLabelClasses,
   ListItem,
   listItemClasses,
@@ -48,6 +46,7 @@ import {
   PopperProps,
   Stack,
   styled,
+  svgIconClasses,
   SxProps,
   Table,
   TableBody,
@@ -58,7 +57,6 @@ import {
   TableHead,
   TableRow,
   tableRowClasses,
-  TextFieldProps,
   Theme,
   Typography,
   useForkRef,
@@ -72,7 +70,6 @@ import {
 } from "material-ui-popup-state/hooks";
 import Image from "next/image";
 import {
-  ComponentProps,
   createContext,
   Ref,
   useContext,
@@ -83,10 +80,21 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 import { Modal } from "../../../components/Modals/Modal";
-import { ArrowUpRightIcon, PlusCircleIcon } from "../../../shared/icons/svg";
+import {
+  ArrowUpRightIcon,
+  BriefcaseIcon,
+  CirclePlusIcon,
+} from "../../../shared/icons/svg";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
 import { TopContextBar } from "../../shared/top-context-bar";
 import { OurChip, placeholderUri } from "./Chip";
+import { QuestionIcon } from "./question-icon";
+
+const StyledPlusCircleIcon = styled(CirclePlusIcon)(
+  experimental_sx<Theme>({
+    height: "12px",
+  }),
+);
 
 // Call a function in addition to handling popup state on click
 const withHandler = <
@@ -107,16 +115,6 @@ const withHandler = <
     },
   };
 };
-
-const QuestionIcon = styled(
-  (props: Omit<ComponentProps<typeof FontAwesomeIcon>, "icon">) => (
-    <FontAwesomeIcon {...props} icon={faQuestionCircle} />
-  ),
-)(
-  sx<Theme>((theme) => ({
-    color: theme.palette.gray[40],
-  })),
-);
 
 const WhiteCard = ({
   onClick,
@@ -176,10 +174,6 @@ const cardActionHoverBlue: SxProps<Theme> = (theme) => ({
     color: theme.palette.blue[70],
   },
 });
-
-const Input = (props: TextFieldProps) => (
-  <TextField {...props} placeholder="Add default value" sx={{ width: 165 }} />
-);
 
 // @todo move into design system
 const NewPropertyTypeForm = ({
@@ -381,82 +375,105 @@ const usePaperWithCreateButtonContext = () => {
   return value;
 };
 
+const AUTOCOMPLETE_INPUT_HEIGHT = 57;
+
 const PaperWithCreateButton = ({ children, ...props }: PaperProps) => {
   const { query, createButtonProps } = usePaperWithCreateButtonContext();
   return (
-    <Paper
-      {...props}
-      sx={(theme) => ({
-        p: 1,
-        border: 1,
-        borderColor: theme.palette.gray[30],
-        boxShadow: "none",
-
-        [`[data-popper-placement="top"] &`]: {
-          borderBottom: 0,
-          borderBottomLeftRadius: 0,
-          borderBottomRightRadius: 0,
-        },
-        [`[data-popper-placement="bottom"] &`]: {
-          borderTop: 0,
-          borderTopLeftRadius: 0,
-          borderTopRightRadius: 0,
-        },
-
-        [`.${autocompleteClasses.listbox}`]: { p: 0 },
-        [`.${autocompleteClasses.noOptions}`]: { display: "none" },
-        [`.${autocompleteClasses.option}`]: {
-          borderRadius: 1,
-          "&.Mui-focused": {
-            backgroundColor: theme.palette.gray[10],
-          },
-        },
-      })}
-    >
-      {children}
-      <Button
-        variant="tertiary"
-        startIcon={<PlusCircleIcon />}
-        sx={{
+    <>
+      <Box
+        sx={(theme) => ({
+          position: "absolute",
+          left: 0,
+          right: 0,
           width: "100%",
-          display: "flex",
-          alignItems: "center",
-          mt: 1,
-        }}
-        {...createButtonProps}
+          height: `calc(100% + ${AUTOCOMPLETE_INPUT_HEIGHT}px)`,
+          boxShadow: theme.boxShadows.md,
+          pointerEvents: "none",
+          borderRadius: `${textFieldBorderRadius}px`,
+          [`[data-popper-placement="top"] &`]: {
+            bottom: -AUTOCOMPLETE_INPUT_HEIGHT,
+          },
+          [`[data-popper-placement="bottom"] &`]: {
+            top: -AUTOCOMPLETE_INPUT_HEIGHT,
+          },
+        })}
+        aria-hidden
+      />
+      <Paper
+        {...props}
+        sx={(theme) => ({
+          p: 1,
+          border: 1,
+          boxSizing: "border-box",
+          borderColor: theme.palette.gray[30],
+          boxShadow: "none",
+          [`[data-popper-placement="top"] &`]: {
+            borderBottom: 0,
+            borderBottomLeftRadius: 0,
+            borderBottomRightRadius: 0,
+          },
+          [`[data-popper-placement="bottom"] &`]: {
+            borderTop: 0,
+            borderTopLeftRadius: 0,
+            borderTopRightRadius: 0,
+          },
+
+          [`.${autocompleteClasses.listbox}`]: { p: 0 },
+          [`.${autocompleteClasses.noOptions}`]: { display: "none" },
+          [`.${autocompleteClasses.option}`]: {
+            borderRadius: 1,
+            "&.Mui-focused": {
+              backgroundColor: `${theme.palette.gray[10]} !important`,
+            },
+          },
+        })}
       >
-        <Typography
-          variant="smallTextLabels"
-          sx={(theme) => ({
-            color: theme.palette.gray[60],
-            fontWeight: 500,
-          })}
+        {children}
+        <Button
+          variant="tertiary"
+          startIcon={<StyledPlusCircleIcon />}
+          sx={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            mt: 1,
+          }}
+          {...createButtonProps}
         >
-          Create
-        </Typography>
-        {query ? (
-          <>
-            &nbsp;
-            <Typography
-              variant="smallTextLabels"
-              sx={(theme) => ({
-                color: theme.palette.gray[60],
-                fontWeight: 600,
-              })}
-            >
-              {query}
-            </Typography>
-          </>
-        ) : null}
-        <Chip color="purple" label="PROPERTY TYPE" sx={{ ml: 1.5 }} />
-      </Button>
-    </Paper>
+          <Typography
+            variant="smallTextLabels"
+            sx={(theme) => ({
+              color: theme.palette.gray[60],
+              fontWeight: 500,
+            })}
+          >
+            Create
+          </Typography>
+          {query ? (
+            <>
+              &nbsp;
+              <Typography
+                variant="smallTextLabels"
+                sx={(theme) => ({
+                  color: theme.palette.gray[60],
+                  fontWeight: 600,
+                })}
+              >
+                {query}
+              </Typography>
+            </>
+          ) : null}
+          <Chip color="purple" label="PROPERTY TYPE" sx={{ ml: 1.5 }} />
+        </Button>
+      </Paper>
+    </>
   );
 };
 
 const NewPropertyRow = ({
   inputRef,
-  // onCancel,
+  onCancel,
   onAdd,
 }: {
   inputRef: Ref<HTMLInputElement | null>;
@@ -473,6 +490,7 @@ const NewPropertyRow = ({
 
   const ourInputRef = useRef<HTMLInputElement>(null);
   const sharedRef = useForkRef(inputRef, ourInputRef);
+  const [open, setOpen] = useState(false);
 
   const options = [
     {
@@ -516,31 +534,52 @@ const NewPropertyRow = ({
               state.placement,
             );
           }
-          // state.elements.popper.setAttribute("data-placement", state.placement);
         },
+      },
+      {
+        name: "preventOverflow",
+        enabled: false,
       },
     ],
     [],
   );
 
+  const highlightedRef = useRef<null | typeof options[number]>(null);
+
   return (
-    <TableRow data-disabled>
+    <TableRow
+      sx={{
+        [`.${tableCellClasses.root}`]: {
+          py: 1,
+        },
+      }}
+    >
       <TableCell colSpan={2}>
         <PaperWithCreateButtonContext.Provider
-          value={{
-            query: searchText,
-            createButtonProps: {
-              ...withHandler(bindTrigger(modalPopupState), () => {
-                ourInputRef.current?.focus();
-              }),
-              onMouseDown: (evt) => {
-                evt.preventDefault();
-                evt.stopPropagation();
+          value={
+            // eslint-disable-next-line react/jsx-no-constructed-context-values
+            {
+              query: searchText,
+              createButtonProps: {
+                ...withHandler(bindTrigger(modalPopupState), () => {
+                  ourInputRef.current?.focus();
+                }),
+                onMouseDown: (evt) => {
+                  evt.preventDefault();
+                  evt.stopPropagation();
+                },
               },
-            },
-          }}
+            }
+          }
         >
           <Autocomplete
+            open={open}
+            onOpen={() => setOpen(true)}
+            onClose={(_, reason) => {
+              if (reason !== "toggleInput") {
+                setOpen(false);
+              }
+            }}
             popupIcon={null}
             clearIcon={null}
             forcePopupIcon={false}
@@ -549,7 +588,27 @@ const NewPropertyRow = ({
             inputValue={searchText}
             clearOnBlur={false}
             onInputChange={(_, value) => setSearchText(value)}
+            onHighlightChange={(_, value) => {
+              highlightedRef.current = value;
+            }}
             onChange={() => onAdd()}
+            onKeyDown={(evt) => {
+              switch (evt.key) {
+                case "Enter":
+                  if (!highlightedRef.current) {
+                    modalPopupState.open();
+                  }
+                  break;
+                case "Escape":
+                  onCancel();
+                  break;
+              }
+            }}
+            onBlur={() => {
+              if (!modalPopupState.isOpen) {
+                onCancel();
+              }
+            }}
             renderInput={(props) => (
               <TextField
                 {...props}
@@ -571,22 +630,31 @@ const NewPropertyRow = ({
                     />
                   ),
                   sx: (theme) => ({
-                    boxShadow: "none",
+                    // The popover needs to know how tall this is to draw
+                    // a shadow around it
+                    height: AUTOCOMPLETE_INPUT_HEIGHT,
+
+                    // Focus is handled by the options popover
+                    "&.Mui-focused": {
+                      boxShadow: "none",
+                    },
 
                     [`.${outlinedInputClasses.notchedOutline}`]: {
                       border: `1px solid ${theme.palette.gray[30]} !important`,
                     },
 
-                    [`&[data-popper-placement="bottom"]`]: {
-                      borderBottom: 0,
-                      borderBottomLeftRadius: 0,
-                      borderBottomRightRadius: 0,
-                    },
-                    [`&[data-popper-placement="top"]`]: {
-                      borderTop: 0,
-                      borderTopLeftRadius: 0,
-                      borderTopRightRadius: 0,
-                    },
+                    ...(open && {
+                      [`&[data-popper-placement="bottom"]`]: {
+                        borderBottom: 0,
+                        borderBottomLeftRadius: 0,
+                        borderBottomRightRadius: 0,
+                      },
+                      [`&[data-popper-placement="top"]`]: {
+                        borderTop: 0,
+                        borderTopLeftRadius: 0,
+                        borderTopRightRadius: 0,
+                      },
+                    }),
                   }),
                 }}
               />
@@ -671,7 +739,6 @@ const NewPropertyRow = ({
         <Modal
           {...bindPopover(modalPopupState)}
           disableEscapeKeyDown
-          onClose={() => {}}
           contentStyle={(theme) => ({
             p: "0px !important",
             border: 1,
@@ -721,18 +788,6 @@ const NewPropertyRow = ({
             />
           </>
         </Modal>
-      </TableCell>
-      <TableCell>
-        <Checkbox disabled />
-      </TableCell>
-      <TableCell>
-        <Checkbox disabled />
-      </TableCell>
-      <TableCell>
-        <Input />
-      </TableCell>
-      <TableCell>
-        <PropertyMenu disabled />
       </TableCell>
     </TableRow>
   );
@@ -789,8 +844,10 @@ const CreatePropertyCard = ({
 
 const InsertPropertyCard = ({
   insertFieldRef,
+  onCancel,
 }: {
   insertFieldRef: Ref<HTMLInputElement | null>;
+  onCancel: () => void;
 }) => {
   const [addingNewProperty, setAddingNewProperty] = useState(true);
   const [created, setCreated] = useState<string[]>([]);
@@ -806,15 +863,20 @@ const InsertPropertyCard = ({
             [`.${tableCellClasses.root}`]: {
               pl: 3.5,
               pr: 1,
-              py: 1.5,
+              py: 0.5,
               border: "none",
             },
             [`.${tableCellClasses.head}`]: {
               py: 1.5,
-              borderBottom: "solid",
+              borderBottom: 1,
               borderColor: theme.palette.gray[20],
               fontWeight: "inherit",
               lineHeight: "inherit",
+
+              [`.${svgIconClasses.root}`]: {
+                verticalAlign: "middle",
+                ml: 0.75,
+              },
             },
             [`.${tableBodyClasses.root}:before`]: {
               lineHeight: "6px",
@@ -827,7 +889,6 @@ const InsertPropertyCard = ({
             },
             [`.${tableCellClasses.body} .${checkboxClasses.root}`]: {
               textAlign: "center",
-              display: "block",
             },
             // @todo move these styles to a component
             [`.${tableBodyClasses.root} .${tableRowClasses.root}`]: {
@@ -841,7 +902,7 @@ const InsertPropertyCard = ({
                   borderBottomRightRadius: 1,
                 },
               },
-              [`&:not([data-disabled]):hover .${tableCellClasses.root}`]: {
+              [`&:hover .${tableCellClasses.root}`]: {
                 background: theme.palette.gray[10],
               },
             },
@@ -856,11 +917,37 @@ const InsertPropertyCard = ({
               }}
             >
               <TableCell>Property name</TableCell>
-              <TableCell>Expected values</TableCell>
-              <TableCell>Allow multiple values</TableCell>
-              <TableCell>Required</TableCell>
-              <TableCell>Default value</TableCell>
-              <TableCell />
+              <TableCell sx={{ minWidth: "180px !important" }}>
+                Expected values
+              </TableCell>
+              <TableCell
+                sx={{
+                  width: "170px !important",
+                  textAlign: "center",
+                  px: "0px !important",
+                }}
+              >
+                Allow multiple values <QuestionIcon />
+              </TableCell>
+              <TableCell
+                sx={{
+                  width: "100px !important",
+                  textAlign: "center",
+                  px: "0px !important",
+                }}
+              >
+                Required
+              </TableCell>
+              <TableCell
+                sx={{
+                  width: "150px !important",
+                  textAlign: "center",
+                  px: "0px !important",
+                }}
+              >
+                Default value <QuestionIcon />
+              </TableCell>
+              <TableCell sx={{ width: "70px !important" }} />
             </Typography>
           </TableHead>
           <TableBody>
@@ -874,29 +961,55 @@ const InsertPropertyCard = ({
                 <TableCell>
                   <Chip label="Number" />
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ textAlign: "center" }}>
                   <Checkbox />
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ textAlign: "center" }}>
                   <Checkbox />
                 </TableCell>
-                <TableCell>
-                  <Input />
+                <TableCell sx={{ px: "0px !important" }}>
+                  <TextField
+                    placeholder="Add default value"
+                    sx={{
+                      width: "100%",
+                      [`.${tableRowClasses.root}:not(:hover) & .${outlinedInputClasses.root}:not(:focus-within)`]:
+                        {
+                          boxShadow: "none",
+                          [`.${outlinedInputClasses.notchedOutline}`]: {
+                            borderColor: "transparent",
+                          },
+                          [`.${outlinedInputClasses.input}::placeholder`]: {
+                            color: "transparent",
+                          },
+                        },
+                    }}
+                    inputProps={{ sx: { textOverflow: "ellipsis" } }}
+                  />
                 </TableCell>
                 <TableCell>
                   <PropertyMenu
                     onRemove={() => {
+                      const onlyItem = created.length === 1;
                       setCreated((list) => list.filter((item) => item !== id));
+                      if (onlyItem) {
+                        onCancel();
+                      }
                     }}
                   />
                 </TableCell>
               </TableRow>
             ))}
-            {!addingNewProperty ? null : (
+          </TableBody>
+          <TableFooter>
+            {addingNewProperty ? (
               <NewPropertyRow
                 inputRef={sharedRef}
                 onCancel={() => {
-                  setAddingNewProperty(false);
+                  if (!created.length) {
+                    onCancel();
+                  } else {
+                    setAddingNewProperty(false);
+                  }
                 }}
                 onAdd={() => {
                   setAddingNewProperty(false);
@@ -906,51 +1019,50 @@ const InsertPropertyCard = ({
                   ]);
                 }}
               />
-            )}
-          </TableBody>
-          <TableFooter>
-            <TableRow>
-              <TableCell
-                colSpan={
-                  // Sufficiently large to span full width
-                  100
-                }
-                sx={{
-                  p: "0 !important",
-                }}
-              >
-                <ButtonBase
-                  disableRipple
-                  disableTouchRipple
-                  onClick={() => {
-                    flushSync(() => {
-                      setAddingNewProperty(true);
-                    });
-
-                    addingNewPropertyRef.current?.focus();
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={
+                    // Sufficiently large to span full width
+                    100
+                  }
+                  sx={{
+                    p: "0 !important",
                   }}
-                  sx={(theme) => ({
-                    color: theme.palette.gray[50],
-                    py: 1.5,
-                    width: "100%",
-                    borderRadius: 1,
-                    "&:hover": {
-                      backgroundColor: theme.palette.gray[10],
-                      color: theme.palette.gray[70],
-                    },
-                  })}
                 >
-                  {/** @todo must be outlined */}
-                  <FontAwesomeIcon
-                    icon={faPlusCircle}
-                    sx={{ fontSize: 12, mr: 1 }}
-                  />
-                  <Typography variant="smallTextLabels" fontWeight={500}>
-                    Add a property
-                  </Typography>
-                </ButtonBase>
-              </TableCell>
-            </TableRow>
+                  <ButtonBase
+                    disableRipple
+                    disableTouchRipple
+                    onClick={() => {
+                      flushSync(() => {
+                        setAddingNewProperty(true);
+                      });
+
+                      addingNewPropertyRef.current?.focus();
+                    }}
+                    sx={(theme) => ({
+                      color: theme.palette.gray[50],
+                      py: 1.5,
+                      width: "100%",
+                      borderRadius: 1,
+                      "&:hover": {
+                        backgroundColor: theme.palette.gray[10],
+                        color: theme.palette.gray[70],
+                      },
+                    })}
+                  >
+                    <StyledPlusCircleIcon />
+                    <Typography
+                      variant="smallTextLabels"
+                      fontWeight={500}
+                      ml={1}
+                    >
+                      Add a property
+                    </Typography>
+                  </ButtonBase>
+                </TableCell>
+              </TableRow>
+            )}
           </TableFooter>
         </Table>
       </Box>
@@ -1026,11 +1138,18 @@ const Page: NextPageWithLayout = () => {
               }
             />
             <Typography variant="h1" fontWeight="bold" mt={3} mb={4.5}>
-              <FontAwesomeIcon
-                // @todo not quite right icon
-                icon={faBriefcase}
-                sx={{ fontSize: 38, mr: 3 }}
-              />
+              <Box
+                component="span"
+                sx={(theme) => ({
+                  mr: 3,
+                  verticalAlign: "middle",
+                  color: theme.palette.gray[70],
+
+                  svg: { height: 40 },
+                })}
+              >
+                <BriefcaseIcon />
+              </Box>
               Company
             </Typography>
           </Container>
@@ -1044,7 +1163,7 @@ const Page: NextPageWithLayout = () => {
               company
             </Box>
           </Typography>
-          {mode === "empty" ? (
+          <Collapse timeout={0} in={mode === "empty"}>
             <CreatePropertyCard
               onClick={() => {
                 flushSync(() => {
@@ -1054,9 +1173,15 @@ const Page: NextPageWithLayout = () => {
                 insertFieldRef.current?.focus();
               }}
             />
-          ) : (
-            <InsertPropertyCard insertFieldRef={insertFieldRef} />
-          )}
+          </Collapse>
+          <Collapse timeout={0} in={mode === "inserting"}>
+            <InsertPropertyCard
+              insertFieldRef={insertFieldRef}
+              onCancel={() => {
+                setMode("empty");
+              }}
+            />
+          </Collapse>
         </Container>
       </Box>
     </Box>
