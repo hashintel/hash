@@ -77,6 +77,10 @@ class PlaceholderResultsMap {
     return placeholderId;
   }
 
+  has(placeholderId: string): boolean {
+    return this.map.has(placeholderId);
+  }
+
   set(placeholderId: string | null | undefined, entity: { entityId: string }) {
     if (isPlaceholderId(placeholderId)) {
       this.map.set(placeholderId, entity.entityId);
@@ -259,12 +263,20 @@ const updateEntity = async (
   params: {
     userModel: UserModel;
     action: KnowledgeUpdateEntityAction;
+    placeholderResults: PlaceholderResultsMap;
   },
 ): Promise<void> => {
-  const { action, userModel } = params;
+  const { userModel, action, placeholderResults } = params;
+
+  // If this entity ID is a placeholder, use that instead.
+  let entityId = action.entityId;
+  if (placeholderResults.has(entityId)) {
+    entityId = placeholderResults.get(entityId);
+  }
+
   const entityModel = await EntityModel.getLatest(graphApi, {
     accountId: action.accountId,
-    entityId: action.entityId,
+    entityId,
   });
 
   await entityModel.updateProperties(graphApi, {
@@ -369,7 +381,7 @@ export const knowledgeUpdatePageContents: ResolverFn<
   // Perform any entity updates.
   await Promise.all(
     filterForAction(actions, "updateEntity").map(async ({ action }) =>
-      updateEntity(graphApi, { userModel, action }),
+      updateEntity(graphApi, { userModel, action, placeholderResults }),
     ),
   );
 
@@ -407,11 +419,11 @@ export const knowledgeUpdatePageContents: ResolverFn<
             .some((actionToFollow) => actionToFollow.insertBlock),
         });
       }
-    } catch (err) {
-      if (err instanceof UserInputError) {
-        throw new UserInputError(`action ${i}: ${err}`);
+    } catch (error) {
+      if (error instanceof UserInputError) {
+        throw new UserInputError(`action ${i}: ${error}`);
       }
-      throw err;
+      throw new Error(`Could not apply update: ${JSON.stringify(error)}`);
     }
   }
 

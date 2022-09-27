@@ -212,7 +212,7 @@ export const knowledgePageTypedef = gql`
 
   extend type Mutation {
     """
-    Atomically update the contents of a page.
+    Update the contents of a page.
     """
     knowledgeUpdatePageContents(
       """
