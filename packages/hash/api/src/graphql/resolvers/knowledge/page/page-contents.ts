@@ -1,7 +1,7 @@
 import { ApolloError } from "apollo-server-errors";
 import { PageModel } from "../../../../model";
 import { ResolverFn } from "../../../apiTypes.gen";
-import { GraphQLContext } from "../../../context";
+import { LoggedInGraphQLContext } from "../../../context";
 import {
   entityModelToGQL,
   UnresolvedEntityGQL,
@@ -11,7 +11,7 @@ import {
 export const knowledgePageContents: ResolverFn<
   Promise<UnresolvedEntityGQL[]>,
   UnresolvedPageGQL,
-  GraphQLContext,
+  LoggedInGraphQLContext,
   {}
 > = async ({ entityId }, _, { dataSources }) => {
   const { graphApi } = dataSources;

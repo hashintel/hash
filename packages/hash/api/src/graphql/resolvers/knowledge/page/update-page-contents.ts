@@ -1,5 +1,3 @@
-// import { JsonObject } from "@blockprotocol/core";
-
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import produce from "immer";
 import { GraphApi } from "@hashintel/hash-graph-client";
@@ -323,7 +321,9 @@ export const knowledgeUpdatePageContents: ResolverFn<
       }
 
       /**
-       * @todo Figure out what would be the equivalent ot linked data in the new graph api.
+       * @todo Figure out what would be the equivalent to linked data in the new graph api.
+       *   Related to https://app.asana.com/0/1200211978612931/1201850801682936/f
+       *   Asana ticket: https://app.asana.com/0/1202805690238892/1203045933021781/f
        */
       // if (draft.entityProperties?.text?.__linkedData?.entityId) {
       //   draft.entityProperties.text.__linkedData.entityId =
@@ -339,8 +339,17 @@ export const knowledgeUpdatePageContents: ResolverFn<
     });
   };
 
-  /** @todo Implement entity type creation */
+  /**
+   * @todo Figure out how we want to implement entity type creation
+   *   in update-page-contents
+   *   see https://app.asana.com/0/1202805690238892/1203057486837598/f
+   */
   // Create any _new_ entity types
+  filterForAction(actions, "createEntityType").map(({ index }) => {
+    throw new Error(
+      `createEntityType: not implemented yet, action index: ${index}`,
+    );
+  });
 
   /**
    * Create any _new_ entities. This is done one at a time in order to allow
