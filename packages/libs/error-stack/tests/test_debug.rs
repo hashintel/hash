@@ -502,17 +502,6 @@ mod full {
     }
 
     #[test]
-    fn hook_fallback() {
-        let _guard = prepare(false);
-
-        let report = create_report().attach(1u32);
-
-        Report::install_debug_hook_fallback(|_, ctx| ctx.push_body("unknown"));
-
-        assert_snapshot!(format!("{report:?}"));
-    }
-
-    #[test]
     fn hook_decr() {
         let _guard = prepare(false);
 
