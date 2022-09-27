@@ -13,6 +13,11 @@ export const selectionContainsText = (state: EditorState<Schema>) => {
     if (containsText) {
       return false;
     }
+
+    if (node.isInline) {
+      containsText = true;
+    }
+
     if (isComponentNode(node)) {
       node.content.descendants((childNode) => {
         if (childNode.isInline) {
