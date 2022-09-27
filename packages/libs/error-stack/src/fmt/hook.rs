@@ -401,8 +401,6 @@ impl<T> HookContext<T> {
     /// partitions of the storage. Only hooks that share storage with hooks of different types
     /// should need to use this function.
     ///
-    /// This function is also particularly useful when implementing generic fallbacks.
-    ///
     /// ### Example
     ///
     /// ```rust
@@ -671,7 +669,6 @@ impl<T: 'static> HookContext<T> {
 }
 
 type BoxedHook = Box<dyn Fn(&Frame, &mut HookContext<Frame>) -> Option<()> + Send + Sync>;
-type BoxedFallbackHook = Box<dyn Fn(&Frame, &mut HookContext<Frame>) + Send + Sync>;
 
 fn into_boxed_hook<T: Send + Sync + 'static>(
     hook: impl Fn(&T, &mut HookContext<T>) + Send + Sync + 'static,
@@ -700,9 +697,7 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
     })
 }
 
-/// Holds list of hooks and a fallback.
-///
-/// The fallback is called whenever a hook for a specific type couldn't be found.
+/// Holds list of hooks.
 ///
 /// These are used to augment the [`Debug`] information of attachments and contexts, which are
 /// normally not printable.
@@ -727,7 +722,6 @@ pub(crate) struct Hooks {
     // We use `Vec`, instead of `HashMap` or `BTreeMap`, so that ordering is consistent with the
     // insertion order of types.
     pub(crate) inner: Vec<(TypeId, BoxedHook)>,
-    pub(crate) fallback: Option<BoxedFallbackHook>,
 }
 
 #[cfg(feature = "std")]
@@ -744,27 +738,9 @@ impl Hooks {
         self.inner.push((type_id, into_boxed_hook(hook)));
     }
 
-    pub(crate) fn fallback(
-        &mut self,
-        hook: impl Fn(&Frame, &mut HookContext<Frame>) + Send + Sync + 'static,
-    ) {
-        self.fallback = Some(Box::new(hook));
-    }
-
     pub(crate) fn call(&self, frame: &Frame, ctx: &mut HookContext<Frame>) {
-        // By checking the times we actually invoked a function we make sure that
-        // even if we only added an appendix, or have purposely not added an entry to the body, we
-        // don't use the fallback.
-        let calls = self
-            .inner
-            .iter()
-            .filter_map(|(_, hook)| hook(frame, ctx))
-            .count();
-
-        if calls == 0 {
-            if let Some(fallback) = &self.fallback {
-                fallback(frame, ctx);
-            }
+        for (_, hook) in &self.inner {
+            hook(frame, ctx);
         }
     }
 }
@@ -812,7 +788,7 @@ mod default {
         INSTALL_BUILTIN.call_once(|| {
             INSTALL_BUILTIN_RUNNING.store(true, Ordering::Release);
 
-            #[cfg(all(rust_1_65))]
+            #[cfg(rust_1_65)]
             Report::install_debug_hook(backtrace);
 
             #[cfg(feature = "spantrace")]
