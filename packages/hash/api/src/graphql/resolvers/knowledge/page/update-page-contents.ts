@@ -4,8 +4,13 @@ import { ApolloError, UserInputError } from "apollo-server-errors";
 import produce from "immer";
 import { GraphApi } from "@hashintel/hash-graph-client";
 
-import { BlockModel, EntityModel, PageModel, UserModel } from "../../../model";
-import { exactlyOne } from "../../../util";
+import {
+  BlockModel,
+  EntityModel,
+  PageModel,
+  UserModel,
+} from "../../../../model";
+import { exactlyOne } from "../../../../util";
 import {
   KnowledgeCreateEntityAction,
   KnowledgeEntity,
@@ -17,9 +22,9 @@ import {
   KnowledgeUpdatePageContentsResult,
   MutationKnowledgeUpdatePageContentsArgs,
   ResolverFn,
-} from "../../apiTypes.gen";
-import { LoggedInGraphQLContext } from "../../context";
-import { pageModelToGQL } from "./model-mapping";
+} from "../../../apiTypes.gen";
+import { LoggedInGraphQLContext } from "../../../context";
+import { pageModelToGQL } from "../model-mapping";
 
 type UpdatePageActionKey = keyof KnowledgeUpdatePageAction;
 
@@ -412,7 +417,7 @@ export const knowledgeUpdatePageContents: ResolverFn<
   }
 
   return {
-    page: await pageModelToGQL(graphApi, pageModel),
+    page: pageModelToGQL(pageModel),
     placeholders: placeholderResults.getResults(),
   };
 };
