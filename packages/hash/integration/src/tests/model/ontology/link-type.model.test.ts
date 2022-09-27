@@ -49,7 +49,7 @@ describe("Link type CRU", () => {
 
   it("can read a link type", async () => {
     const fetchedLinkType = await LinkTypeModel.get(graphApi, {
-      versionedUri: createdLinkTypeModel.schema.$id,
+      linkTypeId: createdLinkTypeModel.schema.$id,
     });
 
     expect(fetchedLinkType.schema).toEqual(createdLinkTypeModel.schema);

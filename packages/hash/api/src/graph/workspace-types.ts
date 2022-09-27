@@ -8,6 +8,7 @@ import {
   propertyTypeInitializer,
   entityTypeInitializer,
   linkTypeInitializer,
+  generateTypeId,
 } from "../model/util";
 
 // eslint-disable-next-line import/no-mutable-exports
@@ -32,12 +33,23 @@ export let WORKSPACE_TYPES: {
 
     // Block-related
     componentId: PropertyTypeModel;
+
+    // Page-related
+    archived: PropertyTypeModel;
+    summary: PropertyTypeModel;
+    title: PropertyTypeModel;
+    index: PropertyTypeModel;
+
+    // Text-related
+    tokens: PropertyTypeModel;
   };
   entityType: {
     user: EntityTypeModel;
     org: EntityTypeModel;
     orgMembership: EntityTypeModel;
     block: EntityTypeModel;
+    page: EntityTypeModel;
+    text: EntityTypeModel;
     /**
      * @todo: deprecate all uses of this dummy entity type
      * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
@@ -53,6 +65,10 @@ export let WORKSPACE_TYPES: {
 
     // Block-related
     blockData: LinkTypeModel;
+
+    // Page-related
+    contains: LinkTypeModel;
+    parent: LinkTypeModel;
   };
 };
 
@@ -100,17 +116,17 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
     properties: [
       {
         propertyTypeBaseUri: shortnamePropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: shortnamePropertyTypeModel.schema.$id,
+        propertyTypeId: shortnamePropertyTypeModel.schema.$id,
         required: true,
       },
       {
         propertyTypeBaseUri: orgNamePropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: orgNamePropertyTypeModel.schema.$id,
+        propertyTypeId: orgNamePropertyTypeModel.schema.$id,
         required: true,
       },
       {
         propertyTypeBaseUri: orgProvidedInfoPropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: orgProvidedInfoPropertyTypeModel.schema.$id,
+        propertyTypeId: orgProvidedInfoPropertyTypeModel.schema.$id,
         required: false,
       },
     ],
@@ -138,14 +154,14 @@ const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
     properties: [
       {
         propertyTypeBaseUri: responsibilityPropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: responsibilityPropertyTypeModel.schema.$id,
+        propertyTypeId: responsibilityPropertyTypeModel.schema.$id,
         required: true,
       },
     ],
     outgoingLinks: [
       {
-        linkTypeVersionedUri: ofOrgLinkTypeModel.schema.$id,
-        destinationEntityTypeVersionedUri: orgEntityTypeModel.schema.$id,
+        linkTypeId: ofOrgLinkTypeModel.schema.$id,
+        destinationEntityTypeId: orgEntityTypeModel.schema.$id,
         required: true,
       },
     ],
@@ -235,30 +251,29 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
     properties: [
       {
         propertyTypeBaseUri: shortnamePropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: shortnamePropertyTypeModel.schema.$id,
+        propertyTypeId: shortnamePropertyTypeModel.schema.$id,
       },
       {
         propertyTypeBaseUri: emailPropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: emailPropertyTypeModel.schema.$id,
+        propertyTypeId: emailPropertyTypeModel.schema.$id,
         required: true,
         array: { minItems: 1 },
       },
       {
         propertyTypeBaseUri: kratosIdentityIdPropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: kratosIdentityIdPropertyTypeModel.schema.$id,
+        propertyTypeId: kratosIdentityIdPropertyTypeModel.schema.$id,
         required: true,
       },
       {
         propertyTypeBaseUri: preferredNamePropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: preferredNamePropertyTypeModel.schema.$id,
+        propertyTypeId: preferredNamePropertyTypeModel.schema.$id,
         required: true,
       },
     ],
     outgoingLinks: [
       {
-        linkTypeVersionedUri: hasMembershipLinkTypeModel.schema.$id,
-        destinationEntityTypeVersionedUri:
-          orgMembershipEntityTypeModel.schema.$id,
+        linkTypeId: hasMembershipLinkTypeModel.schema.$id,
+        destinationEntityTypeId: orgMembershipEntityTypeModel.schema.$id,
       },
     ],
   })(graphApi);
@@ -296,21 +311,53 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
     properties: [
       {
         propertyTypeBaseUri: componentIdPropertyTypeModel.baseUri,
-        propertyTypeVersionedUri: componentIdPropertyTypeModel.schema.$id,
+        propertyTypeId: componentIdPropertyTypeModel.schema.$id,
         required: true,
       },
     ],
     outgoingLinks: [
       {
-        linkTypeVersionedUri: blockDataLinkTypeModel.schema.$id,
+        linkTypeId: blockDataLinkTypeModel.schema.$id,
         /**
          * @todo: unset this when the destination entity type can be undefined
          * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
          */
-        destinationEntityTypeVersionedUri: dummyEntityTypeModel.schema.$id,
+        destinationEntityTypeId: dummyEntityTypeModel.schema.$id,
         required: true,
       },
     ],
+  })(graphApi);
+};
+
+const tokensPropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Text Tokens",
+  /**
+   * @todo: potentially improve this property type to be composed of nested property type definitions
+   * @see https://app.asana.com/0/1202805690238892/1203045933021778/f
+   */
+  possibleValues: [{ primitiveDataType: "Object" }],
+});
+
+const textEntityTypeInitializer = async (graphApi: GraphApi) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const tokensPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.tokens(graphApi);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+  return entityTypeInitializer({
+    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+    title: "Text",
+    properties: [
+      {
+        propertyTypeBaseUri: tokensPropertyTypeModel.baseUri,
+        propertyTypeId: tokensPropertyTypeModel.schema.$id,
+        required: true,
+        array: true,
+      },
+    ],
+    outgoingLinks: [],
   })(graphApi);
 };
 
@@ -324,6 +371,122 @@ const dummyEntityTypeInitializer = async (graphApi: GraphApi) => {
     title: "Dummy",
     properties: [],
     outgoingLinks: [],
+  })(graphApi);
+};
+
+const archivedPropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Archived",
+  description: "Whether or not something has been archived.",
+  possibleValues: [{ primitiveDataType: "Boolean" }],
+});
+
+const summaryPropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Summary",
+  description: "The summary of the something.",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+const titlePropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Title",
+  description: "The title of something.",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+const indexPropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Index",
+  description:
+    "The (fractional) index indicating the current position of something.",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+const containsLinkTypeInitializer = linkTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Contains",
+  description: "Something containing something.",
+});
+
+const parentLinkTypeInitializer = linkTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Parent",
+  description: "The parent of something.",
+});
+
+const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const summaryPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.summary(graphApi);
+
+  const archivedPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.archived(graphApi);
+
+  const titlePropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.title(graphApi);
+
+  const indexPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.index(graphApi);
+
+  const containsLinkTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.linkType.contains(graphApi);
+
+  const parentLinkTypeTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.linkType.parent(graphApi);
+
+  const blockEntityTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.entityType.block(graphApi);
+
+  const namespace = WORKSPACE_ACCOUNT_SHORTNAME;
+
+  const title = "Page";
+
+  const pageEntityTypeId = generateTypeId({
+    namespace,
+    title,
+    kind: "entity-type",
+  });
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    namespace,
+    title,
+    properties: [
+      {
+        propertyTypeBaseUri: summaryPropertyTypeModel.baseUri,
+        propertyTypeId: summaryPropertyTypeModel.schema.$id,
+      },
+      {
+        propertyTypeBaseUri: archivedPropertyTypeModel.baseUri,
+        propertyTypeId: archivedPropertyTypeModel.schema.$id,
+      },
+      {
+        propertyTypeBaseUri: titlePropertyTypeModel.baseUri,
+        propertyTypeId: titlePropertyTypeModel.schema.$id,
+        required: true,
+      },
+      {
+        propertyTypeBaseUri: indexPropertyTypeModel.baseUri,
+        propertyTypeId: indexPropertyTypeModel.schema.$id,
+        required: true,
+      },
+    ],
+    outgoingLinks: [
+      {
+        linkTypeId: containsLinkTypeModel.schema.$id,
+        destinationEntityTypeId: blockEntityTypeModel.schema.$id,
+        required: true,
+        array: true,
+        ordered: true,
+      },
+      {
+        linkTypeId: parentLinkTypeTypeModel.schema.$id,
+        destinationEntityTypeId: pageEntityTypeId,
+      },
+    ],
   })(graphApi);
 };
 
@@ -353,18 +516,29 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     responsibility: responsibilityPropertyTypeInitializer,
 
     componentId: componentIdPropertyTypeInitializer,
+
+    summary: summaryPropertyTypeInitializer,
+    archived: archivedPropertyTypeInitializer,
+    title: titlePropertyTypeInitializer,
+    index: indexPropertyTypeInitializer,
+
+    tokens: tokensPropertyTypeInitializer,
   },
   entityType: {
     user: userEntityTypeInitializer,
     org: orgEntityTypeInitializer,
     orgMembership: orgMembershipEntityTypeInitializer,
     block: blockEntityTypeInitializer,
+    page: pageEntityTypeInitializer,
+    text: textEntityTypeInitializer,
     dummy: dummyEntityTypeInitializer,
   },
   linkType: {
     ofOrg: ofOrgLinkTypeInitializer,
     hasMembership: hasMembershipLinkTypeInitializer,
     blockData: blockDataLinkTypeInitializer,
+    contains: containsLinkTypeInitializer,
+    parent: parentLinkTypeInitializer,
   },
 };
 
