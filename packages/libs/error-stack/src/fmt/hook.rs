@@ -483,7 +483,6 @@ impl<T> HookContext<T> {
 impl<T: 'static> HookContext<T> {
     /// Return a reference to a value of type `U`, if a value of that type exists.
     ///
-    ///
     /// Values returned are isolated and "bound" to `T`, this means that [`HookContext<Warning>`]
     /// and [`HookContext<Error>`] do not share the same values. Values are only retained during the
     /// invocation of [`Debug`].
