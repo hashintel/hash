@@ -7,6 +7,7 @@ import {
   EntityTypeModel,
   DataTypeModel,
   PropertyTypeModel,
+  LinkTypeModel,
 } from "@hashintel/hash-api/src/model";
 import { createTestUser } from "../../util";
 
@@ -26,81 +27,101 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-let accountId: string;
-let entityTypeModel: EntityTypeModel;
-let textDataTypeModel: DataTypeModel;
-let namePropertyTypeModel: PropertyTypeModel;
-let favoriteBookPropertyTypeModel: PropertyTypeModel;
+describe("Entity CRU", () => {
+  let accountId: string;
+  let entityTypeModel: EntityTypeModel;
+  let textDataTypeModel: DataTypeModel;
+  let namePropertyTypeModel: PropertyTypeModel;
+  let favoriteBookPropertyTypeModel: PropertyTypeModel;
+  let linkTypeFriend: LinkTypeModel;
 
-beforeAll(async () => {
-  const testUser = await createTestUser(graphApi, "entitytest", logger);
+  beforeAll(async () => {
+    const testUser = await createTestUser(graphApi, "entitytest", logger);
 
-  accountId = testUser.entityId;
+    accountId = testUser.entityId;
 
-  textDataTypeModel = await DataTypeModel.create(graphApi, {
-    accountId,
-    schema: {
-      kind: "dataType",
-      title: "Text",
-      type: "string",
-    },
-  }).catch((err) => {
-    logger.error(`Something went wrong making Text: ${err}`);
-    throw err;
-  });
-
-  const results = await Promise.all([
-    EntityTypeModel.create(graphApi, {
+    textDataTypeModel = await DataTypeModel.create(graphApi, {
       accountId,
       schema: {
-        kind: "entityType",
-        title: "Person",
-        pluralTitle: "People",
-        type: "object",
-        properties: {},
+        kind: "dataType",
+        title: "Text",
+        type: "string",
       },
     }).catch((err) => {
-      logger.error(`Something went wrong making Person: ${err}`);
+      logger.error(`Something went wrong making Text: ${err}`);
       throw err;
-    }),
-    PropertyTypeModel.create(graphApi, {
-      accountId,
-      schema: {
-        kind: "propertyType",
-        title: "Favorite Book",
-        pluralTitle: "Favorite Books",
-        oneOf: [{ $ref: textDataTypeModel.schema.$id }],
-      },
-    })
-      .then((val) => {
-        favoriteBookPropertyTypeModel = val;
-      })
-      .catch((err) => {
-        logger.error(`Something went wrong making Favorite Book: ${err}`);
-        throw err;
-      }),
-    PropertyTypeModel.create(graphApi, {
-      accountId,
-      schema: {
-        kind: "propertyType",
-        title: "Name",
-        pluralTitle: "Names",
-        oneOf: [{ $ref: textDataTypeModel.schema.$id }],
-      },
-    })
-      .then((val) => {
-        namePropertyTypeModel = val;
-      })
-      .catch((err) => {
-        logger.error(`Something went wrong making Names: ${err}`);
-        throw err;
-      }),
-  ]);
+    });
 
-  entityTypeModel = results[0];
-});
+    await Promise.all([
+      EntityTypeModel.create(graphApi, {
+        accountId,
+        schema: {
+          kind: "entityType",
+          title: "Person",
+          pluralTitle: "People",
+          type: "object",
+          properties: {},
+        },
+      })
+        .then((val) => {
+          entityTypeModel = val;
+        })
+        .catch((err) => {
+          logger.error(`Something went wrong making Person: ${err}`);
+          throw err;
+        }),
+      LinkTypeModel.create(graphApi, {
+        accountId,
+        schema: {
+          kind: "linkType",
+          title: "Friends",
+          pluralTitle: "Friends",
+          description: "Friend of",
+        },
+      })
+        .then((val) => {
+          linkTypeFriend = val;
+        })
+        .catch((err) => {
+          logger.error(`Something went wrong making link type Friends: ${err}`);
+          throw err;
+        }),
 
-describe("Entity CRU", () => {
+      PropertyTypeModel.create(graphApi, {
+        accountId,
+        schema: {
+          kind: "propertyType",
+          title: "Favorite Book",
+          pluralTitle: "Favorite Books",
+          oneOf: [{ $ref: textDataTypeModel.schema.$id }],
+        },
+      })
+        .then((val) => {
+          favoriteBookPropertyTypeModel = val;
+        })
+        .catch((err) => {
+          logger.error(`Something went wrong making Favorite Book: ${err}`);
+          throw err;
+        }),
+      PropertyTypeModel.create(graphApi, {
+        accountId,
+        schema: {
+          kind: "propertyType",
+          title: "Name",
+          pluralTitle: "Names",
+          oneOf: [{ $ref: textDataTypeModel.schema.$id }],
+        },
+      })
+        .then((val) => {
+          namePropertyTypeModel = val;
+        })
+        .catch((err) => {
+          logger.error(`Something went wrong making Names: ${err}`);
+          throw err;
+        }),
+    ]);
+  });
+
   let createdEntityModel: EntityModel;
   it("can create an entity", async () => {
     createdEntityModel = await EntityModel.create(graphApi, {
@@ -160,5 +181,42 @@ describe("Entity CRU", () => {
     ).toEqual(
       (updatedEntityModel.properties as any)[namePropertyTypeModel.baseUri],
     );
+  });
+
+  it("can create entity with linked entities from an entity definition", async () => {
+    const aliceEntityModel = await EntityModel.createEntityWithLinks(graphApi, {
+      createdById: accountId,
+      entityDefinition: {
+        // First create a new entity given the following definition
+        entityType: {
+          entityTypeId: entityTypeModel.schema.$id,
+        },
+        entityProperties: {
+          [namePropertyTypeModel.baseUri]: "Alice",
+          [favoriteBookPropertyTypeModel.baseUri]: "some text",
+        },
+        linkedEntities: [
+          {
+            // Then create an entity + link
+            destinationAccountId: accountId,
+            linkTypeId: linkTypeFriend.schema.$id,
+            entity: {
+              // The "new" entity is in fact just an existing entity, so only a link will be created.
+              existingEntity: {
+                entityId: updatedEntityModel.entityId,
+                ownedById: updatedEntityModel.accountId,
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    const linkedEntity = (
+      await aliceEntityModel.getOutgoingLinks(graphApi)
+    ).map((linkModel) => linkModel)[0]!;
+
+    expect(linkedEntity.targetEntityModel).toEqual(updatedEntityModel);
+    expect(linkedEntity.linkTypeModel).toEqual(linkTypeFriend);
   });
 });
