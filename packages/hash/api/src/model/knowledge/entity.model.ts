@@ -1,3 +1,5 @@
+import { ApolloError } from "apollo-server-errors";
+
 import {
   PersistedEntity,
   GraphApi,
@@ -11,6 +13,11 @@ import {
   LinkModelCreateParams,
   LinkTypeModel,
 } from "..";
+import {
+  KnowledgeEntityDefinition,
+  KnowledgeLinkedEntityDefinition,
+} from "../../graphql/apiTypes.gen";
+import { exactlyOne, linkedTreeFlatten } from "../../util";
 
 export type EntityModelConstructorParams = {
   accountId: string;
@@ -112,6 +119,146 @@ export default class {
       entityTypeModel,
       properties,
     });
+  }
+
+  /**
+   * Create an entity along with any new/existing entities specified through links.
+   *
+   * @param params.createdById the account id that is creating the entity
+   * @param params.entityDefinition the definition of how to get or create the entity optionally with linked entities
+   */
+  static async createEntityWithLinks(
+    graphApi: GraphApi,
+    params: {
+      createdById: string;
+      entityDefinition: KnowledgeEntityDefinition;
+    },
+  ): Promise<EntityModel> {
+    const { createdById, entityDefinition } = params;
+
+    const entitiesInTree = linkedTreeFlatten<
+      KnowledgeEntityDefinition,
+      KnowledgeLinkedEntityDefinition,
+      "linkedEntities",
+      "entity"
+    >(entityDefinition, "linkedEntities", "entity");
+
+    /**
+     * @todo Once the graph API validates the required links of entities on creation, this may have to be reworked in order
+     *   to create valid entities.
+     *   this code currently creates entities first, then links them together.
+     *   See https://app.asana.com/0/1202805690238892/1203046447168478/f
+     */
+    const entities = await Promise.all(
+      entitiesInTree.map(async (definition) => ({
+        link: definition.meta
+          ? {
+              parentIndex: definition.parentIndex,
+              meta: definition.meta,
+            }
+          : undefined,
+        entity: await EntityModel.getOrCreate(graphApi, {
+          createdById,
+          entityDefinition: definition,
+        }),
+      })),
+    );
+
+    let rootEntityModel: EntityModel;
+    if (entities[0]) {
+      // First element will be the root entity.
+      rootEntityModel = entities[0].entity;
+    } else {
+      throw new ApolloError(
+        "Could not create entity tree",
+        "INTERNAL_SERVER_ERROR",
+      );
+    }
+
+    await Promise.all(
+      entities.map(async ({ link, entity }) => {
+        if (link) {
+          const parentEntity = entities[link.parentIndex];
+          if (!parentEntity) {
+            throw new ApolloError("Could not find parent entity");
+          }
+          const linkTypeModel = await LinkTypeModel.get(graphApi, {
+            linkTypeId: link.meta.linkTypeId,
+          });
+
+          // links are created as an outgoing link from the parent entity to the children.
+          await parentEntity.entity.createOutgoingLink(graphApi, {
+            linkTypeModel,
+            targetEntityModel: entity,
+            index: link.meta.index ?? undefined,
+            createdById,
+          });
+        }
+      }),
+    );
+
+    return rootEntityModel;
+  }
+
+  /**
+   * Get or create an entity given either by new entity properties or a reference
+   * to an existing entity.
+   *
+   * @param params.createdById the account id that is creating the entity
+   * @param params.entityDefinition the definition of how to get or create the entity (excluding any linked entities)
+   */
+  static async getOrCreate(
+    graphApi: GraphApi,
+    params: {
+      createdById: string;
+      entityDefinition: Omit<KnowledgeEntityDefinition, "linkedEntities">;
+    },
+  ): Promise<EntityModel> {
+    const { entityDefinition } = params;
+    const { entityProperties, existingEntity } = entityDefinition;
+
+    let entity;
+
+    if (existingEntity) {
+      entity = await EntityModel.getLatest(graphApi, {
+        entityId: existingEntity.entityId,
+        accountId: existingEntity.ownedById,
+      });
+      if (!entity) {
+        throw new ApolloError(
+          `Entity ${existingEntity.entityId} owned by ${existingEntity.ownedById} not found`,
+          "NOT_FOUND",
+        );
+      }
+    } else if (entityProperties) {
+      const { entityType } = entityDefinition;
+      const { entityTypeId } = entityType ?? {};
+
+      if (!exactlyOne(entityTypeId)) {
+        throw new ApolloError(
+          `Given no valid type identifier. Must be one of entityTypeId`,
+          "NOT_FOUND",
+        );
+      }
+
+      const entityTypeModel = await EntityTypeModel.get(graphApi, {
+        // This assertion thinks there's a false positive, perhaps because of the 'InputMaybe' wrapper.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+        entityTypeId: entityTypeId!,
+      });
+
+      entity = await EntityModel.create(graphApi, {
+        accountId: params.createdById,
+        entityTypeModel,
+        properties: entityProperties,
+      });
+    } else {
+      throw new Error(
+        `entityType and one of entityId OR entityProperties must be provided`,
+      );
+    }
+
+    return entity;
   }
 
   static async getByQuery(
