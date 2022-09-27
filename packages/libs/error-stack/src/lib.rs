@@ -205,7 +205,7 @@
 //! As seen above, there are ways on attaching more information to the [`Report`]: [`attach`] and
 //! [`attach_printable`]. These two functions behave similar, but the latter has a more restrictive
 //! bound on the attachment: [`Display`] and [`Debug`]. Depending on the function used, printing the
-//! [`Report`] will also use the [`Display`] and [`Debug`] traits to describe the attachment:
+//! [`Report`] will also use the [`Display`] and [`Debug`] traits to describe the attachment.
 //!
 //! This outputs something like:
 //!
@@ -213,8 +213,11 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/lib__suggestion.snap"))]
 //! </pre>
 //!
-//! The `Suggestion` passed to [`attach`] shown as an opaque attachment. The message passed to
-//! [`attach_printable`] however is printed next to the [`Context`] where it was attached to.
+//! The `Suggestion`, which was added via [`attach`] is not shown directly and only increases the
+//! counter of opaque attachments for the containing [`Context`].
+//! The message which was passed to [`attach_printable`], however, is displayed in full.
+//! To be able to show attachments that have been added via [`attach`], one must make use of
+//! [hooks](#debug-and-display-hooks) instead.
 //!
 //! [`attach_printable`]: Report::attach_printable
 //! [`Display`]: core::fmt::Display
@@ -298,9 +301,9 @@
 //!
 //! ### Compatibility with other Libraries
 //!
-//! In `std` environments a blanket implementation for `Context` for any `Error` is provided. This
-//! blanket implementation for [`Error`] means `error-stack` is compatible with almost all other
-//! libraries that use the [`Error`] trait.
+//! In `std` (or `nightly`) environments a blanket implementation for `Context` for any `Error` is
+//! provided. This blanket implementation for [`Error`] means `error-stack` is compatible with
+//! almost all other libraries that use the [`Error`] trait.
 //!
 //! This has the added benefit that migrating from other error libraries can often be incremental,
 //! as a lot of popular error library types will work within the [`Report`] struct.
@@ -387,13 +390,14 @@
 //!
 //! ### Debug and Display Hooks
 //!
-//! When the `hooks` feature is enabled, it's possible to provide a custom implementation to print a
-//! [`Report`]. This is done by passing a hook to [`Report::set_debug_hook()`] and/or
-//! [`Report::set_display_hook()`]. If no hook was set a sensible default implementation will be
-//! used. Possible custom hooks would for example be a machine-readable output, e.g. JSON, or a
-//! colored output. If attachments include things that don't implement [`Display`] or [`Debug`] then
-//! a custom hook could be used to offer some other output about these things when printing a
-//! [`Report`].
+//! One can provide hooks for types added as attachments when the `std` feature is enabled. These
+//! hooks are then used while formatting [`Report`].
+//! This functionality is also used internally by `error-stack` to render [`Backtrace`], and
+//! [`SpanTrace`], which means overwriting and customizing them is as easy as providing another
+//! hook.
+//!
+//! You can add new hooks with [`Report::install_debug_hook`]. Refer to the module-level
+//! documentation of [`fmt`] for further information.
 //!
 //! ### Additional Adaptors
 //!

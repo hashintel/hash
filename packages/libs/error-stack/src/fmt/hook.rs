@@ -483,9 +483,9 @@ impl<T> HookContext<T> {
 impl<T: 'static> HookContext<T> {
     /// Return a reference to a value of type `U`, if a value of that type exists.
     ///
-    /// Values returned are isolated and therefore "bound" to `T`, this means that if two different
-    /// [`HookContext`]s that share the same inner value (e.g. same invocation of [`Debug`]) will
-    /// return the same value.
+    /// Values returned are isolated and "bound" to `T`, this means that [`HookContext<Warning>`]
+    /// and [`HookContext<Error>`] do not share the same values. Values are only retained during the
+    /// invocation of [`Debug`].
     ///
     /// [`Debug`]: core::fmt::Debug
     #[must_use]
@@ -498,9 +498,11 @@ impl<T: 'static> HookContext<T> {
 
     /// Return a mutable reference to a value of type `U`, if a value of that type exists.
     ///
-    /// Values returned are isolated and therefore "bound" to `T`, this means that if two different
-    /// [`HookContext`]s that share the same inner value (e.g. same invocation of [`Debug`]) will
-    /// return the same value.
+    /// Values returned are isolated and "bound" to `T`, this means that [`HookContext<Warning>`]
+    /// and [`HookContext<Error>`] do not share the same values. Values are only retained during the
+    /// invocation of [`Debug`].
+    ///
+    /// [`Debug`]: core::fmt::Debug
     pub fn get_mut<U: 'static>(&mut self) -> Option<&mut U> {
         self.storage_mut()
             .get_mut(&TypeId::of::<T>())?
@@ -524,7 +526,8 @@ impl<T: 'static> HookContext<T> {
 
     /// Remove the value of type `U` from the storage of [`HookContext`] if it existed.
     ///
-    /// The returned value will be the previously stored value of the same type `U`.
+    /// The returned value will be the previously stored value of the same type `U` if it existed in
+    /// the scope of `T`, did no such value exist, it will return [`None`].
     pub fn remove<U: 'static>(&mut self) -> Option<U> {
         self.storage_mut()
             .get_mut(&TypeId::of::<T>())?
