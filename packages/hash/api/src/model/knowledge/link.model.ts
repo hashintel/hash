@@ -166,7 +166,7 @@ export default class {
     });
 
     /**
-     * @todo: rely on Graph API validation instead of manually checking whether sibling links are ordered
+     * @todo: rely on Graph API validation instead of performing this check here
      * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
      */
     const isOrdered = sourceEntityModel.entityTypeModel.isOutgoingLinkOrdered({
@@ -180,9 +180,9 @@ export default class {
     }
 
     const index = isOrdered
-      ? // if link is ordered and an index is provided, use the provided index
+      ? // if the link is ordered and an index is provided, use the provided index
         params.index ??
-        // if link is ordered and no index is provided, default to the end of the list of links
+        // if the link is ordered and no index is provided, default to the end of the list of links
         siblingLinks.length
       : undefined;
 
@@ -273,7 +273,7 @@ export default class {
     const { index: previousIndex, linkTypeModel } = this;
 
     /**
-     * @todo: rely on Graph API validation instead of manually checking whether sibling links are ordered
+     * @todo: rely on Graph API validation instead of performing this check here
      * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
      */
     const isOrdered =
@@ -367,7 +367,7 @@ export default class {
     });
 
     /**
-     * @todo: rely on Graph API validation instead of manually checking whether sibling links are ordered
+     * @todo: rely on Graph API validation instead of performing this check here
      * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
      */
     const isOrdered =
