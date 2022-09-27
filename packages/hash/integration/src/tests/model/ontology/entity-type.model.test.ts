@@ -34,6 +34,8 @@ let textDataTypeModel: DataTypeModel;
 let namePropertyTypeModel: PropertyTypeModel;
 let favoriteBookPropertyTypeModel: PropertyTypeModel;
 let knowsLinkTypeModel: LinkTypeModel;
+let previousAddressLinkTypeModel: LinkTypeModel;
+let addressEntityTypeModel: EntityTypeModel;
 
 beforeAll(async () => {
   const testUser = await createTestUser(graphApi, "entity-type-test", logger);
@@ -61,6 +63,18 @@ beforeAll(async () => {
       },
     }).then((val) => {
       workerEntityTypeModel = val;
+    }),
+    EntityTypeModel.create(graphApi, {
+      accountId,
+      schema: {
+        kind: "entityType",
+        title: "Address",
+        pluralTitle: "Addresses",
+        type: "object",
+        properties: {},
+      },
+    }).then((val) => {
+      addressEntityTypeModel = val;
     }),
     PropertyTypeModel.create(graphApi, {
       accountId,
@@ -95,6 +109,17 @@ beforeAll(async () => {
     }).then((val) => {
       knowsLinkTypeModel = val;
     }),
+    LinkTypeModel.create(graphApi, {
+      accountId,
+      schema: {
+        kind: "linkType",
+        title: "Previous Address",
+        pluralTitle: "Previous Addresses",
+        description: "A previous address of something.",
+      },
+    }).then((val) => {
+      previousAddressLinkTypeModel = val;
+    }),
   ]);
 
   entityTypeSchema = {
@@ -122,6 +147,18 @@ beforeAll(async () => {
           ],
         },
         ordered: false,
+      },
+      [previousAddressLinkTypeModel.schema.$id]: {
+        type: "array",
+        items: {
+          oneOf: [
+            // When adding links in entity type definitions the `$ref` is
+            // expected to be another entity type. That other entity type needs
+            // to exist in the DB beforehand.
+            { $ref: addressEntityTypeModel.schema.$id },
+          ],
+        },
+        ordered: true,
       },
     },
   };
@@ -177,11 +214,10 @@ describe("Entity type CRU", () => {
   it("can get all outgoing link types", async () => {
     const linkTypes = await createdEntityType.getOutgoingLinkTypes(graphApi);
 
-    expect(linkTypes).toHaveLength(1);
+    expect(linkTypes).toHaveLength(2);
 
-    const linkTypeVersioned$ids = linkTypes.map((lt) => lt.schema.$id);
-
-    expect(linkTypeVersioned$ids).toContain(knowsLinkTypeModel.schema.$id);
+    expect(linkTypes).toContainEqual(knowsLinkTypeModel);
+    expect(linkTypes).toContainEqual(previousAddressLinkTypeModel);
   });
 
   it("can get all property types", async () => {
@@ -197,5 +233,18 @@ describe("Entity type CRU", () => {
     expect(propertyTypeVersioned$ids).toContain(
       favoriteBookPropertyTypeModel.schema.$id,
     );
+  });
+
+  it("can check whether an outgoing link is ordered", async () => {
+    expect(
+      createdEntityType.isOutgoingLinkOrdered({
+        outgoingLinkType: knowsLinkTypeModel,
+      }),
+    ).toBe(false);
+    expect(
+      createdEntityType.isOutgoingLinkOrdered({
+        outgoingLinkType: previousAddressLinkTypeModel,
+      }),
+    ).toBe(true);
   });
 });
