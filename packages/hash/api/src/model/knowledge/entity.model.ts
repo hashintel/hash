@@ -255,7 +255,6 @@ export default class {
   ): Promise<LinkModel> {
     return await LinkModel.create(graphApi, {
       sourceEntityModel: this,
-      // createdById: params.createdById ?? this.accountId,
       ...params,
     });
   }
