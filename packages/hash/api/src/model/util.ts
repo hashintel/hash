@@ -3,7 +3,6 @@ import {
   EntityType,
   PropertyValues,
   VersionedUri,
-  BaseUri,
   LinkType,
 } from "@blockprotocol/type-system-web";
 import { AxiosError } from "axios";
@@ -274,14 +273,17 @@ export type EntityTypeCreatorParams = {
   namespace: string;
   title: string;
   properties: {
-    propertyTypeBaseUri: BaseUri;
-    propertyTypeId: string;
+    propertyTypeModel: PropertyTypeModel;
     required?: boolean;
     array?: { minItems?: number; maxItems?: number } | boolean;
   }[];
   outgoingLinks: {
-    linkTypeId: string;
-    destinationEntityTypeId: string;
+    linkTypeModel: LinkTypeModel;
+    destinationEntityTypeModels: (
+      | EntityTypeModel
+      // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
+      | "SELF_REFERENCE"
+    )[];
     required?: boolean;
     array?: { minItems?: number; maxItems?: number } | boolean;
     ordered?: boolean;
@@ -305,44 +307,60 @@ export const generateWorkspaceEntityTypeSchema = (
 
   /** @todo - clean this up to be more readable: https://app.asana.com/0/1202805690238892/1202931031833226/f */
   const properties = params.properties.reduce(
-    (prev, { propertyTypeId, propertyTypeBaseUri, array }) => ({
+    (prev, { propertyTypeModel, array }) => ({
       ...prev,
-      [propertyTypeBaseUri]: array
+      [propertyTypeModel.baseUri]: array
         ? {
             type: "array",
-            items: { $ref: propertyTypeId },
+            items: { $ref: propertyTypeModel.schema.$id },
             ...(array === true ? {} : array),
           }
-        : { $ref: propertyTypeId },
+        : { $ref: propertyTypeModel.schema.$id },
     }),
     {},
   );
 
   const requiredProperties = params.properties
     .filter(({ required }) => !!required)
-    .map(({ propertyTypeBaseUri }) => propertyTypeBaseUri);
+    .map(({ propertyTypeModel }) => propertyTypeModel.baseUri);
 
   const links =
     params.outgoingLinks.length > 0
       ? params.outgoingLinks.reduce<EntityType["links"]>(
-          (prev, { linkTypeId, destinationEntityTypeId, array, ordered }) => ({
-            ...prev,
-            [linkTypeId]: array
-              ? {
-                  type: "array",
-                  items: { $ref: destinationEntityTypeId },
-                  ordered,
-                  ...(array === true ? {} : array),
-                }
-              : { $ref: destinationEntityTypeId },
-          }),
+          (
+            prev,
+            { linkTypeModel, destinationEntityTypeModels, array, ordered },
+          ) => {
+            const oneOf = {
+              oneOf: destinationEntityTypeModels.map(
+                (entityTypeModelOrReference) => ({
+                  $ref:
+                    entityTypeModelOrReference === "SELF_REFERENCE"
+                      ? $id
+                      : entityTypeModelOrReference.schema.$id,
+                }),
+              ),
+            };
+
+            return {
+              ...prev,
+              [linkTypeModel.schema.$id]: array
+                ? {
+                    type: "array",
+                    items: oneOf,
+                    ordered,
+                    ...(array === true ? {} : array),
+                  }
+                : oneOf,
+            };
+          },
           {},
         )
       : undefined;
 
   const requiredLinks = params.outgoingLinks
     .filter(({ required }) => !!required)
-    .map(({ linkTypeId }) => linkTypeId);
+    .map(({ linkTypeModel }) => linkTypeModel.schema.$id);
 
   return {
     $id,

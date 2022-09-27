@@ -270,7 +270,7 @@ impl Expression {
     {
         async move {
             Ok(match self {
-                Expression::Eq(expressions) => {
+                Self::Eq(expressions) => {
                     for expression in expressions.windows(2) {
                         if !compare(
                             &expression[0].evaluate(resolver, context).await?,
@@ -281,7 +281,7 @@ impl Expression {
                     }
                     Literal::Bool(true)
                 }
-                Expression::Ne(expressions) => {
+                Self::Ne(expressions) => {
                     for expression in expressions.windows(2) {
                         if compare(
                             &expression[0].evaluate(resolver, context).await?,
@@ -292,7 +292,7 @@ impl Expression {
                     }
                     Literal::Bool(true)
                 }
-                Expression::All(expressions) => {
+                Self::All(expressions) => {
                     for expression in expressions {
                         match expression.evaluate(resolver, context).await? {
                             Literal::Bool(true) => continue,
@@ -305,7 +305,7 @@ impl Expression {
                     }
                     Literal::Bool(true)
                 }
-                Expression::Any(expressions) => {
+                Self::Any(expressions) => {
                     for expression in expressions {
                         match expression.evaluate(resolver, context).await? {
                             Literal::Bool(false) => continue,
@@ -318,12 +318,12 @@ impl Expression {
                     }
                     Literal::Bool(false)
                 }
-                Expression::Literal(literal) => literal.clone(),
-                Expression::Path(path) => resolver
+                Self::Literal(literal) => literal.clone(),
+                Self::Path(path) => resolver
                     .resolve(&path.segments, context)
                     .await
                     .change_context(ExpressionError)?,
-                Expression::Field(_) => todo!("{}", UNIMPLEMENTED_LITERAL_OBJECT),
+                Self::Field(_) => todo!("{}", UNIMPLEMENTED_LITERAL_OBJECT),
             })
         }
         .boxed()
@@ -377,11 +377,11 @@ impl<C> Resolve<C> for Literal
 where
     C: Sync + ?Sized,
 {
-    async fn resolve(&self, path: &[PathSegment], context: &C) -> Result<Literal, ResolveError> {
+    async fn resolve(&self, path: &[PathSegment], context: &C) -> Result<Self, ResolveError> {
         match path {
             [] => Ok(self.clone()),
             [head_path_segment, tail_path_segments @ ..] => match self {
-                Literal::List(values) => {
+                Self::List(values) => {
                     let index: usize = head_path_segment
                         .identifier
                         .parse()

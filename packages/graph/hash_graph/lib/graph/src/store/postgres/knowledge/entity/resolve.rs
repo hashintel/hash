@@ -25,6 +25,7 @@ where
                 // TODO: Avoid cloning on literals
                 //   see https://app.asana.com/0/0/1202884883200947/f
                 let literal = match head_path_segment.identifier.as_str() {
+                    "ownedById" => Literal::String(self.account_id.to_string()),
                     "id" => Literal::String(self.id.to_string()),
                     "version" => Literal::Version(Version::Entity(self.version), self.is_latest),
                     "type" => {

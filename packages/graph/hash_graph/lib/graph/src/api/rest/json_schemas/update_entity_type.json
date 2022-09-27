@@ -112,33 +112,45 @@
       },
       "patternProperties": {
         ".*": {
-          "oneOf": [
-            {
-              "$ref": "#/$defs/entityTypeReference"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "enum": ["array"]
-                },
-                "items": {
-                  "$ref": "#/$defs/entityTypeReference"
-                },
-                "ordered": { "type": "boolean", "default": false },
-                "minItems": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "maxItems": {
-                  "type": "integer",
-                  "minimum": 0
-                }
+          "type": "object",
+          "properties": {
+            "oneOf": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/entityTypeReference"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "enum": ["array"]
+                      },
+                      "items": {
+                        "$ref": "#/$defs/entityTypeReference"
+                      },
+                      "ordered": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "minItems": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "maxItems": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    },
+                    "required": ["type", "ordered"],
+                    "additionalProperties": false
+                  }
+                ]
               },
-              "required": ["type", "ordered"],
-              "additionalProperties": false
+              "minItems": 1
             }
-          ]
+          }
         }
       }
     },

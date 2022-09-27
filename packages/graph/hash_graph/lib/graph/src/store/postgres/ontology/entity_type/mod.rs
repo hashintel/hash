@@ -94,14 +94,20 @@ impl<C: AsClient> PostgresStore<C> {
                         .inner
                         .link_type_references()
                         .into_iter()
-                        .map(|(link_type_id, entity_type_id)| {
-                            (link_type_id.clone(), entity_type_id.uri().clone())
+                        .map(|(link_type_id, entity_type_ids)| {
+                            (
+                                link_type_id.clone(),
+                                entity_type_ids
+                                    .iter()
+                                    .map(|reference| reference.uri().clone())
+                                    .collect::<Vec<_>>(),
+                            )
                         })
                         .collect::<Vec<_>>();
 
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
-                    for (link_type_id, entity_type_id) in linked_uris {
+                    for (link_type_id, entity_type_ids) in linked_uris {
                         if link_type_query_depth > 0 {
                             self.get_link_type_as_dependency(
                                 &link_type_id,
@@ -113,20 +119,22 @@ impl<C: AsClient> PostgresStore<C> {
                             .await?;
                         }
                         if entity_type_query_depth > 0 {
-                            self.get_entity_type_as_dependency(
-                                &entity_type_id,
-                                EntityTypeDependencyContext {
-                                    referenced_data_types,
-                                    referenced_property_types,
-                                    referenced_link_types,
-                                    referenced_entity_types,
-                                    data_type_query_depth,
-                                    property_type_query_depth,
-                                    link_type_query_depth,
-                                    entity_type_query_depth: entity_type_query_depth - 1,
-                                },
-                            )
-                            .await?;
+                            for entity_type_id in entity_type_ids {
+                                self.get_entity_type_as_dependency(
+                                    &entity_type_id,
+                                    EntityTypeDependencyContext {
+                                        referenced_data_types,
+                                        referenced_property_types,
+                                        referenced_link_types,
+                                        referenced_entity_types,
+                                        data_type_query_depth,
+                                        property_type_query_depth,
+                                        link_type_query_depth,
+                                        entity_type_query_depth: entity_type_query_depth - 1,
+                                    },
+                                )
+                                .await?;
+                            }
                         }
                     }
                 }
