@@ -26,10 +26,10 @@ pub enum LogFormat {
 impl Display for LogFormat {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
-            LogFormat::Full => f.write_str("full"),
-            LogFormat::Pretty => f.write_str("pretty"),
-            LogFormat::Json => f.write_str("json"),
-            LogFormat::Compact => f.write_str("compact"),
+            Self::Full => f.write_str("full"),
+            Self::Pretty => f.write_str("pretty"),
+            Self::Json => f.write_str("json"),
+            Self::Compact => f.write_str("compact"),
         }
     }
 }
@@ -65,11 +65,11 @@ impl Display for LogLevel {
 impl From<LogLevel> for Directive {
     fn from(level: LogLevel) -> Self {
         match level {
-            LogLevel::Trace => Directive::from(Level::TRACE),
-            LogLevel::Debug => Directive::from(Level::DEBUG),
-            LogLevel::Info => Directive::from(Level::INFO),
-            LogLevel::Warning => Directive::from(Level::WARN),
-            LogLevel::Error => Directive::from(Level::ERROR),
+            LogLevel::Trace => Self::from(Level::TRACE),
+            LogLevel::Debug => Self::from(Level::DEBUG),
+            LogLevel::Info => Self::from(Level::INFO),
+            LogLevel::Warning => Self::from(Level::WARN),
+            LogLevel::Error => Self::from(Level::ERROR),
         }
     }
 }

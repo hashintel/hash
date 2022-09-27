@@ -54,16 +54,20 @@
     reason = "Unsafe code has been disabled until a good argument has been put forward for its \
               usage"
 )]
-#![allow(
-    clippy::module_name_repetitions,
-    reason = "This encourages importing `as` which breaks IDEs"
+#![expect(
+    clippy::use_debug,
+    reason = "We need to revisit error handling and this is currently the easiest way to attach \
+              information to a `Report`"
 )]
-#![allow(clippy::use_self, reason = "Too many false positives")]
-#![allow(
+#![expect(
     clippy::cast_sign_loss,
     clippy::cast_possible_truncation,
     reason = "Postgres doesn't support unsigned values, so we cast from i64 to u32. We don't use \
               the negative part, though"
+)]
+#![allow(
+    clippy::module_name_repetitions,
+    reason = "This encourages importing `as` which breaks IDEs"
 )]
 
 pub mod api;
