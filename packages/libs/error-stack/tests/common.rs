@@ -42,7 +42,7 @@ impl Context for ContextA {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut core::any::Demand<'a>) {
         demand.provide_ref(&self.0);
-        demand.provide_value(|| self.0 as u64);
+        demand.provide_value(self.0 as u64);
     }
 }
 
@@ -59,7 +59,7 @@ impl Context for ContextB {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut core::any::Demand<'a>) {
         demand.provide_ref(&self.0);
-        demand.provide_value(|| self.0 as i64);
+        demand.provide_value(self.0 as i64);
     }
 }
 
