@@ -124,7 +124,7 @@ impl Report<()> {
     ///
     /// impl Error for UserError {
     ///  fn provide<'a>(&'a self, req: &mut Demand<'a>) {
-    ///    req.provide_value(|| Suggestion("Try better next time!"));
+    ///    req.provide_value(Suggestion("Try better next time!"));
     ///    req.provide_ref(&self.code);
     ///  }
     /// }
