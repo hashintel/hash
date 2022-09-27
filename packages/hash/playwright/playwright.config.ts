@@ -4,6 +4,8 @@ const ci = process.env.CI === "true";
 
 const config: PlaywrightTestConfig = {
   forbidOnly: ci,
+  // TODO: Investigate test perfomance issues
+  timeout: 60000,
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "firefox", use: { ...devices["Desktop Firefox"] } },

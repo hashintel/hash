@@ -18,6 +18,7 @@ All notable changes to `error-stack` will be documented in this file.
 
 ### Features
 
+- Support backtraces on non-nightly channels starting with 1.65.0-beta ([#1098](https://github.com/hashintel/hash/pull/1098))
 - Implement [`Termination`](https://doc.rust-lang.org/stable/std/process/trait.Termination.html) for `Report` ([#671](https://github.com/hashintel/hash/pull/671))
 - Add support for [`core::error::Error`](https://doc.rust-lang.org/nightly/core/error/trait.Error.html) on nightly ([#1038](https://github.com/hashintel/hash/pull/1038))
 - Add support for [`Error::provide()`](https://doc.rust-lang.org/nightly/core/error/trait.Error.html#method.provide) ([#904](https://github.com/hashintel/hash/pull/904))
