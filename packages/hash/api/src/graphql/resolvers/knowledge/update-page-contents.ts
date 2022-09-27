@@ -110,8 +110,6 @@ const createNewEntity = async (params: {
       createEntityWithPlaceholders,
       placeholderResults,
     } = params;
-    console.info("entities", { entityDefinition });
-
     placeholderResults.set(
       entityPlaceholderId,
       await createEntityWithPlaceholders(entityDefinition, entityAccountId),
@@ -281,9 +279,9 @@ export const knowledgeUpdatePageContents: ResolverFn<
           draft.existingEntity.entityId,
         );
       }
-      if (draft.entityType?.entityTypeVersionedUri) {
-        draft.entityType.entityTypeVersionedUri = placeholderResults.get(
-          draft.entityType.entityTypeVersionedUri,
+      if (draft.entityType?.entityTypeId) {
+        draft.entityType.entityTypeId = placeholderResults.get(
+          draft.entityType.entityTypeId,
         );
       }
 

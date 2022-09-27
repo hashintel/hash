@@ -24,11 +24,11 @@ export const knowledgePageTypedef = gql`
     """
     The fixed id of the type this entity is of.
     """
-    entityTypeVersionedUri: ID!
+    entityTypeId: ID!
     """
     The full entity type definition.
     """
-    entityType: EntityType
+    entityType: EntityType!
     """
     The linked entities of the entity.
     """
