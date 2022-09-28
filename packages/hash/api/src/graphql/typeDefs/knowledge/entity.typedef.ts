@@ -26,6 +26,7 @@ export const knowledgeEntityTypedef = gql`
     Alias of ownedById - the id of the account that owns this entity.
     """
     accountId: ID!
+      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     """
     The fixed id of the type this entity is of.
     """

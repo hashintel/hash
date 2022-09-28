@@ -40,6 +40,7 @@ export const knowledgePageTypedef = gql`
     Alias of ownedById - the id of the account that owns this entity.
     """
     accountId: ID!
+      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     """
     The fixed id of the type this entity is of.
     """
@@ -68,6 +69,7 @@ export const knowledgePageTypedef = gql`
     Alias of ownedById - the id of the account that owns this entity.
     """
     accountId: ID!
+      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     entityId: ID!
     entityVersion: String!
   }
