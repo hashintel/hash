@@ -81,7 +81,7 @@ impl Report<()> {
     /// Which will result in something like:
     ///
     /// <pre>
-    #[doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook.snap"))]
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook.snap"))]
     /// </pre>
     ///
     /// This example showcases the ability of hooks to be invoked for values provided via the
@@ -161,7 +161,7 @@ impl Report<()> {
     /// Which will result in something like:
     ///
     /// <pre>
-    #[doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook_provide.snap"))]
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook_provide.snap"))]
     /// </pre>
     #[cfg(feature = "std")]
     pub fn install_debug_hook<T: Send + Sync + 'static>(

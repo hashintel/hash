@@ -184,13 +184,13 @@ impl HookContextInner {
 /// The output of `println!("{report:?}")`:
 ///
 /// <pre>
-#[doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap"))]
+#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap"))]
 /// </pre>
 ///
 /// The output of `println!("{report:#?}")`:
 ///
 /// <pre>
-#[doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit_alt.snap"))]
+#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit_alt.snap"))]
 /// </pre>
 ///
 /// ## Storage
@@ -257,7 +257,7 @@ impl HookContextInner {
 /// ```
 ///
 /// <pre>
-#[doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_storage.snap"))]
+#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_storage.snap"))]
 /// </pre>
 ///
 /// [`Debug`]: core::fmt::Debug
@@ -338,7 +338,7 @@ impl<T> HookContext<T> {
     /// ```
     ///
     /// <pre>
-    #[doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap"))]
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap"))]
     /// </pre>
     pub fn push_appendix(&mut self, content: impl Into<String>) {
         self.inner.appendix.push(content.into());
@@ -385,7 +385,7 @@ impl<T> HookContext<T> {
     /// ```
     ///
     /// <pre>
-    #[doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap"))]
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap"))]
     /// </pre>
     pub fn push_body(&mut self, content: impl Into<String>) {
         self.inner.body.push(content.into());
@@ -450,7 +450,7 @@ impl<T> HookContext<T> {
     /// ```
     ///
     /// <pre>
-    #[doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_cast.snap"))]
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_cast.snap"))]
     /// </pre>
     #[must_use]
     pub fn cast<U>(&mut self) -> &mut HookContext<U> {
@@ -579,7 +579,7 @@ impl<T: 'static> HookContext<T> {
     /// ```
     ///
     /// <pre>
-    #[doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_increment.snap"))]
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_increment.snap"))]
     /// </pre>
     ///
     /// [`Debug`]: core::fmt::Debug
@@ -646,7 +646,7 @@ impl<T: 'static> HookContext<T> {
     /// ```
     ///
     /// <pre>
-    #[doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_decrement.snap"))]
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_decrement.snap"))]
     /// </pre>
     pub fn decrement_counter(&mut self) -> isize {
         let counter = self.get_mut::<Counter>();

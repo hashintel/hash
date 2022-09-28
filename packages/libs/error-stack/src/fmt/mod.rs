@@ -122,13 +122,13 @@
 //! The output of `println!("{report:?}")`:
 //!
 //! <pre>
-#![doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__doc.snap"))]
+#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__doc.snap"))]
 //! </pre>
 //!
 //! The output of `println!("{report:#?}")`:
 //!
 //! <pre>
-#![doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt_doc_alt.snap"))]
+#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt_doc_alt.snap"))]
 //! </pre>
 //!
 //! [`Display`]: core::fmt::Display
