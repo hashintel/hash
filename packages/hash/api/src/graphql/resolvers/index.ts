@@ -97,7 +97,7 @@ import {
   updateEntityType,
 } from "./ontology/entity-type";
 import {
-  knowledgeUpdatePageContents,
+  updateKnowledgePageContents,
   knowledgePageContents,
 } from "./knowledge/page";
 
@@ -162,8 +162,8 @@ export const resolvers = {
     deprecatedUpdateEntityType: loggedInAndSignedUp(deprecatedUpdateEntityType),
     updatePage: loggedInAndSignedUp(updatePage),
     updatePageContents: loggedInAndSignedUp(updatePageContents),
-    knowledgeUpdatePageContents: loggedInAndSignedUp(
-      knowledgeUpdatePageContents,
+    updateKnowledgePageContents: loggedInAndSignedUp(
+      updateKnowledgePageContents,
     ),
     joinOrg: loggedInAndSignedUp(joinOrg),
     requestFileUpload: loggedInAndSignedUp(requestFileUpload),

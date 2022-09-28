@@ -10,27 +10,27 @@ import {
 } from "../../../../model";
 import { exactlyOne } from "../../../../util";
 import {
-  KnowledgeCreateEntityAction,
+  CreateKnowledgeEntityAction,
   KnowledgeEntityDefinition,
-  KnowledgeInsertBlockAction,
-  KnowledgeSwapBlockDataAction,
-  KnowledgeUpdateEntityAction,
-  KnowledgeUpdatePageAction,
-  KnowledgeUpdatePageContentsResult,
-  MutationKnowledgeUpdatePageContentsArgs,
+  InsertKnowledgeBlockAction,
+  SwapKnowledgeBlockDataAction,
+  UpdateKnowledgeEntityAction,
+  UpdateKnowledgePageAction,
+  UpdateKnowledgePageContentsResult,
+  MutationUpdateKnowledgePageContentsArgs,
   ResolverFn,
 } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { pageModelToGQL, UnresolvedPageGQL } from "../model-mapping";
 
-type UpdatePageActionKey = keyof KnowledgeUpdatePageAction;
+type UpdatePageActionKey = keyof UpdateKnowledgePageAction;
 
 const filterForAction = <T extends UpdatePageActionKey>(
-  actions: KnowledgeUpdatePageAction[],
+  actions: UpdateKnowledgePageAction[],
   key: T,
-): { action: NonNullable<KnowledgeUpdatePageAction[T]>; index: number }[] =>
+): { action: NonNullable<UpdateKnowledgePageAction[T]>; index: number }[] =>
   actions.reduce<
-    { action: NonNullable<KnowledgeUpdatePageAction[T]>; index: number }[]
+    { action: NonNullable<UpdateKnowledgePageAction[T]>; index: number }[]
   >((acc, current, index) => {
     if (current != null && key in current) {
       acc.push({ action: current[key]!, index });
@@ -38,7 +38,7 @@ const filterForAction = <T extends UpdatePageActionKey>(
     return acc;
   }, []);
 
-const validateActionsInput = (actions: KnowledgeUpdatePageAction[]) => {
+const validateActionsInput = (actions: UpdateKnowledgePageAction[]) => {
   for (const [i, action] of actions.entries()) {
     if (
       !exactlyOne(
@@ -52,7 +52,7 @@ const validateActionsInput = (actions: KnowledgeUpdatePageAction[]) => {
       )
     ) {
       throw new UserInputError(
-        `at action ${i}: exactly one of the fields on KnowledgeUpdatePageAction must be specified`,
+        `at action ${i}: exactly one of the fields on UpdateKnowledgePageAction must be specified`,
       );
     }
   }
@@ -95,10 +95,10 @@ class PlaceholderResultsMap {
 
 /**
  * Create new entity.
- * Acts on {@link KnowledgeCreateEntityAction}
+ * Acts on {@link CreateKnowledgeEntityAction}
  */
 const createNewEntity = async (params: {
-  createEntityAction: KnowledgeCreateEntityAction;
+  createEntityAction: CreateKnowledgeEntityAction;
   index: number;
   placeholderResults: PlaceholderResultsMap;
   createEntityWithPlaceholders: (
@@ -132,13 +132,13 @@ const createNewEntity = async (params: {
 
 /**
  * Insert new block onto page.
- * Acts on {@link KnowledgeInsertBlockAction}
+ * Acts on {@link InsertKnowledgeBlockAction}
  */
 const insertNewBlock = async (
   graphApi: GraphApi,
   params: {
     userModel: UserModel;
-    insertBlockAction: KnowledgeInsertBlockAction;
+    insertBlockAction: InsertKnowledgeBlockAction;
     index: number;
     createEntityWithPlaceholders: (
       originalDefinition: KnowledgeEntityDefinition,
@@ -217,13 +217,13 @@ const insertNewBlock = async (
 
 /**
  * Swap a block's data entity to another entity.
- * Acts on {@link KnowledgeSwapBlockDataAction}
+ * Acts on {@link SwapKnowledgeBlockDataAction}
  */
 const swapBlockData = async (
   graphApi: GraphApi,
   params: {
     userModel: UserModel;
-    swapBlockDataAction: KnowledgeSwapBlockDataAction;
+    swapBlockDataAction: SwapKnowledgeBlockDataAction;
   },
 ): Promise<void> => {
   const {
@@ -254,13 +254,13 @@ const swapBlockData = async (
 
 /**
  * Update properties of an entity.
- * Acts on {@link KnowledgeUpdateEntityAction}
+ * Acts on {@link UpdateKnowledgeEntityAction}
  */
 const updateEntity = async (
   graphApi: GraphApi,
   params: {
     userModel: UserModel;
-    action: KnowledgeUpdateEntityAction;
+    action: UpdateKnowledgeEntityAction;
     placeholderResults: PlaceholderResultsMap;
   },
 ): Promise<void> => {
@@ -285,15 +285,15 @@ const updateEntity = async (
   });
 };
 
-export const knowledgeUpdatePageContents: ResolverFn<
+export const updateKnowledgePageContents: ResolverFn<
   Promise<
-    Omit<KnowledgeUpdatePageContentsResult, "page"> & {
+    Omit<UpdateKnowledgePageContentsResult, "page"> & {
       page: UnresolvedPageGQL;
     }
   >,
   {},
   LoggedInGraphQLContext,
-  MutationKnowledgeUpdatePageContentsArgs
+  MutationUpdateKnowledgePageContentsArgs
 > = async (
   _,
   { accountId, entityId: pageEntityId, actions },

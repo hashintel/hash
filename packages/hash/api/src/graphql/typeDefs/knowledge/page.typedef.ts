@@ -49,7 +49,7 @@ export const knowledgePageTypedef = gql`
   """
   Insert a block into a page with a corresponding entity.
   """
-  input KnowledgeInsertBlockAction {
+  input InsertKnowledgeBlockAction {
     """
     The account ID to create the block and associated entity in.
     """
@@ -84,7 +84,7 @@ export const knowledgePageTypedef = gql`
   """
   Remove a block from a page.
   """
-  input KnowledgeRemoveBlockAction {
+  input RemoveKnowledgeBlockAction {
     """
     The position of the block to remove from the page.
     """
@@ -94,7 +94,7 @@ export const knowledgePageTypedef = gql`
   """
   Move a block within a page.
   """
-  input MoveBlockAction {
+  input MoveKnowledgeBlockAction {
     """
     The current position of the block.
     """
@@ -108,7 +108,7 @@ export const knowledgePageTypedef = gql`
   """
   Update an entity in a page.
   """
-  input KnowledgeUpdateEntityAction {
+  input UpdateKnowledgeEntityAction {
     """
     The account the entity resides in.
     """
@@ -126,7 +126,7 @@ export const knowledgePageTypedef = gql`
   """
   Swap a blocks data
   """
-  input KnowledgeSwapBlockDataAction {
+  input SwapKnowledgeBlockDataAction {
     """
     The account the block resides in
     """
@@ -151,7 +151,7 @@ export const knowledgePageTypedef = gql`
   """
   Create an entity, which you can then reference in other actions, such as a InsertBlockAction
   """
-  input KnowledgeCreateEntityAction {
+  input CreateKnowledgeEntityAction {
     entity: KnowledgeEntityDefinition!
     entityPlaceholderId: ID
     accountId: ID!
@@ -160,7 +160,7 @@ export const knowledgePageTypedef = gql`
   """
   Create an entity type, which you can then reference in future CreateEntityActions
   """
-  input KnowledgeCreateEntityTypeAction {
+  input CreateKnowledgeEntityTypeAction {
     accountId: ID!
     """
     The name for the type. Must be unique in the given account.
@@ -187,34 +187,34 @@ export const knowledgePageTypedef = gql`
   Note: a union type would be preferrable here, but currently, GraphQL does not
   permit unions as input to a mutation
   """
-  input KnowledgeUpdatePageAction {
-    insertBlock: KnowledgeInsertBlockAction
-    removeBlock: KnowledgeRemoveBlockAction
-    moveBlock: MoveBlockAction
-    updateEntity: KnowledgeUpdateEntityAction
-    swapBlockData: KnowledgeSwapBlockDataAction
-    createEntity: KnowledgeCreateEntityAction
-    createEntityType: KnowledgeCreateEntityTypeAction
+  input UpdateKnowledgePageAction {
+    insertBlock: InsertKnowledgeBlockAction
+    removeBlock: RemoveKnowledgeBlockAction
+    moveBlock: MoveKnowledgeBlockAction
+    updateEntity: UpdateKnowledgeEntityAction
+    swapBlockData: SwapKnowledgeBlockDataAction
+    createEntity: CreateKnowledgeEntityAction
+    createEntityType: CreateKnowledgeEntityTypeAction
   }
 
   """
   Map of placeholder IDs used in the UpdatePageContentsActions to the entity IDs created for those placeholders
   """
-  type KnowledgeUpdatePageContentsResultPlaceholder {
+  type UpdateKnowledgePageContentsResultPlaceholder {
     placeholderId: ID!
     entityId: ID!
   }
 
-  type KnowledgeUpdatePageContentsResult {
+  type UpdateKnowledgePageContentsResult {
     page: KnowledgePage!
-    placeholders: [KnowledgeUpdatePageContentsResultPlaceholder!]!
+    placeholders: [UpdateKnowledgePageContentsResultPlaceholder!]!
   }
 
   extend type Mutation {
     """
     Update the contents of a page.
     """
-    knowledgeUpdatePageContents(
+    updateKnowledgePageContents(
       """
       The page's account ID.
       """
@@ -226,7 +226,7 @@ export const knowledgePageTypedef = gql`
       """
       The list of actions to perform on the page.
       """
-      actions: [KnowledgeUpdatePageAction!]!
-    ): KnowledgeUpdatePageContentsResult!
+      actions: [UpdateKnowledgePageAction!]!
+    ): UpdateKnowledgePageContentsResult!
   }
 `;
