@@ -2,40 +2,40 @@
 source: tests/test_debug.rs
 expression: "format!(\"{report:#?}\")"
 ---
-Context A
+context A
 ├╴tests/test_debug.rs:214:10
 ├╴2
 ├╴1
 │
-╰┬▶ Context A
+╰┬▶ context A
  │  ├╴tests/test_debug.rs:208:10
  │  ├╴4
  │  ├╴3
  │  │
- │  ╰─▶ Root error
+ │  ╰─▶ root error
  │      ├╴tests/common.rs:147:5
- │      ├╴spantrace with 2 frames (1)
+ │      ├╴span trace with 2 frames (1)
  │      ╰╴6
  │
- ╰▶ Context A
+ ╰▶ context A
     ├╴tests/test_debug.rs:203:10
     ├╴5
     ├╴3
     │
-    ├─▶ Context A
+    ├─▶ context A
     │   ├╴tests/test_debug.rs:201:10
     │   ╰╴7
     │
-    ╰┬▶ Context A
+    ╰┬▶ context A
      │  ├╴tests/test_debug.rs:192:34
      │  ├╴9
      │  ├╴8
      │  │
-     │  ╰─▶ Root error
+     │  ╰─▶ root error
      │      ├╴tests/common.rs:147:5
-     │      ╰╴spantrace with 2 frames (2)
+     │      ╰╴span trace with 2 frames (2)
      │
-     ├▶ Context A
+     ├▶ context A
      │  ├╴tests/test_debug.rs:186:10
      │  ├╴13
      │  ├╴10
@@ -43,11 +43,11 @@ Context A
      │  ├╴9
      │  ├╴8
      │  │
-     │  ╰─▶ Root error
+     │  ╰─▶ root error
      │      ├╴tests/common.rs:147:5
-     │      ╰╴spantrace with 2 frames (3)
+     │      ╰╴span trace with 2 frames (3)
      │
-     ├▶ Context A
+     ├▶ context A
      │  ├╴tests/test_debug.rs:172:10
      │  ├╴15
      │  ├╴14
@@ -56,49 +56,49 @@ Context A
      │  ├╴9
      │  ├╴8
      │  │
-     │  ╰─▶ Root error
+     │  ╰─▶ root error
      │      ├╴tests/common.rs:147:5
-     │      ╰╴spantrace with 2 frames (4)
+     │      ╰╴span trace with 2 frames (4)
      │
-     ├▶ Context A
+     ├▶ context A
      │  ├╴tests/test_debug.rs:182:10
      │  ├╴11
      │  ├╴9
      │  ├╴8
      │  │
-     │  ╰─▶ Root error
+     │  ╰─▶ root error
      │      ├╴tests/common.rs:147:5
-     │      ╰╴spantrace with 2 frames (5)
+     │      ╰╴span trace with 2 frames (5)
      │
-     ╰▶ Context A
+     ╰▶ context A
         ├╴tests/test_debug.rs:178:10
         ├╴12
         ├╴9
         ├╴8
         │
-        ├─▶ Context A
+        ├─▶ context A
         │   ╰╴tests/test_debug.rs:177:10
         │
-        ╰─▶ Root error
+        ╰─▶ root error
             ├╴tests/common.rs:147:5
-            ╰╴spantrace with 2 frames (6)
+            ╰╴span trace with 2 frames (6)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Span Trace No. 1
+span trace No. 1
   [redacted]
 
-Span Trace No. 2
+span trace No. 2
   [redacted]
 
-Span Trace No. 3
+span trace No. 3
   [redacted]
 
-Span Trace No. 4
+span trace No. 4
   [redacted]
 
-Span Trace No. 5
+span trace No. 5
   [redacted]
 
-Span Trace No. 6
+span trace No. 6
   [redacted]
