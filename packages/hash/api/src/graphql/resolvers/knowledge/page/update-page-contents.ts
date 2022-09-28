@@ -8,7 +8,7 @@ import {
   ResolverFn,
 } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { pageModelToGQL, UnresolvedPageGQL } from "../model-mapping";
+import { mapPageModelToGQL, UnresolvedPageGQL } from "../model-mapping";
 import {
   PlaceholderResultsMap,
   filterForAction,
@@ -157,7 +157,7 @@ export const updateKnowledgePageContents: ResolverFn<
   }
 
   return {
-    page: pageModelToGQL(pageModel),
+    page: mapPageModelToGQL(pageModel),
     placeholders: placeholderResults.getResults(),
   };
 };

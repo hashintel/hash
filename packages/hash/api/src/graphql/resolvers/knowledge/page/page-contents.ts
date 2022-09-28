@@ -3,7 +3,7 @@ import { PageModel } from "../../../../model";
 import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import {
-  entityModelToGQL,
+  mapEntityModelToGQL,
   UnresolvedEntityGQL,
   UnresolvedPageGQL,
 } from "../model-mapping";
@@ -26,5 +26,5 @@ export const knowledgePageContents: ResolverFn<
 
   const blocks = await page.getBlocks(graphApi);
 
-  return blocks.map((block) => entityModelToGQL(block));
+  return blocks.map((block) => mapEntityModelToGQL(block));
 };

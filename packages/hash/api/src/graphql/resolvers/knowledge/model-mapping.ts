@@ -8,7 +8,7 @@ export type UnresolvedEntityGQL = Omit<
   ExternalEntityResolversGQL
 >;
 
-export const entityModelToGQL = (
+export const mapEntityModelToGQL = (
   entityModel: EntityModel,
 ): UnresolvedEntityGQL => ({
   entityId: entityModel.entityId,
@@ -22,8 +22,8 @@ export const entityModelToGQL = (
 export type ExternalPageResolversGQL = ExternalEntityResolversGQL | "contents";
 export type UnresolvedPageGQL = Omit<KnowledgePage, ExternalPageResolversGQL>;
 
-export const pageModelToGQL = (pageModel: PageModel): UnresolvedPageGQL => ({
-  ...entityModelToGQL(pageModel),
+export const mapPageModelToGQL = (pageModel: PageModel): UnresolvedPageGQL => ({
+  ...mapEntityModelToGQL(pageModel),
   title: pageModel.getTitle(),
   properties: pageModel.properties,
   archived: pageModel.getArchived(),
