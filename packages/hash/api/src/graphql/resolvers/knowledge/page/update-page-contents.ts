@@ -22,6 +22,13 @@ import {
   createEntityWithPlaceholdersFn,
 } from "./update-page-actions";
 
+/**
+ * @todo This operation should ideally be atomic in nature, either we do all
+ *   updates or none. currently there is no guarantee that a failure rolls back
+ *   all changes, which could leave the database in an undesired state.
+ *   When we have a transaction primitive in the Graph API, we should use it here.
+ *   See https://app.asana.com/0/1200211978612931/1202573572594586/f
+ */
 export const updateKnowledgePageContents: ResolverFn<
   Promise<
     Omit<UpdateKnowledgePageContentsResult, "page"> & {
@@ -117,7 +124,6 @@ export const updateKnowledgePageContents: ResolverFn<
     ),
   );
 
-  // @todo, perhaps check this exists first?
   const pageModel = await PageModel.getPageById(graphApi, {
     entityId: pageEntityId,
   });
