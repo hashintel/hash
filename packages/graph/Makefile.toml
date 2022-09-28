@@ -3,12 +3,12 @@ extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 [tasks.touch-environment]
 private = true
 command = "touch"
-args = ["${CARGO_MAKE_WORKING_DIRECTORY}/../../.env.local"]
+args = ["${REPO_ROOT}/.env.local"]
 
 [tasks.yarn-install-migrations]
 description = "Installs the required yarn dependencies for the migrations"
 extend = "yarn"
-cwd = "${CARGO_MAKE_WORKING_DIRECTORY}/migrations"
+cwd = "${REPO_ROOT}/packages/graph/migrations"
 
 [tasks.recreate-db]
 run_task = { name = ["recreate-db-task", "migrate-up"] }
@@ -18,14 +18,14 @@ private = true
 description = "Recreates the database"
 extend = "yarn"
 args = ["graph:recreate-db"]
-cwd = "${CARGO_MAKE_WORKING_DIRECTORY}/migrations"
+cwd = "${REPO_ROOT}/packages/graph/migrations"
 
 [tasks.migrate-up]
 category = "Deploy"
 description = "Runs all migrations"
 extend = "yarn"
 args = ["graph:migrate", "up"]
-cwd = "${CARGO_MAKE_WORKING_DIRECTORY}/migrations"
+cwd = "${REPO_ROOT}/packages/graph/migrations"
 env_files = ["../.env"]
 
 [tasks.deployment-up]
@@ -33,21 +33,21 @@ category = "Deploy"
 description = "Spins up the deployment environment"
 extend = "docker"
 args = ["compose", "--env-file", "../.env", "up", "--wait"]
-cwd = "${CARGO_MAKE_WORKING_DIRECTORY}/deployment"
+cwd = "${REPO_ROOT}/packages/graph/deployment"
 
 [tasks.deployment-down]
 category = "Deploy"
 description = "Tears down the deployment environment"
 extend = "docker"
 args = ["compose", "--env-file", "../.env", "down"]
-cwd = "${CARGO_MAKE_WORKING_DIRECTORY}/deployment"
+cwd = "${REPO_ROOT}/packages/graph/deployment"
 
 [tasks.build-docker]
 category = "Deploy"
 description = "Spins up the Graph API as external service"
 extend = "yarn"
 args = ["external-services", "build", "graph", "${@}"]
-cwd = "${CARGO_MAKE_WORKING_DIRECTORY}/../../"
+cwd = "${REPO_ROOT}"
 env = { DOCKER_BUILDKIT = 1 }
 dependencies = ["touch-environment"]
 
@@ -56,7 +56,7 @@ category = "Deploy"
 description = "Spins up the Graph API as external service"
 extend = "yarn"
 args = ["external-services", "up", "--wait", "graph", "${@}"]
-cwd = "${CARGO_MAKE_WORKING_DIRECTORY}/../../"
+cwd = "${REPO_ROOT}"
 dependencies = ["touch-environment"]
 
 [tasks.graph-down]
@@ -64,7 +64,7 @@ category = "Deploy"
 description = "Tears down up the Graph API"
 extend = "yarn"
 args = ["external-services", "down", "${@}"]
-cwd = "${CARGO_MAKE_WORKING_DIRECTORY}/../../"
+cwd = "${REPO_ROOT}"
 
 [tasks.test-docker]
 run_task = { name = ["yarn-install-migrations", "graph-up", "test-rest-api", "graph-down"] }
@@ -72,4 +72,4 @@ run_task = { name = ["yarn-install-migrations", "graph-up", "test-rest-api", "gr
 [tasks.test-rest-api]
 # This is a temporary solution until we have e2e tests in place
 extend = "yarn"
-args = ["httpyac", "send", "--all", "${CARGO_MAKE_WORKING_DIRECTORY}/hash_graph/tests/rest-test.http", "${@}"]
+args = ["httpyac", "send", "--all", "${REPO_ROOT}/packages/graph/hash_graph/tests/rest-test.http", "${@}"]
