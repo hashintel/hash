@@ -3,6 +3,11 @@ name = "hash_graph_benches"
 version = "0.0.0"
 edition = "2021"
 publish = false
+# If we leave `autobenches` enabled, then every module in the benches folder is compiled to be a standalone binary,
+# which means we can't use modules to group shared logic (importing via `super`, etc.)
+#
+# We specifically identify the binary using the [[bench]] attribute below. Specific groups of benchmarks are still
+# runnable by specifying them: `cargo bench -- <NAME OF BENCHMARKS>
 autobenches = false
 
 [dev-dependencies]
