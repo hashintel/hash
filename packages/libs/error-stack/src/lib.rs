@@ -458,8 +458,9 @@
 )]
 
 extern crate alloc;
+extern crate core;
 
-pub mod compat;
+mod compat;
 mod frame;
 pub mod iter;
 mod macros;
@@ -476,13 +477,16 @@ mod fmt;
 mod hook;
 
 #[doc(inline)]
-pub use self::ext::result::{IntoReport, ResultExt};
+pub use self::ext::{
+    future::FutureExt,
+    result::{IntoReport, ResultExt},
+};
 #[cfg(feature = "std")]
 #[allow(deprecated, unreachable_pub)]
 pub use self::hook::HookAlreadySet;
 pub use self::{
+    compat::IntoReportCompat,
     context::Context,
-    ext::future::FutureExt,
     frame::{AttachmentKind, Frame, FrameKind},
     macros::*,
     report::Report,
