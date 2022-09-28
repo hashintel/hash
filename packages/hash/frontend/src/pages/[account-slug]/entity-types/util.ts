@@ -1,5 +1,5 @@
 import { bindToggle, bindTrigger } from "material-ui-popup-state/hooks";
-import { SetStateAction, useEffect, useRef, useState } from "react";
+import { SetStateAction, useLayoutEffect, useRef, useState } from "react";
 
 export const useStateCallback = <T extends any>(initialValue: T) => {
   const [state, setState] = useState(initialValue);
@@ -14,7 +14,7 @@ export const useStateCallback = <T extends any>(initialValue: T) => {
     },
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     for (const callback of callbacksRef.current) {
       callback();
     }
