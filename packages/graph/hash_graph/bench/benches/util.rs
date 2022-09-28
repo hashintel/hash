@@ -84,8 +84,9 @@ impl StoreWrapper {
             .await
             .expect("could not connect to database");
 
+        // _owned is necessary as otherwise we have a self-referential struct
         let store = pool
-            .acquire_owned() // _owned is necessary as otherwise we have a self-referential struct
+            .acquire_owned()
             .await
             .expect("could not acquire a database connection");
 

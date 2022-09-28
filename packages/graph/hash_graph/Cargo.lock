@@ -666,13 +666,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "hash_graph_bench_utils"
+name = "hash_graph_benches"
 version = "0.0.0"
 dependencies = [
  "criterion",
  "criterion-macro",
+ "futures",
  "graph",
  "graph-test-data",
+ "rand",
  "serde",
  "serde_json",
  "tokio",
