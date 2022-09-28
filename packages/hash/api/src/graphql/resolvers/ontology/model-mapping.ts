@@ -13,7 +13,7 @@ import {
   EntityTypeRootedSubgraph,
 } from "../../apiTypes.gen";
 
-export const dataTypeModelToGQL = (
+export const mapDataTypeModelToGQL = (
   dataType: DataTypeModel,
 ): PersistedDataType => ({
   accountId: dataType.accountId,
@@ -21,7 +21,7 @@ export const dataTypeModelToGQL = (
   dataType: dataType.schema,
 });
 
-export const propertyTypeModelToGQL = (
+export const mapPropertyTypeModelToGQL = (
   propertyType: PropertyTypeModel,
 ): PersistedPropertyType => ({
   accountId: propertyType.accountId,
@@ -29,7 +29,7 @@ export const propertyTypeModelToGQL = (
   propertyType: propertyType.schema,
 });
 
-export const propertyTypeRootedSubgraphToGQL = ({
+export const mapPropertyTypeRootedSubgraphToGQL = ({
   propertyType,
   referencedDataTypes,
   referencedPropertyTypes,
@@ -41,11 +41,13 @@ export const propertyTypeRootedSubgraphToGQL = ({
   accountId: propertyType.accountId,
   propertyTypeVersionedUri: propertyType.schema.$id,
   propertyType: propertyType.schema,
-  referencedDataTypes: referencedDataTypes.map(dataTypeModelToGQL),
-  referencedPropertyTypes: referencedPropertyTypes.map(propertyTypeModelToGQL),
+  referencedDataTypes: referencedDataTypes.map(mapDataTypeModelToGQL),
+  referencedPropertyTypes: referencedPropertyTypes.map(
+    mapPropertyTypeModelToGQL,
+  ),
 });
 
-export const linkTypeModelToGQL = (
+export const mapLinkTypeModelToGQL = (
   linkType: LinkTypeModel,
 ): PersistedLinkType => ({
   accountId: linkType.accountId,
@@ -53,7 +55,7 @@ export const linkTypeModelToGQL = (
   linkType: linkType.schema,
 });
 
-export const entityTypeModelToGQL = (
+export const mapEntityTypeModelToGQL = (
   entityType: EntityTypeModel,
 ): PersistedEntityType => ({
   accountId: entityType.accountId,
@@ -61,7 +63,7 @@ export const entityTypeModelToGQL = (
   entityType: entityType.schema,
 });
 
-export const entityTypeRootedSubgraphToGQL = (params: {
+export const mapEntityTypeRootedSubgraphToGQL = (params: {
   entityType: EntityTypeModel;
   referencedDataTypes: DataTypeModel[];
   referencedPropertyTypes: PropertyTypeModel[];
@@ -71,10 +73,12 @@ export const entityTypeRootedSubgraphToGQL = (params: {
   accountId: params.entityType.accountId,
   entityTypeVersionedUri: params.entityType.schema.$id,
   entityType: params.entityType.schema,
-  referencedDataTypes: params.referencedDataTypes.map(dataTypeModelToGQL),
+  referencedDataTypes: params.referencedDataTypes.map(mapDataTypeModelToGQL),
   referencedPropertyTypes: params.referencedPropertyTypes.map(
-    propertyTypeModelToGQL,
+    mapPropertyTypeModelToGQL,
   ),
-  referencedLinkTypes: params.referencedLinkTypes.map(linkTypeModelToGQL),
-  referencedEntityTypes: params.referencedEntityTypes.map(entityTypeModelToGQL),
+  referencedLinkTypes: params.referencedLinkTypes.map(mapLinkTypeModelToGQL),
+  referencedEntityTypes: params.referencedEntityTypes.map(
+    mapEntityTypeModelToGQL,
+  ),
 });
