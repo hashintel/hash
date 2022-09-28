@@ -139,24 +139,14 @@ beforeAll(async () => {
       [knowsLinkTypeModel.schema.$id]: {
         type: "array",
         items: {
-          oneOf: [
-            // When adding links in entity type definitions the `$ref` is
-            // expected to be another entity type. That other entity type needs
-            // to exist in the DB beforehand.
-            { $ref: workerEntityTypeModel.schema.$id },
-          ],
+          oneOf: [{ $ref: workerEntityTypeModel.schema.$id }],
         },
         ordered: false,
       },
       [previousAddressLinkTypeModel.schema.$id]: {
         type: "array",
         items: {
-          oneOf: [
-            // When adding links in entity type definitions the `$ref` is
-            // expected to be another entity type. That other entity type needs
-            // to exist in the DB beforehand.
-            { $ref: addressEntityTypeModel.schema.$id },
-          ],
+          oneOf: [{ $ref: addressEntityTypeModel.schema.$id }],
         },
         ordered: true,
       },
