@@ -268,8 +268,11 @@ impl<C> Report<C> {
     #[allow(missing_docs)]
     #[must_use]
     #[cfg(all(nightly, feature = "std"))]
-    #[deprecated = "a report might contain multiple backtraces, use `request_ref::<Backtrace>()` \
-                    instead"]
+    #[deprecated(
+        since = "0.2.0",
+        note = "a report might contain multiple backtraces, use `request_ref::<Backtrace>()` \
+                instead"
+    )]
     pub fn backtrace(&self) -> Option<&Backtrace> {
         self.request_ref::<Backtrace>().next()
     }
@@ -279,13 +282,19 @@ impl<C> Report<C> {
     #[cfg(feature = "spantrace")]
     #[cfg_attr(
         nightly,
-        deprecated = "a report might contain multiple spantraces, use \
-                      `request_ref::<SpanTrace>()` instead"
+        deprecated(
+            since = "0.2.0",
+            note = "a report might contain multiple spantraces, use `request_ref::<SpanTrace>()` \
+                    instead"
+        )
     )]
     #[cfg_attr(
         not(nightly),
-        deprecated = "a report might contain multiple spantraces, use \
-                      `frames().filter(Frame::downcast_ref::<SpanTrace>)` instead"
+        deprecated(
+            since = "0.2.0",
+            note = "a report might contain multiple spantraces, use \
+                    `frames().filter(Frame::downcast_ref::<SpanTrace>)` instead"
+        )
     )]
     pub fn span_trace(&self) -> Option<&SpanTrace> {
         #[cfg(nightly)]

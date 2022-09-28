@@ -350,8 +350,8 @@
 //!
 //! ### No-Std compatible
 //!
-//! The complete crate is written for `no-std` environments, which can be used by passing
-//! `--no-default-features` to the `cargo` command.
+//! The complete crate is written for `no-std` environments, which can be used setting
+//! `default-features = false` in _Cargo.toml_.
 //!
 //! ### Provider API
 //!
