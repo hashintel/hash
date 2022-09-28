@@ -122,7 +122,7 @@ impl Context for AnyhowContext {
     #[cfg(all(nightly, feature = "std"))]
     #[inline]
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        self.0.provide(demand);
+        core::any::Provider::provide(&self.0, demand);
     }
 }
 
@@ -167,7 +167,7 @@ impl Context for EyreContext {
     #[cfg(nightly)]
     #[inline]
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        self.0.provide(demand);
+        // `eyre::Report` does not implement `Provider`
     }
 }
 
