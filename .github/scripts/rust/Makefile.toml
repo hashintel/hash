@@ -51,6 +51,7 @@ dependencies = ["install-cargo-hack"]
 ################################################################################
 ## Build                                                                      ##
 ################################################################################
+
 [tasks.build]
 category = "Build"
 description = "Builds the crate"
@@ -60,10 +61,10 @@ run_task = { name = "build-task" }
 extend = "cargo"
 args = ["build", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_BUILD_FLAGS, )", "${@}"]
 
-
 ################################################################################
 ## Run                                                                        ##
 ################################################################################
+
 [tasks.run]
 category = "Run"
 description = "Builds the binary and runs it"
@@ -73,15 +74,14 @@ run_task = { name = "run-task" }
 extend = "cargo"
 args = ["run", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_RUN_FLAGS, )", "${@}"]
 
-
 ################################################################################
 ## Lints                                                                      ##
 ################################################################################
+
 [tasks.lint]
 category = "Lint"
 description = "Runs all lints"
 run_task = { name = ["format", "clippy", "doc"] }
-
 
 [tasks.format]
 category = "Lint"
@@ -93,7 +93,6 @@ extend = "cargo"
 args = ["hack", "@@split(CARGO_FORMAT_HACK_FLAGS, )", "fmt", "@@split(CARGO_FORMAT_FLAGS, )", "${@}"]
 dependencies = ["install-rustfmt"]
 
-
 [tasks.clippy]
 description = "Runs clippy with all feature flag permutations"
 category = "Lint"
@@ -104,10 +103,10 @@ extend = "cargo"
 args = ["hack", "@@split(CARGO_CLIPPY_HACK_FLAGS, )", "clippy", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_CLIPPY_FLAGS, )", "${@}"]
 dependencies = ["install-clippy"]
 
-
 ################################################################################
 ## Docs                                                                       ##
 ################################################################################
+
 [tasks.doc]
 category = "Docs"
 description = "Builds the documentation for the crate"
@@ -116,7 +115,6 @@ run_task = { name = ["doc-task"] }
 [tasks.doc-task]
 extend = "cargo"
 args = ["hack", "@@split(CARGO_DOC_HACK_FLAGS, )", "doc", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_DOC_FLAGS, )", "${@}"]
-
 
 [tasks.rustdoc]
 category = "Docs"
@@ -127,10 +125,10 @@ run_task = { name = ["rustdoc-task"] }
 extend = "cargo"
 args = ["hack", "@@split(CARGO_RUSTDOC_HACK_FLAGS, )", "rustdoc", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_RUSTDOC_FLAGS, )", "${@}"]
 
-
 ################################################################################
 ## Tests                                                                      ##
 ################################################################################
+
 [tasks.test]
 category = "Test"
 description = "Runs the test suite"
@@ -170,10 +168,10 @@ extend = "cargo"
 args = ["hack", "@@split(CARGO_MIRI_HACK_FLAGS, )", "miri", "test", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_MIRI_FLAGS, )", "--all-features", "${@}"]
 dependencies = ["install-miri"]
 
-
 ################################################################################
 ## Tools                                                                      ##
 ################################################################################
+
 [tasks.install-clippy]
 private = true
 install_crate = { rustup_component_name = "clippy" }
