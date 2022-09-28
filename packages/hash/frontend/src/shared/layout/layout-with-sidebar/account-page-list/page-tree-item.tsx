@@ -83,6 +83,10 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
     return collapsed && isSorting ? null : (
       <Box
         ref={wrapperRef}
+        onContextMenu={(event) => {
+          event.preventDefault();
+          popupState.open(event);
+        }}
         onMouseEnter={() => setHoveredState(true)}
         onMouseLeave={() => setHoveredState(false)}
       >
