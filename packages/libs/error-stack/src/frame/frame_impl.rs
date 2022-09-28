@@ -236,7 +236,7 @@ impl Frame {
         }
     }
 
-    /// Creates a frame from a [`eyre::Report`].
+    /// Creates a frame from an [`eyre::Report`].
     #[cfg(feature = "eyre")]
     pub(crate) fn from_eyre(
         report: eyre::Report,
