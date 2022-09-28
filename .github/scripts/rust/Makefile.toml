@@ -55,7 +55,6 @@ command = "cargo"
 dependencies = ["install-cargo-hack"]
 
 [tasks.yarn]
-private = true
 command = "yarn"
 
 [tasks.docker]
