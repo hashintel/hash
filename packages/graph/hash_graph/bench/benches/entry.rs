@@ -1,4 +1,3 @@
-#![feature(once_cell)]
 #![feature(custom_test_frameworks)]
 #![test_runner(criterion::runner)]
 
