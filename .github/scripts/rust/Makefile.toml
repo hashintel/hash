@@ -32,6 +32,8 @@ CARGO_DOC_TEST_FLAGS = "--workspace --all-features"
 CARGO_MIRI_FLAGS = "--all-targets"
 CARGO_MIRI_HACK_FLAGS = "--workspace"
 
+REPO_ROOT = { script = ["git rev-parse --show-toplevel"] }
+
 [env.production]
 CARGO_MAKE_CARGO_PROFILE = "release"
 
