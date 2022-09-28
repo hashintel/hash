@@ -51,6 +51,13 @@ export const createEntityWithPlaceholdersFn =
 
 type UpdatePageActionKey = keyof UpdateKnowledgePageAction;
 
+/**
+ * @optimization instead of iterating the actions list on every call, we can
+ *   memoize a hashmap of grouped actions so we only have to pass through the
+ *   list once.
+ *   Do note that we would likely have very small `actions` lists, so each
+ *   iteration is very cheap.
+ */
 export const filterForAction = <T extends UpdatePageActionKey>(
   actions: UpdateKnowledgePageAction[],
   key: T,
