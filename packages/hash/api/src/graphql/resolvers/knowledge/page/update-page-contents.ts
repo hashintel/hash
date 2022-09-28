@@ -97,7 +97,7 @@ class PlaceholderResultsMap {
  * Create new entity.
  * Acts on {@link CreateKnowledgeEntityAction}
  */
-const createNewEntity = async (params: {
+const handleCreateNewEntity = async (params: {
   createEntityAction: CreateKnowledgeEntityAction;
   index: number;
   placeholderResults: PlaceholderResultsMap;
@@ -134,7 +134,7 @@ const createNewEntity = async (params: {
  * Insert new block onto page.
  * Acts on {@link InsertKnowledgeBlockAction}
  */
-const insertNewBlock = async (
+const handleInsertNewBlock = async (
   graphApi: GraphApi,
   params: {
     userModel: UserModel;
@@ -219,7 +219,7 @@ const insertNewBlock = async (
  * Swap a block's data entity to another entity.
  * Acts on {@link SwapKnowledgeBlockDataAction}
  */
-const swapBlockData = async (
+const handleSwapBlockData = async (
   graphApi: GraphApi,
   params: {
     userModel: UserModel;
@@ -256,7 +256,7 @@ const swapBlockData = async (
  * Update properties of an entity.
  * Acts on {@link UpdateKnowledgeEntityAction}
  */
-const updateEntity = async (
+const handleUpdateEntity = async (
   graphApi: GraphApi,
   params: {
     userModel: UserModel;
@@ -356,7 +356,7 @@ export const updateKnowledgePageContents: ResolverFn<
    * you to reference a previous created entity using its placeholder.
    */
   for (const { action, index } of filterForAction(actions, "createEntity")) {
-    await createNewEntity({
+    await handleCreateNewEntity({
       createEntityAction: action,
       index,
       placeholderResults,
@@ -367,7 +367,7 @@ export const updateKnowledgePageContents: ResolverFn<
   // Create any _new_ blocks
   const insertedBlocks = await Promise.all(
     filterForAction(actions, "insertBlock").map(({ action, index }) =>
-      insertNewBlock(graphApi, {
+      handleInsertNewBlock(graphApi, {
         userModel,
         insertBlockAction: action,
         index,
@@ -380,7 +380,7 @@ export const updateKnowledgePageContents: ResolverFn<
   // Perform any block data swapping updates.
   await Promise.all(
     filterForAction(actions, "swapBlockData").map(({ action }) =>
-      swapBlockData(graphApi, {
+      handleSwapBlockData(graphApi, {
         userModel,
         swapBlockDataAction: action,
       }),
@@ -390,7 +390,7 @@ export const updateKnowledgePageContents: ResolverFn<
   // Perform any entity updates.
   await Promise.all(
     filterForAction(actions, "updateEntity").map(async ({ action }) =>
-      updateEntity(graphApi, { userModel, action, placeholderResults }),
+      handleUpdateEntity(graphApi, { userModel, action, placeholderResults }),
     ),
   );
 
