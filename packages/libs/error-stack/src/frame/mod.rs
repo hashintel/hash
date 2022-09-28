@@ -35,7 +35,7 @@ impl Frame {
 
     #[allow(missing_docs)]
     #[must_use]
-    #[deprecated = "use `sources()` instead"]
+    #[deprecated(since = "0.2.0", note = "use `sources()` instead")]
     pub const fn source(&self) -> Option<&Self> {
         self.sources().first()
     }
@@ -52,7 +52,7 @@ impl Frame {
 
     #[allow(missing_docs)]
     #[must_use]
-    #[deprecated = "use `sources_mut()` instead"]
+    #[deprecated(since = "0.2.0", note = "use `sources_mut()` instead")]
     pub fn source_mut(&mut self) -> Option<&mut Self> {
         self.sources_mut().first_mut()
     }

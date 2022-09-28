@@ -3,20 +3,23 @@
 //!
 //! # Hooks
 //!
-//! The format implementation (especially the [`Debug`] implementation),
-//! can be easily extended using hooks.
-//! Hooks are functions of the signature `Fn(&T, &mut HookContext<T>)`, they provide an easy and
-//! ergonomic way to partially modify the format and enable the output of types that are
-//! not necessarily added via [`Report::attach_printable`] or are unable to implement [`Display`].
+//! The [`Debug`] implementation can be easily extended using hooks. Hooks are functions of the
+//! signature `Fn(&T, &mut HookContext<T>)`, they provide an ergonomic way to partially modify the
+//! output format and enable custom output for types that are not necessarily added via
+//! [`Report::attach_printable`] or are unable to implement [`Display`].
 //!
 //! Hooks can be attached through the central hooking mechanism which `error-stack`
 //! provides via [`Report::install_debug_hook`].
 //!
-//! Hooks are called for contexts which provide additional values through [`Error::provide`] or
-//! [`Context::provide`] and attachments which are added via [`Report::attach`].
-//! For contexts and values, that can be requested using [`Frame::request_ref`] and
-//! [`Frame::request_value`], the rendering order is determined by the order of
-//! [`Report::install_debug_hook`] calls.
+//! Hooks are called for contexts which provide additional values through [`Context::provide`] and
+//! attachments which are added via [`Report::attach`] or [`Report::attach_printable`]. The order of
+//! [`Report::install_debug_hook`] calls determines the order of the rendered output. Note, that
+//! Hooks get called on all values provided by [`Context::provide`], but not on the [`Context`]
+//! object itself. Therefore if you want to call a hook on a [`Context`] to print in addition to its
+//! [`Display`] implementation, you may want to call [`demand.provide_ref(self)`] inside of
+//! [`Context::provide`].
+//!
+//! [`demand.provide_ref(self)`]: core::any::Demand::provide_ref
 //!
 //! Hook functions need to be [`Fn`] and **not** [`FnMut`], which means they are unable to directly
 //! mutate state outside of the closure.

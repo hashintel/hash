@@ -1,5 +1,7 @@
 //! Compatibility module to convert errors from other libraries into [`Report`].
 //!
+//! In order to convert these error types, use [`IntoReportCompat::into_report()`].
+//!
 //! [`Report`]: crate::Report
 
 #[cfg(feature = "anyhow")]
