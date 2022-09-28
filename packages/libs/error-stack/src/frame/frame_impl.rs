@@ -166,7 +166,7 @@ impl fmt::Display for EyreContext {
 impl Context for EyreContext {
     #[cfg(nightly)]
     #[inline]
-    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
+    fn provide<'a>(&'a self, _demand: &mut Demand<'a>) {
         // `eyre::Report` does not implement `Provider`
     }
 }
