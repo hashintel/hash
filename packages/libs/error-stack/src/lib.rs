@@ -119,7 +119,7 @@
 //!
 //! impl fmt::Display for ParseConfigError {
 //!     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-//!         fmt.write_str("Could not parse configuration file")
+//!         fmt.write_str("could not parse configuration file")
 //!     }
 //! }
 //!
@@ -160,7 +160,7 @@
 //! # impl ParseConfigError { pub fn new() -> Self { Self } }
 //! # impl std::fmt::Display for ParseConfigError {
 //! #     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//! #         fmt.write_str("Could not parse configuration file")
+//! #         fmt.write_str("could not parse configuration file")
 //! #     }
 //! # }
 //! # impl Context for ParseConfigError {}
@@ -173,26 +173,26 @@
 //!     let content = fs::read_to_string(path)
 //!         .into_report()
 //!         .change_context(ParseConfigError::new())
-//!         .attach(Suggestion("Use a file you can read next time!"))
-//!         .attach_printable_lazy(|| format!("Could not read file {path:?}"))?;
+//!         .attach(Suggestion("use a file you can read next time!"))
+//!         .attach_printable_lazy(|| format!("could not read file {path:?}"))?;
 //!
 //!     Ok(content)
 //! }
 //! # let report = parse_config("test.txt").unwrap_err();
 //! # assert!(report.contains::<std::io::Error>());
-//! # assert_eq!(report.downcast_ref::<Suggestion>().unwrap(), &Suggestion("Use a file you can read next time!"));
+//! # assert_eq!(report.downcast_ref::<Suggestion>().unwrap(), &Suggestion("use a file you can read next time!"));
 //! # #[cfg(nightly)]
-//! # assert_eq!(report.request_ref::<Suggestion>().next().unwrap(), &Suggestion("Use a file you can read next time!"));
+//! # assert_eq!(report.request_ref::<Suggestion>().next().unwrap(), &Suggestion("use a file you can read next time!"));
 //! # #[cfg(nightly)]
-//! # assert_eq!(report.request_ref::<String>().next().unwrap(), "Could not read file \"test.txt\"");
+//! # assert_eq!(report.request_ref::<String>().next().unwrap(), "could not read file \"test.txt\"");
 //! # assert!(report.contains::<ParseConfigError>());
 //! #
 //! # owo_colors::set_override(true);
 //! # fn render(value: String) -> String {
-//! #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+//! #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
 //! #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
 //! #
-//! #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+//! #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
 //! #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
 //! #
 //! #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
@@ -325,7 +325,7 @@
 //!     if let Err(report) = parse_config("config.json") {
 //!         # #[cfg(nightly)]
 //!         for suggestion in report.request_ref::<Suggestion>() {
-//!             eprintln!("Suggestion: {}", suggestion.0);
+//!             eprintln!("suggestion: {}", suggestion.0);
 //!         }
 //!     }
 //! }
