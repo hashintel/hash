@@ -5,12 +5,12 @@
 use criterion::{BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
-    knowledge::{Entity, EntityId, KnowledgeGraphQuery},
+    knowledge::{Entity, KnowledgeGraphQuery},
     ontology::AccountId,
     store::{query::Expression, AccountStore, EntityStore},
 };
 use graph_test_data::{data_type, entity, entity_type, link_type, property_type};
-use hash_graph_bench_utils::{setup, Store, StoreWrapper};
+use hash_graph_bench_utils::{setup, StoreWrapper};
 use type_system::uri::{BaseUri, VersionedUri};
 use uuid::Uuid;
 
@@ -57,24 +57,9 @@ async fn seed_db(store_wrapper: &mut StoreWrapper) -> AccountId {
     account_id
 }
 
-async fn get_entity(store: &Store, entity_id: EntityId) {
-    let _ = store
-        .get_entity(&KnowledgeGraphQuery {
-            expression: Expression::for_latest_entity_id(entity_id),
-            data_type_query_depth: 0,
-            property_type_query_depth: 0,
-            link_type_query_depth: 0,
-            entity_type_query_depth: 0,
-            link_target_entity_query_depth: 0,
-            link_query_depth: 0,
-        })
-        .await
-        .expect("failed to read entity from store");
-}
-
 #[criterion]
 fn bench_get_entity(c: &mut Criterion) {
-    let (runtime, mut store_wrapper) = setup();
+    let (runtime, mut store_wrapper) = setup("get_entity");
     let entity_id = runtime.block_on(async {
         let account_id = seed_db(&mut store_wrapper).await;
         let person: Entity =
@@ -99,13 +84,26 @@ fn bench_get_entity(c: &mut Criterion) {
             .entity_id()
     });
 
-    let store = store_wrapper.store;
+    let store = &store_wrapper.store;
 
     c.bench_with_input(
         BenchmarkId::new("get_entity", ""),
         &entity_id,
         |b, &entity_id| {
-            b.to_async(&runtime).iter(|| get_entity(&store, entity_id));
+            b.to_async(&runtime).iter(|| async {
+                let _ = store
+                    .get_entity(&KnowledgeGraphQuery {
+                        expression: Expression::for_latest_entity_id(entity_id),
+                        data_type_query_depth: 0,
+                        property_type_query_depth: 0,
+                        link_type_query_depth: 0,
+                        entity_type_query_depth: 0,
+                        link_target_entity_query_depth: 0,
+                        link_query_depth: 0,
+                    })
+                    .await
+                    .expect("failed to read entity from store");
+            });
         },
     );
 }
