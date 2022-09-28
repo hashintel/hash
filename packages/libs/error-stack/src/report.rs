@@ -1,5 +1,5 @@
 use alloc::{boxed::Box, vec, vec::Vec};
-use core::{fmt, marker::PhantomData, mem, panic::Location};
+use core::{fmt, fmt::Display, marker::PhantomData, mem, panic::Location};
 #[cfg(all(rust_1_65, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(feature = "std")]
@@ -211,13 +211,21 @@ impl<C> Report<C> {
     /// documentation for more information.
     ///
     /// [`Backtrace` and `SpanTrace` section]: #backtrace-and-spantrace
+    #[inline]
     #[track_caller]
     pub fn new(context: C) -> Self
     where
         C: Context,
     {
-        let frame = Frame::from_context(context, Location::caller(), Box::new([]));
+        Self::from_frame(Frame::from_context(
+            context,
+            Location::caller(),
+            Box::new([]),
+        ))
+    }
 
+    #[track_caller]
+    pub(crate) fn from_frame(frame: Frame) -> Self {
         #[cfg(all(nightly, feature = "std"))]
         let backtrace = core::any::request_ref::<Backtrace>(&frame)
             .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
@@ -557,9 +565,7 @@ impl<C> Report<C> {
     pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
         self.frames_mut().find_map(Frame::downcast_mut::<T>)
     }
-}
 
-impl<T: Context> Report<T> {
     /// Returns the current context of the `Report`.
     ///
     /// If the user want to get the latest context, `current_context` can be called. If the user
@@ -590,8 +596,12 @@ impl<T: Context> Report<T> {
     /// assert_eq!(io_error.kind(), io::ErrorKind::NotFound);
     /// # }
     /// ```
+    // TODO: Remove `Display` bound when `set_debug_hook` and `set_display_hook` are removed
     #[must_use]
-    pub fn current_context(&self) -> &T {
+    pub fn current_context(&self) -> &C
+    where
+        C: Display + Send + Sync + 'static,
+    {
         self.downcast_ref().unwrap_or_else(|| {
             // Panics if there isn't an attached context which matches `T`. As it's not possible to
             // create a `Report` without a valid context and this method can only be called when `T`

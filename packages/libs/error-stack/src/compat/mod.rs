@@ -7,11 +7,6 @@ mod anyhow;
 #[cfg(feature = "eyre")]
 mod eyre;
 
-#[cfg(feature = "anyhow")]
-pub use self::anyhow::AnyhowContext;
-#[cfg(feature = "eyre")]
-pub use self::eyre::EyreContext;
-
 /// Compatibility trait to convert from external libraries to [`Report`].
 ///
 /// *Note*: It's not possible to implement [`IntoReport`] or [`Context`] on other error libraries'

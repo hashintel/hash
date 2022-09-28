@@ -8,7 +8,9 @@
 mod common;
 
 use common::*;
-use error_stack::compat::IntoReportCompat;
+use error_stack::IntoReportCompat;
+#[cfg(feature = "std")]
+use error_stack::Report;
 
 // All frames except backtraces in this file are printable (either a printable attachment or a
 // context), so only backtraces are "Opaque". Depending on how the backtrace is generated, it will
@@ -65,34 +67,18 @@ fn anyhow_nostd() {
 }
 
 #[test]
-#[cfg(all(nightly, feature = "anyhow"))]
-fn anyhow_provider() {
-    let anyhow = anyhow::anyhow!(RootError)
-        .context(PrintableA(0))
-        .context(PrintableB(0));
-    let debug_output = format!("{anyhow:?}");
-    let report = Err::<(), _>(anyhow).into_report().unwrap_err();
-
-    let requested_anyhow = report.request_ref::<anyhow::Error>().next().unwrap();
-    assert_eq!(debug_output, format!("{:?}", requested_anyhow));
-}
-
-#[test]
 #[cfg(all(nightly, feature = "std", feature = "anyhow"))]
 fn anyhow_backtrace() {
-    let error = ErrorB::new(0);
-    let error_backtrace = error.backtrace().expect("No backtrace captured");
+    let error = anyhow::anyhow!("test error");
+    let error_backtrace = error.backtrace();
     let error_backtrace_len = error_backtrace.frames().len();
     #[cfg(not(miri))]
     let error_backtrace_string = error_backtrace.to_string();
 
-    let report = Err::<(), _>(anyhow::anyhow!(error))
-        .into_report()
-        .unwrap_err();
-    let frame = report.frames().next().unwrap();
-
-    let report_backtrace = frame
+    let report: Report<anyhow::Error> = Err::<(), _>(error).into_report().unwrap_err();
+    let report_backtrace = report
         .request_ref::<std::backtrace::Backtrace>()
+        .next()
         .expect("No backtrace captured");
     let report_backtrace_len = report_backtrace.frames().len();
     #[cfg(not(miri))]
@@ -122,17 +108,6 @@ fn anyhow_output() {
     let context_debug_extended = format!("{context:#?}");
     let context_display_normal = format!("{context:}");
     let context_display_extended = format!("{context:#}");
-
-    assert_eq!(anyhow_debug_normal, context_debug_normal);
-    assert_eq!(anyhow_debug_extended, context_debug_extended);
-    assert_eq!(anyhow_display_normal, context_display_normal);
-    assert_eq!(anyhow_display_extended, context_display_extended);
-
-    let anyhow = context.as_anyhow();
-    let anyhow_debug_normal = format!("{anyhow:?}");
-    let anyhow_debug_extended = format!("{anyhow:#?}");
-    let anyhow_display_normal = format!("{anyhow:}");
-    let anyhow_display_extended = format!("{anyhow:#}");
 
     assert_eq!(anyhow_debug_normal, context_debug_normal);
     assert_eq!(anyhow_debug_extended, context_debug_extended);
@@ -188,46 +163,25 @@ fn eyre() {
 
 #[test]
 #[cfg(all(nightly, feature = "eyre"))]
-#[cfg_attr(
-    miri,
-    ignore = "bug: miri is failing for `eyre`, this is unrelated to our implementation"
-)]
-fn eyre_provider() {
-    install_eyre_hook();
-
-    let eyre = eyre::anyhow!(RootError)
-        .wrap_err(PrintableA(0))
-        .wrap_err(PrintableB(0));
-    let debug_output = format!("{eyre:?}");
-    let report = Err::<(), _>(eyre).into_report().unwrap_err();
-
-    let requested_eyre = report.request_ref::<eyre::Report>().next().unwrap();
-    assert_eq!(debug_output, format!("{:?}", requested_eyre));
-}
-
-#[test]
-#[cfg(all(nightly, feature = "std", feature = "eyre"))]
-#[cfg_attr(
-    miri,
-    ignore = "bug: miri is failing for `eyre`, this is unrelated to our implementation"
-)]
+#[ignore = "bug: `eyre` currently does not provide a backtrace`"]
 fn eyre_backtrace() {
-    install_eyre_hook();
-
-    let error = ErrorB::new(0);
+    let error = eyre::eyre!("test error");
     let error_backtrace = error
-        .backtrace()
-        .expect("No backtrace captured")
-        .to_string();
-
-    let report = Err::<(), _>(eyre::eyre!(error)).into_report().unwrap_err();
-    let frame = report.frames().next().unwrap();
-
-    let backtrace = frame
         .request_ref::<std::backtrace::Backtrace>()
-        .expect("No backtrace captured");
+        .expect("no backtrace captured");
+    let error_backtrace_len = error_backtrace.frames().len();
+    let error_backtrace_string = error_backtrace.to_string();
 
-    assert_eq!(error_backtrace, backtrace.to_string());
+    let report: Report<eyre::Error> = Err::<(), _>(error).into_report().unwrap_err();
+    let report_backtrace = report
+        .request_ref::<std::backtrace::Backtrace>()
+        .next()
+        .expect("No backtrace captured");
+    let report_backtrace_len = report_backtrace.frames().len();
+    let report_backtrace_string = report_backtrace.to_string();
+
+    assert_eq!(error_backtrace_len, report_backtrace_len);
+    assert_eq!(error_backtrace_string, report_backtrace_string);
 }
 
 #[test]
@@ -255,17 +209,6 @@ fn eyre_output() {
     let context_debug_extended = format!("{context:#?}");
     let context_display_normal = format!("{context:}");
     let context_display_extended = format!("{context:#}");
-
-    assert_eq!(eyre_debug_normal, context_debug_normal);
-    assert_eq!(eyre_debug_extended, context_debug_extended);
-    assert_eq!(eyre_display_normal, context_display_normal);
-    assert_eq!(eyre_display_extended, context_display_extended);
-
-    let eyre = context.as_eyre();
-    let eyre_debug_normal = format!("{eyre:?}");
-    let eyre_debug_extended = format!("{eyre:#?}");
-    let eyre_display_normal = format!("{eyre:}");
-    let eyre_display_extended = format!("{eyre:#}");
 
     assert_eq!(eyre_debug_normal, context_debug_normal);
     assert_eq!(eyre_debug_extended, context_debug_extended);
