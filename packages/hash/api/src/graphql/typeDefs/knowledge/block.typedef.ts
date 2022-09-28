@@ -2,6 +2,9 @@ import { gql } from "apollo-server-express";
 
 export const knowledgeBlockTypedef = gql`
   type KnowledgeBlock implements KnowledgeEntity {
+    """
+    The block's linked data entity.
+    """
     dataEntity: KnowledgeEntity!
 
     # ENTITY INTERFACE FIELDS BEGIN #
