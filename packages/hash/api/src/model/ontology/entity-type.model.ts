@@ -326,6 +326,36 @@ export default class {
   }
 
   /**
+   * Whether an outgoing link is ordered or not.
+   *
+   * @todo: deprecate this method when the Graph API can be relied upon for schema validation
+   * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
+   *
+   * @param params.outgoingLinkType - the outgoing link type for which to check whether it is ordered
+   */
+  isOutgoingLinkOrdered(params: { outgoingLinkType: LinkTypeModel }) {
+    const { outgoingLinkType } = params;
+
+    const outgoingLinkDefinition = Object.entries(this.schema.links ?? {}).find(
+      ([linkTypeId]) => linkTypeId === outgoingLinkType.schema.$id,
+    )?.[1];
+
+    if (!outgoingLinkDefinition) {
+      throw new Error("Link is not an outgoing link on this entity");
+    }
+
+    if (
+      typeof outgoingLinkDefinition === "object" &&
+      "type" in outgoingLinkDefinition &&
+      outgoingLinkDefinition.type === "array"
+    ) {
+      return outgoingLinkDefinition.ordered ?? false;
+    }
+
+    return false;
+  }
+
+  /**
    * Get all property types of the entity type.
    */
   async getPropertyTypes(graphApi: GraphApi): Promise<PropertyTypeModel[]> {
