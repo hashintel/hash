@@ -222,7 +222,7 @@ impl Frame {
         }
     }
 
-    /// Creates a frame from a [`anyhow::Error`].
+    /// Creates a frame from an [`anyhow::Error`].
     #[cfg(feature = "anyhow")]
     pub(crate) fn from_anyhow(
         error: anyhow::Error,
