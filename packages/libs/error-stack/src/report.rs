@@ -1,5 +1,5 @@
 use alloc::{boxed::Box, vec, vec::Vec};
-use core::{any::TypeId, fmt, fmt::Display, marker::PhantomData, mem, panic::Location};
+use core::{fmt, fmt::Display, marker::PhantomData, mem, panic::Location};
 #[cfg(all(rust_1_65, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(feature = "std")]
