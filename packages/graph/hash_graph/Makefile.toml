@@ -2,16 +2,17 @@ extend = { path = "../Makefile.toml" }
 
 [env]
 CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --optional-deps clap"
+
 CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --optional-deps clap"
+
 RUST_LOG = "debug,hyper=warn"
 
 [env.production]
 CARGO_MAKE_CARGO_PROFILE = "production"
 
-
 [tasks.test]
 run_task = [
-    { name = ["test-task", "yarn", "deployment-up", "test-integration", "generate-openapi-client", "deployment-down"], condition = { env_true = ["CARGO_MAKE_CI"] } },
+    { name = ["test-task", "yarn-install-migrations", "deployment-up", "test-integration", "generate-openapi-client", "deployment-down"], condition = { env_true = ["CARGO_MAKE_CI"] } },
     { name = ["test-task"] }
 ]
 
@@ -22,7 +23,7 @@ args = ["Miri is disabled as unsafe code is forbidden"]
 
 [tasks.test-integration]
 private = false
-extend = "task"
+extend = "cargo"
 args = ["nextest", "run", "--cargo-profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_TEST_FLAGS, )", "--workspace", "--test", "integration", "--profile", "integration", "${@}"]
 dependencies = ["install-cargo-nextest"]
 
