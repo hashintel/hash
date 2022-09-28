@@ -29,6 +29,7 @@ cwd = "${REPO_ROOT}/packages/graph/migrations"
 env_files = ["../.env"]
 
 [tasks.deployment-up]
+private = false
 category = "Deploy"
 description = "Spins up the deployment environment"
 extend = "docker"
@@ -36,6 +37,7 @@ args = ["compose", "--env-file", "../.env", "up", "--wait"]
 cwd = "${REPO_ROOT}/packages/graph/deployment"
 
 [tasks.deployment-down]
+private = false
 category = "Deploy"
 description = "Tears down the deployment environment"
 extend = "docker"
