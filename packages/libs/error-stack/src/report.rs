@@ -74,7 +74,7 @@ use crate::{
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
 ///     .into_report()
-///     .attach_printable_lazy(|| format!("Failed to read config file {config_path:?}"))?;
+///     .attach_printable_lazy(|| format!("failed to read config file {config_path:?}"))?;
 ///
 /// # const _: &str = stringify! {
 /// ...
@@ -165,18 +165,18 @@ use crate::{
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
 ///     .into_report()
-///     .attach_printable_lazy(|| format!("Failed to read config file {config_path:?}"));
+///     .attach_printable_lazy(|| format!("failed to read config file {config_path:?}"));
 ///
 /// let content = match content {
 ///     Err(err) => {
 ///         # #[cfg(all(nightly, feature = "std"))]
 ///         for backtrace in err.request_ref::<std::backtrace::Backtrace>() {
-///             println!("Backtrace: {backtrace}");
+///             println!("backtrace: {backtrace}");
 ///         }
 ///
 ///         # #[cfg(all(nightly, feature = "spantrace"))]
-///         for spantrace in err.request_ref::<tracing_error::SpanTrace>() {
-///             println!("Spantrace: {spantrace}")
+///         for span_trace in err.request_ref::<tracing_error::SpanTrace>() {
+///             println!("span trace: {span_trace}")
 ///         }
 ///
 ///         return Err(err)
@@ -420,14 +420,14 @@ impl<C> Report<C> {
     ///
     /// let error = fs::read_to_string("config.txt")
     ///     .into_report()
-    ///     .attach(Suggestion("Better use a file which exists next time!"));
+    ///     .attach(Suggestion("better use a file which exists next time!"));
     /// # #[cfg_attr(not(nightly), allow(unused_variables))]
     /// let report = error.unwrap_err();
     /// # #[cfg(nightly)]
     /// let suggestion = report.request_ref::<Suggestion>().next().unwrap();
     ///
     /// # #[cfg(nightly)]
-    /// assert_eq!(suggestion.0, "Better use a file which exists next time!");
+    /// assert_eq!(suggestion.0, "better use a file which exists next time!");
     /// # }
     #[track_caller]
     pub fn attach_printable<A>(mut self, attachment: A) -> Self

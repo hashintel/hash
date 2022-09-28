@@ -10,7 +10,7 @@ use error_stack::{AttachmentKind, FrameKind, FutureExt, Report, ResultExt};
 fn test_messages<E>(report: &Report<E>) {
     assert_eq!(
         messages(report),
-        expect_messages(&["Opaque", "Opaque", "Opaque", "Opaque", "Root error"])
+        expect_messages(&["opaque", "opaque", "opaque", "opaque", "root error"])
     );
 }
 
