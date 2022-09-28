@@ -1,6 +1,6 @@
 import { EntityModel, PageModel } from "../../../model";
 import { KnowledgeEntity, KnowledgePage } from "../../apiTypes.gen";
-import { entityTypeModelToGQL } from "../ontology/model-mapping";
+import { mapEntityTypeModelToGQL } from "../ontology/model-mapping";
 
 export type ExternalEntityResolversGQL = "linkedEntities";
 export type UnresolvedEntityGQL = Omit<
@@ -12,7 +12,7 @@ export const mapEntityModelToGQL = (
   entityModel: EntityModel,
 ): UnresolvedEntityGQL => ({
   entityId: entityModel.entityId,
-  entityType: entityTypeModelToGQL(entityModel.entityTypeModel),
+  entityType: mapEntityTypeModelToGQL(entityModel.entityTypeModel),
   entityTypeId: entityModel.entityTypeModel.schema.$id,
   entityVersionId: entityModel.version,
   ownedById: entityModel.accountId,

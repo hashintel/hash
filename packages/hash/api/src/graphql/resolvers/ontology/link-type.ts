@@ -10,7 +10,7 @@ import {
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { LinkTypeModel } from "../../../model";
-import { linkTypeModelToGQL } from "./model-mapping";
+import { mapLinkTypeModelToGQL } from "./model-mapping";
 
 export const createLinkType: ResolverFn<
   Promise<PersistedLinkType>,
@@ -28,7 +28,7 @@ export const createLinkType: ResolverFn<
     throw new ApolloError(err, "CREATION_ERROR");
   });
 
-  return linkTypeModelToGQL(createdLinkTypeModel);
+  return mapLinkTypeModelToGQL(createdLinkTypeModel);
 };
 
 export const getAllLatestLinkTypes: ResolverFn<
@@ -49,7 +49,7 @@ export const getAllLatestLinkTypes: ResolverFn<
   });
 
   return allLatestLinkTypeModels.map((linkTypeModel) =>
-    linkTypeModelToGQL(linkTypeModel),
+    mapLinkTypeModelToGQL(linkTypeModel),
   );
 };
 
@@ -70,7 +70,7 @@ export const getLinkType: ResolverFn<
     );
   });
 
-  return linkTypeModelToGQL(linkTypeModel);
+  return mapLinkTypeModelToGQL(linkTypeModel);
 };
 
 export const updateLinkType: ResolverFn<
@@ -105,5 +105,5 @@ export const updateLinkType: ResolverFn<
       throw new ApolloError(msg, "CREATION_ERROR");
     });
 
-  return linkTypeModelToGQL(updatedLinkTypeModel);
+  return mapLinkTypeModelToGQL(updatedLinkTypeModel);
 };

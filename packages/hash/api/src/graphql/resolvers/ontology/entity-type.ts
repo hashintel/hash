@@ -12,8 +12,8 @@ import {
 import { LoggedInGraphQLContext } from "../../context";
 import { EntityTypeModel } from "../../../model";
 import {
-  entityTypeModelToGQL,
-  entityTypeRootedSubgraphToGQL,
+  mapEntityTypeModelToGQL,
+  mapEntityTypeRootedSubgraphToGQL,
 } from "./model-mapping";
 import {
   dataTypeQueryDepth,
@@ -38,7 +38,7 @@ export const createEntityType: ResolverFn<
     throw new ApolloError(err, "CREATION_ERROR");
   });
 
-  return entityTypeModelToGQL(createdEntityTypeModel);
+  return mapEntityTypeModelToGQL(createdEntityTypeModel);
 };
 
 export const getAllLatestEntityTypes: ResolverFn<
@@ -65,7 +65,7 @@ export const getAllLatestEntityTypes: ResolverFn<
     );
   });
 
-  return entityTypeRootedSubgraphs.map(entityTypeRootedSubgraphToGQL);
+  return entityTypeRootedSubgraphs.map(mapEntityTypeRootedSubgraphToGQL);
 };
 
 export const getEntityType: ResolverFn<
@@ -89,7 +89,7 @@ export const getEntityType: ResolverFn<
     );
   });
 
-  return entityTypeRootedSubgraphToGQL(entityTypeRootedSubgraph);
+  return mapEntityTypeRootedSubgraphToGQL(entityTypeRootedSubgraph);
 };
 
 export const updateEntityType: ResolverFn<
@@ -124,5 +124,5 @@ export const updateEntityType: ResolverFn<
       throw new ApolloError(msg, "CREATION_ERROR");
     });
 
-  return entityTypeModelToGQL(updatedEntityTypeModel);
+  return mapEntityTypeModelToGQL(updatedEntityTypeModel);
 };

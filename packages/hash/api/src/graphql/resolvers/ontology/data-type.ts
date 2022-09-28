@@ -8,7 +8,7 @@ import {
 } from "../../apiTypes.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 import { DataTypeModel } from "../../../model";
-import { dataTypeModelToGQL } from "./model-mapping";
+import { mapDataTypeModelToGQL } from "./model-mapping";
 
 export const getAllLatestDataTypes: ResolverFn<
   Promise<PersistedDataType[]>,
@@ -27,7 +27,7 @@ export const getAllLatestDataTypes: ResolverFn<
     );
   });
 
-  return allLatestDataTypeModels.map(dataTypeModelToGQL);
+  return allLatestDataTypeModels.map(mapDataTypeModelToGQL);
 };
 
 export const getDataType: ResolverFn<
@@ -47,5 +47,5 @@ export const getDataType: ResolverFn<
     );
   });
 
-  return dataTypeModelToGQL(dataTypeModel);
+  return mapDataTypeModelToGQL(dataTypeModel);
 };
