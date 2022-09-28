@@ -48,9 +48,8 @@
 //! struct ErrorCode(u64);
 //!
 //! impl Display for ErrorCode {
-//!   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-//!     f.write_str("Error: ")?;
-//!     Display::fmt(&self.0, f)
+//!   fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+//!     write!(fmt, "error: {}", self.0)
 //!   }
 //! }
 //!
@@ -59,8 +58,8 @@
 //!
 //! // This hook will never be called, because a later invocation of `install_debug_hook` overwrites
 //! // the hook for the type `ErrorCode`.
-//! Report::install_debug_hook::<ErrorCode>(|_, ctx| {
-//!     ctx.push_body("will never be called");
+//! Report::install_debug_hook::<ErrorCode>(|_, _| {
+//!     unreachable!("will never be called");
 //! });
 //!
 //! // `HookContext` always has a type parameter, which needs to be the same as the type of the
@@ -70,13 +69,13 @@
 //! // will not influence the counter of the `ErrorCode` or `Warning` hook.
 //! Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
 //!     let idx = ctx.increment_counter() + 1;
-//!     ctx.push_body(format!("Suggestion {idx}: {val}"));
+//!     ctx.push_body(format!("suggestion {idx}: {val}"));
 //! });
 //!
 //! // Even though we used `attach_printable`, we can still use hooks, `Display` of a type attached
 //! // via `attach_printable` is only ever used when no hook was found.
 //! Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), ctx| {
-//!     ctx.push_body(format!("Error ({val})"));
+//!     ctx.push_body(format!("error ({val})"));
 //! });
 //!
 //! Report::install_debug_hook::<Warning>(|Warning(val), ctx| {
@@ -85,25 +84,25 @@
 //!     // we set a value, which will be removed on non-alternate views
 //!     // and is going to be appended to the actual return value.
 //!     if ctx.alternate() {
-//!         ctx.push_appendix(format!("Warning {idx}:\n  {val}"));
+//!         ctx.push_appendix(format!("warning {idx}:\n  {val}"));
 //!     }
 //!
-//!     ctx.push_body(format!("Warning ({idx}) occurred"));
+//!     ctx.push_body(format!("warning ({idx}) occurred"));
 //!  });
 //!
 //!
 //! let report = Report::new(Error::from(ErrorKind::InvalidInput))
 //!     .attach_printable(ErrorCode(404))
-//!     .attach(Suggestion("Try to be connected to the internet."))
-//!     .attach(Suggestion("Try better next time!"))
-//!     .attach(Warning("Unable to fetch resource"));
+//!     .attach(Suggestion("try to be connected to the internet."))
+//!     .attach(Suggestion("try better next time!"))
+//!     .attach(Warning("unable to fetch resource"));
 //!
 //! # owo_colors::set_override(true);
 //! # fn render(value: String) -> String {
-//! #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+//! #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
 //! #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
 //! #
-//! #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+//! #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
 //! #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
 //! #
 //! #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()

@@ -119,11 +119,11 @@ impl HookContextInner {
 ///     // Create a new appendix, which is going to be displayed when someone requests the alternate
 ///     // version (`:#?`) of the report.
 ///     if ctx.alternate() {
-///         ctx.push_appendix(format!("Error {val}: {} Error", if *val < 500 {"Client"} else {"Server"}))
+///         ctx.push_appendix(format!("error {val}: {} error", if *val < 500 {"client"} else {"server"}))
 ///     }
 ///
 ///     // This will push a new entry onto the body with the specified value
-///     ctx.push_body(format!("Error code: {val}"));
+///     ctx.push_body(format!("error code: {val}"));
 /// });
 ///
 /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
@@ -132,17 +132,17 @@ impl HookContextInner {
 ///     // Create a new appendix, which is going to be displayed when someone requests the alternate
 ///     // version (`:#?`) of the report.
 ///     if ctx.alternate() {
-///         ctx.push_body(format!("Suggestion {idx}:\n  {val}"));
+///         ctx.push_body(format!("suggestion {idx}:\n  {val}"));
 ///     }
 ///
 ///     // This will push a new entry onto the body with the specified value
-///     ctx.push_body(format!("Suggestion ({idx})"));
+///     ctx.push_body(format!("suggestion ({idx})"));
 /// });
 ///
 /// Report::install_debug_hook::<Warning>(|Warning(val), ctx| {
 ///     // You can add multiples entries to the body (and appendix) in the same hook.
-///     ctx.push_body("Abnormal program execution detected");
-///     ctx.push_body(format!("Warning: {val}"));
+///     ctx.push_body("abnormal program execution detected");
+///     ctx.push_body(format!("warning: {val}"));
 /// });
 ///
 /// // By not adding anything you are able to hide an attachment
@@ -151,20 +151,20 @@ impl HookContextInner {
 ///
 /// let report = Report::new(Error::from(ErrorKind::InvalidInput))
 ///     .attach(HttpResponseStatusCode(404))
-///     .attach(Suggestion("Do you have a connection to the internet?"))
+///     .attach(Suggestion("do you have a connection to the internet?"))
 ///     .attach(HttpResponseStatusCode(405))
-///     .attach(Warning("Unable to determine environment"))
+///     .attach(Warning("unable to determine environment"))
 ///     .attach(Secret("pssst, don't tell anyone else c;"))
-///     .attach(Suggestion("Execute the program from the fish shell"))
+///     .attach(Suggestion("execute the program from the fish shell"))
 ///     .attach(HttpResponseStatusCode(501))
-///     .attach(Suggestion("Try better next time!"));
+///     .attach(Suggestion("try better next time!"));
 ///
 /// # owo_colors::set_override(true);
 /// # fn render(value: String) -> String {
-/// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+/// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
 /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
 /// #
-/// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+/// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
 /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
 /// #
 /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
@@ -231,7 +231,7 @@ impl HookContextInner {
 ///     ctx.insert(div);
 ///
 ///     ctx.push_body(format!(
-///         "Computation for {val} (acc = {acc}, div = {div})"
+///         "computation for {val} (acc = {acc}, div = {div})"
 ///     ));
 /// });
 ///
@@ -241,10 +241,10 @@ impl HookContextInner {
 ///
 /// # owo_colors::set_override(true);
 /// # fn render(value: String) -> String {
-/// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+/// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
 /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
 /// #
-/// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+/// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
 /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
 /// #
 /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
@@ -304,28 +304,28 @@ impl<T> HookContext<T> {
     /// Report::install_debug_hook::<Error>(|Error { code, reason }, ctx| {
     ///     if ctx.alternate() {
     ///         // Add an entry to the appendix
-    ///         ctx.push_appendix(format!("Error {code}:\n  {reason}"));
+    ///         ctx.push_appendix(format!("error {code}:\n  {reason}"));
     ///     }
     ///
-    ///     ctx.push_body(format!("Error {code}"));
+    ///     ctx.push_body(format!("error {code}"));
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
     ///     .attach(Error {
     ///         code: 404,
-    ///         reason: "Not Found - Server cannot find requested resource",
+    ///         reason: "not found - server cannot find requested resource",
     ///     })
     ///     .attach(Error {
     ///         code: 405,
-    ///         reason: "Bad Request - Server cannot or will not process request",
+    ///         reason: "bad request - server cannot or will not process request",
     ///     });
     ///
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
     /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
     /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
     /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
@@ -358,21 +358,21 @@ impl<T> HookContext<T> {
     /// struct Suggestion(&'static str);
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     ctx.push_body(format!("Suggestion: {val}"));
+    ///     ctx.push_body(format!("suggestion: {val}"));
     ///     // We can push multiples entries in a single hook, these lines will be added one after
     ///     // another.
-    ///     ctx.push_body("Sorry for the inconvenience!");
+    ///     ctx.push_body("sorry for the inconvenience!");
     /// });
     ///
     /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
-    ///     .attach(Suggestion("Try better next time"));
+    ///     .attach(Suggestion("try better next time"));
     ///
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
     /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
     /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
     /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
@@ -428,16 +428,16 @@ impl<T> HookContext<T> {
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-    ///     .attach(Error("Unable to reach remote host"))
-    ///     .attach(Warning("Disk nearly full"))
-    ///     .attach(Error("Cannot resolve example.com: Unknown host"));
+    ///     .attach(Error("unable to reach remote host"))
+    ///     .attach(Warning("disk nearly full"))
+    ///     .attach(Error("cannot resolve example.com: unknown host"));
     ///
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
     /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
     /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
     /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
@@ -554,19 +554,19 @@ impl<T: 'static> HookContext<T> {
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
     ///     let idx = ctx.increment_counter();
-    ///     ctx.push_body(format!("Suggestion {idx}: {val}"));
+    ///     ctx.push_body(format!("suggestion {idx}: {val}"));
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-    ///     .attach(Suggestion("Use a file you can read next time!"))
-    ///     .attach(Suggestion("Don't press any random keys!"));
+    ///     .attach(Suggestion("use a file you can read next time!"))
+    ///     .attach(Suggestion("don't press any random keys!"));
     ///
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
     /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
     /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
     /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
@@ -621,19 +621,19 @@ impl<T: 'static> HookContext<T> {
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
     ///     let idx = ctx.decrement_counter();
-    ///     ctx.push_body(format!("Suggestion {idx}: {val}"));
+    ///     ctx.push_body(format!("suggestion {idx}: {val}"));
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-    ///     .attach(Suggestion("Use a file you can read next time!"))
-    ///     .attach(Suggestion("Don't press any random keys!"));
+    ///     .attach(Suggestion("use a file you can read next time!"))
+    ///     .attach(Suggestion("don't press any random keys!"));
     ///
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
     /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
     /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+    /// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
     /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
@@ -803,7 +803,7 @@ mod default {
     fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) {
         let idx = ctx.increment_counter();
 
-        ctx.push_appendix(format!("Backtrace No. {}\n{}", idx + 1, backtrace));
+        ctx.push_appendix(format!("backtrace no. {}\n{}", idx + 1, backtrace));
         #[cfg(nightly)]
         ctx.push_body(format!(
             "backtrace with {} frames ({})",
@@ -824,7 +824,7 @@ mod default {
             true
         });
 
-        ctx.push_appendix(format!("Span Trace No. {}\n{}", idx + 1, spantrace));
-        ctx.push_body(format!("spantrace with {span} frames ({})", idx + 1));
+        ctx.push_appendix(format!("span trace No. {}\n{}", idx + 1, spantrace));
+        ctx.push_body(format!("span trace with {span} frames ({})", idx + 1));
     }
 }

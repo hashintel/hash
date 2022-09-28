@@ -146,7 +146,7 @@ impl fmt::Debug for Frame {
                 debug.field("attachment", &attachment);
             }
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
-                debug.field("attachment", &"Opaque");
+                debug.field("attachment", &"opaque");
             }
         }
         debug.finish()

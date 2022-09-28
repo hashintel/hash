@@ -99,12 +99,12 @@ fn prepare(suffix: bool) -> impl Drop {
     }
 
     settings.add_filter(
-        r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*",
-        "Backtrace No. $1\n  [redacted]",
+        r"backtrace no\. (\d+)\n(?:  .*\n)*  .*",
+        "backtrace no. $1\n  [redacted]",
     );
     settings.add_filter(
-        r"Span Trace No\. (\d+)\n(?:  .*\n)*  .*",
-        "Span Trace No. $1\n  [redacted]",
+        r"span trace No\. (\d+)\n(?:  .*\n)*  .*",
+        "span trace No. $1\n  [redacted]",
     );
     settings.add_filter(
         r"backtrace with( (\d+) frames)? \((\d+)\)",
@@ -138,7 +138,7 @@ fn prepare(suffix: bool) -> impl Drop {
 ///               P 6       P 7
 ///                │         │
 ///                ▼         ▼
-///          Root Error 1   C 3
+///          root error 1   C 3
 ///                          │
 ///                          ▼
 ///                         P 8
@@ -151,19 +151,19 @@ fn prepare(suffix: bool) -> impl Drop {
 ///      C 4               P 16               P 11          P 12
 ///       │                  │                  │             │
 ///       ▼                  ▼                  ▼             ▼
-/// Root Error 2       ┌───P 10───┐            C 9           C 6
+/// root error 2       ┌───P 10───┐            C 9           C 6
 ///                    │          │             │             │
 ///                    ▼          ▼             ▼             ▼
-///                  P 13       P 14      Root Error 5       C 7
+///                  P 13       P 14      root error 5       C 7
 ///                    │          │                           │
 ///                    ▼          ▼                           ▼
-///                   C 8       P 15                    Root Error 6
+///                   C 8       P 15                    root error 6
 ///                    │          │
 ///                    ▼          ▼
-///              Root Error 3    C 5
+///              root error 3    C 5
 ///                               │
 ///                               ▼
-///                         Root Error 4
+///                         root error 4
 /// ```
 ///
 /// `P = Printable`, `C = Context`
@@ -284,7 +284,7 @@ mod full {
             .attach_printable(PrintableB(0))
             .attach(AttachmentB)
             .change_context(ContextB(0))
-            .attach_printable("Printable C");
+            .attach_printable("printable C");
 
         assert_snapshot!(format!("{report:?}"));
     }
@@ -301,7 +301,7 @@ mod full {
             .attach_printable(PrintableB(0))
             .attach(AttachmentB)
             .change_context(ContextB(0))
-            .attach_printable("Printable C");
+            .attach_printable("printable C");
 
         assert_snapshot!(format!("{report:#?}"));
     }
@@ -326,7 +326,7 @@ mod full {
             .attach_printable(PrintableB(0))
             .attach(AttachmentB)
             .change_context(ContextB(0))
-            .attach_printable("Printable C");
+            .attach_printable("printable C");
 
         assert_snapshot!(format!("{report:#?}"));
     }
@@ -564,7 +564,7 @@ mod full {
     #[cfg(nightly)]
     impl Display for ContextD {
         fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-            f.write_str("Context D")
+            f.write_str("context D")
         }
     }
 
