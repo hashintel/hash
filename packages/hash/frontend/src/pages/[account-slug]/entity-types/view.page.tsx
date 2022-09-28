@@ -199,7 +199,6 @@ const cardActionHoverBlue: SxProps<Theme> = (theme) => ({
   },
 });
 
-// @todo move into design system
 const NewPropertyTypeForm = ({
   createButtonProps,
   discardButtonProps,
@@ -293,7 +292,6 @@ const PropertyMenu = ({
           })}
         />
       </IconButton>
-      {/** @todo move list section label system into design system */}
       <Menu
         {...bindMenu(popupState)}
         anchorOrigin={{
@@ -914,7 +912,6 @@ const InsertPropertyCard = ({
             [`.${tableCellClasses.body} .${checkboxClasses.root}`]: {
               textAlign: "center",
             },
-            // @todo move these styles to a component
             [`.${tableBodyClasses.root} .${tableRowClasses.root}`]: {
               [`.${tableCellClasses.root}`]: {
                 "&:first-child": {

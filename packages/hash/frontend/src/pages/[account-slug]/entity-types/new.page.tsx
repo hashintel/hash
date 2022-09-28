@@ -1,7 +1,7 @@
 import { Button, TextField } from "@hashintel/hash-design-system";
 import { Box, Container, Stack, Typography } from "@mui/material";
 import Image from "next/image";
-import { Router } from "next/router";
+import { Router, useRouter } from "next/router";
 import { FormEvent, useEffect, useState } from "react";
 import { useUser } from "../../../components/hooks/useUser";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
@@ -9,43 +9,11 @@ import { TopContextBar } from "../../shared/top-context-bar";
 import { useBlockProtocolFunctionsWithOntology } from "../../type-editor/blockprotocol-ontology-functions-hook";
 import { OurChip, placeholderUri } from "./Chip";
 
-// @todo pass ocorrect router in
-const useWarnIfUnsavedChanges = (
-  unsavedChanges: boolean,
-  callback: () => boolean,
-) => {
-  useEffect(() => {
-    if (unsavedChanges) {
-      const routeChangeStart = () => {
-        const ok = callback();
-        if (!ok) {
-          Router.events.emit("routeChangeError");
-          throw new Error("Abort route change. Please ignore this error.");
-        }
-      };
-      Router.events.on("routeChangeStart", routeChangeStart);
-
-      return () => {
-        Router.events.off("routeChangeStart", routeChangeStart);
-      };
-    }
-  }, [unsavedChanges]);
-};
-
 const Page: NextPageWithLayout = () => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const { user } = useUser();
 
-  const fns = useBlockProtocolFunctionsWithOntology(user?.accountId ?? "");
-
-  const unsavedChanges = !!(name || description);
-  // @todo isn't owrkin
-  useWarnIfUnsavedChanges(unsavedChanges, () => {
-    return confirm(
-      "You have unsaved changes. Are you sure you would like to exit?",
-    );
-  });
+  const router = useRouter();
 
   return (
     <Stack sx={{ height: "100vh" }}>
@@ -105,23 +73,7 @@ const Page: NextPageWithLayout = () => {
             component="form"
             onSubmit={async (evt: FormEvent) => {
               evt.preventDefault();
-
-              await fns.createEntityType({
-                data: {
-                  entityType: {
-                    type: "object",
-                    kind: "entityType",
-                    $id: `https://hash.ai/entity-type/${name
-                      .toLowerCase()
-                      .replace(/\s/g, "")}`,
-                    title: name,
-                    // @todo check this
-                    pluralTitle: name,
-                    description,
-                    properties: {},
-                  },
-                },
-              });
+              void router.push("/@foo/entity-types/view");
             }}
           >
             <Stack
