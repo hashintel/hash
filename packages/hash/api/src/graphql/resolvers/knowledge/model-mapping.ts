@@ -1,16 +1,20 @@
-import { EntityModel, PageModel } from "../../../model";
-import { KnowledgeEntity, KnowledgePage } from "../../apiTypes.gen";
+import { BlockModel, EntityModel, PageModel } from "../../../model";
+import {
+  KnowledgeBlock,
+  KnowledgeEntity,
+  KnowledgePage,
+} from "../../apiTypes.gen";
 import { mapEntityTypeModelToGQL } from "../ontology/model-mapping";
 
-export type ExternalEntityResolversGQL = "linkedEntities";
-export type UnresolvedEntityGQL = Omit<
+export type ExternalKnowledgeEntityResolversGQL = "linkedEntities";
+export type UnresolvedKnowledgeEntityGQL = Omit<
   KnowledgeEntity,
-  ExternalEntityResolversGQL
+  ExternalKnowledgeEntityResolversGQL
 >;
 
 export const mapEntityModelToGQL = (
   entityModel: EntityModel,
-): UnresolvedEntityGQL => ({
+): UnresolvedKnowledgeEntityGQL => ({
   entityId: entityModel.entityId,
   entityType: mapEntityTypeModelToGQL(entityModel.entityTypeModel),
   entityTypeId: entityModel.entityTypeModel.schema.$id,
@@ -19,13 +23,34 @@ export const mapEntityModelToGQL = (
   properties: entityModel.properties,
 });
 
-export type ExternalPageResolversGQL = ExternalEntityResolversGQL | "contents";
-export type UnresolvedPageGQL = Omit<KnowledgePage, ExternalPageResolversGQL>;
+export type ExternalKnowledgePageResolversGQL =
+  | ExternalKnowledgeEntityResolversGQL
+  | "contents";
+export type UnresolvedKnowledgePageGQL = Omit<
+  KnowledgePage,
+  ExternalKnowledgePageResolversGQL
+>;
 
-export const mapPageModelToGQL = (pageModel: PageModel): UnresolvedPageGQL => ({
+export const mapPageModelToGQL = (
+  pageModel: PageModel,
+): UnresolvedKnowledgePageGQL => ({
   ...mapEntityModelToGQL(pageModel),
   title: pageModel.getTitle(),
   properties: pageModel.properties,
   archived: pageModel.getArchived(),
   summary: pageModel.getSummary(),
+});
+
+export type ExternalKnowledgeBlockResolversGQL =
+  | ExternalKnowledgeEntityResolversGQL
+  | "dataEntity";
+export type UnresolvedKnowledgeBlockGQL = Omit<
+  KnowledgeBlock,
+  ExternalKnowledgeBlockResolversGQL
+>;
+export const mapBlockModelToGQL = (
+  blockModel: BlockModel,
+): UnresolvedKnowledgeBlockGQL => ({
+  ...mapEntityModelToGQL(blockModel),
+  componentId: blockModel.getComponentId(),
 });

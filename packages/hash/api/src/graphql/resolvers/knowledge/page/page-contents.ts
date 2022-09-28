@@ -3,14 +3,14 @@ import { PageModel } from "../../../../model";
 import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import {
-  mapEntityModelToGQL,
-  UnresolvedEntityGQL,
-  UnresolvedPageGQL,
+  mapBlockModelToGQL,
+  UnresolvedKnowledgeEntityGQL,
+  UnresolvedKnowledgePageGQL,
 } from "../model-mapping";
 
 export const knowledgePageContents: ResolverFn<
-  Promise<UnresolvedEntityGQL[]>,
-  UnresolvedPageGQL,
+  Promise<UnresolvedKnowledgeEntityGQL[]>,
+  UnresolvedKnowledgePageGQL,
   LoggedInGraphQLContext,
   {}
 > = async ({ entityId }, _, { dataSources }) => {
@@ -26,5 +26,5 @@ export const knowledgePageContents: ResolverFn<
 
   const blocks = await page.getBlocks(graphApi);
 
-  return blocks.map((block) => mapEntityModelToGQL(block));
+  return blocks.map((block) => mapBlockModelToGQL(block));
 };

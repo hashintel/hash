@@ -8,7 +8,10 @@ import {
   ResolverFn,
 } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { mapPageModelToGQL, UnresolvedPageGQL } from "../model-mapping";
+import {
+  mapPageModelToGQL,
+  UnresolvedKnowledgePageGQL,
+} from "../model-mapping";
 import {
   PlaceholderResultsMap,
   filterForAction,
@@ -22,7 +25,7 @@ import {
 export const updateKnowledgePageContents: ResolverFn<
   Promise<
     Omit<UpdateKnowledgePageContentsResult, "page"> & {
-      page: UnresolvedPageGQL;
+      page: UnresolvedKnowledgePageGQL;
     }
   >,
   {},

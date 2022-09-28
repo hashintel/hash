@@ -6,6 +6,10 @@ export const knowledgeBlockTypedef = gql`
     The block's linked data entity.
     """
     dataEntity: KnowledgeEntity!
+    """
+    The component id of the block.
+    """
+    componentId: String!
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
