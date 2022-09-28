@@ -9,6 +9,7 @@ import {
   PropertyTypeModel,
   LinkTypeModel,
 } from "@hashintel/hash-api/src/model";
+import { generateWorkspaceEntityTypeSchema } from "@hashintel/hash-api/src/model/util";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -53,23 +54,6 @@ describe("Entity CRU", () => {
     });
 
     await Promise.all([
-      EntityTypeModel.create(graphApi, {
-        accountId,
-        schema: {
-          kind: "entityType",
-          title: "Person",
-          pluralTitle: "People",
-          type: "object",
-          properties: {},
-        },
-      })
-        .then((val) => {
-          entityTypeModel = val;
-        })
-        .catch((err) => {
-          logger.error(`Something went wrong making Person: ${err}`);
-          throw err;
-        }),
       LinkTypeModel.create(graphApi, {
         accountId,
         schema: {
@@ -120,6 +104,26 @@ describe("Entity CRU", () => {
           throw err;
         }),
     ]);
+
+    entityTypeModel = await EntityTypeModel.create(graphApi, {
+      accountId,
+      schema: generateWorkspaceEntityTypeSchema({
+        namespace: testUser.getShortname()!,
+        title: "Person",
+        pluralTitle: "People",
+        properties: [
+          { propertyTypeModel: favoriteBookPropertyTypeModel },
+          { propertyTypeModel: namePropertyTypeModel },
+        ],
+        outgoingLinks: [
+          {
+            linkTypeModel: linkTypeFriend,
+            destinationEntityTypeModels: ["SELF_REFERENCE"],
+            array: true,
+          },
+        ],
+      }),
+    });
   });
 
   let createdEntityModel: EntityModel;
