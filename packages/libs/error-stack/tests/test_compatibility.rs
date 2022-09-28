@@ -1,9 +1,9 @@
+#![cfg(any(feature = "eyre", feature = "anyhow"))]
 #![cfg_attr(nightly, feature(provide_any))]
 #![cfg_attr(
     all(nightly, feature = "std"),
     feature(backtrace_frames, error_generic_member_access)
 )]
-#![cfg(any(feature = "eyre", feature = "anyhow"))]
 
 mod common;
 
@@ -170,14 +170,14 @@ fn eyre() {
 
     #[allow(unused_mut)]
     let mut report_messages = messages(&report);
-    #[cfg(all(rust_1_65, feature = "std"))]
+    #[cfg(rust_1_65)]
     remove_opaque_frames(&mut report_messages);
 
     let eyre_report = eyre.into_report().unwrap_err();
 
     #[allow(unused_mut)]
     let mut eyre_messages = messages(&eyre_report);
-    #[cfg(all(rust_1_65, feature = "std"))]
+    #[cfg(rust_1_65)]
     remove_opaque_frames(&mut eyre_messages);
 
     assert_eq!(

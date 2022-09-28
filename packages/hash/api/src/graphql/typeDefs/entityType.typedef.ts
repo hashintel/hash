@@ -69,6 +69,7 @@ export const entityTypeTypedef = gql`
 
   enum SystemTypeName {
     Block
+    Comment
     EntityType
     Org
     Page

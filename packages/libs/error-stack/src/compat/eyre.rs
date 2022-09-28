@@ -38,7 +38,6 @@ impl Context for EyreContext {
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
         demand.provide_ref(&self.0);
 
-        #[cfg(feature = "std")]
         self.0.provide(demand);
     }
 }

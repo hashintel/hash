@@ -28,7 +28,7 @@
 
 /**
 @todo look at using  https://medium.com/trabe/using-bem-conventions-in-css-modules-leveraging-custom-webpack-loaders-fd985f72bcb2
- */
+*/
 .Block--dragging {
   /* opacity: 0; */
   outline: none !important;
@@ -40,6 +40,7 @@
   user-select: none;
   display: flex;
   align-items: center;
+  width: calc(100% + 32px);
 }
 
 .Block__Content {
@@ -62,4 +63,22 @@
 
 .Block__InsertBlock__Top {
   bottom: 100%;
+}
+
+.Block__Comments_Button {
+  position: absolute;
+  top: -12px;
+  left: calc(100% + 6px);
+  opacity: 0;
+  transition: opacity 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+}
+
+.Block:hover .Block__Comments_Button {
+  opacity: 1;
+}
+
+.Comment__TextField_Prosemirror_Input {
+  width: 100%;
+  outline: none;
+  padding: 13.5px 0;
 }

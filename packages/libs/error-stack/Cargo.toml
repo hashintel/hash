@@ -46,15 +46,12 @@ hooks = ["std"]
 pretty-print = ["dep:owo-colors"]
 spantrace = ["dep:tracing-error", "std"]
 std = ["anyhow?/std"]
+eyre = ["dep:eyre", "std"]
 
 [package.metadata.docs.rs]
 all-features = true
 cargo-args = ["-Z", "unstable-options", "-Z", "rustdoc-scrape-examples=examples"]
 targets = ["x86_64-unknown-linux-gnu"]
-
-[[example]]
-name = "json_output"
-required-features = ["std"]
 
 [[example]]
 name = "demo"
