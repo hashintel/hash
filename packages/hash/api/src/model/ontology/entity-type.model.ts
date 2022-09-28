@@ -328,7 +328,7 @@ export default class {
   /**
    * Whether an outgoing link is ordered or not.
    *
-   * @todo: deprecreate this method when the Graph API can be relied upon for schema validation
+   * @todo: deprecate this method when the Graph API can be relied upon for schema validation
    * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
    *
    * @param params.outgoingLinkType - the outgoing link type for which to check whether it is ordered
