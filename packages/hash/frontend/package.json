@@ -43,7 +43,7 @@
     "@mui/icons-material": "5.10.6",
     "@mui/lab": "5.0.0-alpha.100",
     "@mui/material": "5.10.6",
-    "@mui/system": "5.5.1",
+    "@mui/system": "5.10.6",
     "@ory/client": "0.2.0-alpha.4",
     "@ory/integrations": "0.2.6",
     "@rjsf/core": "4.1.1",
