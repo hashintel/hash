@@ -318,7 +318,7 @@ mod full {
     impl Error for ContextC {}
 
     #[test]
-    fn multiline_ctx() {
+    fn multiline_context() {
         let _guard = prepare(false);
 
         let report = create_report()
@@ -449,8 +449,8 @@ mod full {
 
         let report = create_report().attach(2u32);
 
-        Report::install_debug_hook::<u32>(|_, ctx| {
-            ctx.push_body("unsigned 32bit integer");
+        Report::install_debug_hook::<u32>(|_, context| {
+            context.push_body("unsigned 32bit integer");
         });
 
         assert_snapshot!(format!("{report:?}"));
@@ -462,9 +462,9 @@ mod full {
 
         let report = create_report().attach(2u32);
 
-        Report::install_debug_hook::<u32>(|_, ctx| {
-            let idx = ctx.increment_counter();
-            ctx.push_body(format!("unsigned 32bit integer (No. {idx})"));
+        Report::install_debug_hook::<u32>(|_, context| {
+            let idx = context.increment_counter();
+            context.push_body(format!("unsigned 32bit integer (No. {idx})"));
         });
 
         assert_snapshot!(format!("{report:?}"));
@@ -491,11 +491,11 @@ mod full {
 
         let report = create_report().attach(1u32).attach(2u64);
 
-        Report::install_debug_hook::<u32>(|_, ctx| {
-            ctx.push_body("unsigned 32bit integer");
+        Report::install_debug_hook::<u32>(|_, context| {
+            context.push_body("unsigned 32bit integer");
         });
-        Report::install_debug_hook::<u64>(|_, ctx| {
-            ctx.push_body("unsigned 64bit integer");
+        Report::install_debug_hook::<u64>(|_, context| {
+            context.push_body("unsigned 64bit integer");
         });
 
         assert_snapshot!(format!("{report:?}"));
@@ -510,9 +510,9 @@ mod full {
             .attach(2u32)
             .attach(3u32);
 
-        Report::install_debug_hook::<u32>(|_, ctx| {
-            let idx = ctx.decrement_counter();
-            ctx.push_body(idx.to_string());
+        Report::install_debug_hook::<u32>(|_, context| {
+            let idx = context.decrement_counter();
+            context.push_body(idx.to_string());
         });
 
         assert_snapshot!(format!("{report:?}"));
@@ -527,9 +527,9 @@ mod full {
             .attach(2u32)
             .attach(3u32);
 
-        Report::install_debug_hook::<u32>(|_, ctx| {
-            let idx = ctx.increment_counter();
-            ctx.push_body(idx.to_string());
+        Report::install_debug_hook::<u32>(|_, context| {
+            let idx = context.increment_counter();
+            context.push_body(idx.to_string());
         });
 
         assert_snapshot!(format!("{report:?}"));
@@ -541,12 +541,12 @@ mod full {
 
         let report = create_report().attach(2u64);
 
-        Report::install_debug_hook::<u64>(|_, ctx| {
-            if ctx.alternate() {
-                ctx.push_appendix("Snippet");
+        Report::install_debug_hook::<u64>(|_, context| {
+            if context.alternate() {
+                context.push_appendix("Snippet");
             }
 
-            ctx.push_body("Empty");
+            context.push_body("Empty");
         });
 
         assert_snapshot!("norm", format!("{report:?}"));
@@ -586,11 +586,11 @@ mod full {
             reason: "Invalid User Input",
         });
 
-        Report::install_debug_hook::<usize>(|val, ctx| {
-            ctx.push_body(format!("usize: {val}"));
+        Report::install_debug_hook::<usize>(|value, context| {
+            context.push_body(format!("usize: {value}"));
         });
-        Report::install_debug_hook::<&'static str>(|val, ctx| {
-            ctx.push_body(format!("&'static str: {val}"));
+        Report::install_debug_hook::<&'static str>(|value, context| {
+            context.push_body(format!("&'static str: {value}"));
         });
 
         assert_snapshot!(format!("{report:?}"));

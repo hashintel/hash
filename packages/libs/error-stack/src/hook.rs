@@ -54,8 +54,8 @@ impl Report<()> {
     ///
     /// struct Suggestion(&'static str);
     ///
-    /// Report::install_debug_hook::<Suggestion>(|val, ctx| {
-    ///     ctx.push_body(format!("suggestion: {}", val.0));
+    /// Report::install_debug_hook::<Suggestion>(|value, context| {
+    ///     context.push_body(format!("suggestion: {}", value.0));
     /// });
     ///
     /// let report =
@@ -81,7 +81,7 @@ impl Report<()> {
     /// Which will result in something like:
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook.snap"))]
+    #[doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook.snap"))]
     /// </pre>
     ///
     /// This example showcases the ability of hooks to be invoked for values provided via the
@@ -127,11 +127,11 @@ impl Report<()> {
     /// }
     ///
     /// # pub fn main() {
-    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     ctx.push_body(format!("suggestion: {val}"));
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(value), context| {
+    ///     context.push_body(format!("suggestion: {value}"));
     /// });
-    /// Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), ctx| {
-    ///     ctx.push_body(format!("error code: {val}"));
+    /// Report::install_debug_hook::<ErrorCode>(|ErrorCode(value), context| {
+    ///     context.push_body(format!("error code: {value}"));
     /// });
     ///
     /// let report = report!(UserError {code: ErrorCode(420)});
@@ -161,7 +161,7 @@ impl Report<()> {
     /// Which will result in something like:
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook_provide.snap"))]
+    #[doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook_provide.snap"))]
     /// </pre>
     #[cfg(feature = "std")]
     pub fn install_debug_hook<T: Send + Sync + 'static>(

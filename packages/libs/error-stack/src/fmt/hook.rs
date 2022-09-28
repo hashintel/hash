@@ -115,34 +115,34 @@ impl HookContextInner {
 /// struct Suggestion(&'static str);
 /// struct Secret(&'static str);
 ///
-/// Report::install_debug_hook::<HttpResponseStatusCode>(|HttpResponseStatusCode(val), ctx| {
+/// Report::install_debug_hook::<HttpResponseStatusCode>(|HttpResponseStatusCode(value), context| {
 ///     // Create a new appendix, which is going to be displayed when someone requests the alternate
 ///     // version (`:#?`) of the report.
-///     if ctx.alternate() {
-///         ctx.push_appendix(format!("error {val}: {} error", if *val < 500 {"client"} else {"server"}))
+///     if context.alternate() {
+///         context.push_appendix(format!("error {value}: {} error", if *value < 500 {"client"} else {"server"}))
 ///     }
 ///
 ///     // This will push a new entry onto the body with the specified value
-///     ctx.push_body(format!("error code: {val}"));
+///     context.push_body(format!("error code: {value}"));
 /// });
 ///
-/// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-///     let idx = ctx.increment_counter();
+/// Report::install_debug_hook::<Suggestion>(|Suggestion(value), context| {
+///     let idx = context.increment_counter();
 ///
 ///     // Create a new appendix, which is going to be displayed when someone requests the alternate
 ///     // version (`:#?`) of the report.
-///     if ctx.alternate() {
-///         ctx.push_body(format!("suggestion {idx}:\n  {val}"));
+///     if context.alternate() {
+///         context.push_body(format!("suggestion {idx}:\n  {value}"));
 ///     }
 ///
 ///     // This will push a new entry onto the body with the specified value
-///     ctx.push_body(format!("suggestion ({idx})"));
+///     context.push_body(format!("suggestion ({idx})"));
 /// });
 ///
-/// Report::install_debug_hook::<Warning>(|Warning(val), ctx| {
+/// Report::install_debug_hook::<Warning>(|Warning(value), context| {
 ///     // You can add multiples entries to the body (and appendix) in the same hook.
-///     ctx.push_body("abnormal program execution detected");
-///     ctx.push_body(format!("warning: {val}"));
+///     context.push_body("abnormal program execution detected");
+///     context.push_body(format!("warning: {value}"));
 /// });
 ///
 /// // By not adding anything you are able to hide an attachment
@@ -184,13 +184,13 @@ impl HookContextInner {
 /// The output of `println!("{report:?}")`:
 ///
 /// <pre>
-#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap"))]
+#[doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap"))]
 /// </pre>
 ///
 /// The output of `println!("{report:#?}")`:
 ///
 /// <pre>
-#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit_alt.snap"))]
+#[doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit_alt.snap"))]
 /// </pre>
 ///
 /// ## Storage
@@ -216,22 +216,22 @@ impl HookContextInner {
 ///
 /// struct Computation(u64);
 ///
-/// Report::install_debug_hook::<Computation>(|Computation(val), ctx| {
+/// Report::install_debug_hook::<Computation>(|Computation(value), context| {
 ///     // Get a value of type `u64`, if we didn't insert one yet, default to 0
-///     let mut acc = ctx.get::<u64>().copied().unwrap_or(0);
-///     acc += *val;
+///     let mut acc = context.get::<u64>().copied().unwrap_or(0);
+///     acc += *value;
 ///
 ///     // Get a value of type `f64`, if we didn't insert one yet, default to 1.0
-///     let mut div = ctx.get::<f32>().copied().unwrap_or(1.0);
-///     div /= *val as f32;
+///     let mut div = context.get::<f32>().copied().unwrap_or(1.0);
+///     div /= *value as f32;
 ///
 ///     // Insert the calculated `u64` and `f32` back into storage, so that we can use them
 ///     // in the invocations following this one (for the same `Debug` call)
-///     ctx.insert(acc);
-///     ctx.insert(div);
+///     context.insert(acc);
+///     context.insert(div);
 ///
-///     ctx.push_body(format!(
-///         "computation for {val} (acc = {acc}, div = {div})"
+///     context.push_body(format!(
+///         "computation for {value} (acc = {acc}, div = {div})"
 ///     ));
 /// });
 ///
@@ -257,7 +257,7 @@ impl HookContextInner {
 /// ```
 ///
 /// <pre>
-#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_storage.snap"))]
+#[doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_storage.snap"))]
 /// </pre>
 ///
 /// [`Debug`]: core::fmt::Debug
@@ -301,13 +301,13 @@ impl<T> HookContext<T> {
     ///     reason: &'static str,
     /// }
     ///
-    /// Report::install_debug_hook::<Error>(|Error { code, reason }, ctx| {
-    ///     if ctx.alternate() {
+    /// Report::install_debug_hook::<Error>(|Error { code, reason }, context| {
+    ///     if context.alternate() {
     ///         // Add an entry to the appendix
-    ///         ctx.push_appendix(format!("error {code}:\n  {reason}"));
+    ///         context.push_appendix(format!("error {code}:\n  {reason}"));
     ///     }
     ///
-    ///     ctx.push_body(format!("error {code}"));
+    ///     context.push_body(format!("error {code}"));
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -338,7 +338,7 @@ impl<T> HookContext<T> {
     /// ```
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap"))]
+    #[doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap"))]
     /// </pre>
     pub fn push_appendix(&mut self, content: impl Into<String>) {
         self.inner.appendix.push(content.into());
@@ -357,11 +357,11 @@ impl<T> HookContext<T> {
     ///
     /// struct Suggestion(&'static str);
     ///
-    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     ctx.push_body(format!("suggestion: {val}"));
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(value), context| {
+    ///     context.push_body(format!("suggestion: {value}"));
     ///     // We can push multiples entries in a single hook, these lines will be added one after
     ///     // another.
-    ///     ctx.push_body("sorry for the inconvenience!");
+    ///     context.push_body("sorry for the inconvenience!");
     /// });
     ///
     /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
@@ -385,7 +385,7 @@ impl<T> HookContext<T> {
     /// ```
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap"))]
+    #[doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap"))]
     /// </pre>
     pub fn push_body(&mut self, content: impl Into<String>) {
         self.inner.body.push(content.into());
@@ -413,18 +413,18 @@ impl<T> HookContext<T> {
     /// struct Warning(&'static str);
     /// struct Error(&'static str);
     ///
-    /// Report::install_debug_hook::<Error>(|Error(frame), ctx| {
-    ///     let idx = ctx.increment_counter() + 1;
+    /// Report::install_debug_hook::<Error>(|Error(frame), context| {
+    ///     let idx = context.increment_counter() + 1;
     ///
-    ///     ctx.push_body(format!("[{idx}] [ERROR] {frame}"));
+    ///     context.push_body(format!("[{idx}] [ERROR] {frame}"));
     /// });
-    /// Report::install_debug_hook::<Warning>(|Warning(frame), ctx| {
+    /// Report::install_debug_hook::<Warning>(|Warning(frame), context| {
     ///     // We want to share the same counter with `Error`, so that we're able to have
     ///     // a global counter to keep track of all errors and warnings in order, this means
     ///     // we need to access the storage of `Error` using `cast()`.
-    ///     let ctx = ctx.cast::<Error>();
-    ///     let idx = ctx.increment_counter() + 1;
-    ///     ctx.push_body(format!("[{idx}] [WARN] {frame}"))
+    ///     let context = context.cast::<Error>();
+    ///     let idx = context.increment_counter() + 1;
+    ///     context.push_body(format!("[{idx}] [WARN] {frame}"))
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -450,7 +450,7 @@ impl<T> HookContext<T> {
     /// ```
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_cast.snap"))]
+    #[doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_cast.snap"))]
     /// </pre>
     #[must_use]
     pub fn cast<U>(&mut self) -> &mut HookContext<U> {
@@ -552,9 +552,9 @@ impl<T: 'static> HookContext<T> {
     ///
     /// struct Suggestion(&'static str);
     ///
-    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     let idx = ctx.increment_counter();
-    ///     ctx.push_body(format!("suggestion {idx}: {val}"));
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(value), context| {
+    ///     let idx = context.increment_counter();
+    ///     context.push_body(format!("suggestion {idx}: {value}"));
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -579,7 +579,7 @@ impl<T: 'static> HookContext<T> {
     /// ```
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_increment.snap"))]
+    #[doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_increment.snap"))]
     /// </pre>
     ///
     /// [`Debug`]: core::fmt::Debug
@@ -619,9 +619,9 @@ impl<T: 'static> HookContext<T> {
     ///
     /// struct Suggestion(&'static str);
     ///
-    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     let idx = ctx.decrement_counter();
-    ///     ctx.push_body(format!("suggestion {idx}: {val}"));
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(value), context| {
+    ///     let idx = context.decrement_counter();
+    ///     context.push_body(format!("suggestion {idx}: {value}"));
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
@@ -646,7 +646,7 @@ impl<T: 'static> HookContext<T> {
     /// ```
     ///
     /// <pre>
-    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_decrement.snap"))]
+    #[doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_decrement.snap"))]
     /// </pre>
     pub fn decrement_counter(&mut self) -> isize {
         let counter = self.get_mut::<Counter>();
@@ -676,16 +676,16 @@ type BoxedHook = Box<dyn Fn(&Frame, &mut HookContext<Frame>) -> Option<()> + Sen
 fn into_boxed_hook<T: Send + Sync + 'static>(
     hook: impl Fn(&T, &mut HookContext<T>) + Send + Sync + 'static,
 ) -> BoxedHook {
-    Box::new(move |frame: &Frame, ctx: &mut HookContext<Frame>| {
+    Box::new(move |frame: &Frame, context: &mut HookContext<Frame>| {
         #[cfg(nightly)]
         {
             frame
                 .request_ref::<T>()
-                .map(|val| hook(val, ctx.cast()))
+                .map(|value| hook(value, context.cast()))
                 .or_else(|| {
                     frame
                         .request_value::<T>()
-                        .map(|ref val| hook(val, ctx.cast()))
+                        .map(|ref value| hook(value, context.cast()))
                 })
         }
 
@@ -696,7 +696,7 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
         matches!(frame.kind(), crate::FrameKind::Attachment(_))
             .then_some(frame)
             .and_then(Frame::downcast_ref::<T>)
-            .map(|val| hook(val, ctx.cast()))
+            .map(|value| hook(value, context.cast()))
     })
 }
 
@@ -741,9 +741,9 @@ impl Hooks {
         self.inner.push((type_id, into_boxed_hook(hook)));
     }
 
-    pub(crate) fn call(&self, frame: &Frame, ctx: &mut HookContext<Frame>) {
+    pub(crate) fn call(&self, frame: &Frame, context: &mut HookContext<Frame>) {
         for (_, hook) in &self.inner {
-            hook(frame, ctx);
+            hook(frame, context);
         }
     }
 }
@@ -800,31 +800,31 @@ mod default {
     }
 
     #[cfg(rust_1_65)]
-    fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) {
-        let idx = ctx.increment_counter();
+    fn backtrace(backtrace: &Backtrace, context: &mut HookContext<Backtrace>) {
+        let idx = context.increment_counter();
 
-        ctx.push_appendix(format!("backtrace no. {}\n{}", idx + 1, backtrace));
+        context.push_appendix(format!("backtrace no. {}\n{}", idx + 1, backtrace));
         #[cfg(nightly)]
-        ctx.push_body(format!(
+        context.push_body(format!(
             "backtrace with {} frames ({})",
             backtrace.frames().len(),
             idx + 1
         ));
         #[cfg(not(nightly))]
-        ctx.push_body(format!("backtrace ({})", idx + 1));
+        context.push_body(format!("backtrace ({})", idx + 1));
     }
 
     #[cfg(feature = "spantrace")]
-    fn span_trace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) {
-        let idx = ctx.increment_counter();
+    fn span_trace(span_trace: &SpanTrace, context: &mut HookContext<SpanTrace>) {
+        let idx = context.increment_counter();
 
         let mut span = 0;
-        spantrace.with_spans(|_, _| {
+        span_trace.with_spans(|_, _| {
             span += 1;
             true
         });
 
-        ctx.push_appendix(format!("span trace No. {}\n{}", idx + 1, spantrace));
-        ctx.push_body(format!("span trace with {span} frames ({})", idx + 1));
+        context.push_appendix(format!("span trace No. {}\n{}", idx + 1, span_trace));
+        context.push_body(format!("span trace with {span} frames ({})", idx + 1));
     }
 }
