@@ -27,7 +27,7 @@ impl StoreWrapper {
         let source_db_connection_info = DatabaseConnectionInfo::new(
             // TODO - get these from env
             DatabaseType::Postgres,
-            "postgres".to_owned(), // super user as we need to create an delete tables
+            "postgres".to_owned(), // super user as we need to create and delete tables
             "postgres".to_owned(),
             "localhost".to_owned(),
             5432,
