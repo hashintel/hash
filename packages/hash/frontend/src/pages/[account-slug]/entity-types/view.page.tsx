@@ -72,13 +72,14 @@ import Image from "next/image";
 import {
   createContext,
   Ref,
+  SetStateAction,
   useContext,
+  useEffect,
   useId,
   useMemo,
   useRef,
   useState,
 } from "react";
-import { flushSync } from "react-dom";
 import { Modal } from "../../../components/Modals/Modal";
 import {
   ArrowUpRightIcon,
@@ -89,6 +90,29 @@ import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
 import { TopContextBar } from "../../shared/top-context-bar";
 import { OurChip, placeholderUri } from "./Chip";
 import { QuestionIcon } from "./question-icon";
+
+const useStateCallback = <T extends any>(initialValue: T) => {
+  const [state, setState] = useState(initialValue);
+
+  const callbacksRef = useRef<(() => void)[]>([]);
+  const updateRef = useRef(
+    (nextState: T | SetStateAction<T>, callback?: () => unknown) => {
+      if (callback) {
+        callbacksRef.current.push(callback);
+      }
+      setState(nextState);
+    },
+  );
+
+  useEffect(() => {
+    for (const callback of callbacksRef.current) {
+      callback();
+    }
+    callbacksRef.current = [];
+  });
+
+  return [state, updateRef.current] as const;
+};
 
 const StyledPlusCircleIcon = styled(CirclePlusIcon)(
   experimental_sx<Theme>({
@@ -849,7 +873,7 @@ const InsertPropertyCard = ({
   insertFieldRef: Ref<HTMLInputElement | null>;
   onCancel: () => void;
 }) => {
-  const [addingNewProperty, setAddingNewProperty] = useState(true);
+  const [addingNewProperty, setAddingNewProperty] = useStateCallback(true);
   const [created, setCreated] = useState<string[]>([]);
   const addingNewPropertyRef = useRef<HTMLInputElement>(null);
 
@@ -992,6 +1016,7 @@ const InsertPropertyCard = ({
                       const onlyItem = created.length === 1;
                       setCreated((list) => list.filter((item) => item !== id));
                       if (onlyItem) {
+                        setAddingNewProperty(true);
                         onCancel();
                       }
                     }}
@@ -1034,11 +1059,9 @@ const InsertPropertyCard = ({
                     disableRipple
                     disableTouchRipple
                     onClick={() => {
-                      flushSync(() => {
-                        setAddingNewProperty(true);
+                      setAddingNewProperty(true, () => {
+                        addingNewPropertyRef.current?.focus();
                       });
-
-                      addingNewPropertyRef.current?.focus();
                     }}
                     sx={(theme) => ({
                       color: theme.palette.gray[50],
@@ -1071,7 +1094,7 @@ const InsertPropertyCard = ({
 };
 
 const Page: NextPageWithLayout = () => {
-  const [mode, setMode] = useState<"empty" | "inserting">("empty");
+  const [mode, setMode] = useStateCallback<"empty" | "inserting">("empty");
 
   const insertFieldRef = useRef<HTMLInputElement>(null);
 
@@ -1166,11 +1189,9 @@ const Page: NextPageWithLayout = () => {
           <Collapse timeout={0} in={mode === "empty"}>
             <CreatePropertyCard
               onClick={() => {
-                flushSync(() => {
-                  setMode("inserting");
+                setMode("inserting", () => {
+                  insertFieldRef.current?.focus();
                 });
-
-                insertFieldRef.current?.focus();
               }}
             />
           </Collapse>
