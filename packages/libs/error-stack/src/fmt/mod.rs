@@ -14,7 +14,12 @@
 //! Hooks are called for contexts which provide additional values through [`Context::provide`] and
 //! attachments which are added via [`Report::attach`] or [`Report::attach_printable`]. The order of
 //! [`Report::install_debug_hook`] calls determines the order of the rendered output. Note, that
-//! [`Context`]s, which do not provide themself, will not be formatted through the debug hook.
+//! Hooks get called on all values provided by [`Context::provide`], but not on the [`Context`]
+//! object itself. Therefore if you want to call a hook on a [`Context`] to print in addition to its
+//! [`Display`] implementation, you may want to call [`demand.provide_ref(self)`] inside of
+//! [`Context::provide`].
+//!
+//! [`demand.provide_ref(self)`]: core::any::Demand::provide_ref
 //!
 //! Hook functions need to be [`Fn`] and **not** [`FnMut`], which means they are unable to directly
 //! mutate state outside of the closure.
