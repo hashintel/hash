@@ -1,13 +1,11 @@
 import { Button, TextField } from "@hashintel/hash-design-system";
 import { Box, Container, Stack, Typography } from "@mui/material";
-import Image from "next/image";
-import { Router, useRouter } from "next/router";
-import { FormEvent, useEffect, useState } from "react";
-import { useUser } from "../../../components/hooks/useUser";
+import { useRouter } from "next/router";
+import { FormEvent, useState } from "react";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
 import { TopContextBar } from "../../shared/top-context-bar";
-import { useBlockProtocolFunctionsWithOntology } from "../../type-editor/blockprotocol-ontology-functions-hook";
-import { OurChip, placeholderUri } from "./Chip";
+import { OntologyChip } from "./ontology-chip";
+import { PlaceholderIcon } from "./placeholder-icon";
 
 const Page: NextPageWithLayout = () => {
   const [name, setName] = useState("");
@@ -36,15 +34,8 @@ const Page: NextPageWithLayout = () => {
         />
         <Box py={3.75}>
           <Container>
-            <OurChip
-              icon={
-                <Box
-                  component={Image}
-                  src={placeholderUri}
-                  layout="fill"
-                  alt=""
-                />
-              }
+            <OntologyChip
+              icon={<PlaceholderIcon />}
               domain="hash.ai"
               path={
                 <>
