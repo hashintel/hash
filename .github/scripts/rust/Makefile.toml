@@ -106,8 +106,8 @@ args = ["hack", "@@split(CARGO_FORMAT_HACK_FLAGS, )", "fmt", "@@split(CARGO_FORM
 dependencies = ["install-rustfmt"]
 
 [tasks.clippy]
-description = "Runs clippy with all feature flag permutations"
 category = "Lint"
+description = "Runs clippy with all feature flag permutations"
 run_task = { name = ["clippy-task"] }
 
 [tasks.clippy-task]
