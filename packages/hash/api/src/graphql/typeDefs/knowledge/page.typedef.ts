@@ -56,7 +56,7 @@ export const knowledgePageTypedef = gql`
   }
 
   type KnowledgeEntityRef {
-    accountId: ID!
+    ownedById: ID!
     entityId: ID!
     entityVersion: String!
   }
@@ -68,7 +68,7 @@ export const knowledgePageTypedef = gql`
     """
     The account ID to create the block and associated entity in.
     """
-    accountId: ID!
+    ownedById: ID!
     """
     The position in the page to place the block.
     """
@@ -81,7 +81,7 @@ export const knowledgePageTypedef = gql`
     The block entity to insert into the page. You should not set a componentId
     if you provide this
     """
-    existingBlockEntity: ExistingEntity
+    existingBlockEntity: KnowledgeExistingEntity
     """
     The entity to associate with the new block
     """
@@ -127,7 +127,7 @@ export const knowledgePageTypedef = gql`
     """
     The account the entity resides in.
     """
-    accountId: ID!
+    ownedById: ID!
     """
     The entity's fixed ID.
     """
@@ -145,7 +145,7 @@ export const knowledgePageTypedef = gql`
     """
     The account the block resides in
     """
-    accountId: ID!
+    ownedById: ID!
 
     """
     The Block entity's fixed ID
@@ -155,7 +155,7 @@ export const knowledgePageTypedef = gql`
     """
     The account the new entity resides in
     """
-    newEntityAccountId: ID!
+    newEntityOwnedById: ID!
 
     """
     The new entity's fixed ID
@@ -169,14 +169,14 @@ export const knowledgePageTypedef = gql`
   input CreateKnowledgeEntityAction {
     entity: KnowledgeEntityDefinition!
     entityPlaceholderId: ID
-    accountId: ID!
+    ownedById: ID!
   }
 
   """
   Create an entity type, which you can then reference in future CreateEntityActions
   """
   input CreateKnowledgeEntityTypeAction {
-    accountId: ID!
+    ownedById: ID!
     """
     The name for the type. Must be unique in the given account.
     """
@@ -233,7 +233,7 @@ export const knowledgePageTypedef = gql`
       """
       The page's account ID.
       """
-      accountId: ID!
+      ownedById: ID!
       """
       The pages's fixed entity ID.
       """

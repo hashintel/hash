@@ -103,14 +103,14 @@ const handleCreateNewEntity = async (params: {
   placeholderResults: PlaceholderResultsMap;
   createEntityWithPlaceholders: (
     originalDefinition: KnowledgeEntityDefinition,
-    entityAccountId: string,
+    entityCreatedById: string,
   ) => Promise<EntityModel>;
 }): Promise<void> => {
   try {
     const {
       createEntityAction: {
         entity: entityDefinition,
-        accountId: entityAccountId,
+        ownedById: entityOwnedById,
         entityPlaceholderId,
       },
       createEntityWithPlaceholders,
@@ -118,7 +118,7 @@ const handleCreateNewEntity = async (params: {
     } = params;
     placeholderResults.set(
       entityPlaceholderId,
-      await createEntityWithPlaceholders(entityDefinition, entityAccountId),
+      await createEntityWithPlaceholders(entityDefinition, entityOwnedById),
     );
   } catch (error) {
     if (error instanceof UserInputError) {
@@ -142,7 +142,7 @@ const handleInsertNewBlock = async (
     index: number;
     createEntityWithPlaceholders: (
       originalDefinition: KnowledgeEntityDefinition,
-      entityAccountId: string,
+      entityCreatedById: string,
     ) => Promise<EntityModel>;
     placeholderResults: PlaceholderResultsMap;
   },
@@ -151,7 +151,7 @@ const handleInsertNewBlock = async (
     const {
       userModel,
       insertBlockAction: {
-        accountId: blockAccountId,
+        ownedById: blockOwnedById,
         componentId: blockComponentId,
         existingBlockEntity,
         blockPlaceholderId,
@@ -165,7 +165,7 @@ const handleInsertNewBlock = async (
     const blockData = await createEntityWithPlaceholders(
       entity,
       // assume that the "block entity" is in the same account as the block itself
-      blockAccountId,
+      blockOwnedById,
     );
 
     placeholderResults.set(entityPlaceholderId, blockData);
@@ -239,11 +239,11 @@ const handleSwapBlockData = async (
     throw new Error(`Block with entityId ${entityId} not found`);
   }
 
-  const { newEntityAccountId, newEntityEntityId } = params.swapBlockDataAction;
+  const { newEntityOwnedById, newEntityEntityId } = params.swapBlockDataAction;
 
   const newBlockDataEntity = await EntityModel.getLatest(graphApi, {
     entityId: newEntityEntityId,
-    accountId: newEntityAccountId,
+    accountId: newEntityOwnedById,
   });
 
   await block.updateBlockDataEntity(graphApi, {
@@ -273,7 +273,7 @@ const handleUpdateEntity = async (
   }
 
   const entityModel = await EntityModel.getLatest(graphApi, {
-    accountId: action.accountId,
+    accountId: action.ownedById,
     entityId,
   });
 
@@ -296,7 +296,7 @@ export const updateKnowledgePageContents: ResolverFn<
   MutationUpdateKnowledgePageContentsArgs
 > = async (
   _,
-  { accountId, entityId: pageEntityId, actions },
+  { ownedById, entityId: pageEntityId, actions },
   { dataSources, user: userModel },
 ) => {
   validateActionsInput(actions);
@@ -306,7 +306,7 @@ export const updateKnowledgePageContents: ResolverFn<
 
   const createEntityWithPlaceholders = async (
     originalDefinition: KnowledgeEntityDefinition,
-    entityAccountId: string,
+    entityCreatedById: string,
   ) => {
     const entityDefinition = produce(originalDefinition, (draft) => {
       if (draft.existingEntity) {
@@ -334,7 +334,7 @@ export const updateKnowledgePageContents: ResolverFn<
     });
 
     return await EntityModel.createEntityWithLinks(graphApi, {
-      createdById: entityAccountId,
+      createdById: entityCreatedById,
       entityDefinition,
     });
   };
@@ -400,7 +400,7 @@ export const updateKnowledgePageContents: ResolverFn<
   });
 
   if (!pageModel) {
-    const msg = `Page with fixed ID ${pageEntityId} not found in account ${accountId}`;
+    const msg = `Page with fixed ID ${pageEntityId} not found in account ${ownedById}`;
     throw new ApolloError(msg, "NOT_FOUND");
   }
 
