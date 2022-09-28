@@ -1,44 +1,38 @@
 import { ApolloError, UserInputError } from "apollo-server-errors";
-import produce from "immer";
-import { GraphApi } from "@hashintel/hash-graph-client";
 
-import {
-  BlockModel,
-  EntityModel,
-  PageModel,
-  UserModel,
-} from "../../../../model";
 import { exactlyOne } from "../../../../util";
+import { PageModel } from "../../../../model";
 import {
-  CreateKnowledgeEntityAction,
-  KnowledgeEntityDefinition,
-  InsertKnowledgeBlockAction,
-  SwapKnowledgeBlockDataAction,
-  UpdateKnowledgeEntityAction,
-  UpdateKnowledgePageAction,
   UpdateKnowledgePageContentsResult,
   MutationUpdateKnowledgePageContentsArgs,
   ResolverFn,
 } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { pageModelToGQL, UnresolvedPageGQL } from "../model-mapping";
+import {
+  PlaceholderResultsMap,
+  filterForAction,
+  handleCreateNewEntity,
+  handleInsertNewBlock,
+  handleSwapBlockData,
+  handleUpdateEntity,
+  createEntityWithPlaceholdersFn,
+} from "./update-page-actions";
 
-type UpdatePageActionKey = keyof UpdateKnowledgePageAction;
-
-const filterForAction = <T extends UpdatePageActionKey>(
-  actions: UpdateKnowledgePageAction[],
-  key: T,
-): { action: NonNullable<UpdateKnowledgePageAction[T]>; index: number }[] =>
-  actions.reduce<
-    { action: NonNullable<UpdateKnowledgePageAction[T]>; index: number }[]
-  >((acc, current, index) => {
-    if (current != null && key in current) {
-      acc.push({ action: current[key]!, index });
+export const updateKnowledgePageContents: ResolverFn<
+  Promise<
+    Omit<UpdateKnowledgePageContentsResult, "page"> & {
+      page: UnresolvedPageGQL;
     }
-    return acc;
-  }, []);
-
-const validateActionsInput = (actions: UpdateKnowledgePageAction[]) => {
+  >,
+  {},
+  LoggedInGraphQLContext,
+  MutationUpdateKnowledgePageContentsArgs
+> = async (
+  _,
+  { ownedById, entityId: pageEntityId, actions },
+  { dataSources, user: userModel },
+) => {
   for (const [i, action] of actions.entries()) {
     if (
       !exactlyOne(
@@ -56,288 +50,14 @@ const validateActionsInput = (actions: UpdateKnowledgePageAction[]) => {
       );
     }
   }
-};
 
-const isPlaceholderId = (value: unknown): value is `placeholder-${string}` =>
-  typeof value === "string" && value.startsWith("placeholder-");
-
-class PlaceholderResultsMap {
-  private map = new Map<string, string>();
-
-  get(placeholderId: string) {
-    if (isPlaceholderId(placeholderId)) {
-      const entityId = this.map.get(placeholderId);
-      if (!entityId) {
-        throw new Error(`Placeholder ${placeholderId} missing`);
-      }
-      return entityId;
-    }
-    return placeholderId;
-  }
-
-  has(placeholderId: string): boolean {
-    return this.map.has(placeholderId);
-  }
-
-  set(placeholderId: string | null | undefined, entity: { entityId: string }) {
-    if (isPlaceholderId(placeholderId)) {
-      this.map.set(placeholderId, entity.entityId);
-    }
-  }
-
-  getResults() {
-    return Array.from(this.map.entries()).map(([placeholderId, entityId]) => ({
-      placeholderId,
-      entityId,
-    }));
-  }
-}
-
-/**
- * Create new entity.
- * Acts on {@link CreateKnowledgeEntityAction}
- */
-const handleCreateNewEntity = async (params: {
-  createEntityAction: CreateKnowledgeEntityAction;
-  index: number;
-  placeholderResults: PlaceholderResultsMap;
-  createEntityWithPlaceholders: (
-    originalDefinition: KnowledgeEntityDefinition,
-    entityCreatedById: string,
-  ) => Promise<EntityModel>;
-}): Promise<void> => {
-  try {
-    const {
-      createEntityAction: {
-        entity: entityDefinition,
-        ownedById: entityOwnedById,
-        entityPlaceholderId,
-      },
-      createEntityWithPlaceholders,
-      placeholderResults,
-    } = params;
-    placeholderResults.set(
-      entityPlaceholderId,
-      await createEntityWithPlaceholders(entityDefinition, entityOwnedById),
-    );
-  } catch (error) {
-    if (error instanceof UserInputError) {
-      throw new UserInputError(`action ${params.index}: ${error}`);
-    }
-    throw new Error(
-      `createEntity: Could not create new entity: ${JSON.stringify(error)}`,
-    );
-  }
-};
-
-/**
- * Insert new block onto page.
- * Acts on {@link InsertKnowledgeBlockAction}
- */
-const handleInsertNewBlock = async (
-  graphApi: GraphApi,
-  params: {
-    userModel: UserModel;
-    insertBlockAction: InsertKnowledgeBlockAction;
-    index: number;
-    createEntityWithPlaceholders: (
-      originalDefinition: KnowledgeEntityDefinition,
-      entityCreatedById: string,
-    ) => Promise<EntityModel>;
-    placeholderResults: PlaceholderResultsMap;
-  },
-): Promise<BlockModel> => {
-  try {
-    const {
-      userModel,
-      insertBlockAction: {
-        ownedById: blockOwnedById,
-        componentId: blockComponentId,
-        existingBlockEntity,
-        blockPlaceholderId,
-        entityPlaceholderId,
-        entity,
-      },
-      createEntityWithPlaceholders,
-      placeholderResults,
-    } = params;
-
-    const blockData = await createEntityWithPlaceholders(
-      entity,
-      // assume that the "block entity" is in the same account as the block itself
-      blockOwnedById,
-    );
-
-    placeholderResults.set(entityPlaceholderId, blockData);
-
-    let block: BlockModel;
-
-    if (existingBlockEntity) {
-      if (blockComponentId) {
-        throw new Error(
-          "InsertNewBlock: cannot set component id when using existing block entity",
-        );
-      }
-      const existingBlock = await BlockModel.getBlockById(
-        graphApi,
-        existingBlockEntity,
-      );
-
-      if (!existingBlock) {
-        throw new Error("InsertBlock: provided block id does not exist");
-      }
-
-      block = existingBlock;
-    } else if (blockComponentId) {
-      block = await BlockModel.createBlock(graphApi, {
-        blockData,
-        accountId: userModel.accountId,
-        componentId: blockComponentId,
-      });
-    } else {
-      throw new Error(
-        `InsertBlock: exactly one of existingBlockEntity or componentId must be provided`,
-      );
-    }
-
-    placeholderResults.set(blockPlaceholderId, block);
-
-    return block;
-  } catch (error) {
-    if (error instanceof UserInputError) {
-      throw new UserInputError(`action ${params.index}: ${error}`);
-    }
-    throw new Error(
-      `insertBlock: Could not create insert new or existing block: ${JSON.stringify(
-        error,
-      )}`,
-    );
-  }
-};
-
-/**
- * Swap a block's data entity to another entity.
- * Acts on {@link SwapKnowledgeBlockDataAction}
- */
-const handleSwapBlockData = async (
-  graphApi: GraphApi,
-  params: {
-    userModel: UserModel;
-    swapBlockDataAction: SwapKnowledgeBlockDataAction;
-  },
-): Promise<void> => {
-  const {
-    userModel,
-    swapBlockDataAction: { entityId },
-  } = params;
-
-  const block = await BlockModel.getBlockById(graphApi, {
-    entityId,
-  });
-
-  if (!block) {
-    throw new Error(`Block with entityId ${entityId} not found`);
-  }
-
-  const { newEntityOwnedById, newEntityEntityId } = params.swapBlockDataAction;
-
-  const newBlockDataEntity = await EntityModel.getLatest(graphApi, {
-    entityId: newEntityEntityId,
-    accountId: newEntityOwnedById,
-  });
-
-  await block.updateBlockDataEntity(graphApi, {
-    updatedById: userModel.accountId,
-    newBlockDataEntity,
-  });
-};
-
-/**
- * Update properties of an entity.
- * Acts on {@link UpdateKnowledgeEntityAction}
- */
-const handleUpdateEntity = async (
-  graphApi: GraphApi,
-  params: {
-    userModel: UserModel;
-    action: UpdateKnowledgeEntityAction;
-    placeholderResults: PlaceholderResultsMap;
-  },
-): Promise<void> => {
-  const { userModel, action, placeholderResults } = params;
-
-  // If this entity ID is a placeholder, use that instead.
-  let entityId = action.entityId;
-  if (placeholderResults.has(entityId)) {
-    entityId = placeholderResults.get(entityId);
-  }
-
-  const entityModel = await EntityModel.getLatest(graphApi, {
-    accountId: action.ownedById,
-    entityId,
-  });
-
-  await entityModel.updateProperties(graphApi, {
-    updatedProperties: Object.entries(action.properties).map(
-      ([key, value]) => ({ propertyTypeBaseUri: key, value }),
-    ),
-    updatedByAccountId: userModel.accountId,
-  });
-};
-
-export const updateKnowledgePageContents: ResolverFn<
-  Promise<
-    Omit<UpdateKnowledgePageContentsResult, "page"> & {
-      page: UnresolvedPageGQL;
-    }
-  >,
-  {},
-  LoggedInGraphQLContext,
-  MutationUpdateKnowledgePageContentsArgs
-> = async (
-  _,
-  { ownedById, entityId: pageEntityId, actions },
-  { dataSources, user: userModel },
-) => {
-  validateActionsInput(actions);
   const placeholderResults = new PlaceholderResultsMap();
-
   const { graphApi } = dataSources;
 
-  const createEntityWithPlaceholders = async (
-    originalDefinition: KnowledgeEntityDefinition,
-    entityCreatedById: string,
-  ) => {
-    const entityDefinition = produce(originalDefinition, (draft) => {
-      if (draft.existingEntity) {
-        draft.existingEntity.entityId = placeholderResults.get(
-          draft.existingEntity.entityId,
-        );
-      }
-      if (draft.entityType?.entityTypeId) {
-        draft.entityType.entityTypeId = placeholderResults.get(
-          draft.entityType.entityTypeId,
-        );
-      }
-
-      /**
-       * @todo Figure out what would be the equivalent to linked data in the new graph api.
-       *   Related to https://app.asana.com/0/1200211978612931/1201850801682936/f
-       *   Asana ticket: https://app.asana.com/0/1202805690238892/1203045933021781/f
-       */
-      // if (draft.entityProperties?.text?.__linkedData?.entityId) {
-      //   draft.entityProperties.text.__linkedData.entityId =
-      //     placeholderResults.get(
-      //       draft.entityProperties.text.__linkedData.entityId,
-      //     );
-      // }
-    });
-
-    return await EntityModel.createEntityWithLinks(graphApi, {
-      createdById: entityCreatedById,
-      entityDefinition,
-    });
-  };
+  const createEntityWithPlaceholders = createEntityWithPlaceholdersFn(
+    graphApi,
+    placeholderResults,
+  );
 
   /**
    * @todo Figure out how we want to implement entity type creation
