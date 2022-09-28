@@ -4,7 +4,7 @@
 extern crate alloc;
 extern crate core;
 
-use core::{fmt::Write, iter::zip};
+use core::fmt::Write;
 use std::fmt::{Display, Formatter};
 
 mod common;
