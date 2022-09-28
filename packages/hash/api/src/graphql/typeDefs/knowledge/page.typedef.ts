@@ -2,11 +2,26 @@ import { gql } from "apollo-server-express";
 
 export const knowledgePageTypedef = gql`
   type KnowledgePage implements KnowledgeEntity {
-    contents: [KnowledgeBlock!]!
-    archived: Boolean
-    summary: String
+    """
+    The title of the page.
+    """
     title: String!
+    """
+    The icon given to the page.
+    """
     icon: String
+    """
+    A summary of the page.
+    """
+    summary: String
+    """
+    Whether or not this page has been archived.
+    """
+    archived: Boolean
+    """
+    The contents of the page.
+    """
+    contents: [KnowledgeBlock!]!
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
