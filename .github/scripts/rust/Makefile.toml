@@ -35,6 +35,10 @@ CARGO_MIRI_HACK_FLAGS = "--workspace"
 [env.production]
 CARGO_MAKE_CARGO_PROFILE = "release"
 
+################################################################################
+## General                                                                    ##
+################################################################################
+
 [tasks.default]
 extend = "build"
 category = ""
@@ -47,6 +51,14 @@ run_task = { name = ["build", "lint", "test"] }
 private = true
 command = "cargo"
 dependencies = ["install-cargo-hack"]
+
+[tasks.yarn]
+private = true
+command = "yarn"
+
+[tasks.docker]
+private = true
+command = "docker"
 
 ################################################################################
 ## Build                                                                      ##
@@ -147,7 +159,6 @@ dependencies = ["install-cargo-nextest"]
 extend = "cargo"
 args = ["test", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_DOC_TEST_FLAGS, )", "--doc", "${@}"]
 
-
 [tasks.miri]
 category = "Test"
 description = "Runs miri tests suite"
@@ -169,7 +180,7 @@ args = ["hack", "@@split(CARGO_MIRI_HACK_FLAGS, )", "miri", "test", "--profile",
 dependencies = ["install-miri"]
 
 ################################################################################
-## Tools                                                                      ##
+## Tool Installs                                                              ##
 ################################################################################
 
 [tasks.install-clippy]

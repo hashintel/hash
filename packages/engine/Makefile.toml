@@ -29,7 +29,7 @@ dependencies = ["build-test-deps"]
 
 [tasks.run-integrations]
 private = true
-command = "cargo"
+extend = "cargo"
 args = ["test", "--workspace", "--test", "integration", "--no-fail-fast", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "--all-features"]
 dependencies = ["setup-python"]
 
