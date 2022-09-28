@@ -11,10 +11,10 @@
 //! Hooks can be attached through the central hooking mechanism which `error-stack`
 //! provides via [`Report::install_debug_hook`].
 //!
-//! Hooks are called for contexts which provide additional values through [`Error::provide`] or
-//! [`Context::provide`] and attachments which are added via [`Report::attach`] or
-//! [`Report::attach_printable`]. The order of [`Report::install_debug_hook`] calls determines the
-//! order of the rendered output.
+//! Hooks are called for contexts which provide additional values through [`Context::provide`] and
+//! attachments which are added via [`Report::attach`] or [`Report::attach_printable`]. The order of
+//! [`Report::install_debug_hook`] calls determines the order of the rendered output. Note, that
+//! [`Context`]s, which do not provide themself, will not be formatted through the debug hook.
 //!
 //! Hook functions need to be [`Fn`] and **not** [`FnMut`], which means they are unable to directly
 //! mutate state outside of the closure.
