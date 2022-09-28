@@ -10,6 +10,10 @@
       "fixedId": "9d3c6d04-a2b9-444d-aef8-dfeab4e3db28",
       "firstVersionId": "2e4891da-ea52-4546-aecb-bb88531b72af"
     },
+    "Comment": {
+      "fixedId": "bd110df8-4a98-40e4-8f3a-42832d60c541",
+      "firstVersionId": "8b8b5802-c58d-41a3-8dfe-e852910f337d"
+    },
     "EntityType": {
       "fixedId": "34def702-444f-43fd-b0dd-2ee16069ebdf",
       "firstVersionId": "ebb07067-f300-4504-be3f-b251c36ca06d"

@@ -191,6 +191,19 @@ const systemTypeSchemas: {
     labelProperty: "componentId",
     required: ["componentId", "entity"],
   },
+  Comment: {
+    title: "Comment",
+    description: "A Comment belonging to a block.",
+    type: "object",
+    properties: {
+      resolvedAt: {
+        type: "date",
+        description: "Timestamp of when the comment was resolved",
+      },
+    },
+    labelProperty: "",
+    required: [],
+  },
 };
 
 export const entityTypeJson = (name: SystemType) =>

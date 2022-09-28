@@ -25,6 +25,11 @@ import {
   setParentPage,
   pageLinkedEntities,
 } from "./pages";
+import {
+  createComment,
+  commentLinkedEntities,
+  textUpdatedAtFieldResolver,
+} from "./comments";
 import { accounts } from "./account/accounts";
 import { createUser } from "./user/createUser";
 import { createUserWithOrgEmailInvitation } from "./user/createUserWithOrgEmailInvitation";
@@ -125,6 +130,7 @@ export const resolvers = {
     createEntityType: loggedInAndSignedUp(createEntityType),
     createFileFromLink: loggedInAndSignedUp(createFileFromLink),
     createPage: loggedInAndSignedUp(createPage),
+    createComment: loggedInAndSignedUp(createComment),
     createOrg: loggedInAndSignedUp(createOrg),
     createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),
     transferEntity: loggedInAndSignedUp(transferEntity),
@@ -164,6 +170,14 @@ export const resolvers = {
     properties:
       pageProperties /** @todo: remove this resolver as it is deprecated */,
     ...pageLinkedEntities,
+  },
+
+  Comment: {
+    properties: {
+      ...entityFields.properties,
+    },
+    textUpdatedAt: textUpdatedAtFieldResolver,
+    ...commentLinkedEntities,
   },
 
   User: {

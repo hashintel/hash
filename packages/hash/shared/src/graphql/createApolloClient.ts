@@ -84,6 +84,7 @@ export const createApolloClient = (params?: {
 
   const typePolicies: Record<SystemTypeName, typeof entityKeyFields> = {
     Block: entityKeyFields,
+    Comment: entityKeyFields,
     EntityType: entityKeyFields,
     OrgEmailInvitation: entityKeyFields,
     OrgInvitationLink: entityKeyFields,
