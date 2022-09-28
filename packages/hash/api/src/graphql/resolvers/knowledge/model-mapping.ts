@@ -20,6 +20,7 @@ export const mapEntityModelToGQL = (
   entityTypeId: entityModel.entityTypeModel.schema.$id,
   entityVersionId: entityModel.version,
   ownedById: entityModel.accountId,
+  accountId: entityModel.accountId,
   properties: entityModel.properties,
 });
 
