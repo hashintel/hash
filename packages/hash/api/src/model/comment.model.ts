@@ -7,6 +7,7 @@ import {
   UnresolvedGQLEntityType,
   User,
   Block,
+  Page,
 } from ".";
 import { DbClient } from "../db";
 import {
@@ -137,6 +138,35 @@ class __Comment extends Entity {
     return null;
   }
 
+  static async getAllCommentsInPage(
+    client: DbClient,
+    params: {
+      accountId: string;
+      pageId: string;
+    },
+  ): Promise<Comment[]> {
+    const { accountId, pageId } = params;
+
+    const pageEntity = await Page.getPageById(client, {
+      accountId,
+      entityId: pageId,
+    });
+
+    if (!pageEntity) {
+      throw new Error(
+        `Page with entityId ${pageId} not found found in account with accountId ${accountId}`,
+      );
+    }
+
+    const pageBlocks = await pageEntity.getBlocks(client);
+
+    const comments = await Promise.all(
+      pageBlocks.map(async (block) => await block.getBlockComments(client)),
+    );
+
+    return comments.flat();
+  }
+
   async getTokens(client: DbClient): Promise<Entity> {
     const tokensLinks = await this.getOutgoingLinks(client, {
       path: ["tokens"],
@@ -201,6 +231,19 @@ class __Comment extends Entity {
     }
 
     return await authorLink.getDestination(client);
+  }
+
+  static async fromEntity(client: DbClient, entity: Entity): Promise<Comment> {
+    if (
+      entity.entityType.entityId !==
+      (await Comment.getEntityType(client)).entityId
+    ) {
+      throw new Error(
+        `Entity with entityId ${entity.entityId} does not have the Comment system type as its entity type`,
+      );
+    }
+
+    return new Comment(entity);
   }
 }
 

@@ -104,6 +104,10 @@ export const commentTypedef = gql`
     resolvedAt: Date
   }
 
+  extend type Query {
+    pageComments(accountId: ID!, pageId: ID!): [Comment!]!
+  }
+
   extend type Mutation {
     createComment(
       """

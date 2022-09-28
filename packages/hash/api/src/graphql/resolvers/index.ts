@@ -29,6 +29,7 @@ import {
   createComment,
   commentLinkedEntities,
   textUpdatedAtFieldResolver,
+  pageComments,
 } from "./comments";
 import { accounts } from "./account/accounts";
 import { createUser } from "./user/createUser";
@@ -90,6 +91,7 @@ export const resolvers = {
   Query: {
     // Logged in and signed up users only
     accountPages: loggedInAndSignedUp(accountPages),
+    pageComments: loggedInAndSignedUp(pageComments),
     accounts:
       loggedInAndSignedUp(
         accounts,

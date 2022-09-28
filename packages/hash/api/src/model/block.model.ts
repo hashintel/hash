@@ -5,6 +5,7 @@ import {
   User,
   EntityExternalResolvers,
   UnresolvedGQLEntityType,
+  Comment,
 } from ".";
 import { DbClient } from "../db";
 import { DbBlockProperties, EntityType } from "../db/adapter";
@@ -122,6 +123,21 @@ class __Block extends Entity {
     }
 
     return firstLink.getDestination(client);
+  }
+
+  async getBlockComments(client: DbClient): Promise<Comment[]> {
+    const blockCommentLinks = await this.getIncomingLinks(client, {
+      path: ["parent"],
+    });
+
+    const comments = await Promise.all(
+      blockCommentLinks.map(async (link) => {
+        const sourceEntity = await link.getSource(client);
+        return await Comment.fromEntity(client, sourceEntity);
+      }),
+    );
+
+    return comments;
   }
 
   async swapBlockData(
