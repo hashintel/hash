@@ -119,7 +119,7 @@ impl fmt::Display for AnyhowContext {
 
 #[cfg(feature = "anyhow")]
 impl Context for AnyhowContext {
-    #[cfg(all(nightly, feature = "std"))]
+    #[cfg(nightly)]
     #[inline]
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
         core::any::Provider::provide(&self.0, demand);
