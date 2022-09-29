@@ -283,7 +283,7 @@ export default class {
   /**
    * Get the latest version of an entity by its entity ID.
    *
-   * @param params.versionedUri the unique versioned URI for an entity.
+   * @param params.entityId the ID of an entity.
    */
   static async getLatest(
     graphApi: GraphApi,
