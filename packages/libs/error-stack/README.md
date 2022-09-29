@@ -69,17 +69,17 @@ fn start_experiments(
         .map(|exp_id| {
             let description = experiment_descriptions.get(*exp_id).ok_or_else(|| {
                 Report::new(ExperimentError)
-                    .attach_printable(format!("Experiment {exp_id} has no valid description"))
+                    .attach_printable(format!("experiment {exp_id} has no valid description"))
             })?;
 
             let experiment = parse_experiment(description)
-                .attach_printable(format!("Experiment {exp_id} could not be parsed"))
+                .attach_printable(format!("experiment {exp_id} could not be parsed"))
                 .change_context(ExperimentError)?;
 
             Ok(move || experiment.0 * experiment.1)
         })
         .collect::<Result<Vec<_>, ExperimentError>>()
-        .attach_printable("Unable to set up experiments")?;
+        .attach_printable("unable to set up experiments")?;
 
     Ok(experiments.iter().map(|experiment| experiment()).collect())
 }

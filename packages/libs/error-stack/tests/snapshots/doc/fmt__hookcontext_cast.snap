@@ -1,11 +1,11 @@
 <b>invalid input parameter</b>
 <span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/fmt/hook.rs:27:14</span>
 <span style='color:#a00'>├</span><span style='color:#a00'>╴</span>backtrace (1)
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>[1] [ERROR] Unable to reach remote host
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>[2] [WARN] Disk nearly full
-<span style='color:#a00'>╰</span><span style='color:#a00'>╴</span>[3] [ERROR] Cannot resolve example.com: Unknown host
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>[1] [ERROR] unable to reach remote host
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>[2] [WARN] disk nearly full
+<span style='color:#a00'>╰</span><span style='color:#a00'>╴</span>[3] [ERROR] cannot resolve example.com: unknown host
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Backtrace No. 1
+backtrace no. 1
   [redacted]
