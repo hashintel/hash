@@ -12,7 +12,7 @@ import { LinkTypeModel, UserModel } from "../index";
 import { generateTypeId, workspaceAccountId } from "../util";
 
 type LinkTypeModelConstructorParams = {
-  accountId: string;
+  ownedById: string;
   schema: LinkType;
 };
 
@@ -20,12 +20,12 @@ type LinkTypeModelConstructorParams = {
  * @class {@link LinkTypeModel}
  */
 export default class {
-  accountId: string;
+  ownedById: string;
 
   schema: LinkType;
 
-  constructor({ schema, accountId }: LinkTypeModelConstructorParams) {
-    this.accountId = accountId;
+  constructor({ schema, ownedById }: LinkTypeModelConstructorParams) {
+    this.ownedById = ownedById;
     this.schema = schema;
   }
 
@@ -46,36 +46,36 @@ export default class {
      */
     return new LinkTypeModel({
       schema: inner as LinkType,
-      accountId: identifier.ownedById,
+      ownedById: identifier.ownedById,
     });
   }
 
   /**
    * Create a link type.
    *
-   * @param params.accountId the accountId of the account creating the link type
+   * @param params.ownedById the id of the owner creating the link type
    * @param params.schema a `LinkType`
    */
   static async create(
     graphApi: GraphApi,
     params: {
-      accountId: string;
+      ownedById: string;
       schema: Omit<LinkType, "$id">;
     },
   ): Promise<LinkTypeModel> {
     /** @todo - get rid of this hack for the root account */
     const namespace =
-      params.accountId === workspaceAccountId
+      params.ownedById === workspaceAccountId
         ? WORKSPACE_ACCOUNT_SHORTNAME
         : (
             await UserModel.getUserById(graphApi, {
-              entityId: params.accountId,
+              entityId: params.ownedById,
             })
           )?.getShortname();
 
     if (namespace == null) {
       throw new Error(
-        `failed to get namespace for account: ${params.accountId}`,
+        `failed to get namespace for account: ${params.ownedById}`,
       );
     }
 
@@ -88,7 +88,11 @@ export default class {
 
     const { data: identifier } = await graphApi
       .createLinkType({
-        accountId: params.accountId,
+        /**
+         * @todo: replace uses of `accountId` with `ownedById` in the Graph API
+         * @see [ADD ASANA LINK]
+         */
+        accountId: params.ownedById,
         schema: fullLinkType,
       })
       .catch((err: AxiosError) => {
@@ -101,19 +105,14 @@ export default class {
 
     return new LinkTypeModel({
       schema: fullLinkType,
-      accountId: identifier.ownedById,
+      ownedById: identifier.ownedById,
     });
   }
 
   /**
    * Get all link types at their latest version.
-   *
-   * @param params.accountId the accountId of the account requesting the link types
    */
-  static async getAllLatest(
-    graphApi: GraphApi,
-    _params: { accountId: string },
-  ): Promise<LinkTypeModel[]> {
+  static async getAllLatest(graphApi: GraphApi): Promise<LinkTypeModel[]> {
     /**
      * @todo: get all latest link types in specified account.
      *   This may mean implicitly filtering results by what an account is
@@ -128,7 +127,6 @@ export default class {
   /**
    * Get a link type by its versioned URI.
    *
-   * @param params.accountId the accountId of the account requesting the link type
    * @param params.linkTypeId the unique versioned URI for a link type.
    */
   static async get(
@@ -146,19 +144,23 @@ export default class {
   /**
    * Update a link type.
    *
-   * @param params.accountId the accountId of the account making the update
    * @param params.schema a `LinkType`
    */
   async update(
     graphApi: GraphApi,
     params: {
-      accountId: string;
       schema: Omit<LinkType, "$id">;
     },
   ): Promise<LinkTypeModel> {
-    const { accountId, schema } = params;
+    const { schema } = params;
     const updateArguments: UpdateLinkTypeRequest = {
-      accountId,
+      /**
+       * @todo: let caller update who owns the type, or create new method dedicated to changing the owner of the type
+       *
+       * @todo: replace uses of `accountId` with `ownedById` in the Graph API
+       * @see [ADD ASANA LINK]
+       */
+      accountId: this.ownedById,
       typeToUpdate: this.schema.$id,
       schema,
     };
@@ -167,7 +169,7 @@ export default class {
 
     return new LinkTypeModel({
       schema: { ...schema, $id: identifier.uri },
-      accountId: identifier.ownedById,
+      ownedById: identifier.ownedById,
     });
   }
 }

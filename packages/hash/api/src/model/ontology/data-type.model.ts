@@ -12,7 +12,7 @@ import { DataTypeModel, UserModel } from "../index";
 import { generateTypeId, workspaceAccountId } from "../util";
 
 type DataTypeModelConstructorArgs = {
-  accountId: string;
+  ownedById: string;
   schema: DataType;
 };
 
@@ -20,12 +20,12 @@ type DataTypeModelConstructorArgs = {
  * @class {@link DataTypeModel}
  */
 export default class {
-  accountId: string;
+  ownedById: string;
 
   schema: DataType;
 
-  constructor({ schema, accountId }: DataTypeModelConstructorArgs) {
-    this.accountId = accountId;
+  constructor({ schema, ownedById }: DataTypeModelConstructorArgs) {
+    this.ownedById = ownedById;
     this.schema = schema;
   }
 
@@ -46,7 +46,7 @@ export default class {
      */
     return new DataTypeModel({
       schema: inner as DataType,
-      accountId: identifier.ownedById,
+      ownedById: identifier.ownedById,
     });
   }
 
@@ -59,13 +59,13 @@ export default class {
    *   Depends on the RFC captured by:
    *   https://app.asana.com/0/1200211978612931/1202464168422955/f
    *
-   * @param params.accountId the accountId of the account creating the data type
-   * @param params.schema a `DataType`
+   * @param params.ownedById - the id of the owner of the entity type
+   * @param params.schema - the `DataType`
    */
   static async create(
     graphApi: GraphApi,
     params: {
-      accountId: string;
+      ownedById: string;
       // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
       //  https://github.com/microsoft/TypeScript/issues/50638
       //  this is needed for as long as DataType extends Record
@@ -75,18 +75,17 @@ export default class {
   ): Promise<DataTypeModel> {
     /** @todo - get rid of this hack for the root account */
     const namespace =
-      params.accountId === workspaceAccountId
+      params.ownedById === workspaceAccountId
         ? WORKSPACE_ACCOUNT_SHORTNAME
-        : (
+        : /** @todo: account for types with an org as its owner */
+          (
             await UserModel.getUserById(graphApi, {
-              entityId: params.accountId,
+              entityId: params.ownedById,
             })
           )?.getShortname();
 
     if (namespace == null) {
-      throw new Error(
-        `failed to get namespace for account: ${params.accountId}`,
-      );
+      throw new Error(`failed to get namespace for owner: ${params.ownedById}`);
     }
 
     const dataTypeUri = generateTypeId({
@@ -98,7 +97,11 @@ export default class {
 
     const { data: identifier } = await graphApi
       .createDataType({
-        accountId: params.accountId,
+        /**
+         * @todo: replace uses of `accountId` with `ownedById` in the Graph API
+         * @see [ADD ASANA LINK]
+         */
+        accountId: params.ownedById,
         schema: fullDataType,
       })
       .catch((err: AxiosError) => {
@@ -111,19 +114,15 @@ export default class {
 
     return new DataTypeModel({
       schema: fullDataType,
-      accountId: identifier.ownedById,
+      ownedById: identifier.ownedById,
     });
   }
 
   /**
    * Get all data types at their latest version.
-   *
-   * @param params.accountId the accountId of the account requesting the data types
+
    */
-  static async getAllLatest(
-    graphApi: GraphApi,
-    _params: { accountId: string },
-  ): Promise<DataTypeModel[]> {
+  static async getAllLatest(graphApi: GraphApi): Promise<DataTypeModel[]> {
     /**
      * @todo: get all latest data types in specified account.
      *   This may mean implicitly filtering results by what an account is
@@ -138,7 +137,6 @@ export default class {
   /**
    * Get a data type by its versioned URI.
    *
-   * @param params.accountId the accountId of the account requesting the data type
    * @param params.dataTypeId the unique versioned URI for a data type.
    */
   static async get(
@@ -162,13 +160,11 @@ export default class {
    *   Depends on the RFC captured by:
    *   https://app.asana.com/0/1200211978612931/1202464168422955/f
    *
-   * @param params.accountId the accountId of the account making the update
    * @param params.schema a `DataType`
    */
   async update(
     graphApi: GraphApi,
     params: {
-      accountId: string;
       // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
       //  https://github.com/microsoft/TypeScript/issues/50638
       //  this is needed for as long as DataType extends Record
@@ -176,10 +172,16 @@ export default class {
         Record<string, any>;
     },
   ): Promise<DataTypeModel> {
-    const { accountId, schema } = params;
+    const { schema } = params;
 
     const updateArguments: UpdateDataTypeRequest = {
-      accountId,
+      /**
+       * @todo: let caller update who owns the type, or create new method dedicated to changing the owner of the type
+       *
+       * @todo: replace uses of `accountId` with `ownedById` in the Graph API
+       * @see [ADD ASANA LINK]
+       */
+      accountId: this.ownedById,
       typeToUpdate: this.schema.$id,
       schema,
     };
@@ -188,7 +190,7 @@ export default class {
 
     return new DataTypeModel({
       schema: { ...schema, $id: identifier.uri },
-      accountId: identifier.ownedById,
+      ownedById: identifier.ownedById,
     });
   }
 }
