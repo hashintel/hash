@@ -112,9 +112,9 @@ export const entityTypeTypedef = gql`
     """
     createEntityType(
       """
-      accountId refers to the account to create the entity type in.
+      The id of the owner of the entity type. Defaults to the user calling the mutation.
       """
-      accountId: ID
+      ownedById: ID
       entityType: EntityTypeWithoutId!
     ): PersistedEntityType!
 
@@ -122,10 +122,6 @@ export const entityTypeTypedef = gql`
     Update a entity type.
     """
     updateEntityType(
-      """
-      accountId refers to the account to update the entity type in.
-      """
-      accountId: ID
       """
       The entity type versioned $id to update.
       """

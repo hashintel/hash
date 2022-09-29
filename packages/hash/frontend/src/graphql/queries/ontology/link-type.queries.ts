@@ -4,7 +4,7 @@ export const getLinkTypeQuery = gql`
   query getLinkType($linkTypeVersionedUri: String!) {
     getLinkType(linkTypeVersionedUri: $linkTypeVersionedUri) {
       linkTypeVersionedUri
-      accountId
+      ownedById
       linkType
     }
   }
@@ -14,17 +14,17 @@ export const getAllLatestLinkTypesQuery = gql`
   query getAllLatestLinkTypes {
     getAllLatestLinkTypes {
       linkTypeVersionedUri
-      accountId
+      ownedById
       linkType
     }
   }
 `;
 
 export const createLinkTypeMutation = gql`
-  mutation createLinkType($accountId: ID!, $linkType: LinkTypeWithoutId!) {
-    createLinkType(accountId: $accountId, linkType: $linkType) {
+  mutation createLinkType($ownedById: ID!, $linkType: LinkTypeWithoutId!) {
+    createLinkType(ownedById: $ownedById, linkType: $linkType) {
       linkTypeVersionedUri
-      accountId
+      ownedById
       linkType
     }
   }
@@ -32,17 +32,15 @@ export const createLinkTypeMutation = gql`
 
 export const updateLinkTypeMutation = gql`
   mutation updateLinkType(
-    $accountId: ID!
     $linkTypeVersionedUri: String!
     $updatedLinkType: LinkTypeWithoutId!
   ) {
     updateLinkType(
-      accountId: $accountId
       linkTypeVersionedUri: $linkTypeVersionedUri
       updatedLinkType: $updatedLinkType
     ) {
       linkTypeVersionedUri
-      accountId
+      ownedById
       linkType
     }
   }

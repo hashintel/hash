@@ -9,7 +9,7 @@ import { createPropertyTypeMutation } from "../../../../graphql/queries/ontology
 import { CreatePropertyTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolCreatePropertyType = (
-  accountId: string,
+  ownedById: string,
   readonly?: boolean,
 ): {
   createPropertyType: CreatePropertyTypeMessageCallback;
@@ -46,7 +46,7 @@ export const useBlockProtocolCreatePropertyType = (
       const { propertyType } = data;
       const { data: responseData } = await createFn({
         variables: {
-          accountId,
+          ownedById,
           propertyType,
         },
       });
@@ -70,7 +70,7 @@ export const useBlockProtocolCreatePropertyType = (
         },
       };
     },
-    [accountId, createFn, readonly],
+    [ownedById, createFn, readonly],
   );
 
   return {

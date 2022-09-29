@@ -4,7 +4,7 @@ export const getEntityTypeQuery = gql`
   query getEntityType($entityTypeVersionedUri: String!) {
     getEntityType(entityTypeVersionedUri: $entityTypeVersionedUri) {
       entityTypeVersionedUri
-      accountId
+      ownedById
       entityType
     }
   }
@@ -14,7 +14,7 @@ export const getAllLatestEntityTypesQuery = gql`
   query getAllLatestEntityTypes {
     getAllLatestEntityTypes {
       entityTypeVersionedUri
-      accountId
+      ownedById
       entityType
     }
   }
@@ -22,12 +22,12 @@ export const getAllLatestEntityTypesQuery = gql`
 
 export const createEntityTypeMutation = gql`
   mutation createEntityType(
-    $accountId: ID!
+    $ownedById: ID!
     $entityType: EntityTypeWithoutId!
   ) {
-    createEntityType(accountId: $accountId, entityType: $entityType) {
+    createEntityType(ownedById: $ownedById, entityType: $entityType) {
       entityTypeVersionedUri
-      accountId
+      ownedById
       entityType
     }
   }
@@ -35,17 +35,15 @@ export const createEntityTypeMutation = gql`
 
 export const updateEntityTypeMutation = gql`
   mutation updateEntityType(
-    $accountId: ID!
     $entityTypeVersionedUri: String!
     $updatedEntityType: EntityTypeWithoutId!
   ) {
     updateEntityType(
-      accountId: $accountId
       entityTypeVersionedUri: $entityTypeVersionedUri
       updatedEntityType: $updatedEntityType
     ) {
       entityTypeVersionedUri
-      accountId
+      ownedById
       entityType
     }
   }

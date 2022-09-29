@@ -58,23 +58,23 @@ export type GraphMessageCallbacks = Omit<
 
 /** @todo Consider if we should move this out of the page and into the hooks directory. */
 export const useBlockProtocolFunctionsWithOntology = (
-  accountId: string,
+  ownedById: string,
 ): GraphMessageCallbacks => {
   const { readonlyMode } = useReadonlyMode();
 
-  const { aggregateEntities } = useBlockProtocolAggregateEntities(accountId);
+  const { aggregateEntities } = useBlockProtocolAggregateEntities(ownedById);
   const { createLinkedAggregation } =
     useBlockProtocolCreateLinkedAggregation(readonlyMode);
   const { createLink } = useBlockProtocolCreateLink(readonlyMode);
   const { createEntity } = useBlockProtocolCreateEntity(
-    accountId,
+    ownedById,
     readonlyMode,
   );
   const { deleteLinkedAggregation } =
     useBlockProtocolDeleteLinkedAggregation(readonlyMode);
   const { deleteLink } = useBlockProtocolDeleteLink(readonlyMode);
   const { updateEntity } = useBlockProtocolUpdateEntity(false, readonlyMode);
-  const { uploadFile } = useBlockProtocolFileUpload(accountId, readonlyMode);
+  const { uploadFile } = useBlockProtocolFileUpload(ownedById, readonlyMode);
   const { updateLinkedAggregation } =
     useBlockProtocolUpdateLinkedAggregation(readonlyMode);
 
@@ -83,35 +83,27 @@ export const useBlockProtocolFunctionsWithOntology = (
   const { aggregateDataTypes } = useBlockProtocolAggregateDataTypes();
   const { getDataType } = useBlockProtocolGetDataType();
   const { createPropertyType } = useBlockProtocolCreatePropertyType(
-    accountId,
+    ownedById,
     readonlyMode,
   );
   const { aggregatePropertyTypes } = useBlockProtocolAggregatePropertyTypes();
   const { getPropertyType } = useBlockProtocolGetPropertyType();
-  const { updatePropertyType } = useBlockProtocolUpdatePropertyType(
-    accountId,
-    readonlyMode,
-  );
+  const { updatePropertyType } =
+    useBlockProtocolUpdatePropertyType(readonlyMode);
   const { createEntityType } = useBlockProtocolCreateEntityType(
-    accountId,
+    ownedById,
     readonlyMode,
   );
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
   const { getEntityType } = useBlockProtocolGetEntityType();
-  const { updateEntityType } = useBlockProtocolUpdateEntityType(
-    accountId,
-    readonlyMode,
-  );
+  const { updateEntityType } = useBlockProtocolUpdateEntityType(readonlyMode);
   const { createLinkType } = useBlockProtocolCreateLinkType(
-    accountId,
+    ownedById,
     readonlyMode,
   );
   const { aggregateLinkTypes } = useBlockProtocolAggregateLinkTypes();
   const { getLinkType } = useBlockProtocolGetLinkType();
-  const { updateLinkType } = useBlockProtocolUpdateLinkType(
-    accountId,
-    readonlyMode,
-  );
+  const { updateLinkType } = useBlockProtocolUpdateLinkType(readonlyMode);
 
   const { updateLink } = useBlockProtocolUpdateLink();
 
