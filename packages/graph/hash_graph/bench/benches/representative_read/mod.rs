@@ -130,7 +130,7 @@ async fn seed_db(store_wrapper: &mut StoreWrapper) -> Samples {
         // This is a little confusing at the moment but entity_type::PAGE_V2 refers to the entity
         // type version, but entity::PAGE_V1 refers to the version of the entity
         (entity_type::PAGE_V2, entity::PAGE_V1, 100),
-        (entity_type::PAGE_V2, entity::PAGE_V2, 1000),
+        (entity_type::PAGE_V2, entity::PAGE_V2, 1_000),
         (entity_type::PERSON_V1, entity::PERSON_A_V1, 100),
         (entity_type::PERSON_V1, entity::PERSON_B_V1, 1_000),
         (entity_type::PERSON_V1, entity::PERSON_C_V1, 10_000),
