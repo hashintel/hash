@@ -24,10 +24,10 @@ export const createPropertyType: ResolverFn<
   MutationCreatePropertyTypeArgs
 > = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
-  const { accountId, propertyType } = params;
+  const { ownedById, propertyType } = params;
 
   const createdPropertyTypeModel = await PropertyTypeModel.create(graphApi, {
-    ownedById: accountId ?? user.entityId,
+    ownedById: ownedById ?? user.entityId,
     schema: propertyType,
   }).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");

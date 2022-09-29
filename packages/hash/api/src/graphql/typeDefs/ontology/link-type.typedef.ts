@@ -42,9 +42,9 @@ export const linkTypeTypedef = gql`
     """
     createLinkType(
       """
-      The id of the account where to create the link type in. Defaults to the account id of the current user.
+      The id of the owner of the link type. Defaults to the user calling the mutation.
       """
-      accountId: ID
+      ownedById: ID
       linkType: LinkTypeWithoutId!
     ): PersistedLinkType!
 
@@ -52,10 +52,6 @@ export const linkTypeTypedef = gql`
     Update an link type.
     """
     updateLinkType(
-      """
-      The id of the account where to create the updated link type in. Defaults to the account id of the current user.
-      """
-      accountId: ID
       """
       The link type versioned $id to update.
       """

@@ -29,10 +29,10 @@ export const createEntityType: ResolverFn<
   MutationCreateEntityTypeArgs
 > = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
-  const { accountId, entityType } = params;
+  const { ownedById, entityType } = params;
 
   const createdEntityTypeModel = await EntityTypeModel.create(graphApi, {
-    ownedById: accountId ?? user.entityId,
+    ownedById: ownedById ?? user.entityId,
     schema: entityType,
   }).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");

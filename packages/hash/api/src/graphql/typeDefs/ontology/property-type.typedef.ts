@@ -106,9 +106,9 @@ export const propertyTypeTypedef = gql`
     """
     createPropertyType(
       """
-      The id of the account where to create the property type in. Defaults to the account id of the current user.
+      The id of the owner of the property type. Defaults to the user calling the mutation.
       """
-      accountId: ID
+      ownedById: ID
       propertyType: PropertyTypeWithoutId!
     ): PersistedPropertyType!
 
@@ -116,10 +116,6 @@ export const propertyTypeTypedef = gql`
     Update a property type.
     """
     updatePropertyType(
-      """
-      The id of the account where to create the updated property type in. Defaults to the account id of the current user.
-      """
-      accountId: ID
       """
       The property type versioned $id to update.
       """

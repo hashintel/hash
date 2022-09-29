@@ -4,7 +4,7 @@ export const getPropertyTypeQuery = gql`
   query getPropertyType($propertyTypeVersionedUri: String!) {
     getPropertyType(propertyTypeVersionedUri: $propertyTypeVersionedUri) {
       propertyTypeVersionedUri
-      accountId
+      ownedById
       propertyType
     }
   }
@@ -14,7 +14,7 @@ export const getAllLatestPropertyTypesQuery = gql`
   query getAllLatestPropertyTypes {
     getAllLatestPropertyTypes {
       propertyTypeVersionedUri
-      accountId
+      ownedById
       propertyType
     }
   }
@@ -22,12 +22,12 @@ export const getAllLatestPropertyTypesQuery = gql`
 
 export const createPropertyTypeMutation = gql`
   mutation createPropertyType(
-    $accountId: ID!
+    $ownedById: ID!
     $propertyType: PropertyTypeWithoutId!
   ) {
-    createPropertyType(accountId: $accountId, propertyType: $propertyType) {
+    createPropertyType(ownedById: $ownedById, propertyType: $propertyType) {
       propertyTypeVersionedUri
-      accountId
+      ownedById
       propertyType
     }
   }
@@ -35,17 +35,15 @@ export const createPropertyTypeMutation = gql`
 
 export const updatePropertyTypeMutation = gql`
   mutation updatePropertyType(
-    $accountId: ID!
     $propertyTypeVersionedUri: String!
     $updatedPropertyType: PropertyTypeWithoutId!
   ) {
     updatePropertyType(
-      accountId: $accountId
       propertyTypeVersionedUri: $propertyTypeVersionedUri
       updatedPropertyType: $updatedPropertyType
     ) {
       propertyTypeVersionedUri
-      accountId
+      ownedById
       propertyType
     }
   }

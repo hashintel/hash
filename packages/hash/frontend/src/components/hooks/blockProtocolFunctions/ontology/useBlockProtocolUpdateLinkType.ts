@@ -9,7 +9,6 @@ import { updateLinkTypeMutation } from "../../../../graphql/queries/ontology/lin
 import { UpdateLinkTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolUpdateLinkType = (
-  accountId: string,
   readonly?: boolean,
 ): {
   updateLinkType: UpdateLinkTypeMessageCallback;
@@ -46,7 +45,6 @@ export const useBlockProtocolUpdateLinkType = (
       const { linkTypeVersionedUri, linkType } = data;
       const { data: responseData } = await updateFn({
         variables: {
-          accountId,
           linkTypeVersionedUri,
           updatedLinkType: linkType,
         },
@@ -71,7 +69,7 @@ export const useBlockProtocolUpdateLinkType = (
         },
       };
     },
-    [accountId, updateFn, readonly],
+    [updateFn, readonly],
   );
 
   return {

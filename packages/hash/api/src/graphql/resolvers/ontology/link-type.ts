@@ -19,10 +19,10 @@ export const createLinkType: ResolverFn<
   MutationCreateLinkTypeArgs
 > = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
-  const { accountId, linkType } = params;
+  const { ownedById, linkType } = params;
 
   const createdLinkTypeModel = await LinkTypeModel.create(graphApi, {
-    ownedById: accountId ?? user.entityId,
+    ownedById: ownedById ?? user.entityId,
     schema: linkType,
   }).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");

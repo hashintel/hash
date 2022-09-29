@@ -9,7 +9,6 @@ import { updatePropertyTypeMutation } from "../../../../graphql/queries/ontology
 import { UpdatePropertyTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolUpdatePropertyType = (
-  accountId: string,
   readonly?: boolean,
 ): {
   updatePropertyType: UpdatePropertyTypeMessageCallback;
@@ -46,7 +45,6 @@ export const useBlockProtocolUpdatePropertyType = (
       const { propertyTypeVersionedUri, propertyType } = data;
       const { data: responseData } = await updateFn({
         variables: {
-          accountId,
           propertyTypeVersionedUri,
           updatedPropertyType: propertyType,
         },
@@ -71,7 +69,7 @@ export const useBlockProtocolUpdatePropertyType = (
         },
       };
     },
-    [accountId, updateFn, readonly],
+    [updateFn, readonly],
   );
 
   return {

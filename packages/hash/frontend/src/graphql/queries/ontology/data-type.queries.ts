@@ -4,7 +4,7 @@ export const getDataTypeQuery = gql`
   query getDataType($dataTypeVersionedUri: String!) {
     getDataType(dataTypeVersionedUri: $dataTypeVersionedUri) {
       dataTypeVersionedUri
-      accountId
+      ownedById
       dataType
     }
   }
@@ -14,7 +14,7 @@ export const getAllLatestDataTypesQuery = gql`
   query getAllLatestDataTypes {
     getAllLatestDataTypes {
       dataTypeVersionedUri
-      accountId
+      ownedById
       dataType
     }
   }
