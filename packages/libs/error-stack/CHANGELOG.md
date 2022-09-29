@@ -25,7 +25,7 @@ All notable changes to `error-stack` will be documented in this file.
 - New hook interface for [Debug](https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html) ([#794](https://github.com/hashintel/hash/pull/794))
 - Add support for related errors and multiple error sources ([#747](https://github.com/hashintel/hash/pull/747))
 - Add compatibility for `anyhow` and `eyre` to convert their types into `Report` ([#763](https://github.com/hashintel/hash/pull/763))
-- Implement [`Termination`](https://doc.rust-lang.org/stable/std/process/trait.Termination.html) for `Report` ([#671]
+- Implement [`Termination`](https://doc.rust-lang.org/stable/std/process/trait.Termination.html) for `Report` ([#671](https://github.com/hashintel/hash/pull/671))
 - `Report::set_debug_hook` and `Report::set_display_hook` no longer return an error ([#794](https://github.com/hashintel/hash/pull/794))
 
 ### Deprecations
