@@ -42,7 +42,7 @@ describe("Entity CRU", () => {
     ownedById = testUser.entityId;
 
     textDataTypeModel = await DataTypeModel.create(graphApi, {
-      accountId: ownedById,
+      ownedById,
       schema: {
         kind: "dataType",
         title: "Text",
@@ -55,7 +55,7 @@ describe("Entity CRU", () => {
 
     await Promise.all([
       LinkTypeModel.create(graphApi, {
-        accountId: ownedById,
+        ownedById,
         schema: {
           kind: "linkType",
           title: "Friends",
@@ -72,7 +72,7 @@ describe("Entity CRU", () => {
         }),
 
       PropertyTypeModel.create(graphApi, {
-        accountId: ownedById,
+        ownedById,
         schema: {
           kind: "propertyType",
           title: "Favorite Book",
@@ -88,7 +88,7 @@ describe("Entity CRU", () => {
           throw err;
         }),
       PropertyTypeModel.create(graphApi, {
-        accountId: ownedById,
+        ownedById,
         schema: {
           kind: "propertyType",
           title: "Name",
@@ -106,7 +106,7 @@ describe("Entity CRU", () => {
     ]);
 
     entityTypeModel = await EntityTypeModel.create(graphApi, {
-      accountId: ownedById,
+      ownedById,
       schema: generateWorkspaceEntityTypeSchema({
         namespace: testUser.getShortname()!,
         title: "Person",

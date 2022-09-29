@@ -250,7 +250,7 @@ export const propertyTypeInitializer = (
         if (error.response?.status === 404) {
           // The type was missing, try and create it
           return await PropertyTypeModel.create(graphApi, {
-            accountId: workspaceAccountId,
+            ownedById: workspaceAccountId,
             schema: propertyType,
           }).catch((createError: AxiosError) => {
             logger.warn(`Failed to create property type: ${params.title}`);
@@ -411,7 +411,7 @@ export const entityTypeInitializer = (
         if (error.response?.status === 404) {
           // The type was missing, try and create it
           return await EntityTypeModel.create(graphApi, {
-            accountId: workspaceAccountId,
+            ownedById: workspaceAccountId,
             schema: entityType,
           }).catch((createError: AxiosError) => {
             logger.warn(`Failed to create entity type: ${params.title}`);
@@ -492,7 +492,7 @@ export const linkTypeInitializer = (
         if (error.response?.status === 404) {
           // The type was missing, try and create it
           return await LinkTypeModel.create(graphApi, {
-            accountId: workspaceAccountId,
+            ownedById: workspaceAccountId,
             schema: linkType,
           }).catch((createError: AxiosError) => {
             logger.warn(`Failed to create link type: ${params.title}`);

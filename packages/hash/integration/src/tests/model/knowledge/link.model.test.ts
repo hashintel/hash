@@ -45,7 +45,7 @@ describe("Link model class", () => {
     params: Omit<EntityTypeCreatorParams, "namespace">,
   ) =>
     EntityTypeModel.create(graphApi, {
-      accountId: ownedById,
+      ownedById,
       schema: generateWorkspaceEntityTypeSchema({ namespace, ...params }),
     });
 
@@ -65,7 +65,7 @@ describe("Link model class", () => {
 
     await Promise.all([
       LinkTypeModel.create(graphApi, {
-        accountId: ownedById,
+        ownedById,
         schema: {
           kind: "linkType",
           title: "Friends",
@@ -76,7 +76,7 @@ describe("Link model class", () => {
         linkTypeFriend = linkType;
       }),
       LinkTypeModel.create(graphApi, {
-        accountId: ownedById,
+        ownedById,
         schema: {
           kind: "linkType",
           title: "Acquaintance",
@@ -209,7 +209,7 @@ describe("Link model class", () => {
     });
 
     hasSongLinkType = await LinkTypeModel.create(graphApi, {
-      accountId: ownedById,
+      ownedById,
       schema: {
         kind: "linkType",
         title: "Has song",

@@ -48,7 +48,7 @@ describe("Block model class", () => {
      * once the exact role of the block data entity's entity type is known.
      */
     dummyEntityType = await EntityTypeModel.create(graphApi, {
-      accountId: testUser.entityId,
+      ownedById: testUser.entityId,
       schema: generateWorkspaceEntityTypeSchema({
         namespace: testUser.getShortname()!,
         title: "Dummy",

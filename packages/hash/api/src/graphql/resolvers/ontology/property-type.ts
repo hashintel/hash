@@ -27,7 +27,7 @@ export const createPropertyType: ResolverFn<
   const { accountId, propertyType } = params;
 
   const createdPropertyTypeModel = await PropertyTypeModel.create(graphApi, {
-    accountId: accountId ?? user.entityId,
+    ownedById: accountId ?? user.entityId,
     schema: propertyType,
   }).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
@@ -41,12 +41,11 @@ export const getAllLatestPropertyTypes: ResolverFn<
   {},
   LoggedInGraphQLContext,
   {}
-> = async (_, __, { dataSources, user }, info) => {
+> = async (_, __, { dataSources }, info) => {
   const { graphApi } = dataSources;
 
   const propertyTypeRootedSubgraphs =
     await PropertyTypeModel.getAllLatestResolved(graphApi, {
-      accountId: user.entityId,
       dataTypeQueryDepth: dataTypeQueryDepth(info),
       propertyTypeQueryDepth: propertyTypeQueryDepth(info),
     }).catch((err: AxiosError) => {
@@ -89,9 +88,9 @@ export const updatePropertyType: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationUpdatePropertyTypeArgs
-> = async (_, params, { dataSources, user }) => {
+> = async (_, params, { dataSources }) => {
   const { graphApi } = dataSources;
-  const { accountId, propertyTypeVersionedUri, updatedPropertyType } = params;
+  const { propertyTypeVersionedUri, updatedPropertyType } = params;
 
   const propertyTypeModel = await PropertyTypeModel.get(graphApi, {
     propertyTypeId: propertyTypeVersionedUri,
@@ -104,7 +103,6 @@ export const updatePropertyType: ResolverFn<
 
   const updatedPropertyTypeModel = await propertyTypeModel
     .update(graphApi, {
-      accountId: accountId ?? user.entityId,
       schema: updatedPropertyType,
     })
     .catch((err: AxiosError) => {

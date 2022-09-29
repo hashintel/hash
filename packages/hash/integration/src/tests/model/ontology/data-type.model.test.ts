@@ -22,7 +22,7 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-let accountId: string;
+let ownedById: string;
 
 // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
 //  https://github.com/microsoft/TypeScript/issues/50638
@@ -40,7 +40,7 @@ const dataTypeSchema: Pick<
 beforeAll(async () => {
   const testUser = await createTestUser(graphApi, "data-type-test", logger);
 
-  accountId = testUser.entityId;
+  ownedById = testUser.entityId;
 });
 
 describe("Data type CRU", () => {
@@ -49,7 +49,7 @@ describe("Data type CRU", () => {
 
   it("can create a data type", async () => {
     createdDataTypeModel = await DataTypeModel.create(graphApi, {
-      accountId,
+      ownedById,
       schema: dataTypeSchema,
     });
   });
@@ -66,16 +66,13 @@ describe("Data type CRU", () => {
   it("can update a data type", async () => {
     updatedDataTypeModel = await createdDataTypeModel
       .update(graphApi, {
-        accountId,
         schema: { ...dataTypeSchema, title: updatedTitle },
       })
       .catch((err) => Promise.reject(err.data));
   });
 
   it("can read all latest data types", async () => {
-    const allDataTypes = await DataTypeModel.getAllLatest(graphApi, {
-      accountId,
-    });
+    const allDataTypes = await DataTypeModel.getAllLatest(graphApi);
 
     const newlyUpdated = allDataTypes.find(
       (dt) => dt.schema.$id === updatedDataTypeModel.schema.$id,

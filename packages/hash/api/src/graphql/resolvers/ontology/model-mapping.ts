@@ -16,7 +16,7 @@ import {
 export const mapDataTypeModelToGQL = (
   dataType: DataTypeModel,
 ): PersistedDataType => ({
-  accountId: dataType.accountId,
+  accountId: dataType.ownedById,
   dataTypeVersionedUri: dataType.schema.$id,
   dataType: dataType.schema,
 });
@@ -24,7 +24,7 @@ export const mapDataTypeModelToGQL = (
 export const mapPropertyTypeModelToGQL = (
   propertyType: PropertyTypeModel,
 ): PersistedPropertyType => ({
-  accountId: propertyType.accountId,
+  accountId: propertyType.ownedById,
   propertyTypeVersionedUri: propertyType.schema.$id,
   propertyType: propertyType.schema,
 });
@@ -38,7 +38,7 @@ export const mapPropertyTypeRootedSubgraphToGQL = ({
   referencedDataTypes: DataTypeModel[];
   referencedPropertyTypes: PropertyTypeModel[];
 }): PropertyTypeRootedSubgraph => ({
-  accountId: propertyType.accountId,
+  accountId: propertyType.ownedById,
   propertyTypeVersionedUri: propertyType.schema.$id,
   propertyType: propertyType.schema,
   referencedDataTypes: referencedDataTypes.map(mapDataTypeModelToGQL),
@@ -50,7 +50,7 @@ export const mapPropertyTypeRootedSubgraphToGQL = ({
 export const mapLinkTypeModelToGQL = (
   linkType: LinkTypeModel,
 ): PersistedLinkType => ({
-  accountId: linkType.accountId,
+  accountId: linkType.ownedById,
   linkTypeVersionedUri: linkType.schema.$id,
   linkType: linkType.schema,
 });
@@ -58,7 +58,7 @@ export const mapLinkTypeModelToGQL = (
 export const mapEntityTypeModelToGQL = (
   entityType: EntityTypeModel,
 ): PersistedEntityType => ({
-  accountId: entityType.accountId,
+  accountId: entityType.ownedById,
   entityTypeVersionedUri: entityType.schema.$id,
   entityType: entityType.schema,
 });
@@ -70,7 +70,7 @@ export const mapEntityTypeRootedSubgraphToGQL = (params: {
   referencedLinkTypes: LinkTypeModel[];
   referencedEntityTypes: EntityTypeModel[];
 }): EntityTypeRootedSubgraph => ({
-  accountId: params.entityType.accountId,
+  accountId: params.entityType.ownedById,
   entityTypeVersionedUri: params.entityType.schema.$id,
   entityType: params.entityType.schema,
   referencedDataTypes: params.referencedDataTypes.map(mapDataTypeModelToGQL),
