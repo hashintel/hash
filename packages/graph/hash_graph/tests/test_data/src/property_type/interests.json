@@ -7,13 +7,13 @@
     {
       "type": "object",
       "properties": {
-        "https://blockprotocol.org/@blockprotocol/types/property-type/favorite-film": {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/favorite-film/": {
           "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/favorite-film/v/1"
         },
-        "https://blockprotocol.org/@blockprotocol/types/property-type/favorite-song": {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/favorite-song/": {
           "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/favorite-song/v/1"
         },
-        "https://blockprotocol.org/@blockprotocol/types/property-type/hobby": {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/hobby/": {
           "type": "array",
           "items": {
             "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/hobby/v/1"

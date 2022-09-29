@@ -7,15 +7,15 @@
     {
       "type": "object",
       "properties": {
-        "https://blockprotocol.org/@blockprotocol/types/property-type/email": {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/email/": {
           "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/email/v/1"
         },
-        "https://blockprotocol.org/@blockprotocol/types/property-type/phone-number": {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/phone-number/": {
           "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/phone-number/v/1"
         }
       },
       "required": [
-        "https://blockprotocol.org/@blockprotocol/types/property-type/email"
+        "https://blockprotocol.org/@blockprotocol/types/property-type/email/"
       ]
     }
   ]
