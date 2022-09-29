@@ -34,7 +34,7 @@ pub fn bench_get_entity_by_id(
             *entity_ids.iter().choose(&mut thread_rng()).unwrap()
         },
         |entity_id| async move {
-            let _ = store
+            store
                 .get_entity(&KnowledgeGraphQuery {
                     expression: Expression::for_latest_entity_id(entity_id),
                     data_type_query_depth: 0,
