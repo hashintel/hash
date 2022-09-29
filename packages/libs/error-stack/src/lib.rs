@@ -210,7 +210,7 @@
 //! This outputs something like:
 //!
 //! <pre>
-#![doc = include_str ! (concat ! (env ! ("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/lib__suggestion.snap"))]
+#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/lib__suggestion.snap"))]
 //! </pre>
 //!
 //! The `Suggestion`, which was added via [`attach`] is not shown directly and only increases the
