@@ -320,6 +320,11 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
                   top: 0,
                   right: "calc(100% + 24px)",
                 },
+                [breakpoints.down("lg")]: {
+                  "> div": {
+                    justifyContent: "flex-start",
+                  },
+                },
               })}
             />
             <Box
