@@ -45,14 +45,12 @@ describe("Org model class", () => {
   it("can update the shortname of an org", async () => {
     shortname = generateRandomShortname("orgTest");
     createdOrg = await createdOrg.updateShortname(graphApi, {
-      updatedByAccountId: createdOrg.entityId,
       updatedShortname: shortname,
     });
   });
 
   it("can update the preferred name of an org", async () => {
     createdOrg = await createdOrg.updateOrgName(graphApi, {
-      updatedByAccountId: createdOrg.entityId,
       updatedOrgName: "The testing org",
     });
   });

@@ -54,7 +54,7 @@ export const setParentPage: ResolverFn<
 
     await pageEntity.setParentPage(client, {
       parentPage,
-      setByAccountId: user.accountId,
+      setByAccountId: user.entityId,
       prevIndex,
       nextIndex,
     });

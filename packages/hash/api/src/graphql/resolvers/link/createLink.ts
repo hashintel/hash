@@ -36,7 +36,7 @@ export const createLink: ResolverFn<
     }
 
     const link = await source.createOutgoingLink(client, {
-      createdByAccountId: user.accountId,
+      createdByAccountId: user.entityId,
       stringifiedPath: linkInput.path,
       index: typeof linkInput.index === "number" ? linkInput.index : undefined,
       destination,

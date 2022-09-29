@@ -32,7 +32,7 @@ export const createEntityType: ResolverFn<
   const { accountId, entityType } = params;
 
   const createdEntityTypeModel = await EntityTypeModel.create(graphApi, {
-    accountId: accountId ?? user.entityId,
+    ownedById: accountId ?? user.entityId,
     schema: entityType,
   }).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
@@ -46,13 +46,12 @@ export const getAllLatestEntityTypes: ResolverFn<
   {},
   LoggedInGraphQLContext,
   {}
-> = async (_, __, { dataSources, user }, info) => {
+> = async (_, __, { dataSources }, info) => {
   const { graphApi } = dataSources;
 
   const entityTypeRootedSubgraphs = await EntityTypeModel.getAllLatestResolved(
     graphApi,
     {
-      accountId: user.entityId,
       dataTypeQueryDepth: dataTypeQueryDepth(info),
       propertyTypeQueryDepth: propertyTypeQueryDepth(info),
       linkTypeQueryDepth: linkTypeQueryDepth(info),
@@ -97,9 +96,9 @@ export const updateEntityType: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationUpdateEntityTypeArgs
-> = async (_, params, { dataSources, user }) => {
+> = async (_, params, { dataSources }) => {
   const { graphApi } = dataSources;
-  const { accountId, entityTypeVersionedUri, updatedEntityType } = params;
+  const { entityTypeVersionedUri, updatedEntityType } = params;
 
   const entityTypeModel = await EntityTypeModel.get(graphApi, {
     entityTypeId: entityTypeVersionedUri,
@@ -112,7 +111,6 @@ export const updateEntityType: ResolverFn<
 
   const updatedEntityTypeModel = await entityTypeModel
     .update(graphApi, {
-      accountId: accountId ?? user.entityId,
       schema: updatedEntityType,
     })
     .catch((err: AxiosError) => {

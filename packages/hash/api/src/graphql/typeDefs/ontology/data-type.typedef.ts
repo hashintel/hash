@@ -10,9 +10,14 @@ export const dataTypeTypedef = gql`
     """
     dataTypeVersionedUri: String!
     """
-    The user who created the data type
+    The id of the account that owns this data type.
+    """
+    ownedById: ID!
+    """
+    Alias of ownedById - the id of the account that owns this data type.
     """
     accountId: ID!
+      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     """
     The data type
     """

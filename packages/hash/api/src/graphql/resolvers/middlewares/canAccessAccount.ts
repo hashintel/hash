@@ -11,7 +11,7 @@ import { ResolverMiddleware } from "./middlewareTypes";
 export const canAccessAccount: ResolverMiddleware<
   GraphQLContext,
   {
-    accountId: Scalars["ID"];
+    ownedById: Scalars["ID"];
   },
   LoggedInGraphQLContext
 > = (next) =>
@@ -21,11 +21,11 @@ export const canAccessAccount: ResolverMiddleware<
       dataSources: { graphApi },
     } = ctx;
     let isAllowed = false;
-    if (user.accountId === args.accountId) {
+    if (user.entityId === args.ownedById) {
       isAllowed = true;
     } else {
       isAllowed = await user.isMemberOfOrg(graphApi, {
-        orgEntityId: args.accountId,
+        orgEntityId: args.ownedById,
       });
     }
     if (!isAllowed) {

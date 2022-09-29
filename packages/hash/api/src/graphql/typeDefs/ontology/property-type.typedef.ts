@@ -19,9 +19,14 @@ export const propertyTypeTypedef = gql`
     """
     propertyTypeVersionedUri: String!
     """
-    The user who created the property type
+    The id of the account that owns this property type.
+    """
+    ownedById: ID!
+    """
+    Alias of ownedById - the id of the account that owns this property type.
     """
     accountId: ID!
+      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     """
     The property type
     """
@@ -35,9 +40,14 @@ export const propertyTypeTypedef = gql`
     """
     propertyTypeVersionedUri: String!
     """
-    The user who created the property type
+    The id of the account that owns this property type.
+    """
+    ownedById: ID!
+    """
+    Alias of ownedById - the id of the account that owns this property type.
     """
     accountId: ID!
+      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     """
     The property type
     """
@@ -61,9 +71,14 @@ export const propertyTypeTypedef = gql`
     """
     propertyTypeVersionedUri: String!
     """
-    The user who created the property type
+    The id of the account that owns this property type.
+    """
+    ownedById: ID!
+    """
+    Alias of ownedById - the id of the account that owns this property type.
     """
     accountId: ID!
+      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     """
     The property type
     """

@@ -10,7 +10,7 @@ export const memberOf: ResolverFn<
   GraphQLContext,
   {}
 > = async ({ entityId }, _, { dataSources: { graphApi } }) => {
-  const user = await UserModel.getUserByEntityId(graphApi, { entityId });
+  const user = await UserModel.getUserById(graphApi, { entityId });
 
   if (!user) {
     const msg = `User with entityId ${entityId} not found in graph`;

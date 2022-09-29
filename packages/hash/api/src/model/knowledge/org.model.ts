@@ -26,7 +26,7 @@ export type OrgProvidedInfo = {
 
 export type OrgModelCreateParams = Omit<
   EntityModelCreateParams,
-  "properties" | "entityTypeModel" | "accountId"
+  "properties" | "entityTypeModel" | "ownedById"
 > & {
   shortname: string;
   name: string;
@@ -43,6 +43,8 @@ export default class extends EntityModel {
    * @param params.shortname - the shortname of the organization
    * @param params.name - the name of the organization
    * @param params.providedInfo - optional metadata about the organization
+   *
+   * @see {@link EntityModel.create} for the remaining params
    */
   static async createOrg(graphApi: GraphApi, params: OrgModelCreateParams) {
     const { shortname, name, providedInfo } = params;
@@ -62,22 +64,14 @@ export default class extends EntityModel {
 
     const entityTypeModel = WORKSPACE_TYPES.entityType.org;
 
-    const userEntityAccountId = workspaceAccountId;
-
-    const { entityId, version } = await EntityModel.create(graphApi, {
-      accountId: workspaceAccountId,
+    const entity = await EntityModel.create(graphApi, {
+      ownedById: workspaceAccountId,
       properties,
       entityTypeModel,
       entityId: orgAccountId,
     });
 
-    return new OrgModel({
-      accountId: userEntityAccountId,
-      entityId,
-      version,
-      entityTypeModel,
-      properties,
-    });
+    return OrgModel.fromEntityModel(entity);
   }
 
   static fromEntityModel(entity: EntityModel): OrgModel {
@@ -103,8 +97,6 @@ export default class extends EntityModel {
     params: { entityId: string },
   ): Promise<OrgModel> {
     const entity = await EntityModel.getLatest(graphApi, {
-      // assumption: `accountId` of organizations is always the workspace account id
-      accountId: workspaceAccountId,
       entityId: params.entityId,
     });
 
@@ -149,14 +141,13 @@ export default class extends EntityModel {
   /**
    * Update the shortname of an Organization
    *
-   * @param params.updatedByAccountId - the account id of the user requesting the updating
    * @param params.updatedShortname - the new shortname to assign to the Organization
    */
   async updateShortname(
     graphApi: GraphApi,
-    params: { updatedByAccountId: string; updatedShortname: string },
+    params: { updatedShortname: string },
   ): Promise<OrgModel> {
-    const { updatedByAccountId, updatedShortname } = params;
+    const { updatedShortname } = params;
 
     if (AccountFields.shortnameIsInvalid(updatedShortname)) {
       throw new Error(`The shortname "${updatedShortname}" is invalid`);
@@ -176,7 +167,6 @@ export default class extends EntityModel {
     return await this.updateProperty(graphApi, {
       propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.shortName.baseUri,
       value: updatedShortname,
-      updatedByAccountId,
     }).then((updatedEntity) => new OrgModel(updatedEntity));
   }
 
@@ -193,14 +183,10 @@ export default class extends EntityModel {
   /**
    * Update the name of an Organization
    *
-   * @param params.updatedByAccountId - the account id of the user requesting the updating
    * @param params.updatedOrgName - the new name to assign to the Organization
    */
-  async updateOrgName(
-    graphApi: GraphApi,
-    params: { updatedByAccountId: string; updatedOrgName: string },
-  ) {
-    const { updatedByAccountId, updatedOrgName } = params;
+  async updateOrgName(graphApi: GraphApi, params: { updatedOrgName: string }) {
+    const { updatedOrgName } = params;
 
     if (OrgModel.orgNameIsInvalid(updatedOrgName)) {
       throw new Error(`Organization name "${updatedOrgName}" is invalid.`);
@@ -209,9 +195,8 @@ export default class extends EntityModel {
     const updatedEntity = await this.updateProperty(graphApi, {
       propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.orgName.baseUri,
       value: updatedOrgName,
-      updatedByAccountId,
     });
 
-    return new OrgModel(updatedEntity);
+    return OrgModel.fromEntityModel(updatedEntity);
   }
 }

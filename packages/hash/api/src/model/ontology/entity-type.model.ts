@@ -6,26 +6,25 @@ import {
   PersistedEntityType,
   UpdateEntityTypeRequest,
 } from "@hashintel/hash-graph-client";
-import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
 import {
   EntityTypeModel,
   PropertyTypeModel,
   LinkTypeModel,
-  UserModel,
   DataTypeModel,
 } from "../index";
-import { generateTypeId, workspaceAccountId } from "../util";
+import { generateTypeId } from "../util";
 import dataTypeModel from "./data-type.model";
 import linkTypeModel from "./link-type.model";
+import { getNamespaceOfAccountOwner } from "./util";
 
 export type EntityTypeModelConstructorParams = {
-  accountId: string;
+  ownedById: string;
   schema: EntityType;
 };
 
 export type EntityTypeModelCreateParams = {
-  accountId: string;
+  ownedById: string;
   schema: Omit<EntityType, "$id">;
 };
 
@@ -33,12 +32,12 @@ export type EntityTypeModelCreateParams = {
  * @class {@link EntityTypeModel}
  */
 export default class {
-  accountId: string;
+  ownedById: string;
 
   schema: EntityType;
 
-  constructor({ schema, accountId }: EntityTypeModelConstructorParams) {
-    this.accountId = accountId;
+  constructor({ schema, ownedById }: EntityTypeModelConstructorParams) {
+    this.ownedById = ownedById;
     this.schema = schema;
   }
 
@@ -59,35 +58,23 @@ export default class {
      */
     return new EntityTypeModel({
       schema: inner as EntityType,
-      accountId: identifier.ownedById,
+      ownedById: identifier.ownedById,
     });
   }
 
   /**
    * Create an entity type.
    *
-   * @param params.accountId the accountId of the account creating the entity type
-   * @param params.schema an `EntityType`
+   * @param params.ownedById - the id of the owner of the entity type
+   * @param params.schema - the `EntityType`
    */
   static async create(
     graphApi: GraphApi,
     params: EntityTypeModelCreateParams,
   ): Promise<EntityTypeModel> {
-    /** @todo - get rid of this hack for the root account */
-    const namespace =
-      params.accountId === workspaceAccountId
-        ? WORKSPACE_ACCOUNT_SHORTNAME
-        : (
-            await UserModel.getUserByAccountId(graphApi, {
-              accountId: params.accountId,
-            })
-          )?.getShortname();
-
-    if (namespace == null) {
-      throw new Error(
-        `failed to get namespace for account: ${params.accountId}`,
-      );
-    }
+    const namespace = await getNamespaceOfAccountOwner(graphApi, {
+      ownerId: params.ownedById,
+    });
 
     const entityTypeId = generateTypeId({
       namespace,
@@ -98,7 +85,11 @@ export default class {
 
     const { data: identifier } = await graphApi
       .createEntityType({
-        accountId: params.accountId,
+        /**
+         * @todo: replace uses of `accountId` with `ownedById` in the Graph API
+         * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
+         */
+        accountId: params.ownedById,
         schema: fullEntityType,
       })
       .catch((err: AxiosError) => {
@@ -111,19 +102,14 @@ export default class {
 
     return new EntityTypeModel({
       schema: fullEntityType,
-      accountId: identifier.ownedById,
+      ownedById: identifier.ownedById,
     });
   }
 
   /**
    * Get all entity types at their latest version.
-   *
-   * @param params.accountId the accountId of the account requesting the entity types
    */
-  static async getAllLatest(
-    graphApi: GraphApi,
-    _params: { accountId: string },
-  ): Promise<EntityTypeModel[]> {
+  static async getAllLatest(graphApi: GraphApi): Promise<EntityTypeModel[]> {
     /**
      * @todo: get all latest entity types in specified account.
      *   This may mean implicitly filtering results by what an account is
@@ -139,7 +125,6 @@ export default class {
   /**
    * Get all entity types at their latest version with their references resolved as a list.
    *
-   * @param params.accountId the accountId of the account creating the property type
    * @param params.dataTypeQueryDepth recursion depth to use to resolve data types
    * @param params.propertyTypeQueryDepth recursion depth to use to resolve property types
    * @param params.linkTypeQueryDepth recursion depth to use to resolve link types
@@ -148,7 +133,6 @@ export default class {
   static async getAllLatestResolved(
     graphApi: GraphApi,
     params: {
-      accountId: string;
       dataTypeQueryDepth: number;
       propertyTypeQueryDepth: number;
       linkTypeQueryDepth: number;
@@ -203,7 +187,6 @@ export default class {
   /**
    * Get an entity type by its versioned URI.
    *
-   * @param params.accountId the accountId of the account requesting the entity type
    * @param params.entityTypeId the unique versioned URI for an entity type.
    */
   static async get(
@@ -223,7 +206,6 @@ export default class {
   /**
    * Get an entity type by its versioned URI.
    *
-   * @param params.accountId the accountId of the account requesting the entity type
    * @param params.dataTypeQueryDepth recursion depth to use to resolve data types
    * @param params.propertyTypeQueryDepth recursion depth to use to resolve property types
    * @param params.linkTypeQueryDepth recursion depth to use to resolve link types
@@ -285,19 +267,24 @@ export default class {
   /**
    * Update an entity type.
    *
-   * @param params.accountId the accountId of the account making the update
    * @param params.schema an `EntityType`
    */
   async update(
     graphApi: GraphApi,
     params: {
-      accountId: string;
       schema: Omit<EntityType, "$id">;
     },
   ): Promise<EntityTypeModel> {
-    const { accountId, schema } = params;
+    const { schema } = params;
     const updateArguments: UpdateEntityTypeRequest = {
-      accountId,
+      /**
+       * @todo: let caller update who owns the type, or create new method dedicated to changing the owner of the type
+       * @see https://app.asana.com/0/1202805690238892/1203063463721793/f
+       *
+       * @todo: replace uses of `accountId` with `ownedById` in the Graph API
+       * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
+       */
+      accountId: this.ownedById,
       typeToUpdate: this.schema.$id,
       schema,
     };
@@ -308,7 +295,7 @@ export default class {
 
     return new EntityTypeModel({
       schema: { ...schema, $id: identifier.uri },
-      accountId: identifier.ownedById,
+      ownedById: identifier.ownedById,
     });
   }
 

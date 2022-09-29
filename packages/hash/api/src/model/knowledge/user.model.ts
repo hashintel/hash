@@ -1,5 +1,4 @@
 import { GraphApi } from "@hashintel/hash-graph-client";
-import { AxiosError } from "axios";
 import {
   EntityModel,
   UserModel,
@@ -20,7 +19,7 @@ type QualifiedEmail = { address: string; verified: boolean; primary: boolean };
 
 type UserModelCreateParams = Omit<
   EntityModelCreateParams,
-  "properties" | "entityTypeModel" | "accountId"
+  "properties" | "entityTypeModel" | "ownedById"
 > & {
   emails: string[];
   kratosIdentityId: string;
@@ -30,57 +29,6 @@ type UserModelCreateParams = Omit<
  * @class {@link UserModel}
  */
 export default class extends EntityModel {
-  /**
-   * @todo: This method and `getUserByEntityId` is confusing. Should be fixed as part of:
-   *  https://app.asana.com/0/1200211978612931/1202937382769276/f
-   */
-  static async getUserByAccountId(
-    graphApi: GraphApi,
-    params: { accountId: string },
-  ): Promise<UserModel | null> {
-    const allUsers = await EntityModel.getByQuery(graphApi, {
-      all: [
-        { eq: [{ path: ["version"] }, { literal: "latest" }] },
-        {
-          eq: [
-            { path: ["type", "versionedUri"] },
-            { literal: WORKSPACE_TYPES.entityType.user.schema.$id },
-          ],
-        },
-      ],
-    });
-
-    const matchingUser = allUsers
-      .filter(({ accountId }) => accountId === workspaceAccountId)
-      .map(UserModel.fromEntityModel)
-      .find((user) => user.entityId === params.accountId);
-
-    return matchingUser ?? null;
-  }
-
-  /**
-   * Get a workspace user entity by their entityId.
-   *
-   * @param params.entityId - the entityId of the user
-   */
-  static async getUserByEntityId(
-    graphApi: GraphApi,
-    params: { entityId: string },
-  ): Promise<UserModel | null> {
-    const { entityId } = params;
-
-    const entityModel = await EntityModel.getLatest(graphApi, {
-      accountId: workspaceAccountId,
-      entityId,
-    }).catch((err: AxiosError) => {
-      throw new Error(
-        `failed to get user entity with id ${entityId}: ${err.code} ${err.response?.data}`,
-      );
-    });
-
-    return new UserModel(entityModel);
-  }
-
   static fromEntityModel(entity: EntityModel): UserModel {
     if (
       entity.entityTypeModel.schema.$id !==
@@ -104,8 +52,6 @@ export default class extends EntityModel {
     params: { entityId: string },
   ): Promise<UserModel> {
     const entity = await EntityModel.getLatest(graphApi, {
-      // assumption: `accountId` of user is always the workspace account id
-      accountId: workspaceAccountId,
       entityId: params.entityId,
     });
 
@@ -212,22 +158,14 @@ export default class extends EntityModel {
 
     const entityTypeModel = WORKSPACE_TYPES.entityType.user;
 
-    const userEntityAccountId = workspaceAccountId;
-
-    const { entityId, version } = await EntityModel.create(graphApi, {
-      accountId: workspaceAccountId,
+    const entity = await EntityModel.create(graphApi, {
+      ownedById: workspaceAccountId,
       properties,
       entityTypeModel,
       entityId: userAccountId,
     });
 
-    return new UserModel({
-      accountId: userEntityAccountId,
-      entityId,
-      version,
-      entityTypeModel,
-      properties,
-    });
+    return UserModel.fromEntityModel(entity);
   }
 
   /**
@@ -316,14 +254,13 @@ export default class extends EntityModel {
   /**
    * Update the shortname of a User.
    *
-   * @param params.updatedByAccountId - the account id of the user requesting the updating
    * @param params.updatedShortname - the new shortname to assign to the User
    */
   async updateShortname(
     graphApi: GraphApi,
-    params: { updatedByAccountId: string; updatedShortname: string },
+    params: { updatedShortname: string },
   ): Promise<UserModel> {
-    const { updatedByAccountId, updatedShortname } = params;
+    const { updatedShortname } = params;
 
     if (AccountFields.shortnameIsInvalid(updatedShortname)) {
       throw new Error(`The shortname "${updatedShortname}" is invalid`);
@@ -345,7 +282,6 @@ export default class extends EntityModel {
     const updatedUser = await this.updateProperty(graphApi, {
       propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.shortName.baseUri,
       value: updatedShortname,
-      updatedByAccountId,
     }).then((updatedEntity) => new UserModel(updatedEntity));
 
     await this.updateKratosIdentityTraits({
@@ -355,7 +291,6 @@ export default class extends EntityModel {
       await this.updateProperty(graphApi, {
         propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.shortName.baseUri,
         value: previousShortname,
-        updatedByAccountId,
       });
 
       return Promise.reject(error);
@@ -377,14 +312,13 @@ export default class extends EntityModel {
   /**
    * Update the preferred name of a User.
    *
-   * @param params.updatedByAccountId - the account id of the user requesting the updating
    * @param params.updatedPreferredName - the new preferred name to assign to the User
    */
   async updatePreferredName(
     graphApi: GraphApi,
-    params: { updatedByAccountId: string; updatedPreferredName: string },
+    params: { updatedPreferredName: string },
   ) {
-    const { updatedByAccountId, updatedPreferredName } = params;
+    const { updatedPreferredName } = params;
 
     if (UserModel.preferredNameIsInvalid(updatedPreferredName)) {
       throw new Error(`Preferred name "${updatedPreferredName}" is invalid.`);
@@ -393,7 +327,6 @@ export default class extends EntityModel {
     const updatedEntity = await this.updateProperty(graphApi, {
       propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.preferredName.baseUri,
       value: updatedPreferredName,
-      updatedByAccountId,
     });
 
     return new UserModel(updatedEntity);
@@ -411,7 +344,7 @@ export default class extends EntityModel {
 
   async updateInfoProvidedAtSignup(
     _graphApi: GraphApi,
-    _params: { updatedByAccountId: string; updatedInfo: any },
+    _params: { updatedInfo: any },
   ) {
     /** @todo: re-implement this method */
     throw new Error(
@@ -436,7 +369,7 @@ export default class extends EntityModel {
     await this.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.hasMembership,
       targetEntityModel: orgMembership,
-      createdById: workspaceAccountId,
+      ownedById: workspaceAccountId,
     });
   }
 

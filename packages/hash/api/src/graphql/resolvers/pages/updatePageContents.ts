@@ -145,7 +145,7 @@ export const updatePageContents: ResolverFn<
               placeholderId,
               await EntityType.create(client, {
                 accountId: entityTypeAccountId,
-                createdByAccountId: user.accountId,
+                createdByAccountId: user.entityId,
                 description: description ?? undefined,
                 name,
                 schema,
@@ -236,7 +236,7 @@ export const updatePageContents: ResolverFn<
                 blockData,
                 createdBy:
                   user as any /** @todo: replace with updated model class */,
-                accountId: user.accountId,
+                accountId: user.entityId,
                 properties: {
                   componentId: blockComponentId,
                 },
@@ -281,7 +281,7 @@ export const updatePageContents: ResolverFn<
           return await block.swapBlockData(client, {
             targetDataAccountId: swapBlockData.newEntityAccountId,
             targetDataEntityId: swapBlockData.newEntityEntityId,
-            updatedByAccountId: user.accountId,
+            updatedByAccountId: user.entityId,
           });
         }),
     );
@@ -306,7 +306,7 @@ export const updatePageContents: ResolverFn<
                 }
               },
             ),
-            updatedByAccountId: user.accountId,
+            updatedByAccountId: user.entityId,
           });
         }),
     );
@@ -330,18 +330,18 @@ export const updatePageContents: ResolverFn<
           await page.insertBlock(client, {
             block: insertedBlocks[insertCount]!,
             position: action.insertBlock.position,
-            insertedByAccountId: user.accountId,
+            insertedByAccountId: user.entityId,
           });
           insertCount += 1;
         } else if (action.moveBlock) {
           await page.moveBlock(client, {
             ...action.moveBlock,
-            movedByAccountId: user.accountId,
+            movedByAccountId: user.entityId,
           });
         } else if (action.removeBlock) {
           await page.removeBlock(client, {
             ...action.removeBlock,
-            removedByAccountId: user.accountId,
+            removedByAccountId: user.entityId,
             allowRemovingFinal: actions
               .slice(i + 1)
               .some((actionToFollow) => actionToFollow.insertBlock),
