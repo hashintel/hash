@@ -100,6 +100,7 @@ import {
   updateKnowledgePageContents,
   knowledgePageContents,
 } from "./knowledge/page";
+import { knowledgePage } from "./knowledge/page/page";
 
 export const resolvers = {
   Query: {
@@ -140,6 +141,8 @@ export const resolvers = {
     getLinkType: loggedInAndSignedUp(getLinkType),
     getAllLatestEntityTypes: loggedInAndSignedUp(getAllLatestEntityTypes),
     getEntityType: loggedInAndSignedUp(getEntityType),
+    // Knowledge
+    knowledgePage: loggedInAndSignedUp(knowledgePage),
   },
 
   Mutation: {
