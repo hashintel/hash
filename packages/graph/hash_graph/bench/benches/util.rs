@@ -3,8 +3,8 @@ use std::{mem::ManuallyDrop, str::FromStr};
 use graph::{
     ontology::AccountId,
     store::{
-        AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityTypeStore,
-        LinkTypeStore, PostgresStorePool, PropertyTypeStore, StorePool,
+        AsClient, BaseUriAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
+        EntityTypeStore, LinkTypeStore, PostgresStorePool, PropertyTypeStore, StorePool,
     },
 };
 use tokio::runtime::Runtime;
@@ -115,45 +115,95 @@ impl StoreWrapper {
         L: IntoIterator<Item = &'static str>,
         E: IntoIterator<Item = &'static str>,
     {
-        for data_type in data_types {
-            self.store
-                .create_data_type(
-                    DataType::from_str(data_type).expect("could not parse data type"),
-                    account_id,
-                )
+        for data_type_str in data_types {
+            let data_type = DataType::from_str(data_type_str).expect("could not parse data type");
+
+            match self
+                .store
+                .create_data_type(data_type.clone(), account_id)
                 .await
-                .expect("failed to create data type");
+            {
+                Ok(_) => {}
+                Err(report) => {
+                    if report.contains::<BaseUriAlreadyExists>() {
+                        self.store
+                            .update_data_type(data_type, account_id)
+                            .await
+                            .expect("failed to update data type");
+                    } else {
+                        Err(report).expect("failed to create data type")
+                    }
+                }
+            }
         }
 
-        for property_type in property_types {
-            self.store
-                .create_property_type(
-                    PropertyType::from_str(property_type).expect("could not parse property type"),
-                    account_id,
-                )
+        for property_type_str in property_types {
+            let property_type =
+                PropertyType::from_str(property_type_str).expect("could not parse property type");
+
+            match self
+                .store
+                .create_property_type(property_type.clone(), account_id)
                 .await
-                .expect("failed to create property type");
+            {
+                Ok(_) => {}
+                Err(report) => {
+                    if report.contains::<BaseUriAlreadyExists>() {
+                        self.store
+                            .update_property_type(property_type, account_id)
+                            .await
+                            .expect("failed to update property type");
+                    } else {
+                        Err(report).expect("failed to create property type")
+                    }
+                }
+            }
         }
 
         // Insert link types before entity types so entity types can refer to them
-        for link_type in link_types {
-            self.store
-                .create_link_type(
-                    LinkType::from_str(link_type).expect("could not parse link type"),
-                    account_id,
-                )
+        for link_type_str in link_types {
+            let link_type = LinkType::from_str(link_type_str).expect("could not parse link type");
+
+            match self
+                .store
+                .create_link_type(link_type.clone(), account_id)
                 .await
-                .expect("failed to create link type");
+            {
+                Ok(_) => {}
+                Err(report) => {
+                    if report.contains::<BaseUriAlreadyExists>() {
+                        self.store
+                            .update_link_type(link_type, account_id)
+                            .await
+                            .expect("failed to update link type");
+                    } else {
+                        Err(report).expect("failed to create link type")
+                    }
+                }
+            }
         }
 
-        for entity_type in entity_types {
-            self.store
-                .create_entity_type(
-                    EntityType::from_str(entity_type).expect("could not parse entity type"),
-                    account_id,
-                )
+        for entity_type_str in entity_types {
+            let entity_type =
+                EntityType::from_str(entity_type_str).expect("could not parse entity type");
+
+            match self
+                .store
+                .create_entity_type(entity_type.clone(), account_id)
                 .await
-                .expect("failed to create entity type");
+            {
+                Ok(_) => {}
+                Err(report) => {
+                    if report.contains::<BaseUriAlreadyExists>() {
+                        self.store
+                            .update_entity_type(entity_type, account_id)
+                            .await
+                            .expect("failed to update entity type");
+                    } else {
+                        Err(report).expect("failed to create entity type")
+                    }
+                }
+            }
         }
     }
 }
