@@ -1,4 +1,4 @@
-import { Box, Tooltip, Typography } from "@mui/material";
+import { Box, PopoverPosition, Tooltip, Typography } from "@mui/material";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
 import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
@@ -62,6 +62,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
     ref,
   ) => {
     const [hovered, setHovered] = useState(false);
+    const [anchorPosition, setAnchorPosition] = useState<PopoverPosition>();
 
     const { accountId } = useRouteAccountInfo();
 
@@ -85,6 +86,10 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
         ref={wrapperRef}
         onContextMenu={(event) => {
           event.preventDefault();
+          setAnchorPosition({
+            left: event.clientX + 2,
+            top: event.clientY - 6,
+          });
           popupState.open(event);
         }}
         onMouseEnter={() => setHoveredState(true)}
@@ -216,6 +221,12 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
             popupState={popupState}
             createSubPage={createSubPage}
             archivePage={archivePage}
+            /**
+             * we reset anchor position on close because,
+             * maybe next time user can open via clicking the `more` icon instead of right-clicking again
+             */
+            onClose={() => setAnchorPosition(undefined)}
+            anchorPosition={anchorPosition}
           />
         </Link>
       </Box>
