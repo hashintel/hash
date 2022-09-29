@@ -19,9 +19,14 @@ export const entityTypeTypedef = gql`
     """
     entityTypeVersionedUri: String!
     """
-    The user who created the entity type
+    The id of the account that owns this entity type.
+    """
+    ownedById: ID!
+    """
+    Alias of ownedById - the id of the account that owns this entity type.
     """
     accountId: ID!
+      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     """
     The entity type
     """
@@ -35,9 +40,14 @@ export const entityTypeTypedef = gql`
     """
     entityTypeVersionedUri: String!
     """
-    The user who created the entity type
+    The id of the account that owns this entity type.
+    """
+    ownedById: ID!
+    """
+    Alias of ownedById - the id of the account that owns this entity type.
     """
     accountId: ID!
+      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     """
     The entity type
     """
@@ -69,9 +79,14 @@ export const entityTypeTypedef = gql`
     """
     entityTypeVersionedUri: String!
     """
-    The user who created the entity type
+    The id of the account that owns this entity type.
+    """
+    ownedById: ID!
+    """
+    Alias of ownedById - the id of the account that owns this entity type.
     """
     accountId: ID!
+      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     """
     The entity type
     """

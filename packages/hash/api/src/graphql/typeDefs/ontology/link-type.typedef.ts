@@ -10,9 +10,14 @@ export const linkTypeTypedef = gql`
     """
     linkTypeVersionedUri: String!
     """
-    The user who created the link type
+    The id of the account that owns this link type.
+    """
+    ownedById: ID!
+    """
+    Alias of ownedById - the id of the account that owns this link type.
     """
     accountId: ID!
+      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     """
     The link type
     """
