@@ -64,8 +64,7 @@ export const useBlockProtocolCreatePropertyType = (
 
       return {
         data: {
-          propertyTypeVersionedUri:
-            responseData.createPropertyType.propertyTypeVersionedUri,
+          propertyTypeId: responseData.createPropertyType.propertyTypeId,
           propertyType: responseData.createPropertyType.propertyType,
         },
       };

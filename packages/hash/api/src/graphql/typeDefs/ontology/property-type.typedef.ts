@@ -17,7 +17,7 @@ export const propertyTypeTypedef = gql`
     """
     The specific versioned URI of the property type
     """
-    propertyTypeVersionedUri: String!
+    propertyTypeId: String!
     """
     The id of the account that owns this property type.
     """
@@ -38,7 +38,7 @@ export const propertyTypeTypedef = gql`
     """
     The specific versioned URI of the property type
     """
-    propertyTypeVersionedUri: String!
+    propertyTypeId: String!
     """
     The id of the account that owns this property type.
     """
@@ -69,7 +69,7 @@ export const propertyTypeTypedef = gql`
     """
     The specific versioned URI of the property type
     """
-    propertyTypeVersionedUri: String!
+    propertyTypeId: String!
     """
     The id of the account that owns this property type.
     """
@@ -95,9 +95,7 @@ export const propertyTypeTypedef = gql`
     """
     Get a property type by its versioned URI.
     """
-    getPropertyType(
-      propertyTypeVersionedUri: String!
-    ): PropertyTypeRootedSubgraph!
+    getPropertyType(propertyTypeId: String!): PropertyTypeRootedSubgraph!
   }
 
   extend type Mutation {
@@ -119,7 +117,7 @@ export const propertyTypeTypedef = gql`
       """
       The property type versioned $id to update.
       """
-      propertyTypeVersionedUri: String!
+      propertyTypeId: String!
       """
       New property type schema contents to be used.
       """

@@ -58,14 +58,14 @@ export const getLinkType: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryGetLinkTypeArgs
-> = async (_, { linkTypeVersionedUri }, { dataSources }) => {
+> = async (_, { linkTypeId }, { dataSources }) => {
   const { graphApi } = dataSources;
 
   const linkTypeModel = await LinkTypeModel.get(graphApi, {
-    linkTypeId: linkTypeVersionedUri,
+    linkTypeId,
   }).catch((err: AxiosError) => {
     throw new ApolloError(
-      `Unable to retrieve link type. ${err.response?.data} [URI=${linkTypeVersionedUri}]`,
+      `Unable to retrieve link type. ${err.response?.data} [URI=${linkTypeId}]`,
       "GET_ERROR",
     );
   });
@@ -80,13 +80,13 @@ export const updateLinkType: ResolverFn<
   MutationUpdateLinkTypeArgs
 > = async (_, params, { dataSources }) => {
   const { graphApi } = dataSources;
-  const { linkTypeVersionedUri, updatedLinkType } = params;
+  const { linkTypeId, updatedLinkType } = params;
 
   const linkTypeModel = await LinkTypeModel.get(graphApi, {
-    linkTypeId: linkTypeVersionedUri,
+    linkTypeId,
   }).catch((err: AxiosError) => {
     throw new ApolloError(
-      `Unable to retrieve link type. ${err.response?.data} [URI=${linkTypeVersionedUri}]`,
+      `Unable to retrieve link type. ${err.response?.data} [URI=${linkTypeId}]`,
       "GET_ERROR",
     );
   });
@@ -98,7 +98,7 @@ export const updateLinkType: ResolverFn<
     .catch((err: AxiosError) => {
       const msg =
         err.response?.status === 409
-          ? `Link type URI doesn't exist, unable to update. [URI=${linkTypeVersionedUri}]`
+          ? `Link type URI doesn't exist, unable to update. [URI=${linkTypeId}]`
           : `Couldn't update link type.`;
 
       throw new ApolloError(msg, "CREATION_ERROR");

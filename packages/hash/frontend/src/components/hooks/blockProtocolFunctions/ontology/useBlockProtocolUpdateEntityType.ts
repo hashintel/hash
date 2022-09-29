@@ -42,10 +42,10 @@ export const useBlockProtocolUpdateEntityType = (
         };
       }
 
-      const { entityTypeVersionedUri, entityType } = data;
+      const { entityTypeId, entityType } = data;
       const { data: responseData } = await updateFn({
         variables: {
-          entityTypeVersionedUri,
+          entityTypeId,
           updatedEntityType: entityType,
         },
       });
@@ -63,8 +63,7 @@ export const useBlockProtocolUpdateEntityType = (
 
       return {
         data: {
-          entityTypeVersionedUri:
-            responseData.updateEntityType.entityTypeVersionedUri,
+          entityTypeId: responseData.updateEntityType.entityTypeId,
           entityType: responseData.updateEntityType.entityType,
         },
       };

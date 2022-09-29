@@ -64,8 +64,7 @@ export const useBlockProtocolCreateLinkType = (
 
       return {
         data: {
-          linkTypeVersionedUri:
-            responseData.createLinkType.linkTypeVersionedUri,
+          linkTypeId: responseData.createLinkType.linkTypeId,
           linkType: responseData.createLinkType.linkType,
         },
       };

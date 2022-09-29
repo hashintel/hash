@@ -72,11 +72,11 @@ export const getEntityType: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryGetEntityTypeArgs
-> = async (_, { entityTypeVersionedUri }, { dataSources }, info) => {
+> = async (_, { entityTypeId }, { dataSources }, info) => {
   const { graphApi } = dataSources;
 
   const entityTypeRootedSubgraph = await EntityTypeModel.getResolved(graphApi, {
-    entityTypeId: entityTypeVersionedUri,
+    entityTypeId,
     dataTypeQueryDepth: dataTypeQueryDepth(info),
     propertyTypeQueryDepth: propertyTypeQueryDepth(info),
     linkTypeQueryDepth: linkTypeQueryDepth(info),
@@ -98,13 +98,13 @@ export const updateEntityType: ResolverFn<
   MutationUpdateEntityTypeArgs
 > = async (_, params, { dataSources }) => {
   const { graphApi } = dataSources;
-  const { entityTypeVersionedUri, updatedEntityType } = params;
+  const { entityTypeId, updatedEntityType } = params;
 
   const entityTypeModel = await EntityTypeModel.get(graphApi, {
-    entityTypeId: entityTypeVersionedUri,
+    entityTypeId,
   }).catch((err: AxiosError) => {
     throw new ApolloError(
-      `Unable to retrieve entity type. ${err.response?.data} [URI=${entityTypeVersionedUri}]`,
+      `Unable to retrieve entity type. ${err.response?.data} [URI=${entityTypeId}]`,
       "GET_ERROR",
     );
   });
@@ -116,7 +116,7 @@ export const updateEntityType: ResolverFn<
     .catch((err: AxiosError) => {
       const msg =
         err.response?.status === 409
-          ? `Entity type URI doesn't exist, unable to update. [URI=${entityTypeVersionedUri}]`
+          ? `Entity type URI doesn't exist, unable to update. [URI=${entityTypeId}]`
           : `Couldn't update entity type.`;
 
       throw new ApolloError(msg, "CREATION_ERROR");

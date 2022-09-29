@@ -45,10 +45,10 @@ export type OntologyCallbacks = {
  * For example turning
  *   Response<"dataType", DataType>
  * into
- *   { dataTypeVersionedUri: string; dataType: DataType }
+ *   { dataTypeId: string; dataType: DataType }
  */
 type Response<N extends string, T> = {
-  [_ in `${N}VersionedUri`]: string;
+  [_ in `${N}Id`]: string;
 } & { [_ in N]: T };
 
 export type AggregateResult<T> = {
@@ -67,7 +67,7 @@ export type AggregateDataTypesMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
-export type GetDataTypeRequest = Pick<DataTypeResponse, "dataTypeVersionedUri">;
+export type GetDataTypeRequest = Pick<DataTypeResponse, "dataTypeId">;
 export type GetDataTypeMessageCallback = MessageCallback<
   GetDataTypeRequest,
   null,
@@ -106,7 +106,7 @@ export type GetPropertyTypeMessageCallback = MessageCallback<
 >;
 
 export type UpdatePropertyTypeRequest = {
-  propertyTypeVersionedUri: string;
+  propertyTypeId: string;
   propertyType: Omit<PropertyType, "$id">;
 };
 export type UpdatePropertyTypeMessageCallback = MessageCallback<
@@ -147,7 +147,7 @@ export type GetEntityTypeMessageCallback = MessageCallback<
 >;
 
 export type UpdateEntityTypeRequest = {
-  entityTypeVersionedUri: string;
+  entityTypeId: string;
   entityType: Omit<EntityType, "$id">;
 };
 export type UpdateEntityTypeMessageCallback = MessageCallback<
@@ -188,7 +188,7 @@ export type GetLinkTypeMessageCallback = MessageCallback<
 >;
 
 export type UpdateLinkTypeRequest = {
-  linkTypeVersionedUri: string;
+  linkTypeId: string;
   linkType: Omit<LinkType, "$id">;
 };
 export type UpdateLinkTypeMessageCallback = MessageCallback<

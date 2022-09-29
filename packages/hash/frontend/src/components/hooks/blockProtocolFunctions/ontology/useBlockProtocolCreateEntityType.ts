@@ -64,8 +64,7 @@ export const useBlockProtocolCreateEntityType = (
 
       return {
         data: {
-          entityTypeVersionedUri:
-            responseData.createEntityType.entityTypeVersionedUri,
+          entityTypeId: responseData.createEntityType.entityTypeId,
           entityType: responseData.createEntityType.entityType,
         },
       };

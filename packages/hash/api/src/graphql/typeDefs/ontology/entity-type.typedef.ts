@@ -17,7 +17,7 @@ export const entityTypeTypedef = gql`
     """
     The specific versioned URI of the entity type
     """
-    entityTypeVersionedUri: String!
+    entityTypeId: String!
     """
     The id of the account that owns this entity type.
     """
@@ -38,7 +38,7 @@ export const entityTypeTypedef = gql`
     """
     The specific versioned URI of the entity type
     """
-    entityTypeVersionedUri: String!
+    entityTypeId: String!
     """
     The id of the account that owns this entity type.
     """
@@ -77,7 +77,7 @@ export const entityTypeTypedef = gql`
     """
     The specific versioned URI of the entity type
     """
-    entityTypeVersionedUri: String!
+    entityTypeId: String!
     """
     The id of the account that owns this entity type.
     """
@@ -103,7 +103,7 @@ export const entityTypeTypedef = gql`
     """
     Get a entity type by its versioned URI.
     """
-    getEntityType(entityTypeVersionedUri: String!): EntityTypeRootedSubgraph!
+    getEntityType(entityTypeId: String!): EntityTypeRootedSubgraph!
   }
 
   extend type Mutation {
@@ -125,7 +125,7 @@ export const entityTypeTypedef = gql`
       """
       The entity type versioned $id to update.
       """
-      entityTypeVersionedUri: String!
+      entityTypeId: String!
       """
       New entity type schema contents to be used.
       """
