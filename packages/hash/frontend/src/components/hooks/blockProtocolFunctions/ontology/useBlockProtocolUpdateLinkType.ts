@@ -42,10 +42,10 @@ export const useBlockProtocolUpdateLinkType = (
         };
       }
 
-      const { linkTypeVersionedUri, linkType } = data;
+      const { linkTypeId, linkType } = data;
       const { data: responseData } = await updateFn({
         variables: {
-          linkTypeVersionedUri,
+          linkTypeId,
           updatedLinkType: linkType,
         },
       });
@@ -63,8 +63,7 @@ export const useBlockProtocolUpdateLinkType = (
 
       return {
         data: {
-          linkTypeVersionedUri:
-            responseData.updateLinkType.linkTypeVersionedUri,
+          linkTypeId: responseData.updateLinkType.linkTypeId,
           linkType: responseData.updateLinkType.linkType,
         },
       };

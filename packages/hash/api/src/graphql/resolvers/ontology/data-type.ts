@@ -35,11 +35,11 @@ export const getDataType: ResolverFn<
   {},
   GraphQLContext,
   QueryGetDataTypeArgs
-> = async (_, { dataTypeVersionedUri }, { dataSources }) => {
+> = async (_, { dataTypeId }, { dataSources }) => {
   const { graphApi } = dataSources;
 
   const dataTypeModel = await DataTypeModel.get(graphApi, {
-    dataTypeId: dataTypeVersionedUri,
+    dataTypeId,
   }).catch((err: AxiosError) => {
     throw new ApolloError(
       `Unable to retrieve data type. ${err.response?.data}`,

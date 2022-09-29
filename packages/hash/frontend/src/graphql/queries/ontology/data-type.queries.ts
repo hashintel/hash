@@ -1,9 +1,9 @@
 import { gql } from "@apollo/client";
 
 export const getDataTypeQuery = gql`
-  query getDataType($dataTypeVersionedUri: String!) {
-    getDataType(dataTypeVersionedUri: $dataTypeVersionedUri) {
-      dataTypeVersionedUri
+  query getDataType($dataTypeId: String!) {
+    getDataType(dataTypeId: $dataTypeId) {
+      dataTypeId
       ownedById
       dataType
     }
@@ -13,7 +13,7 @@ export const getDataTypeQuery = gql`
 export const getAllLatestDataTypesQuery = gql`
   query getAllLatestDataTypes {
     getAllLatestDataTypes {
-      dataTypeVersionedUri
+      dataTypeId
       ownedById
       dataType
     }

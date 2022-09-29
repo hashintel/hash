@@ -42,10 +42,10 @@ export const useBlockProtocolUpdatePropertyType = (
         };
       }
 
-      const { propertyTypeVersionedUri, propertyType } = data;
+      const { propertyTypeId, propertyType } = data;
       const { data: responseData } = await updateFn({
         variables: {
-          propertyTypeVersionedUri,
+          propertyTypeId,
           updatedPropertyType: propertyType,
         },
       });
@@ -63,8 +63,7 @@ export const useBlockProtocolUpdatePropertyType = (
 
       return {
         data: {
-          propertyTypeVersionedUri:
-            responseData.updatePropertyType.propertyTypeVersionedUri,
+          propertyTypeId: responseData.updatePropertyType.propertyTypeId,
           propertyType: responseData.updatePropertyType.propertyType,
         },
       };
