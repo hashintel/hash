@@ -1,4 +1,4 @@
-use std::{mem::ManuallyDrop, str::FromStr};
+use std::str::FromStr;
 
 use graph::{
     ontology::AccountId,
@@ -17,9 +17,8 @@ pub type Store = <Pool as StorePool>::Store<'static>;
 // TODO - deduplicate with integration/postgres/mod.rs
 pub struct StoreWrapper {
     bench_db_name: String,
-    source_db_pool: Pool,
-    pool: ManuallyDrop<Pool>,
-    pub store: ManuallyDrop<Store>,
+    _pool: Pool,
+    pub store: Store,
 }
 
 impl StoreWrapper {
@@ -95,10 +94,9 @@ impl StoreWrapper {
             .expect("could not acquire a database connection");
 
         Self {
-            source_db_pool,
             bench_db_name: bench_db_name.to_owned(),
-            pool: ManuallyDrop::new(pool),
-            store: ManuallyDrop::new(store),
+            _pool: pool,
+            store,
         }
     }
 
@@ -205,40 +203,6 @@ impl StoreWrapper {
                 }
             }
         }
-    }
-}
-
-impl Drop for StoreWrapper {
-    fn drop(&mut self) {
-        // We're in the process of dropping the parent struct, we just need to ensure we release
-        // the connections of this pool before deleting the database
-        // SAFETY: The values of `store` and `pool` are not accessed after dropping
-        unsafe {
-            ManuallyDrop::drop(&mut self.store);
-            ManuallyDrop::drop(&mut self.pool);
-        }
-
-        let runtime = Runtime::new().unwrap();
-        runtime.block_on(async {
-            let conn = self
-                .source_db_pool
-                .acquire_owned()
-                .await
-                .expect("could not acquire a database connection");
-
-            conn.as_client()
-                .execute(
-                    &format!(
-                        r#"
-                        DROP DATABASE IF EXISTS {};
-                        "#,
-                        self.bench_db_name
-                    ),
-                    &[],
-                )
-                .await
-                .expect("failed to drop database");
-        });
     }
 }
 
