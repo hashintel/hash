@@ -46,12 +46,13 @@ export default class extends EntityModel {
    *
    * @param params.componentId - the component id of the block
    * @param params.blockData - the linked block data entity
+   * @see {@link EntityModel.create} for remaining params
    */
   static async createBlock(
     graphApi: GraphApi,
     params: BlockModelCreateParams,
   ): Promise<BlockModel> {
-    const { componentId, blockData, accountId } = params;
+    const { componentId, blockData, ownedById } = params;
 
     const properties: object = {
       [WORKSPACE_TYPES.propertyType.componentId.baseUri]: componentId,
@@ -60,7 +61,7 @@ export default class extends EntityModel {
     const entityTypeModel = WORKSPACE_TYPES.entityType.block;
 
     const entity = await EntityModel.create(graphApi, {
-      accountId,
+      ownedById,
       properties,
       entityTypeModel,
     });
@@ -68,7 +69,7 @@ export default class extends EntityModel {
     await entity.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.blockData,
       targetEntityModel: blockData,
-      createdById: accountId,
+      ownedById,
     });
 
     return BlockModel.fromEntityModel(entity);
@@ -105,18 +106,15 @@ export default class extends EntityModel {
   /**
    * Update the linked block data entity of a block.
    *
-   * @param params.updatedById - the account id of the user that updated the
    * @param params.newBlockDataEntity - the new block data entity
    */
   async updateBlockDataEntity(
     graphApi: GraphApi,
     params: {
-      /** @todo: rename this argument to something that doesn't include `accountId` */
-      updatedById: string;
       newBlockDataEntity: EntityModel;
     },
   ): Promise<void> {
-    const { updatedById, newBlockDataEntity } = params;
+    const { newBlockDataEntity } = params;
     const outgoingBlockDataLinks = await this.getOutgoingLinks(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.blockData,
     });
@@ -139,13 +137,17 @@ export default class extends EntityModel {
     }
 
     await outgoingBlockDataLink.remove(graphApi, {
-      removedById: updatedById,
+      /**
+       * @todo: don't assume the owner of the link is the user that's responsible for removing it.
+       * Related to https://app.asana.com/0/1200211978612931/1202848989198291/f
+       */
+      removedById: this.ownedById,
     });
 
     await this.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.blockData,
       targetEntityModel: newBlockDataEntity,
-      createdById: updatedById,
+      ownedById: this.ownedById,
     });
   }
 }
