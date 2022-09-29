@@ -18,7 +18,7 @@ impl std::fmt::Display for CustomError {
 fn main() -> ExitCode {
     let report = Report::new(CustomError)
         .attach(ExitCode::from(100))
-        .attach_printable("This error has an exit code of 100!");
+        .attach_printable("this error has an exit code of 100!");
 
     report.report()
 }
