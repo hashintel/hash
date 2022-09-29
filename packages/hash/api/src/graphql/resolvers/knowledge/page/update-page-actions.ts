@@ -204,7 +204,7 @@ export const handleInsertNewBlock = async (
     } else if (blockComponentId) {
       block = await BlockModel.createBlock(graphApi, {
         blockData,
-        ownedById: userModel.ownedById,
+        ownedById: userModel.entityId,
         componentId: blockComponentId,
       });
     } else {
