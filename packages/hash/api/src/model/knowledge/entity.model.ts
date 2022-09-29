@@ -283,7 +283,7 @@ export default class {
   /**
    * Get the latest version of an entity by its entity ID.
    *
-   * @param params.versionedUri the unique versioned URI for an entity.
+   * @param params.entityId - the id of the entity
    */
   static async getLatest(
     graphApi: GraphApi,
@@ -295,6 +295,24 @@ export default class {
     const { data: persistedEntity } = await graphApi.getEntity(entityId);
 
     return await EntityModel.fromPersistedEntity(graphApi, persistedEntity);
+  }
+
+  /**
+   * Get a specific version of an entity.
+   *
+   * @param params.entityId - the id of the entity
+   * @param params.version - the version of the entity
+   */
+  static async getVersion(
+    _graphApi: GraphApi,
+    _params: {
+      entityId: string;
+      entityVersion: string;
+    },
+  ): Promise<EntityModel> {
+    throw new Error(
+      "Graph API does not yet support getting a specific version of an entity",
+    );
   }
 
   /**

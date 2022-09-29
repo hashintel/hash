@@ -46,9 +46,18 @@ export default class extends EntityModel {
    */
   static async getPageById(
     graphApi: GraphApi,
-    params: { entityId: string },
+    params: { entityId: string; entityVersion?: string },
   ): Promise<PageModel> {
-    const entity = await EntityModel.getLatest(graphApi, params);
+    const { entityId, entityVersion } = params;
+
+    const entity = entityVersion
+      ? await EntityModel.getVersion(graphApi, {
+          entityId,
+          entityVersion,
+        })
+      : await EntityModel.getLatest(graphApi, {
+          entityId,
+        });
 
     return PageModel.fromEntityModel(entity);
   }
