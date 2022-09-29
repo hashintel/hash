@@ -13,7 +13,6 @@ All notable changes to `error-stack` will be documented in this file.
 
 - Set the MSRV to 1.63 ([#944](https://github.com/hashintel/hash/pull/944))
 - Use `Provider` API from `core::any` ([#697](https://github.com/hashintel/hash/pull/697))
-- Move helper structs for extension traits into the `error_stack::ext` module ([#970](https://github.com/hashintel/hash/pull/970))
 - Hide `futures-core` feature ([#695](https://github.com/hashintel/hash/pull/695))
 
 ### Features
