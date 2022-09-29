@@ -94,3 +94,10 @@ The benchmark suite can be ran with:
 ```shell
 cargo make bench
 ```
+
+### Note:
+
+The benchmarks currently have a fairly costly (in time) setup cost per suite on initialization. 
+As such, the benchmark databases **are not cleaned up** between or after runs.
+
+This also means that if breaking changes are made to the seeding logic, **you must manually delete the benchmark tables to have them reseed**.
