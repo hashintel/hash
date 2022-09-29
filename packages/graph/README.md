@@ -86,3 +86,11 @@ cargo make generate-openapi-client
 ```
 
 Make sure to run this command whenever changes are made to the specification. CI will not pass otherwise.
+
+## Benchmark the code
+
+The benchmark suite can be ran with:
+
+```shell
+cargo make bench
+```
