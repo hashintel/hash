@@ -311,7 +311,7 @@ export default class {
     },
   ): Promise<EntityModel> {
     throw new Error(
-      "Graph API does not yet support getting a specific version of an entity",
+      "Getting the specific version of an entity is not yet implemented.",
     );
   }
 
