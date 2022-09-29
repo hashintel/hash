@@ -91,7 +91,7 @@ export default class {
   /**
    * Create an entity.
    *
-   * @param params.ownedById the id of the owner of the entiy
+   * @param params.ownedById the id of the owner of the entity
    * @param params.schema an `Entity`
    */
   static async create(
@@ -314,7 +314,13 @@ export default class {
     const {
       data: { version },
     } = await graphApi.updateEntity({
-      /** @todo: let caller update who owns the entity, or create new method dedicated to changing the owner of the entity */
+      /**
+       * @todo: let caller update who owns the entity, or create new method dedicated to changing the owner of the entity
+       * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
+       *
+       * @todo: replace uses of `accountId` with `ownedById` in the Graph API
+       * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
+       */
       accountId: ownedById,
       entityId,
       /** @todo: make this argument optional */

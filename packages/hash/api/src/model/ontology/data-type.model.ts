@@ -88,7 +88,7 @@ export default class {
       .createDataType({
         /**
          * @todo: replace uses of `accountId` with `ownedById` in the Graph API
-         * @see [ADD ASANA LINK]
+         * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
          */
         accountId: params.ownedById,
         schema: fullDataType,
@@ -166,9 +166,10 @@ export default class {
     const updateArguments: UpdateDataTypeRequest = {
       /**
        * @todo: let caller update who owns the type, or create new method dedicated to changing the owner of the type
+       * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
        *
        * @todo: replace uses of `accountId` with `ownedById` in the Graph API
-       * @see [ADD ASANA LINK]
+       * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
        */
       accountId: this.ownedById,
       typeToUpdate: this.schema.$id,
