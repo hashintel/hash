@@ -63,13 +63,13 @@ export const getPropertyType: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryGetPropertyTypeArgs
-> = async (_, { propertyTypeVersionedUri }, { dataSources }, info) => {
+> = async (_, { propertyTypeId }, { dataSources }, info) => {
   const { graphApi } = dataSources;
 
   const propertyTypeRootedSubgraph = await PropertyTypeModel.getResolved(
     graphApi,
     {
-      propertyTypeId: propertyTypeVersionedUri,
+      propertyTypeId,
       dataTypeQueryDepth: dataTypeQueryDepth(info),
       propertyTypeQueryDepth: propertyTypeQueryDepth(info),
     },
@@ -90,13 +90,13 @@ export const updatePropertyType: ResolverFn<
   MutationUpdatePropertyTypeArgs
 > = async (_, params, { dataSources }) => {
   const { graphApi } = dataSources;
-  const { propertyTypeVersionedUri, updatedPropertyType } = params;
+  const { propertyTypeId, updatedPropertyType } = params;
 
   const propertyTypeModel = await PropertyTypeModel.get(graphApi, {
-    propertyTypeId: propertyTypeVersionedUri,
+    propertyTypeId,
   }).catch((err: AxiosError) => {
     throw new ApolloError(
-      `Unable to retrieve property type. ${err.response?.data} [URI=${propertyTypeVersionedUri}]`,
+      `Unable to retrieve property type. ${err.response?.data} [URI=${propertyTypeId}]`,
       "GET_ERROR",
     );
   });
@@ -108,7 +108,7 @@ export const updatePropertyType: ResolverFn<
     .catch((err: AxiosError) => {
       const msg =
         err.response?.status === 409
-          ? `Property type URI doesn't exist, unable to update. [URI=${propertyTypeVersionedUri}]`
+          ? `Property type URI doesn't exist, unable to update. [URI=${propertyTypeId}]`
           : `Couldn't update property type.`;
 
       throw new ApolloError(msg, "CREATION_ERROR");

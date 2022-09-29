@@ -8,7 +8,7 @@ export const linkTypeTypedef = gql`
     """
     The specific versioned URI of the link type
     """
-    linkTypeVersionedUri: String!
+    linkTypeId: String!
     """
     The id of the account that owns this link type.
     """
@@ -33,7 +33,7 @@ export const linkTypeTypedef = gql`
     """
     Get an link type by its versioned URI.
     """
-    getLinkType(linkTypeVersionedUri: String!): PersistedLinkType!
+    getLinkType(linkTypeId: String!): PersistedLinkType!
   }
 
   extend type Mutation {
@@ -55,7 +55,7 @@ export const linkTypeTypedef = gql`
       """
       The link type versioned $id to update.
       """
-      linkTypeVersionedUri: String!
+      linkTypeId: String!
       """
       New link type schema contents to be used.
       """

@@ -1,9 +1,9 @@
 import { gql } from "@apollo/client";
 
 export const getEntityTypeQuery = gql`
-  query getEntityType($entityTypeVersionedUri: String!) {
-    getEntityType(entityTypeVersionedUri: $entityTypeVersionedUri) {
-      entityTypeVersionedUri
+  query getEntityType($entityTypeId: String!) {
+    getEntityType(entityTypeId: $entityTypeId) {
+      entityTypeId
       ownedById
       entityType
     }
@@ -13,7 +13,7 @@ export const getEntityTypeQuery = gql`
 export const getAllLatestEntityTypesQuery = gql`
   query getAllLatestEntityTypes {
     getAllLatestEntityTypes {
-      entityTypeVersionedUri
+      entityTypeId
       ownedById
       entityType
     }
@@ -26,7 +26,7 @@ export const createEntityTypeMutation = gql`
     $entityType: EntityTypeWithoutId!
   ) {
     createEntityType(ownedById: $ownedById, entityType: $entityType) {
-      entityTypeVersionedUri
+      entityTypeId
       ownedById
       entityType
     }
@@ -35,14 +35,14 @@ export const createEntityTypeMutation = gql`
 
 export const updateEntityTypeMutation = gql`
   mutation updateEntityType(
-    $entityTypeVersionedUri: String!
+    $entityTypeId: String!
     $updatedEntityType: EntityTypeWithoutId!
   ) {
     updateEntityType(
-      entityTypeVersionedUri: $entityTypeVersionedUri
+      entityTypeId: $entityTypeId
       updatedEntityType: $updatedEntityType
     ) {
-      entityTypeVersionedUri
+      entityTypeId
       ownedById
       entityType
     }

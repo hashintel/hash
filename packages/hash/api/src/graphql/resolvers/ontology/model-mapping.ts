@@ -18,7 +18,7 @@ export const mapDataTypeModelToGQL = (
 ): PersistedDataType => ({
   ownedById: dataType.ownedById,
   accountId: dataType.ownedById,
-  dataTypeVersionedUri: dataType.schema.$id,
+  dataTypeId: dataType.schema.$id,
   dataType: dataType.schema,
 });
 
@@ -27,7 +27,7 @@ export const mapPropertyTypeModelToGQL = (
 ): PersistedPropertyType => ({
   ownedById: propertyType.ownedById,
   accountId: propertyType.ownedById,
-  propertyTypeVersionedUri: propertyType.schema.$id,
+  propertyTypeId: propertyType.schema.$id,
   propertyType: propertyType.schema,
 });
 
@@ -42,7 +42,7 @@ export const mapPropertyTypeRootedSubgraphToGQL = ({
 }): PropertyTypeRootedSubgraph => ({
   ownedById: propertyType.ownedById,
   accountId: propertyType.ownedById,
-  propertyTypeVersionedUri: propertyType.schema.$id,
+  propertyTypeId: propertyType.schema.$id,
   propertyType: propertyType.schema,
   referencedDataTypes: referencedDataTypes.map(mapDataTypeModelToGQL),
   referencedPropertyTypes: referencedPropertyTypes.map(
@@ -55,7 +55,7 @@ export const mapLinkTypeModelToGQL = (
 ): PersistedLinkType => ({
   ownedById: linkType.ownedById,
   accountId: linkType.ownedById,
-  linkTypeVersionedUri: linkType.schema.$id,
+  linkTypeId: linkType.schema.$id,
   linkType: linkType.schema,
 });
 
@@ -64,7 +64,7 @@ export const mapEntityTypeModelToGQL = (
 ): PersistedEntityType => ({
   ownedById: entityType.ownedById,
   accountId: entityType.ownedById,
-  entityTypeVersionedUri: entityType.schema.$id,
+  entityTypeId: entityType.schema.$id,
   entityType: entityType.schema,
 });
 
@@ -77,7 +77,7 @@ export const mapEntityTypeRootedSubgraphToGQL = (params: {
 }): EntityTypeRootedSubgraph => ({
   ownedById: params.entityType.ownedById,
   accountId: params.entityType.ownedById,
-  entityTypeVersionedUri: params.entityType.schema.$id,
+  entityTypeId: params.entityType.schema.$id,
   entityType: params.entityType.schema,
   referencedDataTypes: params.referencedDataTypes.map(mapDataTypeModelToGQL),
   referencedPropertyTypes: params.referencedPropertyTypes.map(
