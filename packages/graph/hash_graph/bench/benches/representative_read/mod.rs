@@ -157,12 +157,12 @@ async fn seed_db(store_wrapper: &mut StoreWrapper) -> Samples {
         }
 
         // For now we'll just pick a sample of 50 entities.
-
         let sample_entities = entity_ids
             .iter()
             .choose_multiple(&mut rng, 50)
             .into_iter()
             .copied();
+
         match sample_map.entry(entity_type_id) {
             Entry::Occupied(mut entry_slot) => entry_slot.get_mut().extend(sample_entities),
             Entry::Vacant(entry_slot) => {
