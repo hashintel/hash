@@ -101,6 +101,7 @@ import {
   knowledgePageContents,
 } from "./knowledge/page";
 import { knowledgePage } from "./knowledge/page/page";
+import { knowledgeBlocks } from "./knowledge/block/block";
 
 export const resolvers = {
   Query: {
@@ -143,6 +144,7 @@ export const resolvers = {
     getEntityType: loggedInAndSignedUp(getEntityType),
     // Knowledge
     knowledgePage: loggedInAndSignedUp(knowledgePage),
+    knowledgeBlocks: loggedInAndSignedUp(knowledgeBlocks),
   },
 
   Mutation: {
