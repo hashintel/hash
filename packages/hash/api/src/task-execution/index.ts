@@ -65,7 +65,7 @@ export const connectToTaskExecutor = (config: Config) => {
 export const CachedEntityTypes = async (db: DbAdapter, user: UserModel) => {
   const streamsWithEntityTypes: Map<string, string> = new Map();
   const dbTypes = await db.getAccountEntityTypes({
-    accountId: user.accountId,
+    accountId: user.entityId,
   });
 
   return {
@@ -85,8 +85,8 @@ export const CachedEntityTypes = async (db: DbAdapter, user: UserModel) => {
     createNew: async (entityTypeName: string, jsonSchema?: JsonObject) => {
       const { entityId } = await EntityType.create(db, {
         /** @todo should this be a param on the graphql endpoint */
-        accountId: user.accountId,
-        createdByAccountId: user.accountId,
+        accountId: user.entityId,
+        createdByAccountId: user.entityId,
         description: undefined,
         name: entityTypeName,
         schema: jsonSchema,

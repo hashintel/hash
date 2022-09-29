@@ -3,7 +3,6 @@ import { GraphQLClient, ClientError } from "graphql-request";
 import { createKratosIdentity } from "@hashintel/hash-api/src/auth/ory-kratos";
 import { GraphApi } from "@hashintel/hash-api/src/graph";
 import { UserModel } from "@hashintel/hash-api/src/model";
-import { workspaceAccountId } from "@hashintel/hash-api/src/model/util";
 import { ensureWorkspaceTypesExist } from "@hashintel/hash-api/src/graph/workspace-types";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
@@ -138,7 +137,6 @@ export const createTestUser = async (
 
   const updatedUser = await createdUser
     .updateShortname(graphApi, {
-      updatedByAccountId: workspaceAccountId,
       updatedShortname: shortname,
     })
     .catch((err) => {

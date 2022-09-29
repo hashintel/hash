@@ -26,7 +26,7 @@ export const deprecatedUpdateEntityType: ResolverFn<
     }
 
     await entityType.update(conn, {
-      updatedByAccountId: user.accountId,
+      updatedByAccountId: user.entityId,
       createdByAccountId: user.entityId,
       schema,
     });

@@ -23,7 +23,7 @@ export const deleteLinkedAggregation: ResolverFn<
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
-    await aggregation.delete(client, { deletedByAccountId: user.accountId });
+    await aggregation.delete(client, { deletedByAccountId: user.entityId });
 
     return true;
   });

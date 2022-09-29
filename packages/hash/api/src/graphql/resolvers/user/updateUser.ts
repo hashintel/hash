@@ -67,7 +67,6 @@ export const updateUser: ResolverFn<
     await validateShortname(graphApi, shortname);
 
     updatedUser = await updatedUser.updateShortname(graphApi, {
-      updatedByAccountId: user.accountId,
       updatedShortname: shortname,
     });
   }
@@ -85,7 +84,6 @@ export const updateUser: ResolverFn<
     }
 
     updatedUser = await updatedUser.updatePreferredName(graphApi, {
-      updatedByAccountId: user.accountId,
       updatedPreferredName: preferredName,
     });
   }

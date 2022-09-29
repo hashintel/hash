@@ -9,7 +9,7 @@ export const accountSignupComplete: ResolverFn<
   GraphQLContext,
   {}
 > = async ({ entityId }, _, { dataSources: { graphApi } }) => {
-  const userModel = await UserModel.getUserByEntityId(graphApi, { entityId });
+  const userModel = await UserModel.getUserById(graphApi, { entityId });
 
   if (!userModel) {
     const msg = `User with entityId ${entityId} not found in graph`;

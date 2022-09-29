@@ -67,14 +67,12 @@ describe("User model class", () => {
 
   it("can update the shortname of a user", async () => {
     createdUser = await createdUser.updateShortname(graphApi, {
-      updatedByAccountId: createdUser.entityId,
       updatedShortname: shortname,
     });
   });
 
   it("can update the preferred name of a user", async () => {
     createdUser = await createdUser.updatePreferredName(graphApi, {
-      updatedByAccountId: createdUser.entityId,
       updatedPreferredName: "Alice",
     });
   });

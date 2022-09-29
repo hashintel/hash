@@ -31,7 +31,7 @@ export const updateEntity: ResolverFn<
     const propertiesToUpdate = properties.properties ?? properties;
     entity.properties = propertiesToUpdate;
     const updatePayload: UpdatePropertiesPayload = {
-      updatedByAccountId: user.accountId,
+      updatedByAccountId: user.entityId,
       properties: entity.properties,
     };
 

@@ -29,7 +29,7 @@ export const updatePage: ResolverFn<
         ...(entity.properties ?? {}),
         ...properties,
       },
-      updatedByAccountId: user.accountId,
+      updatedByAccountId: user.entityId,
     });
 
     // @todo: for now, all entities are non-versioned, so the array only has a single
