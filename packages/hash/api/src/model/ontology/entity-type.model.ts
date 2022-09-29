@@ -279,7 +279,7 @@ export default class {
     const updateArguments: UpdateEntityTypeRequest = {
       /**
        * @todo: let caller update who owns the type, or create new method dedicated to changing the owner of the type
-       * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
+       * @see https://app.asana.com/0/1202805690238892/1203063463721793/f
        *
        * @todo: replace uses of `accountId` with `ownedById` in the Graph API
        * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
