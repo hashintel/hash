@@ -85,6 +85,10 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
       <Box
         ref={wrapperRef}
         onContextMenu={(event) => {
+          if (popupState.isOpen) {
+            setAnchorPosition(undefined);
+            return popupState.close();
+          }
           event.preventDefault();
           setAnchorPosition({
             left: event.clientX + 2,
