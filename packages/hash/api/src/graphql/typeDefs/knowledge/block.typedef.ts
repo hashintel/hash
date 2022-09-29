@@ -47,4 +47,15 @@ export const knowledgeBlockTypedef = gql`
     properties: JSONObject!
     # ENTITY INTERFACE FIELDS END #
   }
+
+  input LatestKnowledgeEntityRef {
+    entityId: ID!
+  }
+
+  extend type Query {
+    """
+    Get a specified list of blocks by their entity id
+    """
+    knowledgeBlocks(blocks: [LatestKnowledgeEntityRef!]!): [KnowledgeBlock!]!
+  }
 `;
