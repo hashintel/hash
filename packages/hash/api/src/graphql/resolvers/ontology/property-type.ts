@@ -12,8 +12,8 @@ import {
 import { LoggedInGraphQLContext } from "../../context";
 import { PropertyTypeModel } from "../../../model";
 import {
-  propertyTypeModelToGQL,
-  propertyTypeRootedSubgraphToGQL,
+  mapPropertyTypeModelToGQL,
+  mapPropertyTypeRootedSubgraphToGQL,
 } from "./model-mapping";
 import { dataTypeQueryDepth, propertyTypeQueryDepth } from "../util";
 
@@ -33,7 +33,7 @@ export const createPropertyType: ResolverFn<
     throw new ApolloError(err, "CREATION_ERROR");
   });
 
-  return propertyTypeModelToGQL(createdPropertyTypeModel);
+  return mapPropertyTypeModelToGQL(createdPropertyTypeModel);
 };
 
 export const getAllLatestPropertyTypes: ResolverFn<
@@ -56,7 +56,7 @@ export const getAllLatestPropertyTypes: ResolverFn<
       );
     });
 
-  return propertyTypeRootedSubgraphs.map(propertyTypeRootedSubgraphToGQL);
+  return propertyTypeRootedSubgraphs.map(mapPropertyTypeRootedSubgraphToGQL);
 };
 
 export const getPropertyType: ResolverFn<
@@ -81,7 +81,7 @@ export const getPropertyType: ResolverFn<
     );
   });
 
-  return propertyTypeRootedSubgraphToGQL(propertyTypeRootedSubgraph);
+  return mapPropertyTypeRootedSubgraphToGQL(propertyTypeRootedSubgraph);
 };
 
 export const updatePropertyType: ResolverFn<
@@ -116,5 +116,5 @@ export const updatePropertyType: ResolverFn<
       throw new ApolloError(msg, "CREATION_ERROR");
     });
 
-  return propertyTypeModelToGQL(updatedPropertyTypeModel);
+  return mapPropertyTypeModelToGQL(updatedPropertyTypeModel);
 };

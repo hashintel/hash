@@ -96,6 +96,10 @@ import {
   getEntityType,
   updateEntityType,
 } from "./ontology/entity-type";
+import {
+  updateKnowledgePageContents,
+  knowledgePageContents,
+} from "./knowledge/page";
 
 export const resolvers = {
   Query: {
@@ -158,6 +162,9 @@ export const resolvers = {
     deprecatedUpdateEntityType: loggedInAndSignedUp(deprecatedUpdateEntityType),
     updatePage: loggedInAndSignedUp(updatePage),
     updatePageContents: loggedInAndSignedUp(updatePageContents),
+    updateKnowledgePageContents: loggedInAndSignedUp(
+      updateKnowledgePageContents,
+    ),
     joinOrg: loggedInAndSignedUp(joinOrg),
     requestFileUpload: loggedInAndSignedUp(requestFileUpload),
     setParentPage: loggedInAndSignedUp(setParentPage),
@@ -263,4 +270,15 @@ export const resolvers = {
       return entityTypeName;
     },
   },
+
+  // New knowledge field resolvers
+  KnowledgePage: {
+    contents: knowledgePageContents,
+  },
+
+  /**
+   * @todo Add Entity.linkedEntities field resolver for resolving linked entities
+   *   KnowledgeEntity: { linkedEntities .. }
+   *   see https://app.asana.com/0/0/1203057486837594/f
+   */
 };

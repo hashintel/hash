@@ -242,8 +242,6 @@ export default class {
       }
 
       const entityTypeModel = await EntityTypeModel.get(graphApi, {
-        // This assertion thinks there's a false positive, perhaps because of the 'InputMaybe' wrapper.
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         entityTypeId: entityTypeId!,
       });
 
