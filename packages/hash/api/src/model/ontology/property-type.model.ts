@@ -6,10 +6,10 @@ import {
   PersistedPropertyType,
   UpdatePropertyTypeRequest,
 } from "@hashintel/hash-graph-client";
-import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
-import { DataTypeModel, PropertyTypeModel, UserModel } from "../index";
-import { extractBaseUri, generateTypeId, workspaceAccountId } from "../util";
+import { DataTypeModel, PropertyTypeModel } from "../index";
+import { extractBaseUri, generateTypeId } from "../util";
+import { getNamespaceOfAccountOwner } from "./util";
 
 type PropertyTypeModelConstructorParams = {
   ownedById: string;
@@ -63,21 +63,9 @@ export default class {
       schema: Omit<PropertyType, "$id">;
     },
   ): Promise<PropertyTypeModel> {
-    /** @todo - get rid of this hack for the root account */
-    const namespace =
-      params.ownedById === workspaceAccountId
-        ? WORKSPACE_ACCOUNT_SHORTNAME
-        : (
-            await UserModel.getUserById(graphApi, {
-              entityId: params.ownedById,
-            })
-          )?.getShortname();
-
-    if (namespace == null) {
-      throw new Error(
-        `failed to get namespace for account: ${params.ownedById}`,
-      );
-    }
+    const namespace = await getNamespaceOfAccountOwner(graphApi, {
+      ownerId: params.ownedById,
+    });
 
     const propertyTypeId = generateTypeId({
       namespace,

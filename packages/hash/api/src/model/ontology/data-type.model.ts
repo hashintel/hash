@@ -6,10 +6,10 @@ import {
   UpdateDataTypeRequest,
 } from "@hashintel/hash-graph-client";
 import { DataType } from "@blockprotocol/type-system-web";
-import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
-import { DataTypeModel, UserModel } from "../index";
-import { generateTypeId, workspaceAccountId } from "../util";
+import { DataTypeModel } from "../index";
+import { generateTypeId } from "../util";
+import { getNamespaceOfAccountOwner } from "./util";
 
 type DataTypeModelConstructorArgs = {
   ownedById: string;
@@ -73,20 +73,9 @@ export default class {
         Record<string, any>;
     },
   ): Promise<DataTypeModel> {
-    /** @todo - get rid of this hack for the root account */
-    const namespace =
-      params.ownedById === workspaceAccountId
-        ? WORKSPACE_ACCOUNT_SHORTNAME
-        : /** @todo: account for types with an org as its owner */
-          (
-            await UserModel.getUserById(graphApi, {
-              entityId: params.ownedById,
-            })
-          )?.getShortname();
-
-    if (namespace == null) {
-      throw new Error(`failed to get namespace for owner: ${params.ownedById}`);
-    }
+    const namespace = await getNamespaceOfAccountOwner(graphApi, {
+      ownerId: params.ownedById,
+    });
 
     const dataTypeUri = generateTypeId({
       namespace,

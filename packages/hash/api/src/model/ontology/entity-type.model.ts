@@ -6,18 +6,17 @@ import {
   PersistedEntityType,
   UpdateEntityTypeRequest,
 } from "@hashintel/hash-graph-client";
-import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
 import {
   EntityTypeModel,
   PropertyTypeModel,
   LinkTypeModel,
-  UserModel,
   DataTypeModel,
 } from "../index";
-import { generateTypeId, workspaceAccountId } from "../util";
+import { generateTypeId } from "../util";
 import dataTypeModel from "./data-type.model";
 import linkTypeModel from "./link-type.model";
+import { getNamespaceOfAccountOwner } from "./util";
 
 export type EntityTypeModelConstructorParams = {
   ownedById: string;
@@ -73,21 +72,9 @@ export default class {
     graphApi: GraphApi,
     params: EntityTypeModelCreateParams,
   ): Promise<EntityTypeModel> {
-    /** @todo - get rid of this hack for the root account */
-    const namespace =
-      params.ownedById === workspaceAccountId
-        ? WORKSPACE_ACCOUNT_SHORTNAME
-        : (
-            await UserModel.getUserById(graphApi, {
-              entityId: params.ownedById,
-            })
-          )?.getShortname();
-
-    if (namespace == null) {
-      throw new Error(
-        `failed to get namespace for account: ${params.ownedById}`,
-      );
-    }
+    const namespace = await getNamespaceOfAccountOwner(graphApi, {
+      ownerId: params.ownedById,
+    });
 
     const entityTypeId = generateTypeId({
       namespace,

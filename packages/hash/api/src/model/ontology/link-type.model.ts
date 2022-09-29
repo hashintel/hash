@@ -6,10 +6,10 @@ import {
   PersistedLinkType,
   UpdateLinkTypeRequest,
 } from "@hashintel/hash-graph-client";
-import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
-import { LinkTypeModel, UserModel } from "../index";
-import { generateTypeId, workspaceAccountId } from "../util";
+import { LinkTypeModel } from "../index";
+import { generateTypeId } from "../util";
+import { getNamespaceOfAccountOwner } from "./util";
 
 type LinkTypeModelConstructorParams = {
   ownedById: string;
@@ -63,21 +63,9 @@ export default class {
       schema: Omit<LinkType, "$id">;
     },
   ): Promise<LinkTypeModel> {
-    /** @todo - get rid of this hack for the root account */
-    const namespace =
-      params.ownedById === workspaceAccountId
-        ? WORKSPACE_ACCOUNT_SHORTNAME
-        : (
-            await UserModel.getUserById(graphApi, {
-              entityId: params.ownedById,
-            })
-          )?.getShortname();
-
-    if (namespace == null) {
-      throw new Error(
-        `failed to get namespace for account: ${params.ownedById}`,
-      );
-    }
+    const namespace = await getNamespaceOfAccountOwner(graphApi, {
+      ownerId: params.ownedById,
+    });
 
     const linkTypeId = generateTypeId({
       namespace,
