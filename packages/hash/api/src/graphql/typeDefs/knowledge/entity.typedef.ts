@@ -99,6 +99,22 @@ export const knowledgeEntityTypedef = gql`
     linkedEntities: [KnowledgeLinkedEntityDefinition!]
   }
 
+  extend type Query {
+    """
+    Get an entity.
+    """
+    knowledgeEntity(
+      """
+      The id of the entity.
+      """
+      entityId: ID!
+      """
+      The version of the entity. Defaults to the latest version.
+      """
+      entityVersion: ID
+    ): KnowledgeEntity!
+  }
+
   extend type Mutation {
     """
     Create an entity.

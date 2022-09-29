@@ -1,6 +1,7 @@
 import { EntityModel } from "../../../../model";
 import {
   MutationCreateKnowledgeEntityArgs,
+  QueryKnowledgeEntityArgs,
   ResolverFn,
 } from "../../../apiTypes.gen";
 import {
@@ -24,6 +25,19 @@ export const createKnowledgeEntity: ResolverFn<
     ownedById,
     entityDefinition,
   });
+
+  return mapEntityModelToGQL(entity);
+};
+
+export const knowledgeEntity: ResolverFn<
+  Promise<UnresolvedKnowledgeEntityGQL>,
+  {},
+  LoggedInGraphQLContext,
+  QueryKnowledgeEntityArgs
+> = async (_, { entityId, entityVersion }, { dataSources: { graphApi } }) => {
+  const entity = entityVersion
+    ? await EntityModel.getVersion(graphApi, { entityId, entityVersion })
+    : await EntityModel.getLatest(graphApi, { entityId });
 
   return mapEntityModelToGQL(entity);
 };

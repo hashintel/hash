@@ -108,7 +108,10 @@ import {
 import { knowledgePage } from "./knowledge/page/page";
 import { knowledgeBlocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
-import { createKnowledgeEntity } from "./knowledge/entity/entity";
+import {
+  createKnowledgeEntity,
+  knowledgeEntity,
+} from "./knowledge/entity/entity";
 
 export const resolvers = {
   Query: {
@@ -153,6 +156,7 @@ export const resolvers = {
     // Knowledge
     knowledgePage: loggedInAndSignedUp(knowledgePage),
     knowledgeBlocks: loggedInAndSignedUp(knowledgeBlocks),
+    knowledgeEntity: loggedInAndSignedUp(knowledgeEntity),
   },
 
   Mutation: {
