@@ -1,0 +1,11 @@
+{
+  "kind": "propertyType",
+  "$id": "https://blockprotocol.org/@alice/types/property-type/address-line-1/v/1",
+  "title": "Address Line 1",
+  "pluralTitle": "Address Line 1's",
+  "oneOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "kind": "propertyType",
+  "$id": "https://blockprotocol.org/@alice/types/property-type/published-on/v/1",
+  "title": "Published On",
+  "pluralTitle": "Published On",
+  "oneOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+    }
+  ]
+}
