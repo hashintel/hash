@@ -18,7 +18,7 @@ pub type Store = <Pool as StorePool>::Store<'static>;
 pub struct StoreWrapper {
     bench_db_name: String,
     source_db_pool: Pool,
-    _pool: ManuallyDrop<Pool>,
+    pool: ManuallyDrop<Pool>,
     pub store: ManuallyDrop<Store>,
 }
 
@@ -34,6 +34,15 @@ impl StoreWrapper {
             "graph".to_owned(),
         );
 
+        let bench_db_connection_info = DatabaseConnectionInfo::new(
+            DatabaseType::Postgres,
+            "graph".to_owned(),
+            "graph".to_owned(),
+            "localhost".to_owned(),
+            5432,
+            bench_db_name.to_owned(),
+        );
+
         let source_db_pool = PostgresStorePool::new(&source_db_connection_info, NoTls)
             .await
             .expect("could not connect to database");
@@ -46,39 +55,33 @@ impl StoreWrapper {
                 .expect("could not acquire a database connection");
             let client = conn.as_client();
 
-            let _ = client.execute(
-                r#"
-                        /* KILL ALL EXISTING CONNECTION FROM ORIGINAL DB (sourcedb)*/
-                        SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity
-                        WHERE pg_stat_activity.datname = '{DEV_DATABASE}' AND pid <> pg_backend_pid();
-                        "#,
-                &[],
-            ).await.expect("failed to kill existing connections");
+            client
+                .execute(
+                    r#"
+                    /* KILL ALL EXISTING CONNECTION FROM ORIGINAL DB*/
+                    SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity
+                    WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
+                    "#,
+                    &[&source_db_connection_info.database()],
+                )
+                .await
+                .expect("failed to kill existing connections");
 
-            let _ = client
+            client
                 .execute(
                     &format!(
                         r#"
-                        /* CLONE DATABASE TO NEW ONE(TARGET_DB) */
+                        /* CLONE DATABASE TO NEW ONE */
                         CREATE DATABASE {bench_db_name} WITH TEMPLATE {} OWNER {};
                         "#,
                         source_db_connection_info.database(),
-                        source_db_connection_info.user()
+                        bench_db_connection_info.user()
                     ),
                     &[],
                 )
                 .await
                 .expect("failed to clone database");
         }
-
-        let bench_db_connection_info = DatabaseConnectionInfo::new(
-            DatabaseType::Postgres,
-            "graph".to_owned(),
-            "graph".to_owned(),
-            "localhost".to_owned(),
-            5432,
-            bench_db_name.to_owned(),
-        );
 
         let pool = PostgresStorePool::new(&bench_db_connection_info, NoTls)
             .await
@@ -93,7 +96,7 @@ impl StoreWrapper {
         Self {
             source_db_pool,
             bench_db_name: bench_db_name.to_owned(),
-            _pool: ManuallyDrop::new(pool),
+            pool: ManuallyDrop::new(pool),
             store: ManuallyDrop::new(store),
         }
     }
@@ -156,11 +159,12 @@ impl StoreWrapper {
 
 impl Drop for StoreWrapper {
     fn drop(&mut self) {
-        // SAFETY: We're in the process of dropping the parent struct, we just need to ensure we
-        //  release the connections of this pool before deleting the database
+        // We're in the process of dropping the parent struct, we just need to ensure we release
+        // the connections of this pool before deleting the database
+        // SAFETY: The values of `store` and `pool` are not accessed after dropping
         unsafe {
             ManuallyDrop::drop(&mut self.store);
-            ManuallyDrop::drop(&mut self._pool);
+            ManuallyDrop::drop(&mut self.pool);
         }
 
         let runtime = Runtime::new().unwrap();

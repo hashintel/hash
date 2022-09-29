@@ -95,7 +95,7 @@ fn bench_representative_read(c: &mut Criterion) {
     let mut group = c.benchmark_group("representative_read");
     let (runtime, mut store_wrapper) = setup("representative_read");
 
-    let samples = runtime.block_on(async { seed_db(&mut store_wrapper).await });
+    let samples = runtime.block_on(seed_db(&mut store_wrapper));
     let store = &store_wrapper.store;
 
     for (account_id, type_ids_and_entity_ids) in samples.entities {
