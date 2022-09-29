@@ -39,7 +39,7 @@ describe("Page model class", () => {
 
   const createBlock = async () =>
     await BlockModel.createBlock(graphApi, {
-      ownedById: testUser.ownedById,
+      ownedById: testUser.entityId,
       componentId: "dummy-component-id",
       blockData: await EntityModel.create(graphApi, {
         ownedById: testUser.entityId,
