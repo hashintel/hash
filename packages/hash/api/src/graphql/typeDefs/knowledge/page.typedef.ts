@@ -31,7 +31,7 @@ export const knowledgePageTypedef = gql`
     """
     The specific version of the entity
     """
-    entityVersionId: String!
+    entityVersion: String!
     """
     The id of the account that owns this entity.
     """
@@ -42,9 +42,9 @@ export const knowledgePageTypedef = gql`
     accountId: ID!
       @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     """
-    The fixed id of the type this entity is of.
+    The versioned URI of this entity's type.
     """
-    entityTypeId: ID!
+    entityTypeId: String!
     """
     The full entity type definition.
     """

@@ -17,7 +17,7 @@ export const knowledgeEntityTypedef = gql`
     """
     The specific version of the entity
     """
-    entityVersionId: String!
+    entityVersion: String!
     """
     The id of the account that owns this entity.
     """
@@ -28,9 +28,9 @@ export const knowledgeEntityTypedef = gql`
     accountId: ID!
       @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     """
-    The fixed id of the type this entity is of.
+    The versioned URI of this entity's type.
     """
-    entityTypeId: ID!
+    entityTypeId: String!
     """
     The full entity type definition.
     """
@@ -43,6 +43,44 @@ export const knowledgeEntityTypedef = gql`
     The JSON object containing the entity's properties.
     """
     properties: JSONObject!
+  }
+
+  type UnknownKnowledgeEntity implements KnowledgeEntity {
+    # ENTITY INTERFACE FIELDS BEGIN #
+    """
+    The id of the entity
+    """
+    entityId: ID!
+    """
+    The specific version of the entity
+    """
+    entityVersion: String!
+    """
+    The id of the account that owns this entity.
+    """
+    ownedById: ID!
+    """
+    Alias of ownedById - the id of the account that owns this entity.
+    """
+    accountId: ID!
+      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
+    """
+    The versioned URI of this entity's type.
+    """
+    entityTypeId: String!
+    """
+    The full entity type definition.
+    """
+    entityType: PersistedEntityType!
+    """
+    The linked entities of the entity.
+    """
+    linkedEntities: [KnowledgeEntity!]!
+    """
+    The JSON object containing the entity's properties.
+    """
+    properties: JSONObject!
+    # ENTITY INTERFACE FIELDS END #
   }
 
   """
@@ -97,5 +135,21 @@ export const knowledgeEntityTypedef = gql`
     Associated Entities to either create/get and link to this entity.
     """
     linkedEntities: [KnowledgeLinkedEntityDefinition!]
+  }
+
+  extend type Query {
+    """
+    Get an entity.
+    """
+    knowledgeEntity(
+      """
+      The id of the entity.
+      """
+      entityId: ID!
+      """
+      The version of the entity. Defaults to the latest version.
+      """
+      entityVersion: String
+    ): KnowledgeEntity!
   }
 `;
