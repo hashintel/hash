@@ -108,10 +108,7 @@ import {
 import { knowledgePage } from "./knowledge/page/page";
 import { knowledgeBlocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
-import {
-  createKnowledgeEntity,
-  knowledgeEntity,
-} from "./knowledge/entity/entity";
+import { knowledgeEntity } from "./knowledge/entity/entity";
 import { UnresolvedKnowledgeEntityGQL } from "./knowledge/model-mapping";
 
 /**
@@ -221,8 +218,6 @@ export const resolvers = {
     updateLinkType: loggedInAndSignedUp(updateLinkType),
     createEntityType: loggedInAndSignedUp(createEntityType),
     updateEntityType: loggedInAndSignedUp(updateEntityType),
-    // Knowledge
-    createKnowledgeEntity: loggedInAndSignedUp(createKnowledgeEntity),
   },
 
   JSONObject: JSONObjectResolver,

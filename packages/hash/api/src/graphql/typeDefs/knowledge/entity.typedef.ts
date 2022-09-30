@@ -152,20 +152,4 @@ export const knowledgeEntityTypedef = gql`
       entityVersion: ID
     ): KnowledgeEntity!
   }
-
-  extend type Mutation {
-    """
-    Create an entity.
-    """
-    createKnowledgeEntity(
-      """
-      The owner of the create entity.
-      """
-      ownedById: ID!
-      """
-      The definition of the create entity.
-      """
-      entity: KnowledgeEntityDefinition!
-    ): KnowledgeEntity!
-  }
 `;

@@ -124,7 +124,7 @@ export default class {
   /**
    * Create an entity along with any new/existing entities specified through links.
    *
-   * @param params.ownedById - the id of owner of the entity
+   * @param params.ownedById the id of owner of the entity
    * @param params.entityDefinition the definition of how to get or create the entity optionally with linked entities
    */
   static async createEntityWithLinks(
