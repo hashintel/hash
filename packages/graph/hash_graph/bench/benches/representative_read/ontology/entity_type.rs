@@ -17,7 +17,7 @@ pub fn bench_get_entity_type_by_id(
 ) {
     b.to_async(runtime).iter_batched(
         || {
-            // Each iteration, *before timing*, pick a random entity from the sample to query
+            // Each iteration, *before timing*, pick a random entity type from the sample to query
             entity_type_ids
                 .iter()
                 .choose(&mut thread_rng())
