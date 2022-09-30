@@ -30,9 +30,9 @@ export const knowledgeBlockTypedef = gql`
     accountId: ID!
       @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     """
-    The fixed id of the type this entity is of.
+    The versioned URI of this entity's type.
     """
-    entityTypeId: ID!
+    entityTypeId: String!
     """
     The full entity type definition.
     """
