@@ -29,7 +29,7 @@ export const createComment: ResolverFn<
     const comment = await Comment.createComment(db, {
       accountId,
       parent,
-      createdBy: user,
+      createdBy: user as any /** @todo: replace with updated model class */,
       tokens,
     });
 
