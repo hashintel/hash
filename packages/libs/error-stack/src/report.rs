@@ -1,5 +1,5 @@
 use alloc::{boxed::Box, vec, vec::Vec};
-use core::{fmt, marker::PhantomData, mem, panic::Location};
+use core::{fmt, fmt::Display, marker::PhantomData, mem, panic::Location};
 #[cfg(all(rust_1_65, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(feature = "std")]
@@ -74,7 +74,7 @@ use crate::{
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
 ///     .into_report()
-///     .attach_printable_lazy(|| format!("Failed to read config file {config_path:?}"))?;
+///     .attach_printable_lazy(|| format!("failed to read config file {config_path:?}"))?;
 ///
 /// # const _: &str = stringify! {
 /// ...
@@ -165,18 +165,18 @@ use crate::{
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
 ///     .into_report()
-///     .attach_printable_lazy(|| format!("Failed to read config file {config_path:?}"));
+///     .attach_printable_lazy(|| format!("failed to read config file {config_path:?}"));
 ///
 /// let content = match content {
 ///     Err(err) => {
 ///         # #[cfg(all(nightly, feature = "std"))]
 ///         for backtrace in err.request_ref::<std::backtrace::Backtrace>() {
-///             println!("Backtrace: {backtrace}");
+///             println!("backtrace: {backtrace}");
 ///         }
 ///
 ///         # #[cfg(all(nightly, feature = "spantrace"))]
-///         for spantrace in err.request_ref::<tracing_error::SpanTrace>() {
-///             println!("Spantrace: {spantrace}")
+///         for span_trace in err.request_ref::<tracing_error::SpanTrace>() {
+///             println!("span trace: {span_trace}")
 ///         }
 ///
 ///         return Err(err)
@@ -211,13 +211,21 @@ impl<C> Report<C> {
     /// documentation for more information.
     ///
     /// [`Backtrace` and `SpanTrace` section]: #backtrace-and-spantrace
+    #[inline]
     #[track_caller]
     pub fn new(context: C) -> Self
     where
         C: Context,
     {
-        let frame = Frame::from_context(context, Location::caller(), Box::new([]));
+        Self::from_frame(Frame::from_context(
+            context,
+            Location::caller(),
+            Box::new([]),
+        ))
+    }
 
+    #[track_caller]
+    pub(crate) fn from_frame(frame: Frame) -> Self {
         #[cfg(all(nightly, feature = "std"))]
         let backtrace = core::any::request_ref::<Backtrace>(&frame)
             .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
@@ -260,8 +268,11 @@ impl<C> Report<C> {
     #[allow(missing_docs)]
     #[must_use]
     #[cfg(all(nightly, feature = "std"))]
-    #[deprecated = "a report might contain multiple backtraces, use `request_ref::<Backtrace>()` \
-                    instead"]
+    #[deprecated(
+        since = "0.2.0",
+        note = "a report might contain multiple backtraces, use `request_ref::<Backtrace>()` \
+                instead"
+    )]
     pub fn backtrace(&self) -> Option<&Backtrace> {
         self.request_ref::<Backtrace>().next()
     }
@@ -271,13 +282,19 @@ impl<C> Report<C> {
     #[cfg(feature = "spantrace")]
     #[cfg_attr(
         nightly,
-        deprecated = "a report might contain multiple spantraces, use \
-                      `request_ref::<SpanTrace>()` instead"
+        deprecated(
+            since = "0.2.0",
+            note = "a report might contain multiple spantraces, use `request_ref::<SpanTrace>()` \
+                    instead"
+        )
     )]
     #[cfg_attr(
         not(nightly),
-        deprecated = "a report might contain multiple spantraces, use \
-                      `frames().filter(Frame::downcast_ref::<SpanTrace>)` instead"
+        deprecated(
+            since = "0.2.0",
+            note = "a report might contain multiple spantraces, use \
+                    `frames().filter(Frame::downcast_ref::<SpanTrace>)` instead"
+        )
     )]
     pub fn span_trace(&self) -> Option<&SpanTrace> {
         #[cfg(nightly)]
@@ -403,14 +420,14 @@ impl<C> Report<C> {
     ///
     /// let error = fs::read_to_string("config.txt")
     ///     .into_report()
-    ///     .attach(Suggestion("Better use a file which exists next time!"));
+    ///     .attach(Suggestion("better use a file which exists next time!"));
     /// # #[cfg_attr(not(nightly), allow(unused_variables))]
     /// let report = error.unwrap_err();
     /// # #[cfg(nightly)]
     /// let suggestion = report.request_ref::<Suggestion>().next().unwrap();
     ///
     /// # #[cfg(nightly)]
-    /// assert_eq!(suggestion.0, "Better use a file which exists next time!");
+    /// assert_eq!(suggestion.0, "better use a file which exists next time!");
     /// # }
     #[track_caller]
     pub fn attach_printable<A>(mut self, attachment: A) -> Self
@@ -557,9 +574,7 @@ impl<C> Report<C> {
     pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
         self.frames_mut().find_map(Frame::downcast_mut::<T>)
     }
-}
 
-impl<T: Context> Report<T> {
     /// Returns the current context of the `Report`.
     ///
     /// If the user want to get the latest context, `current_context` can be called. If the user
@@ -590,8 +605,12 @@ impl<T: Context> Report<T> {
     /// assert_eq!(io_error.kind(), io::ErrorKind::NotFound);
     /// # }
     /// ```
+    // TODO: Remove `Display` bound when `set_debug_hook` and `set_display_hook` are removed
     #[must_use]
-    pub fn current_context(&self) -> &T {
+    pub fn current_context(&self) -> &C
+    where
+        C: Display + Send + Sync + 'static,
+    {
         self.downcast_ref().unwrap_or_else(|| {
             // Panics if there isn't an attached context which matches `T`. As it's not possible to
             // create a `Report` without a valid context and this method can only be called when `T`

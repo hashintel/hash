@@ -119,7 +119,7 @@
 //!
 //! impl fmt::Display for ParseConfigError {
 //!     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-//!         fmt.write_str("Could not parse configuration file")
+//!         fmt.write_str("could not parse configuration file")
 //!     }
 //! }
 //!
@@ -160,7 +160,7 @@
 //! # impl ParseConfigError { pub fn new() -> Self { Self } }
 //! # impl std::fmt::Display for ParseConfigError {
 //! #     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//! #         fmt.write_str("Could not parse configuration file")
+//! #         fmt.write_str("could not parse configuration file")
 //! #     }
 //! # }
 //! # impl Context for ParseConfigError {}
@@ -173,26 +173,26 @@
 //!     let content = fs::read_to_string(path)
 //!         .into_report()
 //!         .change_context(ParseConfigError::new())
-//!         .attach(Suggestion("Use a file you can read next time!"))
-//!         .attach_printable_lazy(|| format!("Could not read file {path:?}"))?;
+//!         .attach(Suggestion("use a file you can read next time!"))
+//!         .attach_printable_lazy(|| format!("could not read file {path:?}"))?;
 //!
 //!     Ok(content)
 //! }
 //! # let report = parse_config("test.txt").unwrap_err();
 //! # assert!(report.contains::<std::io::Error>());
-//! # assert_eq!(report.downcast_ref::<Suggestion>().unwrap(), &Suggestion("Use a file you can read next time!"));
+//! # assert_eq!(report.downcast_ref::<Suggestion>().unwrap(), &Suggestion("use a file you can read next time!"));
 //! # #[cfg(nightly)]
-//! # assert_eq!(report.request_ref::<Suggestion>().next().unwrap(), &Suggestion("Use a file you can read next time!"));
+//! # assert_eq!(report.request_ref::<Suggestion>().next().unwrap(), &Suggestion("use a file you can read next time!"));
 //! # #[cfg(nightly)]
-//! # assert_eq!(report.request_ref::<String>().next().unwrap(), "Could not read file \"test.txt\"");
+//! # assert_eq!(report.request_ref::<String>().next().unwrap(), "could not read file \"test.txt\"");
 //! # assert!(report.contains::<ParseConfigError>());
 //! #
 //! # owo_colors::set_override(true);
 //! # fn render(value: String) -> String {
-//! #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+//! #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
 //! #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
 //! #
-//! #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
+//! #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
 //! #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
 //! #
 //! #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
@@ -205,7 +205,7 @@
 //! As seen above, there are ways on attaching more information to the [`Report`]: [`attach`] and
 //! [`attach_printable`]. These two functions behave similar, but the latter has a more restrictive
 //! bound on the attachment: [`Display`] and [`Debug`]. Depending on the function used, printing the
-//! [`Report`] will also use the [`Display`] and [`Debug`] traits to describe the attachment:
+//! [`Report`] will also use the [`Display`] and [`Debug`] traits to describe the attachment.
 //!
 //! This outputs something like:
 //!
@@ -213,8 +213,11 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/lib__suggestion.snap"))]
 //! </pre>
 //!
-//! The `Suggestion` passed to [`attach`] shown as an opaque attachment. The message passed to
-//! [`attach_printable`] however is printed next to the [`Context`] where it was attached to.
+//! The `Suggestion`, which was added via [`attach`] is not shown directly and only increases the
+//! counter of opaque attachments for the containing [`Context`].
+//! The message which was passed to [`attach_printable`], however, is displayed in full.
+//! To be able to show attachments that have been added via [`attach`], one must make use of
+//! [hooks](#debug-and-display-hooks) instead.
 //!
 //! [`attach_printable`]: Report::attach_printable
 //! [`Display`]: core::fmt::Display
@@ -298,9 +301,9 @@
 //!
 //! ### Compatibility with other Libraries
 //!
-//! In `std` environments a blanket implementation for `Context` for any `Error` is provided. This
-//! blanket implementation for [`Error`] means `error-stack` is compatible with almost all other
-//! libraries that use the [`Error`] trait.
+//! In `std` (or `nightly`) environments a blanket implementation for `Context` for any `Error` is
+//! provided. This blanket implementation for [`Error`] means `error-stack` is compatible with
+//! almost all other libraries that use the [`Error`] trait.
 //!
 //! This has the added benefit that migrating from other error libraries can often be incremental,
 //! as a lot of popular error library types will work within the [`Report`] struct.
@@ -322,7 +325,7 @@
 //!     if let Err(report) = parse_config("config.json") {
 //!         # #[cfg(nightly)]
 //!         for suggestion in report.request_ref::<Suggestion>() {
-//!             eprintln!("Suggestion: {}", suggestion.0);
+//!             eprintln!("suggestion: {}", suggestion.0);
 //!         }
 //!     }
 //! }
@@ -347,8 +350,8 @@
 //!
 //! ### No-Std compatible
 //!
-//! The complete crate is written for `no-std` environments, which can be used by passing
-//! `--no-default-features` to the `cargo` command.
+//! The complete crate is written for `no-std` environments, which can be used setting
+//! `default-features = false` in _Cargo.toml_.
 //!
 //! ### Provider API
 //!
@@ -387,13 +390,14 @@
 //!
 //! ### Debug and Display Hooks
 //!
-//! When the `hooks` feature is enabled, it's possible to provide a custom implementation to print a
-//! [`Report`]. This is done by passing a hook to [`Report::set_debug_hook()`] and/or
-//! [`Report::set_display_hook()`]. If no hook was set a sensible default implementation will be
-//! used. Possible custom hooks would for example be a machine-readable output, e.g. JSON, or a
-//! colored output. If attachments include things that don't implement [`Display`] or [`Debug`] then
-//! a custom hook could be used to offer some other output about these things when printing a
-//! [`Report`].
+//! One can provide hooks for types added as attachments when the `std` feature is enabled. These
+//! hooks are then used while formatting [`Report`].
+//! This functionality is also used internally by `error-stack` to render [`Backtrace`], and
+//! [`SpanTrace`], which means overwriting and customizing them is as easy as providing another
+//! hook.
+//!
+//! You can add new hooks with [`Report::install_debug_hook`]. Refer to the module-level
+//! documentation of [`fmt`] for further information.
 //!
 //! ### Additional Adaptors
 //!
@@ -454,16 +458,18 @@
 )]
 
 extern crate alloc;
+extern crate core;
 
-pub mod compat;
-mod frame;
+pub mod future;
 pub mod iter;
+
+mod compat;
+mod frame;
 mod macros;
 mod report;
 mod result;
 
 mod context;
-pub mod ext;
 #[cfg(feature = "std")]
 pub mod fmt;
 #[cfg(not(feature = "std"))]
@@ -471,18 +477,21 @@ mod fmt;
 #[cfg(feature = "std")]
 mod hook;
 
-#[doc(inline)]
-pub use self::ext::result::{IntoReport, ResultExt};
 #[cfg(feature = "std")]
 #[allow(deprecated, unreachable_pub)]
 pub use self::hook::HookAlreadySet;
 pub use self::{
+    compat::IntoReportCompat,
     context::Context,
-    ext::future::FutureExt,
     frame::{AttachmentKind, Frame, FrameKind},
     macros::*,
     report::Report,
     result::Result,
+};
+#[doc(inline)]
+pub use self::{
+    future::FutureExt,
+    result::{IntoReport, ResultExt},
 };
 
 #[cfg(test)]
@@ -494,7 +503,9 @@ mod tests {
     use crate::Report;
 
     const fn test_send<T: Send>() {}
+
     const fn test_sync<T: Sync>() {}
+
     const fn test_static<T: 'static>() {}
 
     const fn report() {
