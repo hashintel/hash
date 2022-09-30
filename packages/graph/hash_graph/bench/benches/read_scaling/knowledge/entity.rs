@@ -15,7 +15,7 @@ use uuid::Uuid;
 
 use crate::util::{seed, setup, Store, StoreWrapper};
 
-const DB_NAME: &str = "ENTITY_SCALE";
+const DB_NAME: &str = "entity_scale";
 
 async fn seed_db(
     account_id: AccountId,
@@ -48,8 +48,8 @@ async fn seed_db(
             property_type::BLURB_V1,
             property_type::PUBLISHED_ON_V1,
         ],
-        [link_type::WRITTEN_BY_V1],
-        [entity_type::BOOK_V1],
+        [link_type::WRITTEN_BY_V1, link_type::FRIEND_OF_V1],
+        [entity_type::PERSON_V1, entity_type::BOOK_V1],
     )
     .await;
 
@@ -124,19 +124,22 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
     let account_id =
         AccountId::new(Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").unwrap());
 
-    for size in [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000] {
-        let (runtime, mut store_wrapper) = setup(DB_NAME, true);
+    for size in [1, 10, 100, 1_000, 10_000] {
+        let (runtime, mut store_wrapper) = setup(DB_NAME, true, true);
 
         let entity_ids = runtime.block_on(seed_db(account_id, &mut store_wrapper, size));
-        let store = store_wrapper.store;
+        let store = &store_wrapper.store;
 
         group.bench_with_input(
             BenchmarkId::new(
                 "get_entity_type_by_id",
-                format!("Account ID: `{}`", account_id),
+                format!(
+                    "Account ID: `{}`, Number Of Entities: `{}`",
+                    account_id, size
+                ),
             ),
             &(account_id, entity_ids),
-            |b, (_account_id, entity_ids)| bench_get_entity_by_id(b, &runtime, &store, entity_ids),
+            |b, (_account_id, entity_ids)| bench_get_entity_by_id(b, &runtime, store, entity_ids),
         );
     }
 }
