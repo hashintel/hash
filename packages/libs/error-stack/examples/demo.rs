@@ -16,14 +16,33 @@ impl fmt::Display for ParseExperimentError {
 
 impl Context for ParseExperimentError {}
 
-fn parse_experiment(description: &str) -> Result<(u64, u64), ParseExperimentError> {
-    let value = description
-        .parse()
-        .into_report()
-        .attach_printable_lazy(|| format!("{description:?} could not be parsed as experiment"))
+fn parse_experiment(description: &str) -> Result<Vec<(u64, u64)>, ParseExperimentError> {
+    let values = description
+        .split(' ')
+        .map(|value| {
+            value
+                .parse::<u64>()
+                .into_report()
+                .attach_printable_lazy(|| format!("{value:?} could not be parsed as experiment"))
+        })
+        .map(|value| value.map(|ok| (ok, 2 * ok)))
+        .fold(Ok(vec![]), |accum, value| match (accum, value) {
+            (Ok(mut accum), Ok(value)) => {
+                accum.push(value);
+
+                Ok(accum)
+            }
+            (Ok(_), Err(err)) => Err(err),
+            (Err(accum), Ok(_)) => Err(accum),
+            (Err(mut accum), Err(err)) => {
+                accum.extend_one(err);
+
+                Err(accum)
+            }
+        })
         .change_context(ParseExperimentError)?;
 
-    Ok((value, 2 * value))
+    Ok(values)
 }
 
 #[derive(Debug)]
@@ -46,24 +65,45 @@ fn start_experiments(
         .map(|exp_id| {
             let description = experiment_descriptions.get(*exp_id).ok_or_else(|| {
                 Report::new(ExperimentError)
-                    .attach_printable(format!("Experiment {exp_id} has no valid description"))
+                    .attach_printable(format!("experiment {exp_id} has no valid description"))
             })?;
 
-            let experiment = parse_experiment(description)
-                .attach_printable(format!("Experiment {exp_id} could not be parsed"))
+            let experiments = parse_experiment(description)
+                .attach_printable(format!("experiment {exp_id} could not be parsed"))
                 .change_context(ExperimentError)?;
 
-            Ok(move || experiment.0 * experiment.1)
+            let experiments = experiments
+                .into_iter()
+                .map(|(a, b)| move || a * b)
+                .collect::<Vec<_>>();
+
+            Ok(experiments)
         })
-        .collect::<Result<Vec<_>, ExperimentError>>()
-        .attach_printable("Unable to set up experiments")?;
+        .fold(
+            Ok(vec![]),
+            |accum: Result<_, ExperimentError>, value| match (accum, value) {
+                (Ok(mut accum), Ok(value)) => {
+                    accum.extend(value);
+
+                    Ok(accum)
+                }
+                (Ok(_), Err(err)) => Err(err),
+                (Err(accum), Ok(_)) => Err(accum),
+                (Err(mut accum), Err(err)) => {
+                    accum.extend_one(err);
+
+                    Err(accum)
+                }
+            },
+        )
+        .attach_printable("unable to set up experiments")?;
 
     Ok(experiments.iter().map(|experiment| experiment()).collect())
 }
 
 fn main() -> Result<(), ExperimentError> {
-    let experiment_ids = &[0, 2];
-    let experiment_descriptions = &["10", "20", "3o"];
+    let experiment_ids = &[0, 2, 3];
+    let experiment_descriptions = &["10", "20", "3o 4a"];
     start_experiments(experiment_ids, experiment_descriptions)?;
 
     Ok(())

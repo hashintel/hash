@@ -8,13 +8,13 @@ pub use alloc::{
 };
 #[allow(unused_imports)]
 use core::{
-    fmt, iter,
+    fmt,
+    future::Future,
+    iter,
     sync::atomic::{AtomicI8, Ordering},
 };
 
 use error_stack::{AttachmentKind, Context, Frame, FrameKind, Report, Result};
-#[cfg(feature = "futures")]
-use futures_core::{Future, Stream};
 #[allow(unused_imports)]
 use once_cell::sync::Lazy;
 
@@ -23,7 +23,7 @@ pub struct RootError;
 
 impl fmt::Display for RootError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Root error")
+        fmt.write_str("root error")
     }
 }
 
@@ -34,7 +34,7 @@ pub struct ContextA(pub u32);
 
 impl fmt::Display for ContextA {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Context A")
+        fmt.write_str("context A")
     }
 }
 
@@ -42,7 +42,7 @@ impl Context for ContextA {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut core::any::Demand<'a>) {
         demand.provide_ref(&self.0);
-        demand.provide_value(|| self.0 as u64);
+        demand.provide_value(self.0 as u64);
     }
 }
 
@@ -51,7 +51,7 @@ pub struct ContextB(pub i32);
 
 impl fmt::Display for ContextB {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Context B")
+        fmt.write_str("context B")
     }
 }
 
@@ -59,7 +59,7 @@ impl Context for ContextB {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut core::any::Demand<'a>) {
         demand.provide_ref(&self.0);
-        demand.provide_value(|| self.0 as i64);
+        demand.provide_value(self.0 as i64);
     }
 }
 
@@ -77,7 +77,7 @@ impl ErrorA {
 #[cfg(feature = "spantrace")]
 impl fmt::Display for ErrorA {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Error A")
+        fmt.write_str("error A")
     }
 }
 
@@ -103,11 +103,11 @@ impl ErrorB {
 #[cfg(all(rust_1_65, feature = "std"))]
 impl fmt::Display for ErrorB {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Error B")
+        fmt.write_str("error B")
     }
 }
 
-#[cfg(all(rust_1_65, feature = "std"))]
+#[cfg(all(nightly, feature = "std"))]
 impl std::error::Error for ErrorB {
     fn provide<'a>(&'a self, demand: &mut core::any::Demand<'a>) {
         demand.provide_ref(&self.1);
@@ -130,7 +130,7 @@ pub struct PrintableA(pub u32);
 
 impl fmt::Display for PrintableA {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Printable A")
+        fmt.write_str("printable A")
     }
 }
 
@@ -139,7 +139,7 @@ pub struct PrintableB(pub u32);
 
 impl fmt::Display for PrintableB {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Printable B")
+        fmt.write_str("printable B")
     }
 }
 
@@ -151,26 +151,16 @@ pub fn create_error() -> Result<(), RootError> {
     Err(create_report())
 }
 
-pub fn create_iterator(num_elements: usize) -> impl Iterator<Item = Result<(), RootError>> {
-    iter::repeat_with(create_error).take(num_elements)
-}
-
-#[cfg(feature = "futures")]
 pub fn create_future() -> impl Future<Output = Result<(), RootError>> {
     futures::future::err(create_report())
 }
 
-#[cfg(feature = "futures")]
-pub fn create_stream(num_elements: usize) -> impl Stream<Item = Result<(), RootError>> {
-    futures::stream::iter(create_iterator(num_elements))
-}
-
 pub fn capture_ok<E>(closure: impl FnOnce() -> Result<(), E>) {
-    closure().expect("Expected an OK value, found an error")
+    closure().expect("expected an OK value, found an error")
 }
 
 pub fn capture_error<E>(closure: impl FnOnce() -> Result<(), E>) -> Report<E> {
-    closure().expect_err("Expected an error")
+    closure().expect_err("expected an error")
 }
 
 pub fn messages<E>(report: &Report<E>) -> Vec<String> {
@@ -179,8 +169,8 @@ pub fn messages<E>(report: &Report<E>) -> Vec<String> {
         .map(|frame| match frame.kind() {
             FrameKind::Context(context) => context.to_string(),
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => attachment.to_string(),
-            FrameKind::Attachment(AttachmentKind::Opaque(_)) => String::from("Opaque"),
-            FrameKind::Attachment(_) => panic!("Attachment was not covered"),
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) => String::from("opaque"),
+            FrameKind::Attachment(_) => panic!("attachment was not covered"),
         })
         .collect()
 }
@@ -220,12 +210,12 @@ pub fn expect_messages<'a>(messages: &[&'a str]) -> Vec<&'a str> {
 
     #[cfg(all(rust_1_65, feature = "std"))]
     if supports_backtrace() {
-        messages.push("Opaque");
+        messages.push("opaque");
     }
 
     #[cfg(feature = "spantrace")]
     if supports_spantrace() {
-        messages.push("Opaque");
+        messages.push("opaque");
     }
 
     messages.push(last);

@@ -24,9 +24,9 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.0.12",
+    "@blockprotocol/graph": "0.0.16",
     "@hashintel/hash-design-system": "0.0.0",
-    "@mui/icons-material": "5.4.2",
+    "@mui/icons-material": "5.10.3",
     "@mui/lab": "5.0.0-alpha.71",
     "@mui/material": "5.4.3",
     "date-fns": "2.28.0",
@@ -35,7 +35,7 @@
   },
   "devDependencies": {
     "block-scripts": "0.0.14",
-    "mock-block-dock": "0.0.20",
+    "mock-block-dock": "0.0.26",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

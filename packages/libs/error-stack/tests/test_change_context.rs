@@ -5,14 +5,12 @@
 mod common;
 
 use common::*;
-use error_stack::{AttachmentKind, FrameKind, IteratorExt, Report, ResultExt};
-#[cfg(feature = "futures")]
-use error_stack::{FutureExt, StreamExt};
+use error_stack::{AttachmentKind, FrameKind, FutureExt, Report, ResultExt};
 
 fn test_messages<E>(report: &Report<E>) {
     assert_eq!(
         messages(report),
-        expect_messages(&["Opaque", "Context B", "Opaque", "Context A", "Root error"])
+        expect_messages(&["opaque", "context B", "opaque", "context A", "root error"])
     );
 }
 
@@ -53,22 +51,6 @@ fn attach_result() {
 }
 
 #[test]
-fn attach_iterator() {
-    let iter = create_iterator(5)
-        .change_context(ContextA(0))
-        .attach(AttachmentA)
-        .change_context_lazy(|| ContextB(0))
-        .attach_lazy(|| AttachmentB);
-
-    for error in iter {
-        let report = error.expect_err("Not an error");
-        test_messages(&report);
-        test_kinds(&report);
-    }
-}
-
-#[test]
-#[cfg(feature = "futures")]
 fn attach_future() {
     let future = create_future()
         .change_context(ContextA(0))
@@ -81,22 +63,4 @@ fn attach_future() {
     let report = error.expect_err("Not an error");
     test_messages(&report);
     test_kinds(&report);
-}
-
-#[test]
-#[cfg(feature = "futures")]
-fn attach_stream() {
-    let stream = create_stream(5)
-        .change_context(ContextA(0))
-        .attach(AttachmentA)
-        .change_context_lazy(|| ContextB(0))
-        .attach_lazy(|| AttachmentB);
-
-    let iter = futures::executor::block_on_stream(stream);
-
-    for error in iter {
-        let report = error.expect_err("Not an error");
-        test_messages(&report);
-        test_kinds(&report);
-    }
 }

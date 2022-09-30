@@ -115,34 +115,34 @@ impl HookContextInner {
 /// struct Suggestion(&'static str);
 /// struct Secret(&'static str);
 ///
-/// Report::install_debug_hook::<HttpResponseStatusCode>(|HttpResponseStatusCode(val), ctx| {
+/// Report::install_debug_hook::<HttpResponseStatusCode>(|HttpResponseStatusCode(value), context| {
 ///     // Create a new appendix, which is going to be displayed when someone requests the alternate
 ///     // version (`:#?`) of the report.
-///     if ctx.alternate() {
-///         ctx.push_appendix(format!("Error {val}: {} Error", if *val < 500 {"Client"} else {"Server"}))
+///     if context.alternate() {
+///         context.push_appendix(format!("error {value}: {} error", if *value < 500 {"client"} else {"server"}))
 ///     }
 ///
 ///     // This will push a new entry onto the body with the specified value
-///     ctx.push_body(format!("Error code: {val}"));
+///     context.push_body(format!("error code: {value}"));
 /// });
 ///
-/// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-///     let idx = ctx.increment_counter();
+/// Report::install_debug_hook::<Suggestion>(|Suggestion(value), context| {
+///     let idx = context.increment_counter();
 ///
 ///     // Create a new appendix, which is going to be displayed when someone requests the alternate
 ///     // version (`:#?`) of the report.
-///     if ctx.alternate() {
-///         ctx.push_body(format!("Suggestion {idx}:\n  {val}"));
+///     if context.alternate() {
+///         context.push_body(format!("suggestion {idx}:\n  {value}"));
 ///     }
 ///
 ///     // This will push a new entry onto the body with the specified value
-///     ctx.push_body(format!("Suggestion ({idx})"));
+///     context.push_body(format!("suggestion ({idx})"));
 /// });
 ///
-/// Report::install_debug_hook::<Warning>(|Warning(val), ctx| {
+/// Report::install_debug_hook::<Warning>(|Warning(value), context| {
 ///     // You can add multiples entries to the body (and appendix) in the same hook.
-///     ctx.push_body("Abnormal program execution detected");
-///     ctx.push_body(format!("Warning: {val}"));
+///     context.push_body("abnormal program execution detected");
+///     context.push_body(format!("warning: {value}"));
 /// });
 ///
 /// // By not adding anything you are able to hide an attachment
@@ -151,21 +151,21 @@ impl HookContextInner {
 ///
 /// let report = Report::new(Error::from(ErrorKind::InvalidInput))
 ///     .attach(HttpResponseStatusCode(404))
-///     .attach(Suggestion("Do you have a connection to the internet?"))
+///     .attach(Suggestion("do you have a connection to the internet?"))
 ///     .attach(HttpResponseStatusCode(405))
-///     .attach(Warning("Unable to determine environment"))
+///     .attach(Warning("unable to determine environment"))
 ///     .attach(Secret("pssst, don't tell anyone else c;"))
-///     .attach(Suggestion("Execute the program from the fish shell"))
+///     .attach(Suggestion("execute the program from the fish shell"))
 ///     .attach(HttpResponseStatusCode(501))
-///     .attach(Suggestion("Try better next time!"));
+///     .attach(Suggestion("try better next time!"));
 ///
 /// # owo_colors::set_override(true);
 /// # fn render(value: String) -> String {
-/// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-/// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+/// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+/// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
 /// #
-/// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-/// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+/// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
+/// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
 /// #
 /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 /// # }
@@ -216,22 +216,22 @@ impl HookContextInner {
 ///
 /// struct Computation(u64);
 ///
-/// Report::install_debug_hook::<Computation>(|Computation(val), ctx| {
+/// Report::install_debug_hook::<Computation>(|Computation(value), context| {
 ///     // Get a value of type `u64`, if we didn't insert one yet, default to 0
-///     let mut acc = ctx.get::<u64>().copied().unwrap_or(0);
-///     acc += *val;
+///     let mut acc = context.get::<u64>().copied().unwrap_or(0);
+///     acc += *value;
 ///
 ///     // Get a value of type `f64`, if we didn't insert one yet, default to 1.0
-///     let mut div = ctx.get::<f32>().copied().unwrap_or(1.0);
-///     div /= *val as f32;
+///     let mut div = context.get::<f32>().copied().unwrap_or(1.0);
+///     div /= *value as f32;
 ///
 ///     // Insert the calculated `u64` and `f32` back into storage, so that we can use them
 ///     // in the invocations following this one (for the same `Debug` call)
-///     ctx.insert(acc);
-///     ctx.insert(div);
+///     context.insert(acc);
+///     context.insert(div);
 ///
-///     ctx.push_body(format!(
-///         "Computation for {val} (acc = {acc}, div = {div})"
+///     context.push_body(format!(
+///         "computation for {value} (acc = {acc}, div = {div})"
 ///     ));
 /// });
 ///
@@ -241,11 +241,11 @@ impl HookContextInner {
 ///
 /// # owo_colors::set_override(true);
 /// # fn render(value: String) -> String {
-/// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-/// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+/// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+/// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
 /// #
-/// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-/// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+/// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
+/// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
 /// #
 /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 /// # }
@@ -301,32 +301,32 @@ impl<T> HookContext<T> {
     ///     reason: &'static str,
     /// }
     ///
-    /// Report::install_debug_hook::<Error>(|Error { code, reason }, ctx| {
-    ///     if ctx.alternate() {
+    /// Report::install_debug_hook::<Error>(|Error { code, reason }, context| {
+    ///     if context.alternate() {
     ///         // Add an entry to the appendix
-    ///         ctx.push_appendix(format!("Error {code}:\n  {reason}"));
+    ///         context.push_appendix(format!("error {code}:\n  {reason}"));
     ///     }
     ///
-    ///     ctx.push_body(format!("Error {code}"));
+    ///     context.push_body(format!("error {code}"));
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
     ///     .attach(Error {
     ///         code: 404,
-    ///         reason: "Not Found - Server cannot find requested resource",
+    ///         reason: "not found - server cannot find requested resource",
     ///     })
     ///     .attach(Error {
     ///         code: 405,
-    ///         reason: "Bad Request - Server cannot or will not process request",
+    ///         reason: "bad request - server cannot or will not process request",
     ///     });
     ///
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
     /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
@@ -357,23 +357,23 @@ impl<T> HookContext<T> {
     ///
     /// struct Suggestion(&'static str);
     ///
-    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     ctx.push_body(format!("Suggestion: {val}"));
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(value), context| {
+    ///     context.push_body(format!("suggestion: {value}"));
     ///     // We can push multiples entries in a single hook, these lines will be added one after
     ///     // another.
-    ///     ctx.push_body("Sorry for the inconvenience!");
+    ///     context.push_body("sorry for the inconvenience!");
     /// });
     ///
     /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
-    ///     .attach(Suggestion("Try better next time"));
+    ///     .attach(Suggestion("try better next time"));
     ///
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
     /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
@@ -401,8 +401,6 @@ impl<T> HookContext<T> {
     /// partitions of the storage. Only hooks that share storage with hooks of different types
     /// should need to use this function.
     ///
-    /// This function is also particularly useful when implementing generic fallbacks.
-    ///
     /// ### Example
     ///
     /// ```rust
@@ -415,32 +413,32 @@ impl<T> HookContext<T> {
     /// struct Warning(&'static str);
     /// struct Error(&'static str);
     ///
-    /// Report::install_debug_hook::<Error>(|Error(frame), ctx| {
-    ///     let idx = ctx.increment_counter() + 1;
+    /// Report::install_debug_hook::<Error>(|Error(frame), context| {
+    ///     let idx = context.increment_counter() + 1;
     ///
-    ///     ctx.push_body(format!("[{idx}] [ERROR] {frame}"));
+    ///     context.push_body(format!("[{idx}] [ERROR] {frame}"));
     /// });
-    /// Report::install_debug_hook::<Warning>(|Warning(frame), ctx| {
+    /// Report::install_debug_hook::<Warning>(|Warning(frame), context| {
     ///     // We want to share the same counter with `Error`, so that we're able to have
     ///     // a global counter to keep track of all errors and warnings in order, this means
     ///     // we need to access the storage of `Error` using `cast()`.
-    ///     let ctx = ctx.cast::<Error>();
-    ///     let idx = ctx.increment_counter() + 1;
-    ///     ctx.push_body(format!("[{idx}] [WARN] {frame}"))
+    ///     let context = context.cast::<Error>();
+    ///     let idx = context.increment_counter() + 1;
+    ///     context.push_body(format!("[{idx}] [WARN] {frame}"))
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-    ///     .attach(Error("Unable to reach remote host"))
-    ///     .attach(Warning("Disk nearly full"))
-    ///     .attach(Error("Cannot resolve example.com: Unknown host"));
+    ///     .attach(Error("unable to reach remote host"))
+    ///     .attach(Warning("disk nearly full"))
+    ///     .attach(Error("cannot resolve example.com: unknown host"));
     ///
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
     /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
@@ -485,9 +483,9 @@ impl<T> HookContext<T> {
 impl<T: 'static> HookContext<T> {
     /// Return a reference to a value of type `U`, if a value of that type exists.
     ///
-    /// Values returned are isolated and therefore "bound" to `T`, this means that if two different
-    /// [`HookContext`]s that share the same inner value (e.g. same invocation of [`Debug`]) will
-    /// return the same value.
+    /// Values returned are isolated and "bound" to `T`, this means that [`HookContext<Warning>`]
+    /// and [`HookContext<Error>`] do not share the same values. Values are only retained during the
+    /// invocation of [`Debug`].
     ///
     /// [`Debug`]: core::fmt::Debug
     #[must_use]
@@ -500,9 +498,11 @@ impl<T: 'static> HookContext<T> {
 
     /// Return a mutable reference to a value of type `U`, if a value of that type exists.
     ///
-    /// Values returned are isolated and therefore "bound" to `T`, this means that if two different
-    /// [`HookContext`]s that share the same inner value (e.g. same invocation of [`Debug`]) will
-    /// return the same value.
+    /// Values returned are isolated and "bound" to `T`, this means that [`HookContext<Warning>`]
+    /// and [`HookContext<Error>`] do not share the same values. Values are only retained during the
+    /// invocation of [`Debug`].
+    ///
+    /// [`Debug`]: core::fmt::Debug
     pub fn get_mut<U: 'static>(&mut self) -> Option<&mut U> {
         self.storage_mut()
             .get_mut(&TypeId::of::<T>())?
@@ -526,7 +526,8 @@ impl<T: 'static> HookContext<T> {
 
     /// Remove the value of type `U` from the storage of [`HookContext`] if it existed.
     ///
-    /// The returned value will be the previously stored value of the same type `U`.
+    /// The returned value will be the previously stored value of the same type `U` if it existed in
+    /// the scope of `T`, did no such value exist, it will return [`None`].
     pub fn remove<U: 'static>(&mut self) -> Option<U> {
         self.storage_mut()
             .get_mut(&TypeId::of::<T>())?
@@ -551,22 +552,22 @@ impl<T: 'static> HookContext<T> {
     ///
     /// struct Suggestion(&'static str);
     ///
-    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     let idx = ctx.increment_counter();
-    ///     ctx.push_body(format!("Suggestion {idx}: {val}"));
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(value), context| {
+    ///     let idx = context.increment_counter();
+    ///     context.push_body(format!("suggestion {idx}: {value}"));
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-    ///     .attach(Suggestion("Use a file you can read next time!"))
-    ///     .attach(Suggestion("Don't press any random keys!"));
+    ///     .attach(Suggestion("use a file you can read next time!"))
+    ///     .attach(Suggestion("don't press any random keys!"));
     ///
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
     /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
@@ -585,6 +586,8 @@ impl<T: 'static> HookContext<T> {
     pub fn increment_counter(&mut self) -> isize {
         let counter = self.get_mut::<Counter>();
 
+        // reason: This would fail as we cannot move out of `self` because it is borrowed
+        #[allow(clippy::option_if_let_else)]
         match counter {
             None => {
                 // if the counter hasn't been set yet, default to `0`
@@ -616,22 +619,22 @@ impl<T: 'static> HookContext<T> {
     ///
     /// struct Suggestion(&'static str);
     ///
-    /// Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-    ///     let idx = ctx.decrement_counter();
-    ///     ctx.push_body(format!("Suggestion {idx}: {val}"));
+    /// Report::install_debug_hook::<Suggestion>(|Suggestion(value), context| {
+    ///     let idx = context.decrement_counter();
+    ///     context.push_body(format!("suggestion {idx}: {value}"));
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-    ///     .attach(Suggestion("Use a file you can read next time!"))
-    ///     .attach(Suggestion("Don't press any random keys!"));
+    ///     .attach(Suggestion("use a file you can read next time!"))
+    ///     .attach(Suggestion("don't press any random keys!"));
     ///
     /// # owo_colors::set_override(true);
     /// # fn render(value: String) -> String {
-    /// #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-    /// #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+    /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
     /// #
-    /// #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+    /// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
@@ -648,6 +651,8 @@ impl<T: 'static> HookContext<T> {
     pub fn decrement_counter(&mut self) -> isize {
         let counter = self.get_mut::<Counter>();
 
+        // reason: This would fail as we cannot move out of `self` because it is borrowed
+        #[allow(clippy::option_if_let_else)]
         match counter {
             None => {
                 // given that increment starts with `0` (which is therefore the implicit default
@@ -667,35 +672,35 @@ impl<T: 'static> HookContext<T> {
 }
 
 type BoxedHook = Box<dyn Fn(&Frame, &mut HookContext<Frame>) -> Option<()> + Send + Sync>;
-type BoxedFallbackHook = Box<dyn Fn(&Frame, &mut HookContext<Frame>) + Send + Sync>;
 
 fn into_boxed_hook<T: Send + Sync + 'static>(
     hook: impl Fn(&T, &mut HookContext<T>) + Send + Sync + 'static,
 ) -> BoxedHook {
-    Box::new(move |frame: &Frame, ctx: &mut HookContext<Frame>| {
+    Box::new(move |frame: &Frame, context: &mut HookContext<Frame>| {
         #[cfg(nightly)]
         {
             frame
                 .request_ref::<T>()
-                .map(|val| hook(val, ctx.cast()))
+                .map(|value| hook(value, context.cast()))
                 .or_else(|| {
                     frame
                         .request_value::<T>()
-                        .as_ref()
-                        .map(|val| hook(val, ctx.cast()))
+                        .map(|ref value| hook(value, context.cast()))
                 })
         }
 
+        // emulate the behavior from nightly by searching for
+        //  - `Context::provide`: not available
+        //  - `Attachment`s: provide themself, emulated by `downcast_ref`
         #[cfg(not(nightly))]
-        {
-            frame.downcast_ref::<T>().map(|val| hook(val, ctx.cast()))
-        }
+        matches!(frame.kind(), crate::FrameKind::Attachment(_))
+            .then_some(frame)
+            .and_then(Frame::downcast_ref::<T>)
+            .map(|value| hook(value, context.cast()))
     })
 }
 
-/// Holds list of hooks and a fallback.
-///
-/// The fallback is called whenever a hook for a specific type couldn't be found.
+/// Holds list of hooks.
 ///
 /// These are used to augment the [`Debug`] information of attachments and contexts, which are
 /// normally not printable.
@@ -720,7 +725,6 @@ pub(crate) struct Hooks {
     // We use `Vec`, instead of `HashMap` or `BTreeMap`, so that ordering is consistent with the
     // insertion order of types.
     pub(crate) inner: Vec<(TypeId, BoxedHook)>,
-    pub(crate) fallback: Option<BoxedFallbackHook>,
 }
 
 #[cfg(feature = "std")]
@@ -737,27 +741,9 @@ impl Hooks {
         self.inner.push((type_id, into_boxed_hook(hook)));
     }
 
-    pub(crate) fn fallback(
-        &mut self,
-        hook: impl Fn(&Frame, &mut HookContext<Frame>) + Send + Sync + 'static,
-    ) {
-        self.fallback = Some(Box::new(hook));
-    }
-
-    pub(crate) fn call(&self, frame: &Frame, ctx: &mut HookContext<Frame>) {
-        // By checking the times we actually invoked a function we make sure that
-        // even if we only added an appendix, or have purposely not added an entry to the body, we
-        // don't use the fallback.
-        let calls = self
-            .inner
-            .iter()
-            .filter_map(|(_, hook)| hook(frame, ctx))
-            .count();
-
-        if calls == 0 {
-            if let Some(fallback) = &self.fallback {
-                fallback(frame, ctx);
-            }
+    pub(crate) fn call(&self, frame: &Frame, context: &mut HookContext<Frame>) {
+        for (_, hook) in &self.inner {
+            hook(frame, context);
         }
     }
 }
@@ -805,7 +791,7 @@ mod default {
         INSTALL_BUILTIN.call_once(|| {
             INSTALL_BUILTIN_RUNNING.store(true, Ordering::Release);
 
-            #[cfg(all(rust_1_65))]
+            #[cfg(rust_1_65)]
             Report::install_debug_hook(backtrace);
 
             #[cfg(feature = "spantrace")]
@@ -814,28 +800,31 @@ mod default {
     }
 
     #[cfg(rust_1_65)]
-    fn backtrace(backtrace: &Backtrace, ctx: &mut HookContext<Backtrace>) {
-        let idx = ctx.increment_counter();
+    fn backtrace(backtrace: &Backtrace, context: &mut HookContext<Backtrace>) {
+        let idx = context.increment_counter();
 
-        ctx.push_appendix(format!("Backtrace No. {}\n{}", idx + 1, backtrace));
-        ctx.push_body(format!(
+        context.push_appendix(format!("backtrace no. {}\n{}", idx + 1, backtrace));
+        #[cfg(nightly)]
+        context.push_body(format!(
             "backtrace with {} frames ({})",
             backtrace.frames().len(),
             idx + 1
         ));
+        #[cfg(not(nightly))]
+        context.push_body(format!("backtrace ({})", idx + 1));
     }
 
     #[cfg(feature = "spantrace")]
-    fn span_trace(spantrace: &SpanTrace, ctx: &mut HookContext<SpanTrace>) {
-        let idx = ctx.increment_counter();
+    fn span_trace(span_trace: &SpanTrace, context: &mut HookContext<SpanTrace>) {
+        let idx = context.increment_counter();
 
         let mut span = 0;
-        spantrace.with_spans(|_, _| {
+        span_trace.with_spans(|_, _| {
             span += 1;
             true
         });
 
-        ctx.push_appendix(format!("Span Trace No. {}\n{}", idx + 1, spantrace));
-        ctx.push_body(format!("spantrace with {span} frames ({})", idx + 1));
+        context.push_appendix(format!("span trace No. {}\n{}", idx + 1, span_trace));
+        context.push_body(format!("span trace with {span} frames ({})", idx + 1));
     }
 }
