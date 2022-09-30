@@ -843,6 +843,12 @@ where
 
         Ok(())
     }
+
+    /// TODO - DOC
+    #[expect(clippy::missing_const_for_fn, reason = "Compile error")]
+    pub fn into_client(self) -> C {
+        self.client
+    }
 }
 
 #[async_trait]

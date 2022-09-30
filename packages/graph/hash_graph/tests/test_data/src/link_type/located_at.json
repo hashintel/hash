@@ -1,0 +1,8 @@
+{
+  "kind": "linkType",
+  "$id": "https://blockprotocol.org/@alice/types/link-type/located-at/v/1",
+  "title": "Located At",
+  "pluralTitle": "Located At",
+  "description": "Residing at a specific position",
+  "relatedKeywords": []
+}

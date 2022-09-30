@@ -1,4 +1,4 @@
-pub const ADDRESS_V1: &str = include_str!("address.json");
+pub const UK_ADDRESS_V1: &str = include_str!("uk_address.json");
 pub const BLOCK_V1: &str = include_str!("block.json");
 pub const BOOK_V1: &str = include_str!("book.json");
 pub const BUILDING_V1: &str = include_str!("building.json");
