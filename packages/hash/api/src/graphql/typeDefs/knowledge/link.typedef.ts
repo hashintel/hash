@@ -15,6 +15,14 @@ export const knowledgeLinkTypedef = gql`
     """
     index: Int
     """
+    The id of the link's source entity.
+    """
+    sourceEntityId: ID!
+    """
+    The id of the link's source entity.
+    """
+    targetEntityId: ID!
+    """
     The link's source entity.
     """
     sourceEntity: KnowledgeEntity!
@@ -22,5 +30,21 @@ export const knowledgeLinkTypedef = gql`
     The link's destination entity.
     """
     targetEntity: KnowledgeEntity!
+  }
+
+  extend type Query {
+    """
+    Get a link
+    """
+    knowledgeLinks(
+      """
+      The id of the link's source entity
+      """
+      sourceEntityId: ID!
+      """
+      The id of the link type that's being fetched.
+      """
+      linkTypeId: String!
+    ): [KnowledgeLink!]!
   }
 `;
