@@ -226,7 +226,8 @@ pub async fn setup_and_extract_samples(store_wrapper: &mut StoreWrapper) -> Samp
     let account_id =
         AccountId::new(Uuid::from_str("d4e16033-c281-4cde-aa35-9085bf2e7579").unwrap());
 
-    let not_empty: bool = store_wrapper
+    // We use the existence of the account ID as a marker for if the DB has been seeded already
+    let already_seeded: bool = store_wrapper
         .store
         .as_client()
         .query_one(
@@ -239,7 +240,7 @@ pub async fn setup_and_extract_samples(store_wrapper: &mut StoreWrapper) -> Samp
         .expect("failed to check if account id exists")
         .get(0);
 
-    if !(not_empty) {
+    if !(already_seeded) {
         seed_db(account_id, store_wrapper).await;
     }
 

@@ -60,7 +60,7 @@ impl StoreWrapper {
                 .query_one(
                     r#"
                     SELECT EXISTS(
-                     SELECT datname FROM pg_catalog.pg_database WHERE datname = $1
+                        SELECT 1 FROM pg_catalog.pg_database WHERE datname = $1
                     );
                     "#,
                     &[&bench_db_name],
@@ -69,12 +69,11 @@ impl StoreWrapper {
                 .expect("failed to check if database exists")
                 .get(0);
 
-            if fail_on_exists && exists {
-                panic!(
-                    "database `{}` exists, and fails_on_exists was set to true",
-                    bench_db_name
-                );
-            }
+            assert!(
+                !(fail_on_exists && exists),
+                "database `{}` exists, and `fails_on_exists` was set to true",
+                bench_db_name
+            );
 
             if !(exists) {
                 client
