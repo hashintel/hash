@@ -29,7 +29,7 @@ const graphApi = createGraphClient(logger, {
 });
 
 describe("Entity CRU", () => {
-  let accountId: string;
+  let ownedById: string;
   let entityTypeModel: EntityTypeModel;
   let textDataTypeModel: DataTypeModel;
   let namePropertyTypeModel: PropertyTypeModel;
@@ -39,10 +39,10 @@ describe("Entity CRU", () => {
   beforeAll(async () => {
     const testUser = await createTestUser(graphApi, "entitytest", logger);
 
-    accountId = testUser.entityId;
+    ownedById = testUser.entityId;
 
     textDataTypeModel = await DataTypeModel.create(graphApi, {
-      accountId,
+      ownedById,
       schema: {
         kind: "dataType",
         title: "Text",
@@ -55,7 +55,7 @@ describe("Entity CRU", () => {
 
     await Promise.all([
       LinkTypeModel.create(graphApi, {
-        accountId,
+        ownedById,
         schema: {
           kind: "linkType",
           title: "Friends",
@@ -72,7 +72,7 @@ describe("Entity CRU", () => {
         }),
 
       PropertyTypeModel.create(graphApi, {
-        accountId,
+        ownedById,
         schema: {
           kind: "propertyType",
           title: "Favorite Book",
@@ -88,7 +88,7 @@ describe("Entity CRU", () => {
           throw err;
         }),
       PropertyTypeModel.create(graphApi, {
-        accountId,
+        ownedById,
         schema: {
           kind: "propertyType",
           title: "Name",
@@ -106,7 +106,7 @@ describe("Entity CRU", () => {
     ]);
 
     entityTypeModel = await EntityTypeModel.create(graphApi, {
-      accountId,
+      ownedById,
       schema: generateWorkspaceEntityTypeSchema({
         namespace: testUser.getShortname()!,
         title: "Person",
@@ -129,7 +129,7 @@ describe("Entity CRU", () => {
   let createdEntityModel: EntityModel;
   it("can create an entity", async () => {
     createdEntityModel = await EntityModel.create(graphApi, {
-      accountId,
+      ownedById,
       properties: {
         [namePropertyTypeModel.baseUri]: "Bob",
         [favoriteBookPropertyTypeModel.baseUri]: "some text",
@@ -140,7 +140,6 @@ describe("Entity CRU", () => {
 
   it("can read an entity", async () => {
     const fetchedEntityModel = await EntityModel.getLatest(graphApi, {
-      accountId,
       entityId: createdEntityModel.entityId,
     });
 
@@ -152,7 +151,6 @@ describe("Entity CRU", () => {
   it("can update an entity", async () => {
     updatedEntityModel = await createdEntityModel
       .update(graphApi, {
-        accountId,
         properties: {
           [namePropertyTypeModel.baseUri]: "Updated Bob",
           [favoriteBookPropertyTypeModel.baseUri]: "Even more text than before",
@@ -166,7 +164,7 @@ describe("Entity CRU", () => {
       await EntityModel.getByQuery(graphApi, {
         all: [{ eq: [{ path: ["version"] }, { literal: "latest" }] }],
       })
-    ).filter((entity) => entity.accountId === accountId);
+    ).filter((entity) => entity.ownedById === ownedById);
 
     const newlyUpdatedModel = allEntityModels.find(
       (ent) => ent.entityId === updatedEntityModel.entityId,
@@ -189,7 +187,7 @@ describe("Entity CRU", () => {
 
   it("can create entity with linked entities from an entity definition", async () => {
     const aliceEntityModel = await EntityModel.createEntityWithLinks(graphApi, {
-      createdById: accountId,
+      ownedById,
       entityDefinition: {
         // First create a new entity given the following definition
         entityType: {
@@ -202,13 +200,13 @@ describe("Entity CRU", () => {
         linkedEntities: [
           {
             // Then create an entity + link
-            destinationAccountId: accountId,
+            destinationAccountId: ownedById,
             linkTypeId: linkTypeFriend.schema.$id,
             entity: {
               // The "new" entity is in fact just an existing entity, so only a link will be created.
               existingEntity: {
                 entityId: updatedEntityModel.entityId,
-                ownedById: updatedEntityModel.accountId,
+                ownedById: updatedEntityModel.ownedById,
               },
             },
           },

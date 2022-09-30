@@ -9,7 +9,7 @@ import { createLinkTypeMutation } from "../../../../graphql/queries/ontology/lin
 import { CreateLinkTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolCreateLinkType = (
-  accountId: string,
+  ownedById: string,
   readonly?: boolean,
 ): {
   createLinkType: CreateLinkTypeMessageCallback;
@@ -46,7 +46,7 @@ export const useBlockProtocolCreateLinkType = (
       const { linkType } = data;
       const { data: responseData } = await createFn({
         variables: {
-          accountId,
+          ownedById,
           linkType,
         },
       });
@@ -64,13 +64,12 @@ export const useBlockProtocolCreateLinkType = (
 
       return {
         data: {
-          linkTypeVersionedUri:
-            responseData.createLinkType.linkTypeVersionedUri,
+          linkTypeId: responseData.createLinkType.linkTypeId,
           linkType: responseData.createLinkType.linkType,
         },
       };
     },
-    [accountId, createFn, readonly],
+    [ownedById, createFn, readonly],
   );
 
   return {

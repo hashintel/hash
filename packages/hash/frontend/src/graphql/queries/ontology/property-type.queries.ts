@@ -1,10 +1,10 @@
 import { gql } from "@apollo/client";
 
 export const getPropertyTypeQuery = gql`
-  query getPropertyType($propertyTypeVersionedUri: String!) {
-    getPropertyType(propertyTypeVersionedUri: $propertyTypeVersionedUri) {
-      propertyTypeVersionedUri
-      accountId
+  query getPropertyType($propertyTypeId: String!) {
+    getPropertyType(propertyTypeId: $propertyTypeId) {
+      propertyTypeId
+      ownedById
       propertyType
     }
   }
@@ -13,8 +13,8 @@ export const getPropertyTypeQuery = gql`
 export const getAllLatestPropertyTypesQuery = gql`
   query getAllLatestPropertyTypes {
     getAllLatestPropertyTypes {
-      propertyTypeVersionedUri
-      accountId
+      propertyTypeId
+      ownedById
       propertyType
     }
   }
@@ -22,12 +22,12 @@ export const getAllLatestPropertyTypesQuery = gql`
 
 export const createPropertyTypeMutation = gql`
   mutation createPropertyType(
-    $accountId: ID!
+    $ownedById: ID!
     $propertyType: PropertyTypeWithoutId!
   ) {
-    createPropertyType(accountId: $accountId, propertyType: $propertyType) {
-      propertyTypeVersionedUri
-      accountId
+    createPropertyType(ownedById: $ownedById, propertyType: $propertyType) {
+      propertyTypeId
+      ownedById
       propertyType
     }
   }
@@ -35,17 +35,15 @@ export const createPropertyTypeMutation = gql`
 
 export const updatePropertyTypeMutation = gql`
   mutation updatePropertyType(
-    $accountId: ID!
-    $propertyTypeVersionedUri: String!
+    $propertyTypeId: String!
     $updatedPropertyType: PropertyTypeWithoutId!
   ) {
     updatePropertyType(
-      accountId: $accountId
-      propertyTypeVersionedUri: $propertyTypeVersionedUri
+      propertyTypeId: $propertyTypeId
       updatedPropertyType: $updatedPropertyType
     ) {
-      propertyTypeVersionedUri
-      accountId
+      propertyTypeId
+      ownedById
       propertyType
     }
   }

@@ -6,13 +6,13 @@ import {
   PersistedPropertyType,
   UpdatePropertyTypeRequest,
 } from "@hashintel/hash-graph-client";
-import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 
-import { DataTypeModel, PropertyTypeModel, UserModel } from "../index";
-import { extractBaseUri, generateTypeId, workspaceAccountId } from "../util";
+import { DataTypeModel, PropertyTypeModel } from "../index";
+import { extractBaseUri, generateTypeId } from "../util";
+import { getNamespaceOfAccountOwner } from "./util";
 
 type PropertyTypeModelConstructorParams = {
-  accountId: string;
+  ownedById: string;
   schema: PropertyType;
 };
 
@@ -20,12 +20,12 @@ type PropertyTypeModelConstructorParams = {
  * @class {@link PropertyTypeModel}
  */
 export default class {
-  accountId: string;
+  ownedById: string;
 
   schema: PropertyType;
 
-  constructor({ schema, accountId }: PropertyTypeModelConstructorParams) {
-    this.accountId = accountId;
+  constructor({ schema, ownedById }: PropertyTypeModelConstructorParams) {
+    this.ownedById = ownedById;
     this.schema = schema;
   }
 
@@ -46,38 +46,26 @@ export default class {
      */
     return new PropertyTypeModel({
       schema: inner as PropertyType,
-      accountId: identifier.ownedById,
+      ownedById: identifier.ownedById,
     });
   }
 
   /**
    * Create a property type.
    *
-   * @param params.accountId the accountId of the account creating the property type
+   * @param params.ownedById the id of the owner of the property type
    * @param params.schema a `PropertyType`
    */
   static async create(
     graphApi: GraphApi,
     params: {
-      accountId: string;
+      ownedById: string;
       schema: Omit<PropertyType, "$id">;
     },
   ): Promise<PropertyTypeModel> {
-    /** @todo - get rid of this hack for the root account */
-    const namespace =
-      params.accountId === workspaceAccountId
-        ? WORKSPACE_ACCOUNT_SHORTNAME
-        : (
-            await UserModel.getUserByAccountId(graphApi, {
-              accountId: params.accountId,
-            })
-          )?.getShortname();
-
-    if (namespace == null) {
-      throw new Error(
-        `failed to get namespace for account: ${params.accountId}`,
-      );
-    }
+    const namespace = await getNamespaceOfAccountOwner(graphApi, {
+      ownerId: params.ownedById,
+    });
 
     const propertyTypeId = generateTypeId({
       namespace,
@@ -88,7 +76,11 @@ export default class {
 
     const { data: identifier } = await graphApi
       .createPropertyType({
-        accountId: params.accountId,
+        /**
+         * @todo: replace uses of `accountId` with `ownedById` in the Graph API
+         * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
+         */
+        accountId: params.ownedById,
         schema: fullPropertyType,
       })
       .catch((err: AxiosError) => {
@@ -101,23 +93,15 @@ export default class {
 
     return new PropertyTypeModel({
       schema: fullPropertyType,
-      accountId: identifier.ownedById,
+      ownedById: identifier.ownedById,
     });
   }
 
   /**
    * Get all property types at their latest version.
-   *
-   * @param params.accountId the accountId of the account requesting the property types
    */
-  static async getAllLatest(
-    graphApi: GraphApi,
-    params: {
-      accountId: string;
-    },
-  ): Promise<PropertyTypeModel[]> {
+  static async getAllLatest(graphApi: GraphApi): Promise<PropertyTypeModel[]> {
     const resolved = await this.getAllLatestResolved(graphApi, {
-      accountId: params.accountId,
       dataTypeQueryDepth: 0,
       propertyTypeQueryDepth: 0,
     });
@@ -127,14 +111,12 @@ export default class {
   /**
    * Get all property types at their latest version with their references resolved as a list.
    *
-   * @param params.accountId the accountId of the account creating the property type
    * @param params.dataTypeQueryDepth recursion depth to use to resolve data types
    * @param params.propertyTypeQueryDepth recursion depth to use to resolve property types
    */
   static async getAllLatestResolved(
     graphApi: GraphApi,
     params: {
-      accountId: string;
       dataTypeQueryDepth: number;
       propertyTypeQueryDepth: number;
     },
@@ -244,19 +226,24 @@ export default class {
   /**
    * Update a property type.
    *
-   * @param params.accountId the accountId of the account making the update
    * @param params.schema a `PropertyType`
    */
   async update(
     graphApi: GraphApi,
     params: {
-      accountId: string;
       schema: Omit<PropertyType, "$id">;
     },
   ): Promise<PropertyTypeModel> {
-    const { accountId, schema } = params;
+    const { schema } = params;
     const updateArguments: UpdatePropertyTypeRequest = {
-      accountId,
+      /**
+       * @todo: let caller update who owns the type, or create new method dedicated to changing the owner of the type
+       * @see https://app.asana.com/0/1202805690238892/1203063463721793/f
+       *
+       * @todo: replace uses of `accountId` with `ownedById` in the Graph API
+       * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
+       */
+      accountId: this.ownedById,
       typeToUpdate: this.schema.$id,
       schema,
     };
@@ -267,7 +254,7 @@ export default class {
 
     return new PropertyTypeModel({
       schema: { ...schema, $id: identifier.uri },
-      accountId: identifier.ownedById,
+      ownedById: identifier.ownedById,
     });
   }
 

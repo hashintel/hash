@@ -15,12 +15,12 @@ export const getAllLatestDataTypes: ResolverFn<
   {},
   LoggedInGraphQLContext,
   {}
-> = async (_, __, { dataSources, user }) => {
+> = async (_, __, { dataSources }) => {
   const { graphApi } = dataSources;
 
-  const allLatestDataTypeModels = await DataTypeModel.getAllLatest(graphApi, {
-    accountId: user.entityId,
-  }).catch((err: AxiosError) => {
+  const allLatestDataTypeModels = await DataTypeModel.getAllLatest(
+    graphApi,
+  ).catch((err: AxiosError) => {
     throw new ApolloError(
       `Unable to retrieve all latest data types. ${err.response?.data}`,
       "GET_ALL_ERROR",
@@ -35,11 +35,11 @@ export const getDataType: ResolverFn<
   {},
   GraphQLContext,
   QueryGetDataTypeArgs
-> = async (_, { dataTypeVersionedUri }, { dataSources }) => {
+> = async (_, { dataTypeId }, { dataSources }) => {
   const { graphApi } = dataSources;
 
   const dataTypeModel = await DataTypeModel.get(graphApi, {
-    dataTypeId: dataTypeVersionedUri,
+    dataTypeId,
   }).catch((err: AxiosError) => {
     throw new ApolloError(
       `Unable to retrieve data type. ${err.response?.data}`,

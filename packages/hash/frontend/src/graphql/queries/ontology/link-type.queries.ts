@@ -1,10 +1,10 @@
 import { gql } from "@apollo/client";
 
 export const getLinkTypeQuery = gql`
-  query getLinkType($linkTypeVersionedUri: String!) {
-    getLinkType(linkTypeVersionedUri: $linkTypeVersionedUri) {
-      linkTypeVersionedUri
-      accountId
+  query getLinkType($linkTypeId: String!) {
+    getLinkType(linkTypeId: $linkTypeId) {
+      linkTypeId
+      ownedById
       linkType
     }
   }
@@ -13,18 +13,18 @@ export const getLinkTypeQuery = gql`
 export const getAllLatestLinkTypesQuery = gql`
   query getAllLatestLinkTypes {
     getAllLatestLinkTypes {
-      linkTypeVersionedUri
-      accountId
+      linkTypeId
+      ownedById
       linkType
     }
   }
 `;
 
 export const createLinkTypeMutation = gql`
-  mutation createLinkType($accountId: ID!, $linkType: LinkTypeWithoutId!) {
-    createLinkType(accountId: $accountId, linkType: $linkType) {
-      linkTypeVersionedUri
-      accountId
+  mutation createLinkType($ownedById: ID!, $linkType: LinkTypeWithoutId!) {
+    createLinkType(ownedById: $ownedById, linkType: $linkType) {
+      linkTypeId
+      ownedById
       linkType
     }
   }
@@ -32,17 +32,12 @@ export const createLinkTypeMutation = gql`
 
 export const updateLinkTypeMutation = gql`
   mutation updateLinkType(
-    $accountId: ID!
-    $linkTypeVersionedUri: String!
+    $linkTypeId: String!
     $updatedLinkType: LinkTypeWithoutId!
   ) {
-    updateLinkType(
-      accountId: $accountId
-      linkTypeVersionedUri: $linkTypeVersionedUri
-      updatedLinkType: $updatedLinkType
-    ) {
-      linkTypeVersionedUri
-      accountId
+    updateLinkType(linkTypeId: $linkTypeId, updatedLinkType: $updatedLinkType) {
+      linkTypeId
+      ownedById
       linkType
     }
   }

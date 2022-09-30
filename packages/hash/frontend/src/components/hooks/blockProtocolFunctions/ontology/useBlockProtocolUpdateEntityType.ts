@@ -9,7 +9,6 @@ import { updateEntityTypeMutation } from "../../../../graphql/queries/ontology/e
 import { UpdateEntityTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolUpdateEntityType = (
-  accountId: string,
   readonly?: boolean,
 ): {
   updateEntityType: UpdateEntityTypeMessageCallback;
@@ -43,11 +42,10 @@ export const useBlockProtocolUpdateEntityType = (
         };
       }
 
-      const { entityTypeVersionedUri, entityType } = data;
+      const { entityTypeId, entityType } = data;
       const { data: responseData } = await updateFn({
         variables: {
-          accountId,
-          entityTypeVersionedUri,
+          entityTypeId,
           updatedEntityType: entityType,
         },
       });
@@ -65,13 +63,12 @@ export const useBlockProtocolUpdateEntityType = (
 
       return {
         data: {
-          entityTypeVersionedUri:
-            responseData.updateEntityType.entityTypeVersionedUri,
+          entityTypeId: responseData.updateEntityType.entityTypeId,
           entityType: responseData.updateEntityType.entityType,
         },
       };
     },
-    [accountId, updateFn, readonly],
+    [updateFn, readonly],
   );
 
   return {

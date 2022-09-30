@@ -59,7 +59,7 @@ describe("OrgMembership model class", () => {
     await testUser.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.hasMembership,
       targetEntityModel: testOrgMembership,
-      createdById: workspaceAccountId,
+      ownedById: workspaceAccountId,
     });
   });
 

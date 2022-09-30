@@ -46,9 +46,18 @@ export default class extends EntityModel {
    */
   static async getPageById(
     graphApi: GraphApi,
-    params: { entityId: string },
+    params: { entityId: string; entityVersion?: string },
   ): Promise<PageModel> {
-    const entity = await EntityModel.getLatest(graphApi, params);
+    const { entityId, entityVersion } = params;
+
+    const entity = entityVersion
+      ? await EntityModel.getVersion(graphApi, {
+          entityId,
+          entityVersion,
+        })
+      : await EntityModel.getLatest(graphApi, {
+          entityId,
+        });
 
     return PageModel.fromEntityModel(entity);
   }
@@ -57,12 +66,14 @@ export default class extends EntityModel {
    * Create a workspace page entity.
    *
    * @param params.title - the title of the page
+   *
+   * @see {@link EntityModel.create} for the remaining params
    */
   static async createPage(
     graphApi: GraphApi,
     params: PageModelCreateParams,
   ): Promise<PageModel> {
-    const { title, summary, prevIndex, accountId } = params;
+    const { title, summary, prevIndex, ownedById } = params;
 
     const index = generateKeyBetween(prevIndex ?? null, null);
 
@@ -75,7 +86,7 @@ export default class extends EntityModel {
     const entityTypeModel = WORKSPACE_TYPES.entityType.page;
 
     const entity = await EntityModel.create(graphApi, {
-      accountId,
+      ownedById,
       properties,
       entityTypeModel,
     });
@@ -87,10 +98,10 @@ export default class extends EntityModel {
         ? params.initialBlocks
         : [
             await BlockModel.createBlock(graphApi, {
-              accountId,
+              ownedById,
               componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
               blockData: await EntityModel.create(graphApi, {
-                accountId,
+                ownedById,
                 properties: {
                   [WORKSPACE_TYPES.propertyType.tokens.baseUri]: [],
                 },
@@ -100,10 +111,7 @@ export default class extends EntityModel {
           ];
 
     for (const block of initialBlocks) {
-      await page.insertBlock(graphApi, {
-        block,
-        insertedById: accountId,
-      });
+      await page.insertBlock(graphApi, { block });
     }
 
     return page;
@@ -137,7 +145,7 @@ export default class extends EntityModel {
        * @todo: filter the pages by their ownedById in the query instead once it's supported
        * @see https://app.asana.com/0/1202805690238892/1203015527055374/f
        */
-      .filter(({ accountId }) => accountId === params.accountModel.entityId)
+      .filter(({ ownedById }) => ownedById === params.accountModel.entityId)
       .map(PageModel.fromEntityModel);
 
     return await Promise.all(
@@ -207,7 +215,7 @@ export default class extends EntityModel {
 
     if (unexpectedParentPageLinks.length > 0) {
       throw new Error(
-        `Critical: Page with entityId ${this.entityId} in account ${this.accountId} has more than one parent page`,
+        `Critical: Page with entityId ${this.entityId} in account ${this.ownedById} has more than one parent page`,
       );
     }
 
@@ -267,13 +275,13 @@ export default class extends EntityModel {
 
     if (unexpectedParentPageLinks.length > 0) {
       throw new Error(
-        `Critical: Page with entityId ${this.entityId} in account ${this.accountId} has more than one parent page`,
+        `Critical: Page with entityId ${this.entityId} in account ${this.ownedById} has more than one parent page`,
       );
     }
 
     if (!parentPageLink) {
       throw new Error(
-        `Page with entityId ${this.entityId} in account ${this.accountId} does not have a parent page`,
+        `Page with entityId ${this.entityId} in account ${this.ownedById} does not have a parent page`,
       );
     }
 
@@ -323,7 +331,7 @@ export default class extends EntityModel {
       await this.createOutgoingLink(graphApi, {
         linkTypeModel: WORKSPACE_TYPES.linkType.parent,
         targetEntityModel: parentPage,
-        createdById: setById,
+        ownedById: setById,
       });
     }
 
@@ -331,7 +339,6 @@ export default class extends EntityModel {
       await this.updateProperty(graphApi, {
         propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.index.baseUri,
         value: newIndex,
-        updatedByAccountId: this.accountId,
       });
     }
   }
@@ -365,20 +372,18 @@ export default class extends EntityModel {
    * Insert a block into this page
    *
    * @param params.block - the block to insert in the page
-   * @param params.insertedById - the account that is inserting the block
    * @param params.position (optional) - the position of the block in the page
    */
   async insertBlock(
     graphApi: GraphApi,
     params: {
       block: BlockModel;
-      insertedById: string;
       position?: number;
     },
   ) {
     const { position: specifiedPosition } = params;
 
-    const { block, insertedById } = params;
+    const { block } = params;
 
     await this.createOutgoingLink(graphApi, {
       targetEntityModel: block,
@@ -387,7 +392,8 @@ export default class extends EntityModel {
         specifiedPosition ??
         // if position is not specified and there are no blocks currently in the page, specify the index of the link is `0`
         ((await this.getBlocks(graphApi)).length === 0 ? 0 : undefined),
-      createdById: insertedById,
+      // assume that link to block is owned by the same account as the page
+      ownedById: this.ownedById,
     });
   }
 
@@ -396,7 +402,7 @@ export default class extends EntityModel {
    *
    * @param params.currentPosition - the current position of the block being moved
    * @param params.newPosition - the new position of the block being moved
-   * @param params.movedById (optional) - the account that is moving the block
+   * @param params.movedById - the id of the user that is moving the block
    */
   async moveBlock(
     graphApi: GraphApi,
@@ -425,7 +431,7 @@ export default class extends EntityModel {
 
     if (!link) {
       throw new Error(
-        `Critical: could not find contents link with index ${currentPosition} for page with entityId ${this.entityId} in account ${this.accountId}`,
+        `Critical: could not find contents link with index ${currentPosition} for page with entityId ${this.entityId} in account ${this.ownedById}`,
       );
     }
 
@@ -441,7 +447,7 @@ export default class extends EntityModel {
    * Remove a block from the page.
    *
    * @param params.position - the position of the block being removed
-   * @param params.removedById - the account that is removing the block
+   * @param params.removedById - the id of the user that is removing the block
    * @param params.allowRemovingFinal (optional) - whether or not removing the final block in the page should be permitted (defaults to `true`)
    */
   async removeBlock(
@@ -466,7 +472,7 @@ export default class extends EntityModel {
 
     if (!link) {
       throw new Error(
-        `Critical: could not find contents link with index ${position} for page with entityId ${this.entityId} in account ${this.accountId}`,
+        `Critical: could not find contents link with index ${position} for page with entityId ${this.entityId} in account ${this.ownedById}`,
       );
     }
 

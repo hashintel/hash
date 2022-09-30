@@ -17,11 +17,16 @@ export const entityTypeTypedef = gql`
     """
     The specific versioned URI of the entity type
     """
-    entityTypeVersionedUri: String!
+    entityTypeId: String!
     """
-    The user who created the entity type
+    The id of the account that owns this entity type.
+    """
+    ownedById: ID!
+    """
+    Alias of ownedById - the id of the account that owns this entity type.
     """
     accountId: ID!
+      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     """
     The entity type
     """
@@ -33,11 +38,16 @@ export const entityTypeTypedef = gql`
     """
     The specific versioned URI of the entity type
     """
-    entityTypeVersionedUri: String!
+    entityTypeId: String!
     """
-    The user who created the entity type
+    The id of the account that owns this entity type.
+    """
+    ownedById: ID!
+    """
+    Alias of ownedById - the id of the account that owns this entity type.
     """
     accountId: ID!
+      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     """
     The entity type
     """
@@ -67,11 +77,16 @@ export const entityTypeTypedef = gql`
     """
     The specific versioned URI of the entity type
     """
-    entityTypeVersionedUri: String!
+    entityTypeId: String!
     """
-    The user who created the entity type
+    The id of the account that owns this entity type.
+    """
+    ownedById: ID!
+    """
+    Alias of ownedById - the id of the account that owns this entity type.
     """
     accountId: ID!
+      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     """
     The entity type
     """
@@ -88,7 +103,7 @@ export const entityTypeTypedef = gql`
     """
     Get a entity type by its versioned URI.
     """
-    getEntityType(entityTypeVersionedUri: String!): EntityTypeRootedSubgraph!
+    getEntityType(entityTypeId: String!): EntityTypeRootedSubgraph!
   }
 
   extend type Mutation {
@@ -97,9 +112,9 @@ export const entityTypeTypedef = gql`
     """
     createEntityType(
       """
-      accountId refers to the account to create the entity type in.
+      The id of the owner of the entity type. Defaults to the user calling the mutation.
       """
-      accountId: ID
+      ownedById: ID
       entityType: EntityTypeWithoutId!
     ): PersistedEntityType!
 
@@ -108,13 +123,9 @@ export const entityTypeTypedef = gql`
     """
     updateEntityType(
       """
-      accountId refers to the account to update the entity type in.
-      """
-      accountId: ID
-      """
       The entity type versioned $id to update.
       """
-      entityTypeVersionedUri: String!
+      entityTypeId: String!
       """
       New entity type schema contents to be used.
       """

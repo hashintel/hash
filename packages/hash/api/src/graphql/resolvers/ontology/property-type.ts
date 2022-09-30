@@ -24,10 +24,10 @@ export const createPropertyType: ResolverFn<
   MutationCreatePropertyTypeArgs
 > = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
-  const { accountId, propertyType } = params;
+  const { ownedById, propertyType } = params;
 
   const createdPropertyTypeModel = await PropertyTypeModel.create(graphApi, {
-    accountId: accountId ?? user.entityId,
+    ownedById: ownedById ?? user.entityId,
     schema: propertyType,
   }).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
@@ -41,12 +41,11 @@ export const getAllLatestPropertyTypes: ResolverFn<
   {},
   LoggedInGraphQLContext,
   {}
-> = async (_, __, { dataSources, user }, info) => {
+> = async (_, __, { dataSources }, info) => {
   const { graphApi } = dataSources;
 
   const propertyTypeRootedSubgraphs =
     await PropertyTypeModel.getAllLatestResolved(graphApi, {
-      accountId: user.entityId,
       dataTypeQueryDepth: dataTypeQueryDepth(info),
       propertyTypeQueryDepth: propertyTypeQueryDepth(info),
     }).catch((err: AxiosError) => {
@@ -64,13 +63,13 @@ export const getPropertyType: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryGetPropertyTypeArgs
-> = async (_, { propertyTypeVersionedUri }, { dataSources }, info) => {
+> = async (_, { propertyTypeId }, { dataSources }, info) => {
   const { graphApi } = dataSources;
 
   const propertyTypeRootedSubgraph = await PropertyTypeModel.getResolved(
     graphApi,
     {
-      propertyTypeId: propertyTypeVersionedUri,
+      propertyTypeId,
       dataTypeQueryDepth: dataTypeQueryDepth(info),
       propertyTypeQueryDepth: propertyTypeQueryDepth(info),
     },
@@ -89,28 +88,27 @@ export const updatePropertyType: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationUpdatePropertyTypeArgs
-> = async (_, params, { dataSources, user }) => {
+> = async (_, params, { dataSources }) => {
   const { graphApi } = dataSources;
-  const { accountId, propertyTypeVersionedUri, updatedPropertyType } = params;
+  const { propertyTypeId, updatedPropertyType } = params;
 
   const propertyTypeModel = await PropertyTypeModel.get(graphApi, {
-    propertyTypeId: propertyTypeVersionedUri,
+    propertyTypeId,
   }).catch((err: AxiosError) => {
     throw new ApolloError(
-      `Unable to retrieve property type. ${err.response?.data} [URI=${propertyTypeVersionedUri}]`,
+      `Unable to retrieve property type. ${err.response?.data} [URI=${propertyTypeId}]`,
       "GET_ERROR",
     );
   });
 
   const updatedPropertyTypeModel = await propertyTypeModel
     .update(graphApi, {
-      accountId: accountId ?? user.entityId,
       schema: updatedPropertyType,
     })
     .catch((err: AxiosError) => {
       const msg =
         err.response?.status === 409
-          ? `Property type URI doesn't exist, unable to update. [URI=${propertyTypeVersionedUri}]`
+          ? `Property type URI doesn't exist, unable to update. [URI=${propertyTypeId}]`
           : `Couldn't update property type.`;
 
       throw new ApolloError(msg, "CREATION_ERROR");

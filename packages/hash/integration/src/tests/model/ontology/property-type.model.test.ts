@@ -25,17 +25,17 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-let accountId: string;
+let ownedById: string;
 let textDataTypeModel: DataTypeModel;
 let propertyTypeSchema: Omit<PropertyType, "$id">;
 
 beforeAll(async () => {
   const testUser = await createTestUser(graphApi, "property-type-test", logger);
 
-  accountId = testUser.entityId;
+  ownedById = testUser.entityId;
 
   textDataTypeModel = await DataTypeModel.create(graphApi, {
-    accountId,
+    ownedById,
     schema: {
       kind: "dataType",
       title: "Text",
@@ -61,7 +61,7 @@ describe("Property type CRU", () => {
 
   it("can create a property type", async () => {
     createdPropertyTypeModel = await PropertyTypeModel.create(graphApi, {
-      accountId,
+      ownedById,
       schema: propertyTypeSchema,
     });
   });
@@ -79,7 +79,6 @@ describe("Property type CRU", () => {
   it("can update a property type", async () => {
     updatedPropertyTypeModel = await createdPropertyTypeModel
       .update(graphApi, {
-        accountId,
         schema: {
           ...propertyTypeSchema,
           title: updatedTitle,
@@ -89,9 +88,7 @@ describe("Property type CRU", () => {
   });
 
   it("can read all latest property types", async () => {
-    const allPropertyTypes = await PropertyTypeModel.getAllLatest(graphApi, {
-      accountId,
-    });
+    const allPropertyTypes = await PropertyTypeModel.getAllLatest(graphApi);
 
     const newlyUpdated = allPropertyTypes.find(
       (pt) => pt.schema.$id === updatedPropertyTypeModel.schema.$id,

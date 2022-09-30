@@ -16,7 +16,7 @@ export const createEntityWithPlaceholdersFn =
   (graphApi: GraphApi, placeholderResults: PlaceholderResultsMap) =>
   async (
     originalDefinition: KnowledgeEntityDefinition,
-    entityCreatedById: string,
+    entityOwnedById: string,
   ) => {
     const entityDefinition = produce(originalDefinition, (draft) => {
       if (draft.existingEntity) {
@@ -44,7 +44,7 @@ export const createEntityWithPlaceholdersFn =
     });
 
     return await EntityModel.createEntityWithLinks(graphApi, {
-      createdById: entityCreatedById,
+      ownedById: entityOwnedById,
       entityDefinition,
     });
   };
@@ -204,7 +204,7 @@ export const handleInsertNewBlock = async (
     } else if (blockComponentId) {
       block = await BlockModel.createBlock(graphApi, {
         blockData,
-        accountId: userModel.accountId,
+        ownedById: userModel.entityId,
         componentId: blockComponentId,
       });
     } else {
@@ -240,7 +240,6 @@ export const handleSwapBlockData = async (
   },
 ): Promise<void> => {
   const {
-    userModel,
     swapBlockDataAction: { entityId },
   } = params;
 
@@ -252,15 +251,13 @@ export const handleSwapBlockData = async (
     throw new Error(`Block with entityId ${entityId} not found`);
   }
 
-  const { newEntityOwnedById, newEntityEntityId } = params.swapBlockDataAction;
+  const { newEntityEntityId } = params.swapBlockDataAction;
 
   const newBlockDataEntity = await EntityModel.getLatest(graphApi, {
     entityId: newEntityEntityId,
-    accountId: newEntityOwnedById,
   });
 
   await block.updateBlockDataEntity(graphApi, {
-    updatedById: userModel.accountId,
     newBlockDataEntity,
   });
 };
@@ -277,7 +274,7 @@ export const handleUpdateEntity = async (
     placeholderResults: PlaceholderResultsMap;
   },
 ): Promise<void> => {
-  const { userModel, action, placeholderResults } = params;
+  const { action, placeholderResults } = params;
 
   // If this entity ID is a placeholder, use that instead.
   let entityId = action.entityId;
@@ -286,7 +283,6 @@ export const handleUpdateEntity = async (
   }
 
   const entityModel = await EntityModel.getLatest(graphApi, {
-    accountId: action.ownedById,
     entityId,
   });
 
@@ -294,6 +290,5 @@ export const handleUpdateEntity = async (
     updatedProperties: Object.entries(action.properties).map(
       ([key, value]) => ({ propertyTypeBaseUri: key, value }),
     ),
-    updatedByAccountId: userModel.accountId,
   });
 };

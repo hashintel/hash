@@ -17,11 +17,16 @@ export const propertyTypeTypedef = gql`
     """
     The specific versioned URI of the property type
     """
-    propertyTypeVersionedUri: String!
+    propertyTypeId: String!
     """
-    The user who created the property type
+    The id of the account that owns this property type.
+    """
+    ownedById: ID!
+    """
+    Alias of ownedById - the id of the account that owns this property type.
     """
     accountId: ID!
+      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     """
     The property type
     """
@@ -33,11 +38,16 @@ export const propertyTypeTypedef = gql`
     """
     The specific versioned URI of the property type
     """
-    propertyTypeVersionedUri: String!
+    propertyTypeId: String!
     """
-    The user who created the property type
+    The id of the account that owns this property type.
+    """
+    ownedById: ID!
+    """
+    Alias of ownedById - the id of the account that owns this property type.
     """
     accountId: ID!
+      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     """
     The property type
     """
@@ -59,11 +69,16 @@ export const propertyTypeTypedef = gql`
     """
     The specific versioned URI of the property type
     """
-    propertyTypeVersionedUri: String!
+    propertyTypeId: String!
     """
-    The user who created the property type
+    The id of the account that owns this property type.
+    """
+    ownedById: ID!
+    """
+    Alias of ownedById - the id of the account that owns this property type.
     """
     accountId: ID!
+      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     """
     The property type
     """
@@ -80,9 +95,7 @@ export const propertyTypeTypedef = gql`
     """
     Get a property type by its versioned URI.
     """
-    getPropertyType(
-      propertyTypeVersionedUri: String!
-    ): PropertyTypeRootedSubgraph!
+    getPropertyType(propertyTypeId: String!): PropertyTypeRootedSubgraph!
   }
 
   extend type Mutation {
@@ -91,9 +104,9 @@ export const propertyTypeTypedef = gql`
     """
     createPropertyType(
       """
-      The id of the account where to create the property type in. Defaults to the account id of the current user.
+      The id of the owner of the property type. Defaults to the user calling the mutation.
       """
-      accountId: ID
+      ownedById: ID
       propertyType: PropertyTypeWithoutId!
     ): PersistedPropertyType!
 
@@ -102,13 +115,9 @@ export const propertyTypeTypedef = gql`
     """
     updatePropertyType(
       """
-      The id of the account where to create the updated property type in. Defaults to the account id of the current user.
-      """
-      accountId: ID
-      """
       The property type versioned $id to update.
       """
-      propertyTypeVersionedUri: String!
+      propertyTypeId: String!
       """
       New property type schema contents to be used.
       """

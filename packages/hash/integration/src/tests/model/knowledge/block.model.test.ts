@@ -48,7 +48,7 @@ describe("Block model class", () => {
      * once the exact role of the block data entity's entity type is known.
      */
     dummyEntityType = await EntityTypeModel.create(graphApi, {
-      accountId: testUser.entityId,
+      ownedById: testUser.entityId,
       schema: generateWorkspaceEntityTypeSchema({
         namespace: testUser.getShortname()!,
         title: "Dummy",
@@ -58,7 +58,7 @@ describe("Block model class", () => {
     });
 
     testBlockDataEntity = await EntityModel.create(graphApi, {
-      accountId: testUser.entityId,
+      ownedById: testUser.entityId,
       properties: {},
       entityTypeModel: dummyEntityType,
     });
@@ -66,7 +66,7 @@ describe("Block model class", () => {
 
   it("can create a Block", async () => {
     testBlock = await BlockModel.createBlock(graphApi, {
-      accountId: testUser.entityId,
+      ownedById: testUser.entityId,
       componentId: testBlockComponentId,
       blockData: testBlockDataEntity,
     });
@@ -90,7 +90,7 @@ describe("Block model class", () => {
 
   it("can update the block data entity", async () => {
     const newBlockDataEntity = await EntityModel.create(graphApi, {
-      accountId: testUser.entityId,
+      ownedById: testUser.entityId,
       properties: {},
       entityTypeModel: dummyEntityType,
     });
@@ -99,7 +99,6 @@ describe("Block model class", () => {
     expect(await testBlock.getBlockData(graphApi)).toEqual(testBlockDataEntity);
 
     await testBlock.updateBlockDataEntity(graphApi, {
-      updatedById: testUser.entityId,
       newBlockDataEntity,
     });
 
@@ -111,7 +110,6 @@ describe("Block model class", () => {
 
     await expect(
       testBlock.updateBlockDataEntity(graphApi, {
-        updatedById: testUser.entityId,
         newBlockDataEntity: currentDataEntity,
       }),
     ).rejects.toThrow(/already has a linked block data entity with entity id/);

@@ -74,6 +74,22 @@ export const knowledgePageTypedef = gql`
     entityVersion: String!
   }
 
+  extend type Query {
+    """
+    Get a page by its entity id.
+    """
+    knowledgePage(
+      """
+      The id of the page entity.
+      """
+      entityId: ID!
+      """
+      The version of the page entity. Defaults to the latest version.
+      """
+      entityVersion: String
+    ): KnowledgePage!
+  }
+
   """
   Insert a block into a page with a corresponding entity.
   """

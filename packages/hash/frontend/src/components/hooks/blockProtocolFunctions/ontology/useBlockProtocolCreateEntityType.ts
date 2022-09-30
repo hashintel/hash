@@ -9,7 +9,7 @@ import { createEntityTypeMutation } from "../../../../graphql/queries/ontology/e
 import { CreateEntityTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolCreateEntityType = (
-  accountId: string,
+  ownedById: string,
   readonly?: boolean,
 ): {
   createEntityType: CreateEntityTypeMessageCallback;
@@ -46,7 +46,7 @@ export const useBlockProtocolCreateEntityType = (
       const { entityType } = data;
       const { data: responseData } = await createFn({
         variables: {
-          accountId,
+          ownedById,
           entityType,
         },
       });
@@ -64,13 +64,12 @@ export const useBlockProtocolCreateEntityType = (
 
       return {
         data: {
-          entityTypeVersionedUri:
-            responseData.createEntityType.entityTypeVersionedUri,
+          entityTypeId: responseData.createEntityType.entityTypeId,
           entityType: responseData.createEntityType.entityType,
         },
       };
     },
-    [accountId, createFn, readonly],
+    [ownedById, createFn, readonly],
   );
 
   return {

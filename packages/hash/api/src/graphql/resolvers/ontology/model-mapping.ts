@@ -16,16 +16,18 @@ import {
 export const mapDataTypeModelToGQL = (
   dataType: DataTypeModel,
 ): PersistedDataType => ({
-  accountId: dataType.accountId,
-  dataTypeVersionedUri: dataType.schema.$id,
+  ownedById: dataType.ownedById,
+  accountId: dataType.ownedById,
+  dataTypeId: dataType.schema.$id,
   dataType: dataType.schema,
 });
 
 export const mapPropertyTypeModelToGQL = (
   propertyType: PropertyTypeModel,
 ): PersistedPropertyType => ({
-  accountId: propertyType.accountId,
-  propertyTypeVersionedUri: propertyType.schema.$id,
+  ownedById: propertyType.ownedById,
+  accountId: propertyType.ownedById,
+  propertyTypeId: propertyType.schema.$id,
   propertyType: propertyType.schema,
 });
 
@@ -38,8 +40,9 @@ export const mapPropertyTypeRootedSubgraphToGQL = ({
   referencedDataTypes: DataTypeModel[];
   referencedPropertyTypes: PropertyTypeModel[];
 }): PropertyTypeRootedSubgraph => ({
-  accountId: propertyType.accountId,
-  propertyTypeVersionedUri: propertyType.schema.$id,
+  ownedById: propertyType.ownedById,
+  accountId: propertyType.ownedById,
+  propertyTypeId: propertyType.schema.$id,
   propertyType: propertyType.schema,
   referencedDataTypes: referencedDataTypes.map(mapDataTypeModelToGQL),
   referencedPropertyTypes: referencedPropertyTypes.map(
@@ -50,16 +53,18 @@ export const mapPropertyTypeRootedSubgraphToGQL = ({
 export const mapLinkTypeModelToGQL = (
   linkType: LinkTypeModel,
 ): PersistedLinkType => ({
-  accountId: linkType.accountId,
-  linkTypeVersionedUri: linkType.schema.$id,
+  ownedById: linkType.ownedById,
+  accountId: linkType.ownedById,
+  linkTypeId: linkType.schema.$id,
   linkType: linkType.schema,
 });
 
 export const mapEntityTypeModelToGQL = (
   entityType: EntityTypeModel,
 ): PersistedEntityType => ({
-  accountId: entityType.accountId,
-  entityTypeVersionedUri: entityType.schema.$id,
+  ownedById: entityType.ownedById,
+  accountId: entityType.ownedById,
+  entityTypeId: entityType.schema.$id,
   entityType: entityType.schema,
 });
 
@@ -70,8 +75,9 @@ export const mapEntityTypeRootedSubgraphToGQL = (params: {
   referencedLinkTypes: LinkTypeModel[];
   referencedEntityTypes: EntityTypeModel[];
 }): EntityTypeRootedSubgraph => ({
-  accountId: params.entityType.accountId,
-  entityTypeVersionedUri: params.entityType.schema.$id,
+  ownedById: params.entityType.ownedById,
+  accountId: params.entityType.ownedById,
+  entityTypeId: params.entityType.schema.$id,
   entityType: params.entityType.schema,
   referencedDataTypes: params.referencedDataTypes.map(mapDataTypeModelToGQL),
   referencedPropertyTypes: params.referencedPropertyTypes.map(

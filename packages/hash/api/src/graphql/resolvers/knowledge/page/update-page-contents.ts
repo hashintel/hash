@@ -140,18 +140,17 @@ export const updateKnowledgePageContents: ResolverFn<
         await pageModel.insertBlock(graphApi, {
           block: insertedBlocks[insertCount]!,
           position: action.insertBlock.position,
-          insertedById: userModel.accountId,
         });
         insertCount += 1;
       } else if (action.moveBlock) {
         await pageModel.moveBlock(graphApi, {
           ...action.moveBlock,
-          movedById: userModel.accountId,
+          movedById: userModel.entityId,
         });
       } else if (action.removeBlock) {
         await pageModel.removeBlock(graphApi, {
           ...action.removeBlock,
-          removedById: userModel.accountId,
+          removedById: userModel.entityId,
           allowRemovingFinal: actions
             .slice(i + 1)
             .some((actionToFollow) => actionToFollow.insertBlock),

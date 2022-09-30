@@ -12,7 +12,7 @@ import { WORKSPACE_TYPES } from "../../graph/workspace-types";
 
 export type OrgMembershipModelCreateParams = Omit<
   EntityModelCreateParams,
-  "properties" | "entityTypeModel" | "accountId"
+  "properties" | "entityTypeModel" | "ownedById"
 > & {
   responsibility: string;
   org: OrgModel;
@@ -22,10 +22,24 @@ export type OrgMembershipModelCreateParams = Omit<
  * @class {@link OrgMembershipModel}
  */
 export default class extends EntityModel {
+  static fromEntityModel(entity: EntityModel): OrgMembershipModel {
+    if (
+      entity.entityTypeModel.schema.$id !==
+      WORKSPACE_TYPES.entityType.orgMembership.schema.$id
+    ) {
+      throw new Error(
+        `Entity with id ${entity.entityId} is not a workspace org membership`,
+      );
+    }
+
+    return new OrgMembershipModel(entity);
+  }
+
   /**
    * Create a workspace OrgMembership entity.
    *
    * @param params.responsibility - the role of the user at the organization
+   * @see {@link EntityModel.create} for remaining params
    */
   static async createOrgMembership(
     graphApi: GraphApi,
@@ -40,7 +54,7 @@ export default class extends EntityModel {
     const entityTypeModel = WORKSPACE_TYPES.entityType.orgMembership;
 
     const entity = await EntityModel.create(graphApi, {
-      accountId: workspaceAccountId,
+      ownedById: workspaceAccountId,
       properties,
       entityTypeModel,
     });
@@ -48,16 +62,10 @@ export default class extends EntityModel {
     await entity.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.ofOrg,
       targetEntityModel: org,
-      createdById: workspaceAccountId,
+      ownedById: workspaceAccountId,
     });
 
-    return new OrgMembershipModel({
-      accountId: workspaceAccountId,
-      entityId: entity.entityId,
-      version: entity.version,
-      entityTypeModel,
-      properties,
-    });
+    return OrgMembershipModel.fromEntityModel(entity);
   }
 
   /**
@@ -70,21 +78,10 @@ export default class extends EntityModel {
     params: { entityId: string },
   ): Promise<OrgMembershipModel | null> {
     const entity = await EntityModel.getLatest(graphApi, {
-      // assumption: `accountId` of organizations is always the workspace account id
-      accountId: workspaceAccountId,
       entityId: params.entityId,
     });
 
-    if (
-      entity.entityTypeModel.schema.$id !==
-      WORKSPACE_TYPES.entityType.orgMembership.schema.$id
-    ) {
-      throw new Error(
-        `Entity with id ${params.entityId} is not a workspace org membership`,
-      );
-    }
-
-    return entity ? new OrgMembershipModel(entity) : null;
+    return entity ? OrgMembershipModel.fromEntityModel(entity) : null;
   }
 
   /**

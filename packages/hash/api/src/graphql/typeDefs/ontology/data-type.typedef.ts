@@ -8,11 +8,16 @@ export const dataTypeTypedef = gql`
     """
     The specific versioned URI of the data type
     """
-    dataTypeVersionedUri: String!
+    dataTypeId: String!
     """
-    The user who created the data type
+    The id of the account that owns this data type.
+    """
+    ownedById: ID!
+    """
+    Alias of ownedById - the id of the account that owns this data type.
     """
     accountId: ID!
+      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
     """
     The data type
     """
@@ -28,7 +33,7 @@ export const dataTypeTypedef = gql`
     """
     Get a data type by its versioned URI.
     """
-    getDataType(dataTypeVersionedUri: String!): PersistedDataType!
+    getDataType(dataTypeId: String!): PersistedDataType!
   }
 
   # The following mutations should not be exposed until user defined data types
