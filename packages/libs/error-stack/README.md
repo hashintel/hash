@@ -54,7 +54,7 @@ struct ExperimentError;
 
 impl fmt::Display for ExperimentError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Experiment error: Could not run experiment")
+        fmt.write_str("experiment error: could not run experiment")
     }
 }
 
