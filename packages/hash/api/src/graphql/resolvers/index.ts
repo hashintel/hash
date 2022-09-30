@@ -113,6 +113,7 @@ import { UnresolvedKnowledgeEntityGQL } from "./knowledge/model-mapping";
 
 /**
  * @todo: derive these from the statically declared workspace type names
+ * @see https://app.asana.com/0/1202805690238892/1203063463721797/f
  */
 const workpsaceEntityGQLTypeNames = [
   "KnowledgePage",
