@@ -127,6 +127,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
     )
     .await;
 
+    let mut total_entities = 0;
     for (entity_type_str, entity_str, quantity) in SEED_ENTITIES {
         let entity: Entity = serde_json::from_str(entity_str).expect("could not parse entity");
         let entity_type_id = EntityType::from_str(entity_type_str)
@@ -144,6 +145,8 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                     .entity_id(),
             );
         }
+
+        total_entities += quantity;
     }
 
     store
@@ -153,8 +156,9 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
         .expect("failed to commit transaction");
 
     eprintln!(
-        "Finished seeding database {} after {:#?}",
+        "Finished seeding database {} with {} entities after {:#?}",
         store_wrapper.bench_db_name,
+        total_entities,
         now.elapsed().unwrap()
     );
 }
