@@ -1,15 +1,19 @@
-//! Benchmarks to
+//! Benchmarks to check the performance of operations across a "representative" graph.
 //!
-//! Across runs, Criterion compares benchmarks that share the same ID. We'd like to be able to
-//! track performance overtime, so we need to have consistent IDs. This means that if we're
-//! auto-generating entity type ID's, we can't use them as inputs to `bench_with_input`, as the
-//! [`BenchmarkId`] will vary between runs and we won't get comparative analysis.
+//! There are some designs in this module which aren't immediately obvious. Across runs, Criterion
+//! compares benchmarks that share the same ID. We'd like to be able to track performance as
+//! development continues, so we need to have consistent IDs to benefit from the comparative
+//! analysis. This means that if we're auto-generating entity type ID's, we can't use them as inputs
+//! for `bench_with_input` as the [`BenchmarkId`] will vary between runs and we won't get
+//! comparative analysis.
 //!
-//! We also don't really want to measure how long it takes to query a sample of IDs (e.g. to make
-//! 100 entity type queries). As such, this function takes a list of [`EntityId`]s to sample from,
-//! and uses `iter_batched` to do a per-iteration setup whereby each benchmark iteration picks a
+//! For a lot of these queries we want to know the general performance across the graph. This means
+//! that we'd like to query across a sample of elements, but we don't want to benchmark the time it
+//! takes to query 100 (for example) entities, but instead are interested in the average performance
+//! to query _one_ entity. As such a lot of functions take a list of elements to sample from, and
+//! use `iter_batched` to do a per-iteration setup whereby each benchmark iteration picks a
 //! random entity to sample. This should provide us with an idea of average performance for
-//! _querying a single entity type_ across the given sample.
+//! _querying a single element_ across the given sample.
 //!
 //! [`BenchmarkId`]: criterion::BenchmarkId
 
