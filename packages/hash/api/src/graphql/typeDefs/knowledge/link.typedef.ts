@@ -7,7 +7,7 @@ export const knowledgeLinkTypedef = gql`
     """
     ownedById: ID!
     """
-    The fixed id of the link type this link is of.
+    The versioned URI of this link's type.
     """
     linkTypeId: String!
     """
@@ -34,7 +34,7 @@ export const knowledgeLinkTypedef = gql`
 
   input CreateKnowledgeLinkInput {
     """
-    The fixed id of the link type.
+    The versioned URI of this link's type.
     """
     linkTypeId: String!
     """
