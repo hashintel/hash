@@ -19,7 +19,7 @@ export const knowledgeLinkTypedef = gql`
     """
     sourceEntityId: ID!
     """
-    The id of the link's source entity.
+    The id of the link's target entity.
     """
     targetEntityId: ID!
     """
@@ -27,18 +27,41 @@ export const knowledgeLinkTypedef = gql`
     """
     sourceEntity: KnowledgeEntity!
     """
-    The link's destination entity.
+    The link's target entity.
     """
     targetEntity: KnowledgeEntity!
   }
 
+  input CreateKnowledgeLinkInput {
+    """
+    The fixed id of the link type.
+    """
+    linkTypeId: String!
+    """
+    The index of the link (if any).
+    """
+    index: Int
+    """
+    The id of the account that should own this link.
+    """
+    ownedById: ID!
+    """
+    The id of the link's source entity.
+    """
+    sourceEntityId: ID!
+    """
+    The id of the link's target entity.
+    """
+    targetEntityId: ID!
+  }
+
   extend type Query {
     """
-    Get a link
+    Get a link.
     """
     knowledgeLinks(
       """
-      The id of the link's source entity
+      The id of the link's source entity.
       """
       sourceEntityId: ID!
       """
@@ -46,5 +69,12 @@ export const knowledgeLinkTypedef = gql`
       """
       linkTypeId: String!
     ): [KnowledgeLink!]!
+  }
+
+  extend type Mutation {
+    """
+    Create a link.
+    """
+    createKnowledgeLink(link: CreateKnowledgeLinkInput!): KnowledgeLink!
   }
 `;
