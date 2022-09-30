@@ -1,5 +1,5 @@
 import { FunctionComponent, useMemo, useState } from "react";
-import { ListItemIcon, ListItemText } from "@mui/material";
+import { ListItemIcon, ListItemText, PopoverPosition } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import { faArchive, faLink } from "@fortawesome/free-solid-svg-icons";
 import { faFileAlt } from "@fortawesome/free-regular-svg-icons";
@@ -16,6 +16,8 @@ type PageMenuProps = {
     accountId: string,
     pageEntityId: string,
   ) => Promise<void>;
+  onClose: () => void;
+  anchorPosition?: PopoverPosition;
 };
 
 export const PageMenu: FunctionComponent<PageMenuProps> = ({
@@ -23,6 +25,8 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
   entityId,
   createSubPage,
   archivePage,
+  anchorPosition,
+  onClose,
 }) => {
   const [copied, setCopied] = useState(false);
   const { accountId } = useRouteAccountInfo();
@@ -107,12 +111,24 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
     ],
     [copied, popupState, createSubPage, accountId, entityId, archivePage],
   );
+
+  const bindMenuProps = bindMenu(popupState);
+
   return (
     <Menu
-      {...bindMenu(popupState)}
+      {...bindMenuProps}
+      onClose={() => {
+        // run custom handler before handler of `bindMenu`
+        onClose();
+        return bindMenuProps.onClose();
+      }}
       onClick={(event) => {
         event.stopPropagation();
       }}
+      {...(anchorPosition && {
+        anchorReference: "anchorPosition",
+        anchorPosition,
+      })}
     >
       {menuItems.map(({ title, icon, onClick }, index) => {
         // if (type === "divider") {

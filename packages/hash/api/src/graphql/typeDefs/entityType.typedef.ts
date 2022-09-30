@@ -68,6 +68,7 @@ export const deprecatedEntityTypeTypedef = gql`
 
   enum SystemTypeName {
     Block
+    Comment
     EntityType
     Org
     Page

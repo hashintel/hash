@@ -1,7 +1,5 @@
-use alloc::boxed::Box;
-#[cfg(not(feature = "small"))]
-use alloc::{vec, vec::Vec};
-use core::{fmt, marker::PhantomData, panic::Location};
+use alloc::{boxed::Box, vec, vec::Vec};
+use core::{fmt, fmt::Display, marker::PhantomData, mem, panic::Location};
 #[cfg(all(rust_1_65, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(feature = "std")]
@@ -76,7 +74,7 @@ use crate::{
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
 ///     .into_report()
-///     .attach_printable_lazy(|| format!("Failed to read config file {config_path:?}"))?;
+///     .attach_printable_lazy(|| format!("failed to read config file {config_path:?}"))?;
 ///
 /// # const _: &str = stringify! {
 /// ...
@@ -167,18 +165,18 @@ use crate::{
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
 ///     .into_report()
-///     .attach_printable_lazy(|| format!("Failed to read config file {config_path:?}"));
+///     .attach_printable_lazy(|| format!("failed to read config file {config_path:?}"));
 ///
 /// let content = match content {
 ///     Err(err) => {
 ///         # #[cfg(all(nightly, feature = "std"))]
 ///         for backtrace in err.request_ref::<std::backtrace::Backtrace>() {
-///             println!("Backtrace: {backtrace}");
+///             println!("backtrace: {backtrace}");
 ///         }
 ///
 ///         # #[cfg(all(nightly, feature = "spantrace"))]
-///         for spantrace in err.request_ref::<tracing_error::SpanTrace>() {
-///             println!("Spantrace: {spantrace}")
+///         for span_trace in err.request_ref::<tracing_error::SpanTrace>() {
+///             println!("span trace: {span_trace}")
 ///         }
 ///
 ///         return Err(err)
@@ -195,24 +193,17 @@ use crate::{
 #[must_use]
 #[repr(transparent)]
 pub struct Report<C> {
-    #[cfg(feature = "small")]
-    pub(super) frames: smallvec::SmallVec<[Frame; 1]>,
-    #[cfg(not(feature = "small"))]
-    pub(super) frames: Vec<Frame>,
+    // The vector is boxed as this implies a memory footprint equal to a single pointer size
+    // instead of three pointer sizes. Even for small `Result::Ok` variants, the `Result` would
+    // still have at least the size of `Report`, even at the happy path. It's unexpected, that
+    // creating or traversing a report will happen in the hot path, so a double indirection is
+    // a good trade-off.
+    #[allow(clippy::box_collection)]
+    pub(super) frames: Box<Vec<Frame>>,
     _context: PhantomData<fn() -> *const C>,
 }
 
 impl<C> Report<C> {
-    pub(crate) fn from_frame(frame: Frame) -> Self {
-        Self {
-            #[cfg(feature = "small")]
-            frames: smallvec::smallvec![frame],
-            #[cfg(not(feature = "small"))]
-            frames: vec![frame],
-            _context: PhantomData,
-        }
-    }
-
     /// Creates a new `Report<Context>` from a provided scope.
     ///
     /// If `context` does not provide [`Backtrace`]/[`SpanTrace`] then this attempts to capture
@@ -220,13 +211,21 @@ impl<C> Report<C> {
     /// documentation for more information.
     ///
     /// [`Backtrace` and `SpanTrace` section]: #backtrace-and-spantrace
+    #[inline]
     #[track_caller]
     pub fn new(context: C) -> Self
     where
         C: Context,
     {
-        let frame = Frame::from_context(context, Location::caller(), Box::new([]));
+        Self::from_frame(Frame::from_context(
+            context,
+            Location::caller(),
+            Box::new([]),
+        ))
+    }
 
+    #[track_caller]
+    pub(crate) fn from_frame(frame: Frame) -> Self {
         #[cfg(all(nightly, feature = "std"))]
         let backtrace = core::any::request_ref::<Backtrace>(&frame)
             .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
@@ -246,7 +245,10 @@ impl<C> Report<C> {
         let span_trace = Some(SpanTrace::capture());
 
         #[allow(unused_mut)]
-        let mut report = Self::from_frame(frame);
+        let mut report = Self {
+            frames: Box::new(vec![frame]),
+            _context: PhantomData,
+        };
 
         #[cfg(all(rust_1_65, feature = "std"))]
         if let Some(backtrace) =
@@ -266,8 +268,11 @@ impl<C> Report<C> {
     #[allow(missing_docs)]
     #[must_use]
     #[cfg(all(nightly, feature = "std"))]
-    #[deprecated = "a report might contain multiple backtraces, use `request_ref::<Backtrace>()` \
-                    instead"]
+    #[deprecated(
+        since = "0.2.0",
+        note = "a report might contain multiple backtraces, use `request_ref::<Backtrace>()` \
+                instead"
+    )]
     pub fn backtrace(&self) -> Option<&Backtrace> {
         self.request_ref::<Backtrace>().next()
     }
@@ -277,13 +282,19 @@ impl<C> Report<C> {
     #[cfg(feature = "spantrace")]
     #[cfg_attr(
         nightly,
-        deprecated = "a report might contain multiple spantraces, use \
-                      `request_ref::<SpanTrace>()` instead"
+        deprecated(
+            since = "0.2.0",
+            note = "a report might contain multiple spantraces, use `request_ref::<SpanTrace>()` \
+                    instead"
+        )
     )]
     #[cfg_attr(
         not(nightly),
-        deprecated = "a report might contain multiple spantraces, use \
-                      `frames().filter(Frame::downcast_ref::<SpanTrace>)` instead"
+        deprecated(
+            since = "0.2.0",
+            note = "a report might contain multiple spantraces, use \
+                    `frames().filter(Frame::downcast_ref::<SpanTrace>)` instead"
+        )
     )]
     pub fn span_trace(&self) -> Option<&SpanTrace> {
         #[cfg(nightly)]
@@ -367,15 +378,17 @@ impl<C> Report<C> {
     /// [`Debug`]: core::fmt::Debug
     /// [`attach_printable()`]: Self::attach_printable
     #[track_caller]
-    pub fn attach<A>(self, attachment: A) -> Self
+    pub fn attach<A>(mut self, attachment: A) -> Self
     where
         A: Send + Sync + 'static,
     {
-        Self::from_frame(Frame::from_attachment(
+        let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
+        self.frames.push(Frame::from_attachment(
             attachment,
             Location::caller(),
-            self.frames.into_boxed_slice(),
-        ))
+            old_frames.into_boxed_slice(),
+        ));
+        self
     }
 
     /// Adds additional (printable) information to the [`Frame`] stack.
@@ -407,25 +420,27 @@ impl<C> Report<C> {
     ///
     /// let error = fs::read_to_string("config.txt")
     ///     .into_report()
-    ///     .attach(Suggestion("Better use a file which exists next time!"));
+    ///     .attach(Suggestion("better use a file which exists next time!"));
     /// # #[cfg_attr(not(nightly), allow(unused_variables))]
     /// let report = error.unwrap_err();
     /// # #[cfg(nightly)]
     /// let suggestion = report.request_ref::<Suggestion>().next().unwrap();
     ///
     /// # #[cfg(nightly)]
-    /// assert_eq!(suggestion.0, "Better use a file which exists next time!");
+    /// assert_eq!(suggestion.0, "better use a file which exists next time!");
     /// # }
     #[track_caller]
-    pub fn attach_printable<A>(self, attachment: A) -> Self
+    pub fn attach_printable<A>(mut self, attachment: A) -> Self
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        Self::from_frame(Frame::from_printable_attachment(
+        let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
+        self.frames.push(Frame::from_printable_attachment(
             attachment,
             Location::caller(),
-            self.frames.into_boxed_slice(),
-        ))
+            old_frames.into_boxed_slice(),
+        ));
+        self
     }
 
     /// Add a new [`Context`] object to the top of the [`Frame`] stack, changing the type of the
@@ -433,15 +448,20 @@ impl<C> Report<C> {
     ///
     /// Please see the [`Context`] documentation for more information.
     #[track_caller]
-    pub fn change_context<T>(self, context: T) -> Report<T>
+    pub fn change_context<T>(mut self, context: T) -> Report<T>
     where
         T: Context,
     {
-        Report::from_frame(Frame::from_context(
+        let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
+        self.frames.push(Frame::from_context(
             context,
             Location::caller(),
-            self.frames.into_boxed_slice(),
-        ))
+            old_frames.into_boxed_slice(),
+        ));
+        Report {
+            frames: self.frames,
+            _context: PhantomData,
+        }
     }
 
     /// Return the direct current frames of this report,
@@ -554,9 +574,7 @@ impl<C> Report<C> {
     pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
         self.frames_mut().find_map(Frame::downcast_mut::<T>)
     }
-}
 
-impl<T: Context> Report<T> {
     /// Returns the current context of the `Report`.
     ///
     /// If the user want to get the latest context, `current_context` can be called. If the user
@@ -587,8 +605,12 @@ impl<T: Context> Report<T> {
     /// assert_eq!(io_error.kind(), io::ErrorKind::NotFound);
     /// # }
     /// ```
+    // TODO: Remove `Display` bound when `set_debug_hook` and `set_display_hook` are removed
     #[must_use]
-    pub fn current_context(&self) -> &T {
+    pub fn current_context(&self) -> &C
+    where
+        C: Display + Send + Sync + 'static,
+    {
         self.downcast_ref().unwrap_or_else(|| {
             // Panics if there isn't an attached context which matches `T`. As it's not possible to
             // create a `Report` without a valid context and this method can only be called when `T`

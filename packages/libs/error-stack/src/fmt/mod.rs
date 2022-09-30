@@ -3,38 +3,37 @@
 //!
 //! # Hooks
 //!
-//! The format implementation (especially the [`Debug`] implementation),
-//! can be easily extended using hooks.
-//! Hooks are functions of the signature `Fn(&T, &mut HookContext<T>)`, they provide an easy and
-//! ergonomic way to partially modify the format and enable the output of types that are
-//! not necessarily added via [`Report::attach_printable`] or are unable to implement [`Display`].
+//! The [`Debug`] implementation can be easily extended using hooks. Hooks are functions of the
+//! signature `Fn(&T, &mut HookContext<T>)`, they provide an ergonomic way to partially modify the
+//! output format and enable custom output for types that are not necessarily added via
+//! [`Report::attach_printable`] or are unable to implement [`Display`].
 //!
 //! Hooks can be attached through the central hooking mechanism which `error-stack`
 //! provides via [`Report::install_debug_hook`].
 //!
-//! Hooks are called for contexts which provide additional values through [`Error::provide`] or
-//! [`Context::provide`] and attachments which are added via [`Report::attach`].
-//! For contexts and values, that can be requested using [`Frame::request_ref`] and
-//! [`Frame::request_value`], the rendering order is determined by the order of
-//! [`Report::install_debug_hook`] calls.
+//! Hooks are called for contexts which provide additional values through [`Context::provide`] and
+//! attachments which are added via [`Report::attach`] or [`Report::attach_printable`]. The order of
+//! [`Report::install_debug_hook`] calls determines the order of the rendered output. Note, that
+//! Hooks get called on all values provided by [`Context::provide`], but not on the [`Context`]
+//! object itself. Therefore if you want to call a hook on a [`Context`] to print in addition to its
+//! [`Display`] implementation, you may want to call [`demand.provide_ref(self)`] inside of
+//! [`Context::provide`].
 //!
-//! You can also provide a fallback function, which is called whenever a hook hasn't been added for
-//! a specific type of attachment.
-//! The fallback function needs to have a signature of
-//! `Fn(&Frame, &mut HookContext<T>)` and can be set via [`Report::install_debug_hook_fallback`].
+//! [`demand.provide_ref(self)`]: core::any::Demand::provide_ref
 //!
 //! Hook functions need to be [`Fn`] and **not** [`FnMut`], which means they are unable to directly
 //! mutate state outside of the closure.
 //! You can still achieve mutable state outside of the scope of your closure through interior
 //! mutability, e.g. by using the [`std::sync`] module like [`Mutex`], [`RwLock`], and [`atomic`]s.
 //!
-//! The type a hook will be called for is determined by the type of the first argument.
-//! This type can either be specified at the closure level or when calling
+//! The type, a hook will be called for, is determined by the type of the first argument to the
+//! closure. This type can either be specified at the closure level or when calling
 //! [`Report::install_debug_hook`].
 //! This type needs to be `'static`, [`Send`], and [`Sync`].
 //!
-//! You can add additional entries to the body with [`HookContext::push_body`], refer to the
-//! documentation of [`HookContext`] for further information.
+//! You can then add additional entries to the body with [`HookContext::push_body`], and entries to
+//! the appendix with [`HookContext::push_appendix`], refer to the documentation of [`HookContext`]
+//! for further information.
 //!
 //! ## Example
 //!
@@ -49,9 +48,8 @@
 //! struct ErrorCode(u64);
 //!
 //! impl Display for ErrorCode {
-//!   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-//!     f.write_str("Error: ")?;
-//!     Display::fmt(&self.0, f)
+//!   fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+//!     write!(fmt, "error: {}", self.0)
 //!   }
 //! }
 //!
@@ -60,53 +58,52 @@
 //!
 //! // This hook will never be called, because a later invocation of `install_debug_hook` overwrites
 //! // the hook for the type `ErrorCode`.
-//! Report::install_debug_hook::<ErrorCode>(|_, ctx| {
-//!     ctx.push_body("will never be called");
+//! Report::install_debug_hook::<ErrorCode>(|_, _| {
+//!     unreachable!("will never be called");
 //! });
 //!
 //! // `HookContext` always has a type parameter, which needs to be the same as the type of the
 //! // value, we use `HookContext` here as storage, to store values specific to this hook.
 //! // Here we make use of the auto-incrementing feature.
-//! // The incrementation is type specific, meaning that `ctx.increment()` for the `Suggestion` hook
+//! // The incrementation is type specific, meaning that `context.increment()` for the `Suggestion` hook
 //! // will not influence the counter of the `ErrorCode` or `Warning` hook.
-//! Report::install_debug_hook::<Suggestion>(|Suggestion(val), ctx| {
-//!     let idx = ctx.increment_counter() + 1;
-//!     ctx.push_body(format!("Suggestion {idx}: {val}"));
+//! Report::install_debug_hook::<Suggestion>(|Suggestion(value), context| {
+//!     let idx = context.increment_counter() + 1;
+//!     context.push_body(format!("suggestion {idx}: {value}"));
 //! });
 //!
 //! // Even though we used `attach_printable`, we can still use hooks, `Display` of a type attached
-//! // via `attach_printable` is only ever used when no hook was found and the fallback returned
-//! // nothing.
-//! Report::install_debug_hook::<ErrorCode>(|ErrorCode(val), ctx| {
-//!     ctx.push_body(format!("Error ({val})"));
+//! // via `attach_printable` is only ever used when no hook was found.
+//! Report::install_debug_hook::<ErrorCode>(|ErrorCode(value), context| {
+//!     context.push_body(format!("error ({value})"));
 //! });
 //!
-//! Report::install_debug_hook::<Warning>(|Warning(val), ctx| {
-//!     let idx = ctx.increment_counter() + 1;
+//! Report::install_debug_hook::<Warning>(|Warning(value), context| {
+//!     let idx = context.increment_counter() + 1;
 //!
 //!     // we set a value, which will be removed on non-alternate views
 //!     // and is going to be appended to the actual return value.
-//!     if ctx.alternate() {
-//!         ctx.push_appendix(format!("Warning {idx}:\n  {val}"));
+//!     if context.alternate() {
+//!         context.push_appendix(format!("warning {idx}:\n  {value}"));
 //!     }
 //!
-//!     ctx.push_body(format!("Warning ({idx}) occurred"));
+//!     context.push_body(format!("warning ({idx}) occurred"));
 //!  });
 //!
 //!
 //! let report = Report::new(Error::from(ErrorKind::InvalidInput))
 //!     .attach_printable(ErrorCode(404))
-//!     .attach(Suggestion("Try to be connected to the internet."))
-//!     .attach(Suggestion("Try better next time!"))
-//!     .attach(Warning("Unable to fetch resource"));
+//!     .attach(Suggestion("try to be connected to the internet."))
+//!     .attach(Suggestion("try better next time!"))
+//!     .attach(Warning("unable to fetch resource"));
 //!
 //! # owo_colors::set_override(true);
 //! # fn render(value: String) -> String {
-//! #     let backtrace = regex::Regex::new(r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-//! #     let backtrace_info = regex::Regex::new(r"backtrace with (\d+) frames \((\d+)\)").unwrap();
+//! #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+//! #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
 //! #
-//! #     let value = backtrace.replace_all(&value, "Backtrace No. $1\n  [redacted]");
-//! #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace with [n] frames ($2)");
+//! #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
+//! #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
 //! #
 //! #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
 //! # }
@@ -140,9 +137,8 @@
 //! [`RwLock`]: std::sync::RwLock
 //! [`Backtrace`]: std::backtrace::Backtrace
 //! [`SpanTrace`]: tracing_error::SpanTrace
-//! [`error_stack::fmt::builtin_debug_hook_fallback`]: crate::fmt::builtin_debug_hook_fallback
 //! [`atomic`]: std::sync::atomic
-//! [`Error::provide`]: std::error::Error::provide
+//! [`Error::provide`]: core::error::Error::provide
 
 #[cfg(feature = "std")]
 mod hook;
@@ -301,14 +297,14 @@ impl Style {
 
 #[cfg(feature = "pretty-print")]
 impl From<Style> for OwOStyle {
-    fn from(val: Style) -> Self {
+    fn from(value: Style) -> Self {
         let mut this = Self::new();
 
-        if val.bold {
+        if value.bold {
             this = this.bold();
         }
 
-        if val.fg_gray {
+        if value.fg_gray {
             this = this.bright_black();
         }
 
@@ -707,7 +703,7 @@ impl Opaque {
 
 fn debug_attachments_invoke(
     frames: Vec<&Frame>,
-    #[cfg(feature = "std")] ctx: &mut HookContext<Frame>,
+    #[cfg(feature = "std")] context: &mut HookContext<Frame>,
 ) -> (Opaque, Vec<String>) {
     let mut opaque = Opaque::new();
 
@@ -716,8 +712,8 @@ fn debug_attachments_invoke(
         .map(|frame| match frame.kind() {
             #[cfg(feature = "std")]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
-                Report::get_debug_format_hook(|hooks| hooks.call(frame, ctx));
-                ctx.take_body()
+                Report::invoke_debug_format_hook(|hooks| hooks.call(frame, context));
+                context.take_body()
             }
             #[cfg(not(feature = "std"))]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
@@ -725,8 +721,8 @@ fn debug_attachments_invoke(
             }
             #[cfg(feature = "std")]
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                Report::get_debug_format_hook(|hooks| hooks.call(frame, ctx));
-                let mut body = ctx.take_body();
+                Report::invoke_debug_format_hook(|hooks| hooks.call(frame, context));
+                let mut body = context.take_body();
 
                 if body.is_empty() {
                     body.push(attachment.to_string());
@@ -758,14 +754,14 @@ fn debug_attachments(
     loc: Option<Line>,
     position: Position,
     frames: Vec<&Frame>,
-    #[cfg(feature = "std")] ctx: &mut HookContext<Frame>,
+    #[cfg(feature = "std")] context: &mut HookContext<Frame>,
 ) -> Lines {
     let last = matches!(position, Position::Final);
 
     let (opaque, entries) = debug_attachments_invoke(
         frames,
         #[cfg(feature = "std")]
-        ctx,
+        context,
     );
     let opaque = opaque.render();
 
@@ -892,7 +888,7 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
 fn debug_frame(
     root: &Frame,
     prefix: &[&Frame],
-    #[cfg(feature = "std")] ctx: &mut HookContext<Frame>,
+    #[cfg(feature = "std")] context: &mut HookContext<Frame>,
 ) -> Vec<Lines> {
     let (stack, sources) = collect(root, prefix);
     let (stack, prefix) = partition(&stack);
@@ -906,7 +902,7 @@ fn debug_frame(
             // each "paket" on the stack is made up of a head (guaranteed to be a `Context`) and
             // `n` attachments.
             // The attachments are rendered as direct descendants of the parent context
-            let (head_ctx, loc) = debug_context(head, match head.kind() {
+            let (head_context, loc) = debug_context(head, match head.kind() {
                 FrameKind::Context(c) => c,
                 FrameKind::Attachment(_) => unreachable!(),
             });
@@ -935,9 +931,9 @@ fn debug_frame(
                 },
                 once(head).chain(body).collect(),
                 #[cfg(feature = "std")]
-                ctx,
+                context,
             );
-            head_ctx.then(body)
+            head_context.then(body)
         })
         .collect();
 
@@ -951,7 +947,7 @@ fn debug_frame(
                     source,
                     &prefix,
                     #[cfg(feature = "std")]
-                    ctx,
+                    context,
                 )
             },
         )
@@ -974,12 +970,12 @@ fn debug_frame(
 impl<C> Debug for Report<C> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "std")]
-        if let Some(result) = Report::get_debug_hook(|hook| hook(self.generalized(), fmt)) {
+        if let Some(result) = Report::invoke_debug_hook(|hook| hook(self.generalized(), fmt)) {
             return result;
         }
 
         #[cfg(feature = "std")]
-        let mut ctx = HookContext::new(fmt.alternate());
+        let mut context = HookContext::new(fmt.alternate());
 
         #[cfg_attr(not(feature = "std"), allow(unused_mut))]
         let mut lines = self
@@ -990,7 +986,7 @@ impl<C> Debug for Report<C> {
                     frame,
                     &[],
                     #[cfg(feature = "std")]
-                    &mut ctx,
+                    &mut context,
                 )
             })
             .enumerate()
@@ -1012,7 +1008,7 @@ impl<C> Debug for Report<C> {
 
         #[cfg(feature = "std")]
         {
-            let appendix = ctx
+            let appendix = context
                 .appendix()
                 .iter()
                 .map(
@@ -1048,7 +1044,7 @@ impl<C> Debug for Report<C> {
 impl<Context> Display for Report<Context> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "std")]
-        if let Some(result) = Report::get_display_hook(|hook| hook(self.generalized(), fmt)) {
+        if let Some(result) = Report::invoke_display_hook(|hook| hook(self.generalized(), fmt)) {
             return result;
         }
 

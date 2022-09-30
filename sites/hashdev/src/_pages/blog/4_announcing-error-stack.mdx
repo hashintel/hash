@@ -1,10 +1,10 @@
 ---
-authorPhoto: blog/4_announcing-error-stack/tim.jpg
+authorPhoto: blog/authors/tim-diekmann.jpg
 postPhoto: blog/4_announcing-error-stack/ErrorStack_Cover.jpg
 title: "Announcing error-stack"
 subtitle: "A context-aware error library for Rust that supports arbitrary attached user data"
 author: "Tim Diekmann"
-jobTitle: "Platform Engineer at HASH"
+jobTitle: "Platform Engineer, HASH"
 date: "2022-06-10"
 ---
 
@@ -16,7 +16,7 @@ This post outlines some of our experiences with error-handling in Rust, why we b
 
 ## Our error-handling journey
 
-At HASH, we've been building a simulation engine — written in Rust — called [hEngine](https://hash.ai/platform/engine). It's a large codebase, with a number of contributors, and its size and complexity has grown over time (check out the code on [GitHub](https://github.com/hashintel/hash)). Across some big refactors, as well as everyday feature development, we found error handling became unwieldy and ourselves struggling to keep up. In a bid to improve our debugging process and reduce maintenance overheads we decided to revisit our strategy for managing errors.
+At HASH, we've been building a simulation engine — written in Rust — called [HASH Engine](https://hash.ai/platform/engine) (or 'hEngine' for short). It's a large codebase, with a number of contributors, and its size and complexity has grown over time (check out the code on [GitHub](https://github.com/hashintel/hash)). Across some big refactors, as well as everyday feature development, we found error handling became unwieldy and ourselves struggling to keep up. In a bid to improve our debugging process and reduce maintenance overheads we decided to revisit our strategy for managing errors.
 
 Up until recently our approach to error handling centered around using [`thiserror`](https://crates.io/crates/thiserror), a fantastic crate which abstracts away a lot of Rust's verbosity when creating errors. Previously we would create enumerations (generally large, top-level ones, per crate and/or major module) to describe our different error types, and use `thiserror`'s macros to handle a lot of the trait implementations. We didn't want to be using `Box<dyn Error>` everywhere, meaning we wanted typed errors, so we utilized `thiserror`'s ability to generate `From` implementations from a macro to handle the transformation of our error types across the module and crate boundaries. (`thiserror` lets you succinctly define a `From` implementation like so: `IoError(#[from] std::io::Error)`).
 

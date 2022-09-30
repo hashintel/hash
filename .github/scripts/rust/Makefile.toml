@@ -15,7 +15,7 @@ CARGO_RUN_FLAGS = ""
 CARGO_FORMAT_FLAGS = ""
 CARGO_FORMAT_HACK_FLAGS = "--workspace"
 
-CARGO_CLIPPY_FLAGS = "--no-deps --tests"
+CARGO_CLIPPY_FLAGS = "--no-deps --all-targets"
 CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset"
 
 CARGO_DOC_FLAGS = "--no-deps --all-features -Zunstable-options -Zrustdoc-scrape-examples=examples"
@@ -32,7 +32,7 @@ CARGO_DOC_TEST_FLAGS = "--workspace --all-features"
 CARGO_BENCH_FLAGS = ""
 CARGO_BENCH_HACK_FLAGS = "--workspace"
 
-CARGO_MIRI_FLAGS = ""
+CARGO_MIRI_FLAGS = "--all-targets"
 CARGO_MIRI_HACK_FLAGS = "--workspace"
 
 REPO_ROOT = { script = ["git rev-parse --show-toplevel"] }
@@ -56,6 +56,10 @@ run_task = { name = ["build", "lint", "test"] }
 private = true
 command = "cargo"
 dependencies = ["install-cargo-hack"]
+
+[tasks.bash]
+private = true
+command = "bash"
 
 [tasks.yarn]
 command = "yarn"
