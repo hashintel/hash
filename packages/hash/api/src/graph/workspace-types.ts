@@ -10,6 +10,16 @@ import {
   linkTypeInitializer,
 } from "../model/util";
 
+export const workspaceEntityTypeTitles = {
+  block: "Block",
+  page: "Page",
+  text: "Text",
+  dummy: "Dummy",
+  user: "User",
+  org: "Org",
+  orgMembership: "Org Membership",
+} as const;
+
 // eslint-disable-next-line import/no-mutable-exports
 export let WORKSPACE_TYPES: {
   dataType: {};
@@ -111,7 +121,7 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
 
   return entityTypeInitializer({
     namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-    title: "Organization",
+    title: workspaceEntityTypeTitles.org,
     properties: [
       {
         propertyTypeModel: shortnamePropertyTypeModel,
@@ -146,7 +156,7 @@ const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
 
   return entityTypeInitializer({
     namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-    title: "OrgMembership",
+    title: workspaceEntityTypeTitles.orgMembership,
     properties: [
       {
         propertyTypeModel: responsibilityPropertyTypeModel,
@@ -242,7 +252,7 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
 
   return entityTypeInitializer({
     namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-    title: "User",
+    title: workspaceEntityTypeTitles.user,
     properties: [
       {
         propertyTypeModel: shortnamePropertyTypeModel,
@@ -298,7 +308,7 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
 
   return entityTypeInitializer({
     namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-    title: "Block",
+    title: workspaceEntityTypeTitles.block,
     properties: [
       {
         propertyTypeModel: componentIdPropertyTypeModel,
@@ -338,7 +348,7 @@ const textEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-enable @typescript-eslint/no-use-before-define */
   return entityTypeInitializer({
     namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-    title: "Text",
+    title: workspaceEntityTypeTitles.text,
     properties: [
       {
         propertyTypeModel: tokensPropertyTypeModel,
@@ -357,7 +367,7 @@ const textEntityTypeInitializer = async (graphApi: GraphApi) => {
 const dummyEntityTypeInitializer = async (graphApi: GraphApi) => {
   return entityTypeInitializer({
     namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-    title: "Dummy",
+    title: workspaceEntityTypeTitles.dummy,
     properties: [],
     outgoingLinks: [],
   })(graphApi);
@@ -430,13 +440,11 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
 
   const namespace = WORKSPACE_ACCOUNT_SHORTNAME;
 
-  const title = "Page";
-
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
     namespace,
-    title,
+    title: workspaceEntityTypeTitles.page,
     properties: [
       {
         propertyTypeModel: summaryPropertyTypeModel,
