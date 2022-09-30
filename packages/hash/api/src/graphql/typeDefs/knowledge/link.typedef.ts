@@ -55,6 +55,21 @@ export const knowledgeLinkTypedef = gql`
     targetEntityId: ID!
   }
 
+  input DeleteKnowledgeLinkInput {
+    """
+    The versioned URI of this link's type.
+    """
+    linkTypeId: String!
+    """
+    The id of the link's source entity.
+    """
+    sourceEntityId: ID!
+    """
+    The id of the link's target entity.
+    """
+    targetEntityId: ID!
+  }
+
   extend type Query {
     """
     Get a link.
@@ -76,5 +91,9 @@ export const knowledgeLinkTypedef = gql`
     Create a link.
     """
     createKnowledgeLink(link: CreateKnowledgeLinkInput!): KnowledgeLink!
+    """
+    Create a link.
+    """
+    deleteKnowledgeLink(link: DeleteKnowledgeLinkInput!): Boolean!
   }
 `;

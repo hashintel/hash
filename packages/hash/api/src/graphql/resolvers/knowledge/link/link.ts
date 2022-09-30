@@ -1,6 +1,8 @@
+import { ApolloError } from "apollo-server-errors";
 import { EntityModel, LinkModel, LinkTypeModel } from "../../../../model";
 import {
   MutationCreateKnowledgeLinkArgs,
+  MutationDeleteKnowledgeLinkArgs,
   QueryKnowledgeLinksArgs,
   ResolverFn,
 } from "../../../apiTypes.gen";
@@ -69,4 +71,44 @@ export const knowledgeLinks: ResolverFn<
   });
 
   return linkModels.map(mapLinkModelToGQL);
+};
+
+export const deleteKnowledgeLink: ResolverFn<
+  Promise<boolean>,
+  {},
+  LoggedInGraphQLContext,
+  MutationDeleteKnowledgeLinkArgs
+> = async (_, { link }, { dataSources: { graphApi }, user }) => {
+  const { linkTypeId, sourceEntityId, targetEntityId } = link;
+
+  const linkModels = await LinkModel.getByQuery(graphApi, {
+    all: [
+      { eq: [{ path: ["source", "id"] }, { literal: sourceEntityId }] },
+      { eq: [{ path: ["target", "id"] }, { literal: targetEntityId }] },
+      {
+        eq: [
+          { path: ["type", "versionedUri"] },
+          {
+            literal: linkTypeId,
+          },
+        ],
+      },
+    ],
+  });
+
+  if (!linkModels[0]) {
+    throw new ApolloError(
+      `Link with source enitty ID = '${sourceEntityId}', target entity ID = '${targetEntityId}' and link type ID = '${linkTypeId}' not found.`,
+      "NOT_FOUND",
+    );
+  } else if (linkModels.length > 1) {
+    throw new ApolloError(
+      `Could not identify one single link with query.`,
+      "BAD_REQUEST",
+    );
+  }
+
+  await linkModels[0].remove(graphApi, { removedById: user.entityId });
+
+  return true;
 };

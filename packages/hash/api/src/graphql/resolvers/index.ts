@@ -110,7 +110,11 @@ import { knowledgeBlocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import { knowledgeEntity } from "./knowledge/entity/entity";
 import { UnresolvedKnowledgeEntityGQL } from "./knowledge/model-mapping";
-import { createKnowledgeLink, knowledgeLinks } from "./knowledge/link/link";
+import {
+  createKnowledgeLink,
+  deleteKnowledgeLink,
+  knowledgeLinks,
+} from "./knowledge/link/link";
 
 /**
  * @todo: derive these from the statically declared workspace type names
@@ -223,6 +227,7 @@ export const resolvers = {
     updateEntityType: loggedInAndSignedUp(updateEntityType),
     // Knowledge
     createKnowledgeLink: loggedInAndSignedUp(createKnowledgeLink),
+    deleteKnowledgeLink: loggedInAndSignedUp(deleteKnowledgeLink),
   },
 
   JSONObject: JSONObjectResolver,
