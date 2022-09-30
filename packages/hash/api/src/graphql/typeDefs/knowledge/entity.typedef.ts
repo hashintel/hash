@@ -17,7 +17,7 @@ export const knowledgeEntityTypedef = gql`
     """
     The specific version of the entity
     """
-    entityVersionId: String!
+    entityVersion: String!
     """
     The id of the account that owns this entity.
     """
@@ -54,7 +54,7 @@ export const knowledgeEntityTypedef = gql`
     """
     The specific version of the entity
     """
-    entityVersionId: String!
+    entityVersion: String!
     """
     The id of the account that owns this entity.
     """
@@ -149,7 +149,7 @@ export const knowledgeEntityTypedef = gql`
       """
       The version of the entity. Defaults to the latest version.
       """
-      entityVersion: ID
+      entityVersion: String
     ): KnowledgeEntity!
   }
 `;

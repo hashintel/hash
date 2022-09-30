@@ -31,7 +31,7 @@ export const knowledgePageTypedef = gql`
     """
     The specific version of the entity
     """
-    entityVersionId: String!
+    entityVersion: String!
     """
     The id of the account that owns this entity.
     """
