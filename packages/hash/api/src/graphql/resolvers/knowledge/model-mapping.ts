@@ -10,7 +10,7 @@ export type ExternalKnowledgeEntityResolversGQL = "linkedEntities";
 export type UnresolvedKnowledgeEntityGQL = Omit<
   KnowledgeEntity,
   ExternalKnowledgeEntityResolversGQL
->;
+> & { workspaceTypeName?: string };
 
 export const mapEntityModelToGQL = (
   entityModel: EntityModel,
@@ -22,6 +22,12 @@ export const mapEntityModelToGQL = (
   ownedById: entityModel.ownedById,
   accountId: entityModel.ownedById,
   properties: entityModel.properties,
+  /**
+   * To be used by the `KnowledgeEntity` `__resolveType` resolver method to reliably determine
+   * the GQL type of this entity. Note that this is not exposed in the GQL type definitions,
+   * and is therefore not returned to GraphQL clients.
+   */
+  workspaceTypeName: entityModel.entityTypeModel.workspaceTypeName,
 });
 
 export type ExternalKnowledgePageResolversGQL =

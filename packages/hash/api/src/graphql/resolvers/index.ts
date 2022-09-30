@@ -112,6 +112,22 @@ import {
   createKnowledgeEntity,
   knowledgeEntity,
 } from "./knowledge/entity/entity";
+import { UnresolvedKnowledgeEntityGQL } from "./knowledge/model-mapping";
+
+/**
+ * @todo: derive these from the statically declared workspace type names
+ */
+const workpsaceEntityGQLTypeNames = [
+  "KnowledgePage",
+  "KnowledgeBlock",
+] as const;
+
+type WorkspaceEntityGQLTypeName = typeof workpsaceEntityGQLTypeNames[number];
+
+const isWorkspaceEntityGQLTypeName = (
+  name: string,
+): name is WorkspaceEntityGQLTypeName =>
+  workpsaceEntityGQLTypeNames.includes(name as WorkspaceEntityGQLTypeName);
 
 export const resolvers = {
   Query: {
@@ -300,6 +316,29 @@ export const resolvers = {
   },
 
   // New knowledge field resolvers
+
+  KnowledgeEntity: {
+    /**
+     * Determines whether a `KnowledgeEntity` instance should be treated as a
+     * workspace GQL type definition (for example as a `KnowledgePage`), or
+     * whether to treat it is an `UnknownKnowledgeEntity`.
+     */
+    __resolveType: ({
+      workspaceTypeName,
+    }: UnresolvedKnowledgeEntityGQL):
+      | WorkspaceEntityGQLTypeName
+      | "UnknownKnowledgeEntity" => {
+      const workspaceEntityGQLTypeName = workspaceTypeName
+        ? `Knowledge${workspaceTypeName.split(" ").join("")}`
+        : undefined;
+
+      return workspaceEntityGQLTypeName &&
+        isWorkspaceEntityGQLTypeName(workspaceEntityGQLTypeName)
+        ? workspaceEntityGQLTypeName
+        : "UnknownKnowledgeEntity";
+    },
+  },
+
   KnowledgePage: {
     contents: knowledgePageContents,
   },
