@@ -166,11 +166,27 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
 /// DOC - TODO
 pub struct Samples {
     pub entities: HashMap<AccountId, HashMap<VersionedUri, Vec<EntityId>>>,
+    pub entity_types: HashMap<AccountId, Vec<VersionedUri>>,
 }
 
 async fn get_samples(account_id: AccountId, store_wrapper: &mut StoreWrapper) -> Samples {
+    let mut entity_types = HashMap::new();
+    entity_types.insert(
+        account_id,
+        SEED_ENTITY_TYPES
+            .into_iter()
+            .map(|entity_type_str| {
+                EntityType::from_str(entity_type_str)
+                    .expect("could not parse entity type")
+                    .id()
+                    .clone()
+            })
+            .collect(),
+    );
+
     let mut samples = Samples {
         entities: HashMap::from([(account_id, HashMap::new())]),
+        entity_types,
     };
 
     let sample_map = samples.entities.get_mut(&account_id).unwrap();
