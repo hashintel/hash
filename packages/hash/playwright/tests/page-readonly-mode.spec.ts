@@ -3,6 +3,9 @@ import { test, expect } from "@playwright/test";
 import { loginUsingUi } from "./utils/login-using-ui";
 import { resetDb } from "./utils/reset-db";
 
+const placeholderSelector =
+  "text=Type / to browse blocks, or @ to browse entities";
+
 test.beforeEach(async () => {
   await resetDb();
 });
@@ -25,7 +28,7 @@ test("user can view page in read-only mode but not update", async ({
 
   const blockRegionLocator = page.locator("#root");
 
-  await blockRegionLocator.locator("p div").click();
+  await expect(page.locator(placeholderSelector)).toBeVisible();
   await page.keyboard.type("typing in edit mode");
   await expect(
     blockRegionLocator.locator("text=typing in edit mode"),
