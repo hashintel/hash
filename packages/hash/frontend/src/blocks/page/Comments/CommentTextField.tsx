@@ -22,9 +22,11 @@ import {
   FontAwesomeIcon,
   LoadingSpinner,
 } from "@hashintel/hash-design-system";
-import { faComment } from "@fortawesome/free-regular-svg-icons";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
-import { textBlockNodeToEntityProperties } from "@hashintel/hash-shared/text";
+import {
+  textBlockNodeToEntityProperties,
+  textBlockNodesFromTokens,
+} from "@hashintel/hash-shared/text";
 import { usePortals } from "../usePortals";
 import { createFormatPlugins } from "../createFormatPlugins";
 import {
@@ -37,11 +39,17 @@ import { commentPlaceholderPlugin } from "./commentPlaceholderPlugin";
 import { createTextEditorView } from "../createTextEditorView";
 
 type CommentTextFieldProps = {
-  onClose: () => void;
-  onSubmit: (content: TextToken[]) => Promise<void>;
+  editable?: boolean;
+  initialText?: TextToken[];
+  expanded?: boolean;
+  onClose?: () => void;
+  onSubmit?: (content: TextToken[]) => Promise<void>;
 };
 
 export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
+  editable = false,
+  initialText,
+  expanded = true,
   onClose,
   onSubmit,
 }) => {
@@ -70,44 +78,57 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
       });
 
       const state = EditorState.create<Schema>({
+        doc: schema.node(
+          "doc",
+          {},
+          initialText?.length
+            ? textBlockNodesFromTokens(initialText, schema)
+            : [],
+        ),
         schema,
-        plugins: [
-          keymap<Schema>({
-            Enter(_, __, view) {
-              if (!loadingRef.current && view?.state.doc.content) {
-                const { tokens } = textBlockNodeToEntityProperties(
-                  view.state.doc,
-                );
+        plugins: editable
+          ? [
+              keymap<Schema>({
+                Enter(_, __, view) {
+                  if (
+                    eventsRef.current.onSubmit &&
+                    !loadingRef.current &&
+                    view?.state.doc.content
+                  ) {
+                    const { tokens } = textBlockNodeToEntityProperties(
+                      view.state.doc,
+                    );
 
-                if (!tokens.length) return true;
+                    if (!tokens.length) return true;
 
-                setLoading(true);
-                eventsRef.current
-                  .onSubmit(tokens)
-                  .then(() => {
+                    setLoading(true);
+                    eventsRef.current
+                      .onSubmit(tokens)
+                      .then(() => {
+                        eventsRef.current.onClose?.();
+                      })
+                      .finally(() => {
+                        setLoading(false);
+                      });
+                    return true;
+                  }
+                  return false;
+                },
+                Escape() {
+                  if (eventsRef.current.onClose && !loadingRef.current) {
                     eventsRef.current.onClose();
-                  })
-                  .finally(() => {
-                    setLoading(false);
-                  });
-                return true;
-              }
-              return false;
-            },
-            Escape() {
-              if (!loadingRef.current) {
-                eventsRef.current.onClose();
-                return true;
-              }
-              return false;
-            },
-          }),
-          keymap<Schema>(baseKeymap),
-          ...createFormatPlugins(renderPortal),
-          formatKeymap(schema),
-          createSuggester(renderPortal, accountId, editorContainer),
-          commentPlaceholderPlugin(renderPortal, "Leave a comment"),
-        ],
+                    return true;
+                  }
+                  return false;
+                },
+              }),
+              keymap<Schema>(baseKeymap),
+              ...createFormatPlugins(renderPortal),
+              formatKeymap(schema),
+              createSuggester(renderPortal, accountId, editorContainer),
+              commentPlaceholderPlugin(renderPortal, "Leave a comment"),
+            ]
+          : [],
       });
 
       const view = createTextEditorView(
@@ -115,9 +136,11 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         editorContainer,
         renderPortal,
         accountId,
+        { editable: () => editable },
       );
 
       view.dom.classList.add(styles.Comment__TextField_Prosemirror_Input!);
+
       view.focus();
       viewRef.current = view;
 
@@ -126,38 +149,31 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         viewRef.current = undefined;
       };
     }
-  }, [accountId, renderPortal]);
+  }, [initialText, editable, accountId, renderPortal]);
+
+  useEffect(() => {
+    if (expanded) {
+      viewRef.current?.dom.classList.remove(
+        styles.Comment__TextField_Prosemirror_Input_collapsed!,
+      );
+    } else {
+      viewRef.current?.dom.classList.add(
+        styles.Comment__TextField_Prosemirror_Input_collapsed!,
+      );
+    }
+  }, [expanded]);
 
   return (
     <Box
-      sx={({ transitions, palette }) => ({
-        width: 250,
+      sx={{
+        width: "100%",
         display: "flex",
-        borderRadius: 1.5,
-        border: `1px solid ${palette.gray[30]}`,
-        backdropFilter: "blur(40px)",
-        transition: transitions.create("border-color"),
-        "&:focus-within": {
-          borderColor: palette.blue[60],
-        },
-      })}
+      }}
     >
-      <IconButton
-        onClick={onClose}
-        sx={({ palette }) => ({
-          padding: 0.5,
-          borderRadius: 1,
-          margin: 1.5,
-          alignSelf: "flex-start",
-          color: palette.gray[50],
-        })}
-      >
-        <FontAwesomeIcon icon={faComment} />
-      </IconButton>
-
       <Box
         ref={editorContainerRef}
         sx={({ palette }) => ({
+          display: "flex",
           overflow: "hidden",
           flexGrow: 1,
           fontSize: 14,
@@ -166,31 +182,33 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         })}
       />
 
-      <Box display="flex" alignItems="flex-end" margin={1.5}>
-        {loading ? (
-          <Box m={0.75}>
-            <LoadingSpinner size={12} thickness={2} />
-          </Box>
-        ) : (
-          <IconButton
-            onClick={() => {
-              if (viewRef.current) {
-                const { tr } = viewRef.current.state;
-                tr.setMeta(suggesterPluginKey, { type: "toggle" });
-                viewRef.current.dispatch(tr);
-                viewRef.current.focus();
-              }
-            }}
-            sx={({ palette }) => ({
-              padding: 0.5,
-              borderRadius: 1,
-              color: palette.gray[40],
-            })}
-          >
-            <FontAwesomeIcon icon={faAt} />
-          </IconButton>
-        )}
-      </Box>
+      {editable ? (
+        <Box display="flex" alignItems="flex-end" margin={1.5}>
+          {loading ? (
+            <Box m={0.75}>
+              <LoadingSpinner size={12} thickness={2} />
+            </Box>
+          ) : (
+            <IconButton
+              onClick={() => {
+                if (viewRef.current) {
+                  const { tr } = viewRef.current.state;
+                  tr.setMeta(suggesterPluginKey, { type: "toggle" });
+                  viewRef.current.dispatch(tr);
+                  viewRef.current.focus();
+                }
+              }}
+              sx={({ palette }) => ({
+                padding: 0.5,
+                borderRadius: 1,
+                color: palette.gray[40],
+              })}
+            >
+              <FontAwesomeIcon icon={faAt} />
+            </IconButton>
+          )}
+        </Box>
+      ) : null}
 
       {portals}
     </Box>

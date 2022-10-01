@@ -80,5 +80,17 @@
 .Comment__TextField_Prosemirror_Input {
   width: 100%;
   outline: none;
-  padding: 13.5px 0;
+  padding: 13.5px 0 !important;
+  min-width: auto !important;
+}
+
+.Comment__TextField_Prosemirror_Input_collapsed {
+  padding: 0 !important;
+  margin: 13.5px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }

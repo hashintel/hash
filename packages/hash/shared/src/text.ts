@@ -3,11 +3,11 @@ import { ComponentNode } from "./prosemirror";
 import { Text, TextProperties } from "./graphql/apiTypes.gen";
 import { TextToken } from "./graphql/types";
 
-export const childrenForTextEntity = (
-  entity: Pick<Text, "properties">,
+export const textBlockNodesFromTokens = (
+  tokens: TextToken[],
   schema: Schema,
 ): ProsemirrorNode<Schema>[] =>
-  entity.properties.tokens
+  tokens
     // eslint-disable-next-line array-callback-return -- TODO: disable the rule because it’s not aware of TS
     .map((token) => {
       switch (token.tokenType) {
@@ -37,6 +37,12 @@ export const childrenForTextEntity = (
         }
       }
     });
+
+export const childrenForTextEntity = (
+  entity: Pick<Text, "properties">,
+  schema: Schema,
+): ProsemirrorNode<Schema>[] =>
+  textBlockNodesFromTokens(entity.properties.tokens, schema);
 
 export const textBlockNodeToEntityProperties = (
   node: ComponentNode,

@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback, useState } from "react";
+import { FunctionComponent, useCallback, useMemo, useState } from "react";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
 import Box from "@mui/material/Box";
@@ -6,8 +6,9 @@ import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import Popper from "@mui/material/Popper";
 import { useCreateComment } from "../../../components/hooks/useCreateComment";
 import { useRouteAccountInfo } from "../../../shared/routing";
-import { CommentTextField } from "./CommentTextField";
 import styles from "../style.module.css";
+import { CommentThread } from "./CommentThread";
+import { usePageComments } from "../../../components/hooks/usePageComments";
 
 type CommentButtonProps = {
   blockId: string | null;
@@ -21,6 +22,17 @@ export const CommentButton: FunctionComponent<CommentButtonProps> = ({
   const { accountId } = useRouteAccountInfo();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [createComment] = useCreateComment(accountId);
+
+  const { data: pageComments } = usePageComments(
+    accountId,
+    "58d51266-5ee5-416b-b36a-21cb036deefe",
+  );
+
+  const blockComments = useMemo(
+    () =>
+      pageComments?.filter((comment) => comment.parent.entityId === blockId),
+    [pageComments, blockId],
+  );
 
   const submitComment = useCallback(
     async (content: TextToken[]) => {
@@ -74,7 +86,11 @@ export const CommentButton: FunctionComponent<CommentButtonProps> = ({
         ]}
         anchorEl={anchorEl}
       >
-        <CommentTextField onClose={closeInput} onSubmit={submitComment} />
+        <CommentThread
+          comments={blockComments}
+          onClose={closeInput}
+          onSubmit={submitComment}
+        />
       </Popper>
     </Box>
   );
