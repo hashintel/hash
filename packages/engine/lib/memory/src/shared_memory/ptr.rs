@@ -8,7 +8,7 @@ pub struct MemoryPtr {
 
 impl<'s> MemoryPtr {
     pub fn from_memory(memory: &Segment) -> MemoryPtr {
-        Self::new(memory.data.as_ptr())
+        Self::new(memory.data_ptr())
     }
 
     fn new(ptr: *const u8) -> MemoryPtr {

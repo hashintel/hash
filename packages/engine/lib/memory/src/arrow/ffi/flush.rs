@@ -103,8 +103,8 @@ unsafe extern "C" fn flush_changes(
     };
 
     let return_flag = if changed.resized() {
-        let ptr = segment.data.as_ptr();
-        let len = segment.size as i64;
+        let ptr = segment.data_ptr();
+        let len = segment.data_len() as i64;
         let mut_c_segment = &mut *c_segment;
         metaversion.increment();
         mut_c_segment.ptr = ptr;

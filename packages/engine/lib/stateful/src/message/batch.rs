@@ -101,9 +101,9 @@ impl MessageBatch {
 
         // Perform some light bound checks
         // we can't release memory on mac because we can't resize the segment
-        if cfg!(not(target_os = "macos")) && batch.segment().size > LOWER_BOUND {
+        if cfg!(not(target_os = "macos")) && batch.segment().data_len() > LOWER_BOUND {
             let upper_bound = agent_count * UPPER_MULTIPLIER;
-            if batch.segment().size > upper_bound
+            if batch.segment().data_len() > upper_bound
                 && batch
                     .segment()
                     .target_total_size_accommodates_data_size(upper_bound, write_metadata.body_len)

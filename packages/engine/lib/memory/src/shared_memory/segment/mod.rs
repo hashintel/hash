@@ -64,8 +64,8 @@ use self::cleanup::IN_USE_SHM_SEGMENTS;
 ///
 /// Note column data will not be densely packed as it will leave space for array size fluctuations.
 pub struct Segment {
-    pub data: Shmem,
-    pub size: usize,
+    data: Shmem,
+    size: usize,
     include_terminal_padding: bool,
 }
 
@@ -115,6 +115,18 @@ impl Drop for Segment {
 }
 
 impl Segment {
+    pub fn data_ptr(&self) -> *const u8 {
+        self.data.as_ptr() as *const u8
+    }
+
+    pub fn data_len(&self) -> usize {
+        self.size
+    }
+
+    pub fn is_owner(&self) -> bool {
+        self.data.is_owner()
+    }
+
     /// Crates a new shared memory segment from the given [`MemoryId`].
     pub fn new(
         memory_id: MemoryId,

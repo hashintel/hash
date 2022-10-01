@@ -27,9 +27,9 @@ unsafe extern "C" fn load_shmem(id: *const u8, len: u64) -> *mut CSegment {
     // contains data subject to external resizing
     match Segment::open_unchecked(message, true, true) {
         Ok(segment) => {
-            debug_assert!(!segment.data.is_owner());
-            let ptr = segment.data.as_ptr();
-            let segment_size = segment.size as i64;
+            debug_assert!(!segment.is_owner());
+            let ptr = segment.data_ptr();
+            let segment_size = segment.data_len() as i64;
             let segment = Box::into_raw(Box::new(segment));
             Box::into_raw(Box::new(CSegment {
                 ptr,
@@ -48,7 +48,7 @@ unsafe extern "C" fn free_memory(c_memory: *mut CSegment) {
     trace!(
         "Python did call `free_memory` for segment {} (was owner: {})",
         segment.id(),
-        segment.data.is_owner()
+        segment.is_owner()
     );
     drop(segment);
 }

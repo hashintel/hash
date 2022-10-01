@@ -285,20 +285,20 @@ impl ArrowBatch {
 
         let new_memory = new_batch.segment();
         // Make capacity at least as large as new memory capacity.
-        if self.segment().size < new_memory.size {
-            self.segment_mut().resize(new_memory.size)?;
+        if self.segment().data_len() < new_memory.data_len() {
+            self.segment_mut().resize(new_memory.data_len())?;
             metaversion_to_persist.increment();
         }
 
         let new_bytes = new_memory.get_contents_bytes()?;
         debug_assert!(
-            new_bytes.len() <= new_memory.size,
+            new_bytes.len() <= new_memory.data_len(),
             "Memory capacity is too small for existing contents"
         );
         debug_assert!(
-            self.segment().size >= new_bytes.len(),
+            self.segment().data_len() >= new_bytes.len(),
             "Memory capacity ({}) is too small for new contents ({}) despite earlier resize",
-            self.segment().size,
+            self.segment().data_len(),
             new_bytes.len(),
         );
         self.segment_mut().overwrite_no_bounds_check(new_bytes)?;

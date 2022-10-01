@@ -155,14 +155,18 @@ pub(in crate::runner::javascript) fn batch_to_js<'s>(
     //
     // SAFETY: `mem.data` points to valid memory and is valid for `mem.size` bytes `no_op` will not
     //         try to de-allocate share memory.
+    // TODO: Technically this might violate Rust's aliasing rules, because at this point, the
+    //       batches are immutable, but we pass pointers to them into V8 that can later to be used
+    //       to mutate them (because later we can guarantee that nothing else is reading state in
+    //       parallel with the mutation through those pointers).
     // TODO: Investigate to make sure that this does not have any implications on reading/writing.
     //       It's also not 100% clear what `ArrayBuffer` expects, is it ok to read/write while the
     //       `ArrayBuffer` exists?)
     //       https://app.asana.com/0/1199548034582004/1202024534527158/f
     let backing_store = unsafe {
         v8::ArrayBuffer::new_backing_store_from_ptr(
-            segment.data.as_ptr().cast(),
-            segment.size,
+            segment.data_ptr() as *mut u8 as *mut _,
+            segment.data_len(),
             no_op,
             std::ptr::null_mut(),
         )
