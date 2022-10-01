@@ -8,6 +8,8 @@ use crate::error::{Error, Result};
 /// Finds the column in a given [`RecordBatch`] (provided that it exists) and returns a
 /// reference ([`Box<dyn Array>`]) to the column (returns an error otherwise) with the same lifetime
 /// as the [`RecordBatch`].
+// this is necessary, because GrowableArrayData is implemented for Box<dyn Array> but not
+// &dyn Array
 #[allow(clippy::borrowed_box)]
 pub fn column_with_name_from_record_batch<'a>(
     record_batch: &'a RecordBatch,

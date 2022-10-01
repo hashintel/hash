@@ -3,6 +3,9 @@ from json import loads
 import pyarrow as pa
 from pyarrow.types import is_primitive
 
+from wrappers import np_force_writable
+
+
 def _writable_in_place(typ):
     if is_primitive(typ):
         is_bool = typ.bit_width == 1
@@ -28,7 +31,7 @@ def load_full(
         return vector.to_pylist()
 
     col_np = vector.to_numpy(zero_copy_only=True)
-    col_np.setflags(write=True)
+    np_force_writable(col_np)
     return col_np
 
 # TODO: `load_elem` like in `hash_util.js` if a use case for it comes up in a package.

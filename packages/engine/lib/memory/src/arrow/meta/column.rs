@@ -7,7 +7,7 @@ use crate::{
 };
 
 // Information that is constant throughout a simulation run
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Column {
     pub node_start: usize,
     pub node_count: usize,
