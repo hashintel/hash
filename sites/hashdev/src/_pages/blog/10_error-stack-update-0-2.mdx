@@ -14,10 +14,10 @@ Almost every week since our last release, we’ve been fixing user-reported bugs
 
 ## Changes from `std` in v0.2
 
-- The `Provider` API has landed and replaces our vendored-in implementation.
+- The `Provider` API has landed and replaces our vendored-in implementation.
 - `Backtrace` was stabilized with Rust 1.65(🎉), we now support `Backtrace`s on a non-nightly channel starting with 1.65-beta.
 - If the root context already contains a backtrace, no new `Backtrace` is captured. Otherwise, backtraces are captured automatically when `RUST_BACKTRACE`.
-   or `RUST_LIB_BACKTRACE` env-vars are set.
+  or `RUST_LIB_BACKTRACE` env-vars are set.
 - All std-`Error` types now implement `Provider`. The blanket implementation on `Context` will re-use the `Error::provide` values.
 - `Error` is now available in `core::error`, for nightly channels.
 
@@ -28,7 +28,7 @@ The output in v0.2 has been completely redesigned by Bilal Mahmoud ([@indietyp](
 _error-stack v0.2:_
 
 ```
-Error: Experiment error: Could not run experiment
+Error: experiment error: could not run experiment
  ├╴examples/demo.rs:51:18
  ├╴unable to set up experiments
  │
@@ -44,9 +44,9 @@ Error: Experiment error: Could not run experiment
 _error-stack v0.1:_
 
 ```
-Error: Experiment error: Could not run experiment
+Error: cxperiment error: could not run experiment
               at examples/demo.rs:54:18
-       - Unable to setup experiments
+       - unable to setup experiments
 
  Caused by:
     0: invalid experiment description
@@ -109,7 +109,7 @@ For a full guide to using hooks, please refer to [the `fmt` module documentation
 This is also shown in the output:
 
 ```
-Error: Experiment error: Could not run experiment
+Error: experiment error: could not run experiment
  ├╴examples/demo.rs:73:18
  ├╴Unable to set up experiments
  │
@@ -125,7 +125,7 @@ Error: Experiment error: Could not run experiment
      ├╴examples/demo.rs:25:18
      ╰╴"4a" could not be parsed as experiment
 
- Experiment error: Could not run experiment
+ experiment error: could not run experiment
  ├╴examples/demo.rs:67:17
  ├╴Experiment 3 has no valid description
  ╰╴Unable to set up experiments
