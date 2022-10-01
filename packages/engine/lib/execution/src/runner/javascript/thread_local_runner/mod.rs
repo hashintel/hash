@@ -1,6 +1,5 @@
 use std::{collections::HashMap, sync::Arc};
 
-use arrow2::datatypes::Schema;
 use stateful::{
     field::PackageId,
     global::{Globals, SharedStore},
@@ -19,6 +18,7 @@ use super::{
 use crate::{
     package::simulation::SimulationId,
     runner::{
+        common_to_runners::SimState,
         comms::{
             ExperimentInitRunnerMsg, InboundToRunnerMsgPayload, NewSimulationRun,
             OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerTaskMessage,
@@ -38,12 +38,6 @@ use crate::{
 mod array_from_js;
 mod flush;
 mod sync;
-
-/// Due to flushing, need batches and schemas in both Rust and JS.
-struct SimState {
-    agent_schema: Arc<Schema>,
-    msg_schema: Arc<Schema>,
-}
 
 pub(in crate::runner::javascript) struct ThreadLocalRunner<'s> {
     embedded: Embedded<'s>,
@@ -334,7 +328,7 @@ impl<'s> ThreadLocalRunner<'s> {
         tracing::debug!("Calling JS run_task");
 
         // if the shared_store contains outdated data, then we must reload it here
-        Self::reload_data_if_necessary(&mut shared_store)?;
+        shared_store.reload_data_if_necessary();
 
         let return_val: Value<'s> =
             call_js_function(scope, self.embedded.run_task, self.this, args).map_err(|err| {
@@ -377,18 +371,6 @@ impl<'s> ThreadLocalRunner<'s> {
         };
 
         Ok((next_task_msg, user_warnings, logs))
-    }
-
-    /// Reloads the data in the shared_store if necessary.
-    fn reload_data_if_necessary(shared_store: &mut TaskSharedStore) -> JavaScriptResult<()> {
-        let (write_proxies, _) = match shared_store.get_write_proxies() {
-            Ok(t) => t,
-            Err(_) => return Ok(()),
-        };
-        write_proxies
-            .maybe_reload()
-            .map_err(|_| JavaScriptError::from("could not reload batches (this is a bug)"))?;
-        Ok(())
     }
 
     pub fn handle_msg(

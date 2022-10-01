@@ -9,7 +9,6 @@ use arrow2::io::ipc::{
 use arrow_format::ipc::{planus::ReadAsRoot, MessageHeaderRef};
 use memory::{
     arrow::{
-        flush::GrowableBatch,
         ipc::{self, write_record_batch_to_segment},
         meta::{self, DynamicMetadata, StaticMetadata},
         record_batch::RecordBatch,

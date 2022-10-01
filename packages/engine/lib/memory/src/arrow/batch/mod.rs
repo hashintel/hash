@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
-use arrow2::array::Array;
+use arrow2::datatypes::Schema;
 use tracing::trace;
 
 use super::record_batch::RecordBatch;
 use crate::{
     arrow::{
         change::ColumnChange,
-        flush::GrowableBatch,
         ipc,
         meta::{self, DynamicMetadata},
     },
@@ -15,6 +14,8 @@ use crate::{
     shared_memory::{Metaversion, Segment},
 };
 
+pub mod arrow_internal_data;
+pub mod column_changes;
 pub mod columns;
 
 /// Batch with Arrow data that can be accessed as an Arrow record batch
@@ -166,10 +167,18 @@ impl ArrowBatch {
     pub fn is_persisted(&self) -> bool {
         let loaded = self.loaded_metaversion();
         let persisted = self.segment.read_persisted_metaversion();
-        debug_assert!(!loaded.newer_than(persisted));
+        debug_assert!(
+            !loaded.newer_than(persisted),
+            "loaded={loaded:?} but persisted={persisted:?}"
+        );
         loaded == persisted
     }
 
+    /// Applies all the changes which have been queued for this batch (using
+    /// [`ArrowBatch::queue_change`]) to the currently loaded (in-memory) Arrow
+    /// arrays, and then writes the result into the shared memory segment.
+    ///
+    /// This also updates the [`Metaversion`] of the batch as needed.
     pub fn flush_changes(&mut self) -> Result<()> {
         if !self.is_persisted() {
             return Err(Error::from(format!(
@@ -180,7 +189,7 @@ impl ArrowBatch {
         }
 
         let changes = std::mem::take(&mut self.changes);
-        let changed = GrowableBatch::flush_changes(self, changes)?;
+        let changed = self.flush_column_changes(changes)?;
 
         let mut persisted = self.segment.read_persisted_metaversion();
         let before = persisted;
@@ -194,6 +203,8 @@ impl ArrowBatch {
         //       that automatically means it was mapped again in this
         //       process.
         self.segment.persist_metaversion(persisted);
+
+        self.maybe_reload()?;
 
         tracing::debug!(
             "Flush metaversions: {before:?}, {persisted:?}, {:?}",
@@ -217,7 +228,8 @@ impl ArrowBatch {
             Ok(())
         } else {
             Err(Error::from(format!(
-                "Tried to queue changes older than or equal to already written data: {:?}, {:?}",
+                "Tried to queue changes older than or equal to already written data: loaded: \
+                 `{:?}`, persisted version: `{:?}`",
                 self.loaded_metaversion(),
                 self.segment.read_persisted_metaversion(),
             )))
@@ -344,26 +356,26 @@ impl ArrowBatch {
         }
         Ok(())
     }
-}
 
-impl GrowableBatch<Box<dyn Array>, ColumnChange> for ArrowBatch {
-    fn static_meta(&self) -> &meta::StaticMetadata {
-        &self.static_meta
-    }
-
-    fn dynamic_meta(&self) -> &meta::DynamicMetadata {
-        &self.dynamic_meta
-    }
-
-    fn dynamic_meta_mut(&mut self) -> &mut meta::DynamicMetadata {
+    pub fn dynamic_meta_mut(&mut self) -> &mut meta::DynamicMetadata {
         &mut self.dynamic_meta
     }
 
-    fn segment(&self) -> &Segment {
-        &self.segment
-    }
-
-    fn segment_mut(&mut self) -> &mut Segment {
-        &mut self.segment
+    /// Checks that the static metadata of this batch matches that of the
+    /// [`Schema`].
+    pub fn check_static_meta(
+        &self,
+        #[cfg(debug_assertions)] schema: &Schema,
+        #[cfg(not(debug_assertions))] _: &Schema,
+    ) {
+        #[cfg(debug_assertions)]
+        {
+            use crate::arrow::meta::StaticMetadata;
+            pretty_assertions::assert_eq!(self.record_batch.schema().as_ref(), schema);
+            pretty_assertions::assert_eq!(
+                self.static_meta(),
+                &StaticMetadata::from_schema(std::sync::Arc::new(schema.clone()))
+            );
+        }
     }
 }

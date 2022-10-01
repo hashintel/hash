@@ -1,4 +1,5 @@
 from copy import deepcopy
+import json
 
 
 class AgentContext:
@@ -72,7 +73,7 @@ class SimContext:
         self.getters = getters
         self.__step = 0
         self.__experiment_ctx = experiment_ctx
-        self.__globals = sim_globals
+        self.__globals = json.loads(sim_globals)
         self.__ctx_batch = None
         self.state_snapshot = Snapshot(None, None)
 
@@ -115,7 +116,7 @@ class SimContext:
 class SimInitContext:
     def __init__(self, experiment_ctx, sim_globals, agent_schema):
         self.__experiment_ctx = experiment_ctx
-        self.__globals = sim_globals  # TODO: Freeze somehow
+        self.__globals = json.loads(sim_globals)  # TODO: Freeze somehow
         self.agent_schema = agent_schema
 
     def globals(self):

@@ -8,6 +8,7 @@
 
 pub mod comms;
 
+mod common_to_runners;
 mod javascript;
 mod python;
 mod rust;

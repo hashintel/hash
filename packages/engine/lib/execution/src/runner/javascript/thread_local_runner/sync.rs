@@ -4,8 +4,8 @@ use crate::{
     runner::{
         javascript::{
             conversion::{
-                batch_to_js, batches_from_shared_store, current_step_to_js,
-                new_js_array_from_usizes, sim_id_to_js, state_to_js,
+                batch_to_js, current_step_to_js, new_js_array_from_usizes, sim_id_to_js,
+                state_to_js,
             },
             error::JavaScriptResult,
             utils::call_js_function,
@@ -85,7 +85,7 @@ impl<'s> ThreadLocalRunner<'s> {
         shared_store: &TaskSharedStore,
     ) -> JavaScriptResult<()> {
         // Sync JS.
-        let (agent_batches, msg_batches, group_indices) = batches_from_shared_store(shared_store)?;
+        let (agent_batches, msg_batches, group_indices) = shared_store.batches_iter();
         // TODO: Pass `agent_pool` and `msg_pool` by reference
         let (agent_batches, msg_batches) = state_to_js(scope, agent_batches, msg_batches)?;
 

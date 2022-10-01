@@ -55,6 +55,33 @@ impl fmt::Debug for MessageBatch {
 }
 
 impl MessageBatch {
+    pub fn from_segment(segment: Segment, schema: &MessageSchema) -> Result<Self> {
+        let buffers = segment.get_batch_buffers()?;
+
+        let batch_message = match MessageRef::read_as_root(buffers.meta())?.header()? {
+            Some(MessageHeaderRef::RecordBatch(r)) => r,
+            _ => panic!("Unable to read IPC message as record batch"),
+        };
+
+        let data_length = buffers.data().len();
+        let dynamic_meta = DynamicMetadata::from_record_batch(&batch_message, data_length)?;
+
+        let record_batch = ipc::read_record_batch(&segment, Arc::clone(&schema.arrow))?;
+
+        let persisted = segment.try_read_persisted_metaversion()?;
+        Ok(Self {
+            batch: ArrowBatch::new(
+                segment,
+                record_batch,
+                dynamic_meta,
+                Arc::clone(&schema.static_meta),
+                Vec::with_capacity(3),
+                persisted,
+            ),
+            arrow_schema: Arc::clone(&schema.arrow),
+        })
+    }
+
     /// Clears the message batch and resizes it as necessary.
     ///
     /// Uses the passed in `agent_batch` for the `AgentId`s and the batch size. `agent_batch` must
@@ -277,32 +304,5 @@ impl MessageBatch {
             true,
         )?;
         Self::from_segment(segment, msg_schema)
-    }
-
-    pub fn from_segment(segment: Segment, schema: &MessageSchema) -> Result<Self> {
-        let buffers = segment.get_batch_buffers()?;
-
-        let batch_message = match MessageRef::read_as_root(buffers.meta())?.header()? {
-            Some(MessageHeaderRef::RecordBatch(r)) => r,
-            _ => panic!("Unable to read IPC message as record batch"),
-        };
-
-        let data_length = buffers.data().len();
-        let dynamic_meta = DynamicMetadata::from_record_batch(&batch_message, data_length)?;
-
-        let record_batch = ipc::read_record_batch(&segment, Arc::clone(&schema.arrow))?;
-
-        let persisted = segment.try_read_persisted_metaversion()?;
-        Ok(Self {
-            batch: ArrowBatch::new(
-                segment,
-                record_batch,
-                dynamic_meta,
-                Arc::clone(&schema.static_meta),
-                Vec::with_capacity(3),
-                persisted,
-            ),
-            arrow_schema: Arc::clone(&schema.arrow),
-        })
     }
 }

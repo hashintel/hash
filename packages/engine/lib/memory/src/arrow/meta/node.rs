@@ -26,7 +26,7 @@ impl Node {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NodeMapping(pub Vec<NodeMapping>);
 
 impl NodeMapping {
