@@ -5,7 +5,6 @@
 
 HELP="
  Usage: $0 <python run command>
-
    <python run command> should be the executable command for a version of Python 3.x >= 3.7
    e.g.:
      python3
@@ -33,7 +32,7 @@ if [ ! -f "${VENV_ACTIVATE_PATH}" ]; then
 
   PYTHON=$1
 
-  echo "Virtual environment didn't exist at: ${VENV_ACTIVATE_PATH}"
+  echo "A virtual environment does not yet exist at `${VENV_ACTIVATE_PATH}`"
   echo "Using $($PYTHON --version) to create a new one"
   (cd "${SCRIPT_DIR}" && ${PYTHON} -m venv runner_venv)
 fi
@@ -54,24 +53,15 @@ if uname -s | grep -q Darwin && uname -p | grep -q arm ; then
     not yet installed Homebrew, you can do so from https://brew.sh/)"
   fi
   # fixes an assertion that would otherwise happen (due to someone changing a
-  # version API to return an integer rather than a string)
+  # version API to return an integer rather than a string)
   export SYSTEM_VERSION_COMPAT=1
   export CC=clang
   export CXX=clang++
   export PKG_CONFIG_PATH="/opt/homebrew/opt/openblas/lib/pkgconfig"
   python -m pip install wheel
-  python -m pip install -r "${SCRIPT_DIR}/m1-requirements.txt"
-  git clone https://github.com/hashintel/pynng
-  cd pynng
-  python -m pip install .
-  cd ..
-  rm -rf pynng
+  python -m pip install -r "${SCRIPT_DIR}/requirements.txt"
 else
   python -m pip install -r "${SCRIPT_DIR}/requirements.txt"
 fi
 
-echo "Running setup.py"
-# Also compile Cython. Can be done either after
-# or before compiling Rust.
-python "${SCRIPT_DIR}/setup.py" build_ext --inplace "${SCRIPT_DIR}"
 exit

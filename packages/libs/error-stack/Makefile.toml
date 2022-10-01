@@ -1,8 +1,8 @@
 extend = { path = "../../../.github/scripts/rust/Makefile.toml" }
 
 [env]
-CARGO_CLIPPY_HACK_FLAGS = "--workspace --optional-deps --feature-powerset --exclude-features default,hooks,futures"
-CARGO_TEST_HACK_FLAGS = "--workspace --optional-deps --feature-powerset --exclude-features default,hooks,futures"
+CARGO_CLIPPY_HACK_FLAGS = "--workspace --optional-deps --feature-powerset --exclude-features default"
+CARGO_TEST_HACK_FLAGS = "--workspace --optional-deps --feature-powerset --exclude-features default"
 CARGO_INSTA_TEST_FLAGS = "--no-fail-fast"
 CARGO_RUSTDOC_HACK_FLAGS = ""
 CARGO_DOC_HACK_FLAGS = ""

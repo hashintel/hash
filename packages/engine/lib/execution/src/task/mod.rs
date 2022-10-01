@@ -52,11 +52,11 @@ pub use self::{
     active::ActiveTask,
     cancel::CancelTask,
     message::{TargetedTaskMessage, TaskMessage, TaskResultOrCancelled},
-    shared_store::{SharedContext, SharedState, TaskSharedStore},
+    shared_store::{PartialSharedState, SharedContext, SharedState, TaskSharedStore},
 };
 pub(crate) use self::{
     distribution::{StateBatchDistribution, TaskDistributionConfig},
-    shared_store::{PartialSharedState, TaskSharedStoreBuilder},
+    shared_store::TaskSharedStoreBuilder,
 };
 use crate::Result;
 

@@ -9,7 +9,8 @@ const pageNameFallback = "Untitled";
 const listOfPagesSelector = '[data-testid="pages-tree"]';
 const pageTitleInputSelector = '[placeholder="Untitled"]';
 const createPageButtonSelector = '[data-testid="create-page-btn"]';
-
+const placeholderSelector =
+  "text=Type / to browse blocks, or @ to browse entities";
 const modifierKey = process.platform === "darwin" ? "Meta" : "Control";
 
 test.beforeEach(async () => {
@@ -45,7 +46,7 @@ test("user can create page", async ({ page }) => {
   await expect(listOfPagesLocator).toContainText(pageNameFallback);
 
   // Type in a paragraph block
-  await blockRegionLocator.locator("p div").click();
+  await expect(page.locator(placeholderSelector)).toBeVisible();
   await page.keyboard.type("My test paragraph with ");
   await page.keyboard.press(`${modifierKey}+b`);
   await page.keyboard.type("bold");
