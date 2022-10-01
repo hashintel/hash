@@ -1,10 +1,18 @@
+use std::collections::HashMap;
+
+use flatbuffers_gen::runner_outbound_msg_generated::root_as_runner_outbound_msg;
 use serde::{Deserialize, Serialize};
 use tracing::Span;
 
 use crate::{
     package::simulation::SimulationId,
-    runner::{self, comms::TargetedRunnerTaskMsg, Language},
+    runner::{
+        self,
+        comms::{SentTask, TargetedRunnerTaskMsg},
+        Language,
+    },
     task::TaskId,
+    Error, Result,
 };
 
 #[derive(Debug, Default, Clone)]
@@ -130,6 +138,140 @@ pub enum OutboundFromRunnerMsgPayload {
     SyncCompletion,
 }
 
+impl OutboundFromRunnerMsgPayload {
+    pub(crate) fn try_from_fbs(
+        parsed_msg: flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsg<'_>,
+        sent_tasks: &mut HashMap<TaskId, SentTask>,
+    ) -> Result<Self> {
+        Ok(match parsed_msg.payload_type() {
+            flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::NONE => {
+                return Err(Error::from("Message from runner had no payload"));
+            }
+            flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::TaskMsg => {
+                let payload = parsed_msg.payload_as_task_msg().ok_or_else(|| {
+                    Error::from(
+                        "Message from runner should have had a TaskMsg payload but it was missing",
+                    )
+                })?;
+                Self::TaskMsg(TargetedRunnerTaskMsg::try_from_fbs(payload, sent_tasks)?)
+            }
+            flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::TaskCancelled => {
+                let payload = parsed_msg.payload_as_task_cancelled().ok_or_else(|| {
+                    Error::from(
+                        "Message from runner should have had a TaskCancelled payload but it was \
+                         missing",
+                    )
+                })?;
+
+                let task_id = payload.task_id().ok_or_else(|| {
+                    Error::from("Message from runner should have had a task_id but it was missing")
+                })?;
+
+                Self::TaskCancelled(TaskId::from_slice(&task_id.0)?)
+            }
+            flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::RunnerError => {
+                let payload = parsed_msg.payload_as_runner_error().ok_or_else(|| {
+                    Error::from(
+                        "Message from runner should have had a RunnerError payload but it was \
+                         missing",
+                    )
+                })?;
+
+                Self::RunnerError(payload.into())
+            }
+            flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::RunnerErrors => {
+                let payload = parsed_msg.payload_as_runner_errors().ok_or_else(|| {
+                    Error::from(
+                        "Message from runner should have had a RunnerErrors payload but it was \
+                         missing",
+                    )
+                })?;
+                let runner_errors = payload
+                    .inner()
+                    .iter()
+                    .map(|runner_error| runner_error.into())
+                    .collect();
+                Self::RunnerErrors(runner_errors)
+            }
+            flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::RunnerWarning => {
+                let payload = parsed_msg.payload_as_runner_warning().ok_or_else(|| {
+                    Error::from(
+                        "Message from runner should have had a RunnerWarning payload but it was \
+                         missing",
+                    )
+                })?;
+
+                Self::RunnerWarning(payload.into())
+            }
+            flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::RunnerWarnings => {
+                let payload = parsed_msg.payload_as_runner_warnings().ok_or_else(|| {
+                    Error::from(
+                        "Message from runner should have had a RunnerWarnings payload but it was \
+                         missing",
+                    )
+                })?;
+
+                let runner_warnings = payload
+                    .inner()
+                    .iter()
+                    .map(|runner_warning| runner_warning.into())
+                    .collect();
+                Self::RunnerWarnings(runner_warnings)
+            }
+            flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::PackageError => {
+                let payload = parsed_msg.payload_as_package_error().ok_or_else(|| {
+                    Error::from(
+                        "Message from runner should have had a PackageError payload but it was \
+                         missing",
+                    )
+                })?;
+
+                Self::PackageError(payload.into())
+            }
+            flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::UserErrors => {
+                let payload = parsed_msg.payload_as_user_errors().ok_or_else(|| {
+                    Error::from(
+                        "Message from runner should have had a UserErrors payload but it was \
+                         missing",
+                    )
+                })?;
+
+                let user_errors = payload
+                    .inner()
+                    .iter()
+                    .map(|user_error| user_error.into())
+                    .collect();
+                Self::UserErrors(user_errors)
+            }
+            flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::UserWarnings => {
+                let payload = parsed_msg.payload_as_user_warnings().ok_or_else(|| {
+                    Error::from(
+                        "Message from runner should have had a UserWarnings payload but it was \
+                         missing",
+                    )
+                })?;
+
+                let user_warnings = payload
+                    .inner()
+                    .iter()
+                    .map(|user_warning| user_warning.into())
+                    .collect();
+                Self::UserWarnings(user_warnings)
+            }
+            flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::SyncCompletion => {
+                let _payload = parsed_msg.payload_as_sync_completion().ok_or_else(|| {
+                    Error::from(
+                        "Message from runner should have had a SyncCompletion payload but it \
+                        was missing",
+                    )
+                })?;
+                Self::SyncCompletion
+            }
+            _ => return Err(Error::from("Invalid outbound flatbuffers message payload")),
+        })
+    }
+}
+
 #[derive(Debug)]
 pub struct OutboundFromRunnerMsg {
     // TODO: UNUSED: Needs triage
@@ -138,4 +280,27 @@ pub struct OutboundFromRunnerMsg {
     pub sim_id: SimulationId,
     pub payload: OutboundFromRunnerMsgPayload,
     // shared state
+}
+
+impl OutboundFromRunnerMsg {
+    pub(crate) fn try_from_nng(
+        msg: nng::Message,
+        source: Language,
+        sent_tasks: &mut HashMap<TaskId, SentTask>,
+    ) -> Result<Self> {
+        let msg = msg.as_slice();
+        let msg = root_as_runner_outbound_msg(msg);
+        let msg = msg.map_err(|err| {
+            Error::from(format!(
+                "Flatbuffers failed to parse message bytes as a RunnerOutboundMsg: {err}"
+            ))
+        })?;
+        let payload = OutboundFromRunnerMsgPayload::try_from_fbs(msg, sent_tasks)?;
+        Ok(Self {
+            span: Span::current(),
+            source,
+            sim_id: SimulationId::new(msg.sim_sid()),
+            payload,
+        })
+    }
 }

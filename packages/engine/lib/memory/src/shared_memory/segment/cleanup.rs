@@ -3,6 +3,7 @@ use std::{
     sync::{LazyLock, Mutex},
 };
 
+use glob::GlobError;
 use uuid::Uuid;
 
 /// We use this to keep a list of all the shared-memory segements which are
@@ -10,7 +11,7 @@ use uuid::Uuid;
 /// leftover shared memory segments (in release builds; we error in debug builds).
 pub static IN_USE_SHM_SEGMENTS: LazyLock<Mutex<HashSet<String>>> = LazyLock::new(Mutex::default);
 
-use crate::{shared_memory::MemoryId, Result};
+use crate::{shared_memory::MemoryId, Error, Result};
 
 /// Clean up generated shared memory segments associated with a given `MemoryId`.
 ///
@@ -77,12 +78,7 @@ pub fn cleanup_by_base_id(id: Uuid) -> Result<()> {
 /// On Linux we can obtain a list of all the shared memory segments in use, so we can perform some
 /// additional cleanup (this function is mostly useful for testing the implementation of the cleanup
 /// code which uses [`static@IN_USE_SHM_SEGMENTS`]).
-#[cfg(debug_assertions)]
 fn check_all_deallocated_linux(id: Uuid) -> Result<()> {
-    use glob::GlobError;
-
-    use crate::Error;
-
     if cfg!(target_os = "linux") {
         let shm_files = glob::glob(&format!("/dev/shm/{}_*", MemoryId::prefix(id)))
             .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
@@ -93,6 +89,7 @@ fn check_all_deallocated_linux(id: Uuid) -> Result<()> {
             if let Err(err) = path
                 .map_err(GlobError::into_error)
                 .map(|path| {
+                    #[cfg(debug_assertions)]
                     not_deallocated.push(path.display().to_string());
                     path
                 })
@@ -101,7 +98,7 @@ fn check_all_deallocated_linux(id: Uuid) -> Result<()> {
                 tracing::warn!("Could not remove shared memory file: {err}");
             }
 
-            assert!(
+            debug_assert!(
                 not_deallocated.is_empty(),
                 "the following shared memory segments were not deallocated at the end of the \
                  experiment: {not_deallocated:?}"

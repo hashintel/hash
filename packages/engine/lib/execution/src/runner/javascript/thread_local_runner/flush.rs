@@ -16,59 +16,55 @@ use crate::{
     task::TaskSharedStore,
 };
 impl<'s> ThreadLocalRunner<'s> {
-    /// "Flushes" the changes which the JavaScript code made. This involves
-    /// collecting a list of all the changes made, which we then use to modify
-    /// the underlying Arrow arrays.
-    ///
-    /// See also the [`ArrowBatch::flush_changes`] (and the items in
-    /// [`memory::arrow`] more broadly) for more details on the flushing code.
-    pub(in crate::runner::javascript) fn flush(
+    fn flush_batch(
         &mut self,
         scope: &mut v8::HandleScope<'s>,
-        sim_run_id: SimulationId,
-        shared_store: &mut TaskSharedStore,
-        return_val: Object<'s>,
+        changes: Array<'s>,
+        batch: &mut ArrowBatch,
+        schema: &Schema,
     ) -> Result<()> {
-        let (proxy, group_indices) = match shared_store.get_write_proxies() {
-            Ok(t) => t,
-            Err(_) => return Ok(()),
-        };
+        for change_idx in 0..changes.length() {
+            let change = changes.get_index(scope, change_idx as u32).ok_or_else(|| {
+                Error::V8(format!("Could not access index {change_idx} on changes"))
+            })?;
+            let change = change.to_object(scope).ok_or_else(|| {
+                Error::V8("Could not convert change from Value to Object".to_string())
+            })?;
 
-        let state = self
-            .sims_state
-            .get(&sim_run_id)
-            .ok_or(Error::MissingSimulationRun(sim_run_id))?;
-        // Assuming cloning an Arc once is faster than looking up `state` in
-        // the `sims_state` HashMap in every `flush_group` call.
-        let agent_schema = state.agent_schema.clone();
-        let msg_schema = state.msg_schema.clone();
+            let i_field = new_js_string(scope, "i_field");
 
-        let changes = new_js_string(scope, "changes");
-
-        let changes = return_val
-            .get(scope, changes.into())
-            .ok_or_else(|| Error::V8("Could not get changes property on return_val".to_string()))?;
-
-        if group_indices.len() == 1 {
-            self.flush_group(scope, &agent_schema, &msg_schema, proxy, 0, changes)?;
-        } else {
-            let changes: Array<'s> = changes.try_into().unwrap();
-            for i_proxy in 0..group_indices.len() {
-                // In principle, `i_proxy` and `group_indices[i_proxy]` can differ.
-                let group_changes = changes.get_index(scope, i_proxy as u32).ok_or_else(|| {
-                    Error::V8(format!("Could not access index {i_proxy} on changes"))
+            let i_field: v8::Local<'s, v8::Number> = change
+                .get(scope, i_field.into())
+                .ok_or_else(|| Error::V8("Could not get i_field property on change".to_string()))?
+                .try_into()
+                .map_err(|err| {
+                    Error::V8(format!(
+                        "Could not convert i_field from Value to Number: {err}"
+                    ))
                 })?;
 
-                self.flush_group(
-                    scope,
-                    &agent_schema,
-                    &msg_schema,
-                    proxy,
-                    i_proxy,
-                    group_changes,
-                )?;
-            }
+            let i_field = i_field.value() as usize;
+            let field = &schema.fields[i_field];
+
+            let data = new_js_string(scope, "data");
+
+            let data = change
+                .get(scope, data.into())
+                .ok_or_else(|| Error::V8("Could not get data property on change".to_string()))?;
+            let data = self.array_data_from_js(scope, data, field.data_type(), None)?;
+
+            batch.queue_change(ColumnChange {
+                data,
+                index: i_field,
+            })?;
         }
+
+        // TODO: `flush_changes` automatically reloads memory and record batch
+        //       and respectively increments memory and batch versions if
+        //       necessary, but JS doesn't need the record batch in the native
+        //       Rust format. Could instead reload only memory and leave the
+        //       batch version unchanged.
+        batch.flush_changes()?;
 
         Ok(())
     }
@@ -132,57 +128,57 @@ impl<'s> ThreadLocalRunner<'s> {
         Ok(())
     }
 
-    fn flush_batch(
+    /// "Flushes" the changes which the JavaScript code made. This involves collecting a list of all
+    /// the changes, which we then use to modify the underlying Arrow arrays.
+    ///
+    /// See also the [`memory::arrow::flush`] module for more information.
+    pub(in crate::runner::javascript) fn flush(
         &mut self,
         scope: &mut v8::HandleScope<'s>,
-        changes: Array<'s>,
-        batch: &mut ArrowBatch,
-        schema: &Schema,
+        sim_run_id: SimulationId,
+        shared_store: &mut TaskSharedStore,
+        return_val: Object<'s>,
     ) -> Result<()> {
-        batch.check_static_meta(schema);
+        let (proxy, group_indices) = match shared_store.get_write_proxies() {
+            Ok(t) => t,
+            Err(_) => return Ok(()),
+        };
 
-        for change_idx in 0..changes.length() {
-            let change = changes.get_index(scope, change_idx as u32).ok_or_else(|| {
-                Error::V8(format!("Could not access index {change_idx} on changes"))
-            })?;
-            let change = change.to_object(scope).ok_or_else(|| {
-                Error::V8("Could not convert change from Value to Object".to_string())
-            })?;
+        let state = self
+            .sims_state
+            .get(&sim_run_id)
+            .ok_or(Error::MissingSimulationRun(sim_run_id))?;
+        // Assuming cloning an Arc once is faster than looking up `state` in
+        // the `sims_state` HashMap in every `flush_group` call.
+        let agent_schema = state.agent_schema.clone();
+        let msg_schema = state.msg_schema.clone();
 
-            let i_field = new_js_string(scope, "i_field");
+        let changes = new_js_string(scope, "changes");
 
-            let i_field: v8::Local<'s, v8::Number> = change
-                .get(scope, i_field.into())
-                .ok_or_else(|| Error::V8("Could not get i_field property on change".to_string()))?
-                .try_into()
-                .map_err(|err| {
-                    Error::V8(format!(
-                        "Could not convert i_field from Value to Number: {err}"
-                    ))
+        let changes = return_val
+            .get(scope, changes.into())
+            .ok_or_else(|| Error::V8("Could not get changes property on return_val".to_string()))?;
+
+        if group_indices.len() == 1 {
+            self.flush_group(scope, &agent_schema, &msg_schema, proxy, 0, changes)?;
+        } else {
+            let changes: Array<'s> = changes.try_into().unwrap();
+            for i_proxy in 0..group_indices.len() {
+                // In principle, `i_proxy` and `group_indices[i_proxy]` can differ.
+                let group_changes = changes.get_index(scope, i_proxy as u32).ok_or_else(|| {
+                    Error::V8(format!("Could not access index {i_proxy} on changes"))
                 })?;
 
-            let i_field = i_field.value() as usize;
-            let field = &schema.fields[i_field];
-
-            let data = new_js_string(scope, "data");
-
-            let data = change
-                .get(scope, data.into())
-                .ok_or_else(|| Error::V8("Could not get data property on change".to_string()))?;
-            let data = self.array_data_from_js(scope, data, field.data_type(), None)?;
-
-            batch.queue_change(ColumnChange {
-                data,
-                index: i_field,
-            })?;
+                self.flush_group(
+                    scope,
+                    &agent_schema,
+                    &msg_schema,
+                    proxy,
+                    i_proxy,
+                    group_changes,
+                )?;
+            }
         }
-
-        // TODO: `flush_changes` automatically reloads memory (no it doesn't) and record batch
-        //       and respectively increments memory and batch versions if
-        //       necessary, but JS doesn't need the record batch in the native
-        //       Rust format. Could instead reload only memory and leave the
-        //       batch version unchanged.
-        batch.flush_changes()?;
 
         Ok(())
     }

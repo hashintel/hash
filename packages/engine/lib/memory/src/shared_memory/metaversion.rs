@@ -157,11 +157,6 @@ use crate::{
     shared_memory::BufferChange,
 };
 
-/// A [`Metaversion`] is a concurrency control system we use to ensure that
-/// the data in the in-memory [`crate::arrow::RecordBatch`] remains in sync
-/// with that in the shared-memory segment owned by
-/// [`crate::arrow::ArrowBatch`].
-///
 /// Simple way for every component (language runners + main loop) using the datastore to track
 /// whether it has to reload memory or reload the record batch.
 #[must_use]
