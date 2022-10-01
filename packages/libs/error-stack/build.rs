@@ -17,10 +17,4 @@ fn main() {
     if trimmed_rustc_version >= Version::new(1, 65, 0) {
         println!("cargo:rustc-cfg=rust_1_65");
     }
-
-    #[cfg(feature = "hooks")]
-    println!(
-        "cargo:warning=The `hooks` feature for `error-stack` is deprecated as it's not required \
-         anymore"
-    )
 }

@@ -87,7 +87,7 @@ pub mod __private {
 ///
 /// # fn wrapper() -> error_stack::Result<(), impl core::fmt::Debug> {
 /// match fs::read_to_string("/path/to/file") {
-///     Ok(content) => println!("File contents: {content}"),
+///     Ok(content) => println!("file contents: {content}"),
 ///     Err(err) => return Err(report!(err)),
 /// }
 /// # Ok(()) }
@@ -153,7 +153,7 @@ macro_rules! report {
 /// use error_stack::bail;
 /// # fn wrapper() -> error_stack::Result<(), impl core::fmt::Debug> {
 /// match fs::read_to_string("/path/to/file") {
-///     Ok(content) => println!("File contents: {content}"),
+///     Ok(content) => println!("file contents: {content}"),
 ///     Err(err) => bail!(err),
 /// }
 /// # Ok(()) }

@@ -1,5 +1,5 @@
 import { Box, SxProps, Theme, Typography } from "@mui/material";
-import { ReactElement, useState } from "react";
+import { ReactElement, useEffect, useRef, useState } from "react";
 import { useKey } from "rooks";
 import { tw } from "twind";
 import { SpinnerIcon } from "../../../shared/icons";
@@ -32,6 +32,13 @@ export const Suggester = <T,>({
   if (selectedIndex >= options.length) {
     setSelectedIndex(options.length - 1);
   }
+
+  // scroll the selected option into view
+  const selectedRef = useRef<HTMLLIElement>(null);
+  useEffect(
+    () => selectedRef.current?.scrollIntoView({ block: "nearest" }),
+    [selectedIndex],
+  );
 
   // enable cyclic arrow-key navigation
   useKey(["ArrowUp", "ArrowDown"], (event) => {
@@ -89,6 +96,7 @@ export const Suggester = <T,>({
         {options.map((option, index) => (
           <Box
             component="li"
+            ref={index === selectedIndex ? selectedRef : undefined}
             key={itemKey(option)}
             sx={({ palette }) => ({
               backgroundColor:

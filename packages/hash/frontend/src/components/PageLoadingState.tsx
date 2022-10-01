@@ -1,10 +1,10 @@
 import { Box, Skeleton } from "@mui/material";
 import { ProsemirrorLoadingState } from "../blocks/page/LoadingView";
+import { PAGE_CONTENT_WIDTH } from "../blocks/page/PageBlock";
 import {
   PAGE_TITLE_FONT_SIZE,
   PAGE_TITLE_LINE_HEIGHT,
 } from "../blocks/page/PageTitle/PageTitle";
-import { PAGE_CONTENT_WIDTH } from "../pages/[account-slug]/[page-slug].page";
 import { pageIconVariantSizes } from "./PageIcon";
 
 export const PageLoadingState = () => {

@@ -25,6 +25,11 @@ import {
   setParentPage,
   pageLinkedEntities,
 } from "./pages";
+import {
+  createComment,
+  commentLinkedEntities,
+  textUpdatedAtFieldResolver,
+} from "./comments";
 import { accounts } from "./account/accounts";
 import { createUser } from "./user/createUser";
 import { createUserWithOrgEmailInvitation } from "./user/createUserWithOrgEmailInvitation";
@@ -79,6 +84,7 @@ import {
 } from "./taskExecutor";
 import { getLink } from "./link/getLink";
 import { getLinkedAggregation } from "./linkedAggregation/getLinkedAggregation";
+import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 
 export const resolvers = {
   Query: {
@@ -90,6 +96,7 @@ export const resolvers = {
       ) /** @todo: make accessible to admins only (or deprecate) */,
     aggregateEntity: loggedInAndSignedUp(aggregateEntity),
     blocks: loggedInAndSignedUp(blocks),
+    getBlockProtocolBlocks,
     getAccountEntityTypes: loggedInAndSignedUp(getAccountEntityTypes),
     entity: loggedInAndSignedUp(entity),
     entities: loggedInAndSignedUp(canAccessAccount(entities)),
@@ -123,6 +130,7 @@ export const resolvers = {
     createEntityType: loggedInAndSignedUp(createEntityType),
     createFileFromLink: loggedInAndSignedUp(createFileFromLink),
     createPage: loggedInAndSignedUp(createPage),
+    createComment: loggedInAndSignedUp(createComment),
     createOrg: loggedInAndSignedUp(createOrg),
     createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),
     transferEntity: loggedInAndSignedUp(transferEntity),
@@ -162,6 +170,14 @@ export const resolvers = {
     properties:
       pageProperties /** @todo: remove this resolver as it is deprecated */,
     ...pageLinkedEntities,
+  },
+
+  Comment: {
+    properties: {
+      ...entityFields.properties,
+    },
+    textUpdatedAt: textUpdatedAtFieldResolver,
+    ...commentLinkedEntities,
   },
 
   User: {

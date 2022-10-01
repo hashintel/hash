@@ -1,4 +1,4 @@
-import { Box, Tooltip, Typography } from "@mui/material";
+import { Box, PopoverPosition, Tooltip, Typography } from "@mui/material";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
 import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
@@ -62,6 +62,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
     ref,
   ) => {
     const [hovered, setHovered] = useState(false);
+    const [anchorPosition, setAnchorPosition] = useState<PopoverPosition>();
 
     const { accountId } = useRouteAccountInfo();
 
@@ -83,6 +84,18 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
     return collapsed && isSorting ? null : (
       <Box
         ref={wrapperRef}
+        onContextMenu={(event) => {
+          event.preventDefault();
+          if (popupState.isOpen) {
+            setAnchorPosition(undefined);
+            return popupState.close();
+          }
+          setAnchorPosition({
+            left: event.clientX + 2,
+            top: event.clientY - 6,
+          });
+          popupState.open(event);
+        }}
         onMouseEnter={() => setHoveredState(true)}
         onMouseLeave={() => setHoveredState(false)}
       >
@@ -144,22 +157,35 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
             popoverProps={{ onClick: stopEvent }}
           />
 
-          <Typography
-            variant="smallTextLabels"
-            sx={({ palette }) => ({
-              display: "block",
-              fontWeight: 400,
-              marginLeft: 0.75,
-              py: 1,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              flex: 1,
-              color: palette.gray[selected || hovered ? 90 : 70],
-            })}
+          <Tooltip
+            title={title || PAGE_TITLE_PLACEHOLDER}
+            placement="right"
+            disableInteractive
+            enterDelay={500}
+            enterNextDelay={300}
+            componentsProps={{
+              tooltip: {
+                sx: { ml: "32px !important" },
+              },
+            }}
           >
-            {title || PAGE_TITLE_PLACEHOLDER}
-          </Typography>
+            <Typography
+              variant="smallTextLabels"
+              sx={({ palette }) => ({
+                display: "block",
+                fontWeight: 400,
+                marginLeft: 0.75,
+                py: 1,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                flex: 1,
+                color: palette.gray[selected || hovered ? 90 : 70],
+              })}
+            >
+              {title || PAGE_TITLE_PLACEHOLDER}
+            </Typography>
+          </Tooltip>
 
           <Tooltip
             title="Add subpages, delete, duplicate and more"
@@ -199,6 +225,12 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
             popupState={popupState}
             createSubPage={createSubPage}
             archivePage={archivePage}
+            /**
+             * we reset anchor position on close because,
+             * maybe next time user can open via clicking the `more` icon instead of right-clicking again
+             */
+            onClose={() => setAnchorPosition(undefined)}
+            anchorPosition={anchorPosition}
           />
         </Link>
       </Box>

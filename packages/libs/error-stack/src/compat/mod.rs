@@ -1,16 +1,13 @@
 //! Compatibility module to convert errors from other libraries into [`Report`].
 //!
+//! In order to convert these error types, use [`IntoReportCompat::into_report()`].
+//!
 //! [`Report`]: crate::Report
 
 #[cfg(feature = "anyhow")]
 mod anyhow;
 #[cfg(feature = "eyre")]
 mod eyre;
-
-#[cfg(feature = "anyhow")]
-pub use self::anyhow::AnyhowContext;
-#[cfg(feature = "eyre")]
-pub use self::eyre::EyreContext;
 
 /// Compatibility trait to convert from external libraries to [`Report`].
 ///
@@ -22,7 +19,7 @@ pub use self::eyre::EyreContext;
 /// [`Report`]: crate::Report
 /// [`IntoReport`]: crate::IntoReport
 /// [`Context`]: crate::Context
-/// [`Error`]: std::error::Error
+/// [`Error`]: core::error::Error
 pub trait IntoReportCompat: Sized {
     /// Type of the [`Ok`] value in the [`Result`]
     type Ok;

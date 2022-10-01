@@ -16,7 +16,7 @@ fn report() {
     assert_eq!(report.frames().count(), expect_count(2));
     assert_eq!(
         messages(&report),
-        expect_messages(&["Printable A", "Root error"])
+        expect_messages(&["printable A", "root error"])
     );
 
     let report = capture_error(|| Err(report!(report))).attach_printable(PrintableB(0));
@@ -27,7 +27,7 @@ fn report() {
     assert_eq!(report.frames().count(), expect_count(3));
     assert_eq!(
         messages(&report),
-        expect_messages(&["Printable B", "Printable A", "Root error"])
+        expect_messages(&["printable B", "printable A", "root error"])
     );
 }
 
@@ -41,7 +41,7 @@ fn bail() {
     assert_eq!(report.frames().count(), expect_count(2));
     assert_eq!(
         messages(&report),
-        expect_messages(&["Printable A", "Root error"])
+        expect_messages(&["printable A", "root error"])
     );
 
     let report = capture_error(|| bail!(report)).attach_printable(PrintableB(0));
@@ -52,7 +52,7 @@ fn bail() {
     assert_eq!(report.frames().count(), expect_count(3));
     assert_eq!(
         messages(&report),
-        expect_messages(&["Printable B", "Printable A", "Root error"])
+        expect_messages(&["printable B", "printable A", "root error"])
     );
 }
 
@@ -74,7 +74,7 @@ fn ensure() {
     assert_eq!(report.frames().count(), expect_count(2));
     assert_eq!(
         messages(&report),
-        expect_messages(&["Printable A", "Root error"])
+        expect_messages(&["printable A", "root error"])
     );
 
     let report = capture_error(|| {
@@ -89,6 +89,6 @@ fn ensure() {
     assert_eq!(report.frames().count(), expect_count(3));
     assert_eq!(
         messages(&report),
-        expect_messages(&["Printable B", "Printable A", "Root error"])
+        expect_messages(&["printable B", "printable A", "root error"])
     );
 }
