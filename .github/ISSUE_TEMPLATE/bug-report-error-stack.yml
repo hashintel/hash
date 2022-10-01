@@ -1,6 +1,5 @@
 name: Bug Report (error-stack)
 description: Create a report to help us improve `error-stack`
-title: "[Bug] "
 labels:
   - A-error-stack
   - C-bug

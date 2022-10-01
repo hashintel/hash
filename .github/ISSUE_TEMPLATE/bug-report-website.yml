@@ -1,6 +1,5 @@
 name: Bug Report (website)
 description: Create a report to help us improve our websites
-title: "[Bug] "
 labels:
   - C-bug
 body:

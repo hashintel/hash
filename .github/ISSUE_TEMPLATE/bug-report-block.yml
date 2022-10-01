@@ -1,6 +1,5 @@
 name: Bug Report (block)
 description: Create a report to help us improve our blocks
-title: "[Bug] "
 labels:
   - A-blocks
   - C-bug

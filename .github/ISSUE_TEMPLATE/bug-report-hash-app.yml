@@ -1,6 +1,5 @@
 name: Bug Report (HASH App)
 description: Create a report to help us improve HASH
-title: "[Bug] "
 labels:
   - A-hash
   - C-bug
