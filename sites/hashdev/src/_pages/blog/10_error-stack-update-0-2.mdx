@@ -27,7 +27,7 @@ The output in v0.2 has been completely redesigned by Bilal Mahmoud ([@indietyp](
 
 _error-stack v0.2:_
 
-```
+```text
 Error: experiment error: could not run experiment
  ├╴examples/demo.rs:51:18
  ├╴unable to set up experiments
@@ -43,7 +43,7 @@ Error: experiment error: could not run experiment
 
 _error-stack v0.1:_
 
-```
+```text
 Error: cxperiment error: could not run experiment
               at examples/demo.rs:54:18
        - unable to setup experiments
@@ -70,7 +70,7 @@ To enable granular control over the output format, hooks are now set for specifi
  let report = read("config.txt").attach(Suggestion("check if `config.txt` exists"));
 ```
 
-```
+```text
 no such file or directory
  ├╴read.rs:10:5
  ╰╴suggestion: check if `config.txt` exists
@@ -78,7 +78,7 @@ no such file or directory
 
 Report outputs now consist of two sections: a `Body` and an `Appendix`. The `Body` provides top-level information while the `Appendix` includes additional, more verbose details, like a backtrace. Hooks can be used to write to both of these sections.
 
-```
+```text
 experiment error: could not run experiment
  ├╴examples/demo.rs:67:17
  ├╴backtrace with 19 frames (3)
@@ -108,7 +108,7 @@ For a full guide to using hooks, please refer to [the `fmt` module documentation
 
 This is also shown in the output:
 
-```
+```text
 Error: experiment error: could not run experiment
  ├╴examples/demo.rs:73:18
  ├╴Unable to set up experiments
