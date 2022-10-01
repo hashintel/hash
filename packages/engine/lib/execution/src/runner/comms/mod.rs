@@ -49,8 +49,6 @@ pub struct TargetedRunnerTaskMsg {
     pub msg: RunnerTaskMessage,
 }
 
-impl TargetedRunnerTaskMsg {}
-
 #[derive(Debug)]
 /// TODO: doc
 pub struct StateInterimSync {

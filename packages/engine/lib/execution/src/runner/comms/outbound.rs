@@ -130,8 +130,6 @@ pub enum OutboundFromRunnerMsgPayload {
     SyncCompletion,
 }
 
-impl OutboundFromRunnerMsgPayload {}
-
 #[derive(Debug)]
 pub struct OutboundFromRunnerMsg {
     // TODO: UNUSED: Needs triage
