@@ -198,6 +198,8 @@ If one of the environment variables shown in the help page is passed, it will ov
 > . lib/execution/src/runner/python/runner_venv/bin/activate
 > ```
 
+[](ignore-markdown-lint-MD028)
+
 > **Warning** - Rust runners are currently not supported. Within your simulation project, you should only see `.js` files within dependencies (for example, dependencies/@hash/age/src/behaviors/age.js). Files ending in `.rs` will be ignored and the run will possibly fail in unclear ways.
 >
 > Currently, the easiest way to create a project is by using [HASH Core](https://core.hash.ai). In the future, an in-depth description of the expected project structure will be given here instead.
