@@ -148,6 +148,53 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(identifier)
     }
 
+    async fn create_entities(
+        &mut self,
+        entities: impl IntoIterator<Item = (Option<EntityId>, Entity), IntoIter: Send> + Send,
+        entity_type_id: VersionedUri,
+        owned_by_id: AccountId,
+    ) -> Result<Vec<EntityId>, InsertionError> {
+        let transaction = PostgresStore::new(
+            self.as_mut_client()
+                .transaction()
+                .await
+                .into_report()
+                .change_context(InsertionError)?,
+        );
+
+        let (entity_ids, entities): (Vec<_>, Vec<_>) = entities
+            .into_iter()
+            .map(|(id, entity)| (id.unwrap_or_else(|| EntityId::new(Uuid::new_v4())), entity))
+            .unzip();
+
+        // TODO: match on and return the relevant error
+        //   https://app.asana.com/0/1200211978612931/1202574350052904/f
+        transaction
+            .insert_entity_ids(entity_ids.iter().copied())
+            .await?;
+        let entity_type_version_id = transaction
+            .version_id_by_uri(&entity_type_id)
+            .await
+            .change_context(InsertionError)?;
+        transaction
+            .insert_entities(
+                entity_ids.iter().copied(),
+                entities,
+                entity_type_version_id,
+                owned_by_id,
+            )
+            .await?;
+
+        transaction
+            .client
+            .commit()
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+
+        Ok(entity_ids)
+    }
+
     async fn get_entity(
         &self,
         query: &KnowledgeGraphQuery,
