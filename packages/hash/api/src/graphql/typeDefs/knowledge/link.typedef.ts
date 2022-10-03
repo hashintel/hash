@@ -92,7 +92,7 @@ export const knowledgeLinkTypedef = gql`
     """
     createKnowledgeLink(link: CreateKnowledgeLinkInput!): KnowledgeLink!
     """
-    Create a link.
+    Delete a link.
     """
     deleteKnowledgeLink(link: LinkIdentifier!): Boolean!
   }
