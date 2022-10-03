@@ -138,7 +138,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
 
         store
             .create_entities(
-                repeat(None).zip(repeat(&entity).take(quantity).cloned()),
+                repeat((None, entity)).take(quantity),
                 entity_type_id,
                 account_id,
             )

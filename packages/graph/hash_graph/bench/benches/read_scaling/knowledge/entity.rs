@@ -61,7 +61,7 @@ async fn seed_db(
 
     let entity_ids = store
         .create_entities(
-            repeat(None).zip(repeat(&entity).take(total).cloned()),
+            repeat((None, entity)).take(total),
             entity_type_id,
             account_id,
         )
