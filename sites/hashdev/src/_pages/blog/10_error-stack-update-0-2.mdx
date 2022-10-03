@@ -15,7 +15,9 @@ Since our last release we’ve been fixing user-reported bugs, reviewing open-so
 [simulation engine]: https://hash.ai/platform/engine
 [hash]: https://hash.ai
 
-## Changes from `std` in v0.2
+## What's new?
+
+### Changes from `std` in v0.2
 
 - The `Provider` API has landed and replaces our vendored-in implementation.
 - `Backtrace` was stabilized with Rust 1.65(🎉): we now support `Backtrace`s on a non-nightly channel starting with 1.65-beta.
@@ -23,7 +25,7 @@ Since our last release we’ve been fixing user-reported bugs, reviewing open-so
 - All std-`Error` types now implement `Provider`. The blanket implementation on `Context` will re-use the `Error::provide` values.
 - `Error` is now available in `core::error`, for nightly channels.
 
-## A redesigned output with a hook interface for customization
+### A redesigned output with a hook interface for customization
 
 The output in v0.2 has been completely redesigned by Bilal Mahmoud ([@indietyp](https://github.com/indietyp)) — huge kudos! It’s now much easier to read compared to v0.1, with visual cues to represent the information hierarchy at a glance, and more information is provided.
 
@@ -104,7 +106,7 @@ experiment error: could not run experiment
 
 For a full guide to using hooks, please refer to [the `fmt` module documentation](https://docs.rs/error-stack/0.2.0/error_stack/fmt/index.html).
 
-## Related errors and multiple error sources
+### Related errors and multiple error sources
 
 `error-stack` v0.2 introduces support for related errors and multiple error sources, which can be invaluable when multiple errors occur at the same time, e.g. in loops or in multi-threaded applications. `Report`s are no longer a linear stream of events. You can now create a tree of different `Report`s, enabling the capture of multiple simultaneous errors without losing information.
 
@@ -135,7 +137,7 @@ Error: experiment error: could not run experiment
 
 Again, a huge thanks to Bilal Mahmoud ([@indietyp](https://github.com/indietyp)) for his work.
 
-## Improved documentation, `Termination`, `anyhow` and `eyre`
+### Improved documentation, `Termination`, `anyhow` and `eyre`
 
 We’ve made a few other improvements too:
 
@@ -148,7 +150,7 @@ We’ve made a few other improvements too:
 
   This should make it much easier to try out `error-stack` in existing codebases which utilize these libraries, as well as improving the migration process.
 
-## Breaking changes
+### Breaking changes
 
 We care a lot about breaking changes and will always try to conform to [SemVer](https://semver.org). A few principles guide our approach:
 
