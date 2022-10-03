@@ -9,6 +9,7 @@ import { orgEmailInvitationTypedef } from "./orgEmailInvitation.typedef";
 import { orgInvitationLinkTypedef } from "./orgInvitationLink.typedef";
 import { orgTypedef } from "./org.typedef";
 import { pageTypedef } from "./page.typedef";
+import { commentTypedef } from "./comment.typedef";
 import { textTypedef } from "./text.typedef";
 import { userTypedef } from "./user.typedef";
 import { embedTypeDef } from "./embed.typedef";
@@ -58,6 +59,7 @@ export const schema = [
   orgTypedef,
   orgMembershipTypedef,
   pageTypedef,
+  commentTypedef,
   pagePaginationTypedef,
   textTypedef,
   userTypedef,

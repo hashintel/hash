@@ -13,6 +13,7 @@ import Page from "./page.model";
 import Block from "./block.model";
 import Link from "./link.model";
 import Aggregation from "./aggregation.model";
+import Comment from "./comment.model";
 
 export * from "./entityType.model";
 export { EntityType };
@@ -59,3 +60,6 @@ export { Page };
 
 export * from "./block.model";
 export { Block };
+
+export * from "./comment.model";
+export { Comment };

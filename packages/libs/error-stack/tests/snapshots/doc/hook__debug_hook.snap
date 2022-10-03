@@ -1,9 +1,9 @@
 <b>invalid input parameter</b>
 <span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/hook.rs:19:5</span>
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>backtrace with [n] frames (1)
-<span style='color:#a00'>╰</span><span style='color:#a00'>╴</span>Suggestion: O no, try again
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>backtrace (1)
+<span style='color:#a00'>╰</span><span style='color:#a00'>╴</span>suggestion: oh no, try again
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Backtrace No. 1
+backtrace no. 1
   [redacted]

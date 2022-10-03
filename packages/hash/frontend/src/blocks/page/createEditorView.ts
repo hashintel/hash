@@ -3,9 +3,8 @@ import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirror
 import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 // import applyDevTools from "prosemirror-dev-tools";
-import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
-import { EditorView } from "prosemirror-view";
 import { RefObject } from "react";
 import { LoadingView } from "./LoadingView";
 import { BlockView } from "./BlockView";
@@ -16,9 +15,9 @@ import { createFormatPlugins } from "./createFormatPlugins";
 import { createPlaceholderPlugin } from "./createPlaceholderPlugin/createPlaceholderPlugin";
 import { createSuggester } from "./createSuggester/createSuggester";
 import { createFocusPageTitlePlugin } from "./focusPageTitlePlugin";
-import { MentionView } from "./MentionView/MentionView";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
+import { createTextEditorView } from "./createTextEditorView";
 
 export type BlocksMap = Record<string, HashBlock>;
 
@@ -41,7 +40,7 @@ export const createEditorView = (
 
   const plugins: Plugin<unknown, Schema>[] = [
     ...createFormatPlugins(renderPortal),
-    createSuggester(renderPortal, () => manager, accountId, renderNode),
+    createSuggester(renderPortal, accountId, renderNode, () => manager),
     createPlaceholderPlugin(renderPortal),
     errorPlugin,
     createFocusPageTitlePlugin(pageTitleRef),
@@ -51,72 +50,38 @@ export const createEditorView = (
 
   let connection: EditorConnection;
 
-  const view = new EditorView<Schema>(renderNode, {
+  const view = createTextEditorView(
     state,
-
-    /**
-     * Prosemirror doesn't know to convert hard breaks into new line characters
-     * in the plain text version of the clipboard when we copy out of the
-     * editor. In the HTML version, they get converted as their `toDOM`
-     * method instructs, but we have to use this for the plain text version.
-     *
-     * @todo find a way of not having to do this centrally
-     * @todo look into whether this is needed for mentions and for links
-     */
-    clipboardTextSerializer: (slice) => {
-      return slice.content.textBetween(
-        0,
-        slice.content.size,
-        "\n\n",
-        (node: ProsemirrorNode<Schema>) => {
-          if (node.type === view.state.schema.nodes.hardBreak) {
-            return "\n";
+    renderNode,
+    renderPortal,
+    accountId,
+    {
+      nodeViews: {
+        // Reason for adding `_decorations`:
+        // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
+        block(currentNode, currentView, getPos, _decorations) {
+          if (typeof getPos === "boolean") {
+            throw new Error("Invalid config for nodeview");
           }
-
-          return "";
+          return new BlockView(
+            currentNode,
+            currentView,
+            getPos,
+            renderPortal,
+            manager,
+            renderNode,
+          );
         },
-      );
+        // Reason for adding unused params e.g. `_decorations`:
+        // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
+        loading(currentNode, _currentView, _getPos, _decorations) {
+          return new LoadingView(currentNode, renderPortal);
+        },
+      },
+      dispatchTransaction: (tr) => connection?.dispatchTransaction(tr),
+      editable: () => !readonly,
     },
-    nodeViews: {
-      // Reason for adding `_decorations`:
-      // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
-      block(currentNode, currentView, getPos, _decorations) {
-        if (typeof getPos === "boolean") {
-          throw new Error("Invalid config for nodeview");
-        }
-        return new BlockView(
-          currentNode,
-          currentView,
-          getPos,
-          renderPortal,
-          manager,
-        );
-      },
-      // Reason for adding unused params e.g. `_decorations`:
-      // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
-      loading(currentNode, _currentView, _getPos, _decorations) {
-        return new LoadingView(currentNode, renderPortal);
-      },
-      // Reason for adding `_decorations`:
-      // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
-      mention(currentNode, currentView, getPos, _decorations) {
-        if (typeof getPos === "boolean") {
-          throw new Error("Invalid config for nodeview");
-        }
-
-        return new MentionView(
-          currentNode,
-          currentView,
-          getPos,
-          renderPortal,
-          manager,
-          accountId,
-        );
-      },
-    },
-    dispatchTransaction: (tr) => connection?.dispatchTransaction(tr),
-    editable: () => !readonly,
-  });
+  );
 
   manager = new ProsemirrorManager(
     state.schema,

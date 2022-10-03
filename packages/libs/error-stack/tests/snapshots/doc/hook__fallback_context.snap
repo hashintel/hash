@@ -1,9 +1,0 @@
-<b>Invalid user input</b>
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#555'>src/hook.rs:42:14</span>
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span>Error Code: 404
-<span style='color:#a00'>╰</span><span style='color:#a00'>╴</span>backtrace with [n] frames (1)
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Backtrace No. 1
-  [redacted]

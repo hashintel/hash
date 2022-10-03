@@ -8,14 +8,12 @@ const pageNameFallback = "Untitled";
 
 const listOfPagesSelector = '[data-testid="pages-tree"]';
 const pageTitleInputSelector = '[placeholder="Untitled"]';
-
+const createPageButtonSelector = '[data-testid="create-page-btn"]';
+const placeholderSelector =
+  "text=Type / to browse blocks, or @ to browse entities";
 const modifierKey = process.platform === "darwin" ? "Meta" : "Control";
 
-/**
- * not calling resetDb in beforeEach
- * because "user can rename page" uses the page created at "user can create page"
- */
-test.beforeAll(async () => {
+test.beforeEach(async () => {
   await resetDb();
 });
 
@@ -31,8 +29,9 @@ test("user can create page", async ({ page }) => {
   // TODO: Check URL contains own login once we have replaced uuids implemented
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+$/));
 
-  // Create the new page
-  await page.locator('[data-testid="create-page-btn"]').click();
+  // TODO: investigate why delay is required for create page button to work
+  await sleep(500);
+  await page.locator(createPageButtonSelector).click();
 
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
 
@@ -47,7 +46,7 @@ test("user can create page", async ({ page }) => {
   await expect(listOfPagesLocator).toContainText(pageNameFallback);
 
   // Type in a paragraph block
-  await blockRegionLocator.locator("p div").click();
+  await expect(page.locator(placeholderSelector)).toBeVisible();
   await page.keyboard.type("My test paragraph with ");
   await page.keyboard.press(`${modifierKey}+b`);
   await page.keyboard.type("bold");
@@ -171,7 +170,11 @@ test("user can rename page", async ({ page }) => {
   const pageName2 = `Page 2 ${pageNameSuffix}`;
 
   await loginUsingUi({ page, accountShortName: "alice" });
-  await page.click(`text=${pageNameFallback}`);
+
+  // TODO: investigate why delay is required for create page button to work
+  await sleep(500);
+  await page.locator(createPageButtonSelector).click();
+
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
 
   const listOfPagesLocator = page.locator(listOfPagesSelector);

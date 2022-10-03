@@ -4,7 +4,7 @@ default-members = ["."]
 
 [package]
 name = "error-stack"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["HASH"]
 edition = "2021"
 rust-version = "1.63.0"
@@ -20,7 +20,7 @@ categories = ["rust-patterns", "no-std"]
 tracing-error = { version = "0.2", optional = true, default_features = false }
 anyhow = { version = "1", default-features = false, optional = true }
 eyre = { version = "0.6", default-features = false, optional = true }
-owo-colors = { version = "3.4.0", default-features = false, optional = true, features = ['supports-colors'] }
+owo-colors = { version = "3", default-features = false, optional = true, features = ['supports-colors'] }
 
 [dev-dependencies]
 serde = { version = "1.0.137", features = ["derive"] }
@@ -41,20 +41,15 @@ rustc_version = "0.4"
 [features]
 default = ["std", "pretty-print"]
 
-futures = []
-hooks = ["std"]
 pretty-print = ["dep:owo-colors"]
 spantrace = ["dep:tracing-error", "std"]
 std = ["anyhow?/std"]
+eyre = ["dep:eyre", "std"]
 
 [package.metadata.docs.rs]
 all-features = true
 cargo-args = ["-Z", "unstable-options", "-Z", "rustdoc-scrape-examples=examples"]
 targets = ["x86_64-unknown-linux-gnu"]
-
-[[example]]
-name = "json_output"
-required-features = ["std"]
 
 [[example]]
 name = "demo"

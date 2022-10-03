@@ -2,18 +2,18 @@
 source: tests/test_debug.rs
 expression: "format!(\"{report:?}\")"
 ---
-Root error
+root error
 ├╴tests/common.rs:147:5
-├╴backtrace with [n] frames (1)
-├╴spantrace with 2 frames (1)
+├╴backtrace (1)
+├╴span trace with 2 frames (1)
 ├╴0
 ├╴1
 ╰╴2
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Backtrace No. 1
+backtrace no. 1
   [redacted]
 
-Span Trace No. 1
+span trace No. 1
   [redacted]

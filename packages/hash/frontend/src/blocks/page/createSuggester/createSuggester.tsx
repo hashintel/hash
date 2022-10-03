@@ -24,6 +24,8 @@ interface Trigger {
   from: number;
   /** ending prosemirror document position */
   to: number;
+  /** trigger source: 'text' for text input and 'event' for external events */
+  triggeredBy: "text" | "event";
 }
 
 /**
@@ -70,13 +72,15 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
     from,
     to,
     char: match[1] as Trigger["char"],
+    triggeredBy: "text",
   };
 };
 
 export type SuggesterAction =
   | { type: "escape" }
   | { type: "key" }
-  | { type: "suggestedBlock"; payload: { position: number | null } };
+  | { type: "suggestedBlock"; payload: { position: number | null } }
+  | { type: "toggle" };
 
 interface SuggesterState {
   /** whether or not the suggester is disabled */
@@ -120,9 +124,9 @@ const docChangedInTransaction = (tr: Transaction<Schema>) => {
  */
 export const createSuggester = (
   renderPortal: RenderPortal,
-  getManager: () => ProsemirrorManager,
   accountId: string,
   documentRoot: HTMLElement,
+  getManager?: () => ProsemirrorManager,
 ) =>
   new Plugin<SuggesterState, Schema>({
     key: suggesterPluginKey,
@@ -154,6 +158,27 @@ export const createSuggester = (
               ...state,
               suggestedBlockPosition: action.payload.position,
             };
+
+          case "toggle":
+            if (state.isOpen()) {
+              return {
+                ...state,
+                disabled: true,
+                trigger: null,
+              };
+            } else {
+              return {
+                ...state,
+                disabled: false,
+                trigger: {
+                  from: tr.selection.from,
+                  to: tr.selection.to,
+                  search: "",
+                  char: "@",
+                  triggeredBy: "event",
+                },
+              };
+            }
         }
 
         /**
@@ -179,10 +204,20 @@ export const createSuggester = (
           docChangedInTransaction(tr)
             ? null
             : tr.mapping.map(state.suggestedBlockPosition);
-        const trigger = findTrigger(nextEditorState);
+
+        let trigger = findTrigger(nextEditorState);
+        if (trigger === null && state.trigger?.triggeredBy === "event") {
+          trigger = state.trigger;
+        }
+
         const disabled = state.disabled && trigger !== null;
 
-        return { ...state, trigger, disabled, suggestedBlockPosition };
+        return {
+          ...state,
+          trigger,
+          disabled,
+          suggestedBlockPosition,
+        };
       },
     },
     props: {
@@ -217,7 +252,7 @@ export const createSuggester = (
         update(view) {
           const state = suggesterPluginKey.getState(view.state)!;
 
-          if (!state.isOpen()) return this.destroy!();
+          if (!view.hasFocus() || !state.isOpen()) return this.destroy!();
 
           const { from, to, search, char: triggerChar } = state.trigger!;
           const coords = view.coordsAtPos(from);
@@ -229,7 +264,7 @@ export const createSuggester = (
             variant: BlockVariant,
             blockConfig: HashBlockMeta,
           ) => {
-            getManager()
+            getManager?.()
               .replaceRange(blockConfig.componentId, variant, from, to)
               .then(({ tr, componentPosition }) => {
                 tr.setMeta(suggesterPluginKey, {
@@ -262,12 +297,14 @@ export const createSuggester = (
 
           switch (triggerChar) {
             case "/":
-              jsx = (
-                <BlockSuggester
-                  search={search.substring(1)}
-                  onChange={onBlockSuggesterChange}
-                />
-              );
+              if (getManager) {
+                jsx = (
+                  <BlockSuggester
+                    search={search.substring(1)}
+                    onChange={onBlockSuggesterChange}
+                  />
+                );
+              }
               break;
             case "@":
               jsx = (
@@ -284,6 +321,7 @@ export const createSuggester = (
             renderPortal(
               <Popper
                 open
+                onMouseDown={(event) => event.preventDefault()}
                 placement="bottom-start"
                 container={documentRoot}
                 modifiers={[

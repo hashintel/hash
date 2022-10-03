@@ -23,6 +23,10 @@ type PageBlockProps = {
   entityId: string;
 };
 
+export const PAGE_CONTENT_WIDTH = 696;
+export const PAGE_MIN_PADDING = 48;
+export const PAGE_HORIZONTAL_PADDING_FORMULA = `max(calc((100% - ${PAGE_CONTENT_WIDTH}px) / 2), ${PAGE_MIN_PADDING}px)`;
+
 /**
  * The naming of this as a "Block" is… interesting, considering it doesn't
  * really work like a Block. It would be cool to somehow detach the process of
@@ -104,8 +108,18 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     <UserBlocksProvider value={blocks}>
       <BlockLoadedProvider routeHash={routeHash}>
         <GlobalStyles
-          // prevents blue outline on selected nodes
-          styles={{ ".ProseMirror-selectednode": { outline: "none" } }}
+          styles={{
+            /**
+             * to handle margin-clicking, prosemirror should take full width, and give padding to it's content
+             * so it automatically handles focusing on closest node on margin-clicking
+             */
+            ".ProseMirror": {
+              padding: `0 ${PAGE_HORIZONTAL_PADDING_FORMULA} 320px`,
+              minWidth: `calc(${PAGE_CONTENT_WIDTH}px + (${PAGE_MIN_PADDING}px * 2))`,
+            },
+            // prevents blue outline on selected nodes
+            ".ProseMirror-selectednode": { outline: "none" },
+          }}
         />
         <Box id="root" ref={root} position="relative" />
         {portals}
