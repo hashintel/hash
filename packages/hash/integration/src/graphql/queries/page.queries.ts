@@ -119,9 +119,13 @@ const pageFieldsFragment = gql`
 `;
 
 export const createPage = gql`
-  mutation createPage($accountId: ID!, $properties: PageCreationData!) {
-    createPage(accountId: $accountId, properties: $properties) {
-      ...PageFields
+  mutation createPage(
+    $ownedById: ID!
+    $properties: KnowledgePageCreationData!
+  ) {
+    createKnowledgePage(ownedById: $ownedById, properties: $properties) {
+      ownedById
+      entityId
     }
   }
   ${pageFieldsFragment}
