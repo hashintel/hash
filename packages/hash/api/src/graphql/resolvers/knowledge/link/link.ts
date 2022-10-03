@@ -1,4 +1,4 @@
-import { ApolloError } from "apollo-server-errors";
+import { ApolloError, UserInputError } from "apollo-server-errors";
 import { EntityModel, LinkModel, LinkTypeModel } from "../../../../model";
 import {
   MutationCreateKnowledgeLinkArgs,
@@ -102,10 +102,7 @@ export const deleteKnowledgeLink: ResolverFn<
       "NOT_FOUND",
     );
   } else if (linkModels.length > 1) {
-    throw new ApolloError(
-      `Could not identify one single link with query.`,
-      "BAD_REQUEST",
-    );
+    throw new UserInputError(`Could not identify one single link with query.`);
   }
 
   await linkModels[0].remove(graphApi, { removedById: user.entityId });
