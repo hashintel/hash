@@ -39,7 +39,7 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
 
   let text = "";
 
-  parentContent.forEach((node) => {
+  for (const node of parentContent) {
     // replace non-text nodes with a space so that regex stops
     // matching at that point
     if (node.text) {
@@ -47,7 +47,7 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
     } else {
       text += " ";
     }
-  });
+  }
 
   // the cursor's position inside its parent
   const cursorPos = cursor.parentOffset;
