@@ -1,4 +1,3 @@
-import { ApolloError, UserInputError } from "apollo-server-errors";
 import { EntityModel, LinkModel, LinkTypeModel } from "../../../../model";
 import {
   MutationCreateKnowledgeLinkArgs,
@@ -79,33 +78,9 @@ export const deleteKnowledgeLink: ResolverFn<
   LoggedInGraphQLContext,
   MutationDeleteKnowledgeLinkArgs
 > = async (_, { link }, { dataSources: { graphApi }, user }) => {
-  const { linkTypeId, sourceEntityId, targetEntityId } = link;
+  const linkModel = await LinkModel.get(graphApi, link);
 
-  const linkModels = await LinkModel.getByQuery(graphApi, {
-    all: [
-      { eq: [{ path: ["source", "id"] }, { literal: sourceEntityId }] },
-      { eq: [{ path: ["target", "id"] }, { literal: targetEntityId }] },
-      {
-        eq: [
-          { path: ["type", "versionedUri"] },
-          {
-            literal: linkTypeId,
-          },
-        ],
-      },
-    ],
-  });
-
-  if (!linkModels[0]) {
-    throw new ApolloError(
-      `Link with source enitty ID = '${sourceEntityId}', target entity ID = '${targetEntityId}' and link type ID = '${linkTypeId}' not found.`,
-      "NOT_FOUND",
-    );
-  } else if (linkModels.length > 1) {
-    throw new UserInputError(`Could not identify one single link with query.`);
-  }
-
-  await linkModels[0].remove(graphApi, { removedById: user.entityId });
+  await linkModel.remove(graphApi, { removedById: user.entityId });
 
   return true;
 };
