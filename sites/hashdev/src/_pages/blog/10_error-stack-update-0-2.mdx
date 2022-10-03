@@ -83,7 +83,7 @@ Report outputs now consist of two sections: a `Body` and an `Appendix`. The `Bod
 ```text
 experiment error: could not run experiment
  ├╴examples/demo.rs:67:17
- ├╴backtrace with 19 frames (3)
+ ├╴backtrace with 19 frames (1)
  ├╴experiment 3 has no valid description
  ╰╴unable to set up experiments
 
@@ -173,10 +173,11 @@ Version 0.2 of `error-stack` introduces these breaking changes and deprecations:
 ## What’s next?
 
 We’ve got a lot of ideas! Among them are:
+
 - adding support for `serde` to provide a hook-based interface to serialize `Report`s.
 - adding support for `defmt`.
 - adding support for WASM environments.
-- and continuing to iterate on the ergonomics of how we support related errors and multiple sources. 
+- and continuing to iterate on the ergonomics of how we support related errors and multiple sources.
 
 Please let us know what you think!
 
