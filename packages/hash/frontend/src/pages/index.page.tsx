@@ -18,10 +18,10 @@ const Page: NextPageWithLayout = () => {
       return;
     }
 
-    if (!kratosSession && !user) {
+    if (!kratosSession) {
       void router.push("/login");
-    } else {
-      void router.push(`/${user!.entityId}`);
+    } else if (user) {
+      void router.push(`/${user.entityId}`);
     }
   }, [loading, router, user, kratosSession]);
 
