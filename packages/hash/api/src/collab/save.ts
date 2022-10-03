@@ -273,7 +273,7 @@ const calculateSaveActions = async (
         }
 
         const [entityTypeId, newTypeActions] = await getEntityTypeForComponent(
-          blockEntity.properties.componentId,
+          blockEntity.componentId,
         );
 
         entityType = { entityTypeId };

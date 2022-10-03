@@ -4,7 +4,7 @@ import { BlockEntity, isTextContainingEntityProperties } from "./entity";
 import { DistributiveOmit } from "./util";
 import { MinimalEntityTypeFieldsFragment } from "./graphql/apiTypes.gen";
 
-export type EntityStoreType = BlockEntity | BlockEntity["properties"]["entity"];
+export type EntityStoreType = BlockEntity | BlockEntity["dataEntity"];
 
 type PropertiesType<Properties extends {}> = Properties extends {
   entity: EntityStoreType;
@@ -22,8 +22,9 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   accountId: string;
   entityId: string | null;
   entityTypeId?: string | null;
-  entityVersionId?: string | null;
+  entityVersion?: string | null;
   entityType?: MinimalEntityTypeFieldsFragment;
+  dataEntity: Type;
 
   // @todo thinking about removing this – as they're keyed by this anyway
   //  and it makes it complicated to deal with types – should probably just
@@ -32,15 +33,18 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
 
   updatedAt: string;
 
-  linkGroups?: Type extends { linkGroups: any }
-    ? Type["linkGroups"]
-    : undefined;
-  linkedEntities?: Type extends { linkedEntities: any }
-    ? Type["linkedEntities"]
-    : undefined;
-  linkedAggregations?: Type extends { linkedAggregations: any }
-    ? Type["linkedAggregations"]
-    : undefined;
+  linkGroups?: undefined;
+  // Type extends { linkGroups: any }
+  //   ? Type["linkGroups"]
+  //   : undefined
+  linkedEntities?: undefined;
+  // Type extends { linkedEntities: any }
+  //   ? Type["linkedEntities"]
+  //   : undefined;
+  linkedAggregations?: undefined;
+  // Type extends { linkedAggregations: any }
+  //   ? Type["linkedAggregations"]
+  //   : undefined;
 } & (Type extends { properties: any }
   ? { properties: PropertiesType<Type["properties"]> }
   : {});
@@ -58,11 +62,7 @@ export const isEntity = (value: unknown): value is EntityStoreType =>
 
 // @todo does this need to be more robust?
 export const isBlockEntity = (entity: unknown): entity is BlockEntity =>
-  isEntity(entity) &&
-  "properties" in entity &&
-  entity.properties &&
-  "entity" in entity.properties &&
-  isEntity(entity.properties.entity);
+  isEntity(entity) && "dataEntity" in entity && isEntity(entity.dataEntity);
 
 // @todo does this need to be more robust?
 export const isDraftEntity = <T extends EntityStoreType>(
@@ -89,10 +89,10 @@ const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
   const entities: EntityStoreType[] = [];
 
   for (const entity of contents) {
-    entities.push(entity, entity.properties.entity);
+    entities.push(entity, entity.dataEntity);
 
-    if (isTextContainingEntityProperties(entity.properties.entity.properties)) {
-      entities.push(entity.properties.entity.properties.text.data);
+    if (isTextContainingEntityProperties(entity.dataEntity.properties)) {
+      entities.push(entity.dataEntity.properties.text.data);
     }
   }
 
@@ -140,10 +140,11 @@ export const createEntityStore = (
       entityToDraft[row.entityId] = row.draftId;
     }
   }
+
   const entities = findEntities(contents);
 
   for (const entity of entities) {
-    if (!entityToDraft[entity.entityId]) {
+    if (entity && !entityToDraft[entity.entityId]) {
       entityToDraft[entity.entityId] = generateDraftIdForEntity(
         entity.entityId,
       );
@@ -185,15 +186,13 @@ export const createEntityStore = (
         }
 
         if (isDraftBlockEntity(draftEntity)) {
-          restoreDraftId(draftEntity.properties.entity, entityToDraft);
+          restoreDraftId(draftEntity, entityToDraft);
 
           if (
-            isTextContainingEntityProperties(
-              draftEntity.properties.entity.properties,
-            )
+            isTextContainingEntityProperties(draftEntity.dataEntity.properties)
           ) {
             restoreDraftId(
-              draftEntity.properties.entity.properties.text.data,
+              draftEntity.dataEntity.properties.text.data,
               entityToDraft,
             );
           }

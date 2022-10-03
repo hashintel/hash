@@ -44,8 +44,10 @@ export const knolwedgeBlockFieldsFragment = gql`
     componentId
     dataEntity {
       entityId
+      accountId
       properties
     }
+    properties
     # Not fetching Data Entity yet.
   }
 `;

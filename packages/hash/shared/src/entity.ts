@@ -7,7 +7,7 @@ import {
   isEntity,
 } from "./entityStore";
 import {
-  PageFieldsFragment,
+  KnowledgePageFieldsFragment,
   Text,
   TextProperties,
 } from "./graphql/apiTypes.gen";
@@ -19,18 +19,16 @@ import {
 } from "./util";
 
 type ContentsEntity = DistributiveOmit<
-  PageFieldsFragment["contents"][number],
+  KnowledgePageFieldsFragment["contents"][number],
   "__typename"
 >;
 
-export type BlockEntity = DistributiveOmit<ContentsEntity, "properties"> & {
-  properties: DistributiveOmit<ContentsEntity["properties"], "entity"> & {
-    entity: DistributivePick<
-      ContentsEntity["properties"]["entity"] | Text,
-      keyof ContentsEntity["properties"]["entity"] &
-        keyof (ContentsEntity["properties"]["entity"] | Text)
-    >;
-  };
+export type BlockEntity = ContentsEntity & {
+  entity: DistributivePick<
+    ContentsEntity["dataEntity"] | Text,
+    keyof ContentsEntity["dataEntity"] &
+      keyof (ContentsEntity["dataEntity"] | Text)
+  >;
 };
 
 // @todo make this more robust
@@ -152,10 +150,7 @@ export const getBlockChildEntity = (
     throw new Error("Can only get text entity from block entity");
   }
 
-  return getEntityChildEntity(
-    blockEntity.properties.entity.draftId,
-    entityStore.draft,
-  );
+  return getEntityChildEntity(blockEntity.draftId, entityStore.draft);
 };
 
 /**

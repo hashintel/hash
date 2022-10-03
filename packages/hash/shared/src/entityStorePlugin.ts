@@ -202,7 +202,7 @@ const setBlockChildEntity = (
       draftId: targetEntityDraftId,
       entityId: targetEntity.entityId,
       properties: targetEntity.properties,
-      updatedAt: targetEntity.updatedAt,
+      updatedAt: new Date().toISOString() /** @todo fix */,
     };
 
     draftEntityStore[targetEntityDraftId] = targetDraftEntity;

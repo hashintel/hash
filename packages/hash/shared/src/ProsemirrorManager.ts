@@ -149,17 +149,17 @@ export class ProsemirrorManager {
     if (draftBlockId && entityStore?.draft[draftBlockId]) {
       const entityInStore = entityStore.draft[draftBlockId];
       if (!isDraftBlockEntity(entityInStore)) {
-        throw new Error("Block entity missing from store");
+        console.error("Block entity missing from store");
       }
 
-      if (entityInStore.properties.componentId !== targetComponentId) {
-        throw new Error("Cannot render this block entity with this component");
+      if (entityInStore?.properties.componentId !== targetComponentId) {
+        console.error("Cannot render this block entity with this component");
       }
 
       blockEntity = entityInStore;
     }
 
-    const childDraftId = blockEntity?.properties.entity.draftId;
+    const childDraftId = blockEntity?.draftId;
 
     const blockData =
       draftBlockId && entityStore
@@ -217,10 +217,10 @@ export class ProsemirrorManager {
           blockEntity.entityId,
         );
 
-        await this.defineBlockByComponentId(blockEntity.properties.componentId);
+        await this.defineBlockByComponentId(blockEntity.componentId);
 
         return this.renderBlock(
-          blockEntity.properties.componentId,
+          blockEntity.componentId,
           store,
           draftEntity.draftId,
         );
@@ -319,10 +319,7 @@ export class ProsemirrorManager {
 
     if (
       blockEntity &&
-      areComponentsCompatible(
-        blockEntity.properties.componentId,
-        targetComponentId,
-      )
+      areComponentsCompatible(blockEntity.componentId, targetComponentId)
     ) {
       if (targetComponentId === blockEntity?.properties.componentId) {
         addEntityStoreAction(this.view.state, tr, {
