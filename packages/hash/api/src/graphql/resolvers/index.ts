@@ -110,6 +110,7 @@ import { knowledgeBlocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import { knowledgeEntity } from "./knowledge/entity/entity";
 import { UnresolvedKnowledgeEntityGQL } from "./knowledge/model-mapping";
+import { dataEntity } from "./knowledge/block/data-entity";
 
 /**
  * @todo: derive these from the statically declared workspace type names
@@ -337,6 +338,10 @@ export const resolvers = {
 
   KnowledgePage: {
     contents: knowledgePageContents,
+  },
+
+  KnowledgeBlock: {
+    dataEntity,
   },
 
   /**
