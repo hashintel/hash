@@ -72,17 +72,17 @@ export const knowledgeLinkTypedef = gql`
 
   extend type Query {
     """
-    Get a link.
+    Get the outgoing links of an entity.
     """
-    knowledgeLinks(
+    outgoingKnowledgeLinks(
       """
-      The id of the link's source entity.
+      The id of the source entity.
       """
       sourceEntityId: ID!
       """
-      The id of the link type that's being fetched.
+      The id of the link's type.
       """
-      linkTypeId: String!
+      linkTypeId: String
     ): [KnowledgeLink!]!
   }
 
