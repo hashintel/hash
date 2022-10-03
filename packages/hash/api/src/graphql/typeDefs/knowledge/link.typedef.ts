@@ -55,7 +55,7 @@ export const knowledgeLinkTypedef = gql`
     targetEntityId: ID!
   }
 
-  input DeleteKnowledgeLinkInput {
+  input LinkIdentifier {
     """
     The versioned URI of this link's type.
     """
@@ -94,6 +94,6 @@ export const knowledgeLinkTypedef = gql`
     """
     Create a link.
     """
-    deleteKnowledgeLink(link: DeleteKnowledgeLinkInput!): Boolean!
+    deleteKnowledgeLink(link: LinkIdentifier!): Boolean!
   }
 `;
