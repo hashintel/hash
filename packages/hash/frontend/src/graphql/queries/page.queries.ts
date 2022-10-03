@@ -9,14 +9,12 @@ import { gql } from "@apollo/client";
 
 export const setParentPage = gql`
   mutation setParentPage(
-    $accountId: ID!
     $pageEntityId: ID!
     $parentPageEntityId: ID
     $prevIndex: String
     $nextIndex: String
   ) {
-    setParentPage(
-      accountId: $accountId
+    setParentKnowledgePage(
       pageEntityId: $pageEntityId
       parentPageEntityId: $parentPageEntityId
       prevIndex: $prevIndex
@@ -24,28 +22,19 @@ export const setParentPage = gql`
     ) {
       accountId
       entityId
-      properties {
-        title
-        summary
-        pageEntityId
-        __typename
-      }
+      title
+      summary
       __typename
     }
   }
 `;
 
-export const createPage = gql`
-  mutation createPage(
-    $accountId: ID!
-    $properties: PageCreationData!
-    $prevIndex: String
+export const createKnowledgePage = gql`
+  mutation createKnowledgePage(
+    $ownedById: ID!
+    $properties: KnowledgePageCreationData!
   ) {
-    createPage(
-      accountId: $accountId
-      properties: $properties
-      prevIndex: $prevIndex
-    ) {
+    createKnowledgePage(ownedById: $ownedById, properties: $properties) {
       accountId
       entityId
     }
