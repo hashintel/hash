@@ -143,7 +143,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                 account_id,
             )
             .await
-            .expect("failed to create entity");
+            .expect("failed to create entities");
 
         total_entities += quantity;
     }

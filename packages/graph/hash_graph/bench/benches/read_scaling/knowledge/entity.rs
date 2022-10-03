@@ -66,7 +66,7 @@ async fn seed_db(
             account_id,
         )
         .await
-        .expect("failed to create entity");
+        .expect("failed to create entities");
 
     store
         .into_client()
