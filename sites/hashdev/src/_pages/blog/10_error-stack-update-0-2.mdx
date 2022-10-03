@@ -146,7 +146,7 @@ We’ve made a few other improvements too:
   - We’ve provided a trait to convert `Result<_, anyhow::Error>` or `Result<_, eyre::Report>` to `Result<_, Report<anyhow::Error>>` or `Result<_, Report<eyre::Report>>`.
   - The additional sources of `anyhow::Error` and `eyre::Report` are also attached as frames to maintain their history.
 
-  This should make it much easier to try out `error-stack` in existing codebases which utilize these libraries, as well as improving the migration process if desired.
+  This should make it much easier to try out `error-stack` in existing codebases which utilize these libraries, as well as improving the migration process.
 
 ## Breaking changes
 
