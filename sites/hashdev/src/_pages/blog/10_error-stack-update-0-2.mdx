@@ -19,8 +19,7 @@ Since our last release we’ve been fixing user-reported bugs, reviewing open-so
 
 - The `Provider` API has landed and replaces our vendored-in implementation.
 - `Backtrace` was stabilized with Rust 1.65(🎉): we now support `Backtrace`s on a non-nightly channel starting with 1.65-beta.
-- If the root context already contains a backtrace, no new `Backtrace` is captured. Otherwise, backtraces are captured automatically when `RUST_BACKTRACE`.
-  or `RUST_LIB_BACKTRACE` env-vars are set.
+- If the root context already contains a backtrace, no new `Backtrace` is captured. Otherwise, backtraces are captured automatically when `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` env-vars are set.
 - All std-`Error` types now implement `Provider`. The blanket implementation on `Context` will re-use the `Error::provide` values.
 - `Error` is now available in `core::error`, for nightly channels.
 
