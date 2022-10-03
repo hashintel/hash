@@ -148,6 +148,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(identifier)
     }
 
+    #[doc(hidden)]
+    #[cfg(feature = "__internal_bench")]
     async fn create_entities(
         &mut self,
         entities: impl IntoIterator<Item = (Option<EntityId>, Entity), IntoIter: Send> + Send,

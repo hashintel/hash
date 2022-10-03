@@ -379,14 +379,8 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
         entity_id: Option<EntityId>,
     ) -> Result<PersistedEntityIdentifier, InsertionError>;
 
-    /// Creates new entities.
-    ///
-    /// # Errors:
-    ///
-    /// - if the [`EntityType`] doesn't exist
-    /// - if the entities are not valid with respect to the specified [`EntityType`]
-    /// - if the account referred to by `owned_by_id` does not exist
-    /// - if an [`EntityId`] was supplied and already exists in the store
+    #[doc(hidden)]
+    #[cfg(feature = "__internal_bench")]
     async fn create_entities(
         &mut self,
         entities: impl IntoIterator<Item = (Option<EntityId>, Entity), IntoIter: Send> + Send,

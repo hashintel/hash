@@ -13,9 +13,10 @@ use std::{
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
-use futures::pin_mut;
-use postgres_types::{ToSql, Type};
-use tokio_postgres::{binary_copy::BinaryCopyInWriter, GenericClient, Transaction};
+use postgres_types::ToSql;
+#[cfg(feature = "__internal_bench")]
+use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
+use tokio_postgres::{GenericClient, Transaction};
 use type_system::{
     uri::{BaseUri, VersionedUri},
     DataTypeReference, EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
@@ -853,11 +854,8 @@ where
 }
 
 impl PostgresStore<Transaction<'_>> {
-    /// Inserts the specified [`EntityId`]s into the database.
-    ///
-    /// # Errors
-    ///
-    /// - if inserting the [`EntityId`]s failed.
+    #[doc(hidden)]
+    #[cfg(feature = "__internal_bench")]
     async fn insert_entity_ids(
         &self,
         entity_ids: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
@@ -870,7 +868,7 @@ impl PostgresStore<Transaction<'_>> {
             .change_context(InsertionError)?;
         let writer = BinaryCopyInWriter::new(sink, &[Type::UUID]);
 
-        pin_mut!(writer);
+        futures::pin_mut!(writer);
         for entity_id in entity_ids {
             writer
                 .as_mut()
@@ -888,6 +886,8 @@ impl PostgresStore<Transaction<'_>> {
             .change_context(InsertionError)
     }
 
+    #[doc(hidden)]
+    #[cfg(feature = "__internal_bench")]
     async fn insert_entities(
         &self,
         entity_ids: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
@@ -906,7 +906,7 @@ impl PostgresStore<Transaction<'_>> {
             .change_context(InsertionError)?;
         let writer =
             BinaryCopyInWriter::new(sink, &[Type::UUID, Type::UUID, Type::JSONB, Type::UUID]);
-        pin_mut!(writer);
+        futures::pin_mut!(writer);
         for (entity_id, entity) in entity_ids.into_iter().zip(entities) {
             let value = serde_json::to_value(entity)
                 .into_report()

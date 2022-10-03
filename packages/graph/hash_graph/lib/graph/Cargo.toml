@@ -37,6 +37,9 @@ criterion = "0.4.0"
 [build-dependencies]
 
 [features]
+# WARNING: this is an internal feature which should not be used outside of HASH. It's introduced to conditionally
+#          compile code on externally written benchmarks to avoid exposing internals of the data store
+__internal_bench = []
 clap = ["dep:clap"]
 
 [[test]]
