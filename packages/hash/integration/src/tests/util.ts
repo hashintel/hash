@@ -311,7 +311,7 @@ export class ApiClient {
         SetParentPageMutation,
         SetParentPageMutationVariables
       >(setPageParent, vars)
-    ).setParentPage;
+    ).setParentKnowledgePage;
   }
 
   async deprecatedGetEntityType(vars: QueryDeprecatedGetEntityTypeArgs) {

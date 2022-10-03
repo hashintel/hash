@@ -29,7 +29,7 @@ export const useCreateSubPage = (ownedById: string) => {
     refetchQueries: ({ data }) => [
       {
         query: getAccountPagesTree,
-        variables: { accountId: data!.setParentPage.accountId },
+        variables: { ownedById: data!.setParentKnowledgePage.ownedById },
       },
     ],
   });
@@ -41,19 +41,18 @@ export const useCreateSubPage = (ownedById: string) => {
       });
 
       if (response.data?.createKnowledgePage) {
-        const { accountId: pageAccountId, entityId: pageEntityId } =
+        const { ownedById: pageOwnedById, entityId: pageEntityId } =
           response.data.createKnowledgePage;
 
         await setParentPageFn({
           variables: {
-            accountId: pageAccountId,
             pageEntityId,
             parentPageEntityId,
             prevIndex,
           },
         });
 
-        await router.push(`/${pageAccountId}/${pageEntityId}`);
+        await router.push(`/${pageOwnedById}/${pageEntityId}`);
       }
     },
     [createPageFn, ownedById, setParentPageFn, router],
