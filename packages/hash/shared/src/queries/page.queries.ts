@@ -1,28 +1,33 @@
 import { gql } from "@apollo/client";
 
-const pagePropertiesFieldsFragment = gql`
-  fragment PagePropertyFields on PageProperties {
+const knowledgePagePropertiesFieldsFragment = gql`
+  fragment KnowledgePagePropertyFields on KnowledgePage {
     title
     archived
-    pageEntityId
     icon
   }
 `;
 
 export const getPageInfoQuery = gql`
-  query getPageInfo($accountId: ID!, $entityId: ID!, $versionId: ID) {
-    page(
-      accountId: $accountId
+  query getPageInfo($ownedById: ID!, $entityId: ID!, $entityVersion: String) {
+    knowledgePage(
+      ownedById: $ownedById
       entityId: $entityId
-      entityVersionId: $versionId
+      entityVersion: $entityVersion
     ) {
       entityId
-      properties {
-        ...PagePropertyFields
-      }
+      ...KnowledgePagePropertyFields
     }
   }
-  ${pagePropertiesFieldsFragment}
+  ${knowledgePagePropertiesFieldsFragment}
+`;
+
+const pagePropertiesFieldsFragment = gql`
+  fragment PagePropertyFields on PageProperties {
+    title
+    archived
+    icon
+  }
 `;
 
 export const updatePage = gql`
