@@ -32,7 +32,7 @@ const DB_NAME: &str = "representative_read";
 #[criterion]
 fn bench_representative_read_entity(c: &mut Criterion) {
     let mut group = c.benchmark_group("representative_read_entity");
-    let (runtime, mut store_wrapper) = setup(DB_NAME, false);
+    let (runtime, mut store_wrapper) = setup(DB_NAME, false, false);
 
     let samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper));
     let store = &store_wrapper.store;
@@ -59,7 +59,7 @@ fn bench_representative_read_entity(c: &mut Criterion) {
 #[criterion]
 fn bench_representative_read_entity_type(c: &mut Criterion) {
     let mut group = c.benchmark_group("representative_read_entity_type");
-    let (runtime, mut store_wrapper) = setup(DB_NAME, false);
+    let (runtime, mut store_wrapper) = setup(DB_NAME, false, false);
 
     let samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper));
     let store = &store_wrapper.store;
