@@ -396,6 +396,10 @@ export class EditorConnection {
       actions?: TrackedAction[];
     } = {},
   ) {
+    /** @todo re-enable sending https://app.asana.com/0/1200211978612931/1202924026802709/f  */
+    if (true) {
+      return;
+    }
     for (const action of actions) {
       this.sentActions.add(action.id);
     }
