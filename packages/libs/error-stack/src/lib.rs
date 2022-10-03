@@ -460,15 +460,16 @@
 extern crate alloc;
 extern crate core;
 
+pub mod future;
+pub mod iter;
+
 mod compat;
 mod frame;
-pub mod iter;
 mod macros;
 mod report;
 mod result;
 
 mod context;
-pub mod ext;
 #[cfg(feature = "std")]
 pub mod fmt;
 #[cfg(not(feature = "std"))]
@@ -476,11 +477,6 @@ mod fmt;
 #[cfg(feature = "std")]
 mod hook;
 
-#[doc(inline)]
-pub use self::ext::{
-    future::FutureExt,
-    result::{IntoReport, ResultExt},
-};
 #[cfg(feature = "std")]
 #[allow(deprecated, unreachable_pub)]
 pub use self::hook::HookAlreadySet;
@@ -492,6 +488,11 @@ pub use self::{
     report::Report,
     result::Result,
 };
+#[doc(inline)]
+pub use self::{
+    future::FutureExt,
+    result::{IntoReport, ResultExt},
+};
 
 #[cfg(test)]
 mod tests {
@@ -502,7 +503,9 @@ mod tests {
     use crate::Report;
 
     const fn test_send<T: Send>() {}
+
     const fn test_sync<T: Sync>() {}
+
     const fn test_static<T: 'static>() {}
 
     const fn report() {
