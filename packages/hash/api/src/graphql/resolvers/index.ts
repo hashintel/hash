@@ -113,7 +113,7 @@ import { UnresolvedKnowledgeEntityGQL } from "./knowledge/model-mapping";
 import {
   createKnowledgeLink,
   deleteKnowledgeLink,
-  knowledgeLinks,
+  outgoingKnowledgeLinks,
 } from "./knowledge/link/link";
 
 /**
@@ -176,7 +176,7 @@ export const resolvers = {
     knowledgePage: loggedInAndSignedUp(knowledgePage),
     knowledgeBlocks: loggedInAndSignedUp(knowledgeBlocks),
     knowledgeEntity: loggedInAndSignedUp(knowledgeEntity),
-    knowledgeLinks: loggedInAndSignedUp(knowledgeLinks),
+    outgoingKnowledgeLinks: loggedInAndSignedUp(outgoingKnowledgeLinks),
   },
 
   Mutation: {

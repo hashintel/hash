@@ -3,7 +3,7 @@ import { EntityModel, LinkModel, LinkTypeModel } from "../../../../model";
 import {
   MutationCreateKnowledgeLinkArgs,
   MutationDeleteKnowledgeLinkArgs,
-  QueryKnowledgeLinksArgs,
+  QueryOutgoingKnowledgeLinksArgs,
   ResolverFn,
 } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
@@ -44,11 +44,11 @@ export const createKnowledgeLink: ResolverFn<
   return mapLinkModelToGQL(linkModel);
 };
 
-export const knowledgeLinks: ResolverFn<
+export const outgoingKnowledgeLinks: ResolverFn<
   Promise<UnresolvedKnowledgeLinkGQL[]>,
   {},
   LoggedInGraphQLContext,
-  QueryKnowledgeLinksArgs
+  QueryOutgoingKnowledgeLinksArgs
 > = async (
   _,
   { sourceEntityId, linkTypeId },
@@ -56,18 +56,18 @@ export const knowledgeLinks: ResolverFn<
 ) => {
   const linkModels = await LinkModel.getByQuery(graphApi, {
     all: [
-      {
-        eq: [{ path: ["source", "id"] }, { literal: sourceEntityId }],
-      },
-      {
-        eq: [
-          { path: ["type", "versionedUri"] },
-          {
-            literal: linkTypeId,
-          },
-        ],
-      },
-    ],
+      { eq: [{ path: ["source", "id"] }, { literal: sourceEntityId }] },
+      linkTypeId
+        ? {
+            eq: [
+              { path: ["type", "versionedUri"] },
+              {
+                literal: linkTypeId,
+              },
+            ],
+          }
+        : [],
+    ].flat(),
   });
 
   return linkModels.map(mapLinkModelToGQL);
