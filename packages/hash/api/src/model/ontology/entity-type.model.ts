@@ -332,7 +332,9 @@ export default class {
     )?.[1];
 
     if (!outgoingLinkDefinition) {
-      throw new Error("Link is not an outgoing link on this entity");
+      throw new Error(
+        `Link type with ID = '${outgoingLinkType.schema.$id}' is not an outgoing link on entity type with ID = '${this.schema.$id}'`,
+      );
     }
 
     if (
