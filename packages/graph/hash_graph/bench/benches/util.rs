@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{mem::ManuallyDrop, str::FromStr};
 
 use graph::{
     ontology::AccountId,
@@ -17,13 +17,15 @@ pub type Store = <Pool as StorePool>::Store<'static>;
 
 // TODO - deduplicate with integration/postgres/mod.rs
 pub struct StoreWrapper {
+    delete_on_drop: bool,
     pub bench_db_name: String,
-    _pool: Pool,
-    pub store: Store,
+    source_db_pool: Pool,
+    pool: ManuallyDrop<Pool>,
+    pub store: ManuallyDrop<Store>,
 }
 
 impl StoreWrapper {
-    pub async fn new(bench_db_name: &str, fail_on_exists: bool) -> Self {
+    pub async fn new(bench_db_name: &str, fail_on_exists: bool, delete_on_drop: bool) -> Self {
         let source_db_connection_info = DatabaseConnectionInfo::new(
             // TODO - get these from env
             //  https://app.asana.com/0/0/1203071961523005/f
@@ -116,10 +118,49 @@ impl StoreWrapper {
             .expect("could not acquire a database connection");
 
         Self {
+            delete_on_drop,
+            source_db_pool,
             bench_db_name: bench_db_name.to_owned(),
-            _pool: pool,
-            store,
+            pool: ManuallyDrop::new(pool),
+            store: ManuallyDrop::new(store),
         }
+    }
+}
+
+impl Drop for StoreWrapper {
+    fn drop(&mut self) {
+        if !(self.delete_on_drop) {
+            return;
+        }
+        // We're in the process of dropping the parent struct, we just need to ensure we release
+        // the connections of this pool before deleting the database
+        // SAFETY: The values of `store` and `pool` are not accessed after dropping
+        unsafe {
+            ManuallyDrop::drop(&mut self.store);
+            ManuallyDrop::drop(&mut self.pool);
+        }
+
+        let runtime = Runtime::new().unwrap();
+        runtime.block_on(async {
+            let conn = self
+                .source_db_pool
+                .acquire_owned()
+                .await
+                .expect("could not acquire a database connection");
+
+            conn.as_client()
+                .execute(
+                    &format!(
+                        r#"
+                        DROP DATABASE IF EXISTS {};
+                        "#,
+                        self.bench_db_name
+                    ),
+                    &[],
+                )
+                .await
+                .expect("failed to drop database");
+        });
     }
 }
 
@@ -219,9 +260,10 @@ pub async fn seed<D, P, L, E, C>(
     }
 }
 
-pub fn setup(db_name: &str, fail_on_exists: bool) -> (Runtime, StoreWrapper) {
+pub fn setup(db_name: &str, fail_on_exists: bool, delete_on_drop: bool) -> (Runtime, StoreWrapper) {
     let runtime = Runtime::new().unwrap();
 
-    let store_wrapper = runtime.block_on(StoreWrapper::new(db_name, fail_on_exists));
+    let store_wrapper =
+        runtime.block_on(StoreWrapper::new(db_name, fail_on_exists, delete_on_drop));
     (runtime, store_wrapper)
 }
