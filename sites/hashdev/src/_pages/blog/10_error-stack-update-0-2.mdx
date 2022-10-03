@@ -142,8 +142,11 @@ We’ve made a few other improvements too:
 - The `error-stack` documentation has been greatly improved and we’re always open to more feedback ([create an Issue](https://github.com/hashintel/hash/tree/main/packages/libs/error-stack) or [join us in Discord](https://discord.com/invite/BPMrGAhjPh)).
 - `Termination` has been implemented for `Report`s: it will return the `ExitCode` provided by any `Context` if present, or `ExitCode::FAILURE` will be returned.
 - Compatibility for `anyhow` and `eyre` has been added to convert their types into `Report`.
+
   - We’ve provided a trait to convert `Result<_, anyhow::Error>` or `Result<_, eyre::Report>` to `Result<_, Report<anyhow::Error>>` or `Result<_, Report<eyre::Report>>`.
   - The additional sources of `anyhow::Error` and `eyre::Report` are also attached as frames to maintain their history.
+
+  This will help testing out `error-stack` in existing code bases and will also simplify migrating to `error-stack` is desired.
 
 ## Breaking changes
 
