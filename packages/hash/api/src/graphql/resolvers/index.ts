@@ -22,7 +22,6 @@ import {
   updatePage,
   updatePageContents,
   searchPages,
-  setParentPage,
   pageLinkedEntities,
 } from "./pages";
 import {
@@ -215,7 +214,6 @@ export const resolvers = {
     ),
     joinOrg: loggedInAndSignedUp(joinOrg),
     requestFileUpload: loggedInAndSignedUp(requestFileUpload),
-    setParentPage: loggedInAndSignedUp(setParentPage),
     // Logged in users only
     updateUser: loggedIn(updateUser),
     // Any user

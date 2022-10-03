@@ -173,23 +173,14 @@ export const updatePageContents = gql`
 `;
 
 export const setPageParent = gql`
-  mutation setParentPage(
-    $accountId: ID!
-    $pageEntityId: ID!
-    $parentPageEntityId: ID
-  ) {
-    setParentPage(
-      accountId: $accountId
+  mutation setParentPage($pageEntityId: ID!, $parentPageEntityId: ID) {
+    setParentKnowledgePage(
       pageEntityId: $pageEntityId
       parentPageEntityId: $parentPageEntityId
     ) {
       entityId
-      properties {
-        title
-        summary
-        __typename
-      }
-      __typename
+      title
+      summary
     }
   }
 `;

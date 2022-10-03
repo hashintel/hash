@@ -20,8 +20,7 @@ export const setParentPage = gql`
       prevIndex: $prevIndex
       nextIndex: $nextIndex
     ) {
-      accountId
-      entityId
+      ownedById
       title
       summary
       __typename
@@ -35,7 +34,7 @@ export const createKnowledgePage = gql`
     $properties: KnowledgePageCreationData!
   ) {
     createKnowledgePage(ownedById: $ownedById, properties: $properties) {
-      accountId
+      ownedById
       entityId
     }
   }

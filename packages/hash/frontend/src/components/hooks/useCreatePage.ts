@@ -19,7 +19,7 @@ export const useCreatePage = (ownedById: string) => {
     refetchQueries: ({ data }) => [
       {
         query: getAccountPagesTree,
-        variables: { accountId: data?.createKnowledgePage.accountId },
+        variables: { ownedById: data?.createKnowledgePage.ownedById },
       },
     ],
   });
@@ -30,11 +30,11 @@ export const useCreatePage = (ownedById: string) => {
         variables: { ownedById, properties: { title: "", prevIndex } },
       });
 
-      const { accountId: pageAccountId, entityId: pageEntityId } =
+      const { ownedById: pageOwnedById, entityId: pageEntityId } =
         response.data?.createKnowledgePage ?? {};
 
-      if (pageAccountId && pageEntityId) {
-        return router.push(`/${pageAccountId}/${pageEntityId}`);
+      if (pageOwnedById && pageEntityId) {
+        return router.push(`/${pageOwnedById}/${pageEntityId}`);
       }
     },
     [createPageFn, ownedById, router],

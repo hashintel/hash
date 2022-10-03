@@ -7,7 +7,7 @@ import {
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { setParentPage } from "../../graphql/queries/page.queries";
 
-export const useReorderPage = (_accountId: string) => {
+export const useReorderPage = (_ownedById: string) => {
   const [setParentPageFn, { loading }] = useMutation<
     SetParentPageMutation,
     SetParentPageMutationVariables
@@ -16,7 +16,7 @@ export const useReorderPage = (_accountId: string) => {
     refetchQueries: ({ data }) => [
       {
         query: getAccountPagesTree,
-        variables: { accountId: data!.setParentKnowledgePage.accountId },
+        variables: { ownedById: data!.setParentKnowledgePage.ownedById },
       },
     ],
   });

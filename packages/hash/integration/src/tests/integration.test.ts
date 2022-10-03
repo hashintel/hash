@@ -1396,7 +1396,6 @@ describe("logged in user ", () => {
       });
 
       const result = await client.setParentPage({
-        accountId: existingUser.accountId,
         pageEntityId: subPage.entityId,
         parentPageEntityId: superPage.entityId,
       });
@@ -1427,7 +1426,6 @@ describe("logged in user ", () => {
       });
 
       const result = await client.setParentPage({
-        accountId: existingUser.accountId,
         pageEntityId: subSubPage.entityId,
         parentPageEntityId: subPage.entityId,
       });
@@ -1451,7 +1449,6 @@ describe("logged in user ", () => {
       //       - Super page 1 <- should not be allowed since it would introduce a cycle
       await expect(
         client.setParentPage({
-          accountId: existingUser.accountId,
           pageEntityId: superPage.entityId,
           parentPageEntityId: subSubPage.entityId,
         }),
@@ -1467,7 +1464,6 @@ describe("logged in user ", () => {
       //       - sub page 1 <- should not be allowed
       await expect(
         client.setParentPage({
-          accountId: existingUser.accountId,
           pageEntityId: subPage.entityId,
           parentPageEntityId: subSubPage.entityId,
         }),
@@ -1534,7 +1530,6 @@ describe("logged in user ", () => {
       const title = "sub sub page 1";
 
       const result = await client.setParentPage({
-        accountId: existingUser.accountId,
         pageEntityId: subSubPage.entityId,
         parentPageEntityId: superPage.entityId,
       });
@@ -1558,7 +1553,6 @@ describe("logged in user ", () => {
       const title = "sub sub page 1";
 
       const result = await client.setParentPage({
-        accountId: existingUser.accountId,
         pageEntityId: subSubPage.entityId,
         parentPageEntityId: null,
       });
@@ -1581,7 +1575,6 @@ describe("logged in user ", () => {
       //   - sub sub page 1
       await expect(
         client.setParentPage({
-          accountId: existingUser.accountId,
           pageEntityId: superPage.entityId,
           parentPageEntityId: superPage.entityId,
         }),
