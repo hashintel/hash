@@ -41,7 +41,8 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
 
   let text = "";
 
-  for (const node of parentContent) {
+  // eslint-disable-next-line unicorn/no-array-for-each
+  parentContent.forEach((node) => {
     // replace non-text nodes with a space so that regex stops
     // matching at that point
     if (node.text) {
@@ -49,7 +50,7 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
     } else {
       text += " ";
     }
-  }
+  });
 
   // the cursor's position inside its parent
   const cursorPos = cursor.parentOffset;
