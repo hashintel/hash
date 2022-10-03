@@ -341,12 +341,6 @@ export const pageTypedef = gql`
   }
 
   extend type Mutation {
-    createPage(
-      accountId: ID!
-      properties: PageCreationData!
-      prevIndex: String
-    ): Page!
-
     updatePage(
       accountId: ID!
       entityId: ID!

@@ -302,7 +302,7 @@ export class ApiClient {
         CreatePageMutation,
         CreatePageMutationVariables
       >(createPage, vars)
-    ).createPage;
+    ).createKnowledgePage;
   }
 
   async setParentPage(vars: SetParentPageMutationVariables) {

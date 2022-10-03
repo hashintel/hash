@@ -15,7 +15,6 @@ import { createLink } from "./link/createLink";
 import { deleteLink } from "./link/deleteLink";
 import { blocks, blockProperties, blockLinkedEntities } from "./block";
 import {
-  createPage,
   accountPages,
   page,
   pageProperties,
@@ -200,7 +199,6 @@ export const resolvers = {
     deleteLinkedAggregation: loggedInAndSignedUp(deleteLinkedAggregation),
     deprecatedCreateEntityType: loggedInAndSignedUp(deprecatedCreateEntityType),
     createFileFromLink: loggedInAndSignedUp(createFileFromLink),
-    createPage: loggedInAndSignedUp(createPage),
     createComment: loggedInAndSignedUp(createComment),
     createOrg: loggedInAndSignedUp(createOrg),
     createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),
