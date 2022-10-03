@@ -2,7 +2,7 @@
   "root": true,
   // this is the highest config lower ones will automatically extend
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint", "react-hooks", "jest", "unicorn", "github"],
+  "plugins": ["@typescript-eslint", "react-hooks", "jest", "unicorn"],
   "extends": [
     "plugin:@typescript-eslint/recommended-requiring-type-checking",
     "airbnb",
@@ -301,7 +301,7 @@
       }
     ],
     "@typescript-eslint/prefer-nullish-coalescing": ["error"],
-    "github/array-foreach": ["error"]
+    "unicorn/no-array-for-each": ["error"]
   },
   "settings": {
     "import/resolver": {
@@ -362,7 +362,7 @@
       ],
       "rules": {
         "@typescript-eslint/prefer-nullish-coalescing": ["off"],
-        "github/array-foreach": ["off"]
+        "unicorn/no-array-for-each": ["off"]
       }
     }
   ]
