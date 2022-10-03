@@ -524,13 +524,13 @@ where
 
         for target_id in property_type_ids {
             self.as_client().query_one(
-                r#"
+                    r#"
                         INSERT INTO property_type_property_type_references (source_property_type_version_id, target_property_type_version_id)
                         VALUES ($1, $2)
                         RETURNING source_property_type_version_id;
                     "#,
-                &[&version_id, &target_id],
-            )
+                    &[&version_id, &target_id],
+                )
                 .await
                 .into_report()
                 .change_context(InsertionError)?;
@@ -544,13 +544,13 @@ where
 
         for target_id in data_type_ids {
             self.as_client().query_one(
-                r#"
+                    r#"
                         INSERT INTO property_type_data_type_references (source_property_type_version_id, target_data_type_version_id)
                         VALUES ($1, $2)
                         RETURNING source_property_type_version_id;
                     "#,
-                &[&version_id, &target_id],
-            )
+                    &[&version_id, &target_id],
+                )
                 .await
                 .into_report()
                 .change_context(InsertionError)?;
@@ -572,13 +572,13 @@ where
 
         for target_id in property_type_ids {
             self.as_client().query_one(
-                r#"
+                    r#"
                         INSERT INTO entity_type_property_type_references (source_entity_type_version_id, target_property_type_version_id)
                         VALUES ($1, $2)
                         RETURNING source_entity_type_version_id;
                     "#,
-                &[&version_id, &target_id],
-            )
+                    &[&version_id, &target_id],
+                )
                 .await
                 .into_report()
                 .change_context(InsertionError)?;
@@ -597,13 +597,13 @@ where
 
         for target_id in link_type_ids {
             self.as_client().query_one(
-                r#"
+                    r#"
                         INSERT INTO entity_type_link_type_references (source_entity_type_version_id, target_link_type_version_id)
                         VALUES ($1, $2)
                         RETURNING source_entity_type_version_id;
                     "#,
-                &[&version_id, &target_id],
-            )
+                    &[&version_id, &target_id],
+                )
                 .await
                 .into_report()
                 .change_context(InsertionError)?;
@@ -617,13 +617,13 @@ where
 
         for target_id in entity_type_reference_ids {
             self.as_client().query_one(
-                r#"
+                    r#"
                         INSERT INTO entity_type_entity_type_links (source_entity_type_version_id, target_entity_type_version_id)
                         VALUES ($1, $2)
                         RETURNING source_entity_type_version_id;
                     "#,
-                &[&version_id, &target_id],
-            )
+                    &[&version_id, &target_id],
+                )
                 .await
                 .into_report()
                 .change_context(InsertionError)?;
@@ -716,13 +716,13 @@ where
             .into_report()
             .change_context(InsertionError)?;
         let version = self.as_client().query_one(
-            r#"
+                r#"
                     INSERT INTO entities (entity_id, version, entity_type_version_id, properties, owned_by_id)
                     VALUES ($1, clock_timestamp(), $2, $3, $4)
                     RETURNING version;
                 "#,
-            &[&entity_id, &entity_type_id, &value, &account_id],
-        )
+                &[&entity_id, &entity_type_id, &value, &account_id]
+            )
             .await
             .into_report()
             .change_context(InsertionError)?.get(0);
@@ -772,22 +772,22 @@ where
             .attach_printable(link.source_entity())?;
 
         self.as_client()
-            .query_one(
-                // TODO: Revisit insertion strategy, currently the burden of ordering is put on the
-                //   consumer of the API.
-                //   https://app.asana.com/0/1202805690238892/1202937382769278/f
-                r#"
+        .query_one(
+            // TODO: Revisit insertion strategy, currently the burden of ordering is put on the
+            //   consumer of the API.
+            //   https://app.asana.com/0/1202805690238892/1202937382769278/f
+            r#"
             INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, owned_by_id, link_index, created_at)
             VALUES ($1, $2, $3, $4, $5, clock_timestamp())
             RETURNING source_entity_id, target_entity_id, link_type_version_id;
             "#,
-                &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &owned_by_id, &link.index()],
-            )
-            .await
-            .into_report()
-            .change_context(InsertionError)
-            .attach_printable(owned_by_id)
-            .attach_lazy(|| link.clone())?;
+            &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &owned_by_id, &link.index()],
+        )
+        .await
+        .into_report()
+        .change_context(InsertionError)
+        .attach_printable(owned_by_id)
+        .attach_lazy(|| link.clone())?;
 
         Ok(())
     }
