@@ -888,7 +888,7 @@ impl PostgresStore<Transaction<'_>> {
 
     #[doc(hidden)]
     #[cfg(feature = "__internal_bench")]
-    async fn insert_entities(
+    async fn insert_entity_batch_by_type(
         &self,
         entity_ids: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
         entities: impl IntoIterator<Item = Entity, IntoIter: Send> + Send,

@@ -381,7 +381,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
 
     #[doc(hidden)]
     #[cfg(feature = "__internal_bench")]
-    async fn create_entities(
+    async fn insert_entities_batched_by_type(
         &mut self,
         entities: impl IntoIterator<Item = (Option<EntityId>, Entity), IntoIter: Send> + Send,
         entity_type_id: VersionedUri,

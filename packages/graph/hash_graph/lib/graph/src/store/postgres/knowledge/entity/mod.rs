@@ -150,7 +150,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
     #[doc(hidden)]
     #[cfg(feature = "__internal_bench")]
-    async fn create_entities(
+    async fn insert_entities_batched_by_type(
         &mut self,
         entities: impl IntoIterator<Item = (Option<EntityId>, Entity), IntoIter: Send> + Send,
         entity_type_id: VersionedUri,
@@ -179,7 +179,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .await
             .change_context(InsertionError)?;
         transaction
-            .insert_entities(
+            .insert_entity_batch_by_type(
                 entity_ids.iter().copied(),
                 entities,
                 entity_type_version_id,

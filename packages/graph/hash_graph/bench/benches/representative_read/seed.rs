@@ -137,7 +137,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
             .clone();
 
         store
-            .create_entities(
+            .insert_entities_batched_by_type(
                 repeat((None, entity)).take(quantity),
                 entity_type_id,
                 account_id,

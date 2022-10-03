@@ -60,7 +60,7 @@ async fn seed_db(
         .clone();
 
     let entity_ids = store
-        .create_entities(
+        .insert_entities_batched_by_type(
             repeat((None, entity)).take(total),
             entity_type_id,
             account_id,
