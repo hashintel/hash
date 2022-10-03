@@ -105,11 +105,17 @@ import {
   updateKnowledgePageContents,
   knowledgePageContents,
 } from "./knowledge/page";
-import { knowledgePage } from "./knowledge/page/page";
+import {
+  createKnowledgePage,
+  knowledgePage,
+  knowledgePages,
+  parentKnowledgePage,
+} from "./knowledge/page/page";
 import { knowledgeBlocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import { knowledgeEntity } from "./knowledge/entity/entity";
 import { UnresolvedKnowledgeEntityGQL } from "./knowledge/model-mapping";
+import { setParentKnowledgePage } from "./knowledge/page/set-parent-page";
 
 /**
  * @todo: derive these from the statically declared workspace type names
@@ -169,6 +175,7 @@ export const resolvers = {
     getEntityType: loggedInAndSignedUp(getEntityType),
     // Knowledge
     knowledgePage: loggedInAndSignedUp(knowledgePage),
+    knowledgePages: loggedInAndSignedUp(knowledgePages),
     knowledgeBlocks: loggedInAndSignedUp(knowledgeBlocks),
     knowledgeEntity: loggedInAndSignedUp(knowledgeEntity),
   },
@@ -219,6 +226,8 @@ export const resolvers = {
     updateLinkType: loggedInAndSignedUp(updateLinkType),
     createEntityType: loggedInAndSignedUp(createEntityType),
     updateEntityType: loggedInAndSignedUp(updateEntityType),
+    createKnowledgePage: loggedInAndSignedUp(createKnowledgePage),
+    setParentKnowledgePage: loggedInAndSignedUp(setParentKnowledgePage),
   },
 
   JSONObject: JSONObjectResolver,
@@ -337,6 +346,7 @@ export const resolvers = {
 
   KnowledgePage: {
     contents: knowledgePageContents,
+    parentPage: parentKnowledgePage,
   },
 
   /**

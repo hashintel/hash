@@ -2,21 +2,24 @@ import { useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
 import {
-  CreatePageMutation,
-  CreatePageMutationVariables,
+  CreateKnowledgePageMutation,
+  CreateKnowledgePageMutationVariables,
   SetParentPageMutation,
   SetParentPageMutationVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
-import { createPage, setParentPage } from "../../graphql/queries/page.queries";
+import {
+  createKnowledgePage,
+  setParentPage,
+} from "../../graphql/queries/page.queries";
 
-export const useCreateSubPage = (accountId: string) => {
+export const useCreateSubPage = (ownedById: string) => {
   const router = useRouter();
 
   const [createPageFn, { loading: createPageLoading }] = useMutation<
-    CreatePageMutation,
-    CreatePageMutationVariables
-  >(createPage);
+    CreateKnowledgePageMutation,
+    CreateKnowledgePageMutationVariables
+  >(createKnowledgePage);
 
   const [setParentPageFn, { loading: setParentPageLoading }] = useMutation<
     SetParentPageMutation,
@@ -34,12 +37,12 @@ export const useCreateSubPage = (accountId: string) => {
   const createSubPage = useCallback(
     async (parentPageEntityId: string, prevIndex: string | null) => {
       const response = await createPageFn({
-        variables: { accountId, properties: { title: "Untitled" } },
+        variables: { ownedById, properties: { title: "Untitled" } },
       });
 
-      if (response.data?.createPage) {
+      if (response.data?.createKnowledgePage) {
         const { accountId: pageAccountId, entityId: pageEntityId } =
-          response.data.createPage;
+          response.data.createKnowledgePage;
 
         await setParentPageFn({
           variables: {
@@ -53,7 +56,7 @@ export const useCreateSubPage = (accountId: string) => {
         await router.push(`/${pageAccountId}/${pageEntityId}`);
       }
     },
-    [createPageFn, accountId, setParentPageFn, router],
+    [createPageFn, ownedById, setParentPageFn, router],
   );
 
   return [
