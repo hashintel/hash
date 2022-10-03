@@ -154,17 +154,15 @@ const updateEntitiesByDraftId = (
 
   for (const entity of Object.values(draftEntityStore)) {
     if (isDraftBlockEntity(entity)) {
-      if (entity.properties.entity.draftId === draftId) {
-        entities.push(entity.properties.entity);
+      if (entity.dataEntity.draftId === draftId) {
+        entities.push(entity.dataEntity);
       }
 
       if (
-        isDraftTextContainingEntityProperties(
-          entity.properties.entity.properties,
-        ) &&
-        entity.properties.entity.properties.text.data.draftId === draftId
+        isDraftTextContainingEntityProperties(entity.dataEntity.properties) &&
+        entity.dataEntity.properties.text.data.draftId === draftId
       ) {
-        entities.push(entity.properties.entity.properties.text.data);
+        entities.push(entity.dataEntity.properties.text.data);
       }
     }
   }

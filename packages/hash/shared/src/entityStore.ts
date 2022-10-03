@@ -154,7 +154,6 @@ export const createEntityStore = (
   for (const entity of entities) {
     saved[entity.entityId] = entity;
     const draftId = entityToDraft[entity.entityId]!;
-
     /**
      * We current violate Immer's rules, as properties inside entities can be
      * other entities themselves, and we expect `entity.property.entity` to be

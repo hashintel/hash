@@ -793,7 +793,7 @@ const newInstance =
       pageEntityId,
       newState,
       manager,
-      data.page.contents,
+      data.knowledgePage.contents,
       entityWatcher,
       apolloClient,
     );
