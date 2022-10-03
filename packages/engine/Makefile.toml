@@ -28,10 +28,8 @@ dependencies = ["build-test-deps"]
 
 [tasks.run-integrations]
 private = true
-script = [
-    ". lib/execution/src/runner/python/runner_venv/bin/activate",
-    "cargo test --workspace --test integration --no-fail-fast --profile ${CARGO_MAKE_CARGO_PROFILE} --all-features"
-]
+extend = "cargo"
+args = ["test", "--workspace", "--test", "integration", "--no-fail-fast", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "--all-features"]
 dependencies = ["setup-python"]
 
 # The workspace crate (`hash_engine_lib`) does not have any source files but only the integration tests. `rustdoc` will

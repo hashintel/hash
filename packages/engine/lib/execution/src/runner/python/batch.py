@@ -4,15 +4,19 @@ import struct
 import pyarrow as pa
 
 import hash_util
-
-from shmem import load_shared_memory, pyarrow_of_shmem
+from wrappers import load_shared_mem
+from wrappers import shared_buf_from_c_memory
+from wrappers import dynamic_meta_from_c_memory
+from wrappers import static_meta_from_schema
+from wrappers import flush
+from wrappers import unload_shared_mem
 
 N_MARKER_BYTES = 8  # Markers are all u64s.
 N_MARKERS = 8  # NUMBER_OF_MARKERS in datastore/memory.rs.
 N_MARKERS_BYTES = N_MARKER_BYTES * N_MARKERS
 
 
-def _load_markers_unchecked(mem: pa.Buffer):
+def _load_markers_unchecked(mem):
     markers_bytes = mem[:N_MARKERS_BYTES].to_pybytes()
 
     # '<' implies little-endian.
@@ -103,8 +107,7 @@ def load_record_batch(mem, schema=None):
 
 # Returns dataset name, dataset contents and whether JSON could be loaded.
 def load_dataset(batch_id):
-    print("BATCH_ID", batch_id)
-    mem = load_shared_memory(batch_id)
+    mem = shared_buf_from_c_memory(load_shared_mem(batch_id))
     (_, _, header_offset, header_size, _, _, data_offset, data_size) = load_markers(mem)
 
     # The header has the shortname of the dataset
@@ -130,8 +133,7 @@ class Batch:
 
         self.mem_version = -1
         self.batch_version = -1
-        # After loading, `mem` will be a shared segment (in shmem.py there is a
-        # function to obtain a PyArrow foreign buffer from this).
+        # After loading, `mem` will be a shared buffer.
         self.mem = None
         # After loading, `record_batch` will be a record batch.
         self.record_batch = None
@@ -141,17 +143,22 @@ class Batch:
         # Syncing erases columns that have become invalid.
         self.cols = {}
 
+        # For flushing:
+        self.c_memory = None
+        self.dynamic_meta = None
+        self.static_meta = None
+
     def load_persisted_metaversion(self):
         if self.mem is None:
             return 0, 0, None
 
         # Can't verify markers right now as `self.mem` maybe needs to be reloaded first (e.g. after
         # resizing)
-        markers = _load_markers_unchecked(pyarrow_of_shmem(self.mem))
+        markers = _load_markers_unchecked(self.mem)
         (_, _, header_offset, _, _, _, _, _) = markers
 
         n_metaversion_bytes = 8  # Memory u32 + batch u32 version
-        metaversion_buffer = pyarrow_of_shmem(self.mem)[
+        metaversion_buffer = self.mem[
                              header_offset: header_offset + n_metaversion_bytes
                              ]
         metaversion_bytes = metaversion_buffer.to_pybytes()
@@ -171,8 +178,10 @@ class Batch:
                 should_load_batch
             ), "Should be impossible to have new memory without new batch"
 
-            assert batch["mem"] is not None
-            self.mem = batch["mem"]
+            # `load_shared_mem` throws an exception if loading fails,
+            # but otherwise the returned pointer to shared memory is non-null.
+            self.c_memory = load_shared_mem(batch.id)
+            self.mem = shared_buf_from_c_memory(self.c_memory)
 
             self.mem_version = persisted_mem_version
 
@@ -181,9 +190,12 @@ class Batch:
 
         if should_load_batch:
             self.record_batch, self.any_type_fields = load_record_batch(
-                pyarrow_of_shmem(self.mem), schema
+                self.mem, schema
             )
             self.cols = {}  # Avoid using obsolete column data.
+            self.static_meta = static_meta_from_schema(self.record_batch.schema)
+            self.dynamic_meta = dynamic_meta_from_c_memory(self.c_memory)
+
             self.batch_version = persisted_batch_version
 
     def load_col(self, name, loader=None):
@@ -219,7 +231,7 @@ class Batch:
         # Dynamically accessed columns (if any) were added to `cols` by `state`.
         changes = []
         for field_name, col in self.cols.items():
-            if field_name in skip or not col or len(col) == 0:
+            if field_name in skip or not isinstance(col, list) or len(col) == 0:
                 # Assume that column wasn't written to or was writable in place.
                 # TODO: More robust check for this (i.e. for shallow-loaded columns)
                 continue
@@ -245,7 +257,16 @@ class Batch:
                 {"i_field": i_field, "data": pa.array(py_col, type=field.type)}
             )
 
-        return changes
+        if len(changes) == 0:
+            return
+
+        self.batch_version += 1
+        did_resize = flush(self.c_memory, self.dynamic_meta, self.static_meta, changes)
+        if did_resize:
+            # `c_memory` is updated inside `_flush_changes` if memory is resized.
+            self.mem_version += 1
+            self.mem = shared_buf_from_c_memory(self.c_memory)
+            self.dynamic_meta = dynamic_meta_from_c_memory(self.c_memory)
 
 
 class Batches:
@@ -256,13 +277,19 @@ class Batches:
         return self.batches[batch_id]
 
     def sync(self, latest_batch, schema=None):
-        loaded_batch = self.batches.get(latest_batch["id"])
+        loaded_batch = self.batches.get(latest_batch.id)
         if loaded_batch is None:
-            self.batches[latest_batch["id"]] = loaded_batch = Batch(latest_batch["id"])
+            self.batches[latest_batch.id] = loaded_batch = Batch(latest_batch.id)
 
         # `loaded_batch` is changed in-place. Return is for convenience.
         loaded_batch.sync(latest_batch, schema)
         return loaded_batch
 
     def free(self):
+        # TODO: Check that this releases references to shared memory
+        #       (Call _free_rust_static_meta, _free_rust_dynamic_meta here?)
+        #   see https://app.asana.com/0/1201461747883418/1201634225076144/f
+        # TODO: Make this the `__del__` method?
+        for batch in self.batches.values():
+            unload_shared_mem(batch.c_memory)
         self.batches = {}
