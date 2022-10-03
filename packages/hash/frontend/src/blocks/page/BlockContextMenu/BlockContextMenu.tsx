@@ -266,25 +266,27 @@ const BlockContextMenu: ForwardRefRenderFunction<
             )?.name
           }
         </Typography>
-
-        {typeof blockEntity?.properties.entity.updatedAt === "string" && (
-          <Typography
-            variant="microText"
-            sx={({ palette }) => ({
-              color: palette.gray[60],
-            })}
-          >
-            {format(
-              new Date(blockEntity.properties.entity.updatedAt),
-              "hh.mm a",
-            )}
-            {", "}
-            {format(
-              new Date(blockEntity.properties.entity.updatedAt),
-              "dd/MM/yyyy",
-            )}
-          </Typography>
-        )}
+        {/** @todo 
+         {typeof blockEntity?.properties.entity.updatedAt ===
+            "string" && (
+            <Typography
+              variant="microText"
+              sx={({ palette }) => ({
+                color: palette.gray[60],
+              })}
+            >
+              {format(
+                new Date(blockEntity.properties.entity.updatedAt),
+                "hh.mm a",
+              )}
+              {", "}
+              {format(
+                new Date(blockEntity.properties.entity.updatedAt),
+                "dd/MM/yyyy",
+              )}
+            </Typography>
+          )
+        } */}
       </Box>
     </Menu>
   );
