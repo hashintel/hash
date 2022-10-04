@@ -1,23 +1,14 @@
-import { faClose, faSearch } from "@fortawesome/free-solid-svg-icons";
-import { Button, ButtonProps } from "@hashintel/hash-design-system/button";
+import { faClose } from "@fortawesome/free-solid-svg-icons";
 import { Chip } from "@hashintel/hash-design-system/chip";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { IconButton } from "@hashintel/hash-design-system/icon-button";
 import { TextField } from "@hashintel/hash-design-system/text-field";
-import { textFieldBorderRadius } from "@hashintel/hash-design-system/theme/components/inputs/mui-outlined-input-theme-options";
 import {
-  Autocomplete,
-  autocompleteClasses,
   Box,
   ButtonBase,
   Checkbox,
   checkboxClasses,
-  experimental_sx,
   outlinedInputClasses,
-  Paper,
-  PaperProps,
-  PopperProps,
-  styled,
   svgIconClasses,
   Table,
   TableBody,
@@ -28,7 +19,6 @@ import {
   TableHead,
   TableRow,
   tableRowClasses,
-  Theme,
   Typography,
   useForkRef,
 } from "@mui/material";
@@ -38,171 +28,16 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import {
-  createContext,
-  Ref,
-  useContext,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Ref, useId, useRef, useState } from "react";
 import { Modal } from "../../../components/Modals/Modal";
-import { ArrowUpRightIcon, CirclePlusIcon } from "../../../shared/icons/svg";
-import { PropertyTypeForm } from "./property-type-form";
-import { OntologyChip } from "./ontology-chip";
-import { PlaceholderIcon } from "./placeholder-icon";
+import { PropertyListSelectorDropdownContext } from "./property-list-selector-dropdown";
 import { PropertyMenu } from "./property-menu";
+import { PropertySelector } from "./property-selector";
+import { PropertyTypeForm } from "./property-type-form";
 import { QuestionIcon } from "./question-icon";
+import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 import { useStateCallback, withHandler } from "./util";
 import { WhiteCard } from "./white-card";
-
-const StyledPlusCircleIcon = styled(CirclePlusIcon)(
-  experimental_sx<Theme>({
-    height: "12px",
-  }),
-);
-
-type PaperWithCreateButtonProps = {
-  query: string;
-  createButtonProps: Omit<ButtonProps, "children" | "variant" | "size">;
-};
-
-const PaperWithCreateButtonContext =
-  createContext<PaperWithCreateButtonProps | null>(null);
-
-const usePaperWithCreateButtonContext = () => {
-  const value = useContext(PaperWithCreateButtonContext);
-  if (value === null) {
-    throw new Error("Must wrap with PaperWithCreateButtonContext.Provider");
-  }
-  return value;
-};
-
-const AUTOCOMPLETE_INPUT_HEIGHT = 57;
-
-const PaperWithCreateButton = ({ children, ...props }: PaperProps) => {
-  const { query, createButtonProps } = usePaperWithCreateButtonContext();
-  return (
-    <>
-      <Box
-        sx={(theme) => ({
-          position: "absolute",
-          left: 0,
-          right: 0,
-          width: "100%",
-          height: `calc(100% + ${AUTOCOMPLETE_INPUT_HEIGHT}px)`,
-          boxShadow: theme.boxShadows.md,
-          pointerEvents: "none",
-          borderRadius: `${textFieldBorderRadius}px`,
-          [`[data-popper-placement="top"] &`]: {
-            bottom: -AUTOCOMPLETE_INPUT_HEIGHT,
-          },
-          [`[data-popper-placement="bottom"] &`]: {
-            top: -AUTOCOMPLETE_INPUT_HEIGHT,
-          },
-        })}
-        aria-hidden
-      />
-      <Paper
-        {...props}
-        sx={(theme) => ({
-          p: 1,
-          border: 1,
-          boxSizing: "border-box",
-          borderColor: theme.palette.gray[30],
-          boxShadow: "none",
-          [`[data-popper-placement="top"] &`]: {
-            borderBottom: 0,
-            borderBottomLeftRadius: 0,
-            borderBottomRightRadius: 0,
-          },
-          [`[data-popper-placement="bottom"] &`]: {
-            borderTop: 0,
-            borderTopLeftRadius: 0,
-            borderTopRightRadius: 0,
-          },
-
-          [`.${autocompleteClasses.listbox}`]: { p: 0 },
-          [`.${autocompleteClasses.noOptions}`]: { display: "none" },
-          [`.${autocompleteClasses.option}`]: {
-            borderRadius: 1,
-            "&.Mui-focused": {
-              backgroundColor: `${theme.palette.gray[10]} !important`,
-            },
-          },
-        })}
-      >
-        {children}
-        <Button
-          variant="tertiary"
-          startIcon={<StyledPlusCircleIcon />}
-          sx={{
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            mt: 1,
-          }}
-          {...createButtonProps}
-        >
-          <Typography
-            variant="smallTextLabels"
-            sx={(theme) => ({
-              color: theme.palette.gray[60],
-              fontWeight: 500,
-            })}
-          >
-            Create
-          </Typography>
-          {query ? (
-            <>
-              &nbsp;
-              <Typography
-                variant="smallTextLabels"
-                sx={(theme) => ({
-                  color: theme.palette.gray[60],
-                  fontWeight: 600,
-                })}
-              >
-                {query}
-              </Typography>
-            </>
-          ) : null}
-          <Chip color="purple" label="PROPERTY TYPE" sx={{ ml: 1.5 }} />
-        </Button>
-      </Paper>
-    </>
-  );
-};
-
-const insertPropertyOptions = [
-  {
-    title: "Share Price",
-    icon: <PlaceholderIcon />,
-    domain: "hash.ai",
-    path: "@nasdaq",
-    expectedValues: ["Currency"],
-    description: "A company's current price per share",
-  },
-  {
-    title: "Stock Symbol ",
-    icon: <PlaceholderIcon />,
-    domain: "hash.ai",
-    path: "@acme-corp",
-    expectedValues: ["Text"],
-    description:
-      "An abbreviation used to uniquely identify public traded shares",
-  },
-  {
-    title: "Ownership Percentage",
-    icon: <PlaceholderIcon />,
-    domain: "hash.ai",
-    path: "@wrapped-text-that-is-long-enough",
-    expectedValues: ["Number"],
-    description:
-      "An entity’s ownership stake in another entity expressed as a property with a bunch of text long enough to make it wrap",
-  },
-];
 
 const InsertPropertyRow = ({
   inputRef,
@@ -223,34 +58,6 @@ const InsertPropertyRow = ({
 
   const ourInputRef = useRef<HTMLInputElement>(null);
   const sharedRef = useForkRef(inputRef, ourInputRef);
-  const [open, setOpen] = useState(false);
-
-  const modifiers = useMemo(
-    (): PopperProps["modifiers"] => [
-      {
-        name: "addPositionClass",
-        enabled: true,
-        phase: "write",
-        fn({ state }) {
-          if (state.elements.reference instanceof HTMLElement) {
-            state.elements.reference.setAttribute(
-              "data-popper-placement",
-              state.placement,
-            );
-          }
-        },
-      },
-      {
-        name: "preventOverflow",
-        enabled: false,
-      },
-    ],
-    [],
-  );
-
-  const highlightedRef = useRef<null | typeof insertPropertyOptions[number]>(
-    null,
-  );
 
   return (
     <TableRow
@@ -261,7 +68,7 @@ const InsertPropertyRow = ({
       }}
     >
       <TableCell colSpan={2}>
-        <PaperWithCreateButtonContext.Provider
+        <PropertyListSelectorDropdownContext.Provider
           value={
             // eslint-disable-next-line react/jsx-no-constructed-context-values
             {
@@ -278,163 +85,15 @@ const InsertPropertyRow = ({
             }
           }
         >
-          <Autocomplete
-            open={open}
-            onOpen={() => setOpen(true)}
-            onClose={(_, reason) => {
-              if (reason !== "toggleInput") {
-                setOpen(false);
-              }
-            }}
-            popupIcon={null}
-            clearIcon={null}
-            forcePopupIcon={false}
-            selectOnFocus={false}
-            openOnFocus
-            inputValue={searchText}
-            clearOnBlur={false}
-            onInputChange={(_, value) => setSearchText(value)}
-            onHighlightChange={(_, value) => {
-              highlightedRef.current = value;
-            }}
-            onChange={() => onAdd()}
-            onKeyDown={(evt) => {
-              switch (evt.key) {
-                case "Enter":
-                  if (!highlightedRef.current) {
-                    modalPopupState.open();
-                  }
-                  break;
-                case "Escape":
-                  onCancel();
-                  break;
-              }
-            }}
-            onBlur={() => {
-              if (!modalPopupState.isOpen) {
-                onCancel();
-              }
-            }}
-            renderInput={(props) => (
-              <TextField
-                {...props}
-                placeholder="Search for a property type"
-                sx={{
-                  width: "100%",
-                }}
-                inputRef={sharedRef}
-                InputProps={{
-                  ...props.InputProps,
-                  endAdornment: (
-                    <FontAwesomeIcon
-                      icon={faSearch}
-                      sx={(theme) => ({
-                        fontSize: 12,
-                        mr: 2,
-                        color: theme.palette.gray[50],
-                      })}
-                    />
-                  ),
-                  sx: (theme) => ({
-                    // The popover needs to know how tall this is to draw
-                    // a shadow around it
-                    height: AUTOCOMPLETE_INPUT_HEIGHT,
-
-                    // Focus is handled by the options popover
-                    "&.Mui-focused": {
-                      boxShadow: "none",
-                    },
-
-                    [`.${outlinedInputClasses.notchedOutline}`]: {
-                      border: `1px solid ${theme.palette.gray[30]} !important`,
-                    },
-
-                    ...(open && {
-                      [`&[data-popper-placement="bottom"]`]: {
-                        borderBottom: 0,
-                        borderBottomLeftRadius: 0,
-                        borderBottomRightRadius: 0,
-                      },
-                      [`&[data-popper-placement="top"]`]: {
-                        borderTop: 0,
-                        borderTopLeftRadius: 0,
-                        borderTopRightRadius: 0,
-                      },
-                    }),
-                  }),
-                }}
-              />
-            )}
-            options={insertPropertyOptions}
-            getOptionLabel={(obj) => obj.title}
-            renderOption={(props, option) => (
-              <li {...props}>
-                <Box width="100%">
-                  <Box
-                    width="100%"
-                    display="flex"
-                    alignItems="center"
-                    mb={0.5}
-                    whiteSpace="nowrap"
-                  >
-                    <Box
-                      component="span"
-                      flexShrink={0}
-                      display="flex"
-                      alignItems="center"
-                    >
-                      <Typography
-                        variant="smallTextLabels"
-                        fontWeight={500}
-                        mr={0.5}
-                        color="black"
-                      >
-                        {option.title}
-                      </Typography>
-                      <ArrowUpRightIcon />
-                    </Box>
-                    <OntologyChip
-                      icon={option.icon}
-                      domain={option.domain}
-                      path={
-                        <Typography
-                          component="span"
-                          fontWeight="bold"
-                          color={(theme) => theme.palette.blue[70]}
-                        >
-                          {option.path}
-                        </Typography>
-                      }
-                      sx={{ flexShrink: 1, ml: 1.25, mr: 2 }}
-                    />
-                    <Box ml="auto">
-                      {option.expectedValues.map((value) => (
-                        <Chip key={value} color="gray" label={value} />
-                      ))}
-                    </Box>
-                  </Box>
-                  <Typography
-                    component={Box}
-                    variant="microText"
-                    sx={(theme) => ({
-                      color: theme.palette.gray[50],
-                      whiteSpace: "nowrap",
-                      textOverflow: "ellipsis",
-                      overflow: "hidden",
-                      width: "100%",
-                    })}
-                  >
-                    {option.description}
-                  </Typography>
-                </Box>
-              </li>
-            )}
-            PaperComponent={PaperWithCreateButton}
-            componentsProps={{
-              popper: { modifiers },
-            }}
+          <PropertySelector
+            searchText={searchText}
+            onSearchTextChange={setSearchText}
+            ref={sharedRef}
+            modalPopupState={modalPopupState}
+            onAdd={onAdd}
+            onCancel={onCancel}
           />
-        </PaperWithCreateButtonContext.Provider>
+        </PropertyListSelectorDropdownContext.Provider>
         <Modal
           {...bindPopover(modalPopupState)}
           disableEscapeKeyDown
