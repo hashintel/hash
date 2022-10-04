@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::{Context, Report};
+use crate::{exit::Exit, Context, Report};
 
 /// [`Result`](std::result::Result)`<T, `[`Report<C>`](Report)`>`
 ///
@@ -209,5 +209,15 @@ where
             Ok(value) => Ok(value),
             Err(error) => Err(Report::from(error)),
         }
+    }
+}
+
+pub trait IntoExit<T, C> {
+    fn into_exit(self) -> Exit<T, C>;
+}
+
+impl<T, C> IntoExit<T, C> for Result<T, C> {
+    fn into_exit(self) -> Exit<T, C> {
+        Exit::from(self)
     }
 }

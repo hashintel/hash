@@ -464,6 +464,7 @@ pub mod future;
 pub mod iter;
 
 mod compat;
+mod exit;
 mod frame;
 mod macros;
 mod report;
@@ -483,10 +484,11 @@ pub use self::hook::HookAlreadySet;
 pub use self::{
     compat::IntoReportCompat,
     context::Context,
+    exit::Exit,
     frame::{AttachmentKind, Frame, FrameKind},
     macros::*,
     report::Report,
-    result::Result,
+    result::{IntoExit, Result},
 };
 #[doc(inline)]
 pub use self::{
