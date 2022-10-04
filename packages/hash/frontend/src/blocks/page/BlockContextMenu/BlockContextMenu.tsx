@@ -266,7 +266,8 @@ const BlockContextMenu: ForwardRefRenderFunction<
             )?.name
           }
         </Typography>
-        {/** @todo 
+        {/** 
+         * @todo re-implement after collab works https://app.asana.com/0/0/1203099452204542/f
          {typeof blockEntity?.properties.entity.updatedAt ===
             "string" && (
             <Typography

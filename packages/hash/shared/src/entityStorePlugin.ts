@@ -200,7 +200,8 @@ const setBlockChildEntity = (
       draftId: targetEntityDraftId,
       entityId: targetEntity.entityId,
       properties: targetEntity.properties,
-      updatedAt: new Date().toISOString() /** @todo fix */,
+      /** @todo use the actual updated date here https://app.asana.com/0/0/1203099452204542/f */
+      updatedAt: new Date().toISOString(),
     };
 
     draftEntityStore[targetEntityDraftId] = targetDraftEntity;

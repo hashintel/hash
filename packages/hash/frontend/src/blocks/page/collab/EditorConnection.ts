@@ -262,7 +262,7 @@ export class EditorConnection {
   // for a new version of the document to be created if the client
   // is already up-to-date.
   poll() {
-    /** @todo re-enable polling https://app.asana.com/0/1200211978612931/1202924026802709/f  */
+    /** @todo re-enable polling https://app.asana.com/0/0/1203099452204542/f  */
     if (true) {
       return;
     }
@@ -396,7 +396,7 @@ export class EditorConnection {
       actions?: TrackedAction[];
     } = {},
   ) {
-    /** @todo re-enable sending https://app.asana.com/0/1200211978612931/1202924026802709/f  */
+    /** @todo re-enable sending https://app.asana.com/0/0/1203099452204542/f  */
     if (true) {
       return;
     }

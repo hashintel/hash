@@ -24,6 +24,7 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   entityTypeId?: string | null;
   entityVersion?: string | null;
   entityType?: MinimalEntityTypeFieldsFragment;
+  /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
   dataEntity?: Type;
 
   // @todo thinking about removing this – as they're keyed by this anyway
@@ -33,6 +34,7 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
 
   updatedAt: string;
 
+  /** @todo fix the following links that were disabled https://app.asana.com/0/0/1203099452204542/f */
   linkGroups?: undefined;
   // Type extends { linkGroups: any }
   //   ? Type["linkGroups"]

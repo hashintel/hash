@@ -149,6 +149,7 @@ export class ProsemirrorManager {
     if (draftBlockId && entityStore?.draft[draftBlockId]) {
       const entityInStore = entityStore.draft[draftBlockId];
       if (!isDraftBlockEntity(entityInStore)) {
+        /** @todo Make these errors instead of logs https://app.asana.com/0/0/1203099452204542/f */
         console.error("Block entity missing from store");
       }
 
