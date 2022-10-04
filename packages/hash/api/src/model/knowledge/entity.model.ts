@@ -124,24 +124,36 @@ export default class {
   /**
    * Create an entity along with any new/existing entities specified through links.
    *
-   * @param params.ownedById the id of owner of the entity
-   * @param params.entityDefinition the definition of how to get or create the entity optionally with linked entities
+   * @param params.ownedById - the id of owner of the entity
+   * @param params.entityTypeId - the id of the entity's type
+   * @param params.entityProperties - the properties of the entity
+   * @param params.linkedEntities (optional) - the linked entity definitions of the entity
    */
   static async createEntityWithLinks(
     graphApi: GraphApi,
     params: {
       ownedById: string;
-      entityDefinition: KnowledgeEntityDefinition;
+      entityTypeId: string;
+      properties: any;
+      linkedEntities?: KnowledgeLinkedEntityDefinition[];
     },
   ): Promise<EntityModel> {
-    const { ownedById, entityDefinition } = params;
+    const { ownedById, entityTypeId, properties, linkedEntities } = params;
 
     const entitiesInTree = linkedTreeFlatten<
       KnowledgeEntityDefinition,
       KnowledgeLinkedEntityDefinition,
       "linkedEntities",
       "entity"
-    >(entityDefinition, "linkedEntities", "entity");
+    >(
+      {
+        entityType: { entityTypeId },
+        entityProperties: properties,
+        linkedEntities,
+      },
+      "linkedEntities",
+      "entity",
+    );
 
     /**
      * @todo Once the graph API validates the required links of entities on creation, this may have to be reworked in order
