@@ -365,7 +365,7 @@ export class ApiClient {
         getAccountPagesTree,
         vars,
       )
-      .then((res) => res.accountPages);
+      .then((res) => res.knowledgePages);
 
   updatePageContents = async (vars: UpdatePageContentsMutationVariables) =>
     this.client

@@ -145,14 +145,13 @@ export const getPage = gql`
 `;
 
 export const getAccountPagesTree = gql`
-  query getAccountPagesTree($accountId: ID!) {
-    accountPages(accountId: $accountId) {
+  query getAccountPagesTree($ownedById: ID!) {
+    knowledgePages(ownedById: $ownedById) {
       entityId
-      properties {
-        title
-        pageEntityId
+      title
+      parentPage {
+        entityId
       }
-      parentPageEntityId
     }
   }
 `;

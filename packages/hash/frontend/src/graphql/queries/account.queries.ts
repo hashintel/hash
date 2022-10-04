@@ -32,19 +32,6 @@ export const getAccounts = gql`
   }
 `;
 
-export const getAccountPages = gql`
-  query getAccountPages($accountId: ID!) {
-    accountPages(accountId: $accountId) {
-      entityId
-      properties {
-        pageEntityId
-        title
-        summary
-      }
-    }
-  }
-`;
-
 export const getAccountPagesTree = gql`
   query getAccountPagesTree($ownedById: ID) {
     knowledgePages(ownedById: $ownedById) {

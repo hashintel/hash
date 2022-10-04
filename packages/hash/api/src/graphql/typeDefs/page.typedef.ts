@@ -144,12 +144,6 @@ export const pageTypedef = gql`
     Return a page by its id
     """
     page(accountId: ID!, entityVersionId: ID, entityId: ID): Page!
-
-    """
-    Return a list of pages belonging to an account
-    """
-    accountPages(accountId: ID!): [Page!]!
-
     """
     Search for pages matching a query string.
     Returns a BAD_USER_INPUT error if the query string is empty.

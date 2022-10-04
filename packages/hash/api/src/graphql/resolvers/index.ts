@@ -15,7 +15,6 @@ import { createLink } from "./link/createLink";
 import { deleteLink } from "./link/deleteLink";
 import { blocks, blockProperties, blockLinkedEntities } from "./block";
 import {
-  accountPages,
   page,
   pageProperties,
   updatePage,
@@ -142,7 +141,6 @@ const isWorkspaceEntityGQLTypeName = (
 export const resolvers = {
   Query: {
     // Logged in and signed up users only
-    accountPages: loggedInAndSignedUp(accountPages),
     accounts:
       loggedInAndSignedUp(
         accounts,
