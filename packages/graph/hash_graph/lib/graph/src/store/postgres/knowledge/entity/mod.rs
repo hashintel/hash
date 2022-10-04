@@ -174,6 +174,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         transaction
             .insert_entity_ids(entity_ids.iter().copied())
             .await?;
+
+        // Using one entity type per entity would result in more lookups, which results in a more
+        // complex logic and/or be inefficient.
+        // Please see the documentation for this function on the trait for more information.
         let entity_type_version_id = transaction
             .version_id_by_uri(&entity_type_id)
             .await
