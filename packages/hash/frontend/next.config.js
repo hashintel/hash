@@ -38,13 +38,6 @@ process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_EDITOR =
 module.exports = withSentryConfig(
   withBundleAnalyzer(
     withTM({
-      redirects: () => [
-        {
-          source: "/:accountslug/entities/:entityid",
-          destination: "/:accountslug/entities/:entityid/overview",
-          permanent: true,
-        },
-      ],
       pageExtensions: ["page.tsx", "page.ts", "page.jsx", "page.jsx", "api.ts"],
 
       // We call linters in GitHub Actions for all pull requests. By not linting

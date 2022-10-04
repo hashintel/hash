@@ -1,10 +1,10 @@
 import { Typography } from "@mui/material";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
-import { EntityPageWrapper } from "./shared/entity-page-wrapper";
-import { EntitySection } from "./shared/entity-section";
-import { PropertiesSection } from "./overview.page/properties-section";
-import { LinksSection } from "./overview.page/links-section";
-import { PeersSection } from "./overview.page/peers-section";
+import { EntityPageWrapper } from "./entity-page-wrapper";
+import { EntitySection } from "./entity-section";
+import { PropertiesSection } from "./properties-section";
+import { LinksSection } from "./links-section";
+import { PeersSection } from "./peers-section";
 
 const Page: NextPageWithLayout = () => {
   return (

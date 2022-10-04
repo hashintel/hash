@@ -10,7 +10,7 @@ import {
   TableRow,
   TableSortLabel,
 } from "@mui/material";
-import { EntitySection } from "../shared/entity-section";
+import { EntitySection } from "./entity-section";
 
 const properties: { name: string; value: string }[] = [
   { name: "Headcount", value: "221,000" },
