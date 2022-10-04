@@ -381,9 +381,9 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
 
     /// Inserts the entities with the specified [`EntityType`] into the `Store`.
     ///
-    /// This is only supporting a single entity type, not an entity type per entity. Entity type
-    /// is stored in a different table and would need to be queried for each, this would be a lot
-    /// less efficient.
+    /// This is only supporting a single [`EntityType`], not one [`EntityType`] per entity.
+    /// [`EntityType`]s is stored in a different table and would need to be queried for each,
+    /// this would be a lot less efficient.
     ///
     /// This is not supposed to be used outside of benchmarking as in the long term we need to
     /// figure out how to deal with batch inserting.
