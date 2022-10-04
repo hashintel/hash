@@ -102,10 +102,10 @@ import {
   updateEntityType,
 } from "./ontology/entity-type";
 import {
-  updateKnowledgePageContents,
-  knowledgePageContents,
+  updatePersistedPageContents,
+  persistedPageContents,
 } from "./knowledge/page";
-import { knowledgePage } from "./knowledge/page/page";
+import { persistedPage } from "./knowledge/page/page";
 import { knowledgeBlocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import { persistedEntity } from "./knowledge/entity/entity";
@@ -121,7 +121,7 @@ import {
  * @see https://app.asana.com/0/1202805690238892/1203063463721797/f
  */
 const workpsaceEntityGQLTypeNames = [
-  "KnowledgePage",
+  "PersistedPage",
   "KnowledgeBlock",
 ] as const;
 
@@ -173,7 +173,7 @@ export const resolvers = {
     getAllLatestEntityTypes: loggedInAndSignedUp(getAllLatestEntityTypes),
     getEntityType: loggedInAndSignedUp(getEntityType),
     // Knowledge
-    knowledgePage: loggedInAndSignedUp(knowledgePage),
+    persistedPage: loggedInAndSignedUp(persistedPage),
     knowledgeBlocks: loggedInAndSignedUp(knowledgeBlocks),
     persistedEntity: loggedInAndSignedUp(persistedEntity),
     outgoingPersistedLinks: loggedInAndSignedUp(outgoingPersistedLinks),
@@ -200,8 +200,8 @@ export const resolvers = {
     deprecatedUpdateEntityType: loggedInAndSignedUp(deprecatedUpdateEntityType),
     updatePage: loggedInAndSignedUp(updatePage),
     updatePageContents: loggedInAndSignedUp(updatePageContents),
-    updateKnowledgePageContents: loggedInAndSignedUp(
-      updateKnowledgePageContents,
+    updatePersistedPageContents: loggedInAndSignedUp(
+      updatePersistedPageContents,
     ),
     joinOrg: loggedInAndSignedUp(joinOrg),
     requestFileUpload: loggedInAndSignedUp(requestFileUpload),
@@ -325,7 +325,7 @@ export const resolvers = {
   PersistedEntity: {
     /**
      * Determines whether a `PersistedEntity` instance should be treated as a
-     * workspace GQL type definition (for example as a `KnowledgePage`), or
+     * workspace GQL type definition (for example as a `PersistedPage`), or
      * whether to treat it is an `UnknownPersistedEntity`.
      */
     __resolveType: ({
@@ -344,8 +344,8 @@ export const resolvers = {
     },
   },
 
-  KnowledgePage: {
-    contents: knowledgePageContents,
+  PersistedPage: {
+    contents: persistedPageContents,
   },
 
   /**

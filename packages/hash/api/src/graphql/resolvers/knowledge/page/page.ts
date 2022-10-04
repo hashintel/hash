@@ -1,17 +1,17 @@
 import { PageModel } from "../../../../model";
 
-import { QueryKnowledgePageArgs, ResolverFn } from "../../../apiTypes.gen";
+import { QueryPersistedPageArgs, ResolverFn } from "../../../apiTypes.gen";
 import { GraphQLContext } from "../../../context";
 import {
-  UnresolvedKnowledgePageGQL,
+  UnresolvedPersistedPageGQL,
   mapPageModelToGQL,
 } from "../model-mapping";
 
-export const knowledgePage: ResolverFn<
-  Promise<UnresolvedKnowledgePageGQL>,
+export const persistedPage: ResolverFn<
+  Promise<UnresolvedPersistedPageGQL>,
   {},
   GraphQLContext,
-  QueryKnowledgePageArgs
+  QueryPersistedPageArgs
 > = async (_, { entityId, entityVersion }, { dataSources: { graphApi } }) => {
   const pageModel = await PageModel.getPageById(graphApi, {
     entityId,

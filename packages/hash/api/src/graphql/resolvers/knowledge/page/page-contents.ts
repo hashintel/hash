@@ -5,12 +5,12 @@ import { LoggedInGraphQLContext } from "../../../context";
 import {
   mapBlockModelToGQL,
   UnresolvedPersistedEntityGQL,
-  UnresolvedKnowledgePageGQL,
+  UnresolvedPersistedPageGQL,
 } from "../model-mapping";
 
-export const knowledgePageContents: ResolverFn<
+export const persistedPageContents: ResolverFn<
   Promise<UnresolvedPersistedEntityGQL[]>,
-  UnresolvedKnowledgePageGQL,
+  UnresolvedPersistedPageGQL,
   LoggedInGraphQLContext,
   {}
 > = async ({ entityId }, _, { dataSources }) => {

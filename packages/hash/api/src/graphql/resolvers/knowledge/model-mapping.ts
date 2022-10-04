@@ -3,7 +3,7 @@ import {
   KnowledgeBlock,
   PersistedEntity,
   PersistedLink,
-  KnowledgePage,
+  PersistedPage,
 } from "../../apiTypes.gen";
 import { mapEntityTypeModelToGQL } from "../ontology/model-mapping";
 
@@ -31,17 +31,17 @@ export const mapEntityModelToGQL = (
   workspaceTypeName: entityModel.entityTypeModel.workspaceTypeName,
 });
 
-export type ExternalKnowledgePageResolversGQL =
+export type ExternalPersistedPageResolversGQL =
   | ExternalPersistedEntityResolversGQL
   | "contents";
-export type UnresolvedKnowledgePageGQL = Omit<
-  KnowledgePage,
-  ExternalKnowledgePageResolversGQL
+export type UnresolvedPersistedPageGQL = Omit<
+  PersistedPage,
+  ExternalPersistedPageResolversGQL
 >;
 
 export const mapPageModelToGQL = (
   pageModel: PageModel,
-): UnresolvedKnowledgePageGQL => ({
+): UnresolvedPersistedPageGQL => ({
   ...mapEntityModelToGQL(pageModel),
   title: pageModel.getTitle(),
   properties: pageModel.properties,

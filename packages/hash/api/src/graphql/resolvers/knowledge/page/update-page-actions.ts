@@ -9,7 +9,7 @@ import {
   InsertKnowledgeBlockAction,
   SwapKnowledgeBlockDataAction,
   UpdatePersistedEntityAction,
-  UpdateKnowledgePageAction,
+  UpdatePersistedPageAction,
 } from "../../../apiTypes.gen";
 
 export const createEntityWithPlaceholdersFn =
@@ -49,7 +49,7 @@ export const createEntityWithPlaceholdersFn =
     });
   };
 
-type UpdatePageActionKey = keyof UpdateKnowledgePageAction;
+type UpdatePageActionKey = keyof UpdatePersistedPageAction;
 
 /**
  * @optimization instead of iterating the actions list on every call, we can
@@ -59,11 +59,11 @@ type UpdatePageActionKey = keyof UpdateKnowledgePageAction;
  *   iteration is very cheap.
  */
 export const filterForAction = <T extends UpdatePageActionKey>(
-  actions: UpdateKnowledgePageAction[],
+  actions: UpdatePersistedPageAction[],
   key: T,
-): { action: NonNullable<UpdateKnowledgePageAction[T]>; index: number }[] =>
+): { action: NonNullable<UpdatePersistedPageAction[T]>; index: number }[] =>
   actions.reduce<
-    { action: NonNullable<UpdateKnowledgePageAction[T]>; index: number }[]
+    { action: NonNullable<UpdatePersistedPageAction[T]>; index: number }[]
   >((acc, current, index) => {
     if (current != null && key in current) {
       acc.push({ action: current[key]!, index });

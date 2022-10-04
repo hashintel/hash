@@ -1,7 +1,7 @@
 import { gql } from "apollo-server-express";
 
-export const knowledgePageTypedef = gql`
-  type KnowledgePage implements PersistedEntity {
+export const persistedPageTypedef = gql`
+  type PersistedPage implements PersistedEntity {
     """
     The title of the page.
     """
@@ -78,7 +78,7 @@ export const knowledgePageTypedef = gql`
     """
     Get a page by its entity id.
     """
-    knowledgePage(
+    persistedPage(
       """
       The id of the page entity.
       """
@@ -87,7 +87,7 @@ export const knowledgePageTypedef = gql`
       The version of the page entity. Defaults to the latest version.
       """
       entityVersion: String
-    ): KnowledgePage!
+    ): PersistedPage!
   }
 
   """
@@ -231,7 +231,7 @@ export const knowledgePageTypedef = gql`
   Note: a union type would be preferrable here, but currently, GraphQL does not
   permit unions as input to a mutation
   """
-  input UpdateKnowledgePageAction {
+  input UpdatePersistedPageAction {
     insertBlock: InsertKnowledgeBlockAction
     removeBlock: RemoveKnowledgeBlockAction
     moveBlock: MoveKnowledgeBlockAction
@@ -244,21 +244,21 @@ export const knowledgePageTypedef = gql`
   """
   Map of placeholder IDs used in the UpdatePageContentsActions to the entity IDs created for those placeholders
   """
-  type UpdateKnowledgePageContentsResultPlaceholder {
+  type UpdatePersistedPageContentsResultPlaceholder {
     placeholderId: ID!
     entityId: ID!
   }
 
-  type UpdateKnowledgePageContentsResult {
-    page: KnowledgePage!
-    placeholders: [UpdateKnowledgePageContentsResultPlaceholder!]!
+  type UpdatePersistedPageContentsResult {
+    page: PersistedPage!
+    placeholders: [UpdatePersistedPageContentsResultPlaceholder!]!
   }
 
   extend type Mutation {
     """
     Update the contents of a page.
     """
-    updateKnowledgePageContents(
+    updatePersistedPageContents(
       """
       The page's account ID.
       """
@@ -270,7 +270,7 @@ export const knowledgePageTypedef = gql`
       """
       The list of actions to perform on the page.
       """
-      actions: [UpdateKnowledgePageAction!]!
-    ): UpdateKnowledgePageContentsResult!
+      actions: [UpdatePersistedPageAction!]!
+    ): UpdatePersistedPageContentsResult!
   }
 `;
