@@ -306,7 +306,7 @@ export default class extends EntityModel {
       prevIndex: string | null;
       nextIndex: string | null;
     },
-  ): Promise<void> {
+  ): Promise<PageModel> {
     const { setById, parentPage, prevIndex, nextIndex } = params;
 
     const newIndex = generateKeyBetween(prevIndex, nextIndex);
@@ -336,11 +336,15 @@ export default class extends EntityModel {
     }
 
     if (this.getIndex() !== newIndex) {
-      await this.updateProperty(graphApi, {
+      const updatedPageEntity = await this.updateProperty(graphApi, {
         propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.index.baseUri,
         value: newIndex,
       });
+
+      return PageModel.fromEntityModel(updatedPageEntity);
     }
+
+    return this;
   }
 
   /**

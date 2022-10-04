@@ -29,32 +29,18 @@ export const setParentKnowledgePage: ResolverFn<
     entityId: pageEntityId,
   });
 
-  let newParentPage: PageModel | null = null;
+  const newParentPage = parentPageEntityId
+    ? await PageModel.getPageById(graphApi, {
+        entityId: parentPageEntityId,
+      })
+    : null;
 
-  if (parentPageEntityId) {
-    newParentPage = await PageModel.getPageById(graphApi, {
-      entityId: parentPageEntityId,
-    });
-
-    if (!newParentPage) {
-      throw new ApolloError(
-        `Could not find parent page entity with entityId = ${parentPageEntityId}`,
-        "NOT_FOUND",
-      );
-    }
-  }
-
-  await pageModel.setParentPage(graphApi, {
+  const updatedPage = await pageModel.setParentPage(graphApi, {
     parentPage: newParentPage,
     setById: user.entityId,
     prevIndex,
     nextIndex,
   });
 
-  // Refetching the new page model
-  return mapPageModelToGQL(
-    await PageModel.getPageById(graphApi, {
-      entityId: pageEntityId,
-    }),
-  );
+  return mapPageModelToGQL(updatedPage);
 };
