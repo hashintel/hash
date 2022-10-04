@@ -1,16 +1,16 @@
 import { EntityModel } from "../../../../model";
-import { QueryKnowledgeEntityArgs, ResolverFn } from "../../../apiTypes.gen";
+import { QueryPersistedEntityArgs, ResolverFn } from "../../../apiTypes.gen";
 import {
   mapEntityModelToGQL,
-  UnresolvedKnowledgeEntityGQL,
+  UnresolvedPersistedEntityGQL,
 } from "../model-mapping";
 import { LoggedInGraphQLContext } from "../../../context";
 
-export const knowledgeEntity: ResolverFn<
-  Promise<UnresolvedKnowledgeEntityGQL>,
+export const persistedEntity: ResolverFn<
+  Promise<UnresolvedPersistedEntityGQL>,
   {},
   LoggedInGraphQLContext,
-  QueryKnowledgeEntityArgs
+  QueryPersistedEntityArgs
 > = async (_, { entityId, entityVersion }, { dataSources: { graphApi } }) => {
   const entity = entityVersion
     ? await EntityModel.getVersion(graphApi, { entityId, entityVersion })

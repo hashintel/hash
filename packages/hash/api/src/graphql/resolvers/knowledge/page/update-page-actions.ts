@@ -4,18 +4,18 @@ import produce from "immer";
 
 import { BlockModel, EntityModel, UserModel } from "../../../../model";
 import {
-  CreateKnowledgeEntityAction,
-  KnowledgeEntityDefinition,
+  CreatePersistedEntityAction,
+  PersistedEntityDefinition,
   InsertKnowledgeBlockAction,
   SwapKnowledgeBlockDataAction,
-  UpdateKnowledgeEntityAction,
+  UpdatePersistedEntityAction,
   UpdateKnowledgePageAction,
 } from "../../../apiTypes.gen";
 
 export const createEntityWithPlaceholdersFn =
   (graphApi: GraphApi, placeholderResults: PlaceholderResultsMap) =>
   async (
-    originalDefinition: KnowledgeEntityDefinition,
+    originalDefinition: PersistedEntityDefinition,
     entityOwnedById: string,
   ) => {
     const entityDefinition = produce(originalDefinition, (draft) => {
@@ -108,14 +108,14 @@ export class PlaceholderResultsMap {
 
 /**
  * Create new entity.
- * Acts on {@link CreateKnowledgeEntityAction}
+ * Acts on {@link CreatePersistedEntityAction}
  */
 export const handleCreateNewEntity = async (params: {
-  createEntityAction: CreateKnowledgeEntityAction;
+  createEntityAction: CreatePersistedEntityAction;
   index: number;
   placeholderResults: PlaceholderResultsMap;
   createEntityWithPlaceholders: (
-    originalDefinition: KnowledgeEntityDefinition,
+    originalDefinition: PersistedEntityDefinition,
     entityCreatedById: string,
   ) => Promise<EntityModel>;
 }): Promise<void> => {
@@ -154,7 +154,7 @@ export const handleInsertNewBlock = async (
     insertBlockAction: InsertKnowledgeBlockAction;
     index: number;
     createEntityWithPlaceholders: (
-      originalDefinition: KnowledgeEntityDefinition,
+      originalDefinition: PersistedEntityDefinition,
       entityCreatedById: string,
     ) => Promise<EntityModel>;
     placeholderResults: PlaceholderResultsMap;
@@ -264,13 +264,13 @@ export const handleSwapBlockData = async (
 
 /**
  * Update properties of an entity.
- * Acts on {@link UpdateKnowledgeEntityAction}
+ * Acts on {@link UpdatePersistedEntityAction}
  */
 export const handleUpdateEntity = async (
   graphApi: GraphApi,
   params: {
     userModel: UserModel;
-    action: UpdateKnowledgeEntityAction;
+    action: UpdatePersistedEntityAction;
     placeholderResults: PlaceholderResultsMap;
   },
 ): Promise<void> => {

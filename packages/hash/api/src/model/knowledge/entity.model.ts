@@ -14,7 +14,7 @@ import {
   LinkTypeModel,
 } from "..";
 import {
-  KnowledgeEntityDefinition,
+  PersistedEntityDefinition,
   KnowledgeLinkedEntityDefinition,
 } from "../../graphql/apiTypes.gen";
 import { exactlyOne, linkedTreeFlatten } from "../../util";
@@ -131,13 +131,13 @@ export default class {
     graphApi: GraphApi,
     params: {
       ownedById: string;
-      entityDefinition: KnowledgeEntityDefinition;
+      entityDefinition: PersistedEntityDefinition;
     },
   ): Promise<EntityModel> {
     const { ownedById, entityDefinition } = params;
 
     const entitiesInTree = linkedTreeFlatten<
-      KnowledgeEntityDefinition,
+      PersistedEntityDefinition,
       KnowledgeLinkedEntityDefinition,
       "linkedEntities",
       "entity"
@@ -211,7 +211,7 @@ export default class {
     graphApi: GraphApi,
     params: {
       ownedById: string;
-      entityDefinition: Omit<KnowledgeEntityDefinition, "linkedEntities">;
+      entityDefinition: Omit<PersistedEntityDefinition, "linkedEntities">;
     },
   ): Promise<EntityModel> {
     const { entityDefinition, ownedById } = params;

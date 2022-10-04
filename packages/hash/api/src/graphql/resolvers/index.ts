@@ -108,8 +108,8 @@ import {
 import { knowledgePage } from "./knowledge/page/page";
 import { knowledgeBlocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
-import { knowledgeEntity } from "./knowledge/entity/entity";
-import { UnresolvedKnowledgeEntityGQL } from "./knowledge/model-mapping";
+import { persistedEntity } from "./knowledge/entity/entity";
+import { UnresolvedPersistedEntityGQL } from "./knowledge/model-mapping";
 import {
   createKnowledgeLink,
   deleteKnowledgeLink,
@@ -175,7 +175,7 @@ export const resolvers = {
     // Knowledge
     knowledgePage: loggedInAndSignedUp(knowledgePage),
     knowledgeBlocks: loggedInAndSignedUp(knowledgeBlocks),
-    knowledgeEntity: loggedInAndSignedUp(knowledgeEntity),
+    persistedEntity: loggedInAndSignedUp(persistedEntity),
     outgoingKnowledgeLinks: loggedInAndSignedUp(outgoingKnowledgeLinks),
   },
 
@@ -322,17 +322,17 @@ export const resolvers = {
 
   // New knowledge field resolvers
 
-  KnowledgeEntity: {
+  PersistedEntity: {
     /**
-     * Determines whether a `KnowledgeEntity` instance should be treated as a
+     * Determines whether a `PersistedEntity` instance should be treated as a
      * workspace GQL type definition (for example as a `KnowledgePage`), or
-     * whether to treat it is an `UnknownKnowledgeEntity`.
+     * whether to treat it is an `UnknownPersistedEntity`.
      */
     __resolveType: ({
       workspaceTypeName,
-    }: UnresolvedKnowledgeEntityGQL):
+    }: UnresolvedPersistedEntityGQL):
       | WorkspaceEntityGQLTypeName
-      | "UnknownKnowledgeEntity" => {
+      | "UnknownPersistedEntity" => {
       const workspaceEntityGQLTypeName = workspaceTypeName
         ? `Knowledge${workspaceTypeName.split(" ").join("")}`
         : undefined;
@@ -340,7 +340,7 @@ export const resolvers = {
       return workspaceEntityGQLTypeName &&
         isWorkspaceEntityGQLTypeName(workspaceEntityGQLTypeName)
         ? workspaceEntityGQLTypeName
-        : "UnknownKnowledgeEntity";
+        : "UnknownPersistedEntity";
     },
   },
 
@@ -350,7 +350,7 @@ export const resolvers = {
 
   /**
    * @todo Add Entity.linkedEntities field resolver for resolving linked entities
-   *   KnowledgeEntity: { linkedEntities .. }
+   *   PersistedEntity: { linkedEntities .. }
    *   see https://app.asana.com/0/0/1203057486837594/f
    */
 };

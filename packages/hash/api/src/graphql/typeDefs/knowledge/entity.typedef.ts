@@ -1,7 +1,7 @@
 import { gql } from "apollo-server-express";
 
-export const knowledgeEntityTypedef = gql`
-  interface KnowledgeEntity {
+export const persistedEntityTypedef = gql`
+  interface PersistedEntity {
     # These fields are repeated everywhere they're used because
     # (a) GQL requires it - https://github.com/graphql/graphql-spec/issues/533
     # (b) string interpolation breaks the code generator's introspection
@@ -38,14 +38,14 @@ export const knowledgeEntityTypedef = gql`
     """
     The linked entities of the entity.
     """
-    linkedEntities: [KnowledgeEntity!]!
+    linkedEntities: [PersistedEntity!]!
     """
     The JSON object containing the entity's properties.
     """
     properties: JSONObject!
   }
 
-  type UnknownKnowledgeEntity implements KnowledgeEntity {
+  type UnknownPersistedEntity implements PersistedEntity {
     # ENTITY INTERFACE FIELDS BEGIN #
     """
     The id of the entity
@@ -75,7 +75,7 @@ export const knowledgeEntityTypedef = gql`
     """
     The linked entities of the entity.
     """
-    linkedEntities: [KnowledgeEntity!]!
+    linkedEntities: [PersistedEntity!]!
     """
     The JSON object containing the entity's properties.
     """
@@ -97,7 +97,7 @@ export const knowledgeEntityTypedef = gql`
   """
   Select entity types by ONE of componentId, entityTypeId
   """
-  input KnowledgeEntityTypeChoice {
+  input PersistedEntityTypeChoice {
     # Previously the EntityTypeChoice included 'componentId: ID', which made it possible
     # to create a block using an already-existing entity type based on its componentId
     # we should reconsider what we do about the component ID
@@ -115,10 +115,10 @@ export const knowledgeEntityTypedef = gql`
     The index of the link (if any)
     """
     index: Int
-    entity: KnowledgeEntityDefinition!
+    entity: PersistedEntityDefinition!
   }
 
-  input KnowledgeEntityDefinition {
+  input PersistedEntityDefinition {
     """
     Existing Entity to use instead of creating a new entity.
     """
@@ -126,7 +126,7 @@ export const knowledgeEntityTypedef = gql`
     """
     The type of which to instantiate the new entity.
     """
-    entityType: KnowledgeEntityTypeChoice
+    entityType: PersistedEntityTypeChoice
     """
     The properties of new entity.
     """
@@ -141,7 +141,7 @@ export const knowledgeEntityTypedef = gql`
     """
     Get an entity.
     """
-    knowledgeEntity(
+    persistedEntity(
       """
       The id of the entity.
       """
@@ -150,6 +150,6 @@ export const knowledgeEntityTypedef = gql`
       The version of the entity. Defaults to the latest version.
       """
       entityVersion: String
-    ): KnowledgeEntity!
+    ): PersistedEntity!
   }
 `;

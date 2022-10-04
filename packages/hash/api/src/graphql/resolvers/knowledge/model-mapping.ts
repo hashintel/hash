@@ -1,21 +1,21 @@
 import { BlockModel, EntityModel, LinkModel, PageModel } from "../../../model";
 import {
   KnowledgeBlock,
-  KnowledgeEntity,
+  PersistedEntity,
   KnowledgeLink,
   KnowledgePage,
 } from "../../apiTypes.gen";
 import { mapEntityTypeModelToGQL } from "../ontology/model-mapping";
 
-export type ExternalKnowledgeEntityResolversGQL = "linkedEntities";
-export type UnresolvedKnowledgeEntityGQL = Omit<
-  KnowledgeEntity,
-  ExternalKnowledgeEntityResolversGQL
+export type ExternalPersistedEntityResolversGQL = "linkedEntities";
+export type UnresolvedPersistedEntityGQL = Omit<
+  PersistedEntity,
+  ExternalPersistedEntityResolversGQL
 > & { workspaceTypeName?: string };
 
 export const mapEntityModelToGQL = (
   entityModel: EntityModel,
-): UnresolvedKnowledgeEntityGQL => ({
+): UnresolvedPersistedEntityGQL => ({
   entityId: entityModel.entityId,
   entityType: mapEntityTypeModelToGQL(entityModel.entityTypeModel),
   entityTypeId: entityModel.entityTypeModel.schema.$id,
@@ -24,7 +24,7 @@ export const mapEntityModelToGQL = (
   accountId: entityModel.ownedById,
   properties: entityModel.properties,
   /**
-   * To be used by the `KnowledgeEntity` `__resolveType` resolver method to reliably determine
+   * To be used by the `PersistedEntity` `__resolveType` resolver method to reliably determine
    * the GQL type of this entity. Note that this is not exposed in the GQL type definitions,
    * and is therefore not returned to GraphQL clients.
    */
@@ -32,7 +32,7 @@ export const mapEntityModelToGQL = (
 });
 
 export type ExternalKnowledgePageResolversGQL =
-  | ExternalKnowledgeEntityResolversGQL
+  | ExternalPersistedEntityResolversGQL
   | "contents";
 export type UnresolvedKnowledgePageGQL = Omit<
   KnowledgePage,
@@ -50,7 +50,7 @@ export const mapPageModelToGQL = (
 });
 
 export type ExternalKnowledgeBlockResolversGQL =
-  | ExternalKnowledgeEntityResolversGQL
+  | ExternalPersistedEntityResolversGQL
   | "dataEntity";
 export type UnresolvedKnowledgeBlockGQL = Omit<
   KnowledgeBlock,
@@ -67,8 +67,8 @@ export type UnresolvedKnowledgeLinkGQL = Omit<
   KnowledgeLink,
   "sourceEntity" | "targetEntity"
 > & {
-  sourceEntity: UnresolvedKnowledgeEntityGQL;
-  targetEntity: UnresolvedKnowledgeEntityGQL;
+  sourceEntity: UnresolvedPersistedEntityGQL;
+  targetEntity: UnresolvedPersistedEntityGQL;
 };
 
 export const mapLinkModelToGQL = (

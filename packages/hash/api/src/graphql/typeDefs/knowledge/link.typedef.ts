@@ -25,11 +25,11 @@ export const knowledgeLinkTypedef = gql`
     """
     The link's source entity.
     """
-    sourceEntity: KnowledgeEntity!
+    sourceEntity: PersistedEntity!
     """
     The link's target entity.
     """
-    targetEntity: KnowledgeEntity!
+    targetEntity: PersistedEntity!
   }
 
   input CreateKnowledgeLinkInput {

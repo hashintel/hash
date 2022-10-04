@@ -23,7 +23,7 @@ import { dataTypeTypedef } from "./ontology/data-type.typedef";
 import { propertyTypeTypedef } from "./ontology/property-type.typedef";
 import { linkTypeTypedef } from "./ontology/link-type.typedef";
 import { entityTypeTypedef } from "./ontology/entity-type.typedef";
-import { knowledgeEntityTypedef } from "./knowledge/entity.typedef";
+import { persistedEntityTypedef } from "./knowledge/entity.typedef";
 import { knowledgePageTypedef } from "./knowledge/page.typedef";
 import { knowledgeBlockTypedef } from "./knowledge/block.typedef";
 import { knowledgeLinkTypedef } from "./knowledge/link.typedef";
@@ -57,7 +57,7 @@ const ontology = [
 ];
 
 const knowledge = [
-  knowledgeEntityTypedef,
+  persistedEntityTypedef,
   knowledgeBlockTypedef,
   knowledgePageTypedef,
   knowledgeLinkTypedef,

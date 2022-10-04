@@ -1,7 +1,7 @@
 import { gql } from "apollo-server-express";
 
 export const knowledgePageTypedef = gql`
-  type KnowledgePage implements KnowledgeEntity {
+  type KnowledgePage implements PersistedEntity {
     """
     The title of the page.
     """
@@ -52,7 +52,7 @@ export const knowledgePageTypedef = gql`
     """
     The linked entities of the entity.
     """
-    linkedEntities: [KnowledgeEntity!]!
+    linkedEntities: [PersistedEntity!]!
     """
     The JSON object containing the entity's properties.
     """
@@ -60,7 +60,7 @@ export const knowledgePageTypedef = gql`
     # ENTITY INTERFACE FIELDS END #
   }
 
-  type KnowledgeEntityRef {
+  type PersistedEntityRef {
     """
     The id of the account that owns this entity.
     """
@@ -114,7 +114,7 @@ export const knowledgePageTypedef = gql`
     """
     The entity to associate with the new block
     """
-    entity: KnowledgeEntityDefinition!
+    entity: PersistedEntityDefinition!
     """
     Allows UpdatePageContentsActions to reference entities created in other actions. Also allows callers to updatePageContents to find the entity id created for this definition in the result. See UpdatePageContentsResult.
     """
@@ -152,7 +152,7 @@ export const knowledgePageTypedef = gql`
   """
   Update an entity in a page.
   """
-  input UpdateKnowledgeEntityAction {
+  input UpdatePersistedEntityAction {
     """
     The account the entity resides in.
     """
@@ -195,8 +195,8 @@ export const knowledgePageTypedef = gql`
   """
   Create an entity, which you can then reference in other actions, such as a InsertBlockAction
   """
-  input CreateKnowledgeEntityAction {
-    entity: KnowledgeEntityDefinition!
+  input CreatePersistedEntityAction {
+    entity: PersistedEntityDefinition!
     entityPlaceholderId: ID
     ownedById: ID!
   }
@@ -204,7 +204,7 @@ export const knowledgePageTypedef = gql`
   """
   Create an entity type, which you can then reference in future CreateEntityActions
   """
-  input CreateKnowledgeEntityTypeAction {
+  input CreatePersistedEntityTypeAction {
     ownedById: ID!
     """
     The name for the type. Must be unique in the given account.
@@ -235,10 +235,10 @@ export const knowledgePageTypedef = gql`
     insertBlock: InsertKnowledgeBlockAction
     removeBlock: RemoveKnowledgeBlockAction
     moveBlock: MoveKnowledgeBlockAction
-    updateEntity: UpdateKnowledgeEntityAction
+    updateEntity: UpdatePersistedEntityAction
     swapBlockData: SwapKnowledgeBlockDataAction
-    createEntity: CreateKnowledgeEntityAction
-    createEntityType: CreateKnowledgeEntityTypeAction
+    createEntity: CreatePersistedEntityAction
+    createEntityType: CreatePersistedEntityTypeAction
   }
 
   """
