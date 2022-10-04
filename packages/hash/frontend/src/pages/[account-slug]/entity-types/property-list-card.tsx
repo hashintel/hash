@@ -206,12 +206,12 @@ export const InsertPropertyCard = ({
             [`.${tableBodyClasses.root} .${tableRowClasses.root}`]: {
               [`.${tableCellClasses.root}`]: {
                 "&:first-child": {
-                  borderTopLeftRadius: 1,
-                  borderBottomLeftRadius: 1,
+                  borderTopLeftRadius: theme.borderRadii.md,
+                  borderBottomLeftRadius: theme.borderRadii.md,
                 },
                 "&:last-child": {
-                  borderTopRightRadius: 1,
-                  borderBottomRightRadius: 1,
+                  borderTopRightRadius: theme.borderRadii.md,
+                  borderBottomRightRadius: theme.borderRadii.md,
                 },
               },
               [`&:hover .${tableCellClasses.root}`]: {
