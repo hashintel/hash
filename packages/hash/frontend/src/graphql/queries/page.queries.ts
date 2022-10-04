@@ -52,23 +52,33 @@ export const createPage = gql`
   }
 `;
 
+export const commentFieldsFragment = gql`
+  fragment CommentFields on Comment {
+    accountId
+    entityId
+    tokens
+    createdAt
+    textUpdatedAt
+    author {
+      entityId
+      properties {
+        preferredName
+      }
+    }
+    parent {
+      entityId
+    }
+  }
+`;
+
 export const getPageComments = gql`
   query getPageComments($accountId: ID!, $pageId: ID!) {
     pageComments(accountId: $accountId, pageId: $pageId) {
-      accountId
-      entityId
-      tokens
-      createdAt
-      textUpdatedAt
-      author {
-        entityId
-        properties {
-          preferredName
-        }
-      }
-      parent {
-        entityId
+      ...CommentFields
+      replies {
+        ...CommentFields
       }
     }
   }
+  ${commentFieldsFragment}
 `;

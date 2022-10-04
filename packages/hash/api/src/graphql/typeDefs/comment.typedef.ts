@@ -20,9 +20,14 @@ export const commentTypedef = gql`
     author: User!
 
     """
-    Parent block the comment belongs to
+    Parent entity the comment belongs to
     """
-    parent: Block!
+    parent: Entity!
+
+    """
+    Array of comments created in response to this comment
+    """
+    replies: [Comment!]!
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """

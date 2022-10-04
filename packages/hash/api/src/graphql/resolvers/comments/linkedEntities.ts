@@ -83,8 +83,27 @@ const author: ResolverFn<
   return authorEntity?.toGQLUnknownEntity();
 };
 
+const replies: ResolverFn<
+  Promise<Comment[]>,
+  UnresolvedGQLComment,
+  GraphQLContext,
+  {}
+> = async ({ accountId, entityId }, _, { dataSources: { db } }) => {
+  const comment = await Comment.getCommentById(db, { accountId, entityId });
+
+  if (!comment) {
+    throw new ApolloError(
+      `Comment with entityId ${entityId} not found in account ${accountId}`,
+      "NOT_FOUND",
+    );
+  }
+
+  return await comment.getReplies(db);
+};
+
 export const commentLinkedEntities = {
   tokens,
   parent,
   author,
+  replies,
 };

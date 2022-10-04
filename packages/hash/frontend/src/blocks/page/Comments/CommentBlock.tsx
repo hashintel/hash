@@ -1,29 +1,29 @@
-import { FunctionComponent, useState } from "react";
-import { Box, Link, Typography } from "@mui/material";
+import { FunctionComponent, useMemo } from "react";
+import { Box, Typography } from "@mui/material";
 import {
   Avatar,
   FontAwesomeIcon,
   IconButton,
 } from "@hashintel/hash-design-system/ui";
 import { formatDistanceToNowStrict } from "date-fns";
-import { PageComment } from "../../../components/hooks/usePageComments";
-import { CommentTextField } from "./CommentTextField";
-import {
-  faChevronDown,
-  faChevronUp,
-  faEllipsisVertical,
-} from "@fortawesome/free-solid-svg-icons";
-import { CommentBlockMenu } from "./CommentBlockMenu";
+import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { bindTrigger } from "material-ui-popup-state";
+import { PageComment } from "../../../components/hooks/usePageComments";
+import { CommentTextField } from "./CommentTextField";
+import { CommentBlockMenu } from "./CommentBlockMenu";
 
 type CommentProps = {
   comment: PageComment;
 };
 
 export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
-  const { tokens, author, textUpdatedAt } = comment;
-  const [expanded, setExpanded] = useState(false);
+  const { tokens, author, createdAt } = comment;
+
+  const commentCreatedAt = useMemo(
+    () => `${formatDistanceToNowStrict(new Date(createdAt))} ago`,
+    [createdAt],
+  );
 
   const commentMenuPopupState = usePopupState({
     variant: "popover",
@@ -31,7 +31,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
   });
 
   return (
-    <Box>
+    <Box flexDirection="column" p={2} pb={1}>
       <Box display="flex" justifyContent="space-between">
         <Avatar size={36} title={author?.properties.preferredName ?? "U"} />
         <Box
@@ -57,7 +57,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
               color: ({ palette }) => palette.gray[70],
             }}
           >
-            {`${formatDistanceToNowStrict(new Date(textUpdatedAt))} ago`}
+            {commentCreatedAt}
           </Typography>
         </Box>
 
@@ -71,42 +71,9 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
         </IconButton>
       </Box>
 
-      <CommentTextField initialText={tokens} expanded={expanded} />
-
-      {expanded ? (
-        <Link
-          variant="microText"
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            fontWeight: 600,
-            textDecoration: "none",
-            cursor: "pointer",
-          }}
-          onClick={() => setExpanded(false)}
-        >
-          Show Less
-          <FontAwesomeIcon icon={faChevronUp} sx={{ fontSize: 12, ml: 0.75 }} />
-        </Link>
-      ) : (
-        <Link
-          variant="microText"
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            fontWeight: 600,
-            textDecoration: "none",
-            cursor: "pointer",
-          }}
-          onClick={() => setExpanded(true)}
-        >
-          Show More
-          <FontAwesomeIcon
-            icon={faChevronDown}
-            sx={{ fontSize: 12, ml: 0.75 }}
-          />
-        </Link>
-      )}
+      <Box p={0.5} pt={2}>
+        <CommentTextField initialText={tokens} collapsible />
+      </Box>
 
       <CommentBlockMenu popupState={commentMenuPopupState} />
     </Box>

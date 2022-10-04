@@ -77,16 +77,18 @@
   opacity: 1;
 }
 
-.Comment__TextField_Prosemirror_Input {
+.Comment__TextField {
   width: 100%;
   outline: none;
-  padding: 13.5px 0 !important;
   min-width: auto !important;
+  padding: 0 !important;
 }
 
-.Comment__TextField_Prosemirror_Input_collapsed {
-  padding: 0 !important;
-  margin: 13.5px 0;
+.Comment__TextField_editable {
+  padding: 13.5px 0 13.5px 16px !important;
+}
+
+.Comment__TextField_collapsed {
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;

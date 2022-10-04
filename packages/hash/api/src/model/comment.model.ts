@@ -188,7 +188,7 @@ class __Comment extends Entity {
     return tokensLink.getDestination(client);
   }
 
-  async getParent(client: DbClient): Promise<Block | null> {
+  async getParent(client: DbClient): Promise<Entity | null> {
     const parentLinks = await this.getOutgoingLinks(client, {
       path: ["parent"],
     });
@@ -207,8 +207,7 @@ class __Comment extends Entity {
       );
     }
 
-    const destinationEntity = await parentLink.getDestination(client);
-    return await Block.fromEntity(client, destinationEntity);
+    return await parentLink.getDestination(client);
   }
 
   async getAuthor(client: DbClient): Promise<Entity> {
@@ -231,6 +230,22 @@ class __Comment extends Entity {
     }
 
     return await authorLink.getDestination(client);
+  }
+
+  async getReplies(client: DbClient): Promise<Comment[]> {
+    const replyLinks = await this.getIncomingLinks(client, {
+      path: ["parent"],
+    });
+
+    const replies = await Promise.all(
+      replyLinks.map(async (reply) =>
+        Comment.fromEntity(client, await reply.getSource(client)),
+      ),
+    );
+
+    return replies.sort(
+      (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+    );
   }
 
   static async fromEntity(client: DbClient, entity: Entity): Promise<Comment> {

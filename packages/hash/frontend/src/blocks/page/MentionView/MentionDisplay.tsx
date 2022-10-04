@@ -75,12 +75,12 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
 
   return (
     <Link noLinkStyle href={href}>
-      <a>
-        <span className={tw`text-gray-400 font-medium cursor-pointer`}>
-          {icon}
-          {title}
-        </span>
-      </a>
+      {/* <a> */}
+      {/* <span className={tw`text-gray-400 font-medium cursor-pointer`}> */}
+      {icon}
+      {title}
+      {/* </span> */}
+      {/* </a> */}
     </Link>
   );
 };

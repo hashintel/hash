@@ -6,6 +6,10 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { getPageComments } from "../../graphql/queries/page.queries";
 
+export type PageThread = PageComment & {
+  replies: PageComment[];
+};
+
 export type PageComment = {
   accountId: string;
   entityId: string;
@@ -17,7 +21,7 @@ export type PageComment = {
 };
 
 export type PageCommentsInfo = {
-  data: PageComment[];
+  data: PageThread[];
   loading: boolean;
 };
 
@@ -32,6 +36,5 @@ export const usePageComments = (
     variables: { accountId, pageId },
   });
 
-  console.log(data);
   return { data: data?.pageComments, loading };
 };

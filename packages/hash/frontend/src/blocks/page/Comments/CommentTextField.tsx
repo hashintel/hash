@@ -15,12 +15,18 @@ import {
   formatKeymap,
   textTokenNodes,
 } from "@hashintel/hash-shared/prosemirror";
-import { Box } from "@mui/material";
-import { faAt } from "@fortawesome/free-solid-svg-icons";
+import { Box, Collapse } from "@mui/material";
+import {
+  faAt,
+  faChevronDown,
+  faChevronUp,
+  IconDefinition,
+} from "@fortawesome/free-solid-svg-icons";
 import {
   IconButton,
   FontAwesomeIcon,
   LoadingSpinner,
+  Button,
 } from "@hashintel/hash-design-system";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import {
@@ -37,21 +43,61 @@ import { useRouteAccountInfo } from "../../../shared/routing";
 import styles from "../style.module.css";
 import { commentPlaceholderPlugin } from "./commentPlaceholderPlugin";
 import { createTextEditorView } from "../createTextEditorView";
+import { Link } from "../../../shared/ui/link";
+import { hasViewportRelativeCoordinates } from "@dnd-kit/utilities";
+
+const LINE_HEIGHT = 21;
+
+type ShowMoreTextLinkProps = {
+  label: string;
+  icon: IconDefinition;
+  onClick: () => void;
+};
+
+export const ShowMoreTextLink: FunctionComponent<ShowMoreTextLinkProps> = ({
+  label,
+  icon,
+  onClick,
+}) => (
+  <Link
+    href=""
+    variant="microText"
+    sx={{
+      display: "flex",
+      alignItems: "center",
+      fontWeight: 600,
+      textDecoration: "none",
+      cursor: "pointer",
+      alignSelf: "flex-end",
+      pt: 1.5,
+    }}
+    onClick={onClick}
+  >
+    {label}
+    <FontAwesomeIcon icon={icon} sx={{ fontSize: 12, ml: 0.75 }} />
+  </Link>
+);
 
 type CommentTextFieldProps = {
   editable?: boolean;
   initialText?: TextToken[];
-  expanded?: boolean;
+  collapsible?: boolean;
+  loadingIndicator?: boolean;
   onClose?: () => void;
   onSubmit?: (content: TextToken[]) => Promise<void>;
+  onEmptyDoc?: (isEmpty: boolean) => void;
+  onFocusChange?: (focused: boolean) => void;
 };
 
 export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
   editable = false,
   initialText,
-  expanded = true,
+  collapsible = false,
+  loadingIndicator = false,
   onClose,
   onSubmit,
+  onEmptyDoc,
+  onFocusChange,
 }) => {
   const viewRef = useRef<EditorView<Schema>>();
   const [portals, renderPortal] = usePortals();
@@ -60,6 +106,8 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
   const loadingRef = useRef(false);
   const [loading, setLoading] = useState(false);
   const eventsRef = useRef({ onClose, onSubmit });
+  const [collapsed, setCollapsed] = useState(true);
+  const [shouldCollapse, setShouldCollapse] = useState(false);
 
   useLayoutEffect(() => {
     eventsRef.current = { onClose, onSubmit };
@@ -136,10 +184,26 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         editorContainer,
         renderPortal,
         accountId,
-        { editable: () => editable },
+        {
+          editable: () => editable,
+          // handleDOMEvents: {
+          //   blur: () => {
+          //     onFocusChange?.(false);
+          //     return false;
+          //   },
+          //   focus: () => {
+          //     onFocusChange?.(true);
+          //     return false;
+          //   },
+          // },
+        },
       );
 
-      view.dom.classList.add(styles.Comment__TextField_Prosemirror_Input!);
+      view.dom.classList.add(styles.Comment__TextField!);
+
+      setShouldCollapse(
+        collapsible && view.dom.clientHeight >= LINE_HEIGHT * 2,
+      );
 
       view.focus();
       viewRef.current = view;
@@ -149,68 +213,103 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         viewRef.current = undefined;
       };
     }
-  }, [initialText, editable, accountId, renderPortal]);
+  }, [initialText, collapsible, editable, accountId, renderPortal]);
 
   useEffect(() => {
-    if (expanded) {
-      viewRef.current?.dom.classList.remove(
-        styles.Comment__TextField_Prosemirror_Input_collapsed!,
-      );
+    if (shouldCollapse) {
+      if (collapsed) {
+        viewRef.current?.dom.classList.add(
+          styles.Comment__TextField_collapsed!,
+        );
+      } else {
+        viewRef.current?.dom.classList.remove(
+          styles.Comment__TextField_collapsed!,
+        );
+      }
+    }
+  }, [collapsed, shouldCollapse]);
+
+  useEffect(() => {
+    if (editable) {
+      viewRef.current?.dom.classList.add(styles.Comment__TextField_editable!);
     } else {
-      viewRef.current?.dom.classList.add(
-        styles.Comment__TextField_Prosemirror_Input_collapsed!,
+      viewRef.current?.dom.classList.remove(
+        styles.Comment__TextField_editable!,
       );
     }
-  }, [expanded]);
+  }, [editable]);
+
+  if (viewRef.current) {
+    onFocusChange?.(viewRef.current.hasFocus());
+    onEmptyDoc?.(!viewRef.current.state.doc.content.childCount);
+  }
 
   return (
-    <Box
-      sx={{
-        width: "100%",
-        display: "flex",
-      }}
-    >
+    <Box display="flex" flexDirection="column" justifyItems="flex-end">
       <Box
-        ref={editorContainerRef}
-        sx={({ palette }) => ({
+        sx={{
+          width: "100%",
           display: "flex",
-          overflow: "hidden",
-          flexGrow: 1,
-          fontSize: 14,
-          lineHeight: "150%",
-          color: palette.gray[90],
-        })}
-      />
+        }}
+      >
+        <Box
+          ref={editorContainerRef}
+          sx={({ palette }) => ({
+            display: "flex",
+            overflow: "hidden",
+            flexGrow: 1,
+            fontSize: 14,
+            lineHeight: "150%",
+            color: palette.gray[90],
+          })}
+        />
 
-      {editable ? (
-        <Box display="flex" alignItems="flex-end" margin={1.5}>
-          {loading ? (
-            <Box m={0.75}>
-              <LoadingSpinner size={12} thickness={2} />
-            </Box>
-          ) : (
-            <IconButton
-              onClick={() => {
-                if (viewRef.current) {
-                  const { tr } = viewRef.current.state;
-                  tr.setMeta(suggesterPluginKey, { type: "toggle" });
-                  viewRef.current.dispatch(tr);
-                  viewRef.current.focus();
-                }
-              }}
-              sx={({ palette }) => ({
-                padding: 0.5,
-                borderRadius: 1,
-                color: palette.gray[40],
-              })}
-            >
-              <FontAwesomeIcon icon={faAt} />
-            </IconButton>
-          )}
-        </Box>
+        {editable ? (
+          <Box display="flex" alignItems="flex-end" margin={1.5}>
+            {loadingIndicator && loading ? (
+              <Box m={0.75}>
+                <LoadingSpinner size={12} thickness={2} />
+              </Box>
+            ) : (
+              <IconButton
+                onClick={() => {
+                  if (viewRef.current) {
+                    const { tr } = viewRef.current.state;
+                    tr.setMeta(suggesterPluginKey, { type: "toggle" });
+                    viewRef.current.dispatch(tr);
+                    viewRef.current.focus();
+                  }
+                }}
+                sx={({ palette }) => ({
+                  padding: 0.5,
+                  borderRadius: 1,
+                  color: palette.gray[40],
+                })}
+              >
+                <FontAwesomeIcon icon={faAt} />
+              </IconButton>
+            )}
+          </Box>
+        ) : null}
+
+        {portals}
+      </Box>
+
+      {shouldCollapse ? (
+        collapsed ? (
+          <ShowMoreTextLink
+            label="Show More"
+            icon={faChevronDown}
+            onClick={() => setCollapsed(false)}
+          />
+        ) : (
+          <ShowMoreTextLink
+            label="Show Less"
+            icon={faChevronUp}
+            onClick={() => setCollapsed(true)}
+          />
+        )
       ) : null}
-
-      {portals}
     </Box>
   );
 };
