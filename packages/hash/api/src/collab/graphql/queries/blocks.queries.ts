@@ -34,7 +34,7 @@ export const getBlocksQuery = gql`
   ${blockFieldsFragment}
 `;
 
-export const knolwedgeBlockFieldsFragment = gql`
+export const knowledgeBlockFieldsFragment = gql`
   fragment KnowledgeBlockFields on KnowledgeBlock {
     __typename
     entityId

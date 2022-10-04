@@ -1,7 +1,7 @@
 import { gql } from "@apollo/client";
 import {
   blockFieldsFragment,
-  knolwedgeBlockFieldsFragment,
+  knowledgeBlockFieldsFragment,
 } from "./blocks.queries";
 
 export const pageFieldsFragment = gql`
@@ -79,7 +79,7 @@ export const knowledgePageFieldsFragment = gql`
     }
     __typename
   }
-  ${knolwedgeBlockFieldsFragment}
+  ${knowledgeBlockFieldsFragment}
 `;
 
 export const getKnowledgePageQuery = gql`
