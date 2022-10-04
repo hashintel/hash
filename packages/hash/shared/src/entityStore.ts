@@ -24,7 +24,7 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   entityTypeId?: string | null;
   entityVersion?: string | null;
   entityType?: MinimalEntityTypeFieldsFragment;
-  dataEntity: Type;
+  dataEntity?: Type;
 
   // @todo thinking about removing this – as they're keyed by this anyway
   //  and it makes it complicated to deal with types – should probably just

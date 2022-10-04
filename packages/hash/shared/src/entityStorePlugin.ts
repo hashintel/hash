@@ -318,6 +318,9 @@ const entityStoreReducer = (
           draftId: action.payload.draftId,
           updatedAt: new Date().toISOString(),
           properties: {},
+          dataEntity: {
+            entityId: null,
+          },
         };
       });
   }
