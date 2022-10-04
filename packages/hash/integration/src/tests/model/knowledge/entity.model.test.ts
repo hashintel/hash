@@ -188,30 +188,26 @@ describe("Entity CRU", () => {
   it("can create entity with linked entities from an entity definition", async () => {
     const aliceEntityModel = await EntityModel.createEntityWithLinks(graphApi, {
       ownedById,
-      entityDefinition: {
-        // First create a new entity given the following definition
-        entityType: {
-          entityTypeId: entityTypeModel.schema.$id,
-        },
-        entityProperties: {
-          [namePropertyTypeModel.baseUri]: "Alice",
-          [favoriteBookPropertyTypeModel.baseUri]: "some text",
-        },
-        linkedEntities: [
-          {
-            // Then create an entity + link
-            destinationAccountId: ownedById,
-            linkTypeId: linkTypeFriend.schema.$id,
-            entity: {
-              // The "new" entity is in fact just an existing entity, so only a link will be created.
-              existingEntity: {
-                entityId: updatedEntityModel.entityId,
-                ownedById: updatedEntityModel.ownedById,
-              },
+      // First create a new entity given the following definition
+      entityTypeId: entityTypeModel.schema.$id,
+      properties: {
+        [namePropertyTypeModel.baseUri]: "Alice",
+        [favoriteBookPropertyTypeModel.baseUri]: "some text",
+      },
+      linkedEntities: [
+        {
+          // Then create an entity + link
+          destinationAccountId: ownedById,
+          linkTypeId: linkTypeFriend.schema.$id,
+          entity: {
+            // The "new" entity is in fact just an existing entity, so only a link will be created.
+            existingEntity: {
+              entityId: updatedEntityModel.entityId,
+              ownedById: updatedEntityModel.ownedById,
             },
           },
-        ],
-      },
+        },
+      ],
     });
 
     const linkedEntity = (

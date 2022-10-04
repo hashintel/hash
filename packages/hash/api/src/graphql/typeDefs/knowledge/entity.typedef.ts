@@ -152,4 +152,28 @@ export const knowledgeEntityTypedef = gql`
       entityVersion: String
     ): KnowledgeEntity!
   }
+
+  extend type Mutation {
+    """
+    Create an entity.
+    """
+    createKnowledgeEntity(
+      """
+      The owner of the create entity. Defaults to the user calling the mutation.
+      """
+      ownedById: ID
+      """
+      The type of which to instantiate the new entity.
+      """
+      entityTypeId: ID!
+      """
+      The properties of new entity.
+      """
+      properties: JSONObject!
+      """
+      Associated Entities to either create/get and link to this entity.
+      """
+      linkedEntities: [KnowledgeLinkedEntityDefinition!]
+    ): KnowledgeEntity!
+  }
 `;
