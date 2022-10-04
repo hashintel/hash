@@ -283,6 +283,13 @@ export const knowledgePageTypedef = gql`
     prevIndex: String
   }
 
+  input KnowledgePageUpdateData {
+    title: String
+    summary: String
+    archived: Boolean
+    index: String
+  }
+
   extend type Mutation {
     """
     Create a new page
@@ -297,7 +304,13 @@ export const knowledgePageTypedef = gql`
       """
       properties: KnowledgePageCreationData!
     ): KnowledgePage!
-
+    """
+    Update an existing page.
+    """
+    updateKnowledgePage(
+      entityId: ID!
+      updatedProperties: KnowledgePageUpdateData!
+    ): KnowledgePage!
     """
     Set the parent of a page
 

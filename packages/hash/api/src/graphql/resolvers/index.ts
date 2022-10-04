@@ -121,6 +121,7 @@ import {
   outgoingKnowledgeLinks,
 } from "./knowledge/link/link";
 import { setParentKnowledgePage } from "./knowledge/page/set-parent-page";
+import { updateKnowledgePage } from "./knowledge/page/update-page";
 
 /**
  * @todo: derive these from the statically declared workspace type names
@@ -235,6 +236,7 @@ export const resolvers = {
     deleteKnowledgeLink: loggedInAndSignedUp(deleteKnowledgeLink),
     createKnowledgePage: loggedInAndSignedUp(createKnowledgePage),
     setParentKnowledgePage: loggedInAndSignedUp(setParentKnowledgePage),
+    updateKnowledgePage: loggedInAndSignedUp(updateKnowledgePage),
   },
 
   JSONObject: JSONObjectResolver,

@@ -32,3 +32,18 @@ export const createKnowledgePage = gql`
     }
   }
 `;
+
+export const updateKnowledgePage = gql`
+  mutation updateKnowledgePage(
+    $entityId: ID!
+    $updatedProperties: KnowledgePageUpdateData!
+  ) {
+    updateKnowledgePage(
+      entityId: $entityId
+      updatedProperties: $updatedProperties
+    ) {
+      ownedById
+      entityId
+    }
+  }
+`;
