@@ -62,15 +62,12 @@ export const parentKnowledgePage: ResolverFn<
 export const knowledgePages: ResolverFn<
   Promise<UnresolvedKnowledgePageGQL[]>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   QueryKnowledgePagesArgs
 > = async (_, { ownedById }, { dataSources: { graphApi }, user }) => {
-  if (!user && !user) {
-    throw new Error("No account to select pages from.");
-  }
-  const accountModel =
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    user ?? (await UserModel.getUserById(graphApi, { entityId: ownedById! }));
+  const accountModel = ownedById
+    ? await UserModel.getUserById(graphApi, { entityId: ownedById })
+    : user;
 
   const pages = await PageModel.getAllPagesInAccount(graphApi, {
     accountModel,
