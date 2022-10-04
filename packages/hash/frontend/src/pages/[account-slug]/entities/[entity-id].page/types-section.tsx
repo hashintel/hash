@@ -6,14 +6,14 @@ import { EntitySection } from "./shared/entity-section";
 
 export const TypesSection = () => {
   return (
-    <EntitySection title="Types">
+    <EntitySection title="Type">
       <Box display="flex">
         <WhiteCard>
           <Box
             display="flex"
             alignItems="center"
             px={1.5}
-            py={0.75}
+            py={1.25}
             gap={1.25}
             color={({ palette }) => palette.black}
           >

@@ -15,7 +15,7 @@ different entities"
 );
 
 export const LinksSection = () => {
-  const isEmpty = false;
+  const isEmpty = true;
 
   return (
     <EntitySection
