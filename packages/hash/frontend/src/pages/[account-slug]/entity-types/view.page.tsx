@@ -35,6 +35,24 @@ const Page: NextPageWithLayout = () => {
               href: "#",
               id: "entity-types",
             },
+            {
+              title: "Company",
+              href: "#",
+              id: "company",
+              icon: (
+                <Box
+                  sx={{
+                    svg: {
+                      height: "16px",
+                      display: "flex",
+                      alignItems: "center",
+                    },
+                  }}
+                >
+                  <BriefcaseIcon />
+                </Box>
+              ),
+            },
           ]}
           scrollToTop={() => {}}
         />
