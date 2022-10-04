@@ -108,7 +108,7 @@ export const persistedEntityTypedef = gql`
     entityTypeId: String
   }
 
-  input KnowledgeLinkedEntityDefinition {
+  input PersistedLinkedEntityDefinition {
     destinationAccountId: ID!
     linkTypeId: String!
     """
@@ -134,7 +134,7 @@ export const persistedEntityTypedef = gql`
     """
     Associated Entities to either create/get and link to this entity.
     """
-    linkedEntities: [KnowledgeLinkedEntityDefinition!]
+    linkedEntities: [PersistedLinkedEntityDefinition!]
   }
 
   extend type Query {

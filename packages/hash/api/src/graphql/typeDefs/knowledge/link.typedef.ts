@@ -1,7 +1,7 @@
 import { gql } from "apollo-server-express";
 
-export const knowledgeLinkTypedef = gql`
-  type KnowledgeLink {
+export const persistedLinkTypedef = gql`
+  type PersistedLink {
     """
     The id of the account that owns this link.
     """
@@ -32,7 +32,7 @@ export const knowledgeLinkTypedef = gql`
     targetEntity: PersistedEntity!
   }
 
-  input CreateKnowledgeLinkInput {
+  input CreatePersistedLinkInput {
     """
     The versioned URI of this link's type.
     """
@@ -74,7 +74,7 @@ export const knowledgeLinkTypedef = gql`
     """
     Get the outgoing links of an entity.
     """
-    outgoingKnowledgeLinks(
+    outgoingPersistedLinks(
       """
       The id of the source entity.
       """
@@ -83,17 +83,17 @@ export const knowledgeLinkTypedef = gql`
       The id of the link's type.
       """
       linkTypeId: String
-    ): [KnowledgeLink!]!
+    ): [PersistedLink!]!
   }
 
   extend type Mutation {
     """
     Create a link.
     """
-    createKnowledgeLink(link: CreateKnowledgeLinkInput!): KnowledgeLink!
+    createPersistedLink(link: CreatePersistedLinkInput!): PersistedLink!
     """
     Delete a link.
     """
-    deleteKnowledgeLink(link: LinkIdentifier!): Boolean!
+    deletePersistedLink(link: LinkIdentifier!): Boolean!
   }
 `;

@@ -111,9 +111,9 @@ import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import { persistedEntity } from "./knowledge/entity/entity";
 import { UnresolvedPersistedEntityGQL } from "./knowledge/model-mapping";
 import {
-  createKnowledgeLink,
-  deleteKnowledgeLink,
-  outgoingKnowledgeLinks,
+  createPersistedLink,
+  deletePersistedLink,
+  outgoingPersistedLinks,
 } from "./knowledge/link/link";
 
 /**
@@ -176,7 +176,7 @@ export const resolvers = {
     knowledgePage: loggedInAndSignedUp(knowledgePage),
     knowledgeBlocks: loggedInAndSignedUp(knowledgeBlocks),
     persistedEntity: loggedInAndSignedUp(persistedEntity),
-    outgoingKnowledgeLinks: loggedInAndSignedUp(outgoingKnowledgeLinks),
+    outgoingPersistedLinks: loggedInAndSignedUp(outgoingPersistedLinks),
   },
 
   Mutation: {
@@ -226,8 +226,8 @@ export const resolvers = {
     createEntityType: loggedInAndSignedUp(createEntityType),
     updateEntityType: loggedInAndSignedUp(updateEntityType),
     // Knowledge
-    createKnowledgeLink: loggedInAndSignedUp(createKnowledgeLink),
-    deleteKnowledgeLink: loggedInAndSignedUp(deleteKnowledgeLink),
+    createPersistedLink: loggedInAndSignedUp(createPersistedLink),
+    deletePersistedLink: loggedInAndSignedUp(deletePersistedLink),
   },
 
   JSONObject: JSONObjectResolver,

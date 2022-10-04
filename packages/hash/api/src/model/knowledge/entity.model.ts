@@ -15,7 +15,7 @@ import {
 } from "..";
 import {
   PersistedEntityDefinition,
-  KnowledgeLinkedEntityDefinition,
+  PersistedLinkedEntityDefinition,
 } from "../../graphql/apiTypes.gen";
 import { exactlyOne, linkedTreeFlatten } from "../../util";
 
@@ -138,7 +138,7 @@ export default class {
 
     const entitiesInTree = linkedTreeFlatten<
       PersistedEntityDefinition,
-      KnowledgeLinkedEntityDefinition,
+      PersistedLinkedEntityDefinition,
       "linkedEntities",
       "entity"
     >(entityDefinition, "linkedEntities", "entity");

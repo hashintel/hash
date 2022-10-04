@@ -2,7 +2,7 @@ import { BlockModel, EntityModel, LinkModel, PageModel } from "../../../model";
 import {
   KnowledgeBlock,
   PersistedEntity,
-  KnowledgeLink,
+  PersistedLink,
   KnowledgePage,
 } from "../../apiTypes.gen";
 import { mapEntityTypeModelToGQL } from "../ontology/model-mapping";
@@ -63,8 +63,8 @@ export const mapBlockModelToGQL = (
   componentId: blockModel.getComponentId(),
 });
 
-export type UnresolvedKnowledgeLinkGQL = Omit<
-  KnowledgeLink,
+export type UnresolvedPersistedLinkGQL = Omit<
+  PersistedLink,
   "sourceEntity" | "targetEntity"
 > & {
   sourceEntity: UnresolvedPersistedEntityGQL;
@@ -73,7 +73,7 @@ export type UnresolvedKnowledgeLinkGQL = Omit<
 
 export const mapLinkModelToGQL = (
   linkModel: LinkModel,
-): UnresolvedKnowledgeLinkGQL => ({
+): UnresolvedPersistedLinkGQL => ({
   ownedById: linkModel.ownedById,
   linkTypeId: linkModel.linkTypeModel.schema.$id,
   index: linkModel.index,
