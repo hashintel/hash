@@ -25,7 +25,7 @@ export const OntologyChip = ({
       (theme) => ({
         height: 26,
         backgroundColor: theme.palette.gray[10],
-        borderRadius: "9999px",
+        borderRadius: "13px",
         overflow: "hidden",
         width: "fit-content",
         alignItems: "stretch",
