@@ -1,4 +1,4 @@
-import { Box, Collapse, Container, Stack, Typography } from "@mui/material";
+import { Box, Container, Stack, Typography } from "@mui/material";
 import { useRef } from "react";
 import { BriefcaseIcon } from "../../../shared/icons/svg";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
@@ -94,7 +94,7 @@ const Page: NextPageWithLayout = () => {
               company
             </Box>
           </Typography>
-          <Collapse timeout={0} in={mode === "empty"}>
+          {mode === "empty" ? (
             <EmptyPropertyListCard
               onClick={() => {
                 setMode("inserting", () => {
@@ -102,15 +102,14 @@ const Page: NextPageWithLayout = () => {
                 });
               }}
             />
-          </Collapse>
-          <Collapse timeout={0} in={mode === "inserting"}>
+          ) : (
             <InsertPropertyCard
               insertFieldRef={insertFieldRef}
               onCancel={() => {
                 setMode("empty");
               }}
             />
-          </Collapse>
+          )}
         </Container>
       </Box>
     </Box>
