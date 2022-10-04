@@ -27,12 +27,15 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
   dataEntity?: Type;
 
+  componentId?: string;
+
   // @todo thinking about removing this – as they're keyed by this anyway
   //  and it makes it complicated to deal with types – should probably just
   //  keep a dict of entity ids to draft ids, and vice versa
   draftId: string;
 
-  updatedAt: string;
+  /** @todo use updated at from the Graph API https://app.asana.com/0/0/1203099452204542/f */
+  // updatedAt: string;
 
   /** @todo fix the following links that were disabled https://app.asana.com/0/0/1203099452204542/f */
   linkGroups?: undefined;
@@ -169,9 +172,12 @@ export const createEntityStore = (
       { ...entity, draftId },
       (draftEntity: Draft<DraftEntity>) => {
         if (draftData[draftId]) {
+          /** @todo when updated at is re-introduced, make this check valid https://app.asana.com/0/0/1203099452204542/f */
           if (
-            new Date(draftData[draftId]!.updatedAt).getTime() >
-            new Date(draftEntity.updatedAt).getTime()
+            // new Date(draftData[draftId]!.updatedAt).getTime() >
+            // new Date(draftEntity.updatedAt).getTime()
+            // eslint-disable-next-line no-constant-condition
+            false
           ) {
             Object.assign(draftEntity, draftData[draftId]);
           }
@@ -190,10 +196,15 @@ export const createEntityStore = (
           restoreDraftId(draftEntity, entityToDraft);
 
           if (
-            isTextContainingEntityProperties(draftEntity.dataEntity.properties)
+            /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+
+            isTextContainingEntityProperties(
+              (draftEntity.dataEntity as any).properties,
+            )
           ) {
             restoreDraftId(
-              draftEntity.dataEntity.properties.text.data,
+              /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+              (draftEntity.dataEntity as any).properties.text.data,
               entityToDraft,
             );
           }

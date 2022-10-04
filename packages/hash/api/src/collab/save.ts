@@ -273,7 +273,8 @@ const calculateSaveActions = async (
         }
 
         const [entityTypeId, newTypeActions] = await getEntityTypeForComponent(
-          blockEntity.componentId,
+          /** @todo this string type coercion may be incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+          blockEntity.componentId as string,
         );
 
         entityType = { entityTypeId };
@@ -537,7 +538,11 @@ export const save = async (
     store,
     accountId,
     textEntityTypeId,
-    blocks,
+    /**
+     * @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f
+     * Note that this code path isn't run in the current state of collab. (frontend never triggers changes)
+     */
+    blocks as any,
     doc,
     async (componentId: string) =>
       await ensureEntityTypeForComponent(

@@ -150,14 +150,17 @@ export class ProsemirrorManager {
       const entityInStore = entityStore.draft[draftBlockId];
       if (!isDraftBlockEntity(entityInStore)) {
         /** @todo Make these errors instead of logs https://app.asana.com/0/0/1203099452204542/f */
+        // eslint-disable-next-line no-console
         console.error("Block entity missing from store");
       }
 
       if (entityInStore?.properties.componentId !== targetComponentId) {
+        // eslint-disable-next-line no-console
         console.error("Cannot render this block entity with this component");
       }
 
-      blockEntity = entityInStore;
+      /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+      blockEntity = entityInStore as any;
     }
 
     const childDraftId = blockEntity?.draftId;
@@ -320,7 +323,11 @@ export class ProsemirrorManager {
 
     if (
       blockEntity &&
-      areComponentsCompatible(blockEntity.componentId, targetComponentId)
+      areComponentsCompatible(
+        /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+        (blockEntity as any).componentId,
+        targetComponentId,
+      )
     ) {
       if (targetComponentId === blockEntity?.properties.componentId) {
         addEntityStoreAction(this.view.state, tr, {

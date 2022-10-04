@@ -125,7 +125,8 @@ export const getEntityChildEntity = (
       throw new Error("Expected linked entity to be draft");
     }
 
-    const textEntity = draftEntityStore[linkEntity.draftId];
+    /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+    const textEntity = draftEntityStore[(linkEntity as any).draftId];
 
     if (!textEntity) {
       throw new Error("Missing text entity from draft store");
