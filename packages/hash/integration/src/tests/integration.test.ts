@@ -1,3 +1,11 @@
+/**
+ * @todo: re-implement integration tests on the GraphQL layer
+ * @see https://app.asana.com/0/1202805690238892/1203084714149810/f
+ */
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
+
 import "./loadTestEnv";
 import {
   Aggregation,
