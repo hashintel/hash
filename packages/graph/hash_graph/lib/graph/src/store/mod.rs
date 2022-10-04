@@ -379,6 +379,22 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
         entity_id: Option<EntityId>,
     ) -> Result<PersistedEntityIdentifier, InsertionError>;
 
+    /// Inserts the entities with the specified [`EntityType`] into the `Store`.
+    ///
+    /// # Errors:
+    ///
+    /// - if the [`EntityType`] doesn't exist
+    /// - if on of the [`Entity`] is not valid with respect to the specified [`EntityType`]
+    /// - if the account referred to by `owned_by_id` does not exist
+    /// - if an [`EntityId`] was supplied and already exists in the store
+    ///
+    /// # Note
+    ///
+    /// - This is only supporting a single entity type, not an entity type per entity. Entity type
+    ///   is stored in a different table and would need to be queried for each, this would be a lot
+    ///   less efficient.
+    /// - This is not supposed to be used outside of benchmarking as in the long term we need to
+    ///   figure out how to deal with batch inserting.
     #[doc(hidden)]
     #[cfg(feature = "__internal_bench")]
     async fn insert_entities_batched_by_type(
