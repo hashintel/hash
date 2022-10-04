@@ -1,4 +1,4 @@
-import { experimental_sx, styled, Theme } from "@mui/material";
+import { experimental_sx, styled } from "@mui/material";
 import { CirclePlusIcon } from "../../../shared/icons/svg";
 
 export const StyledPlusCircleIcon = styled(CirclePlusIcon)(
