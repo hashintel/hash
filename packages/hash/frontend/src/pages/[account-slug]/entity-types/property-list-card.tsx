@@ -22,6 +22,7 @@ import {
   Typography,
   useForkRef,
 } from "@mui/material";
+import { experimental_sx, styled } from "@mui/system";
 import {
   bindPopover,
   bindToggle,
@@ -38,6 +39,13 @@ import { QuestionIcon } from "./question-icon";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 import { useStateCallback, withHandler } from "./util";
 import { WhiteCard } from "./white-card";
+
+const CenteredTableCell = styled(TableCell)(
+  experimental_sx({
+    px: "0px !important",
+    textAlign: "center",
+  }),
+);
 
 const InsertPropertyRow = ({
   inputRef,
@@ -181,10 +189,6 @@ export const InsertPropertyCard = ({
               borderColor: theme.palette.gray[20],
               fontWeight: "inherit",
               lineHeight: "inherit",
-              ":not(:nth-of-type(1)):not(:nth-of-type(2)):not(:last-child)": {
-                px: 0,
-                textAlign: "center",
-              },
 
               [`.${svgIconClasses.root}`]: {
                 verticalAlign: "middle",
@@ -225,19 +229,15 @@ export const InsertPropertyCard = ({
               }}
             >
               <TableCell>Property name</TableCell>
-              <TableCell sx={{ width: 180 }}>Expected values</TableCell>
-              <TableCell
-                sx={{
-                  width: "170px !important",
-                }}
-              >
+              <TableCell width={180}>Expected values</TableCell>
+              <CenteredTableCell width={170}>
                 Allow multiple values <QuestionIcon />
-              </TableCell>
-              <TableCell sx={{ width: 100 }}>Required</TableCell>
-              <TableCell sx={{ width: 150 }}>
+              </CenteredTableCell>
+              <CenteredTableCell width={100}>Required</CenteredTableCell>
+              <CenteredTableCell width={150}>
                 Default value <QuestionIcon />
-              </TableCell>
-              <TableCell sx={{ width: 70 }} />
+              </CenteredTableCell>
+              <TableCell width={70} />
             </Typography>
           </TableHead>
           <TableBody>
