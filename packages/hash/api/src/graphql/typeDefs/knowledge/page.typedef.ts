@@ -21,7 +21,7 @@ export const persistedPageTypedef = gql`
     """
     The contents of the page.
     """
-    contents: [KnowledgeBlock!]!
+    contents: [PersistedBlock!]!
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
@@ -93,7 +93,7 @@ export const persistedPageTypedef = gql`
   """
   Insert a block into a page with a corresponding entity.
   """
-  input InsertKnowledgeBlockAction {
+  input InsertPersistedBlockAction {
     """
     The account ID to create the block and associated entity in.
     """
@@ -128,7 +128,7 @@ export const persistedPageTypedef = gql`
   """
   Remove a block from a page.
   """
-  input RemoveKnowledgeBlockAction {
+  input RemovePersistedBlockAction {
     """
     The position of the block to remove from the page.
     """
@@ -138,7 +138,7 @@ export const persistedPageTypedef = gql`
   """
   Move a block within a page.
   """
-  input MoveKnowledgeBlockAction {
+  input MovePersistedBlockAction {
     """
     The current position of the block.
     """
@@ -170,7 +170,7 @@ export const persistedPageTypedef = gql`
   """
   Swap a blocks data
   """
-  input SwapKnowledgeBlockDataAction {
+  input SwapPersistedBlockDataAction {
     """
     The account the block resides in
     """
@@ -232,11 +232,11 @@ export const persistedPageTypedef = gql`
   permit unions as input to a mutation
   """
   input UpdatePersistedPageAction {
-    insertBlock: InsertKnowledgeBlockAction
-    removeBlock: RemoveKnowledgeBlockAction
-    moveBlock: MoveKnowledgeBlockAction
+    insertBlock: InsertPersistedBlockAction
+    removeBlock: RemovePersistedBlockAction
+    moveBlock: MovePersistedBlockAction
     updateEntity: UpdatePersistedEntityAction
-    swapBlockData: SwapKnowledgeBlockDataAction
+    swapBlockData: SwapPersistedBlockDataAction
     createEntity: CreatePersistedEntityAction
     createEntityType: CreatePersistedEntityTypeAction
   }

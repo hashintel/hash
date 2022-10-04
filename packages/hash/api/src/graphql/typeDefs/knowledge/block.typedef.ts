@@ -1,7 +1,7 @@
 import { gql } from "apollo-server-express";
 
-export const knowledgeBlockTypedef = gql`
-  type KnowledgeBlock implements PersistedEntity {
+export const persistedBlockTypedef = gql`
+  type PersistedBlock implements PersistedEntity {
     """
     The block's linked data entity.
     """
@@ -56,6 +56,6 @@ export const knowledgeBlockTypedef = gql`
     """
     Get a specified list of blocks by their entity id
     """
-    knowledgeBlocks(blocks: [LatestPersistedEntityRef!]!): [KnowledgeBlock!]!
+    persistedBlocks(blocks: [LatestPersistedEntityRef!]!): [PersistedBlock!]!
   }
 `;

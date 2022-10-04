@@ -106,7 +106,7 @@ import {
   persistedPageContents,
 } from "./knowledge/page";
 import { persistedPage } from "./knowledge/page/page";
-import { knowledgeBlocks } from "./knowledge/block/block";
+import { persistedBlocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import { persistedEntity } from "./knowledge/entity/entity";
 import { UnresolvedPersistedEntityGQL } from "./knowledge/model-mapping";
@@ -122,7 +122,7 @@ import {
  */
 const workpsaceEntityGQLTypeNames = [
   "PersistedPage",
-  "KnowledgeBlock",
+  "PersistedBlock",
 ] as const;
 
 type WorkspaceEntityGQLTypeName = typeof workpsaceEntityGQLTypeNames[number];
@@ -174,7 +174,7 @@ export const resolvers = {
     getEntityType: loggedInAndSignedUp(getEntityType),
     // Knowledge
     persistedPage: loggedInAndSignedUp(persistedPage),
-    knowledgeBlocks: loggedInAndSignedUp(knowledgeBlocks),
+    persistedBlocks: loggedInAndSignedUp(persistedBlocks),
     persistedEntity: loggedInAndSignedUp(persistedEntity),
     outgoingPersistedLinks: loggedInAndSignedUp(outgoingPersistedLinks),
   },

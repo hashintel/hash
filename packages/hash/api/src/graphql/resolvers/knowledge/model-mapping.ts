@@ -1,6 +1,6 @@
 import { BlockModel, EntityModel, LinkModel, PageModel } from "../../../model";
 import {
-  KnowledgeBlock,
+  PersistedBlock,
   PersistedEntity,
   PersistedLink,
   PersistedPage,
@@ -49,16 +49,16 @@ export const mapPageModelToGQL = (
   summary: pageModel.getSummary(),
 });
 
-export type ExternalKnowledgeBlockResolversGQL =
+export type ExternalPersistedBlockResolversGQL =
   | ExternalPersistedEntityResolversGQL
   | "dataEntity";
-export type UnresolvedKnowledgeBlockGQL = Omit<
-  KnowledgeBlock,
-  ExternalKnowledgeBlockResolversGQL
+export type UnresolvedPersistedBlockGQL = Omit<
+  PersistedBlock,
+  ExternalPersistedBlockResolversGQL
 >;
 export const mapBlockModelToGQL = (
   blockModel: BlockModel,
-): UnresolvedKnowledgeBlockGQL => ({
+): UnresolvedPersistedBlockGQL => ({
   ...mapEntityModelToGQL(blockModel),
   componentId: blockModel.getComponentId(),
 });

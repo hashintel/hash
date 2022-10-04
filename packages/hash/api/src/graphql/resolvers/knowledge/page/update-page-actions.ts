@@ -6,8 +6,8 @@ import { BlockModel, EntityModel, UserModel } from "../../../../model";
 import {
   CreatePersistedEntityAction,
   PersistedEntityDefinition,
-  InsertKnowledgeBlockAction,
-  SwapKnowledgeBlockDataAction,
+  InsertPersistedBlockAction,
+  SwapPersistedBlockDataAction,
   UpdatePersistedEntityAction,
   UpdatePersistedPageAction,
 } from "../../../apiTypes.gen";
@@ -145,13 +145,13 @@ export const handleCreateNewEntity = async (params: {
 
 /**
  * Insert new block onto page.
- * Acts on {@link InsertKnowledgeBlockAction}
+ * Acts on {@link InsertPersistedBlockAction}
  */
 export const handleInsertNewBlock = async (
   graphApi: GraphApi,
   params: {
     userModel: UserModel;
-    insertBlockAction: InsertKnowledgeBlockAction;
+    insertBlockAction: InsertPersistedBlockAction;
     index: number;
     createEntityWithPlaceholders: (
       originalDefinition: PersistedEntityDefinition,
@@ -230,13 +230,13 @@ export const handleInsertNewBlock = async (
 
 /**
  * Swap a block's data entity to another entity.
- * Acts on {@link SwapKnowledgeBlockDataAction}
+ * Acts on {@link SwapPersistedBlockDataAction}
  */
 export const handleSwapBlockData = async (
   graphApi: GraphApi,
   params: {
     userModel: UserModel;
-    swapBlockDataAction: SwapKnowledgeBlockDataAction;
+    swapBlockDataAction: SwapPersistedBlockDataAction;
   },
 ): Promise<void> => {
   const {
