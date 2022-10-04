@@ -1,7 +1,8 @@
-import { BlockModel, EntityModel, PageModel } from "../../../model";
+import { BlockModel, EntityModel, LinkModel, PageModel } from "../../../model";
 import {
   KnowledgeBlock,
   KnowledgeEntity,
+  KnowledgeLink,
   KnowledgePage,
 } from "../../apiTypes.gen";
 import { mapEntityTypeModelToGQL } from "../ontology/model-mapping";
@@ -60,4 +61,26 @@ export const mapBlockModelToGQL = (
 ): UnresolvedKnowledgeBlockGQL => ({
   ...mapEntityModelToGQL(blockModel),
   componentId: blockModel.getComponentId(),
+});
+
+export type UnresolvedKnowledgeLinkGQL = Omit<
+  KnowledgeLink,
+  "sourceEntity" | "targetEntity"
+> & {
+  sourceEntity: UnresolvedKnowledgeEntityGQL;
+  targetEntity: UnresolvedKnowledgeEntityGQL;
+};
+
+export const mapLinkModelToGQL = (
+  linkModel: LinkModel,
+): UnresolvedKnowledgeLinkGQL => ({
+  ownedById: linkModel.ownedById,
+  linkTypeId: linkModel.linkTypeModel.schema.$id,
+  index: linkModel.index,
+  sourceEntityId: linkModel.sourceEntityModel.entityId,
+  targetEntityId: linkModel.targetEntityModel.entityId,
+  // These may be field resolvers at some point.
+  // Currently we require source and target on link model instantiation.
+  sourceEntity: mapEntityModelToGQL(linkModel.sourceEntityModel),
+  targetEntity: mapEntityModelToGQL(linkModel.targetEntityModel),
 });

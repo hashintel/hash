@@ -94,6 +94,44 @@ export default class {
     );
   }
 
+  static async get(
+    graphApi: GraphApi,
+    params: {
+      sourceEntityId: string;
+      targetEntityId: string;
+      linkTypeId: string;
+    },
+  ): Promise<LinkModel> {
+    const { sourceEntityId, targetEntityId, linkTypeId } = params;
+
+    const linkModels = await LinkModel.getByQuery(graphApi, {
+      all: [
+        { eq: [{ path: ["source", "id"] }, { literal: sourceEntityId }] },
+        { eq: [{ path: ["target", "id"] }, { literal: targetEntityId }] },
+        {
+          eq: [
+            { path: ["type", "versionedUri"] },
+            {
+              literal: linkTypeId,
+            },
+          ],
+        },
+      ],
+    });
+
+    const [linkModel] = linkModels;
+
+    if (!linkModel) {
+      throw new Error(
+        `Link with source enitty ID = '${sourceEntityId}', target entity ID = '${targetEntityId}' and link type ID = '${linkTypeId}' not found.`,
+      );
+    } else if (linkModels.length > 1) {
+      throw new Error(`Could not identify one single link with query.`);
+    }
+
+    return linkModel;
+  }
+
   /**
    * Create a link between a source and a target entity using a specific link
    * type, without modifying the indexes of its sibling links.
