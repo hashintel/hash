@@ -2,7 +2,7 @@ import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Typography } from "@mui/material";
 import { WhiteCard } from "../../entity-types/white-card";
-import { EntitySection } from "./entity-section";
+import { EntitySection } from "./shared/entity-section";
 
 export const TypesSection = () => {
   return (

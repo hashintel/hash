@@ -2,9 +2,9 @@ import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
-import { TopContextBar } from "../../../shared/top-context-bar";
-import { OntologyChip } from "../../entity-types/ontology-chip";
-import { PlaceholderIcon } from "../../entity-types/placeholder-icon";
+import { TopContextBar } from "../../../../shared/top-context-bar";
+import { OntologyChip } from "../../../entity-types/ontology-chip";
+import { PlaceholderIcon } from "../../../entity-types/placeholder-icon";
 
 export const EntityPageHeader = () => {
   return (

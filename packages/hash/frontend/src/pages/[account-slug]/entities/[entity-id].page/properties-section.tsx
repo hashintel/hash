@@ -1,4 +1,6 @@
+import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { Chip } from "@hashintel/hash-design-system/chip";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import {
   Paper,
   Stack,
@@ -10,7 +12,8 @@ import {
   TableRow,
   TableSortLabel,
 } from "@mui/material";
-import { EntitySection } from "./entity-section";
+import { EntitySection } from "./shared/entity-section";
+import { WhiteChip } from "./shared/white-chip";
 
 const properties: { name: string; value: string }[] = [
   { name: "Headcount", value: "221,000" },
@@ -32,15 +35,7 @@ export const PropertiesSection = () => {
       titleStartContent={
         <Stack direction="row" spacing={1.5}>
           <Chip size="xs" label="8 Values" />
-          <Chip
-            size="xs"
-            label="112 empty"
-            variant="outlined"
-            sx={{
-              background: "white",
-              borderColor: ({ palette }) => palette.gray[30],
-            }}
-          />
+          <WhiteChip size="xs" label="112 empty" />
         </Stack>
       }
     >
@@ -86,7 +81,12 @@ export const PropertiesSection = () => {
               >
                 <TableCell>{property.name}</TableCell>
                 <TableCell align="left">{property.value}</TableCell>
-                <TableCell align="left">Number</TableCell>
+                <TableCell align="left">
+                  <Chip
+                    icon={<FontAwesomeIcon icon={faAsterisk} />}
+                    label="Number"
+                  />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

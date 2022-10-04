@@ -1,8 +1,12 @@
 import { Box, Stack } from "@mui/material";
 import { Container } from "@mui/system";
 import { PropsWithChildren } from "react";
-import { EntityPageHeader } from "./entity-page-header";
+import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
 
+/**
+ * We'll change `[entity-id].page.tsx` to a tabbed page,
+ * When that happens, this component will provide the tabs to each page
+ */
 export const EntityPageWrapper = ({ children }: PropsWithChildren) => {
   return (
     <Stack height="100vh">
