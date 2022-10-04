@@ -40,6 +40,8 @@ import { useBlockProtocolGetLinkType } from "../../components/hooks/blockProtoco
 import { useBlockProtocolUpdateLinkType } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateLinkType";
 
 import { useReadonlyMode } from "../../shared/readonly-mode";
+import { useBlockProtocolGetEntity } from "../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
+import { KnolwedgeCallbacks } from "../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 
 export type GraphMessageCallbacks = Omit<
   EmbedderGraphMessageCallbacks,
@@ -54,7 +56,8 @@ export type GraphMessageCallbacks = Omit<
   | "updateEntityType"
   | "aggregateEntityTypes"
 > &
-  OntologyCallbacks;
+  OntologyCallbacks &
+  KnolwedgeCallbacks;
 
 /** @todo Consider if we should move this out of the page and into the hooks directory. */
 export const useBlockProtocolFunctionsWithOntology = (
@@ -70,6 +73,7 @@ export const useBlockProtocolFunctionsWithOntology = (
     ownedById,
     readonlyMode,
   );
+  const { getEntity } = useBlockProtocolGetEntity();
   const { deleteLinkedAggregation } =
     useBlockProtocolDeleteLinkedAggregation(readonlyMode);
   const { deleteLink } = useBlockProtocolDeleteLink(readonlyMode);
@@ -118,6 +122,8 @@ export const useBlockProtocolFunctionsWithOntology = (
     uploadFile,
     updateLink,
     updateLinkedAggregation,
+    // Knowledge operations
+    getEntity,
     // Ontology operations
     aggregateDataTypes,
     getDataType,
