@@ -81,7 +81,7 @@ export const OntologyChip = ({
           overflow: "hidden",
           textOverflow: "ellipsis",
 
-          "&:last-child:not(:nth-child(1))": {
+          "&:last-of-type:not(:nth-of-type(1))": {
             // Place the overflow ellipsis at the beginning, not the end
             "&:before": {
               // Ensure special characters aren't placed at the end
