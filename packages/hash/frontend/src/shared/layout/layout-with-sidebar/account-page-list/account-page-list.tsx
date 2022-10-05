@@ -65,7 +65,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     useCreatePage(accountId);
   const [createSubPage, { loading: createSubpageLoading }] =
     useCreateSubPage(accountId);
-  const [reorderPage, { loading: reorderLoading }] = useReorderPage(accountId);
+  const [reorderPage, { loading: reorderLoading }] = useReorderPage();
   const [archivePage, { loading: archivePageLoading }] = useArchivePage();
 
   const loading =
