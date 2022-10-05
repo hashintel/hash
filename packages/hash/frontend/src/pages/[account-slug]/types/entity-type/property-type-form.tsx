@@ -21,9 +21,6 @@ export const PropertyTypeForm = ({
           display: "flex",
           alignItems: "center",
         },
-        [`.${inputLabelClasses.asterisk}`]: {
-          color: theme.palette.blue[70],
-        },
       })}
     >
       <TextField
