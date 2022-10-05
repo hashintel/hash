@@ -48,6 +48,7 @@ export const mapPageModelToGQL = (
   archived: pageModel.getArchived(),
   summary: pageModel.getSummary(),
   index: pageModel.getIndex(),
+  icon: pageModel.getIcon(),
 });
 
 export type ExternalKnowledgeBlockResolversGQL =

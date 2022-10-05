@@ -156,7 +156,7 @@ const generateCrumbsFromPages = ({
       id: currentPage.entityId,
       icon: (
         <PageIcon
-          accountId={accountId}
+          ownedById={accountId}
           entityId={currentPage.entityId}
           size="small"
         />
@@ -321,7 +321,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
         <Container>
           <Box display="flex">
             <PageIconButton
-              accountId={accountId}
+              ownedById={accountId}
               entityId={pageEntityId}
               versionId={versionId}
               sx={{ mr: 3, alignSelf: "flex-start" }}
@@ -338,8 +338,8 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
               >
                 <PageTitle
                   value={title}
-                  accountId={accountId}
-                  entityId={pageEntityId}
+                  ownedById={accountId}
+                  pageEntityId={pageEntityId}
                 />
                 {/* 
             Commented out Version Dropdown and Transfer Page buttons.
