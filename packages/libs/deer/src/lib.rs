@@ -1,14 +1,15 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+//! Intentionally left blank for now!
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+#![cfg_attr(not(feature = "std"), no_std)]
+#![warn(
+    missing_docs,
+    unreachable_pub,
+    clippy::pedantic,
+    clippy::nursery,
+    clippy::undocumented_unsafe_blocks
+)]
+#![allow(clippy::redundant_pub_crate)]
+#![allow(clippy::module_name_repetitions)]
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+extern crate alloc;
+extern crate core;
