@@ -43,7 +43,7 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
       listeners,
       dragOverlay,
       linkedToEntity,
-      readonly,
+      readonly = false,
     },
     ref,
   ) => {

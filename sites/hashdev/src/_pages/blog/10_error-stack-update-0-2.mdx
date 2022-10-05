@@ -167,7 +167,7 @@ Version 0.2 of `error-stack` introduces these breaking changes and deprecations:
 - Remove the unused features `hooks`, `futures`, and `futures-core`
 - `Report::backtrace` (and `Report::span_trace` for consistency) were deprecated because you cannot get `Backtrace` from `Error` anymore.
   - non-nightly channels should use `Report::downcast_ref::<Backtrace>` / `Report::downcast_ref::<SpanTrace>`.
-  - nightly channels should use`Report::requested_ref::<Backtrace>` / `Report::requested_ref::<SpanTrace>`.
+  - nightly channels should use`Report::request_ref::<Backtrace>` / `Report::request_ref::<SpanTrace>`.
 - The format of the `Debug` output has changed significantly. If you had a dependency on the format of the `Debug` output (which we don’t recommend), it might break.
 - We deprecated `IntoReport::report`. Please use `IntoReport::into_report` instead.
 - We deprecated the following as part of the changes we made to how hooks work:

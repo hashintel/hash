@@ -59,9 +59,9 @@ const content = {
 const toDropShadow = (size: keyof Omit<ShadowSizes, "none">) => {
   let result = "";
 
-  content[size].forEach((item) => {
+  for (const item of content[size]) {
     result += `drop-shadow(${item})`;
-  });
+  }
 
   return result;
 };
