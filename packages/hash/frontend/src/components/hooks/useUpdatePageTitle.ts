@@ -3,15 +3,15 @@ import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
 
 import { useCallback } from "react";
 import {
-  GetPageInfoQueryVariables,
   UpdateKnowledgePageMutation,
+  GetPageInfoQueryVariables,
   UpdateKnowledgePageMutationVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { updateKnowledgePage } from "../../graphql/queries/page.queries";
 
-export const useArchivePage = () => {
-  const [updatePageFn, { loading }] = useMutation<
+export const useUpdatePageTitle = () => {
+  const [updatePageFn, { loading: updatePageTitleLoading }] = useMutation<
     UpdateKnowledgePageMutation,
     UpdateKnowledgePageMutationVariables
   >(updateKnowledgePage, { awaitRefetchQueries: true });
@@ -33,12 +33,12 @@ export const useArchivePage = () => {
     [],
   );
 
-  const archivePage = useCallback(
-    async (value: boolean, ownedById: string, pageEntityId: string) => {
+  const updatePageTitle = useCallback(
+    async (value: string, ownedById: string, pageEntityId: string) => {
       await updatePageFn({
         variables: {
           entityId: pageEntityId,
-          updatedProperties: { archived: value },
+          updatedProperties: { title: value },
         },
         refetchQueries: getRefetchQueries(ownedById, pageEntityId),
       });
@@ -46,5 +46,5 @@ export const useArchivePage = () => {
     [updatePageFn, getRefetchQueries],
   );
 
-  return [archivePage, { loading }] as const;
+  return [updatePageTitle, { updatePageTitleLoading }] as const;
 };
