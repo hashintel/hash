@@ -36,6 +36,12 @@ A-error-stack:
   - "packages/libs/error-stack/.*"
   - "packages/libs/error-stack/**/*"
   - "packages/libs/error-stack/**/.*"
+  
+A-deer:
+  - "packages/libs/deer/*"
+  - "packages/libs/deer/.*"
+  - "packages/libs/deer/**/*"
+  - "packages/libs/deer/**/.*"
 
 C-dependencies:
   - "**/Cargo.lock"
