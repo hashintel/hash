@@ -77,7 +77,7 @@ export const useBlockProtocolGetEntity = (): {
             {
               code: "INVALID_INPUT",
               message:
-                "Error getting the entity type rooted sub graph of the entity",
+                "Error getting the subgraph rooted at entity's entity type",
             },
           ],
         };
