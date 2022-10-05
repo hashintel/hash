@@ -20,6 +20,47 @@ export const getAllLatestEntityTypesQuery = gql`
   }
 `;
 
+export const getEntityTypeRootedSubgraphQuery = gql`
+  query getEntityTypeRootedSubgraph(
+    $entityTypeId: String!
+    $referencedDataTypesDepth: Int
+    $referencedPropertyTypesDepth: Int
+    $referencedLinkTypesDepth: Int
+    $referencedEntityTypesDepth: Int
+  ) {
+    getEntityType(entityTypeId: $entityTypeId) {
+      entityTypeId
+      ownedById
+      accountId
+      entityType
+      referencedDataTypes(depth: $referencedDataTypesDepth) {
+        dataTypeId
+        ownedById
+        accountId
+        dataType
+      }
+      referencedPropertyTypes(depth: $referencedPropertyTypesDepth) {
+        propertyTypeId
+        ownedById
+        accountId
+        propertyType
+      }
+      referencedLinkTypes(depth: $referencedLinkTypesDepth) {
+        linkTypeId
+        ownedById
+        accountId
+        linkType
+      }
+      referencedEntityTypes(depth: $referencedEntityTypesDepth) {
+        entityTypeId
+        ownedById
+        accountId
+        entityType
+      }
+    }
+  }
+`;
+
 export const createEntityTypeMutation = gql`
   mutation createEntityType(
     $ownedById: ID!
