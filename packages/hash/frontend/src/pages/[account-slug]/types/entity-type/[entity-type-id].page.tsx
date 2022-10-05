@@ -1,8 +1,8 @@
 import { Box, Container, Stack, Typography } from "@mui/material";
 import { useRef } from "react";
-import { BriefcaseIcon } from "../../../shared/icons/svg";
-import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
-import { TopContextBar } from "../../shared/top-context-bar";
+import { BriefcaseIcon } from "../../../../shared/icons/svg";
+import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
+import { TopContextBar } from "../../../shared/top-context-bar";
 import { EmptyPropertyListCard } from "./empty-property-list-card";
 import { OntologyChip } from "./ontology-chip";
 import { PlaceholderIcon } from "./placeholder-icon";

@@ -1,17 +1,26 @@
-import { Button, TextField } from "@hashintel/hash-design-system";
+import { Button, TextField } from "@hashintel/hash-design-system/ui";
 import { Box, Container, Stack, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { FormEvent, useState } from "react";
-import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
-import { TopContextBar } from "../../shared/top-context-bar";
-import { OntologyChip } from "./ontology-chip";
-import { PlaceholderIcon } from "./placeholder-icon";
+import { useUser } from "../../../../components/hooks/useUser";
+import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
+import { TopContextBar } from "../../../shared/top-context-bar";
+import { useBlockProtocolFunctionsWithOntology } from "../../../type-editor/blockprotocol-ontology-functions-hook";
+import { OntologyChip } from "../entity-type/ontology-chip";
+import { PlaceholderIcon } from "../entity-type/placeholder-icon";
 
-const Page: NextPageWithLayout = () => {
+const Page: NextPageWithLayout<> = () => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
+  const { user } = useUser();
+
   const router = useRouter();
+
+  const { createEntityType } = useBlockProtocolFunctionsWithOntology(
+    // @todo should use routing URL?
+    user?.accountId ?? "",
+  );
 
   return (
     <Stack sx={{ height: "100vh" }}>
@@ -64,7 +73,32 @@ const Page: NextPageWithLayout = () => {
             component="form"
             onSubmit={async (evt: FormEvent) => {
               evt.preventDefault();
-              void router.push("/@foo/entity-types/view");
+
+              try {
+                const res = await createEntityType({
+                  data: {
+                    entityType: {
+                      title: name,
+                      // @todo make this not necessary
+                      pluralTitle: name,
+                      description,
+                      kind: "entityType",
+                      type: "object",
+                      properties: {},
+                    },
+                  },
+                });
+                const newUrl = res.data?.entityTypeId.replace(/v\/\d+/, "");
+
+                if (newUrl) {
+                  await router.push(newUrl);
+                }
+              } catch (err) {
+                console.log(err);
+                throw err;
+              }
+
+              // void router.push("/@foo/entity-types/view");
             }}
           >
             <Stack
