@@ -21,7 +21,7 @@ export type KnolwedgeCallbacks = {
 
 /**
  * @todo: remove this when we support the corresponding fields in the GQL API, or have implemented alternative fields.
- * @see ...
+ * @see https://app.asana.com/0/0/1203106234191589/f
  */
 type UnsupportedKnowledgeEntityFields = "linkedEntities";
 
