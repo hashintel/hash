@@ -1,17 +1,17 @@
 import { BlockModel } from "../../../../model";
 
-import { QueryKnowledgeBlocksArgs, ResolverFn } from "../../../apiTypes.gen";
+import { QueryPersistedBlocksArgs, ResolverFn } from "../../../apiTypes.gen";
 import { GraphQLContext } from "../../../context";
 import {
-  UnresolvedKnowledgeBlockGQL,
+  UnresolvedPersistedBlockGQL,
   mapBlockModelToGQL,
 } from "../model-mapping";
 
-export const knowledgeBlocks: ResolverFn<
-  Promise<UnresolvedKnowledgeBlockGQL[]>,
+export const persistedBlocks: ResolverFn<
+  Promise<UnresolvedPersistedBlockGQL[]>,
   {},
   GraphQLContext,
-  QueryKnowledgeBlocksArgs
+  QueryPersistedBlocksArgs
 > = async (_, params, { dataSources: { graphApi } }) => {
   const blocks = await Promise.all(
     params.blocks.map(({ entityId }) =>

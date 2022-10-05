@@ -1,20 +1,20 @@
 import { WORKSPACE_TYPES } from "../../../../graph/workspace-types";
 import { PageModel } from "../../../../model";
 import {
-  MutationUpdateKnowledgePageArgs,
+  MutationUpdatePersistedPageArgs,
   ResolverFn,
 } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import {
-  UnresolvedKnowledgePageGQL,
+  UnresolvedPersistedPageGQL,
   mapPageModelToGQL,
 } from "../model-mapping";
 
-export const updateKnowledgePage: ResolverFn<
-  Promise<UnresolvedKnowledgePageGQL>,
+export const updatePersistedPage: ResolverFn<
+  Promise<UnresolvedPersistedPageGQL>,
   {},
   LoggedInGraphQLContext,
-  MutationUpdateKnowledgePageArgs
+  MutationUpdatePersistedPageArgs
 > = async (
   _,
   { entityId, updatedProperties },
@@ -27,7 +27,7 @@ export const updateKnowledgePage: ResolverFn<
       ([propertyName, value]) => ({
         propertyTypeBaseUri:
           WORKSPACE_TYPES.propertyType[
-            propertyName as keyof MutationUpdateKnowledgePageArgs["updatedProperties"]
+            propertyName as keyof MutationUpdatePersistedPageArgs["updatedProperties"]
           ].baseUri,
         value,
       }),

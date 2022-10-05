@@ -1,21 +1,21 @@
 import { EntityModel, LinkModel, LinkTypeModel } from "../../../../model";
 import {
-  MutationCreateKnowledgeLinkArgs,
-  MutationDeleteKnowledgeLinkArgs,
-  QueryOutgoingKnowledgeLinksArgs,
+  MutationCreatePersistedLinkArgs,
+  MutationDeletePersistedLinkArgs,
+  QueryOutgoingPersistedLinksArgs,
   ResolverFn,
 } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import {
   mapLinkModelToGQL,
-  UnresolvedKnowledgeLinkGQL,
+  UnresolvedPersistedLinkGQL,
 } from "../model-mapping";
 
-export const createKnowledgeLink: ResolverFn<
-  Promise<UnresolvedKnowledgeLinkGQL>,
+export const createPersistedLink: ResolverFn<
+  Promise<UnresolvedPersistedLinkGQL>,
   {},
   LoggedInGraphQLContext,
-  MutationCreateKnowledgeLinkArgs
+  MutationCreatePersistedLinkArgs
 > = async (_, { link }, { dataSources: { graphApi } }) => {
   const { linkTypeId, ownedById, index, sourceEntityId, targetEntityId } = link;
 
@@ -43,11 +43,11 @@ export const createKnowledgeLink: ResolverFn<
   return mapLinkModelToGQL(linkModel);
 };
 
-export const outgoingKnowledgeLinks: ResolverFn<
-  Promise<UnresolvedKnowledgeLinkGQL[]>,
+export const outgoingPersistedLinks: ResolverFn<
+  Promise<UnresolvedPersistedLinkGQL[]>,
   {},
   LoggedInGraphQLContext,
-  QueryOutgoingKnowledgeLinksArgs
+  QueryOutgoingPersistedLinksArgs
 > = async (
   _,
   { sourceEntityId, linkTypeId },
@@ -72,11 +72,11 @@ export const outgoingKnowledgeLinks: ResolverFn<
   return linkModels.map(mapLinkModelToGQL);
 };
 
-export const deleteKnowledgeLink: ResolverFn<
+export const deletePersistedLink: ResolverFn<
   Promise<boolean>,
   {},
   LoggedInGraphQLContext,
-  MutationDeleteKnowledgeLinkArgs
+  MutationDeletePersistedLinkArgs
 > = async (_, { link }, { dataSources: { graphApi }, user }) => {
   const linkModel = await LinkModel.get(graphApi, link);
 

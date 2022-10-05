@@ -34,7 +34,7 @@ export const getAccounts = gql`
 
 export const getAccountPagesTree = gql`
   query getAccountPagesTree($ownedById: ID) {
-    knowledgePages(ownedById: $ownedById) {
+    persistedPages(ownedById: $ownedById) {
       entityId
       title
       index

@@ -2,24 +2,24 @@ import { useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
 import {
-  CreateKnowledgePageMutation,
-  CreateKnowledgePageMutationVariables,
+  CreatePersistedPageMutation,
+  CreatePersistedPageMutationVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
-import { createKnowledgePage } from "../../graphql/queries/page.queries";
+import { createPersistedPage } from "../../graphql/queries/page.queries";
 
 export const useCreatePage = (ownedById: string) => {
   const router = useRouter();
 
   const [createPageFn, { loading: createPageLoading }] = useMutation<
-    CreateKnowledgePageMutation,
-    CreateKnowledgePageMutationVariables
-  >(createKnowledgePage, {
+    CreatePersistedPageMutation,
+    CreatePersistedPageMutationVariables
+  >(createPersistedPage, {
     awaitRefetchQueries: true,
     refetchQueries: ({ data }) => [
       {
         query: getAccountPagesTree,
-        variables: { ownedById: data?.createKnowledgePage.ownedById },
+        variables: { ownedById: data?.createPersistedPage.ownedById },
       },
     ],
   });
@@ -31,7 +31,7 @@ export const useCreatePage = (ownedById: string) => {
       });
 
       const { ownedById: pageOwnedById, entityId: pageEntityId } =
-        response.data?.createKnowledgePage ?? {};
+        response.data?.createPersistedPage ?? {};
 
       if (pageOwnedById && pageEntityId) {
         return router.push(`/${pageOwnedById}/${pageEntityId}`);

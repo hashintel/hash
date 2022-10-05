@@ -7,7 +7,7 @@ import {
   isEntity,
 } from "./entityStore";
 import {
-  KnowledgePageFieldsFragment,
+  PersistedPageFieldsFragment,
   Text,
   TextProperties,
 } from "./graphql/apiTypes.gen";
@@ -19,7 +19,7 @@ import {
 } from "./util";
 
 type ContentsEntity = DistributiveOmit<
-  KnowledgePageFieldsFragment["contents"][number],
+  PersistedPageFieldsFragment["contents"][number],
   "__typename"
 >;
 

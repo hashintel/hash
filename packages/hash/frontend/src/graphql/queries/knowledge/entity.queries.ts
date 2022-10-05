@@ -1,7 +1,7 @@
 import { gql } from "@apollo/client";
 
-export const knowledgeEntityFieldsFragment = gql`
-  fragment KnowledgeEntityFields on UnknownKnowledgeEntity {
+export const persistedEntityFieldsFragment = gql`
+  fragment PersistedEntityFields on UnknownPersistedEntity {
     entityId
     entityTypeId
     entityVersion
@@ -10,11 +10,11 @@ export const knowledgeEntityFieldsFragment = gql`
   }
 `;
 
-export const getKnowledgeEntity = gql`
-  query getKnowledgeEntity($entityId: ID!, $entityVersion: String) {
-    knowledgeEntity(entityId: $entityId, entityVersion: $entityVersion) {
-      ...KnowledgeEntityFields
+export const getPersistedEntity = gql`
+  query getPersistedEntity($entityId: ID!, $entityVersion: String) {
+    persistedEntity(entityId: $entityId, entityVersion: $entityVersion) {
+      ...PersistedEntityFields
     }
   }
-  ${knowledgeEntityFieldsFragment}
+  ${persistedEntityFieldsFragment}
 `;

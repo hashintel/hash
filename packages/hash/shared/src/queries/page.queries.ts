@@ -1,7 +1,7 @@
 import { gql } from "@apollo/client";
 
-const knowledgePagePropertiesFieldsFragment = gql`
-  fragment KnowledgePagePropertyFields on KnowledgePage {
+const persistedPagePropertiesFieldsFragment = gql`
+  fragment PersistedPagePropertyFields on PersistedPage {
     title
     archived
     icon
@@ -10,16 +10,16 @@ const knowledgePagePropertiesFieldsFragment = gql`
 
 export const getPageInfoQuery = gql`
   query getPageInfo($ownedById: ID!, $entityId: ID!, $entityVersion: String) {
-    knowledgePage(
+    persistedPage(
       ownedById: $ownedById
       entityId: $entityId
       entityVersion: $entityVersion
     ) {
       entityId
-      ...KnowledgePagePropertyFields
+      ...PersistedPagePropertyFields
     }
   }
-  ${knowledgePagePropertiesFieldsFragment}
+  ${persistedPagePropertiesFieldsFragment}
 `;
 
 const pagePropertiesFieldsFragment = gql`
