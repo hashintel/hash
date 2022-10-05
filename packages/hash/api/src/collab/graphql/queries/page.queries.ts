@@ -1,5 +1,8 @@
 import { gql } from "@apollo/client";
-import { blockFieldsFragment } from "./blocks.queries";
+import {
+  blockFieldsFragment,
+  knowledgeBlockFieldsFragment,
+} from "./blocks.queries";
 
 export const pageFieldsFragment = gql`
   fragment PageFields on Page {
@@ -61,4 +64,37 @@ export const getPageQuery = gql`
     }
   }
   ${pageFieldsFragment}
+`;
+
+export const knowledgePageFieldsFragment = gql`
+  fragment KnowledgePageFields on KnowledgePage {
+    archived
+    summary
+    title
+    ownedById
+    entityId
+    entityVersion
+    contents {
+      ...KnowledgeBlockFields
+    }
+    __typename
+  }
+  ${knowledgeBlockFieldsFragment}
+`;
+
+export const getKnowledgePageQuery = gql`
+  query getKnowledgePage(
+    $ownedById: ID!
+    $entityId: ID!
+    $entityVersion: String
+  ) {
+    knowledgePage(
+      ownedById: $ownedById
+      entityId: $entityId
+      entityVersion: $entityVersion
+    ) {
+      ...KnowledgePageFields
+    }
+  }
+  ${knowledgePageFieldsFragment}
 `;

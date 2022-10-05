@@ -33,3 +33,21 @@ export const getBlocksQuery = gql`
 
   ${blockFieldsFragment}
 `;
+
+export const knowledgeBlockFieldsFragment = gql`
+  fragment KnowledgeBlockFields on KnowledgeBlock {
+    __typename
+    entityId
+    entityVersion
+    accountId
+    entityTypeId
+    componentId
+    dataEntity {
+      entityId
+      accountId
+      properties
+    }
+    properties
+    # Not fetching Data Entity yet.
+  }
+`;

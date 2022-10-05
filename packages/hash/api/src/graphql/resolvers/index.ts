@@ -113,6 +113,7 @@ import {
   knowledgeEntity,
 } from "./knowledge/entity/entity";
 import { UnresolvedKnowledgeEntityGQL } from "./knowledge/model-mapping";
+import { dataEntity } from "./knowledge/block/data-entity";
 import {
   createKnowledgeLink,
   deleteKnowledgeLink,
@@ -350,6 +351,10 @@ export const resolvers = {
 
   KnowledgePage: {
     contents: knowledgePageContents,
+  },
+
+  KnowledgeBlock: {
+    dataEntity,
   },
 
   /**
