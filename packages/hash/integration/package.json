@@ -14,7 +14,7 @@
     "test": "jest --runInBand"
   },
   "dependencies": {
-    "@blockprotocol/type-system": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system?982d7271",
+    "@blockprotocol/type-system": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system?daa68f08",
     "@hashintel/hash-api": "0.0.0",
     "@hashintel/hash-backend-utils": "0.0.0",
     "@hashintel/hash-graph-client": "0.0.0",
