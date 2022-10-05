@@ -3,18 +3,18 @@ import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
 
 import { useCallback } from "react";
 import {
-  UpdateKnowledgePageMutation,
   GetPageInfoQueryVariables,
-  UpdateKnowledgePageMutationVariables,
+  UpdatePersistedPageMutation,
+  UpdatePersistedPageMutationVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
-import { updateKnowledgePage } from "../../graphql/queries/page.queries";
+import { updatePersistedPage } from "../../graphql/queries/page.queries";
 
 export const useUpdatePageTitle = () => {
   const [updatePageFn, { loading: updatePageTitleLoading }] = useMutation<
-    UpdateKnowledgePageMutation,
-    UpdateKnowledgePageMutationVariables
-  >(updateKnowledgePage, { awaitRefetchQueries: true });
+    UpdatePersistedPageMutation,
+    UpdatePersistedPageMutationVariables
+  >(updatePersistedPage, { awaitRefetchQueries: true });
 
   const getRefetchQueries = useCallback(
     (ownedById: string, pageEntityId: string) => [
