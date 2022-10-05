@@ -6,9 +6,9 @@ import {
   GetEntityTypeRootedSubgraphQuery,
   GetEntityTypeRootedSubgraphQueryVariables,
   Query,
-  QueryKnowledgeEntityArgs,
+  QueryPersistedEntityArgs,
 } from "../../../../graphql/apiTypes.gen";
-import { getKnowledgeEntity } from "../../../../graphql/queries/knowledge/entity.queries";
+import { getPersistedEntity } from "../../../../graphql/queries/knowledge/entity.queries";
 import { GetEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolGetEntity = (): {
@@ -22,8 +22,8 @@ export const useBlockProtocolGetEntity = (): {
     fetchPolicy: "no-cache",
   });
 
-  const [getEntityFn] = useLazyQuery<Query, QueryKnowledgeEntityArgs>(
-    getKnowledgeEntity,
+  const [getEntityFn] = useLazyQuery<Query, QueryPersistedEntityArgs>(
+    getPersistedEntity,
     {
       /** @todo reconsider caching. This is done for testing/demo purposes. */
       fetchPolicy: "no-cache",
@@ -46,7 +46,7 @@ export const useBlockProtocolGetEntity = (): {
       const { entityId } = data;
 
       const { data: entityResponseData } = await getEntityFn({
-        query: getKnowledgeEntity,
+        query: getPersistedEntity,
         variables: { entityId },
       });
 
@@ -61,7 +61,7 @@ export const useBlockProtocolGetEntity = (): {
         };
       }
 
-      const { knowledgeEntity } = entityResponseData;
+      const { persistedEntity } = entityResponseData;
 
       /**
        * @todo: obtain this sub-graph as part of the prior `getEntity` query.
@@ -72,7 +72,7 @@ export const useBlockProtocolGetEntity = (): {
         await getEntityTypeRootedSubgraphFn({
           query: getEntityTypeRootedSubgraphQuery,
           variables: {
-            entityTypeId: knowledgeEntity.entityTypeId,
+            entityTypeId: persistedEntity.entityTypeId,
           },
         });
 
@@ -90,7 +90,7 @@ export const useBlockProtocolGetEntity = (): {
 
       return {
         data: {
-          ...knowledgeEntity,
+          ...persistedEntity,
           entityTypeRootedSubgraph: entityTypeResponseData.getEntityType,
         },
       };

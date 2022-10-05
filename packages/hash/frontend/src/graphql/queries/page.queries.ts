@@ -7,7 +7,7 @@ export const setParentPage = gql`
     $prevIndex: String
     $nextIndex: String
   ) {
-    setParentKnowledgePage(
+    setParentPersistedPage(
       pageEntityId: $pageEntityId
       parentPageEntityId: $parentPageEntityId
       prevIndex: $prevIndex
@@ -21,24 +21,24 @@ export const setParentPage = gql`
   }
 `;
 
-export const createKnowledgePage = gql`
-  mutation createKnowledgePage(
+export const createPersistedPage = gql`
+  mutation createPersistedPage(
     $ownedById: ID!
-    $properties: KnowledgePageCreationData!
+    $properties: PersistedPageCreationData!
   ) {
-    createKnowledgePage(ownedById: $ownedById, properties: $properties) {
+    createPersistedPage(ownedById: $ownedById, properties: $properties) {
       ownedById
       entityId
     }
   }
 `;
 
-export const updateKnowledgePage = gql`
-  mutation updateKnowledgePage(
+export const updatePersistedPage = gql`
+  mutation updatePersistedPage(
     $entityId: ID!
-    $updatedProperties: KnowledgePageUpdateData!
+    $updatedProperties: PersistedPageUpdateData!
   ) {
-    updateKnowledgePage(
+    updatePersistedPage(
       entityId: $entityId
       updatedProperties: $updatedProperties
     ) {

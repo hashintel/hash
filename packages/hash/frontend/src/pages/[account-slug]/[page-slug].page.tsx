@@ -90,7 +90,7 @@ export const PageNotificationBanner: FunctionComponent = () => {
     },
   );
 
-  const archived = data?.knowledgePage?.archived;
+  const archived = data?.persistedPage?.archived;
 
   return (
     <Collapse in={!!archived}>
@@ -273,7 +273,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
     );
   }
 
-  const { title, icon } = data.knowledgePage;
+  const { title, icon } = data.persistedPage;
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
@@ -310,7 +310,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
           <TopContextBar
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
-              pageId: data.knowledgePage.entityId,
+              pageId: data.persistedPage.entityId,
               accountId,
             })}
             scrollToTop={scrollToTop}

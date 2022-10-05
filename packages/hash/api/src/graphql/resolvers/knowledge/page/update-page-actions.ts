@@ -4,18 +4,18 @@ import produce from "immer";
 
 import { BlockModel, EntityModel, UserModel } from "../../../../model";
 import {
-  CreateKnowledgeEntityAction,
-  KnowledgeEntityDefinition,
-  InsertKnowledgeBlockAction,
-  SwapKnowledgeBlockDataAction,
-  UpdateKnowledgeEntityAction,
-  UpdateKnowledgePageAction,
+  CreatePersistedEntityAction,
+  PersistedEntityDefinition,
+  InsertPersistedBlockAction,
+  SwapPersistedBlockDataAction,
+  UpdatePersistedEntityAction,
+  UpdatePersistedPageAction,
 } from "../../../apiTypes.gen";
 
 export const createEntityWithPlaceholdersFn =
   (graphApi: GraphApi, placeholderResults: PlaceholderResultsMap) =>
   async (
-    originalDefinition: KnowledgeEntityDefinition,
+    originalDefinition: PersistedEntityDefinition,
     entityOwnedById: string,
   ) => {
     const entityDefinition = produce(originalDefinition, (draft) => {
@@ -51,7 +51,7 @@ export const createEntityWithPlaceholdersFn =
     });
   };
 
-type UpdatePageActionKey = keyof UpdateKnowledgePageAction;
+type UpdatePageActionKey = keyof UpdatePersistedPageAction;
 
 /**
  * @optimization instead of iterating the actions list on every call, we can
@@ -61,11 +61,11 @@ type UpdatePageActionKey = keyof UpdateKnowledgePageAction;
  *   iteration is very cheap.
  */
 export const filterForAction = <T extends UpdatePageActionKey>(
-  actions: UpdateKnowledgePageAction[],
+  actions: UpdatePersistedPageAction[],
   key: T,
-): { action: NonNullable<UpdateKnowledgePageAction[T]>; index: number }[] =>
+): { action: NonNullable<UpdatePersistedPageAction[T]>; index: number }[] =>
   actions.reduce<
-    { action: NonNullable<UpdateKnowledgePageAction[T]>; index: number }[]
+    { action: NonNullable<UpdatePersistedPageAction[T]>; index: number }[]
   >((acc, current, index) => {
     if (current != null && key in current) {
       acc.push({ action: current[key]!, index });
@@ -110,14 +110,14 @@ export class PlaceholderResultsMap {
 
 /**
  * Create new entity.
- * Acts on {@link CreateKnowledgeEntityAction}
+ * Acts on {@link CreatePersistedEntityAction}
  */
 export const handleCreateNewEntity = async (params: {
-  createEntityAction: CreateKnowledgeEntityAction;
+  createEntityAction: CreatePersistedEntityAction;
   index: number;
   placeholderResults: PlaceholderResultsMap;
   createEntityWithPlaceholders: (
-    originalDefinition: KnowledgeEntityDefinition,
+    originalDefinition: PersistedEntityDefinition,
     entityCreatedById: string,
   ) => Promise<EntityModel>;
 }): Promise<void> => {
@@ -147,16 +147,16 @@ export const handleCreateNewEntity = async (params: {
 
 /**
  * Insert new block onto page.
- * Acts on {@link InsertKnowledgeBlockAction}
+ * Acts on {@link InsertPersistedBlockAction}
  */
 export const handleInsertNewBlock = async (
   graphApi: GraphApi,
   params: {
     userModel: UserModel;
-    insertBlockAction: InsertKnowledgeBlockAction;
+    insertBlockAction: InsertPersistedBlockAction;
     index: number;
     createEntityWithPlaceholders: (
-      originalDefinition: KnowledgeEntityDefinition,
+      originalDefinition: PersistedEntityDefinition,
       entityCreatedById: string,
     ) => Promise<EntityModel>;
     placeholderResults: PlaceholderResultsMap;
@@ -232,13 +232,13 @@ export const handleInsertNewBlock = async (
 
 /**
  * Swap a block's data entity to another entity.
- * Acts on {@link SwapKnowledgeBlockDataAction}
+ * Acts on {@link SwapPersistedBlockDataAction}
  */
 export const handleSwapBlockData = async (
   graphApi: GraphApi,
   params: {
     userModel: UserModel;
-    swapBlockDataAction: SwapKnowledgeBlockDataAction;
+    swapBlockDataAction: SwapPersistedBlockDataAction;
   },
 ): Promise<void> => {
   const {
@@ -266,13 +266,13 @@ export const handleSwapBlockData = async (
 
 /**
  * Update properties of an entity.
- * Acts on {@link UpdateKnowledgeEntityAction}
+ * Acts on {@link UpdatePersistedEntityAction}
  */
 export const handleUpdateEntity = async (
   graphApi: GraphApi,
   params: {
     userModel: UserModel;
-    action: UpdateKnowledgeEntityAction;
+    action: UpdatePersistedEntityAction;
     placeholderResults: PlaceholderResultsMap;
   },
 ): Promise<void> => {

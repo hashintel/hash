@@ -16,7 +16,7 @@ export const useReorderPage = () => {
     refetchQueries: ({ data }) => [
       {
         query: getAccountPagesTree,
-        variables: { ownedById: data!.setParentKnowledgePage.ownedById },
+        variables: { ownedById: data!.setParentPersistedPage.ownedById },
       },
     ],
   });
