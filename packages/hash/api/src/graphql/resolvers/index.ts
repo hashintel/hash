@@ -108,7 +108,10 @@ import {
 import { knowledgePage } from "./knowledge/page/page";
 import { knowledgeBlocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
-import { knowledgeEntity } from "./knowledge/entity/entity";
+import {
+  createKnowledgeEntity,
+  knowledgeEntity,
+} from "./knowledge/entity/entity";
 import { UnresolvedKnowledgeEntityGQL } from "./knowledge/model-mapping";
 import {
   createKnowledgeLink,
@@ -226,6 +229,7 @@ export const resolvers = {
     createEntityType: loggedInAndSignedUp(createEntityType),
     updateEntityType: loggedInAndSignedUp(updateEntityType),
     // Knowledge
+    createKnowledgeEntity: loggedInAndSignedUp(createKnowledgeEntity),
     createKnowledgeLink: loggedInAndSignedUp(createKnowledgeLink),
     deleteKnowledgeLink: loggedInAndSignedUp(deleteKnowledgeLink),
   },

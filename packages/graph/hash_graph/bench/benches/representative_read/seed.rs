@@ -1,5 +1,6 @@
 use std::{
     collections::{hash_map::Entry, HashMap},
+    iter::repeat,
     str::FromStr,
 };
 
@@ -135,16 +136,14 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
             .id()
             .clone();
 
-        let mut entity_ids = Vec::with_capacity(quantity);
-        for _ in 0..quantity {
-            entity_ids.push(
-                store
-                    .create_entity(entity.clone(), entity_type_id.clone(), account_id, None)
-                    .await
-                    .expect("failed to create entity")
-                    .entity_id(),
-            );
-        }
+        store
+            .insert_entities_batched_by_type(
+                repeat((None, entity)).take(quantity),
+                entity_type_id,
+                account_id,
+            )
+            .await
+            .expect("failed to create entities");
 
         total_entities += quantity;
     }

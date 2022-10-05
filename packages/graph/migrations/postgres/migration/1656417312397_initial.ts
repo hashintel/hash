@@ -282,6 +282,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       version: {
         type: "TIMESTAMP WITH TIME ZONE",
         notNull: true,
+        default: pgm.func("clock_timestamp()"),
       },
       entity_type_version_id: {
         type: "UUID",
