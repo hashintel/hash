@@ -7,7 +7,7 @@ a fail-slow behavior by default.
 ## Fail-Slow
 
 Currently, Rust deserializers are good at one thing: parsing a lot of data correct and
-*fast*. This is often what is desired, but the need for speed sacrifices usability in
+_fast_. This is often what is desired, but the need for speed sacrifices usability in
 scenarios where multiple errors are of interest.
 `deer` solves this exact problem, by allowing multiple errors, trying as hard as possible
 not to fail at the first error.
@@ -29,12 +29,12 @@ fn main() {
         "string": null,
         "extra": 1
     });
-    
+
     // Note: Syntax is not final!
     let result = deer::json::from_string::<Body>(payload);
     let error = result.expect_error("should fail");
     println!("{error:?}");
-    
+
     let result = serde_json::from_str::<Body>(payload);
     let error = result.expect_error("should fail");
     println!("{error:?}");
