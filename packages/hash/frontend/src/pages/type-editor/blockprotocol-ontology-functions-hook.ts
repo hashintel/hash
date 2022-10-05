@@ -41,7 +41,7 @@ import { useBlockProtocolUpdateLinkType } from "../../components/hooks/blockProt
 
 import { useReadonlyMode } from "../../shared/readonly-mode";
 import { useBlockProtocolGetEntity } from "../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
-import { KnolwedgeCallbacks } from "../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
+import { KnowledgeCallbacks } from "../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 
 export type GraphMessageCallbacks = Omit<
   EmbedderGraphMessageCallbacks,
