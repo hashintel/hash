@@ -57,7 +57,7 @@ export type GraphMessageCallbacks = Omit<
   | "aggregateEntityTypes"
 > &
   OntologyCallbacks &
-  KnolwedgeCallbacks;
+  KnowledgeCallbacks;
 
 /** @todo Consider if we should move this out of the page and into the hooks directory. */
 export const useBlockProtocolFunctionsWithOntology = (
