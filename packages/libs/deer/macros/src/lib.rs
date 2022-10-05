@@ -9,3 +9,4 @@
 )]
 #![allow(clippy::redundant_pub_crate)]
 #![allow(clippy::module_name_repetitions)]
+#![forbid(unsafe_code)]
