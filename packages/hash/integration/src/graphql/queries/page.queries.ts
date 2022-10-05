@@ -121,9 +121,9 @@ const pageFieldsFragment = gql`
 export const createPage = gql`
   mutation createPage(
     $ownedById: ID!
-    $properties: KnowledgePageCreationData!
+    $properties: PersistedPageCreationData!
   ) {
-    createKnowledgePage(ownedById: $ownedById, properties: $properties) {
+    createPersistedPage(ownedById: $ownedById, properties: $properties) {
       ownedById
       entityId
     }
@@ -146,7 +146,7 @@ export const getPage = gql`
 
 export const getAccountPagesTree = gql`
   query getAccountPagesTree($ownedById: ID!) {
-    knowledgePages(ownedById: $ownedById) {
+    persistedPages(ownedById: $ownedById) {
       entityId
       title
       parentPage {
@@ -177,7 +177,7 @@ export const updatePageContents = gql`
 
 export const setPageParent = gql`
   mutation setParentPage($pageEntityId: ID!, $parentPageEntityId: ID) {
-    setParentKnowledgePage(
+    setParentPersistedPage(
       pageEntityId: $pageEntityId
       parentPageEntityId: $parentPageEntityId
     ) {

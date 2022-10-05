@@ -1,18 +1,18 @@
 import { BlockModel } from "../../../../model";
 
-import { QueryKnowledgeBlocksArgs, ResolverFn } from "../../../apiTypes.gen";
+import { QueryPersistedBlocksArgs, ResolverFn } from "../../../apiTypes.gen";
 import { GraphQLContext } from "../../../context";
 import {
-  UnresolvedKnowledgeBlockGQL,
-  UnresolvedKnowledgeEntityGQL,
+  UnresolvedPersistedBlockGQL,
+  UnresolvedPersistedEntityGQL,
   mapEntityModelToGQL,
 } from "../model-mapping";
 
 export const dataEntity: ResolverFn<
-  Promise<UnresolvedKnowledgeEntityGQL>,
-  UnresolvedKnowledgeBlockGQL,
+  Promise<UnresolvedPersistedEntityGQL>,
+  UnresolvedPersistedBlockGQL,
   GraphQLContext,
-  QueryKnowledgeBlocksArgs
+  QueryPersistedBlocksArgs
 > = async ({ entityId }, _, { dataSources: { graphApi } }) => {
   const blockModel = await BlockModel.getBlockById(graphApi, {
     entityId,

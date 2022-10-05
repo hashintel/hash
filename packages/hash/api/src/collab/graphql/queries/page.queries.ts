@@ -1,7 +1,7 @@
 import { gql } from "@apollo/client";
 import {
   blockFieldsFragment,
-  knowledgeBlockFieldsFragment,
+  persistedBlockFieldsFragment,
 } from "./blocks.queries";
 
 export const pageFieldsFragment = gql`
@@ -66,8 +66,8 @@ export const getPageQuery = gql`
   ${pageFieldsFragment}
 `;
 
-export const knowledgePageFieldsFragment = gql`
-  fragment KnowledgePageFields on KnowledgePage {
+export const persistedPageFieldsFragment = gql`
+  fragment PersistedPageFields on PersistedPage {
     archived
     summary
     title
@@ -75,26 +75,26 @@ export const knowledgePageFieldsFragment = gql`
     entityId
     entityVersion
     contents {
-      ...KnowledgeBlockFields
+      ...PersistedBlockFields
     }
     __typename
   }
-  ${knowledgeBlockFieldsFragment}
+  ${persistedBlockFieldsFragment}
 `;
 
-export const getKnowledgePageQuery = gql`
-  query getKnowledgePage(
+export const getPersistedPageQuery = gql`
+  query getPersistedPage(
     $ownedById: ID!
     $entityId: ID!
     $entityVersion: String
   ) {
-    knowledgePage(
+    persistedPage(
       ownedById: $ownedById
       entityId: $entityId
       entityVersion: $entityVersion
     ) {
-      ...KnowledgePageFields
+      ...PersistedPageFields
     }
   }
-  ${knowledgePageFieldsFragment}
+  ${persistedPageFieldsFragment}
 `;

@@ -99,38 +99,38 @@ import {
   updateEntityType,
 } from "./ontology/entity-type";
 import {
-  updateKnowledgePageContents,
-  knowledgePageContents,
+  updatePersistedPageContents,
+  persistedPageContents,
 } from "./knowledge/page";
 import {
-  createKnowledgePage,
-  knowledgePage,
-  knowledgePages,
-  parentKnowledgePage,
+  createPersistedPage,
+  persistedPage,
+  persistedPages,
+  parentPersistedPage,
 } from "./knowledge/page/page";
-import { knowledgeBlocks } from "./knowledge/block/block";
+import { persistedBlocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import {
-  createKnowledgeEntity,
-  knowledgeEntity,
+  createPersistedEntity,
+  persistedEntity,
 } from "./knowledge/entity/entity";
-import { UnresolvedKnowledgeEntityGQL } from "./knowledge/model-mapping";
-import { dataEntity } from "./knowledge/block/data-entity";
+import { UnresolvedPersistedEntityGQL } from "./knowledge/model-mapping";
 import {
-  createKnowledgeLink,
-  deleteKnowledgeLink,
-  outgoingKnowledgeLinks,
+  createPersistedLink,
+  deletePersistedLink,
+  outgoingPersistedLinks,
 } from "./knowledge/link/link";
-import { setParentKnowledgePage } from "./knowledge/page/set-parent-page";
-import { updateKnowledgePage } from "./knowledge/page/update-page";
+import { setParentPersistedPage } from "./knowledge/page/set-parent-page";
+import { updatePersistedPage } from "./knowledge/page/update-page";
+import { dataEntity } from "./knowledge/block/data-entity";
 
 /**
  * @todo: derive these from the statically declared workspace type names
  * @see https://app.asana.com/0/1202805690238892/1203063463721797/f
  */
 const workpsaceEntityGQLTypeNames = [
-  "KnowledgePage",
-  "KnowledgeBlock",
+  "PersistedPage",
+  "PersistedBlock",
 ] as const;
 
 type WorkspaceEntityGQLTypeName = typeof workpsaceEntityGQLTypeNames[number];
@@ -180,11 +180,11 @@ export const resolvers = {
     getAllLatestEntityTypes: loggedInAndSignedUp(getAllLatestEntityTypes),
     getEntityType: loggedInAndSignedUp(getEntityType),
     // Knowledge
-    knowledgePage: loggedInAndSignedUp(knowledgePage),
-    knowledgePages: loggedInAndSignedUp(knowledgePages),
-    knowledgeBlocks: loggedInAndSignedUp(knowledgeBlocks),
-    knowledgeEntity: loggedInAndSignedUp(knowledgeEntity),
-    outgoingKnowledgeLinks: loggedInAndSignedUp(outgoingKnowledgeLinks),
+    persistedPage: loggedInAndSignedUp(persistedPage),
+    persistedPages: loggedInAndSignedUp(persistedPages),
+    persistedBlocks: loggedInAndSignedUp(persistedBlocks),
+    persistedEntity: loggedInAndSignedUp(persistedEntity),
+    outgoingPersistedLinks: loggedInAndSignedUp(outgoingPersistedLinks),
   },
 
   Mutation: {
@@ -207,8 +207,8 @@ export const resolvers = {
     deprecatedUpdateEntityType: loggedInAndSignedUp(deprecatedUpdateEntityType),
     updatePage: loggedInAndSignedUp(updatePage),
     updatePageContents: loggedInAndSignedUp(updatePageContents),
-    updateKnowledgePageContents: loggedInAndSignedUp(
-      updateKnowledgePageContents,
+    updatePersistedPageContents: loggedInAndSignedUp(
+      updatePersistedPageContents,
     ),
     joinOrg: loggedInAndSignedUp(joinOrg),
     requestFileUpload: loggedInAndSignedUp(requestFileUpload),
@@ -232,12 +232,12 @@ export const resolvers = {
     createEntityType: loggedInAndSignedUp(createEntityType),
     updateEntityType: loggedInAndSignedUp(updateEntityType),
     // Knowledge
-    createKnowledgeEntity: loggedInAndSignedUp(createKnowledgeEntity),
-    createKnowledgeLink: loggedInAndSignedUp(createKnowledgeLink),
-    deleteKnowledgeLink: loggedInAndSignedUp(deleteKnowledgeLink),
-    createKnowledgePage: loggedInAndSignedUp(createKnowledgePage),
-    setParentKnowledgePage: loggedInAndSignedUp(setParentKnowledgePage),
-    updateKnowledgePage: loggedInAndSignedUp(updateKnowledgePage),
+    createPersistedEntity: loggedInAndSignedUp(createPersistedEntity),
+    createPersistedLink: loggedInAndSignedUp(createPersistedLink),
+    deletePersistedLink: loggedInAndSignedUp(deletePersistedLink),
+    createPersistedPage: loggedInAndSignedUp(createPersistedPage),
+    setParentPersistedPage: loggedInAndSignedUp(setParentPersistedPage),
+    updatePersistedPage: loggedInAndSignedUp(updatePersistedPage),
   },
 
   JSONObject: JSONObjectResolver,
@@ -332,40 +332,40 @@ export const resolvers = {
 
   // New knowledge field resolvers
 
-  KnowledgeEntity: {
+  PersistedEntity: {
     /**
-     * Determines whether a `KnowledgeEntity` instance should be treated as a
-     * workspace GQL type definition (for example as a `KnowledgePage`), or
-     * whether to treat it is an `UnknownKnowledgeEntity`.
+     * Determines whether a `PersistedEntity` instance should be treated as a
+     * workspace GQL type definition (for example as a `PersistedPage`), or
+     * whether to treat it is an `UnknownPersistedEntity`.
      */
     __resolveType: ({
       workspaceTypeName,
-    }: UnresolvedKnowledgeEntityGQL):
+    }: UnresolvedPersistedEntityGQL):
       | WorkspaceEntityGQLTypeName
-      | "UnknownKnowledgeEntity" => {
+      | "UnknownPersistedEntity" => {
       const workspaceEntityGQLTypeName = workspaceTypeName
-        ? `Knowledge${workspaceTypeName.split(" ").join("")}`
+        ? `Persisted${workspaceTypeName.split(" ").join("")}`
         : undefined;
 
       return workspaceEntityGQLTypeName &&
         isWorkspaceEntityGQLTypeName(workspaceEntityGQLTypeName)
         ? workspaceEntityGQLTypeName
-        : "UnknownKnowledgeEntity";
+        : "UnknownPersistedEntity";
     },
   },
 
-  KnowledgePage: {
-    contents: knowledgePageContents,
-    parentPage: parentKnowledgePage,
+  PersistedPage: {
+    contents: persistedPageContents,
+    parentPage: parentPersistedPage,
   },
 
-  KnowledgeBlock: {
+  PersistedBlock: {
     dataEntity,
   },
 
   /**
    * @todo Add Entity.linkedEntities field resolver for resolving linked entities
-   *   KnowledgeEntity: { linkedEntities .. }
+   *   PersistedEntity: { linkedEntities .. }
    *   see https://app.asana.com/0/0/1203057486837594/f
    */
 };

@@ -9,7 +9,7 @@
 import { MessageCallback } from "@blockprotocol/core";
 import { ReadOrModifyResourceError } from "@blockprotocol/graph";
 import {
-  UnknownKnowledgeEntity,
+  UnknownPersistedEntity,
   EntityTypeRootedSubgraph,
 } from "../../../../graphql/apiTypes.gen";
 
@@ -23,14 +23,14 @@ export type KnowledgeCallbacks = {
  * @todo: remove this when we support the corresponding fields in the GQL API, or have implemented alternative fields.
  * @see https://app.asana.com/0/0/1203106234191589/f
  */
-type UnsupportedKnowledgeEntityFields = "linkedEntities";
+type UnsupportedPersistedEntityFields = "linkedEntities";
 
-type DeprecatedKnowledgeEntityFields = "accountId";
+type DeprecatedPersistedEntityFields = "accountId";
 
 type Entity = Omit<
-  UnknownKnowledgeEntity,
-  | UnsupportedKnowledgeEntityFields
-  | DeprecatedKnowledgeEntityFields
+  UnknownPersistedEntity,
+  | UnsupportedPersistedEntityFields
+  | DeprecatedPersistedEntityFields
   | "entityType"
 > & {
   entityTypeRootedSubgraph: EntityTypeRootedSubgraph;

@@ -1,7 +1,7 @@
 import { gql } from "apollo-server-express";
 
-export const knowledgeEntityTypedef = gql`
-  interface KnowledgeEntity {
+export const persistedEntityTypedef = gql`
+  interface PersistedEntity {
     # These fields are repeated everywhere they're used because
     # (a) GQL requires it - https://github.com/graphql/graphql-spec/issues/533
     # (b) string interpolation breaks the code generator's introspection
@@ -38,14 +38,14 @@ export const knowledgeEntityTypedef = gql`
     """
     The linked entities of the entity.
     """
-    linkedEntities: [KnowledgeEntity!]!
+    linkedEntities: [PersistedEntity!]!
     """
     The JSON object containing the entity's properties.
     """
     properties: JSONObject!
   }
 
-  type UnknownKnowledgeEntity implements KnowledgeEntity {
+  type UnknownPersistedEntity implements PersistedEntity {
     # ENTITY INTERFACE FIELDS BEGIN #
     """
     The id of the entity
@@ -75,7 +75,7 @@ export const knowledgeEntityTypedef = gql`
     """
     The linked entities of the entity.
     """
-    linkedEntities: [KnowledgeEntity!]!
+    linkedEntities: [PersistedEntity!]!
     """
     The JSON object containing the entity's properties.
     """
@@ -86,7 +86,7 @@ export const knowledgeEntityTypedef = gql`
   """
   For referring to an existing entity owned by a specific account id
   """
-  input KnowledgeExistingEntity {
+  input PersistedExistingEntity {
     """
     This may be a reference to a placeholder set using placeholderId on a previous UpdatePageContentsAction.
     """
@@ -97,7 +97,7 @@ export const knowledgeEntityTypedef = gql`
   """
   Select entity types by ONE of componentId, entityTypeId
   """
-  input KnowledgeEntityTypeChoice {
+  input PersistedEntityTypeChoice {
     # Previously the EntityTypeChoice included 'componentId: ID', which made it possible
     # to create a block using an already-existing entity type based on its componentId
     # we should reconsider what we do about the component ID
@@ -108,25 +108,25 @@ export const knowledgeEntityTypedef = gql`
     entityTypeId: String
   }
 
-  input KnowledgeLinkedEntityDefinition {
+  input PersistedLinkedEntityDefinition {
     destinationAccountId: ID!
     linkTypeId: String!
     """
     The index of the link (if any)
     """
     index: Int
-    entity: KnowledgeEntityDefinition!
+    entity: PersistedEntityDefinition!
   }
 
-  input KnowledgeEntityDefinition {
+  input PersistedEntityDefinition {
     """
     Existing Entity to use instead of creating a new entity.
     """
-    existingEntity: KnowledgeExistingEntity
+    existingEntity: PersistedExistingEntity
     """
     The type of which to instantiate the new entity.
     """
-    entityType: KnowledgeEntityTypeChoice
+    entityType: PersistedEntityTypeChoice
     """
     The properties of new entity.
     """
@@ -134,14 +134,14 @@ export const knowledgeEntityTypedef = gql`
     """
     Associated Entities to either create/get and link to this entity.
     """
-    linkedEntities: [KnowledgeLinkedEntityDefinition!]
+    linkedEntities: [PersistedLinkedEntityDefinition!]
   }
 
   extend type Query {
     """
     Get an entity.
     """
-    knowledgeEntity(
+    persistedEntity(
       """
       The id of the entity.
       """
@@ -150,14 +150,14 @@ export const knowledgeEntityTypedef = gql`
       The version of the entity. Defaults to the latest version.
       """
       entityVersion: String
-    ): KnowledgeEntity!
+    ): PersistedEntity!
   }
 
   extend type Mutation {
     """
     Create an entity.
     """
-    createKnowledgeEntity(
+    createPersistedEntity(
       """
       The owner of the create entity. Defaults to the user calling the mutation.
       """
@@ -173,7 +173,7 @@ export const knowledgeEntityTypedef = gql`
       """
       Associated Entities to either create/get and link to this entity.
       """
-      linkedEntities: [KnowledgeLinkedEntityDefinition!]
-    ): KnowledgeEntity!
+      linkedEntities: [PersistedLinkedEntityDefinition!]
+    ): PersistedEntity!
   }
 `;

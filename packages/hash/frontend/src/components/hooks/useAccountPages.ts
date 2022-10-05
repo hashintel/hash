@@ -32,7 +32,7 @@ export const useAccountPages = (ownedById: string): AccountPagesInfo => {
       return [];
     }
 
-    return data?.knowledgePages.map(
+    return data?.persistedPages.map(
       ({ entityId, parentPage, title, index }) => {
         const parentPageEntityId = parentPage?.entityId ?? null;
 

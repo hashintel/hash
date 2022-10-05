@@ -1,20 +1,20 @@
 import { EntityModel } from "../../../../model";
 import {
-  MutationCreateKnowledgeEntityArgs,
-  QueryKnowledgeEntityArgs,
+  QueryPersistedEntityArgs,
+  MutationCreatePersistedEntityArgs,
   ResolverFn,
 } from "../../../apiTypes.gen";
 import {
   mapEntityModelToGQL,
-  UnresolvedKnowledgeEntityGQL,
+  UnresolvedPersistedEntityGQL,
 } from "../model-mapping";
 import { LoggedInGraphQLContext } from "../../../context";
 
-export const createKnowledgeEntity: ResolverFn<
-  Promise<UnresolvedKnowledgeEntityGQL>,
+export const createPersistedEntity: ResolverFn<
+  Promise<UnresolvedPersistedEntityGQL>,
   {},
   LoggedInGraphQLContext,
-  MutationCreateKnowledgeEntityArgs
+  MutationCreatePersistedEntityArgs
 > = async (
   _,
   { ownedById, properties, entityTypeId, linkedEntities },
@@ -37,11 +37,11 @@ export const createKnowledgeEntity: ResolverFn<
   return mapEntityModelToGQL(entity);
 };
 
-export const knowledgeEntity: ResolverFn<
-  Promise<UnresolvedKnowledgeEntityGQL>,
+export const persistedEntity: ResolverFn<
+  Promise<UnresolvedPersistedEntityGQL>,
   {},
   LoggedInGraphQLContext,
-  QueryKnowledgeEntityArgs
+  QueryPersistedEntityArgs
 > = async (_, { entityId, entityVersion }, { dataSources: { graphApi } }) => {
   const entity = entityVersion
     ? await EntityModel.getVersion(graphApi, { entityId, entityVersion })
