@@ -1,7 +1,7 @@
 MIT License
+===========
 
-Copyright (c) 2022 HASH
-Copyright (c) 2022 Bilal Mahmoud
+Copyright © 2022–, HASH
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
