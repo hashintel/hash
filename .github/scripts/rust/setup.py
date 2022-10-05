@@ -24,10 +24,11 @@ ALWAYS_RUN_PATTERNS = [".github/**"]
 # rust-toolchain.toml
 TOOLCHAINS = {
     "packages/libs/error-stack": ["1.63", "beta-2022-09-25"],
+    "packages/libs/deer": ["1.63", "beta-2022-09-25"]
 }
 
 # Try and publish these crates when their version is changed in Cargo.toml
-PUBLISH_PATTERNS = ["packages/libs/error-stack**"]
+PUBLISH_PATTERNS = ["packages/libs/error-stack**", "packages/libs/deer**"]
 
 
 def generate_diffs():
