@@ -5,7 +5,7 @@ import {
   PersistedDataType,
   UpdateDataTypeRequest,
 } from "@hashintel/hash-graph-client";
-import { DataType } from "@blockprotocol/type-system-web";
+import { DataType } from "@blockprotocol/type-system";
 
 import { DataTypeModel } from "../index";
 import { generateTypeId } from "../util";

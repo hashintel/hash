@@ -23,10 +23,10 @@ generates:
       noSchemaStitching: true
       skipTypename: true
       scalars:
-        DataType: "@blockprotocol/type-system-web#DataType"
-        PropertyType: "@blockprotocol/type-system-web#PropertyType"
-        LinkType: "@blockprotocol/type-system-web#LinkType"
-        EntityType: "@blockprotocol/type-system-web#EntityType"
+        DataType: "@blockprotocol/type-system#DataType"
+        PropertyType: "@blockprotocol/type-system#PropertyType"
+        LinkType: "@blockprotocol/type-system#LinkType"
+        EntityType: "@blockprotocol/type-system#EntityType"
         DataTypeWithoutId: "@hashintel/hash-shared/graphql/types#DataTypeWithoutId"
         PropertyTypeWithoutId: "@hashintel/hash-shared/graphql/types#PropertyTypeWithoutId"
         EntityTypeWithoutId: "@hashintel/hash-shared/graphql/types#EntityTypeWithoutId"

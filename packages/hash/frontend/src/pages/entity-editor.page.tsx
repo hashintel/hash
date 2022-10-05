@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { Container, Typography } from "@mui/material";
-import init, { ValueOrArray } from "@blockprotocol/type-system-web";
+import init, { ValueOrArray } from "@blockprotocol/type-system";
 
 import { useUser } from "../components/hooks/useUser";
 import { NextPageWithLayout } from "../shared/layout";

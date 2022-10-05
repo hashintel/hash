@@ -8,7 +8,7 @@ import {
   PropertyTypeModel,
   LinkTypeModel,
 } from "@hashintel/hash-api/src/model";
-import { EntityType } from "@blockprotocol/type-system-web";
+import { EntityType } from "@blockprotocol/type-system";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);

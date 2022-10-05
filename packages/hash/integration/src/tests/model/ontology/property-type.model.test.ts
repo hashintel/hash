@@ -2,7 +2,7 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
-import { PropertyType } from "@blockprotocol/type-system-web";
+import { PropertyType } from "@blockprotocol/type-system";
 import {
   DataTypeModel,
   PropertyTypeModel,

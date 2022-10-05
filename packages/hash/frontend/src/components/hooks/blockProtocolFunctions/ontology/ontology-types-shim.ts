@@ -17,7 +17,7 @@ import {
   PropertyType,
   EntityType,
   LinkType,
-} from "@blockprotocol/type-system-web";
+} from "@blockprotocol/type-system";
 
 export type OntologyCallbacks = {
   aggregateDataTypes: AggregateDataTypesMessageCallback;

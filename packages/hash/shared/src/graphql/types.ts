@@ -3,7 +3,7 @@ import {
   PropertyType,
   LinkType,
   EntityType,
-} from "@blockprotocol/type-system-web";
+} from "@blockprotocol/type-system";
 
 export type TextToken =
   | {

@@ -4,7 +4,7 @@ import {
   PropertyValues,
   VersionedUri,
   LinkType,
-} from "@blockprotocol/type-system-web";
+} from "@blockprotocol/type-system";
 import { AxiosError } from "axios";
 import slugify from "slugify";
 import { EntityTypeModel, LinkTypeModel, PropertyTypeModel } from ".";

@@ -1,6 +1,6 @@
 import { AxiosError } from "axios";
 
-import { EntityType } from "@blockprotocol/type-system-web";
+import { EntityType } from "@blockprotocol/type-system";
 import {
   GraphApi,
   PersistedEntityType,

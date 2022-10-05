@@ -1,6 +1,6 @@
 import { AxiosError } from "axios";
 
-import { LinkType } from "@blockprotocol/type-system-web";
+import { LinkType } from "@blockprotocol/type-system";
 import {
   GraphApi,
   PersistedLinkType,

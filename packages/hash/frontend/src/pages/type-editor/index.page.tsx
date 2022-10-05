@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { Box, Container } from "@mui/material";
-import init from "@blockprotocol/type-system-web";
+import init from "@blockprotocol/type-system";
 
 import { Button } from "../../shared/ui";
 import { useUser } from "../../components/hooks/useUser";
