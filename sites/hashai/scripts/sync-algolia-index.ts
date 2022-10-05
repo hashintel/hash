@@ -34,7 +34,7 @@ const getFileInfos = (
 
   let newArrayOfFiles = [...arrayOfFiles];
 
-  files.forEach((file) => {
+  for (const file of files) {
     if (fs.statSync(`${dirPath}/${file}`).isDirectory()) {
       newArrayOfFiles = getFileInfos(`${dirPath}/${file}`, arrayOfFiles, type);
     } else {
@@ -49,7 +49,7 @@ const getFileInfos = (
         newArrayOfFiles.push({ inputPath, outputPath, type });
       }
     }
-  });
+  }
 
   return newArrayOfFiles;
 };
@@ -134,17 +134,17 @@ const syncAlgoliaIndex = async () => {
 
   const indexObjectLookup: Record<string, AlgoliaRecord> = {};
 
-  indexObjects.forEach((indexObject) => {
+  for (const indexObject of indexObjects) {
     indexObjectLookup[indexObject.objectID] = indexObject;
-  });
+  }
 
   const objectIDsToDelete: string[] = [];
 
-  oldIndexObjects.forEach(({ objectID }) => {
+  for (const { objectID } of oldIndexObjects) {
     if (!indexObjectLookup[objectID]) {
       objectIDsToDelete.push(objectID);
     }
-  });
+  }
 
   await index.deleteObjects(objectIDsToDelete);
 

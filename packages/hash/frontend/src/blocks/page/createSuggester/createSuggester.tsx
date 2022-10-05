@@ -41,6 +41,7 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
 
   let text = "";
 
+  // eslint-disable-next-line unicorn/no-array-for-each -- forEach is provided by Prosemirror
   parentContent.forEach((node) => {
     // replace non-text nodes with a space so that regex stops
     // matching at that point
@@ -330,7 +331,7 @@ export const createSuggester = (
                     options: {
                       offset: () => [
                         coords.left -
-                          (anchorNode?.getBoundingClientRect().x || 0),
+                          (anchorNode?.getBoundingClientRect().x ?? 0),
                         0,
                       ],
                     },

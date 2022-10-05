@@ -30,7 +30,7 @@ export const PullRequestSelector: FunctionComponent<
   const reposToPrIds: { [k: string]: number[] } = useMemo(() => {
     const repoMap = {} as { [k: string]: number[] };
 
-    Array.from(allPrs?.keys() ?? []).forEach((prId) => {
+    for (const prId of Array.from(allPrs?.keys() ?? [])) {
       // e.g. [hashintel, hash, 490
       const parsed = prId.split("/");
       if (parsed.length !== 3) {
@@ -45,7 +45,7 @@ export const PullRequestSelector: FunctionComponent<
       } else {
         repoMap[repository]?.push(prNumber);
       }
-    });
+    }
 
     return repoMap;
   }, [allPrs]);
