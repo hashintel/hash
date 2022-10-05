@@ -38,7 +38,7 @@
     "uuid": "8.3.2"
   },
   "devDependencies": {
-    "@blockprotocol/type-system": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system?daa68f08",
+    "@blockprotocol/type-system": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system?c2df6b8e",
     "@graphql-codegen/cli": "2.7.0",
     "@graphql-codegen/fragment-matcher": "3.2.1",
     "@graphql-codegen/typescript": "2.6.0",

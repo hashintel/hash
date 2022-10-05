@@ -68,8 +68,8 @@
     ]
   },
   "resolutions": {
-    "@blockprotocol/type-system-node": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-node?daa68f08",
-    "@blockprotocol/type-system-web": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?daa68f08",
+    "@blockprotocol/type-system-node": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-node?c2df6b8e",
+    "@blockprotocol/type-system-web": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?c2df6b8e",
     "@types/react": "18.0.15",
     "node-fetch": "^2.6.7",
     "react": "^18.2.0",

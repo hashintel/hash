@@ -1,6 +1,7 @@
 const { config } = require("dotenv-flow");
 const path = require("path");
 const withTM = require("next-transpile-modules")([
+  "@blockprotocol/type-system",
   "@hashintel/hash-shared",
   "@hashintel/hash-design-system",
 ]); // pass the modules you would like to see transpiled
