@@ -36,13 +36,13 @@ export const createKnowledgePage: ResolverFn<
   { ownedById, properties: { title, prevIndex } },
   { dataSources: { graphApi } },
 ) => {
-  const page = await PageModel.createPage(graphApi, {
+  const pageModel = await PageModel.createPage(graphApi, {
     ownedById,
     title,
     prevIndex: prevIndex ?? undefined,
   });
 
-  return mapPageModelToGQL(page);
+  return mapPageModelToGQL(pageModel);
 };
 
 export const parentKnowledgePage: ResolverFn<
@@ -69,9 +69,9 @@ export const knowledgePages: ResolverFn<
     ? await UserModel.getUserById(graphApi, { entityId: ownedById })
     : user;
 
-  const pages = await PageModel.getAllPagesInAccount(graphApi, {
+  const pageModels = await PageModel.getAllPagesInAccount(graphApi, {
     accountModel,
   });
 
-  return pages.map(mapPageModelToGQL);
+  return pageModels.map(mapPageModelToGQL);
 };
