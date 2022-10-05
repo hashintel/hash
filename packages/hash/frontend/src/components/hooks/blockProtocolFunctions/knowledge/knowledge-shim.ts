@@ -13,7 +13,7 @@ import {
   EntityTypeRootedSubgraph,
 } from "../../../../graphql/apiTypes.gen";
 
-export type KnolwedgeCallbacks = {
+export type KnowledgeCallbacks = {
   getEntity: GetEntityMessageCallback;
 };
 
