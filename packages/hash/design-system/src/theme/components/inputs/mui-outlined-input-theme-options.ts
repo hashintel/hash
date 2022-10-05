@@ -5,7 +5,7 @@ import {
   inputAdornmentClasses,
 } from "@mui/material";
 
-const textFieldBorderRadius = 6;
+export const textFieldBorderRadius = 6;
 
 export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"] =
   {

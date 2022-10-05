@@ -106,6 +106,8 @@ export const MuiChipThemeOptions: Components<Theme>["MuiChip"] = {
         backgroundColor: bgColor,
         height: "unset",
 
+        border: "1px solid white",
+
         ...(outlineColor && {
           border: `1px solid ${outlineColor}`,
         }),

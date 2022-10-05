@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{iter::repeat, str::FromStr};
 
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
@@ -59,16 +59,14 @@ async fn seed_db(
         .id()
         .clone();
 
-    let mut entity_ids = Vec::with_capacity(total);
-    for _ in 0..total {
-        entity_ids.push(
-            store
-                .create_entity(entity.clone(), entity_type_id.clone(), account_id, None)
-                .await
-                .expect("failed to create entity")
-                .entity_id(),
-        );
-    }
+    let entity_ids = store
+        .insert_entities_batched_by_type(
+            repeat((None, entity)).take(total),
+            entity_type_id,
+            account_id,
+        )
+        .await
+        .expect("failed to create entities");
 
     store
         .into_client()
