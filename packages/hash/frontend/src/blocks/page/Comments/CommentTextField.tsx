@@ -6,6 +6,7 @@ import {
   useLayoutEffect,
   forwardRef,
   useImperativeHandle,
+  useCallback,
 } from "react";
 import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
@@ -45,6 +46,7 @@ import { useRouteAccountInfo } from "../../../shared/routing";
 import styles from "../style.module.css";
 import { commentPlaceholderPlugin } from "./commentPlaceholderPlugin";
 import { createTextEditorView } from "../createTextEditorView";
+import { isEqual } from "lodash";
 
 const LINE_HEIGHT = 21;
 
@@ -83,21 +85,26 @@ export const ShowMoreTextLink: FunctionComponent<ShowMoreTextLinkProps> = ({
 );
 
 export type CommentTextFieldRef = {
+  getTokens: () => TextToken[];
   submit: () => boolean;
-  loading: boolean;
+  // loading: boolean;
   empty: boolean;
+  resetEditor: () => void;
+  focused: boolean;
 };
 
 type CommentTextFieldProps = {
   editable?: boolean;
   initialText?: TextToken[];
   collapsible?: boolean;
-  loadingIndicator?: boolean;
+  loading?: boolean;
   editorStyles?: StyleSheet;
   onClose?: () => void;
   onSubmit?: (content: TextToken[]) => Promise<void>;
   onEmptyDoc?: (isEmpty: boolean) => void;
   onFocusChange?: (focused: boolean) => void;
+  setValue: (value: TextToken[]) => void;
+  value: TextToken[];
 };
 
 export const CommentTextField = forwardRef<
@@ -109,12 +116,14 @@ export const CommentTextField = forwardRef<
       editable = false,
       initialText,
       collapsible = false,
-      loadingIndicator = false,
+      loading = false,
       editorStyles = {},
       onClose,
       onSubmit,
       onEmptyDoc,
       onFocusChange,
+      setValue,
+      value,
     },
     ref,
   ) => {
@@ -123,17 +132,45 @@ export const CommentTextField = forwardRef<
     const { accountId } = useRouteAccountInfo();
     const editorContainerRef = useRef<HTMLDivElement>();
     const loadingRef = useRef(false);
-    const [loading, setLoading] = useState(false);
     const eventsRef = useRef({ onClose, onSubmit });
     const [collapsed, setCollapsed] = useState(true);
     const [shouldCollapse, setShouldCollapse] = useState(false);
+    const [prevValue, setPrevValue] = useState(initialText);
+
+    if (setValue && viewRef.current) {
+      const { tokens } = textBlockNodeToEntityProperties(
+        viewRef.current?.state.doc,
+      );
+
+      if (!isEqual(prevValue, tokens)) {
+        setValue(tokens);
+        setPrevValue(tokens);
+      }
+    }
 
     useLayoutEffect(() => {
       eventsRef.current = { onClose, onSubmit };
       loadingRef.current = loading;
     });
 
-    const submit = () => {
+    const getTokens = () => {
+      if (viewRef.current) {
+        return textBlockNodeToEntityProperties(viewRef.current.state.doc)
+          .tokens;
+      }
+      return [];
+    };
+
+    const resetEditor = () => {
+      const view = viewRef.current;
+      if (view) {
+        const state = view.state;
+        const tr = state.tr.replaceWith(0, state.doc.content.size, []);
+        view.dispatch(tr);
+      }
+    };
+
+    const submit = useCallback(() => {
       if (
         eventsRef.current.onSubmit &&
         !loadingRef.current &&
@@ -143,27 +180,27 @@ export const CommentTextField = forwardRef<
           viewRef.current.state.doc,
         );
 
-        if (!tokens.length) return true;
-
-        setLoading(true);
-        eventsRef.current
-          .onSubmit(tokens)
-          .then(() => {
-            eventsRef.current.onClose?.();
-          })
-          .finally(() => {
-            setLoading(false);
-          });
+        if (tokens.length) {
+          eventsRef.current
+            .onSubmit(tokens)
+            .then(() => {
+              eventsRef.current.onClose?.();
+            })
+            .finally(() => {});
+          // resetEditor();
+        }
 
         return true;
       }
       return false;
-    };
+    }, []);
 
     useImperativeHandle(ref, () => ({
+      getTokens,
       submit,
-      loading: loadingRef.current,
       empty: !viewRef.current?.state.doc.content.childCount,
+      resetEditor,
+      focused: !!viewRef.current?.hasFocus(),
     }));
 
     useEffect(() => {
@@ -219,6 +256,7 @@ export const CommentTextField = forwardRef<
             attributes: {
               class: "test",
             },
+            // },
           },
         );
 
@@ -236,7 +274,15 @@ export const CommentTextField = forwardRef<
           viewRef.current = undefined;
         };
       }
-    }, [initialText, collapsible, editable, accountId, renderPortal]);
+    }, [
+      initialText,
+      collapsible,
+      editable,
+      accountId,
+      renderPortal,
+      submit,
+      setValue,
+    ]);
 
     useEffect(() => {
       if (shouldCollapse) {
@@ -302,7 +348,7 @@ export const CommentTextField = forwardRef<
                 my: 1.375,
               }}
             >
-              {loadingIndicator && loading ? (
+              {loading ? (
                 <Box m={0.75}>
                   <LoadingSpinner size={12} thickness={2} />
                 </Box>

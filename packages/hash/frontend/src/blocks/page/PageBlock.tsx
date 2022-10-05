@@ -65,7 +65,10 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   const { readonlyMode } = useReadonlyMode();
 
   const { data: pageComments } = usePageComments(accountId, entityId);
-  const [createComment] = useCreateComment(accountId, entityId);
+  const [createComment, { loading: createCommentLoading }] = useCreateComment(
+    accountId,
+    entityId,
+  );
 
   const { setEditorView, pageTitleRef } = usePageContext();
 
@@ -141,13 +144,15 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
                 position: "absolute",
                 right: PAGE_HORIZONTAL_PADDING_RIGHT_FORMULA,
                 transform: "translateX(calc(100% + 48px))",
+                zIndex: 1,
               }}
             >
               {pageComments?.map((comment) => (
                 <CommentThread
                   key={comment.entityId}
                   comment={comment}
-                  onSubmit={createComment}
+                  createComment={createComment}
+                  loading={createCommentLoading}
                 />
               ))}
             </Box>

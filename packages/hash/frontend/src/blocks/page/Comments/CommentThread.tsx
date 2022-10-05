@@ -8,23 +8,32 @@ import { Button } from "../../../shared/ui";
 
 type CommentThreadProps = {
   comment: PageThread;
-  onClose?: () => void;
-  onSubmit: (parentId: string, content: TextToken[]) => Promise<void>;
+  createComment: (parentId: string, content: TextToken[]) => Promise<void>;
+  loading: boolean;
 };
 
 export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   comment,
-  onClose,
-  onSubmit,
+  createComment,
+  loading,
 }) => {
   const inputRef = useRef<CommentTextFieldRef>(null);
   const [threadFocused, setThreadFocused] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [inputDisabled, setInputDisabled] = useState(false);
 
+  const [inputValue, setInputValue] = useState<TextToken[]>([]);
+
   const showInput = threadFocused || !inputRef.current?.empty;
   const showInputButtons =
     (threadFocused && inputFocused) || !inputRef.current?.empty;
+
+  const submitComment = async () => {
+    const tokens = inputRef.current?.getTokens();
+    if (tokens?.length) {
+      await createComment(comment.entityId, tokens);
+    }
+  };
 
   return (
     <Box
@@ -75,17 +84,21 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
           >
             <CommentTextField
               ref={inputRef}
-              onClose={onClose}
-              onSubmit={(content: TextToken[]) =>
-                onSubmit(comment.entityId, content)
-              }
+              onSubmit={submitComment}
+              onClose={() => {
+                setThreadFocused(false);
+              }}
               editable
               onFocusChange={setInputFocused}
               onEmptyDoc={setInputDisabled}
+              setValue={setInputValue}
+              value={inputValue}
             />
           </Box>
         </Box>
       </Collapse>
+
+      {JSON.stringify(inputValue)}
 
       <Collapse in={showInputButtons}>
         <Box
@@ -97,17 +110,12 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
             pt: 0,
             pb: 0.75,
           }}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-          }}
         >
           <Button
             size="xs"
             variant="tertiary"
             onClick={() => {
-              setThreadFocused(false);
-              // setInputFocused(false);
+              inputRef.current?.resetEditor();
             }}
           >
             Cancel
@@ -116,12 +124,8 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
             size="xs"
             variant="secondary"
             disabled={inputDisabled}
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              inputRef.current?.submit();
-            }}
-            loading={inputRef.current?.loading}
+            onClick={submitComment}
+            loading={loading}
           >
             Reply
           </Button>
