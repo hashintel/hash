@@ -18,6 +18,7 @@ export const CreateBlockComment: FunctionComponent<CreateBlockCommentProps> = ({
     sx={({ transitions, palette }) => ({
       width: 250,
       display: "flex",
+      alignItems: "center",
       borderRadius: 1.5,
       border: `1px solid ${palette.gray[30]}`,
       backdropFilter: "blur(40px)",
@@ -32,7 +33,8 @@ export const CreateBlockComment: FunctionComponent<CreateBlockCommentProps> = ({
       sx={({ palette }) => ({
         padding: 0.5,
         borderRadius: 1,
-        margin: 1.5,
+        mx: 1,
+        my: 1.375,
         alignSelf: "flex-start",
         color: palette.gray[50],
       })}

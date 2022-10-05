@@ -17,6 +17,9 @@ import { usePortals } from "./usePortals";
 import { useReadonlyMode } from "../../shared/readonly-mode";
 import { usePageContext } from "./PageContext";
 import { PageCommentsProvider } from "../pageComments";
+import { CommentThread } from "./Comments/CommentThread";
+import { usePageComments } from "../../components/hooks/usePageComments";
+import { useCreateComment } from "../../components/hooks/useCreateComment";
 
 type PageBlockProps = {
   blocks: BlocksMap;
@@ -26,7 +29,13 @@ type PageBlockProps = {
 
 export const PAGE_CONTENT_WIDTH = 696;
 export const PAGE_MIN_PADDING = 48;
-export const PAGE_HORIZONTAL_PADDING_FORMULA = `max(calc((100% - ${PAGE_CONTENT_WIDTH}px) / 2), ${PAGE_MIN_PADDING}px)`;
+export const COMMENTS_WIDTH = 320;
+export const PAGE_HORIZONTAL_PADDING_LEFT_FORMULA = `max(calc((100% - ${
+  PAGE_CONTENT_WIDTH + COMMENTS_WIDTH
+}px) / 2), ${PAGE_MIN_PADDING}px)`;
+export const PAGE_HORIZONTAL_PADDING_RIGHT_FORMULA = `max(calc((100% - ${
+  PAGE_CONTENT_WIDTH + COMMENTS_WIDTH
+}px) / 2), ${PAGE_MIN_PADDING * 2 + COMMENTS_WIDTH}px)`;
 
 /**
  * The naming of this as a "Block" is… interesting, considering it doesn't
@@ -54,6 +63,9 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   const router = useRouter();
   const routeHash = router.asPath.split("#")[1] ?? "";
   const { readonlyMode } = useReadonlyMode();
+
+  const { data: pageComments } = usePageComments(accountId, entityId);
+  const [createComment] = useCreateComment(accountId, entityId);
 
   const { setEditorView, pageTitleRef } = usePageContext();
 
@@ -116,14 +128,30 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
                * so it automatically handles focusing on closest node on margin-clicking
                */
               ".ProseMirror": {
-                padding: `0 ${PAGE_HORIZONTAL_PADDING_FORMULA} 320px`,
+                padding: `0 ${PAGE_HORIZONTAL_PADDING_RIGHT_FORMULA} 320px ${PAGE_HORIZONTAL_PADDING_LEFT_FORMULA}`,
                 minWidth: `calc(${PAGE_CONTENT_WIDTH}px + (${PAGE_MIN_PADDING}px * 2))`,
               },
               // prevents blue outline on selected nodes
               ".ProseMirror-selectednode": { outline: "none" },
             }}
           />
-          <Box id="root" ref={root} position="relative" />
+          <Box id="root" ref={root} position="relative">
+            <Box
+              sx={{
+                position: "absolute",
+                right: PAGE_HORIZONTAL_PADDING_RIGHT_FORMULA,
+                transform: "translateX(calc(100% + 48px))",
+              }}
+            >
+              {pageComments?.map((comment) => (
+                <CommentThread
+                  key={comment.entityId}
+                  comment={comment}
+                  onSubmit={createComment}
+                />
+              ))}
+            </Box>
+          </Box>
           {portals}
           {/**
            * @todo position this better

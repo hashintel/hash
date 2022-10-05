@@ -31,7 +31,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
   });
 
   return (
-    <Box flexDirection="column" p={2} pb={1}>
+    <Box flexDirection="column" p={2}>
       <Box display="flex" justifyContent="space-between">
         <Avatar size={36} title={author?.properties.preferredName ?? "U"} />
         <Box

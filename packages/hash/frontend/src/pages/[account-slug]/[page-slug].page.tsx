@@ -18,7 +18,7 @@ import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions"
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
 import {
   PageBlock,
-  PAGE_HORIZONTAL_PADDING_FORMULA,
+  PAGE_HORIZONTAL_PADDING_LEFT_FORMULA,
   PAGE_MIN_PADDING,
 } from "../../blocks/page/PageBlock";
 import { PageContextProvider } from "../../blocks/page/PageContext";
@@ -176,7 +176,7 @@ const generateCrumbsFromPages = ({
 };
 
 const Container = styled("div")({
-  padding: `${PAGE_MIN_PADDING}px ${PAGE_HORIZONTAL_PADDING_FORMULA} 0`,
+  padding: `${PAGE_MIN_PADDING}px ${PAGE_HORIZONTAL_PADDING_LEFT_FORMULA} 0`,
 });
 
 const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
@@ -315,7 +315,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
               readonly={readonlyMode}
               sx={({ breakpoints }) => ({
                 mb: 2,
-                [breakpoints.up("lg")]: {
+                [breakpoints.up("xl")]: {
                   position: "absolute",
                   top: 0,
                   right: "calc(100% + 24px)",

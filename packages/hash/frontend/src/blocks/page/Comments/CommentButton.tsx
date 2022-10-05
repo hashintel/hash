@@ -7,9 +7,7 @@ import Popper from "@mui/material/Popper";
 import { useCreateComment } from "../../../components/hooks/useCreateComment";
 import { useRouteAccountInfo } from "../../../shared/routing";
 import styles from "../style.module.css";
-import { CommentThread } from "./CommentThread";
 import { usePageComments } from "../../../components/hooks/usePageComments";
-import { CommentTextField } from "./CommentTextField";
 import { CreateBlockComment } from "./CreateBlockComment";
 
 type CommentButtonProps = {
@@ -25,18 +23,7 @@ export const CommentButton: FunctionComponent<CommentButtonProps> = ({
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [createComment] = useCreateComment(
     accountId,
-    "58d51266-5ee5-416b-b36a-21cb036deefe",
-  );
-
-  const { data: pageComments } = usePageComments(
-    accountId,
-    "58d51266-5ee5-416b-b36a-21cb036deefe",
-  );
-
-  const blockComments = useMemo(
-    () =>
-      pageComments?.filter((comment) => comment.parent.entityId === blockId),
-    [pageComments, blockId],
+    "142fbe88-ea94-4bac-a7fe-3bba04f02efb",
   );
 
   const submitComment = useCallback(
@@ -46,13 +33,6 @@ export const CommentButton: FunctionComponent<CommentButtonProps> = ({
       }
     },
     [createComment, blockId],
-  );
-
-  const submitComment2 = useCallback(
-    async (parentId: string, content: TextToken[]) => {
-      await createComment(parentId, content);
-    },
-    [createComment],
   );
 
   const closeInput = useCallback(() => setAnchorEl(null), []);
@@ -99,14 +79,6 @@ export const CommentButton: FunctionComponent<CommentButtonProps> = ({
         anchorEl={anchorEl}
       >
         <CreateBlockComment onClose={closeInput} onSubmit={submitComment} />
-        {blockComments?.map((comment) => (
-          <CommentThread
-            key={comment.entityId}
-            comment={comment}
-            onClose={closeInput}
-            onSubmit={submitComment2}
-          />
-        ))}
       </Popper>
     </Box>
   );
