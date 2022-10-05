@@ -67,6 +67,9 @@ syntactically correct values.
 
 `deer` was created by [Bilal Mahmoud](https://github.com/indietyp). It is being developed in conjunction with [HASH](https://hash.dev/). As an open-source project, we gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/CONTRIBUTING.md) that outlines the process. If you have questions, please reach out to us on our [Discord server](https://hash.ai/discord).
 
+<!-- The license section is in line with other Rust tools, like serde -->
+<!-- markdownlint-disable-next-line MD001 -->
+
 #### License
 
 <sup>
