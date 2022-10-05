@@ -27,8 +27,8 @@ import {
   GetLinkedAggregationQueryVariables,
   GetLinkQuery,
   GetLinkQueryVariables,
-  GetPageQuery,
-  GetPageQueryVariables,
+  GetPersistedPageQuery,
+  GetPersistedPageQueryVariables,
   LatestEntityRef,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
@@ -42,7 +42,7 @@ import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
 import { getBlocksQuery } from "./graphql/queries/blocks.queries";
-import { getPageQuery } from "./graphql/queries/page.queries";
+import { getPersistedPageQuery } from "./graphql/queries/page.queries";
 import { save } from "./save";
 import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
@@ -765,11 +765,11 @@ const newInstance =
     }
 
     const { data } = await apolloClient.query<
-      GetPageQuery,
-      GetPageQueryVariables
+      GetPersistedPageQuery,
+      GetPersistedPageQueryVariables
     >({
-      query: getPageQuery,
-      variables: { entityId: pageEntityId, accountId },
+      query: getPersistedPageQuery,
+      variables: { ownedById: accountId, entityId: pageEntityId },
     });
 
     const state = createProseMirrorState({ accountId });
@@ -780,7 +780,7 @@ const newInstance =
      * @todo check plugins
      */
     const newState = state.apply(
-      await manager.loadPage(state, data.page.contents),
+      await manager.loadPage(state, data.persistedPage.contents),
     );
 
     // The instance may have been created whilst another user we were doing the above work
@@ -793,7 +793,7 @@ const newInstance =
       pageEntityId,
       newState,
       manager,
-      data.page.contents,
+      data.persistedPage.contents,
       entityWatcher,
       apolloClient,
     );

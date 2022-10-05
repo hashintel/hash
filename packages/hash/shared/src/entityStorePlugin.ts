@@ -154,17 +154,18 @@ const updateEntitiesByDraftId = (
 
   for (const entity of Object.values(draftEntityStore)) {
     if (isDraftBlockEntity(entity)) {
-      if (entity.properties.entity.draftId === draftId) {
-        entities.push(entity.properties.entity);
+      /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+      const dataEntity = entity.dataEntity as any;
+
+      if (dataEntity.draftId === draftId) {
+        entities.push(dataEntity);
       }
 
       if (
-        isDraftTextContainingEntityProperties(
-          entity.properties.entity.properties,
-        ) &&
-        entity.properties.entity.properties.text.data.draftId === draftId
+        isDraftTextContainingEntityProperties(dataEntity.properties) &&
+        dataEntity.properties.text.data.draftId === draftId
       ) {
-        entities.push(entity.properties.entity.properties.text.data);
+        entities.push(dataEntity.properties.text.data);
       }
     }
   }
@@ -202,7 +203,8 @@ const setBlockChildEntity = (
       draftId: targetEntityDraftId,
       entityId: targetEntity.entityId,
       properties: targetEntity.properties,
-      updatedAt: targetEntity.updatedAt,
+      /** @todo use the actual updated date here https://app.asana.com/0/0/1203099452204542/f */
+      // updatedAt: targetEntity.updatedAt,
     };
 
     draftEntityStore[targetEntityDraftId] = targetDraftEntity;
@@ -318,8 +320,12 @@ const entityStoreReducer = (
           accountId: action.payload.accountId,
           entityId: action.payload.entityId,
           draftId: action.payload.draftId,
-          updatedAt: new Date().toISOString(),
           properties: {},
+          dataEntity: {
+            /** @todo this value is incorrect and needs to be changed https://app.asana.com/0/0/1203099452204542/f */
+            entityId: "",
+            /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+          } as any,
         };
       });
   }
@@ -558,12 +564,14 @@ class ProsemirrorStateChangeHandler {
     ) {
       const nextProps = textBlockNodeToEntityProperties(node.firstChild);
 
-      if (!isEqual(childEntity.properties, nextProps)) {
+      /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+      if (!isEqual((childEntity as any).properties, nextProps)) {
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
           payload: {
             merge: false,
-            draftId: childEntity.draftId,
+            /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+            draftId: (childEntity as any).draftId,
             properties: nextProps,
           },
         });

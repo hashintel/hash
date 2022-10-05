@@ -86,7 +86,7 @@ export const persistedEntityTypedef = gql`
   """
   For referring to an existing entity owned by a specific account id
   """
-  input KnowledgeExistingEntity {
+  input PersistedExistingEntity {
     """
     This may be a reference to a placeholder set using placeholderId on a previous UpdatePageContentsAction.
     """
@@ -122,7 +122,7 @@ export const persistedEntityTypedef = gql`
     """
     Existing Entity to use instead of creating a new entity.
     """
-    existingEntity: KnowledgeExistingEntity
+    existingEntity: PersistedExistingEntity
     """
     The type of which to instantiate the new entity.
     """
@@ -150,6 +150,30 @@ export const persistedEntityTypedef = gql`
       The version of the entity. Defaults to the latest version.
       """
       entityVersion: String
+    ): PersistedEntity!
+  }
+
+  extend type Mutation {
+    """
+    Create an entity.
+    """
+    createPersistedEntity(
+      """
+      The owner of the create entity. Defaults to the user calling the mutation.
+      """
+      ownedById: ID
+      """
+      The type of which to instantiate the new entity.
+      """
+      entityTypeId: ID!
+      """
+      The properties of new entity.
+      """
+      properties: JSONObject!
+      """
+      Associated Entities to either create/get and link to this entity.
+      """
+      linkedEntities: [PersistedLinkedEntityDefinition!]
     ): PersistedEntity!
   }
 `;

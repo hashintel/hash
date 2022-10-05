@@ -14,14 +14,16 @@ const Page: NextPageWithLayout = () => {
   const { logout } = useLogoutFlow();
 
   useEffect(() => {
-    if (loading) {
-      return;
+    if (user) {
+      void router.push(`/${user.entityId}`);
     }
+  }, [router, user]);
 
-    if (!kratosSession) {
+  useEffect(() => {
+    if (!loading && !kratosSession) {
       void router.push("/login");
     }
-  }, [loading, router, user, kratosSession]);
+  }, [loading, router, kratosSession]);
 
   /** @todo: remove session developer information */
   return (

@@ -149,17 +149,21 @@ export class ProsemirrorManager {
     if (draftBlockId && entityStore?.draft[draftBlockId]) {
       const entityInStore = entityStore.draft[draftBlockId];
       if (!isDraftBlockEntity(entityInStore)) {
-        throw new Error("Block entity missing from store");
+        /** @todo Make these errors instead of logs https://app.asana.com/0/0/1203099452204542/f */
+        // eslint-disable-next-line no-console
+        console.error("Block entity missing from store");
       }
 
-      if (entityInStore.properties.componentId !== targetComponentId) {
-        throw new Error("Cannot render this block entity with this component");
+      if (entityInStore?.properties.componentId !== targetComponentId) {
+        // eslint-disable-next-line no-console
+        console.error("Cannot render this block entity with this component");
       }
 
-      blockEntity = entityInStore;
+      /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+      blockEntity = entityInStore as any;
     }
 
-    const childDraftId = blockEntity?.properties.entity.draftId;
+    const childDraftId = blockEntity?.draftId;
 
     const blockData =
       draftBlockId && entityStore
@@ -217,10 +221,10 @@ export class ProsemirrorManager {
           blockEntity.entityId,
         );
 
-        await this.defineBlockByComponentId(blockEntity.properties.componentId);
+        await this.defineBlockByComponentId(blockEntity.componentId);
 
         return this.renderBlock(
-          blockEntity.properties.componentId,
+          blockEntity.componentId,
           store,
           draftEntity.draftId,
         );
@@ -320,7 +324,8 @@ export class ProsemirrorManager {
     if (
       blockEntity &&
       areComponentsCompatible(
-        blockEntity.properties.componentId,
+        /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+        (blockEntity as any).componentId,
         targetComponentId,
       )
     ) {

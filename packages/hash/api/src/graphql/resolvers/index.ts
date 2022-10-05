@@ -15,14 +15,11 @@ import { createLink } from "./link/createLink";
 import { deleteLink } from "./link/deleteLink";
 import { blocks, blockProperties, blockLinkedEntities } from "./block";
 import {
-  createPage,
-  accountPages,
   page,
   pageProperties,
   updatePage,
   updatePageContents,
   searchPages,
-  setParentPage,
   pageLinkedEntities,
 } from "./pages";
 import {
@@ -105,16 +102,27 @@ import {
   updatePersistedPageContents,
   persistedPageContents,
 } from "./knowledge/page";
-import { persistedPage } from "./knowledge/page/page";
+import {
+  createPersistedPage,
+  persistedPage,
+  persistedPages,
+  parentPersistedPage,
+} from "./knowledge/page/page";
 import { persistedBlocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
-import { persistedEntity } from "./knowledge/entity/entity";
+import {
+  createPersistedEntity,
+  persistedEntity,
+} from "./knowledge/entity/entity";
 import { UnresolvedPersistedEntityGQL } from "./knowledge/model-mapping";
 import {
   createPersistedLink,
   deletePersistedLink,
   outgoingPersistedLinks,
 } from "./knowledge/link/link";
+import { setParentPersistedPage } from "./knowledge/page/set-parent-page";
+import { updatePersistedPage } from "./knowledge/page/update-page";
+import { dataEntity } from "./knowledge/block/data-entity";
 
 /**
  * @todo: derive these from the statically declared workspace type names
@@ -135,7 +143,6 @@ const isWorkspaceEntityGQLTypeName = (
 export const resolvers = {
   Query: {
     // Logged in and signed up users only
-    accountPages: loggedInAndSignedUp(accountPages),
     accounts:
       loggedInAndSignedUp(
         accounts,
@@ -174,6 +181,7 @@ export const resolvers = {
     getEntityType: loggedInAndSignedUp(getEntityType),
     // Knowledge
     persistedPage: loggedInAndSignedUp(persistedPage),
+    persistedPages: loggedInAndSignedUp(persistedPages),
     persistedBlocks: loggedInAndSignedUp(persistedBlocks),
     persistedEntity: loggedInAndSignedUp(persistedEntity),
     outgoingPersistedLinks: loggedInAndSignedUp(outgoingPersistedLinks),
@@ -191,7 +199,6 @@ export const resolvers = {
     deleteLinkedAggregation: loggedInAndSignedUp(deleteLinkedAggregation),
     deprecatedCreateEntityType: loggedInAndSignedUp(deprecatedCreateEntityType),
     createFileFromLink: loggedInAndSignedUp(createFileFromLink),
-    createPage: loggedInAndSignedUp(createPage),
     createComment: loggedInAndSignedUp(createComment),
     createOrg: loggedInAndSignedUp(createOrg),
     createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),
@@ -205,7 +212,6 @@ export const resolvers = {
     ),
     joinOrg: loggedInAndSignedUp(joinOrg),
     requestFileUpload: loggedInAndSignedUp(requestFileUpload),
-    setParentPage: loggedInAndSignedUp(setParentPage),
     // Logged in users only
     updateUser: loggedIn(updateUser),
     // Any user
@@ -226,8 +232,12 @@ export const resolvers = {
     createEntityType: loggedInAndSignedUp(createEntityType),
     updateEntityType: loggedInAndSignedUp(updateEntityType),
     // Knowledge
+    createPersistedEntity: loggedInAndSignedUp(createPersistedEntity),
     createPersistedLink: loggedInAndSignedUp(createPersistedLink),
     deletePersistedLink: loggedInAndSignedUp(deletePersistedLink),
+    createPersistedPage: loggedInAndSignedUp(createPersistedPage),
+    setParentPersistedPage: loggedInAndSignedUp(setParentPersistedPage),
+    updatePersistedPage: loggedInAndSignedUp(updatePersistedPage),
   },
 
   JSONObject: JSONObjectResolver,
@@ -334,7 +344,7 @@ export const resolvers = {
       | WorkspaceEntityGQLTypeName
       | "UnknownPersistedEntity" => {
       const workspaceEntityGQLTypeName = workspaceTypeName
-        ? `Knowledge${workspaceTypeName.split(" ").join("")}`
+        ? `Persisted${workspaceTypeName.split(" ").join("")}`
         : undefined;
 
       return workspaceEntityGQLTypeName &&
@@ -346,6 +356,11 @@ export const resolvers = {
 
   PersistedPage: {
     contents: persistedPageContents,
+    parentPage: parentPersistedPage,
+  },
+
+  PersistedBlock: {
+    dataEntity,
   },
 
   /**

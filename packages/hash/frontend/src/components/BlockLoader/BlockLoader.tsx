@@ -168,7 +168,9 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       convertedEntityTypesForProvidedEntities.push(
         ...convertApiEntityTypesToBpEntityTypes(
           linkedAggregation.results.map(
-            ({ entityType: resultEntityType }) => resultEntityType,
+            /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+            ({ entityType: resultEntityType }: { entityType: any }) =>
+              resultEntityType,
           ),
         ),
       );

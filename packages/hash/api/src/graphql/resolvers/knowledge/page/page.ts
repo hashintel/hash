@@ -1,7 +1,12 @@
-import { PageModel } from "../../../../model";
+import { PageModel, UserModel } from "../../../../model";
 
-import { QueryPersistedPageArgs, ResolverFn } from "../../../apiTypes.gen";
-import { GraphQLContext } from "../../../context";
+import {
+  MutationCreatePersistedPageArgs,
+  QueryPersistedPageArgs,
+  QueryPersistedPagesArgs,
+  ResolverFn,
+} from "../../../apiTypes.gen";
+import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import {
   UnresolvedPersistedPageGQL,
   mapPageModelToGQL,
@@ -19,4 +24,54 @@ export const persistedPage: ResolverFn<
   });
 
   return mapPageModelToGQL(pageModel);
+};
+
+export const createPersistedPage: ResolverFn<
+  Promise<UnresolvedPersistedPageGQL>,
+  {},
+  LoggedInGraphQLContext,
+  MutationCreatePersistedPageArgs
+> = async (
+  _,
+  { ownedById, properties: { title, prevIndex } },
+  { dataSources: { graphApi } },
+) => {
+  const pageModel = await PageModel.createPage(graphApi, {
+    ownedById,
+    title,
+    prevIndex: prevIndex ?? undefined,
+  });
+
+  return mapPageModelToGQL(pageModel);
+};
+
+export const parentPersistedPage: ResolverFn<
+  Promise<UnresolvedPersistedPageGQL | null>,
+  UnresolvedPersistedPageGQL,
+  GraphQLContext,
+  QueryPersistedPagesArgs
+> = async (page, _, { dataSources: { graphApi } }) => {
+  const pageModel = await PageModel.getPageById(graphApi, {
+    entityId: page.entityId,
+  });
+  const parentPageModel = await pageModel.getParentPage(graphApi);
+
+  return parentPageModel ? mapPageModelToGQL(parentPageModel) : null;
+};
+
+export const persistedPages: ResolverFn<
+  Promise<UnresolvedPersistedPageGQL[]>,
+  {},
+  LoggedInGraphQLContext,
+  QueryPersistedPagesArgs
+> = async (_, { ownedById }, { dataSources: { graphApi }, user }) => {
+  const accountModel = ownedById
+    ? await UserModel.getUserById(graphApi, { entityId: ownedById })
+    : user;
+
+  const pageModels = await PageModel.getAllPagesInAccount(graphApi, {
+    accountModel,
+  });
+
+  return pageModels.map(mapPageModelToGQL);
 };

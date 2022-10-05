@@ -22,6 +22,14 @@ export const persistedPageTypedef = gql`
     The contents of the page.
     """
     contents: [PersistedBlock!]!
+    """
+    The fractional index of the page in the page tree.
+    """
+    index: String
+    """
+    The page's parent page (may not be set).
+    """
+    parentPage: PersistedPage
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
@@ -80,6 +88,10 @@ export const persistedPageTypedef = gql`
     """
     persistedPage(
       """
+      The account ID that owns the Page.
+      """
+      ownedById: ID!
+      """
       The id of the page entity.
       """
       entityId: ID!
@@ -88,6 +100,16 @@ export const persistedPageTypedef = gql`
       """
       entityVersion: String
     ): PersistedPage!
+
+    """
+    Return a list of pages.
+    """
+    persistedPages(
+      """
+      The account owning the pages. Defaults to the logged in user.
+      """
+      ownedById: ID
+    ): [PersistedPage!]!
   }
 
   """
@@ -110,7 +132,7 @@ export const persistedPageTypedef = gql`
     The block entity to insert into the page. You should not set a componentId
     if you provide this
     """
-    existingBlockEntity: KnowledgeExistingEntity
+    existingBlockEntity: PersistedExistingEntity
     """
     The entity to associate with the new block
     """
@@ -254,7 +276,57 @@ export const persistedPageTypedef = gql`
     placeholders: [UpdatePersistedPageContentsResultPlaceholder!]!
   }
 
+  input PersistedPageCreationData {
+    """
+    The page title.
+    """
+    title: String!
+    """
+    The fractional index of the page that is before the current.
+    """
+    prevIndex: String
+  }
+
+  input PersistedPageUpdateData {
+    title: String
+    summary: String
+    archived: Boolean
+    index: String
+  }
+
   extend type Mutation {
+    """
+    Create a new page
+    """
+    createPersistedPage(
+      """
+      The new page's account ID.
+      """
+      ownedById: ID!
+      """
+      Initial properties to set for the new page.
+      """
+      properties: PersistedPageCreationData!
+    ): PersistedPage!
+    """
+    Update an existing page.
+    """
+    updatePersistedPage(
+      entityId: ID!
+      updatedProperties: PersistedPageUpdateData!
+    ): PersistedPage!
+    """
+    Set the parent of a page
+
+    If the parentPageEntityId is not set, any existing page link is removed.
+    """
+    setParentPersistedPage(
+      pageEntityId: ID!
+      parentPageEntityId: ID
+      prevIndex: String
+      nextIndex: String
+    ): PersistedPage!
+
     """
     Update the contents of a page.
     """
