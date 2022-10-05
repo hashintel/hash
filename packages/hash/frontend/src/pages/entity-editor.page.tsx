@@ -40,7 +40,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
 
   const { entityType } = entityTypeRootedSubgraph ?? {};
 
-  // The (top-level) property type ids defined in the entity type
+  // The (top-level) property type IDs defined in the entity type
   const propertyTypeIds = useMemo(
     () =>
       entityType
