@@ -94,12 +94,12 @@ export const AddEntitiesDialog = ({
 
     // create links for selected entities
     const selectedEntityIds: string[] = [];
-    selections.forEach((value, index) => {
-      if (!value) return;
+    for (const [index, value] of Array.from(selections.entries())) {
+      if (!value) continue;
 
       const entity = entityList[index];
       if (entity) selectedEntityIds.push(entity.entityId);
-    });
+    }
 
     const createLinkPromises = selectedEntityIds.map((entityId) =>
       graphService.createLink({
