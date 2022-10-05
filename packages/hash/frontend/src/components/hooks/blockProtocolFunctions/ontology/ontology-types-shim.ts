@@ -97,7 +97,10 @@ export type AggregatePropertyTypesMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
-export type GetPropertyTypeRequest = Pick<PropertyTypeResponse, "propertyType">;
+export type GetPropertyTypeRequest = Pick<
+  PropertyTypeResponse,
+  "propertyTypeId"
+>;
 export type GetPropertyTypeMessageCallback = MessageCallback<
   GetPropertyTypeRequest,
   null,
@@ -138,7 +141,7 @@ export type AggregateEntityTypesMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
-export type GetEntityTypeRequest = Pick<EntityTypeResponse, "entityType">;
+export type GetEntityTypeRequest = Pick<EntityTypeResponse, "entityTypeId">;
 export type GetEntityTypeMessageCallback = MessageCallback<
   GetEntityTypeRequest,
   null,
@@ -179,7 +182,7 @@ export type AggregateLinkTypesMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
-export type GetLinkTypeRequest = Pick<LinkTypeResponse, "linkType">;
+export type GetLinkTypeRequest = Pick<LinkTypeResponse, "linkTypeId">;
 export type GetLinkTypeMessageCallback = MessageCallback<
   GetLinkTypeRequest,
   null,
