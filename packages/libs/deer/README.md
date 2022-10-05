@@ -29,6 +29,15 @@ fn main() {
         "string": null,
         "extra": 1
     });
+    
+    // Note: Syntax is not final!
+    let result = deer::json::from_string::<Body>(payload);
+    let error = result.expect_error("should fail");
+    println!("{error:?}");
+    
+    let result = serde_json::from_str::<Body>(payload);
+    let error = result.expect_error("should fail");
+    println!("{error:?}");
 }
 ```
 
