@@ -23,7 +23,7 @@ export const knowledgePageTypedef = gql`
     """
     contents: [KnowledgeBlock!]!
     """
-    The index of the page in the page tree.
+    The fractional index of the page in the page tree.
     """
     index: String
     """
@@ -278,7 +278,7 @@ export const knowledgePageTypedef = gql`
     """
     title: String!
     """
-    The index of the page that is before the current.
+    The fractional index of the page that is before the current.
     """
     prevIndex: String
   }
