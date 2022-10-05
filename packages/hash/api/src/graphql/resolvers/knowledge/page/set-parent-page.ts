@@ -29,18 +29,18 @@ export const setParentKnowledgePage: ResolverFn<
     entityId: pageEntityId,
   });
 
-  const newParentPage = parentPageEntityId
+  const newParentPageModel = parentPageEntityId
     ? await PageModel.getPageById(graphApi, {
         entityId: parentPageEntityId,
       })
     : null;
 
-  const updatedPage = await pageModel.setParentPage(graphApi, {
-    parentPage: newParentPage,
+  const updatedPageModel = await pageModel.setParentPage(graphApi, {
+    parentPageModel: newParentPageModel,
     setById: user.entityId,
     prevIndex,
     nextIndex,
   });
 
-  return mapPageModelToGQL(updatedPage);
+  return mapPageModelToGQL(updatedPageModel);
 };

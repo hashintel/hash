@@ -301,36 +301,36 @@ export default class extends EntityModel {
   async setParentPage(
     graphApi: GraphApi,
     params: {
-      parentPage: PageModel | null;
+      parentPageModel: PageModel | null;
       setById: string;
       prevIndex: string | null;
       nextIndex: string | null;
     },
   ): Promise<PageModel> {
-    const { setById, parentPage, prevIndex, nextIndex } = params;
+    const { setById, parentPageModel, prevIndex, nextIndex } = params;
 
     const newIndex = generateKeyBetween(prevIndex, nextIndex);
 
-    const existingParentPage = await this.getParentPage(graphApi);
+    const existingParentPageModel = await this.getParentPage(graphApi);
 
-    if (existingParentPage) {
+    if (existingParentPageModel) {
       await this.removeParentPage(graphApi, {
         removedById: setById,
       });
     }
 
-    if (parentPage) {
+    if (parentPageModel) {
       // Check whether adding the parent page would create a cycle
-      if (await parentPage.hasParentPage(graphApi, { page: this })) {
+      if (await parentPageModel.hasParentPage(graphApi, { page: this })) {
         throw new ApolloError(
-          `Could not set '${parentPage.entityId}' as parent of '${this.entityId}', this would create a cyclic dependency.`,
+          `Could not set '${parentPageModel.entityId}' as parent of '${this.entityId}', this would create a cyclic dependency.`,
           "CYCLIC_TREE",
         );
       }
 
       await this.createOutgoingLink(graphApi, {
         linkTypeModel: WORKSPACE_TYPES.linkType.parent,
-        targetEntityModel: parentPage,
+        targetEntityModel: parentPageModel,
         ownedById: setById,
       });
     }

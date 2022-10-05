@@ -20,9 +20,9 @@ export const updateKnowledgePage: ResolverFn<
   { entityId, updatedProperties },
   { dataSources: { graphApi } },
 ) => {
-  const page = await PageModel.getPageById(graphApi, { entityId });
+  const pageModel = await PageModel.getPageById(graphApi, { entityId });
 
-  const updatedPageEntity = await page.updateProperties(graphApi, {
+  const updatedPageEntityModel = await pageModel.updateProperties(graphApi, {
     updatedProperties: Object.entries(updatedProperties).map(
       ([propertyName, value]) => ({
         propertyTypeBaseUri:
@@ -34,7 +34,7 @@ export const updateKnowledgePage: ResolverFn<
     ),
   });
 
-  const updatedPage = PageModel.fromEntityModel(updatedPageEntity);
+  const updatedPageModel = PageModel.fromEntityModel(updatedPageEntityModel);
 
-  return mapPageModelToGQL(updatedPage);
+  return mapPageModelToGQL(updatedPageModel);
 };
