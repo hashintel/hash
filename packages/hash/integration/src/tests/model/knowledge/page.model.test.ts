@@ -103,10 +103,10 @@ describe("Page model class", () => {
     );
   });
 
-  let parentPage: PageModel;
+  let parentPageModel: PageModel;
 
   it("can get/set a parent page", async () => {
-    parentPage = await PageModel.createPage(graphApi, {
+    parentPageModel = await PageModel.createPage(graphApi, {
       ownedById: testUser.entityId,
       title: "Test Parent Page",
       summary: "Test page summary",
@@ -115,13 +115,13 @@ describe("Page model class", () => {
     expect(await testPage.getParentPage(graphApi)).toBeNull();
 
     await testPage.setParentPage(graphApi, {
-      parentPage,
+      parentPageModel,
       setById: testUser.entityId,
       prevIndex: null,
       nextIndex: null,
     });
 
-    expect(await testPage.getParentPage(graphApi)).toEqual(parentPage);
+    expect(await testPage.getParentPage(graphApi)).toEqual(parentPageModel);
   });
 
   let testBlock1: BlockModel;
