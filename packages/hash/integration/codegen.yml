@@ -1,5 +1,5 @@
 overwrite: true
-schema: ../api/src/graphql/typeDefs/*.ts
+schema: ../api/src/graphql/typeDefs/**/*.ts
 generates:
   ./src/graphql/fragmentTypes.gen.json:
     plugins:
@@ -18,4 +18,4 @@ generates:
         TextToken: "@hashintel/hash-shared/graphql/types#TextToken"
         Date: string
         UnknownEntityProperties: "@hashintel/hash-shared/graphql/types#UnknownEntityProperties"
-    documents: ./src/graphql/queries/*.ts
+    documents: ./src/graphql/queries/**/*.ts

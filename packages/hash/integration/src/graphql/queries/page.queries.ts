@@ -119,9 +119,13 @@ const pageFieldsFragment = gql`
 `;
 
 export const createPage = gql`
-  mutation createPage($accountId: ID!, $properties: PageCreationData!) {
-    createPage(accountId: $accountId, properties: $properties) {
-      ...PageFields
+  mutation createPage(
+    $ownedById: ID!
+    $properties: KnowledgePageCreationData!
+  ) {
+    createKnowledgePage(ownedById: $ownedById, properties: $properties) {
+      ownedById
+      entityId
     }
   }
   ${pageFieldsFragment}
@@ -141,14 +145,13 @@ export const getPage = gql`
 `;
 
 export const getAccountPagesTree = gql`
-  query getAccountPagesTree($accountId: ID!) {
-    accountPages(accountId: $accountId) {
+  query getAccountPagesTree($ownedById: ID!) {
+    knowledgePages(ownedById: $ownedById) {
       entityId
-      properties {
-        title
-        pageEntityId
+      title
+      parentPage {
+        entityId
       }
-      parentPageEntityId
     }
   }
 `;
@@ -173,23 +176,14 @@ export const updatePageContents = gql`
 `;
 
 export const setPageParent = gql`
-  mutation setParentPage(
-    $accountId: ID!
-    $pageEntityId: ID!
-    $parentPageEntityId: ID
-  ) {
-    setParentPage(
-      accountId: $accountId
+  mutation setParentPage($pageEntityId: ID!, $parentPageEntityId: ID) {
+    setParentKnowledgePage(
       pageEntityId: $pageEntityId
       parentPageEntityId: $parentPageEntityId
     ) {
       entityId
-      properties {
-        title
-        summary
-        __typename
-      }
-      __typename
+      title
+      summary
     }
   }
 `;

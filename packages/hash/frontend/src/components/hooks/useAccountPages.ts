@@ -19,12 +19,12 @@ export type AccountPagesInfo = {
   loading: boolean;
 };
 
-export const useAccountPages = (accountId: string): AccountPagesInfo => {
+export const useAccountPages = (ownedById: string): AccountPagesInfo => {
   const { data, loading } = useQuery<
     GetAccountPagesTreeQuery,
     GetAccountPagesTreeQueryVariables
   >(getAccountPagesTree, {
-    variables: { accountId },
+    variables: { ownedById },
   });
 
   const accountPages = useMemo(() => {
@@ -32,13 +32,15 @@ export const useAccountPages = (accountId: string): AccountPagesInfo => {
       return [];
     }
 
-    return data?.accountPages.map(
-      ({ entityId, parentPageEntityId, properties: { title, index } }) => {
+    return data?.knowledgePages.map(
+      ({ entityId, parentPage, title, index }) => {
+        const parentPageEntityId = parentPage?.entityId ?? null;
+
         return {
           entityId,
           parentPageEntityId,
           title,
-          index,
+          index: index ?? "",
         };
       },
     );

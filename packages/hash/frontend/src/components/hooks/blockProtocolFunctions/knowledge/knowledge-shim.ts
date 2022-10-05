@@ -25,9 +25,13 @@ export type KnowledgeCallbacks = {
  */
 type UnsupportedKnowledgeEntityFields = "linkedEntities";
 
+type DeprecatedKnowledgeEntityFields = "accountId";
+
 type Entity = Omit<
   UnknownKnowledgeEntity,
-  UnsupportedKnowledgeEntityFields | "entityType"
+  | UnsupportedKnowledgeEntityFields
+  | DeprecatedKnowledgeEntityFields
+  | "entityType"
 > & {
   entityTypeRootedSubgraph: EntityTypeRootedSubgraph;
 };

@@ -22,6 +22,14 @@ export const knowledgePageTypedef = gql`
     The contents of the page.
     """
     contents: [KnowledgeBlock!]!
+    """
+    The fractional index of the page in the page tree.
+    """
+    index: String
+    """
+    The page's parent page (may not be set).
+    """
+    parentPage: KnowledgePage
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
@@ -92,6 +100,16 @@ export const knowledgePageTypedef = gql`
       """
       entityVersion: String
     ): KnowledgePage!
+
+    """
+    Return a list of pages.
+    """
+    knowledgePages(
+      """
+      The account owning the pages. Defaults to the logged in user.
+      """
+      ownedById: ID
+    ): [KnowledgePage!]!
   }
 
   """
@@ -258,7 +276,57 @@ export const knowledgePageTypedef = gql`
     placeholders: [UpdateKnowledgePageContentsResultPlaceholder!]!
   }
 
+  input KnowledgePageCreationData {
+    """
+    The page title.
+    """
+    title: String!
+    """
+    The fractional index of the page that is before the current.
+    """
+    prevIndex: String
+  }
+
+  input KnowledgePageUpdateData {
+    title: String
+    summary: String
+    archived: Boolean
+    index: String
+  }
+
   extend type Mutation {
+    """
+    Create a new page
+    """
+    createKnowledgePage(
+      """
+      The new page's account ID.
+      """
+      ownedById: ID!
+      """
+      Initial properties to set for the new page.
+      """
+      properties: KnowledgePageCreationData!
+    ): KnowledgePage!
+    """
+    Update an existing page.
+    """
+    updateKnowledgePage(
+      entityId: ID!
+      updatedProperties: KnowledgePageUpdateData!
+    ): KnowledgePage!
+    """
+    Set the parent of a page
+
+    If the parentPageEntityId is not set, any existing page link is removed.
+    """
+    setParentKnowledgePage(
+      pageEntityId: ID!
+      parentPageEntityId: ID
+      prevIndex: String
+      nextIndex: String
+    ): KnowledgePage!
+
     """
     Update the contents of a page.
     """

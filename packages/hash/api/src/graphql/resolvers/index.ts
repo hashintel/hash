@@ -15,14 +15,11 @@ import { createLink } from "./link/createLink";
 import { deleteLink } from "./link/deleteLink";
 import { blocks, blockProperties, blockLinkedEntities } from "./block";
 import {
-  createPage,
-  accountPages,
   page,
   pageProperties,
   updatePage,
   updatePageContents,
   searchPages,
-  setParentPage,
   pageLinkedEntities,
 } from "./pages";
 import {
@@ -105,7 +102,12 @@ import {
   updateKnowledgePageContents,
   knowledgePageContents,
 } from "./knowledge/page";
-import { knowledgePage } from "./knowledge/page/page";
+import {
+  createKnowledgePage,
+  knowledgePage,
+  knowledgePages,
+  parentKnowledgePage,
+} from "./knowledge/page/page";
 import { knowledgeBlocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import {
@@ -119,6 +121,8 @@ import {
   deleteKnowledgeLink,
   outgoingKnowledgeLinks,
 } from "./knowledge/link/link";
+import { setParentKnowledgePage } from "./knowledge/page/set-parent-page";
+import { updateKnowledgePage } from "./knowledge/page/update-page";
 
 /**
  * @todo: derive these from the statically declared workspace type names
@@ -139,7 +143,6 @@ const isWorkspaceEntityGQLTypeName = (
 export const resolvers = {
   Query: {
     // Logged in and signed up users only
-    accountPages: loggedInAndSignedUp(accountPages),
     accounts:
       loggedInAndSignedUp(
         accounts,
@@ -178,6 +181,7 @@ export const resolvers = {
     getEntityType: loggedInAndSignedUp(getEntityType),
     // Knowledge
     knowledgePage: loggedInAndSignedUp(knowledgePage),
+    knowledgePages: loggedInAndSignedUp(knowledgePages),
     knowledgeBlocks: loggedInAndSignedUp(knowledgeBlocks),
     knowledgeEntity: loggedInAndSignedUp(knowledgeEntity),
     outgoingKnowledgeLinks: loggedInAndSignedUp(outgoingKnowledgeLinks),
@@ -195,7 +199,6 @@ export const resolvers = {
     deleteLinkedAggregation: loggedInAndSignedUp(deleteLinkedAggregation),
     deprecatedCreateEntityType: loggedInAndSignedUp(deprecatedCreateEntityType),
     createFileFromLink: loggedInAndSignedUp(createFileFromLink),
-    createPage: loggedInAndSignedUp(createPage),
     createComment: loggedInAndSignedUp(createComment),
     createOrg: loggedInAndSignedUp(createOrg),
     createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),
@@ -209,7 +212,6 @@ export const resolvers = {
     ),
     joinOrg: loggedInAndSignedUp(joinOrg),
     requestFileUpload: loggedInAndSignedUp(requestFileUpload),
-    setParentPage: loggedInAndSignedUp(setParentPage),
     // Logged in users only
     updateUser: loggedIn(updateUser),
     // Any user
@@ -233,6 +235,9 @@ export const resolvers = {
     createKnowledgeEntity: loggedInAndSignedUp(createKnowledgeEntity),
     createKnowledgeLink: loggedInAndSignedUp(createKnowledgeLink),
     deleteKnowledgeLink: loggedInAndSignedUp(deleteKnowledgeLink),
+    createKnowledgePage: loggedInAndSignedUp(createKnowledgePage),
+    setParentKnowledgePage: loggedInAndSignedUp(setParentKnowledgePage),
+    updateKnowledgePage: loggedInAndSignedUp(updateKnowledgePage),
   },
 
   JSONObject: JSONObjectResolver,
@@ -351,6 +356,7 @@ export const resolvers = {
 
   KnowledgePage: {
     contents: knowledgePageContents,
+    parentPage: parentKnowledgePage,
   },
 
   KnowledgeBlock: {

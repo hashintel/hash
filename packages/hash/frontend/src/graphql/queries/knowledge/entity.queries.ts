@@ -2,7 +2,6 @@ import { gql } from "@apollo/client";
 
 export const knowledgeEntityFieldsFragment = gql`
   fragment KnowledgeEntityFields on UnknownKnowledgeEntity {
-    accountId
     entityId
     entityTypeId
     entityVersion
