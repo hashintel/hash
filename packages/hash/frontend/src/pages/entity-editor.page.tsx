@@ -27,7 +27,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
 
   useEffect(() => {
     if (user) {
-      // As an example entity, we are going to use the currenlty logged in user's entity id
+      // As an example entity, we are going to use the currently logged in user's entity ID
       const entityId = user.entityId;
 
       void getEntity({ data: { entityId } }).then(({ data }) => {
