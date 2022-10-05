@@ -26,11 +26,8 @@ export const useCreateSubPage = (ownedById: string) => {
     SetParentPageMutationVariables
   >(setParentPage, {
     awaitRefetchQueries: true,
-    refetchQueries: ({ data }) => [
-      {
-        query: getAccountPagesTree,
-        variables: { ownedById: data!.setParentKnowledgePage.ownedById },
-      },
+    refetchQueries: () => [
+      { query: getAccountPagesTree, variables: { ownedById } },
     ],
   });
 
