@@ -1,11 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
-import { Container } from "@mui/material";
-import init from "@blockprotocol/type-system-web";
+import { Container, Typography } from "@mui/material";
+import init, { ValueOrArray } from "@blockprotocol/type-system-web";
 
 import { useUser } from "../components/hooks/useUser";
 import { NextPageWithLayout } from "../shared/layout";
 import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotocol-ontology-functions-hook";
+import { EntityResponse } from "../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
+
+/**
+ * Helper type-guard for determining if a `ValueOrArray` definition is an array or a value.
+ */
+const isArrayDefinition = <T,>(
+  input: ValueOrArray<T>,
+): input is ValueOrArray.Array<T> => "type" in input && input.type === "array";
 
 /**
  * This component is an example usage of the `getEntity` BP function.
@@ -13,7 +21,7 @@ import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotoc
  */
 const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   const { user } = useUser();
-  const [content, setContent] = useState<string>();
+  const [entity, setEntity] = useState<EntityResponse>();
 
   const { getEntity } = useBlockProtocolFunctionsWithOntology(ownedById);
 
@@ -22,15 +30,52 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
       // As an example entity, we are going to use the currenlty logged in user's entity id
       const entityId = user.entityId;
 
-      void getEntity({ data: { entityId } }).then(({ data: entity }) => {
-        setContent(JSON.stringify(entity ?? {}, null, 2));
+      void getEntity({ data: { entityId } }).then(({ data }) => {
+        setEntity(data);
       });
     }
   }, [user, getEntity]);
 
+  const { entityTypeRootedSubgraph, ...entityWithoutEntityType } = entity ?? {};
+
+  const { entityType } = entityTypeRootedSubgraph ?? {};
+
+  // The (top-level) property type ids defined in the entity type
+  const propertyTypeIds = useMemo(
+    () =>
+      entityType
+        ? Object.values(entityType.properties).map((value) =>
+            isArrayDefinition(value) ? value.items.$ref : value.$ref,
+          )
+        : undefined,
+    [entityType],
+  );
+
+  // The (top-level) property type definitions, referenced in the entity type
+  const propertyTypeDefinitions = useMemo(
+    () =>
+      entityTypeRootedSubgraph && propertyTypeIds
+        ? entityTypeRootedSubgraph.referencedPropertyTypes.filter(
+            ({ propertyTypeId }) => propertyTypeIds.includes(propertyTypeId),
+          )
+        : undefined,
+    [entityTypeRootedSubgraph, propertyTypeIds],
+  );
+
   return (
     <Container>
-      <pre style={{ overflowX: "scroll" }}>{content}</pre>
+      <Typography>Entity</Typography>
+      <pre style={{ overflowX: "scroll" }}>
+        {JSON.stringify(entityWithoutEntityType ?? {}, null, 2)}
+      </pre>
+      <Typography>Entity type</Typography>
+      <pre style={{ overflowX: "scroll" }}>
+        {JSON.stringify(entityType ?? {}, null, 2)}
+      </pre>
+      <Typography>Top-level property type definitions</Typography>
+      <pre style={{ overflowX: "scroll" }}>
+        {JSON.stringify(propertyTypeDefinitions ?? {}, null, 2)}
+      </pre>
     </Container>
   );
 };
@@ -62,7 +107,6 @@ const ExampleEntityEditorPage: NextPageWithLayout = () => {
     <Container sx={{ pt: 10 }}>Loading...</Container>
   ) : (
     <Container sx={{ pt: 10 }}>
-      Hello!
       <ExampleUsage ownedById={user.accountId} />
     </Container>
   );
