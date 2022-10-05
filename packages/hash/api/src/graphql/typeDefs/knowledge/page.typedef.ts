@@ -88,6 +88,10 @@ export const knowledgePageTypedef = gql`
     """
     knowledgePage(
       """
+      The account ID that owns the Page.
+      """
+      ownedById: ID!
+      """
       The id of the page entity.
       """
       entityId: ID!
