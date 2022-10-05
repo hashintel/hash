@@ -10,31 +10,73 @@ mod error;
 mod number;
 
 extern crate alloc;
-extern crate core;
 
-use crate::number::Number;
+use error_stack::{IntoReport, Result, ResultExt};
+use num_traits::ToPrimitive;
+
+use crate::{
+    error::{Error, Expected, Path, Type},
+    number::Number,
+};
 
 macro_rules! derive_from_number {
-    ($name:ident; $method:ident) => {
+    (#internal, $name:ident; $method:ident) => {
         fn $name(self) -> Result<$name, Self::Error> {
+            let current = self.ty();
+
             self.number()?
                 .$method()
-                // TODO!
-                .ok_or_else(|| Self::Error::expected(DataType::I8))
+                .ok_or_else(|| {
+                    Self::Error::invalid_type(
+                        current,
+                        Expected::new(Type::Number)
+                            .with_error_code("deer", "overflow")
+                            .with_message("provided value too large or too small")
+                            .with_constraint("min", Number::from($name::MIN))
+                            .with_constraint("max", Number::from($name::MAX)),
+                    )
+                })
                 .into_report()
                 .attach(Path::new())
         }
     };
 
     ([$($name:ident; $method:ident),*]) => {
-        $(derive_from_number!($name; $method))*
-    }
+        $(derive_from_number!(#internal, $name; $method);)*
+    };
+
+    (#internal, #large, $name:ident; $method:ident) => {
+        fn $name(self) -> Result<$name, Self::Error> {
+            let current = self.ty();
+
+            self.number()?
+                .$method()
+                .ok_or_else(|| {
+                    Self::Error::invalid_type(
+                        current,
+                        Expected::new(Type::Number)
+                            .with_error_code("deer", "overflow")
+                            .with_message("provided value too large or too small")
+                            .with_constraint("min", $name::MIN.to_string())
+                            .with_constraint("max", $name::MAX.to_string()),
+                    )
+                })
+                .into_report()
+                .attach(Path::new())
+        }
+    };
+
+    (large [$($name:ident; $method:ident),*]) => {
+        $(derive_from_number!(#internal, #large, $name; $method);)*
+    };
 }
 
 pub trait Deserializer: Sized {
-    type Error: error::Error;
+    type Error: Error;
     type Array;
     type Object;
+
+    fn ty(&self) -> Type;
 
     fn null(self) -> Result<(), Self::Error>;
     fn bool(self) -> Result<bool, Self::Error>;
@@ -48,11 +90,14 @@ pub trait Deserializer: Sized {
         i16; to_i16,
         i32; to_i32,
         i64; to_i64,
-        i128; to_i128,
         isize; to_isize,
         u8; to_u8,
         u16; to_u16,
-        u32; to_u32,
+        u32; to_u32
+    ]);
+
+    derive_from_number!(large [
+        i128; to_i128,
         u64; to_u64,
         u128; to_u128,
         usize; to_usize

@@ -131,8 +131,8 @@ impl FromPrimitive for Number {
 }
 
 macro_rules! to_int {
-    ($method:ident) => {
-        fn $method(&self) -> Option<isize> {
+    (#internal, $ty:ty; $method:ident) => {
+        fn $method(&self) -> Option<$ty> {
             match &self.0 {
                 OpaqueNumber::Int(x) => x.$method(),
                 #[cfg(feature = "arbitrary-precision")]
@@ -145,15 +145,25 @@ macro_rules! to_int {
             }
         }
     };
-    ($($method:ident),*) => {
-        $(to_int!($method))*
+    ($($ty:ty; $method:ident),*) => {
+        $(to_int!(#internal, $ty; $method);)*
     }
 }
 
 impl ToPrimitive for Number {
     to_int!(
-        to_isize, to_i8, to_i16, to_i32, to_i64, to_i128, //
-        to_usize, to_u8, to_u16, to_u32, to_u64, to_u128
+        isize; to_isize,
+        i8; to_i8,
+        i16; to_i16,
+        i32; to_i32,
+        i64; to_i64,
+        i128; to_i128,
+        usize; to_usize,
+        u8; to_u8,
+        u16; to_u16,
+        u32; to_u32,
+        u64; to_u64,
+        u128; to_u128
     );
 
     fn to_f32(&self) -> Option<f32> {
@@ -180,6 +190,41 @@ impl ToPrimitive for Number {
         }
     }
 }
+
+macro_rules! impl_from {
+    (#internal, $ty:ty) => {
+        impl From<$ty> for Number {
+            fn from(value: $ty) -> Self {
+                Self(OpaqueNumber::Int(value as i64))
+            }
+        }
+    };
+
+    (#internal, $modifier:literal, $ty:ty) => {
+        impl From<$ty> for Number {
+            fn from(value: $ty) -> Self {
+                Self(OpaqueNumber::Float(value as f64))
+            }
+        }
+    };
+
+    ([$($($modifier:literal :)? $ty:ty),*]) => {
+        $(impl_from!(#internal, $($modifier ,)? $ty);)*
+    }
+}
+
+impl_from!([
+    i8,
+    i16,
+    i32,
+    i64,
+    isize,
+    u8,
+    u16,
+    u32,
+    "float": f32,
+    "float": f64
+]);
 
 #[cfg(feature = "arbitrary-precision")]
 impl From<BigInt> for Number {
