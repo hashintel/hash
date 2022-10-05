@@ -160,7 +160,6 @@ jobs:
 
   playwright-tests:
     name: Playwright tests
-    if: ${{ github.base_ref != 'dev/graph' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
