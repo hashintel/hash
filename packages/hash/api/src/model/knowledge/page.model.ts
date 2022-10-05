@@ -336,12 +336,12 @@ export default class extends EntityModel {
     }
 
     if (this.getIndex() !== newIndex) {
-      const updatedPageEntity = await this.updateProperty(graphApi, {
+      const updatedPageEntityModel = await this.updateProperty(graphApi, {
         propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.index.baseUri,
         value: newIndex,
       });
 
-      return PageModel.fromEntityModel(updatedPageEntity);
+      return PageModel.fromEntityModel(updatedPageEntityModel);
     }
 
     return this;
