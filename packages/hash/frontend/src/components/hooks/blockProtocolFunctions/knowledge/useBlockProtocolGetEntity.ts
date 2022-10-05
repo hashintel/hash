@@ -63,6 +63,11 @@ export const useBlockProtocolGetEntity = (): {
 
       const { knowledgeEntity } = entityResponseData;
 
+      /**
+       * @todo: obtain this sub-graph as part of the prior `getEntity` query.
+       * May be addressed as part of https://app.asana.com/0/1200211978612931/1203089535761796/f or related work.
+       */
+
       const { data: entityTypeResponseData } =
         await getEntityTypeRootedSubgraphFn({
           query: getEntityTypeRootedSubgraphQuery,
