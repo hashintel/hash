@@ -2,7 +2,7 @@ import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { Chip } from "@hashintel/hash-design-system/chip";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { IconButton } from "@hashintel/hash-design-system/icon-button";
-import { Stack } from "@mui/material";
+import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
 import { FilterListIcon } from "../../../../shared/icons";
 import { PropertyTable } from "./property-table";
@@ -38,10 +38,12 @@ export const PropertiesSection = () => {
         </Stack>
       }
     >
-      <PropertyTable
-        onSearchClose={() => setShowSearch(false)}
-        showSearch={showSearch}
-      />
+      <Paper sx={{ overflow: "hidden" }}>
+        <PropertyTable
+          onSearchClose={() => setShowSearch(false)}
+          showSearch={showSearch}
+        />
+      </Paper>
     </EntitySection>
   );
 };

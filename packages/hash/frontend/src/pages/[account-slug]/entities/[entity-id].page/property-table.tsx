@@ -91,7 +91,9 @@ export const PropertyTable = ({
     accentLight: palette.gray[20],
     bgHeaderHovered: "white",
     cellHorizontalPadding: 22,
-    baseFontStyle: "500 14px Inter",
+    baseFontStyle: "500 14px",
+    headerFontStyle: "600 14px",
+    editorFontSize: "14px",
   };
 
   const getContent = useCallback(([col, row]: Item): GridCell => {
@@ -168,7 +170,6 @@ export const PropertyTable = ({
 
       // text
       const paddingLeft = col === 0 ? firstColumnPadding : columnPadding;
-      ctx.font = "500 14px Inter";
       ctx.fillStyle = palette.gray[80];
       ctx.fillText(cell.displayData, x + paddingLeft, y + height / 2 + 2);
       ctx.restore();
@@ -196,7 +197,6 @@ export const PropertyTable = ({
       const paddingLeft =
         columnIndex === 0 ? firstColumnPadding : columnPadding;
 
-      ctx.font = "600 14px Inter";
       ctx.fillStyle = palette.gray[80];
       ctx.fillText(column.title, x + paddingLeft, y + height / 2);
 
@@ -221,6 +221,8 @@ export const PropertyTable = ({
         getCellsForSelection
         rangeSelect="cell"
         columnSelect="none"
+        smoothScrollX
+        smoothScrollY
         /** styling  */
         theme={theme}
         width="100%"
