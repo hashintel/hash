@@ -73,20 +73,8 @@ a [contributing guide](https://github.com/hashintel/hash/blob/main/CONTRIBUTING.
 outlines the process. If you have questions, please reach out to us on
 our [Discord server](https://hash.ai/discord).
 
-<!-- The license section is in line with other Rust tools, like serde -->
-<!-- markdownlint-disable MD001 -->
+## License
 
-#### License
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE.md) or [MIT license](LICENSE-MIT.md) at your option.
 
-<sup>
-Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
-2.0</a> or <a href="LICENSE-MIT">MIT license</a> at your option.
-</sup>
-
-<br>
-
-<sub>
-Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in this crate by you, as defined in the Apache-2.0 license, shall
-be dual licensed as above, without any additional terms or conditions.
-</sub>
+For more information about contributing to this crate, see our top-level [CONTRIBUTING](https://github.com/hashintel/hash/blob/main/CONTRIBUTING.md) policy.
