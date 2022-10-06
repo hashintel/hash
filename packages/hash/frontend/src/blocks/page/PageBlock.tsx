@@ -18,24 +18,20 @@ import { useReadonlyMode } from "../../shared/readonly-mode";
 import { usePageContext } from "./PageContext";
 import { PageCommentsProvider } from "../pageComments";
 import { CommentThread } from "./Comments/CommentThread";
-import { usePageComments } from "../../components/hooks/usePageComments";
+import { PageThread } from "../../components/hooks/usePageComments";
 import { useCreateComment } from "../../components/hooks/useCreateComment";
+import {
+  PAGE_CONTENT_WIDTH,
+  PAGE_MIN_PADDING,
+} from "../../pages/[account-slug]/[page-slug].page";
 
 type PageBlockProps = {
   blocks: BlocksMap;
+  pageComments: PageThread[];
   accountId: string;
   entityId: string;
+  containerPadding: [string, string];
 };
-
-export const PAGE_CONTENT_WIDTH = 696;
-export const PAGE_MIN_PADDING = 48;
-export const COMMENTS_WIDTH = 320;
-export const PAGE_HORIZONTAL_PADDING_LEFT_FORMULA = `max(calc((100% - ${
-  PAGE_CONTENT_WIDTH + COMMENTS_WIDTH
-}px) / 2), ${PAGE_MIN_PADDING}px)`;
-export const PAGE_HORIZONTAL_PADDING_RIGHT_FORMULA = `max(calc((100% - ${
-  PAGE_CONTENT_WIDTH + COMMENTS_WIDTH
-}px) / 2), ${PAGE_MIN_PADDING * 2 + COMMENTS_WIDTH}px)`;
 
 /**
  * The naming of this as a "Block" is… interesting, considering it doesn't
@@ -45,8 +41,10 @@ export const PAGE_HORIZONTAL_PADDING_RIGHT_FORMULA = `max(calc((100% - ${
  */
 export const PageBlock: FunctionComponent<PageBlockProps> = ({
   blocks,
+  pageComments,
   accountId,
   entityId,
+  containerPadding,
 }) => {
   const root = useRef<HTMLDivElement>(null);
   const [portals, renderPortal, clearPortals] = usePortals();
@@ -64,7 +62,6 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   const routeHash = router.asPath.split("#")[1] ?? "";
   const { readonlyMode } = useReadonlyMode();
 
-  const { data: pageComments } = usePageComments(accountId, entityId);
   const [createComment, { loading: createCommentLoading }] = useCreateComment(
     accountId,
     entityId,
@@ -131,7 +128,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
                * so it automatically handles focusing on closest node on margin-clicking
                */
               ".ProseMirror": {
-                padding: `0 ${PAGE_HORIZONTAL_PADDING_RIGHT_FORMULA} 320px ${PAGE_HORIZONTAL_PADDING_LEFT_FORMULA}`,
+                padding: `0 ${containerPadding[1]} 320px ${containerPadding[0]}`,
                 minWidth: `calc(${PAGE_CONTENT_WIDTH}px + (${PAGE_MIN_PADDING}px * 2))`,
               },
               // prevents blue outline on selected nodes
@@ -142,7 +139,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
             <Box
               sx={{
                 position: "absolute",
-                right: PAGE_HORIZONTAL_PADDING_RIGHT_FORMULA,
+                right: containerPadding[1],
                 transform: "translateX(calc(100% + 48px))",
                 zIndex: 1,
               }}

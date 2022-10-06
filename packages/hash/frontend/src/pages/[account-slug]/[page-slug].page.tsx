@@ -16,11 +16,7 @@ import { useEffect, useMemo, useState, FunctionComponent, useRef } from "react";
 import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
-import {
-  PageBlock,
-  PAGE_HORIZONTAL_PADDING_LEFT_FORMULA,
-  PAGE_MIN_PADDING,
-} from "../../blocks/page/PageBlock";
+import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageContextProvider } from "../../blocks/page/PageContext";
 import { PageTitle } from "../../blocks/page/PageTitle/PageTitle";
 import {
@@ -28,6 +24,7 @@ import {
   useAccountPages,
 } from "../../components/hooks/useAccountPages";
 import { useArchivePage } from "../../components/hooks/useArchivePage";
+import { usePageComments } from "../../components/hooks/usePageComments";
 import { PageIcon, pageIconVariantSizes } from "../../components/PageIcon";
 import { PageIconButton } from "../../components/PageIconButton";
 import { PageLoadingState } from "../../components/PageLoadingState";
@@ -45,6 +42,10 @@ import {
   TopContextBar,
   TOP_CONTEXT_BAR_HEIGHT,
 } from "../shared/top-context-bar";
+
+export const PAGE_CONTENT_WIDTH = 696;
+export const PAGE_MIN_PADDING = 48;
+export const COMMENTS_WIDTH = 320;
 
 // Apparently defining this is necessary in order to get server rendered props?
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
@@ -175,10 +176,6 @@ const generateCrumbsFromPages = ({
   return arr;
 };
 
-const Container = styled("div")({
-  padding: `${PAGE_MIN_PADDING}px ${PAGE_HORIZONTAL_PADDING_LEFT_FORMULA} 0`,
-});
-
 const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   const router = useRouter();
 
@@ -228,6 +225,27 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
     if (!pageHeaderRef.current) return;
     pageHeaderRef.current.scrollIntoView({ behavior: "smooth" });
   };
+
+  const { data: pageComments } = usePageComments(accountId, pageEntityId);
+
+  const [Container, paddingLeftFormula, paddingRightFormula] = useMemo(() => {
+    const commentsContainerWidth = pageComments?.length ? COMMENTS_WIDTH : 0;
+
+    const paddingLeft = `max(calc((100% - ${
+      PAGE_CONTENT_WIDTH + commentsContainerWidth
+    }px) / 2), ${PAGE_MIN_PADDING}px)`;
+    const paddingRight = `max(calc((100% - ${
+      PAGE_CONTENT_WIDTH + commentsContainerWidth
+    }px) / 2), ${PAGE_MIN_PADDING * 2 + commentsContainerWidth}px)`;
+
+    return [
+      styled("div")({
+        padding: `${PAGE_MIN_PADDING}px ${paddingRight} 0 ${paddingLeft} `,
+      }),
+      paddingLeft,
+      paddingRight,
+    ];
+  }, [pageComments]);
 
   if (pageState === "transferring") {
     return (
@@ -372,9 +390,11 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
 
         <CollabPositionProvider value={collabPositions}>
           <PageBlock
-            accountId={accountId}
             blocks={blocksMap}
+            pageComments={pageComments}
+            accountId={accountId}
             entityId={pageEntityId}
+            containerPadding={[paddingLeftFormula, paddingRightFormula]}
           />
         </CollabPositionProvider>
       </PageContextProvider>
