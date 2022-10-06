@@ -1,10 +1,12 @@
-import { FunctionComponent, useState, useRef } from "react";
+import { FunctionComponent, useState, useRef, useMemo } from "react";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
-import { Box, Collapse } from "@mui/material";
+import { Box, buttonClasses, Collapse } from "@mui/material";
+import { Button } from "@hashintel/hash-design-system";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { PageThread } from "../../../components/hooks/usePageComments";
 import { CommentTextField, CommentTextFieldRef } from "./CommentTextField";
 import { CommentBlock } from "./CommentBlock";
-import { Button } from "../../../shared/ui";
 import styles from "../style.module.css";
 
 type CommentThreadProps = {
@@ -21,6 +23,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   const inputRef = useRef<CommentTextFieldRef>(null);
   const [threadFocused, setThreadFocused] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [inputValue, setInputValue] = useState<TextToken[]>([]);
 
   const showInput = threadFocused || !!inputValue.length;
@@ -34,6 +37,12 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
       });
     }
   };
+
+  const [collapsedReplies, lastReply] = useMemo(() => {
+    const replies = [...comment.replies];
+    const lastItem = replies.pop();
+    return [replies, lastItem];
+  }, [comment]);
 
   return (
     <Box
@@ -50,16 +59,56 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
     >
       <CommentBlock key={comment.entityId} comment={comment} />
 
-      {comment.replies.map((reply) => (
+      {collapsedReplies.length ? (
+        <>
+          <Button
+            variant="tertiary"
+            onClick={() => setExpanded(!expanded)}
+            size="small"
+            sx={({ palette }) => ({
+              minHeight: 0,
+              height: 40,
+              width: 1,
+              borderRadius: 0,
+              border: "none",
+              borderTop: `1px solid ${palette.gray[20]}`,
+              [`.${buttonClasses.endIcon}`]: {
+                ml: 0.5,
+                color: palette.gray[70],
+                fontSize: 20,
+              },
+            })}
+            endIcon={expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          >
+            {expanded
+              ? "Show fewer responses"
+              : `Show all ${comment.replies.length} responses`}
+          </Button>
+          <Collapse in={expanded}>
+            {collapsedReplies.map((reply) => (
+              <Box
+                key={reply.entityId}
+                sx={{
+                  borderTop: ({ palette }) => `1px solid ${palette.gray[20]}`,
+                }}
+              >
+                <CommentBlock comment={reply} />
+              </Box>
+            ))}
+          </Collapse>
+        </>
+      ) : null}
+
+      {lastReply ? (
         <Box
-          key={reply.entityId}
+          key={lastReply.entityId}
           sx={{
             borderTop: ({ palette }) => `1px solid ${palette.gray[20]}`,
           }}
         >
-          <CommentBlock comment={reply} />
+          <CommentBlock comment={lastReply} />
         </Box>
-      ))}
+      ) : null}
 
       <Collapse in={showInput}>
         <Box
