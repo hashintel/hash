@@ -132,6 +132,14 @@ Currently `deer` would fail at parsing and is unable to recover.
 
 </details>
 
+### Level of "`deer`"
+
+`deer` strives to be as composable and configurable as possible, which means that all
+additional behaviour should be opt-in, and the speed penalty of bare `deer` should be
+minimal. In the future, we might want to provide additional configuration
+paramaters (maximum depth, maximum number of errors, etc.) to allow for further
+tweaking in all use-cases where speed is of upmost importance.
+
 ## Contributors
 
 `deer` was created by [Bilal Mahmoud](https://github.com/indietyp). It is being developed
