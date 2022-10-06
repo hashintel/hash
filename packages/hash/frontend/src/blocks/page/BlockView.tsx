@@ -24,6 +24,7 @@ import { BlockContext } from "./BlockContext";
 import { BlockHandle } from "./BlockHandle";
 import { InsertBlock } from "./InsertBlock";
 import { BlockHighlight } from "./BlockHighlight";
+import { CommentButton } from "./Comments/CommentButton";
 
 export const getBlockDomId = (blockEntityId: string) =>
   `entity-${blockEntityId}`;
@@ -38,6 +39,7 @@ export class BlockView implements NodeView<Schema> {
   insertBlockBottomContainer: HTMLDivElement;
   insertBlockTopContainer?: HTMLDivElement;
   contentDOM: HTMLDivElement;
+  rootNode: HTMLElement;
 
   allowDragging = false;
   dragging = false;
@@ -88,7 +90,9 @@ export class BlockView implements NodeView<Schema> {
     public getPos: () => number,
     public renderPortal: RenderPortal,
     public manager: ProsemirrorManager,
+    public documentRoot: HTMLElement,
   ) {
+    this.rootNode = documentRoot;
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block!);
     this.dom.setAttribute("data-testid", "block");
@@ -268,6 +272,7 @@ export class BlockView implements NodeView<Schema> {
                   ctx?.setShowDataMappingUi(!ctx.showDataMappingUi)
                 }
               />
+              <CommentButton blockId={blockEntityId} rootNode={this.rootNode} />
             </BlockViewContext.Provider>
           );
         }}

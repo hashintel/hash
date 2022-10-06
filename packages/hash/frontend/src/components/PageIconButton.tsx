@@ -31,7 +31,7 @@ export const PageIconButton = ({
   accountId,
   entityId,
   versionId,
-  readonly,
+  readonly = false,
   size = "medium",
   hasDarkBg,
   onClick,

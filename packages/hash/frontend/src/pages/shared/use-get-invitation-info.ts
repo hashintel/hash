@@ -43,8 +43,8 @@ export const useGetInvitationInfo = () => {
       setInvitationInfo({
         orgEntityId,
         invitationEmailToken,
-        orgName: org.properties.name || "",
-        inviterPreferredName: inviter.properties.preferredName || "",
+        orgName: org.properties.name ?? "",
+        inviterPreferredName: inviter.properties.preferredName ?? "",
       });
     },
     onError: ({ graphQLErrors }) => {

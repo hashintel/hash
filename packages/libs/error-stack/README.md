@@ -8,7 +8,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-[![rust-version](https://img.shields.io/badge/Rust-1.63.0/nightly--2022--08--27-blue)][rust-version]
+[![rust-version](https://img.shields.io/badge/Rust-1.63.0/nightly--2022--09--27-blue)][rust-version]
 [![documentation](https://img.shields.io/docsrs/error-stack)][documentation]
 [![license](https://img.shields.io/crates/l/error-stack)][license]
 [![discord](https://img.shields.io/discord/840573247803097118)][discord]
@@ -54,7 +54,7 @@ struct ExperimentError;
 
 impl fmt::Display for ExperimentError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Experiment error: Could not run experiment")
+        fmt.write_str("experiment error: could not run experiment")
     }
 }
 
@@ -69,17 +69,17 @@ fn start_experiments(
         .map(|exp_id| {
             let description = experiment_descriptions.get(*exp_id).ok_or_else(|| {
                 Report::new(ExperimentError)
-                    .attach_printable(format!("Experiment {exp_id} has no valid description"))
+                    .attach_printable(format!("experiment {exp_id} has no valid description"))
             })?;
 
             let experiment = parse_experiment(description)
-                .attach_printable(format!("Experiment {exp_id} could not be parsed"))
+                .attach_printable(format!("experiment {exp_id} could not be parsed"))
                 .change_context(ExperimentError)?;
 
             Ok(move || experiment.0 * experiment.1)
         })
         .collect::<Result<Vec<_>, ExperimentError>>()
-        .attach_printable("Unable to set up experiments")?;
+        .attach_printable("unable to set up experiments")?;
 
     Ok(experiments.iter().map(|experiment| experiment()).collect())
 }
@@ -95,6 +95,8 @@ fn main() -> Result<(), ExperimentError> {
 
 This will most likely result in an error and print
 
-![](assets/full.png)
+![](https://github.com/hashintel/hash/blob/8ed55bd73045fba83a7ea2e199b31d5b829537b9/packages/libs/error-stack/assets/full.png?raw=true)
 
 Please see the [documentation] for a full description.
+
+For more examples, please check out the [examples](./examples) folder.

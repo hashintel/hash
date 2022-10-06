@@ -1,16 +1,13 @@
 //! Compatibility module to convert errors from other libraries into [`Report`].
 //!
+//! In order to convert these error types, use [`IntoReportCompat::into_report()`].
+//!
 //! [`Report`]: crate::Report
 
 #[cfg(feature = "anyhow")]
 mod anyhow;
 #[cfg(feature = "eyre")]
 mod eyre;
-
-#[cfg(feature = "anyhow")]
-pub use self::anyhow::AnyhowContext;
-#[cfg(feature = "eyre")]
-pub use self::eyre::EyreContext;
 
 /// Compatibility trait to convert from external libraries to [`Report`].
 ///

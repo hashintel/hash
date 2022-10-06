@@ -115,15 +115,13 @@ const splitSchema = (
     });
 
   // remove the properties which link to other schemas from the clone
-  linksInSchema.forEach(
-    ({ path }) => unset(clone, path.slice(1)), // don't send the leading $ to lodash
-  );
+  for (const { path } of linksInSchema) unset(clone, path.slice(1)); // don't send the leading $ to lodash
 
   /**
    *  remove the 'properties' field, as this isn't part of the json path that links use
    *  @todo check when handling $refs inside $defs, might need to check and take a different approach
    */
-  linksInSchema.forEach(({ path }) => path.splice(1, 1));
+  for (const { path } of linksInSchema) path.splice(1, 1);
 
   /**
    *  Remove the 2019 version we otherwise use, because react json schema form can't handle it

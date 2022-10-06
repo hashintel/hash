@@ -11,11 +11,11 @@ fn test_messages<E>(report: &Report<E>) {
     assert_eq!(
         messages(report),
         expect_messages(&[
-            "Context B",
-            "Context A",
-            "Printable B",
-            "Printable A",
-            "Root error"
+            "context B",
+            "context A",
+            "printable B",
+            "printable A",
+            "root error"
         ])
     );
 }

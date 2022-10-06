@@ -119,7 +119,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
       serializedDocument: isValidSerializedDocument(remoteSerializedDocument)
         ? remoteSerializedDocument
         : prev.serializedDocument,
-      readOnly: graphReadOnly || remoteReadOnly,
+      readOnly: !!graphReadOnly || remoteReadOnly,
     }));
   }, [
     remoteDarkMode,

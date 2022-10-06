@@ -9,6 +9,7 @@ mod common;
 use std::backtrace::Backtrace;
 
 use common::*;
+#[cfg(nightly)]
 use error_stack::Report;
 
 #[test]
@@ -17,15 +18,25 @@ fn captured() {
 
     let report = create_report();
     #[cfg(nightly)]
-    assert_eq!(report.request_ref::<Backtrace>().count(), 1);
-    let backtrace = report
-        .request_ref::<Backtrace>()
-        .next()
-        .expect("No backtrace captured");
-    assert!(!backtrace.frames().is_empty());
+    {
+        assert_eq!(report.request_ref::<Backtrace>().count(), 1);
+        let backtrace = report
+            .request_ref::<Backtrace>()
+            .next()
+            .expect("No backtrace captured");
+        assert!(!backtrace.frames().is_empty());
+    }
+    #[cfg(not(nightly))]
+    {
+        assert!(
+            report.downcast_ref::<Backtrace>().is_some(),
+            "No backtrace captured"
+        );
+    }
 }
 
 #[test]
+#[cfg(nightly)]
 fn captured_deprecated() {
     std::env::set_var("RUST_LIB_BACKTRACE", "1");
 

@@ -2,47 +2,47 @@
 source: tests/test_debug.rs
 expression: "format!(\"{report:?}\")"
 ---
-Context A
-├╴tests/test_debug.rs:374:14
+context A
+├╴tests/test_debug.rs:372:14
 ├╴1 additional opaque attachment
 │
-╰┬▶ Root error
+╰┬▶ root error
  │  ├╴tests/common.rs:147:5
- │  ├╴backtrace with [n] frames (1)
- │  ├╴spantrace with 2 frames (1)
- │  ├╴Printable A
+ │  ├╴backtrace (1)
+ │  ├╴span trace with 2 frames (1)
+ │  ├╴printable A
  │  ╰╴1 additional opaque attachment
  │
- ├▶ Root error
+ ├▶ root error
  │  ├╴tests/common.rs:147:5
- │  ├╴backtrace with [n] frames (2)
- │  ├╴spantrace with 2 frames (2)
- │  ├╴Printable B
+ │  ├╴backtrace (2)
+ │  ├╴span trace with 2 frames (2)
+ │  ├╴printable B
  │  ╰╴1 additional opaque attachment
  │
- ╰▶ Root error
+ ╰▶ root error
     ├╴tests/common.rs:147:5
-    ├╴backtrace with [n] frames (3)
-    ├╴spantrace with 2 frames (3)
-    ├╴Printable B
+    ├╴backtrace (3)
+    ├╴span trace with 2 frames (3)
+    ├╴printable B
     ╰╴1 additional opaque attachment
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Backtrace No. 1
+backtrace no. 1
   [redacted]
 
-Span Trace No. 1
+span trace No. 1
   [redacted]
 
-Backtrace No. 2
+backtrace no. 2
   [redacted]
 
-Span Trace No. 2
+span trace No. 2
   [redacted]
 
-Backtrace No. 3
+backtrace no. 3
   [redacted]
 
-Span Trace No. 3
+span trace No. 3
   [redacted]
