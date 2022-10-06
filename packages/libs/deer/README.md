@@ -6,12 +6,7 @@ a fail-slow behavior by default.
 
 ## Fail-Slow
 
-The current landscape of Rust deserializers has been developed with correctness and speed
-in mind.
-This is often what is desired but means that certain use-cases like user-facing errors
-are inadequately supported in the Rust ecosystem.
-`deer` tries to solve this problem, by trading off an acceptable amount of speed to enable
-the surfacing of multiple errors.
+Currently available Rust deserializers have mostly been developed with correctness and speed in mind. These are universally beneficial optimizations, but in certain cases (such as when collecting user-facing validation feedback) there are relatively few options available within Rust that allow for extended evaluation beyond a single error. `deer` aims to improve this situation by consciously trading off an acceptable degree of speed to enable the surfacing of multiple errors.
 
 ## Example
 
