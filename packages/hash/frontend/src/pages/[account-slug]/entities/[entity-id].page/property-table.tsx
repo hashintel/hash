@@ -81,6 +81,7 @@ export const PropertyTable = ({
 
   const theme: Partial<Theme> = {
     bgHeader: "white",
+    borderColor: palette.gray[20],
     headerBottomBorderColor: palette.gray[20],
     horizontalBorderColor: "transparent",
     accentColor: palette.blue[70],
@@ -158,17 +159,8 @@ export const PropertyTable = ({
       if (cell.kind !== GridCellKind.Text) return false;
 
       ctx.save();
-      const { x, y, height, width } = rect;
+      const { x, y, height } = rect;
 
-      // border right
-      ctx.strokeStyle = palette.gray[20];
-      ctx.beginPath();
-      ctx.lineWidth = 2;
-      ctx.moveTo(x + width, y);
-      ctx.lineTo(x + width, y + height);
-      ctx.stroke();
-
-      // text
       const paddingLeft = col === 0 ? firstColumnPadding : columnPadding;
       ctx.fillStyle = palette.gray[80];
       ctx.fillText(cell.displayData, x + paddingLeft, y + height / 2 + 2);
@@ -182,17 +174,7 @@ export const PropertyTable = ({
   const drawHeader: DrawHeaderCallback = useCallback(
     (args) => {
       const { ctx, rect, column, columnIndex } = args;
-      const { x, y, width, height } = rect;
-
-      // border-right to all columns except last one
-      if (columnIndex < columns.length - 1) {
-        ctx.strokeStyle = palette.gray[20];
-        ctx.beginPath();
-        ctx.lineWidth = 2;
-        ctx.moveTo(x + width, y);
-        ctx.lineTo(x + width, y + height);
-        ctx.stroke();
-      }
+      const { x, y, height } = rect;
 
       const paddingLeft =
         columnIndex === 0 ? firstColumnPadding : columnPadding;
@@ -228,7 +210,6 @@ export const PropertyTable = ({
         width="100%"
         headerHeight={42}
         rowHeight={42}
-        verticalBorder={false}
         drawFocusRing={false}
       />
       <div
