@@ -180,7 +180,7 @@ export const PropertyTable = ({
         columnIndex === 0 ? firstColumnPadding : columnPadding;
 
       ctx.fillStyle = palette.gray[80];
-      ctx.fillText(column.title, x + paddingLeft, y + height / 2);
+      ctx.fillText(column.title, x + paddingLeft, y + height / 2 + 2);
 
       return true;
     },
