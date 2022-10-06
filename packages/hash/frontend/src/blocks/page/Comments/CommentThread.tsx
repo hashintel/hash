@@ -5,6 +5,7 @@ import { PageThread } from "../../../components/hooks/usePageComments";
 import { CommentTextField, CommentTextFieldRef } from "./CommentTextField";
 import { CommentBlock } from "./CommentBlock";
 import { Button } from "../../../shared/ui";
+import styles from "../style.module.css";
 
 type CommentThreadProps = {
   comment: PageThread;
@@ -20,18 +21,17 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   const inputRef = useRef<CommentTextFieldRef>(null);
   const [threadFocused, setThreadFocused] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
-  const [inputDisabled, setInputDisabled] = useState(false);
-
   const [inputValue, setInputValue] = useState<TextToken[]>([]);
 
-  const showInput = threadFocused || !inputRef.current?.empty;
+  const showInput = threadFocused || !!inputValue.length;
   const showInputButtons =
-    (threadFocused && inputFocused) || !inputRef.current?.empty;
+    (threadFocused && inputFocused) || !!inputValue.length;
 
   const submitComment = async () => {
-    const tokens = inputRef.current?.getTokens();
-    if (tokens?.length) {
-      await createComment(comment.entityId, tokens);
+    if (!loading && inputValue?.length) {
+      await createComment(comment.entityId, inputValue).then(() => {
+        inputRef.current?.resetDocument();
+      });
     }
   };
 
@@ -49,7 +49,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
       })}
     >
       <CommentBlock key={comment.entityId} comment={comment} />
-
+      {/* 
       {comment.replies.map((reply) => (
         <Box
           key={reply.entityId}
@@ -59,7 +59,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         >
           <CommentBlock comment={reply} />
         </Box>
-      ))}
+      ))} */}
 
       <Collapse in={showInput}>
         <Box
@@ -85,20 +85,14 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
             <CommentTextField
               ref={inputRef}
               onSubmit={submitComment}
-              onClose={() => {
-                setThreadFocused(false);
-              }}
-              editable
+              editable={!loading}
               onFocusChange={setInputFocused}
-              onEmptyDoc={setInputDisabled}
               setValue={setInputValue}
-              value={inputValue}
+              classNames={styles.Comment__TextField_editable}
             />
           </Box>
         </Box>
       </Collapse>
-
-      {JSON.stringify(inputValue)}
 
       <Collapse in={showInputButtons}>
         <Box
@@ -115,7 +109,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
             size="xs"
             variant="tertiary"
             onClick={() => {
-              inputRef.current?.resetEditor();
+              inputRef.current?.resetDocument();
             }}
           >
             Cancel
@@ -123,7 +117,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
           <Button
             size="xs"
             variant="secondary"
-            disabled={inputDisabled}
+            disabled={!inputValue.length}
             onClick={submitComment}
             loading={loading}
           >

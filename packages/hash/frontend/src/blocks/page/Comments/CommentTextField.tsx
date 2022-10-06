@@ -36,6 +36,7 @@ import {
   textBlockNodeToEntityProperties,
   textBlockNodesFromTokens,
 } from "@hashintel/hash-shared/text";
+import { isEqual } from "lodash";
 import { usePortals } from "../usePortals";
 import { createFormatPlugins } from "../createFormatPlugins";
 import {
@@ -46,7 +47,6 @@ import { useRouteAccountInfo } from "../../../shared/routing";
 import styles from "../style.module.css";
 import { commentPlaceholderPlugin } from "./commentPlaceholderPlugin";
 import { createTextEditorView } from "../createTextEditorView";
-import { isEqual } from "lodash";
 
 const LINE_HEIGHT = 21;
 
@@ -71,7 +71,6 @@ export const ShowMoreTextLink: FunctionComponent<ShowMoreTextLinkProps> = ({
       textDecoration: "none",
       cursor: "pointer",
       alignSelf: "flex-end",
-      // pt: 1.5,
       px: 0.5,
       py: 0,
       minHeight: 0,
@@ -85,26 +84,20 @@ export const ShowMoreTextLink: FunctionComponent<ShowMoreTextLinkProps> = ({
 );
 
 export type CommentTextFieldRef = {
-  getTokens: () => TextToken[];
-  submit: () => boolean;
-  // loading: boolean;
-  empty: boolean;
-  resetEditor: () => void;
-  focused: boolean;
+  resetDocument: () => void;
+  focus: () => void;
 };
 
 type CommentTextFieldProps = {
   editable?: boolean;
   initialText?: TextToken[];
   collapsible?: boolean;
+  classNames?: string;
   loading?: boolean;
-  editorStyles?: StyleSheet;
   onClose?: () => void;
-  onSubmit?: (content: TextToken[]) => Promise<void>;
-  onEmptyDoc?: (isEmpty: boolean) => void;
+  onSubmit?: () => Promise<void>;
   onFocusChange?: (focused: boolean) => void;
   setValue: (value: TextToken[]) => void;
-  value: TextToken[];
 };
 
 export const CommentTextField = forwardRef<
@@ -116,14 +109,12 @@ export const CommentTextField = forwardRef<
       editable = false,
       initialText,
       collapsible = false,
+      classNames = "",
       loading = false,
-      editorStyles = {},
       onClose,
       onSubmit,
-      onEmptyDoc,
       onFocusChange,
       setValue,
-      value,
     },
     ref,
   ) => {
@@ -131,6 +122,7 @@ export const CommentTextField = forwardRef<
     const [portals, renderPortal] = usePortals();
     const { accountId } = useRouteAccountInfo();
     const editorContainerRef = useRef<HTMLDivElement>();
+    const editableRef = useRef(false);
     const loadingRef = useRef(false);
     const eventsRef = useRef({ onClose, onSubmit });
     const [collapsed, setCollapsed] = useState(true);
@@ -151,56 +143,33 @@ export const CommentTextField = forwardRef<
     useLayoutEffect(() => {
       eventsRef.current = { onClose, onSubmit };
       loadingRef.current = loading;
+      editableRef.current = editable;
     });
 
-    const getTokens = () => {
-      if (viewRef.current) {
-        return textBlockNodeToEntityProperties(viewRef.current.state.doc)
-          .tokens;
-      }
-      return [];
-    };
+    const getInitialTokens = useCallback(
+      (schema: Schema) =>
+        initialText?.length
+          ? textBlockNodesFromTokens(initialText, schema)
+          : [],
+      [initialText],
+    );
 
-    const resetEditor = () => {
+    const resetDocument = () => {
       const view = viewRef.current;
       if (view) {
         const state = view.state;
-        const tr = state.tr.replaceWith(0, state.doc.content.size, []);
+        const tr = state.tr.replaceWith(
+          0,
+          state.doc.content.size,
+          getInitialTokens(view.state.schema),
+        );
         view.dispatch(tr);
       }
     };
 
-    const submit = useCallback(() => {
-      if (
-        eventsRef.current.onSubmit &&
-        !loadingRef.current &&
-        viewRef.current?.state.doc.content
-      ) {
-        const { tokens } = textBlockNodeToEntityProperties(
-          viewRef.current.state.doc,
-        );
-
-        if (tokens.length) {
-          eventsRef.current
-            .onSubmit(tokens)
-            .then(() => {
-              eventsRef.current.onClose?.();
-            })
-            .finally(() => {});
-          // resetEditor();
-        }
-
-        return true;
-      }
-      return false;
-    }, []);
-
     useImperativeHandle(ref, () => ({
-      getTokens,
-      submit,
-      empty: !viewRef.current?.state.doc.content.childCount,
-      resetEditor,
-      focused: !!viewRef.current?.hasFocus(),
+      resetDocument,
+      focus: () => viewRef.current?.focus(),
     }));
 
     useEffect(() => {
@@ -215,35 +184,32 @@ export const CommentTextField = forwardRef<
         });
 
         const state = EditorState.create<Schema>({
-          doc: schema.node(
-            "doc",
-            {},
-            initialText?.length
-              ? textBlockNodesFromTokens(initialText, schema)
-              : [],
-          ),
+          doc: schema.node("doc", {}, getInitialTokens(schema)),
           schema,
-          plugins: editable
-            ? [
-                keymap<Schema>({
-                  Enter() {
-                    return submit();
-                  },
-                  Escape() {
-                    if (eventsRef.current.onClose && !loadingRef.current) {
-                      eventsRef.current.onClose();
-                      return true;
-                    }
-                    return false;
-                  },
-                }),
-                keymap<Schema>(baseKeymap),
-                ...createFormatPlugins(renderPortal),
-                formatKeymap(schema),
-                createSuggester(renderPortal, accountId, editorContainer),
-                commentPlaceholderPlugin(renderPortal, "Leave a comment"),
-              ]
-            : [],
+          plugins: [
+            keymap<Schema>({
+              Enter() {
+                if (eventsRef.current.onSubmit) {
+                  void eventsRef.current.onSubmit();
+                  return true;
+                }
+
+                return false;
+              },
+              Escape() {
+                if (eventsRef.current.onClose && !loadingRef.current) {
+                  eventsRef.current.onClose();
+                  return true;
+                }
+                return false;
+              },
+            }),
+            keymap<Schema>(baseKeymap),
+            ...createFormatPlugins(renderPortal),
+            formatKeymap(schema),
+            createSuggester(renderPortal, accountId, editorContainer),
+            commentPlaceholderPlugin(renderPortal, "Leave a comment"),
+          ],
         });
 
         const view = createTextEditorView(
@@ -252,15 +218,12 @@ export const CommentTextField = forwardRef<
           renderPortal,
           accountId,
           {
-            editable: () => editable,
+            editable: () => editableRef.current,
             attributes: {
-              class: "test",
+              class: styles.Comment__TextField!,
             },
-            // },
           },
         );
-
-        view.dom.classList.add(styles.Comment__TextField!);
 
         setShouldCollapse(
           collapsible && view.dom.clientHeight >= LINE_HEIGHT * 2,
@@ -274,15 +237,7 @@ export const CommentTextField = forwardRef<
           viewRef.current = undefined;
         };
       }
-    }, [
-      initialText,
-      collapsible,
-      editable,
-      accountId,
-      renderPortal,
-      submit,
-      setValue,
-    ]);
+    }, [getInitialTokens, collapsible, accountId, renderPortal, setValue]);
 
     useEffect(() => {
       if (shouldCollapse) {
@@ -299,18 +254,21 @@ export const CommentTextField = forwardRef<
     }, [collapsed, shouldCollapse]);
 
     useEffect(() => {
+      viewRef.current?.setProps({ editable: () => editable });
+
       if (editable) {
-        viewRef.current?.dom.classList.add(styles.Comment__TextField_editable!);
-      } else {
-        viewRef.current?.dom.classList.remove(
-          styles.Comment__TextField_editable!,
-        );
+        viewRef.current?.focus();
       }
     }, [editable]);
 
+    useEffect(() => {
+      viewRef.current?.setProps({
+        attributes: { class: `${styles.Comment__TextField!} ${classNames}` },
+      });
+    }, [classNames]);
+
     if (viewRef.current) {
       onFocusChange?.(viewRef.current.hasFocus());
-      onEmptyDoc?.(!viewRef.current.state.doc.content.childCount);
     }
 
     return (
