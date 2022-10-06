@@ -6,7 +6,12 @@ a fail-slow behavior by default.
 
 ## Fail-Slow
 
-Currently available Rust deserializers have mostly been developed with correctness and speed in mind. These are universally beneficial optimizations, but in certain cases (such as when collecting user-facing validation feedback) there are relatively few options available within Rust that allow for extended evaluation beyond a single error. `deer` aims to improve this situation by consciously trading off an acceptable degree of speed to enable the surfacing of multiple errors.
+Currently available Rust deserializers have mostly been developed with correctness and
+speed in mind. These are universally beneficial optimizations, but in certain cases (such
+as when collecting user-facing validation feedback) there are relatively few options
+available within Rust that allow for extended evaluation beyond a single error. `deer`
+aims to improve this situation by consciously trading off an acceptable degree of speed to
+enable the surfacing of multiple errors.
 
 ## Example
 
@@ -62,17 +67,18 @@ syntactically correct values.
 ## Future Plans
 
 The first release of `deer` is intentionally minimal and tries to lay a good foundation to
-build upon.
-There are many future possible directions and ideas we're trying out to see if they can
-benefit the different applicable use-cases.
+extend functionality in the future.
+There are many future possible directions and ideas we're trying to see if they can
+benefit the different use cases.
 
 ### Introspection Support
 
-Currently popular crates like `serde` do not provide a way to introspect what is
-exactly output, which means that tools depending on them need to implement their own
-algorithms, meaning that there are often edge-cases in output vs. introspection. The
-goal with the explicit support of introspection is to allow other tools to make use of it
-and build abstractions around it.
+Currently, popular crates like `serde` do not provide a way to introspect what the output
+will be. Other tools try to fill the gap by manually interpreting the instructions given
+to these crates. This often leads to edge cases, resulting in the dissonance between the
+expected value and reality. The goal with the explicit support of introspection is to
+allow other tools to make use of it and build abstractions around it instead of trying to
+reverse engineer.
 
 <sup>
 How the introspected format might look like is currently unknown.
@@ -80,13 +86,13 @@ How the introspected format might look like is currently unknown.
 
 ### Validation
 
-To be able to do validation, one must currently create a new-type, which performs the
-validation step, this extra boilerplate is often a hindrance in providing proper
-validation, the idea is to instead allow for _optional_ validation via combinators using
+Currently, to be able to do validation, one must create a new type that performs the
+validation step. This extra boilerplate is often a pain point. The idea is to instead
+allow for _optional_ validation via combinators using
 the derive macro.
 
 <details>
-<summary>How it might look like</summary>
+<summary>What it may look like</summary>
 
 ```rust
 #[derive(deer::Deserialize)]
@@ -101,39 +107,41 @@ struct Payload {
 ### Lax Deserialization
 
 Instead of strictly deserializing types, one might prefer to deserialize while coercing
-values (`"1"` is interpreted as `1` if requested).
-This behaviour would be opt-in, instead of opt-out and would be enabled on the `derive`
-level.
+values (`"1"` might be interpreted as `1` instead),
+This behavior would be opt-in instead of opt-out and enabled on the `derive` level.
 
 ### Deserializer with Parser
 
 `deer` currently relies on external tools (notably `serde`) to implement parsing of
-different formats, which means that we still fail-fast during parsing of malformed input.
-In future `deer` might provide it's own parser, which tries to recover from parsing
+different formats, which means that we still fail-fast during the parsing of malformed
+input.
+In the future, `deer` might provide its own parser, which tries to recover from parsing
 errors and still provide parsing diagnostics.
 
 <details>
-<summary>How it might look like</summary>
+<summary>What it may look like</summary>
 
 ```json
 {
   "i8": "string"
 ```
 
-This would still result in the errors that `i8` would need to be of type `integer`, with a
-maximum value of `256` and minimum value of `0`, but would also report that the JSON is
-malformed.
-Currently `deer` would fail at parsing and is unable to recover.
+`deer` currently relies on external tools (notably `serde`) to implement parsing of
+different formats, which means that we still fail fast during the parsing of malformed
+input.
+In the future, `deer` might provide a parser that tries to recover from parse errors and
+provide meaningful diagnostics.
 
 </details>
 
 ### Level of "`deer`"
 
 `deer` strives to be as composable and configurable as possible, which means that all
-additional behaviour should be opt-in, and the speed penalty of bare `deer` should be
-minimal. In the future, we might want to provide additional configuration
-paramaters (maximum depth, maximum number of errors, etc.) to allow for further
-tweaking in all use-cases where speed is of upmost importance.
+non-core behavior should be opt-in, and the speed penalty of bare `deer` should be
+minimal.
+In the future, we might want to provide additional configuration parameters (maximum
+depth, the maximum number of errors, etc.) to allow for further tweaking in all use cases
+where speed is of utmost importance.
 
 ## Contributors
 
