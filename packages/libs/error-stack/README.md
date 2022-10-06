@@ -97,9 +97,11 @@ This will most likely result in an error and print
 
 ![](https://github.com/hashintel/hash/blob/8ed55bd73045fba83a7ea2e199b31d5b829537b9/packages/libs/error-stack/assets/full.png?raw=true)
 
-Please see the [documentation] for a full description.
+## Usage
 
-For more examples, please check out the [examples](./examples) folder.
+Please see the [documentation].
+
+For more examples of `error-stack` in use, please check out the [examples](./examples) folder.
 
 ## Contributors
 
