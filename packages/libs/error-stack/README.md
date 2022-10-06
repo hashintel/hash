@@ -100,3 +100,14 @@ This will most likely result in an error and print
 Please see the [documentation] for a full description.
 
 For more examples, please check out the [examples](./examples) folder.
+
+## Contributors
+
+`error-stack` was created and is maintained by [HASH](https://hash.dev/). As an open-source project, we gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/CONTRIBUTING.md) that outlines the process. If you have questions, please reach out to us on our [Discord server](https://hash.ai/discord).
+
+## License
+
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE.md) or [MIT license](LICENSE-MIT.md) at your option.
+
+For more information about contributing to this crate, see our top-level [CONTRIBUTING](https://github.com/hashintel/hash/blob/main/CONTRIBUTING.md) policy.
+
