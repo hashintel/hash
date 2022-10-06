@@ -83,9 +83,9 @@ export const useBlockProtocolFileUpload = (
     const formData = new FormData();
     const { url, fields } = presignedPostData;
 
-    Object.entries(fields).forEach(([key, val]) => {
+    for (const [key, val] of Object.entries(fields)) {
       formData.append(key, val as string);
-    });
+    }
 
     formData.append("file", file);
 

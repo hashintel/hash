@@ -174,13 +174,13 @@ export const customColors = {
 // This adds `contrastText` and `main` to each palette field since MUI uses them internally
 // in components like MuiChip. This prevents components like MuiChip from
 // breaking even though we override the default styles of such components
-Object.keys(customColors).forEach((key) => {
+for (const key of Object.keys(customColors)) {
   const color = key as keyof CustomColorsType;
   if (color in customColors && typeof customColors[color] !== "string") {
     customColors[color].contrastText = customColors[color][80];
     customColors[color].main = customColors[color][80];
   }
-});
+}
 
 export const palette: ThemeOptions["palette"] = {
   divider: customColors.gray[30],

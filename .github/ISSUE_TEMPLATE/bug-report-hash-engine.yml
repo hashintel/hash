@@ -1,11 +1,8 @@
-name: Bug Report (error-stack)
-description: Create a report to help us improve `error-stack`
+name: Bug Report (HASH Engine)
+description: Create a report to help us improve HASH Engine
 labels:
-  - A-error-stack
+  - A-engine
   - C-bug
-assignees:
-  - Alfred-Mountfield
-  - TimDiekmann
 body:
   - type: markdown
     attributes:
@@ -27,11 +24,20 @@ body:
     attributes:
       label: To reproduce
       description: Steps to reproduce the behavior.
-      render: Rust
       placeholder: |
-        fn main() {
-            // How to reproduce the issue
-        }
+        1.  Go to '...'
+        2.  Click on '...'
+        3.  Scroll down to '...'
+        4.  See error
+    validations:
+      required: false
+
+  - type: input
+    id: link
+    attributes:
+      label: Link to HASH Core
+      description: If your simulation is hosted at https://core.hash.ai/ and is public, please provide a link.
+      placeholder: e.g. https://core.hash.ai/@example/simulation
     validations:
       required: false
 
@@ -48,7 +54,7 @@ body:
     attributes:
       label: Rust compiler
       description: Which Rust compiler do you use? The current rust version can be printed by `rustc -V`
-      placeholder: e.g. 1.66.0 nightly (2022-09-27)
+      placeholder: 1.65.0 nightly (2022-08-08)
     validations:
       required: false
 
@@ -71,20 +77,11 @@ body:
       required: false
 
   - type: input
-    id: version
+    id: python-version
     attributes:
       label: Version
-      description: What error-stack version do you use? If you use the git version please also post the revision.
-      placeholder: e.g. v0.2.1
-    validations:
-      required: false
-
-  - type: input
-    id: features
-    attributes:
-      label: Features
-      description: What features are enabled?
-      placeholder: default, spantrace
+      description: What Python version do you use?
+      placeholder: e.g. 3.10
     validations:
       required: false
 
