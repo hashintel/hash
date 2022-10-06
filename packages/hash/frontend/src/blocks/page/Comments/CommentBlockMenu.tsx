@@ -33,7 +33,7 @@ export const CommentBlockMenu: FunctionComponent<CommentBlockMenuProps> = ({
         onClick: async () => {},
       },
     ],
-    [popupState],
+    [],
   );
 
   const bindMenuProps = bindMenu(popupState);
