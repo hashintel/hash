@@ -1,4 +1,4 @@
-# Deer
+# deer
 
 `deer` is a backend agnostic deserialization framework, featuring meaningful error
 messages and context (utilizing [`error-stack`](https://crates.io/crates/error-stack)) and
@@ -6,11 +6,12 @@ a fail-slow behavior by default.
 
 ## Fail-Slow
 
-Currently, Rust deserializers are good at one thing: parsing a lot of data correct and
-_fast_. This is often what is desired, but the need for speed sacrifices usability in
-scenarios where multiple errors are of interest.
-`deer` solves this exact problem, by allowing multiple errors, trying as hard as possible
-not to fail at the first error.
+The current landscape of Rust deserializers has been developed with correctness and speed
+in mind.
+This is often what is desired but means that certain use-cases like user-facing errors
+are inadequately supported in the Rust ecosystem.
+`deer` tries to solve this problem, by trading off an acceptable amount of speed to enable
+the surfacing of multiple errors.
 
 ## Example
 
@@ -43,8 +44,8 @@ fn main() {
 
 `serde` will fail immediately upon encountering that `257` is larger than what `i8`
 allows. This leads to frustration for the API consumer, as once they fix that issue the
-next problem, that `string` cannot be null, will be returned. `serde` also does not include
-path information about where the issue is located, `deer` does!
+next problem, that `string` cannot be null, will be returned. `serde` also does not
+include path information about where the issue is located, `deer` does!
 
 `deer` solves this problem, by returning every issue present.
 This means that a single API call with the payload given will result in the
@@ -65,7 +66,12 @@ syntactically correct values.
 
 ## Contributors
 
-`deer` was created by [Bilal Mahmoud](https://github.com/indietyp). It is being developed in conjunction with [HASH](https://hash.dev/). As an open-source project, we gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/CONTRIBUTING.md) that outlines the process. If you have questions, please reach out to us on our [Discord server](https://hash.ai/discord).
+`deer` was created by [Bilal Mahmoud](https://github.com/indietyp). It is being developed
+in conjunction with [HASH](https://hash.dev/). As an open-source project, we gratefully
+accept external contributions and have published
+a [contributing guide](https://github.com/hashintel/hash/blob/main/CONTRIBUTING.md) that
+outlines the process. If you have questions, please reach out to us on
+our [Discord server](https://hash.ai/discord).
 
 <!-- The license section is in line with other Rust tools, like serde -->
 <!-- markdownlint-disable MD001 -->
