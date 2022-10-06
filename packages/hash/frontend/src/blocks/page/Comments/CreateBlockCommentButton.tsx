@@ -1,39 +1,20 @@
-import { FunctionComponent, useCallback, useMemo, useState } from "react";
+import { FunctionComponent, useCallback, useState } from "react";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
 import Box from "@mui/material/Box";
-import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import Popper from "@mui/material/Popper";
-import { useCreateComment } from "../../../components/hooks/useCreateComment";
-import { useRouteAccountInfo } from "../../../shared/routing";
 import styles from "../style.module.css";
-import { usePageComments } from "../../../components/hooks/usePageComments";
 import { CreateBlockComment } from "./CreateBlockComment";
 
-type CommentButtonProps = {
+type CreateBlockCommentButtonProps = {
   blockId: string | null;
   rootNode: HTMLElement;
 };
 
-export const CommentButton: FunctionComponent<CommentButtonProps> = ({
-  blockId,
-  rootNode,
-}) => {
-  const { accountId } = useRouteAccountInfo();
+export const CreateBlockCommentButton: FunctionComponent<
+  CreateBlockCommentButtonProps
+> = ({ blockId, rootNode }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [createComment] = useCreateComment(
-    accountId,
-    "142fbe88-ea94-4bac-a7fe-3bba04f02efb",
-  );
-
-  const submitComment = useCallback(
-    async (content: TextToken[]) => {
-      if (blockId) {
-        await createComment(blockId, content);
-      }
-    },
-    [createComment, blockId],
-  );
 
   const closeInput = useCallback(() => setAnchorEl(null), []);
 
@@ -78,7 +59,7 @@ export const CommentButton: FunctionComponent<CommentButtonProps> = ({
         ]}
         anchorEl={anchorEl}
       >
-        <CreateBlockComment onClose={closeInput} onSubmit={submitComment} />
+        <CreateBlockComment blockId={blockId} onClose={closeInput} />
       </Popper>
     </Box>
   );

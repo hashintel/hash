@@ -49,7 +49,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
       })}
     >
       <CommentBlock key={comment.entityId} comment={comment} />
-      {/* 
+
       {comment.replies.map((reply) => (
         <Box
           key={reply.entityId}
@@ -59,7 +59,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         >
           <CommentBlock comment={reply} />
         </Box>
-      ))} */}
+      ))}
 
       <Collapse in={showInput}>
         <Box
@@ -87,7 +87,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
               onSubmit={submitComment}
               editable={!loading}
               onFocusChange={setInputFocused}
-              setValue={setInputValue}
+              onChange={setInputValue}
               classNames={styles.Comment__TextField_editable}
             />
           </Box>

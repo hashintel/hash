@@ -1,5 +1,4 @@
 import {
-  FunctionComponent,
   useEffect,
   useRef,
   useState,
@@ -19,17 +18,11 @@ import {
   textTokenNodes,
 } from "@hashintel/hash-shared/prosemirror";
 import { Box } from "@mui/material";
-import {
-  faAt,
-  faChevronDown,
-  faChevronUp,
-  IconDefinition,
-} from "@fortawesome/free-solid-svg-icons";
+import { faAt } from "@fortawesome/free-solid-svg-icons";
 import {
   IconButton,
   FontAwesomeIcon,
   LoadingSpinner,
-  Button,
 } from "@hashintel/hash-design-system";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import {
@@ -48,56 +41,22 @@ import styles from "../style.module.css";
 import { commentPlaceholderPlugin } from "./commentPlaceholderPlugin";
 import { createTextEditorView } from "../createTextEditorView";
 
-const LINE_HEIGHT = 21;
-
-type ShowMoreTextLinkProps = {
-  label: string;
-  icon: IconDefinition;
-  onClick: () => void;
-};
-
-export const ShowMoreTextLink: FunctionComponent<ShowMoreTextLinkProps> = ({
-  label,
-  icon,
-  onClick,
-}) => (
-  <Button
-    size="xs"
-    variant="tertiary_quiet"
-    sx={{
-      display: "flex",
-      alignItems: "center",
-      fontWeight: 600,
-      textDecoration: "none",
-      cursor: "pointer",
-      alignSelf: "flex-end",
-      px: 0.5,
-      py: 0,
-      minHeight: 0,
-      color: ({ palette }) => palette.primary.main,
-    }}
-    onClick={onClick}
-  >
-    {label}
-    <FontAwesomeIcon icon={icon} sx={{ fontSize: 12, ml: 0.75 }} />
-  </Button>
-);
-
 export type CommentTextFieldRef = {
   resetDocument: () => void;
   focus: () => void;
+  getDom: () => Element | undefined;
 };
 
 type CommentTextFieldProps = {
-  editable?: boolean;
   initialText?: TextToken[];
-  collapsible?: boolean;
   classNames?: string;
   loading?: boolean;
+  editable?: boolean;
+  readOnly?: boolean;
+  onChange?: (value: TextToken[]) => void;
+  onFocusChange?: (focused: boolean) => void;
   onClose?: () => void;
   onSubmit?: () => Promise<void>;
-  onFocusChange?: (focused: boolean) => void;
-  setValue: (value: TextToken[]) => void;
 };
 
 export const CommentTextField = forwardRef<
@@ -106,15 +65,15 @@ export const CommentTextField = forwardRef<
 >(
   (
     {
-      editable = false,
       initialText,
-      collapsible = false,
       classNames = "",
       loading = false,
+      editable = false,
+      readOnly = false,
+      onChange,
+      onFocusChange,
       onClose,
       onSubmit,
-      onFocusChange,
-      setValue,
     },
     ref,
   ) => {
@@ -123,26 +82,22 @@ export const CommentTextField = forwardRef<
     const { accountId } = useRouteAccountInfo();
     const editorContainerRef = useRef<HTMLDivElement>();
     const editableRef = useRef(false);
-    const loadingRef = useRef(false);
     const eventsRef = useRef({ onClose, onSubmit });
-    const [collapsed, setCollapsed] = useState(true);
-    const [shouldCollapse, setShouldCollapse] = useState(false);
     const [prevValue, setPrevValue] = useState(initialText);
 
-    if (setValue && viewRef.current) {
+    if (onChange && viewRef.current) {
       const { tokens } = textBlockNodeToEntityProperties(
         viewRef.current?.state.doc,
       );
 
       if (!isEqual(prevValue, tokens)) {
-        setValue(tokens);
+        onChange(tokens);
         setPrevValue(tokens);
       }
     }
 
     useLayoutEffect(() => {
       eventsRef.current = { onClose, onSubmit };
-      loadingRef.current = loading;
       editableRef.current = editable;
     });
 
@@ -170,6 +125,7 @@ export const CommentTextField = forwardRef<
     useImperativeHandle(ref, () => ({
       resetDocument,
       focus: () => viewRef.current?.focus(),
+      getDom: () => viewRef.current?.dom,
     }));
 
     useEffect(() => {
@@ -197,7 +153,7 @@ export const CommentTextField = forwardRef<
                 return false;
               },
               Escape() {
-                if (eventsRef.current.onClose && !loadingRef.current) {
+                if (eventsRef.current.onClose) {
                   eventsRef.current.onClose();
                   return true;
                 }
@@ -225,10 +181,6 @@ export const CommentTextField = forwardRef<
           },
         );
 
-        setShouldCollapse(
-          collapsible && view.dom.clientHeight >= LINE_HEIGHT * 2,
-        );
-
         view.focus();
         viewRef.current = view;
 
@@ -237,21 +189,7 @@ export const CommentTextField = forwardRef<
           viewRef.current = undefined;
         };
       }
-    }, [getInitialTokens, collapsible, accountId, renderPortal, setValue]);
-
-    useEffect(() => {
-      if (shouldCollapse) {
-        if (collapsed) {
-          viewRef.current?.dom.classList.add(
-            styles.Comment__TextField_collapsed!,
-          );
-        } else {
-          viewRef.current?.dom.classList.remove(
-            styles.Comment__TextField_collapsed!,
-          );
-        }
-      }
-    }, [collapsed, shouldCollapse]);
+    }, [getInitialTokens, accountId, renderPortal]);
 
     useEffect(() => {
       viewRef.current?.setProps({ editable: () => editable });
@@ -272,84 +210,55 @@ export const CommentTextField = forwardRef<
     }
 
     return (
-      <Box
-        display="flex"
-        flexDirection="column"
-        justifyItems="flex-end"
-        flex={1}
-        overflow="hidden"
-      >
+      <Box display="flex" flex={1} overflow="hidden">
         <Box
-          sx={{
-            width: "100%",
+          ref={editorContainerRef}
+          sx={({ palette }) => ({
             display: "flex",
-          }}
-        >
+            overflow: "hidden",
+            flexGrow: 1,
+            fontSize: 14,
+            lineHeight: "150%",
+            color: palette.gray[90],
+          })}
+        />
+
+        {!readOnly ? (
           <Box
-            ref={editorContainerRef}
-            sx={({ palette }) => ({
+            sx={{
               display: "flex",
-              overflow: "hidden",
-              flexGrow: 1,
-              fontSize: 14,
-              lineHeight: "150%",
-              color: palette.gray[90],
-            })}
-          />
-
-          {editable ? (
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "flex-end",
-                mx: 1,
-                my: 1.375,
-              }}
-            >
-              {loading ? (
-                <Box m={0.75}>
-                  <LoadingSpinner size={12} thickness={2} />
-                </Box>
-              ) : (
-                <IconButton
-                  onClick={() => {
-                    if (viewRef.current) {
-                      const { tr } = viewRef.current.state;
-                      tr.setMeta(suggesterPluginKey, { type: "toggle" });
-                      viewRef.current.dispatch(tr);
-                      viewRef.current.focus();
-                    }
-                  }}
-                  sx={({ palette }) => ({
-                    padding: 0.5,
-                    borderRadius: 1,
-                    color: palette.gray[40],
-                  })}
-                >
-                  <FontAwesomeIcon icon={faAt} />
-                </IconButton>
-              )}
-            </Box>
-          ) : null}
-
-          {portals}
-        </Box>
-
-        {shouldCollapse ? (
-          collapsed ? (
-            <ShowMoreTextLink
-              label="Show More"
-              icon={faChevronDown}
-              onClick={() => setCollapsed(false)}
-            />
-          ) : (
-            <ShowMoreTextLink
-              label="Show Less"
-              icon={faChevronUp}
-              onClick={() => setCollapsed(true)}
-            />
-          )
+              alignItems: "flex-end",
+              mx: 1,
+              my: 1.375,
+            }}
+          >
+            {loading ? (
+              <Box m={0.75}>
+                <LoadingSpinner size={12} thickness={2} />
+              </Box>
+            ) : (
+              <IconButton
+                onClick={() => {
+                  if (viewRef.current) {
+                    const { tr } = viewRef.current.state;
+                    tr.setMeta(suggesterPluginKey, { type: "toggle" });
+                    viewRef.current.dispatch(tr);
+                    viewRef.current.focus();
+                  }
+                }}
+                sx={({ palette }) => ({
+                  padding: 0.5,
+                  borderRadius: 1,
+                  color: palette.gray[40],
+                })}
+              >
+                <FontAwesomeIcon icon={faAt} />
+              </IconButton>
+            )}
+          </Box>
         ) : null}
+
+        {portals}
       </Box>
     );
   },
