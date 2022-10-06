@@ -5,6 +5,9 @@ import {
   GridColumn,
   Item,
   EditableGridCell,
+  DrawCustomCellCallback,
+  DrawHeaderCallback,
+  Theme,
 } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
 import "@glideapps/glide-data-grid/dist/index.css";
@@ -46,7 +49,7 @@ const columns: GridColumn[] = [
   {
     title: "Property",
     id: "name",
-    width: 200,
+    width: 250,
   },
   {
     title: "Value",
@@ -57,13 +60,40 @@ const columns: GridColumn[] = [
   {
     title: "Data type",
     id: "type",
+    width: 150,
   },
 ];
 
 const indexes: (keyof DummyItem)[] = ["name", "value", "type"];
 
-export const PropertyTable = () => {
+const firstColumnPadding = 36;
+const columnPadding = 22;
+
+interface PropertyTableProps {
+  showSearch?: boolean;
+  onSearchClose?: () => void;
+}
+export const PropertyTable = ({
+  showSearch,
+  onSearchClose,
+}: PropertyTableProps) => {
   const { palette } = useTheme();
+
+  const theme: Partial<Theme> = {
+    bgHeader: "white",
+    headerBottomBorderColor: palette.gray[20],
+    horizontalBorderColor: "transparent",
+    accentColor: palette.blue[70],
+    textHeader: palette.gray[80],
+    bgHeaderHasFocus: "transparent",
+    textBubble: palette.gray[70],
+    bgBubble: palette.gray[20],
+    accentLight: palette.gray[20],
+    bgHeaderHovered: "white",
+    cellHorizontalPadding: 22,
+    baseFontStyle: "500 14px Inter",
+  };
+
   const getContent = useCallback(([col, row]: Item): GridCell => {
     const property = properties[row];
 
@@ -120,25 +150,84 @@ export const PropertyTable = () => {
     [],
   );
 
+  const drawCell: DrawCustomCellCallback = useCallback(
+    (args) => {
+      const { cell, rect, ctx, col } = args;
+      if (cell.kind !== GridCellKind.Text) return false;
+
+      ctx.save();
+      const { x, y, height, width } = rect;
+
+      // border right
+      ctx.strokeStyle = palette.gray[20];
+      ctx.beginPath();
+      ctx.lineWidth = 2;
+      ctx.moveTo(x + width, y);
+      ctx.lineTo(x + width, y + height);
+      ctx.stroke();
+
+      // text
+      const paddingLeft = col === 0 ? firstColumnPadding : columnPadding;
+      ctx.font = "500 14px Inter";
+      ctx.fillStyle = palette.gray[80];
+      ctx.fillText(cell.displayData, x + paddingLeft, y + height / 2 + 2);
+      ctx.restore();
+
+      return true;
+    },
+    [palette],
+  );
+
+  const drawHeader: DrawHeaderCallback = useCallback(
+    (args) => {
+      const { ctx, rect, column, columnIndex } = args;
+      const { x, y, width, height } = rect;
+
+      // border-right to all columns except last one
+      if (columnIndex < columns.length - 1) {
+        ctx.strokeStyle = palette.gray[20];
+        ctx.beginPath();
+        ctx.lineWidth = 2;
+        ctx.moveTo(x + width, y);
+        ctx.lineTo(x + width, y + height);
+        ctx.stroke();
+      }
+
+      const paddingLeft =
+        columnIndex === 0 ? firstColumnPadding : columnPadding;
+
+      ctx.font = "600 14px Inter";
+      ctx.fillStyle = palette.gray[80];
+      ctx.fillText(column.title, x + paddingLeft, y + height / 2);
+
+      return true;
+    },
+    [palette],
+  );
+
   return (
     <>
       <DataEditor
-        verticalBorder={false}
+        /** functionality */
         columns={columns}
         rows={properties.length}
         getCellContent={getContent}
-        theme={{
-          bgHeader: "white",
-          headerBottomBorderColor: palette.gray[20],
-          horizontalBorderColor: "transparent",
-          accentColor: palette.blue[70],
-          textHeader: palette.gray[80],
-          //   baseFontStyle: "10px",
-          //   fontFamily: "Inter",
-          bgHeaderHasFocus: "transparent",
-        }}
-        columnSelect="none"
         onCellEdited={onCellEdited}
+        drawCell={drawCell}
+        drawHeader={drawHeader}
+        /** behavior */
+        showSearch={showSearch}
+        onSearchClose={onSearchClose}
+        getCellsForSelection
+        rangeSelect="cell"
+        columnSelect="none"
+        /** styling  */
+        theme={theme}
+        width="100%"
+        headerHeight={42}
+        rowHeight={42}
+        verticalBorder={false}
+        drawFocusRing={false}
       />
       <div
         id="portal"

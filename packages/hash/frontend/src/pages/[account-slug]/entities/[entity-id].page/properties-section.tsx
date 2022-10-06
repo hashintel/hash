@@ -3,12 +3,15 @@ import { Chip } from "@hashintel/hash-design-system/chip";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { IconButton } from "@hashintel/hash-design-system/icon-button";
 import { Stack } from "@mui/material";
+import { useState } from "react";
 import { FilterListIcon } from "../../../../shared/icons";
 import { PropertyTable } from "./property-table";
 import { EntitySection } from "./shared/entity-section";
 import { WhiteChip } from "./shared/white-chip";
 
 export const PropertiesSection = () => {
+  const [showSearch, setShowSearch] = useState(false);
+
   return (
     <EntitySection
       title="Properties"
@@ -19,7 +22,7 @@ export const PropertiesSection = () => {
           <Stack direction="row" spacing={0.5}>
             <IconButton
               rounded
-              onClick={() => alert("search")}
+              onClick={() => setShowSearch(true)}
               sx={{ color: ({ palette }) => palette.gray[60] }}
             >
               <FontAwesomeIcon icon={faMagnifyingGlass} />
@@ -35,7 +38,10 @@ export const PropertiesSection = () => {
         </Stack>
       }
     >
-      <PropertyTable />
+      <PropertyTable
+        onSearchClose={() => setShowSearch(false)}
+        showSearch={showSearch}
+      />
     </EntitySection>
   );
 };
