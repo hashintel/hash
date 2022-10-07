@@ -37,7 +37,7 @@ import {
   suggesterPluginKey,
 } from "../createSuggester/createSuggester";
 import { useRouteAccountInfo } from "../../../shared/routing";
-import styles from "../style.module.css";
+import styles from "./style.module.css";
 import { commentPlaceholderPlugin } from "./commentPlaceholderPlugin";
 import { createTextEditorView } from "../createTextEditorView";
 

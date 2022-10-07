@@ -18,7 +18,7 @@ import { bindTrigger } from "material-ui-popup-state";
 import { PageComment } from "../../../components/hooks/usePageComments";
 import { CommentTextField, CommentTextFieldRef } from "./CommentTextField";
 import { CommentBlockMenu } from "./CommentBlockMenu";
-import styles from "../style.module.css";
+import styles from "./style.module.css";
 
 const LINE_HEIGHT = 21;
 

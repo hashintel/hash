@@ -7,7 +7,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { PageThread } from "../../../components/hooks/usePageComments";
 import { CommentTextField, CommentTextFieldRef } from "./CommentTextField";
 import { CommentBlock } from "./CommentBlock";
-import styles from "../style.module.css";
+import styles from "./style.module.css";
 
 const UNCOLLAPSIBLE_REPLIES_NUMBER = 2;
 

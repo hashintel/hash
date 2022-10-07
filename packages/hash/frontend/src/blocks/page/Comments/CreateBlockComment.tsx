@@ -4,7 +4,7 @@ import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { CommentTextField, CommentTextFieldRef } from "./CommentTextField";
-import styles from "../style.module.css";
+import styles from "./style.module.css";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../../shared/routing";
 import { useCreateComment } from "../../../components/hooks/useCreateComment";
 
