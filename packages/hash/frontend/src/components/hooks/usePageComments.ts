@@ -36,5 +36,5 @@ export const usePageComments = (
     variables: { accountId, pageId },
   });
 
-  return { data: data?.pageComments, loading };
+  return { data: data?.pageComments ?? [], loading };
 };
