@@ -72,11 +72,11 @@ body:
       required: false
 
   - type: input
-    id: version
+    id: revision
     attributes:
-      label: Version
-      description: What error-stack version do you use? If you use the git version please also post the revision.
-      placeholder: e.g. v0.2.1
+      label: Revision
+      description: What revision of `deer` do you use?
+      placeholder: e.g. abcd1234
     validations:
       required: false
 
