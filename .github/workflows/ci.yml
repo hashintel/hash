@@ -184,8 +184,8 @@ jobs:
       - name: Launch external services
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file packages/hash/external-services/docker-compose.yml build
-          docker-compose --file packages/hash/external-services/docker-compose.yml up --detach
+          docker compose --file packages/hash/external-services/docker-compose.yml --env-file .env build
+          docker-compose --file packages/hash/external-services/docker-compose.yml --env-file .env up --detach
 
       - name: Seed data
         if: ${{ success() || failure() }}
