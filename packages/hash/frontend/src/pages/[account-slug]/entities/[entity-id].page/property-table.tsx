@@ -4,46 +4,23 @@ import {
   GridCellKind,
   GridColumn,
   Item,
-  EditableGridCell,
   DrawCustomCellCallback,
   DrawHeaderCallback,
   Theme,
+  EditableGridCell,
 } from "@glideapps/glide-data-grid";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import "@glideapps/glide-data-grid/dist/index.css";
-import { useTheme } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
+import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
+import { EntityResponse } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 
-type DummyItem = {
+type Row = {
   name: string;
   value: string;
-  type: string;
+  dataTypes: string[];
+  propertyTypeId: string;
 };
-
-const properties: DummyItem[] = [
-  { name: "Headcount", value: "221,000", type: "Number" },
-  { name: "Founding date", value: "4 April 1975", type: "Number" },
-  {
-    name: "Product screenshots",
-    value: "3 file attachments",
-    type: "Number",
-  },
-  {
-    name: "Competitive advantages",
-    value: "Incumbency, Economies of scale, Respectable CEO",
-    type: "Number",
-  },
-  { name: "Estimates user base", value: "527,404", type: "Number" },
-  {
-    name: "Estimated annual revenue",
-    value: "$198.27 billion USD",
-    type: "Number",
-  },
-  {
-    name: "Estimated annual gross profit",
-    value: "$96.937 billion USD",
-    type: "Number",
-  },
-];
 
 const columns: GridColumn[] = [
   {
@@ -64,7 +41,11 @@ const columns: GridColumn[] = [
   },
 ];
 
-const indexes: (keyof DummyItem)[] = ["name", "value", "type"];
+const indexes: Exclude<keyof Row, "propertyTypeId">[] = [
+  "name",
+  "value",
+  "dataTypes",
+];
 
 const firstColumnPadding = 36;
 const columnPadding = 22;
@@ -72,12 +53,36 @@ const columnPadding = 22;
 interface PropertyTableProps {
   showSearch?: boolean;
   onSearchClose?: () => void;
+  entity: EntityResponse;
 }
+
 export const PropertyTable = ({
   showSearch,
   onSearchClose,
+  entity,
 }: PropertyTableProps) => {
   const { palette } = useTheme();
+  const { updateEntity, updateEntityLoading } =
+    useBlockProtocolUpdateEntity(false);
+
+  const rowData = useMemo<Row[]>(() => {
+    return Object.keys(entity.properties).map((propertyTypeId) => {
+      const value = entity.properties[propertyTypeId];
+      const { propertyType } =
+        entity.entityTypeRootedSubgraph.referencedPropertyTypes.find((val) =>
+          val.propertyTypeId.startsWith(propertyTypeId),
+        ) || {};
+
+      if (!propertyType) throw new Error();
+
+      return {
+        value,
+        name: propertyType.title,
+        dataTypes: ["Text"],
+        propertyTypeId,
+      };
+    });
+  }, [entity]);
 
   const theme: Partial<Theme> = {
     bgHeader: "white",
@@ -97,44 +102,47 @@ export const PropertyTable = ({
     editorFontSize: "14px",
   };
 
-  const getContent = useCallback(([col, row]: Item): GridCell => {
-    const property = properties[row];
+  const getContent = useCallback(
+    ([col, row]: Item): GridCell => {
+      const property = rowData[row];
 
-    if (!property) throw new Error();
+      if (!property) throw new Error();
 
-    const propertyKey = indexes[col];
+      const propertyKey = indexes[col];
 
-    if (!propertyKey) throw new Error();
+      if (!propertyKey) throw new Error();
 
-    const value = property[propertyKey];
+      const value = property[propertyKey];
 
-    switch (propertyKey) {
-      case "name":
-        return {
-          kind: GridCellKind.Text,
-          data: value,
-          displayData: value,
-          readonly: true,
-          allowOverlay: false,
-        };
+      switch (propertyKey) {
+        case "name":
+          return {
+            kind: GridCellKind.Text,
+            data: value as string,
+            displayData: value as string,
+            readonly: true,
+            allowOverlay: false,
+          };
 
-      case "type":
-        return {
-          kind: GridCellKind.Bubble,
-          data: [value],
-          allowOverlay: false,
-        };
+        case "dataTypes":
+          return {
+            kind: GridCellKind.Bubble,
+            data: value as string[],
+            allowOverlay: false,
+          };
 
-      case "value":
-        return {
-          kind: GridCellKind.Text,
-          data: value,
-          displayData: value,
-          allowOverlay: true,
-          cursor: "pointer",
-        };
-    }
-  }, []);
+        case "value":
+          return {
+            kind: GridCellKind.Text,
+            data: value as string,
+            displayData: value as string,
+            allowOverlay: true,
+            cursor: "pointer",
+          };
+      }
+    },
+    [rowData],
+  );
 
   const onCellEdited = useCallback(
     ([col, row]: Item, newValue: EditableGridCell) => {
@@ -144,13 +152,18 @@ export const PropertyTable = ({
       }
 
       const key = indexes[col];
-      const property = properties[row];
+      const property = rowData[row];
 
       if (!key || !property) throw new Error();
 
-      property[key] = newValue.data;
+      void updateEntity({
+        data: {
+          entityId: entity.entityId,
+          properties: { [property.propertyTypeId]: newValue.data },
+        },
+      });
     },
-    [],
+    [rowData, updateEntity, entity.entityId],
   );
 
   const drawCell: DrawCustomCellCallback = useCallback(
@@ -192,7 +205,7 @@ export const PropertyTable = ({
       <DataEditor
         /** functionality */
         columns={columns}
-        rows={properties.length}
+        rows={rowData.length}
         getCellContent={getContent}
         onCellEdited={onCellEdited}
         drawCell={drawCell}

@@ -4,21 +4,24 @@ import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon"
 import { IconButton } from "@hashintel/hash-design-system/icon-button";
 import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
+import { EntityResponse } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 import { FilterListIcon } from "../../../../shared/icons";
 import { PropertyTable } from "./property-table";
 import { EntitySection } from "./shared/entity-section";
-import { WhiteChip } from "./shared/white-chip";
+// import { WhiteChip } from "./shared/white-chip";
 
-export const PropertiesSection = () => {
+export const PropertiesSection = ({ entity }: { entity: EntityResponse }) => {
   const [showSearch, setShowSearch] = useState(false);
+
+  const propertyCount = Object.keys(entity.properties).length;
 
   return (
     <EntitySection
       title="Properties"
       titleStartContent={
         <Stack direction="row" spacing={1.5}>
-          <Chip size="xs" label="8 Values" />
-          <WhiteChip size="xs" label="112 empty" />
+          <Chip size="xs" label={`${propertyCount} Values`} />
+          {/* <WhiteChip size="xs" label="112 empty" /> */}
           <Stack direction="row" spacing={0.5}>
             <IconButton
               rounded
@@ -40,6 +43,7 @@ export const PropertiesSection = () => {
     >
       <Paper sx={{ overflow: "hidden" }}>
         <PropertyTable
+          entity={entity}
           onSearchClose={() => setShowSearch(false)}
           showSearch={showSearch}
         />
