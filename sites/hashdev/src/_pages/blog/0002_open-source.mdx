@@ -1,6 +1,6 @@
 ---
 authorPhoto: blog/authors/david-wilkinson.jpg
-postPhoto: blog/2_open-source/OpenSource_Cover.jpg
+postPhoto: blog/0002_open-source/OpenSource_Cover.jpg
 title: "Open source at HASH"
 subtitle: "How our approach to open source informs what we do"
 author: "David Wilkinson"
@@ -14,14 +14,14 @@ At HASH, we publish as much of our code as possible in public.
 
 Depending on the code in question, it'll typically be released under one of three types of license, each of which has slightly different terms attached to it governing what you can and can't do with the underlying source:
 
-1.  **Open-source and permissive licenses:** in essence these licenses give people the freedom to do pretty much whatever they like, including extending the code and keeping it private (making this the most flexible category of license). The entirety of the [Block Protocol](https://github.com/blockprotocol/blockprotocol) is available under these terms (by way of the _MIT License_), alongside most of our blocks and connectors.
-1.  **Open-source and copyleft licenses:** these again give people the freedom to use the code however they like, provided that if they extend or modify the code they contribute those changes back into the open source as well under the same terms. Our [HASH](https://hash.ai/platform/hash) application is available under the _AGPL_ which guarantees this freedom.
+1.  **Open-source and permissive licenses:** in essence these licenses give people the freedom to do pretty much whatever they like, including extending the code and keeping it private (making this the most flexible category of license). The entirety of the [Block Protocol](https://github.com/blockprotocol/blockprotocol) is available under these terms (by way of the _MIT License_), alongside most of our blocks and connectors. Some of our packages like [`error-stack`](https://github.com/hashintel/hash/tree/main/packages/libs/error-stack) and [`deer`](https://github.com/hashintel/hash/tree/main/packages/libs/deer) are released under multiple permissive licenses (i.e. incorporable under both _MIT_ and _Apache 2.0_ licenses, at your option).
+1.  **Open-source and copyleft licenses:** these again give people the freedom to use the code however they like, provided that if they extend or modify the code they contribute those changes back into the open source as well under the same terms. Our [HASH](https://hash.ai/platform/hash) application is primarily available under the _AGPL_ which guarantees this freedom.
 1.  **Fair-source licenses:** fair-source licenses give people access to and freedom to use code directly, and the ability to self-host products without reliance on their creators (i.e. us). However, fair-source licenses limit the ability of others to create competing commercial offerings based on this code. [HASH Engine](https://hash.ai/platform/engine) is released under the _Elastic License (ELv2)_ which allows anyone to use, copy, distribute, make available, and prepare derivative works. But the Elastic license prevents third-parties from using software licensed under it to provide a managed service to others (e.g. to provide a cloud simulation SaaS offering).
 
-In fact, there are only two instances of closed-source code left in existence at HASH.
+In fact, there are only two instances of non-public, closed-source code left at HASH.
 
-1.  The first is our non-public **deprecated and legacy code**, which we have already or are currently fully replacing with equivalent public code.
-1.  The second relates to products within our platform which we are **now preparing to release** under open-source or fair-source licenses. By this we primarily mean the infrastructure and code behind our [cloud compute service for simulations](https://hash.ai/platform/cloud) which will be made available alongside our open-source [HASH](https://hash.ai/platform/hash) application, as well as our [HASH Core](https://hash.ai/platform/core) IDE, which will be published under the Elastic License (as HASH Engine already is). Once these, alongside some remaining internal tooling (similar to [`error-stack`](https://hash.dev/blog/announcing-error-stack)) have been released, our entire actively-maintained codebase will be public.
+1.  The first comprises our **deprecated and legacy code**, which we have already or are currently fully replacing with equivalent public code.
+1.  The second relates to products within our platform which we are **now preparing to release** under open-source or fair-source licenses. By this we primarily mean the infrastructure and code behind our [cloud compute service for simulations](https://hash.ai/platform/cloud) which will be made available alongside our open-source [HASH](https://hash.ai/platform/hash) application, as well as our [HASH Core](https://hash.ai/platform/core) IDE, which will be published under the Elastic License (as HASH Engine already is). Once these have been released — alongside some remaining internal tooling (similar to [`error-stack`](https://hash.dev/blog/announcing-error-stack)), and the source code for the [hash.ai](https://hash.ai/) _sales and marketing_ website — our entire actively-maintained codebase will be public.
 
 ## How we think about open source
 

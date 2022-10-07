@@ -1,8 +1,12 @@
-name: Bug Report (Blocks)
-description: Create a report to help us improve our blocks
+name: Bug Report (deer)
+description: Create a report to help us improve `deer`
 labels:
-  - A-blocks
+  - A-deer
   - C-bug
+assignees:
+  - Alfred-Mountfield
+  - TimDiekmann
+  - indietyp
 body:
   - type: markdown
     attributes:
@@ -10,14 +14,6 @@ body:
         Thank you for taking the time to fill out this bug report!
 
         Please try to fill out the fields below. If you don't know what to put in the fields please left them blank.
-
-  - type: input
-    id: block
-    attributes:
-      label: Block impacted
-      description: The name of the block impacted.
-    validations:
-      required: true
 
   - type: textarea
     id: description
@@ -32,11 +28,11 @@ body:
     attributes:
       label: To reproduce
       description: Steps to reproduce the behavior.
+      render: Rust
       placeholder: |
-        1.  Go to '...'
-        2.  Click on '...'
-        3.  Scroll down to '...'
-        4.  See error
+        fn main() {
+            // How to reproduce the issue
+        }
     validations:
       required: false
 
@@ -49,29 +45,47 @@ body:
       required: false
 
   - type: input
-    id: device
+    id: rustc
     attributes:
-      label: Device
-      description: What device do you use?
-      placeholder: e.g. iPhone 14
+      label: Rust compiler
+      description: Which Rust compiler do you use? The current rust version can be printed by `rustc -V`
+      placeholder: e.g. 1.66.0 nightly (2022-09-27)
     validations:
       required: false
 
   - type: input
     id: os
     attributes:
-      label: Operating system
-      description: Which operating system do you use?
-      placeholder: e.g. Windows 10, macOS 13, Android
+      label: Host
+      description: Which operating system are you on? Please post the output for `host` of `rustc -vV`.
+      placeholder: e.g. aarch64-apple-darwin
     validations:
       required: false
 
   - type: input
-    id: browser
+    id: target
     attributes:
-      label: Browser
-      description: Which browser do you use?
-      placeholder: e.g. Firefox 105.0.1, Safari 16.0
+      label: Target
+      description: What target are you compiling to? You can find a list of all installed targets with `rustup show`.
+      placeholder: e.g. x86_64-unknown-linux-musl
+    validations:
+      required: false
+
+  - type: input
+    id: revision
+    attributes:
+      label: Revision
+      description: What revision of `deer` do you use?
+      placeholder: e.g. abcd1234
+    validations:
+      required: false
+
+  - type: input
+    id: features
+    attributes:
+      label: Features
+      description: What features are enabled?
+      placeholder: default, std
     validations:
       required: false
 
