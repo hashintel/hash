@@ -14,6 +14,10 @@ HASH is an open-source, data-centric, all-in-one workspace. HASH combines a rich
 
 We will be developing HASH into a production-grade application which can be self-hosted. The current design and architecture, while not fully realized, paves the way for further features, scale, and performance. You can read about the long-term vision for HASH [here](https://hash.ai/platform/hash).
 
+> **Warning:**
+> The repository is currently in a state of flux while some large improvements are being implemented. 
+> As such, portions of this README may prove outdated in the interim, this could include guides on how to load blocks, references to various services, broken tests, features, etc.
+
 ## Getting started
 
 To run HASH locally, please follow these steps:
@@ -100,8 +104,6 @@ You'll be able to sign in to these users with the password `password`.
 
 ## Sending emails
 
-[//]: # "TODO: **Disclaimer: Current flux of the repo means the code mentioned in this section is temporarily disabled**"
-
 By default, the API server uses `DummyEmailTransporter` which simulates email sending for local development and testing.
 
 To use `AwsSesEmailTransporter` instead, set `export HASH_EMAIL_TRANSPORTER=aws_ses` in your terminal before running the app.
@@ -116,8 +118,6 @@ You can test blocks in HASH by going to any page, clicking on the menu next to a
 To get started building a block, visit the [docs](https://blockprotocol.org/docs).
 
 ## HASH blocks
-
-[//]: # "TODO: Disclaimer? Probably mention the new methods we've patched in to develop on"
 
 This repository contains a number of https://blockprotocol.org blocks.
 If you want to develop, build or serve a single block, run:
@@ -166,8 +166,6 @@ We plan to use Playwright [API testing](https://playwright.dev/docs/test-api-tes
 Thus, `yarn test:backend-integration` and `yarn test:playwright` will probably converge.
 
 ### Playwright tests
-
-[//]: # "TODO - DISCLAIMER: TESTS ARE BROKEN"
 
 [Playwright](https://playwright.dev) tests are browser-based integration and end-to-end tests.
 The playwright tests are located within the [/packages/hash/playwright/tests](/packages/hash/playwright/tests) folder.
