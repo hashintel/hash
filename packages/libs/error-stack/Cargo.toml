@@ -4,7 +4,7 @@ default-members = ["."]
 
 [package]
 name = "error-stack"
-version = "0.1.1"
+version = "0.2.2"
 authors = ["HASH"]
 edition = "2021"
 rust-version = "1.63.0"
@@ -41,8 +41,6 @@ rustc_version = "0.4"
 [features]
 default = ["std", "pretty-print"]
 
-futures = []
-hooks = ["std"]
 pretty-print = ["dep:owo-colors"]
 spantrace = ["dep:tracing-error", "std"]
 std = ["anyhow?/std"]

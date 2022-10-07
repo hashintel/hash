@@ -71,7 +71,7 @@ const App: FunctionComponent<AppProps> = ({
     return null; // Replace with app skeleton
   }
 
-  const getLayout = Component.getLayout || getPlainLayout;
+  const getLayout = Component.getLayout ?? getPlainLayout;
   return (
     <ApolloProvider client={apolloClient}>
       <CacheProvider value={emotionCache}>

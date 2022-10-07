@@ -51,7 +51,7 @@ export const PageIcon = ({
         alignItems: "center",
       }}
     >
-      {data?.persistedPage?.icon || (
+      {data?.persistedPage?.icon ?? (
         <FontAwesomeIcon
           icon={faFile}
           sx={(theme) => ({

@@ -54,7 +54,7 @@ struct ExperimentError;
 
 impl fmt::Display for ExperimentError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Experiment error: Could not run experiment")
+        fmt.write_str("experiment error: could not run experiment")
     }
 }
 
@@ -95,7 +95,7 @@ fn main() -> Result<(), ExperimentError> {
 
 This will most likely result in an error and print
 
-![](assets/full.png)
+![](https://github.com/hashintel/hash/blob/8ed55bd73045fba83a7ea2e199b31d5b829537b9/packages/libs/error-stack/assets/full.png?raw=true)
 
 Please see the [documentation] for a full description.
 

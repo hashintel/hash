@@ -16,7 +16,11 @@ import { useEffect, useMemo, useState, FunctionComponent, useRef } from "react";
 import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
-import { PageBlock } from "../../blocks/page/PageBlock";
+import {
+  PageBlock,
+  PAGE_HORIZONTAL_PADDING_FORMULA,
+  PAGE_MIN_PADDING,
+} from "../../blocks/page/PageBlock";
 import { PageContextProvider } from "../../blocks/page/PageContext";
 import { PageTitle } from "../../blocks/page/PageTitle/PageTitle";
 import {
@@ -24,7 +28,7 @@ import {
   useAccountPages,
 } from "../../components/hooks/useAccountPages";
 import { useArchivePage } from "../../components/hooks/useArchivePage";
-import { PageIcon } from "../../components/PageIcon";
+import { PageIcon, pageIconVariantSizes } from "../../components/PageIcon";
 import { PageIconButton } from "../../components/PageIconButton";
 import { PageLoadingState } from "../../components/PageLoadingState";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
@@ -175,17 +179,9 @@ const generateCrumbsFromPages = ({
   return arr;
 };
 
-export const PAGE_CONTENT_WIDTH = 960;
-
-const Container = styled("div")(({ theme }) => ({
-  display: "grid",
-  gridTemplateColumns: `1fr minmax(65ch, ${PAGE_CONTENT_WIDTH}px) 1fr`,
-  padding: theme.spacing(6),
-
-  "& > *": {
-    gridColumn: "2",
-  },
-}));
+const Container = styled("div")({
+  padding: `${PAGE_MIN_PADDING}px ${PAGE_HORIZONTAL_PADDING_FORMULA} 0`,
+});
 
 const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   const router = useRouter();
@@ -319,34 +315,42 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
         </Box>
 
         <Container>
-          <Box display="flex">
+          <Box position="relative">
             <PageIconButton
               ownedById={accountId}
               entityId={pageEntityId}
               versionId={versionId}
-              sx={{ mr: 3, alignSelf: "flex-start" }}
               readonly={readonlyMode}
+              sx={({ breakpoints }) => ({
+                mb: 2,
+                [breakpoints.up("lg")]: {
+                  position: "absolute",
+                  top: 0,
+                  right: "calc(100% + 24px)",
+                },
+              })}
             />
-
-            <Box flex={1}>
-              <Box
-                component="header"
-                ref={pageHeaderRef}
-                sx={{
-                  scrollMarginTop: HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT,
-                }}
-              >
-                <PageTitle
-                  value={title}
-                  ownedById={accountId}
-                  pageEntityId={pageEntityId}
-                />
-                {/* 
+            <Box
+              component="header"
+              ref={pageHeaderRef}
+              sx={{
+                scrollMarginTop:
+                  HEADER_HEIGHT +
+                  TOP_CONTEXT_BAR_HEIGHT +
+                  pageIconVariantSizes.medium.container,
+              }}
+            >
+              <PageTitle
+                value={title}
+                ownedById={accountId}
+                pageEntityId={pageEntityId}
+              />
+              {/*
             Commented out Version Dropdown and Transfer Page buttons.
             They will most likely be added back when new designs 
             for them have been added
           */}
-                {/* <div className={tw`mr-4`}>
+              {/* <div className={tw`mr-4`}>
             <label>Version</label>
             <div>
               <VersionDropdown
@@ -370,17 +374,17 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
               />
             </div>
           </div> */}
-              </Box>
-              <CollabPositionProvider value={collabPositions}>
-                <PageBlock
-                  accountId={accountId}
-                  blocks={blocksMap}
-                  entityId={pageEntityId}
-                />
-              </CollabPositionProvider>
             </Box>
           </Box>
         </Container>
+
+        <CollabPositionProvider value={collabPositions}>
+          <PageBlock
+            accountId={accountId}
+            blocks={blocksMap}
+            entityId={pageEntityId}
+          />
+        </CollabPositionProvider>
       </PageContextProvider>
     </>
   );

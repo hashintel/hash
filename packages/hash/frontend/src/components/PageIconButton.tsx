@@ -30,7 +30,7 @@ export const PageIconButton = ({
   ownedById,
   entityId,
   versionId,
-  readonly,
+  readonly = false,
   size = "medium",
   hasDarkBg,
   onClick,

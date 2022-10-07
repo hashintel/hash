@@ -1,0 +1,45 @@
+name: Suggestion or request
+description: Suggest an idea, feature or enhancement
+labels:
+  - C-enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to fill out this feature request!
+
+        Please try to fill out the fields below. If you don't know what to put in the fields please left them blank.
+
+  - type: textarea
+    id: related
+    attributes:
+      label: Related Problem
+      description: Is your feature request related to a problem? Please give a clear and concise description of what the problem is.
+      placeholder: |
+        e.g. I'm always frustrated when ...
+    validations:
+      required: false
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like. Please give a clear and concise description of what you want to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Describe alternatives you've considered. Please give a clear and concise description of any alternative solutions or features you've considered.
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add any other context about the feature request here, e.g. screenshots.
+    validations:
+      required: false
