@@ -2,6 +2,7 @@ import { EntityModel } from "../../../../model";
 import {
   QueryPersistedEntityArgs,
   MutationCreatePersistedEntityArgs,
+  MutationUpdatePersistedEntityArgs,
   ResolverFn,
 } from "../../../apiTypes.gen";
 import {
@@ -35,6 +36,27 @@ export const createPersistedEntity: ResolverFn<
   });
 
   return mapEntityModelToGQL(entity);
+};
+
+export const updatePersistedEntity: ResolverFn<
+  Promise<UnresolvedPersistedEntityGQL>,
+  {},
+  LoggedInGraphQLContext,
+  MutationUpdatePersistedEntityArgs
+> = async (
+  _,
+  { entityId, updatedProperties },
+  { dataSources: { graphApi } },
+) => {
+  const entityModel = await EntityModel.getLatest(graphApi, {
+    entityId,
+  });
+
+  const updatedEntityModel = await entityModel.update(graphApi, {
+    properties: updatedProperties,
+  });
+
+  return mapEntityModelToGQL(updatedEntityModel);
 };
 
 export const persistedEntity: ResolverFn<
