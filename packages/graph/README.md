@@ -22,12 +22,6 @@ cargo make deployment-up
 
 _It is possible to teardown the database with the equivalent `deployment-down` task_
 
-It's possible to recreate the database by using
-
-```shell
-cargo make recreate-db
-```
-
 Then, the Graph Query Layer can be started:
 
 ```shell
@@ -63,6 +57,13 @@ Every command line argument passed will also be forwarded to the subcommand, e.g
 
 ```shell
 cargo make doc --open
+```
+
+--- 
+It's possible to recreate the database by using
+
+```shell
+cargo make recreate-db
 ```
 
 ## Test the code

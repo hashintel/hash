@@ -63,7 +63,7 @@ To run HASH locally, please follow these steps:
 
     1.  You can optionally force a rebuild of the docker containers by adding the `--build` argument(**this is necessary if changes have been made to the graph query layer). It's recommended to do this whenever updating your branch from upstream**.
 
-    1.  You can keep external services running between app restarts by adding the `--detach` argument to run the containers in the background. It's then possible to tear down the external services with `yarn external-services down`.
+    1.  You can keep external services running between app restarts by adding the `--detach` argument to run the containers in the background. It is possible to tear down the external services with `yarn external-services down`.
 
 1.  Launch app services:
 
@@ -273,11 +273,6 @@ The below `package.json` file outlines the minimum requirements a package has to
   },
 }
 ```
-
-[//]: # "TODO: this path doesn't exist, repo root?"
-
-The above `devDependencies` are owed to our root eslint-config at packages/hash/.eslintrc.json`. That same config requires a`tsconfig.json`next to the`package.json`if`.ts(x)` files are to be
-linted.
 
 ## Troubleshooting
 
