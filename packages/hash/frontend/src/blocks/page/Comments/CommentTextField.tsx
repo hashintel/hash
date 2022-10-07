@@ -207,12 +207,14 @@ export const CommentTextField = forwardRef<
       });
     }, [classNames]);
 
-    if (viewRef.current) {
-      onFocusChange?.(viewRef.current.hasFocus());
-    }
-
     return (
-      <Box display="flex" flex={1} overflow="hidden">
+      <Box
+        display="flex"
+        flex={1}
+        overflow="hidden"
+        onFocus={() => onFocusChange?.(true)}
+        onBlur={() => onFocusChange?.(false)}
+      >
         <Box
           ref={editorContainerRef}
           sx={({ palette }) => ({
