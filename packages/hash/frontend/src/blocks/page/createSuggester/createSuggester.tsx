@@ -345,6 +345,7 @@ export const createSuggester = (
                   },
                 ]}
                 anchorEl={anchorNode}
+                style={{ zIndex: 1 }}
               >
                 {jsx}
               </Popper>,
