@@ -85,7 +85,7 @@ body:
     attributes:
       label: Features
       description: What features are enabled?
-      placeholder: default, spantrace
+      placeholder: default, std
     validations:
       required: false
 
