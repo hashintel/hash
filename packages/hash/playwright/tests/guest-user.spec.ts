@@ -5,7 +5,13 @@ test.beforeEach(async () => {
   await resetDb();
 });
 
-test("guest user navigation to login and signup pages", async ({ page }) => {
+/**
+ * @todo: Re-enable this playwright test when required workspace functionality is fixed
+ * @see https://app.asana.com/0/1202805690238892/1203106234191599/f
+ */
+test.skip("guest user navigation to login and signup pages", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.waitForURL("**/login");
 
@@ -56,7 +62,11 @@ test("guest user navigation to login and signup pages", async ({ page }) => {
   );
 });
 
-test("guest user navigation to inaccessible pages", async ({ page }) => {
+/**
+ * @todo: Re-enable this playwright test when required workspace functionality is fixed
+ * @see https://app.asana.com/0/1202805690238892/1203106234191599/f
+ */
+test.skip("guest user navigation to inaccessible pages", async ({ page }) => {
   await page.goto("/non/existing/page");
   await expect(page).toHaveTitle("404: This page could not be found");
 

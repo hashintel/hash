@@ -16,7 +16,11 @@ test.beforeEach(async () => {
   await resetDb();
 });
 
-test("user can create page", async ({ page }) => {
+/**
+ * @todo: Re-enable this playwright test when required workspace functionality is fixed
+ * @see https://app.asana.com/0/1202805690238892/1203106234191599/f
+ */
+test.skip("user can create page", async ({ page }) => {
   await loginUsingUi({
     page,
     accountShortName: "alice",
@@ -164,7 +168,11 @@ test("user can create page", async ({ page }) => {
   ).toHaveCount(5);
 });
 
-test("user can rename page", async ({ page }) => {
+/**
+ * @todo: Re-enable this playwright test when required workspace functionality is fixed
+ * @see https://app.asana.com/0/1202805690238892/1203106234191599/f
+ */
+test.skip("user can rename page", async ({ page }) => {
   const pageName1 = `Page ${pageNameSuffix}`;
   const pageName2 = `Page 2 ${pageNameSuffix}`;
 
