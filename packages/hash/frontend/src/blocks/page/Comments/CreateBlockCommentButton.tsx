@@ -1,10 +1,11 @@
-import { FunctionComponent, useCallback, useState } from "react";
+import { FunctionComponent, useCallback, useState, useRef } from "react";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
 import Box from "@mui/material/Box";
 import Popper from "@mui/material/Popper";
 import styles from "../style.module.css";
 import { CreateBlockComment } from "./CreateBlockComment";
+import { CommentTextFieldRef } from "./CommentTextField";
 
 type CreateBlockCommentButtonProps = {
   blockId: string | null;
@@ -14,6 +15,7 @@ type CreateBlockCommentButtonProps = {
 export const CreateBlockCommentButton: FunctionComponent<
   CreateBlockCommentButtonProps
 > = ({ blockId, rootNode }) => {
+  const inputRef = useRef<CommentTextFieldRef>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const closeInput = useCallback(() => setAnchorEl(null), []);
@@ -21,7 +23,12 @@ export const CreateBlockCommentButton: FunctionComponent<
   return (
     <Box className={styles.Block__Comments_Button}>
       <IconButton
-        onClick={(event) => setAnchorEl(anchorEl ? null : event.currentTarget)}
+        onClick={(event) => {
+          setAnchorEl(anchorEl ? null : event.currentTarget);
+          setImmediate(() => {
+            inputRef.current?.focus();
+          });
+        }}
         sx={{
           padding: 0.5,
           borderRadius: 1,
@@ -44,8 +51,8 @@ export const CreateBlockCommentButton: FunctionComponent<
             name: "offset",
             options: {
               offset: () => [
-                -13,
-                -(anchorEl?.getBoundingClientRect().height ?? 0) - 13,
+                -9,
+                -(anchorEl?.getBoundingClientRect().height ?? 0) - 12,
               ],
             },
           },
@@ -59,8 +66,13 @@ export const CreateBlockCommentButton: FunctionComponent<
         ]}
         anchorEl={anchorEl}
         style={{ zIndex: 1 }}
+        keepMounted
       >
-        <CreateBlockComment blockId={blockId} onClose={closeInput} />
+        <CreateBlockComment
+          blockId={blockId}
+          onClose={closeInput}
+          ref={inputRef}
+        />
       </Popper>
     </Box>
   );

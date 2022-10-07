@@ -1,9 +1,9 @@
-import { FunctionComponent, useState } from "react";
+import { forwardRef, useState } from "react";
 import { Box } from "@mui/material";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
-import { CommentTextField } from "./CommentTextField";
+import { CommentTextField, CommentTextFieldRef } from "./CommentTextField";
 import styles from "../style.module.css";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../../shared/routing";
 import { useCreateComment } from "../../../components/hooks/useCreateComment";
@@ -13,10 +13,10 @@ type CreateBlockCommentProps = {
   onClose?: () => void;
 };
 
-export const CreateBlockComment: FunctionComponent<CreateBlockCommentProps> = ({
-  blockId,
-  onClose,
-}) => {
+export const CreateBlockComment = forwardRef<
+  CommentTextFieldRef,
+  CreateBlockCommentProps
+>(({ blockId, onClose }, ref) => {
   const { accountId } = useRouteAccountInfo();
   const { pageEntityId } = useRoutePageInfo();
   const [createComment, { loading }] = useCreateComment(
@@ -63,6 +63,7 @@ export const CreateBlockComment: FunctionComponent<CreateBlockCommentProps> = ({
       </IconButton>
 
       <CommentTextField
+        ref={ref}
         onClose={onClose}
         onSubmit={submitComment}
         editable={!loading}
@@ -72,4 +73,4 @@ export const CreateBlockComment: FunctionComponent<CreateBlockCommentProps> = ({
       />
     </Box>
   );
-};
+});
