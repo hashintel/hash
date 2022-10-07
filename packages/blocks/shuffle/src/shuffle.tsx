@@ -209,9 +209,9 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     return draftItems.map((item) => {
       const itemEntityId = item.entityId;
 
-      const entity = linkedEntitiesMap.get(itemEntityId || "");
+      const entity = linkedEntitiesMap.get(itemEntityId ?? "");
 
-      const entityType = entityTypesMap.get(entity?.entityTypeId || "");
+      const entityType = entityTypesMap.get(entity?.entityTypeId ?? "");
 
       return {
         ...item,

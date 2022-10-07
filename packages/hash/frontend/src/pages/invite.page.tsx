@@ -81,13 +81,13 @@ const Page: NextPageWithLayout = () => {
       navigateToHome();
     },
     onError: ({ graphQLErrors }) => {
-      graphQLErrors.forEach(({ extensions, message }) => {
+      for (const { extensions, message } of graphQLErrors) {
         if (extensions?.code === "ALREADY_USED") {
           navigateToHome();
         } else {
           setErrorMessage(message);
         }
-      });
+      }
     },
   });
 
