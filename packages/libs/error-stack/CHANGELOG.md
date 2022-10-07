@@ -7,7 +7,11 @@ All notable changes to `error-stack` will be documented in this file.
 - Support for [`serde`](https://serde.rs) (`Serialize` only)
 - Support for [`defmt`](https://defmt.ferrous-systems.com)
 
-## [0.2.0](https://github.com/hashintel/hash/tree/8ed55bd73045fba83a7ea2e199b31d5b829537b9/packages/libs/error-stack) - 2022-10-03
+## [0.2.2](https://github.com/hashintel/hash/tree/error-stack%400.2.2/packages/libs/error-stack) - 2022-10-07
+
+- Add a space before attachment formatting ([#1174](https://github.com/hashintel/hash/pull/1174))
+
+## [0.2.0](https://github.com/hashintel/hash/tree/error-stack%400.2.0/packages/libs/error-stack) - 2022-10-03
 
 ### Breaking Changes
 
@@ -41,6 +45,6 @@ All notable changes to `error-stack` will be documented in this file.
 
 - Greatly reduce the amount of `unsafe` code ([#774](https://github.com/hashintel/hash/pull/774))
 
-## [0.1.0](https://github.com/hashintel/hash/tree/d14efbc38559fc38d36e03ebdd499b44cb80c668/packages/libs/error-stack) - 2022-06-10
+## [0.1.0](https://github.com/hashintel/hash/tree/error-stack%400.1.0/packages/libs/error-stack) - 2022-06-10
 
 - Initial release
