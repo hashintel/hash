@@ -1,5 +1,4 @@
 import { useMemo, FunctionComponent } from "react";
-import { tw } from "twind";
 import ArticleIcon from "@mui/icons-material/Article";
 
 import { useUsers } from "../../../components/hooks/useUsers";
@@ -74,13 +73,9 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   ]);
 
   return (
-    <Link noLinkStyle href={href}>
-      {/* <a> */}
-      {/* <span className={tw`text-gray-400 font-medium cursor-pointer`}> */}
+    <Link noLinkStyle href={href} sx={{ fontWeight: 500, color: "#9ca3af" }}>
       {icon}
       {title}
-      {/* </span> */}
-      {/* </a> */}
     </Link>
   );
 };
