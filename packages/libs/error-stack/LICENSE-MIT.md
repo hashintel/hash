@@ -1,5 +1,4 @@
 # MIT License
-===========
 
 Copyright © 2022–, HASH
 
