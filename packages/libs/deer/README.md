@@ -35,7 +35,7 @@ fn main() {
 }
 ```
 
-`serde` will fail immediately upon encountering that `257` is larger than what `u8` allows. This leads to frustration for the API consumer, as once they fix that issue the next problem, that `string` cannot be null, will be returned. `serde` also does not include path information about where the issue is located, `deer` does!
+`serde` will fail immediately upon encountering that `256` is larger than what `u8` allows. This leads to frustration for the API consumer, as once they fix that issue the next problem, that `string` cannot be null, will be returned. `serde` also does not include path information about where the issue is located, `deer` does!
 
 `deer` solves this problem, by returning every issue present.
 This means that a single API call with the payload given will result in the errors: `256 larger than u8::MAX`, `null is not String`, and `extra key "extra" provided`.
