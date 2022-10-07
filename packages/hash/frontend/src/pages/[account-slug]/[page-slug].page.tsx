@@ -232,11 +232,9 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
     const commentsContainerWidth = pageComments?.length ? COMMENTS_WIDTH : 0;
 
     const paddingLeft = `max(calc((100% - ${
-      PAGE_CONTENT_WIDTH + commentsContainerWidth
+      PAGE_CONTENT_WIDTH + commentsContainerWidth + PAGE_MIN_PADDING
     }px) / 2), ${PAGE_MIN_PADDING}px)`;
-    const paddingRight = `max(calc((100% - ${
-      PAGE_CONTENT_WIDTH + commentsContainerWidth
-    }px) / 2), ${PAGE_MIN_PADDING * 2 + commentsContainerWidth}px)`;
+    const paddingRight = `calc((100% - ${PAGE_CONTENT_WIDTH}px - ${paddingLeft}))`;
 
     return [
       styled("div")({
