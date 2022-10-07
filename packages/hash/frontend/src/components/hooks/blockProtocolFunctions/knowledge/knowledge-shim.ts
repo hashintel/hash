@@ -36,12 +36,23 @@ type Entity = Omit<
   entityTypeRootedSubgraph: EntityTypeRootedSubgraph;
 };
 
-export type EntityResponse = Entity;
+export type GetEntityRequest = Pick<Entity, "entityId">;
 
-export type GetEntityRequest = Pick<EntityResponse, "entityId">;
 export type GetEntityMessageCallback = MessageCallback<
   GetEntityRequest,
   null,
-  EntityResponse,
+  Entity,
+  ReadOrModifyResourceError
+>;
+
+export type UpdateEntityRequest = {
+  entityId: string;
+  updatedProperties: Entity["properties"];
+};
+
+export type UpdateEntityMessageCallback = MessageCallback<
+  UpdateEntityRequest,
+  null,
+  Entity,
   ReadOrModifyResourceError
 >;
