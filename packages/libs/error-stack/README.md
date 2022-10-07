@@ -101,7 +101,7 @@ This will most likely result in an error and print
 
 Please see the [documentation].
 
-For more examples of `error-stack` in use, please check out the [examples](./examples) folder.
+For more examples of `error-stack` in use, please check out the [examples](https://github.com/hashintel/hash/tree/main/packages/libs/error-stack/examples) folder.
 
 ## Contributors
 
