@@ -158,7 +158,7 @@ export const AccountSetup: FunctionComponent<AccountSetupProps> = ({
                       : "text-black text-opacity-60 text-xs"
                   }`}
                 >
-                  {shortnameError || (
+                  {shortnameError ?? (
                     <>
                       If you’re using HASH for work or a team, you’ll be able to
                       choose a separate org username later.
