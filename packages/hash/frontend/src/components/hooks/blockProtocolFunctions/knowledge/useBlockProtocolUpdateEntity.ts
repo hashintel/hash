@@ -14,7 +14,7 @@ import { UpdateEntityMessageCallback } from "./knowledge-shim";
 export const useBlockProtocolUpdateEntity = (
   readonly?: boolean,
 ): {
-  updatePersistedEntity: UpdateEntityMessageCallback;
+  updateEntity: UpdateEntityMessageCallback;
 } => {
   const [updateFn] = useMutation<
     UpdatePersistedEntityMutation,
@@ -109,6 +109,6 @@ export const useBlockProtocolUpdateEntity = (
   );
 
   return {
-    updatePersistedEntity,
+    updateEntity: updatePersistedEntity,
   };
 };

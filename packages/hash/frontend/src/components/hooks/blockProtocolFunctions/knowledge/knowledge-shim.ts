@@ -15,6 +15,7 @@ import {
 
 export type KnowledgeCallbacks = {
   getEntity: GetEntityMessageCallback;
+  updateEntity: UpdateEntityMessageCallback;
 };
 
 /* Entity CRU */
@@ -36,12 +37,13 @@ type Entity = Omit<
   entityTypeRootedSubgraph: EntityTypeRootedSubgraph;
 };
 
-export type GetEntityRequest = Pick<Entity, "entityId">;
+export type EntityResponse = Entity;
 
+export type GetEntityRequest = Pick<EntityResponse, "entityId">;
 export type GetEntityMessageCallback = MessageCallback<
   GetEntityRequest,
   null,
-  Entity,
+  EntityResponse,
   ReadOrModifyResourceError
 >;
 
