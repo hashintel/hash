@@ -1,4 +1,4 @@
-name: Bug Report (error-stack)
+name: Bug Report (deer)
 description: Create a report to help us improve `error-stack`
 labels:
   - A-error-stack
