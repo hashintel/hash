@@ -63,10 +63,12 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
   const [collapsed, setCollapsed] = useState(true);
   const [shouldCollapse, setShouldCollapse] = useState(false);
 
-  const commentCreatedAt = useMemo(
-    () => `${formatDistanceToNowStrict(new Date(createdAt))} ago`,
-    [createdAt],
-  );
+  const commentCreatedAt = useMemo(() => {
+    const timeDistance = formatDistanceToNowStrict(new Date(createdAt));
+    return timeDistance === "0 seconds"
+      ? "Just now"
+      : `${formatDistanceToNowStrict(new Date(createdAt))} ago`;
+  }, [createdAt]);
 
   const commentMenuPopupState = usePopupState({
     variant: "popover",
