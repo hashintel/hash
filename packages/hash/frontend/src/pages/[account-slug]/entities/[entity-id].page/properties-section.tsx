@@ -4,14 +4,17 @@ import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon"
 import { IconButton } from "@hashintel/hash-design-system/icon-button";
 import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
-import { EntityResponse } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 import { FilterListIcon } from "../../../../shared/icons";
+import { useEntityEditor } from "./entity-editor-context";
 import { PropertyTable } from "./property-table";
 import { EntitySection } from "./shared/entity-section";
 // import { WhiteChip } from "./shared/white-chip";
 
-export const PropertiesSection = ({ entity }: { entity: EntityResponse }) => {
+export const PropertiesSection = () => {
+  const { entity } = useEntityEditor();
   const [showSearch, setShowSearch] = useState(false);
+
+  if (!entity) return null;
 
   const propertyCount = Object.keys(entity.properties).length;
 
