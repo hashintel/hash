@@ -9,6 +9,8 @@ import { CommentTextField, CommentTextFieldRef } from "./CommentTextField";
 import { CommentBlock } from "./CommentBlock";
 import styles from "../style.module.css";
 
+const UNCOLLAPSIBLE_REPLIES_NUMBER = 2;
+
 type CommentThreadProps = {
   comment: PageThread;
   createComment: (parentId: string, content: TextToken[]) => Promise<void>;
@@ -44,10 +46,13 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
     }
   };
 
-  const [collapsedReplies, lastReply] = useMemo(() => {
+  const [collapsedReplies, uncollapsibleReplies] = useMemo(() => {
     const replies = [...comment.replies];
-    const lastItem = replies.pop();
-    return [replies, lastItem];
+    const lastItems = replies.splice(
+      replies.length - UNCOLLAPSIBLE_REPLIES_NUMBER,
+      UNCOLLAPSIBLE_REPLIES_NUMBER,
+    );
+    return [replies, lastItems];
   }, [comment]);
 
   return (
@@ -107,16 +112,16 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         </>
       ) : null}
 
-      {lastReply ? (
+      {uncollapsibleReplies.map((reply) => (
         <Box
-          key={lastReply.entityId}
+          key={reply.entityId}
           sx={{
             borderTop: ({ palette }) => `1px solid ${palette.gray[20]}`,
           }}
         >
-          <CommentBlock comment={lastReply} />
+          <CommentBlock comment={reply} />
         </Box>
-      ) : null}
+      ))}
 
       <Collapse in={showInput}>
         <Box
