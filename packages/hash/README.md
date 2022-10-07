@@ -140,13 +140,7 @@ See https://blockprotocol.org/docs/developing-blocks
 
 ### The Graph Query Layer
 
-HASH's primary datastore is an entity graph. The service that provides this is located within the [/packages/graph](/packages/graph) folder. The README contains more information for development.
-
-> **CAUTION:** At the moment, the graph starts the services it depends on differently to the rest of the codebase. The README describes a way to start the required docker containers for development _of the graph_.
->
-> **Before running HASH, it's required to take down the other docker compose, and to follow the instructions on how to run `external-services` as outlined in the [Getting Started](#getting-started) section.**
->
-> It is planned to address this by revisiting the way the services are orchestrated, while still allowing for local non-container-based development.
+HASH's primary datastore is an entity graph. The service that provides this is located within the /packages/graph folder. The README contains more information for development. You do not need to visit that README or folder unless you want to amend the graph service.
 
 ## Testing
 
