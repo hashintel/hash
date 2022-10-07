@@ -8,7 +8,7 @@ Currently available Rust deserializers have mostly been developed with correctne
 
 ## Example
 
-End-user facing APIs are a well-suited example for `deer`. 
+End-user facing APIs are a well-suited example for `deer`.
 
 Given the following example:
 
@@ -44,7 +44,7 @@ fn main() {
 This in turn also means that `deer` can be used to implement custom validation while deserializing, while still being able to return all validation issues.
 
 <sub>
-deer might provide a way in the future to describe these constraints.
+`deer` might provide a way in the future to describe these constraints.
 </sub>
 
 ## Limitations
@@ -91,7 +91,7 @@ Instead of strictly deserializing types, one might prefer to deserialize while c
 <details>
 <summary>What it may look like</summary>
 
-```json
+```text
 {
   "i8": "string"
 ```
