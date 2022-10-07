@@ -133,6 +133,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
           >
             <CommentTextField
               ref={inputRef}
+              placeholder={`Reply to ${comment.author.properties.preferredName}`}
               onSubmit={submitComment}
               editable={!loading}
               onFocusChange={setInputFocused}

@@ -49,6 +49,7 @@ export type CommentTextFieldRef = {
 
 type CommentTextFieldProps = {
   initialText?: TextToken[];
+  placeholder?: string;
   classNames?: string;
   loading?: boolean;
   editable?: boolean;
@@ -66,6 +67,7 @@ export const CommentTextField = forwardRef<
   (
     {
       initialText,
+      placeholder = "Leave a comment",
       classNames = "",
       loading = false,
       editable = false,
@@ -164,7 +166,7 @@ export const CommentTextField = forwardRef<
             ...createFormatPlugins(renderPortal),
             formatKeymap(schema),
             createSuggester(renderPortal, accountId, editorContainer),
-            commentPlaceholderPlugin(renderPortal, "Leave a comment"),
+            commentPlaceholderPlugin(renderPortal, placeholder),
           ],
         });
 
