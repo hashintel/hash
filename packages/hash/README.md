@@ -208,14 +208,14 @@ See `yarn test:playwright --help` for more info.
 
 ### Unit tests
 
-[//]: # "TODO: Disclaimer: don't worry about some `console.error`s, focus on the return code"
-
 Unit tests are executed by [Jest](https://jestjs.io) and use [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) to cover the UI.
 They can be launched at any time with this command:
 
 ```sh
 yarn test:unit
 ```
+
+> _Note: some of the unit tests may output console.error messages. Please disregard these and focus on the pass/fail indicators._
 
 Going forward, consider using Playwright if you want to test the UI.
 Your tests will be less wired to the implementation details and thus be closer to what real users see and do.
