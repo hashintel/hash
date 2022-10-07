@@ -61,9 +61,9 @@ To run HASH locally, please follow these steps:
     yarn external-services up
     ```
 
-    1. You can optionally force a rebuild of the docker containers by adding the `--build` argument(**this is necessary if changes have been made to the graph query layer). It's recommended to do this whenever updating your branch from upstream**.
-    
-    1. You can keep external services running between app restarts by adding the `--detach` argument to run the containers in the background. It's then possible to tear down the external services with `yarn external-services down`.
+    1.  You can optionally force a rebuild of the docker containers by adding the `--build` argument(**this is necessary if changes have been made to the graph query layer). It's recommended to do this whenever updating your branch from upstream**.
+
+    1.  You can keep external services running between app restarts by adding the `--detach` argument to run the containers in the background. It's then possible to tear down the external services with `yarn external-services down`.
 
 1.  Launch app services:
 
@@ -82,6 +82,17 @@ To run HASH locally, please follow these steps:
 
     See `package.json` → `scripts` for details and more options.
 
+### External services test mode
+
+The external services of the system can be started in 'test mode' to prevent polluting the development database.
+This is useful for situations where the database is used for tests that modify the database without cleaning up afterwards.
+
+To make use of this test mode, the external services can be started as follows:
+
+```sh
+yarn external-services-test up
+```
+
 ## User authentication
 
 Development users are seeded when the HASH API is started, these users are `alice@example.com` and `bob@example.com`.
@@ -89,7 +100,7 @@ You'll be able to sign in to these users with the password `password`.
 
 ## Sending emails
 
-[//]: # (TODO: **Disclaimer: Current flux of the repo means the code mentioned in this section is temporarily disabled**)
+[//]: # "TODO: **Disclaimer: Current flux of the repo means the code mentioned in this section is temporarily disabled**"
 
 By default, the API server uses `DummyEmailTransporter` which simulates email sending for local development and testing.
 
@@ -106,7 +117,7 @@ To get started building a block, visit the [docs](https://blockprotocol.org/docs
 
 ## HASH blocks
 
-[//]: # (TODO: Disclaimer? Probably mention the new methods we've patched in to develop on)
+[//]: # "TODO: Disclaimer? Probably mention the new methods we've patched in to develop on"
 
 This repository contains a number of https://blockprotocol.org blocks.
 If you want to develop, build or serve a single block, run:
@@ -125,15 +136,16 @@ See https://blockprotocol.org/docs/developing-blocks
 
 ## Development
 
-[//]: # (TODO: Pointers to where to update/modify code)
+[//]: # "TODO: Pointers to where to update/modify code"
 
 ### The Graph Query Layer
+
 HASH's primary datastore is an entity graph. The service that provides this is located within the [/packages/graph](/packages/graph) folder. The README contains more information for development.
 
-> **CAUTION:** At the moment, the graph starts the services it depends on differently to the rest of the codebase. The README describes a way to start the required docker containers for development _of the graph_. 
-> 
-> **Before running HASH, it's required to take down the other docker compose, and to follow the instructions on how to run `external-services` as outlined in the [Getting Started](#getting-started) section.** 
-> 
+> **CAUTION:** At the moment, the graph starts the services it depends on differently to the rest of the codebase. The README describes a way to start the required docker containers for development _of the graph_.
+>
+> **Before running HASH, it's required to take down the other docker compose, and to follow the instructions on how to run `external-services` as outlined in the [Getting Started](#getting-started) section.**
+>
 > It is planned to address this by revisiting the way the services are orchestrated, while still allowing for local non-container-based development.
 
 ## Testing
@@ -148,11 +160,9 @@ localStorage["hash.internal.debugging"] = "true";
 
 ### Backend integration tests
 
-Backend integration tests are located in the [/packages/hash/integration](/packages/hash/integration) folder. 
+Backend integration tests are located in the [/packages/hash/integration](/packages/hash/integration) folder.
 
-[//]: # (TODO: `external-services-test`)
-
-_The tests require a running instance of `external-services`._
+_The tests require a running instance of `external-services`. see [here](#external-services-test-mode) for information on doing this without polluting the development database._
 
 ```sh
 yarn test:backend-integration
@@ -163,15 +173,13 @@ Thus, `yarn test:backend-integration` and `yarn test:playwright` will probably c
 
 ### Playwright tests
 
-[//]: # (TODO - DISCLAIMER: TESTS ARE BROKEN)
+[//]: # "TODO - DISCLAIMER: TESTS ARE BROKEN"
 
 [Playwright](https://playwright.dev) tests are browser-based integration and end-to-end tests.
 The playwright tests are located within the [/packages/hash/playwright/tests](/packages/hash/playwright/tests) folder.
 To run these tests locally, you will need to have both backend and frontend running.
 
-[//]: # (TODO: how to avoid DB pollution - can we use `external-services-test`?)
-
-- _The tests require a running instance of `external-services`._
+- _The tests require a running instance of `external-services`. see [here](#external-services-test-mode) for information on doing this without polluting the development database._
 
 #### Terminal 1
 
@@ -208,7 +216,7 @@ See `yarn test:playwright --help` for more info.
 
 ### Unit tests
 
-[//]: # (TODO: Disclaimer: don't worry about some `console.error`s, focus on the return code)
+[//]: # "TODO: Disclaimer: don't worry about some `console.error`s, focus on the return code"
 
 Unit tests are executed by [Jest](https://jestjs.io) and use [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) to cover the UI.
 They can be launched at any time with this command:
@@ -234,25 +242,25 @@ The below `package.json` file outlines the minimum requirements a package has to
 
 ```json5
 {
-  "name": "@hashintel/hash-<name>",
-  "version": "major.minor.patch",
-  "description": "lorem ipsum",
-  "author": "<package-author>",
-  "license": "<package-licence>",
-  "scripts": {
+  name: "@hashintel/hash-<name>",
+  version: "major.minor.patch",
+  description: "lorem ipsum",
+  author: "<package-author>",
+  license: "<package-licence>",
+  scripts: {
     // omit type-checking if not applicable
     "fix:eslint": "eslint --ext .ts,.tsx --fix ./src/",
     "lint:eslint": "eslint --ext .ts,.tsx ./src/",
     "lint:tsc": "tsc --noEmit",
-    "build": "echo produce artifacts",
-    "clean": "echo remove artifacts",
+    build: "echo produce artifacts",
+    clean: "echo remove artifacts",
     // required only if this is a shared package
-    "postinstall": "yarn build"
+    postinstall: "yarn build",
   },
-  "devDependencies": {
+  devDependencies: {
     "@typescript-eslint/eslint-plugin": "5.30.7",
     "@typescript-eslint/parser": "5.30.7",
-    "eslint": "8.20.0",
+    eslint: "8.20.0",
     "eslint-config-airbnb": "19.0.4",
     "eslint-config-prettier": "8.5.0",
     "eslint-plugin-import": "2.26.0",
@@ -260,15 +268,15 @@ The below `package.json` file outlines the minimum requirements a package has to
     "eslint-plugin-jsx-a11y": "6.6.1",
     "eslint-plugin-react": "7.30.1",
     "eslint-plugin-react-hooks": "4.6.0",
-    "rimraf": "3.2.0",
-    "typescript": "4.7.4"
-  }
+    rimraf: "3.2.0",
+    typescript: "4.7.4",
+  },
 }
 ```
 
-[//]: # (TODO: this path doesn't exist, repo root?)
-The above `devDependencies` are owed to our root eslint-config at packages/hash/.eslintrc.json`.
-That same config requires a `tsconfig.json` next to the `package.json` if `.ts(x)` files are to be
+[//]: # "TODO: this path doesn't exist, repo root?"
+
+The above `devDependencies` are owed to our root eslint-config at packages/hash/.eslintrc.json`. That same config requires a`tsconfig.json`next to the`package.json`if`.ts(x)` files are to be
 linted.
 
 ## Troubleshooting
@@ -356,16 +364,19 @@ During development, the dummy email transporter writes emails to a local folder.
 Various services also have their own configuration.
 
 The Postgres superuser is configured through:
+
 - `POSTGRES_USER` (default: `postgres`)
 - `POSTGRES_PASSWORD` (default: `postgres`)
 
 The Postgres information for Kratos is configured through:
+
 - `HASH_KRATOS_PG_USER` (default: `kratos`)
 - `HASH_KRATOS_PG_PASSWORD` (default: `kratos`)
 - `HASH_KRATOS_PG_DEV_DATABASE` (default: `dev_kratos`)
 - `HASH_KRATOS_PG_TEST_DATABASE` (default: `test_kratos`)
 
 The Postgres information for the graph query layer is configured through:
+
 - `HASH_GRAPH_PG_USER` (default: `graph`)
 - `HASH_GRAPH_PG_PASSWORD` (default: `graph`)
 - `HASH_GRAPH_PG_DEV_DATABASE` (default: `dev_graph`)
