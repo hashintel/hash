@@ -15,7 +15,7 @@ HASH is an open-source, data-centric, all-in-one workspace. HASH combines a rich
 We will be developing HASH into a production-grade application which can be self-hosted. The current design and architecture, while not fully realized, paves the way for further features, scale, and performance. You can read about the long-term vision for HASH [here](https://hash.ai/platform/hash).
 
 > **Warning:**
-> The repository is currently in a state of flux while some large improvements are being implemented. 
+> The repository is currently in a state of flux while some large improvements are being implemented.
 > As such, portions of this README may prove outdated in the interim, this could include guides on how to load blocks, references to various services, broken tests, features, etc.
 
 ## Getting started

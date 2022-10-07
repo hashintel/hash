@@ -10,7 +10,7 @@ cargo install cargo-make
 
 1.  In order to set up the database, first the database has to be started:
 
-> **CAUTION:** At the moment, the graph starts the services it depends on differently to the rest of the codebase. 
+> **CAUTION:** At the moment, the graph starts the services it depends on differently to the rest of the codebase.
 >
 > **Before running the following command, ensure to teardown any existing `external-services` that were started as outlined in the [README for the workspace](/packages/hash/README.md).** Similarly, **ensure you call `deployment-down` before trying to run the `external-services`.**
 >
@@ -59,7 +59,8 @@ Every command line argument passed will also be forwarded to the subcommand, e.g
 cargo make doc --open
 ```
 
---- 
+---
+
 It's possible to recreate the database by using
 
 ```shell
