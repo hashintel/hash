@@ -2,11 +2,19 @@ import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
+import { generateEntityLabel } from "../../../../../lib/entities";
 import { TopContextBar } from "../../../../shared/top-context-bar";
 import { OntologyChip } from "../../../entity-types/ontology-chip";
 import { PlaceholderIcon } from "../../../entity-types/placeholder-icon";
+import { useEntityEditor } from "../entity-editor-context";
 
 export const EntityPageHeader = () => {
+  const { entity } = useEntityEditor();
+
+  if (!entity) return null;
+
+  const entityLabel = generateEntityLabel(entity);
+
   return (
     <Box bgcolor="white">
       <TopContextBar
@@ -23,7 +31,7 @@ export const EntityPageHeader = () => {
             id: "entities",
           },
           {
-            title: "Microsoft",
+            title: entityLabel,
             href: "#",
             id: "entityId",
             icon: <FontAwesomeIcon icon={faAsterisk} />,
@@ -43,7 +51,7 @@ export const EntityPageHeader = () => {
                 </Typography>
                 /entities
                 <Typography color="inherit" fontWeight="bold">
-                  /microsoft
+                  /{entityLabel}
                 </Typography>
               </>
             }
@@ -58,7 +66,7 @@ export const EntityPageHeader = () => {
           <Stack direction="row" alignItems="center" spacing={2}>
             <FontAwesomeIcon icon={faAsterisk} sx={{ fontSize: 40 }} />
             <Typography variant="h1" fontWeight="bold">
-              Microsoft
+              {entityLabel}
             </Typography>
           </Stack>
         </Container>
