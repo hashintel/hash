@@ -77,7 +77,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
     if (contentRef.current) {
       const dom = contentRef.current.getDom();
       if (dom) {
-        setShouldCollapse(dom.clientHeight > LINE_HEIGHT * 2);
+        setShouldCollapse(dom.scrollHeight > LINE_HEIGHT * 2);
       }
     }
   }, []);
