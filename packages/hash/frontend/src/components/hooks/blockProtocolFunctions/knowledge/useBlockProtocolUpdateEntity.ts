@@ -72,7 +72,7 @@ export const useBlockProtocolUpdateEntity = (
       }
 
       /**
-       * @todo: the EntityTypeRootedSubraph is not returned from the `updateEntity` mutation.
+       * @todo: the EntityTypeRootedSubgraph is not returned from the `updateEntity` mutation.
        * May be addressed as part of https://app.asana.com/0/1200211978612931/1203089535761796/f or related work.
        */
 
