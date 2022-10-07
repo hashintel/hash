@@ -184,13 +184,13 @@ jobs:
       - name: Launch external services
         if: ${{ success() || failure() }}
         run: |
-          docker compose --file packages/hash/external-services/docker-compose.yml --env-file .env build
-          docker-compose --file packages/hash/external-services/docker-compose.yml --env-file .env up --detach
+          yarn external-services up --build --detach
 
-      - name: Seed data
-        if: ${{ success() || failure() }}
-        run: |
-          yarn seed-data
+      # @todo: re-implement seed-data scripts for the new type system
+      # - name: Seed data
+      #   if: ${{ success() || failure() }}
+      #   run: |
+      #     yarn seed-data
 
       - name: Launch backend
         if: ${{ success() || failure() }}
