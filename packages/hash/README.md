@@ -6,8 +6,6 @@
  <a href="https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_hash"><img src="https://img.shields.io/discord/840573247803097118" alt="Join HASH on Discord" /></a>
 </div>
 
-<!-- @todo PUT HOW TO REBUILD DOCKER IMAGE -->
-
 # HASH
 
 HASH is an open-source, data-centric, all-in-one workspace. HASH combines a rich frontend editor with a powerful entity graph that makes it easy to capture and work with structured data. HASH is built atop the open [Block Protocol](https://github.com/blockprotocol/blockprotocol) allowing users to easily add new block types and functionality to their workspaces.
@@ -35,16 +33,13 @@ To run HASH locally, please follow these steps:
     
     docker --version
     ## ≥ 20.10
-    
-    docker-compose --version
-    ## ≥ 1.29
     ```
 
     If you have difficulties with `git --version` on macOS you may need to install Xcode Command Line Tools first: `xcode-select --install`.
 
     If you use Docker for macOS or Windows, go to _Preferences_ → _Resources_ and ensure that Docker can use at least 4GB of RAM (8GB is recommended).
 
-1.  [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository and navigate to the root of the repository folder in your terminal.
+1.  [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository and **navigate to the root of the repository folder** in your terminal.
 
 1.  Install dependencies:
 
@@ -68,19 +63,15 @@ To run HASH locally, please follow these steps:
     docker run hello-world
     ```
 
-1.  Launch external services (Postgres, Redis and OpenSearch) as Docker containers:
+1.  Launch external services (Postgres, the graph query layer, Kratos, Redis, and OpenSearch) as Docker containers:
 
     ```sh
-    yarn external-services up --detach
+    yarn external-services up
     ```
 
-    You can keep external services running between app restarts.
-
-1.  **On first run**, or if you want to reset app data, run this command in a separate terminal:
-
-    ```sh
-    yarn seed-data
-    ```
+    1. You can optionally force a rebuild of the docker containers by adding the `--build` argument(**this is necessary if changes have been made to the graph query layer). It's recommended to do this whenever updating your branch from upstream**.
+    
+    1. You can keep external services running between app restarts by adding the `--detach` argument to run the containers in the background. It's then possible to tear down the external services with `yarn external-services down`.
 
 1.  Launch app services:
 
@@ -99,23 +90,14 @@ To run HASH locally, please follow these steps:
 
     See `package.json` → `scripts` for details and more options.
 
----
-
-To stop Docker containers with external services, run:
-
-```sh
-yarn external-services down
-```
-
-Container data is persisted locally inside `var/external-services`.
-You can delete this directory when containers are stopped for a ‘hard reset’.
-
 ## User authentication
 
 Development users are seeded when the HASH API is started, these users are `alice@example.com` and `bob@example.com`.
 You'll be able to sign in to these users with the password `password`.
 
 ## Sending emails
+
+[//]: # (TODO: **Disclaimer: Current flux of the repo means the code mentioned in this section is temporarily disabled**)
 
 By default, the API server uses `DummyEmailTransporter` which simulates email sending for local development and testing.
 
@@ -132,6 +114,8 @@ To get started building a block, visit the [docs](https://blockprotocol.org/docs
 
 ## HASH blocks
 
+[//]: # (TODO: Disclaimer? Probably mention the new methods we've patched in to develop on)
+
 This repository contains a number of https://blockprotocol.org blocks.
 If you want to develop, build or serve a single block, run:
 
@@ -147,6 +131,19 @@ yarn workspace @hashintel/block-name serve
 
 See https://blockprotocol.org/docs/developing-blocks
 
+## Development
+
+[//]: # (TODO: Pointers to where to update/modify code)
+
+### The Graph Query Layer
+HASH's primary datastore is an entity graph. The service that provides this is located within the [/packages/graph](/packages/graph) folder. The README contains more information for development.
+
+> **CAUTION:** At the moment, the graph starts the services it depends on differently to the rest of the codebase. The README describes a way to start the required docker containers for development _of the graph_. 
+> 
+> **Before running HASH, it's required to take down the other docker compose, and to follow the instructions on how to run `external-services` as outlined in the [Getting Started](#getting-started) section.** 
+> 
+> It is planned to address this by revisiting the way the services are orchestrated, while still allowing for local non-container-based development.
+
 ## Testing
 
 ### Debug mode
@@ -159,21 +156,14 @@ localStorage["hash.internal.debugging"] = "true";
 
 ### Backend integration tests
 
-Backend integration tests are located in [packages/hash/integration](./packages/hash/integration) folder.
+Backend integration tests are located in the [/packages/hash/integration](/packages/hash/integration) folder. 
 
-If you run a local instance of the app, please stop it before running the tests to free network ports.
+[//]: # (TODO: `external-services-test`)
 
-#### Terminal 1
-
-```sh
-yarn external-services up --detach
-NODE_ENV=test HASH_PG_DATABASE=backend_integration_tests yarn dev:backend
-```
-
-#### Terminal 2
+_The tests require a running instance of `external-services`._
 
 ```sh
-HASH_PG_DATABASE=backend_integration_tests yarn test:backend-integration
+yarn test:backend-integration
 ```
 
 We plan to use Playwright [API testing](https://playwright.dev/docs/test-api-testing/) feature instead of Jest.
@@ -181,26 +171,26 @@ Thus, `yarn test:backend-integration` and `yarn test:playwright` will probably c
 
 ### Playwright tests
 
+[//]: # (TODO - DISCLAIMER: TESTS ARE BROKEN)
+
 [Playwright](https://playwright.dev) tests are browser-based integration and end-to-end tests.
-They apply to the monorepo as a whole, so are located in the top-level [tests](./tests) folder.
+The playwright tests are located within the [/packages/hash/playwright/tests](/packages/hash/playwright/tests) folder.
 To run these tests locally, you will need to have both backend and frontend running.
 
-To ensure that your local changes are unaffected by the tests, it is recommended to use another database instance (`HASH_PG_DATABASE=playwright`).
-The database needs to be re-seeded before each test run.
+[//]: # (TODO: how to avoid DB pollution - can we use `external-services-test`?)
 
-If you run a local instance of the app, please stop it before running the tests to free network ports.
+- _The tests require a running instance of `external-services`._
 
 #### Terminal 1
 
 ```sh
-yarn external-services up --detach
-HASH_PG_DATABASE=playwright yarn dev:backend
+yarn dev:backend
 ```
 
 #### Terminal 2
 
 ```sh
-HASH_PG_DATABASE=playwright yarn seed-data
+yarn seed-data
 
 ## option 1: frontend in dev mode
 yarn dev:frontend
@@ -226,6 +216,8 @@ See `yarn test:playwright --help` for more info.
 
 ### Unit tests
 
+[//]: # (TODO: Disclaimer: don't worry about some `console.error`s, focus on the return code)
+
 Unit tests are executed by [Jest](https://jestjs.io) and use [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) to cover the UI.
 They can be launched at any time with this command:
 
@@ -248,7 +240,7 @@ First-time contributors need to wait for a maintainer to manually launch the che
 In order to work w/ multiple packages in a single repository, they must adhere to some conventions.
 The below `package.json` file outlines the minimum requirements a package has to fulfill:
 
-```javascript
+```json5
 {
   "name": "@hashintel/hash-<name>",
   "version": "major.minor.patch",
@@ -282,7 +274,8 @@ The below `package.json` file outlines the minimum requirements a package has to
 }
 ```
 
-The above `devDependencies` are owed to our root eslint-config at `packages/hash/.eslintrc.json`.
+[//]: # (TODO: this path doesn't exist, repo root?)
+The above `devDependencies` are owed to our root eslint-config at packages/hash/.eslintrc.json`.
 That same config requires a `tsconfig.json` next to the `package.json` if `.ts(x)` files are to be
 linted.
 
@@ -354,7 +347,7 @@ During development, the dummy email transporter writes emails to a local folder.
 
 ### OpenSearch
 
-NOTE: Opensearch is currently disabled by default due to issues.
+**NOTE: Opensearch is currently disabled by default due to issues.**
 
 - `HASH_OPENSEARCH_ENABLED`: whether OpenSearch is used or not. `true` or `false`. (default: `false`).
 - `HASH_OPENSEARCH_HOST`: the hostname of the OpenSearch cluster to connect to. (default: `localhost`)
@@ -366,11 +359,25 @@ NOTE: Opensearch is currently disabled by default due to issues.
 
 ### Postgres
 
-- `HASH_PG_DATABASE` (default: `postgres`)
-- `HASH_PG_HOST` (default: `localhost`)
-- `HASH_PG_PASSWORD` (default: `postgres`)
-- `HASH_PG_PORT` (default: `5432`)
-- `HASH_PG_USER` (default: `postgres`)
+- `POSTGRES_PORT` (default: `5432`)
+
+Various services also have their own configuration.
+
+The Postgres superuser is configured through:
+- `POSTGRES_USER` (default: `postgres`)
+- `POSTGRES_PASSWORD` (default: `postgres`)
+
+The Postgres information for Kratos is configured through:
+- `HASH_KRATOS_PG_USER` (default: `kratos`)
+- `HASH_KRATOS_PG_PASSWORD` (default: `kratos`)
+- `HASH_KRATOS_PG_DEV_DATABASE` (default: `dev_kratos`)
+- `HASH_KRATOS_PG_TEST_DATABASE` (default: `test_kratos`)
+
+The Postgres information for the graph query layer is configured through:
+- `HASH_GRAPH_PG_USER` (default: `graph`)
+- `HASH_GRAPH_PG_PASSWORD` (default: `graph`)
+- `HASH_GRAPH_PG_DEV_DATABASE` (default: `dev_graph`)
+- `HASH_GRAPH_PG_TEST_DATABASE` (default: `test_graph`)
 
 ### Redis
 
@@ -408,13 +415,16 @@ If the service should report metrics to a StatsD server, the following variables
 
 HASH's development is being led by various employees of _[HASH](https://hash.dev/)_ (the company). The current core team includes:
 
-- Ahmad Atta
+[//]: # (TODO: Add Tim and Yusuf?)
+
+- Ahmad Sattar
 - Alexander Kachkaev
 - Alfie Mountfield
 - Ben Werner
 - Ciaran Morinan
 - Luís Bettencourt
 - Nate Higgins
-- Valentino Ugbala
+- Tim Diekmann
+- Yusuf Kınataş
 
 As an open-source project, we gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/CONTRIBUTING.md) that outlines the process. If you have questions, please reach out to us on our [Discord server](https://hash.ai/discord).
