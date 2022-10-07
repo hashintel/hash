@@ -11,7 +11,7 @@ Currently available Rust deserializers have mostly been developed with correctne
 A popular example for `deer` are end-user facing APIs, given the following example:
 
 ```rust
-#[derive(serde::Deserialize, deer::Deserialize)]
+#[derive(Debug, serde::Deserialize, deer::Deserialize)]
 struct Body {
     u8: u8,
     string: String
@@ -25,12 +25,12 @@ fn main() {
     });
 
     // Note: Syntax is not final!
-    let result = deer::json::from_string::<Body>(payload);
-    let error = result.expect_error("should fail");
+    let result = deer::json::from_value::<Body>(payload);
+    let error = result.expect_err("should fail");
     println!("{error:?}");
 
-    let result = serde_json::from_str::<Body>(payload);
-    let error = result.expect_error("should fail");
+    let result = serde_json::from_value::<Body>(payload);
+    let error = result.expect_err("should fail");
     println!("{error:?}");
 }
 ```
@@ -73,7 +73,7 @@ Currently, to be able to do validation, one must create a new type that performs
 ```rust
 #[derive(deer::Deserialize)]
 struct Payload {
-    #[validate(min(12) & max(24))]
+    #[validate(all(min(12), max(24)))]
     length: u8
 }
 ```
