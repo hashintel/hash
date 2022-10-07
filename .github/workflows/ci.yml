@@ -160,7 +160,6 @@ jobs:
 
   playwright-tests:
     name: Playwright tests
-    if: ${{ github.base_ref != 'dev/graph' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -185,13 +184,13 @@ jobs:
       - name: Launch external services
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file packages/hash/external-services/docker-compose.yml build
-          docker-compose --file packages/hash/external-services/docker-compose.yml up --detach
+          yarn external-services up --build --detach
 
-      - name: Seed data
-        if: ${{ success() || failure() }}
-        run: |
-          yarn seed-data
+      ## @todo: re-implement seed-data scripts for the new type system, so that they can be used here. Can potentially be addressed as part of https://app.asana.com/0/1202805690238892/1203106234191606/f
+      # - name: Seed data
+      #   if: ${{ success() || failure() }}
+      #   run: |
+      #     yarn seed-data
 
       - name: Launch backend
         if: ${{ success() || failure() }}
