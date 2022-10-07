@@ -21,6 +21,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   loading,
 }) => {
   const inputRef = useRef<CommentTextFieldRef>(null);
+  const threadRef = useRef<HTMLDivElement>(null);
   const [threadFocused, setThreadFocused] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -29,6 +30,11 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   const showInput = threadFocused || !!inputValue.length;
   const showInputButtons =
     (threadFocused && inputFocused) || !!inputValue.length;
+
+  const cancelSubmit = () => {
+    inputRef.current?.resetDocument();
+    threadRef.current?.focus();
+  };
 
   const submitComment = async () => {
     if (!loading && inputValue?.length) {
@@ -46,6 +52,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
   return (
     <Box
+      ref={threadRef}
       tabIndex={0}
       onFocus={() => setThreadFocused(true)}
       onBlur={() => setThreadFocused(false)}
@@ -55,6 +62,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         borderRadius: 1.5,
         boxShadow: boxShadows.md,
         marginBottom: 4,
+        outline: "none",
       })}
     >
       <CommentBlock key={comment.entityId} comment={comment} />
@@ -134,6 +142,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
             <CommentTextField
               ref={inputRef}
               placeholder={`Reply to ${comment.author.properties.preferredName}`}
+              onClose={cancelSubmit}
               onSubmit={submitComment}
               editable={!loading}
               onFocusChange={setInputFocused}
@@ -155,13 +164,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
             pb: 0.75,
           }}
         >
-          <Button
-            size="xs"
-            variant="tertiary"
-            onClick={() => {
-              inputRef.current?.resetDocument();
-            }}
-          >
+          <Button size="xs" variant="tertiary" onClick={cancelSubmit}>
             Cancel
           </Button>
           <Button
