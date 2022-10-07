@@ -191,7 +191,7 @@ export const CommentTextField = forwardRef<
           viewRef.current = undefined;
         };
       }
-    }, [getInitialTokens, accountId, renderPortal]);
+    }, [getInitialTokens, accountId, renderPortal, placeholder]);
 
     useEffect(() => {
       viewRef.current?.setProps({ editable: () => editable });
