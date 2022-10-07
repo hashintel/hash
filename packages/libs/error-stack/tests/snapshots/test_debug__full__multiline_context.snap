@@ -13,15 +13,13 @@ context B
 │   ├╴ printable B
 │   ╰╴ 1 additional opaque attachment
 │
-╰─▶ root error
-    ├╴ tests/common.rs:147:5
-    ├╴ backtrace (1)
-    ╰╴ span trace with 2 frames (1)
+╰─▶ A multiline
+    context that might have
+    a bit more info
+    ├╴ tests/test_debug.rs:324:22
+    ╰╴ backtrace (1)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 backtrace no. 1
-  [redacted]
-
-span trace No. 1
   [redacted]
