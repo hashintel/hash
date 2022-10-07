@@ -26,7 +26,7 @@ export const useUser = (options?: Omit<QueryHookOptions, "errorPolicy">) => {
     errorPolicy: "all",
   });
 
-  const { me: user } = meQueryResponseData || {};
+  const { me: user } = meQueryResponseData ?? {};
 
   /** @todo: store this in a react context if we have a use for it long-term */
   const [kratosSession, setKratosSession] = useState<Session>();
