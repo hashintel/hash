@@ -44,7 +44,9 @@ fn main() {
 This in turn also means that `deer` can be used to implement custom validation while deserializing, while still being able to return all validation issues.
 
 <sub>
+
 `deer` might provide a way in the future to describe these constraints.
+
 </sub>
 
 ## Limitations
