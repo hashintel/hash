@@ -42,9 +42,6 @@ export const PageIconButton = ({
     popupId: "emoji-picker",
   });
 
-  // const { updateEntity, updateEntityLoading } =
-  //   useBlockProtocolUpdateEntity(true);
-
   const [updatePageIcon, { updatePageIconLoading }] = useUpdatePageIcon();
 
   const trigger = bindTrigger(popupState);

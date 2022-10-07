@@ -34,11 +34,11 @@ export const useUpdatePageTitle = () => {
   );
 
   const updatePageTitle = useCallback(
-    async (value: string, ownedById: string, pageEntityId: string) => {
+    async (title: string, ownedById: string, pageEntityId: string) => {
       await updatePageFn({
         variables: {
           entityId: pageEntityId,
-          updatedProperties: { title: value },
+          updatedProperties: { title },
         },
         refetchQueries: getRefetchQueries(ownedById, pageEntityId),
       });

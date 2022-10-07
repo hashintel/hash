@@ -34,11 +34,11 @@ export const useUpdatePageIcon = () => {
   );
 
   const updatePageIcon = useCallback(
-    async (value: string, ownedById: string, pageEntityId: string) => {
+    async (icon: string, ownedById: string, pageEntityId: string) => {
       await updatePageFn({
         variables: {
           entityId: pageEntityId,
-          updatedProperties: { icon: value },
+          updatedProperties: { icon },
         },
         refetchQueries: getRefetchQueries(ownedById, pageEntityId),
       });
