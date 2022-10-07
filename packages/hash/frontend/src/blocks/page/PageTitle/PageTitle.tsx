@@ -6,8 +6,7 @@ import {
   useState,
   FunctionComponent,
 } from "react";
-import { useBlockProtocolUpdateEntity } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
-import { rewriteEntityIdentifier } from "../../../lib/entities";
+import { useUpdatePageTitle } from "../../../components/hooks/useUpdatePageTitle";
 import { useReadonlyMode } from "../../../shared/readonly-mode";
 import { usePageContext } from "../PageContext";
 import { cleanUpTitle, focusEditorBeginning } from "./utils";
@@ -40,22 +39,23 @@ const StyledTextarea = styled(TextareaAutosize)(({ theme }) =>
 );
 
 type PageTitleProps = {
-  accountId: string;
-  entityId: string;
+  ownedById: string;
+  pageEntityId: string;
   value: string;
 };
 
 export const PAGE_TITLE_PLACEHOLDER = "Untitled";
 
 export const PageTitle: FunctionComponent<PageTitleProps> = ({
-  accountId,
-  entityId,
+  ownedById,
+  pageEntityId,
   value,
 }) => {
   // TODO: Display update error once expected UX is discussed
   const { readonlyMode } = useReadonlyMode();
-  const { updateEntity, updateEntityLoading } =
-    useBlockProtocolUpdateEntity(true);
+
+  const [updatePageTitle, { updatePageTitleLoading }] = useUpdatePageTitle();
+
   const [prevValue, setPrevValue] = useState(value);
   const [inputValue, setInputValue] = useState(value);
 
@@ -92,12 +92,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
       return;
     }
 
-    void updateEntity({
-      data: {
-        entityId: rewriteEntityIdentifier({ accountId, entityId }),
-        properties: { title: valueToSave },
-      },
-    });
+    void updatePageTitle(valueToSave, ownedById, pageEntityId);
   };
 
   if (value !== prevValue) {
@@ -110,7 +105,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
     <StyledTextarea
       ref={pageTitleRef}
       placeholder={PAGE_TITLE_PLACEHOLDER}
-      disabled={updateEntityLoading || readonlyMode}
+      disabled={updatePageTitleLoading || readonlyMode}
       onChange={handleInputChange}
       onKeyDown={handleInputKeyDown}
       onBlur={handleInputBlur}

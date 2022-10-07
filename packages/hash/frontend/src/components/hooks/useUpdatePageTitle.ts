@@ -10,8 +10,8 @@ import {
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { updatePersistedPage } from "../../graphql/queries/page.queries";
 
-export const useArchivePage = () => {
-  const [updatePageFn, { loading }] = useMutation<
+export const useUpdatePageTitle = () => {
+  const [updatePageFn, { loading: updatePageTitleLoading }] = useMutation<
     UpdatePersistedPageMutation,
     UpdatePersistedPageMutationVariables
   >(updatePersistedPage, { awaitRefetchQueries: true });
@@ -33,12 +33,12 @@ export const useArchivePage = () => {
     [],
   );
 
-  const archivePage = useCallback(
-    async (value: boolean, ownedById: string, pageEntityId: string) => {
+  const updatePageTitle = useCallback(
+    async (title: string, ownedById: string, pageEntityId: string) => {
       await updatePageFn({
         variables: {
           entityId: pageEntityId,
-          updatedProperties: { archived: value },
+          updatedProperties: { title },
         },
         refetchQueries: getRefetchQueries(ownedById, pageEntityId),
       });
@@ -46,5 +46,5 @@ export const useArchivePage = () => {
     [updatePageFn, getRefetchQueries],
   );
 
-  return [archivePage, { loading }] as const;
+  return [updatePageTitle, { updatePageTitleLoading }] as const;
 };
