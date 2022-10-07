@@ -39,7 +39,14 @@ export const CommentBlockMenu: FunctionComponent<CommentBlockMenuProps> = ({
   const bindMenuProps = bindMenu(popupState);
 
   return (
-    <Menu {...bindMenuProps}>
+    <Menu
+      {...bindMenuProps}
+      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      transformOrigin={{
+        vertical: "top",
+        horizontal: "right",
+      }}
+    >
       {menuItems.map(({ title, icon, onClick }) => {
         return (
           <MenuItem key={title} onClick={onClick ?? popupState.close}>
