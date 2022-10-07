@@ -1,6 +1,6 @@
 ---
 authorPhoto: blog/authors/ross-gore.png
-postPhoto: blog/8_sensitivity-assessor/8_sensitivity_assessor.jpg
+postPhoto: blog/0008_sensitivity-assessor/8_sensitivity_assessor.jpg
 title: "Sensitivity analysis within HASH simulations"
 subtitle: "Identify conditions and variables that drive simulations towards unexpected outcomes"
 author: "Ross Gore"
@@ -26,19 +26,19 @@ We'll explore how the _Sensitivity Assessor_ can be used to improve our understa
 
 The following figures show the HASH simulation as it progresses. Green squares represent the healthy agents, red squares represent the sick agents, and white squares represent the immune agents. The first screenshot displays the start of the simulation immediately following the initialization of all agents. The second figure shows the simulation after fifteen time steps and the third figure displays the simulation state after thirty time steps.
 
-<TalkSlide width="766" height="448" src="/blog/8_sensitivity-assessor/figure-1_simulation-init-state.png">
+<TalkSlide width="766" height="448" src="/blog/0008_sensitivity-assessor/figure-1_simulation-init-state.png">
 
 Figure 1: start of the simulation immediately following initialization
 
 </TalkSlide>
 
-<TalkSlide width="768" height="436" src="/blog/8_sensitivity-assessor/figure-2_simulation-step-15.png">
+<TalkSlide width="768" height="436" src="/blog/0008_sensitivity-assessor/figure-2_simulation-step-15.png">
 
 Figure 2: the state of the simulation after 15 time steps
 
 </TalkSlide>
 
-<TalkSlide width="774" height="464" src="/blog/8_sensitivity-assessor/figure-3_simulation-step-30.png">
+<TalkSlide width="774" height="464" src="/blog/0008_sensitivity-assessor/figure-3_simulation-step-30.png">
 
 Figure 3: the state of the simulation after 30 time steps
 
@@ -48,7 +48,7 @@ The simulation is meant to represent the spread of a virus and its effects on th
 
 The following screen capture shows the graph of the infection process for one of the experiments that was created. It highlights a simulation run where the number of healthy agents falls to zero.
 
-<TalkSlide width="958" height="450" src="/blog/8_sensitivity-assessor/figure-4_plot-view.png">
+<TalkSlide width="958" height="450" src="/blog/0008_sensitivity-assessor/figure-4_plot-view.png">
 
 Figure 4: a times series of the immune, infected and healthy agents for a simulation run
 
@@ -83,7 +83,7 @@ The Sensitivity Assessor (SA) provides new analytic and insight gathering capabi
 
 The Sensitivity Assessor provides data analysis capabilities that facilitate exploration and sanity checking of the variables from model inputs and outputs. A data description of each variable within the input file is provided using descriptive statistics. The goal is to provide insight into the central tendency of each variable (i.e., mean and median), the distribution around that tendency (i.e., standard deviation (SD) and median absolute deviation (MAD)), minimum (Min) and maximum (Max) values, and the number of samples (n).
 
-<TalkSlide width="936" height="464" src="/blog/8_sensitivity-assessor/figure-5_eda-capabilities.png">
+<TalkSlide width="936" height="464" src="/blog/0008_sensitivity-assessor/figure-5_eda-capabilities.png">
 
 Figure 5: Sensitivity Assessor - Exploratory Data Analysis (EDA) capabilities
 
@@ -95,7 +95,7 @@ Simulations can frequently have a set of requirements that must always hold and 
 
 The Sensitivity Assessor allows users to define requirements of the simulation that should always hold and never be violated. An intuitive interface exists for easily defining requirements in the form of different types of predicates. Variables are then read in from the simulation output, i.e., the input file, and these provide the variable names for building the predicates. The Sensitivity Assessor then scans simulation run outcomes and displays to users the number of times that a defined requirement appears within the simulation outputs, the number of times it is met, and the number of violations identified (if any).
 
-<TalkSlide width="968" height="308" src="/blog/8_sensitivity-assessor/figure-6_verifying-requirements.png">
+<TalkSlide width="968" height="308" src="/blog/0008_sensitivity-assessor/figure-6_verifying-requirements.png">
 
 Figure 6: verifying requirements with the Sensitivity Assessor
 
@@ -116,7 +116,7 @@ The Sensitivity Assessor quantifies the extent to which certain conditions contr
 
 The sensitivity assessment is conducted using the variables and data provided to the Sensitivity Assessor. Data is expected to be in [tidy](https://r4ds.had.co.nz/tidy-data.html) with variables in each column and each row representing a set of observations of the variables. Assessments are conducted with respect to the specified variable of interest within the range of interest that is specified using the slider bars.
 
-<TalkSlide width="936" height="554" src="/blog/8_sensitivity-assessor/figure-7_understanding-quantification-sensitivity-assessments.png">
+<TalkSlide width="936" height="554" src="/blog/0008_sensitivity-assessor/figure-7_understanding-quantification-sensitivity-assessments.png">
 
 Figure 7: understanding the quantification of a sensitivity assessment
 
@@ -130,13 +130,13 @@ The remaining variables are used to form conditions. These conditions are evalua
 - **Likelihood that the Condition appears alongside Assessment Variable and Range – `Likelihood_1`:** a correlation measure that explores the likelihood that the condition appears alongside the specified range for the variable of interest. Note that the specified range for the variable of interest remains constant across the entire set of checks, so all checks are conducted against the same target. The following equation conveys `Likelihood_1`:
 
 <img
-  src="/blog/8_sensitivity-assessor/equation-1.png"
+  src="/blog/0008_sensitivity-assessor/equation-1.png"
   width={600}
   height={24}
   alt="Likelihood_1 equation"
 />
 
-<TalkSlide width="936" height="570" src="/blog/8_sensitivity-assessor/figure-8_understanding-likelihood-1.png">
+<TalkSlide width="936" height="570" src="/blog/0008_sensitivity-assessor/figure-8_understanding-likelihood-1.png">
 
 Figure 8: understanding `Likelihood_1`
 
@@ -145,13 +145,13 @@ Figure 8: understanding `Likelihood_1`
 - **Likelihood that the Condition appears alongside Assessment Variable and Range – `Likelihood_2`:** a measure of how often the Condition is True at the same time that the variable of interest is within its specified range of interest. The following equation conveys `Likelihood_2`:
 
 <img
-  src="/blog/8_sensitivity-assessor/equation-2.png"
+  src="/blog/0008_sensitivity-assessor/equation-2.png"
   width={584}
   height={26}
   alt="Likelihood_2 equation"
 />
 
-<TalkSlide width="936" height="876" src="/blog/8_sensitivity-assessor/figure-9_understanding-likelihood-2.png">
+<TalkSlide width="936" height="876" src="/blog/0008_sensitivity-assessor/figure-9_understanding-likelihood-2.png">
 
 Figure 9: understanding `Likelihood_2`
 
@@ -161,7 +161,7 @@ Figure 9: understanding `Likelihood_2`
   - The following equation conveys the `Sensitivity Assessment`.
 
 <img
-  src="/blog/8_sensitivity-assessor/equation-3.png"
+  src="/blog/0008_sensitivity-assessor/equation-3.png"
   width={600}
   height={24}
   alt="Sensitivity Assessment equation"
@@ -173,7 +173,7 @@ Figure 9: understanding `Likelihood_2`
   sample sizes based on the number of observations contained in the input file as well
   as the number of times that the condition was found to be True within that file.
 
-<TalkSlide width="936" height="598" src="/blog/8_sensitivity-assessor/figure-10_sensitivity-assessment-table.png">
+<TalkSlide width="936" height="598" src="/blog/0008_sensitivity-assessor/figure-10_sensitivity-assessment-table.png">
 
 Figure 10: Sensitivity Assessment table
 
@@ -191,7 +191,7 @@ The JSON output of HASH simulation experiment runs can be [downloaded within HAS
 
 The Sensitivity Assessor expects data to be provided to it in a particular structure, and in CSV format. HASH simulation experiment run outputs can be converted for you into the expected format using VMASC's web-based [HASH to Sensitivity Assessor](https://vmasc.shinyapps.io/from-hash-to-sa/) utility.
 
-<TalkSlide width="936" height="492" src="/blog/8_sensitivity-assessor/figure-11_converting-from-hash-to-sa.png">
+<TalkSlide width="936" height="492" src="/blog/0008_sensitivity-assessor/figure-11_converting-from-hash-to-sa.png">
 
 Figure 11: the _HASH to Sensitivity Assessor_ utility
 
@@ -221,7 +221,7 @@ To use the _HASH to Sensitivity Assessor_:
   - variables names and their corresponding values used in the experiment
   - selected output column name based on selection in Step 2 along with corresponding value based on the function selected in Step 3
 
-<TalkSlide width="936" height="356" src="/blog/8_sensitivity-assessor/figure-12_hash-output-sa-format.png">
+<TalkSlide width="936" height="356" src="/blog/0008_sensitivity-assessor/figure-12_hash-output-sa-format.png">
 
 Figure 12: the CSV file corresponding to a HASH experiment JSON file generated by the _HASH to Sensitivity Assessor_ utility
 
