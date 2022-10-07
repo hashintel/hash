@@ -321,7 +321,7 @@ mod full {
     fn multiline_context() {
         let _guard = prepare(false);
 
-        let report = create_report()
+        let report = Report::new(ContextC)
             .change_context(ContextC)
             .attach_printable(PrintableB(0))
             .attach(AttachmentB)
@@ -336,6 +336,7 @@ mod full {
         let _guard = prepare(false);
 
         let report = create_report()
+            .attach_printable("A multiline\nattachment\nthat might have some\nadditional info")
             .attach_printable("A multiline\nattachment\nthat might have some\nadditional info");
 
         assert_snapshot!(format!("{report:#?}"));
