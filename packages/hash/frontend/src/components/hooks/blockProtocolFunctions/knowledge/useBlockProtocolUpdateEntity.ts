@@ -58,9 +58,7 @@ export const useBlockProtocolUpdateEntity = (
         },
       });
 
-      const { updatePersistedEntity: updatedEntity } = responseData ?? {
-        updatePersistedEntity: null,
-      };
+      const { updatePersistedEntity: updatedEntity } = responseData ?? {};
 
       if (!updatedEntity) {
         return {

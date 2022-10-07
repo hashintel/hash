@@ -15,7 +15,7 @@ export const useBlockProtocolGetPropertyType = (): {
     GetPropertyTypeQuery,
     GetPropertyTypeQueryVariables
   >(getPropertyTypeQuery, {
-    // Entity types are immutable, any request for an entityTypeId should always return the same value.
+    // Property types are immutable, any request for an propertyTypeId should always return the same value.
     fetchPolicy: "cache-first",
   });
 

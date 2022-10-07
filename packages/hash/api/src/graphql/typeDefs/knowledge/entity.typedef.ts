@@ -181,7 +181,7 @@ export const persistedEntityTypedef = gql`
     """
     updatePersistedEntity(
       """
-      The id of the entity
+      The id of the entity.
       """
       entityId: ID!
       """

@@ -14,7 +14,7 @@ export const useBlockProtocolGetLinkType = (): {
   const [getFn] = useLazyQuery<GetLinkTypeQuery, GetLinkTypeQueryVariables>(
     getLinkTypeQuery,
     {
-      // Entity types are immutable, any request for an entityTypeId should always return the same value.
+      // Link types are immutable, any request for an linkTypeId should always return the same value.
       fetchPolicy: "cache-first",
     },
   );

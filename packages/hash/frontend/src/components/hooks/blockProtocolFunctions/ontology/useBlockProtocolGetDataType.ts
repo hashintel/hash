@@ -14,7 +14,7 @@ export const useBlockProtocolGetDataType = (): {
   const [getFn] = useLazyQuery<GetDataTypeQuery, GetDataTypeQueryVariables>(
     getDataTypeQuery,
     {
-      // Entity types are immutable, any request for an entityTypeId should always return the same value.
+      // Data types are immutable, any request for an dataTypeId should always return the same value.
       fetchPolicy: "cache-first",
     },
   );
