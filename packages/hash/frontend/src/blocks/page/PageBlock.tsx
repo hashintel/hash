@@ -16,7 +16,6 @@ import { BlocksMap, createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
 import { useReadonlyMode } from "../../shared/readonly-mode";
 import { usePageContext } from "./PageContext";
-import { PageCommentsProvider } from "../pageComments";
 import { CommentThread } from "./Comments/CommentThread";
 import { PageThread } from "../../components/hooks/usePageComments";
 import { useCreateComment } from "../../components/hooks/useCreateComment";
@@ -120,68 +119,66 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   return (
     <UserBlocksProvider value={blocks}>
       <BlockLoadedProvider routeHash={routeHash}>
-        <PageCommentsProvider accountId={accountId} pageId={entityId}>
-          <GlobalStyles
-            styles={{
-              /**
-               * to handle margin-clicking, prosemirror should take full width, and give padding to it's content
-               * so it automatically handles focusing on closest node on margin-clicking
-               */
-              ".ProseMirror": {
-                padding: `0 ${containerPadding[1]} 320px ${containerPadding[0]}`,
-                minWidth: `calc(${PAGE_CONTENT_WIDTH}px + (${PAGE_MIN_PADDING}px * 2))`,
-              },
-              // prevents blue outline on selected nodes
-              ".ProseMirror-selectednode": { outline: "none" },
+        <GlobalStyles
+          styles={{
+            /**
+             * to handle margin-clicking, prosemirror should take full width, and give padding to it's content
+             * so it automatically handles focusing on closest node on margin-clicking
+             */
+            ".ProseMirror": {
+              padding: `0 ${containerPadding[1]} 320px ${containerPadding[0]}`,
+              minWidth: `calc(${PAGE_CONTENT_WIDTH}px + (${PAGE_MIN_PADDING}px * 2))`,
+            },
+            // prevents blue outline on selected nodes
+            ".ProseMirror-selectednode": { outline: "none" },
+          }}
+        />
+        <Box id="root" ref={root} position="relative">
+          <Box
+            sx={{
+              position: "absolute",
+              right: containerPadding[1],
+              transform: "translateX(calc(100% + 48px))",
+              zIndex: 1,
             }}
-          />
-          <Box id="root" ref={root} position="relative">
-            <Box
-              sx={{
-                position: "absolute",
-                right: containerPadding[1],
-                transform: "translateX(calc(100% + 48px))",
-                zIndex: 1,
-              }}
-            >
-              {pageComments?.map((comment) => (
-                <CommentThread
-                  key={comment.entityId}
-                  comment={comment}
-                  createComment={createComment}
-                  loading={createCommentLoading}
-                />
-              ))}
-            </Box>
+          >
+            {pageComments?.map((comment) => (
+              <CommentThread
+                key={comment.entityId}
+                comment={comment}
+                createComment={createComment}
+                loading={createCommentLoading}
+              />
+            ))}
           </Box>
-          {portals}
-          {/**
-           * @todo position this better
-           */}
-          {(
-            typeof debugging === "boolean"
-              ? debugging
-              : debugging.restartCollabButton
-          ) ? (
-            <Button
-              sx={{
-                position: "fixed",
-                bottom: 2.5,
-                right: 2.5,
-                opacity: 0.3,
+        </Box>
+        {portals}
+        {/**
+         * @todo position this better
+         */}
+        {(
+          typeof debugging === "boolean"
+            ? debugging
+            : debugging.restartCollabButton
+        ) ? (
+          <Button
+            sx={{
+              position: "fixed",
+              bottom: 2.5,
+              right: 2.5,
+              opacity: 0.3,
 
-                "&:hover": {
-                  opacity: 1,
-                },
-              }}
-              onClick={() => {
-                prosemirrorSetup.current?.connection?.restart();
-              }}
-            >
-              Restart Collab Instance
-            </Button>
-          ) : null}
-        </PageCommentsProvider>
+              "&:hover": {
+                opacity: 1,
+              },
+            }}
+            onClick={() => {
+              prosemirrorSetup.current?.connection?.restart();
+            }}
+          >
+            Restart Collab Instance
+          </Button>
+        ) : null}
       </BlockLoadedProvider>
     </UserBlocksProvider>
   );
