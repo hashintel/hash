@@ -407,8 +407,6 @@ If the service should report metrics to a StatsD server, the following variables
 
 HASH's development is being led by various employees of _[HASH](https://hash.dev/)_ (the company). The current core team includes:
 
-[//]: # (TODO: Add Tim and Yusuf?)
-
 - Ahmad Sattar
 - Alexander Kachkaev
 - Alfie Mountfield
