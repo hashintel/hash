@@ -47,14 +47,6 @@ To run HASH locally, please follow these steps:
     yarn install
     ```
 
-1.  Create an empty file called `.env.local`:
-
-    ```sh
-    npx touch .env.local
-    ```
-
-    It will be used for storing locally defined environment variables (the ones we don’t want to store in git).
-
 1.  Ensure Docker is running.
     If you are on Windows or macOS, you should see app icon in the system tray or the menu bar.
     Alternatively, you can use this command to check Docker:

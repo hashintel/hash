@@ -130,9 +130,7 @@ jobs:
       - uses: ./.github/actions/warm-up-repo
 
       - name: Create temp files and folders
-        run: |
-          touch .env.local
-          mkdir -p var/logs
+        run: mkdir -p var/logs
 
       - name: Launch external services
         if: ${{ success() || failure() }}
@@ -177,9 +175,7 @@ jobs:
           playwright-deps: chrome firefox
 
       - name: Create temp files and folders
-        run: |
-          touch .env.local
-          mkdir -p var/logs
+        run: mkdir -p var/logs
 
       - name: Launch external services
         if: ${{ success() || failure() }}
