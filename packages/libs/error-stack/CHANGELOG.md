@@ -7,6 +7,10 @@ All notable changes to `error-stack` will be documented in this file.
 - Support for [`serde`](https://serde.rs) (`Serialize` only)
 - Support for [`defmt`](https://defmt.ferrous-systems.com)
 
+## Unreleased
+
+- Add Apache 2.0 as an additional license option ([#1172](https://github.com/hashintel/hash/pull/1172))
+
 ## [0.2.2](https://github.com/hashintel/hash/tree/error-stack%400.2.2/packages/libs/error-stack) - 2022-10-07
 
 - Add a space before attachment formatting ([#1174](https://github.com/hashintel/hash/pull/1174))
