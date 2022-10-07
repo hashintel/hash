@@ -29,7 +29,7 @@ TOOLCHAINS = {
 
 # Try and publish these crates when their version is changed in Cargo.toml
 PUBLISH_PATTERNS = ["packages/libs/error-stack**"]
-# deer is for now disabled, because we don't want to publish it just yet
+# deer is disabled for now because we don't want to publish it just yet
 # "packages/libs/deer**"
 
 def generate_diffs():

@@ -4,11 +4,13 @@
 
 ## Fail-Slow
 
-Currently available Rust deserializers have mostly been developed with correctness and speed in mind. These are universally beneficial optimizations, but in certain cases (such as when collecting user-facing validation feedback) there are relatively few options available within Rust that allow for extended evaluation beyond a single error. `deer`aims to improve this situation by consciously trading off an acceptable degree of speed to enable the surfacing of multiple errors.
+Currently available Rust deserializers have mostly been developed with correctness and speed in mind. These are universally beneficial optimizations, but in certain cases (such as when collecting user-facing validation feedback) there are relatively few options available within Rust that allow for extended evaluation beyond a single error. `deer` aims to improve this situation by consciously trading off an acceptable degree of speed to enable the surfacing of multiple errors.
 
 ## Example
 
-A popular example for `deer` are end-user facing APIs, given the following example:
+End-user facing APIs are a well-suited example for `deer`. 
+
+Given the following example:
 
 ```rust
 #[derive(Debug, serde::Deserialize, deer::Deserialize)]
@@ -39,7 +41,7 @@ fn main() {
 
 `deer` solves this problem, by returning every issue present. This means that a single API call with the payload given will result in the errors: `256 larger than u8::MAX`, `null is not String`, and `extra key "extra" provided`.
 
-This in turn also means that deer can be used for custom validation while deserializing, while still being able to return all validation issues.
+This in turn also means that `deer` can be used to implement custom validation while deserializing, while still being able to return all validation issues.
 
 <sub>
 deer might provide a way in the future to describe these constraints.
@@ -47,7 +49,7 @@ deer might provide a way in the future to describe these constraints.
 
 ## Limitations
 
-deer currently does **not** parse values itself, but relies on external parsers like `serde_json`, this means that parsing will be fail-fast, and deer only touches syntactically correct values.
+`deer` currently does **not** parse values itself, but relies on external parsers like `serde_json`, this means that parsing will be fail-fast, and `deer` only touches syntactically correct values.
 
 ## Future Plans
 

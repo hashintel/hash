@@ -1,4 +1,4 @@
 [toolchain]
-# Please also update the badges in `README.md`, `src/lib.rs`, and `macros/`
+# Please also update the badges in `README.md`, `src/lib.rs`, and `macros/` when changing this
 channel = "nightly-2022-09-27"
 components = ['rust-src', 'clippy', 'rustfmt']
