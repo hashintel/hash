@@ -18,3 +18,18 @@ export const getPersistedEntity = gql`
   }
   ${persistedEntityFieldsFragment}
 `;
+
+export const updatePersistedEntityMutation = gql`
+  mutation updatePersistedEntity(
+    $entityId: ID!
+    $updatedProperties: JSONObject!
+  ) {
+    updatePersistedEntity(
+      entityId: $entityId
+      updatedProperties: $updatedProperties
+    ) {
+      ...PersistedEntityFields
+    }
+  }
+  ${persistedEntityFieldsFragment}
+`;
