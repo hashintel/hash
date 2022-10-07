@@ -62,7 +62,7 @@ export const entityTypedef = gql`
     """
     The full entityType definition.
     """
-    entityType: EntityType
+    entityType: DeprecatedEntityType
     """
     The version timeline of the entity.
     """
@@ -168,7 +168,7 @@ export const entityTypedef = gql`
     """
     The full entityType definition
     """
-    entityType: EntityType!
+    entityType: DeprecatedEntityType!
     """
     The version timeline of the entity.
     """
@@ -213,7 +213,7 @@ export const entityTypedef = gql`
     """
     componentId: ID
     """
-    A fixed entity type ID. This may be a reference to a placeholder set using a previous CreateEntityTypeAction
+    A fixed entity type ID. This may be a reference to a placeholder set using a previous createEntityTypeAction
     """
     entityTypeId: ID
     """

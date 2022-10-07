@@ -1,9 +1,11 @@
 import { QueryHookOptions, useQuery } from "@apollo/client";
 import * as Sentry from "@sentry/nextjs";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
+import { Session } from "@ory/client";
 import { meQuery } from "../../graphql/queries/user.queries";
 import { MeQuery } from "../../graphql/apiTypes.gen";
+import { oryKratosClient } from "../../pages/shared/ory-kratos";
 
 /**
  * Returns an object containing:
@@ -15,12 +17,21 @@ import { MeQuery } from "../../graphql/apiTypes.gen";
  * loading: a boolean to check if the api call is still loading
  */
 export const useUser = (options?: Omit<QueryHookOptions, "errorPolicy">) => {
-  const { data, refetch, loading } = useQuery<MeQuery>(meQuery, {
+  const {
+    data: meQueryResponseData,
+    refetch: refetchUser,
+    loading: loadingUser,
+  } = useQuery<MeQuery>(meQuery, {
     ...options,
     errorPolicy: "all",
   });
 
-  const user = data?.me;
+  const { me: user } = meQueryResponseData ?? {};
+
+  /** @todo: store this in a react context if we have a use for it long-term */
+  const [kratosSession, setKratosSession] = useState<Session>();
+  const [loadingKratosSession, setLoadingKratosSession] =
+    useState<boolean>(true);
 
   useEffect(() => {
     Sentry.configureScope((scope) => {
@@ -28,13 +39,27 @@ export const useUser = (options?: Omit<QueryHookOptions, "errorPolicy">) => {
       if (!user && sentryUser) {
         scope.setUser(null);
       } else if (user && sentryUser?.id !== user.entityId) {
-        const primaryEmail = user.properties.emails.find(
-          (email) => email.primary,
-        );
+        const primaryEmail = user.emails.find((email) => email.primary);
         Sentry.setUser({ id: user.entityId, email: primaryEmail?.address });
       }
     });
   }, [user]);
+
+  const fetchKratosIdentity = async () => {
+    setLoadingKratosSession(true);
+
+    const session = await oryKratosClient
+      .toSession()
+      .then(({ data }) => data)
+      .catch(() => undefined);
+
+    setKratosSession(session);
+    setLoadingKratosSession(false);
+  };
+
+  useEffect(() => {
+    void fetchKratosIdentity();
+  }, []);
 
   /**
    * @todo add method to manually update user cache after
@@ -45,5 +70,10 @@ export const useUser = (options?: Omit<QueryHookOptions, "errorPolicy">) => {
   //   client.writeQuery();
   // };
 
-  return { user, refetch, loading };
+  return {
+    user,
+    kratosSession,
+    refetch: () => Promise.all([refetchUser(), fetchKratosIdentity()]),
+    loading: loadingUser || loadingKratosSession,
+  };
 };

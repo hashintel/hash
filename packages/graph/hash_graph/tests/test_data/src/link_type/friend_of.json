@@ -1,0 +1,8 @@
+{
+  "kind": "linkType",
+  "$id": "https://blockprotocol.org/@alice/types/link-type/friend-of/v/1",
+  "title": "Friend Of",
+  "pluralTitle": "Friends Of",
+  "description": "Someone who has a shared bond of mutual affection",
+  "relatedKeywords": []
+}

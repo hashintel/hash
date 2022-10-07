@@ -10,7 +10,7 @@ import {
 
 import {
   UnknownEntity as ApiEntity,
-  EntityType as ApiEntityType,
+  DeprecatedEntityType as ApiEntityType,
   Link as ApiLink,
   LinkGroup as ApiLinkGroup,
   LinkedAggregation as ApiLinkedAggregation,

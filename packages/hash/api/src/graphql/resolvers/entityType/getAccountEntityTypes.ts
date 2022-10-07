@@ -1,14 +1,17 @@
-import { QueryGetAccountEntityTypesArgs, ResolverFn } from "../../apiTypes.gen";
+import {
+  QueryDeprecatedGetAccountEntityTypesArgs,
+  ResolverFn,
+} from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import EntityType, {
   UnresolvedGQLEntityType,
 } from "../../../model/entityType.model";
 
-export const getAccountEntityTypes: ResolverFn<
+export const deprecatedGetAccountEntityTypes: ResolverFn<
   Promise<UnresolvedGQLEntityType[]>,
   {},
   GraphQLContext,
-  QueryGetAccountEntityTypesArgs
+  QueryDeprecatedGetAccountEntityTypesArgs
 > = async (
   _,
   { accountId, includeAllTypes, includeOtherTypesInUse },

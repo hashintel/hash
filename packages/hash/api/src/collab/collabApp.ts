@@ -9,6 +9,7 @@ import corsMiddleware from "cors";
 import { NextFunction, Request, Response, Router } from "express";
 import LRU from "lru-cache";
 import nocache from "nocache";
+import { BasicWhoAmIQuery } from "../graphql/apiTypes.gen";
 import { CORS_CONFIG } from "../lib/config";
 import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
@@ -54,15 +55,20 @@ const requestUserInfo = async (
   try {
     const {
       data: { me },
-    } = await apolloClient.query({
+    } = await apolloClient.query<BasicWhoAmIQuery>({
       query: getBasicWhoAmI,
       errorPolicy: "none",
     });
 
+    const { entityId, shortname, preferredName } = me;
+    if (!shortname || !preferredName) {
+      throw new Error(`User with ID = '${entityId}' hasn't registered yet`);
+    }
+
     return {
-      entityId: me.entityId,
-      shortname: me.properties.shortname,
-      preferredName: me.properties.preferredName,
+      entityId,
+      shortname,
+      preferredName,
     };
   } catch (error) {
     if (error instanceof ApolloError && error.extensions.code === "FORBIDDEN") {

@@ -188,8 +188,8 @@ export const executeGithubReadTask: ResolverFn<
         /** @todo - check primary key to see if entity already exists */
         // Insert the entity
         const entity = await Entity.create(db, {
-          accountId: user.accountId,
-          createdByAccountId: user.accountId,
+          accountId: user.entityId,
+          createdByAccountId: user.entityId,
           versioned: true,
           entityTypeId,
           properties: record.data,

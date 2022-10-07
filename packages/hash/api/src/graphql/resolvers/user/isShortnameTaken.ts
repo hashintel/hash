@@ -1,15 +1,12 @@
 import { QueryIsShortnameTakenArgs, ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { User } from "../../../model";
+import { AccountFields } from "../../../model";
 
 export const isShortnameTaken: ResolverFn<
   Promise<boolean>,
   {},
   GraphQLContext,
   QueryIsShortnameTakenArgs
-> = async (_, { shortname }, { dataSources }) =>
-  dataSources.db.transaction(
-    async (client) =>
-      User.isShortnameReserved(shortname) ||
-      (await User.isShortnameTaken(client, shortname)),
-  );
+> = async (_, { shortname }, { dataSources: { graphApi } }) =>
+  AccountFields.shortnameIsRestricted(shortname) ||
+  (await AccountFields.shortnameIsTaken(graphApi, { shortname }));

@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - dev/graph
 
 defaults:
   run:
@@ -24,6 +25,7 @@ jobs:
     outputs:
       lint: ${{ steps.crates.outputs.lint }}
       test: ${{ steps.crates.outputs.test }}
+      docker: ${{ steps.crates.outputs.docker }}
       publish: ${{ steps.crates.outputs.publish }}
       samples: ${{ steps.samples.outputs.samples }}
     steps:
@@ -178,6 +180,39 @@ jobs:
                     --arg ddtags "$tags" \
                     '{ message: $message, ddsource: "hash-gh-actions", hostname: "github", service: "actions", ddtags: $ddtags }')
 
+  docker:
+    name: docker
+    needs: setup
+    if: needs.setup.outputs.docker != '{}'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.docker) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.directory }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Cache Node dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            **/node_modules
+          key: ${{ hashFiles('**/yarn.lock') }}
+
+      - name: Install tools
+        run: |
+          cargo install cargo-quickinstall
+          cargo quickinstall cargo-make --version 0.35.15
+
+      - name: Build Docker container
+        run: cargo make --profile ${{ matrix.profile }} build-docker
+
+      - name: Test Docker container
+        run: cargo make --profile ${{ matrix.profile }} test-docker
+
   publish:
     name: publish
     needs: setup
@@ -234,7 +269,7 @@ jobs:
 
   merging-enabled:
     name: merging enabled
-    needs: [lint, test, publish]
+    needs: [lint, test, docker, publish]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -244,6 +279,9 @@ jobs:
       - name: check test
         run: |
           [[ ${{ needs.test.result }} =~ success|skipped ]]
+      - name: check docker
+        run: |
+          [[ ${{ needs.docker.result }} =~ success|skipped ]]
       - name: check publish
         run: |
           [[ ${{ needs.publish.result }} =~ success|skipped ]]

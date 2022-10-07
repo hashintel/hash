@@ -46,13 +46,13 @@ void (async () => {
 
   // Get the system org - it's already been created as part of db migration
   const systemOrg = await Org.getOrgByShortname(db, {
-    shortname: getRequiredEnv("SYSTEM_ACCOUNT_SHORTNAME"),
+    shortname: getRequiredEnv("WORKSPACE_ACCOUNT_SHORTNAME"),
   });
 
   if (!systemOrg) {
     throw new Error(`
       No org with shortname '${getRequiredEnv(
-        "SYSTEM_ACCOUNT_SHORTNAME",
+        "WORKSPACE_ACCOUNT_SHORTNAME",
       )}' found.
       Has the db migration been run?
       Has the system account name been changed?

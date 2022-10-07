@@ -37,6 +37,12 @@ A-error-stack:
   - "packages/libs/error-stack/**/*"
   - "packages/libs/error-stack/**/.*"
 
+A-backend:
+  - "packages/graph/*"
+  - "packages/graph/.*"
+  - "packages/graph/**/*"
+  - "packages/graph/**/.*"
+
 C-dependencies:
   - "**/Cargo.lock"
   - "**/yarn.lock"

@@ -1,0 +1,169 @@
+{
+  "description": "The contents of an Entity Type update request",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "enum": ["entityType"]
+    },
+    "type": {
+      "enum": ["object"]
+    },
+    "title": { "type": "string" },
+    "pluralTitle": { "type": "string" },
+    "description": { "type": "string" },
+    "default": {
+      "$comment": "Default Entity instance",
+      "type": "object",
+      "propertyNames": {
+        "$comment": "Property names must be a valid URI to a Property Type",
+        "type": "string",
+        "format": "uri"
+      }
+    },
+    "examples": {
+      "$comment": "Example Entity instances",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "propertyNames": {
+          "$comment": "Property names must be a valid URI to a Property Type",
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "properties": { "$ref": "#/$defs/propertyTypeObject" },
+    "required": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      }
+    },
+    "links": { "$ref": "#/$defs/linkTypeObject" },
+    "requiredLinks": {
+      "$comment": "A list of link-types which are required. This is a separate field to 'required' to avoid breaking standard JSON schema validation",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": ["kind", "type", "title", "pluralTitle", "properties"],
+  "$defs": {
+    "propertyTypeObject": {
+      "type": "object",
+      "propertyNames": {
+        "$comment": "Property names must be a valid URI to a Property Type",
+        "type": "string",
+        "format": "uri"
+      },
+      "patternProperties": {
+        ".*": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/propertyTypeReference"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "enum": ["array"]
+                },
+                "items": {
+                  "$ref": "#/$defs/propertyTypeReference"
+                },
+                "minItems": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "maxItems": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": ["type", "items"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "minimumProperties": 1
+    },
+    "propertyTypeReference": {
+      "type": "object",
+      "properties": {
+        "$ref": {
+          "$comment": "Property Object values must be defined through references to the same valid URI to a Property Type",
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": ["$ref"],
+      "additionalProperties": false
+    },
+    "linkTypeObject": {
+      "type": "object",
+      "propertyNames": {
+        "$comment": "Property names must be a valid URI to a Property Type",
+        "type": "string",
+        "format": "uri"
+      },
+      "patternProperties": {
+        ".*": {
+          "type": "object",
+          "properties": {
+            "oneOf": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/entityTypeReference"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "enum": ["array"]
+                      },
+                      "items": {
+                        "$ref": "#/$defs/entityTypeReference"
+                      },
+                      "ordered": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "minItems": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "maxItems": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    },
+                    "required": ["type", "ordered"],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "minItems": 1
+            }
+          }
+        }
+      }
+    },
+    "entityTypeReference": {
+      "type": "object",
+      "properties": {
+        "$ref": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": ["$ref"],
+      "additionalProperties": false
+    }
+  }
+}

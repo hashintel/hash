@@ -1,33 +1,32 @@
 import { useMutation } from "@apollo/client";
-import {
-  UpdatePageMutation,
-  UpdatePageMutationVariables,
-} from "@hashintel/hash-shared/graphql/apiTypes.gen";
-import {
-  getPageInfoQuery,
-  updatePage,
-} from "@hashintel/hash-shared/queries/page.queries";
+import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
 
 import { useCallback } from "react";
+import {
+  GetPageInfoQueryVariables,
+  UpdatePersistedPageMutation,
+  UpdatePersistedPageMutationVariables,
+} from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
+import { updatePersistedPage } from "../../graphql/queries/page.queries";
 
 export const useArchivePage = () => {
   const [updatePageFn, { loading }] = useMutation<
-    UpdatePageMutation,
-    UpdatePageMutationVariables
-  >(updatePage, { awaitRefetchQueries: true });
+    UpdatePersistedPageMutation,
+    UpdatePersistedPageMutationVariables
+  >(updatePersistedPage, { awaitRefetchQueries: true });
 
   const getRefetchQueries = useCallback(
-    (accountId: string, pageEntityId: string) => [
+    (ownedById: string, pageEntityId: string) => [
       {
         query: getAccountPagesTree,
-        variables: { accountId },
+        variables: { ownedById },
       },
       {
         query: getPageInfoQuery,
-        variables: {
+        variables: <GetPageInfoQueryVariables>{
           entityId: pageEntityId,
-          accountId,
+          ownedById,
         },
       },
     ],
@@ -35,14 +34,13 @@ export const useArchivePage = () => {
   );
 
   const archivePage = useCallback(
-    async (value: boolean, accountId: string, pageEntityId: string) => {
+    async (value: boolean, ownedById: string, pageEntityId: string) => {
       await updatePageFn({
         variables: {
-          accountId,
           entityId: pageEntityId,
-          properties: { archived: value },
+          updatedProperties: { archived: value },
         },
-        refetchQueries: getRefetchQueries(accountId, pageEntityId),
+        refetchQueries: getRefetchQueries(ownedById, pageEntityId),
       });
     },
     [updatePageFn, getRefetchQueries],

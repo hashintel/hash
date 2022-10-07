@@ -77,7 +77,7 @@ export const commentTypedef = gql`
     """
     The full entityType definition
     """
-    entityType: EntityType!
+    entityType: DeprecatedEntityType!
     """
     The version timeline of the entity.
     """

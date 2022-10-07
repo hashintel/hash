@@ -45,7 +45,7 @@ import { useBlockProtocolUpdateEntity } from "../hooks/blockProtocolFunctions/us
 import { useBlockProtocolUpdateEntityType } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateEntityType";
 import { useBlockProtocolUpdateLink } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLink";
 import { useBlockProtocolUpdateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregation";
-import { EntityType as ApiEntityType } from "../../graphql/apiTypes.gen";
+import { DeprecatedEntityType as ApiEntityType } from "../../graphql/apiTypes.gen";
 import { useReadonlyMode } from "../../shared/readonly-mode";
 import { DataMapEditor } from "./data-map-editor";
 import { mapData, SchemaMap } from "./shared";
@@ -168,7 +168,9 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       convertedEntityTypesForProvidedEntities.push(
         ...convertApiEntityTypesToBpEntityTypes(
           linkedAggregation.results.map(
-            ({ entityType: resultEntityType }) => resultEntityType,
+            /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+            ({ entityType: resultEntityType }: { entityType: any }) =>
+              resultEntityType,
           ),
         ),
       );

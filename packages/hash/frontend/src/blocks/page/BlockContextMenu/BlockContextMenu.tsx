@@ -9,7 +9,7 @@ import { useKey } from "rooks";
 import { Box, Divider, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";
-import { format } from "date-fns";
+// import { format } from "date-fns";
 import {
   faAdd,
   faArrowRight,
@@ -266,25 +266,28 @@ const BlockContextMenu: ForwardRefRenderFunction<
             )?.name
           }
         </Typography>
-
-        {typeof blockEntity?.properties.entity.updatedAt === "string" && (
-          <Typography
-            variant="microText"
-            sx={({ palette }) => ({
-              color: palette.gray[60],
-            })}
-          >
-            {format(
-              new Date(blockEntity.properties.entity.updatedAt),
-              "hh.mm a",
-            )}
-            {", "}
-            {format(
-              new Date(blockEntity.properties.entity.updatedAt),
-              "dd/MM/yyyy",
-            )}
-          </Typography>
-        )}
+        {/** 
+         * @todo re-implement after collab works https://app.asana.com/0/0/1203099452204542/f
+         {typeof blockEntity?.properties.entity.updatedAt ===
+            "string" && (
+            <Typography
+              variant="microText"
+              sx={({ palette }) => ({
+                color: palette.gray[60],
+              })}
+            >
+              {format(
+                new Date(blockEntity.properties.entity.updatedAt),
+                "hh.mm a",
+              )}
+              {", "}
+              {format(
+                new Date(blockEntity.properties.entity.updatedAt),
+                "dd/MM/yyyy",
+              )}
+            </Typography>
+          )
+        } */}
       </Box>
     </Menu>
   );
