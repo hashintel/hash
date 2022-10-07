@@ -236,6 +236,7 @@ export const createSuggester = (
               prevented = this.getState(view.state).isOpen();
               break;
             case "Escape":
+              prevented = this.getState(view.state).isOpen();
               tr.setMeta(suggesterPluginKey, { type: "escape" });
               break;
           }
