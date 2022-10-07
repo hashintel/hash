@@ -333,7 +333,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
               readonly={readonlyMode}
               sx={({ breakpoints }) => ({
                 mb: 2,
-                [breakpoints.up("xl")]: {
+                [breakpoints.up(pageComments?.length ? "xl" : "lg")]: {
                   position: "absolute",
                   top: 0,
                   right: "calc(100% + 24px)",
