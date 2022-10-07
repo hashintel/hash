@@ -9,7 +9,7 @@ import {
 } from "../../../graphql/apiTypes.gen";
 import { transferEntityMutation } from "../../../graphql/queries/entityType.queries";
 import {
-  getAccountPages,
+  getAccountPagesTree,
   getAccounts,
 } from "../../../graphql/queries/account.queries";
 
@@ -78,8 +78,8 @@ export const PageTransferDropdown: FunctionComponent<
         newAccountId,
       },
       refetchQueries: [
-        { query: getAccountPages, variables: { accountId } },
-        { query: getAccountPages, variables: { accountId: newAccountId } },
+        { query: getAccountPagesTree, variables: { accountId } },
+        { query: getAccountPagesTree, variables: { accountId: newAccountId } },
       ],
     })
       .then(() => {

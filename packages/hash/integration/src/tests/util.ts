@@ -302,7 +302,7 @@ export class ApiClient {
         CreatePageMutation,
         CreatePageMutationVariables
       >(createPage, vars)
-    ).createPage;
+    ).createPersistedPage;
   }
 
   async setParentPage(vars: SetParentPageMutationVariables) {
@@ -311,7 +311,7 @@ export class ApiClient {
         SetParentPageMutation,
         SetParentPageMutationVariables
       >(setPageParent, vars)
-    ).setParentPage;
+    ).setParentPersistedPage;
   }
 
   async deprecatedGetEntityType(vars: QueryDeprecatedGetEntityTypeArgs) {
@@ -365,7 +365,7 @@ export class ApiClient {
         getAccountPagesTree,
         vars,
       )
-      .then((res) => res.accountPages);
+      .then((res) => res.persistedPages);
 
   updatePageContents = async (vars: UpdatePageContentsMutationVariables) =>
     this.client

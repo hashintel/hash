@@ -34,7 +34,7 @@ export const PageIcon = ({
   const { data } = useQuery<GetPageInfoQuery, GetPageInfoQueryVariables>(
     getPageInfoQuery,
     {
-      variables: { entityId, accountId, versionId },
+      variables: { ownedById: accountId, entityId, entityVersion: versionId },
     },
   );
 
@@ -51,7 +51,7 @@ export const PageIcon = ({
         alignItems: "center",
       }}
     >
-      {data?.page?.properties?.icon || (
+      {data?.persistedPage?.icon || (
         <FontAwesomeIcon
           icon={faFile}
           sx={(theme) => ({

@@ -1,2 +1,2 @@
-export { updateKnowledgePageContents } from "./update-page-contents";
-export { knowledgePageContents } from "./page-contents";
+export { updatePersistedPageContents } from "./update-page-contents";
+export { persistedPageContents } from "./page-contents";

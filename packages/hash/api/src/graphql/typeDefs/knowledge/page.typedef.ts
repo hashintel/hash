@@ -1,7 +1,7 @@
 import { gql } from "apollo-server-express";
 
-export const knowledgePageTypedef = gql`
-  type KnowledgePage implements KnowledgeEntity {
+export const persistedPageTypedef = gql`
+  type PersistedPage implements PersistedEntity {
     """
     The title of the page.
     """
@@ -21,7 +21,15 @@ export const knowledgePageTypedef = gql`
     """
     The contents of the page.
     """
-    contents: [KnowledgeBlock!]!
+    contents: [PersistedBlock!]!
+    """
+    The fractional index of the page in the page tree.
+    """
+    index: String
+    """
+    The page's parent page (may not be set).
+    """
+    parentPage: PersistedPage
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
@@ -52,7 +60,7 @@ export const knowledgePageTypedef = gql`
     """
     The linked entities of the entity.
     """
-    linkedEntities: [KnowledgeEntity!]!
+    linkedEntities: [PersistedEntity!]!
     """
     The JSON object containing the entity's properties.
     """
@@ -60,7 +68,7 @@ export const knowledgePageTypedef = gql`
     # ENTITY INTERFACE FIELDS END #
   }
 
-  type KnowledgeEntityRef {
+  type PersistedEntityRef {
     """
     The id of the account that owns this entity.
     """
@@ -78,7 +86,11 @@ export const knowledgePageTypedef = gql`
     """
     Get a page by its entity id.
     """
-    knowledgePage(
+    persistedPage(
+      """
+      The account ID that owns the Page.
+      """
+      ownedById: ID!
       """
       The id of the page entity.
       """
@@ -87,13 +99,23 @@ export const knowledgePageTypedef = gql`
       The version of the page entity. Defaults to the latest version.
       """
       entityVersion: String
-    ): KnowledgePage!
+    ): PersistedPage!
+
+    """
+    Return a list of pages.
+    """
+    persistedPages(
+      """
+      The account owning the pages. Defaults to the logged in user.
+      """
+      ownedById: ID
+    ): [PersistedPage!]!
   }
 
   """
   Insert a block into a page with a corresponding entity.
   """
-  input InsertKnowledgeBlockAction {
+  input InsertPersistedBlockAction {
     """
     The account ID to create the block and associated entity in.
     """
@@ -110,11 +132,11 @@ export const knowledgePageTypedef = gql`
     The block entity to insert into the page. You should not set a componentId
     if you provide this
     """
-    existingBlockEntity: KnowledgeExistingEntity
+    existingBlockEntity: PersistedExistingEntity
     """
     The entity to associate with the new block
     """
-    entity: KnowledgeEntityDefinition!
+    entity: PersistedEntityDefinition!
     """
     Allows UpdatePageContentsActions to reference entities created in other actions. Also allows callers to updatePageContents to find the entity id created for this definition in the result. See UpdatePageContentsResult.
     """
@@ -128,7 +150,7 @@ export const knowledgePageTypedef = gql`
   """
   Remove a block from a page.
   """
-  input RemoveKnowledgeBlockAction {
+  input RemovePersistedBlockAction {
     """
     The position of the block to remove from the page.
     """
@@ -138,7 +160,7 @@ export const knowledgePageTypedef = gql`
   """
   Move a block within a page.
   """
-  input MoveKnowledgeBlockAction {
+  input MovePersistedBlockAction {
     """
     The current position of the block.
     """
@@ -152,7 +174,7 @@ export const knowledgePageTypedef = gql`
   """
   Update an entity in a page.
   """
-  input UpdateKnowledgeEntityAction {
+  input UpdatePersistedEntityAction {
     """
     The account the entity resides in.
     """
@@ -170,7 +192,7 @@ export const knowledgePageTypedef = gql`
   """
   Swap a blocks data
   """
-  input SwapKnowledgeBlockDataAction {
+  input SwapPersistedBlockDataAction {
     """
     The account the block resides in
     """
@@ -195,8 +217,8 @@ export const knowledgePageTypedef = gql`
   """
   Create an entity, which you can then reference in other actions, such as a InsertBlockAction
   """
-  input CreateKnowledgeEntityAction {
-    entity: KnowledgeEntityDefinition!
+  input CreatePersistedEntityAction {
+    entity: PersistedEntityDefinition!
     entityPlaceholderId: ID
     ownedById: ID!
   }
@@ -204,7 +226,7 @@ export const knowledgePageTypedef = gql`
   """
   Create an entity type, which you can then reference in future CreateEntityActions
   """
-  input CreateKnowledgeEntityTypeAction {
+  input CreatePersistedEntityTypeAction {
     ownedById: ID!
     """
     The name for the type. Must be unique in the given account.
@@ -231,34 +253,84 @@ export const knowledgePageTypedef = gql`
   Note: a union type would be preferrable here, but currently, GraphQL does not
   permit unions as input to a mutation
   """
-  input UpdateKnowledgePageAction {
-    insertBlock: InsertKnowledgeBlockAction
-    removeBlock: RemoveKnowledgeBlockAction
-    moveBlock: MoveKnowledgeBlockAction
-    updateEntity: UpdateKnowledgeEntityAction
-    swapBlockData: SwapKnowledgeBlockDataAction
-    createEntity: CreateKnowledgeEntityAction
-    createEntityType: CreateKnowledgeEntityTypeAction
+  input UpdatePersistedPageAction {
+    insertBlock: InsertPersistedBlockAction
+    removeBlock: RemovePersistedBlockAction
+    moveBlock: MovePersistedBlockAction
+    updateEntity: UpdatePersistedEntityAction
+    swapBlockData: SwapPersistedBlockDataAction
+    createEntity: CreatePersistedEntityAction
+    createEntityType: CreatePersistedEntityTypeAction
   }
 
   """
   Map of placeholder IDs used in the UpdatePageContentsActions to the entity IDs created for those placeholders
   """
-  type UpdateKnowledgePageContentsResultPlaceholder {
+  type UpdatePersistedPageContentsResultPlaceholder {
     placeholderId: ID!
     entityId: ID!
   }
 
-  type UpdateKnowledgePageContentsResult {
-    page: KnowledgePage!
-    placeholders: [UpdateKnowledgePageContentsResultPlaceholder!]!
+  type UpdatePersistedPageContentsResult {
+    page: PersistedPage!
+    placeholders: [UpdatePersistedPageContentsResultPlaceholder!]!
+  }
+
+  input PersistedPageCreationData {
+    """
+    The page title.
+    """
+    title: String!
+    """
+    The fractional index of the page that is before the current.
+    """
+    prevIndex: String
+  }
+
+  input PersistedPageUpdateData {
+    title: String
+    summary: String
+    archived: Boolean
+    index: String
   }
 
   extend type Mutation {
     """
+    Create a new page
+    """
+    createPersistedPage(
+      """
+      The new page's account ID.
+      """
+      ownedById: ID!
+      """
+      Initial properties to set for the new page.
+      """
+      properties: PersistedPageCreationData!
+    ): PersistedPage!
+    """
+    Update an existing page.
+    """
+    updatePersistedPage(
+      entityId: ID!
+      updatedProperties: PersistedPageUpdateData!
+    ): PersistedPage!
+    """
+    Set the parent of a page
+
+    If the parentPageEntityId is not set, any existing page link is removed.
+    """
+    setParentPersistedPage(
+      pageEntityId: ID!
+      parentPageEntityId: ID
+      prevIndex: String
+      nextIndex: String
+    ): PersistedPage!
+
+    """
     Update the contents of a page.
     """
-    updateKnowledgePageContents(
+    updatePersistedPageContents(
       """
       The page's account ID.
       """
@@ -270,7 +342,7 @@ export const knowledgePageTypedef = gql`
       """
       The list of actions to perform on the page.
       """
-      actions: [UpdateKnowledgePageAction!]!
-    ): UpdateKnowledgePageContentsResult!
+      actions: [UpdatePersistedPageAction!]!
+    ): UpdatePersistedPageContentsResult!
   }
 `;

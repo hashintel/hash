@@ -4,13 +4,13 @@ import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import {
   mapBlockModelToGQL,
-  UnresolvedKnowledgeEntityGQL,
-  UnresolvedKnowledgePageGQL,
+  UnresolvedPersistedEntityGQL,
+  UnresolvedPersistedPageGQL,
 } from "../model-mapping";
 
-export const knowledgePageContents: ResolverFn<
-  Promise<UnresolvedKnowledgeEntityGQL[]>,
-  UnresolvedKnowledgePageGQL,
+export const persistedPageContents: ResolverFn<
+  Promise<UnresolvedPersistedEntityGQL[]>,
+  UnresolvedPersistedPageGQL,
   LoggedInGraphQLContext,
   {}
 > = async ({ entityId }, _, { dataSources }) => {

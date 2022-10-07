@@ -65,7 +65,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     useCreatePage(accountId);
   const [createSubPage, { loading: createSubpageLoading }] =
     useCreateSubPage(accountId);
-  const [reorderPage, { loading: reorderLoading }] = useReorderPage(accountId);
+  const [reorderPage, { loading: reorderLoading }] = useReorderPage();
   const [archivePage, { loading: archivePageLoading }] = useArchivePage();
 
   const loading =
@@ -85,6 +85,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   const [offsetLeft, setOffsetLeft] = useState(0);
 
   const [treeItems, setTreeItems] = useState(() => getTreeItemList(data));
+
   const [prevData, setPrevData] = useState(data);
 
   if (data !== prevData) {

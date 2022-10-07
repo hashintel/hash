@@ -82,11 +82,15 @@ export const PageNotificationBanner: FunctionComponent = () => {
   const { data } = useQuery<GetPageInfoQuery, GetPageInfoQueryVariables>(
     getPageInfoQuery,
     {
-      variables: { entityId: pageEntityId, accountId, versionId },
+      variables: {
+        ownedById: accountId,
+        entityId: pageEntityId,
+        entityVersion: versionId,
+      },
     },
   );
 
-  const archived = data?.page?.properties?.archived;
+  const archived = data?.persistedPage?.archived;
 
   return (
     <Collapse in={!!archived}>
@@ -206,7 +210,11 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
     GetPageInfoQuery,
     GetPageInfoQueryVariables
   >(getPageInfoQuery, {
-    variables: { entityId: pageEntityId, accountId, versionId },
+    variables: {
+      ownedById: accountId,
+      entityId: pageEntityId,
+      entityVersion: versionId,
+    },
   });
   const pageHeaderRef = useRef<HTMLElement>();
   const { readonlyMode } = useReadonlyMode();
@@ -265,7 +273,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
     );
   }
 
-  const { title, icon } = data.page.properties;
+  const { title, icon } = data.persistedPage;
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
@@ -302,7 +310,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
           <TopContextBar
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
-              pageId: data.page.entityId,
+              pageId: data.persistedPage.entityId,
               accountId,
             })}
             scrollToTop={scrollToTop}

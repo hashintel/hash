@@ -1,21 +1,21 @@
 import { BlockModel, EntityModel, LinkModel, PageModel } from "../../../model";
 import {
-  KnowledgeBlock,
-  KnowledgeEntity,
-  KnowledgeLink,
-  KnowledgePage,
+  PersistedBlock,
+  PersistedEntity,
+  PersistedLink,
+  PersistedPage,
 } from "../../apiTypes.gen";
 import { mapEntityTypeModelToGQL } from "../ontology/model-mapping";
 
-export type ExternalKnowledgeEntityResolversGQL = "linkedEntities";
-export type UnresolvedKnowledgeEntityGQL = Omit<
-  KnowledgeEntity,
-  ExternalKnowledgeEntityResolversGQL
+export type ExternalPersistedEntityResolversGQL = "linkedEntities";
+export type UnresolvedPersistedEntityGQL = Omit<
+  PersistedEntity,
+  ExternalPersistedEntityResolversGQL
 > & { workspaceTypeName?: string };
 
 export const mapEntityModelToGQL = (
   entityModel: EntityModel,
-): UnresolvedKnowledgeEntityGQL => ({
+): UnresolvedPersistedEntityGQL => ({
   entityId: entityModel.entityId,
   entityType: mapEntityTypeModelToGQL(entityModel.entityTypeModel),
   entityTypeId: entityModel.entityTypeModel.schema.$id,
@@ -24,56 +24,57 @@ export const mapEntityModelToGQL = (
   accountId: entityModel.ownedById,
   properties: entityModel.properties,
   /**
-   * To be used by the `KnowledgeEntity` `__resolveType` resolver method to reliably determine
+   * To be used by the `PersistedEntity` `__resolveType` resolver method to reliably determine
    * the GQL type of this entity. Note that this is not exposed in the GQL type definitions,
    * and is therefore not returned to GraphQL clients.
    */
   workspaceTypeName: entityModel.entityTypeModel.workspaceTypeName,
 });
 
-export type ExternalKnowledgePageResolversGQL =
-  | ExternalKnowledgeEntityResolversGQL
+export type ExternalPersistedPageResolversGQL =
+  | ExternalPersistedEntityResolversGQL
   | "contents";
-export type UnresolvedKnowledgePageGQL = Omit<
-  KnowledgePage,
-  ExternalKnowledgePageResolversGQL
+export type UnresolvedPersistedPageGQL = Omit<
+  PersistedPage,
+  ExternalPersistedPageResolversGQL
 >;
 
 export const mapPageModelToGQL = (
   pageModel: PageModel,
-): UnresolvedKnowledgePageGQL => ({
+): UnresolvedPersistedPageGQL => ({
   ...mapEntityModelToGQL(pageModel),
   title: pageModel.getTitle(),
   properties: pageModel.properties,
   archived: pageModel.getArchived(),
   summary: pageModel.getSummary(),
+  index: pageModel.getIndex(),
 });
 
-export type ExternalKnowledgeBlockResolversGQL =
-  | ExternalKnowledgeEntityResolversGQL
+export type ExternalPersistedBlockResolversGQL =
+  | ExternalPersistedEntityResolversGQL
   | "dataEntity";
-export type UnresolvedKnowledgeBlockGQL = Omit<
-  KnowledgeBlock,
-  ExternalKnowledgeBlockResolversGQL
+export type UnresolvedPersistedBlockGQL = Omit<
+  PersistedBlock,
+  ExternalPersistedBlockResolversGQL
 >;
 export const mapBlockModelToGQL = (
   blockModel: BlockModel,
-): UnresolvedKnowledgeBlockGQL => ({
+): UnresolvedPersistedBlockGQL => ({
   ...mapEntityModelToGQL(blockModel),
   componentId: blockModel.getComponentId(),
 });
 
-export type UnresolvedKnowledgeLinkGQL = Omit<
-  KnowledgeLink,
+export type UnresolvedPersistedLinkGQL = Omit<
+  PersistedLink,
   "sourceEntity" | "targetEntity"
 > & {
-  sourceEntity: UnresolvedKnowledgeEntityGQL;
-  targetEntity: UnresolvedKnowledgeEntityGQL;
+  sourceEntity: UnresolvedPersistedEntityGQL;
+  targetEntity: UnresolvedPersistedEntityGQL;
 };
 
 export const mapLinkModelToGQL = (
   linkModel: LinkModel,
-): UnresolvedKnowledgeLinkGQL => ({
+): UnresolvedPersistedLinkGQL => ({
   ownedById: linkModel.ownedById,
   linkTypeId: linkModel.linkTypeModel.schema.$id,
   index: linkModel.index,

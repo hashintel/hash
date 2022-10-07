@@ -14,7 +14,9 @@ use std::{
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use postgres_types::ToSql;
-use tokio_postgres::GenericClient;
+#[cfg(feature = "__internal_bench")]
+use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
+use tokio_postgres::{GenericClient, Transaction};
 use type_system::{
     uri::{BaseUri, VersionedUri},
     DataTypeReference, EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
@@ -848,6 +850,81 @@ where
     #[expect(clippy::missing_const_for_fn, reason = "Compile error")]
     pub fn into_client(self) -> C {
         self.client
+    }
+}
+
+impl PostgresStore<Transaction<'_>> {
+    #[doc(hidden)]
+    #[cfg(feature = "__internal_bench")]
+    async fn insert_entity_ids(
+        &self,
+        entity_ids: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
+    ) -> Result<u64, InsertionError> {
+        let sink = self
+            .client
+            .copy_in("COPY entity_ids (entity_id) FROM STDIN BINARY")
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+        let writer = BinaryCopyInWriter::new(sink, &[Type::UUID]);
+
+        futures::pin_mut!(writer);
+        for entity_id in entity_ids {
+            writer
+                .as_mut()
+                .write(&[&entity_id])
+                .await
+                .into_report()
+                .change_context(InsertionError)
+                .attach_printable(entity_id)?;
+        }
+
+        writer
+            .finish()
+            .await
+            .into_report()
+            .change_context(InsertionError)
+    }
+
+    #[doc(hidden)]
+    #[cfg(feature = "__internal_bench")]
+    async fn insert_entity_batch_by_type(
+        &self,
+        entity_ids: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
+        entities: impl IntoIterator<Item = Entity, IntoIter: Send> + Send,
+        entity_type_version_id: VersionId,
+        account_id: AccountId,
+    ) -> Result<u64, InsertionError> {
+        let sink = self
+            .client
+            .copy_in(
+                "COPY entities (entity_id, entity_type_version_id, properties, owned_by_id) FROM \
+                 STDIN BINARY",
+            )
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+        let writer =
+            BinaryCopyInWriter::new(sink, &[Type::UUID, Type::UUID, Type::JSONB, Type::UUID]);
+        futures::pin_mut!(writer);
+        for (entity_id, entity) in entity_ids.into_iter().zip(entities) {
+            let value = serde_json::to_value(entity)
+                .into_report()
+                .change_context(InsertionError)?;
+            writer
+                .as_mut()
+                .write(&[&entity_id, &entity_type_version_id, &value, &account_id])
+                .await
+                .into_report()
+                .change_context(InsertionError)
+                .attach_printable(entity_id)?;
+        }
+
+        writer
+            .finish()
+            .await
+            .into_report()
+            .change_context(InsertionError)
     }
 }
 

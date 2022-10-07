@@ -23,10 +23,10 @@ import { dataTypeTypedef } from "./ontology/data-type.typedef";
 import { propertyTypeTypedef } from "./ontology/property-type.typedef";
 import { linkTypeTypedef } from "./ontology/link-type.typedef";
 import { entityTypeTypedef } from "./ontology/entity-type.typedef";
-import { knowledgeEntityTypedef } from "./knowledge/entity.typedef";
-import { knowledgePageTypedef } from "./knowledge/page.typedef";
-import { knowledgeBlockTypedef } from "./knowledge/block.typedef";
-import { knowledgeLinkTypedef } from "./knowledge/link.typedef";
+import { persistedEntityTypedef } from "./knowledge/entity.typedef";
+import { persistedPageTypedef } from "./knowledge/page.typedef";
+import { persistedBlockTypedef } from "./knowledge/block.typedef";
+import { persistedLinkTypedef } from "./knowledge/link.typedef";
 import { blockprotocolTypedef } from "./blockprotocol.typedef";
 
 const baseSchema = gql`
@@ -57,10 +57,10 @@ const ontology = [
 ];
 
 const knowledge = [
-  knowledgeEntityTypedef,
-  knowledgeBlockTypedef,
-  knowledgePageTypedef,
-  knowledgeLinkTypedef,
+  persistedEntityTypedef,
+  persistedBlockTypedef,
+  persistedPageTypedef,
+  persistedLinkTypedef,
 ];
 
 // This needs to be called 'schema' to be picked up by codegen -

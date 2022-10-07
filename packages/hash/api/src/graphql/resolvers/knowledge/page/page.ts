@@ -1,17 +1,22 @@
-import { PageModel } from "../../../../model";
+import { PageModel, UserModel } from "../../../../model";
 
-import { QueryKnowledgePageArgs, ResolverFn } from "../../../apiTypes.gen";
-import { GraphQLContext } from "../../../context";
 import {
-  UnresolvedKnowledgePageGQL,
+  MutationCreatePersistedPageArgs,
+  QueryPersistedPageArgs,
+  QueryPersistedPagesArgs,
+  ResolverFn,
+} from "../../../apiTypes.gen";
+import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
+import {
+  UnresolvedPersistedPageGQL,
   mapPageModelToGQL,
 } from "../model-mapping";
 
-export const knowledgePage: ResolverFn<
-  Promise<UnresolvedKnowledgePageGQL>,
+export const persistedPage: ResolverFn<
+  Promise<UnresolvedPersistedPageGQL>,
   {},
   GraphQLContext,
-  QueryKnowledgePageArgs
+  QueryPersistedPageArgs
 > = async (_, { entityId, entityVersion }, { dataSources: { graphApi } }) => {
   const pageModel = await PageModel.getPageById(graphApi, {
     entityId,
@@ -19,4 +24,54 @@ export const knowledgePage: ResolverFn<
   });
 
   return mapPageModelToGQL(pageModel);
+};
+
+export const createPersistedPage: ResolverFn<
+  Promise<UnresolvedPersistedPageGQL>,
+  {},
+  LoggedInGraphQLContext,
+  MutationCreatePersistedPageArgs
+> = async (
+  _,
+  { ownedById, properties: { title, prevIndex } },
+  { dataSources: { graphApi } },
+) => {
+  const pageModel = await PageModel.createPage(graphApi, {
+    ownedById,
+    title,
+    prevIndex: prevIndex ?? undefined,
+  });
+
+  return mapPageModelToGQL(pageModel);
+};
+
+export const parentPersistedPage: ResolverFn<
+  Promise<UnresolvedPersistedPageGQL | null>,
+  UnresolvedPersistedPageGQL,
+  GraphQLContext,
+  QueryPersistedPagesArgs
+> = async (page, _, { dataSources: { graphApi } }) => {
+  const pageModel = await PageModel.getPageById(graphApi, {
+    entityId: page.entityId,
+  });
+  const parentPageModel = await pageModel.getParentPage(graphApi);
+
+  return parentPageModel ? mapPageModelToGQL(parentPageModel) : null;
+};
+
+export const persistedPages: ResolverFn<
+  Promise<UnresolvedPersistedPageGQL[]>,
+  {},
+  LoggedInGraphQLContext,
+  QueryPersistedPagesArgs
+> = async (_, { ownedById }, { dataSources: { graphApi }, user }) => {
+  const accountModel = ownedById
+    ? await UserModel.getUserById(graphApi, { entityId: ownedById })
+    : user;
+
+  const pageModels = await PageModel.getAllPagesInAccount(graphApi, {
+    accountModel,
+  });
+
+  return pageModels.map(mapPageModelToGQL);
 };

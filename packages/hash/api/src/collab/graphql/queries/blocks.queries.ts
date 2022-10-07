@@ -33,3 +33,21 @@ export const getBlocksQuery = gql`
 
   ${blockFieldsFragment}
 `;
+
+export const persistedBlockFieldsFragment = gql`
+  fragment PersistedBlockFields on PersistedBlock {
+    __typename
+    entityId
+    entityVersion
+    accountId
+    entityTypeId
+    componentId
+    dataEntity {
+      entityId
+      accountId
+      properties
+    }
+    properties
+    # Not fetching Data Entity yet.
+  }
+`;
