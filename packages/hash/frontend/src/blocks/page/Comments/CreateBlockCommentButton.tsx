@@ -58,6 +58,7 @@ export const CreateBlockCommentButton: FunctionComponent<
           },
         ]}
         anchorEl={anchorEl}
+        style={{ zIndex: 1 }}
       >
         <CreateBlockComment blockId={blockId} onClose={closeInput} />
       </Popper>
