@@ -20,17 +20,20 @@ enum OpaqueNumber {
 /// Used to represent any rational number.
 ///
 /// This type simplifies the use of numbers internally and the implementation of custom
-/// [`Deserializers`], as one only needs to convert to [`Number`], instead of converting to every
+/// [`Deserializer`]s, as one only needs to convert to [`Number`], instead of converting to every
 /// single primitive possible.
 ///
 /// This type also enables easy coercion of values at deserialization time.
 ///
-/// Without the `arbitrary-precision` feature enabled, integers are limited to `i16`, while floats
+/// Without the `arbitrary-precision` feature enabled, integers are limited to `i64`, while floats
 /// are stored as `f64`, larger values are only supported using the aforementioned feature and are
-/// stored as [`BigInt`], [`Decimal`] respectively.
+/// stored as [`BigInt`], [`Decimal`] respectively, there is no guarantee that the storage of
+/// arbitrarily sized values will be the same across breaking revisions.
 ///
 /// Even with `arbitrary-precision` enabled, this type will try to fit the converted value into a
 /// `i64`, if that isn't possible it will fallback to a [`BigInt`].
+///
+/// [`Deserializer`]: crate::Deserializer
 #[derive(Debug, Clone)]
 pub struct Number(OpaqueNumber);
 
@@ -124,7 +127,7 @@ impl FromPrimitive for Number {
     }
 
     fn from_f32(n: f32) -> Option<Self> {
-        Some(Self(OpaqueNumber::Float(n as f64)))
+        Some(Self(OpaqueNumber::Float(f64::from(n))))
     }
 
     fn from_f64(n: f64) -> Option<Self> {
@@ -220,11 +223,10 @@ impl_from!([i8, i16, i32, i64, u8, u16, u32, "float": f32, "float": f64]);
 #[cfg(feature = "arbitrary-precision")]
 impl From<BigInt> for Number {
     fn from(value: BigInt) -> Self {
-        if let Some(value) = value.to_i64() {
-            Self(OpaqueNumber::Int(value))
-        } else {
-            Self(OpaqueNumber::BigInt(value))
-        }
+        value.to_i64().map_or_else(
+            || Self(OpaqueNumber::BigInt(value)),
+            |value| Self(OpaqueNumber::Int(value)),
+        )
     }
 }
 
