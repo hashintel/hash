@@ -13,16 +13,15 @@ import { SearchAdapter } from "@hashintel/hash-backend-utils/search/adapter";
 
 import { schema } from "./typeDefs";
 import { resolvers } from "./resolvers";
-import { DbAdapter } from "../db";
 import { CacheAdapter } from "../cache";
-import { buildPassportGraphQLMethods } from "../auth/passport";
 import { GraphQLContext } from "./context";
 import { EmailTransporter } from "../email/transporters";
 import { StorageType } from "./apiTypes.gen";
 import { TaskExecutor } from "../task-execution";
+import { GraphApi } from "../graph";
 
 export interface CreateApolloServerParams {
-  db: DbAdapter;
+  graphApi: GraphApi;
   cache: CacheAdapter;
   search?: SearchAdapter;
   taskExecutor?: TaskExecutor;
@@ -34,7 +33,7 @@ export interface CreateApolloServerParams {
 }
 
 export const createApolloServer = ({
-  db,
+  graphApi,
   cache,
   search,
   taskExecutor,
@@ -51,7 +50,9 @@ export const createApolloServer = ({
   });
   const getDataSources = () => {
     const sources: GraphQLContext["dataSources"] = {
-      db,
+      /** @todo: remove all db dependencies */
+      db: {} as any,
+      graphApi,
       cache,
     };
     if (search) {
@@ -71,7 +72,6 @@ export const createApolloServer = ({
       user: ctx.req.user,
       emailTransporter,
       uploadProvider,
-      passport: buildPassportGraphQLMethods(ctx),
       logger: logger.child({
         requestId: ctx.res.get("x-hash-request-id") ?? "",
       }),

@@ -1,40 +1,47 @@
+import { ApolloError } from "apollo-server-errors";
 import { MutationCreateOrgArgs, ResolverFn } from "../../apiTypes.gen";
-import { Account, UnresolvedGQLEntity, Org } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
+import { UnresolvedGQLOrg } from "./util";
 
 export const createOrg: ResolverFn<
-  Promise<UnresolvedGQLEntity>,
+  Promise<UnresolvedGQLOrg>,
   {},
   LoggedInGraphQLContext,
   MutationCreateOrgArgs
-> = async (_, { org: orgInput, responsibility }, { dataSources, user }) =>
-  dataSources.db.transaction(async (client) => {
-    const { shortname, name, orgSize } = orgInput;
+> = async (_, __, { dataSources }) =>
+  dataSources.db.transaction(async (_client) => {
+    throw new ApolloError("The joinOrg mutation is unimplemented");
 
-    await user
-      .acquireLock(client)
-      .then(() => user.refetchLatestVersion(client));
+    // const { graphApi } = dataSources;
+    // const { shortname, name, orgSize } = orgInput;
 
-    await Account.validateShortname(client, shortname);
+    // /** @todo: potentially deprecate these method calls depending on Graph API transaction implementation */
+    // await user
+    //   .acquireLock(client)
+    //   .then(() => user.refetchLatestVersion(client));
 
-    const org = await Org.createOrg(client, {
-      properties: {
-        shortname,
-        name,
-        infoProvidedAtCreation: {
-          orgSize,
-        },
-      },
-      createdByAccountId: user.entityId,
-    });
+    // await Account.validateShortname(client, shortname);
 
-    await org.acquireLock(client).then(() => org.refetchLatestVersion(client));
+    // const org = await OrgModel.createOrg(graphApi, {
+    //   providedInfo: {
+    //     orgSize,
+    //   },
+    //   shortname,
+    //   name,
+    // });
 
-    await user.joinOrg(client, {
-      updatedByAccountId: user.accountId,
-      org,
-      responsibility,
-    });
+    // /**
+    //  * @todo: potentially deprecate these method calls depending on Graph API
+    //  * transaction implementation (@see https://app.asana.com/0/1201095311341924/1202573572594586/f)
+    //  */
+    // await org
+    //   .acquireLock(client)
+    //   .then(() => org.refetchLatestVersion(client));
 
-    return org.toGQLUnknownEntity();
+    // await user.joinOrg(graphApi, {
+    //   org,
+    //   responsibility,
+    // });
+
+    // return mapOrgModelToGQL(org);
   });

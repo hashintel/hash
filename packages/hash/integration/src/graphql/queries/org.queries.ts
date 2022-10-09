@@ -11,9 +11,7 @@ export const createOrg = gql`
       updatedAt
       accountId
       visibility
-      properties {
-        shortname
-      }
+      shortname
       linkGroups {
         sourceEntityId
         path
@@ -120,12 +118,10 @@ export const joinOrg = gql`
       responsibility: $responsibility
     ) {
       entityId
-      properties {
-        emails {
-          address
-          verified
-          primary
-        }
+      emails {
+        address
+        verified
+        primary
       }
       linkGroups {
         path
@@ -142,9 +138,7 @@ export const getAccounts = gql`
   query getAccounts {
     accounts {
       ... on Org {
-        properties {
-          shortname
-        }
+        shortname
         accountId
       }
     }

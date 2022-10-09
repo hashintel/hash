@@ -1,0 +1,11 @@
+{
+  "kind": "propertyType",
+  "$id": "https://blockprotocol.org/@alice/types/property-type/hobby/v/1",
+  "title": "Hobby",
+  "pluralTitle": "Hobbies",
+  "oneOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+    }
+  ]
+}

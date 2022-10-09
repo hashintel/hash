@@ -14,8 +14,10 @@
     "test": "jest --runInBand"
   },
   "dependencies": {
+    "@blockprotocol/type-system-web": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?6526c0e",
     "@hashintel/hash-api": "0.0.0",
     "@hashintel/hash-backend-utils": "0.0.0",
+    "@hashintel/hash-graph-client": "0.0.0",
     "execa": "5.1.1",
     "graphql": "15.5.1",
     "graphql-request": "3.4.0",

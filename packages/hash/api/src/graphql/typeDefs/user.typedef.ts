@@ -5,7 +5,11 @@ export const userTypedef = gql`
     # Whether the user has completed the account sign-up process
     accountSignupComplete: Boolean!
 
-    properties: UserProperties!
+    emails: [Email!]!
+
+    shortname: String
+
+    preferredName: String
 
     memberOf: [OrgMembership!]!
 
@@ -62,7 +66,7 @@ export const userTypedef = gql`
     """
     The full entityType definition
     """
-    entityType: EntityType!
+    entityType: DeprecatedEntityType!
     """
     The version timeline of the entity.
     """
@@ -91,12 +95,6 @@ export const userTypedef = gql`
   enum WayToUseHASH {
     BY_THEMSELVES
     WITH_A_TEAM
-  }
-
-  type UserProperties {
-    emails: [Email!]!
-    shortname: String
-    preferredName: String
   }
 
   type VerificationCodeMetadata {

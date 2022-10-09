@@ -1,5 +1,10 @@
 import { print } from "graphql/language/printer";
 import { GraphQLClient, ClientError } from "graphql-request";
+import { createKratosIdentity } from "@hashintel/hash-api/src/auth/ory-kratos";
+import { GraphApi } from "@hashintel/hash-api/src/graph";
+import { UserModel } from "@hashintel/hash-api/src/model";
+import { ensureWorkspaceTypesExist } from "@hashintel/hash-api/src/graph/workspace-types";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import {
   createLinkedAggregation,
@@ -27,10 +32,10 @@ import {
   GetPageQuery,
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
-  CreateEntityTypeMutation,
-  CreateEntityTypeMutationVariables,
-  UpdateEntityTypeMutation,
-  UpdateEntityTypeMutationVariables,
+  DeprecatedCreateEntityTypeMutation,
+  DeprecatedCreateEntityTypeMutationVariables,
+  DeprecatedUpdateEntityTypeMutation,
+  DeprecatedUpdateEntityTypeMutationVariables,
   CreateOrgEmailInvitationMutationVariables,
   CreateOrgEmailInvitationMutation,
   CreateUserWithOrgEmailInvitationMutationVariables,
@@ -47,7 +52,7 @@ import {
   UpdateLinkedAggregationOperationMutationVariables,
   DeleteLinkedAggregationMutation,
   DeleteLinkedAggregationMutationVariables,
-  QueryGetEntityTypeArgs,
+  QueryDeprecatedGetEntityTypeArgs,
   Query,
   GetEntitiesQuery,
   GetEntitiesQueryVariables,
@@ -60,13 +65,13 @@ import {
 } from "../graphql/apiTypes.gen";
 import {
   createEntity,
-  createEntityType,
-  getEntityType,
-  getEntityTypeAllParents,
+  deprecatedCreateEntityType,
+  deprecatedGetEntityType,
+  deprecatedGetEntityTypeAllParents,
   getUnknownEntity,
   getEntities,
   updateEntity,
-  updateEntityType,
+  deprecatedUpdateEntityType,
   getEntityAndLinks,
 } from "../graphql/queries/entity.queries";
 import {
@@ -89,6 +94,58 @@ import {
   setPageParent,
   updatePageContents,
 } from "../graphql/queries/page.queries";
+
+const randomStringSuffix = () => {
+  const alphabet = "abcdefghijklmnopqrstuvwxyz";
+  return new Array(6)
+    .fill(undefined)
+    .map(() => alphabet[Math.floor(Math.random() * alphabet.length)])
+    .join("");
+};
+
+export const generateRandomShortname = (prefix?: string) =>
+  `${prefix ?? ""}${randomStringSuffix()}`;
+
+export const createTestUser = async (
+  graphApi: GraphApi,
+  shortNamePrefix: string,
+  logger: Logger,
+) => {
+  await ensureWorkspaceTypesExist({ graphApi, logger });
+
+  const shortname = generateRandomShortname(shortNamePrefix);
+
+  const identity = await createKratosIdentity({
+    traits: {
+      shortname,
+      emails: [`${shortname}@example.com`],
+    },
+  }).catch((err) => {
+    logger.error(`Error when creating Kratos Identity, ${shortname}: ${err}`);
+    throw err;
+  });
+
+  const kratosIdentityId = identity.id;
+
+  const createdUser = await UserModel.createUser(graphApi, {
+    emails: [`${shortname}@example.com`],
+    kratosIdentityId,
+  }).catch((err) => {
+    logger.error(`Error making UserModel for ${shortname}`);
+    throw err;
+  });
+
+  const updatedUser = await createdUser
+    .updateShortname(graphApi, {
+      updatedShortname: shortname,
+    })
+    .catch((err) => {
+      logger.error(`Error updating shortname for UserModel to ${shortname}`);
+      throw err;
+    });
+
+  return updatedUser;
+};
 
 export class ApiClient {
   private client: GraphQLClient;
@@ -245,7 +302,7 @@ export class ApiClient {
         CreatePageMutation,
         CreatePageMutationVariables
       >(createPage, vars)
-    ).createPage;
+    ).createPersistedPage;
   }
 
   async setParentPage(vars: SetParentPageMutationVariables) {
@@ -254,43 +311,47 @@ export class ApiClient {
         SetParentPageMutation,
         SetParentPageMutationVariables
       >(setPageParent, vars)
-    ).setParentPage;
+    ).setParentPersistedPage;
   }
 
-  async getEntityType(vars: QueryGetEntityTypeArgs) {
+  async deprecatedGetEntityType(vars: QueryDeprecatedGetEntityTypeArgs) {
     return (
       await this.client.request<
-        Pick<Query, "getEntityType">,
-        QueryGetEntityTypeArgs
-      >(getEntityType, vars)
-    ).getEntityType;
+        Pick<Query, "deprecatedGetEntityType">,
+        QueryDeprecatedGetEntityTypeArgs
+      >(deprecatedGetEntityType, vars)
+    ).deprecatedGetEntityType;
   }
 
-  async getEntityTypeAllParents(vars: QueryGetEntityTypeArgs) {
+  async getEntityTypeAllParents(vars: QueryDeprecatedGetEntityTypeArgs) {
     return (
       await this.client.request<
-        Pick<Query, "getEntityType">,
-        QueryGetEntityTypeArgs
-      >(getEntityTypeAllParents, vars)
-    ).getEntityType;
+        Pick<Query, "deprecatedGetEntityType">,
+        QueryDeprecatedGetEntityTypeArgs
+      >(deprecatedGetEntityTypeAllParents, vars)
+    ).deprecatedGetEntityType;
   }
 
-  async createEntityType(vars: CreateEntityTypeMutationVariables) {
+  async deprecatedCreateEntityType(
+    vars: DeprecatedCreateEntityTypeMutationVariables,
+  ) {
     return (
       await this.client.request<
-        CreateEntityTypeMutation,
-        CreateEntityTypeMutationVariables
-      >(createEntityType, vars)
-    ).createEntityType;
+        DeprecatedCreateEntityTypeMutation,
+        DeprecatedCreateEntityTypeMutationVariables
+      >(deprecatedCreateEntityType, vars)
+    ).deprecatedCreateEntityType;
   }
 
-  async updateEntityType(vars: UpdateEntityTypeMutationVariables) {
+  async deprecatedUpdateEntityType(
+    vars: DeprecatedUpdateEntityTypeMutationVariables,
+  ) {
     return (
       await this.client.request<
-        UpdateEntityTypeMutation,
-        UpdateEntityTypeMutationVariables
-      >(updateEntityType, vars)
-    ).updateEntityType;
+        DeprecatedUpdateEntityTypeMutation,
+        DeprecatedUpdateEntityTypeMutationVariables
+      >(deprecatedUpdateEntityType, vars)
+    ).deprecatedUpdateEntityType;
   }
 
   getPage = async (vars: GetPageQueryVariables) =>
@@ -304,7 +365,7 @@ export class ApiClient {
         getAccountPagesTree,
         vars,
       )
-      .then((res) => res.accountPages);
+      .then((res) => res.persistedPages);
 
   updatePageContents = async (vars: UpdatePageContentsMutationVariables) =>
     this.client

@@ -1,12 +1,15 @@
-import { MutationCreateEntityTypeArgs, ResolverFn } from "../../apiTypes.gen";
+import {
+  MutationDeprecatedCreateEntityTypeArgs,
+  ResolverFn,
+} from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { EntityType, UnresolvedGQLEntityType } from "../../../model";
 
-export const createEntityType: ResolverFn<
+export const deprecatedCreateEntityType: ResolverFn<
   Promise<UnresolvedGQLEntityType>,
   {},
   LoggedInGraphQLContext,
-  MutationCreateEntityTypeArgs
+  MutationDeprecatedCreateEntityTypeArgs
 > = async (
   _,
   { accountId, description, name, schema },
@@ -15,7 +18,7 @@ export const createEntityType: ResolverFn<
   dataSources.db.transaction(async (client) => {
     const entityType = await EntityType.create(client, {
       accountId,
-      createdByAccountId: user.accountId,
+      createdByAccountId: user.entityId,
       description: description ?? undefined,
       name,
       schema,

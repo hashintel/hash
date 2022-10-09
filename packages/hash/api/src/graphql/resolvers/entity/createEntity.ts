@@ -14,7 +14,7 @@ export const createEntity: ResolverFn<
 ) => {
   /** @todo restrict creation of protected types, e.g. User, Org */
   const entity = await Entity.createEntityWithLinks(dataSources.db, {
-    user,
+    user: user as any /** @todo: replace with updated model class */,
     accountId,
     entityDefinition,
   });

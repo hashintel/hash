@@ -32,6 +32,10 @@ PUBLISH_PATTERNS = ["packages/libs/error-stack**"]
 # deer is disabled for now because we don't want to publish it just yet
 # "packages/libs/deer**"
 
+# Build a docker container for these crates
+DOCKER_PATTERNS = ["packages/graph/hash_graph"]
+
+
 def generate_diffs():
     """
     Generates a diff between `HEAD^` and `HEAD`
@@ -50,7 +54,12 @@ def find_local_crates():
     `cargo-make` will run the sub-crate automatically.
     :return: a list of crate paths
     """
-    return [path.relative_to(CWD).parent for path in CWD.rglob("Cargo.toml")]
+    all_crates = [path.relative_to(CWD).parent for path in CWD.rglob("Cargo.toml")]
+    checked_crates = []
+    for crate in all_crates:
+        if not any(path in crate.parents for path in all_crates):
+            checked_crates.append(crate)
+    return checked_crates
 
 
 def filter_parent_crates(crates):
@@ -130,6 +139,20 @@ def filter_for_publishable_crates(crates):
     ]
 
 
+def filter_for_docker_crates(crates):
+    """
+    Returns the crates for which docker containers are built
+    :param crates: a list of paths to crates
+    :return: a list of crate paths for which docker containers are built
+    """
+    return [
+        crate
+        for crate in crates
+        for pattern in DOCKER_PATTERNS
+        if fnmatch(crate, pattern)
+    ]
+
+
 def output_matrix(name, crates, **kwargs):
     """
     Outputs the job matrix for the given crates
@@ -192,9 +215,11 @@ def main():
     available_crates = find_local_crates()
     changed_crates = filter_for_changed_crates(diffs, available_crates)
     changed_parent_crates = filter_parent_crates(changed_crates)
+    changed_docker_crates = filter_for_docker_crates(changed_parent_crates)
 
     output_matrix("lint", changed_parent_crates)
     output_matrix("test", changed_parent_crates, profile=["development", "production"])
+    output_matrix("docker", changed_docker_crates, profile=["production"])
     output_matrix(
         "publish",
         filter_crates_by_changed_version(

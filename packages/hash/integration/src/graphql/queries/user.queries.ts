@@ -56,13 +56,11 @@ export const loginWithLoginCode = gql`
       entityTypeName
       visibility
       accountSignupComplete
-      properties {
-        shortname
-        emails {
-          address
-          primary
-          verified
-        }
+      shortname
+      emails {
+        address
+        primary
+        verified
       }
     }
   }

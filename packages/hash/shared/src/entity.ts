@@ -7,7 +7,7 @@ import {
   isEntity,
 } from "./entityStore";
 import {
-  PageFieldsFragment,
+  PersistedPageFieldsFragment,
   Text,
   TextProperties,
 } from "./graphql/apiTypes.gen";
@@ -19,18 +19,16 @@ import {
 } from "./util";
 
 type ContentsEntity = DistributiveOmit<
-  PageFieldsFragment["contents"][number],
+  PersistedPageFieldsFragment["contents"][number],
   "__typename"
 >;
 
-export type BlockEntity = DistributiveOmit<ContentsEntity, "properties"> & {
-  properties: DistributiveOmit<ContentsEntity["properties"], "entity"> & {
-    entity: DistributivePick<
-      ContentsEntity["properties"]["entity"] | Text,
-      keyof ContentsEntity["properties"]["entity"] &
-        keyof (ContentsEntity["properties"]["entity"] | Text)
-    >;
-  };
+export type BlockEntity = ContentsEntity & {
+  entity: DistributivePick<
+    ContentsEntity["dataEntity"] | Text,
+    keyof ContentsEntity["dataEntity"] &
+      keyof (ContentsEntity["dataEntity"] | Text)
+  >;
 };
 
 // @todo make this more robust
@@ -127,7 +125,8 @@ export const getEntityChildEntity = (
       throw new Error("Expected linked entity to be draft");
     }
 
-    const textEntity = draftEntityStore[linkEntity.draftId];
+    /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+    const textEntity = draftEntityStore[(linkEntity as any).draftId];
 
     if (!textEntity) {
       throw new Error("Missing text entity from draft store");
@@ -152,10 +151,7 @@ export const getBlockChildEntity = (
     throw new Error("Can only get text entity from block entity");
   }
 
-  return getEntityChildEntity(
-    blockEntity.properties.entity.draftId,
-    entityStore.draft,
-  );
+  return getEntityChildEntity(blockEntity.draftId, entityStore.draft);
 };
 
 /**

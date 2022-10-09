@@ -1,0 +1,25 @@
+{
+  "kind": "entityType",
+  "$id": "https://blockprotocol.org/@alice/types/entity-type/playlist/v/1",
+  "type": "object",
+  "title": "Playlist",
+  "pluralTitle": "Playlists",
+  "properties": {
+    "https://blockprotocol.org/@alice/types/property-type/name/": {
+      "$ref": "https://blockprotocol.org/@alice/types/property-type/name/v/1"
+    }
+  },
+  "links": {
+    "https://blockprotocol.org/@alice/types/link-type/contains/v/1": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "https://blockprotocol.org/@alice/types/entity-type/song/v/1"
+          }
+        ]
+      },
+      "ordered": true
+    }
+  }
+}

@@ -20,7 +20,7 @@ export const deleteLink: ResolverFn<
     }
 
     await link.delete(client, {
-      deletedByAccountId: user.accountId,
+      deletedByAccountId: user.entityId,
     });
 
     return true;
