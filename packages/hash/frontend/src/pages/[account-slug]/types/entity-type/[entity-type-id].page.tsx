@@ -1,10 +1,11 @@
 import { EntityType } from "@blockprotocol/type-system-web";
+import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Container, Stack, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { FRONTEND_URL } from "../../../../lib/config";
-import { BriefcaseIcon } from "../../../../shared/icons/svg";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { EmptyPropertyListCard } from "./empty-property-list-card";
@@ -63,20 +64,7 @@ const Page: NextPageWithLayout = () => {
               title: entityType.title,
               href: "#",
               id: entityType.$id,
-              icon: (
-                <Box
-                  sx={{
-                    svg: {
-                      height: "16px",
-                      display: "flex",
-                      alignItems: "center",
-                    },
-                  }}
-                >
-                  {/** @todo how to specify icon */}
-                  <BriefcaseIcon />
-                </Box>
-              ),
+              icon: <FontAwesomeIcon icon={faAsterisk} />,
             },
           ]}
           scrollToTop={() => {}}
@@ -112,19 +100,15 @@ const Page: NextPageWithLayout = () => {
               }
             />
             <Typography variant="h1" fontWeight="bold" mt={3} mb={4.5}>
-              <Box
-                component="span"
+              <FontAwesomeIcon
+                icon={faAsterisk}
                 sx={(theme) => ({
+                  fontSize: 40,
                   mr: 3,
-                  verticalAlign: "middle",
                   color: theme.palette.gray[70],
-
-                  svg: { height: 40 },
+                  verticalAlign: "middle",
                 })}
-              >
-                {/** @todo how to specify icon */}
-                <BriefcaseIcon />
-              </Box>
+              />
               {entityType.title}
             </Typography>
           </Container>
