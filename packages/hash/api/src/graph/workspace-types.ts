@@ -48,6 +48,7 @@ export let WORKSPACE_TYPES: {
     summary: PropertyTypeModel;
     title: PropertyTypeModel;
     index: PropertyTypeModel;
+    icon: PropertyTypeModel;
 
     // Text-related
     tokens: PropertyTypeModel;
@@ -402,6 +403,13 @@ const indexPropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "Text" }],
 });
 
+const iconPropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Icon",
+  description: "An emoji icon.",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
 const containsLinkTypeInitializer = linkTypeInitializer({
   namespace: WORKSPACE_ACCOUNT_SHORTNAME,
   title: "Contains",
@@ -429,6 +437,9 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
   const indexPropertyTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.propertyType.index(graphApi);
 
+  const iconPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.icon(graphApi);
+
   const containsLinkTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.linkType.contains(graphApi);
 
@@ -451,6 +462,9 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
       {
         propertyTypeModel: archivedPropertyTypeModel,
+      },
+      {
+        propertyTypeModel: iconPropertyTypeModel,
       },
       {
         propertyTypeModel: titlePropertyTypeModel,
@@ -508,6 +522,7 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     archived: archivedPropertyTypeInitializer,
     title: titlePropertyTypeInitializer,
     index: indexPropertyTypeInitializer,
+    icon: iconPropertyTypeInitializer,
 
     tokens: tokensPropertyTypeInitializer,
   },

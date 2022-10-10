@@ -386,7 +386,7 @@ impl Indent {
                 group: false,
                 visible: true,
                 spacing: Some(Spacing::Minimal),
-            } => sym!('│', ' '),
+            } => sym!('│', ' ', ' '),
             Self {
                 group: false,
                 visible: true,
@@ -401,7 +401,7 @@ impl Indent {
                 visible: false,
                 spacing: Some(Spacing::Minimal),
                 ..
-            } => sym!(' ', ' '),
+            } => sym!(' ', ' ', ' '),
             Self {
                 visible: false,
                 spacing: None,
@@ -477,9 +477,9 @@ impl Instruction {
             },
 
             Self::Attachment { position } => match position {
-                Position::First => PreparedInstruction::Symbols(sym!('├', '╴')),
-                Position::Inner => PreparedInstruction::Symbols(sym!('├', '╴')),
-                Position::Final => PreparedInstruction::Symbols(sym!('╰', '╴')),
+                Position::First => PreparedInstruction::Symbols(sym!('├', '╴', ' ')),
+                Position::Inner => PreparedInstruction::Symbols(sym!('├', '╴', ' ')),
+                Position::Final => PreparedInstruction::Symbols(sym!('╰', '╴', ' ')),
             },
 
             // Indentation (like `|   ` or ` |  `)

@@ -137,7 +137,7 @@ export const createEditorView = (
 
   /** note that {@link ProsemirrorManager#defineBlock} is idempotent */
   manager.defineBlock(paragraphBlock);
-  blocksArray.forEach((block) => manager.defineBlock(block));
+  for (const block of blocksArray) manager.defineBlock(block);
 
   // @todo figure out how to use dev tools without it breaking fast refresh
   // applyDevTools(view);

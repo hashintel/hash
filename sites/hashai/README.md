@@ -5,4 +5,4 @@ The [hash.ai](https://hash.ai) website code currently resides in our private [`i
 - **User Guide** ([hash.ai/docs](https://hash.ai/docs)): found in this repository under the [`resources/docs`](https://github.com/hashintel/hash/tree/main/sites/hashai/resources/docs) directory
 - **Glossary Definitions** ([hash.ai/glossary](https://hash.ai/glossary)): found in this repository under the [`resources/glossary`](https://github.com/hashintel/hash/tree/main/sites/hashai/resources/glossary) directory
 
-Other hash.ai website content will be uploaded to this `sites/hashai` directory and the `resources` subdirectory in due course.
+Other hash.ai website content will be uploaded to the `resources` directory in due course.

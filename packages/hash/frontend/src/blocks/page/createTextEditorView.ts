@@ -19,7 +19,7 @@ export const createTextEditorView = (
       state.schema.nodes.hardBreak,
     ),
     nodeViews: {
-      ...(editorProps?.nodeViews || {}),
+      ...(editorProps?.nodeViews ?? {}),
       mention: mentionNodeView(renderPortal, accountId),
     },
   });

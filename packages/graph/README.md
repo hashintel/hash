@@ -1,6 +1,6 @@
-# The HASH Graph API
+# The HASH Graph Query Layer
 
-To run the HASH Graph API make sure `cargo-make` is installed:
+To run the HASH Graph Query Layer make sure `cargo-make` is installed:
 
 ```shell
 cargo install cargo-make
@@ -10,17 +10,19 @@ cargo install cargo-make
 
 1.  In order to set up the database, first the database has to be started:
 
+> **CAUTION:** At the moment, the graph starts the services it depends on differently to the rest of the codebase.
+>
+> **Before running the following command, ensure you tear down any existing `external-services` that were started as outlined in the [README for the workspace](/packages/hash/README.md).** Similarly, **ensure you call `deployment-down` before trying to run the `external-services`.**
+>
+> It is planned to address this by revisiting the way the services are orchestrated, while still allowing for local non-container-based development.
+
 ```shell
 cargo make deployment-up
 ```
 
-It's possible to recreate the database by using
+_It is possible to teardown the database with the equivalent `deployment-down` task_
 
-```shell
-cargo make recreate-db
-```
-
-Then, the Graph API can be started:
+Then, the Graph Query Layer can be started:
 
 ```shell
 cargo run
@@ -55,6 +57,14 @@ Every command line argument passed will also be forwarded to the subcommand, e.g
 
 ```shell
 cargo make doc --open
+```
+
+---
+
+It's possible to recreate the database by using
+
+```shell
+cargo make recreate-db
 ```
 
 ## Test the code

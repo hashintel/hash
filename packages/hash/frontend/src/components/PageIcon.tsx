@@ -19,14 +19,14 @@ export const pageIconVariantSizes: Record<
 };
 
 interface PageIconProps {
-  accountId: string;
+  ownedById: string;
   entityId: string;
   versionId?: string;
   size?: SizeVariant;
 }
 
 export const PageIcon = ({
-  accountId,
+  ownedById,
   entityId,
   versionId,
   size = "medium",
@@ -34,7 +34,7 @@ export const PageIcon = ({
   const { data } = useQuery<GetPageInfoQuery, GetPageInfoQueryVariables>(
     getPageInfoQuery,
     {
-      variables: { ownedById: accountId, entityId, entityVersion: versionId },
+      variables: { ownedById, entityId, entityVersion: versionId },
     },
   );
 
@@ -51,7 +51,7 @@ export const PageIcon = ({
         alignItems: "center",
       }}
     >
-      {data?.persistedPage?.icon || (
+      {data?.persistedPage?.icon ?? (
         <FontAwesomeIcon
           icon={faFile}
           sx={(theme) => ({

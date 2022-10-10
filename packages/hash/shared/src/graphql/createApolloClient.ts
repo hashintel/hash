@@ -19,7 +19,7 @@ import possibleTypes from "./fragmentTypes.gen.json";
 
 const errorLink = onError(({ graphQLErrors, operation }) => {
   if (graphQLErrors) {
-    graphQLErrors.forEach(({ message, extensions, path }) => {
+    for (const { message, extensions, path } of graphQLErrors) {
       Sentry.withScope((scope) => {
         const error = new Error(`GraphQL Error: ${path?.[0]?.toString()}`);
         scope.setExtra("Exception", extensions?.exception);
@@ -29,7 +29,7 @@ const errorLink = onError(({ graphQLErrors, operation }) => {
         error.message = `GraphQL error - ${path?.[0]?.toString()} - ${message}`;
         Sentry.captureException(error);
       });
-    });
+    }
   }
 });
 

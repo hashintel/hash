@@ -15,6 +15,7 @@ import {
 
 export type KnowledgeCallbacks = {
   getEntity: GetEntityMessageCallback;
+  updateEntity: UpdateEntityMessageCallback;
 };
 
 /* Entity CRU */
@@ -43,5 +44,17 @@ export type GetEntityMessageCallback = MessageCallback<
   GetEntityRequest,
   null,
   EntityResponse,
+  ReadOrModifyResourceError
+>;
+
+export type UpdateEntityRequest = {
+  entityId: string;
+  updatedProperties: Entity["properties"];
+};
+
+export type UpdateEntityMessageCallback = MessageCallback<
+  UpdateEntityRequest,
+  null,
+  Entity,
   ReadOrModifyResourceError
 >;
