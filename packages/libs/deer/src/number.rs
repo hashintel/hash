@@ -1,8 +1,8 @@
 #[cfg(feature = "arbitrary-precision")]
-use num_bigfloat::BigFloat;
-#[cfg(feature = "arbitrary-precision")]
-use num_bigint::BigInt;
+use num_bigint::{BigInt, BigUint, ToBigInt, ToBigUint};
 use num_traits::{FromPrimitive, ToPrimitive};
+#[cfg(feature = "arbitrary-precision")]
+use rust_decimal::Decimal;
 
 #[derive(Debug, Clone)]
 enum OpaqueNumber {
@@ -12,9 +12,23 @@ enum OpaqueNumber {
 
     Float(f64),
     #[cfg(feature = "arbitrary-precision")]
-    BigFloat(BigFloat),
+    Decimal(Decimal),
 }
 
+/// Used to represent any rational number.
+///
+/// This type simplifies the use of numbers internally and the implementation of custom
+/// [`Deserializers`], as one only needs to convert to [`Number`], instead of converting to every
+/// single primitive possible.
+///
+/// This type also enables easy coercion of values at deserialization time.
+///
+/// Without the `arbitrary-precision` feature enabled, integers are limited to `i16`, while floats
+/// are stored as `f64`, larger values are only supported using the aforementioned feature and are
+/// stored as [`BigInt`], [`BigFloat`] respectively.
+///
+/// Even with `arbitrary-precision` enabled, this type will try to fit the converted value into a
+/// `i64`, if that isn't possible it will fallback to a [`BigInt`].
 #[derive(Debug, Clone)]
 pub struct Number(OpaqueNumber);
 
@@ -127,7 +141,7 @@ macro_rules! to_int {
                 // they return None because the conversion from int to float is not lossless
                 OpaqueNumber::Float(x) => None,
                 #[cfg(feature = "arbitrary-precision")]
-                OpaqueNumber::BigFloat(x) => None,
+                OpaqueNumber::Decimal(x) => None,
             }
         }
     };
@@ -150,7 +164,7 @@ impl ToPrimitive for Number {
 
             OpaqueNumber::Float(x) => x.to_f32(),
             #[cfg(feature = "arbitrary-precision")]
-            OpaqueNumber::BigFloat(x) => x.to_f32(),
+            OpaqueNumber::Decimal(x) => x.to_f32(),
         }
     }
 
@@ -162,7 +176,49 @@ impl ToPrimitive for Number {
 
             OpaqueNumber::Float(x) => Some(*x),
             #[cfg(feature = "arbitrary-precision")]
-            OpaqueNumber::BigFloat(x) => x.to_f64(),
+            OpaqueNumber::Decimal(x) => x.to_f64(),
         }
+    }
+}
+
+#[cfg(feature = "arbitrary-precision")]
+impl From<BigInt> for Number {
+    fn from(value: BigInt) -> Self {
+        if let Some(value) = value.to_i64() {
+            Self(OpaqueNumber::Int(value))
+        } else {
+            Self(OpaqueNumber::BigInt(value))
+        }
+    }
+}
+
+#[cfg(feature = "arbitrary-precision")]
+impl ToBigInt for Number {
+    fn to_bigint(&self) -> Option<BigInt> {
+        match &self.0 {
+            OpaqueNumber::Int(int) => int.to_bigint(),
+            OpaqueNumber::BigInt(int) => Some(int.clone()),
+            OpaqueNumber::Float(float) => float.to_bigint(),
+            OpaqueNumber::Decimal(float) => float,
+        }
+    }
+}
+
+#[cfg(feature = "arbitrary-precision")]
+impl ToBigUint for Number {
+    fn to_biguint(&self) -> Option<BigUint> {
+        match &self.0 {
+            OpaqueNumber::Int(int) => int.to_biguint(),
+            OpaqueNumber::BigInt(int) => int.to_biguint(),
+            OpaqueNumber::Float(float) => float.to_biguint(),
+            OpaqueNumber::Decimal(_) => None,
+        }
+    }
+}
+
+#[cfg(feature = "arbitrary-precision")]
+impl From<Decimal> for Number {
+    fn from(value: Decimal) -> Self {
+        Self(OpaqueNumber::Decimal(value))
     }
 }

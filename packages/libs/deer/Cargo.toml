@@ -4,9 +4,22 @@ version = "0.0.0"
 edition = "2021"
 publish = false
 
+<<<<<<< HEAD
+=======
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+error-stack = "0.2.1"
+
+num-traits = "0.2.15"
+num-bigint = { version = "0.4.3", optional = true, default_features = false }
+rust_decimal = { version = "1.26.1", optional = true, default_features = false }
+
+>>>>>>> bfad495cc (feat: switch to `rust_decimal` for large decimals)
 [features]
 default = ['std']
-std = []
+std = ['num-bigint?/std', 'rust_decimal?/std']
+arbitrary-precision = ['dep:num-bigint', 'dep:rust_decimal', 'num-bigint?/arbitrary', 'rust_decimal?/arbitrary']
 
 [workspace]
 members = ['.', 'macros']
