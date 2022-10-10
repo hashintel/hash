@@ -5,7 +5,10 @@
 #![allow(clippy::module_name_repetitions)]
 #![forbid(unsafe_code)]
 
-use alloc::string::String;
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 use core::marker::PhantomData;
 use std::collections::HashMap;
 
