@@ -3,7 +3,7 @@ import { CommentModel, EntityModel } from "../../../../model";
 
 import {
   MutationCreatePersistedCommentArgs,
-  QueryPagePersistedCommentsArgs,
+  QueryPersistedPageCommentsArgs,
   ResolverFn,
 } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
@@ -47,7 +47,7 @@ export const persistedPageComments: ResolverFn<
   Promise<UnresolvedPersistedCommentGQL[]>,
   {},
   LoggedInGraphQLContext,
-  QueryPagePersistedCommentsArgs
+  QueryPersistedPageCommentsArgs
 > = async (_, { ownedById, pageId }, { dataSources: { graphApi } }) => {
   const comments = await CommentModel.getAllCommentsInPage(graphApi, {
     ownedById,

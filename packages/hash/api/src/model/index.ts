@@ -103,6 +103,3 @@ export { Page };
 
 export * from "./block.model";
 export { Block };
-
-export * from "./comment.model";
-export { Comment };
