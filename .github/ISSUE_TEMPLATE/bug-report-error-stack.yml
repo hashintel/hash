@@ -1,6 +1,5 @@
 name: Bug Report (error-stack)
 description: Create a report to help us improve `error-stack`
-title: "[Bug] "
 labels:
   - A-error-stack
   - C-bug
@@ -49,7 +48,7 @@ body:
     attributes:
       label: Rust compiler
       description: Which Rust compiler do you use? The current rust version can be printed by `rustc -V`
-      placeholder: 1.65.0 nightly (2022-08-26)
+      placeholder: e.g. 1.66.0 nightly (2022-09-27)
     validations:
       required: false
 
@@ -58,7 +57,7 @@ body:
     attributes:
       label: Host
       description: Which operating system are you on? Please post the output for `host` of `rustc -vV`.
-      placeholder: aarch64-apple-darwin
+      placeholder: e.g. aarch64-apple-darwin
     validations:
       required: false
 
@@ -67,7 +66,7 @@ body:
     attributes:
       label: Target
       description: What target are you compiling to? You can find a list of all installed targets with `rustup show`.
-      placeholder: x86_64-unknown-linux-musl
+      placeholder: e.g. x86_64-unknown-linux-musl
     validations:
       required: false
 
@@ -76,7 +75,7 @@ body:
     attributes:
       label: Version
       description: What error-stack version do you use? If you use the git version please also post the revision.
-      placeholder: v0.1.1
+      placeholder: e.g. v0.2.1
     validations:
       required: false
 

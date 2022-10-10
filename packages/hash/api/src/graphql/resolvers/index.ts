@@ -113,6 +113,7 @@ import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import {
   createPersistedEntity,
   persistedEntity,
+  updatePersistedEntity,
 } from "./knowledge/entity/entity";
 import { UnresolvedPersistedEntityGQL } from "./knowledge/model-mapping";
 import {
@@ -233,6 +234,7 @@ export const resolvers = {
     updateEntityType: loggedInAndSignedUp(updateEntityType),
     // Knowledge
     createPersistedEntity: loggedInAndSignedUp(createPersistedEntity),
+    updatePersistedEntity: loggedInAndSignedUp(updatePersistedEntity),
     createPersistedLink: loggedInAndSignedUp(createPersistedLink),
     deletePersistedLink: loggedInAndSignedUp(deletePersistedLink),
     createPersistedPage: loggedInAndSignedUp(createPersistedPage),

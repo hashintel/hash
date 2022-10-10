@@ -229,7 +229,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           ...theme.typography.smallTextLabels,
         }),
         fontWeight: 600,
-        ...(["tertiary", "tertiary_quiet"].includes(variant || "primary") && {
+        ...(["tertiary", "tertiary_quiet"].includes(variant ?? "primary") && {
           fontWeight: 500,
         }),
       };

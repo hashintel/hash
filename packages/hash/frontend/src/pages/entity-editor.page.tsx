@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { Container, Typography } from "@mui/material";
 import init, { ValueOrArray } from "@blockprotocol/type-system";
-
+import { Button } from "@hashintel/hash-design-system/button";
 import { useUser } from "../components/hooks/useUser";
 import { NextPageWithLayout } from "../shared/layout";
 import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotocol-ontology-functions-hook";
@@ -23,7 +23,8 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   const { user } = useUser();
   const [entity, setEntity] = useState<EntityResponse>();
 
-  const { getEntity } = useBlockProtocolFunctionsWithOntology(ownedById);
+  const { getEntity, createEntity } =
+    useBlockProtocolFunctionsWithOntology(ownedById);
 
   useEffect(() => {
     if (user) {
@@ -62,9 +63,23 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
     [entityTypeRootedSubgraph, propertyTypeIds],
   );
 
+  const handleCreateEntity = async () => {
+    const createdEntity = await createEntity({
+      data: {
+        entityTypeId:
+          "http://localhost:3000/@example/types/entity-type/dummy/v/1",
+        properties: {},
+      },
+    });
+
+    // eslint-disable-next-line no-console
+    console.log({ createdEntity });
+  };
+
   return (
     <Container>
       <Typography>Entity</Typography>
+      <Button onClick={handleCreateEntity}>Create Entity</Button>
       <pre style={{ overflowX: "scroll" }}>
         {JSON.stringify(entityWithoutEntityType ?? {}, null, 2)}
       </pre>

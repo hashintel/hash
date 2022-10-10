@@ -292,6 +292,7 @@ export const persistedPageTypedef = gql`
     summary: String
     archived: Boolean
     index: String
+    icon: String
   }
 
   extend type Mutation {

@@ -266,7 +266,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         <div className="duration-container">
           <DurationInput
             value={displayedDurationInMs}
-            disabled={readonly || timerStatus === "running"}
+            disabled={!!readonly || timerStatus === "running"}
             onChange={handleDurationInputChange}
             onSubmit={handlePlayClick}
           />
@@ -300,7 +300,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
           aria-label="Less time"
           className="less-time-button"
           disabled={
-            readonly ||
+            !!readonly ||
             timerStatus === "running" ||
             displayedDurationInMs <= minInitialDurationInMs
           }
@@ -312,7 +312,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
           className="reset-button"
           onClick={handleReset}
           disabled={
-            readonly || timerStatus === "idle" || timerStatus === "finished"
+            !!readonly || timerStatus === "idle" || timerStatus === "finished"
           }
           type="button"
         />
@@ -320,7 +320,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
           aria-label="More time"
           className="more-time-button"
           disabled={
-            readonly ||
+            !!readonly ||
             timerStatus === "running" ||
             displayedDurationInMs >= maxInitialDurationInMs
           }

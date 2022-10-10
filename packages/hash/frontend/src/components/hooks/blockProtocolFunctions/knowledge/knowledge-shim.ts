@@ -7,7 +7,10 @@
  */
 
 import { MessageCallback } from "@blockprotocol/core";
-import { ReadOrModifyResourceError } from "@blockprotocol/graph";
+import {
+  CreateResourceError,
+  ReadOrModifyResourceError,
+} from "@blockprotocol/graph";
 import {
   UnknownPersistedEntity,
   EntityTypeRootedSubgraph,
@@ -15,6 +18,7 @@ import {
 
 export type KnowledgeCallbacks = {
   getEntity: GetEntityMessageCallback;
+  updateEntity: UpdateEntityMessageCallback;
 };
 
 /* Entity CRU */
@@ -43,5 +47,29 @@ export type GetEntityMessageCallback = MessageCallback<
   GetEntityRequest,
   null,
   EntityResponse,
+  ReadOrModifyResourceError
+>;
+
+export type CreateEntityRequest = {
+  entityTypeId: string;
+  properties: Entity["properties"];
+};
+
+export type CreateEntityMessageCallback = MessageCallback<
+  CreateEntityRequest,
+  null,
+  Entity,
+  CreateResourceError
+>;
+
+export type UpdateEntityRequest = {
+  entityId: string;
+  updatedProperties: Entity["properties"];
+};
+
+export type UpdateEntityMessageCallback = MessageCallback<
+  UpdateEntityRequest,
+  null,
+  Entity,
   ReadOrModifyResourceError
 >;

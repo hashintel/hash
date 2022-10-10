@@ -7,7 +7,11 @@ test.beforeEach(async () => {
   await resetDb();
 });
 
-test("user can create and update entity", async ({ page }) => {
+/**
+ * @todo: Re-enable this playwright test when required workspace functionality is fixed
+ * @see https://app.asana.com/0/1202805690238892/1203106234191599/f
+ */
+test.skip("user can create and update entity", async ({ page }) => {
   await loginUsingUi({ page, accountShortName: "bob" });
 
   // Check if we are on the user page
