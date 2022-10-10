@@ -7,8 +7,9 @@
 #![forbid(unsafe_code)]
 
 use alloc::string::String;
+use core::marker::PhantomData;
 
-use error_stack::{IntoReport, Report, Result};
+use error_stack::{IntoReport, Report, Result, ResultExt};
 use num_traits::ToPrimitive;
 
 pub use crate::{error::Error, number::Number};
@@ -43,7 +44,7 @@ pub trait ArrayAccess {
 }
 
 // TODO: Error PR: attach the expected and received type
-pub trait Visitor {
+pub trait Visitor: Sized {
     type Error: Error;
     type Value;
 
@@ -117,32 +118,32 @@ pub trait Visitor {
         )))
     }
 
-    fn visit_u8(self, v: i8) -> Result<Self::Value, Self::Error> {
+    fn visit_u8(self, v: u8) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type u8",
         )))
     }
-    fn visit_u16(self, v: i16) -> Result<Self::Value, Self::Error> {
+    fn visit_u16(self, v: u16) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type u16",
         )))
     }
-    fn visit_u32(self, v: i32) -> Result<Self::Value, Self::Error> {
+    fn visit_u32(self, v: u32) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type u32",
         )))
     }
-    fn visit_u64(self, v: i64) -> Result<Self::Value, Self::Error> {
+    fn visit_u64(self, v: u64) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type u64",
         )))
     }
-    fn visit_u128(self, v: i128) -> Result<Self::Value, Self::Error> {
+    fn visit_u128(self, v: u128) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type u128",
         )))
     }
-    fn visit_usize(self, v: isize) -> Result<Self::Value, Self::Error> {
+    fn visit_usize(self, v: usize) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type usize",
         )))
@@ -151,9 +152,16 @@ pub trait Visitor {
 
 // internal visitor, which is used during the default implementation of the `deserialize_i*` and
 // `deserialize_u*` methods.
-struct NumberVisitor;
-impl Visitor for NumberVisitor {
-    type Error = Self::Error;
+struct NumberVisitor<E: Error>(PhantomData<fn() -> E>);
+
+impl<E: Error> NumberVisitor<E> {
+    fn new() -> Self {
+        Self(PhantomData::default())
+    }
+}
+
+impl<E: Error> Visitor for NumberVisitor<E> {
+    type Error = E;
     type Value = Number;
 
     fn visit_number(self, v: Number) -> Result<Self::Value, Self::Error> {
@@ -177,13 +185,13 @@ macro_rules! derive_from_number {
         where
             V: Visitor,
         {
-            let n = self.deserialize_number(NumberVisitor)?;
+            let n = self.deserialize_number(NumberVisitor::<Self::Error>::new())?;
             let v = n
                 .$to()
                 .ok_or_else(|| Self::Error::message("provided value too large or too small"))
                 .into_report()?;
 
-            visitor.$visit(v)
+            visitor.$visit(v).change_context(Self::Error::new())
         }
     };
 }

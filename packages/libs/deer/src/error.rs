@@ -11,4 +11,5 @@ pub trait Error: error_stack::Context {
     ///
     /// [`Report::attach`]: error_stack::Report::attach
     fn message(contents: &str) -> Self;
+    fn new() -> Self;
 }
