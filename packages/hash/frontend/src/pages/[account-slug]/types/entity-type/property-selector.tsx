@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { PopupState } from "material-ui-popup-state/hooks";
 import { forwardRef, useMemo, useRef, useState } from "react";
-import { ArrowUpRightIcon } from "../../../shared/icons/svg";
+import { ArrowUpRightIcon } from "../../../../shared/icons/svg";
 import { OntologyChip } from "./ontology-chip";
 import { PlaceholderIcon } from "./placeholder-icon";
 import { PropertyListSelectorDropdown } from "./property-list-selector-dropdown";
