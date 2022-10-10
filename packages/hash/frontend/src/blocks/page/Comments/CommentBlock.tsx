@@ -85,10 +85,9 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
     }
   }, []);
 
-  const preferredName =
-    author?.properties[
-      "http://localhost:3000/@example/types/property-type/preferred-name/"
-    ];
+  const preferredName = (author?.properties as any)[
+    "http://localhost:3000/@example/types/property-type/preferred-name/"
+  ];
 
   return (
     <Box display="flex" flexDirection="column" p={2}>

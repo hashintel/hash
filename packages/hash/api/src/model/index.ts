@@ -17,7 +17,6 @@ import Page from "./page.model";
 import Block from "./block.model";
 import Link from "./link.model";
 import Aggregation from "./aggregation.model";
-import Comment from "./comment.model";
 
 export * from "./ontology/data-type.model";
 export { default as DataTypeModel } from "./ontology/data-type.model";
