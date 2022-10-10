@@ -14,7 +14,7 @@ import { useLoggedInUser } from "../../../../components/hooks/useUser";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { OntologyChip } from "../entity-type/ontology-chip";
-import { PlaceholderIcon } from "../entity-type/placeholder-icon";
+import { HashOntologyIcon } from "../entity-type/hash-ontology-icon";
 
 const RequiredText = () => (
   <Box
@@ -106,7 +106,7 @@ const Page: NextPageWithLayout = () => {
         <Box py={3.75}>
           <Container>
             <OntologyChip
-              icon={<PlaceholderIcon />}
+              icon={<HashOntologyIcon />}
               domain="hash.ai"
               path={
                 <Typography color={(theme) => theme.palette.blue[70]}>

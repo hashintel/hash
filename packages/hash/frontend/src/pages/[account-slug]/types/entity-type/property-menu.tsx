@@ -23,7 +23,7 @@ import {
 } from "material-ui-popup-state/hooks";
 import { useId } from "react";
 import { OntologyChip } from "./ontology-chip";
-import { PlaceholderIcon } from "./placeholder-icon";
+import { HashOntologyIcon } from "./hash-ontology-icon";
 
 export const PropertyMenu = ({
   disabled,
@@ -115,7 +115,7 @@ export const PropertyMenu = ({
         </Typography>
         <ListItem sx={{ pt: "0 !important" }}>
           <OntologyChip
-            icon={<PlaceholderIcon />}
+            icon={<HashOntologyIcon />}
             domain="hash.ai"
             path={
               <>

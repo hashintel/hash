@@ -1,3 +1,7 @@
+import {
+  extractBaseUri,
+  validateVersionedUri,
+} from "@blockprotocol/type-system-web";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import { Chip } from "@hashintel/hash-design-system/chip";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
@@ -10,42 +14,32 @@ import {
   Typography,
 } from "@mui/material";
 import { PopupState } from "material-ui-popup-state/hooks";
-import { forwardRef, useMemo, useRef, useState } from "react";
+import { forwardRef, ReactNode, useMemo, useRef, useState } from "react";
 import { ArrowUpRightIcon } from "../../../../shared/icons/svg";
 import { OntologyChip } from "./ontology-chip";
-import { PlaceholderIcon } from "./placeholder-icon";
+import { HashOntologyIcon } from "./hash-ontology-icon";
 import { PropertyListSelectorDropdown } from "./property-list-selector-dropdown";
+import { usePropertyTypes } from "./use-property-types";
 
 export const PROPERTY_SELECTOR_HEIGHT = 57;
 
-const insertPropertyOptions = [
-  {
-    title: "Share Price",
-    icon: <PlaceholderIcon />,
-    domain: "hash.ai",
-    path: "@nasdaq",
-    expectedValues: ["Currency"],
-    description: "A company's current price per share",
-  },
-  {
-    title: "Stock Symbol ",
-    icon: <PlaceholderIcon />,
-    domain: "hash.ai",
-    path: "@acme-corp",
-    expectedValues: ["Text"],
-    description:
-      "An abbreviation used to uniquely identify public traded shares",
-  },
-  {
-    title: "Ownership Percentage",
-    icon: <PlaceholderIcon />,
-    domain: "hash.ai",
-    path: "@wrapped-text-that-is-long-enough",
-    expectedValues: ["Number"],
-    description:
-      "An entity’s ownership stake in another entity expressed as a property with a bunch of text long enough to make it wrap",
-  },
-];
+type PropertyTypeOption = {
+  path: string;
+  domain: string;
+  icon: ReactNode;
+  description: string;
+  title: string;
+  expectedValues: string[];
+};
+
+const dataTypeNames = {
+  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1": "Text",
+  "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1":
+    "Number",
+  "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1":
+    "Boolean",
+  "https://blockprotocol.org/@blockprotocol/types/data-type/null/v/1": "Null",
+} as Record<string, string>;
 
 export const PropertySelector = forwardRef<
   HTMLInputElement,
@@ -61,6 +55,43 @@ export const PropertySelector = forwardRef<
     { searchText, onSearchTextChange, modalPopupState, onAdd, onCancel },
     ref,
   ) => {
+    const propertyTypes = usePropertyTypes();
+
+    // @todo clean this up
+    const mappedPropertyTypes =
+      propertyTypes
+        ?.map((type): PropertyTypeOption => {
+          const validated = validateVersionedUri(type.$id);
+          const parsed =
+            validated.type === "Ok" ? extractBaseUri(validated.inner) : "";
+          const url = new URL(parsed);
+
+          const domain = url.host === "localhost:3000" ? "hash.ai" : url.host;
+
+          const pathname = url.pathname.slice(1);
+          const isHash = domain === "hash.ai";
+          const parts = pathname.split("/");
+          const path = isHash ? `${parts[0]}/${parts.at(-2)}` : pathname;
+
+          const expectedValues = type.oneOf.reduce<string[]>((types, val) => {
+            if ("$ref" in val && dataTypeNames[val.$ref]) {
+              types.push(dataTypeNames[val.$ref]!);
+            }
+
+            return types;
+          }, []);
+
+          return {
+            title: type.title,
+            icon: isHash ? <HashOntologyIcon /> : null,
+            domain,
+            path,
+            expectedValues,
+            description: type.description ?? "",
+          };
+        })
+        .filter((type) => !!type.expectedValues.length) ?? [];
+
     const modifiers = useMemo(
       (): PopperProps["modifiers"] => [
         {
@@ -86,9 +117,12 @@ export const PropertySelector = forwardRef<
 
     const [open, setOpen] = useState(false);
 
-    const highlightedRef = useRef<null | typeof insertPropertyOptions[number]>(
-      null,
-    );
+    const highlightedRef = useRef<null | PropertyTypeOption>(null);
+
+    if (!propertyTypes) {
+      // @todo loading indicator
+      return null;
+    }
 
     return (
       <Autocomplete
@@ -178,7 +212,7 @@ export const PropertySelector = forwardRef<
             }}
           />
         )}
-        options={insertPropertyOptions}
+        options={mappedPropertyTypes}
         getOptionLabel={(obj) => obj.title}
         renderOption={(props, option) => (
           <li {...props}>
