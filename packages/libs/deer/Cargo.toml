@@ -1,0 +1,12 @@
+[package]
+name = "deer"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[features]
+default = ['std']
+std = []
+
+[workspace]
+members = ['.', 'macros']
