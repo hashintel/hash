@@ -14,25 +14,30 @@ import { PlaceholderIcon } from "./placeholder-icon";
 import { InsertPropertyCard } from "./property-list-card";
 import { useStateCallback } from "./util";
 
-const Page: NextPageWithLayout = () => {
-  const [mode, setMode] = useStateCallback<"empty" | "inserting">("empty");
-  const insertFieldRef = useRef<HTMLInputElement>(null);
-
-  const router = useRouter();
-
+const useEntityType = (entityTypeSlug: string) => {
   const { getEntityType } = useBlockProtocolGetEntityType();
   const [entityType, setEntityType] = useState<EntityType | null>(null);
 
   useEffect(() => {
     void getEntityType({
       // @todo get latest version somehow?
-      data: { entityTypeId: `${FRONTEND_URL}${router.asPath}/v/1` },
+      data: { entityTypeId: `${FRONTEND_URL}${entityTypeSlug}/v/1` },
     }).then((value) => {
       if (value.data) {
         setEntityType(value.data.entityType);
       }
     });
-  }, [getEntityType, router.asPath]);
+  }, [getEntityType, entityTypeSlug]);
+
+  return entityType;
+};
+
+const Page: NextPageWithLayout = () => {
+  const [mode, setMode] = useStateCallback<"empty" | "inserting">("empty");
+  const insertFieldRef = useRef<HTMLInputElement>(null);
+
+  const router = useRouter();
+  const entityType = useEntityType(router.asPath);
 
   if (!entityType) {
     return null;
