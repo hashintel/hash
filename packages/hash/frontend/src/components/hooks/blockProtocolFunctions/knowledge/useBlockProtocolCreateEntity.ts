@@ -59,9 +59,7 @@ export const useBlockProtocolCreateEntity = (
         },
       });
 
-      const { createPersistedEntity: createdEntity } = responseData ?? {
-        createPersistedEntity: null,
-      };
+      const { createPersistedEntity: createdEntity } = responseData ?? {};
 
       if (!createdEntity) {
         return {
