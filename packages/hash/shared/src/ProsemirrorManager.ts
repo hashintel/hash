@@ -348,21 +348,21 @@ export class ProsemirrorManager {
          */
         if (
           isDraftTextContainingEntityProperties(
-            blockEntity.properties.entity.properties,
+            blockEntity.dataEntity?.properties,
           )
         ) {
           newBlockProperties = {
             ...entityProperties,
-            text: blockEntity.properties.entity.properties.text,
+            text: blockEntity.dataEntity?.properties.text as any,
           };
-        } else if (isTextProperties(blockEntity.properties.entity.properties)) {
+        } else if (isTextProperties(blockEntity.dataEntity?.properties)) {
           newBlockProperties = {
             ...entityProperties,
             text: this.createNewLegacyTextLink(
               this.view.state,
               tr,
               blockEntity.accountId,
-              blockEntity.properties.entity.properties,
+              blockEntity.dataEntity?.properties ?? { tokens: [] },
             ),
           };
         }
@@ -499,7 +499,7 @@ export class ProsemirrorManager {
       throw new Error("Can only update child of a BlockEntity");
     }
 
-    const childEntity = blockEntity.properties.entity;
+    const childEntity = blockEntity.dataEntity;
 
     // If the target entity is the same as the block's child entity
     // we don't need to do anything
