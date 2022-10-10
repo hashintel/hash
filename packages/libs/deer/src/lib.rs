@@ -8,6 +8,7 @@
 
 use alloc::string::String;
 use core::marker::PhantomData;
+use std::collections::HashMap;
 
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use num_traits::ToPrimitive;
@@ -47,6 +48,11 @@ pub trait ArrayAccess {
 pub trait Visitor: Sized {
     type Error: Error;
     type Value;
+
+    fn expecting_display(&self) -> String;
+    fn expecting_schema(&self) -> HashMap<String, String> {
+        HashMap::new()
+    }
 
     fn visit_null(self) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
@@ -163,6 +169,10 @@ impl<E: Error> NumberVisitor<E> {
 impl<E: Error> Visitor for NumberVisitor<E> {
     type Error = E;
     type Value = Number;
+
+    fn expecting_display(&self) -> String {
+        "number".to_string()
+    }
 
     fn visit_number(self, v: Number) -> Result<Self::Value, Self::Error> {
         Ok(v)
@@ -355,10 +365,8 @@ pub trait Deserializer: Sized {
 /// use the automatically generated output
 /// (which can be displayed with tools like [cargo-expand](https://github.com/dtolnay/cargo-expand))
 /// as a template. The macro generates human readable code which can be used as template.
+// TODO: add example
 pub trait Deserialize: Sized {
-    /// The name of the type, this is used during error reporting to display a correct name.
-    fn name() -> &'static str;
-
     /// Deserialize this value from the given `deer` deserializer.
     ///
     /// # Errors
