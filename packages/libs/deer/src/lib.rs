@@ -52,6 +52,11 @@ pub trait Visitor<'de>: Sized {
     type Value;
 
     fn expecting_display(&self) -> String;
+    // TODO: this is currently completely untyped, we might want to adhere to a standard, like
+    //  JSON-Schema or OpenAPI
+    //  The problem here mainly is: which crate to use, one can use utoipa (but that has significant
+    //  overhead)  there's no real library out there that properly just provides they types
+    //  necessary.
     fn expecting_schema(&self) -> HashMap<String, String> {
         HashMap::new()
     }
