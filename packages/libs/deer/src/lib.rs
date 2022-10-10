@@ -1,7 +1,6 @@
-//! Intentionally left blank for now!
-
 #![cfg_attr(not(feature = "std"), no_std)]
-#![warn(missing_docs, unreachable_pub, clippy::pedantic, clippy::nursery)]
+#![warn(unreachable_pub, clippy::pedantic, clippy::nursery)]
+// TODO: once more stable introduce: warning missing_docs
 #![allow(clippy::redundant_pub_crate)]
 #![allow(clippy::module_name_repetitions)]
 #![forbid(unsafe_code)]
@@ -45,7 +44,7 @@ pub trait ArrayAccess {
 }
 
 // TODO: Error PR: attach the expected and received type
-pub trait Visitor: Sized {
+pub trait Visitor<'de>: Sized {
     type Error: Error;
     type Value;
 
@@ -64,12 +63,46 @@ pub trait Visitor: Sized {
             "unexpected value of type bool",
         )))
     }
+    // TODO: should this auto-delegate to one of the other visit functions?!
     fn visit_number(self, v: Number) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type number",
         )))
     }
+
+    fn visit_char(self, v: String) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type char",
+        )))
+    }
+
     fn visit_string(self, v: String) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type string",
+        )))
+    }
+    fn visit_str(self, v: &str) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type string",
+        )))
+    }
+    fn visit_borrowed_str(self, v: &'de str) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type string",
+        )))
+    }
+
+    fn visit_bytes_buffer(self, v: Vec<u8>) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type string",
+        )))
+    }
+    fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type string",
+        )))
+    }
+    fn visit_borrowed_bytes(self, v: &'de [u8]) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type string",
         )))
@@ -154,6 +187,17 @@ pub trait Visitor: Sized {
             "unexpected value of type usize",
         )))
     }
+
+    fn visit_f32(self, v: f32) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type f32",
+        )))
+    }
+    fn visit_f64(self, v: f64) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type f64",
+        )))
+    }
 }
 
 // internal visitor, which is used during the default implementation of the `deserialize_i*` and
@@ -193,7 +237,7 @@ macro_rules! derive_from_number {
         /// Current value is either not a number or wasn't able to be casted to the primitive type
         fn $method<V>(self, visitor: V) -> Result<V::Value, Self::Error>
         where
-            V: Visitor,
+            V: Visitor<'de>,
         {
             let n = self.deserialize_number(NumberVisitor::<Self::Error>::new())?;
             let v = n
@@ -216,15 +260,19 @@ macro_rules! derive_from_number {
 ///
 /// The data model consists of the following types:
 ///
-/// * 4 primitives:
+/// * 6 primitives:
 ///     * `null`
 ///         * encodes the explicit absence of a value (`undefined`/`null` in JSON)
 ///     * `bool`
 ///         * Rust equivalent: [`true`], [`false`]
 ///     * `number`
 ///         * encodes both floating point and integral numbers
+///     * `char`:
+///         * example: `'a'`
 ///     * `string`
 ///         * example: `"Hello World!"`
+///     * `bytes`
+///         * example: `[0b0001, 0b1000]`
 /// * composite types
 ///     * `object`
 ///         * encodes any object, be it a map, struct or enum struct variant
@@ -235,7 +283,7 @@ macro_rules! derive_from_number {
 /// [`Deserializer`] and either return the value requested or return an error.
 ///
 /// [`serde`]: https://serde.rs/
-pub trait Deserializer: Sized {
+pub trait Deserializer<'de>: Sized {
     /// The error type that can be returned if some error occurs during deserialization
     type Error: Error;
 
@@ -245,7 +293,7 @@ pub trait Deserializer: Sized {
     /// formats are unable to provide this method.
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
-        V: Visitor;
+        V: Visitor<'de>;
 
     /// Deserialize a `null` (or equivalent type) value
     ///
@@ -259,7 +307,7 @@ pub trait Deserializer: Sized {
     /// Current value is not of type null
     fn deserialize_null<V>(self, visitor: V) -> Result<V, Self::Error>
     where
-        V: Visitor;
+        V: Visitor<'de>;
 
     /// Deserialize a [`bool`] value.
     ///
@@ -274,7 +322,7 @@ pub trait Deserializer: Sized {
     /// Current value is not of type bool
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
-        V: Visitor;
+        V: Visitor<'de>;
 
     /// Deserialize a [`Number`] value.
     ///
@@ -293,7 +341,11 @@ pub trait Deserializer: Sized {
     /// Current value is not of type number
     fn deserialize_number<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
-        V: Visitor;
+        V: Visitor<'de>;
+
+    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>;
 
     /// Deserialize a [`String`] value.
     ///
@@ -311,7 +363,18 @@ pub trait Deserializer: Sized {
     /// [`serde`]: https://serde.rs/
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
-        V: Visitor;
+        V: Visitor<'de>;
+
+    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>;
+
+    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>;
+    fn deserialize_bytes_buffer<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>;
 
     /// Deserialize a `Array`
     ///
@@ -323,7 +386,7 @@ pub trait Deserializer: Sized {
     /// Current value is not of type array
     fn deserialize_array<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
-        V: Visitor;
+        V: Visitor<'de>;
 
     /// Deserialize a `Object`
     ///
@@ -335,7 +398,7 @@ pub trait Deserializer: Sized {
     /// Current value is not of type object
     fn deserialize_object<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
-        V: Visitor;
+        V: Visitor<'de>;
 
     derive_from_number![
         deserialize_i8(to_i8) -> visit_i8,
@@ -351,6 +414,9 @@ pub trait Deserializer: Sized {
         deserialize_u64(to_u64) -> visit_u64,
         deserialize_u128(to_u128) -> visit_u128,
         deserialize_usize(to_usize) -> visit_usize,
+
+        deserialize_f32(to_f32) -> visit_f32,
+        deserialize_f64(to_f64) -> visit_f64,
     ];
 }
 
