@@ -262,11 +262,6 @@ export class EditorConnection {
   // for a new version of the document to be created if the client
   // is already up-to-date.
   poll() {
-    /** @todo re-enable polling https://app.asana.com/0/0/1203099452204542/f  */
-    // eslint-disable-next-line no-constant-condition
-    if (true) {
-      return;
-    }
     if (!this.state.edit) {
       throw new Error("Cannot poll without state");
     }
@@ -397,22 +392,14 @@ export class EditorConnection {
       actions?: TrackedAction[];
     } = {},
   ) {
-    /** @todo re-enable sending https://app.asana.com/0/0/1203099452204542/f  */
-    // eslint-disable-next-line no-constant-condition
-    if (true) {
-      return;
-    }
     for (const action of actions) {
       this.sentActions.add(action.id);
     }
 
     const json = JSON.stringify({
       version: this.state.version,
-      /** @todo these any type coercion are incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-      steps: steps
-        ? (steps as any).steps.map((step: any) => step.toJSON())
-        : [],
-      clientID: steps ? (steps as any).clientID : 0,
+      steps: steps ? steps.steps.map((step) => step.toJSON()) : [],
+      clientID: steps ? steps.clientID : 0,
       // @todo do something smarter
       blockIds: Object.keys(editState.schema.nodes).filter((key) =>
         key.startsWith("http"),
