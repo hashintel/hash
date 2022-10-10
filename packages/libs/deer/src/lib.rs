@@ -19,26 +19,26 @@ mod number;
 
 extern crate alloc;
 
-pub trait ObjectAccess {
+pub trait ObjectAccess<'de> {
     type Error: Error;
 
     fn value<T>(&mut self, key: &str) -> Result<T, Self::Error>
     where
-        T: Deserialize;
+        T: Deserialize<'de>;
 
     fn next<T>(&mut self) -> Result<Option<(String, T)>, Self::Error>
     where
-        T: Deserialize;
+        T: Deserialize<'de>;
 
     fn finish(self) -> Result<(), Self::Error>;
 }
 
-pub trait ArrayAccess {
+pub trait ArrayAccess<'de> {
     type Error: Error;
 
     fn next<T>(&mut self) -> Result<Option<T>, Self::Error>
     where
-        T: Deserialize;
+        T: Deserialize<'de>;
 
     fn finish(self) -> Result<(), Self::Error>;
 }
@@ -111,7 +111,7 @@ pub trait Visitor<'de>: Sized {
 
     fn visit_array<T>(self, v: T) -> Result<Self::Value, Self::Error>
     where
-        T: ArrayAccess,
+        T: ArrayAccess<'de>,
     {
         Err(Report::new(Self::Error::message(
             "unexpected value of type array",
@@ -120,7 +120,7 @@ pub trait Visitor<'de>: Sized {
 
     fn visit_object<T>(self, v: T) -> Result<Self::Value, Self::Error>
     where
-        T: ObjectAccess,
+        T: ObjectAccess<'de>,
     {
         Err(Report::new(Self::Error::message(
             "unexpected value of type object",
