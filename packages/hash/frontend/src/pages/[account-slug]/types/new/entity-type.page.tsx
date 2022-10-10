@@ -42,9 +42,13 @@ const Page: NextPageWithLayout = () => {
     },
   });
 
+  if (user && router.query["account-slug"] !== `@${user.shortname}`) {
+    throw new Error("Workspaces not yet supported");
+  }
+
   const { createEntityType } = useBlockProtocolCreateEntityType(
     // @todo should use routing URL?
-    user?.accountId ?? "",
+    user?.accountId ?? ""
   );
 
   const [creating, setCreating] = useState(false);
@@ -115,7 +119,7 @@ const Page: NextPageWithLayout = () => {
                     fontWeight="bold"
                     color="inherit"
                   >
-                    @{user.shortname}
+                    {router.query["account-slug"]}
                   </Typography>
                   /types/new/entity-type
                 </Typography>
