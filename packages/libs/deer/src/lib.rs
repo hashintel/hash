@@ -6,11 +6,11 @@
 #![forbid(unsafe_code)]
 
 use alloc::{
+    collections::BTreeMap,
     string::{String, ToString},
     vec::Vec,
 };
 use core::marker::PhantomData;
-use std::collections::HashMap;
 
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use num_traits::ToPrimitive;
@@ -57,8 +57,8 @@ pub trait Visitor<'de>: Sized {
     //  The problem here mainly is: which crate to use, one can use utoipa (but that has significant
     //  overhead)  there's no real library out there that properly just provides they types
     //  necessary.
-    fn expecting_schema(&self) -> HashMap<String, String> {
-        HashMap::new()
+    fn expecting_schema(&self) -> BTreeMap<String, String> {
+        BTreeMap::new()
     }
 
     fn visit_null(self) -> Result<Self::Value, Self::Error> {
