@@ -1,5 +1,10 @@
 import { GraphApi } from "@hashintel/hash-graph-client";
-import { EntityModel, BlockModel, EntityModelCreateParams } from "..";
+import {
+  EntityModel,
+  BlockModel,
+  EntityModelCreateParams,
+  CommentModel,
+} from "..";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
 
 type BlockModelCreateParams = Omit<
@@ -101,6 +106,18 @@ export default class extends EntityModel {
     }
 
     return outgoingBlockDataLink.targetEntityModel;
+  }
+
+  async getBlockComments(graphApi: GraphApi): Promise<CommentModel[]> {
+    const blockCommentLinks = await this.getIncomingLinks(graphApi, {
+      linkTypeModel: WORKSPACE_TYPES.linkType.parent,
+    });
+
+    const comments = blockCommentLinks.map((link) =>
+      CommentModel.fromEntityModel(link.sourceEntityModel),
+    );
+
+    return comments;
   }
 
   /**

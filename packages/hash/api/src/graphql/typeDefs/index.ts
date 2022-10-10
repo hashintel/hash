@@ -25,6 +25,7 @@ import { linkTypeTypedef } from "./ontology/link-type.typedef";
 import { entityTypeTypedef } from "./ontology/entity-type.typedef";
 import { persistedEntityTypedef } from "./knowledge/entity.typedef";
 import { persistedPageTypedef } from "./knowledge/page.typedef";
+import { persistedCommentTypedef } from "./knowledge/comment.typedef";
 import { persistedBlockTypedef } from "./knowledge/block.typedef";
 import { persistedLinkTypedef } from "./knowledge/link.typedef";
 import { blockprotocolTypedef } from "./blockprotocol.typedef";
@@ -60,6 +61,7 @@ const knowledge = [
   persistedEntityTypedef,
   persistedBlockTypedef,
   persistedPageTypedef,
+  persistedCommentTypedef,
   persistedLinkTypedef,
 ];
 

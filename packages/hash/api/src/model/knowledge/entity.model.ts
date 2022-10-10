@@ -433,6 +433,36 @@ export default class {
   }
 
   /**
+   * Get the incoming links of an entity.
+   *
+   * @param params.linkTypeModel (optional) - the specific link type of the incoming links
+   */
+  async getIncomingLinks(
+    graphApi: GraphApi,
+    params?: { linkTypeModel?: LinkTypeModel },
+  ): Promise<LinkModel[]> {
+    const incomingLinks = await LinkModel.getByQuery(graphApi, {
+      all: [
+        {
+          eq: [{ path: ["target", "id"] }, { literal: this.entityId }],
+        },
+        params?.linkTypeModel
+          ? {
+              eq: [
+                { path: ["type", "versionedUri"] },
+                {
+                  literal: params.linkTypeModel.schema.$id,
+                },
+              ],
+            }
+          : [],
+      ].flat(),
+    });
+
+    return incomingLinks;
+  }
+
+  /**
    * Get the outgoing links of an entity.
    *
    * @param params.linkTypeModel (optional) - the specific link type of the outgoing links

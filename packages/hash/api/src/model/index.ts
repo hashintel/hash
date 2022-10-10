@@ -54,6 +54,9 @@ export { default as BlockModel } from "./knowledge/block.model";
 export * from "./knowledge/page.model";
 export { default as PageModel } from "./knowledge/page.model";
 
+export * from "./knowledge/comment.model";
+export { default as CommentModel } from "./knowledge/comment.model";
+
 /** @todo: deprecate legacy model classes */
 
 export * from "./entityType.model";

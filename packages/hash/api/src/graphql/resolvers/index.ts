@@ -22,12 +22,7 @@ import {
   searchPages,
   pageLinkedEntities,
 } from "./pages";
-import {
-  createComment,
-  commentLinkedEntities,
-  textUpdatedAtFieldResolver,
-  pageComments,
-} from "./comments";
+import { commentLinkedEntities, textUpdatedAtFieldResolver } from "./comments";
 import { accounts } from "./account/accounts";
 import { createUser } from "./user/createUser";
 import { createUserWithOrgEmailInvitation } from "./user/createUserWithOrgEmailInvitation";
@@ -109,6 +104,10 @@ import {
   persistedPages,
   parentPersistedPage,
 } from "./knowledge/page/page";
+import {
+  createPersistedComment,
+  pagePersistedComments,
+} from "./knowledge/comment/comment";
 import { persistedBlocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import {
@@ -125,6 +124,11 @@ import {
 import { setParentPersistedPage } from "./knowledge/page/set-parent-page";
 import { updatePersistedPage } from "./knowledge/page/update-page";
 import { dataEntity } from "./knowledge/block/data-entity";
+import { persistedCommentHasText } from "./knowledge/comment/has-text";
+import { persistedCommentTextUpdatedAt } from "./knowledge/comment/text-updated-at";
+import { persistedCommentReplies } from "./knowledge/comment/replies";
+import { persistedCommentParent } from "./knowledge/comment/parent";
+import { persistedCommentAuthor } from "./knowledge/comment/author";
 
 /**
  * @todo: derive these from the statically declared workspace type names
@@ -145,7 +149,6 @@ const isWorkspaceEntityGQLTypeName = (
 export const resolvers = {
   Query: {
     // Logged in and signed up users only
-    pageComments: loggedInAndSignedUp(pageComments),
     accounts:
       loggedInAndSignedUp(
         accounts,
@@ -185,6 +188,7 @@ export const resolvers = {
     // Knowledge
     persistedPage: loggedInAndSignedUp(persistedPage),
     persistedPages: loggedInAndSignedUp(persistedPages),
+    pagePersistedComments: loggedInAndSignedUp(pagePersistedComments),
     persistedBlocks: loggedInAndSignedUp(persistedBlocks),
     persistedEntity: loggedInAndSignedUp(persistedEntity),
     outgoingPersistedLinks: loggedInAndSignedUp(outgoingPersistedLinks),
@@ -202,7 +206,6 @@ export const resolvers = {
     deleteLinkedAggregation: loggedInAndSignedUp(deleteLinkedAggregation),
     deprecatedCreateEntityType: loggedInAndSignedUp(deprecatedCreateEntityType),
     createFileFromLink: loggedInAndSignedUp(createFileFromLink),
-    createComment: loggedInAndSignedUp(createComment),
     createOrg: loggedInAndSignedUp(createOrg),
     createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),
     transferEntity: loggedInAndSignedUp(transferEntity),
@@ -242,6 +245,7 @@ export const resolvers = {
     createPersistedPage: loggedInAndSignedUp(createPersistedPage),
     setParentPersistedPage: loggedInAndSignedUp(setParentPersistedPage),
     updatePersistedPage: loggedInAndSignedUp(updatePersistedPage),
+    createPersistedComment: loggedInAndSignedUp(createPersistedComment),
   },
 
   JSONObject: JSONObjectResolver,
@@ -361,6 +365,14 @@ export const resolvers = {
   PersistedPage: {
     contents: persistedPageContents,
     parentPage: parentPersistedPage,
+  },
+
+  PersistedComment: {
+    hasText: persistedCommentHasText,
+    textUpdatedAt: persistedCommentTextUpdatedAt,
+    parent: persistedCommentParent,
+    author: persistedCommentAuthor,
+    replies: persistedCommentReplies,
   },
 
   PersistedBlock: {

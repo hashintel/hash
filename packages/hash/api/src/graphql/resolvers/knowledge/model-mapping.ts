@@ -1,9 +1,16 @@
-import { BlockModel, EntityModel, LinkModel, PageModel } from "../../../model";
+import {
+  BlockModel,
+  CommentModel,
+  EntityModel,
+  LinkModel,
+  PageModel,
+} from "../../../model";
 import {
   PersistedBlock,
   PersistedEntity,
   PersistedLink,
   PersistedPage,
+  PersistedComment,
 } from "../../apiTypes.gen";
 import { mapEntityTypeModelToGQL } from "../ontology/model-mapping";
 
@@ -49,6 +56,25 @@ export const mapPageModelToGQL = (
   summary: pageModel.getSummary(),
   index: pageModel.getIndex(),
   icon: pageModel.getIcon(),
+});
+
+export type ExternalPersistedCommentResolversGQL =
+  | ExternalPersistedEntityResolversGQL
+  | "hasText"
+  | "textUpdatedAt"
+  | "parent"
+  | "author"
+  | "replies";
+export type UnresolvedPersistedCommentGQL = Omit<
+  PersistedComment,
+  ExternalPersistedCommentResolversGQL
+>;
+
+export const mapCommentModelToGQL = (
+  commentModel: CommentModel,
+): UnresolvedPersistedCommentGQL => ({
+  ...mapEntityModelToGQL(commentModel),
+  resolvedAt: commentModel.getResolvedAt(),
 });
 
 export type ExternalPersistedBlockResolversGQL =
