@@ -4,10 +4,6 @@ version = "0.0.0"
 edition = "2021"
 publish = false
 
-<<<<<<< HEAD
-=======
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 error-stack = "0.2.1"
 
@@ -15,13 +11,9 @@ num-traits = "0.2.15"
 num-bigint = { version = "0.4.3", optional = true, default_features = false }
 rust_decimal = { version = "1.26.1", optional = true, default_features = false }
 
-<<<<<<< HEAD
->>>>>>> bfad495cc (feat: switch to `rust_decimal` for large decimals)
-=======
 [build-dependencies]
 rustc_version = "0.4.0"
 
->>>>>>> 7e0dddb30 (fix: compile)
 [features]
 default = ['std']
 std = ['num-bigint?/std', 'rust_decimal?/std']
