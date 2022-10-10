@@ -48,6 +48,5 @@ export const persistedBlockFieldsFragment = gql`
       properties
     }
     properties
-    # Not fetching Data Entity yet.
   }
 `;
