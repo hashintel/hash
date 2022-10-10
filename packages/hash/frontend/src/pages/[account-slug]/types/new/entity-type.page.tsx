@@ -3,7 +3,6 @@ import {
   Box,
   Container,
   formHelperTextClasses,
-  inputLabelClasses,
   outlinedInputClasses,
   Stack,
   Typography,
