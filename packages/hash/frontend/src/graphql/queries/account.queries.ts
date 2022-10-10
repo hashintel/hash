@@ -16,60 +16,42 @@ export const getAccounts = gql`
             accountId
           }
         }
-        properties {
-          shortname
-          preferredName
-          emails {
-            address
-            primary
-            verified
-          }
+        shortname
+        preferredName
+        emails {
+          address
+          primary
+          verified
         }
       }
       ... on Org {
-        properties {
-          shortname
-          name
-        }
-      }
-    }
-  }
-`;
-
-export const getAccountPages = gql`
-  query getAccountPages($accountId: ID!) {
-    accountPages(accountId: $accountId) {
-      entityId
-      properties {
-        pageEntityId
-        title
-        summary
+        shortname
+        name
       }
     }
   }
 `;
 
 export const getAccountPagesTree = gql`
-  query getAccountPagesTree($accountId: ID!) {
-    accountPages(accountId: $accountId) {
+  query getAccountPagesTree($ownedById: ID) {
+    persistedPages(ownedById: $ownedById) {
       entityId
-      properties {
-        title
-        pageEntityId
-        index
+      title
+      index
+      parentPage {
+        entityId
       }
-      parentPageEntityId
     }
   }
 `;
 
-export const getAccountEntityTypes = gql`
-  query getAccountEntityTypes(
+export const deprecatedGetAccountEntityTypes = gql`
+  query deprecatedGetAccountEntityTypes(
     $accountId: ID!
     $includeAllTypes: Boolean = false
     $includeOtherTypesInUse: Boolean = false
   ) {
-    getAccountEntityTypes(
+    deprecatedGetAccountEntityTypes(
       accountId: $accountId
       includeAllTypes: $includeAllTypes
       includeOtherTypesInUse: $includeOtherTypesInUse

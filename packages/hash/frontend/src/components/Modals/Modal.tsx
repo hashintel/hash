@@ -30,7 +30,7 @@ export const Modal: FunctionComponent<ModalProps> = ({
   children,
   disableScrollLock = false,
   onClose,
-  contentStyle,
+  contentStyle = [],
   ...props
 }) => {
   useScrollLock(!disableScrollLock && open);
@@ -44,7 +44,14 @@ export const Modal: FunctionComponent<ModalProps> = ({
       disableScrollLock
       {...props}
     >
-      <Box sx={{ ...style, ...contentStyle }}>{children}</Box>
+      <Box
+        sx={[
+          style,
+          ...(Array.isArray(contentStyle) ? contentStyle : [contentStyle]),
+        ]}
+      >
+        {children}
+      </Box>
     </MuiModal>
   );
 };

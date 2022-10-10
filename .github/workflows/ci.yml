@@ -130,28 +130,12 @@ jobs:
       - uses: ./.github/actions/warm-up-repo
 
       - name: Create temp files and folders
-        run: |
-          touch .env.local
-          mkdir -p var/logs
+        run: mkdir -p var/logs
 
       - name: Launch external services
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file packages/hash/external-services/docker-compose.yml build
-          docker-compose --file packages/hash/external-services/docker-compose.yml up --detach
-
-      - name: Seed data
-        if: ${{ success() || failure() }}
-        run: |
-          yarn seed-data
-
-      - name: Launch backend in test mode
-        if: ${{ success() || failure() }}
-        run: |
-          yarn dev:backend 2>&1 | tee var/logs/backend.log & ## ampersand enables background mode
-          yarn wait-on --timeout 30000 http://0.0.0.0:5001
-        env:
-          NODE_ENV: test
+          yarn external-services-test up --detach
 
       - run: yarn test:backend-integration
         if: ${{ success() || failure() }}
@@ -160,10 +144,6 @@ jobs:
         if: ${{ success() || failure() }}
         run: |
           docker-compose --file packages/hash/external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
-
-      - name: Show backend logs
-        if: ${{ success() || failure() }}
-        run: cat var/logs/backend.log
 
       - name: Upload artifact backend-integration-tests-var
         uses: actions/upload-artifact@v2
@@ -195,20 +175,18 @@ jobs:
           playwright-deps: chrome firefox
 
       - name: Create temp files and folders
-        run: |
-          touch .env.local
-          mkdir -p var/logs
+        run: mkdir -p var/logs
 
       - name: Launch external services
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file packages/hash/external-services/docker-compose.yml build
-          docker-compose --file packages/hash/external-services/docker-compose.yml up --detach
+          yarn external-services up --build --detach
 
-      - name: Seed data
-        if: ${{ success() || failure() }}
-        run: |
-          yarn seed-data
+      ## @todo: re-implement seed-data scripts for the new type system, so that they can be used here. Can potentially be addressed as part of https://app.asana.com/0/1202805690238892/1203106234191606/f
+      # - name: Seed data
+      #   if: ${{ success() || failure() }}
+      #   run: |
+      #     yarn seed-data
 
       - name: Launch backend
         if: ${{ success() || failure() }}

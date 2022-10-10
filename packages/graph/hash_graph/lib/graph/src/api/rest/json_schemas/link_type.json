@@ -1,0 +1,22 @@
+{
+  "$id": "https://blockprotocol.org/type-system/0.2/schema/meta/link-type",
+  "description": "Specifies the structure of a Link Type",
+  "properties": {
+    "kind": {
+      "enum": ["linkType"]
+    },
+    "$id": {
+      "type": "string",
+      "format": "uri"
+    },
+    "title": { "type": "string" },
+    "pluralTitle": { "type": "string" },
+    "description": { "type": "string" },
+    "relatedKeywords": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": false,
+  "required": ["kind", "$id", "title", "pluralTitle", "description"]
+}

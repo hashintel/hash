@@ -318,7 +318,8 @@ export const createSuggester = (
               );
           }
 
-          if (jsx) {
+          if (anchorNode && jsx) {
+            const anchorNodeRect = anchorNode.getBoundingClientRect();
             ensureMounted(mountNode, documentRoot);
             renderPortal(
               <Popper
@@ -331,9 +332,8 @@ export const createSuggester = (
                     name: "offset",
                     options: {
                       offset: () => [
-                        coords.left -
-                          (anchorNode?.getBoundingClientRect().x ?? 0),
-                        0,
+                        coords.left - anchorNodeRect.x,
+                        coords.bottom - anchorNodeRect.bottom,
                       ],
                     },
                   },

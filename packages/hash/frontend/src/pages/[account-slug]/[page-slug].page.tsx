@@ -87,11 +87,15 @@ export const PageNotificationBanner: FunctionComponent = () => {
   const { data } = useQuery<GetPageInfoQuery, GetPageInfoQueryVariables>(
     getPageInfoQuery,
     {
-      variables: { entityId: pageEntityId, accountId, versionId },
+      variables: {
+        ownedById: accountId,
+        entityId: pageEntityId,
+        entityVersion: versionId,
+      },
     },
   );
 
-  const archived = data?.page?.properties?.archived;
+  const archived = data?.persistedPage?.archived;
 
   return (
     <Collapse in={!!archived}>
@@ -157,7 +161,7 @@ const generateCrumbsFromPages = ({
       id: currentPage.entityId,
       icon: (
         <PageIcon
-          accountId={accountId}
+          ownedById={accountId}
           entityId={currentPage.entityId}
           size="small"
         />
@@ -199,7 +203,11 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
     GetPageInfoQuery,
     GetPageInfoQueryVariables
   >(getPageInfoQuery, {
-    variables: { entityId: pageEntityId, accountId, versionId },
+    variables: {
+      ownedById: accountId,
+      entityId: pageEntityId,
+      entityVersion: versionId,
+    },
   });
   const pageHeaderRef = useRef<HTMLElement>();
   const { readonlyMode } = useReadonlyMode();
@@ -277,7 +285,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
     );
   }
 
-  const { title, icon } = data.page.properties;
+  const { title, icon } = data.persistedPage;
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
@@ -314,7 +322,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
           <TopContextBar
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
-              pageId: data.page.entityId,
+              pageId: data.persistedPage.entityId,
               accountId,
             })}
             scrollToTop={scrollToTop}
@@ -325,7 +333,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
         <Container>
           <Box position="relative">
             <PageIconButton
-              accountId={accountId}
+              ownedById={accountId}
               entityId={pageEntityId}
               versionId={versionId}
               readonly={readonlyMode}
@@ -350,10 +358,10 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
             >
               <PageTitle
                 value={title}
-                accountId={accountId}
-                entityId={pageEntityId}
+                ownedById={accountId}
+                pageEntityId={pageEntityId}
               />
-              {/* 
+              {/*
             Commented out Version Dropdown and Transfer Page buttons.
             They will most likely be added back when new designs 
             for them have been added

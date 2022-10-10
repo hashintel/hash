@@ -1,6 +1,42 @@
 import { ApolloError } from "apollo-server-express";
+import { User as GQLUser, Visibility } from "../../apiTypes.gen";
+import { UserModel, User, VerificationCode } from "../../../model";
 import { DbClient } from "../../../db";
-import { User, VerificationCode } from "../../../model";
+
+type GQLUserExternalResolvers =
+  | "accountSignupComplete"
+  | "memberOf"
+  | "entityType"
+  | "linkGroups"
+  | "linkedEntities"
+  | "linkedAggregations";
+
+export type UnresolvedGQLUser = Omit<GQLUser, GQLUserExternalResolvers>;
+
+/** @todo: address the below todos as part of https://app.asana.com/0/0/1202996188015545/f */
+export const mapUserModelToGQL = async (
+  user: UserModel,
+): Promise<UnresolvedGQLUser> => {
+  return {
+    accountId: user.entityId,
+    id: user.entityId /** @todo: verify if we still need this in https://app.asana.com/0/0/1202980861294716/f */,
+    entityId: user.entityId,
+    entityVersionId: user.version,
+    entityTypeId: "" /** @todo: deprecate this field */,
+    entityTypeVersionId: user.entityTypeModel.schema.$id,
+    entityTypeName: user.entityTypeModel.schema.title,
+    shortname: user.getShortname(),
+    preferredName: user.getPreferredName(),
+    emails: await user.getQualifiedEmails(),
+    entityVersionCreatedAt:
+      new Date().toISOString() /** @todo: stop hardcoding this */,
+    createdAt: new Date().toISOString() /** @todo: stop hardcoding this */,
+    updatedAt: new Date().toISOString() /** @todo: stop hardcoding this */,
+    createdByAccountId: "" /** @todo: stop hardcoding this */,
+    visibility:
+      Visibility.Public /** @todo: potentially deprecate or stop hardcoding this */,
+  };
+};
 
 export const verifyVerificationCode =
   (client: DbClient) =>

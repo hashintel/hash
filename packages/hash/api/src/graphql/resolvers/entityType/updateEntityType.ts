@@ -1,14 +1,17 @@
 import { ApolloError } from "apollo-server-express";
 
-import { MutationUpdateEntityTypeArgs, ResolverFn } from "../../apiTypes.gen";
+import {
+  MutationDeprecatedUpdateEntityTypeArgs,
+  ResolverFn,
+} from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { EntityType, UnresolvedGQLEntityType } from "../../../model";
 
-export const updateEntityType: ResolverFn<
+export const deprecatedUpdateEntityType: ResolverFn<
   Promise<UnresolvedGQLEntityType>,
   {},
   LoggedInGraphQLContext,
-  MutationUpdateEntityTypeArgs
+  MutationDeprecatedUpdateEntityTypeArgs
 > = async (_, { entityId, schema }, { dataSources: { db }, user }) => {
   return await db.transaction(async (conn) => {
     const entityType = await EntityType.getEntityType(conn, {
@@ -23,7 +26,7 @@ export const updateEntityType: ResolverFn<
     }
 
     await entityType.update(conn, {
-      updatedByAccountId: user.accountId,
+      updatedByAccountId: user.entityId,
       createdByAccountId: user.entityId,
       schema,
     });
