@@ -57,9 +57,7 @@ export const commentFieldsFragment = gql`
     textUpdatedAt
     author {
       entityId
-      properties {
-        preferredName
-      }
+      preferredName
     }
     parent {
       entityId
