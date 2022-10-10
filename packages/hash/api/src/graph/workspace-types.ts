@@ -13,6 +13,7 @@ import {
 export const workspaceEntityTypeTitles = {
   block: "Block",
   page: "Page",
+  comment: "Comment",
   text: "Text",
   dummy: "Dummy",
   user: "User",
@@ -52,12 +53,16 @@ export let WORKSPACE_TYPES: {
 
     // Text-related
     tokens: PropertyTypeModel;
+
+    // Comment-related
+    resolvedAt: PropertyTypeModel;
   };
   entityType: {
     user: EntityTypeModel;
     org: EntityTypeModel;
     orgMembership: EntityTypeModel;
     block: EntityTypeModel;
+    comment: EntityTypeModel;
     page: EntityTypeModel;
     text: EntityTypeModel;
     /**
@@ -79,6 +84,10 @@ export let WORKSPACE_TYPES: {
     // Page-related
     contains: LinkTypeModel;
     parent: LinkTypeModel;
+
+    // Comment-related
+    hasText: LinkTypeModel;
+    author: LinkTypeModel;
   };
 };
 
@@ -491,6 +500,81 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
   })(graphApi);
 };
 
+const resolvedAtPropertyTypeInitializer = propertyTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Resolved At",
+  description: "Stringified timestamp of when something was resolved.",
+  possibleValues: [{ primitiveDataType: "Text" }],
+});
+
+const hasTextLinkTypeInitializer = linkTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Has Text",
+  description: "Something that has text.",
+});
+
+const authorLinkTypeInitializer = linkTypeInitializer({
+  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
+  title: "Author",
+  description: "The author of something.",
+});
+
+const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const resolvedAtPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.resolvedAt(graphApi);
+
+  const hasTextLinkTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.linkType.hasText(graphApi);
+
+  const parentLinkTypeTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.linkType.parent(graphApi);
+
+  const authorLinkTypeTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.linkType.author(graphApi);
+
+  const userEntityTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.entityType.user(graphApi);
+
+  const textEntityTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.entityType.text(graphApi);
+
+  const blockEntityTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.entityType.block(graphApi);
+
+  const namespace = WORKSPACE_ACCOUNT_SHORTNAME;
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    namespace,
+    title: workspaceEntityTypeTitles.comment,
+    properties: [
+      {
+        propertyTypeModel: resolvedAtPropertyTypeModel,
+      },
+    ],
+    outgoingLinks: [
+      {
+        linkTypeModel: hasTextLinkTypeModel,
+        destinationEntityTypeModels: [textEntityTypeModel],
+        required: true,
+      },
+      {
+        linkTypeModel: parentLinkTypeTypeModel,
+        destinationEntityTypeModels: ["SELF_REFERENCE", blockEntityTypeModel],
+        required: true,
+      },
+      {
+        linkTypeModel: authorLinkTypeTypeModel,
+        destinationEntityTypeModels: [userEntityTypeModel],
+        required: true,
+      },
+    ],
+  })(graphApi);
+};
+
 type LazyPromise<T> = (graphApi: GraphApi) => Promise<T>;
 
 type FlattenAndPromisify<T> = {
@@ -525,6 +609,8 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     icon: iconPropertyTypeInitializer,
 
     tokens: tokensPropertyTypeInitializer,
+
+    resolvedAt: resolvedAtPropertyTypeInitializer,
   },
   entityType: {
     user: userEntityTypeInitializer,
@@ -532,6 +618,7 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     orgMembership: orgMembershipEntityTypeInitializer,
     block: blockEntityTypeInitializer,
     page: pageEntityTypeInitializer,
+    comment: commentEntityTypeInitializer,
     text: textEntityTypeInitializer,
     dummy: dummyEntityTypeInitializer,
   },
@@ -541,6 +628,8 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     blockData: blockDataLinkTypeInitializer,
     contains: containsLinkTypeInitializer,
     parent: parentLinkTypeInitializer,
+    hasText: hasTextLinkTypeInitializer,
+    author: authorLinkTypeInitializer,
   },
 };
 
