@@ -9,7 +9,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/router";
-import { FormEvent, useState } from "react";
+import { useForm } from "react-hook-form";
 import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
 import { useLoggedInUser } from "../../../../components/hooks/useUser";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
@@ -28,11 +28,20 @@ const RequiredText = () => (
   </Box>
 );
 
+type CreateEntityTypeFormData = {
+  name: string;
+  description: string;
+};
+
 const HELPER_TEXT_WIDTH = 290;
 
 const Page: NextPageWithLayout = () => {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const {
+    handleSubmit,
+    register,
+    formState: { isSubmitting },
+  } = useForm<CreateEntityTypeFormData>();
+
   const router = useRouter();
   const { user, loading } = useLoggedInUser({
     onCompleted(data) {
@@ -48,46 +57,34 @@ const Page: NextPageWithLayout = () => {
 
   const { createEntityType } = useBlockProtocolCreateEntityType(
     // @todo should use routing URL?
-    user?.accountId ?? ""
+    user?.accountId ?? "",
   );
-
-  const [creating, setCreating] = useState(false);
 
   if (loading || !user) {
     return null;
   }
 
-  const handleSubmit = async (evt: FormEvent) => {
-    evt.preventDefault();
+  const handleFormSubmit = handleSubmit(async ({ name, description }) => {
+    const res = await createEntityType({
+      data: {
+        entityType: {
+          title: name,
+          // @todo make this not necessary
+          pluralTitle: name,
+          description,
+          kind: "entityType",
+          type: "object",
+          properties: {},
+        },
+      },
+    });
+    const newUrl = res.data?.entityTypeId.replace(/v\/\d+/, "");
 
-    if (!creating) {
-      setCreating(true);
-
-      try {
-        const res = await createEntityType({
-          data: {
-            entityType: {
-              title: name,
-              // @todo make this not necessary
-              pluralTitle: name,
-              description,
-              kind: "entityType",
-              type: "object",
-              properties: {},
-            },
-          },
-        });
-        const newUrl = res.data?.entityTypeId.replace(/v\/\d+/, "");
-
-        if (newUrl) {
-          await router.push(newUrl);
-        }
-      } catch (err) {
-        setCreating(false);
-        throw err;
-      }
+    if (newUrl) {
+      await router.push(newUrl);
     }
-  };
+  });
+
   return (
     <Stack sx={{ height: "100vh" }}>
       <Box bgcolor="white">
@@ -134,7 +131,7 @@ const Page: NextPageWithLayout = () => {
       </Box>
       <Box flex={1} bgcolor="gray.10" borderTop={1} borderColor="gray.20">
         <Container>
-          <Box py={8} component="form" onSubmit={handleSubmit}>
+          <Box py={8} component="form" onSubmit={handleFormSubmit}>
             <Stack
               alignItems="stretch"
               sx={(theme) => ({
@@ -169,13 +166,15 @@ const Page: NextPageWithLayout = () => {
               spacing={3}
             >
               <TextField
+                {...register("name", {
+                  required: true,
+                  disabled: isSubmitting,
+                })}
+                required
+                disabled={isSubmitting}
                 label="Singular Name"
-                name="name"
                 type="text"
                 placeholder="e.g. Stock Price"
-                value={name}
-                onChange={(evt) => setName(evt.target.value)}
-                required
                 helperText={
                   <Box pr={1.25}>
                     <RequiredText /> - provide the singular form of your entity
@@ -185,15 +184,22 @@ const Page: NextPageWithLayout = () => {
                 }
               />
               <TextField
+                {...register("description", {
+                  required: true,
+                  disabled: isSubmitting,
+                })}
+                required
+                disabled={isSubmitting}
                 multiline
+                onKeyDown={async (evt) => {
+                  if (!isSubmitting && evt.key === "Enter" && evt.metaKey) {
+                    await handleFormSubmit(evt);
+                  }
+                }}
                 inputProps={{ minRows: 1 }}
                 label="Description"
-                name="description"
                 type="text"
                 placeholder="Describe this entity in one or two sentences"
-                value={description}
-                onChange={(evt) => setDescription(evt.target.value)}
-                required
                 helperText={
                   <Box pr={3.75}>
                     <RequiredText /> - descriptions should explain what an
@@ -205,13 +211,19 @@ const Page: NextPageWithLayout = () => {
                 <Button
                   type="submit"
                   size="small"
-                  loading={creating}
+                  loading={isSubmitting}
+                  disabled={isSubmitting}
                   loadingWithoutText
                 >
                   Create new entity type
                 </Button>
                 {/** @todo set correct URL */}
-                <Button href="/" variant="tertiary" size="small">
+                <Button
+                  href="/"
+                  variant="tertiary"
+                  size="small"
+                  disabled={isSubmitting}
+                >
                   Discard draft
                 </Button>
               </Stack>
