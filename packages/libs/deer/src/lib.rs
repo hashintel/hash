@@ -55,7 +55,7 @@ pub trait Visitor<'de>: Sized {
     // TODO: this is currently completely untyped, we might want to adhere to a standard, like
     //  JSON-Schema or OpenAPI
     //  The problem here mainly is: which crate to use, one can use utoipa (but that has significant
-    //  overhead)  there's no real library out there that properly just provides they types
+    //  overhead)  there's no real library out there that properly just provides the types
     //  necessary.
     fn expecting_schema(&self) -> BTreeMap<String, String> {
         BTreeMap::new()
