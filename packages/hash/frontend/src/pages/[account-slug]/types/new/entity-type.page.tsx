@@ -135,10 +135,6 @@ const Page: NextPageWithLayout = () => {
             <Stack
               alignItems="stretch"
               sx={(theme) => ({
-                [`.${inputLabelClasses.asterisk}`]: {
-                  color: theme.palette.blue[70],
-                },
-
                 [theme.breakpoints.up("md")]: {
                   [`.${outlinedInputClasses.root}`]: {
                     width: `calc(100% - ${HELPER_TEXT_WIDTH + 52}px)`,
