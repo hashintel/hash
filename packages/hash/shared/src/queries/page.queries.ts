@@ -1,5 +1,39 @@
 import { gql } from "@apollo/client";
 
+const persistedBlockFieldsFragment = gql`
+  fragment PersistedBlockFields on PersistedBlock {
+    __typename
+    entityId
+    entityVersion
+    accountId
+    entityTypeId
+    componentId
+    dataEntity {
+      entityId
+      accountId
+      properties
+    }
+    properties
+  }
+`;
+
+const persistedPageFieldsFragment = gql`
+  fragment PersistedPageFields on PersistedPage {
+    archived
+    title
+    icon
+    summary
+    ownedById
+    entityId
+    entityVersion
+    contents {
+      ...PersistedBlockFields
+    }
+    __typename
+  }
+  ${persistedBlockFieldsFragment}
+`;
+
 const persistedPagePropertiesFieldsFragment = gql`
   fragment PersistedPagePropertyFields on PersistedPage {
     title
@@ -20,6 +54,23 @@ export const getPageInfoQuery = gql`
     }
   }
   ${persistedPagePropertiesFieldsFragment}
+`;
+
+export const getPersistedPageQuery = gql`
+  query getPersistedPage(
+    $ownedById: ID!
+    $entityId: ID!
+    $entityVersion: String
+  ) {
+    persistedPage(
+      ownedById: $ownedById
+      entityId: $entityId
+      entityVersion: $entityVersion
+    ) {
+      ...PersistedPageFields
+    }
+  }
+  ${persistedPageFieldsFragment}
 `;
 
 const pagePropertiesFieldsFragment = gql`
