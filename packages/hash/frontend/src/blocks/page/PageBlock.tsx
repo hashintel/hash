@@ -1,4 +1,6 @@
+import { useApolloClient } from "@apollo/client";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
+import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { useRouter } from "next/router";
 import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
@@ -18,6 +20,7 @@ import { useReadonlyMode } from "../../shared/readonly-mode";
 import { usePageContext } from "./PageContext";
 
 type PageBlockProps = {
+  contents: BlockEntity[];
   blocks: BlocksMap;
   accountId: string;
   entityId: string;
@@ -34,11 +37,14 @@ export const PAGE_HORIZONTAL_PADDING_FORMULA = `max(calc((100% - ${PAGE_CONTENT_
  * do that
  */
 export const PageBlock: FunctionComponent<PageBlockProps> = ({
+  contents,
   blocks,
   accountId,
   entityId,
 }) => {
   const root = useRef<HTMLDivElement>(null);
+  const client = useApolloClient();
+
   const [portals, renderPortal, clearPortals] = usePortals();
   const [debugging] = useLocalstorageState<
     { restartCollabButton?: boolean } | boolean
@@ -49,6 +55,11 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     connection: EditorConnection | null;
     manager: ProsemirrorManager;
   }>(null);
+
+  const currentContents = useRef(contents);
+  useLayoutEffect(() => {
+    currentContents.current = contents;
+  }, [contents]);
 
   const router = useRouter();
   const routeHash = router.asPath.split("#")[1] ?? "";
@@ -77,6 +88,8 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       blocks,
       readonlyMode,
       pageTitleRef,
+      () => currentContents.current,
+      client,
     );
 
     setEditorView(view);
@@ -90,7 +103,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     return () => {
       clearPortals();
       view.destroy();
-      connection.close();
+      connection?.close();
       prosemirrorSetup.current = null;
     };
   }, [
@@ -102,6 +115,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     clearPortals,
     setEditorView,
     pageTitleRef,
+    client,
   ]);
 
   return (

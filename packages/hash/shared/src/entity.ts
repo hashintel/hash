@@ -24,7 +24,7 @@ type ContentsEntity = DistributiveOmit<
 >;
 
 export type BlockEntity = ContentsEntity & {
-  entity: DistributivePick<
+  dataEntity: DistributivePick<
     ContentsEntity["dataEntity"] | Text,
     keyof ContentsEntity["dataEntity"] &
       keyof (ContentsEntity["dataEntity"] | Text)

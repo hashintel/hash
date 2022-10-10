@@ -4,7 +4,14 @@ import {
   defaultBlockComponentIds,
   fetchBlock,
 } from "@hashintel/hash-shared/blocks";
-import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
+import {
+  GetPersistedPageQuery,
+  GetPersistedPageQueryVariables,
+} from "@hashintel/hash-shared/graphql/apiTypes.gen";
+import {
+  getPageInfoQuery,
+  getPersistedPageQuery,
+} from "@hashintel/hash-shared/queries/page.queries";
 import { isSafariBrowser } from "@hashintel/hash-shared/util";
 import { Box, Collapse, alpha, styled } from "@mui/material";
 import { keyBy } from "lodash";
@@ -203,9 +210,9 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   );
 
   const { data, error, loading } = useQuery<
-    GetPageInfoQuery,
-    GetPageInfoQueryVariables
-  >(getPageInfoQuery, {
+    GetPersistedPageQuery,
+    GetPersistedPageQueryVariables
+  >(getPersistedPageQuery, {
     variables: {
       ownedById: accountId,
       entityId: pageEntityId,
@@ -269,7 +276,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
     );
   }
 
-  const { title, icon } = data.persistedPage;
+  const { title, icon, contents } = data.persistedPage;
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
@@ -381,6 +388,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
         <CollabPositionProvider value={collabPositions}>
           <PageBlock
             accountId={accountId}
+            contents={contents}
             blocks={blocksMap}
             entityId={pageEntityId}
           />

@@ -2,6 +2,10 @@ import { HashBlock } from "@hashintel/hash-shared/blocks";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
+import { EditorView } from "prosemirror-view";
+import { BlockEntity } from "@hashintel/hash-shared/entity";
+import { ApolloClient } from "@apollo/client";
+
 // import applyDevTools from "prosemirror-dev-tools";
 import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
@@ -21,6 +25,64 @@ import { createTextEditorView } from "./createTextEditorView";
 
 export type BlocksMap = Record<string, HashBlock>;
 
+const createSavePlugin = (
+  _accountId: string,
+  _pageEntityId: string,
+  getLastSavedValue: () => BlockEntity[],
+  _client: ApolloClient<unknown>,
+) => {
+  let saveQueue = Promise.resolve<unknown>(null);
+
+  const triggerSave = (_view: EditorView<Schema>) => {
+    saveQueue = saveQueue.catch().then(
+      () => console.info("Saving..", getLastSavedValue()),
+      // updatePageMutation(
+      //   accountId,
+      //   pageEntityId,
+      //   view.state.doc,
+      //   getLastSavedValue(),
+      //   entityStoreFromProsemirror(view.state).store,
+      //   client,
+      // ),
+    );
+  };
+
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  return new Plugin<unknown, Schema>({
+    props: {
+      handleDOMEvents: {
+        keydown(view, evt) {
+          // Manual save for cmd+s
+          if (evt.key === "s" && evt.metaKey) {
+            evt.preventDefault();
+            triggerSave(view);
+
+            return true;
+          }
+          return false;
+        },
+        focus() {
+          // Cancel the in-progress save
+          if (timeout) {
+            clearTimeout(timeout);
+          }
+          return false;
+        },
+        blur(view) {
+          if (timeout) {
+            clearTimeout(timeout);
+          }
+
+          timeout = setTimeout(() => triggerSave(view), 500);
+
+          return false;
+        },
+      },
+    },
+  });
+};
+
 /**
  * An editor view manages the DOM structure that represents an editable document.
  * @see https://prosemirror.net/docs/ref/#view.EditorView
@@ -33,12 +95,15 @@ export const createEditorView = (
   blocks: BlocksMap,
   readonly: boolean,
   pageTitleRef: RefObject<HTMLTextAreaElement>,
+  getLastSavedValue: () => BlockEntity[],
+  client: ApolloClient<unknown>,
 ) => {
   let manager: ProsemirrorManager;
 
-  const [errorPlugin, onError] = createErrorPlugin(renderPortal);
+  const [errorPlugin, _onError] = createErrorPlugin(renderPortal);
 
   const plugins: Plugin<unknown, Schema>[] = [
+    createSavePlugin(accountId, pageEntityId, getLastSavedValue, client),
     ...createFormatPlugins(renderPortal),
     createSuggester(renderPortal, accountId, renderNode, () => manager),
     createPlaceholderPlugin(renderPortal),
@@ -48,7 +113,7 @@ export const createEditorView = (
 
   const state = createProseMirrorState({ accountId, plugins });
 
-  let connection: EditorConnection;
+  let connection: EditorConnection | undefined;
 
   const view = createTextEditorView(
     state,
@@ -78,7 +143,6 @@ export const createEditorView = (
           return new LoadingView(currentNode, renderPortal);
         },
       },
-      dispatchTransaction: (tr) => connection?.dispatchTransaction(tr),
       editable: () => !readonly,
     },
   );
@@ -105,6 +169,14 @@ export const createEditorView = (
     },
   );
 
+  void manager.loadPage(state, getLastSavedValue()).then((tr) => {
+    view.updateState(state.apply(tr));
+  });
+
+  /**
+   * @todo the collab editor connection is disabled currently.
+   *   see https://app.asana.com/0/0/1203099452204542/f
+   
   connection = new EditorConnection(
     `${apiOrigin}/collab-backend/${accountId}/${pageEntityId}`,
     view.state.schema,
@@ -116,6 +188,7 @@ export const createEditorView = (
       view.dispatch(onError(view.state.tr));
     },
   );
+  */
 
   view.dom.classList.add(styles.ProseMirror!);
   // Prevent keyboard navigation on the editor
