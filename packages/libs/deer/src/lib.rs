@@ -64,6 +64,7 @@ pub trait Visitor<'de>: Sized {
         )))
     }
     // TODO: should this auto-delegate to one of the other visit functions?!
+    //  ~> experimentation is needed
     fn visit_number(self, v: Number) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type number",
@@ -210,7 +211,7 @@ impl<E: Error> NumberVisitor<E> {
     }
 }
 
-impl<E: Error> Visitor for NumberVisitor<E> {
+impl<E: Error> Visitor<'_> for NumberVisitor<E> {
     type Error = E;
     type Value = Number;
 
@@ -432,11 +433,11 @@ pub trait Deserializer<'de>: Sized {
 /// (which can be displayed with tools like [cargo-expand](https://github.com/dtolnay/cargo-expand))
 /// as a template. The macro generates human readable code which can be used as template.
 // TODO: add example
-pub trait Deserialize: Sized {
+pub trait Deserialize<'de>: Sized {
     /// Deserialize this value from the given `deer` deserializer.
     ///
     /// # Errors
     ///
     /// Deserialization was unsuccessful
-    fn deserialize<D: Deserializer>(de: D) -> Result<Self, D::Error>;
+    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, D::Error>;
 }
