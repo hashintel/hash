@@ -230,8 +230,8 @@ macro_rules! derive_from_number {
     };
 
     (#internal, $method:ident; $to:ident, $visit:ident) => {
-        /// Automatically implemented convenience method, which uses [`Self::number`] to extract
-        /// a value of the primitive type, will otherwise error out.
+        /// Automatically implemented convenience method, which uses [`Self::deserialize_number`]
+        /// to extract a value of the primitive type, will otherwise error out.
         ///
         /// # Errors
         ///
