@@ -8,7 +8,7 @@
 
 use alloc::string::String;
 
-use error_stack::{IntoReport, Result};
+use error_stack::{IntoReport, Report, Result};
 use num_traits::ToPrimitive;
 
 pub use crate::{error::Error, number::Number};
@@ -18,43 +18,172 @@ mod number;
 
 extern crate alloc;
 
-/// Lookup of Type
-///
-/// This is used as the signal for the type that is currently present, [`Deserialize`]
-/// implementations may use this to special case certain values.
-#[derive(Debug, Copy, Clone)]
-pub enum PrimitiveType {
-    /// null type
-    Null,
-    /// bool type
-    Bool,
-    /// number type
-    Number,
-    /// string type
-    String,
-    /// array type
-    Array,
-    /// object type
-    Object,
+pub trait ObjectAccess {
+    type Error: Error;
+
+    fn value<T>(&mut self, key: &str) -> Result<T, Self::Error>
+    where
+        T: Deserialize;
+
+    fn next<T>(&mut self) -> Result<Option<(String, T)>, Self::Error>
+    where
+        T: Deserialize;
+
+    fn finish(self) -> Result<(), Self::Error>;
+}
+
+pub trait ArrayAccess {
+    type Error: Error;
+
+    fn next<T>(&mut self) -> Result<Option<T>, Self::Error>
+    where
+        T: Deserialize;
+
+    fn finish(self) -> Result<(), Self::Error>;
+}
+
+// TODO: Error PR: attach the expected and received type
+pub trait Visitor {
+    type Error: Error;
+    type Value;
+
+    fn visit_null(self) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type null",
+        )))
+    }
+    fn visit_bool(self, v: bool) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type bool",
+        )))
+    }
+    fn visit_number(self, v: Number) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type number",
+        )))
+    }
+    fn visit_string(self, v: String) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type string",
+        )))
+    }
+
+    fn visit_array<T>(self, v: T) -> Result<Self::Value, Self::Error>
+    where
+        T: ArrayAccess,
+    {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type array",
+        )))
+    }
+
+    fn visit_object<T>(self, v: T) -> Result<Self::Value, Self::Error>
+    where
+        T: ObjectAccess,
+    {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type object",
+        )))
+    }
+
+    fn visit_i8(self, v: i8) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type i8",
+        )))
+    }
+    fn visit_i16(self, v: i16) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type i16",
+        )))
+    }
+    fn visit_i32(self, v: i32) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type i32",
+        )))
+    }
+    fn visit_i64(self, v: i64) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type i64",
+        )))
+    }
+    fn visit_i128(self, v: i128) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type i128",
+        )))
+    }
+    fn visit_isize(self, v: isize) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type isize",
+        )))
+    }
+
+    fn visit_u8(self, v: i8) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type u8",
+        )))
+    }
+    fn visit_u16(self, v: i16) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type u16",
+        )))
+    }
+    fn visit_u32(self, v: i32) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type u32",
+        )))
+    }
+    fn visit_u64(self, v: i64) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type u64",
+        )))
+    }
+    fn visit_u128(self, v: i128) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type u128",
+        )))
+    }
+    fn visit_usize(self, v: isize) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected value of type usize",
+        )))
+    }
+}
+
+// internal visitor, which is used during the default implementation of the `deserialize_i*` and
+// `deserialize_u*` methods.
+struct NumberVisitor;
+impl Visitor for NumberVisitor {
+    type Error = Self::Error;
+    type Value = Number;
+
+    fn visit_number(self, v: Number) -> Result<Self::Value, Self::Error> {
+        Ok(v)
+    }
 }
 
 macro_rules! derive_from_number {
-    ([$($name:ident; $method:ident),*]) => {
-        $(derive_from_number!(#internal, $name; $method);)*
+    [$($method:ident ($to:ident) -> $visit:ident,)*] => {
+        $(derive_from_number!(#internal, $method; $to, $visit);)*
     };
 
-    (#internal, $name:ident; $method:ident) => {
+    (#internal, $method:ident; $to:ident, $visit:ident) => {
         /// Automatically implemented convenience method, which uses [`Self::number`] to extract
         /// a value of the primitive type, will otherwise error out.
         ///
         /// # Errors
         ///
         /// Current value is either not a number or wasn't able to be casted to the primitive type
-        fn $name(self) -> Result<$name, Self::Error> {
-            self.number()?
-                .$method()
+        fn $method<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+        where
+            V: Visitor,
+        {
+            let n = self.deserialize_number(NumberVisitor)?;
+            let v = n
+                .$to()
                 .ok_or_else(|| Self::Error::message("provided value too large or too small"))
-                .into_report()
+                .into_report()?;
+
+            visitor.$visit(v)
         }
     };
 }
@@ -70,13 +199,19 @@ macro_rules! derive_from_number {
 /// The data model consists of the following types:
 ///
 /// * 4 primitives:
-///     * `null` (equivalent to [`None`] or `()`)
-///     * `bool` (equivalent to [`true`], [`false`])
-///     * `number` (equivalent to `1u8`, `257i16`, ...)
-///     * `string` (equivalent to `"Hello World!"`)
+///     * `null`
+///         * encodes the explicit absence of a value (`undefined`/`null` in JSON)
+///     * `bool`
+///         * Rust equivalent: [`true`], [`false`]
+///     * `number`
+///         * encodes both floating point and integral numbers
+///     * `string`
+///         * example: `"Hello World!"`
 /// * composite types
-///     * `object` (equivalent to `struct`, `enum struct variant`)
-///     * `array` (equivalent to `Vec<T>`, `HashSet<T>`, `(T, U)`)
+///     * `object`
+///         * encodes any object, be it a map, struct or enum struct variant
+///     * `array`
+///         * encodes any sequence of data, be it an array, a set or tuple
 ///
 /// The [`Deserializer`] trait supports a single entrypoint, which are methods that consume the
 /// [`Deserializer`] and either return the value requested or return an error.
@@ -85,16 +220,14 @@ macro_rules! derive_from_number {
 pub trait Deserializer: Sized {
     /// The error type that can be returned if some error occurs during deserialization
     type Error: Error;
-    /// The type returned from [`Self::array`], which must implement the <TO BE ADDED> trait.
-    type Array;
-    /// The type returned from [`Self::object`], which must implement the <TO BE ADDED> trait.
-    type Object;
 
-    /// Lookup
+    /// Require the [`Deserializer`] to figure out **how** to drive the visitor based on input data.
     ///
-    /// This must return the determined type for the current value, the corresponding method call
-    /// **must not** fail.
-    fn current(&self) -> PrimitiveType;
+    /// You should not rely on this when implementing [`Deserialize`], as non self-describing
+    /// formats are unable to provide this method.
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor;
 
     /// Deserialize a `null` (or equivalent type) value
     ///
@@ -106,7 +239,9 @@ pub trait Deserializer: Sized {
     /// # Errors
     ///
     /// Current value is not of type null
-    fn null(self) -> Result<(), Self::Error>;
+    fn deserialize_null<V>(self, visitor: V) -> Result<V, Self::Error>
+    where
+        V: Visitor;
 
     /// Deserialize a [`bool`] value.
     ///
@@ -119,7 +254,9 @@ pub trait Deserializer: Sized {
     /// # Errors
     ///
     /// Current value is not of type bool
-    fn bool(self) -> Result<bool, Self::Error>;
+    fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor;
 
     /// Deserialize a [`Number`] value.
     ///
@@ -136,7 +273,9 @@ pub trait Deserializer: Sized {
     /// # Errors
     ///
     /// Current value is not of type number
-    fn number(self) -> Result<Number, Self::Error>;
+    fn deserialize_number<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor;
 
     /// Deserialize a [`String`] value.
     ///
@@ -152,7 +291,9 @@ pub trait Deserializer: Sized {
     /// Current value is not of type string
     ///
     /// [`serde`]: https://serde.rs/
-    fn string(self) -> Result<String, Self::Error>;
+    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor;
 
     /// Deserialize a `Array`
     ///
@@ -162,7 +303,9 @@ pub trait Deserializer: Sized {
     /// # Errors
     ///
     /// Current value is not of type array
-    fn array(self) -> Result<Self::Array, Self::Error>;
+    fn deserialize_array<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor;
 
     /// Deserialize a `Object`
     ///
@@ -172,25 +315,25 @@ pub trait Deserializer: Sized {
     /// # Errors
     ///
     /// Current value is not of type object
-    fn object(self) -> Result<Self::Object, Self::Error>;
+    fn deserialize_object<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor;
 
-    derive_from_number!([
-        i8; to_i8,
-        i16; to_i16,
-        i32; to_i32,
-        i64; to_i64,
-        isize; to_isize,
-        u8; to_u8,
-        u16; to_u16,
-        u32; to_u32
-    ]);
+    derive_from_number![
+        deserialize_i8(to_i8) -> visit_i8,
+        deserialize_i16(to_i16) -> visit_i16,
+        deserialize_i32(to_i32) -> visit_i32,
+        deserialize_i64(to_i64) -> visit_i64,
+        deserialize_i128(to_i128) -> visit_i128,
+        deserialize_isize(to_isize) -> visit_isize,
 
-    derive_from_number!([
-        i128; to_i128,
-        u64; to_u64,
-        u128; to_u128,
-        usize; to_usize
-    ]);
+        deserialize_u8(to_u8) -> visit_u8,
+        deserialize_u16(to_u16) -> visit_u16,
+        deserialize_u32(to_u32) -> visit_u32,
+        deserialize_u64(to_u64) -> visit_u64,
+        deserialize_u128(to_u128) -> visit_u128,
+        deserialize_usize(to_usize) -> visit_usize,
+    ];
 }
 
 /// A **data-structure** that can be deserialized from any format supported by deer.
