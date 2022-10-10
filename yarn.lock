@@ -3119,15 +3119,15 @@
   dependencies:
     "@blockprotocol/core" "0.0.11"
 
-"@blockprotocol/type-system-node@0.0.1", "@blockprotocol/type-system-node@https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-node?c2df6b8e":
+"@blockprotocol/type-system-node@0.0.1", "@blockprotocol/type-system-node@https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-node?066283b5":
   version "0.0.1"
   resolved "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-node?982d7271#5c84ad6133b2b6534d4504ccf7b0c51370f19d2c"
 
-"@blockprotocol/type-system-web@0.0.1", "@blockprotocol/type-system-web@https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?c2df6b8e":
+"@blockprotocol/type-system-web@0.0.1", "@blockprotocol/type-system-web@https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?066283b5":
   version "0.0.1"
   resolved "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?982d7271#b64a0a2b5ac979418e81349473faeaf39947372c"
 
-"@blockprotocol/type-system@https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system?c2df6b8e":
+"@blockprotocol/type-system@https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system?066283b5":
   version "0.0.1"
   resolved "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system?982d7271#3ec11bc13cf02ba4342c7f8c8ee966aca7c8445b"
   dependencies:
