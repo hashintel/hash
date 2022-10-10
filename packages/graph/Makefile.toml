@@ -1,10 +1,5 @@
 extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 
-[tasks.touch-environment]
-private = true
-command = "touch"
-args = ["${REPO_ROOT}/.env.local"]
-
 [tasks.yarn-install-migrations]
 description = "Installs the required yarn dependencies for the migrations"
 extend = "yarn"
@@ -23,10 +18,9 @@ cwd = "${REPO_ROOT}/packages/graph/migrations"
 [tasks.migrate-up]
 category = "Deploy"
 description = "Runs all migrations"
-extend = "yarn"
-args = ["graph:migrate", "up"]
-cwd = "${REPO_ROOT}/packages/graph/migrations"
-env_files = ["../.env"]
+extend = "docker"
+args = ["compose", "--env-file", "${REPO_ROOT}/packages/graph/.env", "up", "migrate", "--no-recreate"]
+cwd = "${REPO_ROOT}/packages/graph/deployment"
 
 [tasks.deployment-up]
 private = false
@@ -51,7 +45,6 @@ extend = "yarn"
 args = ["external-services", "build", "graph", "${@}"]
 cwd = "${REPO_ROOT}"
 env = { DOCKER_BUILDKIT = 1 }
-dependencies = ["touch-environment"]
 
 [tasks.graph-up]
 category = "Deploy"
@@ -59,7 +52,6 @@ description = "Spins up the Graph API as external service"
 extend = "yarn"
 args = ["external-services", "up", "--wait", "graph", "${@}"]
 cwd = "${REPO_ROOT}"
-dependencies = ["touch-environment"]
 
 [tasks.graph-down]
 category = "Deploy"

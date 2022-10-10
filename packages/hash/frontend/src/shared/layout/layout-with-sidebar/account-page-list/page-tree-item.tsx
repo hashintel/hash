@@ -150,7 +150,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
 
           <PageIconButton
             hasDarkBg={selected}
-            accountId={accountId}
+            ownedById={accountId}
             entityId={id}
             size="small"
             onClick={stopEvent}

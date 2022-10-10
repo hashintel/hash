@@ -182,6 +182,13 @@ export default class extends EntityModel {
   }
 
   /**
+   * Get the value of the "Icon" property of the page.
+   */
+  getIcon(): string | undefined {
+    return (this.properties as any)[WORKSPACE_TYPES.propertyType.icon.baseUri];
+  }
+
+  /**
    * Get the value of the "Archived" property of the page.
    */
   getArchived(): boolean | undefined {

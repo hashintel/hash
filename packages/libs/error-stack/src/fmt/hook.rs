@@ -1,4 +1,4 @@
-// We allow dead-code here, because some of the functions are only exposed when `feature = "hooks"`
+// We allow dead-code here, because some of the functions are only exposed when `feature = "std"`
 // we could do cfg for everything, but that gets very messy, instead we only use a subset
 // and enable deadcode on `feature = "std"`.
 #![cfg_attr(not(feature = "std"), allow(dead_code))]

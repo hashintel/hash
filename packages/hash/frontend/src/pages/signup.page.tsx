@@ -113,7 +113,7 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
             const { identity: _kratosIdentity } = data;
 
             // For now however we just want to redirect home!
-            return router.push(flow?.return_to || "/");
+            return router.push(flow?.return_to ?? "/");
           })
           .catch(handleFlowError)
           .catch((err: AxiosError<SelfServiceRegistrationFlow>) => {

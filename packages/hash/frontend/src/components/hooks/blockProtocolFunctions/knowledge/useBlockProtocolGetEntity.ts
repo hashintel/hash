@@ -17,10 +17,7 @@ export const useBlockProtocolGetEntity = (): {
   const [getEntityTypeRootedSubgraphFn] = useLazyQuery<
     GetEntityTypeRootedSubgraphQuery,
     GetEntityTypeRootedSubgraphQueryVariables
-  >(getEntityTypeRootedSubgraphQuery, {
-    /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: "no-cache",
-  });
+  >(getEntityTypeRootedSubgraphQuery);
 
   const [getEntityFn] = useLazyQuery<Query, QueryPersistedEntityArgs>(
     getPersistedEntity,

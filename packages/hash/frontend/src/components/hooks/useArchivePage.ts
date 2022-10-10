@@ -3,6 +3,7 @@ import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
 
 import { useCallback } from "react";
 import {
+  GetPageInfoQueryVariables,
   UpdatePersistedPageMutation,
   UpdatePersistedPageMutationVariables,
 } from "../../graphql/apiTypes.gen";
@@ -23,9 +24,9 @@ export const useArchivePage = () => {
       },
       {
         query: getPageInfoQuery,
-        variables: {
+        variables: <GetPageInfoQueryVariables>{
           entityId: pageEntityId,
-          accountId: ownedById,
+          ownedById,
         },
       },
     ],

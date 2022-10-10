@@ -6,17 +6,16 @@ import { iconButtonClasses, Tooltip, SxProps, Theme } from "@mui/material";
 import { SystemStyleObject } from "@mui/system";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { MouseEventHandler } from "react";
-import { rewriteEntityIdentifier } from "../lib/entities";
 
 import {
   EmojiPicker,
   EmojiPickerPopoverProps,
 } from "./EmojiPicker/EmojiPicker";
-import { useBlockProtocolUpdateEntity } from "./hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
+import { useUpdatePageIcon } from "./hooks/useUpdatePageIcon";
 import { PageIcon, SizeVariant } from "./PageIcon";
 
 interface PageIconButtonProps {
-  accountId: string;
+  ownedById: string;
   entityId: string;
   versionId?: string;
   readonly?: boolean;
@@ -28,10 +27,10 @@ interface PageIconButtonProps {
 }
 
 export const PageIconButton = ({
-  accountId,
+  ownedById,
   entityId,
   versionId,
-  readonly,
+  readonly = false,
   size = "medium",
   hasDarkBg,
   onClick,
@@ -43,8 +42,7 @@ export const PageIconButton = ({
     popupId: "emoji-picker",
   });
 
-  const { updateEntity, updateEntityLoading } =
-    useBlockProtocolUpdateEntity(true);
+  const [updatePageIcon, { updatePageIconLoading }] = useUpdatePageIcon();
 
   const trigger = bindTrigger(popupState);
 
@@ -80,10 +78,10 @@ export const PageIconButton = ({
             },
             ...(Array.isArray(sx) ? sx : [sx]),
           ]}
-          disabled={readonly || updateEntityLoading}
+          disabled={readonly || updatePageIconLoading}
         >
           <PageIcon
-            accountId={accountId}
+            ownedById={ownedById}
             entityId={entityId}
             versionId={versionId}
             size={size}
@@ -94,15 +92,7 @@ export const PageIconButton = ({
         popoverProps={popoverProps}
         popupState={popupState}
         onEmojiSelect={(emoji) => {
-          void updateEntity({
-            data: {
-              entityId: rewriteEntityIdentifier({
-                accountId,
-                entityId,
-              }),
-              properties: { icon: emoji.native },
-            },
-          });
+          void updatePageIcon(emoji.native, ownedById, entityId);
         }}
       />
     </>

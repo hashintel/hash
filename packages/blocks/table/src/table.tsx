@@ -115,7 +115,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
   const [tableData, setTableData] = useTableData(matchingLinkedAggregation);
 
   const columns = useMemo(
-    () => makeColumns(tableData.data?.[0] || {}),
+    () => makeColumns(tableData.data?.[0] ?? {}),
     [tableData.data],
   );
 
@@ -124,8 +124,11 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
 
     return [
       {
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle this being 0
         pageCount: aggregate?.pageCount || 1,
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle this being 0
         pageNumber: aggregate?.pageNumber || 1,
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle this being 0
         pageSize: aggregate?.itemsPerPage || 1,
       },
       {
@@ -153,7 +156,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
       updateEntity: ({ data }: { data: UpdateEntityData }) => {
         void graphService?.updateEntity({ data });
       }, // this is passed into EditableCell
-      data: tableData.data || [],
+      data: tableData.data ?? [],
       defaultColumn: {
         Cell: EditableCell as Renderer<CellProps<{}, unknown>>,
       },
@@ -185,7 +188,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
 
       const { itemsPerPage: prevPerPage, pageNumber: prevPage } =
         linkedData.operation;
-      linkedData.operation.itemsPerPage = itemsPerPage || prevPerPage;
+      linkedData.operation.itemsPerPage = itemsPerPage ?? prevPerPage;
       linkedData.operation.pageNumber = pageNumber || prevPage;
 
       /** remove pageCount since it's not required in aggregate resolver */
@@ -356,7 +359,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
   });
 
   const doesNotNeedInitialColumns =
-    initialState?.columns || !tableData.data?.length;
+    !!initialState?.columns || !tableData.data?.length;
 
   const defaultColumnData = tableData?.data?.[0]?.properties;
 
@@ -573,7 +576,8 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
                           )?.schema,
                           property,
                         );
-                        const readOnly = propertyDef?.readOnly || graphReadonly;
+                        const readOnly =
+                          !!propertyDef?.readOnly || !!graphReadonly;
                         const { key, ...restCellProps } = cell.getCellProps();
                         return (
                           <td

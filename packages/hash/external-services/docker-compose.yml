@@ -10,7 +10,6 @@ services:
         condition: on-failure
     env_file:
       - ../../../.env
-      - ../../../.env.local
     environment:
       ## Tell OpenSearch that it's operating in single-node mode
       - discovery.type=single-node
