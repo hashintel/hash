@@ -70,7 +70,7 @@ export const persistedCommentTypedef = gql`
   }
 
   extend type Query {
-    pagePersistedComments(ownedById: ID!, pageId: ID!): [PersistedComment!]!
+    persistedPageComments(ownedById: ID!, pageId: ID!): [PersistedComment!]!
   }
 
   extend type Mutation {

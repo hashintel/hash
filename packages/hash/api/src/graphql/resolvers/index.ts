@@ -106,7 +106,7 @@ import {
 } from "./knowledge/page/page";
 import {
   createPersistedComment,
-  pagePersistedComments,
+  persistedPageComments,
 } from "./knowledge/comment/comment";
 import { persistedBlocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
@@ -188,7 +188,7 @@ export const resolvers = {
     // Knowledge
     persistedPage: loggedInAndSignedUp(persistedPage),
     persistedPages: loggedInAndSignedUp(persistedPages),
-    pagePersistedComments: loggedInAndSignedUp(pagePersistedComments),
+    persistedPageComments: loggedInAndSignedUp(persistedPageComments),
     persistedBlocks: loggedInAndSignedUp(persistedBlocks),
     persistedEntity: loggedInAndSignedUp(persistedEntity),
     outgoingPersistedLinks: loggedInAndSignedUp(outgoingPersistedLinks),

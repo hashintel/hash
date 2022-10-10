@@ -1,13 +1,17 @@
 import { gql } from "@apollo/client";
 
-export const createComment = gql`
-  mutation createComment(
-    $accountId: ID!
+export const createPersistedComment = gql`
+  mutation createPersistedComment(
+    $ownedById: ID!
     $parentId: ID!
     $tokens: [TextToken!]!
   ) {
-    createComment(accountId: $accountId, parentId: $parentId, tokens: $tokens) {
-      accountId
+    createPersistedComment(
+      ownedById: $ownedById
+      parentId: $parentId
+      tokens: $tokens
+    ) {
+      ownedById
       entityId
     }
   }

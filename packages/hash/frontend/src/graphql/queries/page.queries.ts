@@ -49,15 +49,14 @@ export const updatePersistedPage = gql`
 `;
 
 export const commentFieldsFragment = gql`
-  fragment CommentFields on Comment {
-    accountId
+  fragment CommentFields on PersistedComment {
+    ownedById
     entityId
-    tokens
-    createdAt
+    hasText
     textUpdatedAt
     author {
       entityId
-      preferredName
+      properties
     }
     parent {
       entityId
@@ -65,9 +64,9 @@ export const commentFieldsFragment = gql`
   }
 `;
 
-export const getPageComments = gql`
-  query getPageComments($accountId: ID!, $pageId: ID!) {
-    pageComments(accountId: $accountId, pageId: $pageId) {
+export const getPersistedPageComments = gql`
+  query getPersistedPageComments($ownedById: ID!, $pageId: ID!) {
+    persistedPageComments(ownedById: $ownedById, pageId: $pageId) {
       ...CommentFields
       replies {
         ...CommentFields

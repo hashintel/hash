@@ -1,5 +1,5 @@
 import { ApolloError } from "apollo-server-express";
-import { BlockModel, CommentModel } from "../../../../model";
+import { CommentModel, EntityModel } from "../../../../model";
 
 import {
   MutationCreatePersistedCommentArgs,
@@ -22,7 +22,7 @@ export const createPersistedComment: ResolverFn<
   { ownedById, parentId, tokens },
   { dataSources: { graphApi }, user },
 ) => {
-  const parent = await BlockModel.getBlockById(graphApi, {
+  const parent = await EntityModel.getLatest(graphApi, {
     entityId: parentId,
   });
 
@@ -43,7 +43,7 @@ export const createPersistedComment: ResolverFn<
   return mapCommentModelToGQL(commentModel);
 };
 
-export const pagePersistedComments: ResolverFn<
+export const persistedPageComments: ResolverFn<
   Promise<UnresolvedPersistedCommentGQL[]>,
   {},
   LoggedInGraphQLContext,

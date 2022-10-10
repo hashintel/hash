@@ -57,18 +57,19 @@ type CommentProps = {
 };
 
 export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
-  const { tokens, author, createdAt } = comment;
+  const { hasText, author, textUpdatedAt } = comment;
 
   const contentRef = useRef<CommentTextFieldRef>(null);
   const [collapsed, setCollapsed] = useState(true);
   const [shouldCollapse, setShouldCollapse] = useState(false);
 
   const commentCreatedAt = useMemo(() => {
-    const timeDistance = formatDistanceToNowStrict(new Date(createdAt));
+    const updatedAt = new Date(textUpdatedAt);
+    const timeDistance = formatDistanceToNowStrict(updatedAt);
     return timeDistance === "0 seconds"
       ? "Just now"
-      : `${formatDistanceToNowStrict(new Date(createdAt))} ago`;
-  }, [createdAt]);
+      : `${formatDistanceToNowStrict(updatedAt)} ago`;
+  }, [textUpdatedAt]);
 
   const commentMenuPopupState = usePopupState({
     variant: "popover",
@@ -84,10 +85,15 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
     }
   }, []);
 
+  const preferredName =
+    author?.properties[
+      "http://localhost:3000/@example/types/property-type/preferred-name/"
+    ];
+
   return (
     <Box display="flex" flexDirection="column" p={2}>
       <Box display="flex" justifyContent="space-between">
-        <Avatar size={36} title={author?.properties.preferredName ?? "U"} />
+        <Avatar size={36} title={preferredName ?? "U"} />
         <Box
           sx={{ flexDirection: "column", flex: 1, overflow: "hidden", pl: 1.5 }}
         >
@@ -102,7 +108,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
               color: ({ palette }) => palette.gray[90],
             }}
           >
-            {author?.properties.preferredName}
+            {preferredName}
           </Typography>
           <Typography
             component="p"
@@ -128,7 +134,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
       <Box p={0.5} pt={2}>
         <CommentTextField
           ref={contentRef}
-          initialText={tokens}
+          initialText={hasText}
           classNames={collapsed ? styles.Comment__TextField_collapsed! : ""}
           readOnly
         />
