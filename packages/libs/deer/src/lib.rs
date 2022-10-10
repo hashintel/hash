@@ -6,68 +6,40 @@
 #![allow(clippy::module_name_repetitions)]
 #![forbid(unsafe_code)]
 
+use alloc::string::String;
+
+use error_stack::{IntoReport, Result, ResultExt};
+use num_traits::ToPrimitive;
+
+pub use crate::{error::Error, number::Number};
+
 mod error;
 mod number;
 
 extern crate alloc;
 
-use error_stack::{IntoReport, Result, ResultExt};
-use num_traits::ToPrimitive;
-
-use crate::{
-    error::{Error, Expected, Path, Type},
-    number::Number,
-};
+#[derive(Debug, Copy, Clone)]
+pub enum PrimitiveType {
+    Null,
+    Bool,
+    Number,
+    String,
+    Array,
+    Object,
+}
 
 macro_rules! derive_from_number {
-    (#internal, $name:ident; $method:ident) => {
-        fn $name(self) -> Result<$name, Self::Error> {
-            let current = self.ty();
-
-            self.number()?
-                .$method()
-                .ok_or_else(|| {
-                    Self::Error::invalid_type(
-                        current,
-                        Expected::new(Type::Number)
-                            .with_error_code("deer", "overflow")
-                            .with_message("provided value too large or too small")
-                            .with_constraint("min", Number::from($name::MIN))
-                            .with_constraint("max", Number::from($name::MAX)),
-                    )
-                })
-                .into_report()
-                .attach(Path::new())
-        }
-    };
-
     ([$($name:ident; $method:ident),*]) => {
         $(derive_from_number!(#internal, $name; $method);)*
     };
 
-    (#internal, #large, $name:ident; $method:ident) => {
+    (#internal, $name:ident; $method:ident) => {
         fn $name(self) -> Result<$name, Self::Error> {
-            let current = self.ty();
-
             self.number()?
                 .$method()
-                .ok_or_else(|| {
-                    Self::Error::invalid_type(
-                        current,
-                        Expected::new(Type::Number)
-                            .with_error_code("deer", "overflow")
-                            .with_message("provided value too large or too small")
-                            .with_constraint("min", $name::MIN.to_string())
-                            .with_constraint("max", $name::MAX.to_string()),
-                    )
-                })
+                .ok_or_else(|| Self::Error::message("provided value too large or too small"))
                 .into_report()
-                .attach(Path::new())
         }
-    };
-
-    (large [$($name:ident; $method:ident),*]) => {
-        $(derive_from_number!(#internal, #large, $name; $method);)*
     };
 }
 
@@ -76,7 +48,7 @@ pub trait Deserializer: Sized {
     type Array;
     type Object;
 
-    fn ty(&self) -> Type;
+    fn current(&self) -> PrimitiveType;
 
     fn null(self) -> Result<(), Self::Error>;
     fn bool(self) -> Result<bool, Self::Error>;
@@ -96,7 +68,7 @@ pub trait Deserializer: Sized {
         u32; to_u32
     ]);
 
-    derive_from_number!(large [
+    derive_from_number!([
         i128; to_i128,
         u64; to_u64,
         u128; to_u128,

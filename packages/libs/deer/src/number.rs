@@ -4,6 +4,8 @@ use num_traits::{FromPrimitive, ToPrimitive};
 #[cfg(feature = "arbitrary-precision")]
 use rust_decimal::Decimal;
 
+// This indirection helps us to "disguise" the underlying storage, enabling us to seamlessly convert
+// and change the underlying storage at a later point in time, if required.
 #[derive(Debug, Clone)]
 enum OpaqueNumber {
     Int(i64),
@@ -25,7 +27,7 @@ enum OpaqueNumber {
 ///
 /// Without the `arbitrary-precision` feature enabled, integers are limited to `i16`, while floats
 /// are stored as `f64`, larger values are only supported using the aforementioned feature and are
-/// stored as [`BigInt`], [`BigFloat`] respectively.
+/// stored as [`BigInt`], [`Decimal`] respectively.
 ///
 /// Even with `arbitrary-precision` enabled, this type will try to fit the converted value into a
 /// `i64`, if that isn't possible it will fallback to a [`BigInt`].
@@ -46,15 +48,15 @@ impl FromPrimitive for Number {
     }
 
     fn from_i8(n: i8) -> Option<Self> {
-        Some(Self(OpaqueNumber::Int(n as i64)))
+        Some(Self(OpaqueNumber::Int(i64::from(n))))
     }
 
     fn from_i16(n: i16) -> Option<Self> {
-        Some(Self(OpaqueNumber::Int(n as i64)))
+        Some(Self(OpaqueNumber::Int(i64::from(n))))
     }
 
     fn from_i32(n: i32) -> Option<Self> {
-        Some(Self(OpaqueNumber::Int(n as i64)))
+        Some(Self(OpaqueNumber::Int(i64::from(n))))
     }
 
     fn from_i64(n: i64) -> Option<Self> {
@@ -86,15 +88,15 @@ impl FromPrimitive for Number {
     }
 
     fn from_u8(n: u8) -> Option<Self> {
-        Some(Self(OpaqueNumber::Int(n as i64)))
+        Some(Self(OpaqueNumber::Int(i64::from(n))))
     }
 
     fn from_u16(n: u16) -> Option<Self> {
-        Some(Self(OpaqueNumber::Int(n as i64)))
+        Some(Self(OpaqueNumber::Int(i64::from(n))))
     }
 
     fn from_u32(n: u32) -> Option<Self> {
-        Some(Self(OpaqueNumber::Int(n as i64)))
+        Some(Self(OpaqueNumber::Int(i64::from(n))))
     }
 
     fn from_u64(n: u64) -> Option<Self> {
@@ -139,9 +141,9 @@ macro_rules! to_int {
                 OpaqueNumber::BigInt(x) => x.$method(),
 
                 // they return None because the conversion from int to float is not lossless
-                OpaqueNumber::Float(x) => None,
+                OpaqueNumber::Float(_) => None,
                 #[cfg(feature = "arbitrary-precision")]
-                OpaqueNumber::Decimal(x) => None,
+                OpaqueNumber::Decimal(_) => None,
             }
         }
     };
@@ -195,7 +197,7 @@ macro_rules! impl_from {
     (#internal, $ty:ty) => {
         impl From<$ty> for Number {
             fn from(value: $ty) -> Self {
-                Self(OpaqueNumber::Int(value as i64))
+                Self(OpaqueNumber::Int(i64::from(value)))
             }
         }
     };
@@ -203,7 +205,7 @@ macro_rules! impl_from {
     (#internal, $modifier:literal, $ty:ty) => {
         impl From<$ty> for Number {
             fn from(value: $ty) -> Self {
-                Self(OpaqueNumber::Float(value as f64))
+                Self(OpaqueNumber::Float(f64::from(value)))
             }
         }
     };
@@ -213,18 +215,7 @@ macro_rules! impl_from {
     }
 }
 
-impl_from!([
-    i8,
-    i16,
-    i32,
-    i64,
-    isize,
-    u8,
-    u16,
-    u32,
-    "float": f32,
-    "float": f64
-]);
+impl_from!([i8, i16, i32, i64, u8, u16, u32, "float": f32, "float": f64]);
 
 #[cfg(feature = "arbitrary-precision")]
 impl From<BigInt> for Number {
@@ -244,7 +235,7 @@ impl ToBigInt for Number {
             OpaqueNumber::Int(int) => int.to_bigint(),
             OpaqueNumber::BigInt(int) => Some(int.clone()),
             OpaqueNumber::Float(float) => float.to_bigint(),
-            OpaqueNumber::Decimal(float) => float,
+            OpaqueNumber::Decimal(_) => None,
         }
     }
 }
