@@ -22,7 +22,6 @@ import {
   searchPages,
   pageLinkedEntities,
 } from "./pages";
-import { commentLinkedEntities, textUpdatedAtFieldResolver } from "./comments";
 import { accounts } from "./account/accounts";
 import { createUser } from "./user/createUser";
 import { createUserWithOrgEmailInvitation } from "./user/createUserWithOrgEmailInvitation";
@@ -260,14 +259,6 @@ export const resolvers = {
     properties:
       pageProperties /** @todo: remove this resolver as it is deprecated */,
     ...pageLinkedEntities,
-  },
-
-  Comment: {
-    properties: {
-      ...entityFields.properties,
-    },
-    textUpdatedAt: textUpdatedAtFieldResolver,
-    ...commentLinkedEntities,
   },
 
   User: {
