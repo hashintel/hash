@@ -10,6 +10,18 @@ export const persistedEntityFieldsFragment = gql`
   }
 `;
 
+export const createPersistedEntityMutation = gql`
+  mutation createPersistedEntity($entityTypeId: ID!, $properties: JSONObject!) {
+    createPersistedEntity(
+      entityTypeId: $entityTypeId
+      properties: $properties
+    ) {
+      ...PersistedEntityFields
+    }
+  }
+  ${persistedEntityFieldsFragment}
+`;
+
 export const getPersistedEntity = gql`
   query getPersistedEntity($entityId: ID!, $entityVersion: String) {
     persistedEntity(entityId: $entityId, entityVersion: $entityVersion) {

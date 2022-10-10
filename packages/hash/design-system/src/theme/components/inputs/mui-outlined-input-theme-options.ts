@@ -83,7 +83,7 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
           }),
           ...(size === "medium" && {
             ...theme.typography.regularTextLabels,
-            padding: theme.spacing(1, 2),
+            padding: theme.spacing(1.5, 2),
             ...(hasStartAdornment && { paddingLeft: theme.spacing(0.5) }),
             ...(hasEndAdornment && { paddingRight: theme.spacing(0.5) }),
           }),

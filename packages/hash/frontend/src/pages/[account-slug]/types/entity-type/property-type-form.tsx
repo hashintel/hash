@@ -16,15 +16,12 @@ export const PropertyTypeForm = ({
     <Stack
       alignItems="stretch"
       spacing={3}
-      sx={(theme) => ({
+      sx={{
         [`.${inputLabelClasses.root}`]: {
           display: "flex",
           alignItems: "center",
         },
-        [`.${inputLabelClasses.asterisk}`]: {
-          color: theme.palette.blue[70],
-        },
-      })}
+      }}
     >
       <TextField
         label="Singular name"

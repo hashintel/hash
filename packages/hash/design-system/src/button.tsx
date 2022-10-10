@@ -4,7 +4,13 @@ import {
   ButtonProps as MuiButtonProps,
   useTheme,
 } from "@mui/material";
-import { forwardRef, FunctionComponent, ReactNode, useMemo } from "react";
+import {
+  forwardRef,
+  ForwardRefRenderFunction,
+  FunctionComponent,
+  ReactNode,
+  useMemo,
+} from "react";
 import { LoadingSpinner } from "./loading-spinner";
 
 export type ButtonProps = {
@@ -68,29 +74,33 @@ const LoadingContent: FunctionComponent<{
   );
 };
 
-export const Button: FunctionComponent<ButtonProps> = forwardRef(
-  ({ children, loading, loadingWithoutText, sx = [], ...props }, ref) => {
-    return (
-      <MuiButton
-        sx={[
-          {
-            pointerEvents: loading ? "none" : "auto",
-          },
-          ...(Array.isArray(sx) ? sx : [sx]),
-        ]}
-        {...props}
-        ref={ref}
-      >
-        {loading ? (
-          <LoadingContent
-            withText={!loadingWithoutText}
-            size={props.size}
-            variant={props.variant}
-          />
-        ) : (
-          children
-        )}
-      </MuiButton>
-    );
-  },
+const Button: ForwardRefRenderFunction<HTMLButtonElement, ButtonProps> = (
+  { children, loading, loadingWithoutText, sx = [], ...props },
+  ref,
+) => (
+  <MuiButton
+    sx={[
+      {
+        pointerEvents: loading ? "none" : "auto",
+        position: "relative",
+      },
+      ...(Array.isArray(sx) ? sx : [sx]),
+    ]}
+    {...props}
+    ref={ref}
+  >
+    {loading ? (
+      <LoadingContent
+        withText={!loadingWithoutText}
+        size={props.size}
+        variant={props.variant}
+      />
+    ) : (
+      children
+    )}
+  </MuiButton>
 );
+
+const ButtonForwardRef = forwardRef(Button);
+
+export { ButtonForwardRef as Button };
