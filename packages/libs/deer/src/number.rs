@@ -11,7 +11,6 @@ enum OpaqueNumber {
     Int(i64),
     #[cfg(feature = "arbitrary-precision")]
     BigInt(BigInt),
-
     Float(f64),
     #[cfg(feature = "arbitrary-precision")]
     Decimal(Decimal),
