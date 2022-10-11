@@ -1,0 +1,14 @@
+{
+  "name": "@hashintel/type-system-nodejs-demo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "demo.ts",
+  "scripts": {
+    "exe": "node --unhandled-rejections=strict --experimental-wasm-modules --experimental-loader ts-node/esm/transpile-only --es-module-specifier-resolution=node --require dotenv-flow/config"
+  },
+  "dependencies": {
+    "@blockprotocol/type-system": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system?779db40a",
+    "ts-node": "10.9.1"
+  }
+}
