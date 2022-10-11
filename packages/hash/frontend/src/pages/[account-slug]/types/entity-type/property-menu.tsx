@@ -33,9 +33,6 @@ const parseVersion = (id: string) => {
   return uri.type === "Ok" ? extractVersion(uri.inner) : null;
 };
 
-/**
- * @todo display relevant info from the property type
- */
 export const PropertyMenu = ({
   onRemove,
   property,
