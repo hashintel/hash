@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "Node16"
-  }
+    "module": "esnext",
+    "moduleResolution": "node",
+    "skipLibCheck": true
+  },
+  "include": ["demo.ts"],
+  "exclude": ["node_modules"]
 }
