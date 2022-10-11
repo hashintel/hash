@@ -11,9 +11,10 @@ import {
 } from "@glideapps/glide-data-grid";
 import { useCallback, useMemo } from "react";
 import "@glideapps/glide-data-grid/dist/index.css";
-import { Box, useTheme } from "@mui/material";
-import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
+import { useTheme } from "@mui/material";
 import { EntityResponse } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
+import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
+import { useEntityEditor } from "./entity-editor-context";
 
 type Row = {
   name: string;
@@ -62,8 +63,8 @@ export const PropertyTable = ({
   entity,
 }: PropertyTableProps) => {
   const { palette } = useTheme();
-  const { updateEntity, updateEntityLoading } =
-    useBlockProtocolUpdateEntity(false);
+  const { setEntity } = useEntityEditor();
+  const { updateEntity } = useBlockProtocolUpdateEntity();
 
   const rowData = useMemo<Row[]>(() => {
     return Object.keys(entity.properties).map((propertyTypeId) => {
@@ -71,7 +72,7 @@ export const PropertyTable = ({
       const { propertyType } =
         entity.entityTypeRootedSubgraph.referencedPropertyTypes.find((val) =>
           val.propertyTypeId.startsWith(propertyTypeId),
-        ) || {};
+        ) ?? {};
 
       if (!propertyType) throw new Error();
 
@@ -145,7 +146,7 @@ export const PropertyTable = ({
   );
 
   const onCellEdited = useCallback(
-    ([col, row]: Item, newValue: EditableGridCell) => {
+    async ([col, row]: Item, newValue: EditableGridCell) => {
       if (newValue.kind !== GridCellKind.Text) {
         // we only have text cells, might as well just die here.
         return;
@@ -156,14 +157,36 @@ export const PropertyTable = ({
 
       if (!key || !property) throw new Error();
 
-      void updateEntity({
-        data: {
-          entityId: entity.entityId,
-          properties: { [property.propertyTypeId]: newValue.data },
+      /**
+       * setting state for optimistic update
+       * also storing previous entity, so we can rollback if API call fails
+       */
+      const prevEntity = { ...entity };
+      setEntity({
+        ...entity,
+        properties: {
+          ...entity.properties,
+          [property.propertyTypeId]: newValue.data,
         },
       });
+
+      try {
+        await updateEntity({
+          data: {
+            entityId: entity.entityId,
+            updatedProperties: {
+              ...entity.properties,
+              [property.propertyTypeId]: newValue.data,
+            },
+          },
+        });
+      } catch (error) {
+        // rollback & give feedback to user
+        // snackbar.error(`Failed to update "${propertyTitle}"`)
+        setEntity(prevEntity);
+      }
     },
-    [rowData, updateEntity, entity.entityId],
+    [rowData, entity, setEntity, updateEntity],
   );
 
   const drawCell: DrawCustomCellCallback = useCallback(
