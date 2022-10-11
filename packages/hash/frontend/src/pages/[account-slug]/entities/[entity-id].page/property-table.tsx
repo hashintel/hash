@@ -244,6 +244,8 @@ export const PropertyTable = ({
         /** styling  */
         theme={theme}
         width="100%"
+        // define max height if there are lots of rows
+        height={rowData.length > 10 ? 500 : undefined}
         headerHeight={42}
         rowHeight={42}
         drawFocusRing={false}
