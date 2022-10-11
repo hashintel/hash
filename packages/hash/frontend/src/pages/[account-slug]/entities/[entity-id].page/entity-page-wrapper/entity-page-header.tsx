@@ -2,6 +2,7 @@ import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
+import { useRouter } from "next/router";
 import { generateEntityLabel } from "../../../../../lib/entities";
 import { TopContextBar } from "../../../../shared/top-context-bar";
 import { OntologyChip } from "../../../entity-types/ontology-chip";
@@ -10,6 +11,9 @@ import { useEntityEditor } from "../entity-editor-context";
 
 export const EntityPageHeader = () => {
   const { entity } = useEntityEditor();
+  const router = useRouter();
+
+  const accountSlug = router.query["account-slug"];
 
   if (!entity) return null;
 
@@ -47,7 +51,7 @@ export const EntityPageHeader = () => {
             path={
               <>
                 <Typography color="inherit" fontWeight="bold">
-                  @acme-corp
+                  {accountSlug}
                 </Typography>
                 /entities
                 <Typography color="inherit" fontWeight="bold">
