@@ -1,8 +1,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(unreachable_pub, clippy::pedantic, clippy::nursery)]
-// TODO: once more stable introduce: warning missing_docs
-#![allow(clippy::redundant_pub_crate)]
+// TODO: once more stable introduce: warning missing_docs, clippy::missing_errors_doc
 #![allow(clippy::module_name_repetitions)]
+#![allow(clippy::redundant_pub_crate)]
+#![allow(clippy::missing_errors_doc)]
 #![forbid(unsafe_code)]
 
 use alloc::{
@@ -47,6 +48,9 @@ pub trait ArrayAccess<'de> {
 }
 
 // TODO: Error PR: attach the expected and received type
+// Reason: this definition is used by all other visitors, we provide fallbacks, which **currently**
+//  do not take into account the value provided. This will change with the error PR.
+#[allow(unused_variables)]
 pub trait Visitor<'de>: Sized {
     type Error: Error;
     type Value;
