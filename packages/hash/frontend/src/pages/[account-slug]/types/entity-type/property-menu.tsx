@@ -106,15 +106,6 @@ export const PropertyMenu = ({
         <Typography component={ListItem} variant="smallCaps">
           Actions
         </Typography>
-        <MenuItem>
-          <ListItemText primary="View property type" />
-        </MenuItem>
-        <MenuItem>
-          <ListItemText primary="Edit property type" />
-        </MenuItem>
-        <MenuItem>
-          <ListItemText primary="Copy link" />
-        </MenuItem>
         <MenuItem
           onClick={() => {
             popupState.close();
