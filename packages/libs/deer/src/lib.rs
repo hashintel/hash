@@ -411,7 +411,7 @@ pub trait Deserializer<'de>: Sized {
     where
         V: Visitor<'de>;
 
-    /// Deserialize a `Array`
+    /// Deserialize an `Array`
     ///
     /// This should not directly deserialize into a `Vec<T>`, but return a type that implements
     /// `ArrayAccess`, this type then iterates over all values.
