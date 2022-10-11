@@ -1,8 +1,4 @@
-import {
-  extractBaseUri,
-  PropertyType,
-  validateVersionedUri,
-} from "@blockprotocol/type-system-web";
+import { PropertyType } from "@blockprotocol/type-system-web";
 import {
   createContext,
   ReactNode,
@@ -11,7 +7,7 @@ import {
   useState,
 } from "react";
 import { useBlockProtocolAggregatePropertyTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregatePropertyTypes";
-import { HashOntologyIcon } from "./hash-ontology-icon";
+import { parseUriForOntologyChip } from "./ontology-chip";
 
 export type PropertyTypeOption = {
   path: string;
@@ -60,17 +56,6 @@ export const usePropertyTypes = () => {
  * @deprecated
  */
 export const mapPropertyType = (type: PropertyType): PropertyTypeOption => {
-  const validated = validateVersionedUri(type.$id);
-  const parsed = validated.type === "Ok" ? extractBaseUri(validated.inner) : "";
-  const url = new URL(parsed);
-
-  const domain = url.host === "localhost:3000" ? "hash.ai" : url.host;
-
-  const pathname = url.pathname.slice(1);
-  const isHash = domain === "hash.ai";
-  const parts = pathname.split("/");
-  const path = isHash ? `${parts[0]}/${parts.at(-2)}` : pathname;
-
   const expectedValues = type.oneOf.reduce<string[]>((types, val) => {
     if ("$ref" in val && dataTypeNames[val.$ref]) {
       types.push(dataTypeNames[val.$ref]!);
@@ -80,10 +65,8 @@ export const mapPropertyType = (type: PropertyType): PropertyTypeOption => {
   }, []);
 
   return {
+    ...parseUriForOntologyChip(type.$id),
     title: type.title,
-    icon: isHash ? <HashOntologyIcon /> : null,
-    domain,
-    path,
     expectedValues,
     description: type.description ?? "",
     $id: type.$id,

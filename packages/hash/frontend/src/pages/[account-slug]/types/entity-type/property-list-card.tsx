@@ -216,7 +216,7 @@ export const PropertyTypeRow = ({
         />
       </TableCell>
       <TableCell>
-        <PropertyMenu onRemove={onRemove} />
+        <PropertyMenu onRemove={onRemove} property={property} />
       </TableCell>
     </TableRow>
   );
