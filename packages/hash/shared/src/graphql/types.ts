@@ -70,7 +70,7 @@ export type Vertex =
   | EntityVertex
   | LinkVertex;
 
-type EdgeKind =
+export type EdgeKind =
   | "HAS_LINK" // an entity has this link
   | "HAS_DESTINATION" // link has this destination (entity)
   | "HAS_TYPE" // entity has an entity type
@@ -81,4 +81,7 @@ export type Vertices = Record<string, Vertex>;
 
 /** @todo - Less confusing name than destination? */
 /** @todo - Destination implies a directed relationship, do we want to leave the door open to non-directed ones as well? */
-export type Edges = Record<string, { kind: EdgeKind; destination: string }>;
+export type Edges = Record<
+  string,
+  Array<{ edgeKind: EdgeKind; destination: string }>
+>;
