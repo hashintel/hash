@@ -39,7 +39,9 @@ export const UserBlocksProvider: FunctionComponent<{
 
   useEffect(() => {
     const setInitialBlocks = async () => {
-      if (!data) return;
+      if (!data) {
+        return;
+      }
 
       const apiProvidedBlocksMap: BlocksMap = {};
       for (const { componentId } of data.getBlockProtocolBlocks) {

@@ -88,7 +88,9 @@ export const LoadEntityMenuContent: FunctionComponent<
     return entities.filter((entity) => {
       // we are interested in loading different child entities into blocks, not the block entities
       // – block entities are simply a reference to (a) a component and (b) a child entity
-      if (isBlockEntity(entity)) return false;
+      if (isBlockEntity(entity)) {
+        return false;
+      }
 
       /**
        * loading text entities does not work, possibly due to use of legacy __linkedData

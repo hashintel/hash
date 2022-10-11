@@ -37,7 +37,9 @@ export const useGetInvitationInfo = () => {
   >(getOrgEmailInvitationQuery, {
     onCompleted: (res) => {
       const { org, inviter } = res.getOrgEmailInvitation;
-      if (!getOrgEmailInvitationVariables) return;
+      if (!getOrgEmailInvitationVariables) {
+        return;
+      }
       const { orgEntityId, invitationEmailToken } =
         getOrgEmailInvitationVariables;
       setInvitationInfo({
@@ -66,7 +68,9 @@ export const useGetInvitationInfo = () => {
   >(getOrgInvitationLinkQuery, {
     onCompleted: (res) => {
       const { org } = res.getOrgInvitationLink;
-      if (!getOrgInvitationLinkVariables) return;
+      if (!getOrgInvitationLinkVariables) {
+        return;
+      }
       const { orgEntityId, invitationLinkToken } =
         getOrgInvitationLinkVariables;
       setInvitationInfo({
@@ -79,7 +83,9 @@ export const useGetInvitationInfo = () => {
 
   useEffect(() => {
     const { query } = router;
-    if (!router.isReady) return;
+    if (!router.isReady) {
+      return;
+    }
 
     if (isParsedInvitationEmailQuery(query) && !getOrgEmailInvitationCalled) {
       void getOrgEmailInvitation({

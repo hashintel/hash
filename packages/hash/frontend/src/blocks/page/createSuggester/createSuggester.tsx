@@ -34,7 +34,9 @@ interface Trigger {
 const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   // Only empty TextSelection has a $cursor
   const cursor = (state.selection as TextSelection).$cursor;
-  if (!cursor) return null;
+  if (!cursor) {
+    return null;
+  }
 
   // the cursor's parent is the node that contains it
   const parentContent = cursor.parent.content;
@@ -59,7 +61,9 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   const parentPos = cursor.pos - cursorPos;
 
   const match = /\B(@|\/)\S*$/.exec(text.substring(0, cursorPos));
-  if (!match) return null;
+  if (!match) {
+    return null;
+  }
 
   const from = parentPos + match.index;
 
@@ -253,7 +257,9 @@ export const createSuggester = (
         update(view) {
           const state = suggesterPluginKey.getState(view.state)!;
 
-          if (!view.hasFocus() || !state.isOpen()) return this.destroy!();
+          if (!view.hasFocus() || !state.isOpen()) {
+            return this.destroy!();
+          }
 
           const { from, to, search, char: triggerChar } = state.trigger!;
           const coords = view.coordsAtPos(from);
