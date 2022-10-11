@@ -1,3 +1,4 @@
+import { PropertyType } from "@blockprotocol/type-system-web";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import { Chip } from "@hashintel/hash-design-system/chip";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
@@ -37,7 +38,7 @@ import { PropertySelector } from "./property-selector";
 import { PropertyTypeForm } from "./property-type-form";
 import { QuestionIcon } from "./question-icon";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
-import { PropertyTypeOption } from "./use-property-types";
+import { mapPropertyType } from "./use-property-types";
 import { useStateCallback, withHandler } from "./util";
 import { WhiteCard } from "./white-card";
 
@@ -55,7 +56,7 @@ const InsertPropertyRow = ({
 }: {
   inputRef: Ref<HTMLInputElement | null>;
   onCancel: () => void;
-  onAdd: (option: PropertyTypeOption) => void;
+  onAdd: (option: PropertyType) => void;
 }) => {
   const modalTooltipId = useId();
   const modalPopupState = usePopupState({
@@ -164,6 +165,63 @@ const InsertPropertyRow = ({
   );
 };
 
+export const PropertyTypeRow = ({
+  property,
+  onRemove,
+}: {
+  property: PropertyType;
+  onRemove: () => void;
+}) => {
+  // @todo remove this
+  const option = mapPropertyType(property);
+
+  return (
+    <TableRow>
+      <TableCell>
+        <Typography variant="smallTextLabels" fontWeight={500}>
+          {option.title}
+        </Typography>
+      </TableCell>
+      <TableCell>
+        {
+          // @todo handle this being too many
+          option.expectedValues.map((val) => (
+            <Chip label={val} key={val} />
+          ))
+        }
+      </TableCell>
+      <TableCell sx={{ textAlign: "center" }}>
+        <Checkbox />
+      </TableCell>
+      <TableCell sx={{ textAlign: "center" }}>
+        <Checkbox />
+      </TableCell>
+      <TableCell sx={{ px: "0px !important" }}>
+        <TextField
+          placeholder="Add default value"
+          sx={{
+            width: "100%",
+            [`.${tableRowClasses.root}:not(:hover) & .${outlinedInputClasses.root}:not(:focus-within)`]:
+              {
+                boxShadow: "none",
+                [`.${outlinedInputClasses.notchedOutline}`]: {
+                  borderColor: "transparent",
+                },
+                [`.${outlinedInputClasses.input}::placeholder`]: {
+                  color: "transparent",
+                },
+              },
+          }}
+          inputProps={{ sx: { textOverflow: "ellipsis" } }}
+        />
+      </TableCell>
+      <TableCell>
+        <PropertyMenu onRemove={onRemove} />
+      </TableCell>
+    </TableRow>
+  );
+};
+
 export const PropertyListCard = ({
   insertFieldRef,
   onCancel,
@@ -172,7 +230,7 @@ export const PropertyListCard = ({
   onCancel: () => void;
 }) => {
   const [addingNewProperty, setAddingNewProperty] = useStateCallback(true);
-  const [propertyTypes, setPropertyTypes] = useState<PropertyTypeOption[]>([]);
+  const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([]);
   const addingNewPropertyRef = useRef<HTMLInputElement>(null);
 
   const sharedRef = useForkRef(addingNewPropertyRef, insertFieldRef);
@@ -246,61 +304,21 @@ export const PropertyListCard = ({
             </Typography>
           </TableHead>
           <TableBody>
-            {propertyTypes.map((option) => (
-              <TableRow key={option.$id}>
-                <TableCell>
-                  <Typography variant="smallTextLabels" fontWeight={500}>
-                    {option.title}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  {
-                    // @todo handle this being too many
-                    option.expectedValues.map((val) => (
-                      <Chip label={val} key={val} />
-                    ))
+            {propertyTypes.map((type) => (
+              <PropertyTypeRow
+                key={type.$id}
+                property={type}
+                onRemove={() => {
+                  const nextPropertyTypes = propertyTypes.filter(
+                    (item) => item !== type,
+                  );
+                  setPropertyTypes(nextPropertyTypes);
+                  if (!nextPropertyTypes.length) {
+                    setAddingNewProperty(true);
+                    onCancel();
                   }
-                </TableCell>
-                <TableCell sx={{ textAlign: "center" }}>
-                  <Checkbox />
-                </TableCell>
-                <TableCell sx={{ textAlign: "center" }}>
-                  <Checkbox />
-                </TableCell>
-                <TableCell sx={{ px: "0px !important" }}>
-                  <TextField
-                    placeholder="Add default value"
-                    sx={{
-                      width: "100%",
-                      [`.${tableRowClasses.root}:not(:hover) & .${outlinedInputClasses.root}:not(:focus-within)`]:
-                        {
-                          boxShadow: "none",
-                          [`.${outlinedInputClasses.notchedOutline}`]: {
-                            borderColor: "transparent",
-                          },
-                          [`.${outlinedInputClasses.input}::placeholder`]: {
-                            color: "transparent",
-                          },
-                        },
-                    }}
-                    inputProps={{ sx: { textOverflow: "ellipsis" } }}
-                  />
-                </TableCell>
-                <TableCell>
-                  <PropertyMenu
-                    onRemove={() => {
-                      const onlyItem = propertyTypes.length === 1;
-                      setPropertyTypes((list) =>
-                        list.filter((item) => item !== option),
-                      );
-                      if (onlyItem) {
-                        setAddingNewProperty(true);
-                        onCancel();
-                      }
-                    }}
-                  />
-                </TableCell>
-              </TableRow>
+                }}
+              />
             ))}
           </TableBody>
           <TableFooter>
@@ -314,9 +332,9 @@ export const PropertyListCard = ({
                     setAddingNewProperty(false);
                   }
                 }}
-                onAdd={(option: PropertyTypeOption) => {
+                onAdd={(type) => {
                   setAddingNewProperty(false);
-                  setPropertyTypes((list) => [...list, option]);
+                  setPropertyTypes((types) => [...types, type]);
                 }}
               />
             ) : (

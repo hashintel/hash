@@ -1,5 +1,6 @@
 import {
   extractBaseUri,
+  PropertyType,
   validateVersionedUri,
 } from "@blockprotocol/type-system-web";
 import {
@@ -32,49 +33,16 @@ const dataTypeNames = {
 } as Record<string, string>;
 
 export const useRemotePropertyTypes = () => {
-  const [propertyTypes, setPropertyTypes] = useState<
-    PropertyTypeOption[] | null
-  >(null);
+  const [propertyTypes, setPropertyTypes] = useState<PropertyType[] | null>(
+    null,
+  );
   const { aggregatePropertyTypes } = useBlockProtocolAggregatePropertyTypes();
 
   useEffect(() => {
     void aggregatePropertyTypes({ data: {} }).then((data) => {
       // @todo error handling
       setPropertyTypes(
-        data.data?.results
-          .map((result) => result.propertyType)
-          .map((type): PropertyTypeOption => {
-            const validated = validateVersionedUri(type.$id);
-            const parsed =
-              validated.type === "Ok" ? extractBaseUri(validated.inner) : "";
-            const url = new URL(parsed);
-
-            const domain = url.host === "localhost:3000" ? "hash.ai" : url.host;
-
-            const pathname = url.pathname.slice(1);
-            const isHash = domain === "hash.ai";
-            const parts = pathname.split("/");
-            const path = isHash ? `${parts[0]}/${parts.at(-2)}` : pathname;
-
-            const expectedValues = type.oneOf.reduce<string[]>((types, val) => {
-              if ("$ref" in val && dataTypeNames[val.$ref]) {
-                types.push(dataTypeNames[val.$ref]!);
-              }
-
-              return types;
-            }, []);
-
-            return {
-              title: type.title,
-              icon: isHash ? <HashOntologyIcon /> : null,
-              domain,
-              path,
-              expectedValues,
-              description: type.description ?? "",
-              $id: type.$id,
-            };
-          })
-          .filter((type) => !!type.expectedValues.length) ?? [],
+        data.data?.results.map((result) => result.propertyType) ?? null,
       );
     });
   }, [aggregatePropertyTypes]);
@@ -82,8 +50,55 @@ export const useRemotePropertyTypes = () => {
   return propertyTypes;
 };
 
-export const PropertyTypesContext = createContext<null | PropertyTypeOption[]>(
-  null,
-);
+export const PropertyTypesContext = createContext<null | PropertyType[]>(null);
 
-export const usePropertyTypes = () => useContext(PropertyTypesContext);
+export const usePropertyTypes = () => {
+  return useContext(PropertyTypesContext);
+};
+
+/**
+ * @deprecated
+ */
+export const mapPropertyType = (type: PropertyType): PropertyTypeOption => {
+  const validated = validateVersionedUri(type.$id);
+  const parsed = validated.type === "Ok" ? extractBaseUri(validated.inner) : "";
+  const url = new URL(parsed);
+
+  const domain = url.host === "localhost:3000" ? "hash.ai" : url.host;
+
+  const pathname = url.pathname.slice(1);
+  const isHash = domain === "hash.ai";
+  const parts = pathname.split("/");
+  const path = isHash ? `${parts[0]}/${parts.at(-2)}` : pathname;
+
+  const expectedValues = type.oneOf.reduce<string[]>((types, val) => {
+    if ("$ref" in val && dataTypeNames[val.$ref]) {
+      types.push(dataTypeNames[val.$ref]!);
+    }
+
+    return types;
+  }, []);
+
+  return {
+    title: type.title,
+    icon: isHash ? <HashOntologyIcon /> : null,
+    domain,
+    path,
+    expectedValues,
+    description: type.description ?? "",
+    $id: type.$id,
+  };
+};
+
+/**
+ * @deprecated
+ */
+export const useMappedPropertyTypes = () => {
+  const propertyTypes = usePropertyTypes();
+
+  return (
+    propertyTypes
+      ?.map((type) => mapPropertyType(type))
+      .filter((type) => !!type.expectedValues.length) ?? []
+  );
+};

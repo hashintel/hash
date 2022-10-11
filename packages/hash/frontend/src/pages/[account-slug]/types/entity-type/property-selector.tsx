@@ -1,3 +1,4 @@
+import { PropertyType } from "@blockprotocol/type-system-web";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import { Chip } from "@hashintel/hash-design-system/chip";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
@@ -14,7 +15,7 @@ import { forwardRef, useMemo, useRef, useState } from "react";
 import { ArrowUpRightIcon } from "../../../../shared/icons/svg";
 import { OntologyChip } from "./ontology-chip";
 import { PropertyListSelectorDropdown } from "./property-list-selector-dropdown";
-import { PropertyTypeOption, usePropertyTypes } from "./use-property-types";
+import { mapPropertyType, usePropertyTypes } from "./use-property-types";
 
 export const PROPERTY_SELECTOR_HEIGHT = 57;
 
@@ -24,7 +25,7 @@ export const PropertySelector = forwardRef<
     searchText: string;
     onSearchTextChange: (searchText: string) => void;
     modalPopupState: PopupState;
-    onAdd: (option: PropertyTypeOption) => void;
+    onAdd: (option: PropertyType) => void;
     onCancel: () => void;
   }
 >(
@@ -59,7 +60,7 @@ export const PropertySelector = forwardRef<
 
     const [open, setOpen] = useState(false);
 
-    const highlightedRef = useRef<null | PropertyTypeOption>(null);
+    const highlightedRef = useRef<null | PropertyType>(null);
 
     if (!propertyTypes) {
       // @todo loading indicator
@@ -160,68 +161,73 @@ export const PropertySelector = forwardRef<
         )}
         options={propertyTypes}
         getOptionLabel={(obj) => obj.title}
-        renderOption={(props, option) => (
-          <li {...props}>
-            <Box width="100%">
-              <Box
-                width="100%"
-                display="flex"
-                alignItems="center"
-                mb={0.5}
-                whiteSpace="nowrap"
-              >
+        renderOption={(props, type) => {
+          // @todo extract component
+          const option = mapPropertyType(type);
+
+          return (
+            <li {...props}>
+              <Box width="100%">
                 <Box
-                  component="span"
-                  flexShrink={0}
+                  width="100%"
                   display="flex"
                   alignItems="center"
+                  mb={0.5}
+                  whiteSpace="nowrap"
                 >
-                  <Typography
-                    variant="smallTextLabels"
-                    fontWeight={500}
-                    mr={0.5}
-                    color="black"
+                  <Box
+                    component="span"
+                    flexShrink={0}
+                    display="flex"
+                    alignItems="center"
                   >
-                    {option.title}
-                  </Typography>
-                  <ArrowUpRightIcon />
-                </Box>
-                <OntologyChip
-                  icon={option.icon}
-                  domain={option.domain}
-                  path={
                     <Typography
-                      component="span"
-                      fontWeight="bold"
-                      color={(theme) => theme.palette.blue[70]}
+                      variant="smallTextLabels"
+                      fontWeight={500}
+                      mr={0.5}
+                      color="black"
                     >
-                      {option.path}
+                      {option.title}
                     </Typography>
-                  }
-                  sx={{ flexShrink: 1, ml: 1.25, mr: 2 }}
-                />
-                <Box ml="auto">
-                  {option.expectedValues.map((value) => (
-                    <Chip key={value} color="gray" label={value} />
-                  ))}
+                    <ArrowUpRightIcon />
+                  </Box>
+                  <OntologyChip
+                    icon={option.icon}
+                    domain={option.domain}
+                    path={
+                      <Typography
+                        component="span"
+                        fontWeight="bold"
+                        color={(theme) => theme.palette.blue[70]}
+                      >
+                        {option.path}
+                      </Typography>
+                    }
+                    sx={{ flexShrink: 1, ml: 1.25, mr: 2 }}
+                  />
+                  <Box ml="auto">
+                    {option.expectedValues.map((value) => (
+                      <Chip key={value} color="gray" label={value} />
+                    ))}
+                  </Box>
                 </Box>
+                <Typography
+                  component={Box}
+                  variant="microText"
+                  sx={(theme) => ({
+                    color: theme.palette.gray[50],
+                    whiteSpace: "nowrap",
+                    textOverflow: "ellipsis",
+                    overflow: "hidden",
+                    width: "100%",
+                  })}
+                >
+                  {option.description}
+                </Typography>
               </Box>
-              <Typography
-                component={Box}
-                variant="microText"
-                sx={(theme) => ({
-                  color: theme.palette.gray[50],
-                  whiteSpace: "nowrap",
-                  textOverflow: "ellipsis",
-                  overflow: "hidden",
-                  width: "100%",
-                })}
-              >
-                {option.description}
-              </Typography>
-            </Box>
-          </li>
-        )}
+            </li>
+          );
+        }}
         PaperComponent={PropertyListSelectorDropdown}
         componentsProps={{
           popper: { modifiers },
