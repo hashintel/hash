@@ -24,7 +24,9 @@ import { Waiting } from "./Waiting";
 
 const parseVersion = (rawValue: Request["query"][string]) => {
   const num = Number(rawValue);
-  if (!Number.isNaN(num) && Math.floor(num) === num && num >= 0) return num;
+  if (!Number.isNaN(num) && Math.floor(num) === num && num >= 0) {
+    return num;
+  }
 
   throw new InvalidVersionError(rawValue);
 };
