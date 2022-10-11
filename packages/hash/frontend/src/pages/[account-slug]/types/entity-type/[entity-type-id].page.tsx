@@ -9,6 +9,7 @@ import { FRONTEND_URL } from "../../../../lib/config";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
+import { EditBar } from "./edit-bar";
 import { HashOntologyIcon } from "./hash-ontology-icon";
 import { OntologyChip } from "./ontology-chip";
 import { PropertyListCard } from "./property-list-card";
@@ -17,7 +18,7 @@ import {
   useRemotePropertyTypes,
 } from "./use-property-types";
 
-const useEntityType = (entityTypeSlug: string, onCompleted?: () => void) => {
+const useEntityType = (entityTypeId: string, onCompleted?: () => void) => {
   const { getEntityType } = useBlockProtocolGetEntityType();
   const [entityType, setEntityType] = useState<EntityType | null>(null);
 
@@ -29,19 +30,19 @@ const useEntityType = (entityTypeSlug: string, onCompleted?: () => void) => {
 
   useEffect(() => {
     void getEntityType({
-      // @todo get latest version somehow?
-      data: { entityTypeId: `${FRONTEND_URL}${entityTypeSlug}/v/1` },
+      data: { entityTypeId },
     }).then((value) => {
       if (value.data) {
         setEntityType(value.data.entityType);
         onCompletedRef.current?.();
       }
     });
-  }, [getEntityType, entityTypeSlug]);
+  }, [getEntityType, entityTypeId]);
 
   return entityType;
 };
 
+// @todo loading state
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const [insertedPropertyTypes, setInsertedPropertyTypes] = useState<
@@ -51,7 +52,11 @@ const Page: NextPageWithLayout = () => {
     PropertyType[]
   >([]);
 
-  const entityType = useEntityType(router.asPath, () => {
+  // @todo find this out somehow
+  const currentVersion = 1;
+  const entityTypeId = `${FRONTEND_URL}/${router.query["account-slug"]}/types/entity-type/${router.query["entity-type-id"]}/v/${currentVersion}`;
+
+  const entityType = useEntityType(entityTypeId, () => {
     setInsertedPropertyTypes([]);
     setRemovedPropertyTypes([]);
   });
@@ -95,6 +100,7 @@ const Page: NextPageWithLayout = () => {
             ]}
             scrollToTop={() => {}}
           />
+          <EditBar currentVersion={currentVersion} />
           <Box pt={3.75}>
             <Container>
               <OntologyChip
