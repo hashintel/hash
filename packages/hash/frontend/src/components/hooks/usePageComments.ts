@@ -15,7 +15,7 @@ export type PageComment = {
   entityId: string;
   hasText: Array<TextToken>;
   textUpdatedAt: string;
-  author: { entityId: string; properties: { preferredName?: string | null } };
+  author: { entityId: string; properties: object };
   parent: { entityId: string };
 };
 

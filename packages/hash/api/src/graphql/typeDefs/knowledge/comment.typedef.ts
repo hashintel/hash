@@ -20,7 +20,7 @@ export const persistedCommentTypedef = gql`
     """
     User that created the comment
     """
-    author: PersistedEntity!
+    author: UnknownPersistedEntity!
 
     """
     Parent entity the comment belongs to

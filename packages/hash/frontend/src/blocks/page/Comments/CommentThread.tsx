@@ -146,7 +146,11 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
           >
             <CommentTextField
               ref={inputRef}
-              placeholder={`Reply to ${comment.author.properties.preferredName}`}
+              placeholder={`Reply to ${
+                (comment.author?.properties as any)[
+                  "http://localhost:3000/@example/types/property-type/preferred-name/"
+                ]
+              }`}
               onClose={cancelSubmit}
               onSubmit={submitComment}
               editable={!loading}
