@@ -234,6 +234,8 @@ export class ComponentView implements NodeView<Schema> {
     const entity = this.store.draft[draftId];
 
     if (!entity || !isDraftBlockEntity(entity)) {
+      console.info("Before crash.", { entity, is: isDraftBlockEntity(entity) });
+
       throw new Error("Component view can't find block entity");
     }
 

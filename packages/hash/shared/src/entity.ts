@@ -118,24 +118,37 @@ export const getEntityChildEntity = (
     throw new Error("invariant: missing entity");
   }
 
-  if (isTextContainingEntityProperties(entity.properties)) {
-    const linkEntity = entity.properties.text.data;
+  // if (isTextContainingEntityProperties(entity.properties)) {
+  //   const linkEntity = entity.properties.text.data;
 
-    if (!isDraftEntity(linkEntity)) {
-      throw new Error("Expected linked entity to be draft");
-    }
+  //   if (!isDraftEntity(linkEntity)) {
+  //     throw new Error("Expected linked entity to be draft");
+  //   }
 
-    /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-    const textEntity = draftEntityStore[(linkEntity as any).draftId];
+  //   /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+  //   const textEntity = draftEntityStore[(linkEntity as any).draftId];
 
-    if (!textEntity) {
-      throw new Error("Missing text entity from draft store");
-    }
+  //   if (!textEntity) {
+  //     throw new Error("Missing text entity from draft store");
+  //   }
 
-    return textEntity;
+  //   return textEntity;
+  // }
+
+  console.log("STORE", {
+    entity,
+    draftEntityStore: Object.entries(draftEntityStore),
+    dataDraftId: entity.dataEntity?.draftId,
+  });
+  const childEntity = entity.dataEntity?.draftId
+    ? draftEntityStore[entity.dataEntity.draftId]
+    : null;
+
+  if (!childEntity) {
+    throw new Error("Missing entity from draft store");
   }
 
-  return entity;
+  return childEntity;
 };
 
 /**

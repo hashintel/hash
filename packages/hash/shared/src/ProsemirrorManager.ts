@@ -154,7 +154,7 @@ export class ProsemirrorManager {
         console.error("Block entity missing from store");
       }
 
-      if (entityInStore?.properties.componentId !== targetComponentId) {
+      if (entityInStore?.componentId !== targetComponentId) {
         // eslint-disable-next-line no-console
         console.error("Cannot render this block entity with this component");
       }
@@ -169,6 +169,8 @@ export class ProsemirrorManager {
       draftBlockId && entityStore
         ? getBlockChildEntity(draftBlockId, entityStore)
         : null;
+
+    console.log("LOADING IN", { blockData });
 
     const content =
       blockData && isTextEntity(blockData)
@@ -323,17 +325,13 @@ export class ProsemirrorManager {
 
     if (
       blockEntity &&
-      areComponentsCompatible(
-        /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-        (blockEntity as any).componentId,
-        targetComponentId,
-      )
+      areComponentsCompatible(blockEntity.componentId, targetComponentId)
     ) {
-      if (targetComponentId === blockEntity?.properties.componentId) {
+      if (targetComponentId === blockEntity.componentId) {
         addEntityStoreAction(this.view.state, tr, {
           type: "updateEntityProperties",
           payload: {
-            draftId: blockEntity.properties.entity.draftId,
+            draftId: blockEntity.dataEntity.draftId,
             properties: entityProperties,
             merge: true,
           },
@@ -577,12 +575,12 @@ export class ProsemirrorManager {
       },
     });
 
-    const blockDraftDraftId = generateDraftIdForEntity(null);
+    const blockDataDraftId = generateDraftIdForEntity(null);
     addEntityStoreAction(this.view.state, tr, {
       type: "newDraftEntity",
       payload: {
         accountId: this.accountId,
-        draftId: blockDraftDraftId,
+        draftId: blockDataDraftId,
         entityId: null,
       },
     });
@@ -590,7 +588,7 @@ export class ProsemirrorManager {
     addEntityStoreAction(this.view.state, tr, {
       type: "updateEntityProperties",
       payload: {
-        draftId: blockDraftDraftId,
+        draftId: blockDataDraftId,
         properties: blockDataProperties,
         // @todo maybe need to remove this?
         merge: true,
@@ -602,11 +600,12 @@ export class ProsemirrorManager {
       payload: {
         draftId: newBlockId,
         merge: false,
-        properties: {
+        metadata: {
           componentId: targetComponentId,
-          entity: entityStorePluginStateFromTransaction(tr, this.view.state)
-            .store.draft[blockDraftDraftId],
+          dataEntity: entityStorePluginStateFromTransaction(tr, this.view.state)
+            .store.draft[blockDataDraftId],
         },
+        properties: {},
       },
     });
     return newBlockId;

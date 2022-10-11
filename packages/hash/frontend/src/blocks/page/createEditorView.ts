@@ -1,10 +1,15 @@
 import { HashBlock } from "@hashintel/hash-shared/blocks";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
-import { apiOrigin } from "@hashintel/hash-shared/environment";
+// import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { EditorView } from "prosemirror-view";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
+import { save } from "@hashintel/hash-shared/save";
 import { ApolloClient } from "@apollo/client";
+import {
+  entityStorePluginState,
+  entityStorePluginStateFromTransaction,
+} from "@hashintel/hash-shared/entityStorePlugin";
 
 // import applyDevTools from "prosemirror-dev-tools";
 import { Schema } from "prosemirror-model";
@@ -26,16 +31,26 @@ import { createTextEditorView } from "./createTextEditorView";
 export type BlocksMap = Record<string, HashBlock>;
 
 const createSavePlugin = (
-  _accountId: string,
-  _pageEntityId: string,
-  getLastSavedValue: () => BlockEntity[],
-  _client: ApolloClient<unknown>,
+  ownedById: string,
+  pageEntityId: string,
+  client: ApolloClient<unknown>,
 ) => {
   let saveQueue = Promise.resolve<unknown>(null);
 
-  const triggerSave = (_view: EditorView<Schema>) => {
+  const triggerSave = (view: EditorView<Schema>) => {
     saveQueue = saveQueue.catch().then(
-      () => console.info("Saving..", getLastSavedValue()),
+      () =>
+        save(
+          client,
+          ownedById,
+          pageEntityId,
+          view.state.doc,
+          entityStorePluginState(view.state).store,
+        ),
+      // console.info("Saving..", {
+      //   lastSave: getLastSavedValue(),
+      //   store: entityStorePluginState(view.state).store,
+      // }),
       // updatePageMutation(
       //   accountId,
       //   pageEntityId,
@@ -103,7 +118,7 @@ export const createEditorView = (
   const [errorPlugin, _onError] = createErrorPlugin(renderPortal);
 
   const plugins: Plugin<unknown, Schema>[] = [
-    createSavePlugin(accountId, pageEntityId, getLastSavedValue, client),
+    createSavePlugin(accountId, pageEntityId, client),
     ...createFormatPlugins(renderPortal),
     createSuggester(renderPortal, accountId, renderNode, () => manager),
     createPlaceholderPlugin(renderPortal),
@@ -170,6 +185,10 @@ export const createEditorView = (
   );
 
   void manager.loadPage(state, getLastSavedValue()).then((tr) => {
+    console.info("LOADED STATE", {
+      entitystore: entityStorePluginStateFromTransaction(tr, state).store,
+    });
+
     view.updateState(state.apply(tr));
   });
 

@@ -10,6 +10,7 @@ const persistedBlockFieldsFragment = gql`
     componentId
     dataEntity {
       entityId
+      entityVersion
       accountId
       properties
     }
@@ -70,6 +71,30 @@ export const getPersistedPageQuery = gql`
       ...PersistedPageFields
     }
   }
+  ${persistedPageFieldsFragment}
+`;
+
+export const updatePersistedPageContents = gql`
+  mutation updatePersistedPageContents(
+    $ownedById: ID!
+    $entityId: ID!
+    $actions: [UpdatePersistedPageAction!]!
+  ) {
+    updatePersistedPageContents(
+      ownedById: $ownedById
+      entityId: $entityId
+      actions: $actions
+    ) {
+      page {
+        ...PersistedPageFields
+      }
+      placeholders {
+        placeholderId
+        entityId
+      }
+    }
+  }
+
   ${persistedPageFieldsFragment}
 `;
 

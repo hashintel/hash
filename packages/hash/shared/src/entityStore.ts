@@ -1,31 +1,32 @@
 import { Draft, produce } from "immer";
 import { generateDraftIdForEntity } from "./entityStorePlugin";
 import { BlockEntity, isTextContainingEntityProperties } from "./entity";
-import { DistributiveOmit } from "./util";
+// import { DistributiveOmit } from "./util";
 import { MinimalEntityTypeFieldsFragment } from "./graphql/apiTypes.gen";
 
 export type EntityStoreType = BlockEntity | BlockEntity["dataEntity"];
 
-type PropertiesType<Properties extends {}> = Properties extends {
-  entity: EntityStoreType;
-}
-  ? DistributiveOmit<Properties, "entity"> & {
-      /**
-       * @deprecated
-       * @todo Don't use this, use links
-       */
-      entity: DraftEntity<Properties["entity"]>;
-    }
-  : Properties;
+// type PropertiesType<Properties extends {}> = Properties extends {
+//   entity: EntityStoreType;
+// }
+//   ? DistributiveOmit<Properties, "entity"> & {
+//       /**
+//        * @deprecated
+//        * @todo Don't use this, use links
+//        */
+//       entity: DraftEntity<Properties["entity"]>;
+//     }
+//   : Properties;
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   accountId: string;
   entityId: string | null;
   entityTypeId?: string | null;
-  entityVersion?: string | null;
+  entityVersion: string;
   entityType?: MinimalEntityTypeFieldsFragment;
   /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
-  dataEntity?: Type;
+  dataEntity?: Type & { draftId?: string };
+  properties: Record<string, unknown>;
 
   componentId?: string;
 
@@ -50,9 +51,7 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   // Type extends { linkedAggregations: any }
   //   ? Type["linkedAggregations"]
   //   : undefined;
-} & (Type extends { properties: any }
-  ? { properties: PropertiesType<Type["properties"]> }
-  : {});
+};
 
 export type EntityStore = {
   saved: Record<string, EntityStoreType>;
@@ -94,10 +93,9 @@ const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
   const entities: EntityStoreType[] = [];
 
   for (const entity of contents) {
-    entities.push(entity, entity.dataEntity);
-
-    if (isTextContainingEntityProperties(entity.dataEntity.properties)) {
-      entities.push(entity.dataEntity.properties.text.data);
+    entities.push(entity);
+    if (entity.dataEntity) {
+      entities.push(entity.dataEntity);
     }
   }
 
@@ -172,12 +170,9 @@ export const createEntityStore = (
       { ...entity, draftId },
       (draftEntity: Draft<DraftEntity>) => {
         if (draftData[draftId]) {
-          /** @todo when updated at is re-introduced, make this check valid https://app.asana.com/0/0/1203099452204542/f */
           if (
-            // new Date(draftData[draftId]!.updatedAt).getTime() >
-            // new Date(draftEntity.updatedAt).getTime()
-            // eslint-disable-next-line no-constant-condition
-            false
+            new Date(draftData[draftId]!.entityVersion).getTime() >
+            new Date(draftEntity.entityVersion).getTime()
           ) {
             Object.assign(draftEntity, draftData[draftId]);
           }

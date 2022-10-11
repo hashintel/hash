@@ -64,6 +64,10 @@ export type EntityStorePluginAction = { received?: boolean } & (
       type: "updateEntityProperties";
       payload: {
         draftId: string;
+        metadata?: {
+          componentId: string;
+          dataEntity?: { [key: string]: unknown };
+        };
         properties: { [key: string]: unknown };
         merge: boolean;
       };
@@ -154,9 +158,7 @@ const updateEntitiesByDraftId = (
 
   for (const entity of Object.values(draftEntityStore)) {
     if (isDraftBlockEntity(entity)) {
-      /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-      const dataEntity = entity.dataEntity as any;
-
+      const dataEntity = entity.dataEntity!;
       if (dataEntity.draftId === draftId) {
         entities.push(dataEntity);
       }
@@ -270,12 +272,19 @@ const entityStoreReducer = (
           action.payload.draftId,
           action.payload.merge
             ? (draftEntity) => {
+                draftEntity.componentId = action.payload.metadata?.componentId;
+                draftEntity.dataEntity = action.payload.metadata
+                  ?.dataEntity as any;
+
                 Object.assign(
                   draftEntity.properties,
                   action.payload.properties,
                 );
               }
             : (draftEntity) => {
+                draftEntity.componentId = action.payload.metadata?.componentId;
+                draftEntity.dataEntity = action.payload.metadata
+                  ?.dataEntity as any;
                 draftEntity.properties = action.payload.properties;
               },
         );
@@ -321,11 +330,6 @@ const entityStoreReducer = (
           entityId: action.payload.entityId,
           draftId: action.payload.draftId,
           properties: {},
-          dataEntity: {
-            /** @todo this value is incorrect and needs to be changed https://app.asana.com/0/0/1203099452204542/f */
-            entityId: "",
-            /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-          } as any,
         };
       });
   }
@@ -487,7 +491,7 @@ class ProsemirrorStateChangeHandler {
 
       const componentId = componentNodeToId(node);
 
-      if (entity.properties.componentId !== componentId) {
+      if (entity.componentId !== componentId) {
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
           payload: {
@@ -556,6 +560,10 @@ class ProsemirrorStateChangeHandler {
       getRequiredDraftIdFromEntityNode(node),
       draftEntityStore,
     );
+    // console.info("handlePotentialTextContentChangesInEntityNode", {
+    //   node,
+    //   childEntity,
+    // });
 
     if (
       isTextEntity(childEntity) &&
