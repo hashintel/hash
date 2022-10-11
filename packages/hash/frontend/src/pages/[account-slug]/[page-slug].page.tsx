@@ -230,7 +230,9 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   }, [pageState]);
 
   const scrollToTop = () => {
-    if (!pageHeaderRef.current) return;
+    if (!pageHeaderRef.current) {
+      return;
+    }
     pageHeaderRef.current.scrollIntoView({ behavior: "smooth" });
   };
 

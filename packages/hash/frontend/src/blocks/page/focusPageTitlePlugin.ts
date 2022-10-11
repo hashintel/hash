@@ -10,7 +10,9 @@ export const createFocusPageTitlePlugin = (
       handleKeyDown: (view, event) => {
         const isArrowUp = event.key === "ArrowUp";
 
-        if (!isArrowUp) return false;
+        if (!isArrowUp) {
+          return false;
+        }
 
         const { selection } = view.state;
         const posAtIndex = selection.$head.posAtIndex(0, 1);
