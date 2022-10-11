@@ -53,10 +53,12 @@ const InsertPropertyRow = ({
   inputRef,
   onCancel,
   onAdd,
+  filterProperty,
 }: {
   inputRef: Ref<HTMLInputElement | null>;
   onCancel: () => void;
   onAdd: (option: PropertyType) => void;
+  filterProperty: (property: PropertyType) => boolean;
 }) => {
   const modalTooltipId = useId();
   const modalPopupState = usePopupState({
@@ -102,6 +104,7 @@ const InsertPropertyRow = ({
             modalPopupState={modalPopupState}
             onAdd={onAdd}
             onCancel={onCancel}
+            filterProperty={filterProperty}
           />
         </PropertyListSelectorDropdownContext.Provider>
         <Modal
@@ -336,6 +339,7 @@ export const PropertyListCard = ({
                   setAddingNewProperty(false);
                   setPropertyTypes((types) => [...types, type]);
                 }}
+                filterProperty={(property) => !propertyTypes.includes(property)}
               />
             ) : (
               <TableRow>
