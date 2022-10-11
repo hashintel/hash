@@ -61,6 +61,12 @@ module.exports = withSentryConfig(
           "@material-ui/icons": false,
         };
 
+        // eslint-disable-next-line no-param-reassign
+        webpackConfig.experiments = {
+          asyncWebAssembly: true,
+          layers: true,
+        };
+
         //  Build the sandbox HTML, which will have the sandbox script injected
         const framedBlockFolder = "/src/components/sandbox/FramedBlock";
         webpackConfig.plugins.push(

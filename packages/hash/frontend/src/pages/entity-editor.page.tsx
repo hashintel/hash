@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { Container, Typography } from "@mui/material";
-import init, { ValueOrArray } from "@blockprotocol/type-system";
+import { ValueOrArray } from "@blockprotocol/type-system";
 import { Button } from "@hashintel/hash-design-system/button";
 import { useUser } from "../components/hooks/useUser";
 import { NextPageWithLayout } from "../shared/layout";
@@ -105,9 +105,7 @@ const ExampleEntityEditorPage: NextPageWithLayout = () => {
   useEffect(() => {
     if (loadingTypeSystem) {
       void (async () => {
-        await init().then(() => {
-          setLoadingTypeSystem(false);
-        });
+        setLoadingTypeSystem(false);
       })();
     }
   }, [loadingTypeSystem, setLoadingTypeSystem]);
