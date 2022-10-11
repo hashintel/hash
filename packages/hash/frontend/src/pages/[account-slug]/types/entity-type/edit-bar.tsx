@@ -25,7 +25,7 @@ const EditBarContents = ({
     }}
   >
     {icon}
-    <Typography variant="smallText" sx={{ ml: 1 }}>
+    <Typography variant="smallTextLabels" sx={{ ml: 1 }}>
       <Box component="span" sx={{ fontWeight: "bold", mr: 1 }}>
         {title}
       </Box>{" "}
