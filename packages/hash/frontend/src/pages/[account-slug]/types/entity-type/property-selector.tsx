@@ -1,6 +1,5 @@
 import { PropertyType } from "@blockprotocol/type-system-web";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
-import { Chip } from "@hashintel/hash-design-system/chip";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { TextField } from "@hashintel/hash-design-system/text-field";
 import {
@@ -19,9 +18,10 @@ import {
   useState,
 } from "react";
 import { ArrowUpRightIcon } from "../../../../shared/icons/svg";
-import { OntologyChip } from "./ontology-chip";
+import { OntologyChip, parseUriForOntologyChip } from "./ontology-chip";
+import { PropertyExpectedValues } from "./property-expected-values";
 import { PropertyListSelectorDropdown } from "./property-list-selector-dropdown";
-import { mapPropertyType, usePropertyTypes } from "./use-property-types";
+import { usePropertyTypes } from "./use-property-types";
 
 export const PROPERTY_SELECTOR_HEIGHT = 57;
 
@@ -174,10 +174,10 @@ const PropertySelector: ForwardRefRenderFunction<
       )}
       options={propertyTypes.filter((type) => filterProperty(type))}
       getOptionLabel={(obj) => obj.title}
-      renderOption={(props, type) => {
-        // @todo extract component
-        const option = mapPropertyType(type);
+      renderOption={(props, property: PropertyType) => {
+        const ontology = parseUriForOntologyChip(property.$id);
 
+        // @todo extract component
         return (
           <li {...props}>
             <Box width="100%">
@@ -200,28 +200,25 @@ const PropertySelector: ForwardRefRenderFunction<
                     mr={0.5}
                     color="black"
                   >
-                    {option.title}
+                    {property.title}
                   </Typography>
                   <ArrowUpRightIcon />
                 </Box>
                 <OntologyChip
-                  icon={option.icon}
-                  domain={option.domain}
+                  {...ontology}
                   path={
                     <Typography
                       component="span"
                       fontWeight="bold"
                       color={(theme) => theme.palette.blue[70]}
                     >
-                      {option.path}
+                      {ontology.path}
                     </Typography>
                   }
                   sx={{ flexShrink: 1, ml: 1.25, mr: 2 }}
                 />
                 <Box ml="auto">
-                  {option.expectedValues.map((value) => (
-                    <Chip key={value} color="gray" label={value} />
-                  ))}
+                  <PropertyExpectedValues property={property} />
                 </Box>
               </Box>
               <Typography
@@ -235,7 +232,7 @@ const PropertySelector: ForwardRefRenderFunction<
                   width: "100%",
                 })}
               >
-                {option.description}
+                {property.description}
               </Typography>
             </Box>
           </li>

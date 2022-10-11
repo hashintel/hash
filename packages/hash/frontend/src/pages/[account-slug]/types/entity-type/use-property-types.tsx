@@ -7,7 +7,6 @@ import {
   useState,
 } from "react";
 import { useBlockProtocolAggregatePropertyTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregatePropertyTypes";
-import { parseUriForOntologyChip } from "./ontology-chip";
 
 export type PropertyTypeOption = {
   path: string;
@@ -19,7 +18,7 @@ export type PropertyTypeOption = {
   $id: string;
 };
 
-const dataTypeNames = {
+export const dataTypeNames = {
   "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1": "Text",
   "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1":
     "Number",
@@ -48,40 +47,4 @@ export const useRemotePropertyTypes = () => {
 
 export const PropertyTypesContext = createContext<null | PropertyType[]>(null);
 
-export const usePropertyTypes = () => {
-  return useContext(PropertyTypesContext);
-};
-
-/**
- * @deprecated
- */
-export const mapPropertyType = (type: PropertyType): PropertyTypeOption => {
-  const expectedValues = type.oneOf.reduce<string[]>((types, val) => {
-    if ("$ref" in val && dataTypeNames[val.$ref]) {
-      types.push(dataTypeNames[val.$ref]!);
-    }
-
-    return types;
-  }, []);
-
-  return {
-    ...parseUriForOntologyChip(type.$id),
-    title: type.title,
-    expectedValues,
-    description: type.description ?? "",
-    $id: type.$id,
-  };
-};
-
-/**
- * @deprecated
- */
-export const useMappedPropertyTypes = () => {
-  const propertyTypes = usePropertyTypes();
-
-  return (
-    propertyTypes
-      ?.map((type) => mapPropertyType(type))
-      .filter((type) => !!type.expectedValues.length) ?? []
-  );
-};
+export const usePropertyTypes = () => useContext(PropertyTypesContext);

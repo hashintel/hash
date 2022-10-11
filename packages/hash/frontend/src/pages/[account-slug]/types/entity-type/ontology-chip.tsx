@@ -27,6 +27,7 @@ export const parseUriForOntologyChip = (uri: string) => {
   return { domain, path, icon };
 };
 
+// @todo make this take the id
 const OntologyChip: ForwardRefRenderFunction<
   HTMLDivElement,
   {

@@ -1,6 +1,5 @@
 import { PropertyType } from "@blockprotocol/type-system-web";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
-import { Chip } from "@hashintel/hash-design-system/chip";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { IconButton } from "@hashintel/hash-design-system/icon-button";
 import { TextField } from "@hashintel/hash-design-system/text-field";
@@ -32,13 +31,13 @@ import {
 } from "material-ui-popup-state/hooks";
 import { Ref, useId, useRef, useState } from "react";
 import { Modal } from "../../../../components/Modals/Modal";
+import { PropertyExpectedValues } from "./property-expected-values";
 import { PropertyListSelectorDropdownContext } from "./property-list-selector-dropdown";
 import { PropertyMenu } from "./property-menu";
 import { PropertySelector } from "./property-selector";
 import { PropertyTypeForm } from "./property-type-form";
 import { QuestionIcon } from "./question-icon";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
-import { mapPropertyType } from "./use-property-types";
 import { useStateCallback, withHandler } from "./util";
 import { WhiteCard } from "./white-card";
 
@@ -174,56 +173,46 @@ export const PropertyTypeRow = ({
 }: {
   property: PropertyType;
   onRemove: () => void;
-}) => {
-  // @todo remove this
-  const option = mapPropertyType(property);
-
-  return (
-    <TableRow>
-      <TableCell>
-        <Typography variant="smallTextLabels" fontWeight={500}>
-          {option.title}
-        </Typography>
-      </TableCell>
-      <TableCell>
-        {
-          // @todo handle this being too many
-          option.expectedValues.map((val) => (
-            <Chip label={val} key={val} />
-          ))
-        }
-      </TableCell>
-      <TableCell sx={{ textAlign: "center" }}>
-        <Checkbox />
-      </TableCell>
-      <TableCell sx={{ textAlign: "center" }}>
-        <Checkbox />
-      </TableCell>
-      <TableCell sx={{ px: "0px !important" }}>
-        <TextField
-          placeholder="Add default value"
-          sx={{
-            width: "100%",
-            [`.${tableRowClasses.root}:not(:hover) & .${outlinedInputClasses.root}:not(:focus-within)`]:
-              {
-                boxShadow: "none",
-                [`.${outlinedInputClasses.notchedOutline}`]: {
-                  borderColor: "transparent",
-                },
-                [`.${outlinedInputClasses.input}::placeholder`]: {
-                  color: "transparent",
-                },
+}) => (
+  <TableRow>
+    <TableCell>
+      <Typography variant="smallTextLabels" fontWeight={500}>
+        {property.title}
+      </Typography>
+    </TableCell>
+    <TableCell>
+      <PropertyExpectedValues property={property} />
+    </TableCell>
+    <TableCell sx={{ textAlign: "center" }}>
+      <Checkbox />
+    </TableCell>
+    <TableCell sx={{ textAlign: "center" }}>
+      <Checkbox />
+    </TableCell>
+    <TableCell sx={{ px: "0px !important" }}>
+      <TextField
+        placeholder="Add default value"
+        sx={{
+          width: "100%",
+          [`.${tableRowClasses.root}:not(:hover) & .${outlinedInputClasses.root}:not(:focus-within)`]:
+            {
+              boxShadow: "none",
+              [`.${outlinedInputClasses.notchedOutline}`]: {
+                borderColor: "transparent",
               },
-          }}
-          inputProps={{ sx: { textOverflow: "ellipsis" } }}
-        />
-      </TableCell>
-      <TableCell>
-        <PropertyMenu onRemove={onRemove} property={property} />
-      </TableCell>
-    </TableRow>
-  );
-};
+              [`.${outlinedInputClasses.input}::placeholder`]: {
+                color: "transparent",
+              },
+            },
+        }}
+        inputProps={{ sx: { textOverflow: "ellipsis" } }}
+      />
+    </TableCell>
+    <TableCell>
+      <PropertyMenu onRemove={onRemove} property={property} />
+    </TableCell>
+  </TableRow>
+);
 
 export const PropertyListCard = ({
   insertFieldRef,
