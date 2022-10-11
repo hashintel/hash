@@ -12,7 +12,7 @@ import { TopContextBar } from "../../../shared/top-context-bar";
 import { EmptyPropertyListCard } from "./empty-property-list-card";
 import { OntologyChip } from "./ontology-chip";
 import { HashOntologyIcon } from "./hash-ontology-icon";
-import { InsertPropertyCard } from "./property-list-card";
+import { PropertyListCard } from "./property-list-card";
 import {
   PropertyTypesContext,
   useRemotePropertyTypes,
@@ -38,7 +38,7 @@ const useEntityType = (entityTypeSlug: string) => {
 };
 
 const Page: NextPageWithLayout = () => {
-  const [mode, setMode] = useStateCallback<"empty" | "inserting">("empty");
+  const [mode, setMode] = useStateCallback<"empty" | "list">("empty");
   const insertFieldRef = useRef<HTMLInputElement>(null);
 
   const router = useRouter();
@@ -139,13 +139,13 @@ const Page: NextPageWithLayout = () => {
             {mode === "empty" ? (
               <EmptyPropertyListCard
                 onClick={() => {
-                  setMode("inserting", () => {
+                  setMode("list", () => {
                     insertFieldRef.current?.focus();
                   });
                 }}
               />
             ) : (
-              <InsertPropertyCard
+              <PropertyListCard
                 insertFieldRef={insertFieldRef}
                 onCancel={() => {
                   setMode("empty");

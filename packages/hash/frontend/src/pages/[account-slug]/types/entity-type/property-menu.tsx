@@ -25,6 +25,9 @@ import { useId } from "react";
 import { OntologyChip } from "./ontology-chip";
 import { HashOntologyIcon } from "./hash-ontology-icon";
 
+/**
+ * @todo display relevant info from the property type
+ */
 export const PropertyMenu = ({
   disabled,
   onRemove,

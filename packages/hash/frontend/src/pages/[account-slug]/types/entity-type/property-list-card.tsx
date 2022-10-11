@@ -37,6 +37,7 @@ import { PropertySelector } from "./property-selector";
 import { PropertyTypeForm } from "./property-type-form";
 import { QuestionIcon } from "./question-icon";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
+import { PropertyTypeOption } from "./use-property-types";
 import { useStateCallback, withHandler } from "./util";
 import { WhiteCard } from "./white-card";
 
@@ -54,7 +55,7 @@ const InsertPropertyRow = ({
 }: {
   inputRef: Ref<HTMLInputElement | null>;
   onCancel: () => void;
-  onAdd: () => void;
+  onAdd: (option: PropertyTypeOption) => void;
 }) => {
   const modalTooltipId = useId();
   const modalPopupState = usePopupState({
@@ -146,8 +147,12 @@ const InsertPropertyRow = ({
               </IconButton>
             </Box>
             <PropertyTypeForm
-              createButtonProps={withHandler(bindToggle(modalPopupState), () =>
-                onAdd(),
+              createButtonProps={withHandler(
+                bindToggle(modalPopupState),
+                () => {
+                  console.log("Add option");
+                  // onAdd();
+                },
               )}
               discardButtonProps={bindToggle(modalPopupState)}
               initialTitle={searchText}
@@ -159,7 +164,7 @@ const InsertPropertyRow = ({
   );
 };
 
-export const InsertPropertyCard = ({
+export const PropertyListCard = ({
   insertFieldRef,
   onCancel,
 }: {
@@ -167,7 +172,7 @@ export const InsertPropertyCard = ({
   onCancel: () => void;
 }) => {
   const [addingNewProperty, setAddingNewProperty] = useStateCallback(true);
-  const [created, setCreated] = useState<string[]>([]);
+  const [propertyTypes, setPropertyTypes] = useState<PropertyTypeOption[]>([]);
   const addingNewPropertyRef = useRef<HTMLInputElement>(null);
 
   const sharedRef = useForkRef(addingNewPropertyRef, insertFieldRef);
@@ -241,15 +246,20 @@ export const InsertPropertyCard = ({
             </Typography>
           </TableHead>
           <TableBody>
-            {created.map((id) => (
-              <TableRow key={id}>
+            {propertyTypes.map((option) => (
+              <TableRow key={option.$id}>
                 <TableCell>
                   <Typography variant="smallTextLabels" fontWeight={500}>
-                    Share Price
+                    {option.title}
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Chip label="Number" />
+                  {
+                    // @todo handle this being too many
+                    option.expectedValues.map((val) => (
+                      <Chip label={val} key={val} />
+                    ))
+                  }
                 </TableCell>
                 <TableCell sx={{ textAlign: "center" }}>
                   <Checkbox />
@@ -279,8 +289,10 @@ export const InsertPropertyCard = ({
                 <TableCell>
                   <PropertyMenu
                     onRemove={() => {
-                      const onlyItem = created.length === 1;
-                      setCreated((list) => list.filter((item) => item !== id));
+                      const onlyItem = propertyTypes.length === 1;
+                      setPropertyTypes((list) =>
+                        list.filter((item) => item !== option),
+                      );
                       if (onlyItem) {
                         setAddingNewProperty(true);
                         onCancel();
@@ -296,18 +308,15 @@ export const InsertPropertyCard = ({
               <InsertPropertyRow
                 inputRef={sharedRef}
                 onCancel={() => {
-                  if (!created.length) {
+                  if (!propertyTypes.length) {
                     onCancel();
                   } else {
                     setAddingNewProperty(false);
                   }
                 }}
-                onAdd={() => {
+                onAdd={(option: PropertyTypeOption) => {
                   setAddingNewProperty(false);
-                  setCreated((list) => [
-                    ...list,
-                    (Math.random() + 1).toString(36).substring(7),
-                  ]);
+                  setPropertyTypes((list) => [...list, option]);
                 }}
               />
             ) : (

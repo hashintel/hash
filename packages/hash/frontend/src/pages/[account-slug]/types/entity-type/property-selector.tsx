@@ -1,7 +1,3 @@
-import {
-  extractBaseUri,
-  validateVersionedUri,
-} from "@blockprotocol/type-system-web";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import { Chip } from "@hashintel/hash-design-system/chip";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
@@ -14,32 +10,13 @@ import {
   Typography,
 } from "@mui/material";
 import { PopupState } from "material-ui-popup-state/hooks";
-import { forwardRef, ReactNode, useMemo, useRef, useState } from "react";
+import { forwardRef, useMemo, useRef, useState } from "react";
 import { ArrowUpRightIcon } from "../../../../shared/icons/svg";
 import { OntologyChip } from "./ontology-chip";
-import { HashOntologyIcon } from "./hash-ontology-icon";
 import { PropertyListSelectorDropdown } from "./property-list-selector-dropdown";
-import { usePropertyTypes } from "./use-property-types";
+import { PropertyTypeOption, usePropertyTypes } from "./use-property-types";
 
 export const PROPERTY_SELECTOR_HEIGHT = 57;
-
-type PropertyTypeOption = {
-  path: string;
-  domain: string;
-  icon: ReactNode;
-  description: string;
-  title: string;
-  expectedValues: string[];
-};
-
-const dataTypeNames = {
-  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1": "Text",
-  "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1":
-    "Number",
-  "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1":
-    "Boolean",
-  "https://blockprotocol.org/@blockprotocol/types/data-type/null/v/1": "Null",
-} as Record<string, string>;
 
 export const PropertySelector = forwardRef<
   HTMLInputElement,
@@ -47,7 +24,7 @@ export const PropertySelector = forwardRef<
     searchText: string;
     onSearchTextChange: (searchText: string) => void;
     modalPopupState: PopupState;
-    onAdd: () => void;
+    onAdd: (option: PropertyTypeOption) => void;
     onCancel: () => void;
   }
 >(
@@ -56,41 +33,6 @@ export const PropertySelector = forwardRef<
     ref,
   ) => {
     const propertyTypes = usePropertyTypes();
-
-    // @todo clean this up
-    const mappedPropertyTypes =
-      propertyTypes
-        ?.map((type): PropertyTypeOption => {
-          const validated = validateVersionedUri(type.$id);
-          const parsed =
-            validated.type === "Ok" ? extractBaseUri(validated.inner) : "";
-          const url = new URL(parsed);
-
-          const domain = url.host === "localhost:3000" ? "hash.ai" : url.host;
-
-          const pathname = url.pathname.slice(1);
-          const isHash = domain === "hash.ai";
-          const parts = pathname.split("/");
-          const path = isHash ? `${parts[0]}/${parts.at(-2)}` : pathname;
-
-          const expectedValues = type.oneOf.reduce<string[]>((types, val) => {
-            if ("$ref" in val && dataTypeNames[val.$ref]) {
-              types.push(dataTypeNames[val.$ref]!);
-            }
-
-            return types;
-          }, []);
-
-          return {
-            title: type.title,
-            icon: isHash ? <HashOntologyIcon /> : null,
-            domain,
-            path,
-            expectedValues,
-            description: type.description ?? "",
-          };
-        })
-        .filter((type) => !!type.expectedValues.length) ?? [];
 
     const modifiers = useMemo(
       (): PopperProps["modifiers"] => [
@@ -144,7 +86,11 @@ export const PropertySelector = forwardRef<
         onHighlightChange={(_, value) => {
           highlightedRef.current = value;
         }}
-        onChange={() => onAdd()}
+        onChange={(_, option) => {
+          if (option) {
+            onAdd(option);
+          }
+        }}
         onKeyDown={(evt) => {
           switch (evt.key) {
             case "Enter":
@@ -212,7 +158,7 @@ export const PropertySelector = forwardRef<
             }}
           />
         )}
-        options={mappedPropertyTypes}
+        options={propertyTypes}
         getOptionLabel={(obj) => obj.title}
         renderOption={(props, option) => (
           <li {...props}>
