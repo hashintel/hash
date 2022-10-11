@@ -1,6 +1,6 @@
 # deer
 
-`deer` is a backend agnostic deserialization framework, featuring meaningful error messages and context (utilizing [`error-stack`](https://crates.io/crates/error-stack)) and a fail-slow behavior by default.
+`deer` is an **experimental** backend-agnostic deserialization framework, featuring meaningful error messages and context (utilizing [`error-stack`](https://crates.io/crates/error-stack)) and a fail-slow behavior by default.
 
 ## Fail-Slow
 
