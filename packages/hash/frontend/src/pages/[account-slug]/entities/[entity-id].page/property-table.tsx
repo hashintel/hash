@@ -18,8 +18,8 @@ import { useEntityEditor } from "./entity-editor-context";
 
 type Row = {
   name: string;
-  value: string;
-  dataTypes: string[];
+  value: any;
+  dataType: string;
   propertyTypeId: string;
 };
 
@@ -45,7 +45,7 @@ const columns: GridColumn[] = [
 const indexes: Exclude<keyof Row, "propertyTypeId">[] = [
   "name",
   "value",
-  "dataTypes",
+  "dataType",
 ];
 
 const firstColumnPadding = 36;
@@ -81,7 +81,7 @@ export const PropertyTable = ({
       return {
         value,
         name: propertyType.title,
-        dataTypes: ["Text"],
+        dataType: "Text",
         propertyTypeId,
       };
     });
@@ -125,24 +125,32 @@ export const PropertyTable = ({
         case "name":
           return {
             kind: GridCellKind.Text,
-            data: value as string,
-            displayData: value as string,
+            data: value,
+            displayData: value,
             readonly: true,
             allowOverlay: false,
           };
 
-        case "dataTypes":
+        case "dataType":
           return {
             kind: GridCellKind.Bubble,
-            data: value as string[],
+            data: [value],
             allowOverlay: false,
           };
 
         case "value":
+          if (typeof value === "boolean") {
+            return {
+              kind: GridCellKind.Boolean,
+              data: value,
+              allowOverlay: false,
+            };
+          }
+
           return {
             kind: GridCellKind.Text,
-            data: value as string,
-            displayData: value as string,
+            data: value,
+            displayData: value,
             allowOverlay: true,
             cursor: "pointer",
           };
@@ -153,17 +161,17 @@ export const PropertyTable = ({
 
   const onCellEdited = useCallback(
     async ([col, row]: Item, newValue: EditableGridCell) => {
-      if (newValue.kind !== GridCellKind.Text) {
-        // we only have text cells, might as well just die here.
-        return;
-      }
-
       const key = indexes[col];
       const property = rowData[row];
 
       if (!key || !property) {
         throw new Error();
       }
+
+      const updatedProperties = {
+        ...entity.properties,
+        [property.propertyTypeId]: newValue.data,
+      };
 
       /**
        * setting state for optimistic update
@@ -172,20 +180,14 @@ export const PropertyTable = ({
       const prevEntity = { ...entity };
       setEntity({
         ...entity,
-        properties: {
-          ...entity.properties,
-          [property.propertyTypeId]: newValue.data,
-        },
+        properties: updatedProperties,
       });
 
       try {
         await updateEntity({
           data: {
             entityId: entity.entityId,
-            updatedProperties: {
-              ...entity.properties,
-              [property.propertyTypeId]: newValue.data,
-            },
+            updatedProperties,
           },
         });
       } catch (error) {
