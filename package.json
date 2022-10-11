@@ -68,8 +68,6 @@
     ]
   },
   "resolutions": {
-    "@blockprotocol/type-system-node": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-node?066283b5",
-    "@blockprotocol/type-system-web": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?066283b5",
     "@types/react": "18.0.15",
     "node-fetch": "^2.6.7",
     "react": "^18.2.0",
