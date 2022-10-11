@@ -25,6 +25,8 @@ export const dataTypeNames = {
   "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1":
     "Boolean",
   "https://blockprotocol.org/@blockprotocol/types/data-type/null/v/1": "Null",
+  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1":
+    "JSON Object",
 } as Record<string, string>;
 
 export const useRemotePropertyTypes = () => {
