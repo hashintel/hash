@@ -2,7 +2,6 @@ import { gql } from "@apollo/client";
 
 export const persistedEntityFieldsFragment = gql`
   fragment PersistedEntityFields on UnknownPersistedEntity {
-    accountId
     entityId
     entityTypeId
     entityVersion

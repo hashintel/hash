@@ -10,7 +10,6 @@ import {
 } from "../../../../graphql/apiTypes.gen";
 import { getPersistedEntity } from "../../../../graphql/queries/knowledge/entity.queries";
 import { GetEntityMessageCallback } from "./knowledge-shim";
-import { convertApiEntityToBpEntity } from "../../../../lib/entities";
 
 export const useBlockProtocolGetEntity = (): {
   getEntity: GetEntityMessageCallback;
@@ -89,7 +88,6 @@ export const useBlockProtocolGetEntity = (): {
       return {
         data: {
           ...persistedEntity,
-          ...convertApiEntityToBpEntity(persistedEntity),
           entityTypeRootedSubgraph: entityTypeResponseData.getEntityType,
         },
       };
