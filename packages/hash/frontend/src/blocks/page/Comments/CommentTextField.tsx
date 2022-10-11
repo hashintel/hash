@@ -85,29 +85,31 @@ export const CommentTextField = forwardRef<
     const editorContainerRef = useRef<HTMLDivElement>();
     const editableRef = useRef(false);
     const eventsRef = useRef({ onClose, onSubmit });
-    const [prevValue, setPrevValue] = useState(initialText);
+    const [prevValue, setPrevValue] = useState(initialText ?? []);
 
-    if (onChange && viewRef.current) {
-      const { tokens } = textBlockNodeToEntityProperties(
-        viewRef.current?.state.doc,
-      );
-
-      if (!isEqual(prevValue, tokens)) {
-        onChange(tokens);
-        setPrevValue(tokens);
-      }
-    }
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useLayoutEffect(() => {
       eventsRef.current = { onClose, onSubmit };
       editableRef.current = editable;
+
+      if (onChange && viewRef.current) {
+        const { tokens } = textBlockNodeToEntityProperties(
+          viewRef.current?.state.doc,
+        );
+
+        if (!isEqual(prevValue, tokens)) {
+          onChange(tokens);
+          setPrevValue(tokens);
+        }
+      }
     });
 
     const getInitialTokens = useCallback(
-      (schema: Schema) =>
-        initialText?.length
+      (schema: Schema) => {
+        return initialText?.length
           ? textBlockNodesFromTokens(initialText, schema)
-          : [],
+          : [];
+      },
       [initialText],
     );
 
