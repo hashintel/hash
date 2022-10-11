@@ -85,6 +85,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
     }
   }, []);
 
+  // TODO: REPLACE WITH ACTUAL TYPED PROPERTY URI
   const preferredName = (author?.properties as any)[
     "http://localhost:3000/@example/types/property-type/preferred-name/"
   ];

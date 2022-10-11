@@ -147,6 +147,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
             <CommentTextField
               ref={inputRef}
               placeholder={`Reply to ${
+                // TODO: REPLACE WITH ACTUAL TYPED PROPERTY URI
                 (comment.author?.properties as any)[
                   "http://localhost:3000/@example/types/property-type/preferred-name/"
                 ]
