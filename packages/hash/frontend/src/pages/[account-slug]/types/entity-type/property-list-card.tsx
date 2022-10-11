@@ -217,15 +217,24 @@ export const PropertyTypeRow = ({
 export const PropertyListCard = ({
   insertFieldRef,
   onCancel,
+  propertyTypes,
+  onAddPropertyType,
+  onRemovePropertyType,
 }: {
   insertFieldRef: Ref<HTMLInputElement | null>;
   onCancel: () => void;
+  propertyTypes: PropertyType[];
+  onAddPropertyType: (type: PropertyType) => void;
+  onRemovePropertyType: (type: PropertyType) => void;
 }) => {
   const [addingNewProperty, setAddingNewProperty] = useStateCallback(true);
-  const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([]);
   const addingNewPropertyRef = useRef<HTMLInputElement>(null);
 
   const sharedRef = useForkRef(addingNewPropertyRef, insertFieldRef);
+
+  if (propertyTypes.length === 0 && !addingNewProperty) {
+    setAddingNewProperty(true);
+  }
 
   return (
     <WhiteCard>
@@ -301,14 +310,7 @@ export const PropertyListCard = ({
                 key={type.$id}
                 property={type}
                 onRemove={() => {
-                  const nextPropertyTypes = propertyTypes.filter(
-                    (item) => item !== type,
-                  );
-                  setPropertyTypes(nextPropertyTypes);
-                  if (!nextPropertyTypes.length) {
-                    setAddingNewProperty(true);
-                    onCancel();
-                  }
+                  onRemovePropertyType(type);
                 }}
               />
             ))}
@@ -326,7 +328,7 @@ export const PropertyListCard = ({
                 }}
                 onAdd={(type) => {
                   setAddingNewProperty(false);
-                  setPropertyTypes((types) => [...types, type]);
+                  onAddPropertyType(type);
                 }}
                 filterProperty={(property) => !propertyTypes.includes(property)}
               />

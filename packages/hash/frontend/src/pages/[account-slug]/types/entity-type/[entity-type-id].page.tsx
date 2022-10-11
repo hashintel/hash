@@ -1,17 +1,17 @@
-import init, { EntityType } from "@blockprotocol/type-system-web";
+import { EntityType, PropertyType } from "@blockprotocol/type-system-web";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Container, Stack, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { FRONTEND_URL } from "../../../../lib/config";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { EmptyPropertyListCard } from "./empty-property-list-card";
-import { OntologyChip } from "./ontology-chip";
 import { HashOntologyIcon } from "./hash-ontology-icon";
+import { OntologyChip } from "./ontology-chip";
 import { PropertyListCard } from "./property-list-card";
 import {
   PropertyTypesContext,
@@ -19,9 +19,15 @@ import {
 } from "./use-property-types";
 import { useStateCallback } from "./util";
 
-const useEntityType = (entityTypeSlug: string) => {
+const useEntityType = (entityTypeSlug: string, onCompleted?: () => void) => {
   const { getEntityType } = useBlockProtocolGetEntityType();
   const [entityType, setEntityType] = useState<EntityType | null>(null);
+
+  const onCompletedRef = useRef(onCompleted);
+
+  useLayoutEffect(() => {
+    onCompletedRef.current = onCompleted;
+  });
 
   useEffect(() => {
     void getEntityType({
@@ -30,6 +36,7 @@ const useEntityType = (entityTypeSlug: string) => {
     }).then((value) => {
       if (value.data) {
         setEntityType(value.data.entityType);
+        onCompletedRef.current?.();
       }
     });
   }, [getEntityType, entityTypeSlug]);
@@ -42,7 +49,18 @@ const Page: NextPageWithLayout = () => {
   const insertFieldRef = useRef<HTMLInputElement>(null);
 
   const router = useRouter();
-  const entityType = useEntityType(router.asPath);
+  const [insertedPropertyTypes, setInsertedPropertyTypes] = useState<
+    PropertyType[]
+  >([]);
+  const [removedPropertyTypes, setRemovedPropertyTypes] = useState<
+    PropertyType[]
+  >([]);
+
+  const entityType = useEntityType(router.asPath, () => {
+    setInsertedPropertyTypes([]);
+    setRemovedPropertyTypes([]);
+  });
+
   const propertyTypes = useRemotePropertyTypes();
 
   const loadingTypeSystem = useInitTypeSystem();
@@ -50,6 +68,10 @@ const Page: NextPageWithLayout = () => {
   if (!entityType || loadingTypeSystem) {
     return null;
   }
+
+  const handleCancelPropertyListCard = () => {
+    setMode("empty");
+  };
 
   return (
     <PropertyTypesContext.Provider value={propertyTypes}>
@@ -136,22 +158,53 @@ const Page: NextPageWithLayout = () => {
                 {entityType.title}
               </Box>
             </Typography>
-            {mode === "empty" ? (
-              <EmptyPropertyListCard
-                onClick={() => {
-                  setMode("list", () => {
-                    insertFieldRef.current?.focus();
-                  });
-                }}
-              />
-            ) : (
-              <PropertyListCard
-                insertFieldRef={insertFieldRef}
-                onCancel={() => {
-                  setMode("empty");
-                }}
-              />
-            )}
+            {
+              // @todo consider moving this state into property list card
+              mode === "empty" ? (
+                <EmptyPropertyListCard
+                  onClick={() => {
+                    setMode("list", () => {
+                      insertFieldRef.current?.focus();
+                    });
+                  }}
+                />
+              ) : (
+                // @todo handle displaying existing property types
+                <PropertyListCard
+                  insertFieldRef={insertFieldRef}
+                  onCancel={() => {
+                    handleCancelPropertyListCard();
+                  }}
+                  propertyTypes={insertedPropertyTypes}
+                  onRemovePropertyType={(propertyType) => {
+                    if (insertedPropertyTypes.includes(propertyType)) {
+                      const nextInsertedPropertyTypes =
+                        insertedPropertyTypes.filter(
+                          (type) => type !== propertyType,
+                        );
+                      setInsertedPropertyTypes(nextInsertedPropertyTypes);
+
+                      if (nextInsertedPropertyTypes.length === 0) {
+                        handleCancelPropertyListCard();
+                      }
+                    } else if (!removedPropertyTypes.includes(propertyType)) {
+                      setRemovedPropertyTypes([
+                        ...removedPropertyTypes,
+                        propertyType,
+                      ]);
+                    }
+                  }}
+                  onAddPropertyType={(propertyType) => {
+                    if (!insertedPropertyTypes.includes(propertyType)) {
+                      setInsertedPropertyTypes([
+                        ...insertedPropertyTypes,
+                        propertyType,
+                      ]);
+                    }
+                  }}
+                />
+              )
+            }
           </Container>
         </Box>
       </Box>
