@@ -52,6 +52,7 @@ pub trait Visitor<'de>: Sized {
     type Value;
 
     fn expecting_display(&self) -> String;
+
     // TODO: this is currently completely untyped, we might want to adhere to a standard, like
     //  JSON-Schema or OpenAPI
     //  The problem here mainly is: which crate to use, one can use utoipa (but that has significant
@@ -61,16 +62,24 @@ pub trait Visitor<'de>: Sized {
         BTreeMap::new()
     }
 
+    fn visit_none(self) -> Result<Self::Value, Self::Error> {
+        Err(Report::new(Self::Error::message(
+            "unexpected missing value",
+        )))
+    }
+
     fn visit_null(self) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type null",
         )))
     }
+
     fn visit_bool(self, v: bool) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type bool",
         )))
     }
+
     // TODO: should this auto-delegate to one of the other visit functions?!
     //  ~> experimentation is needed
     fn visit_number(self, v: Number) -> Result<Self::Value, Self::Error> {
@@ -106,11 +115,13 @@ pub trait Visitor<'de>: Sized {
             "unexpected value of type string",
         )))
     }
+
     fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type string",
         )))
     }
+
     fn visit_borrowed_bytes(self, v: &'de [u8]) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type string",
@@ -140,26 +151,31 @@ pub trait Visitor<'de>: Sized {
             "unexpected value of type i8",
         )))
     }
+
     fn visit_i16(self, v: i16) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type i16",
         )))
     }
+
     fn visit_i32(self, v: i32) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type i32",
         )))
     }
+
     fn visit_i64(self, v: i64) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type i64",
         )))
     }
+
     fn visit_i128(self, v: i128) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type i128",
         )))
     }
+
     fn visit_isize(self, v: isize) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type isize",
@@ -171,26 +187,31 @@ pub trait Visitor<'de>: Sized {
             "unexpected value of type u8",
         )))
     }
+
     fn visit_u16(self, v: u16) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type u16",
         )))
     }
+
     fn visit_u32(self, v: u32) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type u32",
         )))
     }
+
     fn visit_u64(self, v: u64) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type u64",
         )))
     }
+
     fn visit_u128(self, v: u128) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type u128",
         )))
     }
+
     fn visit_usize(self, v: usize) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type usize",
@@ -202,6 +223,7 @@ pub trait Visitor<'de>: Sized {
             "unexpected value of type f32",
         )))
     }
+
     fn visit_f64(self, v: f64) -> Result<Self::Value, Self::Error> {
         Err(Report::new(Self::Error::message(
             "unexpected value of type f64",
@@ -269,9 +291,11 @@ macro_rules! derive_from_number {
 ///
 /// The data model consists of the following types:
 ///
-/// * 6 primitives:
+/// * 7 primitives:
+///     * `none`
+///         * encodes the missing of a value (`undefined` in JS)
 ///     * `null`
-///         * encodes the explicit absence of a value (`undefined`/`null` in JSON)
+///         * encodes the explicit absence of a value (`null` in JSON)
 ///     * `bool`
 ///         * Rust equivalent: [`true`], [`false`]
 ///     * `number`
@@ -304,12 +328,13 @@ pub trait Deserializer<'de>: Sized {
     where
         V: Visitor<'de>;
 
+    fn deserialize_none<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>;
+
     /// Deserialize a `null` (or equivalent type) value
     ///
-    /// This type should signal missing or empty.
-    ///
-    /// Some formats do not have this concept and should in that case always error out, formats like
-    /// `JSON`, which have multiple representations for `null` should return from this function!
+    /// This type should signal the explicit absence of a value, not to be confused with the
     ///
     /// # Errors
     ///
@@ -381,6 +406,7 @@ pub trait Deserializer<'de>: Sized {
     fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>;
+
     fn deserialize_bytes_buffer<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>;
