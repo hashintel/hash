@@ -31,6 +31,7 @@ import {
 } from "material-ui-popup-state/hooks";
 import { Ref, useId, useRef, useState } from "react";
 import { Modal } from "../../../../components/Modals/Modal";
+import { EmptyPropertyListCard } from "./empty-property-list-card";
 import { PropertyExpectedValues } from "./property-expected-values";
 import { PropertyListSelectorDropdownContext } from "./property-list-selector-dropdown";
 import { PropertyMenu } from "./property-menu";
@@ -215,25 +216,27 @@ export const PropertyTypeRow = ({
 );
 
 export const PropertyListCard = ({
-  insertFieldRef,
-  onCancel,
   propertyTypes,
   onAddPropertyType,
   onRemovePropertyType,
 }: {
-  insertFieldRef: Ref<HTMLInputElement | null>;
-  onCancel: () => void;
   propertyTypes: PropertyType[];
   onAddPropertyType: (type: PropertyType) => void;
   onRemovePropertyType: (type: PropertyType) => void;
 }) => {
-  const [addingNewProperty, setAddingNewProperty] = useStateCallback(true);
+  const [addingNewProperty, setAddingNewProperty] = useStateCallback(false);
   const addingNewPropertyRef = useRef<HTMLInputElement>(null);
 
-  const sharedRef = useForkRef(addingNewPropertyRef, insertFieldRef);
-
-  if (propertyTypes.length === 0 && !addingNewProperty) {
-    setAddingNewProperty(true);
+  if (!addingNewProperty && propertyTypes.length === 0) {
+    return (
+      <EmptyPropertyListCard
+        onClick={() => {
+          setAddingNewProperty(true, () => {
+            addingNewPropertyRef.current?.focus();
+          });
+        }}
+      />
+    );
   }
 
   return (
@@ -318,13 +321,9 @@ export const PropertyListCard = ({
           <TableFooter>
             {addingNewProperty ? (
               <InsertPropertyRow
-                inputRef={sharedRef}
+                inputRef={addingNewPropertyRef}
                 onCancel={() => {
-                  if (!propertyTypes.length) {
-                    onCancel();
-                  } else {
-                    setAddingNewProperty(false);
-                  }
+                  setAddingNewProperty(false);
                 }}
                 onAdd={(type) => {
                   setAddingNewProperty(false);

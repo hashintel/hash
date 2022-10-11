@@ -9,7 +9,6 @@ import { FRONTEND_URL } from "../../../../lib/config";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
-import { EmptyPropertyListCard } from "./empty-property-list-card";
 import { HashOntologyIcon } from "./hash-ontology-icon";
 import { OntologyChip } from "./ontology-chip";
 import { PropertyListCard } from "./property-list-card";
@@ -17,7 +16,6 @@ import {
   PropertyTypesContext,
   useRemotePropertyTypes,
 } from "./use-property-types";
-import { useStateCallback } from "./util";
 
 const useEntityType = (entityTypeSlug: string, onCompleted?: () => void) => {
   const { getEntityType } = useBlockProtocolGetEntityType();
@@ -45,9 +43,6 @@ const useEntityType = (entityTypeSlug: string, onCompleted?: () => void) => {
 };
 
 const Page: NextPageWithLayout = () => {
-  const [mode, setMode] = useStateCallback<"empty" | "list">("empty");
-  const insertFieldRef = useRef<HTMLInputElement>(null);
-
   const router = useRouter();
   const [insertedPropertyTypes, setInsertedPropertyTypes] = useState<
     PropertyType[]
@@ -62,16 +57,11 @@ const Page: NextPageWithLayout = () => {
   });
 
   const propertyTypes = useRemotePropertyTypes();
-
   const loadingTypeSystem = useInitTypeSystem();
 
   if (!entityType || loadingTypeSystem) {
     return null;
   }
-
-  const handleCancelPropertyListCard = () => {
-    setMode("empty");
-  };
 
   return (
     <PropertyTypesContext.Provider value={propertyTypes}>
@@ -158,53 +148,31 @@ const Page: NextPageWithLayout = () => {
                 {entityType.title}
               </Box>
             </Typography>
-            {
-              // @todo consider moving this state into property list card
-              mode === "empty" ? (
-                <EmptyPropertyListCard
-                  onClick={() => {
-                    setMode("list", () => {
-                      insertFieldRef.current?.focus();
-                    });
-                  }}
-                />
-              ) : (
-                // @todo handle displaying existing property types
-                <PropertyListCard
-                  insertFieldRef={insertFieldRef}
-                  onCancel={() => {
-                    handleCancelPropertyListCard();
-                  }}
-                  propertyTypes={insertedPropertyTypes}
-                  onRemovePropertyType={(propertyType) => {
-                    if (insertedPropertyTypes.includes(propertyType)) {
-                      const nextInsertedPropertyTypes =
-                        insertedPropertyTypes.filter(
-                          (type) => type !== propertyType,
-                        );
-                      setInsertedPropertyTypes(nextInsertedPropertyTypes);
-
-                      if (nextInsertedPropertyTypes.length === 0) {
-                        handleCancelPropertyListCard();
-                      }
-                    } else if (!removedPropertyTypes.includes(propertyType)) {
-                      setRemovedPropertyTypes([
-                        ...removedPropertyTypes,
-                        propertyType,
-                      ]);
-                    }
-                  }}
-                  onAddPropertyType={(propertyType) => {
-                    if (!insertedPropertyTypes.includes(propertyType)) {
-                      setInsertedPropertyTypes([
-                        ...insertedPropertyTypes,
-                        propertyType,
-                      ]);
-                    }
-                  }}
-                />
-              )
-            }
+            <PropertyListCard
+              propertyTypes={insertedPropertyTypes}
+              onRemovePropertyType={(propertyType) => {
+                if (insertedPropertyTypes.includes(propertyType)) {
+                  const nextInsertedPropertyTypes =
+                    insertedPropertyTypes.filter(
+                      (type) => type !== propertyType,
+                    );
+                  setInsertedPropertyTypes(nextInsertedPropertyTypes);
+                } else if (!removedPropertyTypes.includes(propertyType)) {
+                  setRemovedPropertyTypes([
+                    ...removedPropertyTypes,
+                    propertyType,
+                  ]);
+                }
+              }}
+              onAddPropertyType={(propertyType) => {
+                if (!insertedPropertyTypes.includes(propertyType)) {
+                  setInsertedPropertyTypes([
+                    ...insertedPropertyTypes,
+                    propertyType,
+                  ]);
+                }
+              }}
+            />
           </Container>
         </Box>
       </Box>
