@@ -116,7 +116,7 @@ const restoreDraftId = (
   }
 
   // eslint-disable-next-line no-param-reassign
-  (entity as unknown as DraftEntity).draftId = entityToDraft[textEntityId]!;
+  entity.draftId = entityToDraft[textEntityId]!;
 };
 
 /**
@@ -202,6 +202,16 @@ export const createEntityStore = (
               (draftEntity.dataEntity as any).properties.text.data,
               entityToDraft,
             );
+          }
+
+          // Set the dataEntity's draft ID on a block draft.
+          if (
+            !draftEntity.dataEntity?.draftId &&
+            draftEntity.dataEntity?.entityId
+          ) {
+            restoreDraftId(draftEntity.dataEntity, entityToDraft);
+            // const dataEntityDraftId =
+            //   entityToDraft[draftEntity.dataEntity?.entityId]!;
           }
         }
       },
