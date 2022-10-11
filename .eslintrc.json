@@ -250,7 +250,7 @@
       }
     ],
     "no-unused-expressions": "error",
-    "curly": ["error", "multi-line"],
+    "curly": ["error", "all"],
     "import/extensions": [
       "error",
       "ignorePackages",

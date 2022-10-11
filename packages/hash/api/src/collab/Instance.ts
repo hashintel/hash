@@ -426,7 +426,9 @@ export class Instance {
 
       try {
         this.checkVersion(version);
-        if (this.version !== version) return false;
+        if (this.version !== version) {
+          return false;
+        }
 
         const tr = this.state.tr;
 
@@ -554,7 +556,9 @@ export class Instance {
     };
 
   private sendUpdates() {
-    while (this.waiting.length) this.waiting.pop()?.finish();
+    while (this.waiting.length) {
+      this.waiting.pop()?.finish();
+    }
   }
 
   // : (Number)
@@ -578,7 +582,9 @@ export class Instance {
 
       this.checkVersion(version);
       const startIndex = this.updates.length - (this.version - version);
-      if (startIndex < 0) return false;
+      if (startIndex < 0) {
+        return false;
+      }
 
       let updates = this.updates.slice(startIndex);
 
@@ -755,7 +761,9 @@ const newInstance =
       let oldest = null;
       for (const instanceId of Object.keys(instances)) {
         const inst = instances[instanceId]!;
-        if (!oldest || inst.lastActive < oldest.lastActive) oldest = inst;
+        if (!oldest || inst.lastActive < oldest.lastActive) {
+          oldest = inst;
+        }
       }
       if (oldest) {
         instances[oldest.pageEntityId]!.stop();
