@@ -1,7 +1,7 @@
 import { EntityType, PropertyType } from "@blockprotocol/type-system-web";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
-import { Box, Container, Stack, Typography } from "@mui/material";
+import { Box, Collapse, Container, Stack, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
@@ -43,6 +43,7 @@ const useEntityType = (entityTypeId: string, onCompleted?: () => void) => {
 };
 
 // @todo loading state
+// @todo handle displaying entity type not yet created
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const [insertedPropertyTypes, setInsertedPropertyTypes] = useState<
@@ -100,7 +101,17 @@ const Page: NextPageWithLayout = () => {
             ]}
             scrollToTop={() => {}}
           />
-          <EditBar currentVersion={currentVersion} />
+          <Collapse
+            in={insertedPropertyTypes.length + removedPropertyTypes.length > 0}
+          >
+            <EditBar
+              currentVersion={currentVersion}
+              onDiscardChanges={() => {
+                setInsertedPropertyTypes([]);
+                setRemovedPropertyTypes([]);
+              }}
+            />
+          </Collapse>
           <Box pt={3.75}>
             <Container>
               <OntologyChip

@@ -55,7 +55,13 @@ const EditBarContents = ({
   </Container>
 );
 
-export const EditBar = ({ currentVersion }: { currentVersion: number }) => (
+export const EditBar = ({
+  currentVersion,
+  onDiscardChanges,
+}: {
+  currentVersion: number;
+  onDiscardChanges: () => void;
+}) => (
   <Box
     sx={(theme) => ({
       height: 66,
@@ -72,6 +78,7 @@ export const EditBar = ({ currentVersion }: { currentVersion: number }) => (
         title="Currently editing"
         label="- this type has not yet been created"
         discardButtonProps={{
+          // @todo implement this
           href: "#",
           children: "Discard this type",
         }}
@@ -88,8 +95,7 @@ export const EditBar = ({ currentVersion }: { currentVersion: number }) => (
         title="Currently editing"
         label={`Version ${currentVersion} -> ${currentVersion + 1}`}
         discardButtonProps={{
-          // @todo revert back
-          href: "#",
+          onClick: onDiscardChanges,
           children: "Discard changes",
         }}
         confirmButtonProps={{
