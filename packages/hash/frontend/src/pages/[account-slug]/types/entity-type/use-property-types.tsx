@@ -8,16 +8,6 @@ import {
 } from "react";
 import { useBlockProtocolAggregatePropertyTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregatePropertyTypes";
 
-export type PropertyTypeOption = {
-  path: string;
-  domain: string;
-  icon: ReactNode;
-  description: string;
-  title: string;
-  expectedValues: string[];
-  $id: string;
-};
-
 export const dataTypeNames = {
   "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1": "Text",
   "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1":
