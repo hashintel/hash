@@ -5,8 +5,8 @@ import { Container } from "@mui/system";
 import { useRouter } from "next/router";
 import { generateEntityLabel } from "../../../../../lib/entities";
 import { TopContextBar } from "../../../../shared/top-context-bar";
-import { OntologyChip } from "../../../entity-types/ontology-chip";
-import { PlaceholderIcon } from "../../../entity-types/placeholder-icon";
+import { OntologyChip } from "../../../types/entity-type/ontology-chip";
+import { PlaceholderIcon } from "../../../types/entity-type/placeholder-icon";
 import { useEntityEditor } from "../entity-editor-context";
 
 export const EntityPageHeader = () => {

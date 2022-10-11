@@ -1,6 +1,6 @@
 import { Box, Typography } from "@mui/material";
 import { ReactNode } from "react";
-import { WhiteCard } from "../../../entity-types/white-card";
+import { WhiteCard } from "../../../types/entity-type/white-card";
 
 interface EntitySectionEmptyStateProps {
   title: string;
