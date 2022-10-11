@@ -12,23 +12,21 @@ export const getEntityIncomingLinks = async (
   params: {
     accountId: string;
     entityId: string;
-    activeAt?: Date;
-    path?: string;
   },
 ) => {
-  const dbLinkRows = await conn.any<DbLinkWithVersionRow>(sql`
-    ${selectAllLinksWithDestinationEntity({
+  const rows = await conn.any<DbLinkWithVersionRow>(sql`
+    with all_links as (${selectAllLinksWithDestinationEntity({
       destinationAccountId: params.accountId,
       destinationEntityId: params.entityId,
-      ...params,
-    })}
-    ${
-      params.path !== undefined
-        ? /** if a link path was specified, we can order them by their index */
-          sql`order by index`
-        : sql``
-    }
-  `);
+    })})
+    select *
+    from 
+      all_links
+      join incoming_links on
+          all_links.source_account_id = incoming_links.source_account_id
+        and
+          all_links.link_id = incoming_links.link_id
+`);
 
-  return dbLinkRows.map(mapDbRowsToDbLink);
+  return rows.map(mapDbRowsToDbLink);
 };
