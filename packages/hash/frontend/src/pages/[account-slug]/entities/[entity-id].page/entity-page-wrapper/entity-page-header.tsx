@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon"
 import { Box, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
 import { useRouter } from "next/router";
+import slugify from "slugify";
 import { generateEntityLabel } from "../../../../../lib/entities";
 import { TopContextBar } from "../../../../shared/top-context-bar";
 import { OntologyChip } from "../../../types/entity-type/ontology-chip";
@@ -57,7 +58,7 @@ export const EntityPageHeader = () => {
                 </Typography>
                 /entities
                 <Typography color="inherit" fontWeight="bold">
-                  /{entityLabel}
+                  /{slugify(entityLabel, { lower: true })}
                 </Typography>
               </>
             }
