@@ -221,7 +221,9 @@ const SignupPage: NextPageWithLayout = () => {
       }
     },
     onError: ({ graphQLErrors }) => {
-      if (!graphQLErrors.length) return;
+      if (!graphQLErrors.length) {
+        return;
+      }
       const { message } = parseGraphQLError([...graphQLErrors]);
       setErrorMessage(message);
     },

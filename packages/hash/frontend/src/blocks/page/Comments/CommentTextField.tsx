@@ -79,7 +79,9 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
                   view.state.doc,
                 );
 
-                if (!tokens.length) return true;
+                if (!tokens.length) {
+                  return true;
+                }
 
                 setLoading(true);
                 eventsRef.current

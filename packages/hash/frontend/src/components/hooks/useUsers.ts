@@ -17,7 +17,9 @@ export const useUsers = (): {
   const { accountId: workspaceAccountId } = useRouteAccountInfo();
 
   const accounts = useMemo(() => {
-    if (!data) return [];
+    if (!data) {
+      return [];
+    }
 
     /**
      * Filter out org accounts
