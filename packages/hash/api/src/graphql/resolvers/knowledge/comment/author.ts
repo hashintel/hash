@@ -1,11 +1,15 @@
 import { ApolloError } from "apollo-server-errors";
-import { CommentModel, UserModel } from "../../../../model";
+import { CommentModel } from "../../../../model";
 import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { UnresolvedPersistedCommentGQL } from "../model-mapping";
+import {
+  UnresolvedPersistedCommentGQL,
+  UnresolvedPersistedEntityGQL,
+  mapEntityModelToGQL,
+} from "../model-mapping";
 
 export const persistedCommentAuthor: ResolverFn<
-  Promise<UserModel>,
+  Promise<UnresolvedPersistedEntityGQL>,
   UnresolvedPersistedCommentGQL,
   LoggedInGraphQLContext,
   {}
@@ -20,5 +24,7 @@ export const persistedCommentAuthor: ResolverFn<
     );
   }
 
-  return await comment.getAuthor(graphApi);
+  const author = await comment.getAuthor(graphApi);
+
+  return mapEntityModelToGQL(author);
 };
