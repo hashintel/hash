@@ -15,7 +15,9 @@ export const EntityPageHeader = () => {
 
   const accountSlug = router.query["account-slug"];
 
-  if (!entity) return null;
+  if (!entity) {
+    return null;
+  }
 
   const entityLabel = generateEntityLabel(entity);
 

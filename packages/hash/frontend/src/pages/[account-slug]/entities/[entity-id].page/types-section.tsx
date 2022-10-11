@@ -10,7 +10,9 @@ export const TypesSection = () => {
   const router = useRouter();
   const { entity } = useEntityEditor();
 
-  if (!entity) return null;
+  if (!entity) {
+    return null;
+  }
 
   const entityTypeTitle = entity.entityTypeRootedSubgraph.entityType.title;
   const entityTypeUrl = entity.entityTypeId.replace(/v\/\d+/, "");

@@ -27,7 +27,9 @@ export const EntityPageWrapper = ({ children }: PropsWithChildren) => {
     void init();
   }, [router.query, getEntity, setEntity]);
 
-  if (!entity) return <h1>Loading...</h1>;
+  if (!entity) {
+    return <h1>Loading...</h1>;
+  }
 
   return (
     <Stack height="100vh">

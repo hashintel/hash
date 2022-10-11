@@ -74,7 +74,9 @@ export const PropertyTable = ({
           val.propertyTypeId.startsWith(propertyTypeId),
         ) ?? {};
 
-      if (!propertyType) throw new Error();
+      if (!propertyType) {
+        throw new Error();
+      }
 
       return {
         value,
@@ -107,11 +109,15 @@ export const PropertyTable = ({
     ([col, row]: Item): GridCell => {
       const property = rowData[row];
 
-      if (!property) throw new Error();
+      if (!property) {
+        throw new Error();
+      }
 
       const propertyKey = indexes[col];
 
-      if (!propertyKey) throw new Error();
+      if (!propertyKey) {
+        throw new Error();
+      }
 
       const value = property[propertyKey];
 
@@ -155,7 +161,9 @@ export const PropertyTable = ({
       const key = indexes[col];
       const property = rowData[row];
 
-      if (!key || !property) throw new Error();
+      if (!key || !property) {
+        throw new Error();
+      }
 
       /**
        * setting state for optimistic update
@@ -192,7 +200,9 @@ export const PropertyTable = ({
   const drawCell: DrawCustomCellCallback = useCallback(
     (args) => {
       const { cell, rect, ctx, col } = args;
-      if (cell.kind !== GridCellKind.Text) return false;
+      if (cell.kind !== GridCellKind.Text) {
+        return false;
+      }
 
       ctx.save();
       const { x, y, height } = rect;
