@@ -803,7 +803,7 @@ mod default {
     fn backtrace(backtrace: &Backtrace, context: &mut HookContext<Backtrace>) {
         let idx = context.increment_counter();
 
-        context.push_appendix(format!("backtrace no. {}\n{}", idx + 1, backtrace));
+        context.push_appendix(format!("backtrace no. {}\n{backtrace}", idx + 1));
         #[cfg(nightly)]
         context.push_body(format!(
             "backtrace with {} frames ({})",
@@ -824,7 +824,7 @@ mod default {
             true
         });
 
-        context.push_appendix(format!("span trace No. {}\n{}", idx + 1, span_trace));
+        context.push_appendix(format!("span trace No. {}\n{span_trace}", idx + 1));
         context.push_body(format!("span trace with {span} frames ({})", idx + 1));
     }
 }

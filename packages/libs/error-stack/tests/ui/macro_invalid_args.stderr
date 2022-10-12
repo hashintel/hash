@@ -62,16 +62,16 @@ error[E0599]: the method `__kind` exists for reference `&&str`, but its trait bo
    = note: this error originates in the macro `$crate::report` which comes from the expansion of the macro `ensure` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
-   --> tests/ui/macro_invalid_args.rs:43:21
-    |
-43  |     let _ = ensure!("No boolean", RootError);
-    |             --------^^^^^^^^^^^^------------
-    |             |       |
-    |             |       expected `bool`, found `&str`
-    |             arguments to this function are incorrect
-    |
+  --> tests/ui/macro_invalid_args.rs:43:21
+   |
+43 |     let _ = ensure!("No boolean", RootError);
+   |             --------^^^^^^^^^^^^------------
+   |             |       |
+   |             |       expected `bool`, found `&str`
+   |             arguments to this function are incorrect
+   |
 note: associated function defined here
-   --> $RUST/core/src/convert/mod.rs
-    |
-    |     fn from(_: T) -> Self;
-    |        ^^^^
+  --> $RUST/core/src/convert/mod.rs
+   |
+   |     fn from(value: T) -> Self;
+   |        ^^^^
