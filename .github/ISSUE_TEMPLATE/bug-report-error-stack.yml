@@ -6,6 +6,7 @@ labels:
 assignees:
   - Alfred-Mountfield
   - TimDiekmann
+  - indietyp
 body:
   - type: markdown
     attributes:
