@@ -1,21 +1,16 @@
 import {
   EntityType,
   extractBaseUri,
+  extractVersion,
   validateVersionedUri,
 } from "@blockprotocol/type-system-web";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Collapse, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import {
-  ComponentProps,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
+import { useBlockProtocolAggregateEntityTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolUpdateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
 import { FRONTEND_URL } from "../../../../lib/config";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
@@ -31,29 +26,38 @@ import {
   useRemotePropertyTypes,
 } from "./use-property-types";
 
+// @todo cancel effect
 const useEntityType = (
-  entityTypeId: string,
+  entityTypeBaseUri: string,
   onCompleted?: (entityType: EntityType) => void,
 ) => {
-  const { getEntityType } = useBlockProtocolGetEntityType();
   const [entityType, setEntityType] = useState<EntityType | null>(null);
-
   const onCompletedRef = useRef(onCompleted);
-
   useLayoutEffect(() => {
     onCompletedRef.current = onCompleted;
   });
 
+  const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
+
   useEffect(() => {
-    void getEntityType({
-      data: { entityTypeId },
-    }).then((value) => {
-      if (value.data) {
-        setEntityType(value.data.entityType);
-        onCompletedRef.current?.(value.data.entityType);
+    // @todo cancel this effect
+    void aggregateEntityTypes({ data: {} }).then((res) => {
+      const relevantEntity =
+        res.data?.results.find((item) => {
+          const validated = validateVersionedUri(item.entityTypeId);
+          if (validated.type === "Err") {
+            throw new Error("?");
+          }
+          const baseUri = extractBaseUri(validated.inner);
+          return baseUri === entityTypeBaseUri;
+        })?.entityType ?? null;
+
+      setEntityType(relevantEntity);
+      if (relevantEntity) {
+        onCompletedRef.current?.(relevantEntity);
       }
     });
-  }, [getEntityType, entityTypeId]);
+  }, [aggregateEntityTypes, entityTypeBaseUri]);
 
   return entityType;
 };
@@ -62,9 +66,7 @@ const useEntityType = (
 // @todo handle displaying entity type not yet created
 const InnerPage = () => {
   const router = useRouter();
-  // @todo find this out somehow
-  const currentVersion = 6;
-  const entityTypeId = `${FRONTEND_URL}/${router.query["account-slug"]}/types/entity-type/${router.query["entity-type-id"]}/v/${currentVersion}`;
+  const baseEntityTypeUri = `${FRONTEND_URL}/${router.query["account-slug"]}/types/entity-type/${router.query["entity-type-id"]}/`;
 
   const formMethods = useForm<EntityTypeEditorForm>({
     defaultValues: { properties: [] },
@@ -75,7 +77,7 @@ const InnerPage = () => {
     formState: { isDirty },
   } = formMethods;
 
-  const entityType = useEntityType(entityTypeId, (fetchedEntityType) => {
+  const entityType = useEntityType(baseEntityTypeUri, (fetchedEntityType) => {
     reset({
       properties: Object.values(fetchedEntityType.properties).map((ref) => {
         if ("type" in ref) {
@@ -122,13 +124,16 @@ const InnerPage = () => {
     if (!res.errors?.length) {
       reset(data);
     } else {
-      console.log(res);
+      throw new Error("Could not publish changes");
     }
   });
 
   if (!entityType || !propertyTypes) {
     return null;
   }
+
+  // @todo fix $id on EntityType
+  const currentVersion = extractVersion(entityType.$id as any);
 
   return (
     <PropertyTypesContext.Provider value={propertyTypes}>
