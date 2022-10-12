@@ -3,20 +3,13 @@ import { isEqual, pick } from "lodash";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 
-import {
-  BlockEntity,
-  isDraftTextEntity,
-  isTextEntity,
-  isTextProperties,
-  LegacyLink,
-} from "./entity";
+import { BlockEntity, isDraftTextEntity } from "./entity";
 import {
   DraftEntity,
   EntityStore,
   getDraftEntityByEntityId,
   isDraftBlockEntity,
   TEXT_ENTITY_TYPE_ID,
-  TEXT_TOKEN_PROPERTY_TYPE_ID,
 } from "./entityStore";
 import {
   GetPersistedPageQuery,
@@ -195,8 +188,8 @@ const calculateSaveActions = async (
   // First, gather the ids of the blocks as they appear in the db-persisted page
   const beforeBlockDraftIds = blocks.map((block) => {
     const draftEntity = getDraftEntityByEntityId(store.draft, block.entityId);
-
     if (!draftEntity) {
+      debugger;
       throw new Error("Draft entity missing");
     }
 
@@ -413,7 +406,13 @@ export const save = async (
      */
     blocks as any,
     doc,
-    async (componentId: string) => [componentId, []],
+    /**
+     * @todo currently we use the dummy entity type for *every block* we don't know about.
+     */
+    async (componentId: string) => [
+      "http://localhost:3000/@example/types/entity-type/dummy/v/1",
+      [],
+    ],
     // await ensureEntityTypeForComponent(
     //   apolloClient,
     //   componentId,
