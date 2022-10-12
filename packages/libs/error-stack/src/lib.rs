@@ -213,7 +213,7 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/lib__suggestion.snap"))]
 //! </pre>
 //!
-//! The `Suggestion`, which was added via [`attach`] is not shown directly and only increases the
+//! The `Suggestion` which was added via [`attach`] is not shown directly and only increases the
 //! counter of opaque attachments for the containing [`Context`]. The message which was passed to
 //! [`attach_printable`], however, is displayed in full. To be able to show attachments that have
 //! been added via [`attach`], one must make use of [hooks](#debug-and-display-hooks) instead.
