@@ -13,8 +13,10 @@ export const persistedCommentAuthor: ResolverFn<
   LoggedInGraphQLContext,
   {}
 > = async ({ entityId }, _, { dataSources: { graphApi } }) => {
-  const comment = await CommentModel.getCommentById(graphApi, { entityId });
-  const author = await comment.getAuthor(graphApi);
+  const commentModel = await CommentModel.getCommentById(graphApi, {
+    entityId,
+  });
+  const authorModel = await commentModel.getAuthor(graphApi);
 
-  return mapEntityModelToGQL(author);
+  return mapEntityModelToGQL(authorModel);
 };

@@ -9,8 +9,10 @@ export const persistedCommentTextUpdatedAt: ResolverFn<
   LoggedInGraphQLContext,
   {}
 > = async ({ entityId }, _, { dataSources: { graphApi } }) => {
-  const comment = await CommentModel.getCommentById(graphApi, { entityId });
-  const textEntity = await comment.getHasText(graphApi);
+  const commentModel = await CommentModel.getCommentById(graphApi, {
+    entityId,
+  });
+  const textEntityModel = await commentModel.getHasText(graphApi);
 
-  return textEntity.version;
+  return textEntityModel.version;
 };

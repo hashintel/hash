@@ -14,11 +14,13 @@ export const persistedCommentHasText: ResolverFn<
   {}
 > = async ({ entityId }, _, { dataSources }) => {
   const { graphApi } = dataSources;
-  const comment = await CommentModel.getCommentById(graphApi, { entityId });
-  const textEntity = await comment.getHasText(graphApi);
+  const commentModel = await CommentModel.getCommentById(graphApi, {
+    entityId,
+  });
+  const textEntityModel = await commentModel.getHasText(graphApi);
 
   return (
-    (textEntity.properties as any)[
+    (textEntityModel.properties as any)[
       WORKSPACE_TYPES.propertyType.tokens.baseUri
     ] ?? []
   );

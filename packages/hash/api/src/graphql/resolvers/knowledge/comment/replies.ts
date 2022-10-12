@@ -12,8 +12,10 @@ export const persistedCommentReplies: ResolverFn<
   LoggedInGraphQLContext,
   {}
 > = async ({ entityId }, _, { dataSources: { graphApi } }) => {
-  const comment = await CommentModel.getCommentById(graphApi, { entityId });
-  const replies = await comment.getReplies(graphApi);
+  const commentModel = await CommentModel.getCommentById(graphApi, {
+    entityId,
+  });
+  const replyModels = await commentModel.getReplies(graphApi);
 
-  return replies.map(mapCommentModelToGQL);
+  return replyModels.map(mapCommentModelToGQL);
 };

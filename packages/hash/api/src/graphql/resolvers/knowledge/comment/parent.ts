@@ -13,8 +13,10 @@ export const persistedCommentParent: ResolverFn<
   LoggedInGraphQLContext,
   {}
 > = async ({ entityId }, _, { dataSources: { graphApi } }) => {
-  const comment = await CommentModel.getCommentById(graphApi, { entityId });
-  const parent = await comment.getParent(graphApi);
+  const commentModel = await CommentModel.getCommentById(graphApi, {
+    entityId,
+  });
+  const parentModel = await commentModel.getParent(graphApi);
 
-  return mapEntityModelToGQL(parent);
+  return mapEntityModelToGQL(parentModel);
 };

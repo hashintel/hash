@@ -21,14 +21,14 @@ export const createPersistedComment: ResolverFn<
   { parentEntityId, tokens },
   { dataSources: { graphApi }, user },
 ) => {
-  const parent = await EntityModel.getLatest(graphApi, {
+  const parentModel = await EntityModel.getLatest(graphApi, {
     entityId: parentEntityId,
   });
 
   const commentModel = await CommentModel.createComment(graphApi, {
     tokens,
-    ownedById: parent.ownedById,
-    parent,
+    ownedById: parentModel.ownedById,
+    parent: parentModel,
     author: user,
   });
 
@@ -41,9 +41,9 @@ export const persistedPageComments: ResolverFn<
   LoggedInGraphQLContext,
   QueryPersistedPageCommentsArgs
 > = async (_, { pageId }, { dataSources: { graphApi } }) => {
-  const comments = await CommentModel.getAllCommentsInPage(graphApi, {
+  const commentModels = await CommentModel.getAllCommentsInPage(graphApi, {
     pageId,
   });
 
-  return comments.map(mapCommentModelToGQL);
+  return commentModels.map(mapCommentModelToGQL);
 };
