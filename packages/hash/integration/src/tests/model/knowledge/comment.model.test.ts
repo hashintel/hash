@@ -60,7 +60,7 @@ describe("Comment model class", () => {
       ownedById: testUser.ownedById,
       parent: testBlock,
       tokens: [],
-      createdBy: testUser,
+      author: testUser,
     });
 
     const hasText = await comment.getHasText(graphApi);
