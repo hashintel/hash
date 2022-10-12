@@ -1,11 +1,11 @@
-use clap::{AppSettings::DeriveDisplayOrder, Args as _, Command, Parser};
+use clap::{Args as _, Command, Parser};
 use clap_complete::Shell;
 use graph::{logging::LoggingArgs, store::DatabaseConnectionInfo};
 use regex::Regex;
 
 /// Arguments passed to the program.
 #[derive(Debug, Parser)]
-#[clap(version, author, about, long_about = None, setting = DeriveDisplayOrder)]
+#[clap(version, author, about, long_about = None)]
 pub struct Args {
     #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
