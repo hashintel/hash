@@ -22,8 +22,14 @@ const EditBarContents = ({
   confirmButtonProps: ButtonProps;
 }) => {
   const {
-    formState: { isSubmitting },
+    formState: { isSubmitting, isDirty },
   } = useFormContext<EntityTypeEditorForm>();
+
+  const [wasSubmitting, setWasSubmitting] = useState(isSubmitting);
+
+  if (isDirty && wasSubmitting !== isSubmitting) {
+    setWasSubmitting(isSubmitting);
+  }
 
   return (
     <Container
@@ -52,7 +58,7 @@ const EditBarContents = ({
               color: "white",
             },
           })}
-          disabled={isSubmitting}
+          disabled={wasSubmitting}
           {...discardButtonProps}
         >
           {discardButtonProps.children}
@@ -61,9 +67,9 @@ const EditBarContents = ({
           variant="secondary"
           size="xs"
           type="submit"
-          loading={isSubmitting}
+          loading={wasSubmitting}
           loadingWithoutText
-          disabled={isSubmitting}
+          disabled={wasSubmitting}
           {...confirmButtonProps}
         >
           {confirmButtonProps.children}
