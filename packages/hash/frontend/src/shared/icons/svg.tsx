@@ -10,3 +10,4 @@ export { default as PictureIcon } from "./svg/picture.svg";
 export { default as CirclePlusIcon } from "./svg/circle-plus.svg";
 export { default as SpinnerIcon } from "./svg/spinner.svg";
 export { default as LogoIcon } from "./svg/logo.svg";
+export { default as PencilSimpleLine } from "./svg/pencil-simple-line.svg";
