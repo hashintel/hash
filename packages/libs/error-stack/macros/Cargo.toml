@@ -9,7 +9,7 @@ description = "Macros for the `error-stack` crate"
 documentation = "https://docs.rs/error-stack"
 readme = "../README.md"
 repository = "https://github.com/hashintel/hash/tree/main/packages/libs/error-stack"
-keywords = ["error", "library", "report", "no_std", "stack"]
+keywords = ["errorstack", "error-handling", "macro", "derive", "no_std"]
 categories = ["rust-patterns", "no-std"]
 
 [lib]
