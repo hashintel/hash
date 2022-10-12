@@ -154,7 +154,6 @@ const InsertPropertyRow = ({
               createButtonProps={withHandler(
                 bindToggle(modalPopupState),
                 () => {
-                  console.log("Add option");
                   // onAdd();
                 },
               )}
