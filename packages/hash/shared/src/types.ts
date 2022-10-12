@@ -94,7 +94,7 @@ const workspaceEntityTypes = {
     description: undefined,
   },
   org: {
-    title: "Block",
+    title: "Org",
     description: undefined,
   },
   orgMembership: {
