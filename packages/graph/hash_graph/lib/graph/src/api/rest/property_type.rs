@@ -78,7 +78,8 @@ impl RoutedResource for PropertyTypeResource {
 struct CreatePropertyTypeRequest {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
     schema: serde_json::Value,
-    account_id: AccountId,
+    owned_by_id: AccountId,
+    created_by_id: AccountId,
 }
 
 #[utoipa::path(
@@ -100,7 +101,11 @@ async fn create_property_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
 ) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
-    let Json(CreatePropertyTypeRequest { schema, account_id }) = body;
+    let Json(CreatePropertyTypeRequest {
+        schema,
+        owned_by_id,
+        created_by_id,
+    }) = body;
 
     let property_type: PropertyType = schema.try_into().into_report().map_err(|report| {
         tracing::error!(error=?report, "Couldn't convert schema to Property Type");
@@ -122,7 +127,7 @@ async fn create_property_type<P: StorePool + Send>(
     })?;
 
     store
-        .create_property_type(property_type, account_id)
+        .create_property_type(property_type, owned_by_id, created_by_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create property type");
@@ -224,7 +229,7 @@ struct UpdatePropertyTypeRequest {
     schema: serde_json::Value,
     #[schema(value_type = String)]
     type_to_update: VersionedUri,
-    account_id: AccountId,
+    updated_by_id: AccountId,
 }
 
 #[utoipa::path(
@@ -247,7 +252,7 @@ async fn update_property_type<P: StorePool + Send>(
     let Json(UpdatePropertyTypeRequest {
         schema,
         type_to_update,
-        account_id,
+        updated_by_id,
     }) = body;
 
     let new_type_id = VersionedUri::new(
@@ -268,7 +273,7 @@ async fn update_property_type<P: StorePool + Send>(
     })?;
 
     store
-        .update_property_type(property_type, account_id)
+        .update_property_type(property_type, updated_by_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update property type");

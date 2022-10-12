@@ -26,7 +26,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "ownedById": "{{account_id}}",
+  "createdById": "{{account_id}}",
   "schema": {
     "kind": "dataType",
     "$id": "http://localhost:3000/@alice/types/data-type/text/v/1",
@@ -57,7 +58,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "updatedById": "{{account_id}}",
   "typeToUpdate": "http://localhost:3000/@alice/types/data-type/text/v/1",
   "schema": {
     "kind": "dataType",
@@ -79,7 +80,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "ownedById": "{{account_id}}",
+  "createdById": "{{account_id}}",
   "schema": {
     "kind": "propertyType",
     "$id": "http://localhost:3000/@alice/types/property-type/name/v/1",
@@ -115,7 +117,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "updatedById": "{{account_id}}",
   "typeToUpdate": "http://localhost:3000/@alice/types/property-type/name/v/1",
   "schema": {
     "kind": "propertyType",
@@ -151,7 +153,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "ownedById": "{{account_id}}",
+  "createdById": "{{account_id}}",
   "schema": {
     "kind": "linkType",
     "$id": "http://localhost:3000/@alice/types/link-type/friend-of/v/1",
@@ -185,7 +188,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "updatedById": "{{account_id}}",
   "typeToUpdate": "http://localhost:3000/@alice/types/link-type/friend-of/v/1",
   "schema": {
     "kind": "linkType",
@@ -220,7 +223,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "ownedById": "{{account_id}}",
+  "createdById": "{{account_id}}",
   "schema": {
     "kind": "entityType",
     "$id": "http://localhost:3000/@alice/types/entity-type/person/v/1",
@@ -257,7 +261,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "updatedById": "{{account_id}}",
   "typeToUpdate": "http://localhost:3000/@alice/types/entity-type/person/v/1",
   "schema": {
     "kind": "entityType",

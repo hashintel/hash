@@ -101,6 +101,7 @@ impl DatabaseTestWrapper {
                 .create_data_type(
                     DataType::from_str(data_type).expect("could not parse data type"),
                     account_id,
+                    account_id,
                 )
                 .await?;
         }
@@ -109,6 +110,7 @@ impl DatabaseTestWrapper {
             store
                 .create_property_type(
                     PropertyType::from_str(property_type).expect("could not parse property type"),
+                    account_id,
                     account_id,
                 )
                 .await?;
@@ -120,6 +122,7 @@ impl DatabaseTestWrapper {
                 .create_link_type(
                     LinkType::from_str(link_type).expect("could not parse link type"),
                     account_id,
+                    account_id,
                 )
                 .await?;
         }
@@ -128,6 +131,7 @@ impl DatabaseTestWrapper {
             store
                 .create_entity_type(
                     EntityType::from_str(entity_type).expect("could not parse entity type"),
+                    account_id,
                     account_id,
                 )
                 .await?;
@@ -144,7 +148,7 @@ impl DatabaseApi<'_> {
         data_type: DataType,
     ) -> Result<PersistedOntologyMetadata, InsertionError> {
         self.store
-            .create_data_type(data_type, self.account_id)
+            .create_data_type(data_type, self.account_id, self.account_id)
             .await
     }
 
@@ -183,7 +187,7 @@ impl DatabaseApi<'_> {
         property_type: PropertyType,
     ) -> Result<PersistedOntologyMetadata, InsertionError> {
         self.store
-            .create_property_type(property_type, self.account_id)
+            .create_property_type(property_type, self.account_id, self.account_id)
             .await
     }
 
@@ -222,7 +226,7 @@ impl DatabaseApi<'_> {
         entity_type: EntityType,
     ) -> Result<PersistedOntologyMetadata, InsertionError> {
         self.store
-            .create_entity_type(entity_type, self.account_id)
+            .create_entity_type(entity_type, self.account_id, self.account_id)
             .await
     }
 
@@ -256,7 +260,7 @@ impl DatabaseApi<'_> {
         link_type: LinkType,
     ) -> Result<PersistedOntologyMetadata, InsertionError> {
         self.store
-            .create_link_type(link_type, self.account_id)
+            .create_link_type(link_type, self.account_id, self.account_id)
             .await
     }
 

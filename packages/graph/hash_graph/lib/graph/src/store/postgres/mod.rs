@@ -13,7 +13,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Report, Result, ResultExt};
+use error_stack::{Context, IntoReport, Report, Result, ResultExt};
 use postgres_types::ToSql;
 #[cfg(feature = "__internal_bench")]
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
@@ -24,6 +24,7 @@ use type_system::{
 };
 use uuid::Uuid;
 
+use self::context::PostgresContext;
 pub use self::{
     ontology::PersistedOntologyType,
     pool::{AsClient, PostgresStorePool},
@@ -409,6 +410,7 @@ where
         &self,
         database_type: T,
         owned_by_id: AccountId,
+        created_by_id: AccountId,
     ) -> Result<(VersionId, PersistedOntologyMetadata), InsertionError>
     where
         T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
@@ -441,12 +443,23 @@ where
         self.insert_version_id(version_id).await?;
         self.insert_uri(&uri, version_id).await?;
 
-        self.insert_with_id(version_id, database_type, owned_by_id)
-            .await?;
+        self.insert_with_id(
+            version_id,
+            database_type,
+            owned_by_id,
+            created_by_id,
+            created_by_id,
+        )
+        .await?;
 
         Ok((
             version_id,
-            PersistedOntologyMetadata::new(PersistedOntologyIdentifier::new(uri, owned_by_id)),
+            PersistedOntologyMetadata::new(
+                PersistedOntologyIdentifier::new(uri, owned_by_id),
+                created_by_id,
+                created_by_id,
+                None,
+            ),
         ))
     }
 
@@ -463,10 +476,14 @@ where
     async fn update<T>(
         &self,
         database_type: T,
-        updated_by: AccountId,
+        updated_by_id: AccountId,
     ) -> Result<(VersionId, PersistedOntologyMetadata), UpdateError>
     where
-        T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
+        T: OntologyDatabaseType
+            + Send
+            + Sync
+            + Into<serde_json::Value>
+            + TryFrom<serde_json::Value, Error: Context>,
     {
         let uri = database_type.versioned_uri().clone();
 
@@ -480,6 +497,15 @@ where
                 .change_context(UpdateError));
         }
 
+        let base_uri = uri.base_uri();
+
+        let previous_ontology_type = self
+            .read_latest_ontology_type::<T>(base_uri)
+            .await
+            .change_context(UpdateError)?;
+
+        let owned_by_id = previous_ontology_type.owned_by_id;
+
         let version_id = VersionId::new(Uuid::new_v4());
         self.insert_version_id(version_id)
             .await
@@ -487,13 +513,24 @@ where
         self.insert_uri(&uri, version_id)
             .await
             .change_context(UpdateError)?;
-        self.insert_with_id(version_id, database_type, updated_by)
-            .await
-            .change_context(UpdateError)?;
+        self.insert_with_id(
+            version_id,
+            database_type,
+            owned_by_id,
+            previous_ontology_type.created_by_id,
+            updated_by_id,
+        )
+        .await
+        .change_context(UpdateError)?;
 
         Ok((
             version_id,
-            PersistedOntologyMetadata::new(PersistedOntologyIdentifier::new(uri, updated_by)),
+            PersistedOntologyMetadata::new(
+                PersistedOntologyIdentifier::new(uri, owned_by_id),
+                previous_ontology_type.created_by_id,
+                updated_by_id,
+                None,
+            ),
         ))
     }
 
@@ -508,6 +545,8 @@ where
         version_id: VersionId,
         database_type: T,
         owned_by_id: AccountId,
+        created_by_id: AccountId,
+        updated_by_id: AccountId,
     ) -> Result<(), InsertionError>
     where
         T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
@@ -520,13 +559,13 @@ where
             .query_one(
                 &format!(
                     r#"
-                        INSERT INTO {} (version_id, schema, owned_by_id)
-                        VALUES ($1, $2, $3)
+                        INSERT INTO {} (version_id, schema, owned_by_id, created_by_id, updated_by_id)
+                        VALUES ($1, $2, $3, $4, $5)
                         RETURNING version_id;
                     "#,
                     T::table()
                 ),
-                &[&version_id, &value, &owned_by_id],
+                &[&version_id, &value, &owned_by_id, &created_by_id, &updated_by_id],
             )
             .await
             .into_report()
