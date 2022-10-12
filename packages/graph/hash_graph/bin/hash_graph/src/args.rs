@@ -42,7 +42,7 @@ pub struct Args {
     pub allowed_url_domain: Regex,
 
     /// Generate a completion script for the given shell and outputs it to stdout.
-    #[clap(long, arg_enum, exclusive = true)]
+    #[clap(long, value_enum, exclusive = true)]
     generate_completion: Option<Shell>,
 }
 
