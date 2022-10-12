@@ -28,11 +28,9 @@ type ShowMoreTextLinkProps = {
   onClick: () => void;
 };
 
-export const ShowMoreTextLink: FunctionComponent<ShowMoreTextLinkProps> = ({
-  label,
-  icon,
-  onClick,
-}) => (
+export const ToggleTextExpandedButton: FunctionComponent<
+  ShowMoreTextLinkProps
+> = ({ label, icon, onClick }) => (
   <Button
     size="xs"
     variant="tertiary_quiet"
@@ -131,29 +129,50 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
         </IconButton>
       </Box>
 
-      <Box p={0.5} pt={2}>
+      <Box p={0.5} pt={2} position="relative">
         <CommentTextField
           ref={contentRef}
           initialText={hasText}
           classNames={collapsed ? styles.Comment__TextField_collapsed! : ""}
           readOnly
         />
+        {shouldCollapse && collapsed ? (
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "row",
+              position: "absolute",
+              bottom: 4,
+              right: 0,
+              background:
+                "linear-gradient(90deg, transparent 0, rgba(255,255,255,1) 16px, rgba(255,255,255,1) 100%)",
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: 14,
+                lineHeight: "150%",
+                paddingRight: 1,
+                paddingLeft: 2,
+              }}
+            >
+              ...
+            </Typography>
+            <ToggleTextExpandedButton
+              label="Show More"
+              icon={faChevronDown}
+              onClick={() => setCollapsed(false)}
+            />
+          </Box>
+        ) : null}
       </Box>
 
-      {shouldCollapse ? (
-        collapsed ? (
-          <ShowMoreTextLink
-            label="Show More"
-            icon={faChevronDown}
-            onClick={() => setCollapsed(false)}
-          />
-        ) : (
-          <ShowMoreTextLink
-            label="Show Less"
-            icon={faChevronUp}
-            onClick={() => setCollapsed(true)}
-          />
-        )
+      {shouldCollapse && !collapsed ? (
+        <ToggleTextExpandedButton
+          label="Show Less"
+          icon={faChevronUp}
+          onClick={() => setCollapsed(true)}
+        />
       ) : null}
 
       <CommentBlockMenu popupState={commentMenuPopupState} />
