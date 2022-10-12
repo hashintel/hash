@@ -6,9 +6,9 @@ import {
   PersistedPropertyType,
   UpdatePropertyTypeRequest,
 } from "@hashintel/hash-graph-client";
-
+import { generateTypeId } from "@hashintel/hash-shared/types";
 import { DataTypeModel, PropertyTypeModel } from "../index";
-import { extractBaseUri, generateTypeId } from "../util";
+import { extractBaseUri } from "../util";
 import { getNamespaceOfAccountOwner } from "./util";
 
 type PropertyTypeModelConstructorParams = {
@@ -72,6 +72,7 @@ export default class {
       kind: "property-type",
       title: params.schema.title,
     });
+
     const fullPropertyType = { $id: propertyTypeId, ...params.schema };
 
     const { data: identifier } = await graphApi
