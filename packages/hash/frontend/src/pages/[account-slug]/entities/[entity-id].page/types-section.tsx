@@ -6,8 +6,36 @@ import { WhiteCard } from "../../types/entity-type/white-card";
 import { useEntityEditor } from "./entity-editor-context";
 import { EntitySection } from "./shared/entity-section";
 
-export const TypesSection = () => {
+interface TypeCardProps {
+  url: string;
+  title: string;
+}
+
+const TypeCard = ({ url, title }: TypeCardProps) => {
   const router = useRouter();
+
+  return (
+    <WhiteCard onClick={() => router.push(url)}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          px: 1.5,
+          py: 1.25,
+          gap: 1.25,
+          color: ({ palette }) => palette.black,
+        }}
+      >
+        <FontAwesomeIcon icon={faAsterisk} />
+        <Typography variant="smallTextLabels" fontWeight={600}>
+          {title}
+        </Typography>
+      </Box>
+    </WhiteCard>
+  );
+};
+
+export const TypesSection = () => {
   const { entity } = useEntityEditor();
 
   if (!entity) {
@@ -19,24 +47,8 @@ export const TypesSection = () => {
 
   return (
     <EntitySection title="Type">
-      <Box display="flex">
-        <WhiteCard onClick={() => router.push(entityTypeUrl)}>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              px: 1.5,
-              py: 1.25,
-              gap: 1.25,
-              color: ({ palette }) => palette.black,
-            }}
-          >
-            <FontAwesomeIcon icon={faAsterisk} />
-            <Typography variant="smallTextLabels" fontWeight={600}>
-              {entityTypeTitle}
-            </Typography>
-          </Box>
-        </WhiteCard>
+      <Box display="flex" gap={2}>
+        <TypeCard url={entityTypeUrl} title={entityTypeTitle} />
       </Box>
     </EntitySection>
   );
