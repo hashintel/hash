@@ -52,6 +52,7 @@ export const withHandler = <
     },
   };
 };
+
 /**
  * Necessary as type system isn't fully correctly typed yet
  */
