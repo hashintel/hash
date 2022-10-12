@@ -18,18 +18,18 @@ export const createPersistedComment: ResolverFn<
   MutationCreatePersistedCommentArgs
 > = async (
   _,
-  { ownedById, parentId, tokens },
+  { ownedById, parentEntityId, tokens },
   { dataSources: { graphApi }, user },
 ) => {
   const parent = await EntityModel.getLatest(graphApi, {
-    entityId: parentId,
+    entityId: parentEntityId,
   });
 
   const commentModel = await CommentModel.createComment(graphApi, {
     tokens,
     ownedById,
     parent,
-    createdBy: user,
+    author: user,
   });
 
   return mapCommentModelToGQL(commentModel);
