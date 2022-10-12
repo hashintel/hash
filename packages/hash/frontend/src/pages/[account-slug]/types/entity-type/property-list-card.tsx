@@ -33,7 +33,7 @@ import { Ref, useId, useRef, useState } from "react";
 import { useFieldArray, useFormContext } from "react-hook-form";
 import { Modal } from "../../../../components/Modals/Modal";
 import { EmptyPropertyListCard } from "./empty-property-list-card";
-import { EntityEditorForm } from "./form-types";
+import { EntityTypeEditorForm } from "./form-types";
 import { PropertyExpectedValues } from "./property-expected-values";
 import { PropertyListSelectorDropdownContext } from "./property-list-selector-dropdown";
 import { PropertyMenu } from "./property-menu";
@@ -72,7 +72,7 @@ const InsertPropertyRow = ({
   const ourInputRef = useRef<HTMLInputElement>(null);
   const sharedRef = useForkRef(inputRef, ourInputRef);
 
-  const { watch } = useFormContext<EntityEditorForm>();
+  const { watch } = useFormContext<EntityTypeEditorForm>();
   const properties = watch("properties");
 
   return (
@@ -182,7 +182,7 @@ export const PropertyTypeRow = ({
   propertyIndex: number;
   onRemove: () => void;
 }) => {
-  const { watch } = useFormContext<EntityEditorForm>();
+  const { watch } = useFormContext<EntityTypeEditorForm>();
   const propertyTypes = usePropertyTypes();
 
   if (!propertyTypes) {
@@ -241,7 +241,7 @@ export const PropertyTypeRow = ({
 };
 
 export const PropertyListCard = () => {
-  const { control, getValues } = useFormContext<EntityEditorForm>();
+  const { control, getValues } = useFormContext<EntityTypeEditorForm>();
   const { fields, append, remove } = useFieldArray({
     control,
     name: "properties",

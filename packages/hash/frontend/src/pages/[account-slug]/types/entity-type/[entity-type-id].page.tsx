@@ -1,9 +1,19 @@
-import { EntityType, extractBaseUri } from "@blockprotocol/type-system-web";
+import {
+  EntityType,
+  extractBaseUri,
+  validateVersionedUri,
+} from "@blockprotocol/type-system-web";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Collapse, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  ComponentProps,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { useBlockProtocolUpdateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
@@ -12,7 +22,7 @@ import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { EditBar } from "./edit-bar";
-import { EntityEditorForm } from "./form-types";
+import { EntityTypeEditorForm } from "./form-types";
 import { HashOntologyIcon } from "./hash-ontology-icon";
 import { OntologyChip } from "./ontology-chip";
 import { PropertyListCard } from "./property-list-card";
@@ -21,7 +31,10 @@ import {
   useRemotePropertyTypes,
 } from "./use-property-types";
 
-const useEntityType = (entityTypeId: string, onCompleted?: () => void) => {
+const useEntityType = (
+  entityTypeId: string,
+  onCompleted?: (entityType: EntityType) => void,
+) => {
   const { getEntityType } = useBlockProtocolGetEntityType();
   const [entityType, setEntityType] = useState<EntityType | null>(null);
 
@@ -37,7 +50,7 @@ const useEntityType = (entityTypeId: string, onCompleted?: () => void) => {
     }).then((value) => {
       if (value.data) {
         setEntityType(value.data.entityType);
-        onCompletedRef.current?.();
+        onCompletedRef.current?.(value.data.entityType);
       }
     });
   }, [getEntityType, entityTypeId]);
@@ -47,13 +60,13 @@ const useEntityType = (entityTypeId: string, onCompleted?: () => void) => {
 
 // @todo loading state
 // @todo handle displaying entity type not yet created
-const Page: NextPageWithLayout = () => {
+const InnerPage = () => {
   const router = useRouter();
   // @todo find this out somehow
-  const currentVersion = 1;
+  const currentVersion = 6;
   const entityTypeId = `${FRONTEND_URL}/${router.query["account-slug"]}/types/entity-type/${router.query["entity-type-id"]}/v/${currentVersion}`;
 
-  const formMethods = useForm<EntityEditorForm>({
+  const formMethods = useForm<EntityTypeEditorForm>({
     defaultValues: { properties: [] },
   });
   const {
@@ -62,24 +75,28 @@ const Page: NextPageWithLayout = () => {
     formState: { isDirty },
   } = formMethods;
 
-  const entityType = useEntityType(entityTypeId, () => {
-    // @todo set new default properties
-    reset();
+  const entityType = useEntityType(entityTypeId, (fetchedEntityType) => {
+    reset({
+      properties: Object.values(fetchedEntityType.properties).map((ref) => {
+        if ("type" in ref) {
+          throw new Error("handle arrays");
+        }
+        const validatedRef = validateVersionedUri(ref.$ref);
+        if (validatedRef.type === "Err") {
+          throw new Error("How would this happen?");
+        }
+        return { $id: validatedRef.inner };
+      }),
+    });
   });
 
   const propertyTypes = useRemotePropertyTypes();
-  const loadingTypeSystem = useInitTypeSystem();
-
   const { updateEntityType } = useBlockProtocolUpdateEntityType(false);
-
-  // @todo set default property types
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     if (!entityType) {
       return;
     }
-
-    // @todo use data
 
     const properties = Object.fromEntries(
       data.properties.map((property) => {
@@ -101,10 +118,15 @@ const Page: NextPageWithLayout = () => {
       },
     });
 
-    console.log(res);
+    // @todo update our entity type version number
+    if (!res.errors?.length) {
+      reset(data);
+    } else {
+      console.log(res);
+    }
   });
 
-  if (!entityType || loadingTypeSystem) {
+  if (!entityType || !propertyTypes) {
     return null;
   }
 
@@ -212,6 +234,16 @@ const Page: NextPageWithLayout = () => {
       </FormProvider>
     </PropertyTypesContext.Provider>
   );
+};
+
+const Page: NextPageWithLayout = () => {
+  const typeSystemLoading = useInitTypeSystem();
+
+  if (typeSystemLoading) {
+    return null;
+  }
+
+  return <InnerPage />;
 };
 
 Page.getLayout = getPlainLayout;

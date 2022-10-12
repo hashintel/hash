@@ -1,9 +1,9 @@
 import { VersionedUri } from "@blockprotocol/type-system-web";
 
-type PropertyFormData = {
+type EntityTypeEditorPropertyData = {
   $id: VersionedUri;
 };
 
-export type EntityEditorForm = {
-  properties: PropertyFormData[];
+export type EntityTypeEditorForm = {
+  properties: EntityTypeEditorPropertyData[];
 };
