@@ -101,10 +101,10 @@
 //! The generic parameter in [`Report`] is called the _current context_. When creating a new
 //! [`Report`], the [`Context`] that's provided will be set as the current context. The current
 //! context should encapsulate how the current code interprets the error. As the error propagates,
-//! it will cross boundaries where new information is available, and the previous level of detail
-//! is no longer applicable. These boundaries will often occur when crossing between major modules,
-//! or when execution crosses between crates. At this point the [`Report`] should start to operate
-//! in a new context. To change the context, [`Report::change_context()`] is used:
+//! it will cross boundaries where new information is available, and the previous level of detail is
+//! no longer applicable. These boundaries will often occur when crossing between major modules, or
+//! when execution crosses between crates. At this point the [`Report`] should start to operate in a
+//! new context. To change the context, [`Report::change_context()`] is used:
 //!
 //! (Again, for convenience, using [`ResultExt`] will do that on the [`Err`] variant)
 //!
@@ -213,11 +213,10 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/lib__suggestion.snap"))]
 //! </pre>
 //!
-//! The `Suggestion`, which was added via [`attach`] is not shown directly and only increases the
-//! counter of opaque attachments for the containing [`Context`].
-//! The message which was passed to [`attach_printable`], however, is displayed in full.
-//! To be able to show attachments that have been added via [`attach`], one must make use of
-//! [hooks](#debug-and-display-hooks) instead.
+//! The `Suggestion` which was added via [`attach`] is not shown directly and only increases the
+//! counter of opaque attachments for the containing [`Context`]. The message which was passed to
+//! [`attach_printable`], however, is displayed in full. To be able to show attachments that have
+//! been added via [`attach`], one must make use of [hooks](#debug-and-display-hooks) instead.
 //!
 //! [`attach_printable`]: Report::attach_printable
 //! [`Display`]: core::fmt::Display
@@ -225,11 +224,10 @@
 //!
 //! ### Multiple Errors
 //!
-//! [`Report`] supports the combination and propagation of multiple errors natively.
-//! This is useful in cases like parallel processing where multiple errors might happen
-//! independently from each other, in these use-cases you are able to use the implementations of
-//! [`Extend`] and [`extend_one()`] and are able to propagate all errors instead of just a single
-//! one.
+//! [`Report`] supports the combination and propagation of multiple errors natively. This is useful
+//! in cases like parallel processing where multiple errors might happen independently from each
+//! other, in these use-cases you are able to use the implementations of [`Extend`] and
+//! [`extend_one()`] and are able to propagate all errors instead of just a single one.
 //!
 //! [`extend_one()`]: Report::extend_one
 //!
@@ -279,8 +277,8 @@
 //! especially around creating custom root-errors (specifically `error-stack` does not allow using
 //! string-like types). The intention is that this reduces overhead at other parts of the process,
 //! whether that be implementing error-handling, debugging, or observability. The idea that
-//! underpins this is that errors should happen in well-scoped environments like reading a file
-//! or parsing a string into an integer. For these errors, a well-defined error type should be used
+//! underpins this is that errors should happen in well-scoped environments like reading a file or
+//! parsing a string into an integer. For these errors, a well-defined error type should be used
 //! (i.e. `io::Error` or `ParseIntError`) instead of creating an error from a string. Requiring a
 //! well-defined type forces users to be conscious about how they classify and group their
 //! **custom** error types, which improves their usability in error-_handling_.
@@ -307,6 +305,9 @@
 //!
 //! This has the added benefit that migrating from other error libraries can often be incremental,
 //! as a lot of popular error library types will work within the [`Report`] struct.
+//!
+//! In addition, `error-stack` supports converting errors generated from the [`anyhow`] or [`eyre`]
+//! crate via [`IntoReportCompat`].
 //!
 //! ### Doing more
 //!
@@ -341,8 +342,8 @@
 //! ### Automatic Backtraces
 //!
 //! When on a Rust 1.65 or later, [`Report`] will try to capture a [`Backtrace`] if `RUST_BACKTRACE`
-//! or `RUST_BACKTRACE_LIB` is set. If on a nightly toolchain, it will use the [`Backtrace`]
-//! if provided by the base [`Context`], and will try to capture one otherwise.
+//! or `RUST_BACKTRACE_LIB` is set. If on a nightly toolchain, it will use the [`Backtrace`] if
+//! provided by the base [`Context`], and will try to capture one otherwise.
 //!
 //! Unlike some other approaches, this does not require the user modifying their custom error types
 //! to be aware of backtraces, and doesn't require manual implementations to forward calls down any
@@ -350,7 +351,7 @@
 //!
 //! ### No-Std compatible
 //!
-//! The complete crate is written for `no-std` environments, which can be used setting
+//! The complete crate is written for `no-std` environments, which can be used by setting
 //! `default-features = false` in _Cargo.toml_.
 //!
 //! ### Provider API
@@ -388,13 +389,12 @@
 //!
 //! [`ErrorLayer`]: tracing_error::ErrorLayer
 //!
-//! ### Debug and Display Hooks
+//! ### Debug Hooks
 //!
 //! One can provide hooks for types added as attachments when the `std` feature is enabled. These
-//! hooks are then used while formatting [`Report`].
-//! This functionality is also used internally by `error-stack` to render [`Backtrace`], and
-//! [`SpanTrace`], which means overwriting and customizing them is as easy as providing another
-//! hook.
+//! hooks are then used while formatting [`Report`]. This functionality is also used internally by
+//! `error-stack` to render [`Backtrace`], and [`SpanTrace`], which means overwriting and
+//! customizing them is as easy as providing another hook.
 //!
 //! You can add new hooks with [`Report::install_debug_hook`]. Refer to the module-level
 //! documentation of [`fmt`] for further information.
@@ -425,7 +425,6 @@
 //!     and `FORCE_COLOR` environment variables through the [owo-colors crate](https://crates.io/crates/owo-colors)
 //!
 //!
-//! [`set_display_hook`]: Report::set_display_hook
 //! [`set_debug_hook`]: Report::set_debug_hook
 //!
 //! [`Error`]: core::error::Error
@@ -434,7 +433,6 @@
 //! [`Display`]: core::fmt::Display
 //! [`Debug`]: core::fmt::Debug
 //! [`SpanTrace`]: tracing_error::SpanTrace
-//! [`smallvec`]: https://docs.rs/smallvec
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(
     nightly,

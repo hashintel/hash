@@ -6,9 +6,14 @@ import {
   GetEntityTypeRootedSubgraphQueryVariables,
   CreatePersistedEntityMutation,
   CreatePersistedEntityMutationVariables,
+  GetOutgoingPersistedLinksQuery,
+  QueryOutgoingPersistedLinksArgs,
 } from "../../../../graphql/apiTypes.gen";
 import { getEntityTypeRootedSubgraphQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
-import { createPersistedEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
+import {
+  createPersistedEntityMutation,
+  getOutgoingPersistedLinksQuery,
+} from "../../../../graphql/queries/knowledge/entity.queries";
 import { CreateEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolCreateEntity = (
@@ -20,6 +25,14 @@ export const useBlockProtocolCreateEntity = (
     CreatePersistedEntityMutation,
     CreatePersistedEntityMutationVariables
   >(createPersistedEntityMutation);
+
+  const [getOutgoingLinksFn] = useLazyQuery<
+    GetOutgoingPersistedLinksQuery,
+    QueryOutgoingPersistedLinksArgs
+  >(getOutgoingPersistedLinksQuery, {
+    /** @todo reconsider caching. This is done for testing/demo purposes. */
+    fetchPolicy: "no-cache",
+  });
 
   const [getEntityTypeRootedSubgraphFn] = useLazyQuery<
     GetEntityTypeRootedSubgraphQuery,
@@ -52,14 +65,15 @@ export const useBlockProtocolCreateEntity = (
 
       const { entityTypeId, properties } = data;
 
-      const { data: responseData } = await createFn({
+      const { data: createEntityResponseData } = await createFn({
         variables: {
           entityTypeId,
           properties,
         },
       });
 
-      const { createPersistedEntity: createdEntity } = responseData ?? {};
+      const { createPersistedEntity: createdEntity } =
+        createEntityResponseData ?? {};
 
       if (!createdEntity) {
         return {
@@ -77,13 +91,17 @@ export const useBlockProtocolCreateEntity = (
        * May be addressed as part of https://app.asana.com/0/1200211978612931/1203089535761796/f or related work.
        */
 
-      const { data: entityTypeResponseData } =
-        await getEntityTypeRootedSubgraphFn({
-          query: getEntityTypeRootedSubgraphQuery,
-          variables: {
-            entityTypeId: createdEntity.entityTypeId,
-          },
-        });
+      const [{ data: entityTypeResponseData }, { data: outgoingLinksData }] =
+        await Promise.all([
+          getEntityTypeRootedSubgraphFn({
+            variables: {
+              entityTypeId: createdEntity.entityTypeId,
+            },
+          }),
+          getOutgoingLinksFn({
+            variables: { sourceEntityId: createdEntity.entityId },
+          }),
+        ]);
 
       if (!entityTypeResponseData) {
         return {
@@ -97,14 +115,28 @@ export const useBlockProtocolCreateEntity = (
         };
       }
 
+      if (!outgoingLinksData) {
+        return {
+          errors: [
+            {
+              code: "INVALID_INPUT",
+              message: "Error calling getOutgoingLinks",
+            },
+          ],
+        };
+      }
+
+      const { outgoingPersistedLinks } = outgoingLinksData;
+
       return {
         data: {
           ...createdEntity,
           entityTypeRootedSubgraph: entityTypeResponseData.getEntityType,
+          links: outgoingPersistedLinks,
         },
       };
     },
-    [createFn, readonly, getEntityTypeRootedSubgraphFn],
+    [createFn, readonly, getEntityTypeRootedSubgraphFn, getOutgoingLinksFn],
   );
 
   return {
