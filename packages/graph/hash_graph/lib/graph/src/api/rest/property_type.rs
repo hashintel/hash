@@ -29,7 +29,7 @@ use crate::{
 
 #[derive(OpenApi)]
 #[openapi(
-    handlers(
+    paths(
         create_property_type,
         get_property_types_by_query,
         get_property_type,
@@ -37,13 +37,15 @@ use crate::{
         update_property_type
     ),
     components(
-        CreatePropertyTypeRequest,
-        UpdatePropertyTypeRequest,
-        AccountId,
-        PersistedOntologyIdentifier,
-        PersistedPropertyType,
-        PropertyTypeQuery,
-        PropertyTypeRootedSubgraph,
+        schemas(
+            CreatePropertyTypeRequest,
+            UpdatePropertyTypeRequest,
+            AccountId,
+            PersistedOntologyIdentifier,
+            PersistedPropertyType,
+            PropertyTypeQuery,
+            PropertyTypeRootedSubgraph,
+        )
     ),
     tags(
         (name = "PropertyType", description = "Property type management API")

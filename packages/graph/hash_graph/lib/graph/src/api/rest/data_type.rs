@@ -29,7 +29,7 @@ use crate::{
 
 #[derive(OpenApi)]
 #[openapi(
-    handlers(
+    paths(
         create_data_type,
         get_data_types_by_query,
         get_data_type,
@@ -37,13 +37,15 @@ use crate::{
         update_data_type
     ),
     components(
-        CreateDataTypeRequest,
-        UpdateDataTypeRequest,
-        AccountId,
-        PersistedOntologyIdentifier,
-        PersistedDataType,
-        DataTypeQuery,
-        DataTypeRootedSubgraph,
+        schemas(
+            CreateDataTypeRequest,
+            UpdateDataTypeRequest,
+            AccountId,
+            PersistedOntologyIdentifier,
+            PersistedDataType,
+            DataTypeQuery,
+            DataTypeRootedSubgraph,
+        )
     ),
     tags(
         (name = "DataType", description = "Data Type management API")

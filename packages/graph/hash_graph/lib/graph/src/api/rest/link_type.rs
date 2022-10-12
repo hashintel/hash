@@ -29,7 +29,7 @@ use crate::{
 
 #[derive(OpenApi)]
 #[openapi(
-    handlers(
+    paths(
         create_link_type,
         get_link_types_by_query,
         get_link_type,
@@ -37,13 +37,15 @@ use crate::{
         update_link_type
     ),
     components(
-        CreateLinkTypeRequest,
-        UpdateLinkTypeRequest,
-        AccountId,
-        PersistedOntologyIdentifier,
-        PersistedLinkType,
-        LinkTypeQuery,
-        LinkTypeRootedSubgraph,
+        schemas(
+            CreateLinkTypeRequest,
+            UpdateLinkTypeRequest,
+            AccountId,
+            PersistedOntologyIdentifier,
+            PersistedLinkType,
+            LinkTypeQuery,
+            LinkTypeRootedSubgraph,
+        )
     ),
     tags(
         (name = "LinkType", description = "Link type management API")

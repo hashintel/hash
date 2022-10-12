@@ -17,20 +17,22 @@ use crate::{
 
 #[derive(OpenApi)]
 #[openapi(
-    handlers(
+    paths(
         create_link,
         get_links_by_query,
         get_entity_links,
         remove_link
     ),
     components(
-        AccountId,
-        PersistedLink,
-        Link,
-        CreateLinkRequest,
-        RemoveLinkRequest,
-        KnowledgeGraphQuery,
-        LinkRootedSubgraph
+        schemas(
+            AccountId,
+            PersistedLink,
+            Link,
+            CreateLinkRequest,
+            RemoveLinkRequest,
+            KnowledgeGraphQuery,
+            LinkRootedSubgraph
+        )
     ),
     tags(
         (name = "Link", description = "link management API")

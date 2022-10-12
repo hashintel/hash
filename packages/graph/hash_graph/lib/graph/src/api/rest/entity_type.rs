@@ -30,7 +30,7 @@ use crate::{
 
 #[derive(OpenApi)]
 #[openapi(
-    handlers(
+    paths(
         create_entity_type,
         get_entity_types_by_query,
         get_entity_type,
@@ -38,13 +38,15 @@ use crate::{
         update_entity_type
     ),
     components(
-        CreateEntityTypeRequest,
-        UpdateEntityTypeRequest,
-        AccountId,
-        PersistedOntologyIdentifier,
-        PersistedEntityType,
-        EntityTypeQuery,
-        EntityTypeRootedSubgraph,
+        schemas(
+            CreateEntityTypeRequest,
+            UpdateEntityTypeRequest,
+            AccountId,
+            PersistedOntologyIdentifier,
+            PersistedEntityType,
+            EntityTypeQuery,
+            EntityTypeRootedSubgraph,
+        )
     ),
     tags(
         (name = "EntityType", description = "Entity type management API")
