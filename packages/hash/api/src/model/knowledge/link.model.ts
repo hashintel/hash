@@ -398,8 +398,13 @@ export default class {
    */
   async remove(
     graphApi: GraphApi,
-    { removedById }: { removedById: string },
+    {
+      removedById,
+      reorderSibling,
+    }: { removedById: string; reorderSibling?: boolean },
   ): Promise<void> {
+    const shouldReorderSibling = reorderSibling ?? true;
+
     await graphApi.removeLink(this.sourceEntityModel.entityId, {
       linkTypeId: this.linkTypeModel.schema.$id,
       targetEntityId: this.targetEntityModel.entityId,
@@ -415,7 +420,7 @@ export default class {
         outgoingLinkType: this.linkTypeModel,
       });
 
-    if (isOrdered) {
+    if (isOrdered && shouldReorderSibling) {
       if (this.index === undefined) {
         throw new Error(
           "Critical: existing ordered link doesn't have an index",

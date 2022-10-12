@@ -230,6 +230,9 @@ const calculateSaveActions = async (
   // Check the blocks from the db-persisted page against the latest version of the page
   let position = 0;
   let itCount = 0;
+  // Move actions are order-sensitive, so we're going to sort them separately.
+  const moveActions: UpdatePersistedPageAction[] = [];
+
   while (
     position < Math.max(beforeBlockDraftIds.length, afterBlockDraftIds.length)
   ) {
@@ -300,7 +303,7 @@ const calculateSaveActions = async (
 
     // the before draft id isn't the same as the after draft id, so this block shouldn't be in this position any more
     if (beforeDraftId) {
-      actions.push({ removeBlock: { position } });
+      moveActions.push({ removeBlock: { position } });
 
       // delete this block from the 'before' series so that we're comparing subsequent blocks in the correct position
       beforeBlockDraftIds.splice(position, 1);
@@ -328,7 +331,7 @@ const calculateSaveActions = async (
         draftIdToPlaceholderId.set(draftEntity.draftId, blockPlaceholderId);
       }
 
-      actions.push({
+      moveActions.push({
         insertBlock: {
           ownedById: draftEntity.accountId,
           position,
@@ -356,6 +359,11 @@ const calculateSaveActions = async (
       beforeBlockDraftIds.splice(position, 0, afterDraftId);
     }
   }
+
+  actions.push(
+    ...moveActions.filter((action) => action.removeBlock),
+    ...moveActions.filter((action) => action.insertBlock),
+  );
 
   const placeholderToDraft = flipMap(draftIdToPlaceholderId);
 

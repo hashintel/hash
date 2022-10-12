@@ -493,6 +493,7 @@ export default class extends EntityModel {
 
     const { removedById } = params;
 
-    await link.remove(graphApi, { removedById });
+    // Don't reorder siblings as it would break the expected indices on the frontend.
+    await link.remove(graphApi, { removedById, reorderSibling: false });
   }
 }
