@@ -68,6 +68,9 @@ export const generateBlockProtocolTypeId = (args: {
 
 /**
  * The workspace entity types.
+ *
+ * @todo add missing descriptions
+ * @see https://app.asana.com/0/1202805690238892/1203132327925695/f
  */
 const workspaceEntityTypes = {
   block: {
@@ -107,6 +110,9 @@ export type WorkspaceEntityTypeTitle =
 
 /**
  * The workspace property types.
+ *
+ * @todo add missing descriptions
+ * @see https://app.asana.com/0/1202805690238892/1203132327925695/f
  */
 const workspacePropertyTypes = {
   shortName: {
