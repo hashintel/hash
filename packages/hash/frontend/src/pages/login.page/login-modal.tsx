@@ -134,7 +134,9 @@ export const LoginModal: FunctionComponent<LoginModalProps> = ({
       });
     },
     onError: ({ graphQLErrors }) => {
-      if (!graphQLErrors.length) return;
+      if (!graphQLErrors.length) {
+        return;
+      }
       const { message } = parseGraphQLError([...graphQLErrors]);
 
       dispatch({
@@ -157,10 +159,14 @@ export const LoginModal: FunctionComponent<LoginModalProps> = ({
               },
             });
           }
-          if (onLoggedIn) onLoggedIn(user);
+          if (onLoggedIn) {
+            onLoggedIn(user);
+          }
         },
         onError: ({ graphQLErrors }) => {
-          if (!graphQLErrors.length) return;
+          if (!graphQLErrors.length) {
+            return;
+          }
 
           const { message } = parseGraphQLError([...graphQLErrors]);
 
@@ -235,7 +241,9 @@ export const LoginModal: FunctionComponent<LoginModalProps> = ({
   ]);
 
   const login = (providedCode: string, withSyntheticLoading?: boolean) => {
-    if (!verificationCodeMetadata) return;
+    if (!verificationCodeMetadata) {
+      return;
+    }
 
     const verificationId = verificationCodeMetadata.id;
 

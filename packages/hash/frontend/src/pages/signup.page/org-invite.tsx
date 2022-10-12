@@ -59,7 +59,9 @@ export const OrgInvite: FunctionComponent<OrgInviteProps> = ({
   };
 
   const invitationLink = useMemo(() => {
-    if (!createOrgInfo) return "-";
+    if (!createOrgInfo) {
+      return "-";
+    }
 
     const inviteQueryParams = new URLSearchParams({
       orgEntityId: createOrgInfo.orgEntityId,
@@ -70,7 +72,9 @@ export const OrgInvite: FunctionComponent<OrgInviteProps> = ({
   }, [createOrgInfo]);
 
   const handleCopyBtnClick = async () => {
-    if (!invitationLink) return;
+    if (!invitationLink) {
+      return;
+    }
 
     setCopied(true);
     await navigator.clipboard.writeText(invitationLink);

@@ -93,7 +93,9 @@ const Page: NextPageWithLayout = () => {
 
   const handleSubmit = (evt: FormEvent) => {
     evt.preventDefault();
-    if (!responsibility || !invitationInfo) return;
+    if (!responsibility || !invitationInfo) {
+      return;
+    }
 
     setErrorMessage("");
     void joinOrg({
@@ -113,7 +115,9 @@ const Page: NextPageWithLayout = () => {
   };
 
   const [title, subtitle] = useMemo(() => {
-    if (!invitationInfo) return ["", ""];
+    if (!invitationInfo) {
+      return ["", ""];
+    }
     if ("inviterPreferredName" in invitationInfo) {
       return [
         `${invitationInfo.inviterPreferredName} has invited you to join ${invitationInfo.orgName} on HASH`,
