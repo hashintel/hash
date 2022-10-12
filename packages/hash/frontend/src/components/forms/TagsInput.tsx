@@ -21,7 +21,9 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleKeyDown = (evt: KeyboardEvent<HTMLInputElement>) => {
-    if (!inputRef.current) return;
+    if (!inputRef.current) {
+      return;
+    }
     const text = inputRef.current.value;
 
     if ([...delimiters, "Enter"].includes(evt.key)) {
@@ -45,7 +47,9 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
   };
 
   const handleBlur = () => {
-    if (!inputRef.current) return;
+    if (!inputRef.current) {
+      return;
+    }
     const inputValue = inputRef.current?.value;
     if (
       inputValue &&

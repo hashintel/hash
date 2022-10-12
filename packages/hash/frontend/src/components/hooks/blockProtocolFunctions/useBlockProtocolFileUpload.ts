@@ -37,7 +37,9 @@ function computeChecksumMd5(file: File): Promise<string> {
     }
 
     fileReader.onload = (evt: ProgressEvent<FileReader>) => {
-      if (!evt.target?.result) return;
+      if (!evt.target?.result) {
+        return;
+      }
       spark.append(evt.target.result as ArrayBuffer);
       cursor += chunkSize;
 

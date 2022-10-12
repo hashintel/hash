@@ -6,7 +6,9 @@ export const cleanUpTitle = (value: string): string =>
   value.trim().replace(/\s+/g, " ");
 
 export const focusEditorBeginning = (view?: EditorView<Schema>) => {
-  if (!view) return;
+  if (!view) {
+    return;
+  }
 
   const { state } = view;
 

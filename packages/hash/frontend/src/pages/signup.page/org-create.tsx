@@ -97,9 +97,15 @@ type Inputs = {
 
 const getInitials = (name: string) => {
   const initials = name.trim().split(" ");
-  if (!initials.length) return "";
-  if (initials.length === 1) return initials[0]![0];
-  if (initials.length > 1) return initials[0]![0]! + initials[1]![0]!;
+  if (!initials.length) {
+    return "";
+  }
+  if (initials.length === 1) {
+    return initials[0]![0];
+  }
+  if (initials.length > 1) {
+    return initials[0]![0]! + initials[1]![0]!;
+  }
 };
 
 export const OrgCreate: FunctionComponent<OrgCreateProps> = ({

@@ -30,7 +30,7 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import { Ref, useId, useRef, useState } from "react";
-import { Modal } from "../../../components/Modals/Modal";
+import { Modal } from "../../../../components/Modals/Modal";
 import { PropertyListSelectorDropdownContext } from "./property-list-selector-dropdown";
 import { PropertyMenu } from "./property-menu";
 import { PropertySelector } from "./property-selector";

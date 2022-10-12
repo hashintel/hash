@@ -1,17 +1,47 @@
+import { EntityType } from "@blockprotocol/type-system-web";
+import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Container, Stack, Typography } from "@mui/material";
-import { useRef } from "react";
-import { BriefcaseIcon } from "../../../shared/icons/svg";
-import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
-import { TopContextBar } from "../../shared/top-context-bar";
+import { useRouter } from "next/router";
+import { useEffect, useRef, useState } from "react";
+import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
+import { FRONTEND_URL } from "../../../../lib/config";
+import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
+import { TopContextBar } from "../../../shared/top-context-bar";
 import { EmptyPropertyListCard } from "./empty-property-list-card";
 import { OntologyChip } from "./ontology-chip";
 import { PlaceholderIcon } from "./placeholder-icon";
 import { InsertPropertyCard } from "./property-list-card";
 import { useStateCallback } from "./util";
 
+const useEntityType = (entityTypeSlug: string) => {
+  const { getEntityType } = useBlockProtocolGetEntityType();
+  const [entityType, setEntityType] = useState<EntityType | null>(null);
+
+  useEffect(() => {
+    void getEntityType({
+      // @todo get latest version somehow?
+      data: { entityTypeId: `${FRONTEND_URL}${entityTypeSlug}/v/1` },
+    }).then((value) => {
+      if (value.data) {
+        setEntityType(value.data.entityType);
+      }
+    });
+  }, [getEntityType, entityTypeSlug]);
+
+  return entityType;
+};
+
 const Page: NextPageWithLayout = () => {
   const [mode, setMode] = useStateCallback<"empty" | "inserting">("empty");
   const insertFieldRef = useRef<HTMLInputElement>(null);
+
+  const router = useRouter();
+  const entityType = useEntityType(router.asPath);
+
+  if (!entityType) {
+    return null;
+  }
 
   return (
     <Box
@@ -36,22 +66,10 @@ const Page: NextPageWithLayout = () => {
               id: "entity-types",
             },
             {
-              title: "Company",
+              title: entityType.title,
               href: "#",
-              id: "company",
-              icon: (
-                <Box
-                  sx={{
-                    svg: {
-                      height: "16px",
-                      display: "flex",
-                      alignItems: "center",
-                    },
-                  }}
-                >
-                  <BriefcaseIcon />
-                </Box>
-              ),
+              id: entityType.$id,
+              icon: <FontAwesomeIcon icon={faAsterisk} />,
             },
           ]}
           scrollToTop={() => {}}
@@ -68,38 +86,35 @@ const Page: NextPageWithLayout = () => {
                     fontWeight="bold"
                     color={(theme) => theme.palette.blue[70]}
                   >
-                    @acme-corp
+                    {router.query["account-slug"]}
                   </Typography>
                   <Typography
                     component="span"
                     color={(theme) => theme.palette.blue[70]}
                   >
-                    /entity-types/
+                    /types/entity-types/
                   </Typography>
                   <Typography
                     component="span"
                     fontWeight="bold"
                     color={(theme) => theme.palette.blue[70]}
                   >
-                    @company
+                    {router.query["entity-type-id"]}
                   </Typography>
                 </>
               }
             />
             <Typography variant="h1" fontWeight="bold" mt={3} mb={4.5}>
-              <Box
-                component="span"
+              <FontAwesomeIcon
+                icon={faAsterisk}
                 sx={(theme) => ({
+                  fontSize: 40,
                   mr: 3,
-                  verticalAlign: "middle",
                   color: theme.palette.gray[70],
-
-                  svg: { height: 40 },
+                  verticalAlign: "middle",
                 })}
-              >
-                <BriefcaseIcon />
-              </Box>
-              Company
+              />
+              {entityType.title}
             </Typography>
           </Container>
         </Box>
@@ -109,7 +124,7 @@ const Page: NextPageWithLayout = () => {
           <Typography variant="h5" mb={1.25}>
             Properties of{" "}
             <Box component="span" sx={{ fontWeight: "bold" }}>
-              company
+              {entityType.title}
             </Box>
           </Typography>
           {mode === "empty" ? (
