@@ -13,7 +13,7 @@ type CommentModelCreateParams = Omit<
   EntityModelCreateParams,
   "properties" | "entityTypeModel"
 > & {
-  createdBy: UserModel;
+  author: UserModel;
   parent: EntityModel;
   tokens: TextToken[];
 };
@@ -70,7 +70,7 @@ export default class extends EntityModel {
       entityTypeModel,
     });
 
-    const { tokens, parent, createdBy } = params;
+    const { tokens, parent, author } = params;
 
     const textEntity = await EntityModel.create(graphApi, {
       ownedById,
@@ -94,7 +94,7 @@ export default class extends EntityModel {
 
     await entity.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.author,
-      targetEntityModel: createdBy,
+      targetEntityModel: author,
       ownedById,
     });
 
