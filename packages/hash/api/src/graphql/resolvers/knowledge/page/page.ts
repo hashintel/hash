@@ -3,6 +3,7 @@ import { PageModel, UserModel } from "../../../../model";
 import {
   MutationCreatePersistedPageArgs,
   QueryPersistedPageArgs,
+  QueryPersistedPageCommentsArgs,
   QueryPersistedPagesArgs,
   ResolverFn,
 } from "../../../apiTypes.gen";
@@ -10,6 +11,8 @@ import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import {
   UnresolvedPersistedPageGQL,
   mapPageModelToGQL,
+  UnresolvedPersistedCommentGQL,
+  mapCommentModelToGQL,
 } from "../model-mapping";
 
 export const persistedPage: ResolverFn<
@@ -74,4 +77,19 @@ export const persistedPages: ResolverFn<
   });
 
   return pageModels.map(mapPageModelToGQL);
+};
+
+export const persistedPageComments: ResolverFn<
+  Promise<UnresolvedPersistedCommentGQL[]>,
+  {},
+  LoggedInGraphQLContext,
+  QueryPersistedPageCommentsArgs
+> = async (_, { entityId }, { dataSources: { graphApi } }) => {
+  const pageModel = await PageModel.getPageById(graphApi, {
+    entityId,
+  });
+
+  const commentModels = await pageModel.getComments(graphApi);
+
+  return commentModels.map(mapCommentModelToGQL);
 };

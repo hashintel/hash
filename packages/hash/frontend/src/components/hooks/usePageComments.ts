@@ -24,15 +24,12 @@ export type PageCommentsInfo = {
   loading: boolean;
 };
 
-export const usePageComments = (
-  ownedById: string,
-  pageId: string,
-): PageCommentsInfo => {
+export const usePageComments = (pageId: string): PageCommentsInfo => {
   const { data, loading } = useQuery<
     GetPersistedPageCommentsQuery,
     GetPersistedPageCommentsQueryVariables
   >(getPersistedPageComments, {
-    variables: { ownedById, pageId },
+    variables: { entityId: pageId },
   });
 
   return { data: data?.persistedPageComments ?? [], loading };

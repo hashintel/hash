@@ -1,16 +1,27 @@
 import { gql } from "@apollo/client";
 
+export const commentFieldsFragment = gql`
+  fragment CommentFields on PersistedComment {
+    ownedById
+    entityId
+    hasText
+    textUpdatedAt
+    author {
+      entityId
+      properties
+    }
+    parent {
+      entityId
+    }
+  }
+`;
+
 export const createPersistedComment = gql`
   mutation createPersistedComment(
-    $ownedById: ID!
-    $parentId: ID!
+    $parentEntityId: ID!
     $tokens: [TextToken!]!
   ) {
-    createPersistedComment(
-      ownedById: $ownedById
-      parentId: $parentId
-      tokens: $tokens
-    ) {
+    createPersistedComment(parentEntityId: $parentEntityId, tokens: $tokens) {
       ownedById
       entityId
     }

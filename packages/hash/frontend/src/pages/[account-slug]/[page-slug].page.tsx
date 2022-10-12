@@ -236,7 +236,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
     pageHeaderRef.current.scrollIntoView({ behavior: "smooth" });
   };
 
-  const { data: pageComments } = usePageComments(accountId, pageEntityId);
+  const { data: pageComments } = usePageComments(pageEntityId);
 
   const [Container, paddingLeftFormula, paddingRightFormula] = useMemo(() => {
     const commentsContainerWidth = pageComments?.length ? COMMENTS_WIDTH : 0;

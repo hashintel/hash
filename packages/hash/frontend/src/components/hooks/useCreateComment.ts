@@ -8,30 +8,29 @@ import {
 import { createPersistedComment } from "../../graphql/queries/comment.queries";
 import { getPersistedPageComments } from "../../graphql/queries/page.queries";
 
-export const useCreateComment = (ownedById: string, pageId: string) => {
+export const useCreateComment = (pageId: string) => {
   const [createCommentFn, { loading }] = useMutation<
     CreatePersistedCommentMutation,
     CreatePersistedCommentMutationVariables
   >(createPersistedComment, {
     awaitRefetchQueries: true,
-    refetchQueries: ({ data }) => [
+    refetchQueries: () => [
       {
         query: getPersistedPageComments,
         variables: {
-          ownedById: data?.createPersistedComment.ownedById,
-          pageId,
+          entityId: pageId,
         },
       },
     ],
   });
 
   const createComment = useCallback(
-    async (parentId: string, tokens: TextToken[]) => {
+    async (parentEntityId: string, tokens: TextToken[]) => {
       await createCommentFn({
-        variables: { ownedById, parentId, tokens },
+        variables: { parentEntityId, tokens },
       });
     },
-    [createCommentFn, ownedById],
+    [createCommentFn],
   );
 
   return [createComment, { loading }] as const;

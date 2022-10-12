@@ -110,6 +110,13 @@ export const persistedPageTypedef = gql`
       """
       ownedById: ID
     ): [PersistedPage!]!
+
+    persistedPageComments(
+      """
+      The id of the page entity.
+      """
+      entityId: ID!
+    ): [PersistedComment!]!
   }
 
   """

@@ -69,10 +69,6 @@ export const persistedCommentTypedef = gql`
     # ENTITY INTERFACE FIELDS END #
   }
 
-  extend type Query {
-    persistedPageComments(ownedById: ID!, pageId: ID!): [PersistedComment!]!
-  }
-
   extend type Mutation {
     """
     Create a new comment

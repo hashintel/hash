@@ -1,4 +1,5 @@
 import { gql } from "@apollo/client";
+import { commentFieldsFragment } from "./comment.queries";
 
 export const setParentPage = gql`
   mutation setParentPage(
@@ -48,25 +49,9 @@ export const updatePersistedPage = gql`
   }
 `;
 
-export const commentFieldsFragment = gql`
-  fragment CommentFields on PersistedComment {
-    ownedById
-    entityId
-    hasText
-    textUpdatedAt
-    author {
-      entityId
-      properties
-    }
-    parent {
-      entityId
-    }
-  }
-`;
-
 export const getPersistedPageComments = gql`
-  query getPersistedPageComments($ownedById: ID!, $pageId: ID!) {
-    persistedPageComments(ownedById: $ownedById, pageId: $pageId) {
+  query getPersistedPageComments($entityId: ID!) {
+    persistedPageComments(entityId: $entityId) {
       ...CommentFields
       replies {
         ...CommentFields

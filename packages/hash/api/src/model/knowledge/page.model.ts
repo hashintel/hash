@@ -9,6 +9,7 @@ import {
   LinkModel,
   UserModel,
   OrgModel,
+  CommentModel,
 } from "..";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
 
@@ -377,6 +378,16 @@ export default class extends EntityModel {
     return outgoingBlockDataLinks.map(({ targetEntityModel }) =>
       BlockModel.fromEntityModel(targetEntityModel),
     );
+  }
+
+  async getComments(graphApi: GraphApi): Promise<CommentModel[]> {
+    const blocks = await this.getBlocks(graphApi);
+
+    const comments = await Promise.all(
+      blocks.map((block) => block.getBlockComments(graphApi)),
+    );
+
+    return comments.flat();
   }
 
   /**

@@ -61,10 +61,8 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   const routeHash = router.asPath.split("#")[1] ?? "";
   const { readonlyMode } = useReadonlyMode();
 
-  const [createComment, { loading: createCommentLoading }] = useCreateComment(
-    accountId,
-    entityId,
-  );
+  const [createComment, { loading: createCommentLoading }] =
+    useCreateComment(entityId);
 
   const { setEditorView, pageTitleRef } = usePageContext();
 

@@ -102,11 +102,9 @@ import {
   persistedPage,
   persistedPages,
   parentPersistedPage,
-} from "./knowledge/page/page";
-import {
-  createPersistedComment,
   persistedPageComments,
-} from "./knowledge/comment/comment";
+} from "./knowledge/page/page";
+import { createPersistedComment } from "./knowledge/comment/comment";
 import { persistedBlocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import {

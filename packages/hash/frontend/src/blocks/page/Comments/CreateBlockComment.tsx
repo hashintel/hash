@@ -5,7 +5,7 @@ import { faComment } from "@fortawesome/free-regular-svg-icons";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { CommentTextField, CommentTextFieldRef } from "./CommentTextField";
 import styles from "./style.module.css";
-import { useRouteAccountInfo, useRoutePageInfo } from "../../../shared/routing";
+import { useRoutePageInfo } from "../../../shared/routing";
 import { useCreateComment } from "../../../components/hooks/useCreateComment";
 
 type CreateBlockCommentProps = {
@@ -17,12 +17,8 @@ export const CreateBlockComment = forwardRef<
   CommentTextFieldRef,
   CreateBlockCommentProps
 >(({ blockId, onClose }, ref) => {
-  const { accountId } = useRouteAccountInfo();
   const { pageEntityId } = useRoutePageInfo();
-  const [createComment, { loading }] = useCreateComment(
-    accountId,
-    pageEntityId,
-  );
+  const [createComment, { loading }] = useCreateComment(pageEntityId);
   const [inputValue, setInputValue] = useState<TextToken[]>([]);
 
   const submitComment = async () => {
