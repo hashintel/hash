@@ -12,6 +12,7 @@ import {
   ReadOrModifyResourceError,
 } from "@blockprotocol/graph";
 import {
+  PersistedLink,
   UnknownPersistedEntity,
   EntityTypeRootedSubgraph,
 } from "../../../../graphql/apiTypes.gen";
@@ -31,13 +32,20 @@ type UnsupportedPersistedEntityFields = "linkedEntities";
 
 type DeprecatedPersistedEntityFields = "accountId";
 
-type Entity = Omit<
+type BaseEntity = Omit<
   UnknownPersistedEntity,
   | UnsupportedPersistedEntityFields
   | DeprecatedPersistedEntityFields
   | "entityType"
-> & {
+>;
+
+type Entity = BaseEntity & {
+  links: Link[];
   entityTypeRootedSubgraph: EntityTypeRootedSubgraph;
+};
+
+type Link = Omit<PersistedLink, "sourceEntity" | "targetEntity"> & {
+  targetEntity: BaseEntity;
 };
 
 export type EntityResponse = Entity;
