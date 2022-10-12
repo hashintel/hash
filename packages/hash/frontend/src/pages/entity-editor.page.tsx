@@ -28,7 +28,6 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
     useBlockProtocolFunctionsWithOntology(ownedById);
 
   useEffect(() => {
-    console.log({ types });
     if (user) {
       // As an example entity, we are going to use the currently logged in user's entity ID
       const entityId = user.entityId;
