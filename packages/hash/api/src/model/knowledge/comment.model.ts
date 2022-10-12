@@ -52,15 +52,16 @@ export default class extends EntityModel {
   /**
    * Create a workspace block entity.
    *
-   * @param params.componentId - the component id of the block
-   * @param params.blockData - the linked block data entity
+   * @param params.author - the user that created the comment
+   * @param params.parent - the linked parent entity
+   * @param params.tokens - the text tokens that describe the comment's text
    * @see {@link EntityModel.create} for remaining params
    */
   static async createComment(
     graphApi: GraphApi,
     params: CommentModelCreateParams,
   ): Promise<CommentModel> {
-    const { ownedById } = params;
+    const { ownedById, tokens, parent, author } = params;
 
     const entityTypeModel = WORKSPACE_TYPES.entityType.comment;
 
@@ -69,8 +70,6 @@ export default class extends EntityModel {
       properties: {},
       entityTypeModel,
     });
-
-    const { tokens, parent, author } = params;
 
     const textEntity = await EntityModel.create(graphApi, {
       ownedById,
@@ -130,7 +129,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get the value of the "ResolvedAt" property of the comment.
+   * Get the value of the "Resolved At" property of the comment.
    */
   getResolvedAt(): string {
     return (this.properties as any)[
@@ -139,7 +138,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get the parent page of the page.
+   * Get the text entity linked to the comment.
    */
   async getHasText(graphApi: GraphApi): Promise<EntityModel> {
     const hasTextLinks = await this.getOutgoingLinks(graphApi, {
@@ -163,6 +162,9 @@ export default class extends EntityModel {
     return hasTextLink.targetEntityModel;
   }
 
+  /**
+   * Get the parent entity linked to the comment (either a block or another comment).
+   */
   async getParent(graphApi: GraphApi): Promise<EntityModel> {
     const parentLinks = await this.getOutgoingLinks(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.parent,
@@ -185,6 +187,9 @@ export default class extends EntityModel {
     return parentLink.targetEntityModel;
   }
 
+  /**
+   * Get the user entity that created the comment.
+   */
   async getAuthor(graphApi: GraphApi): Promise<UserModel> {
     const authorLinks = await this.getOutgoingLinks(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.author,
@@ -207,6 +212,9 @@ export default class extends EntityModel {
     return UserModel.fromEntityModel(authorLink.targetEntityModel);
   }
 
+  /**
+   * Get the children comment entities of the comment.
+   */
   async getReplies(graphApi: GraphApi): Promise<CommentModel[]> {
     const replyLinks = await this.getIncomingLinks(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.parent,
