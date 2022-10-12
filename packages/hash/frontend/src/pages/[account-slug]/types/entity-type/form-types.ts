@@ -1,5 +1,7 @@
+import { VersionedUri } from "@blockprotocol/type-system-web";
+
 type PropertyFormData = {
-  $id: string;
+  $id: VersionedUri;
 };
 
 export type EntityEditorForm = {

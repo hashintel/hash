@@ -1,4 +1,4 @@
-import { EntityType } from "@blockprotocol/type-system-web";
+import { EntityType, extractBaseUri } from "@blockprotocol/type-system-web";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Collapse, Container, Typography } from "@mui/material";
@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
+import { useBlockProtocolUpdateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
 import { FRONTEND_URL } from "../../../../lib/config";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
@@ -69,10 +70,38 @@ const Page: NextPageWithLayout = () => {
   const propertyTypes = useRemotePropertyTypes();
   const loadingTypeSystem = useInitTypeSystem();
 
+  const { updateEntityType } = useBlockProtocolUpdateEntityType(false);
+
   // @todo set default property types
 
-  const handleSubmit = wrapHandleSubmit(() => {
+  const handleSubmit = wrapHandleSubmit(async (data) => {
+    if (!entityType) {
+      return;
+    }
+
     // @todo use data
+
+    const properties = Object.fromEntries(
+      data.properties.map((property) => {
+        const propertyKey = extractBaseUri(property.$id);
+
+        return [propertyKey, { $ref: property.$id }];
+      }),
+    );
+
+    const { $id, ...restOfEntityType } = entityType;
+
+    const res = await updateEntityType({
+      data: {
+        entityTypeId: $id,
+        entityType: {
+          ...restOfEntityType,
+          properties,
+        },
+      },
+    });
+
+    console.log(res);
   });
 
   if (!entityType || loadingTypeSystem) {
