@@ -3,12 +3,12 @@
 [libs.rs]: https://lib.rs/crates/error-stack
 [rust-version]: https://www.rust-lang.org
 [documentation]: https://docs.rs/error-stack
-[license]: ./LICENSE.md
+[license]: https://github.com/hashintel/hash/blob/main/packages/libs/error-stack/LICENSE.md
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_error-stack
 
 [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-[![rust-version](https://img.shields.io/badge/Rust-1.63.0/nightly--2022--09--27-blue)][rust-version]
+[![rust-version](https://img.shields.io/badge/Rust-1.63.0/nightly--2022--10--12-blue)][rust-version]
 [![documentation](https://img.shields.io/docsrs/error-stack)][documentation]
 [![license](https://img.shields.io/crates/l/error-stack)][license]
 [![discord](https://img.shields.io/discord/840573247803097118)][discord]
@@ -109,6 +109,4 @@ For more examples of `error-stack` in use, please check out the [examples](https
 
 ## License
 
-Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE.md) or [MIT license](LICENSE-MIT.md) at your option.
-
-For more information about contributing to this crate, see our top-level [CONTRIBUTING](https://github.com/hashintel/hash/blob/main/CONTRIBUTING.md) policy.
+`error-stack` is available under a number of different open-source licenses. Please see the [LICENSE] file to review your options.

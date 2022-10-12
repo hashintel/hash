@@ -54,7 +54,9 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
         const firstNode = state.selection.$anchor.node(1);
         const componentNode = firstNode && findComponentNodes(firstNode)[0];
 
-        if (!componentNode) return;
+        if (!componentNode) {
+          return;
+        }
 
         const pluginState =
           placeholderPluginKey.getState(state) ?? defaultState;
@@ -67,7 +69,9 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
         const showPlaceholder =
           isParagraph && isEmpty && isFocused && isEditable;
 
-        if (!showPlaceholder) return;
+        if (!showPlaceholder) {
+          return;
+        }
 
         const widgetPos = state.selection.$anchor.posAtIndex(0, 1);
 

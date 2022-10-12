@@ -26,11 +26,15 @@ export class Waiting {
 
   abort() {
     const found = this.inst.waiting.indexOf(this);
-    if (found > -1) this.inst.waiting.splice(found, 1);
+    if (found > -1) {
+      this.inst.waiting.splice(found, 1);
+    }
   }
 
   send(data: any, status = 200) {
-    if (this.done) return;
+    if (this.done) {
+      return;
+    }
     this.resp.status(status).json(data);
     this.done = true;
   }
