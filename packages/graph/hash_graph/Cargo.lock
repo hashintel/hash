@@ -661,6 +661,7 @@ dependencies = [
  "futures",
  "graph-test-data",
  "include_dir",
+ "indexmap",
  "postgres-types",
  "regex",
  "serde",

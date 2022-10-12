@@ -13,8 +13,10 @@ bb8-postgres = "0.8.1"
 clap = { version = "4.0.13", features = ["derive", "env"], optional = true }
 chrono = { version = "0.4.22", features = ["serde"] }
 # TODO: Change to `version = "0.2"` as soon as it's released
+# TODO: Do this as part of this PR
 error-stack = { git = "https://github.com/hashintel/hash", rev = "5edddb5", features = ["spantrace", "futures"] }
 futures = "0.3.24"
+indexmap = "1.9.1"
 postgres-types = { version = "0.2.4", default-features = false, features = ["derive", "with-uuid-1", "with-serde_json-1", "with-chrono-0_4"] }
 regex = "1.6.0"
 serde = { version = "1.0.145", features = ["derive"] }

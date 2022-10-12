@@ -11,7 +11,7 @@ mod link;
 mod link_type;
 mod property_type;
 
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::BTreeMap, sync::Arc};
 
 use axum::{
     extract::Path,
@@ -23,8 +23,9 @@ use axum::{
 use error_stack::Report;
 use futures::TryFutureExt;
 use include_dir::{include_dir, Dir};
+use indexmap::IndexMap;
 use utoipa::{
-    openapi::{self, schema, ObjectBuilder},
+    openapi::{self, schema, schema::RefOr, ObjectBuilder},
     Modify, OpenApi,
 };
 
@@ -224,11 +225,11 @@ impl Modify for ExternalRefAddon {
         for path_item in openapi.paths.paths.values_mut() {
             for operation in path_item.operations.values_mut() {
                 if let Some(request_body) = &mut operation.request_body {
-                    modify_component_references(&mut request_body.content);
+                    modify_component_body(&mut request_body.content);
                 }
 
                 for response in &mut operation.responses.responses.values_mut() {
-                    modify_component_references(&mut response.content);
+                    modify_component_responses(&mut response.content);
                 }
             }
         }
@@ -241,24 +242,33 @@ impl Modify for ExternalRefAddon {
     }
 }
 
-fn modify_component_references(content: &mut HashMap<String, openapi::Content>) {
+fn modify_component_body(content: &mut BTreeMap<String, openapi::Content>) {
     for content in content.values_mut() {
         modify_schema_references(&mut content.schema);
     }
 }
 
-fn modify_schema_references(schema_component: &mut openapi::Component) {
+// TODO: can we avoid importing IndexMap here?
+fn modify_component_responses(content: &mut IndexMap<String, openapi::Content>) {
+    for content in content.values_mut() {
+        modify_schema_references(&mut content.schema);
+    }
+}
+
+fn modify_schema_references(schema_component: &mut RefOr<openapi::Schema>) {
     match schema_component {
-        openapi::Component::Ref(reference) => modify_reference(reference),
-        openapi::Component::Object(object) => object
-            .properties
-            .values_mut()
-            .for_each(modify_schema_references),
-        openapi::Component::Array(array) => modify_schema_references(array.items.as_mut()),
-        openapi::Component::OneOf(one_of) => {
-            one_of.items.iter_mut().for_each(modify_schema_references);
-        }
-        _ => (),
+        RefOr::Ref(reference) => modify_reference(reference),
+        RefOr::T(schema) => match schema {
+            openapi::Schema::Object(object) => object
+                .properties
+                .values_mut()
+                .for_each(modify_schema_references),
+            openapi::Schema::Array(array) => modify_schema_references(array.items.as_mut()),
+            openapi::Schema::OneOf(one_of) => {
+                one_of.items.iter_mut().for_each(modify_schema_references);
+            }
+            _ => (),
+        },
     }
 }
 
@@ -305,14 +315,15 @@ impl Modify for AnyObjectAddon {
         openapi.components.as_mut().map(|components| {
             components.schemas.insert(
                 "Expression".to_owned(),
-                schema::Component::Object(
-                    ObjectBuilder::default()
+                schema::Schema::Object(
+                    ObjectBuilder::new()
                         .example(Some(
                             serde_json::to_value(Expression::for_latest_version())
                                 .expect("Could not serialize expression"),
                         ))
                         .build(),
-                ),
+                )
+                .into(),
             )
         });
     }
