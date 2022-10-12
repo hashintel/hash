@@ -22,10 +22,29 @@ export const createPersistedEntityMutation = gql`
   ${persistedEntityFieldsFragment}
 `;
 
-export const getPersistedEntity = gql`
+export const getPersistedEntityQuery = gql`
   query getPersistedEntity($entityId: ID!, $entityVersion: String) {
     persistedEntity(entityId: $entityId, entityVersion: $entityVersion) {
       ...PersistedEntityFields
+    }
+  }
+  ${persistedEntityFieldsFragment}
+`;
+
+export const getOutgoingPersistedLinksQuery = gql`
+  query getOutgoingPersistedLinks($sourceEntityId: ID!, $linkTypeId: String) {
+    outgoingPersistedLinks(
+      sourceEntityId: $sourceEntityId
+      linkTypeId: $linkTypeId
+    ) {
+      ownedById
+      linkTypeId
+      index
+      sourceEntityId
+      targetEntityId
+      targetEntity {
+        ...PersistedEntityFields
+      }
     }
   }
   ${persistedEntityFieldsFragment}

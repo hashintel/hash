@@ -1,14 +1,19 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
 import { useCallback } from "react";
 
+import { QueryOutgoingPersistedLinksArgs } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import {
   GetEntityTypeRootedSubgraphQuery,
   GetEntityTypeRootedSubgraphQueryVariables,
+  GetOutgoingPersistedLinksQuery,
   UpdatePersistedEntityMutation,
   UpdatePersistedEntityMutationVariables,
 } from "../../../../graphql/apiTypes.gen";
 import { getEntityTypeRootedSubgraphQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
-import { updatePersistedEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
+import {
+  getOutgoingPersistedLinksQuery,
+  updatePersistedEntityMutation,
+} from "../../../../graphql/queries/knowledge/entity.queries";
 import { UpdateEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolUpdateEntity = (
@@ -25,6 +30,14 @@ export const useBlockProtocolUpdateEntity = (
     GetEntityTypeRootedSubgraphQuery,
     GetEntityTypeRootedSubgraphQueryVariables
   >(getEntityTypeRootedSubgraphQuery);
+
+  const [getOutgoingLinksFn] = useLazyQuery<
+    GetOutgoingPersistedLinksQuery,
+    QueryOutgoingPersistedLinksArgs
+  >(getOutgoingPersistedLinksQuery, {
+    /** @todo reconsider caching. This is done for testing/demo purposes. */
+    fetchPolicy: "no-cache",
+  });
 
   const updatePersistedEntity: UpdateEntityMessageCallback = useCallback(
     async ({ data }) => {
@@ -51,14 +64,19 @@ export const useBlockProtocolUpdateEntity = (
       }
 
       const { entityId, updatedProperties } = data;
-      const { data: responseData } = await updateFn({
-        variables: {
-          entityId,
-          updatedProperties,
-        },
-      });
+      const [{ data: updateEntityResponseData }, { data: outgoingLinksData }] =
+        await Promise.all([
+          updateFn({
+            variables: {
+              entityId,
+              updatedProperties,
+            },
+          }),
+          getOutgoingLinksFn({ variables: { sourceEntityId: entityId } }),
+        ]);
 
-      const { updatePersistedEntity: updatedEntity } = responseData ?? {};
+      const { updatePersistedEntity: updatedEntity } =
+        updateEntityResponseData ?? {};
 
       if (!updatedEntity) {
         return {
@@ -70,6 +88,18 @@ export const useBlockProtocolUpdateEntity = (
           ],
         };
       }
+      if (!outgoingLinksData) {
+        return {
+          errors: [
+            {
+              code: "INVALID_INPUT",
+              message: "Error calling getOutgoingLinks",
+            },
+          ],
+        };
+      }
+
+      const { outgoingPersistedLinks } = outgoingLinksData;
 
       /**
        * @todo: the EntityTypeRootedSubgraph is not returned from the `updateEntity` mutation.
@@ -100,10 +130,11 @@ export const useBlockProtocolUpdateEntity = (
         data: {
           ...updatedEntity,
           entityTypeRootedSubgraph: entityTypeResponseData.getEntityType,
+          links: outgoingPersistedLinks,
         },
       };
     },
-    [updateFn, readonly, getEntityTypeRootedSubgraphFn],
+    [updateFn, readonly, getEntityTypeRootedSubgraphFn, getOutgoingLinksFn],
   );
 
   return {
