@@ -1,8 +1,4 @@
-import {
-  extractBaseUri,
-  extractVersion,
-  validateVersionedUri,
-} from "@blockprotocol/type-system-web";
+import { extractBaseUri, extractVersion } from "@blockprotocol/type-system-web";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Container, Typography } from "@mui/material";
@@ -21,11 +17,13 @@ import {
   PropertyTypesContext,
   useRemotePropertyTypes,
 } from "./use-property-types";
+import { mustBeVersionedUri } from "./util";
 
 // @todo loading state
 // @todo handle displaying entity type not yet created
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
+  // @todo how to handle remote types
   const baseEntityTypeUri = `${FRONTEND_URL}/${router.query["account-slug"]}/types/entity-type/${router.query["entity-type-id"]}/`;
 
   const formMethods = useForm<EntityTypeEditorForm>({
@@ -39,13 +37,10 @@ const Page: NextPageWithLayout = () => {
       reset({
         properties: Object.values(fetchedEntityType.properties).map((ref) => {
           if ("type" in ref) {
-            throw new Error("handle arrays");
+            // @todo handle property arrays
+            throw new Error("handle property arrays");
           }
-          const validatedRef = validateVersionedUri(ref.$ref);
-          if (validatedRef.type === "Err") {
-            throw new Error("How would this happen?");
-          }
-          return { $id: validatedRef.inner };
+          return { $id: mustBeVersionedUri(ref.$ref) };
         }),
       });
     },
@@ -81,8 +76,7 @@ const Page: NextPageWithLayout = () => {
     return null;
   }
 
-  // @todo fix $id on EntityType
-  const currentVersion = extractVersion(entityType.$id as any);
+  const currentVersion = extractVersion(mustBeVersionedUri(entityType.$id));
 
   return (
     <PropertyTypesContext.Provider value={propertyTypes}>

@@ -1,8 +1,4 @@
-import {
-  EntityType,
-  extractBaseUri,
-  validateVersionedUri,
-} from "@blockprotocol/type-system-web";
+import { EntityType, extractBaseUri } from "@blockprotocol/type-system-web";
 import {
   useCallback,
   useEffect,
@@ -13,6 +9,7 @@ import {
 import { useBlockProtocolAggregateEntityTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolUpdateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
 import { useAdvancedInitTypeSystem } from "../../../../lib/use-init-type-system";
+import { mustBeVersionedUri } from "./util";
 
 export const useEntityType = (
   entityTypeBaseUri: string,
@@ -40,11 +37,7 @@ export const useEntityType = (
     void aggregateEntityTypes({ data: {} }).then(async (res) => {
       const relevantEntity =
         res.data?.results.find((item) => {
-          const validated = validateVersionedUri(item.entityTypeId);
-          if (validated.type === "Err") {
-            throw new Error("?");
-          }
-          const baseUri = extractBaseUri(validated.inner);
+          const baseUri = extractBaseUri(mustBeVersionedUri(item.entityTypeId));
           return baseUri === entityTypeBaseUri;
         })?.entityType ?? null;
 
