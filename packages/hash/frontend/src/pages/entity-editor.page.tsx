@@ -68,8 +68,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   const handleCreateEntity = async () => {
     const createdEntity = await createEntity({
       data: {
-        entityTypeId:
-          "http://localhost:3000/@example/types/entity-type/dummy/v/1",
+        entityTypeId: types.entityType.dummy.entityTypeId,
         properties: {},
       },
     });

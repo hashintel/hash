@@ -1,4 +1,5 @@
 import init from "@blockprotocol/type-system-web";
+import { types } from "@hashintel/hash-shared/types";
 import { Box, Container } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -48,11 +49,7 @@ const ExampleUsage = ({ accountId }: { accountId: string }) => {
               kind: "propertyType",
               title: "Name",
               pluralTitle: "Names",
-              oneOf: [
-                {
-                  $ref: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                },
-              ],
+              oneOf: [{ $ref: types.dataType.text.dataTypeId }],
             },
           },
         })
