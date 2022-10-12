@@ -1,7 +1,6 @@
-import init from "@blockprotocol/type-system-web";
 import { types } from "@hashintel/hash-shared/types";
 import { Box, Container } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   AggregateDataTypesMessageCallback,
   AggregateEntityTypesMessageCallback,
@@ -9,6 +8,7 @@ import {
   AggregatePropertyTypesMessageCallback,
 } from "../../components/hooks/blockProtocolFunctions/ontology/ontology-types-shim";
 import { useLoggedInUser } from "../../components/hooks/useUser";
+import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { NextPageWithLayout } from "../../shared/layout";
 
 import { Button } from "../../shared/ui";
@@ -112,17 +112,7 @@ const Page: NextPageWithLayout = () => {
   // The user is important to allow using Block Protocol functions
   // such as: `const functions = useBlockProtocolFunctionsWithOntology(user.accountId);`
   const { user, loading: loadingUser } = useLoggedInUser();
-  const [loadingTypeSystem, setLoadingTypeSystem] = useState(true);
-
-  useEffect(() => {
-    if (loadingTypeSystem) {
-      void (async () => {
-        await init().then(() => {
-          setLoadingTypeSystem(false);
-        });
-      })();
-    }
-  }, [loadingTypeSystem, setLoadingTypeSystem]);
+  const loadingTypeSystem = useInitTypeSystem();
 
   return loadingUser || !user || loadingTypeSystem ? (
     <Container sx={{ pt: 10 }}>Loading...</Container>

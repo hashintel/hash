@@ -1,9 +1,11 @@
+import {
+  extractVersion,
+  PropertyType,
+  validateVersionedUri,
+} from "@blockprotocol/type-system-web";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
-import {
-  IconButton,
-  IconButtonProps,
-} from "@hashintel/hash-design-system/icon-button";
+import { IconButton } from "@hashintel/hash-design-system/icon-button";
 import { Menu } from "@hashintel/hash-design-system/menu";
 import { MenuItem } from "@hashintel/hash-design-system/menu-item";
 import {
@@ -14,6 +16,7 @@ import {
   listItemTextClasses,
   menuItemClasses,
   tableRowClasses,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import {
@@ -21,33 +24,41 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { useId } from "react";
-import { OntologyChip } from "./ontology-chip";
-import { PlaceholderIcon } from "./placeholder-icon";
+import { Fragment, useId } from "react";
+import { OntologyChip, parseUriForOntologyChip } from "./ontology-chip";
+
+const parseVersion = (id: string) => {
+  const uri = validateVersionedUri(id);
+
+  return uri.type === "Ok" ? extractVersion(uri.inner) : null;
+};
 
 export const PropertyMenu = ({
-  disabled,
   onRemove,
+  property,
   ...props
-}: IconButtonProps & { onRemove?: () => void }) => {
+}: {
+  onRemove?: () => void;
+  property: PropertyType;
+}) => {
   const id = useId();
   const popupState = usePopupState({
     variant: "popover",
     popupId: `property-${id}`,
   });
 
+  const version = parseVersion(property.$id);
+  const ontology = parseUriForOntologyChip(property.$id);
+
   return (
     <>
       <IconButton
         {...props}
-        disabled={disabled}
         sx={{
           opacity: 0,
-          ...(!disabled && {
-            [`.${tableRowClasses.root}:hover &`]: {
-              opacity: 1,
-            },
-          }),
+          [`.${tableRowClasses.root}:hover &`]: {
+            opacity: 1,
+          },
         }}
         {...bindTrigger(popupState)}
       >
@@ -92,15 +103,6 @@ export const PropertyMenu = ({
         <Typography component={ListItem} variant="smallCaps">
           Actions
         </Typography>
-        <MenuItem>
-          <ListItemText primary="View property type" />
-        </MenuItem>
-        <MenuItem>
-          <ListItemText primary="Edit property type" />
-        </MenuItem>
-        <MenuItem>
-          <ListItemText primary="Copy link" />
-        </MenuItem>
         <MenuItem
           onClick={() => {
             popupState.close();
@@ -114,26 +116,42 @@ export const PropertyMenu = ({
           Source
         </Typography>
         <ListItem sx={{ pt: "0 !important" }}>
-          <OntologyChip
-            icon={<PlaceholderIcon />}
-            domain="hash.ai"
-            path={
+          <Tooltip
+            title={
               <>
-                <Typography component="span" maxWidth="6ch">
-                  @acme-corp
-                </Typography>
-                /
-                <Typography component="span" maxWidth="5ch">
-                  competitive-advantages
-                </Typography>
+                {ontology.domain}/{ontology.path}
               </>
             }
-          />
+            placement="bottom"
+          >
+            <OntologyChip
+              {...ontology}
+              path={
+                <>
+                  {ontology.path.split("/").map((part, idx, parts) => {
+                    const last = idx === parts.length - 1;
+                    return (
+                      // eslint-disable-next-line react/no-array-index-key
+                      <Fragment key={idx}>
+                        <Typography
+                          component="span"
+                          maxWidth={last ? "5ch" : "6ch"}
+                        >
+                          {part}
+                        </Typography>
+                        {last ? null : <>/</>}
+                      </Fragment>
+                    );
+                  })}
+                </>
+              }
+            />
+          </Tooltip>
         </ListItem>
         <Divider />
         <ListItem>
           <ListItemText
-            primary="Version 3"
+            primary={<>Version {version}</>}
             primaryTypographyProps={{ variant: "microText", fontWeight: 500 }}
           />
         </ListItem>
