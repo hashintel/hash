@@ -5,8 +5,9 @@ import { v4 as uuid } from "uuid";
 
 import {
   BlockEntity,
-  isDraftTextContainingEntityProperties,
   isDraftTextEntity,
+  isTextEntity,
+  isTextProperties,
   LegacyLink,
 } from "./entity";
 import {
@@ -58,8 +59,53 @@ const calculateSaveActions = async (
   const draftIdToPlaceholderId = new Map<string, string>();
   const draftIdToBlockEntities = new Map<string, DraftEntity<BlockEntity>>();
 
-  console.log("Wannasave", { store: store.draft });
+  console.debug("Wannasave", { store: store.draft });
+
   for (const draftEntity of Object.values(store.draft)) {
+    if (isDraftBlockEntity(draftEntity)) {
+      // Draft blocks are checked for updates separately, after this loop
+      draftIdToBlockEntities.set(draftEntity.draftId, draftEntity);
+      continue;
+    }
+
+    if (draftEntity.entityId) {
+      // This means the entity already exists, but may need updating
+      const savedEntity = store.saved[draftEntity.entityId];
+
+      /**
+       * This can happen if the saved entity this draft entity belonged to has
+       * been removed from the page post-save. We don't currently flush those
+       * draft entities from the draft entity store when this happens.
+       *
+       * @todo Remove draft entities when they are removed from the page
+       */
+      if (!savedEntity) {
+        continue;
+      }
+
+      // Nothing has changed…
+      if (isEqual(savedEntity.properties, draftEntity.properties)) {
+        continue;
+      }
+
+      const previousProperties = savedEntity.properties;
+
+      const nextProperties = draftEntity.properties;
+
+      // The only thing that has changed is the text entity within the legacy link,
+      // so there is no update to this entity itself
+      if (isEqual(previousProperties, nextProperties)) {
+        continue;
+      }
+
+      actions.push({
+        updateEntity: {
+          entityId: draftEntity.entityId,
+          ownedById: draftEntity.accountId,
+          properties: nextProperties,
+        },
+      });
+    }
   }
 
   const placeholderToDraft = flipMap(draftIdToPlaceholderId);
@@ -99,7 +145,6 @@ export const save = async (
     .then((res) => res.data.persistedPage.contents);
 
   // const entityTypeForComponentId = new Map<string, string>();
-  console.log(doc);
   const [actions, placeholderToDraft] = await calculateSaveActions(
     store,
     ownedById,
@@ -119,28 +164,29 @@ export const save = async (
     //   entityTypeForComponentId,
     // ),
   );
+  console.debug("SAVE ACTIONS", actions);
 
-  // const res = await apolloClient.mutate<
-  //   UpdatePersistedPageContentsMutation,
-  //   UpdatePersistedPageContentsMutationVariables
-  // >({
-  //   variables: { ownedById, entityId: pageEntityId, actions },
-  //   mutation: updatePersistedPageContents,
-  // });
+  const res = await apolloClient.mutate<
+    UpdatePersistedPageContentsMutation,
+    UpdatePersistedPageContentsMutationVariables
+  >({
+    variables: { ownedById, entityId: pageEntityId, actions },
+    mutation: updatePersistedPageContents,
+  });
 
-  // if (!res.data) {
-  //   throw new Error("Failed");
-  // }
+  if (!res.data) {
+    throw new Error("Failed");
+  }
 
   // await apolloClient.reFetchObservableQueries();
 
-  // const draftToEntityId = getDraftEntityIds(
-  //   res.data.updatePersistedPageContents.placeholders,
-  //   placeholderToDraft,
-  // );
+  const draftToEntityId = getDraftEntityIds(
+    res.data.updatePersistedPageContents.placeholders,
+    placeholderToDraft,
+  );
 
-  // return [
-  //   res.data.updatePersistedPageContents.page.contents,
-  //   draftToEntityId,
-  // ] as const;
+  return [
+    res.data.updatePersistedPageContents.page.contents,
+    draftToEntityId,
+  ] as const;
 };
