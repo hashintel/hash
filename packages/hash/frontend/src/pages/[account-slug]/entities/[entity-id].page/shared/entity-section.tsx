@@ -1,5 +1,5 @@
 import { Box, Typography } from "@mui/material";
-import { FunctionComponent, ReactNode } from "react";
+import { ReactNode } from "react";
 
 interface EntitySectionProps {
   children: ReactNode;
@@ -8,12 +8,12 @@ interface EntitySectionProps {
   titleEndContent?: ReactNode;
 }
 
-export const EntitySection: FunctionComponent<EntitySectionProps> = ({
+export const EntitySection = ({
   children,
   title,
   titleStartContent,
   titleEndContent,
-}) => {
+}: EntitySectionProps) => {
   return (
     <Box>
       <Box mb={2} display="flex" alignItems="center" gap={1.5} flexWrap="wrap">

@@ -14,11 +14,10 @@ export const EntityPageHeader = () => {
   const { entity } = useEntityEditor();
   const router = useRouter();
 
-  const accountSlug = router.query["account-slug"];
-
   if (!entity) {
     return null;
   }
+  const accountSlug = router.query["account-slug"];
 
   const entityLabel = generateEntityLabel(entity);
 

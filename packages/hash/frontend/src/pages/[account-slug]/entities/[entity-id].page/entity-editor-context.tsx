@@ -12,8 +12,9 @@ interface EntityEditorContextProps {
   setEntity: (entity: EntityResponse | undefined) => void;
 }
 
-export const EntityEditorContext =
-  createContext<EntityEditorContextProps | null>(null);
+const EntityEditorContext = createContext<EntityEditorContextProps | null>(
+  null,
+);
 
 export const EntityEditorContextProvider = ({
   children,
