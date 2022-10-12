@@ -3,7 +3,7 @@
 [libs.rs]: https://lib.rs/crates/error-stack
 [rust-version]: https://www.rust-lang.org
 [documentation]: https://docs.rs/error-stack
-[license]: ./LICENSE.md
+[license]: https://github.com/hashintel/hash/blob/main/packages/libs/error-stack/LICENSE.md
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_error-stack
 
 [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
@@ -109,4 +109,4 @@ For more examples of `error-stack` in use, please check out the [examples](https
 
 ## License
 
-`error-stack` is available under a number of different open-source licenses. Please see the [LICENSE](LICENSE.md) file to review your options.
+`error-stack` is available under a number of different open-source licenses. Please see the [LICENSE] file to review your options.

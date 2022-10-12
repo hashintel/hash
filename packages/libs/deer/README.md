@@ -1,3 +1,5 @@
+[license]: https://github.com/hashintel/hash/blob/main/packages/libs/deer/LICENSE.md
+
 # deer
 
 `deer` is an **experimental** backend-agnostic deserialization framework for Rust, featuring meaningful error messages and context (utilizing [`error-stack`](https://crates.io/crates/error-stack)) and a fail-slow behavior by default.
@@ -112,4 +114,4 @@ Instead of strictly deserializing types, one might prefer to deserialize while c
 
 ## License
 
-`deer` is available under a number of different open-source licenses. Please see the [LICENSE](LICENSE.md) file to review your options.
+`deer` is available under a number of different open-source licenses. Please see the [LICENSE] file to review your options.
