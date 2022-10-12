@@ -40,7 +40,7 @@ import { PropertyTypeForm } from "./property-type-form";
 import { QuestionIcon } from "./question-icon";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 import { useStateCallback, withHandler } from "./util";
-import { WhiteCard } from "../../shared/white-card";
+import { WhiteCard } from "./white-card";
 
 const CenteredTableCell = styled(TableCell)(
   experimental_sx({

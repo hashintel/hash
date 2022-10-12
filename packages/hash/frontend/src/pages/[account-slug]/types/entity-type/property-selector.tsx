@@ -18,10 +18,7 @@ import {
   useState,
 } from "react";
 import { ArrowUpRightIcon } from "../../../../shared/icons/svg";
-import {
-  OntologyChip,
-  parseUriForOntologyChip,
-} from "../../shared/ontology-chip";
+import { OntologyChip, parseUriForOntologyChip } from "./ontology-chip";
 import { PropertyExpectedValues } from "./property-expected-values";
 import { PropertyListSelectorDropdown } from "./property-list-selector-dropdown";
 import { usePropertyTypes } from "./use-property-types";

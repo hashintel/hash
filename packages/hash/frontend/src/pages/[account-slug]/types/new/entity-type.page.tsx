@@ -13,8 +13,8 @@ import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/b
 import { useLoggedInUser } from "../../../../components/hooks/useUser";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
-import { OntologyChip } from "../../shared/ontology-chip";
-import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
+import { OntologyChip } from "../entity-type/ontology-chip";
+import { HashOntologyIcon } from "../entity-type/hash-ontology-icon";
 
 const RequiredText = () => (
   <Box
