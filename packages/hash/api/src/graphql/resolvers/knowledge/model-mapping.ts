@@ -65,6 +65,7 @@ export type ExternalPersistedCommentResolversGQL =
   | "parent"
   | "author"
   | "replies";
+
 export type UnresolvedPersistedCommentGQL = Omit<
   PersistedComment,
   ExternalPersistedCommentResolversGQL
