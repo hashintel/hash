@@ -9,7 +9,7 @@ import {
   Theme,
   Typography,
 } from "@mui/material";
-import { WhiteCard } from "./white-card";
+import { WhiteCard } from "../../shared/white-card";
 
 const cardActionHoverBlue: SxProps<Theme> = (theme) => ({
   [`.${cardActionAreaClasses.root}:hover &`]: {

@@ -2,7 +2,7 @@ import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import { WhiteCard } from "../../types/entity-type/white-card";
+import { WhiteCard } from "../../shared/white-card";
 import { useEntityEditor } from "./entity-editor-context";
 import { EntitySection } from "./shared/entity-section";
 

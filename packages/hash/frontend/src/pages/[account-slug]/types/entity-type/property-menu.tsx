@@ -25,7 +25,10 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import { Fragment, useId } from "react";
-import { OntologyChip, parseUriForOntologyChip } from "./ontology-chip";
+import {
+  OntologyChip,
+  parseUriForOntologyChip,
+} from "../../shared/ontology-chip";
 
 const parseVersion = (id: string) => {
   const uri = validateVersionedUri(id);
