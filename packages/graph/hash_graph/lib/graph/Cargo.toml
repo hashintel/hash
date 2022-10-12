@@ -7,30 +7,30 @@ description = "HASH Graph API"
 
 
 [dependencies]
-async-trait = "0.1.56"
-axum = "0.5.11"
+async-trait = "0.1.57"
+axum = "0.5.16"
 bb8-postgres = "0.8.1"
-clap = { version = "3.2.10", features = ["derive", "env"], optional = true }
-chrono = { version = "0.4.19", features = ["serde"] }
+clap = { version = "4.0.13", features = ["derive", "env"], optional = true }
+chrono = { version = "0.4.22", features = ["serde"] }
 # TODO: Change to `version = "0.2"` as soon as it's released
 error-stack = { git = "https://github.com/hashintel/hash", rev = "5edddb5", features = ["spantrace", "futures"] }
-futures = "0.3.21"
-postgres-types = { version = "0.2.3", default-features = false, features = ["derive", "with-uuid-1", "with-serde_json-1", "with-chrono-0_4"] }
+futures = "0.3.24"
+postgres-types = { version = "0.2.4", default-features = false, features = ["derive", "with-uuid-1", "with-serde_json-1", "with-chrono-0_4"] }
 regex = "1.6.0"
-serde = { version = "1.0.137", features = ["derive"] }
-serde_json = "1.0.83"
-tokio-postgres = { version = "0.7.6", default-features = false }
-tracing = "0.1.35"
+serde = { version = "1.0.145", features = ["derive"] }
+serde_json = "1.0.86"
+tokio-postgres = { version = "0.7.7", default-features = false }
+tracing = "0.1.37"
 tracing-appender = "0.2.2"
 tracing-error = "0.2.0"
-tracing-subscriber = { version = "0.3.14", features = ["env-filter", "json"] }
+tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "6526c0e" }
-uuid = { version = "1.1.2", features = ["v4", "serde"] }
-utoipa = { git = "https://github.com/juhaku/utoipa", rev = "031073f", features = ["uuid"] }
+uuid = { version = "1.2.1", features = ["v4", "serde"] }
+utoipa = { version = " 2.2.0", features = ["uuid"] }
 include_dir = "0.7.2"
 
 [dev-dependencies]
-tokio = { version = "1.18.2", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.21.2", features = ["rt-multi-thread", "macros"] }
 graph-test-data = { path = "../../tests/test_data" }
 criterion = "0.4.0"
 
