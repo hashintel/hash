@@ -122,7 +122,7 @@ export default class extends EntityModel {
     const pageBlocks = await pageEntity.getBlocks(graphApi);
 
     const comments = await Promise.all(
-      pageBlocks.map(async (block) => await block.getBlockComments(graphApi)),
+      pageBlocks.map((block) => block.getBlockComments(graphApi)),
     );
 
     return comments.flat();
