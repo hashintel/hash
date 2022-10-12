@@ -48,7 +48,11 @@ const useEntityType = (
   const { updateEntityType } = useBlockProtocolUpdateEntityType();
 
   useEffect(() => {
-    // @todo cancel this effect
+    let cancelled = false;
+
+    setEntityType(null);
+    entityTypeRef.current = null;
+
     void aggregateEntityTypes({ data: {} }).then((res) => {
       const relevantEntity =
         res.data?.results.find((item) => {
@@ -60,12 +64,18 @@ const useEntityType = (
           return baseUri === entityTypeBaseUri;
         })?.entityType ?? null;
 
-      setEntityType(relevantEntity);
-      entityTypeRef.current = relevantEntity;
-      if (relevantEntity) {
-        onCompletedRef.current?.(relevantEntity);
+      if (!cancelled) {
+        setEntityType(relevantEntity);
+        entityTypeRef.current = relevantEntity;
+        if (relevantEntity) {
+          onCompletedRef.current?.(relevantEntity);
+        }
       }
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [aggregateEntityTypes, entityTypeBaseUri]);
 
   const updateCallback = useCallback(
@@ -74,7 +84,8 @@ const useEntityType = (
         throw new Error("Cannot update yet");
       }
 
-      const { $id, ...restOfEntityType } = entityTypeRef.current;
+      const currentEntity = entityTypeRef.current;
+      const { $id, ...restOfEntityType } = currentEntity;
 
       const res = await updateEntityType({
         data: {
@@ -86,7 +97,7 @@ const useEntityType = (
         },
       });
 
-      if (res.data) {
+      if (entityTypeRef.current === currentEntity && res.data) {
         setEntityType(res.data.entityType);
         entityTypeRef.current = res.data.entityType;
       }
