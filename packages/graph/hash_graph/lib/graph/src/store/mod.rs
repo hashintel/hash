@@ -22,12 +22,13 @@ use crate::{
         PersistedEntity, PersistedEntityIdentifier, PersistedLink,
     },
     ontology::{
-        AccountId, DataTypeQuery, DataTypeRootedSubgraph, EntityTypeQuery,
-        EntityTypeRootedSubgraph, LinkTypeQuery, LinkTypeRootedSubgraph, PersistedDataType,
-        PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier, PersistedPropertyType,
-        PropertyTypeQuery, PropertyTypeRootedSubgraph,
+        AccountId, DataTypeQuery, EntityTypeQuery, EntityTypeRootedSubgraph, LinkTypeQuery,
+        LinkTypeRootedSubgraph, PersistedDataType, PersistedEntityType, PersistedLinkType,
+        PersistedOntologyIdentifier, PersistedPropertyType, PropertyTypeQuery,
+        PropertyTypeRootedSubgraph,
     },
     store::{error::LinkRemovalError, query::Expression},
+    subgraph::Subgraph,
 };
 
 #[derive(Debug)]
@@ -222,10 +223,7 @@ pub trait DataTypeStore: for<'q> crud::Read<PersistedDataType, Query<'q> = Expre
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    async fn get_data_type(
-        &self,
-        query: &DataTypeQuery,
-    ) -> Result<Vec<DataTypeRootedSubgraph>, QueryError>;
+    async fn get_data_type(&self, query: &DataTypeQuery) -> Result<Subgraph, QueryError>;
 
     /// Update the definition of an existing [`DataType`].
     ///
