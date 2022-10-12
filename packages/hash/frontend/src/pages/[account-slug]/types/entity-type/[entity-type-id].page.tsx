@@ -1,5 +1,4 @@
 import {
-  EntityType,
   extractBaseUri,
   extractVersion,
   validateVersionedUri,
@@ -8,18 +7,8 @@ import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import { useBlockProtocolAggregateEntityTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
-import { useBlockProtocolUpdateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
 import { FRONTEND_URL } from "../../../../lib/config";
-import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { EditBar } from "./edit-bar";
@@ -27,92 +16,15 @@ import { EntityTypeEditorForm } from "./form-types";
 import { HashOntologyIcon } from "./hash-ontology-icon";
 import { OntologyChip } from "./ontology-chip";
 import { PropertyListCard } from "./property-list-card";
+import { useEntityType } from "./use-entity-type";
 import {
   PropertyTypesContext,
   useRemotePropertyTypes,
 } from "./use-property-types";
 
-const useEntityType = (
-  entityTypeBaseUri: string,
-  onCompleted?: (entityType: EntityType) => void,
-) => {
-  const [entityType, setEntityType] = useState<EntityType | null>(null);
-  const entityTypeRef = useRef(entityType);
-
-  const onCompletedRef = useRef(onCompleted);
-  useLayoutEffect(() => {
-    onCompletedRef.current = onCompleted;
-  });
-
-  const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
-  const { updateEntityType } = useBlockProtocolUpdateEntityType();
-
-  useEffect(() => {
-    let cancelled = false;
-
-    setEntityType(null);
-    entityTypeRef.current = null;
-
-    void aggregateEntityTypes({ data: {} }).then((res) => {
-      const relevantEntity =
-        res.data?.results.find((item) => {
-          const validated = validateVersionedUri(item.entityTypeId);
-          if (validated.type === "Err") {
-            throw new Error("?");
-          }
-          const baseUri = extractBaseUri(validated.inner);
-          return baseUri === entityTypeBaseUri;
-        })?.entityType ?? null;
-
-      if (!cancelled) {
-        setEntityType(relevantEntity);
-        entityTypeRef.current = relevantEntity;
-        if (relevantEntity) {
-          onCompletedRef.current?.(relevantEntity);
-        }
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [aggregateEntityTypes, entityTypeBaseUri]);
-
-  const updateCallback = useCallback(
-    async (partialEntityType: Partial<Omit<EntityType, "$id">>) => {
-      if (!entityTypeRef.current) {
-        throw new Error("Cannot update yet");
-      }
-
-      const currentEntity = entityTypeRef.current;
-      const { $id, ...restOfEntityType } = currentEntity;
-
-      const res = await updateEntityType({
-        data: {
-          entityTypeId: $id,
-          entityType: {
-            ...restOfEntityType,
-            ...partialEntityType,
-          },
-        },
-      });
-
-      if (entityTypeRef.current === currentEntity && res.data) {
-        setEntityType(res.data.entityType);
-        entityTypeRef.current = res.data.entityType;
-      }
-
-      return res;
-    },
-    [updateEntityType],
-  );
-
-  return [entityType, updateCallback] as const;
-};
-
 // @todo loading state
 // @todo handle displaying entity type not yet created
-const InnerPage = () => {
+const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const baseEntityTypeUri = `${FRONTEND_URL}/${router.query["account-slug"]}/types/entity-type/${router.query["entity-type-id"]}/`;
 
@@ -275,16 +187,6 @@ const InnerPage = () => {
       </FormProvider>
     </PropertyTypesContext.Provider>
   );
-};
-
-const Page: NextPageWithLayout = () => {
-  const typeSystemLoading = useInitTypeSystem();
-
-  if (typeSystemLoading) {
-    return null;
-  }
-
-  return <InnerPage />;
 };
 
 Page.getLayout = getPlainLayout;
