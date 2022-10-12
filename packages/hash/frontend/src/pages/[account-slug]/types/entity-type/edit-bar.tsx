@@ -48,7 +48,12 @@ const EditBarContents = ({
       >
         {discardButtonProps.children}
       </Button>
-      <Button variant="secondary" size="xs" {...confirmButtonProps}>
+      <Button
+        variant="secondary"
+        size="xs"
+        type="submit"
+        {...confirmButtonProps}
+      >
         {confirmButtonProps.children}
       </Button>
     </Stack>
@@ -67,7 +72,6 @@ export const EditBar = ({
       height: 66,
       backgroundColor: theme.palette.blue[70],
       color: theme.palette.white,
-
       display: "flex",
       alignItems: "center",
     })}
@@ -83,9 +87,6 @@ export const EditBar = ({
           children: "Discard this type",
         }}
         confirmButtonProps={{
-          onClick() {
-            // @todo implement
-          },
           children: "Create",
         }}
       />
@@ -99,9 +100,6 @@ export const EditBar = ({
           children: "Discard changes",
         }}
         confirmButtonProps={{
-          onClick() {
-            // @todo implement
-          },
           children: "Publish update",
         }}
       />
