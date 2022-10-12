@@ -29,26 +29,21 @@ export const createEntityWithPlaceholdersFn =
           draft.entityType.entityTypeId,
         );
       }
-
-      /**
-       * @todo Figure out what would be the equivalent to linked data in the new graph api.
-       *   Related to https://app.asana.com/0/1200211978612931/1201850801682936/f
-       *   Asana ticket: https://app.asana.com/0/1202805690238892/1203045933021781/f
-       */
-      // if (draft.entityProperties?.text?.__linkedData?.entityId) {
-      //   draft.entityProperties.text.__linkedData.entityId =
-      //     placeholderResults.get(
-      //       draft.entityProperties.text.__linkedData.entityId,
-      //     );
-      // }
     });
 
-    return await EntityModel.createEntityWithLinks(graphApi, {
-      ownedById: entityOwnedById,
-      entityTypeId: entityDefinition.entityType?.entityTypeId!,
-      properties: entityDefinition.entityProperties,
-      linkedEntities: entityDefinition.linkedEntities ?? undefined,
-    });
+    if (entityDefinition.existingEntity) {
+      return await EntityModel.getOrCreate(graphApi, {
+        ownedById: entityOwnedById,
+        entityDefinition,
+      });
+    } else {
+      return await EntityModel.createEntityWithLinks(graphApi, {
+        ownedById: entityOwnedById,
+        entityTypeId: entityDefinition.entityType?.entityTypeId!,
+        properties: entityDefinition.entityProperties,
+        linkedEntities: entityDefinition.linkedEntities ?? undefined,
+      });
+    }
   };
 
 type UpdatePageActionKey = keyof UpdatePersistedPageAction;

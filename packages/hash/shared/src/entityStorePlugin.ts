@@ -558,11 +558,18 @@ class ProsemirrorStateChangeHandler {
     if (!childEntity) {
       return;
     }
+    // We are currently at
+    //          here V
+    // Block -> Entity -> Entity -> Component node
+    //  child refers to this ^
+    // and we'd like to update the child entity's text contents approrpiately.
 
     if (
       isTextEntity(childEntity) &&
       node.firstChild &&
-      isComponentNode(node.firstChild)
+      node.firstChild.firstChild &&
+      // Check if the next next entity node's child is a component node
+      isComponentNode(node.firstChild.firstChild)
     ) {
       const nextProps = textBlockNodeToEntityProperties(node.firstChild);
 
@@ -571,8 +578,7 @@ class ProsemirrorStateChangeHandler {
           type: "updateEntityProperties",
           payload: {
             merge: false,
-            /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-            draftId: (childEntity as any).draftId,
+            draftId: childEntity.draftId,
             properties: nextProps,
           },
         });

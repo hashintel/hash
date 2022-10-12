@@ -309,18 +309,8 @@ export class ComponentView implements NodeView<Schema> {
           type: "updateEntityProperties",
           payload: {
             draftId: childEntity.draftId,
-            properties: {
-              [TEXT_TOKEN_PROPERTY_TYPE_ID]: textBlockNodeToEntityProperties(
-                this.node,
-              ),
-              // text: this.manager.createNewLegacyTextLink(
-              //   state,
-              //   tr,
-              //   childEntity.accountId,
-              //   textBlockNodeToEntityProperties(this.node),
-              // ),
-            },
             merge: true,
+            properties: textBlockNodeToEntityProperties(this.node),
           },
         });
       }
