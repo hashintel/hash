@@ -290,6 +290,46 @@ export interface DataTypeRootedSubgraph {
 /**
  *
  * @export
+ * @interface Edge
+ */
+export interface Edge {
+  /**
+   *
+   * @type {GraphElementIdentifier}
+   * @memberof Edge
+   */
+  destination: GraphElementIdentifier;
+  /**
+   *
+   * @type {EdgeKind}
+   * @memberof Edge
+   */
+  edgeKind: EdgeKind;
+  /**
+   *
+   * @type {GraphElementIdentifier}
+   * @memberof Edge
+   */
+  source: GraphElementIdentifier;
+}
+/**
+ *
+ * @export
+ * @enum {string}
+ */
+
+export const EdgeKind = {
+  HasLink: "hasLink",
+  HasDestination: "hasDestination",
+  HasType: "hasType",
+  References: "references",
+} as const;
+
+export type EdgeKind = typeof EdgeKind[keyof typeof EdgeKind];
+
+/**
+ *
+ * @export
  * @interface EntityRootedSubgraph
  */
 export interface EntityRootedSubgraph {
@@ -502,6 +542,139 @@ export interface EntityTypeRootedSubgraph {
    * @memberof EntityTypeRootedSubgraph
    */
   referencedPropertyTypes: Array<PersistedPropertyType>;
+}
+/**
+ * @type GraphElementIdentifier
+ * @export
+ */
+export type GraphElementIdentifier =
+  | GraphElementIdentifierOneOf
+  | GraphElementIdentifierOneOf1
+  | GraphElementIdentifierOneOf2
+  | GraphElementIdentifierOneOf3
+  | GraphElementIdentifierOneOf4
+  | GraphElementIdentifierOneOf5;
+
+/**
+ *
+ * @export
+ * @interface GraphElementIdentifierOneOf
+ */
+export interface GraphElementIdentifierOneOf {
+  /**
+   *
+   * @type {string}
+   * @memberof GraphElementIdentifierOneOf
+   */
+  dataTypeId?: string;
+}
+/**
+ *
+ * @export
+ * @interface GraphElementIdentifierOneOf1
+ */
+export interface GraphElementIdentifierOneOf1 {
+  /**
+   *
+   * @type {string}
+   * @memberof GraphElementIdentifierOneOf1
+   */
+  propertyTypeId?: string;
+}
+/**
+ *
+ * @export
+ * @interface GraphElementIdentifierOneOf2
+ */
+export interface GraphElementIdentifierOneOf2 {
+  /**
+   *
+   * @type {string}
+   * @memberof GraphElementIdentifierOneOf2
+   */
+  linkTypeId?: string;
+}
+/**
+ *
+ * @export
+ * @interface GraphElementIdentifierOneOf3
+ */
+export interface GraphElementIdentifierOneOf3 {
+  /**
+   *
+   * @type {string}
+   * @memberof GraphElementIdentifierOneOf3
+   */
+  entityTypeId?: string;
+}
+/**
+ *
+ * @export
+ * @interface GraphElementIdentifierOneOf4
+ */
+export interface GraphElementIdentifierOneOf4 {
+  /**
+   *
+   * @type {string}
+   * @memberof GraphElementIdentifierOneOf4
+   */
+  linkId?: string;
+}
+/**
+ *
+ * @export
+ * @interface GraphElementIdentifierOneOf5
+ */
+export interface GraphElementIdentifierOneOf5 {
+  /**
+   *
+   * @type {string}
+   * @memberof GraphElementIdentifierOneOf5
+   */
+  entityId?: string;
+}
+/**
+ *
+ * @export
+ * @interface GraphResolveDepths
+ */
+export interface GraphResolveDepths {
+  /**
+   *
+   * @type {Number}
+   * @memberof GraphResolveDepths
+   */
+  dataTypeResolveDepth: Number;
+  /**
+   *
+   * @type {Number}
+   * @memberof GraphResolveDepths
+   */
+  entityResolveDepth: Number;
+  /**
+   *
+   * @type {Number}
+   * @memberof GraphResolveDepths
+   */
+  entityTypeResolveDepth: Number;
+  /**
+   *
+   * @type {Number}
+   * @memberof GraphResolveDepths
+   */
+  linkResolveDepth: Number;
+  /**
+   *
+   * @type {Number}
+   * @memberof GraphResolveDepths
+   */
+  linkTypeResolveDepth: Number;
+  /**
+   *
+   * @type {Number}
+   * @memberof GraphResolveDepths
+   */
+  propertyTypeResolveDepth: Number;
 }
 /**
  * Query to read [`Entities`] or [`Link`]s, which satisfy the [`Expression`].
@@ -1149,6 +1322,37 @@ export interface RemoveLinkRequest {
   targetEntityId: string;
 }
 /**
+ *
+ * @export
+ * @interface Subgraph
+ */
+export interface Subgraph {
+  /**
+   *
+   * @type {GraphResolveDepths}
+   * @memberof Subgraph
+   */
+  depths: GraphResolveDepths;
+  /**
+   *
+   * @type {{ [key: string]: Array<Edge>; }}
+   * @memberof Subgraph
+   */
+  edges: { [key: string]: Array<Edge> };
+  /**
+   *
+   * @type {Array<GraphElementIdentifier>}
+   * @memberof Subgraph
+   */
+  roots: Array<GraphElementIdentifier>;
+  /**
+   *
+   * @type {{ [key: string]: Vertex; }}
+   * @memberof Subgraph
+   */
+  vertices: { [key: string]: Vertex };
+}
+/**
  * The contents of a Data Type update request
  * @export
  * @interface UpdateDataType
@@ -1496,6 +1700,96 @@ export interface UpdatePropertyTypeRequest {
    * @memberof UpdatePropertyTypeRequest
    */
   typeToUpdate: string;
+}
+/**
+ * @type Vertex
+ * @export
+ */
+export type Vertex =
+  | VertexOneOf
+  | VertexOneOf1
+  | VertexOneOf2
+  | VertexOneOf3
+  | VertexOneOf4
+  | VertexOneOf5;
+
+/**
+ *
+ * @export
+ * @interface VertexOneOf
+ */
+export interface VertexOneOf {
+  /**
+   *
+   * @type {PersistedDataType}
+   * @memberof VertexOneOf
+   */
+  dataType?: PersistedDataType;
+}
+/**
+ *
+ * @export
+ * @interface VertexOneOf1
+ */
+export interface VertexOneOf1 {
+  /**
+   *
+   * @type {PersistedPropertyType}
+   * @memberof VertexOneOf1
+   */
+  propertyType?: PersistedPropertyType;
+}
+/**
+ *
+ * @export
+ * @interface VertexOneOf2
+ */
+export interface VertexOneOf2 {
+  /**
+   *
+   * @type {PersistedLinkType}
+   * @memberof VertexOneOf2
+   */
+  linkType?: PersistedLinkType;
+}
+/**
+ *
+ * @export
+ * @interface VertexOneOf3
+ */
+export interface VertexOneOf3 {
+  /**
+   *
+   * @type {PersistedEntityType}
+   * @memberof VertexOneOf3
+   */
+  entityType?: PersistedEntityType;
+}
+/**
+ *
+ * @export
+ * @interface VertexOneOf4
+ */
+export interface VertexOneOf4 {
+  /**
+   *
+   * @type {PersistedEntity}
+   * @memberof VertexOneOf4
+   */
+  entity?: PersistedEntity;
+}
+/**
+ *
+ * @export
+ * @interface VertexOneOf5
+ */
+export interface VertexOneOf5 {
+  /**
+   *
+   * @type {PersistedLink}
+   * @memberof VertexOneOf5
+   */
+  link?: PersistedLink;
 }
 
 /**
@@ -1954,10 +2248,7 @@ export const DataTypeApiFp = function (configuration?: Configuration) {
       body: object,
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<Array<DataTypeRootedSubgraph>>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getDataTypesByQuery(body, options);
@@ -2061,10 +2352,7 @@ export const DataTypeApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getDataTypesByQuery(
-      body: object,
-      options?: any,
-    ): AxiosPromise<Array<DataTypeRootedSubgraph>> {
+    getDataTypesByQuery(body: object, options?: any): AxiosPromise<Subgraph> {
       return localVarFp
         .getDataTypesByQuery(body, options)
         .then((request) => request(axios, basePath));
@@ -2136,7 +2424,7 @@ export interface DataTypeApiInterface {
   getDataTypesByQuery(
     body: object,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<DataTypeRootedSubgraph>>;
+  ): AxiosPromise<Subgraph>;
 
   /**
    *
@@ -5155,10 +5443,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       body: object,
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<Array<DataTypeRootedSubgraph>>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getDataTypesByQuery(body, options);
@@ -5828,10 +6113,7 @@ export const GraphApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getDataTypesByQuery(
-      body: object,
-      options?: any,
-    ): AxiosPromise<Array<DataTypeRootedSubgraph>> {
+    getDataTypesByQuery(body: object, options?: any): AxiosPromise<Subgraph> {
       return localVarFp
         .getDataTypesByQuery(body, options)
         .then((request) => request(axios, basePath));
@@ -6223,7 +6505,7 @@ export interface GraphApiInterface {
   getDataTypesByQuery(
     body: object,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<DataTypeRootedSubgraph>>;
+  ): AxiosPromise<Subgraph>;
 
   /**
    *
