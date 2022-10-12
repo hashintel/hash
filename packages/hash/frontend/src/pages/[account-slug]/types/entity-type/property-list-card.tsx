@@ -42,7 +42,7 @@ import { PropertyTypeForm } from "./property-type-form";
 import { QuestionIcon } from "./question-icon";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 import { usePropertyTypes } from "./use-property-types";
-import { useStateCallback, withHandler } from "./util";
+import { mustBeVersionedUri, useStateCallback, withHandler } from "./util";
 import { WhiteCard } from "./white-card";
 
 const CenteredTableCell = styled(TableCell)(
@@ -348,7 +348,7 @@ export const PropertyListCard = () => {
                     !getValues("properties").some(({ $id }) => $id === type.$id)
                   ) {
                     append({
-                      $id: type.$id,
+                      $id: mustBeVersionedUri(type.$id),
                     });
                   }
                 }}
