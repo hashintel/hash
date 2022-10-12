@@ -1,4 +1,3 @@
-import { ApolloError } from "apollo-server-errors";
 import { CommentModel } from "../../../../model";
 import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
@@ -13,17 +12,8 @@ export const persistedCommentAuthor: ResolverFn<
   UnresolvedPersistedCommentGQL,
   LoggedInGraphQLContext,
   {}
-> = async ({ entityId }, _, { dataSources }) => {
-  const { graphApi } = dataSources;
+> = async ({ entityId }, _, { dataSources: { graphApi } }) => {
   const comment = await CommentModel.getCommentById(graphApi, { entityId });
-
-  if (!comment) {
-    throw new ApolloError(
-      `Comment with entityId ${entityId} not found`,
-      "NOT_FOUND",
-    );
-  }
-
   const author = await comment.getAuthor(graphApi);
 
   return mapEntityModelToGQL(author);

@@ -1,4 +1,3 @@
-import { ApolloError } from "apollo-server-express";
 import { CommentModel, EntityModel } from "../../../../model";
 
 import {
@@ -26,13 +25,6 @@ export const createPersistedComment: ResolverFn<
     entityId: parentId,
   });
 
-  if (!parent) {
-    throw new ApolloError(
-      `Could not find parent entity with entityId ${parentId} on account ${ownedById}.`,
-      "NOT_FOUND",
-    );
-  }
-
   const commentModel = await CommentModel.createComment(graphApi, {
     tokens,
     ownedById,
@@ -48,9 +40,8 @@ export const persistedPageComments: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryPersistedPageCommentsArgs
-> = async (_, { ownedById, pageId }, { dataSources: { graphApi } }) => {
+> = async (_, { pageId }, { dataSources: { graphApi } }) => {
   const comments = await CommentModel.getAllCommentsInPage(graphApi, {
-    ownedById,
     pageId,
   });
 
