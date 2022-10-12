@@ -7,7 +7,21 @@ import { PencilSimpleLine } from "../../../../shared/icons/svg";
 import { Button, ButtonProps } from "../../../../shared/ui/button";
 import { EntityTypeEditorForm } from "./form-types";
 
-// @todo disabled button styles – do this
+const useFrozenValue = <T extends any>(value: T): T => {
+  const {
+    formState: { isDirty },
+  } = useFormContext<EntityTypeEditorForm>();
+
+  const [frozen, setFrozen] = useState(value);
+
+  if (isDirty && frozen !== value) {
+    setFrozen(value);
+  }
+
+  return frozen;
+};
+
+// @todo disabled button styles
 const EditBarContents = ({
   icon,
   title,
@@ -22,14 +36,10 @@ const EditBarContents = ({
   confirmButtonProps: ButtonProps;
 }) => {
   const {
-    formState: { isSubmitting, isDirty },
+    formState: { isSubmitting },
   } = useFormContext<EntityTypeEditorForm>();
 
-  const [wasSubmitting, setWasSubmitting] = useState(isSubmitting);
-
-  if (isDirty && wasSubmitting !== isSubmitting) {
-    setWasSubmitting(isSubmitting);
-  }
+  const frozenSubmitting = useFrozenValue(isSubmitting);
 
   return (
     <Container
@@ -58,7 +68,7 @@ const EditBarContents = ({
               color: "white",
             },
           })}
-          disabled={wasSubmitting}
+          disabled={frozenSubmitting}
           {...discardButtonProps}
         >
           {discardButtonProps.children}
@@ -67,9 +77,9 @@ const EditBarContents = ({
           variant="secondary"
           size="xs"
           type="submit"
-          loading={wasSubmitting}
+          loading={frozenSubmitting}
           loadingWithoutText
-          disabled={wasSubmitting}
+          disabled={frozenSubmitting}
           {...confirmButtonProps}
         >
           {confirmButtonProps.children}
@@ -90,12 +100,7 @@ export const EditBar = ({
     formState: { isDirty },
   } = useFormContext<EntityTypeEditorForm>();
 
-  const [versionNumberToDisplay, setVersionNumberToDisplay] =
-    useState(currentVersion);
-
-  if (isDirty && currentVersion !== versionNumberToDisplay) {
-    setVersionNumberToDisplay(currentVersion);
-  }
+  const frozenVersion = useFrozenValue(currentVersion);
 
   return (
     <Collapse in={isDirty}>
@@ -114,7 +119,7 @@ export const EditBar = ({
             title="Currently editing"
             label="- this type has not yet been created"
             discardButtonProps={{
-              // @todo implement this – do this
+              // @todo implement this
               href: "#",
               children: "Discard this type",
             }}
@@ -126,9 +131,7 @@ export const EditBar = ({
           <EditBarContents
             icon={<PencilSimpleLine />}
             title="Currently editing"
-            label={`Version ${versionNumberToDisplay} -> ${
-              versionNumberToDisplay + 1
-            }`}
+            label={`Version ${frozenVersion} -> ${frozenVersion + 1}`}
             discardButtonProps={{
               onClick: onDiscardChanges,
               children: "Discard changes",
