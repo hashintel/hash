@@ -6,9 +6,15 @@ import {
 } from "@blockprotocol/type-system-web";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
-import { Box, Collapse, Container, Typography } from "@mui/material";
+import { Box, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useBlockProtocolAggregateEntityTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolUpdateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
@@ -26,18 +32,20 @@ import {
   useRemotePropertyTypes,
 } from "./use-property-types";
 
-// @todo cancel effect
 const useEntityType = (
   entityTypeBaseUri: string,
   onCompleted?: (entityType: EntityType) => void,
 ) => {
   const [entityType, setEntityType] = useState<EntityType | null>(null);
+  const entityTypeRef = useRef(entityType);
+
   const onCompletedRef = useRef(onCompleted);
   useLayoutEffect(() => {
     onCompletedRef.current = onCompleted;
   });
 
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
+  const { updateEntityType } = useBlockProtocolUpdateEntityType();
 
   useEffect(() => {
     // @todo cancel this effect
@@ -53,13 +61,42 @@ const useEntityType = (
         })?.entityType ?? null;
 
       setEntityType(relevantEntity);
+      entityTypeRef.current = relevantEntity;
       if (relevantEntity) {
         onCompletedRef.current?.(relevantEntity);
       }
     });
   }, [aggregateEntityTypes, entityTypeBaseUri]);
 
-  return entityType;
+  const updateCallback = useCallback(
+    async (partialEntityType: Partial<Omit<EntityType, "$id">>) => {
+      if (!entityTypeRef.current) {
+        throw new Error("Cannot update yet");
+      }
+
+      const { $id, ...restOfEntityType } = entityTypeRef.current;
+
+      const res = await updateEntityType({
+        data: {
+          entityTypeId: $id,
+          entityType: {
+            ...restOfEntityType,
+            ...partialEntityType,
+          },
+        },
+      });
+
+      if (res.data) {
+        setEntityType(res.data.entityType);
+        entityTypeRef.current = res.data.entityType;
+      }
+
+      return res;
+    },
+    [updateEntityType],
+  );
+
+  return [entityType, updateCallback] as const;
 };
 
 // @todo loading state
@@ -71,29 +108,27 @@ const InnerPage = () => {
   const formMethods = useForm<EntityTypeEditorForm>({
     defaultValues: { properties: [] },
   });
-  const {
-    handleSubmit: wrapHandleSubmit,
-    reset,
-    formState: { isDirty },
-  } = formMethods;
+  const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
-  const entityType = useEntityType(baseEntityTypeUri, (fetchedEntityType) => {
-    reset({
-      properties: Object.values(fetchedEntityType.properties).map((ref) => {
-        if ("type" in ref) {
-          throw new Error("handle arrays");
-        }
-        const validatedRef = validateVersionedUri(ref.$ref);
-        if (validatedRef.type === "Err") {
-          throw new Error("How would this happen?");
-        }
-        return { $id: validatedRef.inner };
-      }),
-    });
-  });
+  const [entityType, updateEntityType] = useEntityType(
+    baseEntityTypeUri,
+    (fetchedEntityType) => {
+      reset({
+        properties: Object.values(fetchedEntityType.properties).map((ref) => {
+          if ("type" in ref) {
+            throw new Error("handle arrays");
+          }
+          const validatedRef = validateVersionedUri(ref.$ref);
+          if (validatedRef.type === "Err") {
+            throw new Error("How would this happen?");
+          }
+          return { $id: validatedRef.inner };
+        }),
+      });
+    },
+  );
 
   const propertyTypes = useRemotePropertyTypes();
-  const { updateEntityType } = useBlockProtocolUpdateEntityType(false);
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     if (!entityType) {
@@ -108,19 +143,10 @@ const InnerPage = () => {
       }),
     );
 
-    const { $id, ...restOfEntityType } = entityType;
-
     const res = await updateEntityType({
-      data: {
-        entityTypeId: $id,
-        entityType: {
-          ...restOfEntityType,
-          properties,
-        },
-      },
+      properties,
     });
 
-    // @todo update our entity type version number
     if (!res.errors?.length) {
       reset(data);
     } else {
@@ -171,14 +197,13 @@ const InnerPage = () => {
               ]}
               scrollToTop={() => {}}
             />
-            <Collapse in={isDirty}>
-              <EditBar
-                currentVersion={currentVersion}
-                onDiscardChanges={() => {
-                  reset();
-                }}
-              />
-            </Collapse>
+            <EditBar
+              currentVersion={currentVersion}
+              onDiscardChanges={() => {
+                reset();
+              }}
+            />
+
             <Box pt={3.75}>
               <Container>
                 <OntologyChip

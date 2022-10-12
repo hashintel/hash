@@ -1,7 +1,7 @@
 import { faSmile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
-import { Box, Container, Stack, Typography } from "@mui/material";
-import { ReactNode } from "react";
+import { Box, Collapse, Container, Stack, Typography } from "@mui/material";
+import { ReactNode, useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { PencilSimpleLine } from "../../../../shared/icons/svg";
 import { Button, ButtonProps } from "../../../../shared/ui/button";
@@ -80,44 +80,59 @@ export const EditBar = ({
   currentVersion: number;
   onDiscardChanges: () => void;
 }) => {
+  const {
+    formState: { isDirty },
+  } = useFormContext<EntityTypeEditorForm>();
+
+  const [versionNumberToDisplay, setVersionNumberToDisplay] =
+    useState(currentVersion);
+
+  if (isDirty && currentVersion !== versionNumberToDisplay) {
+    setVersionNumberToDisplay(currentVersion);
+  }
+
   return (
-    <Box
-      sx={(theme) => ({
-        height: 66,
-        backgroundColor: theme.palette.blue[70],
-        color: theme.palette.white,
-        display: "flex",
-        alignItems: "center",
-      })}
-    >
-      {currentVersion === 0 ? (
-        <EditBarContents
-          icon={<FontAwesomeIcon icon={faSmile} sx={{ fontSize: 14 }} />}
-          title="Currently editing"
-          label="- this type has not yet been created"
-          discardButtonProps={{
-            // @todo implement this
-            href: "#",
-            children: "Discard this type",
-          }}
-          confirmButtonProps={{
-            children: "Create",
-          }}
-        />
-      ) : (
-        <EditBarContents
-          icon={<PencilSimpleLine />}
-          title="Currently editing"
-          label={`Version ${currentVersion} -> ${currentVersion + 1}`}
-          discardButtonProps={{
-            onClick: onDiscardChanges,
-            children: "Discard changes",
-          }}
-          confirmButtonProps={{
-            children: "Publish update",
-          }}
-        />
-      )}
-    </Box>
+    <Collapse in={isDirty}>
+      <Box
+        sx={(theme) => ({
+          height: 66,
+          backgroundColor: theme.palette.blue[70],
+          color: theme.palette.white,
+          display: "flex",
+          alignItems: "center",
+        })}
+      >
+        {currentVersion === 0 ? (
+          <EditBarContents
+            icon={<FontAwesomeIcon icon={faSmile} sx={{ fontSize: 14 }} />}
+            title="Currently editing"
+            label="- this type has not yet been created"
+            discardButtonProps={{
+              // @todo implement this
+              href: "#",
+              children: "Discard this type",
+            }}
+            confirmButtonProps={{
+              children: "Create",
+            }}
+          />
+        ) : (
+          <EditBarContents
+            icon={<PencilSimpleLine />}
+            title="Currently editing"
+            label={`Version ${versionNumberToDisplay} -> ${
+              versionNumberToDisplay + 1
+            }`}
+            discardButtonProps={{
+              onClick: onDiscardChanges,
+              children: "Discard changes",
+            }}
+            confirmButtonProps={{
+              children: "Publish update",
+            }}
+          />
+        )}
+      </Box>
+    </Collapse>
   );
 };
