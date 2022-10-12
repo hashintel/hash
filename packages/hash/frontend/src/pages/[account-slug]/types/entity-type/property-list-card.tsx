@@ -337,7 +337,6 @@ export const PropertyListCard = () => {
                 propertyIndex={index}
                 onRemove={() => {
                   remove(index);
-                  // onRemovePropertyType(type);
                 }}
               />
             ))}
@@ -356,13 +355,8 @@ export const PropertyListCard = () => {
                   ) {
                     append({
                       $id: type.$id,
-                      changed: true,
-                      persisted: false,
-                      removed: false,
                     });
                   }
-
-                  // onAddPropertyType(type);
                 }}
               />
             ) : (
