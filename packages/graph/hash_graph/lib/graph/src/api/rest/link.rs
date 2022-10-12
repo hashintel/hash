@@ -6,7 +6,7 @@ use axum::{extract::Path, http::StatusCode, routing::post, Extension, Json, Rout
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
-use utoipa::{Component, OpenApi};
+use utoipa::{OpenApi, ToSchema};
 
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
@@ -57,11 +57,11 @@ impl RoutedResource for LinkResource {
     }
 }
 
-#[derive(Serialize, Deserialize, Component)]
+#[derive(Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct CreateLinkRequest {
     target_entity_id: EntityId,
-    #[component(value_type = String)]
+    #[schema(value_type = String)]
     link_type_id: VersionedUri,
     owned_by_id: AccountId,
     // TODO: Consider if ordering should be exposed on links as they are here. The API consumer
@@ -182,11 +182,11 @@ async fn get_entity_links<P: StorePool + Send>(
     .map(Json)
 }
 
-#[derive(Serialize, Deserialize, Component)]
+#[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct RemoveLinkRequest {
     target_entity_id: EntityId,
-    #[component(value_type = String)]
+    #[schema(value_type = String)]
     link_type_id: VersionedUri,
     removed_by_id: AccountId,
 }

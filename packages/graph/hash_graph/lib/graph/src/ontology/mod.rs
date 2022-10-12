@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize, Serializer};
 use serde_json;
 use tokio_postgres::types::{FromSql, ToSql};
 use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
-use utoipa::Component;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::store::query::Expression;
@@ -17,7 +17,7 @@ use crate::store::query::Expression;
 // TODO - find a good place for AccountId, perhaps it will become redundant in a future design
 
 #[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Component, FromSql, ToSql,
+    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, FromSql, ToSql,
 )]
 #[repr(transparent)]
 #[postgres(transparent)]
@@ -38,10 +38,10 @@ impl fmt::Display for AccountId {
 
 /// The metadata required to uniquely identify an ontology element that has been persisted in the
 /// datastore.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PersistedOntologyIdentifier {
-    #[component(value_type = String)]
+    #[schema(value_type = String)]
     uri: VersionedUri,
     owned_by_id: AccountId,
 }
@@ -169,16 +169,16 @@ where
 /// _property type_ references is then resolved to a depth of `property_type_query_depth`.
 pub type OntologyQueryDepth = u8;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PersistedDataType {
-    #[component(value_type = VAR_DATA_TYPE)]
+    #[schema(value_type = VAR_DATA_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: DataType,
     pub identifier: PersistedOntologyIdentifier,
 }
 
 /// Query to read [`DataType`]s, which are matching the [`Expression`].
-#[derive(Debug, Deserialize, Component)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct DataTypeQuery {
     #[serde(rename = "query")]
@@ -186,39 +186,39 @@ pub struct DataTypeQuery {
     // TODO: `data_type_query_depth` currently does nothing, in the future it will most probably be
     //       used to resolve user defined data types.
     //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
-    #[component(value_type = number)]
+    #[schema(value_type = number)]
     pub data_type_query_depth: OntologyQueryDepth,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct DataTypeRootedSubgraph {
     pub data_type: PersistedDataType,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PersistedPropertyType {
-    #[component(value_type = VAR_PROPERTY_TYPE)]
+    #[schema(value_type = VAR_PROPERTY_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: PropertyType,
     pub identifier: PersistedOntologyIdentifier,
 }
 
 /// Query to read [`PropertyType`]s, which are matching the [`Expression`].
-#[derive(Debug, Deserialize, Component)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PropertyTypeQuery {
     #[serde(rename = "query")]
     pub expression: Expression,
     // TODO: A value greater than `1` currently does not have any effect.
     //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
-    #[component(value_type = number)]
+    #[schema(value_type = number)]
     pub data_type_query_depth: OntologyQueryDepth,
-    #[component(value_type = number)]
+    #[schema(value_type = number)]
     pub property_type_query_depth: OntologyQueryDepth,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PropertyTypeRootedSubgraph {
     pub property_type: PersistedPropertyType,
@@ -226,55 +226,55 @@ pub struct PropertyTypeRootedSubgraph {
     pub referenced_property_types: Vec<PersistedPropertyType>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PersistedLinkType {
-    #[component(value_type = VAR_LINK_TYPE)]
+    #[schema(value_type = VAR_LINK_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: LinkType,
     pub identifier: PersistedOntologyIdentifier,
 }
 
 /// Query to read [`LinkType`]s, which are matching the [`Expression`].
-#[derive(Debug, Deserialize, Component)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LinkTypeQuery {
     #[serde(rename = "query")]
     pub expression: Expression,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkTypeRootedSubgraph {
     pub link_type: PersistedLinkType,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PersistedEntityType {
-    #[component(value_type = VAR_ENTITY_TYPE)]
+    #[schema(value_type = VAR_ENTITY_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: EntityType,
     pub identifier: PersistedOntologyIdentifier,
 }
 
 /// Query to read [`EntityType`]s, which are matching the [`Expression`].
-#[derive(Debug, Deserialize, Component)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityTypeQuery {
     #[serde(rename = "query")]
     pub expression: Expression,
     // TODO: A value greater than `1` currently does not have any effect.
     //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
-    #[component(value_type = number)]
+    #[schema(value_type = number)]
     pub data_type_query_depth: OntologyQueryDepth,
-    #[component(value_type = number)]
+    #[schema(value_type = number)]
     pub property_type_query_depth: OntologyQueryDepth,
-    #[component(value_type = number)]
+    #[schema(value_type = number)]
     pub link_type_query_depth: OntologyQueryDepth,
-    #[component(value_type = number)]
+    #[schema(value_type = number)]
     pub entity_type_query_depth: OntologyQueryDepth,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityTypeRootedSubgraph {
     pub entity_type: PersistedEntityType,

@@ -2,7 +2,7 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
-use utoipa::Component;
+use utoipa::ToSchema;
 
 use super::EntityId;
 use crate::ontology::AccountId;
@@ -10,12 +10,12 @@ use crate::ontology::AccountId;
 /// A Link between a source and a target entity identified by [`EntityId`]s.
 ///
 /// The link is described by a link type [`VersionedUri`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Link {
     source_entity_id: EntityId,
     target_entity_id: EntityId,
-    #[component(value_type = String)]
+    #[schema(value_type = String)]
     link_type_id: VersionedUri,
     // TODO: Consider if ordering should be exposed on links as they are here. The API consumer
     //   manages indexes currently.
@@ -62,7 +62,7 @@ impl Link {
 
 /// A record of a [`Link`] that has been persisted in the datastore, with its associated
 /// metadata.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PersistedLink {
     inner: Link,

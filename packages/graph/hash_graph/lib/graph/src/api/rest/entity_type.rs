@@ -12,7 +12,7 @@ use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
 use type_system::{uri::VersionedUri, EntityType};
-use utoipa::{Component, OpenApi};
+use utoipa::{OpenApi, ToSchema};
 
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
@@ -71,10 +71,10 @@ impl RoutedResource for EntityTypeResource {
     }
 }
 
-#[derive(Serialize, Deserialize, Component)]
+#[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateEntityTypeRequest {
-    #[component(value_type = VAR_ENTITY_TYPE)]
+    #[schema(value_type = VAR_ENTITY_TYPE)]
     schema: serde_json::Value,
     account_id: AccountId,
 }
@@ -211,12 +211,12 @@ async fn get_entity_type<P: StorePool + Send>(
         .map(Json)
 }
 
-#[derive(Component, Serialize, Deserialize)]
+#[derive(ToSchema, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UpdateEntityTypeRequest {
-    #[component(value_type = VAR_UPDATE_ENTITY_TYPE)]
+    #[schema(value_type = VAR_UPDATE_ENTITY_TYPE)]
     schema: serde_json::Value,
-    #[component(value_type = String)]
+    #[schema(value_type = String)]
     type_to_update: VersionedUri,
     account_id: AccountId,
 }

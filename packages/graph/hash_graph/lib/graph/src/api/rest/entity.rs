@@ -11,7 +11,7 @@ use axum::{
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
-use utoipa::{Component, OpenApi};
+use utoipa::{OpenApi, ToSchema};
 
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
@@ -71,11 +71,11 @@ impl RoutedResource for EntityResource {
     }
 }
 
-#[derive(Serialize, Deserialize, Component)]
+#[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateEntityRequest {
     entity: Entity,
-    #[component(value_type = String)]
+    #[schema(value_type = String)]
     entity_type_id: VersionedUri,
     account_id: AccountId,
     entity_id: Option<EntityId>,
@@ -197,12 +197,12 @@ async fn get_entity<P: StorePool + Send>(
         .map(Json)
 }
 
-#[derive(Component, Serialize, Deserialize)]
+#[derive(ToSchema, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UpdateEntityRequest {
     entity: Entity,
     entity_id: EntityId,
-    #[component(value_type = String)]
+    #[schema(value_type = String)]
     entity_type_id: VersionedUri,
     account_id: AccountId,
 }
