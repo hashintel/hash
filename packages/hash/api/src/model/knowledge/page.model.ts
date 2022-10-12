@@ -380,6 +380,9 @@ export default class extends EntityModel {
     );
   }
 
+  /**
+   * Get the comments in this page's blocks.
+   */
   async getComments(graphApi: GraphApi): Promise<CommentModel[]> {
     const blocks = await this.getBlocks(graphApi);
 
