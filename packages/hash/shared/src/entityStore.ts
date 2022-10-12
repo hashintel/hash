@@ -31,7 +31,7 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   entityVersion?: string;
   entityType?: MinimalEntityTypeFieldsFragment;
   /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
-  dataEntity?: Type & { draftId: string };
+  dataEntity?: Type & { draftId?: string };
   properties: Record<string, unknown>;
 
   componentId?: string;

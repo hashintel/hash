@@ -517,14 +517,21 @@ class ProsemirrorStateChangeHandler {
       // @todo in what circumstances does this occur
       if (!isDraftBlockEntity(parentEntity)) {
         const componentNodeChild = findComponentNodes(node)[0];
+        const componentId = componentNodeChild
+          ? componentNodeToId(componentNodeChild)
+          : "";
 
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
           payload: {
             merge: false,
             draftId: parentEntity.draftId,
+            metadata: {
+              dataEntity:
+                draftEntityStore[getRequiredDraftIdFromEntityNode(node)],
+              componentId,
+            },
             properties: {
-              entity: draftEntityStore[getRequiredDraftIdFromEntityNode(node)],
               /**
                * We don't currently rely on componentId of the draft
                * right
@@ -533,9 +540,7 @@ class ProsemirrorStateChangeHandler {
                *
                * @todo set this properly
                */
-              componentId: componentNodeChild
-                ? componentNodeToId(componentNodeChild)
-                : "",
+              componentId,
             },
           },
         });
@@ -549,10 +554,10 @@ class ProsemirrorStateChangeHandler {
       getRequiredDraftIdFromEntityNode(node),
       draftEntityStore,
     );
-    // console.info("handlePotentialTextContentChangesInEntityNode", {
-    //   node,
-    //   childEntity,
-    // });
+
+    if (!childEntity) {
+      return;
+    }
 
     if (
       isTextEntity(childEntity) &&
@@ -561,7 +566,6 @@ class ProsemirrorStateChangeHandler {
     ) {
       const nextProps = textBlockNodeToEntityProperties(node.firstChild);
 
-      /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
       if (!isEqual(childEntity.properties, nextProps)) {
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",

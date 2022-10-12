@@ -169,8 +169,6 @@ export class ProsemirrorManager {
         ? getBlockChildEntity(draftBlockId, entityStore)
         : null;
 
-    console.log("LOADING IN", { blockData });
-
     const content =
       blockData && isTextEntity(blockData)
         ? childrenForTextEntity(blockData, this.schema)

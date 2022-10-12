@@ -73,7 +73,7 @@ export type LegacyLink<
   };
 };
 
-/**
+/*
  * @deprecated
  */
 // const isLegacyLink = (data: unknown): data is LegacyLink => {
@@ -142,10 +142,6 @@ export const getEntityChildEntity = (
     ? draftEntityStore[entity.dataEntity.draftId]
     : null;
 
-  if (!childEntity) {
-    throw new Error("Missing entity from draft store");
-  }
-
   return childEntity;
 };
 
@@ -161,8 +157,16 @@ export const getBlockChildEntity = (
   if (!isDraftBlockEntity(blockEntity)) {
     throw new Error("Can only get text entity from block entity");
   }
+  const childEntity = getEntityChildEntity(
+    blockEntity.draftId,
+    entityStore.draft,
+  );
 
-  return getEntityChildEntity(blockEntity.draftId, entityStore.draft);
+  if (!childEntity) {
+    throw new Error("Missing entity from draft store");
+  }
+
+  return childEntity;
 };
 
 /**
