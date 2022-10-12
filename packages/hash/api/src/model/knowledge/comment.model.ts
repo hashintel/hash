@@ -225,8 +225,5 @@ export default class extends EntityModel {
     );
 
     return replies;
-    // return replies.sort(
-    //   (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
-    // );
   }
 }
