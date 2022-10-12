@@ -7,7 +7,7 @@ import { PencilSimpleLine } from "../../../../shared/icons/svg";
 import { Button, ButtonProps } from "../../../../shared/ui/button";
 import { EntityTypeEditorForm } from "./form-types";
 
-// @todo disabled button styles
+// @todo disabled button styles – do this
 const EditBarContents = ({
   icon,
   title,
@@ -108,7 +108,7 @@ export const EditBar = ({
             title="Currently editing"
             label="- this type has not yet been created"
             discardButtonProps={{
-              // @todo implement this
+              // @todo implement this – do this
               href: "#",
               children: "Discard this type",
             }}

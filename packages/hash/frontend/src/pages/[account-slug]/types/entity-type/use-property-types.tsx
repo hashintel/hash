@@ -33,5 +33,5 @@ export const useRemotePropertyTypes = () => {
 
 export const PropertyTypesContext = createContext<null | PropertyType[]>(null);
 
-// @todo throw if null
+// @todo throw if null – do this
 export const usePropertyTypes = () => useContext(PropertyTypesContext);

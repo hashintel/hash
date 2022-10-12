@@ -76,7 +76,7 @@ const PropertySelector: ForwardRefRenderFunction<
   const highlightedRef = useRef<null | PropertyType>(null);
 
   if (!propertyTypes) {
-    // @todo loading indicator
+    // @todo loading indicator - do this / won't need this
     return null;
   }
 

@@ -186,12 +186,12 @@ export const PropertyTypeRow = ({
   const propertyTypes = usePropertyTypes();
 
   if (!propertyTypes) {
-    // @todo take into hook
+    // @todo take into hook – do this
     throw new Error("Property types must be loaded");
   }
 
   const propertyId = watch(`properties.${propertyIndex}.$id`);
-  // @todo use a map?
+  // @todo use a map? – do this
   const property = propertyTypes.find((type) => type.$id === propertyId);
 
   if (!property) {
