@@ -33,5 +33,12 @@ export const useRemotePropertyTypes = () => {
 
 export const PropertyTypesContext = createContext<null | PropertyType[]>(null);
 
-// @todo throw if null – do this
-export const usePropertyTypes = () => useContext(PropertyTypesContext);
+export const usePropertyTypes = () => {
+  const types = useContext(PropertyTypesContext);
+
+  if (!types) {
+    throw new Error("Property types not loaded yet");
+  }
+
+  return types;
+};

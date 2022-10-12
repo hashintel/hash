@@ -72,13 +72,7 @@ const PropertySelector: ForwardRefRenderFunction<
   );
 
   const [open, setOpen] = useState(false);
-
   const highlightedRef = useRef<null | PropertyType>(null);
-
-  if (!propertyTypes) {
-    // @todo loading indicator - do this / won't need this
-    return null;
-  }
 
   return (
     <Autocomplete
