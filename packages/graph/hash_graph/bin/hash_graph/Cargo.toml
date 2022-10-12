@@ -11,8 +11,7 @@ description = "The entity-graph query-layer for the HASH datastore"
 axum = "0.5.16"
 clap = { version = "4.0.13", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete = "4.0.2"
-# TODO: Change to `version = "0.2"` as soon as it's released
-error-stack = { git = "https://github.com/hashintel/hash", rev = "5edddb5", features = ["spantrace"] }
+error-stack = { version = "0.2.3", features = ["spantrace"] }
 graph = { path = "../../lib/graph", features = ["clap"] }
 regex = "1.6.0"
 serde_json = "1.0.86"
