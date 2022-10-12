@@ -184,9 +184,10 @@ export const PropertyTypeRow = ({
 }) => {
   const { watch } = useFormContext<EntityTypeEditorForm>();
   const propertyTypes = usePropertyTypes();
-  const propertyId = watch(`properties.${propertyIndex}.$id`);
-  // @todo use a map? – do this
-  const property = propertyTypes.find((type) => type.$id === propertyId);
+  const propertyId = mustBeVersionedUri(
+    watch(`properties.${propertyIndex}.$id`),
+  );
+  const property = propertyTypes[propertyId];
 
   if (!property) {
     throw new Error("Missing property type");
