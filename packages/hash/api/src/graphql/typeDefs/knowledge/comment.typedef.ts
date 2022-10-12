@@ -79,10 +79,6 @@ export const persistedCommentTypedef = gql`
     """
     createPersistedComment(
       """
-      Account id of the block the comment belongs to
-      """
-      ownedById: ID!
-      """
       Id of the block or comment the comment belongs to
       """
       parentEntityId: ID!

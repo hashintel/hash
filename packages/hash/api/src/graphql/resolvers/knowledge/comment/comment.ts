@@ -18,7 +18,7 @@ export const createPersistedComment: ResolverFn<
   MutationCreatePersistedCommentArgs
 > = async (
   _,
-  { ownedById, parentEntityId, tokens },
+  { parentEntityId, tokens },
   { dataSources: { graphApi }, user },
 ) => {
   const parent = await EntityModel.getLatest(graphApi, {
@@ -27,7 +27,7 @@ export const createPersistedComment: ResolverFn<
 
   const commentModel = await CommentModel.createComment(graphApi, {
     tokens,
-    ownedById,
+    ownedById: parent.ownedById,
     parent,
     author: user,
   });
