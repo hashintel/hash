@@ -6,11 +6,7 @@ import {
   LinkedAggregation as BpLinkedAggregation,
 } from "@blockprotocol/graph";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
-import {
-  BlockEntity,
-  isTextContainingEntityProperties,
-  isTextProperties,
-} from "@hashintel/hash-shared/entity";
+import { BlockEntity, isTextProperties } from "@hashintel/hash-shared/entity";
 import {
   useCallback,
   useLayoutEffect,
@@ -76,9 +72,9 @@ const removeTextEntities = (properties: {}) => {
     return { text: "" };
   }
 
-  if (isTextContainingEntityProperties(properties)) {
-    return { ...properties, text: "" };
-  }
+  // if (isTextContainingEntityProperties(properties)) {
+  //   return { ...properties, text: "" };
+  // }
 
   return properties;
 };

@@ -6,6 +6,12 @@ import { MinimalEntityTypeFieldsFragment } from "./graphql/apiTypes.gen";
 
 export type EntityStoreType = BlockEntity | BlockEntity["dataEntity"];
 
+export const TEXT_ENTITY_TYPE_ID =
+  "http://localhost:3000/@example/types/entity-type/text/v/1";
+
+export const TEXT_TOKEN_PROPERTY_TYPE_ID =
+  "http://localhost:3000/@example/types/property-type/text-tokens/";
+
 // type PropertiesType<Properties extends {}> = Properties extends {
 //   entity: EntityStoreType;
 // }
@@ -22,10 +28,10 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   accountId: string;
   entityId: string | null;
   entityTypeId?: string | null;
-  entityVersion: string;
+  entityVersion?: string;
   entityType?: MinimalEntityTypeFieldsFragment;
   /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
-  dataEntity?: Type & { draftId?: string };
+  dataEntity?: Type & { draftId: string };
   properties: Record<string, unknown>;
 
   componentId?: string;
@@ -171,8 +177,8 @@ export const createEntityStore = (
       (draftEntity: Draft<DraftEntity>) => {
         if (draftData[draftId]) {
           if (
-            new Date(draftData[draftId]!.entityVersion).getTime() >
-            new Date(draftEntity.entityVersion).getTime()
+            new Date(draftData[draftId]!.entityVersion ?? 0).getTime() >
+            new Date(draftEntity.entityVersion ?? 0).getTime()
           ) {
             Object.assign(draftEntity, draftData[draftId]);
           }
@@ -183,26 +189,27 @@ export const createEntityStore = (
     draft[draftId] = produce<DraftEntity>(
       draft[draftId]!,
       (draftEntity: Draft<DraftEntity>) => {
-        if (isTextContainingEntityProperties(draftEntity.properties)) {
-          restoreDraftId(draftEntity.properties.text.data, entityToDraft);
-        }
+        // if (isTextContainingEntityProperties(draftEntity.properties)) {
+        //   /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+        //   restoreDraftId(draftEntity, entityToDraft);
+        // }
 
         if (isDraftBlockEntity(draftEntity)) {
           restoreDraftId(draftEntity, entityToDraft);
 
-          if (
-            /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+          // if (
+          //   /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
 
-            isTextContainingEntityProperties(
-              (draftEntity.dataEntity as any).properties,
-            )
-          ) {
-            restoreDraftId(
-              /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-              (draftEntity.dataEntity as any).properties.text.data,
-              entityToDraft,
-            );
-          }
+          //   isTextContainingEntityProperties(
+          //     (draftEntity.dataEntity as any).properties,
+          //   )
+          // ) {
+          //   restoreDraftId(
+          //     /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+          //     draftEntity.dataEntity as any,
+          //     entityToDraft,
+          //   );
+          // }
 
           // Set the dataEntity's draft ID on a block draft.
           if (

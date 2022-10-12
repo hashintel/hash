@@ -8,6 +8,7 @@ import {
   DraftEntity,
   EntityStore,
   isDraftBlockEntity,
+  TEXT_TOKEN_PROPERTY_TYPE_ID,
 } from "@hashintel/hash-shared/entityStore";
 import {
   addEntityStoreAction,
@@ -42,13 +43,13 @@ const BLANK_PROPERTIES = {};
 
 const getChildEntity = (
   entity: DraftEntity | null | undefined,
-): DraftEntity<BlockEntity["properties"]["entity"]> | null => {
-  if (entity) {
+): DraftEntity<BlockEntity["dataEntity"]> | null => {
+  if (entity && entity.dataEntity) {
     if (!isDraftBlockEntity(entity)) {
       throw new Error("Cannot prepare non-block entity for prosemirrior");
     }
 
-    return entity.properties.entity;
+    return entity.dataEntity;
   }
 
   return null;
@@ -234,8 +235,6 @@ export class ComponentView implements NodeView<Schema> {
     const entity = this.store.draft[draftId];
 
     if (!entity || !isDraftBlockEntity(entity)) {
-      console.info("Before crash.", { entity, is: isDraftBlockEntity(entity) });
-
       throw new Error("Component view can't find block entity");
     }
 
@@ -311,12 +310,15 @@ export class ComponentView implements NodeView<Schema> {
           payload: {
             draftId: childEntity.draftId,
             properties: {
-              text: this.manager.createNewLegacyTextLink(
-                state,
-                tr,
-                childEntity.accountId,
-                textBlockNodeToEntityProperties(this.node),
+              [TEXT_TOKEN_PROPERTY_TYPE_ID]: textBlockNodeToEntityProperties(
+                this.node,
               ),
+              // text: this.manager.createNewLegacyTextLink(
+              //   state,
+              //   tr,
+              //   childEntity.accountId,
+              //   textBlockNodeToEntityProperties(this.node),
+              // ),
             },
             merge: true,
           },

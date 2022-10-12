@@ -5,12 +5,10 @@ import {
   isDraftBlockEntity,
   isDraftEntity,
   isEntity,
+  TEXT_TOKEN_PROPERTY_TYPE_ID,
 } from "./entityStore";
-import {
-  PersistedPageFieldsFragment,
-  Text,
-  TextProperties,
-} from "./graphql/apiTypes.gen";
+import { PersistedPageFieldsFragment, Text } from "./graphql/apiTypes.gen";
+import { TextToken } from "./graphql/types";
 import {
   DistributiveOmit,
   DistributivePick,
@@ -31,19 +29,29 @@ export type BlockEntity = ContentsEntity & {
   >;
 };
 
+export type TextProperties = {
+  [TEXT_TOKEN_PROPERTY_TYPE_ID]: TextToken[];
+};
+
+export type TextEntityType = Omit<EntityStoreType, "properties"> & {
+  properties: TextProperties;
+};
+
 // @todo make this more robust
 export const isTextProperties =
-  (properties: {}): properties is TextProperties => "tokens" in properties;
+  (properties: {}): properties is TextEntityType["properties"] =>
+    TEXT_TOKEN_PROPERTY_TYPE_ID in properties;
 
 // @todo make this more robust, checking system type name of entity type
 export const isTextEntity = (
   entity: EntityStoreType | DraftEntity,
-): entity is Text =>
+): entity is TextEntityType =>
   "properties" in entity && isTextProperties(entity.properties);
 
 export const isDraftTextEntity = (
   entity: DraftEntity,
-): entity is DraftEntity<Text> => isTextEntity(entity) && isDraftEntity(entity);
+): entity is DraftEntity<TextEntityType> =>
+  isTextEntity(entity) && isDraftEntity(entity);
 
 /**
  * @deprecated
@@ -68,43 +76,38 @@ export type LegacyLink<
 /**
  * @deprecated
  */
-const isLegacyLink = (data: unknown): data is LegacyLink => {
-  return (
-    isUnknownObject(data) &&
-    "__linkedData" in data &&
-    "data" in data &&
-    typeof data.data === "object" &&
-    isEntity(data.data)
-  );
-};
+// const isLegacyLink = (data: unknown): data is LegacyLink => {
+//   return (
+//     isUnknownObject(data) &&
+//     "__linkedData" in data &&
+//     "data" in data &&
+//     typeof data.data === "object" &&
+//     isEntity(data.data)
+//   );
+// };
 
-/**
- * @todo this can be used when a text entity could exist on any property
- * @deprecated
- */
-export const isTextContainingEntityProperties = (
-  entityProperties: unknown,
-): entityProperties is { text: LegacyLink<Text> } => {
-  return (
-    isUnknownObject(entityProperties) &&
-    "text" in entityProperties &&
-    isLegacyLink(entityProperties.text) &&
-    isTextEntity(entityProperties.text.data)
-  );
-};
+// /**
+//  * @todo this can be used when a text entity could exist on any property
+//  */
+// export const isTextContainingEntityProperties = (
+//   entityProperties: unknown,
+// ): entityProperties is TextEntityType["properties"] => {
+//   return (
+//     isUnknownObject(entityProperties) &&
+//     TEXT_TOKEN_PROPERTY_TYPE_ID in entityProperties
+//   );
+// };
 
-/**
- * @todo this can be used when a text entity could exist on any property
- * @deprecated
- */
-export const isDraftTextContainingEntityProperties = (
-  entityProperties: unknown,
-): entityProperties is { text: LegacyLink<DraftEntity<Text>> } => {
-  return (
-    isTextContainingEntityProperties(entityProperties) &&
-    isDraftEntity(entityProperties.text.data)
-  );
-};
+// /**
+//  * @todo this can be used when a text entity could exist on any property
+//  * @deprecated
+//  */
+// export const isDraftTextContainingEntityProperties = (
+//   entityProperties: unknown,
+// ): entityProperties is TextEntityType["properties"] => {
+//   return isTextContainingEntityProperties(entityProperties);
+//   // && isDraftEntity(entityProperties)
+// };
 
 /**
  * @todo this will need to change when we remove legacy links

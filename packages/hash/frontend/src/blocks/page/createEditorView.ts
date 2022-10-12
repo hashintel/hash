@@ -11,7 +11,7 @@ import {
   entityStorePluginStateFromTransaction,
 } from "@hashintel/hash-shared/entityStorePlugin";
 
-// import applyDevTools from "prosemirror-dev-tools";
+import applyDevTools from "prosemirror-dev-tools";
 import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { RefObject } from "react";
@@ -232,7 +232,7 @@ export const createEditorView = (
   for (const block of blocksArray) manager.defineBlock(block);
 
   // @todo figure out how to use dev tools without it breaking fast refresh
-  // applyDevTools(view);
+  applyDevTools(view);
 
   return { view, connection, manager };
 };

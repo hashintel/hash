@@ -356,12 +356,12 @@ export class ProsemirrorManager {
         } else if (isTextProperties(blockEntity.dataEntity?.properties)) {
           newBlockProperties = {
             ...entityProperties,
-            text: this.createNewLegacyTextLink(
-              this.view.state,
-              tr,
-              blockEntity.accountId,
-              blockEntity.dataEntity?.properties ?? { tokens: [] },
-            ),
+            // text: this.createNewLegacyTextLink(
+            //   this.view.state,
+            //   tr,
+            //   blockEntity.accountId,
+            //   blockEntity.dataEntity?.properties ?? { tokens: [] },
+            // ),
           };
         }
 

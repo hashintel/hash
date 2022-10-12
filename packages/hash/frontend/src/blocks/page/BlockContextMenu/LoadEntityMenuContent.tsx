@@ -17,11 +17,7 @@ import {
   useRef,
   FunctionComponent,
 } from "react";
-import {
-  BlockEntity,
-  isTextContainingEntityProperties,
-  isTextEntity,
-} from "@hashintel/hash-shared/entity";
+import { BlockEntity, isTextEntity } from "@hashintel/hash-shared/entity";
 import {
   LoadingSpinner,
   TextField,
@@ -96,7 +92,7 @@ export const LoadEntityMenuContent: FunctionComponent<
        */
       if (
         isTextEntity(entity) ||
-        isTextContainingEntityProperties(entity.properties) ||
+        // isTextContainingEntityProperties(entity.properties) ||
         entity.entityType.properties.title === "Page"
       ) {
         return false;

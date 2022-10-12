@@ -4,12 +4,7 @@ import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
-import {
-  BlockEntity,
-  getEntityChildEntity,
-  isDraftTextContainingEntityProperties,
-  isTextEntity,
-} from "./entity";
+import { BlockEntity, getEntityChildEntity, isTextEntity } from "./entity";
 import {
   createEntityStore,
   DraftEntity,
@@ -159,15 +154,8 @@ const updateEntitiesByDraftId = (
   for (const entity of Object.values(draftEntityStore)) {
     if (isDraftBlockEntity(entity)) {
       const dataEntity = entity.dataEntity!;
-      if (dataEntity.draftId === draftId) {
-        entities.push(dataEntity);
-      }
-
-      if (
-        isDraftTextContainingEntityProperties(dataEntity.properties) &&
-        dataEntity.properties.text.data.draftId === draftId
-      ) {
-        entities.push(dataEntity.properties.text.data);
+      if (dataEntity.draftId && dataEntity.draftId === draftId) {
+        entities.push(dataEntity as DraftEntity);
       }
     }
   }
