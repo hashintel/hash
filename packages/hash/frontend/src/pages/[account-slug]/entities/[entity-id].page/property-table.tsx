@@ -12,21 +12,23 @@ import {
 import { useCallback, useMemo } from "react";
 import "@glideapps/glide-data-grid/dist/index.css";
 import { useTheme } from "@mui/material";
+import { PropertyType } from "@blockprotocol/type-system-web";
+import { pick, capitalize } from "lodash";
 import { EntityResponse } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
 import { useEntityEditor } from "./entity-editor-context";
 
 type Row = {
-  name: string;
+  title: string;
   value: any;
-  dataType: string;
+  dataTypes: string[];
   propertyTypeId: string;
 };
 
 const columns: GridColumn[] = [
   {
     title: "Property",
-    id: "name",
+    id: "title",
     width: 250,
   },
   {
@@ -38,14 +40,14 @@ const columns: GridColumn[] = [
   {
     title: "Data type",
     id: "type",
-    width: 150,
+    width: 200,
   },
 ];
 
 const indexes: Exclude<keyof Row, "propertyTypeId">[] = [
-  "name",
+  "title",
   "value",
-  "dataType",
+  "dataTypes",
 ];
 
 const firstColumnPadding = 36;
@@ -57,6 +59,55 @@ interface PropertyTableProps {
   entity: EntityResponse;
 }
 
+type EnrichedPropertyType = PropertyType & {
+  value: any;
+  propertyTypeId: string;
+  dataTypes: string[];
+};
+
+const getDataTypesOfPropertyType = (
+  propertyType: PropertyType,
+  entity: EntityResponse,
+) => {
+  /** @todo check why propertyValue does not have with a proper type  */
+  return propertyType.oneOf.map((propertyValue: any) => {
+    if (propertyValue?.$ref) {
+      const dataTypeId = propertyValue?.$ref;
+      return (
+        entity.entityTypeRootedSubgraph.referencedDataTypes.find(
+          (val) => val.dataTypeId === dataTypeId,
+        )?.dataType.title ?? "undefined"
+      );
+    }
+
+    return capitalize(propertyValue.type);
+  });
+};
+
+const extractEnrichedPropertyTypesFromEntity = (
+  entity: EntityResponse,
+): EnrichedPropertyType[] => {
+  return Object.keys(entity.properties).map((propertyTypeId) => {
+    const { propertyType } =
+      entity.entityTypeRootedSubgraph.referencedPropertyTypes.find((val) =>
+        val.propertyTypeId.startsWith(propertyTypeId),
+      ) ?? {};
+
+    if (!propertyType) {
+      throw new Error();
+    }
+
+    const dataTypes = getDataTypesOfPropertyType(propertyType, entity);
+
+    return {
+      ...propertyType,
+      value: entity.properties[propertyTypeId],
+      propertyTypeId,
+      dataTypes,
+    };
+  });
+};
+
 export const PropertyTable = ({
   showSearch,
   onSearchClose,
@@ -67,24 +118,12 @@ export const PropertyTable = ({
   const { updateEntity } = useBlockProtocolUpdateEntity();
 
   const rowData = useMemo<Row[]>(() => {
-    return Object.keys(entity.properties).map((propertyTypeId) => {
-      const value = entity.properties[propertyTypeId];
-      const { propertyType } =
-        entity.entityTypeRootedSubgraph.referencedPropertyTypes.find((val) =>
-          val.propertyTypeId.startsWith(propertyTypeId),
-        ) ?? {};
+    const enrichedPropertyTypes =
+      extractEnrichedPropertyTypesFromEntity(entity);
 
-      if (!propertyType) {
-        throw new Error();
-      }
-
-      return {
-        value,
-        name: propertyType.title,
-        dataType: "Text",
-        propertyTypeId,
-      };
-    });
+    return enrichedPropertyTypes.map((type) =>
+      pick(type, ["propertyTypeId", "value", "title", "dataTypes"]),
+    );
   }, [entity]);
 
   const theme: Partial<Theme> = {
@@ -122,7 +161,7 @@ export const PropertyTable = ({
       const value = property[propertyKey];
 
       switch (propertyKey) {
-        case "name":
+        case "title":
           return {
             kind: GridCellKind.Text,
             data: value,
@@ -131,14 +170,24 @@ export const PropertyTable = ({
             allowOverlay: false,
           };
 
-        case "dataType":
+        case "dataTypes":
           return {
             kind: GridCellKind.Bubble,
-            data: [value],
-            allowOverlay: false,
+            data: value,
+            allowOverlay: true,
           };
 
         case "value":
+          if (typeof value === "number") {
+            return {
+              kind: GridCellKind.Number,
+              data: value,
+              displayData: String(value),
+              allowOverlay: true,
+              cursor: "pointer",
+            };
+          }
+
           if (typeof value === "boolean") {
             return {
               kind: GridCellKind.Boolean,
@@ -147,6 +196,7 @@ export const PropertyTable = ({
             };
           }
 
+          // everything else renders like Text for now
           return {
             kind: GridCellKind.Text,
             data: value,
