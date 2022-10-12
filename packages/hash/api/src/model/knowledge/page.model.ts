@@ -396,6 +396,10 @@ export default class extends EntityModel {
 
     const { block } = params;
 
+    console.info("about to create a block pos", {
+      specifiedPosition,
+      target: block,
+    });
     await this.createOutgoingLink(graphApi, {
       targetEntityModel: block,
       linkTypeModel: WORKSPACE_TYPES.linkType.contains,
@@ -405,6 +409,15 @@ export default class extends EntityModel {
         ((await this.getBlocks(graphApi)).length === 0 ? 0 : undefined),
       // assume that link to block is owned by the same account as the page
       ownedById: this.ownedById,
+    });
+
+    const contentLinks = await this.getOutgoingLinks(graphApi, {
+      linkTypeModel: WORKSPACE_TYPES.linkType.contains,
+    });
+
+    console.info("INFO FOR LINKS after insert", {
+      specifiedPosition,
+      contentLinks,
     });
   }
 
@@ -475,9 +488,10 @@ export default class extends EntityModel {
       linkTypeModel: WORKSPACE_TYPES.linkType.contains,
     });
 
-    if (position < 0 || position >= contentLinks.length) {
-      throw new UserInputError(`invalid position: ${position}`);
-    }
+    // When indices are in-flux, the length is not a good enough indicator of the index.
+    // if (position < 0 || position >= contentLinks.length) {
+    //   throw new UserInputError(`invalid position: ${position}`);
+    // }
 
     const link = contentLinks.find(({ index }) => index === position);
 

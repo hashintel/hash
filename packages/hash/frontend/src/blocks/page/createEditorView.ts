@@ -7,6 +7,7 @@ import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { save } from "@hashintel/hash-shared/save";
 import { ApolloClient } from "@apollo/client";
 import {
+  addEntityStoreAction,
   entityStorePluginState,
   entityStorePluginStateFromTransaction,
 } from "@hashintel/hash-shared/entityStorePlugin";
@@ -38,28 +39,26 @@ const createSavePlugin = (
   let saveQueue = Promise.resolve<unknown>(null);
 
   const triggerSave = (view: EditorView<Schema>) => {
-    saveQueue = saveQueue.catch().then(
-      () =>
-        save(
-          client,
-          ownedById,
-          pageEntityId,
-          view.state.doc,
-          entityStorePluginState(view.state).store,
-        ),
-      // console.info("Saving..", {
-      //   lastSave: getLastSavedValue(),
-      //   store: entityStorePluginState(view.state).store,
-      // }),
-      // updatePageMutation(
-      //   accountId,
-      //   pageEntityId,
-      //   view.state.doc,
-      //   getLastSavedValue(),
-      //   entityStoreFromProsemirror(view.state).store,
-      //   client,
-      // ),
-    );
+    saveQueue = saveQueue.catch().then(async () => {
+      const [newContents, newDraftToEntityId] = await save(
+        client,
+        ownedById,
+        pageEntityId,
+        view.state.doc,
+        entityStorePluginState(view.state).store,
+      );
+
+      const { tr } = view.state;
+      addEntityStoreAction(view.state, tr, {
+        type: "mergeNewPageContents",
+        payload: {
+          blocks: newContents,
+          presetDraftIds: newDraftToEntityId,
+        },
+      });
+
+      view.updateState(view.state.apply(tr));
+    });
   };
 
   let timeout: ReturnType<typeof setTimeout> | null = null;

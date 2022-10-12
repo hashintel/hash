@@ -135,6 +135,11 @@ export const updatePersistedPageContents: ResolverFn<
 
   let insertCount = 0;
   for (const [i, action] of actions.entries()) {
+    console.info("ACTION INFO", {
+      i,
+      action: JSON.stringify(action),
+    });
+
     try {
       if (action.insertBlock) {
         await pageModel.insertBlock(graphApi, {
@@ -149,7 +154,7 @@ export const updatePersistedPageContents: ResolverFn<
         });
       } else if (action.removeBlock) {
         await pageModel.removeBlock(graphApi, {
-          ...action.removeBlock,
+          position: action.removeBlock.position,
           removedById: userModel.entityId,
           allowRemovingFinal: actions
             .slice(i + 1)

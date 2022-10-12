@@ -189,7 +189,6 @@ const calculateSaveActions = async (
   const beforeBlockDraftIds = blocks.map((block) => {
     const draftEntity = getDraftEntityByEntityId(store.draft, block.entityId);
     if (!draftEntity) {
-      debugger;
       throw new Error("Draft entity missing");
     }
 
@@ -409,7 +408,7 @@ export const save = async (
     /**
      * @todo currently we use the dummy entity type for *every block* we don't know about.
      */
-    async (componentId: string) => [
+    async (_componentId: string) => [
       "http://localhost:3000/@example/types/entity-type/dummy/v/1",
       [],
     ],
