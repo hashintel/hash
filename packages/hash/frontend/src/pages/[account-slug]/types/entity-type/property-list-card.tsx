@@ -1,5 +1,5 @@
+import { PropertyType } from "@blockprotocol/type-system-web";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
-import { Chip } from "@hashintel/hash-design-system/chip";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { IconButton } from "@hashintel/hash-design-system/icon-button";
 import { TextField } from "@hashintel/hash-design-system/text-field";
@@ -31,6 +31,8 @@ import {
 } from "material-ui-popup-state/hooks";
 import { Ref, useId, useRef, useState } from "react";
 import { Modal } from "../../../../components/Modals/Modal";
+import { EmptyPropertyListCard } from "./empty-property-list-card";
+import { PropertyExpectedValues } from "./property-expected-values";
 import { PropertyListSelectorDropdownContext } from "./property-list-selector-dropdown";
 import { PropertyMenu } from "./property-menu";
 import { PropertySelector } from "./property-selector";
@@ -51,10 +53,12 @@ const InsertPropertyRow = ({
   inputRef,
   onCancel,
   onAdd,
+  filterProperty,
 }: {
   inputRef: Ref<HTMLInputElement | null>;
   onCancel: () => void;
-  onAdd: () => void;
+  onAdd: (option: PropertyType) => void;
+  filterProperty: (property: PropertyType) => boolean;
 }) => {
   const modalTooltipId = useId();
   const modalPopupState = usePopupState({
@@ -100,6 +104,7 @@ const InsertPropertyRow = ({
             modalPopupState={modalPopupState}
             onAdd={onAdd}
             onCancel={onCancel}
+            filterProperty={filterProperty}
           />
         </PropertyListSelectorDropdownContext.Provider>
         <Modal
@@ -146,8 +151,11 @@ const InsertPropertyRow = ({
               </IconButton>
             </Box>
             <PropertyTypeForm
-              createButtonProps={withHandler(bindToggle(modalPopupState), () =>
-                onAdd(),
+              createButtonProps={withHandler(
+                bindToggle(modalPopupState),
+                () => {
+                  // onAdd();
+                },
               )}
               discardButtonProps={bindToggle(modalPopupState)}
               initialTitle={searchText}
@@ -159,18 +167,76 @@ const InsertPropertyRow = ({
   );
 };
 
-export const InsertPropertyCard = ({
-  insertFieldRef,
-  onCancel,
+export const PropertyTypeRow = ({
+  property,
+  onRemove,
 }: {
-  insertFieldRef: Ref<HTMLInputElement | null>;
-  onCancel: () => void;
+  property: PropertyType;
+  onRemove: () => void;
+}) => (
+  <TableRow>
+    <TableCell>
+      <Typography variant="smallTextLabels" fontWeight={500}>
+        {property.title}
+      </Typography>
+    </TableCell>
+    <TableCell>
+      <PropertyExpectedValues property={property} />
+    </TableCell>
+    <TableCell sx={{ textAlign: "center" }}>
+      <Checkbox />
+    </TableCell>
+    <TableCell sx={{ textAlign: "center" }}>
+      <Checkbox />
+    </TableCell>
+    <TableCell sx={{ px: "0px !important" }}>
+      <TextField
+        placeholder="Add default value"
+        sx={{
+          width: "100%",
+          [`.${tableRowClasses.root}:not(:hover) & .${outlinedInputClasses.root}:not(:focus-within)`]:
+            {
+              boxShadow: "none",
+              [`.${outlinedInputClasses.notchedOutline}`]: {
+                borderColor: "transparent",
+              },
+              [`.${outlinedInputClasses.input}::placeholder`]: {
+                color: "transparent",
+              },
+            },
+        }}
+        inputProps={{ sx: { textOverflow: "ellipsis" } }}
+      />
+    </TableCell>
+    <TableCell>
+      <PropertyMenu onRemove={onRemove} property={property} />
+    </TableCell>
+  </TableRow>
+);
+
+export const PropertyListCard = ({
+  propertyTypes,
+  onAddPropertyType,
+  onRemovePropertyType,
+}: {
+  propertyTypes: PropertyType[];
+  onAddPropertyType: (type: PropertyType) => void;
+  onRemovePropertyType: (type: PropertyType) => void;
 }) => {
-  const [addingNewProperty, setAddingNewProperty] = useStateCallback(true);
-  const [created, setCreated] = useState<string[]>([]);
+  const [addingNewProperty, setAddingNewProperty] = useStateCallback(false);
   const addingNewPropertyRef = useRef<HTMLInputElement>(null);
 
-  const sharedRef = useForkRef(addingNewPropertyRef, insertFieldRef);
+  if (!addingNewProperty && propertyTypes.length === 0) {
+    return (
+      <EmptyPropertyListCard
+        onClick={() => {
+          setAddingNewProperty(true, () => {
+            addingNewPropertyRef.current?.focus();
+          });
+        }}
+      />
+    );
+  }
 
   return (
     <WhiteCard>
@@ -241,74 +307,28 @@ export const InsertPropertyCard = ({
             </Typography>
           </TableHead>
           <TableBody>
-            {created.map((id) => (
-              <TableRow key={id}>
-                <TableCell>
-                  <Typography variant="smallTextLabels" fontWeight={500}>
-                    Share Price
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Chip label="Number" />
-                </TableCell>
-                <TableCell sx={{ textAlign: "center" }}>
-                  <Checkbox />
-                </TableCell>
-                <TableCell sx={{ textAlign: "center" }}>
-                  <Checkbox />
-                </TableCell>
-                <TableCell sx={{ px: "0px !important" }}>
-                  <TextField
-                    placeholder="Add default value"
-                    sx={{
-                      width: "100%",
-                      [`.${tableRowClasses.root}:not(:hover) & .${outlinedInputClasses.root}:not(:focus-within)`]:
-                        {
-                          boxShadow: "none",
-                          [`.${outlinedInputClasses.notchedOutline}`]: {
-                            borderColor: "transparent",
-                          },
-                          [`.${outlinedInputClasses.input}::placeholder`]: {
-                            color: "transparent",
-                          },
-                        },
-                    }}
-                    inputProps={{ sx: { textOverflow: "ellipsis" } }}
-                  />
-                </TableCell>
-                <TableCell>
-                  <PropertyMenu
-                    onRemove={() => {
-                      const onlyItem = created.length === 1;
-                      setCreated((list) => list.filter((item) => item !== id));
-                      if (onlyItem) {
-                        setAddingNewProperty(true);
-                        onCancel();
-                      }
-                    }}
-                  />
-                </TableCell>
-              </TableRow>
+            {propertyTypes.map((type) => (
+              <PropertyTypeRow
+                key={type.$id}
+                property={type}
+                onRemove={() => {
+                  onRemovePropertyType(type);
+                }}
+              />
             ))}
           </TableBody>
           <TableFooter>
             {addingNewProperty ? (
               <InsertPropertyRow
-                inputRef={sharedRef}
+                inputRef={addingNewPropertyRef}
                 onCancel={() => {
-                  if (!created.length) {
-                    onCancel();
-                  } else {
-                    setAddingNewProperty(false);
-                  }
-                }}
-                onAdd={() => {
                   setAddingNewProperty(false);
-                  setCreated((list) => [
-                    ...list,
-                    (Math.random() + 1).toString(36).substring(7),
-                  ]);
                 }}
+                onAdd={(type) => {
+                  setAddingNewProperty(false);
+                  onAddPropertyType(type);
+                }}
+                filterProperty={(property) => !propertyTypes.includes(property)}
               />
             ) : (
               <TableRow>

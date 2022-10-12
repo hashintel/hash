@@ -12,3 +12,4 @@ export { default as SpinnerIcon } from "./svg/spinner.svg";
 export { default as LogoIcon } from "./svg/logo.svg";
 export { default as LinksIcon } from "./svg/links.svg";
 export { default as ShapesIcon } from "./svg/shapes.svg";
+export { default as PencilSimpleLine } from "./svg/pencil-simple-line.svg";

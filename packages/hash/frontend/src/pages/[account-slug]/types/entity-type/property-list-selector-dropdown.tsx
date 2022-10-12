@@ -16,8 +16,10 @@ type PropertyListSelectorDropdownProps = {
   query: string;
   createButtonProps: Omit<ButtonProps, "children" | "variant" | "size">;
 };
+
 export const PropertyListSelectorDropdownContext =
   createContext<PropertyListSelectorDropdownProps | null>(null);
+
 const usePropertyListSelectorDropdownContext = () => {
   const value = useContext(PropertyListSelectorDropdownContext);
   if (value === null) {
@@ -27,6 +29,7 @@ const usePropertyListSelectorDropdownContext = () => {
   }
   return value;
 };
+
 export const PropertyListSelectorDropdown = ({
   children,
   ...props

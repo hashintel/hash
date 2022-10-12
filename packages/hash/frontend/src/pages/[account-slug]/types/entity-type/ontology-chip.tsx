@@ -1,4 +1,8 @@
 import {
+  extractBaseUri,
+  validateVersionedUri,
+} from "@blockprotocol/type-system-web";
+import {
   Box,
   Stack,
   SxProps,
@@ -6,20 +10,49 @@ import {
   Typography,
   typographyClasses,
 } from "@mui/material";
-import { ReactNode } from "react";
+import { forwardRef, ForwardRefRenderFunction, ReactNode } from "react";
+import { HashOntologyIcon } from "./hash-ontology-icon";
 
-export const OntologyChip = ({
-  icon,
-  domain,
-  path,
-  sx = [],
-}: {
-  icon: ReactNode;
-  domain: ReactNode;
-  path: ReactNode;
-  sx?: SxProps<Theme>;
-}) => (
+export const parseUriForOntologyChip = (uri: string) => {
+  const validated = validateVersionedUri(uri);
+  const parsed = validated.type === "Ok" ? extractBaseUri(validated.inner) : "";
+  const url = new URL(parsed);
+  const domain = url.host === "localhost:3000" ? "hash.ai" : url.host;
+  const pathname = url.pathname.slice(1);
+  const isHash = domain === "hash.ai";
+  const parts = pathname.split("/");
+  const path = isHash ? `${parts[0]}/${parts.at(-2)}` : pathname;
+  const icon = isHash ? <HashOntologyIcon /> : null;
+
+  return { domain, path, icon };
+};
+
+// @todo make this take the id
+const OntologyChip: ForwardRefRenderFunction<
+  HTMLDivElement,
+  {
+    icon: ReactNode;
+    domain: ReactNode;
+    path: ReactNode;
+    sx?: SxProps<Theme>;
+  }
+> = (
+  {
+    icon,
+    domain,
+    path,
+    sx = [],
+    ...props
+  }: {
+    icon: ReactNode;
+    domain: ReactNode;
+    path: ReactNode;
+    sx?: SxProps<Theme>;
+  },
+  ref,
+) => (
   <Stack
+    {...props}
     direction="row"
     sx={[
       (theme) => ({
@@ -35,6 +68,7 @@ export const OntologyChip = ({
       }),
       ...(Array.isArray(sx) ? sx : [sx]),
     ]}
+    ref={ref}
   >
     <Stack
       direction="row"
@@ -98,3 +132,7 @@ export const OntologyChip = ({
     </Typography>
   </Stack>
 );
+
+const OntologyChipForwardRef = forwardRef(OntologyChip);
+
+export { OntologyChipForwardRef as OntologyChip };
