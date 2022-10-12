@@ -13,6 +13,7 @@ import {
   getDraftEntityByEntityId,
   isBlockEntity,
   isDraftBlockEntity,
+  TEXT_TOKEN_PROPERTY_TYPE_ID,
 } from "./entityStore";
 import {
   ComponentNode,
@@ -561,7 +562,7 @@ class ProsemirrorStateChangeHandler {
       const nextProps = textBlockNodeToEntityProperties(node.firstChild);
 
       /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-      if (!isEqual((childEntity as any).properties, nextProps)) {
+      if (!isEqual(childEntity.properties, nextProps)) {
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
           payload: {

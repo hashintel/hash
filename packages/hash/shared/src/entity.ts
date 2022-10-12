@@ -141,11 +141,6 @@ export const getEntityChildEntity = (
   const childEntity = entity.dataEntity?.draftId
     ? draftEntityStore[entity.dataEntity.draftId]
     : null;
-  console.log("STORE", {
-    entity,
-    draftEntityStore: Object.entries(draftEntityStore),
-    dataDraftId: entity.dataEntity?.draftId,
-  });
 
   if (!childEntity) {
     throw new Error("Missing entity from draft store");

@@ -13,7 +13,6 @@ import {
 import {
   BlockEntity,
   getBlockChildEntity,
-  isDraftTextContainingEntityProperties,
   isTextEntity,
   isTextProperties,
   LegacyLink,
@@ -344,16 +343,17 @@ export class ProsemirrorManager {
          * This is supporting swapping between text blocks and persisting the
          * existing text
          */
-        if (
-          isDraftTextContainingEntityProperties(
-            blockEntity.dataEntity?.properties,
-          )
-        ) {
-          newBlockProperties = {
-            ...entityProperties,
-            text: blockEntity.dataEntity?.properties.text as any,
-          };
-        } else if (isTextProperties(blockEntity.dataEntity?.properties)) {
+        // if (
+        //   isDraftTextContainingEntityProperties(
+        //     blockEntity.dataEntity?.properties,
+        //   )
+        // ) {
+        //   newBlockProperties = {
+        //     ...entityProperties,
+        //     text: blockEntity.dataEntity?.properties.text as any,
+        //   };
+        // } else
+        if (isTextProperties(blockEntity.dataEntity?.properties)) {
           newBlockProperties = {
             ...entityProperties,
             // text: this.createNewLegacyTextLink(
