@@ -18,7 +18,10 @@ export const CreateBlockCommentButton: FunctionComponent<
   const inputRef = useRef<CommentTextFieldRef>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
-  const closeInput = useCallback(() => setAnchorEl(null), []);
+  const closeInput = useCallback(() => {
+    inputRef.current?.resetDocument();
+    setAnchorEl(null);
+  }, []);
 
   return (
     <Box className={styles.Block__Comments_Button}>
