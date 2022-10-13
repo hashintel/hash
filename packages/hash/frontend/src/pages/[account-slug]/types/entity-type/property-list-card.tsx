@@ -30,8 +30,10 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import { Ref, useId, useRef, useState } from "react";
+import { useFieldArray, useFormContext } from "react-hook-form";
 import { Modal } from "../../../../components/Modals/Modal";
 import { EmptyPropertyListCard } from "./empty-property-list-card";
+import { EntityTypeEditorForm } from "./form-types";
 import { PropertyExpectedValues } from "./property-expected-values";
 import { PropertyListSelectorDropdownContext } from "./property-list-selector-dropdown";
 import { PropertyMenu } from "./property-menu";
@@ -39,7 +41,8 @@ import { PropertySelector } from "./property-selector";
 import { PropertyTypeForm } from "./property-type-form";
 import { QuestionIcon } from "./question-icon";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
-import { useStateCallback, withHandler } from "./util";
+import { usePropertyTypes } from "./use-property-types";
+import { mustBeVersionedUri, useStateCallback, withHandler } from "./util";
 import { WhiteCard } from "./white-card";
 
 const CenteredTableCell = styled(TableCell)(
@@ -53,12 +56,10 @@ const InsertPropertyRow = ({
   inputRef,
   onCancel,
   onAdd,
-  filterProperty,
 }: {
   inputRef: Ref<HTMLInputElement | null>;
   onCancel: () => void;
   onAdd: (option: PropertyType) => void;
-  filterProperty: (property: PropertyType) => boolean;
 }) => {
   const modalTooltipId = useId();
   const modalPopupState = usePopupState({
@@ -70,6 +71,9 @@ const InsertPropertyRow = ({
 
   const ourInputRef = useRef<HTMLInputElement>(null);
   const sharedRef = useForkRef(inputRef, ourInputRef);
+
+  const { watch } = useFormContext<EntityTypeEditorForm>();
+  const properties = watch("properties");
 
   return (
     <TableRow
@@ -104,7 +108,11 @@ const InsertPropertyRow = ({
             modalPopupState={modalPopupState}
             onAdd={onAdd}
             onCancel={onCancel}
-            filterProperty={filterProperty}
+            filterProperty={(property) =>
+              !properties.some(
+                (includedProperty) => includedProperty.$id === property.$id,
+              )
+            }
           />
         </PropertyListSelectorDropdownContext.Provider>
         <Modal
@@ -168,65 +176,76 @@ const InsertPropertyRow = ({
 };
 
 export const PropertyTypeRow = ({
-  property,
+  propertyIndex,
   onRemove,
 }: {
-  property: PropertyType;
+  propertyIndex: number;
   onRemove: () => void;
-}) => (
-  <TableRow>
-    <TableCell>
-      <Typography variant="smallTextLabels" fontWeight={500}>
-        {property.title}
-      </Typography>
-    </TableCell>
-    <TableCell>
-      <PropertyExpectedValues property={property} />
-    </TableCell>
-    <TableCell sx={{ textAlign: "center" }}>
-      <Checkbox />
-    </TableCell>
-    <TableCell sx={{ textAlign: "center" }}>
-      <Checkbox />
-    </TableCell>
-    <TableCell sx={{ px: "0px !important" }}>
-      <TextField
-        placeholder="Add default value"
-        sx={{
-          width: "100%",
-          [`.${tableRowClasses.root}:not(:hover) & .${outlinedInputClasses.root}:not(:focus-within)`]:
-            {
-              boxShadow: "none",
-              [`.${outlinedInputClasses.notchedOutline}`]: {
-                borderColor: "transparent",
-              },
-              [`.${outlinedInputClasses.input}::placeholder`]: {
-                color: "transparent",
-              },
-            },
-        }}
-        inputProps={{ sx: { textOverflow: "ellipsis" } }}
-      />
-    </TableCell>
-    <TableCell>
-      <PropertyMenu onRemove={onRemove} property={property} />
-    </TableCell>
-  </TableRow>
-);
-
-export const PropertyListCard = ({
-  propertyTypes,
-  onAddPropertyType,
-  onRemovePropertyType,
-}: {
-  propertyTypes: PropertyType[];
-  onAddPropertyType: (type: PropertyType) => void;
-  onRemovePropertyType: (type: PropertyType) => void;
 }) => {
+  const { watch } = useFormContext<EntityTypeEditorForm>();
+  const propertyTypes = usePropertyTypes();
+  const propertyId = mustBeVersionedUri(
+    watch(`properties.${propertyIndex}.$id`),
+  );
+  const property = propertyTypes[propertyId];
+
+  if (!property) {
+    throw new Error("Missing property type");
+  }
+
+  return (
+    <TableRow>
+      <TableCell>
+        <Typography variant="smallTextLabels" fontWeight={500}>
+          {property.title}
+        </Typography>
+      </TableCell>
+      <TableCell>
+        <PropertyExpectedValues property={property} />
+      </TableCell>
+      <TableCell sx={{ textAlign: "center" }}>
+        <Checkbox />
+      </TableCell>
+      <TableCell sx={{ textAlign: "center" }}>
+        <Checkbox />
+      </TableCell>
+      <TableCell sx={{ px: "0px !important" }}>
+        <TextField
+          placeholder="Add default value"
+          sx={{
+            width: "100%",
+            [`.${tableRowClasses.root}:not(:hover) & .${outlinedInputClasses.root}:not(:focus-within)`]:
+              {
+                boxShadow: "none",
+                [`.${outlinedInputClasses.notchedOutline}`]: {
+                  borderColor: "transparent",
+                },
+                [`.${outlinedInputClasses.input}::placeholder`]: {
+                  color: "transparent",
+                },
+              },
+          }}
+          inputProps={{ sx: { textOverflow: "ellipsis" } }}
+        />
+      </TableCell>
+      <TableCell>
+        <PropertyMenu onRemove={onRemove} property={property} />
+      </TableCell>
+    </TableRow>
+  );
+};
+
+export const PropertyListCard = () => {
+  const { control, getValues } = useFormContext<EntityTypeEditorForm>();
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "properties",
+  });
+
   const [addingNewProperty, setAddingNewProperty] = useStateCallback(false);
   const addingNewPropertyRef = useRef<HTMLInputElement>(null);
 
-  if (!addingNewProperty && propertyTypes.length === 0) {
+  if (!addingNewProperty && fields.length === 0) {
     return (
       <EmptyPropertyListCard
         onClick={() => {
@@ -307,12 +326,12 @@ export const PropertyListCard = ({
             </Typography>
           </TableHead>
           <TableBody>
-            {propertyTypes.map((type) => (
+            {fields.map((type, index) => (
               <PropertyTypeRow
-                key={type.$id}
-                property={type}
+                key={type.id}
+                propertyIndex={index}
                 onRemove={() => {
-                  onRemovePropertyType(type);
+                  remove(index);
                 }}
               />
             ))}
@@ -326,9 +345,14 @@ export const PropertyListCard = ({
                 }}
                 onAdd={(type) => {
                   setAddingNewProperty(false);
-                  onAddPropertyType(type);
+                  if (
+                    !getValues("properties").some(({ $id }) => $id === type.$id)
+                  ) {
+                    append({
+                      $id: mustBeVersionedUri(type.$id),
+                    });
+                  }
                 }}
-                filterProperty={(property) => !propertyTypes.includes(property)}
               />
             ) : (
               <TableRow>
