@@ -64,8 +64,7 @@ impl Link {
 /// metadata.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct PersistedLink {
-    inner: Link,
+pub struct PersistedLinkMetadata {
     // Note: this is inconsistent with `PersistedEntity` as the analog of
     // `PersistedEntityIdentifier` is encapsulated within the `Link` struct..
     owned_by_id: AccountId,
@@ -73,20 +72,44 @@ pub struct PersistedLink {
     //   https://app.asana.com/0/1200211978612931/1203006164248577/f
 }
 
-impl PersistedLink {
+impl PersistedLinkMetadata {
     #[must_use]
-    pub const fn new(inner: Link, owned_by_id: AccountId) -> Self {
-        Self { inner, owned_by_id }
-    }
-
-    #[must_use]
-    pub const fn inner(&self) -> &Link {
-        &self.inner
+    pub const fn new(owned_by_id: AccountId) -> Self {
+        Self { owned_by_id }
     }
 
     #[must_use]
     pub const fn owned_by_id(&self) -> &AccountId {
         &self.owned_by_id
+    }
+}
+
+/// A record of a [`Link`] that has been persisted in the datastore, with its associated
+/// metadata.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PersistedLink {
+    inner: Link,
+    metadata: PersistedLinkMetadata,
+}
+
+impl PersistedLink {
+    #[must_use]
+    pub const fn new(inner: Link, owned_by_id: AccountId) -> Self {
+        Self {
+            inner,
+            metadata: PersistedLinkMetadata::new(owned_by_id),
+        }
+    }
+
+    #[must_use]
+    pub const fn metadata(&self) -> &PersistedLinkMetadata {
+        &self.metadata
+    }
+
+    #[must_use]
+    pub const fn inner(&self) -> &Link {
+        &self.inner
     }
 }
 
