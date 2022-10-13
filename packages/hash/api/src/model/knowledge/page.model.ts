@@ -390,13 +390,18 @@ export default class extends EntityModel {
     params: {
       block: BlockModel;
       position?: number;
+      updateSiblings?: boolean;
     },
   ) {
-    const { position: specifiedPosition } = params;
+    const { position: specifiedPosition, updateSiblings } = params;
 
     const { block } = params;
 
-    await this.createOutgoingLinkWithoutUpdatingSiblings(graphApi, {
+    const createMethod = updateSiblings
+      ? this.createOutgoingLink
+      : this.createOutgoingLinkWithoutUpdatingSiblings;
+
+    await createMethod(graphApi, {
       targetEntityModel: block,
       linkTypeModel: WORKSPACE_TYPES.linkType.contains,
       index:
@@ -467,9 +472,10 @@ export default class extends EntityModel {
       position: number;
       removedById: string;
       allowRemovingFinal?: boolean;
+      updateSiblings?: boolean;
     },
   ) {
-    const { allowRemovingFinal = false, position } = params;
+    const { allowRemovingFinal = false, position, updateSiblings } = params;
 
     const contentLinks = await this.getOutgoingLinks(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.contains,
@@ -494,8 +500,12 @@ export default class extends EntityModel {
 
     const { removedById } = params;
 
-    // Don't reorder siblings as it would break the expected indices on the frontend.
-    await link.removeWithoutUpdatingSiblings(graphApi, {
+    // Don't always reorder siblings as it could break the expected indices on the frontend.
+    const removeMethod = updateSiblings
+      ? link.remove
+      : link.removeWithoutUpdatingSiblings;
+
+    await removeMethod(graphApi, {
       removedById,
     });
   }

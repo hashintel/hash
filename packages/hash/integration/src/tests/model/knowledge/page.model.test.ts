@@ -40,7 +40,7 @@ describe("Page model class", () => {
   const createBlock = async () =>
     await BlockModel.createBlock(graphApi, {
       ownedById: testUser.entityId,
-      componentId: "dummy-component-id",
+      componentId: "text",
       blockData: await EntityModel.create(graphApi, {
         ownedById: testUser.entityId,
         entityTypeModel: WORKSPACE_TYPES.entityType.dummy,
@@ -145,11 +145,13 @@ describe("Page model class", () => {
     // insert block at un-specified position
     await testPage.insertBlock(graphApi, {
       block: testBlock3,
+      updateSiblings: true,
     });
 
     // insert block at specified position
     await testPage.insertBlock(graphApi, {
       block: testBlock2,
+      updateSiblings: true,
       position: 1,
     });
 
@@ -190,6 +192,7 @@ describe("Page model class", () => {
     await testPage.removeBlock(graphApi, {
       position: 0,
       removedById: testUser.entityId,
+      updateSiblings: true,
     });
 
     expect(await testPage.getBlocks(graphApi)).toEqual([
