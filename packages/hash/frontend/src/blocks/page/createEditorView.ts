@@ -242,7 +242,7 @@ export const createEditorView = (
   }
 
   // @todo figure out how to use dev tools without it breaking fast refresh
-  applyDevTools(view);
+  // applyDevTools(view);
 
   return { view, connection, manager };
 };
