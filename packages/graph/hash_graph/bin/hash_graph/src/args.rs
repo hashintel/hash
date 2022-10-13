@@ -1,11 +1,11 @@
-use clap::{AppSettings::DeriveDisplayOrder, Args as _, Command, Parser};
+use clap::{Args as _, Command, Parser};
 use clap_complete::Shell;
 use graph::{logging::LoggingArgs, store::DatabaseConnectionInfo};
 use regex::Regex;
 
 /// Arguments passed to the program.
 #[derive(Debug, Parser)]
-#[clap(version, author, about, long_about = None, setting = DeriveDisplayOrder)]
+#[clap(version, author, about, long_about = None)]
 pub struct Args {
     #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
@@ -42,7 +42,7 @@ pub struct Args {
     pub allowed_url_domain: Regex,
 
     /// Generate a completion script for the given shell and outputs it to stdout.
-    #[clap(long, arg_enum, exclusive = true)]
+    #[clap(long, value_enum, exclusive = true)]
     generate_completion: Option<Shell>,
 }
 

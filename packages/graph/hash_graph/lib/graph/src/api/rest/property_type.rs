@@ -12,7 +12,7 @@ use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
 use type_system::{uri::VersionedUri, PropertyType};
-use utoipa::{Component, OpenApi};
+use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
 use crate::{
@@ -29,7 +29,7 @@ use crate::{
 
 #[derive(OpenApi)]
 #[openapi(
-    handlers(
+    paths(
         create_property_type,
         get_property_types_by_query,
         get_property_type,
@@ -37,13 +37,15 @@ use crate::{
         update_property_type
     ),
     components(
-        CreatePropertyTypeRequest,
-        UpdatePropertyTypeRequest,
-        AccountId,
-        PersistedOntologyIdentifier,
-        PersistedPropertyType,
-        PropertyTypeQuery,
-        PropertyTypeRootedSubgraph,
+        schemas(
+            CreatePropertyTypeRequest,
+            UpdatePropertyTypeRequest,
+            AccountId,
+            PersistedOntologyIdentifier,
+            PersistedPropertyType,
+            PropertyTypeQuery,
+            PropertyTypeRootedSubgraph,
+        )
     ),
     tags(
         (name = "PropertyType", description = "Property type management API")
@@ -70,10 +72,10 @@ impl RoutedResource for PropertyTypeResource {
     }
 }
 
-#[derive(Serialize, Deserialize, Component)]
+#[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreatePropertyTypeRequest {
-    #[component(value_type = VAR_PROPERTY_TYPE)]
+    #[schema(value_type = VAR_PROPERTY_TYPE)]
     schema: serde_json::Value,
     account_id: AccountId,
 }
@@ -214,12 +216,12 @@ async fn get_property_type<P: StorePool + Send>(
         .map(Json)
 }
 
-#[derive(Component, Serialize, Deserialize)]
+#[derive(ToSchema, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UpdatePropertyTypeRequest {
-    #[component(value_type = VAR_UPDATE_PROPERTY_TYPE)]
+    #[schema(value_type = VAR_UPDATE_PROPERTY_TYPE)]
     schema: serde_json::Value,
-    #[component(value_type = String)]
+    #[schema(value_type = String)]
     type_to_update: VersionedUri,
     account_id: AccountId,
 }
