@@ -407,6 +407,11 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         notNull: true,
         references: "accounts",
       },
+      created_by_id: {
+        type: "UUID",
+        notNull: true,
+        references: "accounts",
+      },
       created_at: {
         type: "TIMESTAMP WITH TIME ZONE",
         notNull: true,
@@ -453,6 +458,11 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         notNull: false,
       },
       owned_by_id: {
+        type: "UUID",
+        notNull: true,
+        references: "accounts",
+      },
+      created_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",

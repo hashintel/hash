@@ -95,6 +95,7 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
         &mut self,
         link: &Link,
         owned_by_id: AccountId,
+        created_by_id: AccountId,
     ) -> Result<(), InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -104,7 +105,9 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
                 .change_context(InsertionError)?,
         );
 
-        transaction.insert_link(link, owned_by_id).await?;
+        transaction
+            .insert_link(link, owned_by_id, created_by_id)
+            .await?;
 
         transaction
             .client

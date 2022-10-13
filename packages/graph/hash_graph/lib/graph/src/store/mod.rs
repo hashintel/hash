@@ -444,6 +444,7 @@ pub trait LinkStore: for<'q> crud::Read<PersistedLink, Query<'q> = Expression> {
         &mut self,
         link: &Link,
         owned_by_id: AccountId,
+        created_by_id: AccountId,
     ) -> Result<(), InsertionError>;
 
     /// Get the [`LinkRootedSubgraph`]s specified by the [`StructuralQuery`].
