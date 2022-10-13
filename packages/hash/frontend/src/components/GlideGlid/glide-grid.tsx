@@ -1,11 +1,13 @@
-import { Theme } from "@glideapps/glide-data-grid";
+import { DataEditor, DataEditorProps, Theme } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
 import { useMemo } from "react";
 
-export const useGlideGridTheme = () => {
+type GlideGridProps = DataEditorProps;
+
+export const GlideGrid = (props: GlideGridProps) => {
   const { palette } = useTheme();
 
-  const theme: Partial<Theme> = useMemo(
+  const gridTheme: Partial<Theme> = useMemo(
     () => ({
       bgHeader: "white",
       borderColor: palette.gray[20],
@@ -26,5 +28,19 @@ export const useGlideGridTheme = () => {
     [palette],
   );
 
-  return theme;
+  return (
+    <DataEditor
+      theme={gridTheme}
+      width="100%"
+      headerHeight={42}
+      rowHeight={42}
+      drawFocusRing={false}
+      rangeSelect="cell"
+      columnSelect="none"
+      smoothScrollX
+      smoothScrollY
+      getCellsForSelection
+      {...props}
+    />
+  );
 };

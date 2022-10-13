@@ -1,3 +1,4 @@
+import { GlideGridOverlayPortal } from "../../../components/GlideGlid/glide-grid-overlay-portal";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
 import { EntityEditorContextProvider } from "./[entity-id].page/entity-editor-context";
 import { EntityPageWrapper } from "./[entity-id].page/entity-page-wrapper";
@@ -18,6 +19,8 @@ const Page: NextPageWithLayout = () => {
 
         <PeersSection />
       </EntityPageWrapper>
+
+      <GlideGridOverlayPortal />
     </EntityEditorContextProvider>
   );
 };
