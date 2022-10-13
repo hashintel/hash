@@ -88,17 +88,17 @@ pub struct Edge {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct GraphResolveDepths {
-    #[schema(value_type = Number)]
+    #[schema(value_type = number)]
     pub data_type_resolve_depth: OntologyQueryDepth,
-    #[schema(value_type = Number)]
+    #[schema(value_type = number)]
     pub property_type_resolve_depth: OntologyQueryDepth,
-    #[schema(value_type = Number)]
+    #[schema(value_type = number)]
     pub entity_type_resolve_depth: OntologyQueryDepth,
-    #[schema(value_type = Number)]
+    #[schema(value_type = number)]
     pub link_type_resolve_depth: OntologyQueryDepth,
-    #[schema(value_type = Number)]
+    #[schema(value_type = number)]
     pub entity_resolve_depth: KnowledgeGraphQueryDepth,
-    #[schema(value_type = Number)]
+    #[schema(value_type = number)]
     pub link_resolve_depth: KnowledgeGraphQueryDepth,
 }
 

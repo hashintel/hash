@@ -641,40 +641,40 @@ export interface GraphElementIdentifierOneOf5 {
 export interface GraphResolveDepths {
   /**
    *
-   * @type {Number}
+   * @type {number}
    * @memberof GraphResolveDepths
    */
-  dataTypeResolveDepth: Number;
+  dataTypeResolveDepth: number;
   /**
    *
-   * @type {Number}
+   * @type {number}
    * @memberof GraphResolveDepths
    */
-  entityResolveDepth: Number;
+  entityResolveDepth: number;
   /**
    *
-   * @type {Number}
+   * @type {number}
    * @memberof GraphResolveDepths
    */
-  entityTypeResolveDepth: Number;
+  entityTypeResolveDepth: number;
   /**
    *
-   * @type {Number}
+   * @type {number}
    * @memberof GraphResolveDepths
    */
-  linkResolveDepth: Number;
+  linkResolveDepth: number;
   /**
    *
-   * @type {Number}
+   * @type {number}
    * @memberof GraphResolveDepths
    */
-  linkTypeResolveDepth: Number;
+  linkTypeResolveDepth: number;
   /**
    *
-   * @type {Number}
+   * @type {number}
    * @memberof GraphResolveDepths
    */
-  propertyTypeResolveDepth: Number;
+  propertyTypeResolveDepth: number;
 }
 /**
  * Query to read [`Entities`] or [`Link`]s, which satisfy the [`Expression`].
