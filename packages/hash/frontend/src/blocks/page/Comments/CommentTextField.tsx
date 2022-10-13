@@ -24,6 +24,8 @@ import {
 } from "@hashintel/hash-design-system";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
+import { TEXT_TOKEN_PROPERTY_TYPE_ID } from "@hashintel/hash-shared/entityStore";
+
 import { textBlockNodeToEntityProperties } from "@hashintel/hash-shared/text";
 import { usePortals } from "../usePortals";
 import { createFormatPlugins } from "../createFormatPlugins";
@@ -75,9 +77,8 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
           keymap<Schema>({
             Enter(_, __, view) {
               if (!loadingRef.current && view?.state.doc.content) {
-                const { tokens } = textBlockNodeToEntityProperties(
-                  view.state.doc,
-                );
+                const { [TEXT_TOKEN_PROPERTY_TYPE_ID]: tokens } =
+                  textBlockNodeToEntityProperties(view.state.doc);
 
                 if (!tokens.length) {
                   return true;
