@@ -12,7 +12,7 @@ use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
 use type_system::{uri::VersionedUri, DataType};
-use utoipa::{Component, OpenApi};
+use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
 use crate::{
@@ -29,7 +29,7 @@ use crate::{
 
 #[derive(OpenApi)]
 #[openapi(
-    handlers(
+    paths(
         create_data_type,
         get_data_types_by_query,
         get_data_type,
@@ -37,13 +37,15 @@ use crate::{
         update_data_type
     ),
     components(
-        CreateDataTypeRequest,
-        UpdateDataTypeRequest,
-        AccountId,
-        PersistedOntologyIdentifier,
-        PersistedDataType,
-        DataTypeQuery,
-        DataTypeRootedSubgraph,
+        schemas(
+            CreateDataTypeRequest,
+            UpdateDataTypeRequest,
+            AccountId,
+            PersistedOntologyIdentifier,
+            PersistedDataType,
+            DataTypeQuery,
+            DataTypeRootedSubgraph,
+        )
     ),
     tags(
         (name = "DataType", description = "Data Type management API")
@@ -70,10 +72,10 @@ impl RoutedResource for DataTypeResource {
     }
 }
 
-#[derive(Serialize, Deserialize, Component)]
+#[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateDataTypeRequest {
-    #[component(value_type = VAR_DATA_TYPE)]
+    #[schema(value_type = VAR_DATA_TYPE)]
     schema: serde_json::Value,
     account_id: AccountId,
 }
@@ -207,12 +209,12 @@ async fn get_data_type<P: StorePool + Send>(
         .map(Json)
 }
 
-#[derive(Component, Serialize, Deserialize)]
+#[derive(ToSchema, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UpdateDataTypeRequest {
-    #[component(value_type = VAR_UPDATE_DATA_TYPE)]
+    #[schema(value_type = VAR_UPDATE_DATA_TYPE)]
     schema: serde_json::Value,
-    #[component(value_type = String)]
+    #[schema(value_type = String)]
     type_to_update: VersionedUri,
     account_id: AccountId,
 }
