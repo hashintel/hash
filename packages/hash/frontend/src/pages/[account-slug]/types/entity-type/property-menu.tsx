@@ -1,8 +1,4 @@
-import {
-  extractVersion,
-  PropertyType,
-  validateVersionedUri,
-} from "@blockprotocol/type-system-web";
+import { extractVersion, PropertyType } from "@blockprotocol/type-system-web";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { IconButton } from "@hashintel/hash-design-system/icon-button";
@@ -26,12 +22,7 @@ import {
 } from "material-ui-popup-state/hooks";
 import { Fragment, useId } from "react";
 import { OntologyChip, parseUriForOntologyChip } from "./ontology-chip";
-
-const parseVersion = (id: string) => {
-  const uri = validateVersionedUri(id);
-
-  return uri.type === "Ok" ? extractVersion(uri.inner) : null;
-};
+import { mustBeVersionedUri } from "./util";
 
 export const PropertyMenu = ({
   onRemove,
@@ -47,7 +38,7 @@ export const PropertyMenu = ({
     popupId: `property-${id}`,
   });
 
-  const version = parseVersion(property.$id);
+  const version = extractVersion(mustBeVersionedUri(property.$id));
   const ontology = parseUriForOntologyChip(property.$id);
 
   return (
