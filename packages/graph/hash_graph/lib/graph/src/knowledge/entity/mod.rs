@@ -33,6 +33,7 @@ impl fmt::Display for EntityId {
 ///
 /// When expressed as JSON, this should validate against its respective entity type(s).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[schema(value_type = Object)]
 pub struct Entity(HashMap<BaseUri, serde_json::Value>);
 
 impl Entity {
