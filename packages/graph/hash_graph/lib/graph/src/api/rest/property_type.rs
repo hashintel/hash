@@ -19,8 +19,8 @@ use crate::{
     api::rest::{read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, AccountId, PersistedOntologyIdentifier, PersistedPropertyType,
-        PropertyTypeQuery, PropertyTypeRootedSubgraph,
+        patch_id_and_parse, AccountId, PersistedOntologyIdentifier, PersistedOntologyMetadata,
+        PersistedPropertyType, PropertyTypeQuery, PropertyTypeRootedSubgraph,
     },
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
@@ -42,6 +42,7 @@ use crate::{
             UpdatePropertyTypeRequest,
             AccountId,
             PersistedOntologyIdentifier,
+            PersistedOntologyMetadata,
             PersistedPropertyType,
             PropertyTypeQuery,
             PropertyTypeRootedSubgraph,
@@ -98,7 +99,7 @@ async fn create_property_type<P: StorePool + Send>(
     body: Json<CreatePropertyTypeRequest>,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
-) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
+) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
     let Json(CreatePropertyTypeRequest { schema, account_id }) = body;
 
     let property_type: PropertyType = schema.try_into().into_report().map_err(|report| {
@@ -242,7 +243,7 @@ struct UpdatePropertyTypeRequest {
 async fn update_property_type<P: StorePool + Send>(
     body: Json<UpdatePropertyTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
+) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
     let Json(UpdatePropertyTypeRequest {
         schema,
         type_to_update,

@@ -19,7 +19,7 @@ use crate::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, AccountId, EntityTypeQuery, EntityTypeRootedSubgraph,
-        PersistedEntityType, PersistedOntologyIdentifier,
+        PersistedEntityType, PersistedOntologyIdentifier, PersistedOntologyMetadata,
     },
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
@@ -43,6 +43,7 @@ use crate::{
             UpdateEntityTypeRequest,
             AccountId,
             PersistedOntologyIdentifier,
+            PersistedOntologyMetadata,
             PersistedEntityType,
             EntityTypeQuery,
             EntityTypeRootedSubgraph,
@@ -99,7 +100,7 @@ async fn create_entity_type<P: StorePool + Send>(
     body: Json<CreateEntityTypeRequest>,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
-) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
+) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
     let Json(CreateEntityTypeRequest { schema, account_id }) = body;
 
     let entity_type: EntityType = schema.try_into().into_report().map_err(|report| {
@@ -239,7 +240,7 @@ struct UpdateEntityTypeRequest {
 async fn update_entity_type<P: StorePool + Send>(
     body: Json<UpdateEntityTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
+) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
     let Json(UpdateEntityTypeRequest {
         schema,
         type_to_update,

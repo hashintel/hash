@@ -9,7 +9,7 @@ use type_system::{uri::VersionedUri, LinkType};
 use crate::{
     ontology::{
         AccountId, LinkTypeQuery, LinkTypeRootedSubgraph, OntologyQueryDepth, PersistedLinkType,
-        PersistedOntologyIdentifier,
+        PersistedOntologyMetadata,
     },
     store::{
         crud::Read,
@@ -57,7 +57,7 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
         &mut self,
         link_type: LinkType,
         owned_by_id: AccountId,
-    ) -> Result<PersistedOntologyIdentifier, InsertionError> {
+    ) -> Result<PersistedOntologyMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -66,7 +66,7 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
                 .change_context(InsertionError)?,
         );
 
-        let (_, identifier) = transaction.create(link_type, owned_by_id).await?;
+        let (_, metadata) = transaction.create(link_type, owned_by_id).await?;
 
         transaction
             .client
@@ -75,7 +75,7 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
             .into_report()
             .change_context(InsertionError)?;
 
-        Ok(identifier)
+        Ok(metadata)
     }
 
     async fn get_link_type(
@@ -89,7 +89,7 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
                 let mut referenced_link_types = DependencyMap::new();
 
                 self.get_link_type_as_dependency(
-                    link_type.identifier.uri(),
+                    link_type.metadata.identifier.uri(),
                     LinkTypeDependencyContext {
                         referenced_link_types: &mut referenced_link_types,
                         link_type_query_depth: 0,
@@ -98,7 +98,7 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
                 .await?;
 
                 let root = referenced_link_types
-                    .remove(link_type.identifier.uri())
+                    .remove(link_type.metadata.identifier.uri())
                     .expect("root was not added to the subgraph");
 
                 Ok(LinkTypeRootedSubgraph { link_type: root })
@@ -111,7 +111,7 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
         &mut self,
         link_type: LinkType,
         updated_by: AccountId,
-    ) -> Result<PersistedOntologyIdentifier, UpdateError> {
+    ) -> Result<PersistedOntologyMetadata, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -120,7 +120,7 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
                 .change_context(UpdateError)?,
         );
 
-        let (_, identifier) = transaction.update(link_type, updated_by).await?;
+        let (_, metadata) = transaction.update(link_type, updated_by).await?;
 
         transaction
             .client
@@ -129,6 +129,6 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
             .into_report()
             .change_context(UpdateError)?;
 
-        Ok(identifier)
+        Ok(metadata)
     }
 }

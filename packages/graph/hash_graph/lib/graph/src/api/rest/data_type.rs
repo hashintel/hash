@@ -20,7 +20,7 @@ use crate::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, AccountId, DataTypeQuery, DataTypeRootedSubgraph, PersistedDataType,
-        PersistedOntologyIdentifier,
+        PersistedOntologyIdentifier, PersistedOntologyMetadata,
     },
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool,
@@ -98,7 +98,7 @@ async fn create_data_type<P: StorePool + Send>(
     body: Json<CreateDataTypeRequest>,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
-) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
+) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
     let Json(CreateDataTypeRequest { schema, account_id }) = body;
 
     let data_type: DataType = schema.try_into().into_report().map_err(|report| {
@@ -235,7 +235,7 @@ struct UpdateDataTypeRequest {
 async fn update_data_type<P: StorePool + Send>(
     body: Json<UpdateDataTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
+) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
     let Json(UpdateDataTypeRequest {
         schema,
         type_to_update,

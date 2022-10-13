@@ -10,7 +10,7 @@ use type_system::{uri::VersionedUri, PropertyType, PropertyTypeReference};
 
 use crate::{
     ontology::{
-        AccountId, OntologyQueryDepth, PersistedDataType, PersistedOntologyIdentifier,
+        AccountId, OntologyQueryDepth, PersistedDataType, PersistedOntologyMetadata,
         PersistedPropertyType, PropertyTypeQuery, PropertyTypeRootedSubgraph,
     },
     store::{
@@ -111,7 +111,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         &mut self,
         property_type: PropertyType,
         owned_by_id: AccountId,
-    ) -> Result<PersistedOntologyIdentifier, InsertionError> {
+    ) -> Result<PersistedOntologyMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -123,7 +123,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         // This clone is currently necessary because we extract the references as we insert them.
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_property_type_references` taking `&property_type`
-        let (version_id, identifier) = transaction
+        let (version_id, metadata) = transaction
             .create(property_type.clone(), owned_by_id)
             .await?;
 
@@ -146,7 +146,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             .into_report()
             .change_context(InsertionError)?;
 
-        Ok(identifier)
+        Ok(metadata)
     }
 
     async fn get_property_type(
@@ -165,7 +165,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 let mut referenced_property_types = DependencyMap::new();
 
                 self.get_property_type_as_dependency(
-                    property_type.identifier.uri(),
+                    property_type.metadata.identifier.uri(),
                     PropertyTypeDependencyContext {
                         referenced_data_types: &mut referenced_data_types,
                         referenced_property_types: &mut referenced_property_types,
@@ -176,7 +176,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 .await?;
 
                 let root = referenced_property_types
-                    .remove(property_type.identifier.uri())
+                    .remove(property_type.metadata.identifier.uri())
                     .expect("root was not added to the subgraph");
 
                 Ok(PropertyTypeRootedSubgraph {
@@ -193,7 +193,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         &mut self,
         property_type: PropertyType,
         updated_by: AccountId,
-    ) -> Result<PersistedOntologyIdentifier, UpdateError> {
+    ) -> Result<PersistedOntologyMetadata, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -205,7 +205,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         // This clone is currently necessary because we extract the references as we insert them.
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_property_type_references` taking `&property_type`
-        let (version_id, identifier) = transaction
+        let (version_id, metadata) = transaction
             .update(property_type.clone(), updated_by)
             .await?;
 
@@ -228,6 +228,6 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             .into_report()
             .change_context(UpdateError)?;
 
-        Ok(identifier)
+        Ok(metadata)
     }
 }

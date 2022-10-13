@@ -11,7 +11,7 @@ use type_system::{uri::VersionedUri, EntityType};
 use crate::{
     ontology::{
         AccountId, EntityTypeQuery, EntityTypeRootedSubgraph, OntologyQueryDepth,
-        PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier,
+        PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedOntologyMetadata,
         PersistedPropertyType,
     },
     store::{
@@ -152,7 +152,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         &mut self,
         entity_type: EntityType,
         owned_by_id: AccountId,
-    ) -> Result<PersistedOntologyIdentifier, InsertionError> {
+    ) -> Result<PersistedOntologyMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -164,7 +164,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         // This clone is currently necessary because we extract the references as we insert them.
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_entity_type_references` taking `&entity_type`
-        let (version_id, identifier) = transaction.create(entity_type.clone(), owned_by_id).await?;
+        let (version_id, metadata) = transaction.create(entity_type.clone(), owned_by_id).await?;
 
         transaction
             .insert_entity_type_references(&entity_type, version_id)
@@ -185,7 +185,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             .into_report()
             .change_context(InsertionError)?;
 
-        Ok(identifier)
+        Ok(metadata)
     }
 
     async fn get_entity_type(
@@ -208,7 +208,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 let mut referenced_entity_types = DependencyMap::new();
 
                 self.get_entity_type_as_dependency(
-                    entity_type.identifier.uri(),
+                    entity_type.metadata.identifier.uri(),
                     EntityTypeDependencyContext {
                         referenced_data_types: &mut referenced_data_types,
                         referenced_property_types: &mut referenced_property_types,
@@ -223,7 +223,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 .await?;
 
                 let root = referenced_entity_types
-                    .remove(entity_type.identifier.uri())
+                    .remove(entity_type.metadata.identifier.uri())
                     .expect("root was not added to the subgraph");
 
                 Ok(EntityTypeRootedSubgraph {
@@ -242,7 +242,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         &mut self,
         entity_type: EntityType,
         updated_by: AccountId,
-    ) -> Result<PersistedOntologyIdentifier, UpdateError> {
+    ) -> Result<PersistedOntologyMetadata, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -254,7 +254,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         // This clone is currently necessary because we extract the references as we insert them.
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_entity_type_references` taking `&entity_type`
-        let (version_id, identifier) = transaction.update(entity_type.clone(), updated_by).await?;
+        let (version_id, metadata) = transaction.update(entity_type.clone(), updated_by).await?;
 
         transaction
             .insert_entity_type_references(&entity_type, version_id)
@@ -275,6 +275,6 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             .into_report()
             .change_context(UpdateError)?;
 
-        Ok(identifier)
+        Ok(metadata)
     }
 }

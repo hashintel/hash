@@ -24,7 +24,7 @@ use crate::{
     ontology::{
         AccountId, DataTypeQuery, DataTypeRootedSubgraph, EntityTypeQuery,
         EntityTypeRootedSubgraph, LinkTypeQuery, LinkTypeRootedSubgraph, PersistedDataType,
-        PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier, PersistedPropertyType,
+        PersistedEntityType, PersistedLinkType, PersistedOntologyMetadata, PersistedPropertyType,
         PropertyTypeQuery, PropertyTypeRootedSubgraph,
     },
     store::{error::LinkRemovalError, query::Expression},
@@ -215,7 +215,7 @@ pub trait DataTypeStore: for<'q> crud::Read<PersistedDataType, Query<'q> = Expre
         &mut self,
         data_type: DataType,
         owned_by_id: AccountId,
-    ) -> Result<PersistedOntologyIdentifier, InsertionError>;
+    ) -> Result<PersistedOntologyMetadata, InsertionError>;
 
     /// Get the [`DataTypeRootedSubgraph`]s specified by the [`DataTypeQuery`].
     ///
@@ -236,7 +236,7 @@ pub trait DataTypeStore: for<'q> crud::Read<PersistedDataType, Query<'q> = Expre
         &mut self,
         data_type: DataType,
         updated_by: AccountId,
-    ) -> Result<PersistedOntologyIdentifier, UpdateError>;
+    ) -> Result<PersistedOntologyMetadata, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [`PropertyType`]s.
@@ -256,7 +256,7 @@ pub trait PropertyTypeStore:
         &mut self,
         property_type: PropertyType,
         owned_by_id: AccountId,
-    ) -> Result<PersistedOntologyIdentifier, InsertionError>;
+    ) -> Result<PersistedOntologyMetadata, InsertionError>;
 
     /// Get the [`PropertyTypeRootedSubgraph`]s specified by the [`PropertyTypeQuery`].
     ///
@@ -277,7 +277,7 @@ pub trait PropertyTypeStore:
         &mut self,
         property_type: PropertyType,
         updated_by: AccountId,
-    ) -> Result<PersistedOntologyIdentifier, UpdateError>;
+    ) -> Result<PersistedOntologyMetadata, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [`EntityType`]s.
@@ -295,7 +295,7 @@ pub trait EntityTypeStore: for<'q> crud::Read<PersistedEntityType, Query<'q> = E
         &mut self,
         entity_type: EntityType,
         owned_by_id: AccountId,
-    ) -> Result<PersistedOntologyIdentifier, InsertionError>;
+    ) -> Result<PersistedOntologyMetadata, InsertionError>;
 
     /// Get the [`EntityTypeRootedSubgraph`]s specified by the [`EntityTypeQuery`].
     ///
@@ -316,7 +316,7 @@ pub trait EntityTypeStore: for<'q> crud::Read<PersistedEntityType, Query<'q> = E
         &mut self,
         entity_type: EntityType,
         updated_by: AccountId,
-    ) -> Result<PersistedOntologyIdentifier, UpdateError>;
+    ) -> Result<PersistedOntologyMetadata, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [`LinkType`]s.
@@ -334,7 +334,7 @@ pub trait LinkTypeStore: for<'q> crud::Read<PersistedLinkType, Query<'q> = Expre
         &mut self,
         link_type: LinkType,
         owned_by_id: AccountId,
-    ) -> Result<PersistedOntologyIdentifier, InsertionError>;
+    ) -> Result<PersistedOntologyMetadata, InsertionError>;
 
     /// Get the [`LinkTypeRootedSubgraph`]s specified by the [`LinkTypeQuery`].
     ///
@@ -355,7 +355,7 @@ pub trait LinkTypeStore: for<'q> crud::Read<PersistedLinkType, Query<'q> = Expre
         &mut self,
         property_type: LinkType,
         updated_by: AccountId,
-    ) -> Result<PersistedOntologyIdentifier, UpdateError>;
+    ) -> Result<PersistedOntologyMetadata, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [Entities].

@@ -30,7 +30,7 @@ pub use self::{
 use super::error::LinkRemovalError;
 use crate::{
     knowledge::{Entity, EntityId, Link, PersistedEntityIdentifier, PersistedEntityMetadata},
-    ontology::{AccountId, PersistedOntologyIdentifier},
+    ontology::{AccountId, PersistedOntologyIdentifier, PersistedOntologyMetadata},
     store::{
         error::VersionedUriAlreadyExists,
         postgres::{ontology::OntologyDatabaseType, version_id::VersionId},
@@ -386,7 +386,7 @@ where
         &self,
         database_type: T,
         owned_by_id: AccountId,
-    ) -> Result<(VersionId, PersistedOntologyIdentifier), InsertionError>
+    ) -> Result<(VersionId, PersistedOntologyMetadata), InsertionError>
     where
         T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
     {
@@ -423,7 +423,7 @@ where
 
         Ok((
             version_id,
-            PersistedOntologyIdentifier::new(uri, owned_by_id),
+            PersistedOntologyMetadata::new(PersistedOntologyIdentifier::new(uri, owned_by_id)),
         ))
     }
 
@@ -441,7 +441,7 @@ where
         &self,
         database_type: T,
         updated_by: AccountId,
-    ) -> Result<(VersionId, PersistedOntologyIdentifier), UpdateError>
+    ) -> Result<(VersionId, PersistedOntologyMetadata), UpdateError>
     where
         T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
     {
@@ -468,10 +468,9 @@ where
             .await
             .change_context(UpdateError)?;
 
-        Ok((
-            version_id,
-            PersistedOntologyIdentifier::new(uri, updated_by),
-        ))
+        Ok((version_id, PersistedOntologyMetadata {
+            identifier: PersistedOntologyIdentifier::new(uri, updated_by),
+        }))
     }
 
     /// Inserts an [`OntologyDatabaseType`] identified by [`VersionId`], and associated with an

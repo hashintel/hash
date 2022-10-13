@@ -174,7 +174,7 @@ pub struct PersistedDataType {
     #[schema(value_type = VAR_DATA_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: DataType,
-    pub identifier: PersistedOntologyIdentifier,
+    pub metadata: PersistedOntologyMetadata,
 }
 
 /// Query to read [`DataType`]s, which are matching the [`Expression`].
@@ -201,7 +201,7 @@ pub struct PersistedPropertyType {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: PropertyType,
-    pub identifier: PersistedOntologyIdentifier,
+    pub metadata: PersistedOntologyMetadata,
 }
 
 /// Query to read [`PropertyType`]s, which are matching the [`Expression`].
@@ -231,7 +231,7 @@ pub struct PersistedLinkType {
     #[schema(value_type = VAR_LINK_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: LinkType,
-    pub identifier: PersistedOntologyIdentifier,
+    pub metadata: PersistedOntologyMetadata,
 }
 
 /// Query to read [`LinkType`]s, which are matching the [`Expression`].
@@ -249,11 +249,28 @@ pub struct LinkTypeRootedSubgraph {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+pub struct PersistedOntologyMetadata {
+    pub identifier: PersistedOntologyIdentifier,
+}
+
+impl PersistedOntologyMetadata {
+    #[must_use]
+    pub const fn new(identifier: PersistedOntologyIdentifier) -> Self {
+        Self { identifier }
+    }
+
+    #[must_use]
+    pub const fn identifier(&self) -> &PersistedOntologyIdentifier {
+        &self.identifier
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PersistedEntityType {
     #[schema(value_type = VAR_ENTITY_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: EntityType,
-    pub identifier: PersistedOntologyIdentifier,
+    pub metadata: PersistedOntologyMetadata,
 }
 
 /// Query to read [`EntityType`]s, which are matching the [`Expression`].

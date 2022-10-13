@@ -20,7 +20,7 @@ use crate::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, AccountId, LinkTypeQuery, LinkTypeRootedSubgraph, PersistedLinkType,
-        PersistedOntologyIdentifier,
+        PersistedOntologyIdentifier, PersistedOntologyMetadata,
     },
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, LinkTypeStore, StorePool,
@@ -42,6 +42,7 @@ use crate::{
             UpdateLinkTypeRequest,
             AccountId,
             PersistedOntologyIdentifier,
+            PersistedOntologyMetadata,
             PersistedLinkType,
             LinkTypeQuery,
             LinkTypeRootedSubgraph,
@@ -98,7 +99,7 @@ async fn create_link_type<P: StorePool + Send>(
     body: Json<CreateLinkTypeRequest>,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
-) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
+) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
     let Json(CreateLinkTypeRequest { schema, account_id }) = body;
 
     let link_type: LinkType = schema.try_into().into_report().map_err(|report| {
@@ -234,7 +235,7 @@ struct UpdateLinkTypeRequest {
 async fn update_link_type<P: StorePool + Send>(
     body: Json<UpdateLinkTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
+) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
     let Json(UpdateLinkTypeRequest {
         schema,
         type_to_update,
