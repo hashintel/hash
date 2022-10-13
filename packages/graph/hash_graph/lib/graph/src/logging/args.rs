@@ -10,7 +10,7 @@ use tracing_subscriber::filter::Directive;
 
 /// Output format emitted to the terminal
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "clap", derive(clap::ArgEnum))]
+#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 pub enum LogFormat {
     /// Human-readable, single-line logs for each event that occurs, with the current span context
     /// displayed before the formatted representation of the event.
@@ -41,7 +41,7 @@ impl Default for LogFormat {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "clap", derive(clap::ArgEnum))]
+#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 pub enum LogLevel {
     Trace,
     Debug,
@@ -84,14 +84,14 @@ pub struct LoggingArgs {
         clap(
             long,
             default_value = "pretty",
-            arg_enum,
+            value_enum,
             env = "HASH_GRAPH_LOG_FORMAT"
         )
     )]
     pub log_format: LogFormat,
 
     /// Logging verbosity to use. If not set `RUST_LOG` will be used
-    #[cfg_attr(feature = "clap", clap(long, arg_enum))]
+    #[cfg_attr(feature = "clap", clap(long, value_enum))]
     pub log_level: Option<LogLevel>,
 
     /// Logging output folder. The folder is created if it doesn't exist.

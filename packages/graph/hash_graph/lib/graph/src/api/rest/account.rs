@@ -14,11 +14,11 @@ use crate::{
 
 #[derive(OpenApi)]
 #[openapi(
-    handlers(
+    paths(
         create_account_id,
     ),
     components(
-        AccountId,
+        schemas(AccountId),
     ),
     tags(
         (name = "Account", description = "Account management API")
