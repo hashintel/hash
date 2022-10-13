@@ -26,6 +26,10 @@ export const PropertyTable = ({
   const handleHeaderClicked = useCallback(
     (col: number) => {
       const key = gridColumns[col]?.id;
+      if (!key) {
+        return;
+      }
+
       const isSorted = key === propertySort.key;
 
       setPropertySort({
