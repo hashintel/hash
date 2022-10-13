@@ -55,7 +55,13 @@ export interface CreateDataTypeRequest {
    * @type {string}
    * @memberof CreateDataTypeRequest
    */
-  accountId: string;
+  createdById: string;
+  /**
+   *
+   * @type {string}
+   * @memberof CreateDataTypeRequest
+   */
+  ownedById: string;
   /**
    *
    * @type {DataType}
@@ -74,7 +80,7 @@ export interface CreateEntityRequest {
    * @type {string}
    * @memberof CreateEntityRequest
    */
-  accountId: string;
+  createdById: string;
   /**
    *
    * @type {object}
@@ -93,6 +99,12 @@ export interface CreateEntityRequest {
    * @memberof CreateEntityRequest
    */
   entityTypeId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof CreateEntityRequest
+   */
+  ownedById: string;
 }
 /**
  *
@@ -105,7 +117,13 @@ export interface CreateEntityTypeRequest {
    * @type {string}
    * @memberof CreateEntityTypeRequest
    */
-  accountId: string;
+  createdById: string;
+  /**
+   *
+   * @type {string}
+   * @memberof CreateEntityTypeRequest
+   */
+  ownedById: string;
   /**
    *
    * @type {EntityType}
@@ -119,6 +137,12 @@ export interface CreateEntityTypeRequest {
  * @interface CreateLinkRequest
  */
 export interface CreateLinkRequest {
+  /**
+   *
+   * @type {string}
+   * @memberof CreateLinkRequest
+   */
+  createdById: string;
   /**
    *
    * @type {number}
@@ -155,7 +179,13 @@ export interface CreateLinkTypeRequest {
    * @type {string}
    * @memberof CreateLinkTypeRequest
    */
-  accountId: string;
+  createdById: string;
+  /**
+   *
+   * @type {string}
+   * @memberof CreateLinkTypeRequest
+   */
+  ownedById: string;
   /**
    *
    * @type {LinkType}
@@ -174,7 +204,13 @@ export interface CreatePropertyTypeRequest {
    * @type {string}
    * @memberof CreatePropertyTypeRequest
    */
-  accountId: string;
+  createdById: string;
+  /**
+   *
+   * @type {string}
+   * @memberof CreatePropertyTypeRequest
+   */
+  ownedById: string;
   /**
    *
    * @type {PropertyType}
@@ -748,6 +784,12 @@ export interface PersistedEntityMetadata {
    * @type {string}
    * @memberof PersistedEntityMetadata
    */
+  createdById: string;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedEntityMetadata
+   */
   entityTypeId: string;
   /**
    *
@@ -755,6 +797,18 @@ export interface PersistedEntityMetadata {
    * @memberof PersistedEntityMetadata
    */
   identifier: PersistedEntityIdentifier;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedEntityMetadata
+   */
+  removedById?: string;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedEntityMetadata
+   */
+  updatedById: string;
 }
 /**
  *
@@ -800,6 +854,12 @@ export interface PersistedLink {
  * @interface PersistedLinkMetadata
  */
 export interface PersistedLinkMetadata {
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedLinkMetadata
+   */
+  createdById: string;
   /**
    *
    * @type {string}
@@ -853,10 +913,28 @@ export interface PersistedOntologyIdentifier {
 export interface PersistedOntologyMetadata {
   /**
    *
+   * @type {string}
+   * @memberof PersistedOntologyMetadata
+   */
+  createdById: string;
+  /**
+   *
    * @type {PersistedOntologyIdentifier}
    * @memberof PersistedOntologyMetadata
    */
   identifier: PersistedOntologyIdentifier;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedOntologyMetadata
+   */
+  removedById?: string;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedOntologyMetadata
+   */
+  updatedById: string;
 }
 /**
  *
@@ -1201,12 +1279,6 @@ export type UpdateDataTypeKindEnum =
 export interface UpdateDataTypeRequest {
   /**
    *
-   * @type {string}
-   * @memberof UpdateDataTypeRequest
-   */
-  accountId: string;
-  /**
-   *
    * @type {UpdateDataType}
    * @memberof UpdateDataTypeRequest
    */
@@ -1217,6 +1289,12 @@ export interface UpdateDataTypeRequest {
    * @memberof UpdateDataTypeRequest
    */
   typeToUpdate: string;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateDataTypeRequest
+   */
+  updatedById: string;
 }
 /**
  *
@@ -1224,12 +1302,6 @@ export interface UpdateDataTypeRequest {
  * @interface UpdateEntityRequest
  */
 export interface UpdateEntityRequest {
-  /**
-   *
-   * @type {string}
-   * @memberof UpdateEntityRequest
-   */
-  accountId: string;
   /**
    *
    * @type {object}
@@ -1248,6 +1320,12 @@ export interface UpdateEntityRequest {
    * @memberof UpdateEntityRequest
    */
   entityTypeId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateEntityRequest
+   */
+  updatedById: string;
 }
 /**
  * The contents of an Entity Type update request
@@ -1344,12 +1422,6 @@ export type UpdateEntityTypeTypeEnum =
 export interface UpdateEntityTypeRequest {
   /**
    *
-   * @type {string}
-   * @memberof UpdateEntityTypeRequest
-   */
-  accountId: string;
-  /**
-   *
    * @type {UpdateEntityType}
    * @memberof UpdateEntityTypeRequest
    */
@@ -1360,6 +1432,12 @@ export interface UpdateEntityTypeRequest {
    * @memberof UpdateEntityTypeRequest
    */
   typeToUpdate: string;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateEntityTypeRequest
+   */
+  updatedById: string;
 }
 /**
  * The contents of a Link Type update request
@@ -1414,12 +1492,6 @@ export type UpdateLinkTypeKindEnum =
 export interface UpdateLinkTypeRequest {
   /**
    *
-   * @type {string}
-   * @memberof UpdateLinkTypeRequest
-   */
-  accountId: string;
-  /**
-   *
    * @type {UpdateLinkType}
    * @memberof UpdateLinkTypeRequest
    */
@@ -1430,6 +1502,12 @@ export interface UpdateLinkTypeRequest {
    * @memberof UpdateLinkTypeRequest
    */
   typeToUpdate: string;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateLinkTypeRequest
+   */
+  updatedById: string;
 }
 /**
  * The contents of a Property Type update request
@@ -1484,12 +1562,6 @@ export type UpdatePropertyTypeKindEnum =
 export interface UpdatePropertyTypeRequest {
   /**
    *
-   * @type {string}
-   * @memberof UpdatePropertyTypeRequest
-   */
-  accountId: string;
-  /**
-   *
    * @type {UpdatePropertyType}
    * @memberof UpdatePropertyTypeRequest
    */
@@ -1500,6 +1572,12 @@ export interface UpdatePropertyTypeRequest {
    * @memberof UpdatePropertyTypeRequest
    */
   typeToUpdate: string;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdatePropertyTypeRequest
+   */
+  updatedById: string;
 }
 /**
  * @type Vertex
