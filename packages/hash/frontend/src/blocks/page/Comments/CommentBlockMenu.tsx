@@ -12,24 +12,24 @@ type CommentBlockMenuProps = {
 export const CommentBlockMenu: FunctionComponent<CommentBlockMenuProps> = ({
   popupState,
 }) => {
-  // Commented out menu items whose functionality have not been
-  // implemented yet
-  // @todo uncomment when functionality has been implemented
   const menuItems = useMemo(
     () => [
       {
         title: "Edit",
         icon: faPencil,
+        // @todo Commented implement functionality
         onClick: async () => {},
       },
       {
         title: "Copy Link",
         icon: faLink,
+        // @todo Commented implement functionality
         onClick: async () => {},
       },
       {
         title: "Delete Comment",
         icon: faTrash,
+        // @todo Commented implement functionality
         onClick: async () => {},
       },
     ],

@@ -83,7 +83,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
     }
   }, []);
 
-  // TODO: REPLACE WITH ACTUAL TYPED PROPERTY URI
+  // @todo: replace with actual typed property uri (https://github.com/hashintel/hash/pull/1193)
   const preferredName = (author?.properties as any)[
     "http://localhost:3000/@example/types/property-type/preferred-name/"
   ];
