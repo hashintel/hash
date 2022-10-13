@@ -1631,11 +1631,25 @@ export type Vertex =
 export interface VertexOneOf {
   /**
    *
-   * @type {PersistedDataType}
+   * @type {VertexOneOfInner}
    * @memberof VertexOneOf
    */
-  dataType?: PersistedDataType;
+  inner: VertexOneOfInner;
+  /**
+   *
+   * @type {object}
+   * @memberof VertexOneOf
+   */
+  kind: VertexOneOfKindEnum;
 }
+
+export const VertexOneOfKindEnum = {
+  DataType: "DATA_TYPE",
+} as const;
+
+export type VertexOneOfKindEnum =
+  typeof VertexOneOfKindEnum[keyof typeof VertexOneOfKindEnum];
+
 /**
  *
  * @export
@@ -1644,10 +1658,43 @@ export interface VertexOneOf {
 export interface VertexOneOf1 {
   /**
    *
-   * @type {PersistedPropertyType}
+   * @type {VertexOneOf1Inner}
    * @memberof VertexOneOf1
    */
-  propertyType?: PersistedPropertyType;
+  inner: VertexOneOf1Inner;
+  /**
+   *
+   * @type {object}
+   * @memberof VertexOneOf1
+   */
+  kind: VertexOneOf1KindEnum;
+}
+
+export const VertexOneOf1KindEnum = {
+  PropertyType: "PROPERTY_TYPE",
+} as const;
+
+export type VertexOneOf1KindEnum =
+  typeof VertexOneOf1KindEnum[keyof typeof VertexOneOf1KindEnum];
+
+/**
+ *
+ * @export
+ * @interface VertexOneOf1Inner
+ */
+export interface VertexOneOf1Inner {
+  /**
+   *
+   * @type {PersistedOntologyIdentifier}
+   * @memberof VertexOneOf1Inner
+   */
+  identifier: PersistedOntologyIdentifier;
+  /**
+   *
+   * @type {PropertyType}
+   * @memberof VertexOneOf1Inner
+   */
+  inner: PropertyType;
 }
 /**
  *
@@ -1657,10 +1704,43 @@ export interface VertexOneOf1 {
 export interface VertexOneOf2 {
   /**
    *
-   * @type {PersistedLinkType}
+   * @type {VertexOneOf2Inner}
    * @memberof VertexOneOf2
    */
-  linkType?: PersistedLinkType;
+  inner: VertexOneOf2Inner;
+  /**
+   *
+   * @type {object}
+   * @memberof VertexOneOf2
+   */
+  kind: VertexOneOf2KindEnum;
+}
+
+export const VertexOneOf2KindEnum = {
+  LinkType: "LINK_TYPE",
+} as const;
+
+export type VertexOneOf2KindEnum =
+  typeof VertexOneOf2KindEnum[keyof typeof VertexOneOf2KindEnum];
+
+/**
+ *
+ * @export
+ * @interface VertexOneOf2Inner
+ */
+export interface VertexOneOf2Inner {
+  /**
+   *
+   * @type {PersistedOntologyIdentifier}
+   * @memberof VertexOneOf2Inner
+   */
+  identifier: PersistedOntologyIdentifier;
+  /**
+   *
+   * @type {LinkType}
+   * @memberof VertexOneOf2Inner
+   */
+  inner: LinkType;
 }
 /**
  *
@@ -1670,10 +1750,43 @@ export interface VertexOneOf2 {
 export interface VertexOneOf3 {
   /**
    *
-   * @type {PersistedEntityType}
+   * @type {VertexOneOf3Inner}
    * @memberof VertexOneOf3
    */
-  entityType?: PersistedEntityType;
+  inner: VertexOneOf3Inner;
+  /**
+   *
+   * @type {object}
+   * @memberof VertexOneOf3
+   */
+  kind: VertexOneOf3KindEnum;
+}
+
+export const VertexOneOf3KindEnum = {
+  EntityType: "ENTITY_TYPE",
+} as const;
+
+export type VertexOneOf3KindEnum =
+  typeof VertexOneOf3KindEnum[keyof typeof VertexOneOf3KindEnum];
+
+/**
+ *
+ * @export
+ * @interface VertexOneOf3Inner
+ */
+export interface VertexOneOf3Inner {
+  /**
+   *
+   * @type {PersistedOntologyIdentifier}
+   * @memberof VertexOneOf3Inner
+   */
+  identifier: PersistedOntologyIdentifier;
+  /**
+   *
+   * @type {EntityType}
+   * @memberof VertexOneOf3Inner
+   */
+  inner: EntityType;
 }
 /**
  *
@@ -1683,10 +1796,49 @@ export interface VertexOneOf3 {
 export interface VertexOneOf4 {
   /**
    *
-   * @type {PersistedEntity}
+   * @type {VertexOneOf4Inner}
    * @memberof VertexOneOf4
    */
-  entity?: PersistedEntity;
+  inner: VertexOneOf4Inner;
+  /**
+   *
+   * @type {object}
+   * @memberof VertexOneOf4
+   */
+  kind: VertexOneOf4KindEnum;
+}
+
+export const VertexOneOf4KindEnum = {
+  Entity: "ENTITY",
+} as const;
+
+export type VertexOneOf4KindEnum =
+  typeof VertexOneOf4KindEnum[keyof typeof VertexOneOf4KindEnum];
+
+/**
+ * A record of an [`Entity`] that has been persisted in the datastore, with its associated
+ * @export
+ * @interface VertexOneOf4Inner
+ */
+export interface VertexOneOf4Inner {
+  /**
+   *
+   * @type {string}
+   * @memberof VertexOneOf4Inner
+   */
+  entityTypeId: string;
+  /**
+   *
+   * @type {PersistedEntityIdentifier}
+   * @memberof VertexOneOf4Inner
+   */
+  identifier: PersistedEntityIdentifier;
+  /**
+   *
+   * @type {object}
+   * @memberof VertexOneOf4Inner
+   */
+  inner: object;
 }
 /**
  *
@@ -1696,10 +1848,62 @@ export interface VertexOneOf4 {
 export interface VertexOneOf5 {
   /**
    *
-   * @type {PersistedLink}
+   * @type {VertexOneOf5Inner}
    * @memberof VertexOneOf5
    */
-  link?: PersistedLink;
+  inner: VertexOneOf5Inner;
+  /**
+   *
+   * @type {object}
+   * @memberof VertexOneOf5
+   */
+  kind: VertexOneOf5KindEnum;
+}
+
+export const VertexOneOf5KindEnum = {
+  Link: "LINK",
+} as const;
+
+export type VertexOneOf5KindEnum =
+  typeof VertexOneOf5KindEnum[keyof typeof VertexOneOf5KindEnum];
+
+/**
+ * A record of a [`Link`] that has been persisted in the datastore, with its associated
+ * @export
+ * @interface VertexOneOf5Inner
+ */
+export interface VertexOneOf5Inner {
+  /**
+   *
+   * @type {Link}
+   * @memberof VertexOneOf5Inner
+   */
+  inner: Link;
+  /**
+   *
+   * @type {string}
+   * @memberof VertexOneOf5Inner
+   */
+  ownedById: string;
+}
+/**
+ *
+ * @export
+ * @interface VertexOneOfInner
+ */
+export interface VertexOneOfInner {
+  /**
+   *
+   * @type {PersistedOntologyIdentifier}
+   * @memberof VertexOneOfInner
+   */
+  identifier: PersistedOntologyIdentifier;
+  /**
+   *
+   * @type {DataType}
+   * @memberof VertexOneOfInner
+   */
+  inner: DataType;
 }
 
 /**
