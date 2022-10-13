@@ -29,7 +29,7 @@ pub use self::{
 };
 use super::error::LinkRemovalError;
 use crate::{
-    knowledge::{Entity, EntityId, Link, PersistedEntityIdentifier},
+    knowledge::{Entity, EntityId, Link, PersistedEntityIdentifier, PersistedEntityMetadata},
     ontology::{AccountId, PersistedOntologyIdentifier},
     store::{
         error::VersionedUriAlreadyExists,
@@ -704,8 +704,8 @@ where
         entity: Entity,
         entity_type_id: VersionedUri,
         account_id: AccountId,
-    ) -> Result<PersistedEntityIdentifier, InsertionError> {
-        let entity_type_id = self
+    ) -> Result<PersistedEntityMetadata, InsertionError> {
+        let entity_type_version_id = self
             .version_id_by_uri(&entity_type_id)
             .await
             .change_context(InsertionError)?;
@@ -722,14 +722,15 @@ where
                     VALUES ($1, clock_timestamp(), $2, $3, $4)
                     RETURNING version;
                 "#,
-                &[&entity_id, &entity_type_id, &value, &account_id]
+                &[&entity_id, &entity_type_version_id, &value, &account_id]
             )
             .await
             .into_report()
             .change_context(InsertionError)?.get(0);
 
-        Ok(PersistedEntityIdentifier::new(
-            entity_id, version, account_id,
+        Ok(PersistedEntityMetadata::new(
+            PersistedEntityIdentifier::new(entity_id, version, account_id),
+            entity_type_id,
         ))
     }
 

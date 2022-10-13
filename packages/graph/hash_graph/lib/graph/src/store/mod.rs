@@ -19,7 +19,7 @@ pub use self::{
 use crate::{
     knowledge::{
         Entity, EntityId, EntityRootedSubgraph, KnowledgeGraphQuery, Link, LinkRootedSubgraph,
-        PersistedEntity, PersistedEntityIdentifier, PersistedLink,
+        PersistedEntity, PersistedEntityMetadata, PersistedLink,
     },
     ontology::{
         AccountId, DataTypeQuery, DataTypeRootedSubgraph, EntityTypeQuery,
@@ -377,7 +377,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
         entity_type_id: VersionedUri,
         owned_by_id: AccountId,
         entity_id: Option<EntityId>,
-    ) -> Result<PersistedEntityIdentifier, InsertionError>;
+    ) -> Result<PersistedEntityMetadata, InsertionError>;
 
     /// Inserts the entities with the specified [`EntityType`] into the `Store`.
     ///
@@ -429,7 +429,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
         entity: Entity,
         entity_type_id: VersionedUri,
         updated_by: AccountId,
-    ) -> Result<PersistedEntityIdentifier, UpdateError>;
+    ) -> Result<PersistedEntityMetadata, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [`Link`]s.

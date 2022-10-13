@@ -17,7 +17,7 @@ use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     knowledge::{
         Entity, EntityId, EntityRootedSubgraph, KnowledgeGraphQuery, PersistedEntity,
-        PersistedEntityIdentifier,
+        PersistedEntityIdentifier, PersistedEntityMetadata,
     },
     ontology::AccountId,
     store::{
@@ -100,7 +100,7 @@ struct CreateEntityRequest {
 async fn create_entity<P: StorePool + Send>(
     body: Json<CreateEntityRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedEntityIdentifier>, StatusCode> {
+) -> Result<Json<PersistedEntityMetadata>, StatusCode> {
     let Json(CreateEntityRequest {
         entity,
         entity_type_id,
@@ -225,7 +225,7 @@ struct UpdateEntityRequest {
 async fn update_entity<P: StorePool + Send>(
     body: Json<UpdateEntityRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedEntityIdentifier>, StatusCode> {
+) -> Result<Json<PersistedEntityMetadata>, StatusCode> {
     let Json(UpdateEntityRequest {
         entity,
         entity_id,
