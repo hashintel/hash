@@ -3,20 +3,13 @@ import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorProps, EditorView } from "prosemirror-view";
 
-import { Text, TextProperties } from "./graphql/apiTypes.gen";
 import {
   areComponentsCompatible,
   fetchBlock,
   HashBlock,
   prepareBlockCache,
 } from "./blocks";
-import {
-  BlockEntity,
-  getBlockChildEntity,
-  isTextEntity,
-  isTextProperties,
-  LegacyLink,
-} from "./entity";
+import { BlockEntity, getBlockChildEntity, isTextEntity } from "./entity";
 import {
   createEntityStore,
   DraftEntity,
@@ -328,40 +321,14 @@ export class ProsemirrorManager {
         addEntityStoreAction(this.view.state, tr, {
           type: "updateEntityProperties",
           payload: {
-            draftId: blockEntity.dataEntity.draftId,
+            draftId: blockEntity.dataEntity?.draftId!,
             properties: entityProperties,
             merge: true,
           },
         });
         targetBlockId = blockEntity.draftId;
       } else {
-        let newBlockProperties = entityProperties;
-
-        /**
-         * This is supporting swapping between text blocks and persisting the
-         * existing text
-         */
-        // if (
-        //   isDraftTextContainingEntityProperties(
-        //     blockEntity.dataEntity?.properties,
-        //   )
-        // ) {
-        //   newBlockProperties = {
-        //     ...entityProperties,
-        //     text: blockEntity.dataEntity?.properties.text as any,
-        //   };
-        // } else
-        if (isTextProperties(blockEntity.dataEntity?.properties)) {
-          newBlockProperties = {
-            ...entityProperties,
-            // text: this.createNewLegacyTextLink(
-            //   this.view.state,
-            //   tr,
-            //   blockEntity.accountId,
-            //   blockEntity.dataEntity?.properties ?? { tokens: [] },
-            // ),
-          };
-        }
+        const newBlockProperties = entityProperties;
 
         targetBlockId = await this.createBlockEntity(
           tr,
@@ -385,43 +352,6 @@ export class ProsemirrorManager {
     );
 
     return [tr, newNode] as const;
-  }
-
-  createNewLegacyTextLink(
-    state: EditorState<Schema>,
-    tr: Transaction<Schema>,
-    accountId: string,
-    textProperties: TextProperties,
-  ): LegacyLink<Text> {
-    const newTextEntity = generateDraftIdForEntity(null);
-    addEntityStoreAction(state, tr, {
-      type: "newDraftEntity",
-      payload: {
-        accountId,
-        draftId: newTextEntity,
-        entityId: null,
-      },
-    });
-    addEntityStoreAction(state, tr, {
-      type: "updateEntityProperties",
-      payload: {
-        properties: textProperties,
-        draftId: newTextEntity,
-        merge: false,
-      },
-    });
-
-    const textEntity = entityStorePluginStateFromTransaction(tr, state).store
-      .draft[newTextEntity];
-
-    if (!textEntity || !isTextEntity(textEntity)) {
-      throw new Error("Failed to create text entity");
-    }
-
-    return {
-      __linkedData: {},
-      data: textEntity,
-    };
   }
 
   async insertBlock(

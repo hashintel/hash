@@ -135,11 +135,6 @@ export const updatePersistedPageContents: ResolverFn<
 
   let insertCount = 0;
   for (const [i, action] of actions.entries()) {
-    console.info("ACTION INFO", {
-      i,
-      action: JSON.stringify(action),
-    });
-
     try {
       if (action.insertBlock) {
         await pageModel.insertBlock(graphApi, {

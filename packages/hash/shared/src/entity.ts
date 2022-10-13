@@ -9,12 +9,7 @@ import {
 } from "./entityStore";
 import { PersistedPageFieldsFragment, Text } from "./graphql/apiTypes.gen";
 import { TextToken } from "./graphql/types";
-import {
-  DistributiveOmit,
-  DistributivePick,
-  flatMapTree,
-  isUnknownObject,
-} from "./util";
+import { DistributiveOmit, DistributivePick, flatMapTree } from "./util";
 
 type ContentsEntity = DistributiveOmit<
   PersistedPageFieldsFragment["contents"][number],
@@ -53,65 +48,6 @@ export const isDraftTextEntity = (
 ): entity is DraftEntity<TextEntityType> =>
   isTextEntity(entity) && isDraftEntity(entity);
 
-/**
- * @deprecated
- */
-export type LegacyLink<
-  Type extends EntityStoreType | DraftEntity = EntityStoreType,
-> = {
-  /**
-   * @deprecated
-   */
-  data: Type;
-
-  /**
-   * @deprecated
-   */
-  __linkedData: {
-    entityTypeId?: string;
-    entityId?: string;
-  };
-};
-
-/*
- * @deprecated
- */
-// const isLegacyLink = (data: unknown): data is LegacyLink => {
-//   return (
-//     isUnknownObject(data) &&
-//     "__linkedData" in data &&
-//     "data" in data &&
-//     typeof data.data === "object" &&
-//     isEntity(data.data)
-//   );
-// };
-
-// /**
-//  * @todo this can be used when a text entity could exist on any property
-//  */
-// export const isTextContainingEntityProperties = (
-//   entityProperties: unknown,
-// ): entityProperties is TextEntityType["properties"] => {
-//   return (
-//     isUnknownObject(entityProperties) &&
-//     TEXT_TOKEN_PROPERTY_TYPE_ID in entityProperties
-//   );
-// };
-
-// /**
-//  * @todo this can be used when a text entity could exist on any property
-//  * @deprecated
-//  */
-// export const isDraftTextContainingEntityProperties = (
-//   entityProperties: unknown,
-// ): entityProperties is TextEntityType["properties"] => {
-//   return isTextContainingEntityProperties(entityProperties);
-//   // && isDraftEntity(entityProperties)
-// };
-
-/**
- * @todo this will need to change when we remove legacy links
- */
 export const getEntityChildEntity = (
   draftId: string,
   draftEntityStore: EntityStore["draft"],
@@ -121,23 +57,6 @@ export const getEntityChildEntity = (
     throw new Error("invariant: missing entity");
   }
 
-  // if (isTextContainingEntityProperties(entity.properties)) {
-  //   const linkEntity = entity.properties.text.data;
-
-  //   if (!isDraftEntity(linkEntity)) {
-  //     throw new Error("Expected linked entity to be draft");
-  //   }
-
-  //   /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-  //   const textEntity = draftEntityStore[(linkEntity as any).draftId];
-
-  //   if (!textEntity) {
-  //     throw new Error("Missing text entity from draft store");
-  //   }
-
-  //   return textEntity;
-  // }
-
   const childEntity = entity.dataEntity?.draftId
     ? draftEntityStore[entity.dataEntity.draftId]
     : null;
@@ -145,9 +64,6 @@ export const getEntityChildEntity = (
   return childEntity;
 };
 
-/**
- * @todo this will need to change when we remove legacy links
- */
 export const getBlockChildEntity = (
   draftBlockId: string,
   entityStore: EntityStore,

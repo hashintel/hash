@@ -68,13 +68,10 @@ type BlockLoaderProps = {
 
 const removeTextEntities = (properties: {}) => {
   // @see https://app.asana.com/0/1201095311341924/1202694273052398/f
+  // NOTE, THIS HAS BEEN CHANGED SINCE to accompany the new Graph Layer
   if (isTextProperties(properties)) {
-    return { text: "" };
+    return { ...properties, text: "" };
   }
-
-  // if (isTextContainingEntityProperties(properties)) {
-  //   return { ...properties, text: "" };
-  // }
 
   return properties;
 };

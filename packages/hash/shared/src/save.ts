@@ -1,5 +1,5 @@
 import { ApolloClient } from "@apollo/client";
-import { isEqual, pick } from "lodash";
+import { isEqual } from "lodash";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 
@@ -51,8 +51,6 @@ const calculateSaveActions = async (
 
   const draftIdToPlaceholderId = new Map<string, string>();
   const draftIdToBlockEntities = new Map<string, DraftEntity<BlockEntity>>();
-
-  console.debug("Wannasave", { store: store.draft });
 
   for (const draftEntity of Object.values(store.draft)) {
     if (isDraftBlockEntity(draftEntity)) {
@@ -394,16 +392,13 @@ export const save = async (
     .then((res) => res.data.persistedPage.contents);
 
   // const entityTypeForComponentId = new Map<string, string>();
+
   const [actions, placeholderToDraft] = await calculateSaveActions(
     store,
     ownedById,
     /** @todo This type ID should *not* be hardcoded as is here. */
     TEXT_ENTITY_TYPE_ID,
-    /**
-     * @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f
-     * Note that this code path isn't run in the current state of collab. (frontend never triggers changes)
-     */
-    blocks as any,
+    blocks,
     doc,
     /**
      * @todo currently we use the dummy entity type for *every block* we don't know about.
@@ -412,14 +407,7 @@ export const save = async (
       "http://localhost:3000/@example/types/entity-type/dummy/v/1",
       [],
     ],
-    // await ensureEntityTypeForComponent(
-    //   apolloClient,
-    //   componentId,
-    //   accountId,
-    //   entityTypeForComponentId,
-    // ),
   );
-  console.debug("SAVE ACTIONS", actions);
 
   const res = await apolloClient.mutate<
     UpdatePersistedPageContentsMutation,
@@ -432,8 +420,6 @@ export const save = async (
   if (!res.data) {
     throw new Error("Failed");
   }
-
-  // await apolloClient.reFetchObservableQueries();
 
   const draftToEntityId = getDraftEntityIds(
     res.data.updatePersistedPageContents.placeholders,

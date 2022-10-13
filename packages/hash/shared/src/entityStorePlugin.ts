@@ -13,7 +13,6 @@ import {
   getDraftEntityByEntityId,
   isBlockEntity,
   isDraftBlockEntity,
-  TEXT_TOKEN_PROPERTY_TYPE_ID,
 } from "./entityStore";
 import {
   ComponentNode,
@@ -558,10 +557,11 @@ class ProsemirrorStateChangeHandler {
     if (!childEntity) {
       return;
     }
-    // We are currently at
+    // We should currently be
     //          here V
     // Block -> Entity -> Entity -> Component node
-    //  child refers to this ^
+    //  firstChild refers to ^
+    //  firstchild.firstChild refers to  ^
     // and we'd like to update the child entity's text contents approrpiately.
 
     if (

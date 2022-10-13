@@ -92,7 +92,6 @@ export const LoadEntityMenuContent: FunctionComponent<
        */
       if (
         isTextEntity(entity) ||
-        // isTextContainingEntityProperties(entity.properties) ||
         entity.entityType.properties.title === "Page"
       ) {
         return false;

@@ -184,10 +184,6 @@ export const createEditorView = (
   );
 
   void manager.loadPage(state, getLastSavedValue()).then((tr) => {
-    console.info("LOADED STATE", {
-      entitystore: entityStorePluginStateFromTransaction(tr, state).store,
-    });
-
     view.updateState(state.apply(tr));
   });
 

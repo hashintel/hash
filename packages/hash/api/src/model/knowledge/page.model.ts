@@ -396,10 +396,6 @@ export default class extends EntityModel {
 
     const { block } = params;
 
-    console.info("about to create a block pos", {
-      specifiedPosition,
-      target: block,
-    });
     await this.createOutgoingLink(graphApi, {
       targetEntityModel: block,
       linkTypeModel: WORKSPACE_TYPES.linkType.contains,
@@ -409,15 +405,6 @@ export default class extends EntityModel {
         ((await this.getBlocks(graphApi)).length === 0 ? 0 : undefined),
       // assume that link to block is owned by the same account as the page
       ownedById: this.ownedById,
-    });
-
-    const contentLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.contains,
-    });
-
-    console.info("INFO FOR LINKS after insert", {
-      specifiedPosition,
-      contentLinks,
     });
   }
 

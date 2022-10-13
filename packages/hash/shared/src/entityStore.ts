@@ -1,6 +1,6 @@
 import { Draft, produce } from "immer";
 import { generateDraftIdForEntity } from "./entityStorePlugin";
-import { BlockEntity, isTextContainingEntityProperties } from "./entity";
+import { BlockEntity } from "./entity";
 // import { DistributiveOmit } from "./util";
 import { MinimalEntityTypeFieldsFragment } from "./graphql/apiTypes.gen";
 
@@ -11,18 +11,6 @@ export const TEXT_ENTITY_TYPE_ID =
 
 export const TEXT_TOKEN_PROPERTY_TYPE_ID =
   "http://localhost:3000/@example/types/property-type/text-tokens/";
-
-// type PropertiesType<Properties extends {}> = Properties extends {
-//   entity: EntityStoreType;
-// }
-//   ? DistributiveOmit<Properties, "entity"> & {
-//       /**
-//        * @deprecated
-//        * @todo Don't use this, use links
-//        */
-//       entity: DraftEntity<Properties["entity"]>;
-//     }
-//   : Properties;
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   accountId: string;
@@ -189,27 +177,8 @@ export const createEntityStore = (
     draft[draftId] = produce<DraftEntity>(
       draft[draftId]!,
       (draftEntity: Draft<DraftEntity>) => {
-        // if (isTextContainingEntityProperties(draftEntity.properties)) {
-        //   /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-        //   restoreDraftId(draftEntity, entityToDraft);
-        // }
-
         if (isDraftBlockEntity(draftEntity)) {
           restoreDraftId(draftEntity, entityToDraft);
-
-          // if (
-          //   /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-
-          //   isTextContainingEntityProperties(
-          //     (draftEntity.dataEntity as any).properties,
-          //   )
-          // ) {
-          //   restoreDraftId(
-          //     /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-          //     draftEntity.dataEntity as any,
-          //     entityToDraft,
-          //   );
-          // }
 
           // Set the dataEntity's draft ID on a block draft.
           if (
@@ -217,8 +186,6 @@ export const createEntityStore = (
             draftEntity.dataEntity?.entityId
           ) {
             restoreDraftId(draftEntity.dataEntity, entityToDraft);
-            // const dataEntityDraftId =
-            //   entityToDraft[draftEntity.dataEntity?.entityId]!;
           }
         }
       },
