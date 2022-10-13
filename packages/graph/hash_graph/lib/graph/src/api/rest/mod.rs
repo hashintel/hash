@@ -11,7 +11,7 @@ mod link;
 mod link_type;
 mod property_type;
 
-use std::{collections::BTreeMap, sync::Arc};
+use std::sync::Arc;
 
 use axum::{
     extract::Path,
@@ -23,7 +23,6 @@ use axum::{
 use error_stack::Report;
 use futures::TryFutureExt;
 use include_dir::{include_dir, Dir};
-use indexmap::IndexMap;
 use utoipa::{
     openapi::{self, schema, schema::RefOr, ObjectBuilder},
     Modify, OpenApi,
@@ -225,11 +224,11 @@ impl Modify for ExternalRefAddon {
         for path_item in openapi.paths.paths.values_mut() {
             for operation in path_item.operations.values_mut() {
                 if let Some(request_body) = &mut operation.request_body {
-                    modify_component_body(&mut request_body.content);
+                    modify_component(request_body.content.values_mut());
                 }
 
                 for response in &mut operation.responses.responses.values_mut() {
-                    modify_component_responses(&mut response.content);
+                    modify_component(response.content.values_mut());
                 }
             }
         }
@@ -242,15 +241,11 @@ impl Modify for ExternalRefAddon {
     }
 }
 
-fn modify_component_body(content: &mut BTreeMap<String, openapi::Content>) {
-    for content in content.values_mut() {
-        modify_schema_references(&mut content.schema);
-    }
-}
-
-// TODO: can we avoid importing IndexMap here?
-fn modify_component_responses(content: &mut IndexMap<String, openapi::Content>) {
-    for content in content.values_mut() {
+fn modify_component<'a, I>(content_iter: I)
+where
+    I: IntoIterator<Item = &'a mut openapi::Content>,
+{
+    for content in content_iter {
         modify_schema_references(&mut content.schema);
     }
 }
