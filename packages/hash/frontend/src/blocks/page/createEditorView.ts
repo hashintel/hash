@@ -61,46 +61,25 @@ const createSavePlugin = (
     });
   };
 
-  // Saving happens in two ways, either through this idle save interval
-  let interval: ReturnType<typeof setInterval> | void;
-  const maxWaitTime = 2000;
+  const minWaitTime = 400;
+  const maxWaitTime = 1200;
 
-  const idleSave = (view: EditorView<Schema>) => {
-    if (!interval) {
-      interval = setInterval(() => {
-        triggerSave(view);
-      }, maxWaitTime);
-    }
-  };
-
-  // Or through debouncing actual new typed content.
+  // Saving happens through a debounced write operation
   const writeDebounce = debounce(
     (view: EditorView<Schema>) => {
-      if (interval) {
-        interval = clearInterval(interval);
-      }
-
       triggerSave(view);
     },
-    400,
+    minWaitTime,
     { maxWait: maxWaitTime },
   );
 
   return new Plugin<unknown, Schema>({
-    // On initial view creation, a interval for saving is set (idle saving).
-    view: (viewOnCreation: EditorView<Schema>) => {
-      idleSave(viewOnCreation);
+    view: (_viewOnCreation: EditorView<Schema>) => {
       return {
         update: (view, prevState) => {
           if (view.state.doc !== prevState.doc) {
             // If the document changes between updates, we issue a debounced update.
-            // This update cancels the itnerval and saves on a 400 to maxWaitTime ms interval
             writeDebounce(view);
-          } else {
-            // And once no updates happen, the idle interval is re-enabled.
-            // This setup makes it so that saving happens really fast while typing
-            // but slows down when there's no activity.
-            idleSave(view);
           }
         },
         destroy: () => {
@@ -121,11 +100,11 @@ const createSavePlugin = (
           }
           return false;
         },
-        // blur(view) {
-        //   writeDebounce.cancel();
-        //   triggerSave(view);
-        //   return false;
-        // },
+        blur(view) {
+          writeDebounce.cancel();
+          triggerSave(view);
+          return false;
+        },
       },
     },
   });
