@@ -15,7 +15,15 @@ export const getAllLatestDataTypes: ResolverFn<
   const { data: dataTypeSubgraph } = await graphApi
     .getDataTypesByQuery({
       query: { eq: [{ path: ["version"] }, { literal: "latest" }] },
-      dataTypeQueryDepth: 0,
+      /** todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
+      queryResolveDepths: {
+        dataTypeResolveDepth: 0,
+        propertyTypeResolveDepth: 0,
+        linkTypeResolveDepth: 0,
+        entityTypeResolveDepth: 0,
+        entityResolveDepth: 0,
+        linkResolveDepth: 0,
+      },
     })
     .catch((err: AxiosError) => {
       throw new ApolloError(
@@ -40,7 +48,15 @@ export const getDataType: ResolverFn<
       query: {
         eq: [{ path: ["versionedUri"] }, { literal: dataTypeId }],
       },
-      dataTypeQueryDepth: 0,
+      /** todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
+      queryResolveDepths: {
+        dataTypeResolveDepth: 0,
+        propertyTypeResolveDepth: 0,
+        linkTypeResolveDepth: 0,
+        entityTypeResolveDepth: 0,
+        entityResolveDepth: 0,
+        linkResolveDepth: 0,
+      },
     })
     .catch((err: AxiosError) => {
       throw new ApolloError(

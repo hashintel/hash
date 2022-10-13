@@ -2152,16 +2152,16 @@ export const DataTypeApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {object} body
+     * @param {DataTypeQuery} dataTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getDataTypesByQuery: async (
-      body: object,
+      dataTypeQuery: DataTypeQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'body' is not null or undefined
-      assertParamExists("getDataTypesByQuery", "body", body);
+      // verify required parameter 'dataTypeQuery' is not null or undefined
+      assertParamExists("getDataTypesByQuery", "dataTypeQuery", dataTypeQuery);
       const localVarPath = `/data-types/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -2189,7 +2189,7 @@ export const DataTypeApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        body,
+        dataTypeQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -2354,18 +2354,21 @@ export const DataTypeApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {object} body
+     * @param {DataTypeQuery} dataTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getDataTypesByQuery(
-      body: object,
+      dataTypeQuery: DataTypeQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getDataTypesByQuery(body, options);
+        await localVarAxiosParamCreator.getDataTypesByQuery(
+          dataTypeQuery,
+          options,
+        );
       return createRequestFunction(
         localVarAxiosArgs,
         globalAxios,
@@ -2462,13 +2465,16 @@ export const DataTypeApiFactory = function (
     },
     /**
      *
-     * @param {object} body
+     * @param {DataTypeQuery} dataTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getDataTypesByQuery(body: object, options?: any): AxiosPromise<Subgraph> {
+    getDataTypesByQuery(
+      dataTypeQuery: DataTypeQuery,
+      options?: any,
+    ): AxiosPromise<Subgraph> {
       return localVarFp
-        .getDataTypesByQuery(body, options)
+        .getDataTypesByQuery(dataTypeQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -2530,13 +2536,13 @@ export interface DataTypeApiInterface {
 
   /**
    *
-   * @param {object} body
+   * @param {DataTypeQuery} dataTypeQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof DataTypeApiInterface
    */
   getDataTypesByQuery(
-    body: object,
+    dataTypeQuery: DataTypeQuery,
     options?: AxiosRequestConfig,
   ): AxiosPromise<Subgraph>;
 
@@ -2601,14 +2607,17 @@ export class DataTypeApi extends BaseAPI implements DataTypeApiInterface {
 
   /**
    *
-   * @param {object} body
+   * @param {DataTypeQuery} dataTypeQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof DataTypeApi
    */
-  public getDataTypesByQuery(body: object, options?: AxiosRequestConfig) {
+  public getDataTypesByQuery(
+    dataTypeQuery: DataTypeQuery,
+    options?: AxiosRequestConfig,
+  ) {
     return DataTypeApiFp(this.configuration)
-      .getDataTypesByQuery(body, options)
+      .getDataTypesByQuery(dataTypeQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -4289,16 +4298,16 @@ export const GraphApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {object} body
+     * @param {DataTypeQuery} dataTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getDataTypesByQuery: async (
-      body: object,
+      dataTypeQuery: DataTypeQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'body' is not null or undefined
-      assertParamExists("getDataTypesByQuery", "body", body);
+      // verify required parameter 'dataTypeQuery' is not null or undefined
+      assertParamExists("getDataTypesByQuery", "dataTypeQuery", dataTypeQuery);
       const localVarPath = `/data-types/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -4326,7 +4335,7 @@ export const GraphApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        body,
+        dataTypeQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -5549,18 +5558,21 @@ export const GraphApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {object} body
+     * @param {DataTypeQuery} dataTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getDataTypesByQuery(
-      body: object,
+      dataTypeQuery: DataTypeQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getDataTypesByQuery(body, options);
+        await localVarAxiosParamCreator.getDataTypesByQuery(
+          dataTypeQuery,
+          options,
+        );
       return createRequestFunction(
         localVarAxiosArgs,
         globalAxios,
@@ -6223,13 +6235,16 @@ export const GraphApiFactory = function (
     },
     /**
      *
-     * @param {object} body
+     * @param {DataTypeQuery} dataTypeQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getDataTypesByQuery(body: object, options?: any): AxiosPromise<Subgraph> {
+    getDataTypesByQuery(
+      dataTypeQuery: DataTypeQuery,
+      options?: any,
+    ): AxiosPromise<Subgraph> {
       return localVarFp
-        .getDataTypesByQuery(body, options)
+        .getDataTypesByQuery(dataTypeQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -6611,13 +6626,13 @@ export interface GraphApiInterface {
 
   /**
    *
-   * @param {object} body
+   * @param {DataTypeQuery} dataTypeQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
   getDataTypesByQuery(
-    body: object,
+    dataTypeQuery: DataTypeQuery,
     options?: AxiosRequestConfig,
   ): AxiosPromise<Subgraph>;
 
@@ -6998,14 +7013,17 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
 
   /**
    *
-   * @param {object} body
+   * @param {DataTypeQuery} dataTypeQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApi
    */
-  public getDataTypesByQuery(body: object, options?: AxiosRequestConfig) {
+  public getDataTypesByQuery(
+    dataTypeQuery: DataTypeQuery,
+    options?: AxiosRequestConfig,
+  ) {
     return GraphApiFp(this.configuration)
-      .getDataTypesByQuery(body, options)
+      .getDataTypesByQuery(dataTypeQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
