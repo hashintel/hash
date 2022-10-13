@@ -160,7 +160,11 @@ export const updatePersistedPageContents: ResolverFn<
       if (error instanceof UserInputError) {
         throw new UserInputError(`action ${i}: ${error}`);
       }
-      throw new Error(`Could not apply update: ${JSON.stringify(error)}`);
+      throw new Error(
+        `Could not apply update: ${error?.toString()}, ${JSON.stringify(
+          error,
+        )}`,
+      );
     }
   }
 

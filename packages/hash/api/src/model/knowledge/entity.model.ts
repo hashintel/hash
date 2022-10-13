@@ -432,6 +432,17 @@ export default class {
     });
   }
 
+  /** @see {@link LinkModel.createLinkWithoutUpdatingSiblings} */
+  async createOutgoingLinkWithoutUpdatingSiblings(
+    graphApi: GraphApi,
+    params: Omit<LinkModelCreateParams, "sourceEntityModel">,
+  ): Promise<LinkModel> {
+    return await LinkModel.createLinkWithoutUpdatingSiblings(graphApi, {
+      sourceEntityModel: this,
+      ...params,
+    });
+  }
+
   /**
    * Get the outgoing links of an entity.
    *

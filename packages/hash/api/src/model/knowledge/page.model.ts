@@ -396,7 +396,7 @@ export default class extends EntityModel {
 
     const { block } = params;
 
-    await this.createOutgoingLink(graphApi, {
+    await this.createOutgoingLinkWithoutUpdatingSiblings(graphApi, {
       targetEntityModel: block,
       linkTypeModel: WORKSPACE_TYPES.linkType.contains,
       index:
@@ -495,6 +495,8 @@ export default class extends EntityModel {
     const { removedById } = params;
 
     // Don't reorder siblings as it would break the expected indices on the frontend.
-    await link.remove(graphApi, { removedById, reorderSibling: false });
+    await link.removeWithoutUpdatingSiblings(graphApi, {
+      removedById,
+    });
   }
 }
