@@ -294,10 +294,15 @@ impl DatabaseApi<'_> {
         entity: Entity,
         entity_type_id: VersionedUri,
         entity_id: Option<EntityId>,
-        created_by_id: AccountId,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         self.store
-            .create_entity(entity, entity_type_id, self.account_id, entity_id)
+            .create_entity(
+                entity,
+                entity_type_id,
+                self.account_id,
+                entity_id,
+                self.account_id,
+            )
             .await
     }
 
@@ -332,7 +337,9 @@ impl DatabaseApi<'_> {
         link_type_id: VersionedUri,
     ) -> Result<(), InsertionError> {
         let link = Link::new(source_entity_id, target_entity_id, link_type_id, None);
-        self.store.create_link(&link, self.account_id).await
+        self.store
+            .create_link(&link, self.account_id, self.account_id)
+            .await
     }
 
     async fn create_ordered_link(
@@ -348,7 +355,9 @@ impl DatabaseApi<'_> {
             link_type_id,
             Some(index),
         );
-        self.store.create_link(&link, self.account_id).await
+        self.store
+            .create_link(&link, self.account_id, self.account_id)
+            .await
     }
 
     pub async fn get_link_target(

@@ -312,7 +312,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "ownedById": "{{account_id}}",
+  "createdById": "{{account_id}}",
   "entity": {
     "http://localhost:3000/@alice/types/property-type/name/": "Alice"
   },
@@ -341,7 +342,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "updatedById": "{{account_id}}",
   "entityId": "{{person_a_entity_id}}",
   "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
   "entity": {
@@ -361,7 +362,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "ownedById": "{{account_id}}",
+  "createdById": "{{account_id}}",
   "entity": {
     "http://localhost:3000/@alice/types/property-type/name/": "Bob"
   },
@@ -425,6 +427,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
+  "createdById": "{{account_id}}",
   "ownedById": "{{account_id}}",
   "targetEntityId": "{{person_b_entity_id}}",
   "linkTypeId": "{{friend_of_link_type_id_raw}}"
@@ -473,7 +476,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "ownedById": "{{account_id}}",
+  "createdById": "{{account_id}}",
   "entity": {
     "http://localhost:3000/@alice/types/property-type/name/": "Charles"
   },
@@ -505,6 +509,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
+  "createdById": "{{account_id}}",
   "ownedById": "{{account_id}}",
   "targetEntityId": "{{person_b_entity_id}}",
   "linkTypeId": "{{friend_of_link_type_id_raw}}",
@@ -523,6 +528,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
+  "createdById": "{{account_id}}",
   "ownedById": "{{account_id}}",
   "targetEntityId": "{{person_c_entity_id}}",
   "linkTypeId": "{{friend_of_link_type_id_raw}}",
