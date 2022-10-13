@@ -79,8 +79,7 @@ pub enum EdgeKind {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct Edge {
-    source: GraphElementIdentifier,
+pub struct OutwardEdge {
     edge_kind: EdgeKind,
     destination: GraphElementIdentifier,
 }
@@ -107,6 +106,6 @@ pub struct GraphResolveDepths {
 pub struct Subgraph {
     pub roots: Vec<GraphElementIdentifier>,
     pub vertices: HashMap<GraphElementIdentifier, Vertex>,
-    pub edges: HashMap<GraphElementIdentifier, Vec<Edge>>,
+    pub edges: HashMap<GraphElementIdentifier, Vec<OutwardEdge>>,
     pub depths: GraphResolveDepths,
 }

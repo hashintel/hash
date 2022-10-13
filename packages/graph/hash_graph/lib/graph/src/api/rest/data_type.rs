@@ -25,7 +25,9 @@ use crate::{
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool,
     },
-    subgraph::{Edge, EdgeKind, GraphElementIdentifier, GraphResolveDepths, Subgraph, Vertex},
+    subgraph::{
+        EdgeKind, GraphElementIdentifier, GraphResolveDepths, OutwardEdge, Subgraph, Vertex,
+    },
 };
 
 #[derive(OpenApi)]
@@ -49,7 +51,7 @@ use crate::{
             GraphElementIdentifier,
             Vertex,
             EdgeKind,
-            Edge,
+            OutwardEdge,
             GraphResolveDepths,
             Subgraph
         )

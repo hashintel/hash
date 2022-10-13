@@ -290,31 +290,6 @@ export interface DataTypeRootedSubgraph {
 /**
  *
  * @export
- * @interface Edge
- */
-export interface Edge {
-  /**
-   *
-   * @type {GraphElementIdentifier}
-   * @memberof Edge
-   */
-  destination: GraphElementIdentifier;
-  /**
-   *
-   * @type {EdgeKind}
-   * @memberof Edge
-   */
-  edgeKind: EdgeKind;
-  /**
-   *
-   * @type {GraphElementIdentifier}
-   * @memberof Edge
-   */
-  source: GraphElementIdentifier;
-}
-/**
- *
- * @export
  * @enum {string}
  */
 
@@ -885,6 +860,25 @@ export interface LinkTypeRootedSubgraph {
 /**
  *
  * @export
+ * @interface OutwardEdge
+ */
+export interface OutwardEdge {
+  /**
+   *
+   * @type {GraphElementIdentifier}
+   * @memberof OutwardEdge
+   */
+  destination: GraphElementIdentifier;
+  /**
+   *
+   * @type {EdgeKind}
+   * @memberof OutwardEdge
+   */
+  edgeKind: EdgeKind;
+}
+/**
+ *
+ * @export
  * @interface PersistedDataType
  */
 export interface PersistedDataType {
@@ -1335,10 +1329,10 @@ export interface Subgraph {
   depths: GraphResolveDepths;
   /**
    *
-   * @type {{ [key: string]: Array<Edge>; }}
+   * @type {{ [key: string]: Array<OutwardEdge>; }}
    * @memberof Subgraph
    */
-  edges: { [key: string]: Array<Edge> };
+  edges: { [key: string]: Array<OutwardEdge> };
   /**
    *
    * @type {Array<GraphElementIdentifier>}
