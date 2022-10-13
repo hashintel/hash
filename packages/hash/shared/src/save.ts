@@ -409,6 +409,8 @@ export const save = async (
     ],
   );
 
+  // Even if the actions list is empty, we hit the endpoint to get an updated
+  // page result.
   const res = await apolloClient.mutate<
     UpdatePersistedPageContentsMutation,
     UpdatePersistedPageContentsMutationVariables

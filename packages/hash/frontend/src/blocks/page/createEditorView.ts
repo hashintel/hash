@@ -1,5 +1,6 @@
 import { HashBlock } from "@hashintel/hash-shared/blocks";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
+import { debounce } from "lodash";
 // import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { EditorView } from "prosemirror-view";
@@ -60,37 +61,71 @@ const createSavePlugin = (
     });
   };
 
-  let timeout: ReturnType<typeof setTimeout> | null = null;
+  // Saving happens in two ways, either through this idle save interval
+  let interval: ReturnType<typeof setInterval> | void;
+  const maxWaitTime = 2000;
+
+  const idleSave = (view: EditorView<Schema>) => {
+    if (!interval) {
+      interval = setInterval(() => {
+        triggerSave(view);
+      }, maxWaitTime);
+    }
+  };
+
+  // Or through debouncing actual new typed content.
+  const writeDebounce = debounce(
+    (view: EditorView<Schema>) => {
+      if (interval) {
+        interval = clearInterval(interval);
+      }
+
+      triggerSave(view);
+    },
+    400,
+    { maxWait: maxWaitTime },
+  );
 
   return new Plugin<unknown, Schema>({
+    // On initial view creation, a interval for saving is set (idle saving).
+    view: (viewOnCreation: EditorView<Schema>) => {
+      idleSave(viewOnCreation);
+      return {
+        update: (view, prevState) => {
+          if (view.state.doc !== prevState.doc) {
+            // If the document changes between updates, we issue a debounced update.
+            // This update cancels the itnerval and saves on a 400 to maxWaitTime ms interval
+            writeDebounce(view);
+          } else {
+            // And once no updates happen, the idle interval is re-enabled.
+            // This setup makes it so that saving happens really fast while typing
+            // but slows down when there's no activity.
+            idleSave(view);
+          }
+        },
+        destroy: () => {
+          writeDebounce.cancel();
+        },
+      };
+    },
     props: {
       handleDOMEvents: {
         keydown(view, evt) {
-          // Manual save for cmd+s
-          if (evt.key === "s" && evt.metaKey) {
+          // Manual save for cmd+s or ctrl+s
+          if (evt.key === "s" && (evt.metaKey || evt.ctrlKey)) {
             evt.preventDefault();
+            writeDebounce.cancel();
             triggerSave(view);
 
             return true;
           }
           return false;
         },
-        focus() {
-          // Cancel the in-progress save
-          if (timeout) {
-            clearTimeout(timeout);
-          }
-          return false;
-        },
-        blur(view) {
-          if (timeout) {
-            clearTimeout(timeout);
-          }
-
-          timeout = setTimeout(() => triggerSave(view), 500);
-
-          return false;
-        },
+        // blur(view) {
+        //   writeDebounce.cancel();
+        //   triggerSave(view);
+        //   return false;
+        // },
       },
     },
   });
