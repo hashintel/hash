@@ -1,5 +1,6 @@
 import { DataEditor } from "@glideapps/glide-data-grid";
 import "@glideapps/glide-data-grid/dist/index.css";
+import { useCallback } from "react";
 import { PropertyTableProps } from "./property-table/types";
 import { useRowData } from "./property-table/use-row-data";
 import { useGlideGridTheme } from "./property-table/use-grid-theme";
@@ -7,6 +8,7 @@ import { useGetCellContent } from "./property-table/use-get-cell-content";
 import { gridColumns } from "./property-table/constants";
 import { useOnCellEdited } from "./property-table/use-on-cell-edited";
 import { useDrawCell, useDrawHeader } from "./property-table/draw-functions";
+import { useEntityEditor } from "./entity-editor-context";
 
 export const PropertyTable = ({
   showSearch,
@@ -18,6 +20,21 @@ export const PropertyTable = ({
   const onCellEdited = useOnCellEdited(rowData);
   const drawCell = useDrawCell();
   const drawHeader = useDrawHeader();
+
+  const { propertySort, setPropertySort } = useEntityEditor();
+
+  const handleHeaderClicked = useCallback(
+    (col: number) => {
+      const key = gridColumns[col]?.id;
+      const isSorted = key === propertySort.key;
+
+      setPropertySort({
+        key,
+        dir: isSorted && propertySort.dir === "asc" ? "desc" : "asc",
+      });
+    },
+    [propertySort, setPropertySort],
+  );
 
   return (
     <>
@@ -37,6 +54,7 @@ export const PropertyTable = ({
         columnSelect="none"
         smoothScrollX
         smoothScrollY
+        onHeaderClicked={handleHeaderClicked}
         /** styling  */
         theme={gridTheme}
         width="100%"

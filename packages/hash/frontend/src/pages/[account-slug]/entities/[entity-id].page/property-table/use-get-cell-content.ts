@@ -1,9 +1,12 @@
 import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
+import { useEntityEditor } from "../entity-editor-context";
 import { gridIndexes } from "./constants";
 import { Row } from "./types";
 
 export const useGetCellContent = (rowData: Row[]) => {
+  const { propertySort } = useEntityEditor();
+
   const getCellContent = useCallback(
     ([col, row]: Item): GridCell => {
       const property = rowData[row];
@@ -66,7 +69,12 @@ export const useGetCellContent = (rowData: Row[]) => {
           };
       }
     },
-    [rowData],
+    /**
+     * @todo check why grid is not updating without adding `propertySort` as dependency
+     * rowData is already depending on `propertySort`
+     * */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rowData, propertySort],
   );
 
   return getCellContent;

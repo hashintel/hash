@@ -1,7 +1,6 @@
-import { GridColumn } from "@glideapps/glide-data-grid";
-import { Row } from "./types";
+import { CustomGridColumn, Row } from "./types";
 
-export const gridColumns: GridColumn[] = [
+export const gridColumns: CustomGridColumn[] = [
   {
     title: "Property",
     id: "title",
@@ -15,7 +14,7 @@ export const gridColumns: GridColumn[] = [
   },
   {
     title: "Data type",
-    id: "type",
+    id: "dataTypes",
     width: 200,
   },
 ];
