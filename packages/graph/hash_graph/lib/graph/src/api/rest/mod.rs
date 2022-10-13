@@ -241,10 +241,7 @@ impl Modify for ExternalRefAddon {
     }
 }
 
-fn modify_component<'a, I>(content_iter: I)
-where
-    I: IntoIterator<Item = &'a mut openapi::Content>,
-{
+fn modify_component<'a>(content_iter: impl IntoIterator<Item = &'a mut openapi::Content>) {
     for content in content_iter {
         modify_schema_references(&mut content.schema);
     }
