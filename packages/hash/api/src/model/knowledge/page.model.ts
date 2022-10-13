@@ -397,11 +397,7 @@ export default class extends EntityModel {
 
     const { block } = params;
 
-    const createMethod = updateSiblings
-      ? this.createOutgoingLink
-      : this.createOutgoingLinkWithoutUpdatingSiblings;
-
-    await createMethod(graphApi, {
+    const linkParams = {
       targetEntityModel: block,
       linkTypeModel: WORKSPACE_TYPES.linkType.contains,
       index:
@@ -410,7 +406,11 @@ export default class extends EntityModel {
         ((await this.getBlocks(graphApi)).length === 0 ? 0 : undefined),
       // assume that link to block is owned by the same account as the page
       ownedById: this.ownedById,
-    });
+    };
+
+    await (updateSiblings
+      ? this.createOutgoingLink(graphApi, linkParams)
+      : this.createOutgoingLinkWithoutUpdatingSiblings(graphApi, linkParams));
   }
 
   /**
@@ -500,13 +500,13 @@ export default class extends EntityModel {
 
     const { removedById } = params;
 
-    // Don't always reorder siblings as it could break the expected indices on the frontend.
-    const removeMethod = updateSiblings
-      ? link.remove
-      : link.removeWithoutUpdatingSiblings;
-
-    await removeMethod(graphApi, {
+    const removeParams = {
       removedById,
-    });
+    };
+
+    // Don't always reorder siblings as it could break the expected indices on the frontend.
+    await (updateSiblings
+      ? link.remove(graphApi, removeParams)
+      : link.removeWithoutUpdatingSiblings(graphApi, removeParams));
   }
 }

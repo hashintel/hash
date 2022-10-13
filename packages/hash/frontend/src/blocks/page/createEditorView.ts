@@ -12,7 +12,7 @@ import {
   entityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
 
-import applyDevTools from "prosemirror-dev-tools";
+// import applyDevTools from "prosemirror-dev-tools";
 import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { RefObject } from "react";
