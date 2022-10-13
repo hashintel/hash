@@ -165,11 +165,7 @@ export const updatePersistedPageContents: ResolverFn<
         throw new Error(`Could not apply update: ${error.message}`);
       }
 
-      throw new Error(
-        `Could not apply update: ${error?.toString()}, ${JSON.stringify(
-          error,
-        )}`,
-      );
+      throw new Error(`Could not apply update: ${JSON.stringify(error)}`);
     }
   }
 
