@@ -13,7 +13,7 @@ use crate::{
 };
 
 // TODO - This is temporary and introduced for consistency, we need to introduce actual IDs for
-//  links
+//  links, should be revisited as part of https://app.asana.com/0/0/1203157172269853/f
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkId {

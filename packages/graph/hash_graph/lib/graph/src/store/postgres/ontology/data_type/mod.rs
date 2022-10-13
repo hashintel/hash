@@ -127,6 +127,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             roots,
             vertices,
             // TODO - we need to update the `DependencyMap` mechanism to collect these
+            //  https://app.asana.com/0/1203007126736604/1203160580911226/f
             edges: HashMap::with_capacity(0),
             depths: GraphResolveDepths {
                 data_type_resolve_depth: query_resolve_depths.data_type_resolve_depth,
