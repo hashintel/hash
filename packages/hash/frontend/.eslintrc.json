@@ -39,6 +39,11 @@
               "MenuItem"
             ],
             "message": "Please use the custom wrapper component from src/shared/ui for Link, Button and MenuItem and from '@hashintel/hash-design-system' for every other component."
+          },
+          {
+            "name": "notistack",
+            "importNames": ["useSnackbar"],
+            "message": "Please use the custom src/components/hooks/useSnackbar hook instead."
           }
         ]
       }

@@ -17,6 +17,7 @@ import { pick, capitalize } from "lodash";
 import { EntityResponse } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
 import { useEntityEditor } from "./entity-editor-context";
+import { useSnackbar } from "../../../../components/hooks/useSnackbar";
 
 type Row = {
   title: string;
@@ -113,6 +114,7 @@ export const PropertyTable = ({
   onSearchClose,
   entity,
 }: PropertyTableProps) => {
+  const snackbar = useSnackbar();
   const { palette } = useTheme();
   const { setEntity } = useEntityEditor();
   const { updateEntity } = useBlockProtocolUpdateEntity();
@@ -241,12 +243,12 @@ export const PropertyTable = ({
           },
         });
       } catch (error) {
-        // rollback & give feedback to user
-        // snackbar.error(`Failed to update "${propertyTitle}"`)
+        // rollback the optimistic update
         setEntity(prevEntity);
+        snackbar.error(`Failed to update "${property.title}"`);
       }
     },
-    [rowData, entity, setEntity, updateEntity],
+    [rowData, entity, setEntity, updateEntity, snackbar],
   );
 
   const drawCell: DrawCustomCellCallback = useCallback(

@@ -71,6 +71,7 @@
     "material-ui-popup-state": "4.0.2",
     "next": "12.2.4",
     "next-transpile-modules": "9.0.0",
+    "notistack": "2.0.5",
     "pluralize": "8.0.0",
     "prosemirror-collab": "1.2.2",
     "prosemirror-commands": "1.2.1",
