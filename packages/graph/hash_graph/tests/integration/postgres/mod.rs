@@ -25,6 +25,7 @@ use graph::{
         EntityTypeStore, InsertionError, LinkStore, LinkTypeStore, PostgresStore,
         PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
+    subgraph::{GraphElementIdentifier, Vertex},
 };
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
@@ -155,16 +156,21 @@ impl DatabaseApi<'_> {
         &mut self,
         uri: &VersionedUri,
     ) -> Result<PersistedDataType, QueryError> {
-        Ok(self
+        let vertex = self
             .store
             .get_data_type(&DataTypeQuery {
                 expression: Expression::for_versioned_uri(uri),
                 data_type_query_depth: 0,
             })
             .await?
-            .pop()
-            .expect("no data type found")
-            .data_type)
+            .vertices
+            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
+            .expect("no data type found");
+
+        match vertex {
+            Vertex::DataType(persisted_data_type) => Ok(persisted_data_type),
+            _ => unreachable!(),
+        }
     }
 
     pub async fn update_data_type(

@@ -78,4 +78,4 @@ pub mod ontology;
 pub mod store;
 
 pub mod logging;
-mod subgraph;
+pub mod subgraph;
