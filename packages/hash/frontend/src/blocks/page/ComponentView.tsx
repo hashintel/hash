@@ -8,7 +8,6 @@ import {
   DraftEntity,
   EntityStore,
   isDraftBlockEntity,
-  TEXT_TOKEN_PROPERTY_TYPE_ID,
 } from "@hashintel/hash-shared/entityStore";
 import {
   addEntityStoreAction,
@@ -49,7 +48,7 @@ const getChildEntity = (
       throw new Error("Cannot prepare non-block entity for prosemirrior");
     }
 
-    return entity.dataEntity;
+    return entity.dataEntity as DraftEntity;
   }
 
   return null;

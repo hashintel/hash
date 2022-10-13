@@ -91,7 +91,8 @@ export const LoadEntityMenuContent: FunctionComponent<
        * @todo see if this works when __linkedData is removed
        */
       if (
-        isTextEntity(entity) ||
+        /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+        isTextEntity(entity as any) ||
         entity.entityType.properties.title === "Page"
       ) {
         return false;
