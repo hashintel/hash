@@ -114,7 +114,7 @@ pub struct OutwardEdge {
     destination: GraphElementIdentifier,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct GraphResolveDepths {
     #[schema(value_type = number)]

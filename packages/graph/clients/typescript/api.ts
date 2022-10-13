@@ -237,16 +237,16 @@ export type DataTypeKindEnum =
 export interface DataTypeQuery {
   /**
    *
-   * @type {number}
-   * @memberof DataTypeQuery
-   */
-  dataTypeQueryDepth: number;
-  /**
-   *
    * @type {object}
    * @memberof DataTypeQuery
    */
   query: object;
+  /**
+   *
+   * @type {GraphResolveDepths}
+   * @memberof DataTypeQuery
+   */
+  queryResolveDepths: GraphResolveDepths;
 }
 /**
  *

@@ -85,7 +85,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     async fn get_data_type(&self, query: &DataTypeQuery) -> Result<Subgraph, QueryError> {
         let DataTypeQuery {
             ref expression,
-            data_type_query_depth,
+            query_resolve_depths,
         } = *query;
 
         let roots_and_vertices =
@@ -97,7 +97,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                         data_type.identifier.uri(),
                         DataTypeDependencyContext {
                             referenced_data_types: &mut referenced_data_types,
-                            data_type_query_depth,
+                            data_type_query_depth: query_resolve_depths.data_type_resolve_depth,
                         },
                     )
                     .await?;
@@ -129,7 +129,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             // TODO - we need to update the `DependencyMap` mechanism to collect these
             edges: HashMap::with_capacity(0),
             depths: GraphResolveDepths {
-                data_type_resolve_depth: data_type_query_depth,
+                data_type_resolve_depth: query_resolve_depths.data_type_resolve_depth,
                 property_type_resolve_depth: 0,
                 link_type_resolve_depth: 0,
                 entity_type_resolve_depth: 0,
