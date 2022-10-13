@@ -46,7 +46,8 @@ const PropertySelector: ForwardRefRenderFunction<
   },
   ref,
 ) => {
-  const propertyTypes = usePropertyTypes();
+  const propertyTypesObj = usePropertyTypes();
+  const propertyTypes = Object.values(propertyTypesObj);
 
   const modifiers = useMemo(
     (): PopperProps["modifiers"] => [
@@ -72,13 +73,7 @@ const PropertySelector: ForwardRefRenderFunction<
   );
 
   const [open, setOpen] = useState(false);
-
   const highlightedRef = useRef<null | PropertyType>(null);
-
-  if (!propertyTypes) {
-    // @todo loading indicator
-    return null;
-  }
 
   return (
     <Autocomplete
@@ -172,7 +167,10 @@ const PropertySelector: ForwardRefRenderFunction<
           }}
         />
       )}
-      options={propertyTypes.filter((type) => filterProperty(type))}
+      options={
+        // @todo make this more efficient
+        propertyTypes.filter((type) => filterProperty(type))
+      }
       getOptionLabel={(obj) => obj.title}
       renderOption={(props, property: PropertyType) => {
         const ontology = parseUriForOntologyChip(property.$id);
