@@ -1,5 +1,5 @@
+import { PropertyType } from "@blockprotocol/type-system-web";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
-import { Chip } from "@hashintel/hash-design-system/chip";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { IconButton } from "@hashintel/hash-design-system/icon-button";
 import { TextField } from "@hashintel/hash-design-system/text-field";
@@ -30,14 +30,19 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import { Ref, useId, useRef, useState } from "react";
-import { Modal } from "../../../components/Modals/Modal";
+import { useFieldArray, useFormContext } from "react-hook-form";
+import { Modal } from "../../../../components/Modals/Modal";
+import { EmptyPropertyListCard } from "./empty-property-list-card";
+import { EntityTypeEditorForm } from "./form-types";
+import { PropertyExpectedValues } from "./property-expected-values";
 import { PropertyListSelectorDropdownContext } from "./property-list-selector-dropdown";
 import { PropertyMenu } from "./property-menu";
 import { PropertySelector } from "./property-selector";
 import { PropertyTypeForm } from "./property-type-form";
 import { QuestionIcon } from "./question-icon";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
-import { useStateCallback, withHandler } from "./util";
+import { usePropertyTypes } from "./use-property-types";
+import { mustBeVersionedUri, useStateCallback, withHandler } from "./util";
 import { WhiteCard } from "./white-card";
 
 const CenteredTableCell = styled(TableCell)(
@@ -54,7 +59,7 @@ const InsertPropertyRow = ({
 }: {
   inputRef: Ref<HTMLInputElement | null>;
   onCancel: () => void;
-  onAdd: () => void;
+  onAdd: (option: PropertyType) => void;
 }) => {
   const modalTooltipId = useId();
   const modalPopupState = usePopupState({
@@ -66,6 +71,9 @@ const InsertPropertyRow = ({
 
   const ourInputRef = useRef<HTMLInputElement>(null);
   const sharedRef = useForkRef(inputRef, ourInputRef);
+
+  const { watch } = useFormContext<EntityTypeEditorForm>();
+  const properties = watch("properties");
 
   return (
     <TableRow
@@ -100,6 +108,11 @@ const InsertPropertyRow = ({
             modalPopupState={modalPopupState}
             onAdd={onAdd}
             onCancel={onCancel}
+            filterProperty={(property) =>
+              !properties.some(
+                (includedProperty) => includedProperty.$id === property.$id,
+              )
+            }
           />
         </PropertyListSelectorDropdownContext.Provider>
         <Modal
@@ -146,8 +159,11 @@ const InsertPropertyRow = ({
               </IconButton>
             </Box>
             <PropertyTypeForm
-              createButtonProps={withHandler(bindToggle(modalPopupState), () =>
-                onAdd(),
+              createButtonProps={withHandler(
+                bindToggle(modalPopupState),
+                () => {
+                  // onAdd();
+                },
               )}
               discardButtonProps={bindToggle(modalPopupState)}
               initialTitle={searchText}
@@ -159,18 +175,87 @@ const InsertPropertyRow = ({
   );
 };
 
-export const InsertPropertyCard = ({
-  insertFieldRef,
-  onCancel,
+export const PropertyTypeRow = ({
+  propertyIndex,
+  onRemove,
 }: {
-  insertFieldRef: Ref<HTMLInputElement | null>;
-  onCancel: () => void;
+  propertyIndex: number;
+  onRemove: () => void;
 }) => {
-  const [addingNewProperty, setAddingNewProperty] = useStateCallback(true);
-  const [created, setCreated] = useState<string[]>([]);
+  const { watch } = useFormContext<EntityTypeEditorForm>();
+  const propertyTypes = usePropertyTypes();
+  const propertyId = mustBeVersionedUri(
+    watch(`properties.${propertyIndex}.$id`),
+  );
+  const property = propertyTypes[propertyId];
+
+  if (!property) {
+    throw new Error("Missing property type");
+  }
+
+  return (
+    <TableRow>
+      <TableCell>
+        <Typography variant="smallTextLabels" fontWeight={500}>
+          {property.title}
+        </Typography>
+      </TableCell>
+      <TableCell>
+        <PropertyExpectedValues property={property} />
+      </TableCell>
+      <TableCell sx={{ textAlign: "center" }}>
+        <Checkbox />
+      </TableCell>
+      <TableCell sx={{ textAlign: "center" }}>
+        <Checkbox />
+      </TableCell>
+      <TableCell sx={{ px: "0px !important" }}>
+        <TextField
+          placeholder="Add default value"
+          sx={{
+            width: "100%",
+            [`.${tableRowClasses.root}:not(:hover) & .${outlinedInputClasses.root}:not(:focus-within)`]:
+              {
+                boxShadow: "none",
+                [`.${outlinedInputClasses.notchedOutline}`]: {
+                  borderColor: "transparent",
+                },
+                [`.${outlinedInputClasses.input}::placeholder`]: {
+                  color: "transparent",
+                },
+              },
+          }}
+          inputProps={{ sx: { textOverflow: "ellipsis" } }}
+        />
+      </TableCell>
+      <TableCell>
+        <PropertyMenu onRemove={onRemove} property={property} />
+      </TableCell>
+    </TableRow>
+  );
+};
+
+export const PropertyListCard = () => {
+  const { control, getValues } = useFormContext<EntityTypeEditorForm>();
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "properties",
+  });
+
+  const [addingNewProperty, setAddingNewProperty] = useStateCallback(false);
   const addingNewPropertyRef = useRef<HTMLInputElement>(null);
 
-  const sharedRef = useForkRef(addingNewPropertyRef, insertFieldRef);
+  if (!addingNewProperty && fields.length === 0) {
+    return (
+      <EmptyPropertyListCard
+        onClick={() => {
+          setAddingNewProperty(true, () => {
+            addingNewPropertyRef.current?.focus();
+          });
+        }}
+      />
+    );
+  }
 
   return (
     <WhiteCard>
@@ -241,73 +326,32 @@ export const InsertPropertyCard = ({
             </Typography>
           </TableHead>
           <TableBody>
-            {created.map((id) => (
-              <TableRow key={id}>
-                <TableCell>
-                  <Typography variant="smallTextLabels" fontWeight={500}>
-                    Share Price
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Chip label="Number" />
-                </TableCell>
-                <TableCell sx={{ textAlign: "center" }}>
-                  <Checkbox />
-                </TableCell>
-                <TableCell sx={{ textAlign: "center" }}>
-                  <Checkbox />
-                </TableCell>
-                <TableCell sx={{ px: "0px !important" }}>
-                  <TextField
-                    placeholder="Add default value"
-                    sx={{
-                      width: "100%",
-                      [`.${tableRowClasses.root}:not(:hover) & .${outlinedInputClasses.root}:not(:focus-within)`]:
-                        {
-                          boxShadow: "none",
-                          [`.${outlinedInputClasses.notchedOutline}`]: {
-                            borderColor: "transparent",
-                          },
-                          [`.${outlinedInputClasses.input}::placeholder`]: {
-                            color: "transparent",
-                          },
-                        },
-                    }}
-                    inputProps={{ sx: { textOverflow: "ellipsis" } }}
-                  />
-                </TableCell>
-                <TableCell>
-                  <PropertyMenu
-                    onRemove={() => {
-                      const onlyItem = created.length === 1;
-                      setCreated((list) => list.filter((item) => item !== id));
-                      if (onlyItem) {
-                        setAddingNewProperty(true);
-                        onCancel();
-                      }
-                    }}
-                  />
-                </TableCell>
-              </TableRow>
+            {fields.map((type, index) => (
+              <PropertyTypeRow
+                key={type.id}
+                propertyIndex={index}
+                onRemove={() => {
+                  remove(index);
+                }}
+              />
             ))}
           </TableBody>
           <TableFooter>
             {addingNewProperty ? (
               <InsertPropertyRow
-                inputRef={sharedRef}
+                inputRef={addingNewPropertyRef}
                 onCancel={() => {
-                  if (!created.length) {
-                    onCancel();
-                  } else {
-                    setAddingNewProperty(false);
-                  }
-                }}
-                onAdd={() => {
                   setAddingNewProperty(false);
-                  setCreated((list) => [
-                    ...list,
-                    (Math.random() + 1).toString(36).substring(7),
-                  ]);
+                }}
+                onAdd={(type) => {
+                  setAddingNewProperty(false);
+                  if (
+                    !getValues("properties").some(({ $id }) => $id === type.$id)
+                  ) {
+                    append({
+                      $id: mustBeVersionedUri(type.$id),
+                    });
+                  }
                 }}
               />
             ) : (

@@ -18,10 +18,9 @@ cwd = "${REPO_ROOT}/packages/graph/migrations"
 [tasks.migrate-up]
 category = "Deploy"
 description = "Runs all migrations"
-extend = "yarn"
-args = ["graph:migrate", "up"]
-cwd = "${REPO_ROOT}/packages/graph/migrations"
-env_files = ["../.env"]
+extend = "docker"
+args = ["compose", "--env-file", "${REPO_ROOT}/packages/graph/.env", "up", "migrate", "--no-recreate"]
+cwd = "${REPO_ROOT}/packages/graph/deployment"
 
 [tasks.deployment-up]
 private = false

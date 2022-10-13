@@ -1,18 +1,17 @@
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/router";
 import { Box, Container } from "@mui/material";
-import init from "@blockprotocol/type-system-web";
-
-import { Button } from "../../shared/ui";
-import { useUser } from "../../components/hooks/useUser";
-import { NextPageWithLayout } from "../../shared/layout";
-import { useBlockProtocolFunctionsWithOntology } from "./blockprotocol-ontology-functions-hook";
+import { useCallback, useState } from "react";
 import {
   AggregateDataTypesMessageCallback,
   AggregateEntityTypesMessageCallback,
   AggregateLinkTypesMessageCallback,
   AggregatePropertyTypesMessageCallback,
 } from "../../components/hooks/blockProtocolFunctions/ontology/ontology-types-shim";
+import { useLoggedInUser } from "../../components/hooks/useUser";
+import { useInitTypeSystem } from "../../lib/use-init-type-system";
+import { NextPageWithLayout } from "../../shared/layout";
+
+import { Button } from "../../shared/ui";
+import { useBlockProtocolFunctionsWithOntology } from "./blockprotocol-ontology-functions-hook";
 
 /**
  * This component is an example usage of the new functions.
@@ -113,31 +112,10 @@ const ExampleUsage = ({ accountId }: { accountId: string }) => {
  * The entry point for dealing with the type editors.
  */
 const Page: NextPageWithLayout = () => {
-  const router = useRouter();
   // The user is important to allow using Block Protocol functions
   // such as: `const functions = useBlockProtocolFunctionsWithOntology(user.accountId);`
-  const { user, loading: loadingUser, kratosSession } = useUser();
-  const [loadingTypeSystem, setLoadingTypeSystem] = useState(true);
-
-  useEffect(() => {
-    if (loadingTypeSystem) {
-      void (async () => {
-        await init().then(() => {
-          setLoadingTypeSystem(false);
-        });
-      })();
-    }
-  }, [loadingTypeSystem, setLoadingTypeSystem]);
-
-  useEffect(() => {
-    if (loadingUser) {
-      return;
-    }
-
-    if (!kratosSession && !user) {
-      void router.push("/login");
-    }
-  }, [loadingUser, router, user, kratosSession]);
+  const { user, loading: loadingUser } = useLoggedInUser();
+  const loadingTypeSystem = useInitTypeSystem();
 
   return loadingUser || !user || loadingTypeSystem ? (
     <Container sx={{ pt: 10 }}>Loading...</Container>

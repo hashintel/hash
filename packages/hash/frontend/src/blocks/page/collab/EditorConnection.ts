@@ -25,7 +25,9 @@ const badVersion = (err: Error | StatusError) =>
 
 const repeat = <T>(val: T, count: number): T[] => {
   const result = [];
-  for (let i = 0; i < count; i++) result.push(val);
+  for (let i = 0; i < count; i++) {
+    result.push(val);
+  }
   return result;
 };
 

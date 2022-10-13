@@ -1,6 +1,15 @@
+import { validateVersionedUri } from "@blockprotocol/type-system-web";
 import { bindToggle, bindTrigger } from "material-ui-popup-state/hooks";
 import { SetStateAction, useLayoutEffect, useRef, useState } from "react";
 
+/**
+ * This allows you to pass a second parameter to the setState function which
+ * will be called once the component has re-rendered
+ *
+ * @warning The callback will be called even if the setState is cancelled, and
+ *          this is therefore not safe to call from render
+ *
+ */
 export const useStateCallback = <T extends any>(initialValue: T) => {
   const [state, setState] = useState(initialValue);
 
@@ -42,4 +51,15 @@ export const withHandler = <
       return trigger.onTouchStart(...args);
     },
   };
+};
+
+/**
+ * Necessary as type system isn't fully correctly typed yet
+ */
+export const mustBeVersionedUri = (uri: string) => {
+  const validatedId = validateVersionedUri(uri);
+  if (validatedId.type === "Err") {
+    throw new Error("uri not versioned");
+  }
+  return validatedId.inner;
 };

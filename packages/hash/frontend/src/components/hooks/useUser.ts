@@ -1,10 +1,11 @@
 import { QueryHookOptions, useQuery } from "@apollo/client";
 import * as Sentry from "@sentry/nextjs";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { Session } from "@ory/client";
 import { meQuery } from "../../graphql/queries/user.queries";
-import { MeQuery } from "../../graphql/apiTypes.gen";
+import { MeQuery, MeQueryVariables } from "../../graphql/apiTypes.gen";
 import { oryKratosClient } from "../../pages/shared/ory-kratos";
 
 /**
@@ -16,12 +17,15 @@ import { oryKratosClient } from "../../pages/shared/ory-kratos";
  *
  * loading: a boolean to check if the api call is still loading
  */
-export const useUser = (options?: Omit<QueryHookOptions, "errorPolicy">) => {
+export const useUser = (
+  options?: Omit<QueryHookOptions<MeQuery, MeQueryVariables>, "errorPolicy">,
+  forceLogin = false,
+) => {
   const {
     data: meQueryResponseData,
     refetch: refetchUser,
     loading: loadingUser,
-  } = useQuery<MeQuery>(meQuery, {
+  } = useQuery<MeQuery, MeQueryVariables>(meQuery, {
     ...options,
     errorPolicy: "all",
   });
@@ -45,7 +49,9 @@ export const useUser = (options?: Omit<QueryHookOptions, "errorPolicy">) => {
     });
   }, [user]);
 
-  const fetchKratosIdentity = async () => {
+  const router = useRouter();
+
+  const fetchKratosIdentity = async (login: boolean) => {
     setLoadingKratosSession(true);
 
     const session = await oryKratosClient
@@ -53,13 +59,22 @@ export const useUser = (options?: Omit<QueryHookOptions, "errorPolicy">) => {
       .then(({ data }) => data)
       .catch(() => undefined);
 
-    setKratosSession(session);
-    setLoadingKratosSession(false);
+    if (!session && login) {
+      await router.push("/login");
+    } else {
+      setKratosSession(session);
+      setLoadingKratosSession(false);
+    }
   };
 
+  const fetchKratosIdentityRef = useRef(fetchKratosIdentity);
+  useLayoutEffect(() => {
+    fetchKratosIdentityRef.current = fetchKratosIdentity;
+  });
+
   useEffect(() => {
-    void fetchKratosIdentity();
-  }, []);
+    void fetchKratosIdentityRef.current(forceLogin);
+  }, [forceLogin]);
 
   /**
    * @todo add method to manually update user cache after
@@ -73,7 +88,12 @@ export const useUser = (options?: Omit<QueryHookOptions, "errorPolicy">) => {
   return {
     user,
     kratosSession,
-    refetch: () => Promise.all([refetchUser(), fetchKratosIdentity()]),
+    refetch: () =>
+      Promise.all([refetchUser(), fetchKratosIdentity(forceLogin)]),
     loading: loadingUser || loadingKratosSession,
   };
+};
+
+export const useLoggedInUser = (options?: Parameters<typeof useUser>[0]) => {
+  return useUser(options, true);
 };

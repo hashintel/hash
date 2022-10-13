@@ -5,10 +5,15 @@ import { getEntityTypeRootedSubgraphQuery } from "../../../../graphql/queries/on
 import {
   GetEntityTypeRootedSubgraphQuery,
   GetEntityTypeRootedSubgraphQueryVariables,
+  GetOutgoingPersistedLinksQuery,
   Query,
+  QueryOutgoingPersistedLinksArgs,
   QueryPersistedEntityArgs,
 } from "../../../../graphql/apiTypes.gen";
-import { getPersistedEntity } from "../../../../graphql/queries/knowledge/entity.queries";
+import {
+  getOutgoingPersistedLinksQuery,
+  getPersistedEntityQuery,
+} from "../../../../graphql/queries/knowledge/entity.queries";
 import { GetEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolGetEntity = (): {
@@ -20,12 +25,20 @@ export const useBlockProtocolGetEntity = (): {
   >(getEntityTypeRootedSubgraphQuery);
 
   const [getEntityFn] = useLazyQuery<Query, QueryPersistedEntityArgs>(
-    getPersistedEntity,
+    getPersistedEntityQuery,
     {
       /** @todo reconsider caching. This is done for testing/demo purposes. */
       fetchPolicy: "no-cache",
     },
   );
+
+  const [getOutgoingLinksFn] = useLazyQuery<
+    GetOutgoingPersistedLinksQuery,
+    QueryOutgoingPersistedLinksArgs
+  >(getOutgoingPersistedLinksQuery, {
+    /** @todo reconsider caching. This is done for testing/demo purposes. */
+    fetchPolicy: "no-cache",
+  });
 
   const getEntity = useCallback<GetEntityMessageCallback>(
     async ({ data }) => {
@@ -42,10 +55,11 @@ export const useBlockProtocolGetEntity = (): {
 
       const { entityId } = data;
 
-      const { data: entityResponseData } = await getEntityFn({
-        query: getPersistedEntity,
-        variables: { entityId },
-      });
+      const [{ data: entityResponseData }, { data: outgoingLinksData }] =
+        await Promise.all([
+          getEntityFn({ variables: { entityId } }),
+          getOutgoingLinksFn({ variables: { sourceEntityId: entityId } }),
+        ]);
 
       if (!entityResponseData) {
         return {
@@ -57,8 +71,19 @@ export const useBlockProtocolGetEntity = (): {
           ],
         };
       }
+      if (!outgoingLinksData) {
+        return {
+          errors: [
+            {
+              code: "INVALID_INPUT",
+              message: "Error calling getOutgoingLinks",
+            },
+          ],
+        };
+      }
 
       const { persistedEntity } = entityResponseData;
+      const { outgoingPersistedLinks } = outgoingLinksData;
 
       /**
        * @todo: obtain this sub-graph as part of the prior `getEntity` query.
@@ -89,10 +114,11 @@ export const useBlockProtocolGetEntity = (): {
         data: {
           ...persistedEntity,
           entityTypeRootedSubgraph: entityTypeResponseData.getEntityType,
+          links: outgoingPersistedLinks,
         },
       };
     },
-    [getEntityFn, getEntityTypeRootedSubgraphFn],
+    [getEntityFn, getEntityTypeRootedSubgraphFn, getOutgoingLinksFn],
   );
 
   return { getEntity };

@@ -2,14 +2,14 @@ import { useEffect } from "react";
 import { useRouter } from "next/router";
 
 import { Box, Container, Typography } from "@mui/material";
-import { useUser } from "../components/hooks/useUser";
+import { useLogoutFlow } from "../components/hooks/useLogoutFlow";
+import { useLoggedInUser } from "../components/hooks/useUser";
 import { NextPageWithLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
-import { useLogoutFlow } from "../components/hooks/useLogoutFlow";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
-  const { user, loading, kratosSession } = useUser();
+  const { user, kratosSession } = useLoggedInUser();
 
   const { logout } = useLogoutFlow();
 
@@ -18,12 +18,6 @@ const Page: NextPageWithLayout = () => {
       void router.push(`/${user.entityId}`);
     }
   }, [router, user]);
-
-  useEffect(() => {
-    if (!loading && !kratosSession) {
-      void router.push("/login");
-    }
-  }, [loading, router, kratosSession]);
 
   /** @todo: remove session developer information */
   return (

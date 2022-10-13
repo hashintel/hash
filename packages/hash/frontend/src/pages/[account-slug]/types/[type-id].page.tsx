@@ -128,7 +128,9 @@ const Page: NextPageWithLayout = () => {
   );
 
   const scrollToTop = () => {
-    if (!pageHeaderRef.current) return;
+    if (!pageHeaderRef.current) {
+      return;
+    }
     pageHeaderRef.current.scrollIntoView({
       behavior: "smooth",
     });

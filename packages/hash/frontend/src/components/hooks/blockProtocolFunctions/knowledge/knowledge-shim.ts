@@ -7,8 +7,12 @@
  */
 
 import { MessageCallback } from "@blockprotocol/core";
-import { ReadOrModifyResourceError } from "@blockprotocol/graph";
 import {
+  CreateResourceError,
+  ReadOrModifyResourceError,
+} from "@blockprotocol/graph";
+import {
+  PersistedLink,
   UnknownPersistedEntity,
   EntityTypeRootedSubgraph,
 } from "../../../../graphql/apiTypes.gen";
@@ -28,13 +32,20 @@ type UnsupportedPersistedEntityFields = "linkedEntities";
 
 type DeprecatedPersistedEntityFields = "accountId";
 
-type Entity = Omit<
+type BaseEntity = Omit<
   UnknownPersistedEntity,
   | UnsupportedPersistedEntityFields
   | DeprecatedPersistedEntityFields
   | "entityType"
-> & {
+>;
+
+type Entity = BaseEntity & {
+  links: Link[];
   entityTypeRootedSubgraph: EntityTypeRootedSubgraph;
+};
+
+type Link = Omit<PersistedLink, "sourceEntity" | "targetEntity"> & {
+  targetEntity: BaseEntity;
 };
 
 export type EntityResponse = Entity;
@@ -45,6 +56,18 @@ export type GetEntityMessageCallback = MessageCallback<
   null,
   EntityResponse,
   ReadOrModifyResourceError
+>;
+
+export type CreateEntityRequest = {
+  entityTypeId: string;
+  properties: Entity["properties"];
+};
+
+export type CreateEntityMessageCallback = MessageCallback<
+  CreateEntityRequest,
+  null,
+  Entity,
+  CreateResourceError
 >;
 
 export type UpdateEntityRequest = {
