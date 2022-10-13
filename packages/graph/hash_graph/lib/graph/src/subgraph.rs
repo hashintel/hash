@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
-use utoipa::ToSchema;
+use utoipa::{openapi, ToSchema};
 
 use crate::{
     knowledge::{EntityId, KnowledgeGraphQueryDepth, PersistedEntity, PersistedLink},
@@ -23,29 +23,28 @@ pub struct LinkId {
     link_type_id: VersionedUri,
 }
 
-#[expect(
-    clippy::enum_variant_names,
-    reason = "We want the variant suffixes in typescript"
-)]
-// TODO - consider making the type IDs their own standalone types
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-#[serde(tag = "kind", content = "inner")]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[serde(rename_all = "camelCase", untagged)]
 pub enum GraphElementIdentifier {
-    #[schema(value_type = String)]
-    DataTypeId(VersionedUri),
-    #[schema(value_type = String)]
-    PropertyTypeId(VersionedUri),
-    #[schema(value_type = String)]
-    LinkTypeId(VersionedUri),
-    #[schema(value_type = String)]
-    EntityTypeId(VersionedUri),
-    #[schema(value_type = String)]
-    LinkId(LinkId),
-    EntityId(EntityId),
+    // TODO: can we create a new type just to generate a Utoipa line for VersionedURI and then use
+    //  that inside a `#[schema(value_type =` expression?
+    OntologyElementId(VersionedUri),
+    KnowledgeGraphElementId(EntityId),
+    Temporary(LinkId),
 }
 
-// todo impl as string for GraphElementIdentifier
+// TODO: We have to do this because utoipa doesn't understand serde untagged
+//  https://github.com/juhaku/utoipa/issues/320
+impl ToSchema for GraphElementIdentifier {
+    fn schema() -> openapi::Schema {
+        openapi::OneOfBuilder::new()
+            .item(openapi::Object::with_type(openapi::SchemaType::String))
+            .example(Some(serde_json::json!(
+                "6013145d-7392-4630-ab16-e99c59134cb6"
+            )))
+            .into()
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]

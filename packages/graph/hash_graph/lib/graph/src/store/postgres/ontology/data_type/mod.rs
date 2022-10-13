@@ -107,9 +107,13 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                         .expect("root was not added to the subgraph");
 
                     return Ok::<_, Report<QueryError>>((
-                        GraphElementIdentifier::DataTypeId(data_type.identifier.uri().clone()),
+                        GraphElementIdentifier::OntologyElementId(
+                            data_type.identifier.uri().clone(),
+                        ),
                         (
-                            GraphElementIdentifier::DataTypeId(data_type.identifier.uri().clone()),
+                            GraphElementIdentifier::OntologyElementId(
+                                data_type.identifier.uri().clone(),
+                            ),
                             Vertex::DataType(data_type),
                         ),
                     ));
