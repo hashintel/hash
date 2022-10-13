@@ -765,7 +765,9 @@ where
         entity_id: EntityId,
         entity: Entity,
         entity_type_id: VersionedUri,
-        account_id: AccountId,
+        owned_by_id: AccountId,
+        created_by_id: AccountId,
+        updated_by_id: AccountId,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         let entity_type_version_id = self
             .version_id_by_uri(&entity_type_id)
@@ -780,19 +782,22 @@ where
             .change_context(InsertionError)?;
         let version = self.as_client().query_one(
                 r#"
-                    INSERT INTO entities (entity_id, version, entity_type_version_id, properties, owned_by_id)
-                    VALUES ($1, clock_timestamp(), $2, $3, $4)
+                    INSERT INTO entities (entity_id, version, entity_type_version_id, properties, owned_by_id, created_by_id, updated_by_id)
+                    VALUES ($1, clock_timestamp(), $2, $3, $4, $5, $6)
                     RETURNING version;
                 "#,
-                &[&entity_id, &entity_type_version_id, &value, &account_id]
+                &[&entity_id, &entity_type_version_id, &value, &owned_by_id, &created_by_id, &updated_by_id]
             )
             .await
             .into_report()
             .change_context(InsertionError)?.get(0);
 
         Ok(PersistedEntityMetadata::new(
-            PersistedEntityIdentifier::new(entity_id, version, account_id),
+            PersistedEntityIdentifier::new(entity_id, version, owned_by_id),
             entity_type_id,
+            created_by_id,
+            updated_by_id,
+            None,
         ))
     }
 

@@ -294,6 +294,7 @@ impl DatabaseApi<'_> {
         entity: Entity,
         entity_type_id: VersionedUri,
         entity_id: Option<EntityId>,
+        created_by_id: AccountId,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         self.store
             .create_entity(entity, entity_type_id, self.account_id, entity_id)

@@ -123,6 +123,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_type_id: VersionedUri,
         owned_by_id: AccountId,
         entity_id: Option<EntityId>,
+        created_by_id: AccountId,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -138,7 +139,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         //   https://app.asana.com/0/1200211978612931/1202574350052904/f
         transaction.insert_entity_id(entity_id).await?;
         let metadata = transaction
-            .insert_entity(entity_id, entity, entity_type_id, owned_by_id)
+            .insert_entity(
+                entity_id,
+                entity,
+                entity_type_id,
+                owned_by_id,
+                created_by_id,
+                created_by_id,
+            )
             .await?;
 
         transaction
@@ -261,7 +269,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_id: EntityId,
         entity: Entity,
         entity_type_id: VersionedUri,
-        updated_by: AccountId,
+        updated_by_id: AccountId,
     ) -> Result<PersistedEntityMetadata, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -270,6 +278,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .into_report()
                 .change_context(UpdateError)?,
         );
+
+        let previous_entity = transaction
+            .read_latest_entity_by_id(entity_id)
+            .await
+            .change_context(UpdateError)?;
 
         if !transaction
             .contains_entity(entity_id)
@@ -282,7 +295,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         }
 
         let metadata = transaction
-            .insert_entity(entity_id, entity, entity_type_id, updated_by)
+            .insert_entity(
+                entity_id,
+                entity,
+                entity_type_id,
+                previous_entity.owned_by_id,
+                previous_entity.created_by_id,
+                updated_by_id,
+            )
             .await
             .change_context(UpdateError)?;
 

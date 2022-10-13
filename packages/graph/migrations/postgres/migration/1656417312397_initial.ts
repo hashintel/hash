@@ -355,6 +355,20 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         notNull: true,
         references: "accounts",
       },
+      created_by_id: {
+        type: "UUID",
+        notNull: true,
+        references: "accounts",
+      },
+      updated_by_id: {
+        type: "UUID",
+        notNull: true,
+        references: "accounts",
+      },
+      removed_by_id: {
+        type: "UUID",
+        references: "accounts",
+      },
     },
     {
       ifNotExists: true,

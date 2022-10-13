@@ -374,6 +374,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
         entity_type_id: VersionedUri,
         owned_by_id: AccountId,
         entity_id: Option<EntityId>,
+        created_by_id: AccountId,
     ) -> Result<PersistedEntityMetadata, InsertionError>;
 
     /// Inserts the entities with the specified [`EntityType`] into the `Store`.
@@ -425,7 +426,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
         entity_id: EntityId,
         entity: Entity,
         entity_type_id: VersionedUri,
-        updated_by: AccountId,
+        updated_by_id: AccountId,
     ) -> Result<PersistedEntityMetadata, UpdateError>;
 }
 
