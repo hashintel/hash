@@ -9,7 +9,6 @@ import { ApolloClient } from "@apollo/client";
 import {
   addEntityStoreAction,
   entityStorePluginState,
-  entityStorePluginStateFromTransaction,
 } from "@hashintel/hash-shared/entityStorePlugin";
 
 import applyDevTools from "prosemirror-dev-tools";
