@@ -294,10 +294,10 @@ export interface DataTypeRootedSubgraph {
  */
 
 export const EdgeKind = {
-  HasLink: "hasLink",
-  HasDestination: "hasDestination",
-  HasType: "hasType",
-  References: "references",
+  HasLink: "HAS_LINK",
+  HasDestination: "HAS_DESTINATION",
+  HasType: "HAS_TYPE",
+  References: "REFERENCES",
 } as const;
 
 export type EdgeKind = typeof EdgeKind[keyof typeof EdgeKind];

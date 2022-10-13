@@ -59,8 +59,7 @@ pub enum Vertex {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-#[serde(tag = "kind", content = "inner")]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[expect(
     dead_code,
     reason = "In process of implementing usages of these across a few PRs"
