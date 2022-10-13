@@ -159,7 +159,10 @@ export const updatePersistedPageContents: ResolverFn<
     } catch (error) {
       if (error instanceof UserInputError) {
         throw new UserInputError(`action ${i}: ${error}`);
+      } else if (error instanceof Error) {
+        throw new Error(`Could not apply update: ${error.message}`);
       }
+
       throw new Error(
         `Could not apply update: ${error?.toString()}, ${JSON.stringify(
           error,
