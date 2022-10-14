@@ -8,10 +8,10 @@ A-infra:
   - ".gitignore"
 
 A-blocks:
-  - "packages/blocks/*"
-  - "packages/blocks/.*"
-  - "packages/blocks/**/*"
-  - "packages/blocks/**/.*"
+  - "blocks/*"
+  - "blocks/.*"
+  - "blocks/**/*"
+  - "blocks/**/.*"
 
 A-hash:
   - "packages/hash/*"
