@@ -830,7 +830,7 @@ export interface PersistedLink {
   metadata: PersistedLinkMetadata;
 }
 /**
- * A record of a [`Link`] that has been persisted in the datastore, with its associated
+ * The metadata of a [`Link`] record.
  * @export
  * @interface PersistedLinkMetadata
  */
