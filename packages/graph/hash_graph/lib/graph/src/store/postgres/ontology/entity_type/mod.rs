@@ -10,8 +10,7 @@ use type_system::{uri::VersionedUri, EntityType};
 
 use crate::{
     ontology::{
-        AccountId, EntityTypeRootedSubgraph, OntologyQueryDepth, PersistedDataType,
-        PersistedEntityType, PersistedLinkType, PersistedOntologyMetadata, PersistedPropertyType,
+        AccountId, EntityTypeRootedSubgraph, PersistedEntityType, PersistedOntologyMetadata,
         StructuralQuery,
     },
     store::{
@@ -24,21 +23,6 @@ use crate::{
     },
     subgraph::GraphResolveDepths,
 };
-
-pub struct EntityTypeDependencyContext<'a> {
-    pub referenced_data_types:
-        &'a mut DependencyMap<VersionedUri, PersistedDataType, OntologyQueryDepth>,
-    pub referenced_property_types:
-        &'a mut DependencyMap<VersionedUri, PersistedPropertyType, OntologyQueryDepth>,
-    pub referenced_link_types:
-        &'a mut DependencyMap<VersionedUri, PersistedLinkType, OntologyQueryDepth>,
-    pub referenced_entity_types:
-        &'a mut DependencyMap<VersionedUri, PersistedEntityType, OntologyQueryDepth>,
-    pub data_type_query_depth: OntologyQueryDepth,
-    pub property_type_query_depth: OntologyQueryDepth,
-    pub link_type_query_depth: OntologyQueryDepth,
-    pub entity_type_query_depth: OntologyQueryDepth,
-}
 
 impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`PersistedEntityType`] into four [`DependencyMap`]s.
@@ -73,7 +57,7 @@ impl<C: AsClient> PostgresStore<C> {
                 )
                 .await?;
 
-            if let Some(entity_type) = unresolved_entity_type {
+            if let Some(entity_type) = unresolved_entity_type.cloned() {
                 if graph_resolve_depths.property_type_resolve_depth > 0 {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f

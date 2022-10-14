@@ -9,10 +9,7 @@ use tokio_postgres::GenericClient;
 use type_system::{uri::VersionedUri, DataType};
 
 use crate::{
-    ontology::{
-        AccountId, OntologyQueryDepth, PersistedDataType, PersistedOntologyMetadata,
-        StructuralQuery,
-    },
+    ontology::{AccountId, PersistedDataType, PersistedOntologyMetadata, StructuralQuery},
     store::{
         crud::Read,
         postgres::{

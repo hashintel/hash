@@ -9,10 +9,7 @@ use tokio_postgres::GenericClient;
 use type_system::{uri::VersionedUri, PropertyType, PropertyTypeReference};
 
 use crate::{
-    ontology::{
-        AccountId, OntologyQueryDepth, PersistedDataType, PersistedOntologyMetadata,
-        PersistedPropertyType, StructuralQuery,
-    },
+    ontology::{AccountId, PersistedOntologyMetadata, PersistedPropertyType, StructuralQuery},
     store::{
         crud::Read,
         postgres::{
@@ -23,15 +20,6 @@ use crate::{
     },
     subgraph::{GraphElementIdentifier, GraphResolveDepths, Subgraph, Vertex},
 };
-
-pub struct PropertyTypeDependencyContext<'a> {
-    pub referenced_data_types:
-        &'a mut DependencyMap<VersionedUri, PersistedDataType, OntologyQueryDepth>,
-    pub referenced_property_types:
-        &'a mut DependencyMap<VersionedUri, PersistedPropertyType, OntologyQueryDepth>,
-    pub data_type_query_depth: OntologyQueryDepth,
-    pub property_type_query_depth: OntologyQueryDepth,
-}
 
 impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`PersistedPropertyType`] into two [`DependencyMap`]s.
@@ -66,7 +54,7 @@ impl<C: AsClient> PostgresStore<C> {
                 )
                 .await?;
 
-            if let Some(property_type) = unresolved_property_type {
+            if let Some(property_type) = unresolved_property_type.cloned() {
                 if graph_resolve_depths.data_type_resolve_depth > 0 {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f

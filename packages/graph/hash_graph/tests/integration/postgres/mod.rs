@@ -9,13 +9,10 @@ use std::str::FromStr;
 
 use error_stack::{Report, Result};
 use graph::{
-    knowledge::{
-        Entity, EntityId, KnowledgeGraphQuery, Link, PersistedEntity, PersistedEntityMetadata,
-        PersistedLink,
-    },
+    knowledge::{Entity, EntityId, Link, PersistedEntity, PersistedEntityMetadata, PersistedLink},
     ontology::{
-        AccountId, EntityTypeQuery, LinkTypeQuery, PersistedDataType, PersistedEntityType,
-        PersistedLinkType, PersistedOntologyMetadata, PersistedPropertyType, StructuralQuery,
+        AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
+        PersistedOntologyMetadata, PersistedPropertyType, StructuralQuery,
     },
     store::{
         error::LinkRemovalError,
@@ -159,14 +156,7 @@ impl DatabaseApi<'_> {
             .store
             .get_data_type(&StructuralQuery {
                 expression: Expression::for_versioned_uri(uri),
-                graph_resolve_depths: GraphResolveDepths {
-                    data_type_resolve_depth: 0,
-                    property_type_resolve_depth: 0,
-                    entity_type_resolve_depth: 0,
-                    link_type_resolve_depth: 0,
-                    entity_resolve_depth: 0,
-                    link_resolve_depth: 0,
-                },
+                graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
             .vertices
@@ -205,14 +195,7 @@ impl DatabaseApi<'_> {
             .store
             .get_property_type(&StructuralQuery {
                 expression: Expression::for_versioned_uri(uri),
-                graph_resolve_depths: GraphResolveDepths {
-                    data_type_resolve_depth: 0,
-                    property_type_resolve_depth: 0,
-                    link_type_resolve_depth: 0,
-                    entity_type_resolve_depth: 0,
-                    entity_resolve_depth: 0,
-                    link_resolve_depth: 0,
-                },
+                graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
             .vertices
@@ -249,12 +232,9 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedEntityType, QueryError> {
         Ok(self
             .store
-            .get_entity_type(&EntityTypeQuery {
+            .get_entity_type(&StructuralQuery {
                 expression: Expression::for_versioned_uri(uri),
-                data_type_query_depth: 0,
-                property_type_query_depth: 0,
-                link_type_query_depth: 0,
-                entity_type_query_depth: 0,
+                graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
             .pop()
@@ -286,8 +266,9 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedLinkType, QueryError> {
         Ok(self
             .store
-            .get_link_type(&LinkTypeQuery {
+            .get_link_type(&StructuralQuery {
                 expression: Expression::for_versioned_uri(uri),
+                graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
             .pop()
@@ -318,14 +299,9 @@ impl DatabaseApi<'_> {
     pub async fn get_entity(&mut self, entity_id: EntityId) -> Result<PersistedEntity, QueryError> {
         Ok(self
             .store
-            .get_entity(&KnowledgeGraphQuery {
+            .get_entity(&StructuralQuery {
                 expression: Expression::for_latest_entity_id(entity_id),
-                data_type_query_depth: 0,
-                property_type_query_depth: 0,
-                link_type_query_depth: 0,
-                entity_type_query_depth: 0,
-                link_target_entity_query_depth: 0,
-                link_query_depth: 0,
+                graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
             .pop()
@@ -377,7 +353,7 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedLink, QueryError> {
         Ok(self
             .store
-            .get_links(&KnowledgeGraphQuery {
+            .get_links(&StructuralQuery {
                 expression: Expression::All(vec![
                     Expression::for_link_by_source_entity_id(source_entity_id),
                     Expression::Eq(vec![
@@ -407,12 +383,7 @@ impl DatabaseApi<'_> {
                         Expression::Literal(Literal::Float(link_type_id.version() as f64)),
                     ]),
                 ]),
-                data_type_query_depth: 0,
-                property_type_query_depth: 0,
-                link_type_query_depth: 0,
-                entity_type_query_depth: 0,
-                link_target_entity_query_depth: 0,
-                link_query_depth: 0,
+                graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
             .pop()
@@ -427,14 +398,9 @@ impl DatabaseApi<'_> {
     ) -> Result<Vec<PersistedLink>, QueryError> {
         Ok(self
             .store
-            .get_links(&KnowledgeGraphQuery {
+            .get_links(&StructuralQuery {
                 expression: Expression::for_link_by_source_entity_id(source_entity_id),
-                data_type_query_depth: 0,
-                property_type_query_depth: 0,
-                link_type_query_depth: 0,
-                entity_type_query_depth: 0,
-                link_target_entity_query_depth: 0,
-                link_query_depth: 0,
+                graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
             .into_iter()

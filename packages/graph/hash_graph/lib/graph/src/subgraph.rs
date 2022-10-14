@@ -132,6 +132,19 @@ pub struct GraphResolveDepths {
     pub link_target_entity_resolve_depth: KnowledgeGraphQueryDepth,
 }
 
+impl GraphResolveDepths {
+    pub const fn zeroed() -> Self {
+        Self {
+            data_type_resolve_depth: 0,
+            property_type_resolve_depth: 0,
+            entity_type_resolve_depth: 0,
+            link_type_resolve_depth: 0,
+            link_resolve_depth: 0,
+            link_target_entity_resolve_depth: 0,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Subgraph {

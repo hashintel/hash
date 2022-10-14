@@ -45,24 +45,21 @@ impl<C: AsClient> PostgresStore<C> {
 
             if let Some(link) = links.insert(&link, graph_resolve_depths.link_resolve_depth) {
                 if graph_resolve_depths.link_type_resolve_depth > 0 {
-                    self.get_link_type_as_dependency(
-                        link.inner().link_type_id(),
-                        DependencyContext {
-                            graph_resolve_depths: GraphResolveDepths {
-                                link_type_resolve_depth: graph_resolve_depths
-                                    .link_type_resolve_depth
-                                    - 1,
-                                ..graph_resolve_depths
-                            },
-                            edges,
-                            referenced_data_types,
-                            referenced_property_types,
-                            referenced_link_types,
-                            referenced_entity_types,
-                            linked_entities,
-                            links,
+                    let link_type_id = link.inner().link_type_id().clone();
+                    self.get_link_type_as_dependency(&link_type_id, DependencyContext {
+                        graph_resolve_depths: GraphResolveDepths {
+                            link_type_resolve_depth: graph_resolve_depths.link_type_resolve_depth
+                                - 1,
+                            ..graph_resolve_depths
                         },
-                    )
+                        edges,
+                        referenced_data_types,
+                        referenced_property_types,
+                        referenced_link_types,
+                        referenced_entity_types,
+                        linked_entities,
+                        links,
+                    })
                     .await?;
                 }
 
