@@ -90,7 +90,7 @@ struct CreateEntityRequest {
     request_body = CreateEntityRequest,
     tag = "Entity",
     responses(
-        (status = 201, content_type = "application/json", description = "The created entity", body = PersistedEntityMetadata),
+        (status = 201, content_type = "application/json", description = "The metadata of the created entity", body = PersistedEntityMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Entity Type URI was not found"),
@@ -215,7 +215,7 @@ struct UpdateEntityRequest {
     path = "/entities",
     tag = "Entity",
     responses(
-        (status = 200, content_type = "application/json", description = "The updated entity", body = PersistedEntityMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the updated entity", body = PersistedEntityMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Entity ID or Entity Type URI was not found"),
