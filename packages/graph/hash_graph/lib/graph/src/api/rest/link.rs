@@ -10,7 +10,10 @@ use utoipa::{OpenApi, ToSchema};
 
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
-    knowledge::{EntityId, KnowledgeGraphQuery, Link, LinkRootedSubgraph, PersistedLink},
+    knowledge::{
+        EntityId, KnowledgeGraphQuery, Link, LinkRootedSubgraph, PersistedLink,
+        PersistedLinkMetadata,
+    },
     ontology::AccountId,
     store::{error::QueryError, query::Expression, LinkStore, StorePool},
 };
@@ -31,7 +34,8 @@ use crate::{
             CreateLinkRequest,
             RemoveLinkRequest,
             KnowledgeGraphQuery,
-            LinkRootedSubgraph
+            LinkRootedSubgraph,
+            PersistedLinkMetadata
         )
     ),
     tags(

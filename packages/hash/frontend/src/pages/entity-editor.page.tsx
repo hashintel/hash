@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { Container, Typography } from "@mui/material";
 import init, { ValueOrArray } from "@blockprotocol/type-system-web";
 import { Button } from "@hashintel/hash-design-system/button";
+import { types } from "@hashintel/hash-shared/types";
 import { useUser } from "../components/hooks/useUser";
 import { NextPageWithLayout } from "../shared/layout";
 import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotocol-ontology-functions-hook";
@@ -66,8 +67,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   const handleCreateEntity = async () => {
     const createdEntity = await createEntity({
       data: {
-        entityTypeId:
-          "http://localhost:3000/@example/types/entity-type/dummy/v/1",
+        entityTypeId: types.entityType.dummy.entityTypeId,
         properties: {},
       },
     });

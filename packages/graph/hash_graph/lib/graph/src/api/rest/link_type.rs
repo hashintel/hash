@@ -20,7 +20,7 @@ use crate::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, AccountId, LinkTypeQuery, LinkTypeRootedSubgraph, PersistedLinkType,
-        PersistedOntologyIdentifier,
+        PersistedOntologyIdentifier, PersistedOntologyMetadata,
     },
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, LinkTypeStore, StorePool,
@@ -42,6 +42,7 @@ use crate::{
             UpdateLinkTypeRequest,
             AccountId,
             PersistedOntologyIdentifier,
+            PersistedOntologyMetadata,
             PersistedLinkType,
             LinkTypeQuery,
             LinkTypeRootedSubgraph,
@@ -86,7 +87,7 @@ struct CreateLinkTypeRequest {
     request_body = CreateLinkTypeRequest,
     tag = "LinkType",
     responses(
-        (status = 201, content_type = "application/json", description = "The schema of the created link type", body = PersistedOntologyIdentifier),
+        (status = 201, content_type = "application/json", description = "The metadata of the created link type", body = PersistedOntologyMetadata),
 
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
         (status = 409, description = "Unable to create link type in the store as the base link type ID already exists"),
@@ -98,7 +99,7 @@ async fn create_link_type<P: StorePool + Send>(
     body: Json<CreateLinkTypeRequest>,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
-) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
+) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
     let Json(CreateLinkTypeRequest { schema, account_id }) = body;
 
     let link_type: LinkType = schema.try_into().into_report().map_err(|report| {
@@ -223,7 +224,7 @@ struct UpdateLinkTypeRequest {
     path = "/link-types",
     tag = "LinkType",
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the updated link type", body = PersistedOntologyIdentifier),
+        (status = 200, content_type = "application/json", description = "The metadata of the updated link type", body = PersistedOntologyMetadata),
 
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
         (status = 404, description = "Base link type ID was not found"),
@@ -234,7 +235,7 @@ struct UpdateLinkTypeRequest {
 async fn update_link_type<P: StorePool + Send>(
     body: Json<UpdateLinkTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
+) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
     let Json(UpdateLinkTypeRequest {
         schema,
         type_to_update,

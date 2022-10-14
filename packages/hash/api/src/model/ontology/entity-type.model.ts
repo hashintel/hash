@@ -6,21 +6,17 @@ import {
   PersistedEntityType,
   UpdateEntityTypeRequest,
 } from "@hashintel/hash-graph-client";
-
+import { generateTypeId, types } from "@hashintel/hash-shared/types";
 import {
   EntityTypeModel,
   PropertyTypeModel,
   LinkTypeModel,
   DataTypeModel,
 } from "../index";
-import { generateTypeId } from "../util";
 import dataTypeModel from "./data-type.model";
 import linkTypeModel from "./link-type.model";
 import { getNamespaceOfAccountOwner } from "./util";
-import {
-  workspaceEntityTypeTitles,
-  WORKSPACE_TYPES,
-} from "../../graph/workspace-types";
+import { WORKSPACE_TYPES } from "../../graph/workspace-types";
 
 export type EntityTypeModelConstructorParams = {
   ownedById: string;
@@ -47,7 +43,7 @@ export default class {
 
   static fromPersistedEntityType({
     inner,
-    identifier,
+    metadata: { identifier },
   }: PersistedEntityType): EntityTypeModel {
     /**
      * @todo and a warning, these type casts are here to compensate for
@@ -87,7 +83,7 @@ export default class {
     });
     const fullEntityType = { $id: entityTypeId, ...params.schema };
 
-    const { data: identifier } = await graphApi
+    const { data: metadata } = await graphApi
       .createEntityType({
         /**
          * @todo: replace uses of `accountId` with `ownedById` in the Graph API
@@ -103,6 +99,8 @@ export default class {
             : `[${err.code}] couldn't create entity type: ${err.response?.data}.`,
         );
       });
+
+    const { identifier } = metadata;
 
     return new EntityTypeModel({
       schema: fullEntityType,
@@ -293,9 +291,9 @@ export default class {
       schema,
     };
 
-    const { data: identifier } = await graphApi.updateEntityType(
-      updateArguments,
-    );
+    const { data: metadata } = await graphApi.updateEntityType(updateArguments);
+
+    const { identifier } = metadata;
 
     return new EntityTypeModel({
       schema: { ...schema, $id: identifier.uri },
@@ -385,7 +383,7 @@ export default class {
       WORKSPACE_TYPES.entityType,
     ) as [keyof typeof WORKSPACE_TYPES.entityType, EntityTypeModel][]) {
       if (workspaceEntityType.schema.$id === this.schema.$id) {
-        return workspaceEntityTypeTitles[key];
+        return types.entityType[key].title;
       }
     }
 

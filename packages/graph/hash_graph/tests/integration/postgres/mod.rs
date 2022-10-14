@@ -10,12 +10,12 @@ use std::str::FromStr;
 use error_stack::{Report, Result};
 use graph::{
     knowledge::{
-        Entity, EntityId, KnowledgeGraphQuery, Link, PersistedEntity, PersistedEntityIdentifier,
+        Entity, EntityId, KnowledgeGraphQuery, Link, PersistedEntity, PersistedEntityMetadata,
         PersistedLink,
     },
     ontology::{
         AccountId, DataTypeQuery, EntityTypeQuery, LinkTypeQuery, PersistedDataType,
-        PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier, PersistedPropertyType,
+        PersistedEntityType, PersistedLinkType, PersistedOntologyMetadata, PersistedPropertyType,
         PropertyTypeQuery,
     },
     store::{
@@ -146,7 +146,7 @@ impl DatabaseApi<'_> {
     pub async fn create_data_type(
         &mut self,
         data_type: DataType,
-    ) -> Result<PersistedOntologyIdentifier, InsertionError> {
+    ) -> Result<PersistedOntologyMetadata, InsertionError> {
         self.store
             .create_data_type(data_type, self.account_id)
             .await
@@ -183,7 +183,7 @@ impl DatabaseApi<'_> {
     pub async fn update_data_type(
         &mut self,
         data_type: DataType,
-    ) -> Result<PersistedOntologyIdentifier, UpdateError> {
+    ) -> Result<PersistedOntologyMetadata, UpdateError> {
         self.store
             .update_data_type(data_type, self.account_id)
             .await
@@ -192,7 +192,7 @@ impl DatabaseApi<'_> {
     pub async fn create_property_type(
         &mut self,
         property_type: PropertyType,
-    ) -> Result<PersistedOntologyIdentifier, InsertionError> {
+    ) -> Result<PersistedOntologyMetadata, InsertionError> {
         self.store
             .create_property_type(property_type, self.account_id)
             .await
@@ -218,7 +218,7 @@ impl DatabaseApi<'_> {
     pub async fn update_property_type(
         &mut self,
         property_type: PropertyType,
-    ) -> Result<PersistedOntologyIdentifier, UpdateError> {
+    ) -> Result<PersistedOntologyMetadata, UpdateError> {
         self.store
             .update_property_type(property_type, self.account_id)
             .await
@@ -227,7 +227,7 @@ impl DatabaseApi<'_> {
     pub async fn create_entity_type(
         &mut self,
         entity_type: EntityType,
-    ) -> Result<PersistedOntologyIdentifier, InsertionError> {
+    ) -> Result<PersistedOntologyMetadata, InsertionError> {
         self.store
             .create_entity_type(entity_type, self.account_id)
             .await
@@ -255,7 +255,7 @@ impl DatabaseApi<'_> {
     pub async fn update_entity_type(
         &mut self,
         entity_type: EntityType,
-    ) -> Result<PersistedOntologyIdentifier, UpdateError> {
+    ) -> Result<PersistedOntologyMetadata, UpdateError> {
         self.store
             .update_entity_type(entity_type, self.account_id)
             .await
@@ -264,7 +264,7 @@ impl DatabaseApi<'_> {
     pub async fn create_link_type(
         &mut self,
         link_type: LinkType,
-    ) -> Result<PersistedOntologyIdentifier, InsertionError> {
+    ) -> Result<PersistedOntologyMetadata, InsertionError> {
         self.store
             .create_link_type(link_type, self.account_id)
             .await
@@ -288,7 +288,7 @@ impl DatabaseApi<'_> {
     pub async fn update_link_type(
         &mut self,
         link_type: LinkType,
-    ) -> Result<PersistedOntologyIdentifier, UpdateError> {
+    ) -> Result<PersistedOntologyMetadata, UpdateError> {
         self.store
             .update_link_type(link_type, self.account_id)
             .await
@@ -299,7 +299,7 @@ impl DatabaseApi<'_> {
         entity: Entity,
         entity_type_id: VersionedUri,
         entity_id: Option<EntityId>,
-    ) -> Result<PersistedEntityIdentifier, InsertionError> {
+    ) -> Result<PersistedEntityMetadata, InsertionError> {
         self.store
             .create_entity(entity, entity_type_id, self.account_id, entity_id)
             .await
@@ -328,7 +328,7 @@ impl DatabaseApi<'_> {
         entity_id: EntityId,
         entity: Entity,
         entity_type_id: VersionedUri,
-    ) -> Result<PersistedEntityIdentifier, UpdateError> {
+    ) -> Result<PersistedEntityMetadata, UpdateError> {
         self.store
             .update_entity(entity_id, entity, entity_type_id, self.account_id)
             .await

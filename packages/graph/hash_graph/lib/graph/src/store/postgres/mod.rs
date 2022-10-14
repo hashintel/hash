@@ -29,8 +29,8 @@ pub use self::{
 };
 use super::error::LinkRemovalError;
 use crate::{
-    knowledge::{Entity, EntityId, Link, PersistedEntityIdentifier},
-    ontology::{AccountId, PersistedOntologyIdentifier},
+    knowledge::{Entity, EntityId, Link, PersistedEntityIdentifier, PersistedEntityMetadata},
+    ontology::{AccountId, PersistedOntologyIdentifier, PersistedOntologyMetadata},
     store::{
         error::VersionedUriAlreadyExists,
         postgres::{ontology::OntologyDatabaseType, version_id::VersionId},
@@ -386,7 +386,7 @@ where
         &self,
         database_type: T,
         owned_by_id: AccountId,
-    ) -> Result<(VersionId, PersistedOntologyIdentifier), InsertionError>
+    ) -> Result<(VersionId, PersistedOntologyMetadata), InsertionError>
     where
         T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
     {
@@ -423,7 +423,7 @@ where
 
         Ok((
             version_id,
-            PersistedOntologyIdentifier::new(uri, owned_by_id),
+            PersistedOntologyMetadata::new(PersistedOntologyIdentifier::new(uri, owned_by_id)),
         ))
     }
 
@@ -441,7 +441,7 @@ where
         &self,
         database_type: T,
         updated_by: AccountId,
-    ) -> Result<(VersionId, PersistedOntologyIdentifier), UpdateError>
+    ) -> Result<(VersionId, PersistedOntologyMetadata), UpdateError>
     where
         T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
     {
@@ -470,7 +470,7 @@ where
 
         Ok((
             version_id,
-            PersistedOntologyIdentifier::new(uri, updated_by),
+            PersistedOntologyMetadata::new(PersistedOntologyIdentifier::new(uri, updated_by)),
         ))
     }
 
@@ -704,8 +704,8 @@ where
         entity: Entity,
         entity_type_id: VersionedUri,
         account_id: AccountId,
-    ) -> Result<PersistedEntityIdentifier, InsertionError> {
-        let entity_type_id = self
+    ) -> Result<PersistedEntityMetadata, InsertionError> {
+        let entity_type_version_id = self
             .version_id_by_uri(&entity_type_id)
             .await
             .change_context(InsertionError)?;
@@ -722,14 +722,15 @@ where
                     VALUES ($1, clock_timestamp(), $2, $3, $4)
                     RETURNING version;
                 "#,
-                &[&entity_id, &entity_type_id, &value, &account_id]
+                &[&entity_id, &entity_type_version_id, &value, &account_id]
             )
             .await
             .into_report()
             .change_context(InsertionError)?.get(0);
 
-        Ok(PersistedEntityIdentifier::new(
-            entity_id, version, account_id,
+        Ok(PersistedEntityMetadata::new(
+            PersistedEntityIdentifier::new(entity_id, version, account_id),
+            entity_type_id,
         ))
     }
 
