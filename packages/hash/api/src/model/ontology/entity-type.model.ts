@@ -6,21 +6,17 @@ import {
   PersistedEntityType,
   UpdateEntityTypeRequest,
 } from "@hashintel/hash-graph-client";
-
+import { generateTypeId, types } from "@hashintel/hash-shared/types";
 import {
   EntityTypeModel,
   PropertyTypeModel,
   LinkTypeModel,
   DataTypeModel,
 } from "../index";
-import { generateTypeId } from "../util";
 import dataTypeModel from "./data-type.model";
 import linkTypeModel from "./link-type.model";
 import { getNamespaceOfAccountOwner } from "./util";
-import {
-  workspaceEntityTypeTitles,
-  WORKSPACE_TYPES,
-} from "../../graph/workspace-types";
+import { WORKSPACE_TYPES } from "../../graph/workspace-types";
 
 export type EntityTypeModelConstructorParams = {
   ownedById: string;
@@ -387,7 +383,7 @@ export default class {
       WORKSPACE_TYPES.entityType,
     ) as [keyof typeof WORKSPACE_TYPES.entityType, EntityTypeModel][]) {
       if (workspaceEntityType.schema.$id === this.schema.$id) {
-        return workspaceEntityTypeTitles[key];
+        return types.entityType[key].title;
       }
     }
 

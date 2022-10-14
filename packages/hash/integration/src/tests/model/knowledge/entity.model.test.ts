@@ -10,6 +10,7 @@ import {
   LinkTypeModel,
 } from "@hashintel/hash-api/src/model";
 import { generateWorkspaceEntityTypeSchema } from "@hashintel/hash-api/src/model/util";
+import { generateTypeId } from "@hashintel/hash-shared/types";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -108,9 +109,12 @@ describe("Entity CRU", () => {
     entityTypeModel = await EntityTypeModel.create(graphApi, {
       ownedById,
       schema: generateWorkspaceEntityTypeSchema({
-        namespace: testUser.getShortname()!,
+        entityTypeId: generateTypeId({
+          namespace: testUser.getShortname()!,
+          kind: "entity-type",
+          title: "Person",
+        }),
         title: "Person",
-        pluralTitle: "People",
         properties: [
           { propertyTypeModel: favoriteBookPropertyTypeModel },
           { propertyTypeModel: namePropertyTypeModel },
