@@ -100,34 +100,6 @@ export default class extends EntityModel {
     return CommentModel.fromEntityModel(entity);
   }
 
-  static async getAllCommentsInPage(
-    graphApi: GraphApi,
-    params: {
-      ownedById: string;
-      pageId: string;
-    },
-  ): Promise<CommentModel[]> {
-    const { ownedById, pageId } = params;
-
-    const pageEntity = await PageModel.getPageById(graphApi, {
-      entityId: pageId,
-    });
-
-    if (!pageEntity) {
-      throw new Error(
-        `Page with entityId ${pageId} not found found in account ${ownedById}`,
-      );
-    }
-
-    const pageBlocks = await pageEntity.getBlocks(graphApi);
-
-    const comments = await Promise.all(
-      pageBlocks.map((block) => block.getBlockComments(graphApi)),
-    );
-
-    return comments.flat();
-  }
-
   /**
    * Get the value of the "Resolved At" property of the comment.
    */
