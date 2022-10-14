@@ -717,16 +717,16 @@ export interface LinkTypeRootedSubgraph {
 export interface PersistedDataType {
   /**
    *
-   * @type {PersistedOntologyIdentifier}
-   * @memberof PersistedDataType
-   */
-  identifier: PersistedOntologyIdentifier;
-  /**
-   *
    * @type {DataType}
    * @memberof PersistedDataType
    */
   inner: DataType;
+  /**
+   *
+   * @type {PersistedOntologyMetadata}
+   * @memberof PersistedDataType
+   */
+  metadata: PersistedOntologyMetadata;
 }
 /**
  * A record of an [`Entity`] that has been persisted in the datastore, with its associated
@@ -736,22 +736,16 @@ export interface PersistedDataType {
 export interface PersistedEntity {
   /**
    *
-   * @type {string}
-   * @memberof PersistedEntity
-   */
-  entityTypeId: string;
-  /**
-   *
-   * @type {PersistedEntityIdentifier}
-   * @memberof PersistedEntity
-   */
-  identifier: PersistedEntityIdentifier;
-  /**
-   *
    * @type {object}
    * @memberof PersistedEntity
    */
   inner: object;
+  /**
+   *
+   * @type {PersistedEntityMetadata}
+   * @memberof PersistedEntity
+   */
+  metadata: PersistedEntityMetadata;
 }
 /**
  * The metadata required to uniquely identify an instance of an [`Entity`] that has been persisted
@@ -779,6 +773,25 @@ export interface PersistedEntityIdentifier {
   version: string;
 }
 /**
+ * The metadata of an [`Entity`] record.
+ * @export
+ * @interface PersistedEntityMetadata
+ */
+export interface PersistedEntityMetadata {
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedEntityMetadata
+   */
+  entityTypeId: string;
+  /**
+   *
+   * @type {PersistedEntityIdentifier}
+   * @memberof PersistedEntityMetadata
+   */
+  identifier: PersistedEntityIdentifier;
+}
+/**
  *
  * @export
  * @interface PersistedEntityType
@@ -786,16 +799,16 @@ export interface PersistedEntityIdentifier {
 export interface PersistedEntityType {
   /**
    *
-   * @type {PersistedOntologyIdentifier}
-   * @memberof PersistedEntityType
-   */
-  identifier: PersistedOntologyIdentifier;
-  /**
-   *
    * @type {EntityType}
    * @memberof PersistedEntityType
    */
   inner: EntityType;
+  /**
+   *
+   * @type {PersistedOntologyMetadata}
+   * @memberof PersistedEntityType
+   */
+  metadata: PersistedOntologyMetadata;
 }
 /**
  * A record of a [`Link`] that has been persisted in the datastore, with its associated
@@ -811,8 +824,21 @@ export interface PersistedLink {
   inner: Link;
   /**
    *
-   * @type {string}
+   * @type {PersistedLinkMetadata}
    * @memberof PersistedLink
+   */
+  metadata: PersistedLinkMetadata;
+}
+/**
+ * A record of a [`Link`] that has been persisted in the datastore, with its associated
+ * @export
+ * @interface PersistedLinkMetadata
+ */
+export interface PersistedLinkMetadata {
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedLinkMetadata
    */
   ownedById: string;
 }
@@ -824,16 +850,16 @@ export interface PersistedLink {
 export interface PersistedLinkType {
   /**
    *
-   * @type {PersistedOntologyIdentifier}
-   * @memberof PersistedLinkType
-   */
-  identifier: PersistedOntologyIdentifier;
-  /**
-   *
    * @type {LinkType}
    * @memberof PersistedLinkType
    */
   inner: LinkType;
+  /**
+   *
+   * @type {PersistedOntologyMetadata}
+   * @memberof PersistedLinkType
+   */
+  metadata: PersistedOntologyMetadata;
 }
 /**
  * The metadata required to uniquely identify an ontology element that has been persisted in the
@@ -857,21 +883,34 @@ export interface PersistedOntologyIdentifier {
 /**
  *
  * @export
- * @interface PersistedPropertyType
+ * @interface PersistedOntologyMetadata
  */
-export interface PersistedPropertyType {
+export interface PersistedOntologyMetadata {
   /**
    *
    * @type {PersistedOntologyIdentifier}
-   * @memberof PersistedPropertyType
+   * @memberof PersistedOntologyMetadata
    */
   identifier: PersistedOntologyIdentifier;
+}
+/**
+ *
+ * @export
+ * @interface PersistedPropertyType
+ */
+export interface PersistedPropertyType {
   /**
    *
    * @type {PropertyType}
    * @memberof PersistedPropertyType
    */
   inner: PropertyType;
+  /**
+   *
+   * @type {PersistedOntologyMetadata}
+   * @memberof PersistedPropertyType
+   */
+  metadata: PersistedOntologyMetadata;
 }
 /**
  *
