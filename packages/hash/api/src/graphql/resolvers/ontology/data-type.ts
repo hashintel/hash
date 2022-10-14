@@ -15,7 +15,7 @@ export const getAllLatestDataTypes: ResolverFn<
   const { data: dataTypeSubgraph } = await graphApi
     .getDataTypesByQuery({
       query: { eq: [{ path: ["version"] }, { literal: "latest" }] },
-      /** todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
+      /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
       queryResolveDepths: {
         dataTypeResolveDepth: 0,
         propertyTypeResolveDepth: 0,
@@ -48,7 +48,7 @@ export const getDataType: ResolverFn<
       query: {
         eq: [{ path: ["versionedUri"] }, { literal: dataTypeId }],
       },
-      /** todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
+      /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
       queryResolveDepths: {
         dataTypeResolveDepth: 0,
         propertyTypeResolveDepth: 0,
@@ -61,7 +61,7 @@ export const getDataType: ResolverFn<
     .catch((err: AxiosError) => {
       throw new ApolloError(
         `Unable to retrieve data type [${dataTypeId}]: ${err.response?.data}`,
-        "GET_ALL_ERROR",
+        "GET_ERROR",
       );
     });
 
