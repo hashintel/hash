@@ -4,10 +4,13 @@ import { Box, buttonClasses, Collapse } from "@mui/material";
 import { Button } from "@hashintel/hash-design-system";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { extractBaseUri } from "@blockprotocol/type-system-web";
+import { types } from "@hashintel/hash-shared/types";
 import { PageThread } from "../../../components/hooks/usePageComments";
 import { CommentTextField, CommentTextFieldRef } from "./CommentTextField";
 import { CommentBlock } from "./CommentBlock";
 import styles from "./style.module.css";
+import { useInitTypeSystem } from "../../../lib/use-init-type-system";
 
 const UNCOLLAPSIBLE_REPLIES_NUMBER = 2;
 
@@ -22,6 +25,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   createComment,
   loading,
 }) => {
+  const loadingTypeSystem = useInitTypeSystem();
   const inputRef = useRef<CommentTextFieldRef>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const [threadFocused, setThreadFocused] = useState(false);
@@ -55,7 +59,17 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
     return [replies, lastItems];
   }, [comment]);
 
-  return (
+  const preferredName = useMemo(
+    () =>
+      loadingTypeSystem
+        ? ""
+        : comment.author.properties[
+            extractBaseUri(types.propertyType.preferredName.propertyTypeId)
+          ],
+    [loadingTypeSystem, comment.author.properties],
+  );
+
+  return loadingTypeSystem ? null : (
     <Box
       ref={threadRef}
       tabIndex={0}
@@ -146,12 +160,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
           >
             <CommentTextField
               ref={inputRef}
-              placeholder={`Reply to ${
-                // @todo: replace with actual typed property uri (https://github.com/hashintel/hash/pull/1193)
-                (comment.author?.properties as any)[
-                  "http://localhost:3000/@example/types/property-type/preferred-name/"
-                ]
-              }`}
+              placeholder={`Reply to ${preferredName}`}
               onClose={cancelSubmit}
               onSubmit={submitComment}
               editable={!loading}

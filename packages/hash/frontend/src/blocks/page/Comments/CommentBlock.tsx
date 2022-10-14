@@ -15,6 +15,8 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { bindTrigger } from "material-ui-popup-state";
+import { types } from "@hashintel/hash-shared/types";
+import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { PageComment } from "../../../components/hooks/usePageComments";
 import { CommentTextField, CommentTextFieldRef } from "./CommentTextField";
 import { CommentBlockMenu } from "./CommentBlockMenu";
@@ -83,10 +85,13 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
     }
   }, []);
 
-  // @todo: replace with actual typed property uri (https://github.com/hashintel/hash/pull/1193)
-  const preferredName = (author?.properties as any)[
-    "http://localhost:3000/@example/types/property-type/preferred-name/"
-  ];
+  const preferredName = useMemo(
+    () =>
+      author.properties[
+        extractBaseUri(types.propertyType.preferredName.propertyTypeId)
+      ],
+    [author.properties],
+  );
 
   return (
     <Box display="flex" flexDirection="column" p={2}>
