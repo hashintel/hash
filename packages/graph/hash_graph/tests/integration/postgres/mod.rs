@@ -14,9 +14,8 @@ use graph::{
         PersistedLink,
     },
     ontology::{
-        AccountId, DataTypeQuery, EntityTypeQuery, LinkTypeQuery, PersistedDataType,
-        PersistedEntityType, PersistedLinkType, PersistedOntologyMetadata, PersistedPropertyType,
-        PropertyTypeQuery,
+        AccountId, EntityTypeQuery, LinkTypeQuery, PersistedDataType, PersistedEntityType,
+        PersistedLinkType, PersistedOntologyMetadata, PersistedPropertyType, StructuralQuery,
     },
     store::{
         error::LinkRemovalError,
@@ -158,7 +157,7 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedDataType, QueryError> {
         let vertex = self
             .store
-            .get_data_type(&DataTypeQuery {
+            .get_data_type(&StructuralQuery {
                 expression: Expression::for_versioned_uri(uri),
                 query_resolve_depths: GraphResolveDepths {
                     data_type_resolve_depth: 0,
@@ -202,17 +201,28 @@ impl DatabaseApi<'_> {
         &mut self,
         uri: &VersionedUri,
     ) -> Result<PersistedPropertyType, QueryError> {
-        Ok(self
+        let vertex = self
             .store
-            .get_property_type(&PropertyTypeQuery {
+            .get_property_type(&StructuralQuery {
                 expression: Expression::for_versioned_uri(uri),
-                data_type_query_depth: 0,
-                property_type_query_depth: 0,
+                query_resolve_depths: GraphResolveDepths {
+                    data_type_resolve_depth: 0,
+                    property_type_resolve_depth: 0,
+                    link_type_resolve_depth: 0,
+                    entity_type_resolve_depth: 0,
+                    entity_resolve_depth: 0,
+                    link_resolve_depth: 0,
+                },
             })
             .await?
-            .pop()
-            .expect("no property type found")
-            .property_type)
+            .vertices
+            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
+            .expect("no property type found");
+
+        match vertex {
+            Vertex::PropertyType(persisted_data_type) => Ok(persisted_data_type),
+            _ => unreachable!(),
+        }
     }
 
     pub async fn update_property_type(
