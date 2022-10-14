@@ -1,16 +1,14 @@
 import { PropertyType } from "@blockprotocol/type-system-web";
 import { Chip } from "@hashintel/hash-design-system/chip";
+import { types } from "@hashintel/hash-shared/types";
 
-const dataTypeNames = {
-  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1": "Text",
-  "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1":
-    "Number",
-  "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1":
-    "Boolean",
-  "https://blockprotocol.org/@blockprotocol/types/data-type/null/v/1": "Null",
-  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1":
-    "JSON Object",
-} as Record<string, string>;
+const dataTypeIdToTitle = Object.values(types.dataType).reduce<
+  Record<string, string>
+>((prev, dataType) => {
+  const { dataTypeId, title } = dataType;
+
+  return { ...prev, [dataTypeId]: title };
+}, {});
 
 // @todo handle this being too many
 export const PropertyExpectedValues = ({
@@ -21,7 +19,8 @@ export const PropertyExpectedValues = ({
   <>
     {property.oneOf.map((type) => {
       if ("$ref" in type) {
-        const label = dataTypeNames[type.$ref];
+        const label = dataTypeIdToTitle[type.$ref];
+
         if (label) {
           return <Chip key={label} label={label} color="gray" />;
         }

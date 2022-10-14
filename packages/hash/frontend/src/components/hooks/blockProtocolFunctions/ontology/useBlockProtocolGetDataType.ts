@@ -35,7 +35,6 @@ export const useBlockProtocolGetDataType = (): {
       const { dataTypeId } = data;
 
       const response = await getFn({
-        query: getDataTypeQuery,
         variables: { dataTypeId },
       });
 

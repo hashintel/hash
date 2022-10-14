@@ -80,15 +80,42 @@ impl PersistedEntityIdentifier {
     }
 }
 
+/// The metadata of an [`Entity`] record.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PersistedEntityMetadata {
+    identifier: PersistedEntityIdentifier,
+    #[schema(value_type = String)]
+    entity_type_id: VersionedUri,
+}
+
+impl PersistedEntityMetadata {
+    #[must_use]
+    pub const fn new(identifier: PersistedEntityIdentifier, entity_type_id: VersionedUri) -> Self {
+        Self {
+            identifier,
+            entity_type_id,
+        }
+    }
+
+    #[must_use]
+    pub const fn identifier(&self) -> &PersistedEntityIdentifier {
+        &self.identifier
+    }
+
+    #[must_use]
+    pub const fn entity_type_id(&self) -> &VersionedUri {
+        &self.entity_type_id
+    }
+}
+
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated
 /// metadata.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PersistedEntity {
     inner: Entity,
-    identifier: PersistedEntityIdentifier,
-    #[schema(value_type = String)]
-    entity_type_id: VersionedUri,
+    metadata: PersistedEntityMetadata,
 }
 
 impl PersistedEntity {
@@ -102,8 +129,10 @@ impl PersistedEntity {
     ) -> Self {
         Self {
             inner,
-            identifier: PersistedEntityIdentifier::new(entity_id, version, owned_by_id),
-            entity_type_id,
+            metadata: PersistedEntityMetadata::new(
+                PersistedEntityIdentifier::new(entity_id, version, owned_by_id),
+                entity_type_id,
+            ),
         }
     }
 
@@ -113,13 +142,8 @@ impl PersistedEntity {
     }
 
     #[must_use]
-    pub const fn identifier(&self) -> &PersistedEntityIdentifier {
-        &self.identifier
-    }
-
-    #[must_use]
-    pub const fn entity_type_id(&self) -> &VersionedUri {
-        &self.entity_type_id
+    pub const fn metadata(&self) -> &PersistedEntityMetadata {
+        &self.metadata
     }
 }
 
