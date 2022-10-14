@@ -5,7 +5,6 @@ import {
   CommentModel,
   EntityModelCreateParams,
   UserModel,
-  PageModel,
 } from "..";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
 
