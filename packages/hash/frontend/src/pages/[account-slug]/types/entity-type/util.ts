@@ -1,3 +1,4 @@
+import { validateVersionedUri } from "@blockprotocol/type-system-web";
 import { bindToggle, bindTrigger } from "material-ui-popup-state/hooks";
 import { SetStateAction, useLayoutEffect, useRef, useState } from "react";
 
@@ -50,4 +51,15 @@ export const withHandler = <
       return trigger.onTouchStart(...args);
     },
   };
+};
+
+/**
+ * Necessary as type system isn't fully correctly typed yet
+ */
+export const mustBeVersionedUri = (uri: string) => {
+  const validatedId = validateVersionedUri(uri);
+  if (validatedId.type === "Err") {
+    throw new Error("uri not versioned");
+  }
+  return validatedId.inner;
 };
