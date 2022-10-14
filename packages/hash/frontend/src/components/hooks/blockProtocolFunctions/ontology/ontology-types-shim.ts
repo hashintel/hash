@@ -13,11 +13,12 @@ import {
 } from "@blockprotocol/graph";
 
 import {
-  DataType,
   PropertyType,
   EntityType,
   LinkType,
+  VersionedUri,
 } from "@blockprotocol/type-system-web";
+import { Subgraph } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 
 export type OntologyCallbacks = {
   aggregateDataTypes: AggregateDataTypesMessageCallback;
@@ -56,22 +57,18 @@ export type AggregateResult<T> = {
 };
 
 /* Data type CRU */
-
-export type DataTypeResponse = Response<"dataType", DataType>;
-
 export type AggregateDataTypesRequest = {};
 export type AggregateDataTypesMessageCallback = MessageCallback<
   AggregateDataTypesRequest,
   null,
-  AggregateResult<DataTypeResponse>,
+  Subgraph,
   ReadOrModifyResourceError
 >;
 
-export type GetDataTypeRequest = Pick<DataTypeResponse, "dataTypeId">;
 export type GetDataTypeMessageCallback = MessageCallback<
-  GetDataTypeRequest,
+  { dataTypeId: VersionedUri },
   null,
-  DataTypeResponse,
+  Subgraph,
   ReadOrModifyResourceError
 >;
 

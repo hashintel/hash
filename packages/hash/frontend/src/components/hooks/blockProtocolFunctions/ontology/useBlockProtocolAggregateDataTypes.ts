@@ -37,9 +37,7 @@ export const useBlockProtocolAggregateDataTypes = (): {
        *   or doing it from here.
        *   https://app.asana.com/0/1202805690238892/1202890614880643/f
        */
-      const response = await aggregateFn({
-        query: getAllLatestDataTypesQuery,
-      });
+      const response = await aggregateFn({});
 
       if (!response.data) {
         return {
@@ -53,9 +51,7 @@ export const useBlockProtocolAggregateDataTypes = (): {
       }
 
       return {
-        data: {
-          results: response.data.getAllLatestDataTypes,
-        },
+        data: response.data.getAllLatestDataTypes,
       };
     },
     [aggregateFn],
