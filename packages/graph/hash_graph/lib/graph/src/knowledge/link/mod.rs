@@ -60,8 +60,7 @@ impl Link {
     }
 }
 
-/// A record of a [`Link`] that has been persisted in the datastore, with its associated
-/// metadata.
+/// The metadata of a [`Link`] record.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PersistedLinkMetadata {
