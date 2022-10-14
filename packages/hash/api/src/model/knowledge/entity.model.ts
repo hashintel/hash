@@ -104,14 +104,16 @@ export default class {
       entityId: overrideEntityId,
     }: EntityModelCreateParams,
   ): Promise<EntityModel> {
-    const {
-      data: { entityId, version },
-    } = await graphApi.createEntity({
+    const { data: metadata } = await graphApi.createEntity({
       accountId: ownedById,
       entityTypeId: entityTypeModel.schema.$id,
       entity: properties,
       entityId: overrideEntityId,
     });
+
+    const {
+      identifier: { entityId, version },
+    } = metadata;
 
     return new EntityModel({
       ownedById,
@@ -342,9 +344,7 @@ export default class {
     const { properties } = params;
     const { ownedById, entityId, entityTypeModel } = this;
 
-    const {
-      data: { version },
-    } = await graphApi.updateEntity({
+    const { data: metadata } = await graphApi.updateEntity({
       /**
        * @todo: let caller update who owns the entity, or create new method dedicated to changing the owner of the entity
        * @see https://app.asana.com/0/1202805690238892/1203063463721793/f
@@ -358,6 +358,10 @@ export default class {
       entityTypeId: entityTypeModel.schema.$id,
       entity: properties,
     });
+
+    const {
+      identifier: { version },
+    } = metadata;
 
     return new EntityModel({
       ownedById,

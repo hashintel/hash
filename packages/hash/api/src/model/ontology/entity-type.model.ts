@@ -87,7 +87,7 @@ export default class {
     });
     const fullEntityType = { $id: entityTypeId, ...params.schema };
 
-    const { data: identifier } = await graphApi
+    const { data: metadata } = await graphApi
       .createEntityType({
         /**
          * @todo: replace uses of `accountId` with `ownedById` in the Graph API
@@ -103,6 +103,8 @@ export default class {
             : `[${err.code}] couldn't create entity type: ${err.response?.data}.`,
         );
       });
+
+    const { identifier } = metadata;
 
     return new EntityTypeModel({
       schema: fullEntityType,
@@ -293,9 +295,9 @@ export default class {
       schema,
     };
 
-    const { data: identifier } = await graphApi.updateEntityType(
-      updateArguments,
-    );
+    const { data: metadata } = await graphApi.updateEntityType(updateArguments);
+
+    const { identifier } = metadata;
 
     return new EntityTypeModel({
       schema: { ...schema, $id: identifier.uri },

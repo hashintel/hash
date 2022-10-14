@@ -74,7 +74,7 @@ export default class {
     });
     const fullPropertyType = { $id: propertyTypeId, ...params.schema };
 
-    const { data: identifier } = await graphApi
+    const { data: metadata } = await graphApi
       .createPropertyType({
         /**
          * @todo: replace uses of `accountId` with `ownedById` in the Graph API
@@ -90,6 +90,8 @@ export default class {
             : `[${err.code}] couldn't create property type: ${err.response?.data}.`,
         );
       });
+
+    const { identifier } = metadata;
 
     return new PropertyTypeModel({
       schema: fullPropertyType,
@@ -248,9 +250,11 @@ export default class {
       schema,
     };
 
-    const { data: identifier } = await graphApi.updatePropertyType(
+    const { data: metadata } = await graphApi.updatePropertyType(
       updateArguments,
     );
+
+    const { identifier } = metadata;
 
     return new PropertyTypeModel({
       schema: { ...schema, $id: identifier.uri },
