@@ -72,12 +72,11 @@ async fn query() {
         .await
         .expect("could not create entity");
 
-    let identifier = metadata.identifier();
-
     let queried_organization = api
-        .get_entity(identifier.entity_id())
+        .get_entity(metadata.identifier().entity_id())
         .await
         .expect("could not get entity");
+
     assert_eq!(&organization, queried_organization.inner());
 }
 
