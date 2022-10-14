@@ -10,8 +10,7 @@ use type_system::{uri::VersionedUri, DataType};
 
 use crate::{
     ontology::{
-        AccountId, DataTypeQuery, OntologyQueryDepth, PersistedDataType,
-        PersistedOntologyIdentifier,
+        AccountId, DataTypeQuery, OntologyQueryDepth, PersistedDataType, PersistedOntologyMetadata,
     },
     store::{
         crud::Read,
@@ -61,7 +60,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         &mut self,
         data_type: DataType,
         owned_by_id: AccountId,
-    ) -> Result<PersistedOntologyIdentifier, InsertionError> {
+    ) -> Result<PersistedOntologyMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -70,7 +69,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 .change_context(InsertionError)?,
         );
 
-        let (_, identifier) = transaction.create(data_type, owned_by_id).await?;
+        let (_, metadata) = transaction.create(data_type, owned_by_id).await?;
 
         transaction
             .client
@@ -79,7 +78,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             .into_report()
             .change_context(InsertionError)?;
 
-        Ok(identifier)
+        Ok(metadata)
     }
 
     async fn get_data_type(&self, query: &DataTypeQuery) -> Result<Subgraph, QueryError> {
@@ -94,7 +93,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     let mut referenced_data_types = DependencyMap::new();
 
                     self.get_data_type_as_dependency(
-                        data_type.identifier.uri(),
+                        data_type.metadata.identifier().uri(),
                         DataTypeDependencyContext {
                             referenced_data_types: &mut referenced_data_types,
                             data_type_query_depth: query_resolve_depths.data_type_resolve_depth,
@@ -103,16 +102,16 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     .await?;
 
                     let data_type = referenced_data_types
-                        .remove(data_type.identifier.uri())
+                        .remove(data_type.metadata.identifier().uri())
                         .expect("root was not added to the subgraph");
 
                     return Ok::<_, Report<QueryError>>((
                         GraphElementIdentifier::OntologyElementId(
-                            data_type.identifier.uri().clone(),
+                            data_type.metadata.identifier().uri().clone(),
                         ),
                         (
                             GraphElementIdentifier::OntologyElementId(
-                                data_type.identifier.uri().clone(),
+                                data_type.metadata.identifier().uri().clone(),
                             ),
                             Vertex::DataType(data_type),
                         ),
@@ -137,7 +136,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         &mut self,
         data_type: DataType,
         updated_by: AccountId,
-    ) -> Result<PersistedOntologyIdentifier, UpdateError> {
+    ) -> Result<PersistedOntologyMetadata, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -146,7 +145,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 .change_context(UpdateError)?,
         );
 
-        let (_, identifier) = transaction.update(data_type, updated_by).await?;
+        let (_, metadata) = transaction.update(data_type, updated_by).await?;
 
         transaction
             .client
@@ -155,6 +154,6 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             .into_report()
             .change_context(UpdateError)?;
 
-        Ok(identifier)
+        Ok(metadata)
     }
 }
