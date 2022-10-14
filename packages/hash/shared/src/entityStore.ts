@@ -1,16 +1,16 @@
 import { Draft, produce } from "immer";
+
 import { generateDraftIdForEntity } from "./entityStorePlugin";
 import { BlockEntity } from "./entity";
-// import { DistributiveOmit } from "./util";
+import { types } from "./types";
 import { MinimalEntityTypeFieldsFragment } from "./graphql/apiTypes.gen";
 
 export type EntityStoreType = BlockEntity | BlockEntity["dataEntity"];
 
-export const TEXT_ENTITY_TYPE_ID =
-  "http://localhost:3000/@example/types/entity-type/text/v/1";
-
-export const TEXT_TOKEN_PROPERTY_TYPE_ID =
-  "http://localhost:3000/@example/types/property-type/text-tokens/";
+export const TEXT_ENTITY_TYPE_ID = types.entityType.text.entityTypeId;
+// `extractBaseUri` does not work within this context, so this is a hacky way to get the base URI.
+export const TEXT_TOKEN_PROPERTY_TYPE_BASE_URI =
+  types.propertyType.tokens.propertyTypeId.slice(0, -3);
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   accountId: string;

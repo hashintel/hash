@@ -5,7 +5,7 @@ import {
   isDraftBlockEntity,
   isDraftEntity,
   isEntity,
-  TEXT_TOKEN_PROPERTY_TYPE_ID,
+  TEXT_TOKEN_PROPERTY_TYPE_BASE_URI,
 } from "./entityStore";
 import { PersistedPageFieldsFragment, Text } from "./graphql/apiTypes.gen";
 import { TextToken } from "./graphql/types";
@@ -25,7 +25,9 @@ export type BlockEntity = ContentsEntity & {
 };
 
 export type TextProperties = {
-  [TEXT_TOKEN_PROPERTY_TYPE_ID]: TextToken[];
+  // As TEXT_TOKEN_PROPERTY_TYPE_BASE_URI (and TEXT_TOKEN_PROPERTY_TYPE_ID) are
+  // not const the type is just `string`. Not ideal.
+  [_ in typeof TEXT_TOKEN_PROPERTY_TYPE_BASE_URI]: TextToken[];
 };
 
 export type TextEntityType = Omit<EntityStoreType, "properties"> & {
@@ -35,7 +37,7 @@ export type TextEntityType = Omit<EntityStoreType, "properties"> & {
 // @todo make this more robust
 export const isTextProperties =
   (properties: {}): properties is TextEntityType["properties"] =>
-    TEXT_TOKEN_PROPERTY_TYPE_ID in properties;
+    TEXT_TOKEN_PROPERTY_TYPE_BASE_URI in properties;
 
 // @todo make this more robust, checking system type name of entity type
 export const isTextEntity = (
