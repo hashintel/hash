@@ -34,10 +34,8 @@ async fn insert() {
         .await
         .expect("could not create entity");
 
-    let identifier = metadata.identifier();
-
     let persisted_entity = api
-        .get_entity(identifier.entity_id())
+        .get_entity(metadata.identifier().entity_id())
         .await
         .expect("could not get entity");
 
@@ -106,10 +104,8 @@ async fn update() {
         .await
         .expect("could not create entity");
 
-    let identifier = metadata.identifier();
-
     api.update_entity(
-        identifier.entity_id(),
+        metadata.identifier().entity_id(),
         page_v2.clone(),
         VersionedUri::new(
             BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/page/".to_owned())
@@ -121,7 +117,7 @@ async fn update() {
     .expect("could not update entity");
 
     let persisted_entity = api
-        .get_entity(identifier.entity_id())
+        .get_entity(metadata.identifier().entity_id())
         .await
         .expect("could not get entity");
 
