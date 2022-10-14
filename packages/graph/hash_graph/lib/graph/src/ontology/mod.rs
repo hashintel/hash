@@ -177,10 +177,12 @@ pub struct PersistedDataType {
     pub metadata: PersistedOntologyMetadata,
 }
 
-/// Query to read [`DataType`]s, which are matching the [`Expression`].
+// TODO: move to shared?
+/// An [`Expression`] to query the datastore, recursively resolving according to the
+/// [`GraphResolveDepths`]
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct DataTypeQuery {
+pub struct StructuralQuery {
     #[serde(rename = "query")]
     pub expression: Expression,
     // TODO: `query_resolve_depths` currently does nothing, in the future it will most probably be
@@ -201,28 +203,6 @@ pub struct PersistedPropertyType {
     #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: PropertyType,
     pub metadata: PersistedOntologyMetadata,
-}
-
-/// Query to read [`PropertyType`]s, which are matching the [`Expression`].
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct PropertyTypeQuery {
-    #[serde(rename = "query")]
-    pub expression: Expression,
-    // TODO: A value greater than `1` currently does not have any effect.
-    //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
-    #[schema(value_type = number)]
-    pub data_type_query_depth: OntologyQueryDepth,
-    #[schema(value_type = number)]
-    pub property_type_query_depth: OntologyQueryDepth,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct PropertyTypeRootedSubgraph {
-    pub property_type: PersistedPropertyType,
-    pub referenced_data_types: Vec<PersistedDataType>,
-    pub referenced_property_types: Vec<PersistedPropertyType>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]

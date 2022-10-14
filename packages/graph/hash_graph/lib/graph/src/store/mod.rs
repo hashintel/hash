@@ -22,10 +22,9 @@ use crate::{
         PersistedEntity, PersistedEntityMetadata, PersistedLink,
     },
     ontology::{
-        AccountId, DataTypeQuery, EntityTypeQuery, EntityTypeRootedSubgraph, LinkTypeQuery,
+        AccountId, EntityTypeQuery, EntityTypeRootedSubgraph, LinkTypeQuery,
         LinkTypeRootedSubgraph, PersistedDataType, PersistedEntityType, PersistedLinkType,
-        PersistedOntologyMetadata, PersistedPropertyType, PropertyTypeQuery,
-        PropertyTypeRootedSubgraph,
+        PersistedOntologyMetadata, PersistedPropertyType, StructuralQuery,
     },
     store::{error::LinkRemovalError, query::Expression},
     subgraph::Subgraph,
@@ -218,12 +217,12 @@ pub trait DataTypeStore: for<'q> crud::Read<PersistedDataType, Query<'q> = Expre
         owned_by_id: AccountId,
     ) -> Result<PersistedOntologyMetadata, InsertionError>;
 
-    /// Get the [`Subgraph`] specified by the [`DataTypeQuery`].
+    /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    async fn get_data_type(&self, query: &DataTypeQuery) -> Result<Subgraph, QueryError>;
+    async fn get_data_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError>;
 
     /// Update the definition of an existing [`DataType`].
     ///
@@ -256,15 +255,12 @@ pub trait PropertyTypeStore:
         owned_by_id: AccountId,
     ) -> Result<PersistedOntologyMetadata, InsertionError>;
 
-    /// Get the [`PropertyTypeRootedSubgraph`]s specified by the [`PropertyTypeQuery`].
+    /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`PropertyType`] doesn't exist.
-    async fn get_property_type(
-        &self,
-        query: &PropertyTypeQuery,
-    ) -> Result<Vec<PropertyTypeRootedSubgraph>, QueryError>;
+    async fn get_property_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError>;
 
     /// Update the definition of an existing [`PropertyType`].
     ///

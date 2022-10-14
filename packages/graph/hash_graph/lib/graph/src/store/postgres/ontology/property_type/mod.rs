@@ -1,9 +1,9 @@
 mod resolve;
 
-use std::{future::Future, pin::Pin};
+use std::{collections::HashMap, future::Future, pin::Pin};
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{IntoReport, Report, Result, ResultExt};
 use futures::{stream, FutureExt, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
 use type_system::{uri::VersionedUri, PropertyType, PropertyTypeReference};
@@ -11,7 +11,7 @@ use type_system::{uri::VersionedUri, PropertyType, PropertyTypeReference};
 use crate::{
     ontology::{
         AccountId, OntologyQueryDepth, PersistedDataType, PersistedOntologyMetadata,
-        PersistedPropertyType, PropertyTypeQuery, PropertyTypeRootedSubgraph,
+        PersistedPropertyType, StructuralQuery,
     },
     store::{
         crud::Read,
@@ -21,6 +21,7 @@ use crate::{
         },
         AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
     },
+    subgraph::{GraphElementIdentifier, Subgraph, Vertex},
 };
 
 pub struct PropertyTypeDependencyContext<'a> {
@@ -149,44 +150,56 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
-    async fn get_property_type(
-        &self,
-        query: &PropertyTypeQuery,
-    ) -> Result<Vec<PropertyTypeRootedSubgraph>, QueryError> {
-        let PropertyTypeQuery {
+    async fn get_property_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError> {
+        let StructuralQuery {
             ref expression,
-            data_type_query_depth,
-            property_type_query_depth,
+            query_resolve_depths,
         } = *query;
 
-        stream::iter(Read::<PersistedPropertyType>::read(self, expression).await?)
-            .then(|property_type| async move {
-                let mut referenced_data_types = DependencyMap::new();
-                let mut referenced_property_types = DependencyMap::new();
+        let roots_and_vertices =
+            stream::iter(Read::<PersistedPropertyType>::read(self, expression).await?)
+                .then(|property_type| async move {
+                    let mut referenced_data_types = DependencyMap::new();
+                    let mut referenced_property_types = DependencyMap::new();
 
-                self.get_property_type_as_dependency(
-                    property_type.metadata.identifier().uri(),
-                    PropertyTypeDependencyContext {
-                        referenced_data_types: &mut referenced_data_types,
-                        referenced_property_types: &mut referenced_property_types,
-                        data_type_query_depth,
-                        property_type_query_depth,
-                    },
-                )
+                    self.get_property_type_as_dependency(
+                        property_type.metadata.identifier().uri(),
+                        PropertyTypeDependencyContext {
+                            referenced_data_types: &mut referenced_data_types,
+                            referenced_property_types: &mut referenced_property_types,
+                            data_type_query_depth: query_resolve_depths.data_type_resolve_depth,
+                            property_type_query_depth: query_resolve_depths
+                                .property_type_resolve_depth,
+                        },
+                    )
+                    .await?;
+
+                    let property_type = referenced_property_types
+                        .remove(property_type.metadata.identifier().uri())
+                        .expect("root was not added to the subgraph");
+
+                    let identifier = GraphElementIdentifier::OntologyElementId(
+                        property_type.metadata.identifier().uri().clone(),
+                    );
+
+                    Ok::<_, Report<QueryError>>((
+                        identifier.clone(),
+                        (identifier, Vertex::PropertyType(property_type)),
+                    ))
+                })
+                .try_collect::<Vec<_>>()
                 .await?;
 
-                let root = referenced_property_types
-                    .remove(property_type.metadata.identifier().uri())
-                    .expect("root was not added to the subgraph");
+        let (roots, vertices) = roots_and_vertices.into_iter().unzip();
 
-                Ok(PropertyTypeRootedSubgraph {
-                    property_type: root,
-                    referenced_data_types: referenced_data_types.into_vec(),
-                    referenced_property_types: referenced_property_types.into_vec(),
-                })
-            })
-            .try_collect()
-            .await
+        Ok(Subgraph {
+            roots,
+            vertices,
+            // TODO - we need to update the `DependencyMap` mechanism to collect these
+            //  https://app.asana.com/0/1203007126736604/1203160580911226/f
+            edges: HashMap::new(),
+            depths: query_resolve_depths,
+        })
     }
 
     async fn update_property_type(

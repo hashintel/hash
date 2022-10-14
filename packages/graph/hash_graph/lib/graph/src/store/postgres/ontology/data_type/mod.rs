@@ -10,7 +10,8 @@ use type_system::{uri::VersionedUri, DataType};
 
 use crate::{
     ontology::{
-        AccountId, DataTypeQuery, OntologyQueryDepth, PersistedDataType, PersistedOntologyMetadata,
+        AccountId, OntologyQueryDepth, PersistedDataType, PersistedOntologyMetadata,
+        StructuralQuery,
     },
     store::{
         crud::Read,
@@ -81,8 +82,8 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
-    async fn get_data_type(&self, query: &DataTypeQuery) -> Result<Subgraph, QueryError> {
-        let DataTypeQuery {
+    async fn get_data_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError> {
+        let StructuralQuery {
             ref expression,
             query_resolve_depths,
         } = *query;
@@ -105,17 +106,14 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                         .remove(data_type.metadata.identifier().uri())
                         .expect("root was not added to the subgraph");
 
-                    return Ok::<_, Report<QueryError>>((
-                        GraphElementIdentifier::OntologyElementId(
-                            data_type.metadata.identifier().uri().clone(),
-                        ),
-                        (
-                            GraphElementIdentifier::OntologyElementId(
-                                data_type.metadata.identifier().uri().clone(),
-                            ),
-                            Vertex::DataType(data_type),
-                        ),
-                    ));
+                    let identifier = GraphElementIdentifier::OntologyElementId(
+                        data_type.metadata.identifier().uri().clone(),
+                    );
+
+                    Ok::<_, Report<QueryError>>((
+                        identifier.clone(),
+                        (identifier, Vertex::DataType(data_type)),
+                    ))
                 })
                 .try_collect::<Vec<_>>()
                 .await?;
