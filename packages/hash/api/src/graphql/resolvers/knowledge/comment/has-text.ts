@@ -19,7 +19,7 @@ export const persistedCommentHasText: ResolverFn<
   });
   const textEntityModel = await commentModel.getHasText(graphApi);
 
-  // @todo Use getTokens() method from TextModel class
+  // @todo implement `TextModel` class so that a `TextModel.getTokens()` method can be used here
   return (
     (textEntityModel.properties as any)[
       WORKSPACE_TYPES.propertyType.tokens.baseUri

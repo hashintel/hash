@@ -42,7 +42,7 @@ impl fmt::Display for StoreError {
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "clap", derive(clap::ArgEnum))]
+#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 pub enum DatabaseType {
     #[default]
     Postgres,
@@ -52,7 +52,7 @@ pub enum DatabaseType {
 #[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct DatabaseConnectionInfo {
     /// The database type to connect to
-    #[cfg_attr(feature = "clap", clap(long, default_value = "postgres", arg_enum))]
+    #[cfg_attr(feature = "clap", clap(long, default_value = "postgres", value_enum))]
     database_type: DatabaseType,
 
     /// Database username
