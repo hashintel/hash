@@ -18,6 +18,7 @@
   "dependencies": {
     "@apollo/client": "3.6.9",
     "@blockprotocol/core": "0.0.11",
+    "@hashintel/hash-graph-client": "0.0.0",
     "@sentry/browser": "7.10.0",
     "graphql-tag": "2.12.5",
     "immer": "9.0.6",
