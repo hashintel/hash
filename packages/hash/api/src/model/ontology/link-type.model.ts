@@ -6,9 +6,8 @@ import {
   PersistedLinkType,
   UpdateLinkTypeRequest,
 } from "@hashintel/hash-graph-client";
-
+import { generateTypeId } from "@hashintel/hash-shared/types";
 import { LinkTypeModel } from "../index";
-import { generateTypeId } from "../util";
 import { getNamespaceOfAccountOwner } from "./util";
 
 type LinkTypeModelConstructorParams = {

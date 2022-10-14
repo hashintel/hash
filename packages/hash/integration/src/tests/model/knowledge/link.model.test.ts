@@ -12,6 +12,7 @@ import {
   EntityTypeCreatorParams,
   generateWorkspaceEntityTypeSchema,
 } from "@hashintel/hash-api/src/model/util";
+import { generateTypeId } from "@hashintel/hash-shared/types";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -42,12 +43,18 @@ describe("Link model class", () => {
   let targetEntityAcquaintance: EntityModel;
 
   const createEntityType = (
-    params: Omit<EntityTypeCreatorParams, "namespace">,
-  ) =>
-    EntityTypeModel.create(graphApi, {
-      ownedById,
-      schema: generateWorkspaceEntityTypeSchema({ namespace, ...params }),
+    params: Omit<EntityTypeCreatorParams, "entityTypeId">,
+  ) => {
+    const entityTypeId = generateTypeId({
+      namespace,
+      kind: "entity-type",
+      title: params.title,
     });
+    return EntityTypeModel.create(graphApi, {
+      ownedById,
+      schema: generateWorkspaceEntityTypeSchema({ entityTypeId, ...params }),
+    });
+  };
 
   const createEntity = (params: { entityTypeModel: EntityTypeModel }) =>
     EntityModel.create(graphApi, {
