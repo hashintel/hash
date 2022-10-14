@@ -5,7 +5,7 @@ mod entity;
 mod link;
 
 use serde::{Deserialize, Serialize};
-use utoipa::Component;
+use utoipa::ToSchema;
 
 pub use self::{
     entity::{Entity, EntityId, PersistedEntity, PersistedEntityIdentifier},
@@ -50,26 +50,26 @@ pub type KnowledgeGraphQueryDepth = u8;
 /// Query to read [`Entities`] or [`Link`]s, which satisfy the [`Expression`].
 ///
 /// [`Entities`]: Entity
-#[derive(Debug, Deserialize, Component)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct KnowledgeGraphQuery {
     #[serde(rename = "query")]
     pub expression: Expression,
-    #[component(value_type = number)]
+    #[schema(value_type = number)]
     pub data_type_query_depth: OntologyQueryDepth,
-    #[component(value_type = number)]
+    #[schema(value_type = number)]
     pub property_type_query_depth: OntologyQueryDepth,
-    #[component(value_type = number)]
+    #[schema(value_type = number)]
     pub link_type_query_depth: OntologyQueryDepth,
-    #[component(value_type = number)]
+    #[schema(value_type = number)]
     pub entity_type_query_depth: OntologyQueryDepth,
-    #[component(value_type = number)]
+    #[schema(value_type = number)]
     pub link_target_entity_query_depth: KnowledgeGraphQueryDepth,
-    #[component(value_type = number)]
+    #[schema(value_type = number)]
     pub link_query_depth: KnowledgeGraphQueryDepth,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityRootedSubgraph {
     pub entity: PersistedEntity,
@@ -81,7 +81,7 @@ pub struct EntityRootedSubgraph {
     pub links: Vec<PersistedLink>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkRootedSubgraph {
     pub link: PersistedLink,

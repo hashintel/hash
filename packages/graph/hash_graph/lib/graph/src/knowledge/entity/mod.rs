@@ -4,13 +4,13 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::{FromSql, ToSql};
 use type_system::uri::{BaseUri, VersionedUri};
-use utoipa::Component;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::ontology::AccountId;
 
 #[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Component, FromSql, ToSql,
+    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, FromSql, ToSql,
 )]
 #[repr(transparent)]
 #[postgres(transparent)]
@@ -32,7 +32,8 @@ impl fmt::Display for EntityId {
 /// An entity.
 ///
 /// When expressed as JSON, this should validate against its respective entity type(s).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[schema(value_type = Object)]
 pub struct Entity(HashMap<BaseUri, serde_json::Value>);
 
 impl Entity {
@@ -44,11 +45,11 @@ impl Entity {
 
 /// The metadata required to uniquely identify an instance of an [`Entity`] that has been persisted
 /// in the datastore.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PersistedEntityIdentifier {
     entity_id: EntityId,
-    #[component(value_type = String)]
+    #[schema(value_type = String)]
     version: DateTime<Utc>,
     owned_by_id: AccountId,
 }
@@ -81,12 +82,12 @@ impl PersistedEntityIdentifier {
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated
 /// metadata.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Component)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PersistedEntity {
     inner: Entity,
     identifier: PersistedEntityIdentifier,
-    #[component(value_type = String)]
+    #[schema(value_type = String)]
     entity_type_id: VersionedUri,
 }
 
