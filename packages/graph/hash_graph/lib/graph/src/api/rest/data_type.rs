@@ -25,6 +25,9 @@ use crate::{
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool,
     },
+    subgraph::{
+        EdgeKind, GraphElementIdentifier, GraphResolveDepths, OutwardEdge, Subgraph, Vertex,
+    },
 };
 
 #[derive(OpenApi)]
@@ -46,6 +49,12 @@ use crate::{
             PersistedDataType,
             DataTypeQuery,
             DataTypeRootedSubgraph,
+            GraphElementIdentifier,
+            Vertex,
+            EdgeKind,
+            OutwardEdge,
+            GraphResolveDepths,
+            Subgraph
         )
     ),
     tags(
@@ -139,10 +148,10 @@ async fn create_data_type<P: StorePool + Send>(
 #[utoipa::path(
     post,
     path = "/data-types/query",
-    request_body = Expression,
+    request_body = DataTypeQuery,
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", body = [DataTypeRootedSubgraph], description = "A list of subgraphs rooted at data types that satisfy the given query, each resolved to the requested depth."),
+        (status = 200, content_type = "application/json", body = Subgraph, description = "Gets a subgraph rooted at all data types that satisfy the given query, each resolved to the requested depth."),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
@@ -151,7 +160,7 @@ async fn create_data_type<P: StorePool + Send>(
 async fn get_data_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<DataTypeQuery>,
-) -> Result<Json<Vec<DataTypeRootedSubgraph>>, StatusCode> {
+) -> Result<Json<Subgraph>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
             tracing::error!(?error, "Could not acquire access to the store");

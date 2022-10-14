@@ -1,21 +1,23 @@
 pub mod resolve;
 
+use std::collections::HashMap;
+
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{IntoReport, Report, Result, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
 use type_system::{uri::VersionedUri, DataType};
 
 use crate::{
     ontology::{
-        AccountId, DataTypeQuery, DataTypeRootedSubgraph, OntologyQueryDepth, PersistedDataType,
-        PersistedOntologyMetadata,
+        AccountId, DataTypeQuery, OntologyQueryDepth, PersistedDataType, PersistedOntologyMetadata,
     },
     store::{
         crud::Read,
         postgres::{context::PostgresContext, DependencyMap, PersistedOntologyType},
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
+    subgraph::{GraphElementIdentifier, Subgraph, Vertex},
 };
 
 pub struct DataTypeDependencyContext<'a> {
@@ -79,36 +81,55 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
-    async fn get_data_type(
-        &self,
-        query: &DataTypeQuery,
-    ) -> Result<Vec<DataTypeRootedSubgraph>, QueryError> {
+    async fn get_data_type(&self, query: &DataTypeQuery) -> Result<Subgraph, QueryError> {
         let DataTypeQuery {
             ref expression,
-            data_type_query_depth,
+            query_resolve_depths,
         } = *query;
 
-        stream::iter(Read::<PersistedDataType>::read(self, expression).await?)
-            .then(|data_type| async move {
-                let mut referenced_data_types = DependencyMap::new();
+        let roots_and_vertices =
+            stream::iter(Read::<PersistedDataType>::read(self, expression).await?)
+                .then(|data_type| async move {
+                    let mut referenced_data_types = DependencyMap::new();
 
-                self.get_data_type_as_dependency(
-                    data_type.metadata.identifier().uri(),
-                    DataTypeDependencyContext {
-                        referenced_data_types: &mut referenced_data_types,
-                        data_type_query_depth,
-                    },
-                )
+                    self.get_data_type_as_dependency(
+                        data_type.metadata.identifier().uri(),
+                        DataTypeDependencyContext {
+                            referenced_data_types: &mut referenced_data_types,
+                            data_type_query_depth: query_resolve_depths.data_type_resolve_depth,
+                        },
+                    )
+                    .await?;
+
+                    let data_type = referenced_data_types
+                        .remove(data_type.metadata.identifier().uri())
+                        .expect("root was not added to the subgraph");
+
+                    return Ok::<_, Report<QueryError>>((
+                        GraphElementIdentifier::OntologyElementId(
+                            data_type.metadata.identifier().uri().clone(),
+                        ),
+                        (
+                            GraphElementIdentifier::OntologyElementId(
+                                data_type.metadata.identifier().uri().clone(),
+                            ),
+                            Vertex::DataType(data_type),
+                        ),
+                    ));
+                })
+                .try_collect::<Vec<_>>()
                 .await?;
 
-                let root = referenced_data_types
-                    .remove(data_type.metadata.identifier().uri())
-                    .expect("root was not added to the subgraph");
+        let (roots, vertices) = roots_and_vertices.into_iter().unzip();
 
-                Ok(DataTypeRootedSubgraph { data_type: root })
-            })
-            .try_collect()
-            .await
+        Ok(Subgraph {
+            roots,
+            vertices,
+            // TODO - we need to update the `DependencyMap` mechanism to collect these
+            //  https://app.asana.com/0/1203007126736604/1203160580911226/f
+            edges: HashMap::new(),
+            depths: query_resolve_depths,
+        })
     }
 
     async fn update_data_type(
