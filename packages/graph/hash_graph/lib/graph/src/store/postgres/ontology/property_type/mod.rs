@@ -16,12 +16,12 @@ use crate::{
     store::{
         crud::Read,
         postgres::{
-            context::PostgresContext, ontology::data_type::DataTypeDependencyContext,
-            DependencyMap, PersistedOntologyType,
+            context::PostgresContext, DependencyContext, DependencyMap, DependencySet,
+            PersistedOntologyType,
         },
         AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
     },
-    subgraph::{GraphElementIdentifier, Subgraph, Vertex},
+    subgraph::{GraphElementIdentifier, GraphResolveDepths, Subgraph, Vertex},
 };
 
 pub struct PropertyTypeDependencyContext<'a> {
@@ -40,41 +40,57 @@ impl<C: AsClient> PostgresStore<C> {
     pub(crate) fn get_property_type_as_dependency<'a>(
         &'a self,
         property_type_id: &'a VersionedUri,
-        context: PropertyTypeDependencyContext<'a>,
+        context: DependencyContext<'a>,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
-        let PropertyTypeDependencyContext {
+        let DependencyContext {
+            edges,
             referenced_data_types,
             referenced_property_types,
-            data_type_query_depth,
-            property_type_query_depth,
+            referenced_link_types,
+            referenced_entity_types,
+            linked_entities,
+            links,
+            graph_resolve_depths,
         } = context;
 
         async move {
             let unresolved_property_type = referenced_property_types
-                .insert(property_type_id, property_type_query_depth, || async {
-                    Ok(PersistedPropertyType::from_record(
-                        self.read_versioned_ontology_type(property_type_id).await?,
-                    ))
-                })
+                .insert(
+                    property_type_id,
+                    graph_resolve_depths.property_type_resolve_depth,
+                    || async {
+                        Ok(PersistedPropertyType::from_record(
+                            self.read_versioned_ontology_type(property_type_id).await?,
+                        ))
+                    },
+                )
                 .await?;
 
             if let Some(property_type) = unresolved_property_type {
-                if data_type_query_depth > 0 {
+                if graph_resolve_depths.data_type_resolve_depth > 0 {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
                     for data_type_ref in property_type.inner.data_type_references() {
-                        self.get_data_type_as_dependency(
-                            data_type_ref.uri(),
-                            DataTypeDependencyContext {
-                                referenced_data_types,
-                                data_type_query_depth: data_type_query_depth - 1,
+                        self.get_data_type_as_dependency(data_type_ref.uri(), DependencyContext {
+                            graph_resolve_depths: GraphResolveDepths {
+                                data_type_resolve_depth: graph_resolve_depths
+                                    .data_type_resolve_depth
+                                    - 1,
+                                ..graph_resolve_depths
                             },
-                        )
+                            edges,
+                            referenced_data_types,
+                            referenced_property_types,
+                            referenced_link_types,
+                            referenced_entity_types,
+                            linked_entities,
+                            links,
+                        })
                         .await?;
                     }
                 }
 
-                if property_type_query_depth > 0 {
+                if context.graph_resolve_depths.property_type_resolve_depth > 0 {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
                     let property_type_ids = property_type
@@ -88,11 +104,20 @@ impl<C: AsClient> PostgresStore<C> {
                     for property_type_id in property_type_ids {
                         self.get_property_type_as_dependency(
                             &property_type_id,
-                            PropertyTypeDependencyContext {
+                            DependencyContext {
+                                graph_resolve_depths: GraphResolveDepths {
+                                    property_type_resolve_depth: graph_resolve_depths
+                                        .property_type_resolve_depth
+                                        - 1,
+                                    ..graph_resolve_depths
+                                },
+                                edges,
                                 referenced_data_types,
                                 referenced_property_types,
-                                data_type_query_depth,
-                                property_type_query_depth: property_type_query_depth - 1,
+                                referenced_link_types,
+                                referenced_entity_types,
+                                linked_entities,
+                                links,
                             },
                         )
                         .await?;
@@ -153,23 +178,31 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     async fn get_property_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref expression,
-            query_resolve_depths,
+            graph_resolve_depths,
         } = *query;
 
         let roots_and_vertices =
             stream::iter(Read::<PersistedPropertyType>::read(self, expression).await?)
                 .then(|property_type| async move {
+                    let mut edges = HashMap::new();
                     let mut referenced_data_types = DependencyMap::new();
                     let mut referenced_property_types = DependencyMap::new();
+                    let mut referenced_link_types = DependencyMap::new();
+                    let mut referenced_entity_types = DependencyMap::new();
+                    let mut linked_entities = DependencyMap::new();
+                    let mut links = DependencySet::new();
 
                     self.get_property_type_as_dependency(
                         property_type.metadata.identifier().uri(),
-                        PropertyTypeDependencyContext {
+                        DependencyContext {
+                            edges: &mut edges,
                             referenced_data_types: &mut referenced_data_types,
                             referenced_property_types: &mut referenced_property_types,
-                            data_type_query_depth: query_resolve_depths.data_type_resolve_depth,
-                            property_type_query_depth: query_resolve_depths
-                                .property_type_resolve_depth,
+                            referenced_link_types: &mut referenced_link_types,
+                            referenced_entity_types: &mut referenced_entity_types,
+                            linked_entities: &mut linked_entities,
+                            links: &mut links,
+                            graph_resolve_depths,
                         },
                     )
                     .await?;
@@ -198,7 +231,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             // TODO - we need to update the `DependencyMap` mechanism to collect these
             //  https://app.asana.com/0/1203007126736604/1203160580911226/f
             edges: HashMap::new(),
-            depths: query_resolve_depths,
+            depths: graph_resolve_depths,
         })
     }
 

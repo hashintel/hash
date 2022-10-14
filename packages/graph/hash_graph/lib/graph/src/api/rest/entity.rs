@@ -16,10 +16,10 @@ use utoipa::{OpenApi, ToSchema};
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     knowledge::{
-        Entity, EntityId, EntityRootedSubgraph, KnowledgeGraphQuery, PersistedEntity,
-        PersistedEntityIdentifier, PersistedEntityMetadata,
+        Entity, EntityId, EntityRootedSubgraph, PersistedEntity, PersistedEntityIdentifier,
+        PersistedEntityMetadata,
     },
-    ontology::AccountId,
+    ontology::{AccountId, StructuralQuery},
     store::{
         error::{EntityDoesNotExist, QueryError},
         query::Expression,
@@ -45,7 +45,7 @@ use crate::{
             PersistedEntityMetadata,
             PersistedEntity,
             Entity,
-            KnowledgeGraphQuery,
+            StructuralQuery,
             EntityRootedSubgraph,
         )
     ),
@@ -129,7 +129,7 @@ async fn create_entity<P: StorePool + Send>(
 #[utoipa::path(
     post,
     path = "/entities/query",
-    request_body = KnowledgeGraphQuery,
+    request_body = StructuralQuery,
     tag = "Entity",
     responses(
         (status = 200, content_type = "application/json", body = [EntityRootedSubgraph], description = "A list of subgraphs rooted at entities that satisfy the given query, each resolved to the requested depth."),
@@ -140,7 +140,7 @@ async fn create_entity<P: StorePool + Send>(
 )]
 async fn get_entities_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    Json(query): Json<KnowledgeGraphQuery>,
+    Json(query): Json<StructuralQuery>,
 ) -> Result<Json<Vec<EntityRootedSubgraph>>, StatusCode> {
     pool.acquire()
         .map_err(|error| {

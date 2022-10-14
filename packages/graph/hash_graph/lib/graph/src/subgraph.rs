@@ -112,6 +112,8 @@ pub struct OutwardEdge {
     destination: GraphElementIdentifier,
 }
 
+pub type Edges = HashMap<GraphElementIdentifier, Vec<OutwardEdge>>;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct GraphResolveDepths {
@@ -124,9 +126,10 @@ pub struct GraphResolveDepths {
     #[schema(value_type = number)]
     pub link_type_resolve_depth: OntologyQueryDepth,
     #[schema(value_type = number)]
-    pub entity_resolve_depth: KnowledgeGraphQueryDepth,
-    #[schema(value_type = number)]
     pub link_resolve_depth: KnowledgeGraphQueryDepth,
+    // TODO: what is this?
+    #[schema(value_type = number)]
+    pub link_target_entity_resolve_depth: KnowledgeGraphQueryDepth,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
@@ -134,6 +137,6 @@ pub struct GraphResolveDepths {
 pub struct Subgraph {
     pub roots: Vec<GraphElementIdentifier>,
     pub vertices: HashMap<GraphElementIdentifier, Vertex>,
-    pub edges: HashMap<GraphElementIdentifier, Vec<OutwardEdge>>,
+    pub edges: Edges,
     pub depths: GraphResolveDepths,
 }

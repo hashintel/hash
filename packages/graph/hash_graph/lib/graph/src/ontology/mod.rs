@@ -186,10 +186,7 @@ pub struct PersistedDataType {
 pub struct StructuralQuery {
     #[serde(rename = "query")]
     pub expression: Expression,
-    // TODO: `query_resolve_depths` currently does nothing, in the future it will most probably be
-    //       used to resolve user defined data types.
-    //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
-    pub query_resolve_depths: GraphResolveDepths,
+    pub graph_resolve_depths: GraphResolveDepths,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
@@ -214,14 +211,6 @@ pub struct PersistedLinkType {
     #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: LinkType,
     pub metadata: PersistedOntologyMetadata,
-}
-
-/// Query to read [`LinkType`]s, which are matching the [`Expression`].
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct LinkTypeQuery {
-    #[serde(rename = "query")]
-    pub expression: Expression,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
@@ -254,24 +243,6 @@ pub struct PersistedEntityType {
     #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: EntityType,
     pub metadata: PersistedOntologyMetadata,
-}
-
-/// Query to read [`EntityType`]s, which are matching the [`Expression`].
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct EntityTypeQuery {
-    #[serde(rename = "query")]
-    pub expression: Expression,
-    // TODO: A value greater than `1` currently does not have any effect.
-    //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
-    #[schema(value_type = number)]
-    pub data_type_query_depth: OntologyQueryDepth,
-    #[schema(value_type = number)]
-    pub property_type_query_depth: OntologyQueryDepth,
-    #[schema(value_type = number)]
-    pub link_type_query_depth: OntologyQueryDepth,
-    #[schema(value_type = number)]
-    pub entity_type_query_depth: OntologyQueryDepth,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]

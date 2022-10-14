@@ -15,19 +15,14 @@ use crate::{
     },
     store::{
         crud::Read,
-        postgres::{context::PostgresContext, DependencyMap, PersistedOntologyType},
+        postgres::{
+            context::PostgresContext, DependencyContext, DependencyMap, DependencySet,
+            PersistedOntologyType,
+        },
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
     subgraph::{GraphElementIdentifier, Subgraph, Vertex},
 };
-
-pub struct DataTypeDependencyContext<'a> {
-    pub referenced_data_types:
-        &'a mut DependencyMap<VersionedUri, PersistedDataType, OntologyQueryDepth>,
-    // TODO: `data_type_query_depth` is unused until data types can reference other data types
-    //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
-    pub data_type_query_depth: OntologyQueryDepth,
-}
 
 impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`PersistedDataType`] into a [`DependencyMap`].
@@ -36,19 +31,24 @@ impl<C: AsClient> PostgresStore<C> {
     pub(crate) async fn get_data_type_as_dependency(
         &self,
         data_type_id: &VersionedUri,
-        context: DataTypeDependencyContext<'_>,
+        context: DependencyContext<'_>,
     ) -> Result<(), QueryError> {
-        let DataTypeDependencyContext {
+        let DependencyContext {
             referenced_data_types,
-            data_type_query_depth,
+            graph_resolve_depths,
+            ..
         } = context;
 
         let _unresolved_entity_type = referenced_data_types
-            .insert(data_type_id, data_type_query_depth, || async {
-                Ok(PersistedDataType::from_record(
-                    self.read_versioned_ontology_type(data_type_id).await?,
-                ))
-            })
+            .insert(
+                data_type_id,
+                graph_resolve_depths.data_type_resolve_depth,
+                || async {
+                    Ok(PersistedDataType::from_record(
+                        self.read_versioned_ontology_type(data_type_id).await?,
+                    ))
+                },
+            )
             .await?;
 
         Ok(())
@@ -85,19 +85,31 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     async fn get_data_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref expression,
-            query_resolve_depths,
+            graph_resolve_depths,
         } = *query;
 
         let roots_and_vertices =
             stream::iter(Read::<PersistedDataType>::read(self, expression).await?)
                 .then(|data_type| async move {
+                    let mut edges = HashMap::new();
                     let mut referenced_data_types = DependencyMap::new();
+                    let mut referenced_property_types = DependencyMap::new();
+                    let mut referenced_link_types = DependencyMap::new();
+                    let mut referenced_entity_types = DependencyMap::new();
+                    let mut linked_entities = DependencyMap::new();
+                    let mut links = DependencySet::new();
 
                     self.get_data_type_as_dependency(
                         data_type.metadata.identifier().uri(),
-                        DataTypeDependencyContext {
+                        DependencyContext {
+                            edges: &mut edges,
                             referenced_data_types: &mut referenced_data_types,
-                            data_type_query_depth: query_resolve_depths.data_type_resolve_depth,
+                            referenced_property_types: &mut referenced_property_types,
+                            referenced_link_types: &mut referenced_link_types,
+                            referenced_entity_types: &mut referenced_entity_types,
+                            linked_entities: &mut linked_entities,
+                            links: &mut links,
+                            graph_resolve_depths,
                         },
                     )
                     .await?;
@@ -126,7 +138,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             // TODO - we need to update the `DependencyMap` mechanism to collect these
             //  https://app.asana.com/0/1203007126736604/1203160580911226/f
             edges: HashMap::new(),
-            depths: query_resolve_depths,
+            depths: graph_resolve_depths,
         })
     }
 

@@ -29,14 +29,21 @@ pub use self::{
 };
 use super::error::LinkRemovalError;
 use crate::{
-    knowledge::{Entity, EntityId, Link, PersistedEntityIdentifier, PersistedEntityMetadata},
-    ontology::{AccountId, PersistedOntologyIdentifier, PersistedOntologyMetadata},
+    knowledge::{
+        Entity, EntityId, KnowledgeGraphQueryDepth, Link, PersistedEntity,
+        PersistedEntityIdentifier, PersistedEntityMetadata, PersistedLink,
+    },
+    ontology::{
+        AccountId, OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedLinkType,
+        PersistedOntologyIdentifier, PersistedOntologyMetadata, PersistedPropertyType,
+    },
     store::{
         error::VersionedUriAlreadyExists,
         postgres::{ontology::OntologyDatabaseType, version_id::VersionId},
         AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
         UpdateError,
     },
+    subgraph::{Edges, GraphResolveDepths},
 };
 
 pub struct DependencyMap<V, T, D> {
@@ -141,7 +148,7 @@ where
     /// - If the new depth is higher, the depth will be updated and a reference to the dependency
     ///   will be returned in order to keep resolving it
     /// - Otherwise, `None` will be returned as no further resolution is needed
-    pub fn insert(&mut self, identifier: &T, depth: D) -> Option<&T> {
+    pub fn insert<'t, 's: 't>(&'s mut self, identifier: &'t T, depth: D) -> Option<&'t T> {
         match self.resolved.raw_entry_mut().from_key(identifier) {
             RawEntryMut::Vacant(entry) => {
                 let (value, _depth) = entry.insert(identifier.clone(), depth);
@@ -166,6 +173,21 @@ where
     pub fn remove(&mut self, value: &T) -> Option<T> {
         self.resolved.remove_entry(value).map(|(value, _)| value)
     }
+}
+
+pub struct DependencyContext<'a> {
+    pub edges: &'a mut Edges,
+    pub referenced_data_types:
+        &'a mut DependencyMap<VersionedUri, PersistedDataType, OntologyQueryDepth>,
+    pub referenced_property_types:
+        &'a mut DependencyMap<VersionedUri, PersistedPropertyType, OntologyQueryDepth>,
+    pub referenced_link_types:
+        &'a mut DependencyMap<VersionedUri, PersistedLinkType, OntologyQueryDepth>,
+    pub referenced_entity_types:
+        &'a mut DependencyMap<VersionedUri, PersistedEntityType, OntologyQueryDepth>,
+    pub linked_entities: &'a mut DependencyMap<EntityId, PersistedEntity, KnowledgeGraphQueryDepth>,
+    pub links: &'a mut DependencySet<PersistedLink, KnowledgeGraphQueryDepth>,
+    pub graph_resolve_depths: GraphResolveDepths,
 }
 
 /// Utility function used for [`GenericClient::query_raw`] to infer the parameter as

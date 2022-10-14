@@ -1,5 +1,7 @@
 mod resolve;
 
+use std::collections::HashMap;
+
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
@@ -8,12 +10,15 @@ use type_system::{uri::VersionedUri, LinkType};
 
 use crate::{
     ontology::{
-        AccountId, LinkTypeQuery, LinkTypeRootedSubgraph, OntologyQueryDepth, PersistedLinkType,
-        PersistedOntologyMetadata,
+        AccountId, LinkTypeRootedSubgraph, OntologyQueryDepth, PersistedLinkType,
+        PersistedOntologyMetadata, StructuralQuery,
     },
     store::{
         crud::Read,
-        postgres::{context::PostgresContext, DependencyMap, PersistedOntologyType},
+        postgres::{
+            context::PostgresContext, DependencyContext, DependencyMap, DependencySet,
+            PersistedOntologyType,
+        },
         AsClient, InsertionError, LinkTypeStore, PostgresStore, QueryError, UpdateError,
     },
 };
@@ -32,19 +37,19 @@ impl<C: AsClient> PostgresStore<C> {
     pub(crate) async fn get_link_type_as_dependency(
         &self,
         link_type_id: &VersionedUri,
-        context: LinkTypeDependencyContext<'_>,
+        context: DependencyContext<'_>,
     ) -> Result<(), QueryError> {
-        let LinkTypeDependencyContext {
-            referenced_link_types,
-            link_type_query_depth,
-        } = context;
-
-        let _unresolved_link_type = referenced_link_types
-            .insert(link_type_id, link_type_query_depth, || async {
-                Ok(PersistedLinkType::from_record(
-                    self.read_versioned_ontology_type(link_type_id).await?,
-                ))
-            })
+        let _unresolved_link_type = context
+            .referenced_link_types
+            .insert(
+                link_type_id,
+                context.graph_resolve_depths.link_type_resolve_depth,
+                || async {
+                    Ok(PersistedLinkType::from_record(
+                        self.read_versioned_ontology_type(link_type_id).await?,
+                    ))
+                },
+            )
             .await?;
 
         Ok(())
@@ -80,19 +85,34 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
 
     async fn get_link_type(
         &self,
-        query: &LinkTypeQuery,
+        query: &StructuralQuery,
     ) -> Result<Vec<LinkTypeRootedSubgraph>, QueryError> {
-        let LinkTypeQuery { ref expression } = *query;
+        let StructuralQuery {
+            ref expression,
+            graph_resolve_depths,
+        } = *query;
 
         stream::iter(Read::<PersistedLinkType>::read(self, expression).await?)
             .then(|link_type| async move {
+                let mut edges = HashMap::new();
+                let mut referenced_data_types = DependencyMap::new();
+                let mut referenced_property_types = DependencyMap::new();
                 let mut referenced_link_types = DependencyMap::new();
+                let mut referenced_entity_types = DependencyMap::new();
+                let mut linked_entities = DependencyMap::new();
+                let mut links = DependencySet::new();
 
                 self.get_link_type_as_dependency(
                     link_type.metadata.identifier().uri(),
-                    LinkTypeDependencyContext {
+                    DependencyContext {
+                        edges: &mut edges,
+                        referenced_data_types: &mut referenced_data_types,
+                        referenced_property_types: &mut referenced_property_types,
                         referenced_link_types: &mut referenced_link_types,
-                        link_type_query_depth: 0,
+                        referenced_entity_types: &mut referenced_entity_types,
+                        linked_entities: &mut linked_entities,
+                        links: &mut links,
+                        graph_resolve_depths,
                     },
                 )
                 .await?;

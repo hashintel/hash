@@ -1,7 +1,7 @@
 mod read;
 mod resolve;
 
-use std::{future::Future, pin::Pin};
+use std::{collections::HashMap, future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
@@ -9,17 +9,15 @@ use futures::{future::FutureExt, stream, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
 
 use crate::{
-    knowledge::{KnowledgeGraphQuery, Link, LinkRootedSubgraph, PersistedLink},
-    ontology::AccountId,
+    knowledge::{Link, LinkRootedSubgraph, PersistedLink},
+    ontology::{AccountId, StructuralQuery},
     store::{
         crud::Read,
         error::LinkRemovalError,
-        postgres::{
-            knowledge::KnowledgeDependencyContext, ontology::LinkTypeDependencyContext,
-            DependencyMap, DependencySet,
-        },
+        postgres::{DependencyContext, DependencyMap, DependencySet},
         AsClient, InsertionError, LinkStore, PostgresStore, QueryError,
     },
+    subgraph::GraphResolveDepths,
 };
 
 impl<C: AsClient> PostgresStore<C> {
@@ -29,51 +27,60 @@ impl<C: AsClient> PostgresStore<C> {
     pub(crate) fn get_link_as_dependency<'a>(
         &'a self,
         link: &'a PersistedLink,
-        context: KnowledgeDependencyContext<'a>,
+        context: DependencyContext<'a>,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
-        let KnowledgeDependencyContext {
+        let DependencyContext {
+            edges,
             referenced_data_types,
             referenced_property_types,
             referenced_link_types,
             referenced_entity_types,
             linked_entities,
             links,
-            data_type_query_depth,
-            property_type_query_depth,
-            link_type_query_depth,
-            entity_type_query_depth,
-            link_query_depth,
-            link_target_entity_query_depth,
+            graph_resolve_depths,
         } = context;
 
         async move {
-            if let Some(link) = links.insert(link, link_query_depth) {
-                if link_type_query_depth > 0 {
+            let target_entity_id = link.inner().target_entity();
+
+            if let Some(link) = links.insert(&link, graph_resolve_depths.link_resolve_depth) {
+                if graph_resolve_depths.link_type_resolve_depth > 0 {
                     self.get_link_type_as_dependency(
                         link.inner().link_type_id(),
-                        LinkTypeDependencyContext {
+                        DependencyContext {
+                            graph_resolve_depths: GraphResolveDepths {
+                                link_type_resolve_depth: graph_resolve_depths
+                                    .link_type_resolve_depth
+                                    - 1,
+                                ..graph_resolve_depths
+                            },
+                            edges,
+                            referenced_data_types,
+                            referenced_property_types,
                             referenced_link_types,
-                            link_type_query_depth: link_type_query_depth - 1,
+                            referenced_entity_types,
+                            linked_entities,
+                            links,
                         },
                     )
                     .await?;
                 }
 
-                if link_target_entity_query_depth > 0 {
-                    let target_entity_id = link.inner().target_entity();
-                    self.get_entity_as_dependency(target_entity_id, KnowledgeDependencyContext {
+                if graph_resolve_depths.link_target_entity_resolve_depth > 0 {
+                    self.get_entity_as_dependency(target_entity_id, DependencyContext {
+                        graph_resolve_depths: GraphResolveDepths {
+                            link_target_entity_resolve_depth: graph_resolve_depths
+                                .link_target_entity_resolve_depth
+                                - 1,
+                            ..graph_resolve_depths
+                        },
+                        edges,
                         referenced_data_types,
                         referenced_property_types,
                         referenced_link_types,
                         referenced_entity_types,
                         linked_entities,
                         links,
-                        data_type_query_depth,
-                        property_type_query_depth,
-                        link_type_query_depth,
-                        entity_type_query_depth,
-                        link_query_depth,
-                        link_target_entity_query_depth: link_target_entity_query_depth - 1,
                     })
                     .await?;
                 }
@@ -114,20 +121,16 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
 
     async fn get_links(
         &self,
-        query: &KnowledgeGraphQuery,
+        query: &StructuralQuery,
     ) -> Result<Vec<LinkRootedSubgraph>, QueryError> {
-        let KnowledgeGraphQuery {
+        let StructuralQuery {
             ref expression,
-            data_type_query_depth,
-            property_type_query_depth,
-            link_type_query_depth,
-            entity_type_query_depth,
-            link_target_entity_query_depth,
-            link_query_depth,
+            graph_resolve_depths,
         } = *query;
 
         stream::iter(Read::<PersistedLink>::read(self, expression).await?)
             .then(|link| async move {
+                let mut edges = HashMap::new();
                 let mut referenced_data_types = DependencyMap::new();
                 let mut referenced_property_types = DependencyMap::new();
                 let mut referenced_link_types = DependencyMap::new();
@@ -135,19 +138,15 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
                 let mut linked_entities = DependencyMap::new();
                 let mut links = DependencySet::new();
 
-                self.get_link_as_dependency(&link, KnowledgeDependencyContext {
+                self.get_link_as_dependency(&link, DependencyContext {
+                    edges: &mut edges,
                     referenced_data_types: &mut referenced_data_types,
                     referenced_property_types: &mut referenced_property_types,
                     referenced_link_types: &mut referenced_link_types,
                     referenced_entity_types: &mut referenced_entity_types,
                     linked_entities: &mut linked_entities,
                     links: &mut links,
-                    data_type_query_depth,
-                    property_type_query_depth,
-                    link_type_query_depth,
-                    entity_type_query_depth,
-                    link_target_entity_query_depth,
-                    link_query_depth,
+                    graph_resolve_depths,
                 })
                 .await?;
 

@@ -159,7 +159,7 @@ impl DatabaseApi<'_> {
             .store
             .get_data_type(&StructuralQuery {
                 expression: Expression::for_versioned_uri(uri),
-                query_resolve_depths: GraphResolveDepths {
+                graph_resolve_depths: GraphResolveDepths {
                     data_type_resolve_depth: 0,
                     property_type_resolve_depth: 0,
                     entity_type_resolve_depth: 0,
@@ -205,7 +205,7 @@ impl DatabaseApi<'_> {
             .store
             .get_property_type(&StructuralQuery {
                 expression: Expression::for_versioned_uri(uri),
-                query_resolve_depths: GraphResolveDepths {
+                graph_resolve_depths: GraphResolveDepths {
                     data_type_resolve_depth: 0,
                     property_type_resolve_depth: 0,
                     link_type_resolve_depth: 0,

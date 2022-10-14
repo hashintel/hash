@@ -19,8 +19,8 @@ use crate::{
     api::rest::{read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, AccountId, LinkTypeQuery, LinkTypeRootedSubgraph, PersistedLinkType,
-        PersistedOntologyIdentifier, PersistedOntologyMetadata,
+        patch_id_and_parse, AccountId, LinkTypeRootedSubgraph, PersistedLinkType,
+        PersistedOntologyIdentifier, PersistedOntologyMetadata, StructuralQuery,
     },
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, LinkTypeStore, StorePool,
@@ -44,7 +44,7 @@ use crate::{
             PersistedOntologyIdentifier,
             PersistedOntologyMetadata,
             PersistedLinkType,
-            LinkTypeQuery,
+            StructuralQuery,
             LinkTypeRootedSubgraph,
         )
     ),
@@ -138,7 +138,7 @@ async fn create_link_type<P: StorePool + Send>(
 #[utoipa::path(
     post,
     path = "/link-types/query",
-    request_body = LinkTypeQuery,
+    request_body = StructuralQuery,
     tag = "LinkType",
     responses(
         (status = 200, content_type = "application/json", description = "A list of subgraphs rooted at link types that satisfy the given query, each resolved to the requested depth.", body = [LinkTypeRootedSubgraph]),
@@ -149,7 +149,7 @@ async fn create_link_type<P: StorePool + Send>(
 )]
 async fn get_link_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    Json(query): Json<LinkTypeQuery>,
+    Json(query): Json<StructuralQuery>,
 ) -> Result<Json<Vec<LinkTypeRootedSubgraph>>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
