@@ -42,6 +42,7 @@ use crate::{
             UpdateDataTypeRequest,
             AccountId,
             PersistedOntologyIdentifier,
+            PersistedOntologyMetadata,
             PersistedDataType,
             DataTypeQuery,
             DataTypeRootedSubgraph,

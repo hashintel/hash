@@ -19,7 +19,7 @@ async fn insert() {
         .await
         .expect("could not seed database");
 
-    let identifier = api
+    let metadata = api
         .create_entity(
             person.clone(),
             VersionedUri::new(
@@ -33,6 +33,8 @@ async fn insert() {
         )
         .await
         .expect("could not create entity");
+
+    let identifier = metadata.identifier();
 
     let persisted_entity = api
         .get_entity(identifier.entity_id())
@@ -55,7 +57,7 @@ async fn query() {
         .await
         .expect("could not seed database");
 
-    let identifier = api
+    let metadata = api
         .create_entity(
             organization.clone(),
             VersionedUri::new(
@@ -69,6 +71,8 @@ async fn query() {
         )
         .await
         .expect("could not create entity");
+
+    let identifier = metadata.identifier();
 
     let queried_organization = api
         .get_entity(identifier.entity_id())
@@ -90,7 +94,7 @@ async fn update() {
         .await
         .expect("could not seed database:");
 
-    let identifier = api
+    let metadata = api
         .create_entity(
             page_v1.clone(),
             VersionedUri::new(
@@ -102,6 +106,8 @@ async fn update() {
         )
         .await
         .expect("could not create entity");
+
+    let identifier = metadata.identifier();
 
     api.update_entity(
         identifier.entity_id(),

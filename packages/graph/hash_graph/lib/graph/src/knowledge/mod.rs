@@ -11,7 +11,7 @@ pub use self::{
     entity::{
         Entity, EntityId, PersistedEntity, PersistedEntityIdentifier, PersistedEntityMetadata,
     },
-    link::{Link, PersistedLink},
+    link::{Link, PersistedLink, PersistedLinkMetadata},
 };
 use crate::{
     ontology::{

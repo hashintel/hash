@@ -42,6 +42,7 @@ use crate::{
             UpdateEntityRequest,
             EntityId,
             PersistedEntityIdentifier,
+            PersistedEntityMetadata,
             PersistedEntity,
             Entity,
             KnowledgeGraphQuery,

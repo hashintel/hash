@@ -31,15 +31,19 @@ async fn insert() {
         1,
     );
 
-    let person_a_identifier = api
+    let person_a_metadata = api
         .create_entity(person_a, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
-    let person_b_identifier = api
+    let person_a_identifier = person_a_metadata.identifier();
+
+    let person_b_metadata = api
         .create_entity(person_b, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
+
+    let person_b_identifier = person_b_metadata.identifier();
 
     api.create_link(
         person_a_identifier.entity_id(),
@@ -97,20 +101,26 @@ async fn get_entity_links() {
         1,
     );
 
-    let person_a_identifier = api
+    let person_a_metadata = api
         .create_entity(person_a, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
-    let person_b_identifier = api
+    let person_a_identifier = person_a_metadata.identifier();
+
+    let person_b_metadata = api
         .create_entity(person_b, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
-    let person_c_identifier = api
+    let person_b_identifier = person_b_metadata.identifier();
+
+    let person_c_metadata = api
         .create_entity(person_c, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
+
+    let person_c_identifier = person_c_metadata.identifier();
 
     let _a_b_link = api
         .create_link(
@@ -177,15 +187,19 @@ async fn remove_link() {
         1,
     );
 
-    let person_a_identifier = api
+    let person_a_metadata = api
         .create_entity(person_a, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
-    let person_b_identifier = api
+    let person_a_identifier = person_a_metadata.identifier();
+
+    let person_b_metadata = api
         .create_entity(person_b, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
+
+    let person_b_identifier = person_b_metadata.identifier();
 
     let _a_b_link = api
         .create_link(
@@ -239,20 +253,26 @@ async fn ordered_links() {
         1,
     );
 
-    let person_a_identifier = api
+    let person_a_metadata = api
         .create_entity(person_a, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
-    let person_b_identifier = api
+    let person_a_identifier = person_a_metadata.identifier();
+
+    let person_b_metadata = api
         .create_entity(person_b, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
-    let person_c_identifier = api
+    let person_b_identifier = person_b_metadata.identifier();
+
+    let person_c_metadata = api
         .create_entity(person_c, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
+
+    let person_c_identifier = person_c_metadata.identifier();
 
     let _a_b_link = api
         .create_ordered_link(
