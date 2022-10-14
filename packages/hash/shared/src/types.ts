@@ -274,9 +274,6 @@ type TypeDefinitions = {
 
 /**
  * The workspace and block protocol types that are statically available at run-time.
- *
- * @todo - instead of just providing the id, title and description of types, find a way
- * to make the entire schemas statically available at run-time.
  */
 export const types: TypeDefinitions = {
   entityType: Object.entries(workspaceEntityTypes).reduce(
