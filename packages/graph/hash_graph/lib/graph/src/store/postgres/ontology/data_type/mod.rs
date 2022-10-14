@@ -93,7 +93,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 let mut referenced_data_types = DependencyMap::new();
 
                 self.get_data_type_as_dependency(
-                    data_type.metadata.identifier.uri(),
+                    data_type.metadata.identifier().uri(),
                     DataTypeDependencyContext {
                         referenced_data_types: &mut referenced_data_types,
                         data_type_query_depth,
@@ -102,7 +102,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 .await?;
 
                 let root = referenced_data_types
-                    .remove(data_type.metadata.identifier.uri())
+                    .remove(data_type.metadata.identifier().uri())
                     .expect("root was not added to the subgraph");
 
                 Ok(DataTypeRootedSubgraph { data_type: root })

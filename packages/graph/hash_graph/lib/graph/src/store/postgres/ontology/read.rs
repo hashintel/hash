@@ -33,7 +33,7 @@ impl PersistedOntologyType for PersistedDataType {
             PersistedOntologyIdentifier::new(data_type.record.id().clone(), data_type.account_id);
         Self {
             inner: data_type.record,
-            metadata: PersistedOntologyMetadata { identifier },
+            metadata: PersistedOntologyMetadata::new(identifier),
         }
     }
 }
@@ -48,7 +48,7 @@ impl PersistedOntologyType for PersistedPropertyType {
         );
         Self {
             inner: property_type.record,
-            metadata: PersistedOntologyMetadata { identifier },
+            metadata: PersistedOntologyMetadata::new(identifier),
         }
     }
 }
@@ -61,7 +61,7 @@ impl PersistedOntologyType for PersistedLinkType {
             PersistedOntologyIdentifier::new(link_type.record.id().clone(), link_type.account_id);
         Self {
             inner: link_type.record,
-            metadata: PersistedOntologyMetadata { identifier },
+            metadata: PersistedOntologyMetadata::new(identifier),
         }
     }
 }
@@ -76,7 +76,7 @@ impl PersistedOntologyType for PersistedEntityType {
         );
         Self {
             inner: entity_type.record,
-            metadata: PersistedOntologyMetadata { identifier },
+            metadata: PersistedOntologyMetadata::new(identifier),
         }
     }
 }

@@ -468,9 +468,10 @@ where
             .await
             .change_context(UpdateError)?;
 
-        Ok((version_id, PersistedOntologyMetadata {
-            identifier: PersistedOntologyIdentifier::new(uri, updated_by),
-        }))
+        Ok((
+            version_id,
+            PersistedOntologyMetadata::new(PersistedOntologyIdentifier::new(uri, updated_by)),
+        ))
     }
 
     /// Inserts an [`OntologyDatabaseType`] identified by [`VersionId`], and associated with an

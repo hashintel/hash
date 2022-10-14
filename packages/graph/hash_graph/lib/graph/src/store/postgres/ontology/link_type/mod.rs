@@ -89,7 +89,7 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
                 let mut referenced_link_types = DependencyMap::new();
 
                 self.get_link_type_as_dependency(
-                    link_type.metadata.identifier.uri(),
+                    link_type.metadata.identifier().uri(),
                     LinkTypeDependencyContext {
                         referenced_link_types: &mut referenced_link_types,
                         link_type_query_depth: 0,
@@ -98,7 +98,7 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
                 .await?;
 
                 let root = referenced_link_types
-                    .remove(link_type.metadata.identifier.uri())
+                    .remove(link_type.metadata.identifier().uri())
                     .expect("root was not added to the subgraph");
 
                 Ok(LinkTypeRootedSubgraph { link_type: root })

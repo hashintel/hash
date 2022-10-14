@@ -250,7 +250,7 @@ pub struct LinkTypeRootedSubgraph {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PersistedOntologyMetadata {
-    pub identifier: PersistedOntologyIdentifier,
+    identifier: PersistedOntologyIdentifier,
 }
 
 impl PersistedOntologyMetadata {

@@ -165,7 +165,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 let mut referenced_property_types = DependencyMap::new();
 
                 self.get_property_type_as_dependency(
-                    property_type.metadata.identifier.uri(),
+                    property_type.metadata.identifier().uri(),
                     PropertyTypeDependencyContext {
                         referenced_data_types: &mut referenced_data_types,
                         referenced_property_types: &mut referenced_property_types,
@@ -176,7 +176,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 .await?;
 
                 let root = referenced_property_types
-                    .remove(property_type.metadata.identifier.uri())
+                    .remove(property_type.metadata.identifier().uri())
                     .expect("root was not added to the subgraph");
 
                 Ok(PropertyTypeRootedSubgraph {

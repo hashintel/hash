@@ -208,7 +208,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 let mut referenced_entity_types = DependencyMap::new();
 
                 self.get_entity_type_as_dependency(
-                    entity_type.metadata.identifier.uri(),
+                    entity_type.metadata.identifier().uri(),
                     EntityTypeDependencyContext {
                         referenced_data_types: &mut referenced_data_types,
                         referenced_property_types: &mut referenced_property_types,
@@ -223,7 +223,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 .await?;
 
                 let root = referenced_entity_types
-                    .remove(entity_type.metadata.identifier.uri())
+                    .remove(entity_type.metadata.identifier().uri())
                     .expect("root was not added to the subgraph");
 
                 Ok(EntityTypeRootedSubgraph {
