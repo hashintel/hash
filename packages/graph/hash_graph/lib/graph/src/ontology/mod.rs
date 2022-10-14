@@ -12,7 +12,7 @@ use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyTyp
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::store::query::Expression;
+use crate::{store::query::Expression, subgraph::GraphResolveDepths};
 
 // TODO - find a good place for AccountId, perhaps it will become redundant in a future design
 
@@ -183,11 +183,10 @@ pub struct PersistedDataType {
 pub struct DataTypeQuery {
     #[serde(rename = "query")]
     pub expression: Expression,
-    // TODO: `data_type_query_depth` currently does nothing, in the future it will most probably be
+    // TODO: `query_resolve_depths` currently does nothing, in the future it will most probably be
     //       used to resolve user defined data types.
     //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
-    #[schema(value_type = number)]
-    pub data_type_query_depth: OntologyQueryDepth,
+    pub query_resolve_depths: GraphResolveDepths,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]

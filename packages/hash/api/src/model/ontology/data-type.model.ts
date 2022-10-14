@@ -6,9 +6,8 @@ import {
   UpdateDataTypeRequest,
 } from "@hashintel/hash-graph-client";
 import { DataType } from "@blockprotocol/type-system-web";
-
+import { generateTypeId } from "@hashintel/hash-shared/types";
 import { DataTypeModel } from "../index";
-import { generateTypeId } from "../util";
 import { getNamespaceOfAccountOwner } from "./util";
 
 type DataTypeModelConstructorArgs = {
