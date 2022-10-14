@@ -31,7 +31,7 @@ export default class {
 
   static fromPersistedDataType({
     inner,
-    identifier,
+    metadata: { identifier },
   }: PersistedDataType): DataTypeModel {
     /**
      * @todo and a warning, these type casts are here to compensate for

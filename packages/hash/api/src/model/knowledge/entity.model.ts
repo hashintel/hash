@@ -62,9 +62,10 @@ export default class {
 
   private static async fromPersistedEntity(
     graphApi: GraphApi,
-    { identifier, inner, entityTypeId }: PersistedEntity,
+    { metadata, inner }: PersistedEntity,
     cachedEntityTypeModels?: Map<string, EntityTypeModel>,
   ): Promise<EntityModel> {
+    const { identifier, entityTypeId } = metadata;
     const { ownedById, entityId, version } = identifier;
     const cachedEntityTypeModel = cachedEntityTypeModels?.get(entityTypeId);
 

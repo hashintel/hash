@@ -47,7 +47,7 @@ export default class {
 
   static fromPersistedEntityType({
     inner,
-    identifier,
+    metadata: { identifier },
   }: PersistedEntityType): EntityTypeModel {
     /**
      * @todo and a warning, these type casts are here to compensate for

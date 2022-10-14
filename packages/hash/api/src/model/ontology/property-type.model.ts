@@ -31,7 +31,7 @@ export default class {
 
   static fromPersistedPropertyType({
     inner,
-    identifier,
+    metadata: { identifier },
   }: PersistedPropertyType): PropertyTypeModel {
     /**
      * @todo and a warning, these type casts are here to compensate for

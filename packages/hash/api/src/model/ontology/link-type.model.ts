@@ -31,7 +31,7 @@ export default class {
 
   static fromPersistedLinkType({
     inner,
-    identifier,
+    metadata: { identifier },
   }: PersistedLinkType): LinkTypeModel {
     /**
      * @todo and a warning, these type casts are here to compensate for
