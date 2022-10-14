@@ -447,22 +447,16 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
 };
 
 const resolvedAtPropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Resolved At",
-  description: "Stringified timestamp of when something was resolved.",
-  possibleValues: [{ primitiveDataType: "Text" }],
+  ...types.propertyType.resolvedAt,
+  possibleValues: [{ primitiveDataType: "text" }],
 });
 
 const hasTextLinkTypeInitializer = linkTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Has Text",
-  description: "Something that has text.",
+  ...types.linkType.hasText,
 });
 
 const authorLinkTypeInitializer = linkTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Author",
-  description: "The author of something.",
+  ...types.linkType.author,
 });
 
 const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
@@ -489,13 +483,10 @@ const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
   const blockEntityTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.entityType.block(graphApi);
 
-  const namespace = WORKSPACE_ACCOUNT_SHORTNAME;
-
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    namespace,
-    title: workspaceEntityTypeTitles.comment,
+    ...types.entityType.comment,
     properties: [
       {
         propertyTypeModel: resolvedAtPropertyTypeModel,
