@@ -26,8 +26,6 @@ pub struct LinkId {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "camelCase", untagged)]
 pub enum GraphElementIdentifier {
-    // TODO: can we create a new type just to generate a Utoipa line for VersionedURI and then use
-    //  that inside a `#[schema(value_type =` expression?
     OntologyElementId(VersionedUri),
     KnowledgeGraphElementId(EntityId),
     Temporary(LinkId),
@@ -97,11 +95,11 @@ impl ToSchema for Vertex {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum EdgeKind {
-    /// An [`Entity`] has a [`Link`]
+    /// An entity has a link
     HasLink,
-    /// A [`Link`] has an [`Entity`] as its destination
+    /// A link has an entity as its destination
     HasDestination,
-    /// A [`Link`] or [`Entity`] has a [`LinkType`] or [`EntityType`] as its type, respectively
+    /// A link or entity has a link type or entity type as its type, respectively
     HasType,
     /// A type can reference another type
     References,

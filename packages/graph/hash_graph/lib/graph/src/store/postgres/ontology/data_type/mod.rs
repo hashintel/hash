@@ -18,7 +18,7 @@ use crate::{
         postgres::{context::PostgresContext, DependencyMap, PersistedOntologyType},
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::{GraphElementIdentifier, GraphResolveDepths, Subgraph, Vertex},
+    subgraph::{GraphElementIdentifier, Subgraph, Vertex},
 };
 
 pub struct DataTypeDependencyContext<'a> {

@@ -218,7 +218,7 @@ pub trait DataTypeStore: for<'q> crud::Read<PersistedDataType, Query<'q> = Expre
         owned_by_id: AccountId,
     ) -> Result<PersistedOntologyIdentifier, InsertionError>;
 
-    /// Get the [`DataTypeRootedSubgraph`]s specified by the [`DataTypeQuery`].
+    /// Get the [`Subgraph`] specified by the [`DataTypeQuery`].
     ///
     /// # Errors
     ///
