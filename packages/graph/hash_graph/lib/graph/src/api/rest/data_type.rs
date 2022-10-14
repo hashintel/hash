@@ -20,10 +20,13 @@ use crate::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, AccountId, DataTypeQuery, DataTypeRootedSubgraph, PersistedDataType,
-        PersistedOntologyIdentifier,
+        PersistedOntologyIdentifier, PersistedOntologyMetadata,
     },
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool,
+    },
+    subgraph::{
+        EdgeKind, GraphElementIdentifier, GraphResolveDepths, OutwardEdge, Subgraph, Vertex,
     },
 };
 
@@ -42,9 +45,16 @@ use crate::{
             UpdateDataTypeRequest,
             AccountId,
             PersistedOntologyIdentifier,
+            PersistedOntologyMetadata,
             PersistedDataType,
             DataTypeQuery,
             DataTypeRootedSubgraph,
+            GraphElementIdentifier,
+            Vertex,
+            EdgeKind,
+            OutwardEdge,
+            GraphResolveDepths,
+            Subgraph
         )
     ),
     tags(
@@ -86,7 +96,7 @@ struct CreateDataTypeRequest {
     request_body = CreateDataTypeRequest,
     tag = "DataType",
     responses(
-        (status = 201, content_type = "application/json", description = "The schema of the created data type", body = PersistedOntologyIdentifier),
+        (status = 201, content_type = "application/json", description = "The metadata of the created data type", body = PersistedOntologyMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create data type in the store as the base data type URI already exists"),
@@ -98,7 +108,7 @@ async fn create_data_type<P: StorePool + Send>(
     body: Json<CreateDataTypeRequest>,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
-) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
+) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
     let Json(CreateDataTypeRequest { schema, account_id }) = body;
 
     let data_type: DataType = schema.try_into().into_report().map_err(|report| {
@@ -138,10 +148,10 @@ async fn create_data_type<P: StorePool + Send>(
 #[utoipa::path(
     post,
     path = "/data-types/query",
-    request_body = Expression,
+    request_body = DataTypeQuery,
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", body = [DataTypeRootedSubgraph], description = "A list of subgraphs rooted at data types that satisfy the given query, each resolved to the requested depth."),
+        (status = 200, content_type = "application/json", body = Subgraph, description = "Gets a subgraph rooted at all data types that satisfy the given query, each resolved to the requested depth."),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
@@ -150,7 +160,7 @@ async fn create_data_type<P: StorePool + Send>(
 async fn get_data_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<DataTypeQuery>,
-) -> Result<Json<Vec<DataTypeRootedSubgraph>>, StatusCode> {
+) -> Result<Json<Subgraph>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
             tracing::error!(?error, "Could not acquire access to the store");
@@ -224,7 +234,7 @@ struct UpdateDataTypeRequest {
     path = "/data-types",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the updated data type", body = PersistedOntologyIdentifier),
+        (status = 200, content_type = "application/json", description = "The metadata of the updated data type", body = PersistedOntologyMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base data type ID was not found"),
@@ -235,7 +245,7 @@ struct UpdateDataTypeRequest {
 async fn update_data_type<P: StorePool + Send>(
     body: Json<UpdateDataTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedOntologyIdentifier>, StatusCode> {
+) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
     let Json(UpdateDataTypeRequest {
         schema,
         type_to_update,

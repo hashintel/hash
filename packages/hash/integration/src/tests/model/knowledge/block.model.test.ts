@@ -9,6 +9,7 @@ import {
 } from "@hashintel/hash-api/src/model";
 import { generateWorkspaceEntityTypeSchema } from "@hashintel/hash-api/src/model/util";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { generateTypeId } from "@hashintel/hash-shared/types";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -50,7 +51,11 @@ describe("Block model class", () => {
     dummyEntityType = await EntityTypeModel.create(graphApi, {
       ownedById: testUser.entityId,
       schema: generateWorkspaceEntityTypeSchema({
-        namespace: testUser.getShortname()!,
+        entityTypeId: generateTypeId({
+          namespace: testUser.getShortname()!,
+          kind: "entity-type",
+          title: "Dummy",
+        }),
         title: "Dummy",
         properties: [],
         outgoingLinks: [],

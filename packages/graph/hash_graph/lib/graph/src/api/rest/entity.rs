@@ -17,7 +17,7 @@ use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     knowledge::{
         Entity, EntityId, EntityRootedSubgraph, KnowledgeGraphQuery, PersistedEntity,
-        PersistedEntityIdentifier,
+        PersistedEntityIdentifier, PersistedEntityMetadata,
     },
     ontology::AccountId,
     store::{
@@ -42,6 +42,7 @@ use crate::{
             UpdateEntityRequest,
             EntityId,
             PersistedEntityIdentifier,
+            PersistedEntityMetadata,
             PersistedEntity,
             Entity,
             KnowledgeGraphQuery,
@@ -89,7 +90,7 @@ struct CreateEntityRequest {
     request_body = CreateEntityRequest,
     tag = "Entity",
     responses(
-        (status = 201, content_type = "application/json", description = "The created entity", body = PersistedEntityIdentifier),
+        (status = 201, content_type = "application/json", description = "The metadata of the created entity", body = PersistedEntityMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Entity Type URI was not found"),
@@ -100,7 +101,7 @@ struct CreateEntityRequest {
 async fn create_entity<P: StorePool + Send>(
     body: Json<CreateEntityRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedEntityIdentifier>, StatusCode> {
+) -> Result<Json<PersistedEntityMetadata>, StatusCode> {
     let Json(CreateEntityRequest {
         entity,
         entity_type_id,
@@ -214,7 +215,7 @@ struct UpdateEntityRequest {
     path = "/entities",
     tag = "Entity",
     responses(
-        (status = 200, content_type = "application/json", description = "The updated entity", body = PersistedEntityIdentifier),
+        (status = 200, content_type = "application/json", description = "The metadata of the updated entity", body = PersistedEntityMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Entity ID or Entity Type URI was not found"),
@@ -225,7 +226,7 @@ struct UpdateEntityRequest {
 async fn update_entity<P: StorePool + Send>(
     body: Json<UpdateEntityRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedEntityIdentifier>, StatusCode> {
+) -> Result<Json<PersistedEntityMetadata>, StatusCode> {
     let Json(UpdateEntityRequest {
         entity,
         entity_id,

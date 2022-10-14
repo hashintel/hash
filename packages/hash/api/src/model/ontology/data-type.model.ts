@@ -6,9 +6,8 @@ import {
   UpdateDataTypeRequest,
 } from "@hashintel/hash-graph-client";
 import { DataType } from "@blockprotocol/type-system-web";
-
+import { generateTypeId } from "@hashintel/hash-shared/types";
 import { DataTypeModel } from "../index";
-import { generateTypeId } from "../util";
 import { getNamespaceOfAccountOwner } from "./util";
 
 type DataTypeModelConstructorArgs = {
@@ -31,7 +30,7 @@ export default class {
 
   static fromPersistedDataType({
     inner,
-    identifier,
+    metadata: { identifier },
   }: PersistedDataType): DataTypeModel {
     /**
      * @todo and a warning, these type casts are here to compensate for
@@ -84,7 +83,7 @@ export default class {
     });
     const fullDataType = { $id: dataTypeUri, ...params.schema };
 
-    const { data: identifier } = await graphApi
+    const { data: metadata } = await graphApi
       .createDataType({
         /**
          * @todo: replace uses of `accountId` with `ownedById` in the Graph API
@@ -100,6 +99,8 @@ export default class {
             : `[${err.code}] couldn't create data type: ${err.response?.data}.`,
         );
       });
+
+    const { identifier } = metadata;
 
     return new DataTypeModel({
       schema: fullDataType,
@@ -176,7 +177,9 @@ export default class {
       schema,
     };
 
-    const { data: identifier } = await graphApi.updateDataType(updateArguments);
+    const { data: metadata } = await graphApi.updateDataType(updateArguments);
+
+    const { identifier } = metadata;
 
     return new DataTypeModel({
       schema: { ...schema, $id: identifier.uri },

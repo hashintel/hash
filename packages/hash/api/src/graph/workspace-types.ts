@@ -1,6 +1,6 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 import { GraphApi } from "@hashintel/hash-graph-client";
+import { types } from "@hashintel/hash-shared/types";
 import { logger } from "../logger";
 
 import { EntityTypeModel, LinkTypeModel, PropertyTypeModel } from "../model";
@@ -9,17 +9,6 @@ import {
   entityTypeInitializer,
   linkTypeInitializer,
 } from "../model/util";
-
-export const workspaceEntityTypeTitles = {
-  block: "Block",
-  page: "Page",
-  comment: "Comment",
-  text: "Text",
-  dummy: "Dummy",
-  user: "User",
-  org: "Org",
-  orgMembership: "Org Membership",
-} as const;
 
 // eslint-disable-next-line import/no-mutable-exports
 export let WORKSPACE_TYPES: {
@@ -102,8 +91,7 @@ export const orgProvidedInfoPropertyTypeInitializer = async (
   const orgSizeBaseUri = orgSizePropertyTypeModel.baseUri;
 
   return propertyTypeInitializer({
-    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-    title: "Organization Provided Info",
+    ...types.propertyType.orgProvidedInfo,
     possibleValues: [
       {
         propertyTypeObjectProperties: {
@@ -130,8 +118,7 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-    title: workspaceEntityTypeTitles.org,
+    ...types.entityType.org,
     properties: [
       {
         propertyTypeModel: shortnamePropertyTypeModel,
@@ -165,8 +152,7 @@ const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-    title: workspaceEntityTypeTitles.orgMembership,
+    ...types.entityType.orgMembership,
     properties: [
       {
         propertyTypeModel: responsibilityPropertyTypeModel,
@@ -184,58 +170,46 @@ const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
 };
 
 const shortnamePropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Shortname",
-  possibleValues: [{ primitiveDataType: "Text" }],
+  ...types.propertyType.shortName,
+  possibleValues: [{ primitiveDataType: "text" }],
 });
 
 const orgNamePropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Organization Name",
-  possibleValues: [{ primitiveDataType: "Text" }],
+  ...types.propertyType.orgName,
+  possibleValues: [{ primitiveDataType: "text" }],
 });
 
 const orgSizePropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Organization Size",
-  possibleValues: [{ primitiveDataType: "Text" }],
+  ...types.propertyType.orgSize,
+  possibleValues: [{ primitiveDataType: "text" }],
 });
 
 const emailPropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Email",
-  possibleValues: [{ primitiveDataType: "Text" }],
+  ...types.propertyType.email,
+  possibleValues: [{ primitiveDataType: "text" }],
 });
 
 const kratosIdentityIdPropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Kratos Identity ID",
-  possibleValues: [{ primitiveDataType: "Text" }],
+  ...types.propertyType.kratosIdentityId,
+  possibleValues: [{ primitiveDataType: "text" }],
 });
 
 const preferredNamePropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Preferred Name",
-  possibleValues: [{ primitiveDataType: "Text" }],
+  ...types.propertyType.preferredName,
+  possibleValues: [{ primitiveDataType: "text" }],
 });
 
 const responsibilityPropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "responsibility",
-  description: `The user's responsibility at the organization (e.g. "Marketing", "Sales", "Engineering", etc.)`,
-  possibleValues: [{ primitiveDataType: "Text" }],
+  ...types.propertyType.responsibility,
+  possibleValues: [{ primitiveDataType: "text" }],
 });
 
 const ofOrgLinkTypeInitializer = linkTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Of Org",
-  description: "Belonging to an organization",
+  ...types.linkType.ofOrg,
 });
 
 const hasMembershipLinkTypeInitializer = linkTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Has Membership",
-  description: "Having a membership",
+  ...types.linkType.hasMembership,
 });
 
 const userEntityTypeInitializer = async (graphApi: GraphApi) => {
@@ -261,8 +235,7 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-    title: workspaceEntityTypeTitles.user,
+    ...types.entityType.user,
     properties: [
       {
         propertyTypeModel: shortnamePropertyTypeModel,
@@ -291,16 +264,13 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
 };
 
 const componentIdPropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Component ID",
-  possibleValues: [{ primitiveDataType: "Text" }],
+  ...types.propertyType.componentId,
+  possibleValues: [{ primitiveDataType: "text" }],
 });
 
-const blockDataLinkTypeInitializer = linkTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Block Data",
-  description: "The entity representing the data in a block.",
-});
+const blockDataLinkTypeInitializer = linkTypeInitializer(
+  types.linkType.blockData,
+);
 
 const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -317,8 +287,7 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-    title: workspaceEntityTypeTitles.block,
+    ...types.entityType.block,
     properties: [
       {
         propertyTypeModel: componentIdPropertyTypeModel,
@@ -340,13 +309,12 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
 };
 
 const tokensPropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Text Tokens",
+  ...types.propertyType.tokens,
   /**
    * @todo: potentially improve this property type to be composed of nested property type definitions
    * @see https://app.asana.com/0/1202805690238892/1203045933021778/f
    */
-  possibleValues: [{ primitiveDataType: "Object" }],
+  possibleValues: [{ primitiveDataType: "object" }],
 });
 
 const textEntityTypeInitializer = async (graphApi: GraphApi) => {
@@ -357,8 +325,7 @@ const textEntityTypeInitializer = async (graphApi: GraphApi) => {
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
   return entityTypeInitializer({
-    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-    title: workspaceEntityTypeTitles.text,
+    ...types.entityType.text,
     properties: [
       {
         propertyTypeModel: tokensPropertyTypeModel,
@@ -376,60 +343,42 @@ const textEntityTypeInitializer = async (graphApi: GraphApi) => {
  */
 const dummyEntityTypeInitializer = async (graphApi: GraphApi) => {
   return entityTypeInitializer({
-    namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-    title: workspaceEntityTypeTitles.dummy,
+    ...types.entityType.dummy,
     properties: [],
     outgoingLinks: [],
   })(graphApi);
 };
 
 const archivedPropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Archived",
-  description: "Whether or not something has been archived.",
-  possibleValues: [{ primitiveDataType: "Boolean" }],
+  ...types.propertyType.archived,
+  possibleValues: [{ primitiveDataType: "boolean" }],
 });
 
 const summaryPropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Summary",
-  description: "The summary of the something.",
-  possibleValues: [{ primitiveDataType: "Text" }],
+  ...types.propertyType.summary,
+  possibleValues: [{ primitiveDataType: "text" }],
 });
 
 const titlePropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Title",
-  description: "The title of something.",
-  possibleValues: [{ primitiveDataType: "Text" }],
+  ...types.propertyType.title,
+  possibleValues: [{ primitiveDataType: "text" }],
 });
 
 const indexPropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Index",
-  description:
-    "The (fractional) index indicating the current position of something.",
-  possibleValues: [{ primitiveDataType: "Text" }],
+  ...types.propertyType.index,
+  possibleValues: [{ primitiveDataType: "text" }],
 });
 
 const iconPropertyTypeInitializer = propertyTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Icon",
-  description: "An emoji icon.",
-  possibleValues: [{ primitiveDataType: "Text" }],
+  ...types.propertyType.icon,
+  possibleValues: [{ primitiveDataType: "text" }],
 });
 
-const containsLinkTypeInitializer = linkTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Contains",
-  description: "Something containing something.",
-});
+const containsLinkTypeInitializer = linkTypeInitializer(
+  types.linkType.contains,
+);
 
-const parentLinkTypeInitializer = linkTypeInitializer({
-  namespace: WORKSPACE_ACCOUNT_SHORTNAME,
-  title: "Parent",
-  description: "The parent of something.",
-});
+const parentLinkTypeInitializer = linkTypeInitializer(types.linkType.parent);
 
 const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -458,13 +407,10 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
   const blockEntityTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.entityType.block(graphApi);
 
-  const namespace = WORKSPACE_ACCOUNT_SHORTNAME;
-
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    namespace,
-    title: workspaceEntityTypeTitles.page,
+    ...types.entityType.page,
     properties: [
       {
         propertyTypeModel: summaryPropertyTypeModel,

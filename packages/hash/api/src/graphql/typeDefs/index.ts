@@ -27,6 +27,7 @@ import { persistedPageTypedef } from "./knowledge/page.typedef";
 import { persistedCommentTypedef } from "./knowledge/comment.typedef";
 import { persistedBlockTypedef } from "./knowledge/block.typedef";
 import { persistedLinkTypedef } from "./knowledge/link.typedef";
+import { subgraphTypedef } from "./subgraph.typedef";
 import { blockprotocolTypedef } from "./blockprotocol.typedef";
 
 const baseSchema = gql`
@@ -89,4 +90,5 @@ export const schema = [
   executeTaskTypedef,
   ...ontology,
   ...knowledge,
+  subgraphTypedef,
 ];

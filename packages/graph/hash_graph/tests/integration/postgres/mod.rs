@@ -10,12 +10,12 @@ use std::str::FromStr;
 use error_stack::{Report, Result};
 use graph::{
     knowledge::{
-        Entity, EntityId, KnowledgeGraphQuery, Link, PersistedEntity, PersistedEntityIdentifier,
+        Entity, EntityId, KnowledgeGraphQuery, Link, PersistedEntity, PersistedEntityMetadata,
         PersistedLink,
     },
     ontology::{
         AccountId, DataTypeQuery, EntityTypeQuery, LinkTypeQuery, PersistedDataType,
-        PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier, PersistedPropertyType,
+        PersistedEntityType, PersistedLinkType, PersistedOntologyMetadata, PersistedPropertyType,
         PropertyTypeQuery,
     },
     store::{
@@ -25,6 +25,7 @@ use graph::{
         EntityTypeStore, InsertionError, LinkStore, LinkTypeStore, PostgresStore,
         PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
+    subgraph::{GraphElementIdentifier, GraphResolveDepths, Vertex},
 };
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
@@ -145,7 +146,7 @@ impl DatabaseApi<'_> {
     pub async fn create_data_type(
         &mut self,
         data_type: DataType,
-    ) -> Result<PersistedOntologyIdentifier, InsertionError> {
+    ) -> Result<PersistedOntologyMetadata, InsertionError> {
         self.store
             .create_data_type(data_type, self.account_id)
             .await
@@ -155,22 +156,34 @@ impl DatabaseApi<'_> {
         &mut self,
         uri: &VersionedUri,
     ) -> Result<PersistedDataType, QueryError> {
-        Ok(self
+        let vertex = self
             .store
             .get_data_type(&DataTypeQuery {
                 expression: Expression::for_versioned_uri(uri),
-                data_type_query_depth: 0,
+                query_resolve_depths: GraphResolveDepths {
+                    data_type_resolve_depth: 0,
+                    property_type_resolve_depth: 0,
+                    entity_type_resolve_depth: 0,
+                    link_type_resolve_depth: 0,
+                    entity_resolve_depth: 0,
+                    link_resolve_depth: 0,
+                },
             })
             .await?
-            .pop()
-            .expect("no data type found")
-            .data_type)
+            .vertices
+            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
+            .expect("no data type found");
+
+        match vertex {
+            Vertex::DataType(persisted_data_type) => Ok(persisted_data_type),
+            _ => unreachable!(),
+        }
     }
 
     pub async fn update_data_type(
         &mut self,
         data_type: DataType,
-    ) -> Result<PersistedOntologyIdentifier, UpdateError> {
+    ) -> Result<PersistedOntologyMetadata, UpdateError> {
         self.store
             .update_data_type(data_type, self.account_id)
             .await
@@ -179,7 +192,7 @@ impl DatabaseApi<'_> {
     pub async fn create_property_type(
         &mut self,
         property_type: PropertyType,
-    ) -> Result<PersistedOntologyIdentifier, InsertionError> {
+    ) -> Result<PersistedOntologyMetadata, InsertionError> {
         self.store
             .create_property_type(property_type, self.account_id)
             .await
@@ -205,7 +218,7 @@ impl DatabaseApi<'_> {
     pub async fn update_property_type(
         &mut self,
         property_type: PropertyType,
-    ) -> Result<PersistedOntologyIdentifier, UpdateError> {
+    ) -> Result<PersistedOntologyMetadata, UpdateError> {
         self.store
             .update_property_type(property_type, self.account_id)
             .await
@@ -214,7 +227,7 @@ impl DatabaseApi<'_> {
     pub async fn create_entity_type(
         &mut self,
         entity_type: EntityType,
-    ) -> Result<PersistedOntologyIdentifier, InsertionError> {
+    ) -> Result<PersistedOntologyMetadata, InsertionError> {
         self.store
             .create_entity_type(entity_type, self.account_id)
             .await
@@ -242,7 +255,7 @@ impl DatabaseApi<'_> {
     pub async fn update_entity_type(
         &mut self,
         entity_type: EntityType,
-    ) -> Result<PersistedOntologyIdentifier, UpdateError> {
+    ) -> Result<PersistedOntologyMetadata, UpdateError> {
         self.store
             .update_entity_type(entity_type, self.account_id)
             .await
@@ -251,7 +264,7 @@ impl DatabaseApi<'_> {
     pub async fn create_link_type(
         &mut self,
         link_type: LinkType,
-    ) -> Result<PersistedOntologyIdentifier, InsertionError> {
+    ) -> Result<PersistedOntologyMetadata, InsertionError> {
         self.store
             .create_link_type(link_type, self.account_id)
             .await
@@ -275,7 +288,7 @@ impl DatabaseApi<'_> {
     pub async fn update_link_type(
         &mut self,
         link_type: LinkType,
-    ) -> Result<PersistedOntologyIdentifier, UpdateError> {
+    ) -> Result<PersistedOntologyMetadata, UpdateError> {
         self.store
             .update_link_type(link_type, self.account_id)
             .await
@@ -286,7 +299,7 @@ impl DatabaseApi<'_> {
         entity: Entity,
         entity_type_id: VersionedUri,
         entity_id: Option<EntityId>,
-    ) -> Result<PersistedEntityIdentifier, InsertionError> {
+    ) -> Result<PersistedEntityMetadata, InsertionError> {
         self.store
             .create_entity(entity, entity_type_id, self.account_id, entity_id)
             .await
@@ -315,7 +328,7 @@ impl DatabaseApi<'_> {
         entity_id: EntityId,
         entity: Entity,
         entity_type_id: VersionedUri,
-    ) -> Result<PersistedEntityIdentifier, UpdateError> {
+    ) -> Result<PersistedEntityMetadata, UpdateError> {
         self.store
             .update_entity(entity_id, entity, entity_type_id, self.account_id)
             .await
