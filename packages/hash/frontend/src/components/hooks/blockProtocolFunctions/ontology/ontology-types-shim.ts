@@ -13,7 +13,6 @@ import {
 } from "@blockprotocol/graph";
 
 import {
-  DataType,
   PropertyType,
   EntityType,
   LinkType,
