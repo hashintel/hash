@@ -4,7 +4,11 @@ import { types } from "@hashintel/hash-shared/types";
 
 const dataTypeIdToTitle = Object.values(types.dataType).reduce<
   Record<string, string>
->((prev, { dataTypeId, title }) => ({ ...prev, [dataTypeId]: title }), {});
+>((prev, dataType) => {
+  const { dataTypeId, title } = dataType;
+
+  return { ...prev, [dataTypeId]: title };
+}, {});
 
 // @todo handle this being too many
 export const PropertyExpectedValues = ({
