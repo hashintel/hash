@@ -2,17 +2,21 @@
 
 //! Postgres implementation to compile queries.
 
-use std::fmt::{self, Formatter};
-
-use crate::store::postgres::query::database::{Column, Table};
-
 pub mod database;
 
+use std::fmt::{self, Formatter};
+
+use crate::store::{
+    postgres::query::database::{Column, Table},
+    query::QueryRecord,
+};
+
 /// A structural query, which can be compiled into a statement in Postgres.
-// TODO: Implement for `DataTypeQuery`, `PropertyTypeQuery`, etc. (not added yet)
+// TODO: Implement for `ReadQuery<DataType>`, `ReadQuery<PropertyType>`, etc. when associated types
+//       are implemented
 pub trait Query {
     type Field: Field;
-    type Path: Path;
+    type Record: QueryRecord;
 
     /// The table used for this `Query`.
     fn base_table() -> Table;
