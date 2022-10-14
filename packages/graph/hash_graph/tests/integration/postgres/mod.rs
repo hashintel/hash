@@ -25,7 +25,7 @@ use graph::{
         EntityTypeStore, InsertionError, LinkStore, LinkTypeStore, PostgresStore,
         PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
-    subgraph::{GraphElementIdentifier, Vertex},
+    subgraph::{GraphElementIdentifier, GraphResolveDepths, Vertex},
 };
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
@@ -160,7 +160,14 @@ impl DatabaseApi<'_> {
             .store
             .get_data_type(&DataTypeQuery {
                 expression: Expression::for_versioned_uri(uri),
-                data_type_query_depth: 0,
+                query_resolve_depths: GraphResolveDepths {
+                    data_type_resolve_depth: 0,
+                    property_type_resolve_depth: 0,
+                    entity_type_resolve_depth: 0,
+                    link_type_resolve_depth: 0,
+                    entity_resolve_depth: 0,
+                    link_resolve_depth: 0,
+                },
             })
             .await?
             .vertices
