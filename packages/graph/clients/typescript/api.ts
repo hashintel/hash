@@ -1724,16 +1724,16 @@ export type VertexOneOf1KindEnum =
 export interface VertexOneOf1Inner {
   /**
    *
-   * @type {PersistedOntologyIdentifier}
-   * @memberof VertexOneOf1Inner
-   */
-  identifier: PersistedOntologyIdentifier;
-  /**
-   *
    * @type {PropertyType}
    * @memberof VertexOneOf1Inner
    */
   inner: PropertyType;
+  /**
+   *
+   * @type {PersistedOntologyMetadata}
+   * @memberof VertexOneOf1Inner
+   */
+  metadata: PersistedOntologyMetadata;
 }
 /**
  *
@@ -1770,16 +1770,16 @@ export type VertexOneOf2KindEnum =
 export interface VertexOneOf2Inner {
   /**
    *
-   * @type {PersistedOntologyIdentifier}
-   * @memberof VertexOneOf2Inner
-   */
-  identifier: PersistedOntologyIdentifier;
-  /**
-   *
    * @type {LinkType}
    * @memberof VertexOneOf2Inner
    */
   inner: LinkType;
+  /**
+   *
+   * @type {PersistedOntologyMetadata}
+   * @memberof VertexOneOf2Inner
+   */
+  metadata: PersistedOntologyMetadata;
 }
 /**
  *
@@ -1816,16 +1816,16 @@ export type VertexOneOf3KindEnum =
 export interface VertexOneOf3Inner {
   /**
    *
-   * @type {PersistedOntologyIdentifier}
-   * @memberof VertexOneOf3Inner
-   */
-  identifier: PersistedOntologyIdentifier;
-  /**
-   *
    * @type {EntityType}
    * @memberof VertexOneOf3Inner
    */
   inner: EntityType;
+  /**
+   *
+   * @type {PersistedOntologyMetadata}
+   * @memberof VertexOneOf3Inner
+   */
+  metadata: PersistedOntologyMetadata;
 }
 /**
  *
@@ -1862,22 +1862,16 @@ export type VertexOneOf4KindEnum =
 export interface VertexOneOf4Inner {
   /**
    *
-   * @type {string}
-   * @memberof VertexOneOf4Inner
-   */
-  entityTypeId: string;
-  /**
-   *
-   * @type {PersistedEntityIdentifier}
-   * @memberof VertexOneOf4Inner
-   */
-  identifier: PersistedEntityIdentifier;
-  /**
-   *
    * @type {object}
    * @memberof VertexOneOf4Inner
    */
   inner: object;
+  /**
+   *
+   * @type {PersistedEntityMetadata}
+   * @memberof VertexOneOf4Inner
+   */
+  metadata: PersistedEntityMetadata;
 }
 /**
  *
@@ -1920,10 +1914,10 @@ export interface VertexOneOf5Inner {
   inner: Link;
   /**
    *
-   * @type {string}
+   * @type {PersistedLinkMetadata}
    * @memberof VertexOneOf5Inner
    */
-  ownedById: string;
+  metadata: PersistedLinkMetadata;
 }
 /**
  *
@@ -1933,16 +1927,16 @@ export interface VertexOneOf5Inner {
 export interface VertexOneOfInner {
   /**
    *
-   * @type {PersistedOntologyIdentifier}
-   * @memberof VertexOneOfInner
-   */
-  identifier: PersistedOntologyIdentifier;
-  /**
-   *
    * @type {DataType}
    * @memberof VertexOneOfInner
    */
   inner: DataType;
+  /**
+   *
+   * @type {PersistedOntologyMetadata}
+   * @memberof VertexOneOfInner
+   */
+  metadata: PersistedOntologyMetadata;
 }
 
 /**
