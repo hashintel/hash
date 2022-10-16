@@ -47,6 +47,28 @@ impl Render for Table {
 ///
 /// When joining tables, each table requires a unique name. A `TableRef` may either be a plain
 /// [`Table`], or a [`Table`] with additional information attached to uniquely identify the table.
+///
+/// # Examples
+///
+/// When specifying multiple conditions or deeply nested queries containing the same [`Table`],
+/// [`Alias`] uniquely identifies the condition and the depth of the query.
+///
+/// ## Multiple Conditions
+///
+/// When searching for a [`PropertyType`], which should contain two different [`DataType`]s
+/// specified by it's `$id`, `Table::DataTypes` has to be joined twice, but with different
+/// conditions.
+///
+/// ## Deeply nested query chains
+///
+/// It's possible to have queries, which requires the same table multiple times in a chain. When
+/// searching for an [`PropertyType`], which contains a [`PropertyType`], which contains another
+/// [`PropertyType`], the `Table::PropertyTypePropertyTypeReferences` has to be joined twice
+/// within the same condition.
+///
+/// [`Alias`]: Self::Alias
+/// [`DataType`]: type_system::DataType
+/// [`PropertyType`]: type_system::PropertyType
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TableRef {
     /// A table inside of a compiled query, which was not renamed.
@@ -54,11 +76,8 @@ pub enum TableRef {
     /// A aliased table inside of a compiled query.
     Alias {
         table: Table,
-        /// For each condition inside of a query, a new table is joined
-        condition: usize,
-        ///
-        table_chain: usize,
-        depth: usize,
+        condition_index: usize,
+        chain_depth: usize,
     },
 }
 
@@ -100,13 +119,12 @@ impl Render for TableRef {
             Self::Table { table } => table.render(fmt),
             Self::Alias {
                 table,
-                condition,
-                table_chain,
-                depth,
+                condition_index,
+                chain_depth,
             } => {
                 fmt.write_char('"')?;
                 table.serialize(&mut *fmt)?;
-                write!(fmt, "_{}_{}_{}\"", condition, table_chain, depth)
+                write!(fmt, r#"_{condition_index}_{chain_depth}""#)
             }
         }
     }
@@ -215,11 +233,10 @@ mod tests {
         assert_eq!(
             render(&TableRef::Alias {
                 table: Table::TypeIds,
-                condition: 1,
-                table_chain: 2,
-                depth: 3,
+                condition_index: 1,
+                chain_depth: 2,
             }),
-            r#""type_ids_1_2_3""#
+            r#""type_ids_1_2""#
         );
     }
 
