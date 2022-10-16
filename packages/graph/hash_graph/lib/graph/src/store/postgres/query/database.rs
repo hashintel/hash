@@ -54,7 +54,9 @@ pub enum TableRef {
     /// A aliased table inside of a compiled query.
     Alias {
         table: Table,
+        /// For each condition inside of a query, a new table is joined
         condition: usize,
+        ///
         table_chain: usize,
         depth: usize,
     },
