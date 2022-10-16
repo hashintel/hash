@@ -12,20 +12,21 @@ use crate::store::postgres::query::Transpile;
 #[serde(rename_all = "snake_case")]
 pub enum TableName {
     TypeIds,
+    DataTypes,
 }
 
 impl TableName {
     /// Returns the [`Column`] used for joining another `Table` on this `Table`.
     pub const fn source_join_column(self) -> &'static str {
         match self {
-            Self::TypeIds => "version_id",
+            Self::TypeIds | Self::DataTypes => "version_id",
         }
     }
 
     /// Returns the [`Column`] used for joining this `Table` on another `Table`.
     pub const fn target_join_column(self) -> &'static str {
         match self {
-            Self::TypeIds => "version_id",
+            Self::TypeIds | Self::DataTypes => "version_id",
         }
     }
 }
@@ -50,7 +51,7 @@ impl TableName {
 ///
 /// ## Deeply nested query chains
 ///
-/// It's possible to have queries which require the same table multiple times in a chain. For
+/// It's possible to have queries which require the same [`Table`] multiple times in a chain. For
 /// example, when searching for a [`PropertyType`] which references a [`PropertyType`] which in turn
 /// references another [`PropertyType`], the `Table::PropertyTypePropertyTypeReferences` has to be
 /// joined twice within the same condition. The `chain_depth` will be used to uniquely identify
@@ -121,16 +122,18 @@ impl Transpile for Column<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::store::postgres::query::test_helper::transpile;
+    use crate::store::postgres::query::{test_helper::transpile, DataTypeQueryField, Field};
 
     #[test]
     fn source_join_columns() {
         assert_eq!(TableName::TypeIds.source_join_column(), "version_id");
+        assert_eq!(TableName::DataTypes.source_join_column(), "version_id");
     }
 
     #[test]
     fn target_join_columns() {
         assert_eq!(TableName::TypeIds.target_join_column(), "version_id");
+        assert_eq!(TableName::DataTypes.target_join_column(), "version_id");
     }
 
     #[test]
@@ -141,6 +144,13 @@ mod tests {
                 alias: None
             }),
             r#""type_ids""#
+        );
+        assert_eq!(
+            transpile(&Table {
+                name: TableName::DataTypes,
+                alias: None
+            }),
+            r#""data_types""#
         );
     }
 
@@ -161,16 +171,11 @@ mod tests {
     #[test]
     fn render_column_access() {
         assert_eq!(
-            transpile(&ColumnAccess::Table {
-                column: "version_id"
-            }),
+            transpile(&DataTypeQueryField::VersionId.column_access()),
             r#""version_id""#
         );
         assert_eq!(
-            transpile(&ColumnAccess::Json {
-                column: "schema",
-                field: Cow::Borrowed("title")
-            }),
+            transpile(&DataTypeQueryField::Title.column_access()),
             r#""schema"->>'title'"#
         );
     }
@@ -180,14 +185,22 @@ mod tests {
         assert_eq!(
             transpile(&Column {
                 table: Table {
-                    name: TableName::TypeIds,
+                    name: DataTypeQueryField::VersionId.table_name(),
                     alias: None
                 },
-                access: ColumnAccess::Table {
-                    column: "version_id"
-                }
+                access: DataTypeQueryField::VersionId.column_access()
             }),
-            r#""type_ids"."version_id""#
+            r#""data_types"."version_id""#
+        );
+        assert_eq!(
+            transpile(&Column {
+                table: Table {
+                    name: DataTypeQueryField::Title.table_name(),
+                    alias: None
+                },
+                access: DataTypeQueryField::Title.column_access()
+            }),
+            r#""data_types"."schema"->>'title'"#
         );
     }
 }
