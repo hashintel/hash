@@ -3,10 +3,10 @@ import { useCallback } from "react";
 import { useBlockProtocolUpdateEntity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
 import { useSnackbar } from "../../../../../components/hooks/useSnackbar";
 import { useEntityEditor } from "../entity-editor-context";
-import { gridIndexes } from "./constants";
-import { Row } from "./types";
+import { propertyGridIndexes } from "./constants";
+import { PropertyTableRow } from "./types";
 
-export const useOnCellEdited = (rowData: Row[]) => {
+export const useOnCellEdited = (rowData: PropertyTableRow[]) => {
   const snackbar = useSnackbar();
   const { entity, setEntity } = useEntityEditor();
   const { updateEntity } = useBlockProtocolUpdateEntity();
@@ -17,7 +17,7 @@ export const useOnCellEdited = (rowData: Row[]) => {
         return;
       }
 
-      const key = gridIndexes[col];
+      const key = propertyGridIndexes[col];
       const property = rowData[row];
 
       if (!key || !property) {

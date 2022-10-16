@@ -2,9 +2,7 @@ import { DataEditor, DataEditorProps, Theme } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
 import { useMemo } from "react";
 
-type GlideGridProps = DataEditorProps;
-
-export const GlideGrid = (props: GlideGridProps) => {
+export const GlideGrid = (props: DataEditorProps) => {
   const { palette } = useTheme();
 
   const gridTheme: Partial<Theme> = useMemo(

@@ -1,13 +1,13 @@
 import { pick } from "lodash";
 import { useMemo } from "react";
-import { Row } from "./types";
+import { PropertyTableRow } from "./types";
 import { extractEnrichedPropertyTypesFromEntity } from "./extract-enriched-property-types-from-entity";
 import { useEntityEditor } from "../entity-editor-context";
 
 export const useRowData = () => {
   const { entity, propertySort } = useEntityEditor();
 
-  const rowData = useMemo<Row[]>(() => {
+  const rowData = useMemo<PropertyTableRow[]>(() => {
     if (!entity) {
       return [];
     }

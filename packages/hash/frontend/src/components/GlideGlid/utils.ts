@@ -2,38 +2,20 @@ import {
   DrawCustomCellCallback,
   DrawHeaderCallback,
   GridCellKind,
+  GridColumn,
 } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
 import { useCallback } from "react";
-import { useEntityEditor } from "../entity-editor-context";
-import { columnPadding, firstColumnPadding, gridColumns } from "./constants";
-import { TableSortType } from "./types";
 
-export const useDrawCell = () => {
-  const { palette } = useTheme();
+export type TableSortType = "asc" | "desc";
 
-  const drawCell: DrawCustomCellCallback = useCallback(
-    (args) => {
-      const { cell, rect, ctx, col } = args;
-      if (cell.kind !== GridCellKind.Text) {
-        return false;
-      }
+export interface TableSort {
+  key: string;
+  dir: TableSortType;
+}
 
-      ctx.save();
-      const { x, y, height } = rect;
-
-      const paddingLeft = col === 0 ? firstColumnPadding : columnPadding;
-      ctx.fillStyle = palette.gray[80];
-      ctx.fillText(cell.displayData, x + paddingLeft, y + height / 2 + 2);
-      ctx.restore();
-
-      return true;
-    },
-    [palette],
-  );
-
-  return drawCell;
-};
+export const firstColumnPadding = 36;
+export const columnPadding = 22;
 
 const drawHeaderSortIndicator = (
   x: number,
@@ -59,8 +41,7 @@ const drawHeaderSortIndicator = (
   ctx.fill();
 };
 
-export const useDrawHeader = () => {
-  const { propertySort } = useEntityEditor();
+export const useDrawHeader = (sort: TableSort, columns: GridColumn[]) => {
   const { palette } = useTheme();
 
   const drawHeader: DrawHeaderCallback = useCallback(
@@ -78,8 +59,8 @@ export const useDrawHeader = () => {
       ctx.fillStyle = palette.gray[80];
       ctx.fillText(column.title, x + paddingLeft, centerY);
 
-      const columnKey = gridColumns[columnIndex]?.id;
-      const isSorted = columnKey === propertySort.key;
+      const columnKey = columns[columnIndex]?.id;
+      const isSorted = columnKey === sort.key;
 
       // draw sort indicator
       if (isSorted) {
@@ -87,13 +68,39 @@ export const useDrawHeader = () => {
         const indicatorX = x + paddingLeft + titleWidth + 6;
         const indicatorY = centerY;
 
-        drawHeaderSortIndicator(indicatorX, indicatorY, propertySort.dir, ctx);
+        drawHeaderSortIndicator(indicatorX, indicatorY, sort.dir, ctx);
       }
 
       return true;
     },
-    [palette, propertySort],
+    [palette, sort, columns],
   );
 
   return drawHeader;
+};
+
+export const useDrawCell = () => {
+  const { palette } = useTheme();
+
+  const drawCell: DrawCustomCellCallback = useCallback(
+    (args) => {
+      const { cell, rect, ctx, col } = args;
+      if (cell.kind !== GridCellKind.Text) {
+        return false;
+      }
+
+      ctx.save();
+      const { x, y, height } = rect;
+
+      const paddingLeft = col === 0 ? firstColumnPadding : columnPadding;
+      ctx.fillStyle = palette.gray[80];
+      ctx.fillText(cell.displayData, x + paddingLeft, y + height / 2 + 2);
+      ctx.restore();
+
+      return true;
+    },
+    [palette],
+  );
+
+  return drawCell;
 };

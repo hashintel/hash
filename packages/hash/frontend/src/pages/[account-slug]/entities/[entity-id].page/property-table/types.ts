@@ -1,7 +1,8 @@
 import { PropertyType } from "@blockprotocol/type-system-web";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
+import { TableSortType } from "../../../../../components/GlideGlid/utils";
 
-export type Row = {
+export type PropertyTableRow = {
   title: string;
   value: any;
   dataTypes: string[];
@@ -19,13 +20,11 @@ export interface PropertyTableProps {
   onSearchClose?: () => void;
 }
 
-export interface CustomGridColumn extends SizedGridColumn {
-  id: keyof Row;
+export interface PropertyTableGridColumn extends SizedGridColumn {
+  id: keyof PropertyTableRow;
 }
 
-export type TableSortType = "asc" | "desc";
-
 export interface PropertySort {
-  key: keyof Row;
+  key: keyof PropertyTableRow;
   dir: TableSortType;
 }

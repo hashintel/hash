@@ -1,6 +1,6 @@
-import { CustomGridColumn, Row } from "./types";
+import { PropertyTableGridColumn, PropertyTableRow } from "./types";
 
-export const gridColumns: CustomGridColumn[] = [
+export const propertyGridColumns: PropertyTableGridColumn[] = [
   {
     title: "Property",
     id: "title",
@@ -19,11 +19,7 @@ export const gridColumns: CustomGridColumn[] = [
   },
 ];
 
-export const gridIndexes: Exclude<keyof Row, "propertyTypeId">[] = [
-  "title",
-  "value",
-  "dataTypes",
-];
-
-export const firstColumnPadding = 36;
-export const columnPadding = 22;
+export const propertyGridIndexes: Exclude<
+  keyof PropertyTableRow,
+  "propertyTypeId"
+>[] = ["title", "value", "dataTypes"];

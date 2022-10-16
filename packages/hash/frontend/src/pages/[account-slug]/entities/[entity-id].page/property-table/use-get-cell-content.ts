@@ -1,10 +1,10 @@
 import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
 import { useEntityEditor } from "../entity-editor-context";
-import { gridIndexes } from "./constants";
-import { Row } from "./types";
+import { propertyGridIndexes } from "./constants";
+import { PropertyTableRow } from "./types";
 
-export const useGetCellContent = (rowData: Row[]) => {
+export const useGetCellContent = (rowData: PropertyTableRow[]) => {
   const { propertySort } = useEntityEditor();
 
   const getCellContent = useCallback(
@@ -15,7 +15,7 @@ export const useGetCellContent = (rowData: Row[]) => {
         throw new Error();
       }
 
-      const propertyKey = gridIndexes[col];
+      const propertyKey = propertyGridIndexes[col];
 
       if (!propertyKey) {
         throw new Error();
