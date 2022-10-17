@@ -3,6 +3,7 @@ mod ontology;
 
 mod context;
 mod pool;
+mod query;
 mod version_id;
 
 use std::{
