@@ -91,7 +91,7 @@ impl TableRef {
     /// Returns the [`ColumnRef`] used for joining another `TableRef` on this `TableRef`.
     #[expect(
         clippy::missing_const_for_fn,
-        reason = "the destructor for `column` cannot be evaluated in constant functions"
+        reason = "the destructor for `self.table()` cannot be evaluated in constant functions"
     )]
     pub fn source_join_column(self) -> ColumnRef<'static> {
         ColumnRef {
@@ -103,7 +103,7 @@ impl TableRef {
     /// Returns the [`ColumnRef`] used for joining this `TableRef` on another `TableRef`.
     #[expect(
         clippy::missing_const_for_fn,
-        reason = "the destructor for `column` cannot be evaluated in constant functions"
+        reason = "the destructor for `self.table()` cannot be evaluated in constant functions"
     )]
     pub fn target_join_column(self) -> ColumnRef<'static> {
         ColumnRef {
