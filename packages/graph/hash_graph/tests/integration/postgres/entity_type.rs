@@ -82,7 +82,7 @@ async fn update() {
     let returned_page_et_v1 = api
         .get_entity_type(page_et_v1.id())
         .await
-        .expect("could not get property type");
+        .expect("could not get entity type");
 
     // TODO: we probably want to be testing more interesting queries, checking an update should
     //  probably use getLatestVersion
@@ -90,7 +90,7 @@ async fn update() {
     let returned_page_et_v2 = api
         .get_entity_type(page_et_v2.id())
         .await
-        .expect("could not get property type");
+        .expect("could not get entity type");
 
     assert_eq!(&page_et_v1, returned_page_et_v1.inner());
     assert_eq!(&page_et_v2, returned_page_et_v2.inner());
