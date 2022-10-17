@@ -43,7 +43,7 @@ impl<C: AsClient> PostgresStore<C> {
         async move {
             let target_entity_id = link.inner().target_entity();
 
-            if let Some(link) = links.insert(&link, graph_resolve_depths.link_resolve_depth) {
+            if let Some(link) = links.insert(link, graph_resolve_depths.link_resolve_depth) {
                 if graph_resolve_depths.link_type_resolve_depth > 0 {
                     let link_type_id = link.inner().link_type_id().clone();
                     self.get_link_type_as_dependency(&link_type_id, DependencyContext {
