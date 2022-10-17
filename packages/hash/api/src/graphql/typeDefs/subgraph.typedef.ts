@@ -12,7 +12,7 @@ export const subgraphTypedef = gql`
     propertyTypeResolveDepth(depth: Int): Int!
     entityTypeResolveDepth(depth: Int): Int!
     linkTypeResolveDepth(depth: Int): Int!
-    entityResolveDepth(depth: Int): Int!
+    linkTargetEntityResolveDepth(depth: Int): Int!
     linkResolveDepth(depth: Int): Int!
   }
 

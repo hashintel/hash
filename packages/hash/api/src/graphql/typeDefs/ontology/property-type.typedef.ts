@@ -4,16 +4,7 @@ export const propertyTypeTypedef = gql`
   scalar PropertyType
   scalar PropertyTypeWithoutId
 
-  interface PropertyTypeInterface {
-    # These fields are repeated everywhere they're used because
-    # (a) GQL requires it - https://github.com/graphql/graphql-spec/issues/533
-    # (b) string interpolation breaks the code generator's introspection
-    #
-    # Could maybe use a custom schema loader to parse it ourselves:
-    # https://www.graphql-code-generator.com/docs/getting-started/schema-field#custom-schema-loader
-    #
-    # For now, _COPY ANY CHANGES_ from here to any type that 'implements PersistedPropertyTypeInterface'
-
+  type PersistedPropertyType {
     """
     The specific versioned URI of the property type
     """
@@ -31,71 +22,18 @@ export const propertyTypeTypedef = gql`
     The property type
     """
     propertyType: PropertyType!
-  }
-
-  type PersistedPropertyType implements PropertyTypeInterface {
-    # INTERFACE FIELDS BEGIN #
-    """
-    The specific versioned URI of the property type
-    """
-    propertyTypeId: String!
-    """
-    The id of the account that owns this property type.
-    """
-    ownedById: ID!
-    """
-    Alias of ownedById - the id of the account that owns this property type.
-    """
-    accountId: ID!
-      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
-    """
-    The property type
-    """
-    propertyType: PropertyType!
-    # INTERFACE FIELDS END #
-  }
-
-  type PropertyTypeRootedSubgraph implements PropertyTypeInterface {
-    """
-    Data types referenced directly or indirectly referenced by this property type
-    """
-    referencedDataTypes(depth: Int): [PersistedDataType!]!
-    """
-    Property types referenced directly or indirectly referenced by this property type
-    """
-    referencedPropertyTypes(depth: Int): [PersistedPropertyType!]!
-
-    # INTERFACE FIELDS BEGIN #
-    """
-    The specific versioned URI of the property type
-    """
-    propertyTypeId: String!
-    """
-    The id of the account that owns this property type.
-    """
-    ownedById: ID!
-    """
-    Alias of ownedById - the id of the account that owns this property type.
-    """
-    accountId: ID!
-      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
-    """
-    The property type
-    """
-    propertyType: PropertyType!
-    # INTERFACE FIELDS END #
   }
 
   extend type Query {
     """
     Get all property types at their latest version.
     """
-    getAllLatestPropertyTypes: [PropertyTypeRootedSubgraph!]!
+    getAllLatestPropertyTypes: Subgraph!
 
     """
     Get a property type by its versioned URI.
     """
-    getPropertyType(propertyTypeId: String!): PropertyTypeRootedSubgraph!
+    getPropertyType(propertyTypeId: String!): Subgraph!
   }
 
   extend type Mutation {

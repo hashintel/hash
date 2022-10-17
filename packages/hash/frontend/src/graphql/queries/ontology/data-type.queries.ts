@@ -11,7 +11,7 @@ export const getDataTypeQuery = gql`
         propertyTypeResolveDepth(depth: 0)
         linkTypeResolveDepth(depth: 0)
         entityTypeResolveDepth(depth: 0)
-        entityResolveDepth(depth: 0)
+        linkTargetEntityResolveDepth(depth: 0)
         linkResolveDepth(depth: 0)
       }
     }
@@ -29,7 +29,7 @@ export const getAllLatestDataTypesQuery = gql`
         propertyTypeResolveDepth(depth: 0)
         linkTypeResolveDepth(depth: 0)
         entityTypeResolveDepth(depth: 0)
-        entityResolveDepth(depth: 0)
+        linkTargetEntityResolveDepth(depth: 0)
         linkResolveDepth(depth: 0)
       }
     }

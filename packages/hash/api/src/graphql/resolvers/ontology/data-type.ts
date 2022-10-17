@@ -21,7 +21,7 @@ export const getAllLatestDataTypes: ResolverFn<
         propertyTypeResolveDepth: 0,
         linkTypeResolveDepth: 0,
         entityTypeResolveDepth: 0,
-        entityResolveDepth: 0,
+        linkTargetEntityResolveDepth: 0,
         linkResolveDepth: 0,
       },
     })
@@ -54,7 +54,7 @@ export const getDataType: ResolverFn<
         propertyTypeResolveDepth: 0,
         linkTypeResolveDepth: 0,
         entityTypeResolveDepth: 0,
-        entityResolveDepth: 0,
+        linkTargetEntityResolveDepth: 0,
         linkResolveDepth: 0,
       },
     })

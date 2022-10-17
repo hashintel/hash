@@ -7,7 +7,7 @@ import {
   MutationUpdatePropertyTypeArgs,
   QueryGetPropertyTypeArgs,
   ResolverFn,
-  PropertyTypeRootedSubgraph,
+  Subgraph,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { PropertyTypeModel } from "../../../model";
@@ -37,7 +37,7 @@ export const createPropertyType: ResolverFn<
 };
 
 export const getAllLatestPropertyTypes: ResolverFn<
-  Promise<PropertyTypeRootedSubgraph[]>,
+  Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
   {}
@@ -59,7 +59,7 @@ export const getAllLatestPropertyTypes: ResolverFn<
 };
 
 export const getPropertyType: ResolverFn<
-  Promise<PropertyTypeRootedSubgraph>,
+  Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
   QueryGetPropertyTypeArgs
