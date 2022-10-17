@@ -5,12 +5,12 @@ import {
   EntityType,
 } from "@blockprotocol/type-system-web";
 import {
-  PersistedDataType,
-  PersistedPropertyType,
-  PersistedLinkType,
-  PersistedEntityType,
-  PersistedEntity,
-  PersistedLink,
+  PersistedDataType as GraphApiPersistedDataType,
+  PersistedPropertyType as GraphApiPersistedPropertyType,
+  PersistedLinkType as GraphApiPersistedLinkType,
+  PersistedEntityType as GraphApiPersistedEntityType,
+  PersistedEntity as GraphApiPersistedEntity,
+  PersistedLink as GraphApiPersistedLink,
 } from "@hashintel/hash-graph-client";
 
 export type TextToken =
@@ -31,6 +31,23 @@ export type DataTypeWithoutId = Omit<DataType, "$id">;
 export type PropertyTypeWithoutId = Omit<PropertyType, "$id">;
 export type LinkTypeWithoutId = Omit<LinkType, "$id">;
 export type EntityTypeWithoutId = Omit<EntityType, "$id">;
+
+/** @todo - We shouldn't need to do these: https://app.asana.com/0/1202805690238892/1202892835843657/f */
+export type PersistedDataType = Omit<GraphApiPersistedDataType, "inner"> & {
+  inner: DataType;
+};
+export type PersistedPropertyType = Omit<
+  GraphApiPersistedPropertyType,
+  "inner"
+> & {
+  inner: PropertyType;
+};
+export type PersistedEntityType = Omit<GraphApiPersistedLinkType, "inner"> & {
+  inner: EntityType;
+};
+export type PersistedLinkType = Omit<GraphApiPersistedEntityType, "inner"> & {
+  inner: LinkType;
+};
 
 export type DataTypeVertex = {
   kind: "DATA_TYPE";
@@ -54,12 +71,12 @@ export type EntityTypeVertex = {
 
 export type EntityVertex = {
   kind: "ENTITY";
-  inner: PersistedEntity;
+  inner: GraphApiPersistedEntity;
 };
 
 export type LinkVertex = {
   kind: "LINK";
-  inner: PersistedLink;
+  inner: GraphApiPersistedLink;
 };
 
 export type Vertex =
