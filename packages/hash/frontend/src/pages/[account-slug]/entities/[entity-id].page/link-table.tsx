@@ -2,7 +2,6 @@ import "@glideapps/glide-data-grid/dist/index.css";
 import { GlideGrid } from "../../../../components/GlideGlid/glide-grid";
 import {
   createHandleHeaderClicked,
-  SetTableSort,
   useDrawCell,
   useDrawHeader,
 } from "../../../../components/GlideGlid/utils";
@@ -21,7 +20,7 @@ export const LinkTable = () => {
   const handleHeaderClicked = createHandleHeaderClicked(
     linkGridColumns,
     linkSort,
-    setLinkSort as SetTableSort,
+    setLinkSort,
   );
 
   return (

@@ -1,12 +1,13 @@
 import { useMemo } from "react";
-import { LinkTableRow } from "./types";
+import { LinkRow } from "./types";
 import { useEntityEditor } from "../entity-editor-context";
 import { generateEntityLabel } from "../../../../../lib/entities";
+import { sortRowData } from "../../../../../components/GlideGlid/utils";
 
 export const useRowData = () => {
   const { entity, linkSort } = useEntityEditor();
 
-  const rowData = useMemo<LinkTableRow[]>(() => {
+  const rowData = useMemo<LinkRow[]>(() => {
     if (!entity) {
       return [];
     }
@@ -34,21 +35,7 @@ export const useRowData = () => {
     );
   }, [entity]);
 
-  const sortedRowData = useMemo(() => {
-    return rowData.sort((row1, row2) => {
-      // we sort only by alphabetical order for now
-      const key1 = String(row1[linkSort.key]);
-      const key2 = String(row2[linkSort.key]);
-      let comparison = key1.localeCompare(key2);
-
-      if (linkSort.dir === "desc") {
-        // reverse if descending
-        comparison = -comparison;
-      }
-
-      return comparison;
-    });
-  }, [rowData, linkSort]);
+  const sortedRowData = sortRowData(rowData, linkSort);
 
   return sortedRowData;
 };

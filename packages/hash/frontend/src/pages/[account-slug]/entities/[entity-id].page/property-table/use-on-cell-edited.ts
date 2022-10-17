@@ -4,9 +4,9 @@ import { useBlockProtocolUpdateEntity } from "../../../../../components/hooks/bl
 import { useSnackbar } from "../../../../../components/hooks/useSnackbar";
 import { useEntityEditor } from "../entity-editor-context";
 import { propertyGridIndexes } from "./constants";
-import { PropertyTableRow } from "./types";
+import { PropertyRow } from "./types";
 
-export const useOnCellEdited = (rowData: PropertyTableRow[]) => {
+export const useOnCellEdited = (rowData: PropertyRow[]) => {
   const snackbar = useSnackbar();
   const { entity, setEntity } = useEntityEditor();
   const { updateEntity } = useBlockProtocolUpdateEntity();

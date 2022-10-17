@@ -7,14 +7,15 @@ import {
 import { useTheme } from "@mui/material";
 import { useCallback } from "react";
 
-export type TableSortType = "asc" | "desc";
+type TableSortType = "asc" | "desc";
+type TableRow = Record<string, any>;
 
-export interface TableSort {
-  key: string;
+export interface TableSort<T extends TableRow> {
+  key: keyof T;
   dir: TableSortType;
 }
 
-export type SetTableSort = (sort: TableSort) => void;
+export type SetTableSort<T extends TableRow> = (sort: TableSort<T>) => void;
 
 export const firstColumnPadding = 36;
 export const columnPadding = 22;
@@ -43,7 +44,10 @@ const drawHeaderSortIndicator = (
   ctx.fill();
 };
 
-export const useDrawHeader = (sort: TableSort, columns: GridColumn[]) => {
+export const useDrawHeader = <T extends TableRow>(
+  sort: TableSort<T>,
+  columns: GridColumn[],
+) => {
   const { palette } = useTheme();
 
   const drawHeader: DrawHeaderCallback = useCallback(
@@ -107,13 +111,13 @@ export const useDrawCell = () => {
   return drawCell;
 };
 
-export const createHandleHeaderClicked = (
+export const createHandleHeaderClicked = <T extends TableRow>(
   columns: GridColumn[],
-  sort: TableSort,
-  setTableSort: SetTableSort,
+  sort: TableSort<T>,
+  setTableSort: SetTableSort<T>,
 ) => {
   return (col: number) => {
-    const key = columns[col]?.id;
+    const key = columns[col]?.id as keyof T;
 
     if (!key) {
       return;
@@ -126,4 +130,23 @@ export const createHandleHeaderClicked = (
       dir: isSorted && sort.dir === "asc" ? "desc" : "asc",
     });
   };
+};
+
+export const sortRowData = <T extends TableRow>(
+  rowData: T[],
+  sort: TableSort<T>,
+) => {
+  return rowData.sort((row1, row2) => {
+    // we sort only by alphabetical order for now
+    const key1 = String(row1[sort.key]);
+    const key2 = String(row2[sort.key]);
+    let comparison = key1.localeCompare(key2);
+
+    if (sort.dir === "desc") {
+      // reverse if descending
+      comparison = -comparison;
+    }
+
+    return comparison;
+  });
 };

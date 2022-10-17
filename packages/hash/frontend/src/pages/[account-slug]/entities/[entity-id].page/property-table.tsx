@@ -8,7 +8,6 @@ import { useEntityEditor } from "./entity-editor-context";
 import { GlideGrid } from "../../../../components/GlideGlid/glide-grid";
 import {
   createHandleHeaderClicked,
-  SetTableSort,
   useDrawCell,
   useDrawHeader,
 } from "../../../../components/GlideGlid/utils";
@@ -27,7 +26,7 @@ export const PropertyTable = ({
   const handleHeaderClicked = createHandleHeaderClicked(
     propertyGridColumns,
     propertySort,
-    setPropertySort as SetTableSort,
+    setPropertySort,
   );
 
   return (

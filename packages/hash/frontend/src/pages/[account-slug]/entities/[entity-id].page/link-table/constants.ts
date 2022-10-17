@@ -1,6 +1,6 @@
-import { LinkTableGridColumn, LinkTableRow } from "./types";
+import { LinkColumn, LinkRow } from "./types";
 
-export const linkGridColumns: LinkTableGridColumn[] = [
+export const linkGridColumns: LinkColumn[] = [
   {
     title: "Link Type",
     id: "type",
@@ -24,7 +24,7 @@ export const linkGridColumns: LinkTableGridColumn[] = [
   },
 ];
 
-export const linkGridIndexes: Exclude<keyof LinkTableRow, "linkId">[] = [
+export const linkGridIndexes: Exclude<keyof LinkRow, "linkId">[] = [
   "type",
   "linkedWith",
   "relationShip",

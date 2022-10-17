@@ -1,13 +1,14 @@
 import { pick } from "lodash";
 import { useMemo } from "react";
-import { PropertyTableRow } from "./types";
+import { PropertyRow } from "./types";
 import { extractEnrichedPropertyTypesFromEntity } from "./extract-enriched-property-types-from-entity";
 import { useEntityEditor } from "../entity-editor-context";
+import { sortRowData } from "../../../../../components/GlideGlid/utils";
 
 export const useRowData = () => {
   const { entity, propertySort } = useEntityEditor();
 
-  const rowData = useMemo<PropertyTableRow[]>(() => {
+  const rowData = useMemo<PropertyRow[]>(() => {
     if (!entity) {
       return [];
     }
@@ -20,21 +21,7 @@ export const useRowData = () => {
     );
   }, [entity]);
 
-  const sortedRowData = useMemo(() => {
-    return rowData.sort((row1, row2) => {
-      // we sort only by alphabetical order for now
-      const key1 = String(row1[propertySort.key]);
-      const key2 = String(row2[propertySort.key]);
-      let comparison = key1.localeCompare(key2);
-
-      if (propertySort.dir === "desc") {
-        // reverse if descending
-        comparison = -comparison;
-      }
-
-      return comparison;
-    });
-  }, [rowData, propertySort]);
+  const sortedRowData = sortRowData(rowData, propertySort);
 
   return sortedRowData;
 };

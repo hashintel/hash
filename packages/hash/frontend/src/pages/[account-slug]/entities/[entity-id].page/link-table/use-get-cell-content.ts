@@ -2,9 +2,9 @@ import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
 import { useEntityEditor } from "../entity-editor-context";
 import { linkGridIndexes } from "./constants";
-import { LinkTableRow } from "./types";
+import { LinkRow } from "./types";
 
-export const useGetCellContent = (rowData: LinkTableRow[]) => {
+export const useGetCellContent = (rowData: LinkRow[]) => {
   const { linkSort } = useEntityEditor();
 
   const getCellContent = useCallback(

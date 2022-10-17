@@ -2,9 +2,9 @@ import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
 import { useEntityEditor } from "../entity-editor-context";
 import { propertyGridIndexes } from "./constants";
-import { PropertyTableRow } from "./types";
+import { PropertyRow } from "./types";
 
-export const useGetCellContent = (rowData: PropertyTableRow[]) => {
+export const useGetCellContent = (rowData: PropertyRow[]) => {
   const { propertySort } = useEntityEditor();
 
   const getCellContent = useCallback(

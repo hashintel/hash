@@ -5,39 +5,38 @@ import {
   useMemo,
   useState,
 } from "react";
+import {
+  SetTableSort,
+  TableSort,
+} from "../../../../components/GlideGlid/utils";
 import { EntityResponse } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
-import { LinkSort } from "./link-table/types";
-import { PropertySort } from "./property-table/types";
+import { LinkRow } from "./link-table/types";
+import { PropertyRow } from "./property-table/types";
 
-interface EntityEditorContextProps {
+interface Props {
   entity: EntityResponse | undefined;
   setEntity: (entity: EntityResponse | undefined) => void;
-  propertySort: PropertySort;
-  setPropertySort: (sort: PropertySort) => void;
-  linkSort: LinkSort;
-  setLinkSort: (sort: LinkSort) => void;
+  propertySort: TableSort<PropertyRow>;
+  setPropertySort: SetTableSort<PropertyRow>;
+  linkSort: TableSort<LinkRow>;
+  setLinkSort: SetTableSort<LinkRow>;
 }
 
-const initialPropertySort: PropertySort = {
-  key: "title",
-  dir: "asc",
-};
-
-const initialLinkSort: LinkSort = {
-  key: "type",
-  dir: "asc",
-};
-
-const EntityEditorContext = createContext<EntityEditorContextProps | null>(
-  null,
-);
+const EntityEditorContext = createContext<Props | null>(null);
 
 export const EntityEditorContextProvider = ({
   children,
 }: PropsWithChildren) => {
-  const [propertySort, setPropertySort] =
-    useState<PropertySort>(initialPropertySort);
-  const [linkSort, setLinkSort] = useState<LinkSort>(initialLinkSort);
+  const [propertySort, setPropertySort] = useState<Props["propertySort"]>({
+    key: "title",
+    dir: "asc",
+  });
+
+  const [linkSort, setLinkSort] = useState<Props["linkSort"]>({
+    key: "type",
+    dir: "asc",
+  });
+
   const [entity, setEntity] = useState<EntityResponse | undefined>(undefined);
 
   const state = useMemo(
