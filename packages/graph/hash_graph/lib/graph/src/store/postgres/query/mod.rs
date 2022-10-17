@@ -18,7 +18,7 @@ pub trait Query {
     type Field: Field;
     type Record: QueryRecord;
 
-    /// The [`Table`] used for this `Query`.
+    /// The [`TableName`] used for this `Query`.
     fn base_table() -> TableName;
 }
 
