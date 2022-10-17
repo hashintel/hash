@@ -23,7 +23,9 @@ pub trait Query {
     fn base_table() -> TableName;
 }
 
-/// An attribute of an ontology type or a knowledge element.
+/// A queryable attribute of an element in the [`graph`].
+///
+/// [`graph`]: crate::graph
 pub trait Field {
     /// The [`TableName`] of the [`Table`] where this field is located.
     ///
@@ -36,7 +38,7 @@ pub trait Field {
     fn column_access(&self) -> ColumnAccess;
 }
 
-/// An absolute path to a [`Field`].
+/// An absolute path inside of a query pointing to a [`Field`]
 pub trait Path {
     /// Returns a list of [`TableName`]s required to traverse this path.
     fn tables(&self) -> Vec<TableName>;
