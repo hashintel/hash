@@ -31,32 +31,35 @@ async fn insert() {
         1,
     );
 
-    let person_a_identifier = api
+    let person_a_metadata = api
         .create_entity(person_a, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
-    let person_b_identifier = api
+    let person_b_metadata = api
         .create_entity(person_b, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
     api.create_link(
-        person_a_identifier.entity_id(),
-        person_b_identifier.entity_id(),
+        person_a_metadata.identifier().entity_id(),
+        person_b_metadata.identifier().entity_id(),
         link_type_id.clone(),
     )
     .await
     .expect("could not create link");
 
     let link_target = api
-        .get_link_target(person_a_identifier.entity_id(), link_type_id.clone())
+        .get_link_target(
+            person_a_metadata.identifier().entity_id(),
+            link_type_id.clone(),
+        )
         .await
         .expect("could not fetch link");
 
     assert_eq!(
         link_target.inner().target_entity(),
-        person_b_identifier.entity_id()
+        person_b_metadata.identifier().entity_id()
     );
 }
 
@@ -97,25 +100,25 @@ async fn get_entity_links() {
         1,
     );
 
-    let person_a_identifier = api
+    let person_a_metadata = api
         .create_entity(person_a, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
-    let person_b_identifier = api
+    let person_b_metadata = api
         .create_entity(person_b, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
-    let person_c_identifier = api
+    let person_c_metadata = api
         .create_entity(person_c, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
     let _a_b_link = api
         .create_link(
-            person_a_identifier.entity_id(),
-            person_b_identifier.entity_id(),
+            person_a_metadata.identifier().entity_id(),
+            person_b_metadata.identifier().entity_id(),
             friend_link_type_id.clone(),
         )
         .await
@@ -123,15 +126,15 @@ async fn get_entity_links() {
 
     let _a_c_link = api
         .create_link(
-            person_a_identifier.entity_id(),
-            person_c_identifier.entity_id(),
+            person_a_metadata.identifier().entity_id(),
+            person_c_metadata.identifier().entity_id(),
             acquaintance_link_type_id.clone(),
         )
         .await
         .expect("could not create link");
 
     let links_from_source = api
-        .get_entity_links(person_a_identifier.entity_id())
+        .get_entity_links(person_a_metadata.identifier().entity_id())
         .await
         .expect("could not fetch link");
 
@@ -177,35 +180,35 @@ async fn remove_link() {
         1,
     );
 
-    let person_a_identifier = api
+    let person_a_metadata = api
         .create_entity(person_a, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
-    let person_b_identifier = api
+    let person_b_metadata = api
         .create_entity(person_b, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
     let _a_b_link = api
         .create_link(
-            person_a_identifier.entity_id(),
-            person_b_identifier.entity_id(),
+            person_a_metadata.identifier().entity_id(),
+            person_b_metadata.identifier().entity_id(),
             link_type_id.clone(),
         )
         .await
         .expect("could not create link");
 
     api.remove_link(
-        person_a_identifier.entity_id(),
-        person_b_identifier.entity_id(),
+        person_a_metadata.identifier().entity_id(),
+        person_b_metadata.identifier().entity_id(),
         link_type_id.clone(),
     )
     .await
     .expect("could not remove link");
 
     let _ = api
-        .get_link_target(person_a_identifier.entity_id(), link_type_id)
+        .get_link_target(person_a_metadata.identifier().entity_id(), link_type_id)
         .await
         .expect_err("found link that should have been deleted");
 }
@@ -239,25 +242,25 @@ async fn ordered_links() {
         1,
     );
 
-    let person_a_identifier = api
+    let person_a_metadata = api
         .create_entity(person_a, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
-    let person_b_identifier = api
+    let person_b_metadata = api
         .create_entity(person_b, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
-    let person_c_identifier = api
+    let person_c_metadata = api
         .create_entity(person_c, person_type_id.clone(), None)
         .await
         .expect("could not create entity");
 
     let _a_b_link = api
         .create_ordered_link(
-            person_a_identifier.entity_id(),
-            person_b_identifier.entity_id(),
+            person_a_metadata.identifier().entity_id(),
+            person_b_metadata.identifier().entity_id(),
             friend_link_type_id.clone(),
             2,
         )
@@ -266,8 +269,8 @@ async fn ordered_links() {
 
     let _a_c_link = api
         .create_ordered_link(
-            person_a_identifier.entity_id(),
-            person_c_identifier.entity_id(),
+            person_a_metadata.identifier().entity_id(),
+            person_c_metadata.identifier().entity_id(),
             friend_link_type_id.clone(),
             1,
         )
@@ -275,14 +278,14 @@ async fn ordered_links() {
         .expect("could not create link");
 
     let links_from_source = api
-        .get_entity_links(person_a_identifier.entity_id())
+        .get_entity_links(person_a_metadata.identifier().entity_id())
         .await
         .expect("could not fetch link");
 
     assert_eq!(
         [
-            person_c_identifier.entity_id(),
-            person_b_identifier.entity_id(),
+            person_c_metadata.identifier().entity_id(),
+            person_b_metadata.identifier().entity_id(),
         ][..],
         links_from_source
             .iter()

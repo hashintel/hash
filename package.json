@@ -3,11 +3,11 @@
   "description": "HASH monorepo",
   "workspaces": {
     "packages": [
-      "packages/blocks/*",
+      "blocks/*",
       "packages/engine/apache-arrow-js-bundle",
-      "packages/graph/migrations",
       "packages/graph/clients",
       "packages/graph/clients/typescript",
+      "packages/graph/migrations",
       "packages/hash/api",
       "packages/hash/backend-utils",
       "packages/hash/design-system",
