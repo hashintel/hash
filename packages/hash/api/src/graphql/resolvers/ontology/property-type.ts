@@ -11,10 +11,7 @@ import {
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { PropertyTypeModel } from "../../../model";
-import {
-  mapPropertyTypeModelToGQL,
-  mapPropertyTypeRootedSubgraphToGQL,
-} from "./model-mapping";
+import { mapPropertyTypeModelToGQL } from "./model-mapping";
 import { dataTypeQueryDepth, propertyTypeQueryDepth } from "../util";
 
 export const createPropertyType: ResolverFn<

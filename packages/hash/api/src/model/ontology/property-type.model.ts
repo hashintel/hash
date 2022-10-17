@@ -7,7 +7,7 @@ import {
   UpdatePropertyTypeRequest,
 } from "@hashintel/hash-graph-client";
 import { generateTypeId } from "@hashintel/hash-shared/types";
-import { DataTypeModel, PropertyTypeModel } from "../index";
+import { PropertyTypeModel } from "../index";
 import { extractBaseUri } from "../util";
 import { getNamespaceOfAccountOwner } from "./util";
 
