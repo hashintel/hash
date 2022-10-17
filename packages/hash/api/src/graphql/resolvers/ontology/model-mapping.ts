@@ -118,7 +118,7 @@ export const mapSubgraphToGql = (subgraph: Subgraph): SubgraphGql => {
             };
             return [identifier, entityTypeVertex];
           }
-          // TypeScript is failing to recognise this is unreachable (due to the combined initial case) and therefore
+          // TypeScript is failing to recognize this is unreachable (due to the combined initial case) and therefore
           // thinks the function can return undefined without it
           default: {
             throw new Error(
