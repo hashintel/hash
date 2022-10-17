@@ -3527,6 +3527,14 @@
   resolved "https://registry.yarnpkg.com/@gar/promisify/-/promisify-1.1.2.tgz#30aa825f11d438671d585bd44e7fd564535fc210"
   integrity sha512-82cpyJyKRoQoRi+14ibCeGPu0CwypgtBAdBhq1WfvagpCZNKqwXbKwXllYSMG91DhmG4jt9gN8eP6lGOtozuaw==
 
+"@glideapps/glide-data-grid@5.1.4":
+  version "5.1.4"
+  resolved "https://registry.yarnpkg.com/@glideapps/glide-data-grid/-/glide-data-grid-5.1.4.tgz#4a4f64baa8e9ad6c2645579f04d0ca2e6e37082d"
+  integrity sha512-YQ2fpIg1DdYumJcbokGH6zYc4+cOIyoWcVwO3GMiu6Tg1D2BsvTVf76m6QGICobHefqWeP0PMaBOENuTIUp9pg==
+  dependencies:
+    canvas-hypertxt "^0.0.7"
+    react-number-format "^5.0.0"
+
 "@graphql-codegen/cli@2.7.0":
   version "2.7.0"
   resolved "https://registry.yarnpkg.com/@graphql-codegen/cli/-/cli-2.7.0.tgz#610f3cb2798d581fff3af8d8ba522113a1811fc5"
@@ -8044,6 +8052,11 @@ caniuse-lite@^1.0.30001332, caniuse-lite@^1.0.30001359:
   resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001363.tgz#26bec2d606924ba318235944e1193304ea7c4f15"
   integrity sha512-HpQhpzTGGPVMnCjIomjt+jvyUu8vNFo3TaDiZ/RcoTrlOq/5+tC8zHdsbgFB6MxmaY+jCpsH09aD80Bb4Ow3Sg==
 
+canvas-hypertxt@^0.0.7:
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/canvas-hypertxt/-/canvas-hypertxt-0.0.7.tgz#7daf5419e39fc75342d5e2569911eb8098cce11c"
+  integrity sha512-XPXJvvaEQddHl0KaDdnnEowcCiYiL2gJz4M8ANK1GvZPcZimgvjRubnChtUospZWFSiNJtE06VkLnQs2vve5tQ==
+
 capital-case@^1.0.4:
   version "1.0.4"
   resolved "https://registry.yarnpkg.com/capital-case/-/capital-case-1.0.4.tgz#9d130292353c9249f6b00fa5852bee38a717e669"
@@ -8255,10 +8268,10 @@ class-utils@^0.3.5:
     isobject "^3.0.0"
     static-extend "^0.1.1"
 
-classnames@^2.2.6:
-  version "2.3.1"
-  resolved "https://registry.yarnpkg.com/classnames/-/classnames-2.3.1.tgz#dfcfa3891e306ec1dad105d0e88f4417b8535e8e"
-  integrity sha512-OlQdbZ7gLfGarSqxesMesDa5uz7KFbID8Kpq/SxIoNGDqY8lSYs0D+hhtBXhcdB3rcbXArFr7vlHheLk1voeNA==
+classnames@^2.2.5, classnames@^2.2.6:
+  version "2.3.2"
+  resolved "https://registry.yarnpkg.com/classnames/-/classnames-2.3.2.tgz#351d813bf0137fcc6a76a16b88208d2560a0d924"
+  integrity sha512-CSbhY4cFEJRe6/GQzIk5qXZ4Jeg5pcsP7b5peFSDpffpe1cqjASH/n9UTjBwOp6XpMSTwQ8Za2K5V02ueA7Tmw==
 
 clean-css@^5.2.2:
   version "5.2.4"
@@ -13801,6 +13814,11 @@ markdownlint@~0.25.1:
   dependencies:
     markdown-it "12.3.2"
 
+marked@4.1.1:
+  version "4.1.1"
+  resolved "https://registry.yarnpkg.com/marked/-/marked-4.1.1.tgz#2f709a4462abf65a283f2453dc1c42ab177d302e"
+  integrity sha512-0cNMnTcUJPxbA6uWmCmjWz4NJRe/0Xfk2NhXCUHjew9qJzFN20krFnsUe7QynwqOwa5m1fZ4UDg0ycKFVC0ccw==
+
 material-ui-popup-state@4.0.2:
   version "4.0.2"
   resolved "https://registry.yarnpkg.com/material-ui-popup-state/-/material-ui-popup-state-4.0.2.tgz#98bff4d50d7ef62a3bbe761b8f21c022c62488a6"
@@ -16292,6 +16310,13 @@ react-draggable@^4.0.3:
     clsx "^1.1.1"
     prop-types "^15.8.1"
 
+react-easy-swipe@^0.0.21:
+  version "0.0.21"
+  resolved "https://registry.yarnpkg.com/react-easy-swipe/-/react-easy-swipe-0.0.21.tgz#ce9384d576f7a8529dc2ca377c1bf03920bac8eb"
+  integrity sha512-OeR2jAxdoqUMHIn/nS9fgreI5hSpgGoL5ezdal4+oO7YSSgJR8ga+PkYGJrSrJ9MKlPcQjMQXnketrD7WNmNsg==
+  dependencies:
+    prop-types "^15.5.8"
+
 react-error-boundary@^3.1.4:
   version "3.1.4"
   resolved "https://registry.yarnpkg.com/react-error-boundary/-/react-error-boundary-3.1.4.tgz#255db92b23197108757a888b01e5b729919abde0"
@@ -16376,6 +16401,13 @@ react-modal-hook@3.0.0:
   resolved "https://registry.yarnpkg.com/react-modal-hook/-/react-modal-hook-3.0.0.tgz#24b2ff2acf288ef25c11e4fb11b329458a823ea3"
   integrity sha512-mNkJwgEtOoIabuILlWnGAto993WVkimZASBWk/rAGZ6tNIqjx4faQtNdr/X31vw+QGfKhspXc4vPi1jbfkk2Yg==
 
+react-number-format@^5.0.0:
+  version "5.0.1"
+  resolved "https://registry.yarnpkg.com/react-number-format/-/react-number-format-5.0.1.tgz#23a3a693c978c7be328fa9c00dee5135111ca32b"
+  integrity sha512-Tyv5Ygb77ZbC5vUNNAfXwE+zQKaN0LsTo7GwjudU/MckXa7beVAlFddq7QQnGobEglyq+4zsBltKvM9HMQD0GA==
+  dependencies:
+    prop-types "^15.7.2"
+
 react-onclickoutside@^6.12.0:
   version "6.12.1"
   resolved "https://registry.yarnpkg.com/react-onclickoutside/-/react-onclickoutside-6.12.1.tgz#92dddd28f55e483a1838c5c2930e051168c1e96b"
@@ -16415,6 +16447,15 @@ react-resizable@^3.0.4:
   dependencies:
     prop-types "15.x"
     react-draggable "^4.0.3"
+
+react-responsive-carousel@3.2.23:
+  version "3.2.23"
+  resolved "https://registry.yarnpkg.com/react-responsive-carousel/-/react-responsive-carousel-3.2.23.tgz#4c0016ff54603e604bb5c1f9e7ef2d1eda133f1d"
+  integrity sha512-pqJLsBaKHWJhw/ItODgbVoziR2z4lpcJg+YwmRlSk4rKH32VE633mAtZZ9kDXjy4wFO+pgUZmDKPsPe1fPmHCg==
+  dependencies:
+    classnames "^2.2.5"
+    prop-types "^15.5.8"
+    react-easy-swipe "^0.0.21"
 
 react-style-singleton@^2.2.0:
   version "2.2.0"
