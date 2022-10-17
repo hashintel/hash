@@ -2,7 +2,7 @@ use std::{borrow::Cow, fmt, fmt::Write};
 
 use serde::Serialize;
 
-use crate::store::postgres::query::Render;
+use crate::store::postgres::query::Transpile;
 
 /// A table available in the database.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize)]
@@ -35,8 +35,8 @@ impl Table {
     }
 }
 
-impl Render for Table {
-    fn render(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+impl Transpile for Table {
+    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.write_char('"')?;
         self.serialize(&mut *fmt)?;
         fmt.write_char('"')
@@ -115,10 +115,10 @@ impl TableRef {
     }
 }
 
-impl Render for TableRef {
-    fn render(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+impl Transpile for TableRef {
+    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Table { table } => table.render(fmt),
+            Self::Table { table } => table.transpile(fmt),
             Self::Alias {
                 table,
                 condition_index,
@@ -144,8 +144,8 @@ pub enum ColumnAccess<'a> {
     },
 }
 
-impl Render for ColumnAccess<'_> {
-    fn render(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+impl Transpile for ColumnAccess<'_> {
+    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Table { column } => write!(fmt, r#""{column}""#),
             Self::Json { column, field } => write!(fmt, r#""{column}"->>'{field}'"#),
@@ -160,11 +160,11 @@ pub struct Column<'a> {
     pub access: ColumnAccess<'a>,
 }
 
-impl Render for Column<'_> {
-    fn render(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        self.table.render(fmt)?;
+impl Transpile for Column<'_> {
+    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        self.table.transpile(fmt)?;
         fmt.write_char('.')?;
-        self.access.render(fmt)
+        self.access.transpile(fmt)
     }
 }
 
@@ -177,11 +177,11 @@ pub struct ColumnRef<'a> {
     pub access: ColumnAccess<'a>,
 }
 
-impl Render for ColumnRef<'_> {
-    fn render(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        self.table.render(fmt)?;
+impl Transpile for ColumnRef<'_> {
+    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        self.table.transpile(fmt)?;
         fmt.write_char('.')?;
-        self.access.render(fmt)
+        self.access.transpile(fmt)
     }
 }
 
@@ -189,11 +189,11 @@ impl Render for ColumnRef<'_> {
 mod tests {
     use super::*;
 
-    fn render<R: Render>(value: &R) -> String {
+    fn render<R: Transpile>(value: &R) -> String {
         struct Renderer<'r, R>(&'r R);
-        impl<R: Render> fmt::Display for Renderer<'_, R> {
+        impl<R: Transpile> fmt::Display for Renderer<'_, R> {
             fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-                self.0.render(fmt)
+                self.0.transpile(fmt)
             }
         }
         Renderer(value).to_string()

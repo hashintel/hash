@@ -40,7 +40,7 @@ pub trait Path {
 }
 
 /// Renders the object into a Postgres compatible format.
-pub trait Render {
+pub trait Transpile {
     /// Renders the value using the given [`Formatter`].
-    fn render(&self, fmt: &mut Formatter) -> fmt::Result;
+    fn transpile(&self, fmt: &mut Formatter) -> fmt::Result;
 }
