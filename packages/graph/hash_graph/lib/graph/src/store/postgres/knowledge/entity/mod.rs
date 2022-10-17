@@ -15,14 +15,14 @@ use crate::{
         Entity, EntityId, EntityRootedSubgraph, PersistedEntity, PersistedEntityMetadata,
         PersistedLink,
     },
-    ontology::{AccountId, StructuralQuery},
+    ontology::AccountId,
     store::{
         crud::Read,
         error::EntityDoesNotExist,
         postgres::{context::PostgresContext, DependencyContext, DependencyMap, DependencySet},
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::GraphResolveDepths,
+    subgraph::{GraphResolveDepths, StructuralQuery},
 };
 
 impl<C: AsClient> PostgresStore<C> {

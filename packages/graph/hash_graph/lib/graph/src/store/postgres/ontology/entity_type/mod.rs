@@ -11,7 +11,6 @@ use type_system::{uri::VersionedUri, EntityType};
 use crate::{
     ontology::{
         AccountId, EntityTypeRootedSubgraph, PersistedEntityType, PersistedOntologyMetadata,
-        StructuralQuery,
     },
     store::{
         crud::Read,
@@ -21,7 +20,7 @@ use crate::{
         },
         AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::GraphResolveDepths,
+    subgraph::{GraphResolveDepths, StructuralQuery},
 };
 
 impl<C: AsClient> PostgresStore<C> {

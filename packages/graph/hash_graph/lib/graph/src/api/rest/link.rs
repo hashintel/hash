@@ -11,8 +11,9 @@ use utoipa::{OpenApi, ToSchema};
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     knowledge::{EntityId, Link, LinkRootedSubgraph, PersistedLink, PersistedLinkMetadata},
-    ontology::{AccountId, StructuralQuery},
+    ontology::AccountId,
     store::{error::QueryError, query::Expression, LinkStore, StorePool},
+    subgraph::StructuralQuery,
 };
 
 #[derive(OpenApi)]

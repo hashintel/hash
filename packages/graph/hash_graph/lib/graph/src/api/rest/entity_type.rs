@@ -19,13 +19,14 @@ use crate::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, AccountId, EntityTypeRootedSubgraph, PersistedEntityType,
-        PersistedOntologyIdentifier, PersistedOntologyMetadata, StructuralQuery,
+        PersistedOntologyIdentifier, PersistedOntologyMetadata,
     },
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
         query::Expression,
         EntityTypeStore, StorePool,
     },
+    subgraph::StructuralQuery,
 };
 
 #[derive(OpenApi)]

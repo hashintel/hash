@@ -9,7 +9,7 @@ use tokio_postgres::GenericClient;
 use type_system::{uri::VersionedUri, PropertyType, PropertyTypeReference};
 
 use crate::{
-    ontology::{AccountId, PersistedOntologyMetadata, PersistedPropertyType, StructuralQuery},
+    ontology::{AccountId, PersistedOntologyMetadata, PersistedPropertyType},
     store::{
         crud::Read,
         postgres::{
@@ -18,7 +18,7 @@ use crate::{
         },
         AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
     },
-    subgraph::{GraphElementIdentifier, GraphResolveDepths, Subgraph, Vertex},
+    subgraph::{GraphElementIdentifier, GraphResolveDepths, StructuralQuery, Subgraph, Vertex},
 };
 
 impl<C: AsClient> PostgresStore<C> {

@@ -12,8 +12,6 @@ use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyTyp
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{store::query::Expression, subgraph::GraphResolveDepths};
-
 // TODO - find a good place for AccountId, perhaps it will become redundant in a future design
 
 #[derive(
@@ -176,17 +174,6 @@ pub struct PersistedDataType {
     #[serde(serialize_with = "serialize_ontology_type")]
     pub inner: DataType,
     pub metadata: PersistedOntologyMetadata,
-}
-
-// TODO: move to shared?
-/// An [`Expression`] to query the datastore, recursively resolving according to the
-/// [`GraphResolveDepths`]
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct StructuralQuery {
-    #[serde(rename = "query")]
-    pub expression: Expression,
-    pub graph_resolve_depths: GraphResolveDepths,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]

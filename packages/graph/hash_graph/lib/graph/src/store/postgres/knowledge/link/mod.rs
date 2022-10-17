@@ -10,14 +10,14 @@ use tokio_postgres::GenericClient;
 
 use crate::{
     knowledge::{Link, LinkRootedSubgraph, PersistedLink},
-    ontology::{AccountId, StructuralQuery},
+    ontology::AccountId,
     store::{
         crud::Read,
         error::LinkRemovalError,
         postgres::{DependencyContext, DependencyMap, DependencySet},
         AsClient, InsertionError, LinkStore, PostgresStore, QueryError,
     },
-    subgraph::GraphResolveDepths,
+    subgraph::{GraphResolveDepths, StructuralQuery},
 };
 
 impl<C: AsClient> PostgresStore<C> {

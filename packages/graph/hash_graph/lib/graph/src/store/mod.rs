@@ -24,10 +24,9 @@ use crate::{
     ontology::{
         AccountId, EntityTypeRootedSubgraph, LinkTypeRootedSubgraph, PersistedDataType,
         PersistedEntityType, PersistedLinkType, PersistedOntologyMetadata, PersistedPropertyType,
-        StructuralQuery,
     },
     store::{error::LinkRemovalError, query::Expression},
-    subgraph::Subgraph,
+    subgraph::{StructuralQuery, Subgraph},
 };
 
 #[derive(Debug)]

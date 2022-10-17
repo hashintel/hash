@@ -10,6 +10,7 @@ use crate::{
         OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedLinkType,
         PersistedPropertyType,
     },
+    store::query::Expression,
 };
 
 // TODO - This is temporary and introduced for consistency, we need to introduce actual IDs for
@@ -151,4 +152,14 @@ pub struct Subgraph {
     pub vertices: HashMap<GraphElementIdentifier, Vertex>,
     pub edges: HashMap<GraphElementIdentifier, Vec<OutwardEdge>>,
     pub depths: GraphResolveDepths,
+}
+
+/// An [`Expression`] to query the datastore, recursively resolving according to the
+/// [`GraphResolveDepths`]
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct StructuralQuery {
+    #[serde(rename = "query")]
+    pub expression: Expression,
+    pub graph_resolve_depths: GraphResolveDepths,
 }

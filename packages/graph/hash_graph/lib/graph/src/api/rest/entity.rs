@@ -19,12 +19,13 @@ use crate::{
         Entity, EntityId, EntityRootedSubgraph, PersistedEntity, PersistedEntityIdentifier,
         PersistedEntityMetadata,
     },
-    ontology::{AccountId, StructuralQuery},
+    ontology::AccountId,
     store::{
         error::{EntityDoesNotExist, QueryError},
         query::Expression,
         EntityStore, StorePool,
     },
+    subgraph::StructuralQuery,
 };
 
 #[derive(OpenApi)]
