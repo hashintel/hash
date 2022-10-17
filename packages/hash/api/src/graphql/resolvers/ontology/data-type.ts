@@ -3,6 +3,7 @@ import { AxiosError } from "axios";
 
 import { Subgraph, QueryGetDataTypeArgs, ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
+import { mapSubgraphToGql } from "./model-mapping";
 
 export const getAllLatestDataTypes: ResolverFn<
   Promise<Subgraph>,
@@ -32,7 +33,7 @@ export const getAllLatestDataTypes: ResolverFn<
       );
     });
 
-  return dataTypeSubgraph;
+  return mapSubgraphToGql(dataTypeSubgraph);
 };
 
 export const getDataType: ResolverFn<
@@ -65,5 +66,5 @@ export const getDataType: ResolverFn<
       );
     });
 
-  return dataTypeSubgraph;
+  return mapSubgraphToGql(dataTypeSubgraph);
 };
