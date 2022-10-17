@@ -18,21 +18,21 @@ pub trait Query {
     type Field: Field;
     type Record: QueryRecord;
 
-    /// The table used for this `Query`.
+    /// The [`Table`] used for this `Query`.
     fn base_table() -> Table;
 }
 
-/// A field used in queries.
+/// An attribute of an ontology type or a knowledge element.
 // TODO: Implement for `DataTypeField`, `PropertyTypeQueryField`, etc. (not added yet)
 pub trait Field {
-    /// The [`Column`], where this field lives in.
+    /// The [`Column`] which contains this `Field`.
     fn column(&self) -> Column;
 }
 
-/// A path used in queries.
+/// An absolute path to a [`Field`].
 // TODO: Implement for `DataTypeQueryPath`, `PropertyTypeQueryPath`, etc. (not added yet)
 pub trait Path {
-    /// Returns a list of tables required to traverse this path.
+    /// Returns a list of [`Table`]s required to traverse this path.
     fn tables(&self) -> Vec<Table>;
 
     /// Returns the [`Column`] where the path ends at.

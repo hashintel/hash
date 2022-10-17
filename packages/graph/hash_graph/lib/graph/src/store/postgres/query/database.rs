@@ -55,34 +55,36 @@ impl Render for Table {
 ///
 /// ## Multiple Conditions
 ///
-/// When searching for a [`PropertyType`], which should contain two different [`DataType`]s
-/// specified by it's `$id`, `Table::DataTypes` has to be joined twice, but with different
-/// conditions.
+/// When searching for a [`PropertyType`], which should contain two different [`DataType`]s,
+/// the same [`Table`] has to be joined twice, but with different conditions. `condition_index` is
+/// used here to distinguish between these.
 ///
 /// ## Deeply nested query chains
 ///
-/// It's possible to have queries, which requires the same table multiple times in a chain. When
-/// searching for an [`PropertyType`], which contains a [`PropertyType`], which contains another
-/// [`PropertyType`], the `Table::PropertyTypePropertyTypeReferences` has to be joined twice
-/// within the same condition.
+/// It's possible to have queries which require the same table multiple times in a chain. For
+/// example, when searching for a [`PropertyType`] which references a [`PropertyType`] which in turn
+/// references another [`PropertyType`], the `Table::PropertyTypePropertyTypeReferences` has to be
+/// joined twice within the same condition. The `chain_depth` will be used to uniquely identify
+/// the different tables.
 ///
 /// [`Alias`]: Self::Alias
 /// [`DataType`]: type_system::DataType
 /// [`PropertyType`]: type_system::PropertyType
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TableRef {
-    /// A table inside of a compiled query, which was not renamed.
+    /// A table inside of a compiled query, which was not aliased.
     Table { table: Table },
     /// A aliased table inside of a compiled query.
     Alias {
         table: Table,
+        /// T
         condition_index: usize,
         chain_depth: usize,
     },
 }
 
 impl TableRef {
-    /// Returns the underlying table of this `TableRef`.
+    /// Returns the underlying [`Table`] of this `TableRef`.
     pub const fn table(self) -> Table {
         let (Self::Table { table } | Self::Alias { table, .. }) = self;
         table

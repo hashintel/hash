@@ -15,7 +15,7 @@ pub trait QueryRecord {
     type Path<'q>;
 }
 
-/// A old to read from the [`store`].
+/// A query to read [`QueryRecord`]s from the [`store`].
 ///
 /// [`store`]: crate::store
 pub struct ReadQuery<'q, T: QueryRecord> {
