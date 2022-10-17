@@ -11,13 +11,13 @@ export const useRemotePropertyTypes = () => {
   const { aggregatePropertyTypes } = useBlockProtocolAggregatePropertyTypes();
 
   useEffect(() => {
-    void aggregatePropertyTypes({ data: {} }).then((data) => {
+    void aggregatePropertyTypes({ data: {} }).then(({ data }) => {
       // @todo error handling
-      if (data.data) {
+      if (data) {
         setPropertyTypes(
           Object.fromEntries(
-            data.data.roots.map((propertyTypeId) => {
-              const propertyTypeVertex = data.data!.vertices[propertyTypeId!];
+            data.roots.map((propertyTypeId) => {
+              const propertyTypeVertex = data.vertices[propertyTypeId];
 
               if (!propertyTypeVertex) {
                 throw new Error(
@@ -31,7 +31,7 @@ export const useRemotePropertyTypes = () => {
               }
 
               return [
-                mustBeVersionedUri(propertyTypeId!),
+                mustBeVersionedUri(propertyTypeId),
                 propertyTypeVertex.inner.inner,
               ] as const;
             }),

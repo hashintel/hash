@@ -17,7 +17,7 @@ export const subgraphTypedef = gql`
   }
 
   type Subgraph {
-    roots: [String]!
+    roots: [String!]!
     vertices: Vertices!
     edges: Edges!
     depths: ResolveDepths!
