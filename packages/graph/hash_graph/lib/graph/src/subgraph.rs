@@ -112,8 +112,6 @@ pub struct OutwardEdge {
     destination: GraphElementIdentifier,
 }
 
-pub type Edges = HashMap<GraphElementIdentifier, Vec<OutwardEdge>>;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct GraphResolveDepths {
@@ -133,6 +131,7 @@ pub struct GraphResolveDepths {
 }
 
 impl GraphResolveDepths {
+    #[must_use]
     pub const fn zeroed() -> Self {
         Self {
             data_type_resolve_depth: 0,
@@ -150,6 +149,6 @@ impl GraphResolveDepths {
 pub struct Subgraph {
     pub roots: Vec<GraphElementIdentifier>,
     pub vertices: HashMap<GraphElementIdentifier, Vertex>,
-    pub edges: Edges,
+    pub edges: HashMap<GraphElementIdentifier, Vec<OutwardEdge>>,
     pub depths: GraphResolveDepths,
 }

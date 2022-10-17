@@ -43,7 +43,7 @@ use crate::{
         AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
         UpdateError,
     },
-    subgraph::{Edges, GraphResolveDepths},
+    subgraph::{GraphElementIdentifier, GraphResolveDepths, OutwardEdge},
 };
 
 pub struct DependencyMap<V, T, D> {
@@ -176,7 +176,7 @@ where
 }
 
 pub struct DependencyContext<'a> {
-    pub edges: &'a mut Edges,
+    pub edges: &'a mut HashMap<GraphElementIdentifier, Vec<OutwardEdge>>,
     pub referenced_data_types:
         &'a mut DependencyMap<VersionedUri, PersistedDataType, OntologyQueryDepth>,
     pub referenced_property_types:

@@ -1135,10 +1135,10 @@ export interface Subgraph {
   depths: GraphResolveDepths;
   /**
    *
-   * @type {Edges}
+   * @type {{ [key: string]: Array<OutwardEdge>; }}
    * @memberof Subgraph
    */
-  edges: Edges;
+  edges: { [key: string]: Array<OutwardEdge> };
   /**
    *
    * @type {Array<GraphElementIdentifier>}
