@@ -46,7 +46,7 @@ async fn query() {
         .await
         .expect("could not get entity type");
 
-    assert_eq!(entity_type.inner, organization_et);
+    assert_eq!(entity_type.inner(), &organization_et);
 }
 
 #[tokio::test]
@@ -92,6 +92,6 @@ async fn update() {
         .await
         .expect("could not get property type");
 
-    assert_eq!(page_et_v1, returned_page_et_v1.inner);
-    assert_eq!(page_et_v2, returned_page_et_v2.inner);
+    assert_eq!(&page_et_v1, returned_page_et_v1.inner());
+    assert_eq!(&page_et_v2, returned_page_et_v2.inner());
 }

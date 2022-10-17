@@ -278,8 +278,25 @@ impl PersistedOntologyMetadata {
 pub struct PersistedEntityType {
     #[schema(value_type = VAR_ENTITY_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
-    pub inner: EntityType,
-    pub metadata: PersistedOntologyMetadata,
+    inner: EntityType,
+    metadata: PersistedOntologyMetadata,
+}
+
+impl PersistedEntityType {
+    #[must_use]
+    pub const fn new(inner: EntityType, metadata: PersistedOntologyMetadata) -> Self {
+        Self { inner, metadata }
+    }
+
+    #[must_use]
+    pub const fn inner(&self) -> &EntityType {
+        &self.inner
+    }
+
+    #[must_use]
+    pub const fn metadata(&self) -> &PersistedOntologyMetadata {
+        &self.metadata
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
