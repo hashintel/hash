@@ -2,6 +2,7 @@
 
 //! Postgres implementation to compile queries.
 
+mod condition;
 mod data_type;
 pub mod database;
 
