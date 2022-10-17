@@ -24,7 +24,7 @@ export const useRemotePropertyTypes = () => {
                   "property type was missing from the subgraph vertices list",
                 );
               }
-              if (propertyTypeVertex.kind !== "PROPERTY_TYPE") {
+              if (propertyTypeVertex.kind !== "propertyType") {
                 throw new Error(
                   `expected property type but got ${propertyTypeVertex.kind}`,
                 );

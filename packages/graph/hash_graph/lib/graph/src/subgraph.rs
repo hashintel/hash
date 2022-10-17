@@ -66,12 +66,12 @@ impl ToSchema for Vertex {
             openapi::OneOfBuilder::new().discriminator(Some(openapi::Discriminator::new("kind")));
 
         for (kind, schema) in [
-            ("DATA_TYPE", PersistedDataType::schema()),
-            ("PROPERTY_TYPE", PersistedPropertyType::schema()),
-            ("LINK_TYPE", PersistedLinkType::schema()),
-            ("ENTITY_TYPE", PersistedEntityType::schema()),
-            ("ENTITY", PersistedEntity::schema()),
-            ("LINK", PersistedLink::schema()),
+            ("dataType", PersistedDataType::schema()),
+            ("propertyType", PersistedPropertyType::schema()),
+            ("linkType", PersistedLinkType::schema()),
+            ("entityType", PersistedEntityType::schema()),
+            ("entity", PersistedEntity::schema()),
+            ("link", PersistedLink::schema()),
         ] {
             builder = builder.item(
                 openapi::ObjectBuilder::new()

@@ -1534,7 +1534,7 @@ export interface VertexOneOf {
 }
 
 export const VertexOneOfKindEnum = {
-  DataType: "DATA_TYPE",
+  DataType: "dataType",
 } as const;
 
 export type VertexOneOfKindEnum =
@@ -1561,7 +1561,7 @@ export interface VertexOneOf1 {
 }
 
 export const VertexOneOf1KindEnum = {
-  PropertyType: "PROPERTY_TYPE",
+  PropertyType: "propertyType",
 } as const;
 
 export type VertexOneOf1KindEnum =
@@ -1607,7 +1607,7 @@ export interface VertexOneOf2 {
 }
 
 export const VertexOneOf2KindEnum = {
-  LinkType: "LINK_TYPE",
+  LinkType: "linkType",
 } as const;
 
 export type VertexOneOf2KindEnum =
@@ -1653,7 +1653,7 @@ export interface VertexOneOf3 {
 }
 
 export const VertexOneOf3KindEnum = {
-  EntityType: "ENTITY_TYPE",
+  EntityType: "entityType",
 } as const;
 
 export type VertexOneOf3KindEnum =
@@ -1699,7 +1699,7 @@ export interface VertexOneOf4 {
 }
 
 export const VertexOneOf4KindEnum = {
-  Entity: "ENTITY",
+  Entity: "entity",
 } as const;
 
 export type VertexOneOf4KindEnum =
@@ -1745,7 +1745,7 @@ export interface VertexOneOf5 {
 }
 
 export const VertexOneOf5KindEnum = {
-  Link: "LINK",
+  Link: "link",
 } as const;
 
 export type VertexOneOf5KindEnum =

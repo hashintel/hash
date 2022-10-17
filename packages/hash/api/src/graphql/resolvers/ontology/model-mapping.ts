@@ -94,11 +94,11 @@ export const mapSubgraphToGql = (subgraph: Subgraph): SubgraphGql => {
       Object.entries(subgraph.vertices).map(([identifier, vertex]) => {
         switch (vertex.kind) {
           // These types are compatible with the Type System package's types
-          case "DATA_TYPE" || "LINK_TYPE" || "ENTITY" || "LINK": {
+          case "dataType" || "linkType" || "entity" || "link": {
             return [identifier, vertex];
           }
           // The OpenAPI spec currently incorrectly expresses these
-          case "PROPERTY_TYPE": {
+          case "propertyType": {
             const propertyTypeVertex: PropertyTypeVertex = {
               kind: vertex.kind,
               inner: {
@@ -108,7 +108,7 @@ export const mapSubgraphToGql = (subgraph: Subgraph): SubgraphGql => {
             };
             return [identifier, propertyTypeVertex];
           }
-          case "ENTITY_TYPE": {
+          case "entityType": {
             const entityTypeVertex: EntityTypeVertex = {
               kind: vertex.kind,
               inner: {

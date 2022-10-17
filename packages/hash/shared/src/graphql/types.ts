@@ -11,6 +11,7 @@ import {
   PersistedEntityType as GraphApiPersistedEntityType,
   PersistedEntity as GraphApiPersistedEntity,
   PersistedLink as GraphApiPersistedLink,
+  Vertex as GraphApiVertex,
 } from "@hashintel/hash-graph-client";
 
 export type TextToken =
@@ -49,35 +50,37 @@ export type PersistedLinkType = Omit<GraphApiPersistedEntityType, "inner"> & {
   inner: LinkType;
 };
 
-export type DataTypeVertex = {
-  kind: "DATA_TYPE";
+export type DataTypeVertex = Omit<
+  Extract<GraphApiVertex, { kind: "dataType" }>,
+  "inner"
+> & {
   inner: PersistedDataType;
 };
 
-export type PropertyTypeVertex = {
-  kind: "PROPERTY_TYPE";
+export type PropertyTypeVertex = Omit<
+  Extract<GraphApiVertex, { kind: "propertyType" }>,
+  "inner"
+> & {
   inner: PersistedPropertyType;
 };
 
-export type LinkTypeVertex = {
-  kind: "LINK_TYPE";
+export type LinkTypeVertex = Omit<
+  Extract<GraphApiVertex, { kind: "linkType" }>,
+  "inner"
+> & {
   inner: PersistedLinkType;
 };
 
-export type EntityTypeVertex = {
-  kind: "ENTITY_TYPE";
+export type EntityTypeVertex = Omit<
+  Extract<GraphApiVertex, { kind: "entityType" }>,
+  "inner"
+> & {
   inner: PersistedEntityType;
 };
 
-export type EntityVertex = {
-  kind: "ENTITY";
-  inner: GraphApiPersistedEntity;
-};
+export type EntityVertex = Extract<GraphApiVertex, { kind: "entity" }>;
 
-export type LinkVertex = {
-  kind: "LINK";
-  inner: GraphApiPersistedLink;
-};
+export type LinkVertex = Extract<GraphApiVertex, { kind: "link" }>;
 
 export type Vertex =
   | DataTypeVertex
