@@ -24,6 +24,11 @@ use crate::{
 };
 
 impl<C: AsClient> PostgresStore<C> {
+    #[expect(
+        clippy::too_many_lines,
+        reason = "difficult to shrink the number of lines with destructuring and so many \
+                  variables needing to be passed independently"
+    )]
     /// Internal method to read a [`PersistedEntityType`] into four [`DependencyMap`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
