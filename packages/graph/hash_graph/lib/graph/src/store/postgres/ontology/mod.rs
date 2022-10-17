@@ -6,10 +6,7 @@ mod read;
 
 use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
 
-pub use self::{
-    entity_type::EntityTypeDependencyContext, link_type::LinkTypeDependencyContext,
-    read::PersistedOntologyType,
-};
+pub use self::read::PersistedOntologyType;
 
 /// Provides an abstraction over elements of the Type System stored in the Database.
 ///

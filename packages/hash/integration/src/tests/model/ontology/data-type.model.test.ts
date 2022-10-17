@@ -45,7 +45,6 @@ beforeAll(async () => {
 
 describe("Data type CRU", () => {
   let createdDataTypeModel: DataTypeModel;
-  let updatedDataTypeModel: DataTypeModel;
 
   it("can create a data type", async () => {
     createdDataTypeModel = await DataTypeModel.create(graphApi, {
@@ -64,23 +63,10 @@ describe("Data type CRU", () => {
 
   const updatedTitle = "New text!";
   it("can update a data type", async () => {
-    updatedDataTypeModel = await createdDataTypeModel
+    await createdDataTypeModel
       .update(graphApi, {
         schema: { ...dataTypeSchema, title: updatedTitle },
       })
       .catch((err) => Promise.reject(err.data));
-  });
-
-  it("can read all latest data types", async () => {
-    const allDataTypes = await DataTypeModel.getAllLatest(graphApi);
-
-    const newlyUpdated = allDataTypes.find(
-      (dt) => dt.schema.$id === updatedDataTypeModel.schema.$id,
-    );
-
-    expect(allDataTypes.length).toBeGreaterThan(0);
-    expect(newlyUpdated).toBeDefined();
-
-    expect(newlyUpdated!.schema).toEqual(updatedDataTypeModel.schema);
   });
 });

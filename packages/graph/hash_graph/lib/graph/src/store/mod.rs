@@ -18,17 +18,15 @@ pub use self::{
 };
 use crate::{
     knowledge::{
-        Entity, EntityId, EntityRootedSubgraph, KnowledgeGraphQuery, Link, LinkRootedSubgraph,
-        PersistedEntity, PersistedEntityMetadata, PersistedLink,
+        Entity, EntityId, EntityRootedSubgraph, Link, LinkRootedSubgraph, PersistedEntity,
+        PersistedEntityMetadata, PersistedLink,
     },
     ontology::{
-        AccountId, DataTypeQuery, EntityTypeQuery, EntityTypeRootedSubgraph, LinkTypeQuery,
-        LinkTypeRootedSubgraph, PersistedDataType, PersistedEntityType, PersistedLinkType,
-        PersistedOntologyMetadata, PersistedPropertyType, PropertyTypeQuery,
-        PropertyTypeRootedSubgraph,
+        AccountId, EntityTypeRootedSubgraph, LinkTypeRootedSubgraph, PersistedDataType,
+        PersistedEntityType, PersistedLinkType, PersistedOntologyMetadata, PersistedPropertyType,
     },
     store::{error::LinkRemovalError, query::Expression},
-    subgraph::Subgraph,
+    subgraph::{StructuralQuery, Subgraph},
 };
 
 #[derive(Debug)]
@@ -218,12 +216,12 @@ pub trait DataTypeStore: for<'q> crud::Read<PersistedDataType, Query<'q> = Expre
         owned_by_id: AccountId,
     ) -> Result<PersistedOntologyMetadata, InsertionError>;
 
-    /// Get the [`Subgraph`] specified by the [`DataTypeQuery`].
+    /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    async fn get_data_type(&self, query: &DataTypeQuery) -> Result<Subgraph, QueryError>;
+    async fn get_data_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError>;
 
     /// Update the definition of an existing [`DataType`].
     ///
@@ -256,15 +254,12 @@ pub trait PropertyTypeStore:
         owned_by_id: AccountId,
     ) -> Result<PersistedOntologyMetadata, InsertionError>;
 
-    /// Get the [`PropertyTypeRootedSubgraph`]s specified by the [`PropertyTypeQuery`].
+    /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`PropertyType`] doesn't exist.
-    async fn get_property_type(
-        &self,
-        query: &PropertyTypeQuery,
-    ) -> Result<Vec<PropertyTypeRootedSubgraph>, QueryError>;
+    async fn get_property_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError>;
 
     /// Update the definition of an existing [`PropertyType`].
     ///
@@ -295,14 +290,14 @@ pub trait EntityTypeStore: for<'q> crud::Read<PersistedEntityType, Query<'q> = E
         owned_by_id: AccountId,
     ) -> Result<PersistedOntologyMetadata, InsertionError>;
 
-    /// Get the [`EntityTypeRootedSubgraph`]s specified by the [`EntityTypeQuery`].
+    /// Get the [`EntityTypeRootedSubgraph`]s specified by the [`StructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`EntityType`] doesn't exist.
     async fn get_entity_type(
         &self,
-        query: &EntityTypeQuery,
+        query: &StructuralQuery,
     ) -> Result<Vec<EntityTypeRootedSubgraph>, QueryError>;
 
     /// Update the definition of an existing [`EntityType`].
@@ -334,14 +329,14 @@ pub trait LinkTypeStore: for<'q> crud::Read<PersistedLinkType, Query<'q> = Expre
         owned_by_id: AccountId,
     ) -> Result<PersistedOntologyMetadata, InsertionError>;
 
-    /// Get the [`LinkTypeRootedSubgraph`]s specified by the [`LinkTypeQuery`].
+    /// Get the [`LinkTypeRootedSubgraph`]s specified by the [`StructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`LinkType`] doesn't exist.
     async fn get_link_type(
         &self,
-        query: &LinkTypeQuery,
+        query: &StructuralQuery,
     ) -> Result<Vec<LinkTypeRootedSubgraph>, QueryError>;
 
     /// Update the definition of an existing [`LinkType`].
@@ -403,14 +398,14 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
         owned_by_id: AccountId,
     ) -> Result<Vec<EntityId>, InsertionError>;
 
-    /// Get the [`EntityRootedSubgraph`]s specified by the [`KnowledgeGraphQuery`].
+    /// Get the [`EntityRootedSubgraph`]s specified by the [`StructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
     async fn get_entity(
         &self,
-        query: &KnowledgeGraphQuery,
+        query: &StructuralQuery,
     ) -> Result<Vec<EntityRootedSubgraph>, QueryError>;
 
     /// Update an existing [`Entity`].
@@ -446,14 +441,14 @@ pub trait LinkStore: for<'q> crud::Read<PersistedLink, Query<'q> = Expression> {
         owned_by_id: AccountId,
     ) -> Result<(), InsertionError>;
 
-    /// Get the [`LinkRootedSubgraph`]s specified by the [`KnowledgeGraphQuery`].
+    /// Get the [`LinkRootedSubgraph`]s specified by the [`StructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Link`]s don't exist.
     async fn get_links(
         &self,
-        query: &KnowledgeGraphQuery,
+        query: &StructuralQuery,
     ) -> Result<Vec<LinkRootedSubgraph>, QueryError>;
 
     /// Removes a [`Link`] between a source and target [`Entity`].

@@ -9,14 +9,10 @@ use std::str::FromStr;
 
 use error_stack::{Report, Result};
 use graph::{
-    knowledge::{
-        Entity, EntityId, KnowledgeGraphQuery, Link, PersistedEntity, PersistedEntityMetadata,
-        PersistedLink,
-    },
+    knowledge::{Entity, EntityId, Link, PersistedEntity, PersistedEntityMetadata, PersistedLink},
     ontology::{
-        AccountId, DataTypeQuery, EntityTypeQuery, LinkTypeQuery, PersistedDataType,
-        PersistedEntityType, PersistedLinkType, PersistedOntologyMetadata, PersistedPropertyType,
-        PropertyTypeQuery,
+        AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
+        PersistedOntologyMetadata, PersistedPropertyType,
     },
     store::{
         error::LinkRemovalError,
@@ -25,7 +21,7 @@ use graph::{
         EntityTypeStore, InsertionError, LinkStore, LinkTypeStore, PostgresStore,
         PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
-    subgraph::{GraphElementIdentifier, GraphResolveDepths, Vertex},
+    subgraph::{GraphElementIdentifier, GraphResolveDepths, StructuralQuery, Vertex},
 };
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
@@ -158,16 +154,9 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedDataType, QueryError> {
         let vertex = self
             .store
-            .get_data_type(&DataTypeQuery {
+            .get_data_type(&StructuralQuery {
                 expression: Expression::for_versioned_uri(uri),
-                query_resolve_depths: GraphResolveDepths {
-                    data_type_resolve_depth: 0,
-                    property_type_resolve_depth: 0,
-                    entity_type_resolve_depth: 0,
-                    link_type_resolve_depth: 0,
-                    entity_resolve_depth: 0,
-                    link_resolve_depth: 0,
-                },
+                graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
             .vertices
@@ -202,17 +191,21 @@ impl DatabaseApi<'_> {
         &mut self,
         uri: &VersionedUri,
     ) -> Result<PersistedPropertyType, QueryError> {
-        Ok(self
+        let vertex = self
             .store
-            .get_property_type(&PropertyTypeQuery {
+            .get_property_type(&StructuralQuery {
                 expression: Expression::for_versioned_uri(uri),
-                data_type_query_depth: 0,
-                property_type_query_depth: 0,
+                graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
-            .pop()
-            .expect("no property type found")
-            .property_type)
+            .vertices
+            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
+            .expect("no property type found");
+
+        match vertex {
+            Vertex::PropertyType(persisted_data_type) => Ok(persisted_data_type),
+            _ => unreachable!(),
+        }
     }
 
     pub async fn update_property_type(
@@ -239,12 +232,9 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedEntityType, QueryError> {
         Ok(self
             .store
-            .get_entity_type(&EntityTypeQuery {
+            .get_entity_type(&StructuralQuery {
                 expression: Expression::for_versioned_uri(uri),
-                data_type_query_depth: 0,
-                property_type_query_depth: 0,
-                link_type_query_depth: 0,
-                entity_type_query_depth: 0,
+                graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
             .pop()
@@ -276,8 +266,9 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedLinkType, QueryError> {
         Ok(self
             .store
-            .get_link_type(&LinkTypeQuery {
+            .get_link_type(&StructuralQuery {
                 expression: Expression::for_versioned_uri(uri),
+                graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
             .pop()
@@ -308,14 +299,9 @@ impl DatabaseApi<'_> {
     pub async fn get_entity(&mut self, entity_id: EntityId) -> Result<PersistedEntity, QueryError> {
         Ok(self
             .store
-            .get_entity(&KnowledgeGraphQuery {
+            .get_entity(&StructuralQuery {
                 expression: Expression::for_latest_entity_id(entity_id),
-                data_type_query_depth: 0,
-                property_type_query_depth: 0,
-                link_type_query_depth: 0,
-                entity_type_query_depth: 0,
-                link_target_entity_query_depth: 0,
-                link_query_depth: 0,
+                graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
             .pop()
@@ -367,7 +353,7 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedLink, QueryError> {
         Ok(self
             .store
-            .get_links(&KnowledgeGraphQuery {
+            .get_links(&StructuralQuery {
                 expression: Expression::All(vec![
                     Expression::for_link_by_source_entity_id(source_entity_id),
                     Expression::Eq(vec![
@@ -397,12 +383,7 @@ impl DatabaseApi<'_> {
                         Expression::Literal(Literal::Float(link_type_id.version() as f64)),
                     ]),
                 ]),
-                data_type_query_depth: 0,
-                property_type_query_depth: 0,
-                link_type_query_depth: 0,
-                entity_type_query_depth: 0,
-                link_target_entity_query_depth: 0,
-                link_query_depth: 0,
+                graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
             .pop()
@@ -417,14 +398,9 @@ impl DatabaseApi<'_> {
     ) -> Result<Vec<PersistedLink>, QueryError> {
         Ok(self
             .store
-            .get_links(&KnowledgeGraphQuery {
+            .get_links(&StructuralQuery {
                 expression: Expression::for_link_by_source_entity_id(source_entity_id),
-                data_type_query_depth: 0,
-                property_type_query_depth: 0,
-                link_type_query_depth: 0,
-                entity_type_query_depth: 0,
-                link_target_entity_query_depth: 0,
-                link_query_depth: 0,
+                graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
             .into_iter()

@@ -3,6 +3,7 @@ import { AxiosError } from "axios";
 
 import { Subgraph, QueryGetDataTypeArgs, ResolverFn } from "../../apiTypes.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
+import { mapSubgraphToGql } from "./model-mapping";
 
 export const getAllLatestDataTypes: ResolverFn<
   Promise<Subgraph>,
@@ -16,12 +17,12 @@ export const getAllLatestDataTypes: ResolverFn<
     .getDataTypesByQuery({
       query: { eq: [{ path: ["version"] }, { literal: "latest" }] },
       /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
-      queryResolveDepths: {
+      graphResolveDepths: {
         dataTypeResolveDepth: 0,
         propertyTypeResolveDepth: 0,
         linkTypeResolveDepth: 0,
         entityTypeResolveDepth: 0,
-        entityResolveDepth: 0,
+        linkTargetEntityResolveDepth: 0,
         linkResolveDepth: 0,
       },
     })
@@ -32,7 +33,7 @@ export const getAllLatestDataTypes: ResolverFn<
       );
     });
 
-  return dataTypeSubgraph;
+  return mapSubgraphToGql(dataTypeSubgraph);
 };
 
 export const getDataType: ResolverFn<
@@ -49,12 +50,12 @@ export const getDataType: ResolverFn<
         eq: [{ path: ["versionedUri"] }, { literal: dataTypeId }],
       },
       /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
-      queryResolveDepths: {
+      graphResolveDepths: {
         dataTypeResolveDepth: 0,
         propertyTypeResolveDepth: 0,
         linkTypeResolveDepth: 0,
         entityTypeResolveDepth: 0,
-        entityResolveDepth: 0,
+        linkTargetEntityResolveDepth: 0,
         linkResolveDepth: 0,
       },
     })
@@ -65,5 +66,5 @@ export const getDataType: ResolverFn<
       );
     });
 
-  return dataTypeSubgraph;
+  return mapSubgraphToGql(dataTypeSubgraph);
 };

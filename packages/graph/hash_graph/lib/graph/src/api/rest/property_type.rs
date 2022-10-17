@@ -20,11 +20,12 @@ use crate::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, AccountId, PersistedOntologyIdentifier, PersistedOntologyMetadata,
-        PersistedPropertyType, PropertyTypeQuery, PropertyTypeRootedSubgraph,
+        PersistedPropertyType,
     },
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
     },
+    subgraph::{StructuralQuery, Subgraph},
 };
 
 #[derive(OpenApi)]
@@ -44,8 +45,7 @@ use crate::{
             PersistedOntologyIdentifier,
             PersistedOntologyMetadata,
             PersistedPropertyType,
-            PropertyTypeQuery,
-            PropertyTypeRootedSubgraph,
+            StructuralQuery,
         )
     ),
     tags(
@@ -140,10 +140,10 @@ async fn create_property_type<P: StorePool + Send>(
 #[utoipa::path(
     post,
     path = "/property-types/query",
-    request_body = PropertyTypeQuery,
+    request_body = StructuralQuery,
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", body = [PropertyTypeRootedSubgraph], description = "A list of subgraphs rooted at property types that satisfy the given query, each resolved to the requested depth."),
+        (status = 200, content_type = "application/json", body = Subgraph, description = "A subgraph rooted at property types that satisfy the given query, each resolved to the requested depth."),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
@@ -151,8 +151,8 @@ async fn create_property_type<P: StorePool + Send>(
 )]
 async fn get_property_types_by_query<P>(
     pool: Extension<Arc<P>>,
-    Json(query): Json<PropertyTypeQuery>,
-) -> Result<Json<Vec<PropertyTypeRootedSubgraph>>, StatusCode>
+    Json(query): Json<StructuralQuery>,
+) -> Result<Json<Subgraph>, StatusCode>
 where
     for<'pool> P: StorePool<Store<'pool>: PropertyTypeStore> + Send,
 {
