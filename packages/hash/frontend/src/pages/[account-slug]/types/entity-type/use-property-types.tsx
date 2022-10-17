@@ -16,13 +16,25 @@ export const useRemotePropertyTypes = () => {
       if (data.data) {
         setPropertyTypes(
           Object.fromEntries(
-            data.data.results.map(
-              (result) =>
-                [
-                  mustBeVersionedUri(result.propertyTypeId),
-                  result.propertyType,
-                ] as const,
-            ),
+            data.data.roots.map((propertyTypeId) => {
+              const propertyTypeVertex = data.data!.vertices[propertyTypeId!];
+
+              if (!propertyTypeVertex) {
+                throw new Error(
+                  "property type was missing from the subgraph vertices list",
+                );
+              }
+              if (propertyTypeVertex.kind !== "PROPERTY_TYPE") {
+                throw new Error(
+                  `expected property type but got ${propertyTypeVertex.kind}`,
+                );
+              }
+
+              return [
+                mustBeVersionedUri(propertyTypeId!),
+                propertyTypeVertex.inner.inner,
+              ] as const;
+            }),
           ),
         );
       }
