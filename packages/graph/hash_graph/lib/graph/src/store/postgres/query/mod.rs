@@ -1,4 +1,4 @@
-#![expect(dead_code, reason = "Work in progress")]
+#![allow(dead_code, reason = "Work in progress")]
 
 //! Postgres implementation to compile queries.
 
@@ -43,4 +43,21 @@ pub trait Path {
 pub trait Transpile {
     /// Renders the value using the given [`Formatter`].
     fn transpile(&self, fmt: &mut Formatter) -> fmt::Result;
+}
+
+#[cfg(test)]
+mod test_helper {
+    use std::fmt;
+
+    use crate::store::postgres::query::Transpile;
+
+    pub fn transpile<R: Transpile>(value: &R) -> String {
+        struct Transpiler<'r, R>(&'r R);
+        impl<R: Transpile> fmt::Display for Transpiler<'_, R> {
+            fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+                self.0.transpile(fmt)
+            }
+        }
+        Transpiler(value).to_string()
+    }
 }
