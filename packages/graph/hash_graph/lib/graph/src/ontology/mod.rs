@@ -167,7 +167,6 @@ where
 /// _property type_ references is then resolved to a depth of `property_type_query_depth`.
 pub type OntologyQueryDepth = u8;
 
-// TODO: should the fields be public
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PersistedDataType {
     #[schema(value_type = VAR_DATA_TYPE)]
@@ -224,7 +223,6 @@ impl PersistedPropertyType {
     }
 }
 
-// TODO: should the fields be public
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PersistedLinkType {
     #[schema(value_type = VAR_LINK_TYPE)]
@@ -273,7 +271,6 @@ impl PersistedOntologyMetadata {
     }
 }
 
-// TODO: should the fields be public
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PersistedEntityType {
     #[schema(value_type = VAR_ENTITY_TYPE)]
