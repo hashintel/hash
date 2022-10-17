@@ -13,7 +13,7 @@ use uuid::Uuid;
 use crate::{
     knowledge::{
         Entity, EntityId, EntityRootedSubgraph, KnowledgeGraphQuery, PersistedEntity,
-        PersistedEntityIdentifier, PersistedLink,
+        PersistedEntityMetadata, PersistedLink,
     },
     ontology::AccountId,
     store::{
@@ -63,7 +63,7 @@ impl<C: AsClient> PostgresStore<C> {
             if let Some(entity) = unresolved_entity {
                 if entity_type_query_depth > 0 {
                     self.get_entity_type_as_dependency(
-                        entity.entity_type_id(),
+                        entity.metadata().entity_type_id(),
                         EntityTypeDependencyContext {
                             referenced_data_types,
                             referenced_property_types,
@@ -120,7 +120,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_type_id: VersionedUri,
         owned_by_id: AccountId,
         entity_id: Option<EntityId>,
-    ) -> Result<PersistedEntityIdentifier, InsertionError> {
+    ) -> Result<PersistedEntityMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -134,7 +134,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         // TODO: match on and return the relevant error
         //   https://app.asana.com/0/1200211978612931/1202574350052904/f
         transaction.insert_entity_id(entity_id).await?;
-        let identifier = transaction
+        let metadata = transaction
             .insert_entity(entity_id, entity, entity_type_id, owned_by_id)
             .await?;
 
@@ -145,7 +145,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .into_report()
             .change_context(InsertionError)?;
 
-        Ok(identifier)
+        Ok(metadata)
     }
 
     #[doc(hidden)]
@@ -225,7 +225,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 let mut links = DependencySet::new();
 
                 self.get_entity_as_dependency(
-                    entity.identifier().entity_id(),
+                    entity.metadata().identifier().entity_id(),
                     KnowledgeDependencyContext {
                         referenced_data_types: &mut referenced_data_types,
                         referenced_property_types: &mut referenced_property_types,
@@ -244,7 +244,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .await?;
 
                 let root = linked_entities
-                    .remove(&entity.identifier().entity_id())
+                    .remove(&entity.metadata().identifier().entity_id())
                     .expect("root was not added to the subgraph");
 
                 Ok(EntityRootedSubgraph {
@@ -267,7 +267,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity: Entity,
         entity_type_id: VersionedUri,
         updated_by: AccountId,
-    ) -> Result<PersistedEntityIdentifier, UpdateError> {
+    ) -> Result<PersistedEntityMetadata, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -286,7 +286,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(UpdateError));
         }
 
-        let identifier = transaction
+        let metadata = transaction
             .insert_entity(entity_id, entity, entity_type_id, updated_by)
             .await
             .change_context(UpdateError)?;
@@ -298,6 +298,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .into_report()
             .change_context(UpdateError)?;
 
-        Ok(identifier)
+        Ok(metadata)
     }
 }

@@ -8,8 +8,10 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 pub use self::{
-    entity::{Entity, EntityId, PersistedEntity, PersistedEntityIdentifier},
-    link::{Link, PersistedLink},
+    entity::{
+        Entity, EntityId, PersistedEntity, PersistedEntityIdentifier, PersistedEntityMetadata,
+    },
+    link::{Link, PersistedLink, PersistedLinkMetadata},
 };
 use crate::{
     ontology::{

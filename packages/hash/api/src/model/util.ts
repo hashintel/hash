@@ -2,14 +2,12 @@ import {
   PropertyType,
   EntityType,
   PropertyValues,
-  VersionedUri,
   LinkType,
 } from "@blockprotocol/type-system-web";
+import { PrimitiveDataTypeKey, types } from "@hashintel/hash-shared/types";
 import { AxiosError } from "axios";
-import slugify from "slugify";
 import { EntityTypeModel, LinkTypeModel, PropertyTypeModel } from ".";
 import { GraphApi } from "../graph";
-import { FRONTEND_URL } from "../lib/config";
 import { logger } from "../logger";
 
 /** @todo: enable admins to expand upon restricted shortnames block list */
@@ -73,26 +71,6 @@ export const nilUuid = "00000000-0000-0000-0000-000000000000" as const;
  */
 export const workspaceAccountId = nilUuid;
 
-type SchemaKind = "data-type" | "property-type" | "entity-type" | "link-type";
-
-const slugifySchemaTitle = (title: string): string =>
-  slugify(title, { lower: true });
-
-export const generateTypeId = ({
-  domain = FRONTEND_URL,
-  namespace,
-  kind,
-  title,
-}: {
-  domain?: string;
-  namespace: string;
-  kind: SchemaKind;
-  title: string;
-}): VersionedUri =>
-  `${domain}/@${namespace}/types/${kind}/${slugifySchemaTitle(
-    title,
-  )}/v/1` as const;
-
 /**
  * @todo use `extractBaseUri` from the type system package when they're unified,
  *  and we're able to use functional code in node and web environments:
@@ -127,36 +105,12 @@ export const extractBaseUri = (versionedUri: string): string => {
   return splitVersionedUri(versionedUri).baseUri;
 };
 
-const primitiveDataTypeTitles = [
-  "Text",
-  "Number",
-  "Boolean",
-  "Empty List",
-  "Object",
-  "Null",
-] as const;
-
-export type PrimitiveDataTypeTitle = typeof primitiveDataTypeTitles[number];
-
-export const primitiveDataTypeIds = primitiveDataTypeTitles.reduce(
-  (prev, title) => ({
-    ...prev,
-    [title]: generateTypeId({
-      domain: "https://blockprotocol.org",
-      namespace: "blockprotocol",
-      kind: "data-type",
-      title,
-    }),
-  }),
-  {},
-) as Record<PrimitiveDataTypeTitle, string>;
-
 export type PropertyTypeCreatorParams = {
-  namespace: string;
+  propertyTypeId: string;
   title: string;
   description?: string;
   possibleValues: {
-    primitiveDataType?: PrimitiveDataTypeTitle;
+    primitiveDataType?: PrimitiveDataTypeKey;
     propertyTypeObjectProperties?: { [_ in string]: { $ref: string } };
     array?: boolean;
   }[];
@@ -168,19 +122,13 @@ export type PropertyTypeCreatorParams = {
 export const generateWorkspacePropertyTypeSchema = (
   params: PropertyTypeCreatorParams,
 ): PropertyType => {
-  const $id = generateTypeId({
-    namespace: params.namespace,
-    title: params.title,
-    kind: "property-type",
-  });
-
   const possibleValues = params.possibleValues.map(
     ({ array, primitiveDataType, propertyTypeObjectProperties }) => {
       let inner: PropertyValues;
 
       if (primitiveDataType) {
         const dataTypeReference: PropertyValues.DataTypeReference = {
-          $ref: primitiveDataTypeIds[primitiveDataType],
+          $ref: types.dataType[primitiveDataType].dataTypeId,
         };
         inner = dataTypeReference;
       } else if (propertyTypeObjectProperties) {
@@ -211,7 +159,7 @@ export const generateWorkspacePropertyTypeSchema = (
   );
 
   return {
-    $id,
+    $id: params.propertyTypeId,
     kind: "propertyType",
     title: params.title,
     description: params.description,
@@ -270,9 +218,8 @@ export const propertyTypeInitializer = (
 };
 
 export type EntityTypeCreatorParams = {
-  namespace: string;
+  entityTypeId: string;
   title: string;
-  pluralTitle?: string;
   properties: {
     propertyTypeModel: PropertyTypeModel;
     required?: boolean;
@@ -300,12 +247,6 @@ export type EntityTypeCreatorParams = {
 export const generateWorkspaceEntityTypeSchema = (
   params: EntityTypeCreatorParams,
 ): EntityType => {
-  const $id = generateTypeId({
-    namespace: params.namespace,
-    title: params.title,
-    kind: "entity-type",
-  });
-
   /** @todo - clean this up to be more readable: https://app.asana.com/0/1202805690238892/1202931031833226/f */
   const properties = params.properties.reduce(
     (prev, { propertyTypeModel, array }) => ({
@@ -342,7 +283,7 @@ export const generateWorkspaceEntityTypeSchema = (
                 (entityTypeModelOrReference) => ({
                   $ref:
                     entityTypeModelOrReference === "SELF_REFERENCE"
-                      ? $id
+                      ? params.entityTypeId
                       : entityTypeModelOrReference.schema.$id,
                 }),
               ),
@@ -369,9 +310,9 @@ export const generateWorkspaceEntityTypeSchema = (
     .map(({ linkTypeModel }) => linkTypeModel.schema.$id);
 
   return {
-    $id,
+    $id: params.entityTypeId,
     title: params.title,
-    pluralTitle: params.pluralTitle ?? params.title,
+    pluralTitle: params.title,
     type: "object",
     kind: "entityType",
     properties,
@@ -431,7 +372,7 @@ export const entityTypeInitializer = (
 };
 
 export type LinkTypeCreatorParams = {
-  namespace: string;
+  linkTypeId: string;
   title: string;
   description: string;
   relatedKeywords?: string[];
@@ -446,15 +387,9 @@ export type LinkTypeCreatorParams = {
 export const generateWorkspaceLinkTypeSchema = (
   params: LinkTypeCreatorParams,
 ): LinkType => {
-  const $id = generateTypeId({
-    namespace: params.namespace,
-    title: params.title,
-    kind: "link-type",
-  });
-
   return {
     kind: "linkType",
-    $id,
+    $id: params.linkTypeId,
     title: params.title,
     pluralTitle: params.title,
     description: params.description,
