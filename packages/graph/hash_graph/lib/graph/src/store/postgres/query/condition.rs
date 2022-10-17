@@ -197,11 +197,8 @@ mod tests {
 
     #[test]
     fn render_empty_condition() {
-        let filter = Filter::All(vec![]);
-        test_condition(&filter, "true", &[]);
-
-        let filter = Filter::Any(vec![]);
-        test_condition(&filter, "false", &[]);
+        test_condition(&Filter::All(vec![]), "true", &[]);
+        test_condition(&Filter::Any(vec![]), "false", &[]);
     }
 
     #[test]
