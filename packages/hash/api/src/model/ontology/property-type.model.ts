@@ -101,65 +101,6 @@ export default class {
   }
 
   /**
-   * Get all property types at their latest version.
-   */
-  static async getAllLatest(graphApi: GraphApi): Promise<PropertyTypeModel[]> {
-    const resolved = await this.getAllLatestResolved(graphApi, {
-      dataTypeQueryDepth: 0,
-      propertyTypeQueryDepth: 0,
-    });
-    return resolved.map((propertyType) => propertyType.propertyType);
-  }
-
-  /**
-   * Get all property types at their latest version with their references resolved as a list.
-   *
-   * @param params.dataTypeQueryDepth recursion depth to use to resolve data types
-   * @param params.propertyTypeQueryDepth recursion depth to use to resolve property types
-   */
-  static async getAllLatestResolved(
-    graphApi: GraphApi,
-    params: {
-      dataTypeQueryDepth: number;
-      propertyTypeQueryDepth: number;
-    },
-  ): Promise<
-    {
-      propertyType: PropertyTypeModel;
-      referencedDataTypes: DataTypeModel[];
-      referencedPropertyTypes: PropertyTypeModel[];
-    }[]
-  > {
-    /**
-     * @todo: get all latest property types in specified account.
-     *   This may mean implicitly filtering results by what an account is
-     *   authorized to see.
-     *   https://app.asana.com/0/1202805690238892/1202890446280569/f
-     */
-    const { data: propertyTypeRootedSubgraphs } =
-      await graphApi.getPropertyTypesByQuery({
-        dataTypeQueryDepth: params.dataTypeQueryDepth,
-        propertyTypeQueryDepth: params.propertyTypeQueryDepth,
-        query: {
-          eq: [{ path: ["version"] }, { literal: "latest" }],
-        },
-      });
-
-    return propertyTypeRootedSubgraphs.map((propertyTypeRootedSubgraph) => ({
-      propertyType: PropertyTypeModel.fromPersistedPropertyType(
-        propertyTypeRootedSubgraph.propertyType,
-      ),
-      referencedDataTypes: propertyTypeRootedSubgraph.referencedDataTypes.map(
-        DataTypeModel.fromPersistedDataType,
-      ),
-      referencedPropertyTypes:
-        propertyTypeRootedSubgraph.referencedPropertyTypes.map(
-          PropertyTypeModel.fromPersistedPropertyType,
-        ),
-    }));
-  }
-
-  /**
    * Get a property type by its versioned URI.
    *
    * @param params.propertyTypeId the unique versioned URI for a property type.
@@ -176,54 +117,6 @@ export default class {
     );
 
     return PropertyTypeModel.fromPersistedPropertyType(persistedPropertyType);
-  }
-
-  /**
-   * Get a property type by its versioned URI.
-   *
-   * @param params.propertyTypeId the unique versioned URI for a property type.
-   * @param params.dataTypeQueryDepth recursion depth to use to resolve data types
-   * @param params.propertyTypeQueryDepth recursion depth to use to resolve property types
-   */
-  static async getResolved(
-    graphApi: GraphApi,
-    params: {
-      propertyTypeId: string;
-      dataTypeQueryDepth: number;
-      propertyTypeQueryDepth: number;
-    },
-  ): Promise<{
-    propertyType: PropertyTypeModel;
-    referencedDataTypes: DataTypeModel[];
-    referencedPropertyTypes: PropertyTypeModel[];
-  }> {
-    const { data: propertyTypeRootedSubgraphs } =
-      await graphApi.getPropertyTypesByQuery({
-        dataTypeQueryDepth: params.dataTypeQueryDepth,
-        propertyTypeQueryDepth: params.propertyTypeQueryDepth,
-        query: {
-          eq: [{ path: ["versionedUri"] }, { literal: params.propertyTypeId }],
-        },
-      });
-    const propertyTypeRootedSubgraph = propertyTypeRootedSubgraphs.pop();
-    if (propertyTypeRootedSubgraph === undefined) {
-      throw new Error(
-        `Unable to retrieve property type for URI: ${params.propertyTypeId}`,
-      );
-    }
-
-    return {
-      propertyType: PropertyTypeModel.fromPersistedPropertyType(
-        propertyTypeRootedSubgraph.propertyType,
-      ),
-      referencedDataTypes: propertyTypeRootedSubgraph.referencedDataTypes.map(
-        DataTypeModel.fromPersistedDataType,
-      ),
-      referencedPropertyTypes:
-        propertyTypeRootedSubgraph.referencedPropertyTypes.map(
-          PropertyTypeModel.fromPersistedPropertyType,
-        ),
-    };
   }
 
   /**
