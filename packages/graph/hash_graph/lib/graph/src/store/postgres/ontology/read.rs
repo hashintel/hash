@@ -31,10 +31,7 @@ impl PersistedOntologyType for PersistedDataType {
     fn from_record(data_type: OntologyRecord<Self::Inner>) -> Self {
         let identifier =
             PersistedOntologyIdentifier::new(data_type.record.id().clone(), data_type.account_id);
-        Self {
-            inner: data_type.record,
-            metadata: PersistedOntologyMetadata::new(identifier),
-        }
+        Self::new(data_type.record, PersistedOntologyMetadata::new(identifier))
     }
 }
 

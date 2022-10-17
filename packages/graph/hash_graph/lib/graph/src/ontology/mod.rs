@@ -172,8 +172,25 @@ pub type OntologyQueryDepth = u8;
 pub struct PersistedDataType {
     #[schema(value_type = VAR_DATA_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
-    pub inner: DataType,
-    pub metadata: PersistedOntologyMetadata,
+    inner: DataType,
+    metadata: PersistedOntologyMetadata,
+}
+
+impl PersistedDataType {
+    #[must_use]
+    pub const fn new(inner: DataType, metadata: PersistedOntologyMetadata) -> Self {
+        Self { inner, metadata }
+    }
+
+    #[must_use]
+    pub const fn inner(&self) -> &DataType {
+        &self.inner
+    }
+
+    #[must_use]
+    pub const fn metadata(&self) -> &PersistedOntologyMetadata {
+        &self.metadata
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
