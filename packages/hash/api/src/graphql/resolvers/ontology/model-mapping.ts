@@ -1,12 +1,9 @@
 import { Subgraph } from "@hashintel/hash-graph-client";
 import {
-  DataTypeVertex,
   EntityTypeVertex,
-  EntityVertex,
-  LinkTypeVertex,
-  LinkVertex,
   PropertyTypeVertex,
 } from "@hashintel/hash-shared/graphql/types";
+import { EntityType, PropertyType } from "@blockprotocol/type-system-web";
 import {
   DataTypeModel,
   EntityTypeModel,
@@ -21,7 +18,6 @@ import {
   EntityTypeRootedSubgraph as EntityTypeRootedSubgraphGql,
   Subgraph as SubgraphGql,
 } from "../../apiTypes.gen";
-import { EntityType, PropertyType } from "@blockprotocol/type-system-web";
 
 export const mapDataTypeModelToGQL = (
   dataType: DataTypeModel,
