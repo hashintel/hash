@@ -14,6 +14,8 @@ export interface TableSort {
   dir: TableSortType;
 }
 
+export type SetTableSort = (sort: TableSort) => void;
+
 export const firstColumnPadding = 36;
 export const columnPadding = 22;
 
@@ -103,4 +105,25 @@ export const useDrawCell = () => {
   );
 
   return drawCell;
+};
+
+export const createHandleHeaderClicked = (
+  columns: GridColumn[],
+  sort: TableSort,
+  setTableSort: SetTableSort,
+) => {
+  return (col: number) => {
+    const key = columns[col]?.id;
+
+    if (!key) {
+      return;
+    }
+
+    const isSorted = key === sort.key;
+
+    setTableSort({
+      key,
+      dir: isSorted && sort.dir === "asc" ? "desc" : "asc",
+    });
+  };
 };

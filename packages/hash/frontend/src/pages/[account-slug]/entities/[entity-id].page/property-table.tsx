@@ -1,5 +1,4 @@
 import "@glideapps/glide-data-grid/dist/index.css";
-import { useCallback } from "react";
 import { PropertyTableProps } from "./property-table/types";
 import { useRowData } from "./property-table/use-row-data";
 import { useGetCellContent } from "./property-table/use-get-cell-content";
@@ -8,6 +7,8 @@ import { useOnCellEdited } from "./property-table/use-on-cell-edited";
 import { useEntityEditor } from "./entity-editor-context";
 import { GlideGrid } from "../../../../components/GlideGlid/glide-grid";
 import {
+  createHandleHeaderClicked,
+  SetTableSort,
   useDrawCell,
   useDrawHeader,
 } from "../../../../components/GlideGlid/utils";
@@ -23,21 +24,10 @@ export const PropertyTable = ({
   const drawCell = useDrawCell();
   const drawHeader = useDrawHeader(propertySort, propertyGridColumns);
 
-  const handleHeaderClicked = useCallback(
-    (col: number) => {
-      const key = propertyGridColumns[col]?.id;
-      if (!key) {
-        return;
-      }
-
-      const isSorted = key === propertySort.key;
-
-      setPropertySort({
-        key,
-        dir: isSorted && propertySort.dir === "asc" ? "desc" : "asc",
-      });
-    },
-    [propertySort, setPropertySort],
+  const handleHeaderClicked = createHandleHeaderClicked(
+    propertyGridColumns,
+    propertySort,
+    setPropertySort as SetTableSort,
   );
 
   return (

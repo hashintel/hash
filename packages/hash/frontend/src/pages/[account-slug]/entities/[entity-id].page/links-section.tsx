@@ -1,9 +1,10 @@
 import { Chip } from "@hashintel/hash-design-system/chip";
-import { Stack } from "@mui/material";
+import { Paper, Stack } from "@mui/material";
 import { LinksIcon } from "../../../../shared/icons";
+import { useEntityEditor } from "./entity-editor-context";
+import { LinkTable } from "./link-table";
 import { EntitySection } from "./shared/entity-section";
 import { EntitySectionEmptyState } from "./shared/entity-section-empty-state";
-import { WhiteChip } from "./shared/white-chip";
 
 const EmptyState = () => (
   <EntitySectionEmptyState
@@ -15,7 +16,13 @@ different entities"
 );
 
 export const LinksSection = () => {
-  const isEmpty = true;
+  const { entity } = useEntityEditor();
+
+  if (!entity) {
+    return null;
+  }
+
+  const isEmpty = !entity.links.length;
 
   return (
     <EntitySection
@@ -25,13 +32,18 @@ export const LinksSection = () => {
           <Chip label="No links" />
         ) : (
           <Stack direction="row" spacing={1.5}>
-            <Chip size="xs" label="3 links" />
-            <WhiteChip size="xs" label="1 linked entity" />
+            <Chip size="xs" label={`${entity.links.length} links`} />
           </Stack>
         )
       }
     >
-      {isEmpty ? <EmptyState /> : "Here comes links table"}
+      {isEmpty ? (
+        <EmptyState />
+      ) : (
+        <Paper sx={{ overflow: "hidden" }}>
+          <LinkTable />
+        </Paper>
+      )}
     </EntitySection>
   );
 };

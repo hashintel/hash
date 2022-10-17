@@ -473,7 +473,7 @@ export const generateEntityLabel = (
       propertyTypeId,
       title: (
         entity as EntityResponse
-      ).entityTypeRootedSubgraph.referencedPropertyTypes
+      ).entityTypeRootedSubgraph?.referencedPropertyTypes
         .find((item) => item.propertyTypeId.startsWith(propertyTypeId))
         ?.propertyType.title.toLowerCase(),
     }));
