@@ -30,7 +30,7 @@ export default class {
 
   static fromPersistedLinkType({
     inner,
-    identifier,
+    metadata: { identifier },
   }: PersistedLinkType): LinkTypeModel {
     /**
      * @todo and a warning, these type casts are here to compensate for
@@ -73,7 +73,7 @@ export default class {
     });
     const fullLinkType = { $id: linkTypeId, ...params.schema };
 
-    const { data: identifier } = await graphApi
+    const { data: metadata } = await graphApi
       .createLinkType({
         /**
          * @todo: replace uses of `accountId` with `ownedById` in the Graph API
@@ -89,6 +89,8 @@ export default class {
             : `[${err.code}] couldn't create link type: ${err.response?.data}.`,
         );
       });
+
+    const { identifier } = metadata;
 
     return new LinkTypeModel({
       schema: fullLinkType,
@@ -153,7 +155,9 @@ export default class {
       schema,
     };
 
-    const { data: identifier } = await graphApi.updateLinkType(updateArguments);
+    const { data: metadata } = await graphApi.updateLinkType(updateArguments);
+
+    const { identifier } = metadata;
 
     return new LinkTypeModel({
       schema: { ...schema, $id: identifier.uri },

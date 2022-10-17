@@ -52,7 +52,7 @@ export default class {
   static async fromPersistedLink(
     graphApi: GraphApi,
     {
-      ownedById,
+      metadata: { ownedById },
       inner: { sourceEntityId, targetEntityId, linkTypeId, index },
     }: PersistedLink,
   ): Promise<LinkModel> {
@@ -172,7 +172,7 @@ export default class {
      */
     const persistedLink = {
       inner: link,
-      ownedById,
+      metadata: { ownedById },
     };
 
     return LinkModel.fromPersistedLink(graphApi, persistedLink);

@@ -1,0 +1,56 @@
+{
+  "name": "@hashintel/block-callout",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Draw attention to an important point or message with framed text and a custom icon",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git#main",
+    "directory": "blocks/callout"
+  },
+  "license": "MIT",
+  "author": "HASH",
+  "scripts": {
+    "build": "block-scripts build",
+    "dev": "block-scripts dev",
+    "fix:eslint": "eslint --ext .ts,.tsx --fix ./src/",
+    "lint:eslint": "eslint --ext .ts,.tsx ./src/",
+    "lint:tsc": "tsc --noEmit",
+    "serve": "block-scripts serve"
+  },
+  "dependencies": {
+    "@blockprotocol/graph": "0.0.16",
+    "@blockprotocol/hook": "0.0.4"
+  },
+  "devDependencies": {
+    "block-scripts": "0.0.14",
+    "eslint": "8.20.0",
+    "mock-block-dock": "0.0.26",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "4.7.4"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "block-scripts": {
+    "devPort": 9090,
+    "servePort": 63212
+  },
+  "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
+    "displayName": "Callout",
+    "icon": "public/bullhorn-variant-outline.svg",
+    "image": "public/preview.svg",
+    "examples": [
+      {
+        "icon": "📢",
+        "text": "Hello World!"
+      }
+    ],
+    "protocol": "0.2"
+  }
+}

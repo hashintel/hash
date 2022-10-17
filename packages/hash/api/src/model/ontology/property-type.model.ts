@@ -31,7 +31,7 @@ export default class {
 
   static fromPersistedPropertyType({
     inner,
-    identifier,
+    metadata: { identifier },
   }: PersistedPropertyType): PropertyTypeModel {
     /**
      * @todo and a warning, these type casts are here to compensate for
@@ -75,7 +75,7 @@ export default class {
 
     const fullPropertyType = { $id: propertyTypeId, ...params.schema };
 
-    const { data: identifier } = await graphApi
+    const { data: metadata } = await graphApi
       .createPropertyType({
         /**
          * @todo: replace uses of `accountId` with `ownedById` in the Graph API
@@ -91,6 +91,8 @@ export default class {
             : `[${err.code}] couldn't create property type: ${err.response?.data}.`,
         );
       });
+
+    const { identifier } = metadata;
 
     return new PropertyTypeModel({
       schema: fullPropertyType,
@@ -249,9 +251,11 @@ export default class {
       schema,
     };
 
-    const { data: identifier } = await graphApi.updatePropertyType(
+    const { data: metadata } = await graphApi.updatePropertyType(
       updateArguments,
     );
+
+    const { identifier } = metadata;
 
     return new PropertyTypeModel({
       schema: { ...schema, $id: identifier.uri },
