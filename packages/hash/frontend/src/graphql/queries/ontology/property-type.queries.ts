@@ -3,9 +3,17 @@ import { gql } from "@apollo/client";
 export const getPropertyTypeQuery = gql`
   query getPropertyType($propertyTypeId: String!) {
     getPropertyType(propertyTypeId: $propertyTypeId) {
-      propertyTypeId
-      ownedById
-      propertyType
+      roots
+      vertices
+      edges
+      depths {
+        dataTypeResolveDepth(depth: 0)
+        propertyTypeResolveDepth(depth: 0)
+        linkTypeResolveDepth(depth: 0)
+        entityTypeResolveDepth(depth: 0)
+        linkTargetEntityResolveDepth(depth: 0)
+        linkResolveDepth(depth: 0)
+      }
     }
   }
 `;
@@ -13,9 +21,17 @@ export const getPropertyTypeQuery = gql`
 export const getAllLatestPropertyTypesQuery = gql`
   query getAllLatestPropertyTypes {
     getAllLatestPropertyTypes {
-      propertyTypeId
-      ownedById
-      propertyType
+      roots
+      vertices
+      edges
+      depths {
+        dataTypeResolveDepth(depth: 0)
+        propertyTypeResolveDepth(depth: 0)
+        linkTypeResolveDepth(depth: 0)
+        entityTypeResolveDepth(depth: 0)
+        linkTargetEntityResolveDepth(depth: 0)
+        linkResolveDepth(depth: 0)
+      }
     }
   }
 `;

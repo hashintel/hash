@@ -1,7 +1,8 @@
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
-    knowledge::{EntityId, KnowledgeGraphQuery},
+    knowledge::EntityId,
     store::{query::Expression, EntityStore},
+    subgraph::{GraphResolveDepths, StructuralQuery},
 };
 use rand::{prelude::IteratorRandom, thread_rng};
 use tokio::runtime::Runtime;
@@ -21,14 +22,16 @@ pub fn bench_get_entity_by_id(
         },
         |entity_id| async move {
             store
-                .get_entity(&KnowledgeGraphQuery {
+                .get_entity(&StructuralQuery {
                     expression: Expression::for_latest_entity_id(entity_id),
-                    data_type_query_depth: 0,
-                    property_type_query_depth: 0,
-                    link_type_query_depth: 0,
-                    entity_type_query_depth: 0,
-                    link_target_entity_query_depth: 0,
-                    link_query_depth: 0,
+                    graph_resolve_depths: GraphResolveDepths {
+                        data_type_resolve_depth: 0,
+                        property_type_resolve_depth: 0,
+                        entity_type_resolve_depth: 0,
+                        link_type_resolve_depth: 0,
+                        link_resolve_depth: 0,
+                        link_target_entity_resolve_depth: 0,
+                    },
                 })
                 .await
                 .expect("failed to read entity from store");

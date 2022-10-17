@@ -1,7 +1,7 @@
 mod read;
 mod resolve;
 
-use std::{future::Future, pin::Pin};
+use std::{collections::HashMap, future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
@@ -12,19 +12,17 @@ use uuid::Uuid;
 
 use crate::{
     knowledge::{
-        Entity, EntityId, EntityRootedSubgraph, KnowledgeGraphQuery, PersistedEntity,
-        PersistedEntityMetadata, PersistedLink,
+        Entity, EntityId, EntityRootedSubgraph, PersistedEntity, PersistedEntityMetadata,
+        PersistedLink,
     },
     ontology::AccountId,
     store::{
         crud::Read,
         error::EntityDoesNotExist,
-        postgres::{
-            context::PostgresContext, knowledge::KnowledgeDependencyContext,
-            ontology::EntityTypeDependencyContext, DependencyMap, DependencySet,
-        },
+        postgres::{context::PostgresContext, DependencyContext, DependencyMap, DependencySet},
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
+    subgraph::{GraphResolveDepths, StructuralQuery},
 };
 
 impl<C: AsClient> PostgresStore<C> {
@@ -34,51 +32,57 @@ impl<C: AsClient> PostgresStore<C> {
     pub(crate) fn get_entity_as_dependency<'a>(
         &'a self,
         entity_id: EntityId,
-        context: KnowledgeDependencyContext<'a>,
+        context: DependencyContext<'a>,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
-        let KnowledgeDependencyContext {
+        let DependencyContext {
+            edges,
             referenced_data_types,
             referenced_property_types,
             referenced_link_types,
             referenced_entity_types,
             linked_entities,
             links,
-            data_type_query_depth,
-            property_type_query_depth,
-            link_type_query_depth,
-            entity_type_query_depth,
-            link_query_depth,
-            link_target_entity_query_depth,
+            graph_resolve_depths,
         } = context;
 
         async move {
             let unresolved_entity = linked_entities
-                .insert(&entity_id, link_target_entity_query_depth, || async {
-                    Ok(PersistedEntity::from(
-                        self.read_latest_entity_by_id(entity_id).await?,
-                    ))
-                })
+                .insert(
+                    &entity_id,
+                    context
+                        .graph_resolve_depths
+                        .link_target_entity_resolve_depth,
+                    || async {
+                        Ok(PersistedEntity::from(
+                            self.read_latest_entity_by_id(entity_id).await?,
+                        ))
+                    },
+                )
                 .await?;
 
             if let Some(entity) = unresolved_entity {
-                if entity_type_query_depth > 0 {
-                    self.get_entity_type_as_dependency(
-                        entity.metadata().entity_type_id(),
-                        EntityTypeDependencyContext {
-                            referenced_data_types,
-                            referenced_property_types,
-                            referenced_link_types,
-                            referenced_entity_types,
-                            data_type_query_depth,
-                            property_type_query_depth,
-                            link_type_query_depth,
-                            entity_type_query_depth: entity_type_query_depth - 1,
+                let entity_type_id = entity.metadata().entity_type_id().clone();
+                if graph_resolve_depths.entity_type_resolve_depth > 0 {
+                    self.get_entity_type_as_dependency(&entity_type_id, DependencyContext {
+                        graph_resolve_depths: GraphResolveDepths {
+                            entity_type_resolve_depth: context
+                                .graph_resolve_depths
+                                .entity_type_resolve_depth
+                                - 1,
+                            ..graph_resolve_depths
                         },
-                    )
+                        edges,
+                        referenced_data_types,
+                        referenced_property_types,
+                        referenced_link_types,
+                        referenced_entity_types,
+                        linked_entities,
+                        links,
+                    })
                     .await?;
                 }
 
-                if link_query_depth > 0 {
+                if graph_resolve_depths.link_resolve_depth > 0 {
                     for link_record in self
                         .read_links_by_source(entity_id)
                         .await?
@@ -87,19 +91,18 @@ impl<C: AsClient> PostgresStore<C> {
                     {
                         let link = PersistedLink::from(link_record);
 
-                        self.get_link_as_dependency(&link, KnowledgeDependencyContext {
+                        self.get_link_as_dependency(&link, DependencyContext {
+                            graph_resolve_depths: GraphResolveDepths {
+                                link_resolve_depth: graph_resolve_depths.link_resolve_depth - 1,
+                                ..graph_resolve_depths
+                            },
+                            edges,
                             referenced_data_types,
                             referenced_property_types,
                             referenced_link_types,
                             referenced_entity_types,
                             linked_entities,
                             links,
-                            data_type_query_depth,
-                            property_type_query_depth,
-                            link_type_query_depth,
-                            entity_type_query_depth,
-                            link_query_depth: link_query_depth - 1,
-                            link_target_entity_query_depth,
                         })
                         .await?;
                     }
@@ -203,20 +206,16 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
     async fn get_entity(
         &self,
-        query: &KnowledgeGraphQuery,
+        query: &StructuralQuery,
     ) -> Result<Vec<EntityRootedSubgraph>, QueryError> {
-        let KnowledgeGraphQuery {
+        let StructuralQuery {
             ref expression,
-            data_type_query_depth,
-            property_type_query_depth,
-            link_type_query_depth,
-            entity_type_query_depth,
-            link_target_entity_query_depth,
-            link_query_depth,
+            graph_resolve_depths,
         } = *query;
 
         stream::iter(Read::<PersistedEntity>::read(self, expression).await?)
             .then(|entity| async move {
+                let mut edges = HashMap::new();
                 let mut referenced_data_types = DependencyMap::new();
                 let mut referenced_property_types = DependencyMap::new();
                 let mut referenced_link_types = DependencyMap::new();
@@ -226,19 +225,15 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
                 self.get_entity_as_dependency(
                     entity.metadata().identifier().entity_id(),
-                    KnowledgeDependencyContext {
+                    DependencyContext {
+                        edges: &mut edges,
                         referenced_data_types: &mut referenced_data_types,
                         referenced_property_types: &mut referenced_property_types,
                         referenced_link_types: &mut referenced_link_types,
                         referenced_entity_types: &mut referenced_entity_types,
                         linked_entities: &mut linked_entities,
                         links: &mut links,
-                        data_type_query_depth,
-                        property_type_query_depth,
-                        link_type_query_depth,
-                        entity_type_query_depth,
-                        link_target_entity_query_depth,
-                        link_query_depth,
+                        graph_resolve_depths,
                     },
                 )
                 .await?;

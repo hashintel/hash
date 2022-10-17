@@ -57,7 +57,6 @@ beforeAll(async () => {
 
 describe("Property type CRU", () => {
   let createdPropertyTypeModel: PropertyTypeModel;
-  let updatedPropertyTypeModel: PropertyTypeModel;
 
   it("can create a property type", async () => {
     createdPropertyTypeModel = await PropertyTypeModel.create(graphApi, {
@@ -77,7 +76,7 @@ describe("Property type CRU", () => {
   const updatedTitle = "New test!";
 
   it("can update a property type", async () => {
-    updatedPropertyTypeModel = await createdPropertyTypeModel
+    await createdPropertyTypeModel
       .update(graphApi, {
         schema: {
           ...propertyTypeSchema,
@@ -85,19 +84,5 @@ describe("Property type CRU", () => {
         },
       })
       .catch((err) => Promise.reject(err.data));
-  });
-
-  it("can read all latest property types", async () => {
-    const allPropertyTypes = await PropertyTypeModel.getAllLatest(graphApi);
-
-    const newlyUpdated = allPropertyTypes.find(
-      (pt) => pt.schema.$id === updatedPropertyTypeModel.schema.$id,
-    );
-
-    expect(allPropertyTypes.length).toBeGreaterThan(0);
-    expect(newlyUpdated).toBeDefined();
-
-    expect(newlyUpdated!.schema).toEqual(updatedPropertyTypeModel.schema);
-    expect(newlyUpdated!.schema.title).toEqual(updatedTitle);
   });
 });
