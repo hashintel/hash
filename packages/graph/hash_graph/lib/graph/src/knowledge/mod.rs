@@ -43,6 +43,8 @@ use crate::ontology::{
 /// the query will resolve up to two links, but only a single entity:
 /// - `linkedEntities`: \[`Entity2`]
 /// - `links`: \[`Link1`, `Link2`]
+///
+/// [`OntologyQueryDepth`]: crate::ontology::OntologyQueryDepth
 pub type KnowledgeGraphQueryDepth = u8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
