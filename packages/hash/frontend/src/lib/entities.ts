@@ -7,6 +7,7 @@ import {
   LinkedAggregationDefinition as BpLinkedAggregationDefinition,
   Entity,
 } from "@blockprotocol/graph";
+import { EntityResponse } from "../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 
 import {
   UnknownEntity as ApiEntity,
@@ -444,7 +445,7 @@ export const convertApiEntityTypesToBpEntityTypes = (
  * @see https://blockprotocol.org/docs/spec/graph-service-specification#json-schema-extensions
  */
 export const generateEntityLabel = (
-  entity: Entity,
+  entity: Entity | EntityResponse,
   schema?: { labelProperty?: unknown; title?: unknown },
 ): string => {
   // if the schema has a labelProperty set, prefer that
@@ -460,14 +461,28 @@ export const generateEntityLabel = (
   // fallback to some likely display name properties
   const options = [
     "name",
-    "preferredName",
-    "displayName",
+    "preferred name",
+    "display name",
     "title",
     "shortname",
   ];
+
+  /** @todo refactor the following section to make it more readable */
+  const propertyTypes: { title?: string; propertyTypeId: string }[] =
+    Object.keys(entity.properties).map((propertyTypeId) => ({
+      propertyTypeId,
+      title: (
+        entity as EntityResponse
+      ).entityTypeRootedSubgraph.referencedPropertyTypes
+        .find((item) => item.propertyTypeId.startsWith(propertyTypeId))
+        ?.propertyType.title.toLowerCase(),
+    }));
+
   for (const option of options) {
-    if (typeof entity.properties[option] === "string") {
-      return entity.properties[option] as string;
+    const found = propertyTypes.find(({ title }) => title === option);
+
+    if (found) {
+      return entity.properties[found.propertyTypeId];
     }
   }
 
