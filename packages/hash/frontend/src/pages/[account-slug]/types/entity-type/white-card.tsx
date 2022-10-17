@@ -9,9 +9,11 @@ import {
 
 export const WhiteCard = ({
   onClick,
+  href,
   children,
 }: {
   onClick?: CardActionAreaProps["onClick"];
+  href?: string;
   children: CardContentProps["children"];
 }) => {
   const cardContent = (
@@ -40,9 +42,9 @@ export const WhiteCard = ({
           : {},
       ]}
     >
-      {onClick ? (
+      {onClick || href ? (
         <CardActionArea
-          onClick={onClick}
+          {...(onClick ? { onClick } : { href })}
           disableRipple
           disableTouchRipple
           sx={{

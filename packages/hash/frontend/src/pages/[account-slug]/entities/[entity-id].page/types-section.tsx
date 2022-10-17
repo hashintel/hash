@@ -1,7 +1,6 @@
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Typography } from "@mui/material";
-import { useRouter } from "next/router";
 import { WhiteCard } from "../../types/entity-type/white-card";
 import { useEntityEditor } from "./entity-editor-context";
 import { EntitySection } from "./shared/entity-section";
@@ -12,10 +11,8 @@ interface TypeCardProps {
 }
 
 const TypeCard = ({ url, title }: TypeCardProps) => {
-  const router = useRouter();
-
   return (
-    <WhiteCard onClick={() => router.push(url)}>
+    <WhiteCard href={url}>
       <Box
         sx={{
           display: "flex",
@@ -43,12 +40,11 @@ export const TypesSection = () => {
   }
 
   const entityTypeTitle = entity.entityTypeRootedSubgraph.entityType.title;
-  const entityTypeUrl = entity.entityTypeId.replace(/v\/\d+/, "");
 
   return (
     <EntitySection title="Type">
       <Box display="flex" gap={2}>
-        <TypeCard url={entityTypeUrl} title={entityTypeTitle} />
+        <TypeCard url={entity.entityTypeId} title={entityTypeTitle} />
       </Box>
     </EntitySection>
   );
