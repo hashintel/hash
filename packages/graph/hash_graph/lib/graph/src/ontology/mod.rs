@@ -229,8 +229,25 @@ impl PersistedPropertyType {
 pub struct PersistedLinkType {
     #[schema(value_type = VAR_LINK_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
-    pub inner: LinkType,
-    pub metadata: PersistedOntologyMetadata,
+    inner: LinkType,
+    metadata: PersistedOntologyMetadata,
+}
+
+impl PersistedLinkType {
+    #[must_use]
+    pub const fn new(inner: LinkType, metadata: PersistedOntologyMetadata) -> Self {
+        Self { inner, metadata }
+    }
+
+    #[must_use]
+    pub const fn inner(&self) -> &LinkType {
+        &self.inner
+    }
+
+    #[must_use]
+    pub const fn metadata(&self) -> &PersistedOntologyMetadata {
+        &self.metadata
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]

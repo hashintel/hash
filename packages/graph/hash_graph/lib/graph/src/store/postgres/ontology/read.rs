@@ -56,10 +56,7 @@ impl PersistedOntologyType for PersistedLinkType {
     fn from_record(link_type: OntologyRecord<Self::Inner>) -> Self {
         let identifier =
             PersistedOntologyIdentifier::new(link_type.record.id().clone(), link_type.account_id);
-        Self {
-            inner: link_type.record,
-            metadata: PersistedOntologyMetadata::new(identifier),
-        }
+        Self::new(link_type.record, PersistedOntologyMetadata::new(identifier))
     }
 }
 
