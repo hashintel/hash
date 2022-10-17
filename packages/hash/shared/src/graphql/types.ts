@@ -9,8 +9,6 @@ import {
   PersistedPropertyType as GraphApiPersistedPropertyType,
   PersistedLinkType as GraphApiPersistedLinkType,
   PersistedEntityType as GraphApiPersistedEntityType,
-  PersistedEntity as GraphApiPersistedEntity,
-  PersistedLink as GraphApiPersistedLink,
   Vertex as GraphApiVertex,
 } from "@hashintel/hash-graph-client";
 
