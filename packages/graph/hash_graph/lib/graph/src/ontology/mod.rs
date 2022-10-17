@@ -182,13 +182,29 @@ pub struct DataTypeRootedSubgraph {
     pub data_type: PersistedDataType,
 }
 
-// TODO: should the fields be public
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PersistedPropertyType {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
-    pub inner: PropertyType,
-    pub metadata: PersistedOntologyMetadata,
+    inner: PropertyType,
+    metadata: PersistedOntologyMetadata,
+}
+
+impl PersistedPropertyType {
+    #[must_use]
+    pub const fn new(inner: PropertyType, metadata: PersistedOntologyMetadata) -> Self {
+        Self { inner, metadata }
+    }
+
+    #[must_use]
+    pub const fn inner(&self) -> &PropertyType {
+        &self.inner
+    }
+
+    #[must_use]
+    pub const fn metadata(&self) -> &PersistedOntologyMetadata {
+        &self.metadata
+    }
 }
 
 // TODO: should the fields be public

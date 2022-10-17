@@ -46,10 +46,10 @@ impl PersistedOntologyType for PersistedPropertyType {
             property_type.record.id().clone(),
             property_type.account_id,
         );
-        Self {
-            inner: property_type.record,
-            metadata: PersistedOntologyMetadata::new(identifier),
-        }
+        Self::new(
+            property_type.record,
+            PersistedOntologyMetadata::new(identifier),
+        )
     }
 }
 
