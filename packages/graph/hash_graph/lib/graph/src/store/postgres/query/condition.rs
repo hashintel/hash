@@ -115,15 +115,6 @@ pub enum ConditionValue<'q> {
     Parameter(usize),
 }
 
-impl Transpile for ConditionValue<'_> {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Column(column) => column.transpile(fmt),
-            Self::Parameter(index) => write!(fmt, "${index}"),
-        }
-    }
-}
-
 impl<'q> ConditionValue<'q> {
     pub fn from_filter_value<'f: 'q, T: QueryRecord<Path<'q>: Path>>(
         value: &'f FilterValue<'q, T>,
@@ -152,6 +143,15 @@ impl<'q> ConditionValue<'q> {
                     Self::Parameter(parameters.len())
                 }
             },
+        }
+    }
+}
+
+impl Transpile for ConditionValue<'_> {
+    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Column(column) => column.transpile(fmt),
+            Self::Parameter(index) => write!(fmt, "${index}"),
         }
     }
 }
