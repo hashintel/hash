@@ -22,7 +22,7 @@ impl<'q> Query for ReadQuery<'q, DataType> {
     }
 }
 
-/// A field available in [`DataType`]s.
+/// A [`Field`] available in [`DataType`]s.
 ///
 /// [`DataType`]: type_system::DataType
 #[derive(Debug, PartialEq, Eq)]
@@ -91,10 +91,10 @@ impl Field for DataTypeQueryField<'_> {
 
 impl Path for DataTypeQueryPath<'_> {
     fn tables(&self) -> Vec<TableName> {
-        vec![self.table_name()]
+        vec![self.terminating_table_name()]
     }
 
-    fn table_name(&self) -> TableName {
+    fn terminating_table_name(&self) -> TableName {
         match self {
             Self::BaseUri | Self::Version => TableName::TypeIds,
             Self::OwnedById

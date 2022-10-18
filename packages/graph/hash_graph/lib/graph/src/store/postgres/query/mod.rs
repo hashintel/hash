@@ -24,10 +24,10 @@ pub trait Query {
 
 /// An attribute of an ontology type or a knowledge element.
 pub trait Field {
-    /// The [`TableName`], where this field lives in.
+    /// The [`TableName`] of the [`Table`] where this field is located.
     fn table_name(&self) -> TableName;
 
-    /// The way, how to access the column inside of [`table_name()`] where this field lives in.
+    /// The way to access the column inside of [`table_name()`] where this field is located.
     ///
     /// [`table_name()`]: Self::table_name
     fn column_access(&self) -> ColumnAccess;
@@ -38,10 +38,10 @@ pub trait Path {
     /// Returns a list of [`TableName`]s required to traverse this path.
     fn tables(&self) -> Vec<TableName>;
 
-    /// The [`TableName`], where this path ends at.
-    fn table_name(&self) -> TableName;
+    /// The [`TableName`] that marks the end of the path.
+    fn terminating_table_name(&self) -> TableName;
 
-    /// The way, how to access the column inside of [`table_name()`] where this path ends at.
+    /// How to access the column inside of [`table_name()`] where this path ends.
     ///
     /// [`table_name()`]: Self::table_name
     fn column_access(&self) -> ColumnAccess;
