@@ -7,7 +7,7 @@ use serde::Serialize;
 
 use crate::store::postgres::query::Transpile;
 
-/// An identifier of a [`Table`] in the data base
+/// The name of a [`Table`] in the Postgres database.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TableName {
@@ -32,8 +32,10 @@ impl TableName {
 
 /// Alias parameters used to uniquely identify a [`Table`].
 ///
-/// When joining tables, each table requires a unique name. A [`Table`] may requires additional
-/// information attached to uniquely identify it.
+/// When joining tables in a query, it's necessary that the names used to reference them are unique.
+/// Achieving this can require aliasing the names if the various parts of the query rely on the same
+/// [`Table`] but under different conditions. To appropriately identify a [`Table`] when aliased,
+/// some additional information associated with it may be needed.
 ///
 /// # Examples
 ///
