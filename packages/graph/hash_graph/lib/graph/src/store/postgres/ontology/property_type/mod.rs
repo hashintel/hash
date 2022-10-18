@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use futures::{stream, FutureExt, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
-use type_system::{uri::VersionedUri, PropertyType, PropertyTypeReference};
+use type_system::{uri::VersionedUri, PropertyType};
 
 use crate::{
     ontology::{AccountId, PersistedOntologyMetadata, PersistedPropertyType},
@@ -18,7 +18,10 @@ use crate::{
         },
         AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
     },
-    subgraph::{GraphElementIdentifier, GraphResolveDepths, StructuralQuery, Subgraph, Vertex},
+    subgraph::{
+        EdgeKind, GraphElementIdentifier, GraphResolveDepths, OutwardEdge, StructuralQuery,
+        Subgraph, Vertex,
+    },
 };
 
 impl<C: AsClient> PostgresStore<C> {
@@ -55,10 +58,19 @@ impl<C: AsClient> PostgresStore<C> {
                 .await?;
 
             if let Some(property_type) = unresolved_property_type.cloned() {
-                if graph_resolve_depths.data_type_resolve_depth > 0 {
-                    // TODO: Use relation tables
-                    //   see https://app.asana.com/0/0/1202884883200942/f
-                    for data_type_ref in property_type.inner().data_type_references() {
+                // TODO: Use relation tables
+                //   see https://app.asana.com/0/0/1202884883200942/f
+                for data_type_ref in property_type.inner().data_type_references() {
+                    edges.insert(
+                        GraphElementIdentifier::OntologyElementId(property_type_id.clone()),
+                        OutwardEdge {
+                            edge_kind: EdgeKind::References,
+                            destination: GraphElementIdentifier::OntologyElementId(
+                                data_type_ref.uri().clone(),
+                            ),
+                        },
+                    );
+                    if graph_resolve_depths.data_type_resolve_depth > 0 {
                         self.get_data_type_as_dependency(data_type_ref.uri(), DependencyContext {
                             graph_resolve_depths: GraphResolveDepths {
                                 data_type_resolve_depth: graph_resolve_depths
@@ -78,20 +90,22 @@ impl<C: AsClient> PostgresStore<C> {
                     }
                 }
 
-                if context.graph_resolve_depths.property_type_resolve_depth > 0 {
-                    // TODO: Use relation tables
-                    //   see https://app.asana.com/0/0/1202884883200942/f
-                    let property_type_ids = property_type
-                        .inner()
-                        .property_type_references()
-                        .into_iter()
-                        .map(PropertyTypeReference::uri)
-                        .cloned()
-                        .collect::<Vec<_>>();
+                // TODO: Use relation tables
+                //   see https://app.asana.com/0/0/1202884883200942/f
+                for property_type_ref in property_type.inner().property_type_references() {
+                    edges.insert(
+                        GraphElementIdentifier::OntologyElementId(property_type_id.clone()),
+                        OutwardEdge {
+                            edge_kind: EdgeKind::References,
+                            destination: GraphElementIdentifier::OntologyElementId(
+                                property_type_ref.uri().clone(),
+                            ),
+                        },
+                    );
 
-                    for property_type_id in property_type_ids {
+                    if context.graph_resolve_depths.property_type_resolve_depth > 0 {
                         self.get_property_type_as_dependency(
-                            &property_type_id,
+                            property_type_ref.uri(),
                             DependencyContext {
                                 graph_resolve_depths: GraphResolveDepths {
                                     property_type_resolve_depth: graph_resolve_depths
