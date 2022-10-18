@@ -1,5 +1,5 @@
 import { FunctionComponent, useMemo, useState, useRef, useEffect } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box, Collapse, Typography } from "@mui/material";
 import {
   Avatar,
   Button,
@@ -12,11 +12,15 @@ import {
   faChevronUp,
   faEllipsisVertical,
   IconDefinition,
+  faLink,
+  faPencil,
+  faTrash,
 } from "@fortawesome/free-solid-svg-icons";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { bindTrigger } from "material-ui-popup-state";
 import { types } from "@hashintel/hash-shared/types";
 import { extractBaseUri } from "@blockprotocol/type-system-web";
+import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { PageComment } from "../../../components/hooks/usePageComments";
 import { CommentTextField, CommentTextFieldRef } from "./CommentTextField";
 import { CommentBlockMenu } from "./CommentBlockMenu";
@@ -62,6 +66,8 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
   const contentRef = useRef<CommentTextFieldRef>(null);
   const [collapsed, setCollapsed] = useState(true);
   const [shouldCollapse, setShouldCollapse] = useState(false);
+  const [editable, setEditable] = useState(false);
+  const [inputValue, setInputValue] = useState<TextToken[]>([]);
 
   const commentCreatedAt = useMemo(() => {
     const updatedAt = new Date(textUpdatedAt);
@@ -92,6 +98,41 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
       ],
     [author.properties],
   );
+
+  const menuItems = useMemo(
+    () => [
+      {
+        title: editable ? "Cancel Edit" : "Edit",
+        icon: faPencil,
+        onClick: () => {
+          setEditable(!editable);
+          commentMenuPopupState.close();
+        },
+      },
+      {
+        title: "Copy Link",
+        icon: faLink,
+        // @todo Commented implement functionality
+        onClick: () => {
+          commentMenuPopupState.close();
+        },
+      },
+      {
+        title: "Delete Comment",
+        icon: faTrash,
+        // @todo Commented implement functionality
+        onClick: () => {
+          commentMenuPopupState.close();
+        },
+      },
+    ],
+    [editable, setEditable, commentMenuPopupState],
+  );
+
+  const cancelEdit = () => {
+    contentRef.current?.resetDocument();
+    setEditable(false);
+  };
 
   return (
     <Box display="flex" flexDirection="column" p={2}>
@@ -135,13 +176,62 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
       </Box>
 
       <Box p={0.5} pt={2} position="relative">
-        <CommentTextField
-          ref={contentRef}
-          initialText={hasText}
-          classNames={collapsed ? styles.Comment__TextField_collapsed! : ""}
-          readOnly
-        />
-        {shouldCollapse && collapsed ? (
+        <Box
+          sx={({ palette, transitions }) => ({
+            border: `${editable ? 1 : 0}px solid ${palette.gray[30]}`,
+            pl: editable ? 2 : 0,
+            borderRadius: 1.5,
+            transition: transitions.create(["padding", "border-color"]),
+            "&:focus-within": {
+              borderColor: palette.blue[60],
+            },
+          })}
+        >
+          <CommentTextField
+            ref={contentRef}
+            initialText={hasText}
+            classNames={`${styles.Comment__TextField} ${
+              editable
+                ? styles.Comment__TextField_editable
+                : collapsed
+                ? styles.Comment__TextField_collapsed!
+                : ""
+            }`}
+            editable={editable}
+            readOnly={!editable}
+            placeholder="Edit comment"
+            // onClose={cancelSubmit}
+            // onSubmit={submitComment}
+            // editable={!loading}
+            onChange={setInputValue}
+          />
+        </Box>
+
+        <Collapse in={editable}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 0.75,
+              justifyContent: "flex-end",
+              pt: 0.75,
+            }}
+          >
+            <Button size="xs" variant="tertiary" onClick={cancelEdit}>
+              Cancel
+            </Button>
+            <Button
+              size="xs"
+              variant="secondary"
+              // disabled={!inputValue.length}
+              // onClick={submitComment}
+              // loading={loading}
+            >
+              Reply
+            </Button>
+          </Box>
+        </Collapse>
+
+        {!editable && shouldCollapse && collapsed ? (
           <Box
             sx={{
               display: "flex",
@@ -172,7 +262,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
         ) : null}
       </Box>
 
-      {shouldCollapse && !collapsed ? (
+      {!editable && shouldCollapse && !collapsed ? (
         <ToggleTextExpandedButton
           label="Show Less"
           icon={faChevronUp}
@@ -180,7 +270,11 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
         />
       ) : null}
 
-      <CommentBlockMenu popupState={commentMenuPopupState} />
+      <CommentBlockMenu
+        menuItems={menuItems}
+        popupState={commentMenuPopupState}
+        onEditableChange={() => setEditable(!editable)}
+      />
     </Box>
   );
 };

@@ -1,41 +1,26 @@
-import { FunctionComponent, useMemo } from "react";
+import { FunctionComponent } from "react";
 import { ListItemIcon, ListItemText } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
-import { faLink, faPencil, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import { Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { MenuItem } from "../../../shared/ui";
 
+interface MenuItem {
+  title: string;
+  icon: IconDefinition;
+  onClick: () => void;
+}
+
 type CommentBlockMenuProps = {
+  menuItems: MenuItem[];
   popupState: PopupState;
+  onEditableChange: () => void;
 };
 
 export const CommentBlockMenu: FunctionComponent<CommentBlockMenuProps> = ({
+  menuItems,
   popupState,
 }) => {
-  const menuItems = useMemo(
-    () => [
-      {
-        title: "Edit",
-        icon: faPencil,
-        // @todo Commented implement functionality
-        onClick: async () => {},
-      },
-      {
-        title: "Copy Link",
-        icon: faLink,
-        // @todo Commented implement functionality
-        onClick: async () => {},
-      },
-      {
-        title: "Delete Comment",
-        icon: faTrash,
-        // @todo Commented implement functionality
-        onClick: async () => {},
-      },
-    ],
-    [],
-  );
-
   const bindMenuProps = bindMenu(popupState);
 
   return (
