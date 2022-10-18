@@ -113,59 +113,55 @@ impl<C: AsClient> PostgresStore<C> {
                         },
                     );
 
-                    if context.graph_resolve_depths.link_type_resolve_depth > 0
-                        || context.graph_resolve_depths.entity_type_resolve_depth > 0
-                    {
-                        if graph_resolve_depths.link_type_resolve_depth > 0 {
-                            self.get_link_type_as_dependency(link_type_id, DependencyContext {
-                                graph_resolve_depths: GraphResolveDepths {
-                                    link_type_resolve_depth: graph_resolve_depths
-                                        .link_type_resolve_depth
-                                        - 1,
-                                    ..graph_resolve_depths
-                                },
-                                edges,
-                                referenced_data_types,
-                                referenced_property_types,
-                                referenced_link_types,
-                                referenced_entity_types,
-                                linked_entities,
-                                links,
-                            })
-                            .await?;
-                        }
-                        for referenced_entity_type_id in entity_type_ids {
-                            edges.insert(
-                                GraphElementIdentifier::OntologyElementId(entity_type_id.clone()),
-                                OutwardEdge {
-                                    edge_kind: EdgeKind::References,
-                                    destination: GraphElementIdentifier::OntologyElementId(
-                                        referenced_entity_type_id.uri().clone(),
-                                    ),
-                                },
-                            );
+                    if graph_resolve_depths.link_type_resolve_depth > 0 {
+                        self.get_link_type_as_dependency(link_type_id, DependencyContext {
+                            graph_resolve_depths: GraphResolveDepths {
+                                link_type_resolve_depth: graph_resolve_depths
+                                    .link_type_resolve_depth
+                                    - 1,
+                                ..graph_resolve_depths
+                            },
+                            edges,
+                            referenced_data_types,
+                            referenced_property_types,
+                            referenced_link_types,
+                            referenced_entity_types,
+                            linked_entities,
+                            links,
+                        })
+                        .await?;
+                    }
+                    for referenced_entity_type_id in entity_type_ids {
+                        edges.insert(
+                            GraphElementIdentifier::OntologyElementId(entity_type_id.clone()),
+                            OutwardEdge {
+                                edge_kind: EdgeKind::References,
+                                destination: GraphElementIdentifier::OntologyElementId(
+                                    referenced_entity_type_id.uri().clone(),
+                                ),
+                            },
+                        );
 
-                            if context.graph_resolve_depths.entity_type_resolve_depth > 0 {
-                                self.get_entity_type_as_dependency(
-                                    referenced_entity_type_id.uri(),
-                                    DependencyContext {
-                                        graph_resolve_depths: GraphResolveDepths {
-                                            entity_type_resolve_depth: graph_resolve_depths
-                                                .entity_type_resolve_depth
-                                                - 1,
-                                            ..graph_resolve_depths
-                                        },
-                                        edges,
-                                        referenced_data_types,
-                                        referenced_property_types,
-                                        referenced_link_types,
-                                        referenced_entity_types,
-                                        linked_entities,
-                                        links,
+                        if context.graph_resolve_depths.entity_type_resolve_depth > 0 {
+                            self.get_entity_type_as_dependency(
+                                referenced_entity_type_id.uri(),
+                                DependencyContext {
+                                    graph_resolve_depths: GraphResolveDepths {
+                                        entity_type_resolve_depth: graph_resolve_depths
+                                            .entity_type_resolve_depth
+                                            - 1,
+                                        ..graph_resolve_depths
                                     },
-                                )
-                                .await?;
-                            }
+                                    edges,
+                                    referenced_data_types,
+                                    referenced_property_types,
+                                    referenced_link_types,
+                                    referenced_entity_types,
+                                    linked_entities,
+                                    links,
+                                },
+                            )
+                            .await?;
                         }
                     }
                 }
