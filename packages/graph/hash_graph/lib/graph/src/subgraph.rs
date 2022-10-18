@@ -18,10 +18,10 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkId {
-    source_entity_id: EntityId,
-    target_entity_id: EntityId,
+    pub source_entity_id: EntityId,
+    pub target_entity_id: EntityId,
     #[schema(value_type = String)]
-    link_type_id: VersionedUri,
+    pub link_type_id: VersionedUri,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]

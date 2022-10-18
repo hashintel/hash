@@ -24,7 +24,9 @@ use crate::{
         },
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::{GraphResolveDepths, StructuralQuery},
+    subgraph::{
+        EdgeKind, GraphElementIdentifier, GraphResolveDepths, LinkId, OutwardEdge, StructuralQuery,
+    },
 };
 
 impl<C: AsClient> PostgresStore<C> {
@@ -63,7 +65,20 @@ impl<C: AsClient> PostgresStore<C> {
                 .await?;
 
             if let Some(entity) = unresolved_entity {
+                // Cloning the entity type ID avoids multiple borrow errors which would otherwise
+                // require us to clone the entity
                 let entity_type_id = entity.metadata().entity_type_id().clone();
+
+                edges.insert(
+                    GraphElementIdentifier::KnowledgeGraphElementId(entity_id),
+                    OutwardEdge {
+                        edge_kind: EdgeKind::HasType,
+                        destination: GraphElementIdentifier::OntologyElementId(
+                            entity_type_id.clone(),
+                        ),
+                    },
+                );
+
                 if graph_resolve_depths.entity_type_resolve_depth > 0 {
                     self.get_entity_type_as_dependency(&entity_type_id, DependencyContext {
                         graph_resolve_depths: GraphResolveDepths {
@@ -84,13 +99,25 @@ impl<C: AsClient> PostgresStore<C> {
                     .await?;
                 }
 
-                if graph_resolve_depths.link_resolve_depth > 0 {
-                    for link_record in self
-                        .read_links_by_source(entity_id)
-                        .await?
-                        .try_collect::<Vec<_>>()
-                        .await?
-                    {
+                for link_record in self
+                    .read_links_by_source(entity_id)
+                    .await?
+                    .try_collect::<Vec<_>>()
+                    .await?
+                {
+                    edges.insert(
+                        GraphElementIdentifier::KnowledgeGraphElementId(entity_id),
+                        OutwardEdge {
+                            edge_kind: EdgeKind::HasLink,
+                            destination: GraphElementIdentifier::Temporary(LinkId {
+                                source_entity_id: link_record.source_entity_id,
+                                target_entity_id: link_record.target_entity_id,
+                                link_type_id: link_record.link_type_id.clone(),
+                            }),
+                        },
+                    );
+
+                    if graph_resolve_depths.link_resolve_depth > 0 {
                         let link = PersistedLink::from(link_record);
 
                         self.get_link_as_dependency(&link, DependencyContext {
