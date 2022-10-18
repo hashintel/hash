@@ -1,7 +1,7 @@
 mod read;
 mod resolve;
 
-use std::{collections::HashMap, future::Future, pin::Pin};
+use std::{future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
@@ -14,7 +14,7 @@ use crate::{
     store::{
         crud::Read,
         error::LinkRemovalError,
-        postgres::{DependencyContext, DependencyMap, DependencySet},
+        postgres::{DependencyContext, DependencyMap, DependencySet, Edges},
         AsClient, InsertionError, LinkStore, PostgresStore, QueryError,
     },
     subgraph::{GraphResolveDepths, StructuralQuery},
@@ -127,7 +127,7 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
 
         stream::iter(Read::<PersistedLink>::read(self, expression).await?)
             .then(|link| async move {
-                let mut edges = HashMap::new();
+                let mut edges = Edges::new();
                 let mut referenced_data_types = DependencyMap::new();
                 let mut referenced_property_types = DependencyMap::new();
                 let mut referenced_link_types = DependencyMap::new();

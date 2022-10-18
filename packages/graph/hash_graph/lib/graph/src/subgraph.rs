@@ -93,7 +93,7 @@ impl ToSchema for Vertex {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum EdgeKind {
     /// An entity has a link
@@ -106,11 +106,11 @@ pub enum EdgeKind {
     References,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct OutwardEdge {
-    edge_kind: EdgeKind,
-    destination: GraphElementIdentifier,
+    pub edge_kind: EdgeKind,
+    pub destination: GraphElementIdentifier,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]

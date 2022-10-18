@@ -1,6 +1,6 @@
 mod resolve;
 
-use std::{collections::HashMap, future::Future, pin::Pin};
+use std::{future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
@@ -15,7 +15,7 @@ use crate::{
     store::{
         crud::Read,
         postgres::{
-            context::PostgresContext, DependencyContext, DependencyMap, DependencySet,
+            context::PostgresContext, DependencyContext, DependencyMap, DependencySet, Edges,
             PersistedOntologyType,
         },
         AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
@@ -213,7 +213,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
         stream::iter(Read::<PersistedEntityType>::read(self, expression).await?)
             .then(|entity_type| async move {
-                let mut edges = HashMap::new();
+                let mut edges = Edges::new();
                 let mut referenced_data_types = DependencyMap::new();
                 let mut referenced_property_types = DependencyMap::new();
                 let mut referenced_link_types = DependencyMap::new();

@@ -13,7 +13,7 @@ use crate::{
     store::{
         crud::Read,
         postgres::{
-            context::PostgresContext, DependencyContext, DependencyMap, DependencySet,
+            context::PostgresContext, DependencyContext, DependencyMap, DependencySet, Edges,
             PersistedOntologyType,
         },
         AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
@@ -172,7 +172,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let roots_and_vertices =
             stream::iter(Read::<PersistedPropertyType>::read(self, expression).await?)
                 .then(|property_type| async move {
-                    let mut edges = HashMap::new();
+                    let mut edges = Edges::new();
                     let mut referenced_data_types = DependencyMap::new();
                     let mut referenced_property_types = DependencyMap::new();
                     let mut referenced_link_types = DependencyMap::new();
