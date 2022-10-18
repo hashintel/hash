@@ -14,7 +14,6 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 pub use self::data_type::DataTypeQueryPath;
-use crate::{store::query::Expression, subgraph::GraphResolveDepths};
 
 // TODO - find a good place for AccountId, perhaps it will become redundant in a future design
 

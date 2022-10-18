@@ -25,6 +25,8 @@ pub trait Query {
 /// An attribute of an ontology type or a knowledge element.
 pub trait Field {
     /// The [`TableName`] of the [`Table`] where this field is located.
+    ///
+    /// [`Table`]: database::Table
     fn table_name(&self) -> TableName;
 
     /// The way to access the column inside of [`table_name()`] where this field is located.
@@ -41,9 +43,9 @@ pub trait Path {
     /// The [`TableName`] that marks the end of the path.
     fn terminating_table_name(&self) -> TableName;
 
-    /// How to access the column inside of [`table_name()`] where this path ends.
+    /// How to access the column inside of [`terminating_table_name()`] where this path ends.
     ///
-    /// [`table_name()`]: Self::table_name
+    /// [`terminating_table_name()`]: Self::terminating_table_name
     fn column_access(&self) -> ColumnAccess;
 }
 
