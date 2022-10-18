@@ -391,12 +391,14 @@ export default class extends EntityModel {
             },
           ],
         },
-        dataTypeQueryDepth: 0,
-        propertyTypeQueryDepth: 0,
-        linkTypeQueryDepth: 0,
-        entityTypeQueryDepth: 0,
-        linkTargetEntityQueryDepth: 0,
-        linkQueryDepth: 0,
+        graphResolveDepths: {
+          dataTypeResolveDepth: 0,
+          propertyTypeResolveDepth: 0,
+          linkTypeResolveDepth: 0,
+          entityTypeResolveDepth: 0,
+          linkResolveDepth: 0,
+          linkTargetEntityResolveDepth: 0,
+        },
       });
 
     return await Promise.all(

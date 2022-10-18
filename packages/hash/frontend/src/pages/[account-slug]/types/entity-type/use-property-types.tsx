@@ -11,18 +11,30 @@ export const useRemotePropertyTypes = () => {
   const { aggregatePropertyTypes } = useBlockProtocolAggregatePropertyTypes();
 
   useEffect(() => {
-    void aggregatePropertyTypes({ data: {} }).then((data) => {
+    void aggregatePropertyTypes({ data: {} }).then(({ data }) => {
       // @todo error handling
-      if (data.data) {
+      if (data) {
         setPropertyTypes(
           Object.fromEntries(
-            data.data.results.map(
-              (result) =>
-                [
-                  mustBeVersionedUri(result.propertyTypeId),
-                  result.propertyType,
-                ] as const,
-            ),
+            data.roots.map((propertyTypeId) => {
+              const propertyTypeVertex = data.vertices[propertyTypeId];
+
+              if (!propertyTypeVertex) {
+                throw new Error(
+                  "property type was missing from the subgraph vertices list",
+                );
+              }
+              if (propertyTypeVertex.kind !== "propertyType") {
+                throw new Error(
+                  `expected property type but got ${propertyTypeVertex.kind}`,
+                );
+              }
+
+              return [
+                mustBeVersionedUri(propertyTypeId),
+                propertyTypeVertex.inner.inner,
+              ] as const;
+            }),
           ),
         );
       }

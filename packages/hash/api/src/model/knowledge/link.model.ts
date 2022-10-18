@@ -1,6 +1,6 @@
 import {
+  StructuralQuery,
   GraphApi,
-  KnowledgeGraphQuery,
   PersistedLink,
 } from "@hashintel/hash-graph-client";
 
@@ -75,16 +75,23 @@ export default class {
   static async getByQuery(
     graphApi: GraphApi,
     query: object,
-    options?: Omit<Partial<KnowledgeGraphQuery>, "query">,
+    options?: Omit<Partial<StructuralQuery>, "query">,
   ): Promise<LinkModel[]> {
     const { data: linkRootedSubgraphs } = await graphApi.getLinksByQuery({
       query,
-      dataTypeQueryDepth: options?.dataTypeQueryDepth ?? 0,
-      propertyTypeQueryDepth: options?.propertyTypeQueryDepth ?? 0,
-      linkTypeQueryDepth: options?.linkTypeQueryDepth ?? 0,
-      entityTypeQueryDepth: options?.entityTypeQueryDepth ?? 0,
-      linkTargetEntityQueryDepth: options?.linkTargetEntityQueryDepth ?? 0,
-      linkQueryDepth: options?.linkQueryDepth ?? 0,
+      graphResolveDepths: {
+        dataTypeResolveDepth:
+          options?.graphResolveDepths?.dataTypeResolveDepth ?? 0,
+        propertyTypeResolveDepth:
+          options?.graphResolveDepths?.propertyTypeResolveDepth ?? 0,
+        linkTypeResolveDepth:
+          options?.graphResolveDepths?.linkTypeResolveDepth ?? 0,
+        entityTypeResolveDepth:
+          options?.graphResolveDepths?.entityTypeResolveDepth ?? 0,
+        linkResolveDepth: options?.graphResolveDepths?.linkResolveDepth ?? 0,
+        linkTargetEntityResolveDepth:
+          options?.graphResolveDepths?.linkTargetEntityResolveDepth ?? 0,
+      },
     });
 
     return await Promise.all(

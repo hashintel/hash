@@ -10,6 +10,7 @@ use crate::{
         OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedLinkType,
         PersistedPropertyType,
     },
+    store::query::Expression,
 };
 
 // TODO - This is temporary and introduced for consistency, we need to introduce actual IDs for
@@ -65,12 +66,12 @@ impl ToSchema for Vertex {
             openapi::OneOfBuilder::new().discriminator(Some(openapi::Discriminator::new("kind")));
 
         for (kind, schema) in [
-            ("DATA_TYPE", PersistedDataType::schema()),
-            ("PROPERTY_TYPE", PersistedPropertyType::schema()),
-            ("LINK_TYPE", PersistedLinkType::schema()),
-            ("ENTITY_TYPE", PersistedEntityType::schema()),
-            ("ENTITY", PersistedEntity::schema()),
-            ("LINK", PersistedLink::schema()),
+            ("dataType", PersistedDataType::schema()),
+            ("propertyType", PersistedPropertyType::schema()),
+            ("linkType", PersistedLinkType::schema()),
+            ("entityType", PersistedEntityType::schema()),
+            ("entity", PersistedEntity::schema()),
+            ("link", PersistedLink::schema()),
         ] {
             builder = builder.item(
                 openapi::ObjectBuilder::new()
@@ -124,9 +125,24 @@ pub struct GraphResolveDepths {
     #[schema(value_type = number)]
     pub link_type_resolve_depth: OntologyQueryDepth,
     #[schema(value_type = number)]
-    pub entity_resolve_depth: KnowledgeGraphQueryDepth,
-    #[schema(value_type = number)]
     pub link_resolve_depth: KnowledgeGraphQueryDepth,
+    // TODO: what is this?
+    #[schema(value_type = number)]
+    pub link_target_entity_resolve_depth: KnowledgeGraphQueryDepth,
+}
+
+impl GraphResolveDepths {
+    #[must_use]
+    pub const fn zeroed() -> Self {
+        Self {
+            data_type_resolve_depth: 0,
+            property_type_resolve_depth: 0,
+            entity_type_resolve_depth: 0,
+            link_type_resolve_depth: 0,
+            link_resolve_depth: 0,
+            link_target_entity_resolve_depth: 0,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
@@ -136,4 +152,14 @@ pub struct Subgraph {
     pub vertices: HashMap<GraphElementIdentifier, Vertex>,
     pub edges: HashMap<GraphElementIdentifier, Vec<OutwardEdge>>,
     pub depths: GraphResolveDepths,
+}
+
+/// An [`Expression`] to query the datastore, recursively resolving according to the
+/// [`GraphResolveDepths`]
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct StructuralQuery {
+    #[serde(rename = "query")]
+    pub expression: Expression,
+    pub graph_resolve_depths: GraphResolveDepths,
 }

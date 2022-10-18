@@ -1,3 +1,9 @@
+import { Subgraph } from "@hashintel/hash-graph-client";
+import {
+  EntityTypeVertex,
+  PropertyTypeVertex,
+} from "@hashintel/hash-shared/graphql/types";
+import { EntityType, PropertyType } from "@blockprotocol/type-system-web";
 import {
   DataTypeModel,
   EntityTypeModel,
@@ -9,8 +15,8 @@ import {
   PersistedEntityType as PersistedEntityTypeGql,
   PersistedLinkType as PersistedLinkTypeGql,
   PersistedPropertyType as PersistedPropertyTypeGql,
-  PropertyTypeRootedSubgraph as PropertyTypeRootedSubgraphGql,
   EntityTypeRootedSubgraph as EntityTypeRootedSubgraphGql,
+  Subgraph as SubgraphGql,
 } from "../../apiTypes.gen";
 
 export const mapDataTypeModelToGQL = (
@@ -29,25 +35,6 @@ export const mapPropertyTypeModelToGQL = (
   accountId: propertyType.ownedById,
   propertyTypeId: propertyType.schema.$id,
   propertyType: propertyType.schema,
-});
-
-export const mapPropertyTypeRootedSubgraphToGQL = ({
-  propertyType,
-  referencedDataTypes,
-  referencedPropertyTypes,
-}: {
-  propertyType: PropertyTypeModel;
-  referencedDataTypes: DataTypeModel[];
-  referencedPropertyTypes: PropertyTypeModel[];
-}): PropertyTypeRootedSubgraphGql => ({
-  ownedById: propertyType.ownedById,
-  accountId: propertyType.ownedById,
-  propertyTypeId: propertyType.schema.$id,
-  propertyType: propertyType.schema,
-  referencedDataTypes: referencedDataTypes.map(mapDataTypeModelToGQL),
-  referencedPropertyTypes: referencedPropertyTypes.map(
-    mapPropertyTypeModelToGQL,
-  ),
 });
 
 export const mapLinkTypeModelToGQL = (
@@ -88,3 +75,58 @@ export const mapEntityTypeRootedSubgraphToGQL = (params: {
     mapEntityTypeModelToGQL,
   ),
 });
+
+/**
+ * @todo and a warning, this mapping function is here to compensate for
+ *   the differences between the Graph API package and the
+ *   type system package.
+ *
+ *   The type system package can be considered the source of truth in
+ *   terms of the shape of values returned from the API, but the API
+ *   client is unable to be given as type package types - it generates
+ *   its own types.
+ *   https://app.asana.com/0/1202805690238892/1202892835843657/f
+ */
+export const mapSubgraphToGql = (subgraph: Subgraph): SubgraphGql => {
+  return {
+    ...subgraph,
+    vertices: Object.fromEntries(
+      Object.entries(subgraph.vertices).map(([identifier, vertex]) => {
+        switch (vertex.kind) {
+          // These types are compatible with the Type System package's types
+          case "dataType" || "linkType" || "entity" || "link": {
+            return [identifier, vertex];
+          }
+          // The OpenAPI spec currently incorrectly expresses these
+          case "propertyType": {
+            const propertyTypeVertex: PropertyTypeVertex = {
+              kind: vertex.kind,
+              inner: {
+                ...vertex.inner,
+                inner: vertex.inner.inner as PropertyType,
+              },
+            };
+            return [identifier, propertyTypeVertex];
+          }
+          case "entityType": {
+            const entityTypeVertex: EntityTypeVertex = {
+              kind: vertex.kind,
+              inner: {
+                ...vertex.inner,
+                inner: vertex.inner.inner as EntityType,
+              },
+            };
+            return [identifier, entityTypeVertex];
+          }
+          // TypeScript is failing to recognize this is unreachable (due to the combined initial case) and therefore
+          // thinks the function can return undefined without it
+          default: {
+            throw new Error(
+              `this should be unreachable, unknown vertex kind: ${vertex.kind}`,
+            );
+          }
+        }
+      }),
+    ),
+  };
+};

@@ -14,6 +14,16 @@ generates:
         TextToken: ./types#TextToken
         Date: string
         UnknownEntityProperties: ./types#UnknownEntityProperties
+        DataType: "@blockprotocol/type-system-web#DataType"
+        PropertyType: "@blockprotocol/type-system-web#PropertyType"
+        LinkType: "@blockprotocol/type-system-web#LinkType"
+        EntityType: "@blockprotocol/type-system-web#EntityType"
+        DataTypeWithoutId: "@hashintel/hash-shared/graphql/types#DataTypeWithoutId"
+        PropertyTypeWithoutId: "@hashintel/hash-shared/graphql/types#PropertyTypeWithoutId"
+        EntityTypeWithoutId: "@hashintel/hash-shared/graphql/types#EntityTypeWithoutId"
+        LinkTypeWithoutId: "@hashintel/hash-shared/graphql/types#LinkTypeWithoutId"
+        Edges: "@hashintel/hash-shared/graphql/types#Edges"
+        Vertices: "@hashintel/hash-shared/graphql/types#Vertices"
     documents:
       - ./src/queries/*.ts
       - ../api/src/collab/graphql/queries/*.ts

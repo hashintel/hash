@@ -3,9 +3,10 @@ use std::{iter::repeat, str::FromStr};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
-    knowledge::{Entity, EntityId, KnowledgeGraphQuery},
+    knowledge::{Entity, EntityId},
     ontology::AccountId,
     store::{query::Expression, AccountStore, AsClient, EntityStore, PostgresStore},
+    subgraph::{GraphResolveDepths, StructuralQuery},
 };
 use graph_test_data::{data_type, entity, entity_type, link_type, property_type};
 use rand::{prelude::IteratorRandom, thread_rng};
@@ -98,14 +99,16 @@ pub fn bench_get_entity_by_id(
         },
         |entity_id| async move {
             store
-                .get_entity(&KnowledgeGraphQuery {
+                .get_entity(&StructuralQuery {
                     expression: Expression::for_latest_entity_id(entity_id),
-                    data_type_query_depth: 0,
-                    property_type_query_depth: 0,
-                    link_type_query_depth: 0,
-                    entity_type_query_depth: 0,
-                    link_target_entity_query_depth: 0,
-                    link_query_depth: 0,
+                    graph_resolve_depths: GraphResolveDepths {
+                        data_type_resolve_depth: 0,
+                        property_type_resolve_depth: 0,
+                        entity_type_resolve_depth: 0,
+                        link_type_resolve_depth: 0,
+                        link_resolve_depth: 0,
+                        link_target_entity_resolve_depth: 0,
+                    },
                 })
                 .await
                 .expect("failed to read entity from store");
