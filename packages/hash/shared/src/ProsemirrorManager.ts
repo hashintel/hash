@@ -321,7 +321,7 @@ export class ProsemirrorManager {
         addEntityStoreAction(this.view.state, tr, {
           type: "updateEntityProperties",
           payload: {
-            draftId: blockEntity.dataEntity?.draftId!,
+            draftId: blockEntity.blockChildEntity?.draftId!,
             properties: entityProperties,
             merge: true,
           },
@@ -425,7 +425,7 @@ export class ProsemirrorManager {
       throw new Error("Can only update child of a BlockEntity");
     }
 
-    const childEntity = blockEntity.dataEntity;
+    const childEntity = blockEntity.blockChildEntity;
 
     // If the target entity is the same as the block's child entity
     // we don't need to do anything
@@ -530,8 +530,10 @@ export class ProsemirrorManager {
         merge: false,
         blockEntityMetadata: {
           componentId: targetComponentId,
-          dataEntity: entityStorePluginStateFromTransaction(tr, this.view.state)
-            .store.draft[blockDataDraftId],
+          blockChildEntity: entityStorePluginStateFromTransaction(
+            tr,
+            this.view.state,
+          ).store.draft[blockDataDraftId],
         },
       },
     });

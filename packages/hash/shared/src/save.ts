@@ -136,7 +136,7 @@ const calculateSaveActions = async (
         const blockEntity = Object.values(store.draft).find(
           (entity): entity is DraftEntity<BlockEntity> =>
             isDraftBlockEntity(entity) &&
-            entity.dataEntity?.draftId === draftEntity.draftId,
+            entity.blockChildEntity?.draftId === draftEntity.draftId,
         );
 
         if (!blockEntity) {
@@ -261,12 +261,12 @@ const calculateSaveActions = async (
       }
 
       // extract the children for comparison
-      const newChildEntityForBlock = draftEntity.dataEntity;
-      if (!("dataEntity" in savedEntity)) {
+      const newChildEntityForBlock = draftEntity.blockChildEntity;
+      if (!("blockChildEntity" in savedEntity)) {
         throw new Error("Missing child entity in saved block entity");
       }
 
-      const oldChildEntityForBlock = savedEntity.dataEntity;
+      const oldChildEntityForBlock = savedEntity.blockChildEntity;
 
       if (
         oldChildEntityForBlock?.entityId !== newChildEntityForBlock?.entityId
@@ -307,11 +307,11 @@ const calculateSaveActions = async (
         throw new Error("missing draft entity");
       }
 
-      const blockData = draftEntity.dataEntity;
-      const dataEntityId =
+      const blockData = draftEntity.blockChildEntity;
+      const blockChildEntityId =
         blockData?.entityId ?? draftIdToPlaceholderId.get(blockData!.draftId!);
 
-      if (!dataEntityId) {
+      if (!blockChildEntityId) {
         throw new Error("Block data entity id missing");
       }
 
@@ -328,7 +328,7 @@ const calculateSaveActions = async (
           entity: {
             existingEntity: {
               ownedById: blockData!.accountId,
-              entityId: dataEntityId,
+              entityId: blockChildEntityId,
             },
           },
           ...(draftEntity.entityId

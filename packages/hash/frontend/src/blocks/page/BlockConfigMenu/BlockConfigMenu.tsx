@@ -192,7 +192,7 @@ export const BlockConfigMenu: FunctionComponent<BlockConfigMenuProps> = ({
 
   const configProperties = extractConfigPropertySchemas(blockSchema ?? {});
 
-  const entityData = blockEntity?.dataEntity.properties as
+  const entityData = blockEntity?.blockChildEntity.properties as
     | JsonObject
     | undefined;
 

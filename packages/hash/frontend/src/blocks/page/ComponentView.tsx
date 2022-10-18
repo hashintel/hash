@@ -42,13 +42,13 @@ const BLANK_PROPERTIES = {};
 
 const getChildEntity = (
   entity: DraftEntity | null | undefined,
-): DraftEntity<BlockEntity["dataEntity"]> | null => {
-  if (entity && entity.dataEntity) {
+): DraftEntity<BlockEntity["blockChildEntity"]> | null => {
+  if (entity && entity.blockChildEntity) {
     if (!isDraftBlockEntity(entity)) {
       throw new Error("Cannot prepare non-block entity for prosemirrior");
     }
 
-    return entity.dataEntity as DraftEntity;
+    return entity.blockChildEntity as DraftEntity;
   }
 
   return null;

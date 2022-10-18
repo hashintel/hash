@@ -17,10 +17,10 @@ type ContentsEntity = DistributiveOmit<
 >;
 
 export type BlockEntity = ContentsEntity & {
-  dataEntity: DistributivePick<
-    ContentsEntity["dataEntity"] | Text,
-    keyof ContentsEntity["dataEntity"] &
-      keyof (ContentsEntity["dataEntity"] | Text)
+  blockChildEntity: DistributivePick<
+    ContentsEntity["blockChildEntity"] | Text,
+    keyof ContentsEntity["blockChildEntity"] &
+      keyof (ContentsEntity["blockChildEntity"] | Text)
   >;
 };
 
@@ -62,8 +62,8 @@ export const getEntityChildEntity = (
     throw new Error("invariant: missing entity");
   }
 
-  const childEntity = entity.dataEntity?.draftId
-    ? draftEntityStore[entity.dataEntity.draftId]
+  const childEntity = entity.blockChildEntity?.draftId
+    ? draftEntityStore[entity.blockChildEntity.draftId]
     : null;
 
   return childEntity;

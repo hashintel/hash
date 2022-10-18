@@ -53,7 +53,7 @@ export const mapPageModelToGQL = (
 
 export type ExternalPersistedBlockResolversGQL =
   | ExternalPersistedEntityResolversGQL
-  | "dataEntity";
+  | "blockChildEntity";
 export type UnresolvedPersistedBlockGQL = Omit<
   PersistedBlock,
   ExternalPersistedBlockResolversGQL

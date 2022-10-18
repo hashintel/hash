@@ -64,8 +64,7 @@ export type EntityStorePluginAction = { received?: boolean } & (
         | {
             blockEntityMetadata: {
               componentId: string;
-              // don't meerge before @TODO rename to `blockChildEntity`
-              dataEntity?: { [key: string]: unknown };
+              blockChildEntity?: { [key: string]: unknown };
             };
           }
         | { properties: { [key: string]: unknown } }
@@ -157,9 +156,9 @@ const updateEntitiesByDraftId = (
 
   for (const entity of Object.values(draftEntityStore)) {
     if (isDraftBlockEntity(entity)) {
-      const dataEntity = entity.dataEntity!;
-      if (dataEntity.draftId && dataEntity.draftId === draftId) {
-        entities.push(dataEntity as DraftEntity);
+      const blockChildEntity = entity.blockChildEntity!;
+      if (blockChildEntity.draftId && blockChildEntity.draftId === draftId) {
+        entities.push(blockChildEntity as DraftEntity);
       }
     }
   }
@@ -266,8 +265,8 @@ const entityStoreReducer = (
             if ("blockEntityMetadata" in action.payload) {
               draftEntity.componentId =
                 action.payload.blockEntityMetadata?.componentId;
-              draftEntity.dataEntity = action.payload.blockEntityMetadata
-                ?.dataEntity as any;
+              draftEntity.blockChildEntity = action.payload.blockEntityMetadata
+                ?.blockChildEntity as any;
             }
 
             if ("properties" in action.payload) {
@@ -532,7 +531,7 @@ class ProsemirrorStateChangeHandler {
             merge: false,
             draftId: parentEntity.draftId,
             blockEntityMetadata: {
-              dataEntity:
+              blockChildEntity:
                 draftEntityStore[getRequiredDraftIdFromEntityNode(node)],
               componentId,
             },

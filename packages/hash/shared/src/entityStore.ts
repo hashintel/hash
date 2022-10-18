@@ -5,7 +5,7 @@ import { BlockEntity } from "./entity";
 import { types } from "./types";
 import { MinimalEntityTypeFieldsFragment } from "./graphql/apiTypes.gen";
 
-export type EntityStoreType = BlockEntity | BlockEntity["dataEntity"];
+export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];
 
 export const TEXT_ENTITY_TYPE_ID = types.entityType.text.entityTypeId;
 // `extractBaseUri` does not work within this context, so this is a hacky way to get the base URI.
@@ -19,7 +19,7 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   entityVersion?: string;
   entityType?: MinimalEntityTypeFieldsFragment;
   /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
-  dataEntity?: Type & { draftId?: string };
+  blockChildEntity?: Type & { draftId?: string };
   properties: Record<string, unknown>;
 
   componentId?: string;
@@ -60,7 +60,9 @@ export const isEntity = (value: unknown): value is EntityStoreType =>
 
 // @todo does this need to be more robust?
 export const isBlockEntity = (entity: unknown): entity is BlockEntity =>
-  isEntity(entity) && "dataEntity" in entity && isEntity(entity.dataEntity);
+  isEntity(entity) &&
+  "blockChildEntity" in entity &&
+  isEntity(entity.blockChildEntity);
 
 // @todo does this need to be more robust?
 export const isDraftEntity = <T extends EntityStoreType>(
@@ -88,8 +90,8 @@ const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
 
   for (const entity of contents) {
     entities.push(entity);
-    if (entity.dataEntity) {
-      entities.push(entity.dataEntity);
+    if (entity.blockChildEntity) {
+      entities.push(entity.blockChildEntity);
     }
   }
 
@@ -180,12 +182,12 @@ export const createEntityStore = (
         if (isDraftBlockEntity(draftEntity)) {
           restoreDraftId(draftEntity, entityToDraft);
 
-          // Set the dataEntity's draft ID on a block draft.
+          // Set the blockChildEntity's draft ID on a block draft.
           if (
-            !draftEntity.dataEntity?.draftId &&
-            draftEntity.dataEntity?.entityId
+            !draftEntity.blockChildEntity?.draftId &&
+            draftEntity.blockChildEntity?.entityId
           ) {
-            restoreDraftId(draftEntity.dataEntity, entityToDraft);
+            restoreDraftId(draftEntity.blockChildEntity, entityToDraft);
           }
         }
       },
