@@ -19,9 +19,7 @@ use crate::{
     store::{
         crud::Read,
         error::EntityDoesNotExist,
-        postgres::{
-            context::PostgresContext, DependencyContext, DependencyMap, DependencySet, Edges,
-        },
+        postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
     subgraph::{
@@ -33,27 +31,17 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read an [`Entity`] into a [`DependencyMap`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    pub(crate) fn get_entity_as_dependency<'a>(
+    pub(crate) fn get_entity_as_dependency<'a: 'b, 'b>(
         &'a self,
         entity_id: EntityId,
-        context: DependencyContext<'a>,
-    ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
-        let DependencyContext {
-            edges,
-            referenced_data_types,
-            referenced_property_types,
-            referenced_link_types,
-            referenced_entity_types,
-            linked_entities,
-            links,
-            graph_resolve_depths,
-        } = context;
-
+        mut dependency_context: DependencyContextRef<'b>,
+    ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'b>> {
         async move {
-            let unresolved_entity = linked_entities
+            let unresolved_entity = dependency_context
+                .linked_entities
                 .insert(
                     &entity_id,
-                    context
+                    dependency_context
                         .graph_resolve_depths
                         .link_target_entity_resolve_depth,
                     || async {
@@ -69,7 +57,7 @@ impl<C: AsClient> PostgresStore<C> {
                 // require us to clone the entity
                 let entity_type_id = entity.metadata().entity_type_id().clone();
 
-                edges.insert(
+                dependency_context.edges.insert(
                     GraphElementIdentifier::KnowledgeGraphElementId(entity_id),
                     OutwardEdge {
                         edge_kind: EdgeKind::HasType,
@@ -79,23 +67,21 @@ impl<C: AsClient> PostgresStore<C> {
                     },
                 );
 
-                if graph_resolve_depths.entity_type_resolve_depth > 0 {
-                    self.get_entity_type_as_dependency(&entity_type_id, DependencyContext {
-                        graph_resolve_depths: GraphResolveDepths {
-                            entity_type_resolve_depth: context
+                if dependency_context
+                    .graph_resolve_depths
+                    .entity_type_resolve_depth
+                    > 0
+                {
+                    self.get_entity_type_as_dependency(
+                        &entity_type_id,
+                        dependency_context.change_depth(GraphResolveDepths {
+                            entity_type_resolve_depth: dependency_context
                                 .graph_resolve_depths
                                 .entity_type_resolve_depth
                                 - 1,
-                            ..graph_resolve_depths
-                        },
-                        edges,
-                        referenced_data_types,
-                        referenced_property_types,
-                        referenced_link_types,
-                        referenced_entity_types,
-                        linked_entities,
-                        links,
-                    })
+                            ..dependency_context.graph_resolve_depths
+                        }),
+                    )
                     .await?;
                 }
 
@@ -105,7 +91,7 @@ impl<C: AsClient> PostgresStore<C> {
                     .try_collect::<Vec<_>>()
                     .await?
                 {
-                    edges.insert(
+                    dependency_context.edges.insert(
                         GraphElementIdentifier::KnowledgeGraphElementId(entity_id),
                         OutwardEdge {
                             edge_kind: EdgeKind::HasLink,
@@ -117,22 +103,19 @@ impl<C: AsClient> PostgresStore<C> {
                         },
                     );
 
-                    if graph_resolve_depths.link_resolve_depth > 0 {
+                    if dependency_context.graph_resolve_depths.link_resolve_depth > 0 {
                         let link = PersistedLink::from(link_record);
 
-                        self.get_link_as_dependency(&link, DependencyContext {
-                            graph_resolve_depths: GraphResolveDepths {
-                                link_resolve_depth: graph_resolve_depths.link_resolve_depth - 1,
-                                ..graph_resolve_depths
-                            },
-                            edges,
-                            referenced_data_types,
-                            referenced_property_types,
-                            referenced_link_types,
-                            referenced_entity_types,
-                            linked_entities,
-                            links,
-                        })
+                        self.get_link_as_dependency(
+                            &link,
+                            dependency_context.change_depth(GraphResolveDepths {
+                                link_resolve_depth: dependency_context
+                                    .graph_resolve_depths
+                                    .link_resolve_depth
+                                    - 1,
+                                ..dependency_context.graph_resolve_depths
+                            }),
+                        )
                         .await?;
                     }
                 }
@@ -244,41 +227,29 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         stream::iter(Read::<PersistedEntity>::read(self, expression).await?)
             .then(|entity| async move {
-                let mut edges = Edges::new();
-                let mut referenced_data_types = DependencyMap::new();
-                let mut referenced_property_types = DependencyMap::new();
-                let mut referenced_link_types = DependencyMap::new();
-                let mut referenced_entity_types = DependencyMap::new();
-                let mut linked_entities = DependencyMap::new();
-                let mut links = DependencySet::new();
+                let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
                 self.get_entity_as_dependency(
                     entity.metadata().identifier().entity_id(),
-                    DependencyContext {
-                        edges: &mut edges,
-                        referenced_data_types: &mut referenced_data_types,
-                        referenced_property_types: &mut referenced_property_types,
-                        referenced_link_types: &mut referenced_link_types,
-                        referenced_entity_types: &mut referenced_entity_types,
-                        linked_entities: &mut linked_entities,
-                        links: &mut links,
-                        graph_resolve_depths,
-                    },
+                    dependency_context.as_ref_object(),
                 )
                 .await?;
 
-                let root = linked_entities
+                let root = dependency_context
+                    .linked_entities
                     .remove(&entity.metadata().identifier().entity_id())
                     .expect("root was not added to the subgraph");
 
                 Ok(EntityRootedSubgraph {
                     entity: root,
-                    referenced_data_types: referenced_data_types.into_vec(),
-                    referenced_property_types: referenced_property_types.into_vec(),
-                    referenced_link_types: referenced_link_types.into_vec(),
-                    referenced_entity_types: referenced_entity_types.into_vec(),
-                    linked_entities: linked_entities.into_vec(),
-                    links: links.into_vec(),
+                    referenced_data_types: dependency_context.referenced_data_types.into_vec(),
+                    referenced_property_types: dependency_context
+                        .referenced_property_types
+                        .into_vec(),
+                    referenced_link_types: dependency_context.referenced_link_types.into_vec(),
+                    referenced_entity_types: dependency_context.referenced_entity_types.into_vec(),
+                    linked_entities: dependency_context.linked_entities.into_vec(),
+                    links: dependency_context.links.into_vec(),
                 })
             })
             .try_collect()

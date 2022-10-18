@@ -11,7 +11,7 @@ use crate::{
     store::{
         crud::Read,
         postgres::{
-            context::PostgresContext, DependencyContext, DependencyMap, DependencySet, Edges,
+            context::PostgresContext, DependencyContext, DependencyContextRef,
             PersistedOntologyType,
         },
         AsClient, InsertionError, LinkTypeStore, PostgresStore, QueryError, UpdateError,
@@ -23,10 +23,10 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`PersistedLinkType`] into a [`DependencyMap`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    pub(crate) async fn get_link_type_as_dependency(
+    pub(crate) async fn get_link_type_as_dependency<'a>(
         &self,
         link_type_id: &VersionedUri,
-        context: DependencyContext<'_>,
+        context: DependencyContextRef<'a>,
     ) -> Result<(), QueryError> {
         let _unresolved_link_type = context
             .referenced_link_types
@@ -83,30 +83,16 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
 
         stream::iter(Read::<PersistedLinkType>::read(self, expression).await?)
             .then(|link_type| async move {
-                let mut edges = Edges::new();
-                let mut referenced_data_types = DependencyMap::new();
-                let mut referenced_property_types = DependencyMap::new();
-                let mut referenced_link_types = DependencyMap::new();
-                let mut referenced_entity_types = DependencyMap::new();
-                let mut linked_entities = DependencyMap::new();
-                let mut links = DependencySet::new();
+                let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
                 self.get_link_type_as_dependency(
                     link_type.metadata().identifier().uri(),
-                    DependencyContext {
-                        edges: &mut edges,
-                        referenced_data_types: &mut referenced_data_types,
-                        referenced_property_types: &mut referenced_property_types,
-                        referenced_link_types: &mut referenced_link_types,
-                        referenced_entity_types: &mut referenced_entity_types,
-                        linked_entities: &mut linked_entities,
-                        links: &mut links,
-                        graph_resolve_depths,
-                    },
+                    dependency_context.as_ref_object(),
                 )
                 .await?;
 
-                let root = referenced_link_types
+                let root = dependency_context
+                    .referenced_link_types
                     .remove(link_type.metadata().identifier().uri())
                     .expect("root was not added to the subgraph");
 

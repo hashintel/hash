@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::collections::{
+    hash_map::{IntoIter, RawEntryMut},
+    HashMap, HashSet,
+};
 
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
@@ -150,7 +153,7 @@ impl GraphResolveDepths {
 pub struct Subgraph {
     pub roots: Vec<GraphElementIdentifier>,
     pub vertices: HashMap<GraphElementIdentifier, Vertex>,
-    pub edges: HashMap<GraphElementIdentifier, Vec<OutwardEdge>>,
+    pub edges: Edges,
     pub depths: GraphResolveDepths,
 }
 
@@ -162,4 +165,45 @@ pub struct StructuralQuery {
     #[serde(rename = "query")]
     pub expression: Expression,
     pub graph_resolve_depths: GraphResolveDepths,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, ToSchema)]
+pub struct Edges(HashMap<GraphElementIdentifier, HashSet<OutwardEdge>>);
+
+impl Edges {
+    #[must_use]
+    pub fn new() -> Self {
+        Self(HashMap::new())
+    }
+
+    pub fn insert(&mut self, identifier: GraphElementIdentifier, edge: OutwardEdge) -> bool {
+        match self.0.raw_entry_mut().from_key(&identifier) {
+            RawEntryMut::Vacant(entry) => {
+                entry.insert(identifier, HashSet::from([edge]));
+                true
+            }
+            RawEntryMut::Occupied(entry) => {
+                let set = entry.into_mut();
+                set.insert(edge)
+            }
+        }
+    }
+}
+
+impl IntoIterator for Edges {
+    type IntoIter = IntoIter<GraphElementIdentifier, HashSet<OutwardEdge>>;
+    type Item = (GraphElementIdentifier, HashSet<OutwardEdge>);
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl Extend<(GraphElementIdentifier, HashSet<OutwardEdge>)> for Edges {
+    fn extend<T: IntoIterator<Item = (GraphElementIdentifier, HashSet<OutwardEdge>)>>(
+        &mut self,
+        other: T,
+    ) {
+        self.0.extend(other);
+    }
 }

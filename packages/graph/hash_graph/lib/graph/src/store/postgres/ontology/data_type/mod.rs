@@ -13,12 +13,12 @@ use crate::{
     store::{
         crud::Read,
         postgres::{
-            context::PostgresContext, DependencyContext, DependencyMap, DependencySet, Edges,
+            context::PostgresContext, DependencyContext, DependencyContextRef,
             PersistedOntologyType,
         },
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::{GraphElementIdentifier, StructuralQuery, Subgraph, Vertex},
+    subgraph::{Edges, GraphElementIdentifier, StructuralQuery, Subgraph, Vertex},
 };
 
 impl<C: AsClient> PostgresStore<C> {
@@ -28,9 +28,9 @@ impl<C: AsClient> PostgresStore<C> {
     pub(crate) async fn get_data_type_as_dependency(
         &self,
         data_type_id: &VersionedUri,
-        context: DependencyContext<'_>,
+        context: DependencyContextRef<'_>,
     ) -> Result<(), QueryError> {
-        let DependencyContext {
+        let DependencyContextRef {
             referenced_data_types,
             graph_resolve_depths,
             ..
@@ -85,56 +85,48 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             graph_resolve_depths,
         } = *query;
 
-        let roots_and_vertices =
-            stream::iter(Read::<PersistedDataType>::read(self, expression).await?)
-                .then(|data_type| async move {
-                    let mut edges = Edges::new();
-                    let mut referenced_data_types = DependencyMap::new();
-                    let mut referenced_property_types = DependencyMap::new();
-                    let mut referenced_link_types = DependencyMap::new();
-                    let mut referenced_entity_types = DependencyMap::new();
-                    let mut linked_entities = DependencyMap::new();
-                    let mut links = DependencySet::new();
+        let dependencies = stream::iter(Read::<PersistedDataType>::read(self, expression).await?)
+            .then(|data_type| async move {
+                let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
-                    self.get_data_type_as_dependency(
-                        data_type.metadata().identifier().uri(),
-                        DependencyContext {
-                            edges: &mut edges,
-                            referenced_data_types: &mut referenced_data_types,
-                            referenced_property_types: &mut referenced_property_types,
-                            referenced_link_types: &mut referenced_link_types,
-                            referenced_entity_types: &mut referenced_entity_types,
-                            linked_entities: &mut linked_entities,
-                            links: &mut links,
-                            graph_resolve_depths,
-                        },
-                    )
-                    .await?;
-
-                    let data_type = referenced_data_types
-                        .remove(data_type.metadata().identifier().uri())
-                        .expect("root was not added to the subgraph");
-
-                    let identifier = GraphElementIdentifier::OntologyElementId(
-                        data_type.metadata().identifier().uri().clone(),
-                    );
-
-                    Ok::<_, Report<QueryError>>((
-                        identifier.clone(),
-                        (identifier, Vertex::DataType(data_type)),
-                    ))
-                })
-                .try_collect::<Vec<_>>()
+                self.get_data_type_as_dependency(
+                    data_type.metadata().identifier().uri(),
+                    dependency_context.as_ref_object(),
+                )
                 .await?;
 
-        let (roots, vertices) = roots_and_vertices.into_iter().unzip();
+                let data_type = dependency_context
+                    .referenced_data_types
+                    .remove(data_type.metadata().identifier().uri())
+                    .expect("root was not added to the subgraph");
+
+                let identifier = GraphElementIdentifier::OntologyElementId(
+                    data_type.metadata().identifier().uri().clone(),
+                );
+
+                Ok::<_, Report<QueryError>>((
+                    identifier,
+                    Vertex::DataType(data_type),
+                    dependency_context.edges,
+                ))
+            })
+            .try_collect::<Vec<(_, _, _)>>()
+            .await?;
+
+        let mut edges = Edges::new();
+        let mut vertices = HashMap::with_capacity(dependencies.len());
+        let mut roots = Vec::with_capacity(dependencies.len());
+
+        for (identifier, vertex, dependency_edges) in dependencies {
+            roots.push(identifier.clone());
+            vertices.insert(identifier, vertex);
+            edges.extend(dependency_edges.into_iter());
+        }
 
         Ok(Subgraph {
             roots,
             vertices,
-            // TODO - we need to update the `DependencyMap` mechanism to collect these
-            //  https://app.asana.com/0/1203007126736604/1203160580911226/f
-            edges: HashMap::new(),
+            edges,
             depths: graph_resolve_depths,
         })
     }

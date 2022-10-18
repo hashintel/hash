@@ -7,7 +7,7 @@ mod query;
 mod version_id;
 
 use std::{
-    collections::{hash_map::RawEntryMut, HashMap, HashSet},
+    collections::{hash_map::RawEntryMut, HashMap},
     future::Future,
     hash::Hash,
 };
@@ -44,7 +44,7 @@ use crate::{
         AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
         UpdateError,
     },
-    subgraph::{GraphElementIdentifier, GraphResolveDepths, OutwardEdge},
+    subgraph::{Edges, GraphResolveDepths},
 };
 
 pub struct DependencyMap<V, T, D> {
@@ -176,29 +176,50 @@ where
     }
 }
 
-pub struct Edges(HashMap<GraphElementIdentifier, HashSet<OutwardEdge>>);
+pub struct DependencyContext {
+    pub edges: Edges,
+    pub referenced_data_types: DependencyMap<VersionedUri, PersistedDataType, OntologyQueryDepth>,
+    pub referenced_property_types:
+        DependencyMap<VersionedUri, PersistedPropertyType, OntologyQueryDepth>,
+    pub referenced_link_types: DependencyMap<VersionedUri, PersistedLinkType, OntologyQueryDepth>,
+    pub referenced_entity_types:
+        DependencyMap<VersionedUri, PersistedEntityType, OntologyQueryDepth>,
+    pub linked_entities: DependencyMap<EntityId, PersistedEntity, KnowledgeGraphQueryDepth>,
+    pub links: DependencySet<PersistedLink, KnowledgeGraphQueryDepth>,
+    pub graph_resolve_depths: GraphResolveDepths,
+}
 
-impl Edges {
+impl DependencyContext {
     #[must_use]
-    pub fn new() -> Self {
-        Self(HashMap::new())
+    pub fn new(graph_resolve_depths: GraphResolveDepths) -> Self {
+        Self {
+            edges: Edges::new(),
+            referenced_data_types: DependencyMap::new(),
+            referenced_property_types: DependencyMap::new(),
+            referenced_link_types: DependencyMap::new(),
+            referenced_entity_types: DependencyMap::new(),
+            linked_entities: DependencyMap::new(),
+            links: DependencySet::new(),
+            graph_resolve_depths,
+        }
     }
 
-    pub fn insert(&mut self, identifier: GraphElementIdentifier, edge: OutwardEdge) -> bool {
-        match self.0.raw_entry_mut().from_key(&identifier) {
-            RawEntryMut::Vacant(entry) => {
-                entry.insert(identifier, HashSet::from([edge]));
-                true
-            }
-            RawEntryMut::Occupied(entry) => {
-                let set = entry.into_mut();
-                set.insert(edge)
-            }
+    #[must_use]
+    pub fn as_ref_object(&mut self) -> DependencyContextRef {
+        DependencyContextRef {
+            edges: &mut self.edges,
+            referenced_data_types: &mut self.referenced_data_types,
+            referenced_property_types: &mut self.referenced_property_types,
+            referenced_link_types: &mut self.referenced_link_types,
+            referenced_entity_types: &mut self.referenced_entity_types,
+            linked_entities: &mut self.linked_entities,
+            links: &mut self.links,
+            graph_resolve_depths: self.graph_resolve_depths,
         }
     }
 }
 
-pub struct DependencyContext<'a> {
+pub struct DependencyContextRef<'a> {
     pub edges: &'a mut Edges,
     pub referenced_data_types:
         &'a mut DependencyMap<VersionedUri, PersistedDataType, OntologyQueryDepth>,
@@ -211,6 +232,25 @@ pub struct DependencyContext<'a> {
     pub linked_entities: &'a mut DependencyMap<EntityId, PersistedEntity, KnowledgeGraphQueryDepth>,
     pub links: &'a mut DependencySet<PersistedLink, KnowledgeGraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
+}
+
+impl<'a> DependencyContextRef<'a> {
+    pub fn change_depth(
+        &mut self,
+        graph_resolve_depths: GraphResolveDepths,
+    ) -> DependencyContextRef<'_>
+where {
+        DependencyContextRef {
+            edges: &mut *self.edges,
+            referenced_data_types: &mut *self.referenced_data_types,
+            referenced_property_types: &mut *self.referenced_property_types,
+            referenced_link_types: &mut *self.referenced_link_types,
+            referenced_entity_types: &mut *self.referenced_entity_types,
+            linked_entities: &mut *self.linked_entities,
+            links: &mut *self.links,
+            graph_resolve_depths,
+        }
+    }
 }
 
 /// Utility function used for [`GenericClient::query_raw`] to infer the parameter as
