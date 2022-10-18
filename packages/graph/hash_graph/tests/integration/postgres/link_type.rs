@@ -40,7 +40,7 @@ async fn query() {
         .await
         .expect("could not get link type");
 
-    assert_eq!(link_type.inner, submitted_by_lt);
+    assert_eq!(link_type.inner(), &submitted_by_lt);
 }
 
 #[tokio::test]
@@ -77,6 +77,6 @@ async fn update() {
     // TODO: we probably want to be testing more interesting queries, checking an update should
     //  probably use getLatestVersion
     //  https://app.asana.com/0/0/1202884883200974/f
-    assert_eq!(owns_lt_v1, returned_owns_lt_v1.inner);
-    assert_eq!(owns_lt_v2, returned_owns_lt_v2.inner);
+    assert_eq!(&owns_lt_v1, returned_owns_lt_v1.inner());
+    assert_eq!(&owns_lt_v2, returned_owns_lt_v2.inner());
 }
