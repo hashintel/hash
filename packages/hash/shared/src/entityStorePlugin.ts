@@ -59,13 +59,17 @@ export type EntityStorePluginAction = { received?: boolean } & (
       type: "updateEntityProperties";
       payload: {
         draftId: string;
-        blockEntityMetadata?: {
-          componentId: string;
-          dataEntity?: { [key: string]: unknown };
-        };
-        properties: { [key: string]: unknown };
         merge: boolean;
-      };
+      } & (
+        | {
+            blockEntityMetadata: {
+              componentId: string;
+              // don't meerge before @TODO rename to `blockChildEntity`
+              dataEntity?: { [key: string]: unknown };
+            };
+          }
+        | { properties: { [key: string]: unknown } }
+      );
     }
   | {
       type: "newDraftEntity";
@@ -258,25 +262,25 @@ const entityStoreReducer = (
         updateEntitiesByDraftId(
           draftState.store.draft,
           action.payload.draftId,
-          action.payload.merge
-            ? (draftEntity) => {
-                draftEntity.componentId =
-                  action.payload.blockEntityMetadata?.componentId;
-                draftEntity.dataEntity = action.payload.blockEntityMetadata
-                  ?.dataEntity as any;
+          (draftEntity) => {
+            if ("blockEntityMetadata" in action.payload) {
+              draftEntity.componentId =
+                action.payload.blockEntityMetadata?.componentId;
+              draftEntity.dataEntity = action.payload.blockEntityMetadata
+                ?.dataEntity as any;
+            }
 
+            if ("properties" in action.payload) {
+              if (action.payload.merge) {
                 Object.assign(
                   draftEntity.properties,
                   action.payload.properties,
                 );
-              }
-            : (draftEntity) => {
-                draftEntity.componentId =
-                  action.payload.blockEntityMetadata?.componentId;
-                draftEntity.dataEntity = action.payload.blockEntityMetadata
-                  ?.dataEntity as any;
+              } else {
                 draftEntity.properties = action.payload.properties;
-              },
+              }
+            }
+          },
         );
       });
     }
@@ -530,17 +534,6 @@ class ProsemirrorStateChangeHandler {
             blockEntityMetadata: {
               dataEntity:
                 draftEntityStore[getRequiredDraftIdFromEntityNode(node)],
-              componentId,
-            },
-            properties: {
-              /**
-               * We don't currently rely on componentId of the draft
-               * right
-               * now, but this will be a problem in the future (i.e, if
-               * save starts using the draft entity store)
-               *
-               * @todo set this properly
-               */
               componentId,
             },
           },

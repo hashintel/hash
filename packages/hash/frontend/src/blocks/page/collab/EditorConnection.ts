@@ -1,3 +1,8 @@
+/* eslint-disable */
+// @ts-nocheck
+/**
+ * Collab is currently disabled, which means this file does not represent the current way to edit pages.
+ */
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import {
