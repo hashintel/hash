@@ -59,7 +59,7 @@ export type EntityStorePluginAction = { received?: boolean } & (
       type: "updateEntityProperties";
       payload: {
         draftId: string;
-        metadata?: {
+        blockEntityMetadata?: {
           componentId: string;
           dataEntity?: { [key: string]: unknown };
         };
@@ -260,8 +260,9 @@ const entityStoreReducer = (
           action.payload.draftId,
           action.payload.merge
             ? (draftEntity) => {
-                draftEntity.componentId = action.payload.metadata?.componentId;
-                draftEntity.dataEntity = action.payload.metadata
+                draftEntity.componentId =
+                  action.payload.blockEntityMetadata?.componentId;
+                draftEntity.dataEntity = action.payload.blockEntityMetadata
                   ?.dataEntity as any;
 
                 Object.assign(
@@ -270,8 +271,9 @@ const entityStoreReducer = (
                 );
               }
             : (draftEntity) => {
-                draftEntity.componentId = action.payload.metadata?.componentId;
-                draftEntity.dataEntity = action.payload.metadata
+                draftEntity.componentId =
+                  action.payload.blockEntityMetadata?.componentId;
+                draftEntity.dataEntity = action.payload.blockEntityMetadata
                   ?.dataEntity as any;
                 draftEntity.properties = action.payload.properties;
               },
@@ -525,7 +527,7 @@ class ProsemirrorStateChangeHandler {
           payload: {
             merge: false,
             draftId: parentEntity.draftId,
-            metadata: {
+            blockEntityMetadata: {
               dataEntity:
                 draftEntityStore[getRequiredDraftIdFromEntityNode(node)],
               componentId,

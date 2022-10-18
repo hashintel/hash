@@ -528,7 +528,7 @@ export class ProsemirrorManager {
       payload: {
         draftId: newBlockId,
         merge: false,
-        metadata: {
+        blockEntityMetadata: {
           componentId: targetComponentId,
           dataEntity: entityStorePluginStateFromTransaction(tr, this.view.state)
             .store.draft[blockDataDraftId],
