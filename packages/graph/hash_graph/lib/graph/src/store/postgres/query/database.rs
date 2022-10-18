@@ -1,6 +1,6 @@
 use std::{
     borrow::Cow,
-    fmt::{self, Formatter, Write},
+    fmt::{self, Write},
 };
 
 use serde::Serialize;
@@ -72,7 +72,7 @@ pub struct Table {
 }
 
 impl Transpile for Table {
-    fn transpile(&self, fmt: &mut Formatter) -> fmt::Result {
+    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.write_char('"')?;
         self.name.serialize(&mut *fmt)?;
         if let Some(alias) = self.alias {
