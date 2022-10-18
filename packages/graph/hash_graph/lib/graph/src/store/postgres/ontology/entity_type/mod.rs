@@ -65,7 +65,7 @@ impl<C: AsClient> PostgresStore<C> {
                 if graph_resolve_depths.property_type_resolve_depth > 0 {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
-                    for property_type_ref in entity_type.inner.property_type_references() {
+                    for property_type_ref in entity_type.inner().property_type_references() {
                         self.get_property_type_as_dependency(
                             property_type_ref.uri(),
                             DependencyContext {
@@ -92,7 +92,7 @@ impl<C: AsClient> PostgresStore<C> {
                     || context.graph_resolve_depths.entity_type_resolve_depth > 0
                 {
                     let linked_uris = entity_type
-                        .inner
+                        .inner()
                         .link_type_references()
                         .into_iter()
                         .map(|(link_type_id, entity_type_ids)| {
@@ -222,7 +222,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 let mut links = DependencySet::new();
 
                 self.get_entity_type_as_dependency(
-                    entity_type.metadata.identifier().uri(),
+                    entity_type.metadata().identifier().uri(),
                     DependencyContext {
                         edges: &mut edges,
                         referenced_data_types: &mut referenced_data_types,
@@ -237,7 +237,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 .await?;
 
                 let root = referenced_entity_types
-                    .remove(entity_type.metadata.identifier().uri())
+                    .remove(entity_type.metadata().identifier().uri())
                     .expect("root was not added to the subgraph");
 
                 Ok(EntityTypeRootedSubgraph {
