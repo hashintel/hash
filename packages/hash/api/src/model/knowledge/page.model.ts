@@ -481,10 +481,12 @@ export default class extends EntityModel {
       linkTypeModel: WORKSPACE_TYPES.linkType.contains,
     });
 
-    // When indices are in-flux, the length is not a good enough indicator of the index.
-    // if (position < 0 || position >= contentLinks.length) {
-    //   throw new UserInputError(`invalid position: ${position}`);
-    // }
+    /**
+     * @todo currently the count of outgoing links are not the best indicator of a valid position
+     *   as page saving could assume index positions higher than the number of blocks.
+     *   Ideally we'd be able to atomically rearrange all blocks as we're removing/adding blocks.
+     *   see: https://app.asana.com/0/1200211978612931/1203031430417465/f
+     */
 
     const link = contentLinks.find(({ index }) => index === position);
 
