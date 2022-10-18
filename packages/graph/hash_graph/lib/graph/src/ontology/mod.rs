@@ -1,5 +1,6 @@
 //! TODO: DOC
 
+mod data_type;
 pub mod domain_validator;
 
 use core::fmt;
@@ -11,6 +12,8 @@ use tokio_postgres::types::{FromSql, ToSql};
 use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
 use utoipa::ToSchema;
 use uuid::Uuid;
+
+pub use self::data_type::DataTypeQueryPath;
 
 // TODO - find a good place for AccountId, perhaps it will become redundant in a future design
 
@@ -167,13 +170,29 @@ where
 /// _property type_ references is then resolved to a depth of `property_type_query_depth`.
 pub type OntologyQueryDepth = u8;
 
-// TODO: should the fields be public
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PersistedDataType {
     #[schema(value_type = VAR_DATA_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
-    pub inner: DataType,
-    pub metadata: PersistedOntologyMetadata,
+    inner: DataType,
+    metadata: PersistedOntologyMetadata,
+}
+
+impl PersistedDataType {
+    #[must_use]
+    pub const fn new(inner: DataType, metadata: PersistedOntologyMetadata) -> Self {
+        Self { inner, metadata }
+    }
+
+    #[must_use]
+    pub const fn inner(&self) -> &DataType {
+        &self.inner
+    }
+
+    #[must_use]
+    pub const fn metadata(&self) -> &PersistedOntologyMetadata {
+        &self.metadata
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
@@ -182,22 +201,54 @@ pub struct DataTypeRootedSubgraph {
     pub data_type: PersistedDataType,
 }
 
-// TODO: should the fields be public
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PersistedPropertyType {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
-    pub inner: PropertyType,
-    pub metadata: PersistedOntologyMetadata,
+    inner: PropertyType,
+    metadata: PersistedOntologyMetadata,
 }
 
-// TODO: should the fields be public
+impl PersistedPropertyType {
+    #[must_use]
+    pub const fn new(inner: PropertyType, metadata: PersistedOntologyMetadata) -> Self {
+        Self { inner, metadata }
+    }
+
+    #[must_use]
+    pub const fn inner(&self) -> &PropertyType {
+        &self.inner
+    }
+
+    #[must_use]
+    pub const fn metadata(&self) -> &PersistedOntologyMetadata {
+        &self.metadata
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PersistedLinkType {
     #[schema(value_type = VAR_LINK_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
-    pub inner: LinkType,
-    pub metadata: PersistedOntologyMetadata,
+    inner: LinkType,
+    metadata: PersistedOntologyMetadata,
+}
+
+impl PersistedLinkType {
+    #[must_use]
+    pub const fn new(inner: LinkType, metadata: PersistedOntologyMetadata) -> Self {
+        Self { inner, metadata }
+    }
+
+    #[must_use]
+    pub const fn inner(&self) -> &LinkType {
+        &self.inner
+    }
+
+    #[must_use]
+    pub const fn metadata(&self) -> &PersistedOntologyMetadata {
+        &self.metadata
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
@@ -223,13 +274,29 @@ impl PersistedOntologyMetadata {
     }
 }
 
-// TODO: should the fields be public
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PersistedEntityType {
     #[schema(value_type = VAR_ENTITY_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
-    pub inner: EntityType,
-    pub metadata: PersistedOntologyMetadata,
+    inner: EntityType,
+    metadata: PersistedOntologyMetadata,
+}
+
+impl PersistedEntityType {
+    #[must_use]
+    pub const fn new(inner: EntityType, metadata: PersistedOntologyMetadata) -> Self {
+        Self { inner, metadata }
+    }
+
+    #[must_use]
+    pub const fn inner(&self) -> &EntityType {
+        &self.inner
+    }
+
+    #[must_use]
+    pub const fn metadata(&self) -> &PersistedOntologyMetadata {
+        &self.metadata
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]

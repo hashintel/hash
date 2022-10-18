@@ -31,10 +31,7 @@ impl PersistedOntologyType for PersistedDataType {
     fn from_record(data_type: OntologyRecord<Self::Inner>) -> Self {
         let identifier =
             PersistedOntologyIdentifier::new(data_type.record.id().clone(), data_type.account_id);
-        Self {
-            inner: data_type.record,
-            metadata: PersistedOntologyMetadata::new(identifier),
-        }
+        Self::new(data_type.record, PersistedOntologyMetadata::new(identifier))
     }
 }
 
@@ -46,10 +43,10 @@ impl PersistedOntologyType for PersistedPropertyType {
             property_type.record.id().clone(),
             property_type.account_id,
         );
-        Self {
-            inner: property_type.record,
-            metadata: PersistedOntologyMetadata::new(identifier),
-        }
+        Self::new(
+            property_type.record,
+            PersistedOntologyMetadata::new(identifier),
+        )
     }
 }
 
@@ -59,10 +56,7 @@ impl PersistedOntologyType for PersistedLinkType {
     fn from_record(link_type: OntologyRecord<Self::Inner>) -> Self {
         let identifier =
             PersistedOntologyIdentifier::new(link_type.record.id().clone(), link_type.account_id);
-        Self {
-            inner: link_type.record,
-            metadata: PersistedOntologyMetadata::new(identifier),
-        }
+        Self::new(link_type.record, PersistedOntologyMetadata::new(identifier))
     }
 }
 
@@ -74,10 +68,10 @@ impl PersistedOntologyType for PersistedEntityType {
             entity_type.record.id().clone(),
             entity_type.account_id,
         );
-        Self {
-            inner: entity_type.record,
-            metadata: PersistedOntologyMetadata::new(identifier),
-        }
+        Self::new(
+            entity_type.record,
+            PersistedOntologyMetadata::new(identifier),
+        )
     }
 }
 

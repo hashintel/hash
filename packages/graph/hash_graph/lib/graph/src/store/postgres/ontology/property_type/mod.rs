@@ -58,7 +58,7 @@ impl<C: AsClient> PostgresStore<C> {
                 if graph_resolve_depths.data_type_resolve_depth > 0 {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
-                    for data_type_ref in property_type.inner.data_type_references() {
+                    for data_type_ref in property_type.inner().data_type_references() {
                         self.get_data_type_as_dependency(data_type_ref.uri(), DependencyContext {
                             graph_resolve_depths: GraphResolveDepths {
                                 data_type_resolve_depth: graph_resolve_depths
@@ -82,7 +82,7 @@ impl<C: AsClient> PostgresStore<C> {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
                     let property_type_ids = property_type
-                        .inner
+                        .inner()
                         .property_type_references()
                         .into_iter()
                         .map(PropertyTypeReference::uri)
@@ -181,7 +181,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                     let mut links = DependencySet::new();
 
                     self.get_property_type_as_dependency(
-                        property_type.metadata.identifier().uri(),
+                        property_type.metadata().identifier().uri(),
                         DependencyContext {
                             edges: &mut edges,
                             referenced_data_types: &mut referenced_data_types,
@@ -196,11 +196,11 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                     .await?;
 
                     let property_type = referenced_property_types
-                        .remove(property_type.metadata.identifier().uri())
+                        .remove(property_type.metadata().identifier().uri())
                         .expect("root was not added to the subgraph");
 
                     let identifier = GraphElementIdentifier::OntologyElementId(
-                        property_type.metadata.identifier().uri().clone(),
+                        property_type.metadata().identifier().uri().clone(),
                     );
 
                     Ok::<_, Report<QueryError>>((

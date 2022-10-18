@@ -97,7 +97,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     let mut links = DependencySet::new();
 
                     self.get_data_type_as_dependency(
-                        data_type.metadata.identifier().uri(),
+                        data_type.metadata().identifier().uri(),
                         DependencyContext {
                             edges: &mut edges,
                             referenced_data_types: &mut referenced_data_types,
@@ -112,11 +112,11 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     .await?;
 
                     let data_type = referenced_data_types
-                        .remove(data_type.metadata.identifier().uri())
+                        .remove(data_type.metadata().identifier().uri())
                         .expect("root was not added to the subgraph");
 
                     let identifier = GraphElementIdentifier::OntologyElementId(
-                        data_type.metadata.identifier().uri().clone(),
+                        data_type.metadata().identifier().uri().clone(),
                     );
 
                     Ok::<_, Report<QueryError>>((
