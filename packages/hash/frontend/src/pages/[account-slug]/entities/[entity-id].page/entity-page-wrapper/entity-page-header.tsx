@@ -23,11 +23,6 @@ export const EntityPageHeader = ({ entity }: { entity: EntityResponse }) => {
         defaultCrumbIcon={null}
         crumbs={[
           {
-            title: "Types",
-            href: "#",
-            id: "types",
-          },
-          {
             title: "Entities",
             href: "#",
             id: "entities",
