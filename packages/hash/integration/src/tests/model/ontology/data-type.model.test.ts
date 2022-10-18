@@ -3,7 +3,7 @@ import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { DataType } from "@blockprotocol/type-system-web";
-import { DataTypeModel } from "@hashintel/hash-api/src/model";
+import { DataTypeModel, UserModel } from "@hashintel/hash-api/src/model";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -22,7 +22,7 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-let ownedById: string;
+let testUser: UserModel;
 
 // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
 //  https://github.com/microsoft/TypeScript/issues/50638
@@ -38,9 +38,7 @@ const dataTypeSchema: Pick<
 };
 
 beforeAll(async () => {
-  const testUser = await createTestUser(graphApi, "data-type-test", logger);
-
-  ownedById = testUser.entityId;
+  testUser = await createTestUser(graphApi, "data-type-test", logger);
 });
 
 describe("Data type CRU", () => {
@@ -48,8 +46,9 @@ describe("Data type CRU", () => {
 
   it("can create a data type", async () => {
     createdDataTypeModel = await DataTypeModel.create(graphApi, {
-      ownedById,
+      ownedById: testUser.entityId,
       schema: dataTypeSchema,
+      createdById: testUser.entityId,
     });
   });
 
@@ -66,6 +65,7 @@ describe("Data type CRU", () => {
     await createdDataTypeModel
       .update(graphApi, {
         schema: { ...dataTypeSchema, title: updatedTitle },
+        updatedById: testUser.entityId,
       })
       .catch((err) => Promise.reject(err.data));
   });

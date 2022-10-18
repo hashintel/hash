@@ -3,6 +3,7 @@ import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { ensureWorkspaceTypesExist } from "@hashintel/hash-api/src/graph/workspace-types";
 import { OrgModel, OrgSize } from "@hashintel/hash-api/src/model";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { workspaceAccountId } from "@hashintel/hash-api/src/model/util";
 import { generateRandomShortname } from "../../util";
 
 jest.setTimeout(60000);
@@ -35,6 +36,7 @@ describe("Org model class", () => {
       providedInfo: {
         orgSize: OrgSize.ElevenToFifty,
       },
+      createdById: workspaceAccountId,
     });
   });
 
@@ -46,12 +48,14 @@ describe("Org model class", () => {
     shortname = generateRandomShortname("orgTest");
     createdOrg = await createdOrg.updateShortname(graphApi, {
       updatedShortname: shortname,
+      updatedById: workspaceAccountId,
     });
   });
 
   it("can update the preferred name of an org", async () => {
     createdOrg = await createdOrg.updateOrgName(graphApi, {
       updatedOrgName: "The testing org",
+      updatedById: workspaceAccountId,
     });
   });
 

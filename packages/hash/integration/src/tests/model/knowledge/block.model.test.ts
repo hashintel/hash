@@ -59,13 +59,16 @@ describe("Block model class", () => {
         title: "Dummy",
         properties: [],
         outgoingLinks: [],
+        createdById: testUser.entityId,
       }),
+      createdById: testUser.entityId,
     });
 
     testBlockDataEntity = await EntityModel.create(graphApi, {
       ownedById: testUser.entityId,
       properties: {},
       entityTypeModel: dummyEntityType,
+      createdById: testUser.entityId,
     });
   });
 
@@ -74,6 +77,7 @@ describe("Block model class", () => {
       ownedById: testUser.entityId,
       componentId: testBlockComponentId,
       blockData: testBlockDataEntity,
+      createdById: testUser.entityId,
     });
   });
 
@@ -98,6 +102,7 @@ describe("Block model class", () => {
       ownedById: testUser.entityId,
       properties: {},
       entityTypeModel: dummyEntityType,
+      createdById: testUser.entityId,
     });
 
     expect(testBlockDataEntity).not.toEqual(newBlockDataEntity);
@@ -105,6 +110,7 @@ describe("Block model class", () => {
 
     await testBlock.updateBlockDataEntity(graphApi, {
       newBlockDataEntity,
+      updatedById: testUser.entityId,
     });
 
     expect(await testBlock.getBlockData(graphApi)).toEqual(newBlockDataEntity);
@@ -116,6 +122,7 @@ describe("Block model class", () => {
     await expect(
       testBlock.updateBlockDataEntity(graphApi, {
         newBlockDataEntity: currentDataEntity,
+        updatedById: testUser.entityId,
       }),
     ).rejects.toThrow(/already has a linked block data entity with entity id/);
   });

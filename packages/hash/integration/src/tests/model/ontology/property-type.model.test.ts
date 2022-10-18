@@ -6,6 +6,7 @@ import { PropertyType } from "@blockprotocol/type-system-web";
 import {
   DataTypeModel,
   PropertyTypeModel,
+  UserModel,
 } from "@hashintel/hash-api/src/model";
 import { createTestUser } from "../../util";
 
@@ -25,22 +26,21 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-let ownedById: string;
+let testUser: UserModel;
 let textDataTypeModel: DataTypeModel;
 let propertyTypeSchema: Omit<PropertyType, "$id">;
 
 beforeAll(async () => {
-  const testUser = await createTestUser(graphApi, "property-type-test", logger);
-
-  ownedById = testUser.entityId;
+  testUser = await createTestUser(graphApi, "property-type-test", logger);
 
   textDataTypeModel = await DataTypeModel.create(graphApi, {
-    ownedById,
+    ownedById: testUser.entityId,
     schema: {
       kind: "dataType",
       title: "Text",
       type: "string",
     },
+    createdById: testUser.entityId,
   });
 
   propertyTypeSchema = {
@@ -60,8 +60,9 @@ describe("Property type CRU", () => {
 
   it("can create a property type", async () => {
     createdPropertyTypeModel = await PropertyTypeModel.create(graphApi, {
-      ownedById,
+      ownedById: testUser.entityId,
       schema: propertyTypeSchema,
+      createdById: testUser.entityId,
     });
   });
 
@@ -82,6 +83,7 @@ describe("Property type CRU", () => {
           ...propertyTypeSchema,
           title: updatedTitle,
         },
+        updatedById: testUser.entityId,
       })
       .catch((err) => Promise.reject(err.data));
   });

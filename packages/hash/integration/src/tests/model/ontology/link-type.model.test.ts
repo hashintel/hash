@@ -3,7 +3,7 @@ import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { LinkType } from "@hashintel/hash-graph-client/";
-import { LinkTypeModel } from "@hashintel/hash-api/src/model";
+import { LinkTypeModel, UserModel } from "@hashintel/hash-api/src/model";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -22,7 +22,8 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-let ownedById: string;
+let testUser: UserModel;
+
 const linkTypeSchema: Omit<LinkType, "$id"> = {
   kind: "linkType",
   title: "A link",
@@ -31,9 +32,7 @@ const linkTypeSchema: Omit<LinkType, "$id"> = {
 };
 
 beforeAll(async () => {
-  const testUser = await createTestUser(graphApi, "link-type-test", logger);
-
-  ownedById = testUser.entityId;
+  testUser = await createTestUser(graphApi, "link-type-test", logger);
 });
 
 describe("Link type CRU", () => {
@@ -42,8 +41,9 @@ describe("Link type CRU", () => {
 
   it("can create a link type", async () => {
     createdLinkTypeModel = await LinkTypeModel.create(graphApi, {
-      ownedById,
+      ownedById: testUser.entityId,
       schema: linkTypeSchema,
+      createdById: testUser.entityId,
     });
   });
 
@@ -64,6 +64,7 @@ describe("Link type CRU", () => {
           ...linkTypeSchema,
           title: updatedTitle,
         },
+        updatedById: testUser.entityId,
       })
       .catch((err) => Promise.reject(err.data));
   });

@@ -7,6 +7,7 @@ import {
   EntityTypeModel,
   LinkModel,
   LinkTypeModel,
+  UserModel,
 } from "@hashintel/hash-api/src/model";
 import {
   EntityTypeCreatorParams,
@@ -34,7 +35,7 @@ const graphApi = createGraphClient(logger, {
 describe("Link model class", () => {
   let namespace: string;
 
-  let ownedById: string;
+  let testUser: UserModel;
   let testEntityType: EntityTypeModel;
   let linkTypeFriend: LinkTypeModel;
   let linkTypeAcquaintance: LinkTypeModel;
@@ -43,7 +44,7 @@ describe("Link model class", () => {
   let targetEntityAcquaintance: EntityModel;
 
   const createEntityType = (
-    params: Omit<EntityTypeCreatorParams, "entityTypeId">,
+    params: Omit<EntityTypeCreatorParams, "entityTypeId" | "createdById">,
   ) => {
     const entityTypeId = generateTypeId({
       namespace,
@@ -51,45 +52,51 @@ describe("Link model class", () => {
       title: params.title,
     });
     return EntityTypeModel.create(graphApi, {
-      ownedById,
-      schema: generateWorkspaceEntityTypeSchema({ entityTypeId, ...params }),
+      ownedById: testUser.entityId,
+      schema: generateWorkspaceEntityTypeSchema({
+        entityTypeId,
+        createdById: testUser.entityId,
+        ...params,
+      }),
+      createdById: testUser.entityId,
     });
   };
 
   const createEntity = (params: { entityTypeModel: EntityTypeModel }) =>
     EntityModel.create(graphApi, {
-      ownedById,
+      ownedById: testUser.entityId,
       properties: {},
+      createdById: testUser.entityId,
       ...params,
     });
 
   beforeAll(async () => {
-    const testUser = await createTestUser(graphApi, "linktest", logger);
+    testUser = await createTestUser(graphApi, "linktest", logger);
 
     namespace = testUser.getShortname()!;
 
-    ownedById = testUser.entityId;
-
     await Promise.all([
       LinkTypeModel.create(graphApi, {
-        ownedById,
+        ownedById: testUser.entityId,
         schema: {
           kind: "linkType",
           title: "Friends",
           pluralTitle: "Friends",
           description: "Friend of",
         },
+        createdById: testUser.entityId,
       }).then((linkType) => {
         linkTypeFriend = linkType;
       }),
       LinkTypeModel.create(graphApi, {
-        ownedById,
+        ownedById: testUser.entityId,
         schema: {
           kind: "linkType",
           title: "Acquaintance",
           pluralTitle: "Acquaintances",
           description: "Acquainted with",
         },
+        createdById: testUser.entityId,
       }).then((linkType) => {
         linkTypeAcquaintance = linkType;
       }),
@@ -116,23 +123,26 @@ describe("Link model class", () => {
 
     await Promise.all([
       EntityModel.create(graphApi, {
-        ownedById,
+        ownedById: testUser.entityId,
         entityTypeModel: testEntityType,
         properties: {},
+        createdById: testUser.entityId,
       }).then((entity) => {
         sourceEntityModel = entity;
       }),
       EntityModel.create(graphApi, {
-        ownedById,
+        ownedById: testUser.entityId,
         entityTypeModel: testEntityType,
         properties: {},
+        createdById: testUser.entityId,
       }).then((entity) => {
         targetEntityFriend = entity;
       }),
       EntityModel.create(graphApi, {
-        ownedById,
+        ownedById: testUser.entityId,
         entityTypeModel: testEntityType,
         properties: {},
+        createdById: testUser.entityId,
       }).then((entity) => {
         targetEntityAcquaintance = entity;
       }),
@@ -144,17 +154,19 @@ describe("Link model class", () => {
 
   it("can link entities", async () => {
     friendLink = await LinkModel.create(graphApi, {
-      ownedById,
+      ownedById: testUser.entityId,
       sourceEntityModel,
       linkTypeModel: linkTypeFriend,
       targetEntityModel: targetEntityFriend,
+      createdById: testUser.entityId,
     });
 
     acquaintanceLink = await LinkModel.create(graphApi, {
-      ownedById,
+      ownedById: testUser.entityId,
       sourceEntityModel,
       linkTypeModel: linkTypeAcquaintance,
       targetEntityModel: targetEntityAcquaintance,
+      createdById: testUser.entityId,
     });
   });
 
@@ -179,7 +191,7 @@ describe("Link model class", () => {
   });
 
   it("can remove a link", async () => {
-    await acquaintanceLink.remove(graphApi, { removedById: ownedById });
+    await acquaintanceLink.remove(graphApi, { removedById: testUser.entityId });
 
     const links = await sourceEntityModel.getOutgoingLinks(graphApi, {
       linkTypeModel: linkTypeAcquaintance,
@@ -216,13 +228,14 @@ describe("Link model class", () => {
     });
 
     hasSongLinkType = await LinkTypeModel.create(graphApi, {
-      ownedById,
+      ownedById: testUser.entityId,
       schema: {
         kind: "linkType",
         title: "Has song",
         pluralTitle: "Has songs",
         description: "Has song",
       },
+      createdById: testUser.entityId,
     });
 
     playlistEntityType = await createEntityType({
@@ -250,32 +263,35 @@ describe("Link model class", () => {
 
     // create link at specified index which is currently unoccupied
     hasSongLink2 = await LinkModel.create(graphApi, {
-      ownedById,
+      ownedById: testUser.entityId,
       index: 0,
       linkTypeModel: hasSongLinkType,
       sourceEntityModel: playlistEntity,
       targetEntityModel: songEntity2,
+      createdById: testUser.entityId,
     });
 
     expect(hasSongLink2.index).toBe(0);
 
     // create link at un-specified index
     hasSongLink3 = await LinkModel.create(graphApi, {
-      ownedById,
+      ownedById: testUser.entityId,
       linkTypeModel: hasSongLinkType,
       sourceEntityModel: playlistEntity,
       targetEntityModel: songEntity3,
+      createdById: testUser.entityId,
     });
 
     expect(hasSongLink3.index).toBe(1);
 
     // create link at specified index which is currently occupied
     hasSongLink1 = await LinkModel.create(graphApi, {
-      ownedById,
+      ownedById: testUser.entityId,
       index: 0,
       linkTypeModel: hasSongLinkType,
       sourceEntityModel: playlistEntity,
       targetEntityModel: songEntity1,
+      createdById: testUser.entityId,
     });
 
     expect(hasSongLink1.index).toBe(0);
@@ -314,7 +330,7 @@ describe("Link model class", () => {
 
     await hasSongLink1.update(graphApi, {
       updatedIndex: 1,
-      updatedById: ownedById,
+      updatedById: testUser.entityId,
     });
 
     const playlistHasSongLinks = (await playlistEntity.getOutgoingLinks(
@@ -344,7 +360,7 @@ describe("Link model class", () => {
 
     await hasSongLink1.update(graphApi, {
       updatedIndex: 0,
-      updatedById: ownedById,
+      updatedById: testUser.entityId,
     });
 
     const playlistHasSongLinks = (await playlistEntity.getOutgoingLinks(
@@ -364,7 +380,7 @@ describe("Link model class", () => {
   });
 
   it("can remove an ordered link", async () => {
-    await hasSongLink2.remove(graphApi, { removedById: ownedById });
+    await hasSongLink2.remove(graphApi, { removedById: testUser.entityId });
 
     const playlistHasSongLinks = (await playlistEntity.getOutgoingLinks(
       graphApi,

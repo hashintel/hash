@@ -45,7 +45,9 @@ describe("Page model class", () => {
         ownedById: testUser.entityId,
         entityTypeModel: WORKSPACE_TYPES.entityType.dummy,
         properties: {},
+        createdById: testUser.entityId,
       }),
+      createdById: testUser.entityId,
     });
 
   let testPage: PageModel;
@@ -54,6 +56,7 @@ describe("Page model class", () => {
     testPage = await PageModel.createPage(graphApi, {
       ownedById: testUser.entityId,
       title: "Test Page",
+      createdById: testUser.entityId,
     });
 
     const initialBlocks = await testPage.getBlocks(graphApi);
@@ -74,6 +77,7 @@ describe("Page model class", () => {
       title: "Test Page 2",
       summary: "Test page 2 summary",
       initialBlocks: [initialBlock1, initialBlock2],
+      createdById: testUser.entityId,
     });
 
     const initialBlocks = await testPage2.getBlocks(graphApi);
@@ -110,6 +114,7 @@ describe("Page model class", () => {
       ownedById: testUser.entityId,
       title: "Test Parent Page",
       summary: "Test page summary",
+      createdById: testUser.entityId,
     });
 
     expect(await testPage.getParentPage(graphApi)).toBeNull();
@@ -145,12 +150,14 @@ describe("Page model class", () => {
     // insert block at un-specified position
     await testPage.insertBlock(graphApi, {
       block: testBlock3,
+      insertedById: testUser.entityId,
     });
 
     // insert block at specified position
     await testPage.insertBlock(graphApi, {
       block: testBlock2,
       position: 1,
+      insertedById: testUser.entityId,
     });
 
     expect(await testPage.getBlocks(graphApi)).toEqual([
