@@ -21,6 +21,9 @@ import { WORKSPACE_TYPES } from "../../graph/workspace-types";
 export type EntityTypeModelConstructorParams = {
   ownedById: string;
   schema: EntityType;
+  createdById: string;
+  updatedById: string;
+  removedById?: string;
 };
 
 export type EntityTypeModelCreateParams = {
@@ -37,14 +40,28 @@ export default class {
 
   schema: EntityType;
 
-  constructor({ schema, ownedById }: EntityTypeModelConstructorParams) {
+  createdById: string;
+  updatedById: string;
+  removedById?: string;
+
+  constructor({
+    schema,
+    ownedById,
+    createdById,
+    updatedById,
+    removedById,
+  }: EntityTypeModelConstructorParams) {
     this.ownedById = ownedById;
     this.schema = schema;
+
+    this.createdById = createdById;
+    this.updatedById = updatedById;
+    this.removedById = removedById;
   }
 
   static fromPersistedEntityType({
     inner,
-    metadata: { identifier },
+    metadata: { identifier, createdById, updatedById, removedById },
   }: PersistedEntityType): EntityTypeModel {
     /**
      * @todo and a warning, these type casts are here to compensate for
@@ -60,6 +77,9 @@ export default class {
     return new EntityTypeModel({
       schema: inner as EntityType,
       ownedById: identifier.ownedById,
+      createdById,
+      updatedById,
+      removedById,
     });
   }
 
@@ -100,11 +120,9 @@ export default class {
         );
       });
 
-    const { identifier } = metadata;
-
-    return new EntityTypeModel({
-      schema: fullEntityType,
-      ownedById: identifier.ownedById,
+    return EntityTypeModel.fromPersistedEntityType({
+      inner: fullEntityType,
+      metadata,
     });
   }
 
@@ -298,9 +316,9 @@ export default class {
 
     const { identifier } = metadata;
 
-    return new EntityTypeModel({
-      schema: { ...schema, $id: identifier.uri },
-      ownedById: identifier.ownedById,
+    return EntityTypeModel.fromPersistedEntityType({
+      inner: { ...schema, $id: identifier.uri },
+      metadata,
     });
   }
 

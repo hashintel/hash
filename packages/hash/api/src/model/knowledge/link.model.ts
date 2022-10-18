@@ -12,6 +12,7 @@ export type LinkModelConstructorParams = {
   sourceEntityModel: EntityModel;
   linkTypeModel: LinkTypeModel;
   targetEntityModel: EntityModel;
+  createdById: string;
 };
 
 export type LinkModelCreateParams = {
@@ -35,12 +36,15 @@ export default class {
   linkTypeModel: LinkTypeModel;
   targetEntityModel: EntityModel;
 
+  createdById: string;
+
   constructor({
     ownedById,
     index,
     sourceEntityModel,
     linkTypeModel,
     targetEntityModel,
+    createdById,
   }: LinkModelConstructorParams) {
     this.ownedById = ownedById;
     this.index = index;
@@ -48,12 +52,14 @@ export default class {
     this.sourceEntityModel = sourceEntityModel;
     this.linkTypeModel = linkTypeModel;
     this.targetEntityModel = targetEntityModel;
+
+    this.createdById = createdById;
   }
 
   static async fromPersistedLink(
     graphApi: GraphApi,
     {
-      metadata: { ownedById },
+      metadata: { ownedById, createdById },
       inner: { sourceEntityId, targetEntityId, linkTypeId, index },
     }: PersistedLink,
   ): Promise<LinkModel> {
@@ -70,6 +76,7 @@ export default class {
       sourceEntityModel,
       linkTypeModel,
       targetEntityModel,
+      createdById,
     });
   }
 

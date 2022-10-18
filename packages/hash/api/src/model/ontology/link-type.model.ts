@@ -13,6 +13,9 @@ import { getNamespaceOfAccountOwner } from "./util";
 type LinkTypeModelConstructorParams = {
   ownedById: string;
   schema: LinkType;
+  createdById: string;
+  updatedById: string;
+  removedById?: string;
 };
 
 /**
@@ -23,14 +26,27 @@ export default class {
 
   schema: LinkType;
 
-  constructor({ schema, ownedById }: LinkTypeModelConstructorParams) {
+  createdById: string;
+  updatedById: string;
+  removedById?: string;
+
+  constructor({
+    schema,
+    ownedById,
+    createdById,
+    updatedById,
+    removedById,
+  }: LinkTypeModelConstructorParams) {
     this.ownedById = ownedById;
     this.schema = schema;
+    this.createdById = createdById;
+    this.updatedById = updatedById;
+    this.removedById = removedById;
   }
 
   static fromPersistedLinkType({
     inner,
-    metadata: { identifier },
+    metadata: { identifier, createdById, updatedById, removedById },
   }: PersistedLinkType): LinkTypeModel {
     /**
      * @todo and a warning, these type casts are here to compensate for
@@ -46,6 +62,9 @@ export default class {
     return new LinkTypeModel({
       schema: inner as LinkType,
       ownedById: identifier.ownedById,
+      createdById,
+      updatedById,
+      removedById,
     });
   }
 
@@ -89,11 +108,9 @@ export default class {
         );
       });
 
-    const { identifier } = metadata;
-
-    return new LinkTypeModel({
-      schema: fullLinkType,
-      ownedById: identifier.ownedById,
+    return LinkTypeModel.fromPersistedLinkType({
+      inner: fullLinkType,
+      metadata,
     });
   }
 
@@ -151,11 +168,9 @@ export default class {
 
     const { data: metadata } = await graphApi.updateLinkType(updateArguments);
 
-    const { identifier } = metadata;
-
-    return new LinkTypeModel({
-      schema: { ...schema, $id: identifier.uri },
-      ownedById: identifier.ownedById,
+    return LinkTypeModel.fromPersistedLinkType({
+      inner: { ...schema, $id: metadata.identifier.uri },
+      metadata,
     });
   }
 }

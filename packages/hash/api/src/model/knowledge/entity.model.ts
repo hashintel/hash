@@ -25,6 +25,9 @@ export type EntityModelConstructorParams = {
   version: string;
   entityTypeModel: EntityTypeModel;
   properties: object;
+  createdById: string;
+  updatedById: string;
+  removedById: string | undefined;
 };
 
 export type EntityModelCreateParams = {
@@ -46,12 +49,19 @@ export default class {
   entityTypeModel: EntityTypeModel;
   properties: object;
 
+  createdById: string;
+  updatedById: string;
+  removedById: string | undefined;
+
   constructor({
     ownedById,
     entityId,
     version,
     entityTypeModel,
     properties,
+    createdById,
+    updatedById,
+    removedById,
   }: EntityModelConstructorParams) {
     this.ownedById = ownedById;
 
@@ -59,6 +69,10 @@ export default class {
     this.version = version;
     this.entityTypeModel = entityTypeModel;
     this.properties = properties;
+
+    this.createdById = createdById;
+    this.updatedById = updatedById;
+    this.removedById = removedById;
   }
 
   private static async fromPersistedEntity(
@@ -66,7 +80,8 @@ export default class {
     { metadata, inner }: PersistedEntity,
     cachedEntityTypeModels?: Map<string, EntityTypeModel>,
   ): Promise<EntityModel> {
-    const { identifier, entityTypeId } = metadata;
+    const { identifier, entityTypeId, createdById, updatedById, removedById } =
+      metadata;
     const { ownedById, entityId, version } = identifier;
     const cachedEntityTypeModel = cachedEntityTypeModels?.get(entityTypeId);
 
@@ -87,6 +102,9 @@ export default class {
       version,
       entityTypeModel,
       properties: inner,
+      createdById,
+      updatedById,
+      removedById,
     });
   }
 
@@ -119,17 +137,12 @@ export default class {
       createdById,
     });
 
-    const {
-      identifier: { entityId, version },
-    } = metadata;
+    const persistedEntity: PersistedEntity = {
+      inner: properties,
+      metadata,
+    };
 
-    return new EntityModel({
-      ownedById,
-      entityId,
-      version,
-      entityTypeModel,
-      properties,
-    });
+    return EntityModel.fromPersistedEntity(graphApi, persistedEntity);
   }
 
   /**
@@ -367,7 +380,7 @@ export default class {
     },
   ): Promise<EntityModel> {
     const { properties, updatedById } = params;
-    const { ownedById, entityId, entityTypeModel } = this;
+    const { entityId, entityTypeModel } = this;
 
     const { data: metadata } = await graphApi.updateEntity({
       updatedById,
@@ -377,16 +390,9 @@ export default class {
       entity: properties,
     });
 
-    const {
-      identifier: { version },
-    } = metadata;
-
-    return new EntityModel({
-      ownedById,
-      entityId,
-      version,
-      entityTypeModel,
-      properties,
+    return EntityModel.fromPersistedEntity(graphApi, {
+      metadata,
+      inner: properties,
     });
   }
 

@@ -14,6 +14,9 @@ import { getNamespaceOfAccountOwner } from "./util";
 type PropertyTypeModelConstructorParams = {
   ownedById: string;
   schema: PropertyType;
+  createdById: string;
+  updatedById: string;
+  removedById?: string;
 };
 
 /**
@@ -24,14 +27,27 @@ export default class {
 
   schema: PropertyType;
 
-  constructor({ schema, ownedById }: PropertyTypeModelConstructorParams) {
+  createdById: string;
+  updatedById: string;
+  removedById: string | undefined;
+
+  constructor({
+    schema,
+    ownedById,
+    createdById,
+    updatedById,
+    removedById,
+  }: PropertyTypeModelConstructorParams) {
     this.ownedById = ownedById;
     this.schema = schema;
+    this.createdById = createdById;
+    this.updatedById = updatedById;
+    this.removedById = removedById;
   }
 
   static fromPersistedPropertyType({
     inner,
-    metadata: { identifier },
+    metadata: { identifier, createdById, updatedById, removedById },
   }: PersistedPropertyType): PropertyTypeModel {
     /**
      * @todo and a warning, these type casts are here to compensate for
@@ -47,6 +63,9 @@ export default class {
     return new PropertyTypeModel({
       schema: inner as PropertyType,
       ownedById: identifier.ownedById,
+      createdById,
+      updatedById,
+      removedById,
     });
   }
 
@@ -93,11 +112,9 @@ export default class {
         );
       });
 
-    const { identifier } = metadata;
-
-    return new PropertyTypeModel({
-      schema: fullPropertyType,
-      ownedById: identifier.ownedById,
+    return PropertyTypeModel.fromPersistedPropertyType({
+      inner: fullPropertyType,
+      metadata,
     });
   }
 
@@ -144,11 +161,9 @@ export default class {
       updateArguments,
     );
 
-    const { identifier } = metadata;
-
-    return new PropertyTypeModel({
-      schema: { ...schema, $id: identifier.uri },
-      ownedById: identifier.ownedById,
+    return PropertyTypeModel.fromPersistedPropertyType({
+      inner: { ...schema, $id: metadata.identifier.uri },
+      metadata,
     });
   }
 

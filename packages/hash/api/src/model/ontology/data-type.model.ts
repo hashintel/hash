@@ -13,6 +13,9 @@ import { getNamespaceOfAccountOwner } from "./util";
 type DataTypeModelConstructorArgs = {
   ownedById: string;
   schema: DataType;
+  createdById: string;
+  updatedById: string;
+  removedById?: string;
 };
 
 /**
@@ -23,14 +26,28 @@ export default class {
 
   schema: DataType;
 
-  constructor({ schema, ownedById }: DataTypeModelConstructorArgs) {
+  createdById: string;
+  updatedById: string;
+  removedById?: string;
+
+  constructor({
+    schema,
+    ownedById,
+    createdById,
+    updatedById,
+    removedById,
+  }: DataTypeModelConstructorArgs) {
     this.ownedById = ownedById;
     this.schema = schema;
+
+    this.createdById = createdById;
+    this.updatedById = updatedById;
+    this.removedById = removedById;
   }
 
   static fromPersistedDataType({
     inner,
-    metadata: { identifier },
+    metadata: { identifier, createdById, updatedById, removedById },
   }: PersistedDataType): DataTypeModel {
     /**
      * @todo and a warning, these type casts are here to compensate for
@@ -46,6 +63,9 @@ export default class {
     return new DataTypeModel({
       schema: inner as DataType,
       ownedById: identifier.ownedById,
+      createdById,
+      updatedById,
+      removedById,
     });
   }
 
@@ -100,11 +120,9 @@ export default class {
         );
       });
 
-    const { identifier } = metadata;
-
-    return new DataTypeModel({
-      schema: fullDataType,
-      ownedById: identifier.ownedById,
+    return DataTypeModel.fromPersistedDataType({
+      inner: fullDataType,
+      metadata,
     });
   }
 
@@ -160,9 +178,9 @@ export default class {
 
     const { identifier } = metadata;
 
-    return new DataTypeModel({
-      schema: { ...schema, $id: identifier.uri },
-      ownedById: identifier.ownedById,
+    return DataTypeModel.fromPersistedDataType({
+      inner: { ...schema, $id: identifier.uri },
+      metadata,
     });
   }
 }
