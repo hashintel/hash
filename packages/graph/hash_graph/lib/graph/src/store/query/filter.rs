@@ -62,12 +62,9 @@ impl<'q, T: QueryRecord> TryFrom<Expression> for Filter<'q, T> {
 
     fn try_from(expression: Expression) -> Result<Self, Self::Error> {
         Ok(match expression {
-            Expression::Eq(expressions) => match expressions.len() {
-                0 | 1 => unimplemented!(),
-                2 => Self::Equal(
-                    expressions[0].clone().try_into()?,
-                    expressions[1].clone().try_into()?,
-                ),
+            Expression::Eq(expressions) => match expressions.as_slice() {
+                [] | [_] => unimplemented!(),
+                [lhs, rhs] => Self::Equal(lhs.clone().try_into()?, rhs.clone().try_into()?),
                 _ => Self::All(
                     expressions
                         .windows(2)
@@ -80,12 +77,9 @@ impl<'q, T: QueryRecord> TryFrom<Expression> for Filter<'q, T> {
                         .collect::<Result<_, _>>()?,
                 ),
             },
-            Expression::Ne(expressions) => match expressions.len() {
-                0 | 1 => unimplemented!(),
-                2 => Self::NotEqual(
-                    expressions[0].clone().try_into()?,
-                    expressions[1].clone().try_into()?,
-                ),
+            Expression::Ne(expressions) => match expressions.as_slice() {
+                [] | [_] => unimplemented!(),
+                [lhs, rhs] => Self::NotEqual(lhs.clone().try_into()?, rhs.clone().try_into()?),
                 _ => Self::All(
                     expressions
                         .windows(2)
