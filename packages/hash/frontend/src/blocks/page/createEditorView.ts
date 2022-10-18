@@ -57,7 +57,7 @@ const createSavePlugin = (
         },
       });
 
-      view.updateState(view.state.apply(tr));
+      view.dispatch(tr);
     });
   };
 
@@ -215,7 +215,7 @@ export const createEditorView = (
   );
 
   void manager.loadPage(state, getLastSavedValue()).then((tr) => {
-    view.updateState(state.apply(tr));
+    view.dispatch(tr);
   });
 
   /**
