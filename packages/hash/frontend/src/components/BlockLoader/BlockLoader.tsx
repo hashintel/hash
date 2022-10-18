@@ -6,7 +6,7 @@ import {
   LinkedAggregation as BpLinkedAggregation,
 } from "@blockprotocol/graph";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
-import { BlockEntity, isTextProperties } from "@hashintel/hash-shared/entity";
+import { BlockEntity } from "@hashintel/hash-shared/entity";
 import {
   useCallback,
   useLayoutEffect,
@@ -66,16 +66,6 @@ type BlockLoaderProps = {
   // shouldSandbox?: boolean;
 };
 
-const removeTextEntities = (properties: {}) => {
-  // @see https://app.asana.com/0/1201095311341924/1202694273052398/f
-  // NOTE, THIS HAS BEEN CHANGED SINCE to accompany the new Graph Layer
-  if (isTextProperties(properties)) {
-    return { ...properties, text: "" };
-  }
-
-  return properties;
-};
-
 // const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
 
 /**
@@ -91,7 +81,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   entityId,
   entityType,
   entityTypeId,
-  entityProperties: untransformedEntityProperties,
+  entityProperties,
   linkGroups,
   linkedEntities,
   linkedAggregations,
@@ -179,7 +169,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       accountId,
       entityId: entityId ?? "entityId-not-yet-set", // @todo ensure blocks always get sent an entityId
       entityTypeId,
-      properties: removeTextEntities(untransformedEntityProperties),
+      properties: entityProperties,
     });
 
     if (
@@ -207,7 +197,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     accountId,
     entityType,
     entityId,
-    untransformedEntityProperties,
+    entityProperties,
     entityTypeId,
     linkGroups,
     linkedEntities,
@@ -272,7 +262,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
         schemaMap={schemaMap}
         sourceBlockEntity={{
           ...graphProperties.blockEntity,
-          properties: untransformedEntityProperties,
+          properties: entityProperties,
         }}
         sourceBlockGraph={graphProperties.blockGraph}
         targetSchema={blockSchema}
