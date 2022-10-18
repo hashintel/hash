@@ -10,8 +10,8 @@ import {
   TableSort,
 } from "../../../../../components/GlideGlid/utils";
 import { EntityEditorProps } from "../entity-editor";
-import { LinkRow } from "../link-table/types";
-import { PropertyRow } from "../property-table/types";
+import { LinkRow } from "./links-section/link-table/types";
+import { PropertyRow } from "./properties-section/property-table/types";
 
 interface Props extends EntityEditorProps {
   propertySort: TableSort<PropertyRow>;
