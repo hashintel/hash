@@ -53,18 +53,22 @@ export default class {
   /**
    * Create a property type.
    *
-   * @param params.ownedById the id of the owner of the property type
-   * @param params.schema a `PropertyType`
+   * @param params.ownedById - the id of the owner of the property type
+   * @param params.schema - the `PropertyType`
+   * @param params.createdById - the id of the account that is creating the property type
    */
   static async create(
     graphApi: GraphApi,
     params: {
       ownedById: string;
       schema: Omit<PropertyType, "$id">;
+      createdById: string;
     },
   ): Promise<PropertyTypeModel> {
+    const { ownedById, createdById } = params;
+
     const namespace = await getNamespaceOfAccountOwner(graphApi, {
-      ownerId: params.ownedById,
+      ownerId: ownedById,
     });
 
     const propertyTypeId = generateTypeId({
@@ -77,12 +81,9 @@ export default class {
 
     const { data: metadata } = await graphApi
       .createPropertyType({
-        /**
-         * @todo: replace uses of `accountId` with `ownedById` in the Graph API
-         * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
-         */
-        accountId: params.ownedById,
+        ownedById,
         schema: fullPropertyType,
+        createdById,
       })
       .catch((err: AxiosError) => {
         throw new Error(
@@ -122,26 +123,21 @@ export default class {
   /**
    * Update a property type.
    *
-   * @param params.schema a `PropertyType`
+   * @param params.schema - the updated `PropertyType`
+   * @param params.updatedById - the id of the account that is updating the type
    */
   async update(
     graphApi: GraphApi,
     params: {
       schema: Omit<PropertyType, "$id">;
+      updatedById: string;
     },
   ): Promise<PropertyTypeModel> {
-    const { schema } = params;
+    const { schema, updatedById } = params;
     const updateArguments: UpdatePropertyTypeRequest = {
-      /**
-       * @todo: let caller update who owns the type, or create new method dedicated to changing the owner of the type
-       * @see https://app.asana.com/0/1202805690238892/1203063463721793/f
-       *
-       * @todo: replace uses of `accountId` with `ownedById` in the Graph API
-       * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
-       */
-      accountId: this.ownedById,
       typeToUpdate: this.schema.$id,
       schema,
+      updatedById,
     };
 
     const { data: metadata } = await graphApi.updatePropertyType(

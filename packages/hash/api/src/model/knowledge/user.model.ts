@@ -134,7 +134,7 @@ export default class extends EntityModel {
     graphApi: GraphApi,
     params: UserModelCreateParams,
   ): Promise<UserModel> {
-    const { emails, kratosIdentityId } = params;
+    const { emails, kratosIdentityId, createdById } = params;
 
     const existingUserWithKratosIdentityId =
       await UserModel.getUserByKratosIdentityId(graphApi, {
@@ -163,6 +163,7 @@ export default class extends EntityModel {
       properties,
       entityTypeModel,
       entityId: userAccountId,
+      createdById,
     });
 
     return UserModel.fromEntityModel(entity);
@@ -255,12 +256,13 @@ export default class extends EntityModel {
    * Update the shortname of a User.
    *
    * @param params.updatedShortname - the new shortname to assign to the User
+   * @param params.updatedById - the id of the account that is updating the shortname
    */
   async updateShortname(
     graphApi: GraphApi,
-    params: { updatedShortname: string },
+    params: { updatedShortname: string; updatedById: string },
   ): Promise<UserModel> {
-    const { updatedShortname } = params;
+    const { updatedShortname, updatedById } = params;
 
     if (AccountFields.shortnameIsInvalid(updatedShortname)) {
       throw new Error(`The shortname "${updatedShortname}" is invalid`);
@@ -282,6 +284,7 @@ export default class extends EntityModel {
     const updatedUser = await this.updateProperty(graphApi, {
       propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.shortName.baseUri,
       value: updatedShortname,
+      updatedById,
     }).then((updatedEntity) => new UserModel(updatedEntity));
 
     await this.updateKratosIdentityTraits({
@@ -291,6 +294,7 @@ export default class extends EntityModel {
       await this.updateProperty(graphApi, {
         propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.shortName.baseUri,
         value: previousShortname,
+        updatedById,
       });
 
       return Promise.reject(error);
@@ -313,12 +317,13 @@ export default class extends EntityModel {
    * Update the preferred name of a User.
    *
    * @param params.updatedPreferredName - the new preferred name to assign to the User
+   * @param params.updatedById - the id of the account that is updating the preferred name
    */
   async updatePreferredName(
     graphApi: GraphApi,
-    params: { updatedPreferredName: string },
+    params: { updatedPreferredName: string; updatedById: string },
   ) {
-    const { updatedPreferredName } = params;
+    const { updatedPreferredName, updatedById } = params;
 
     if (UserModel.preferredNameIsInvalid(updatedPreferredName)) {
       throw new Error(`Preferred name "${updatedPreferredName}" is invalid.`);
@@ -327,6 +332,7 @@ export default class extends EntityModel {
     const updatedEntity = await this.updateProperty(graphApi, {
       propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.preferredName.baseUri,
       value: updatedPreferredName,
+      updatedById,
     });
 
     return new UserModel(updatedEntity);
@@ -352,24 +358,33 @@ export default class extends EntityModel {
     );
   }
 
+  /**
+   * Make the user a member of an organization.
+   *
+   * @param params.org - the organization the user is joining
+   * @param params.responsibility - the responsibility fo the user at the organization
+   * @param params.joinedById - the id of the account that is making the user a member of the organization
+   */
   async joinOrg(
     graphApi: GraphApi,
     params: {
       org: OrgModel;
       responsibility: string;
+      joinedById: string;
     },
   ) {
-    const { org, responsibility } = params;
+    const { org, responsibility, joinedById } = params;
 
     const orgMembership = await OrgMembershipModel.createOrgMembership(
       graphApi,
-      { responsibility, org },
+      { responsibility, org, createdById: joinedById },
     );
 
     await this.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.hasMembership,
       targetEntityModel: orgMembership,
       ownedById: workspaceAccountId,
+      createdById: joinedById,
     });
   }
 

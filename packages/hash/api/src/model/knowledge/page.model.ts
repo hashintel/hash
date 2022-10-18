@@ -73,7 +73,7 @@ export default class extends EntityModel {
     graphApi: GraphApi,
     params: PageModelCreateParams,
   ): Promise<PageModel> {
-    const { title, summary, prevIndex, ownedById } = params;
+    const { title, summary, prevIndex, ownedById, createdById } = params;
 
     const index = generateKeyBetween(prevIndex ?? null, null);
 
@@ -89,6 +89,7 @@ export default class extends EntityModel {
       ownedById,
       properties,
       entityTypeModel,
+      createdById,
     });
 
     const page = PageModel.fromEntityModel(entity);
@@ -106,12 +107,14 @@ export default class extends EntityModel {
                   [WORKSPACE_TYPES.propertyType.tokens.baseUri]: [],
                 },
                 entityTypeModel: WORKSPACE_TYPES.entityType.text,
+                createdById,
               }),
+              createdById,
             }),
           ];
 
     for (const block of initialBlocks) {
-      await page.insertBlock(graphApi, { block });
+      await page.insertBlock(graphApi, { block, insertedById: createdById });
     }
 
     return page;
@@ -120,7 +123,7 @@ export default class extends EntityModel {
   /**
    * Get all the pages in an account.
    *
-   * @param params.account - the user or org whose pages will be returned
+   * @param params.accountModel - the user or org whose pages will be returned
    */
   static async getAllPagesInAccount(
     graphApi: GraphApi,
@@ -339,6 +342,7 @@ export default class extends EntityModel {
         linkTypeModel: WORKSPACE_TYPES.linkType.parent,
         targetEntityModel: parentPageModel,
         ownedById: setById,
+        createdById: setById,
       });
     }
 
@@ -346,6 +350,7 @@ export default class extends EntityModel {
       const updatedPageEntityModel = await this.updateProperty(graphApi, {
         propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.index.baseUri,
         value: newIndex,
+        updatedById: setById,
       });
 
       return PageModel.fromEntityModel(updatedPageEntityModel);
@@ -384,15 +389,17 @@ export default class extends EntityModel {
    *
    * @param params.block - the block to insert in the page
    * @param params.position (optional) - the position of the block in the page
+   * @param params.insertedById - the id of the account that is inserting the block into the page
    */
   async insertBlock(
     graphApi: GraphApi,
     params: {
       block: BlockModel;
       position?: number;
+      insertedById: string;
     },
   ) {
-    const { position: specifiedPosition } = params;
+    const { position: specifiedPosition, insertedById } = params;
 
     const { block } = params;
 
@@ -405,6 +412,7 @@ export default class extends EntityModel {
         ((await this.getBlocks(graphApi)).length === 0 ? 0 : undefined),
       // assume that link to block is owned by the same account as the page
       ownedById: this.ownedById,
+      createdById: insertedById,
     });
   }
 

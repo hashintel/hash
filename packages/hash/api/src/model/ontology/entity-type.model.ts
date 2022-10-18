@@ -26,6 +26,7 @@ export type EntityTypeModelConstructorParams = {
 export type EntityTypeModelCreateParams = {
   ownedById: string;
   schema: Omit<EntityType, "$id">;
+  createdById: string;
 };
 
 /**
@@ -67,11 +68,13 @@ export default class {
    *
    * @param params.ownedById - the id of the owner of the entity type
    * @param params.schema - the `EntityType`
+   * @param params.createdById - the id of the account that is creating the entity type
    */
   static async create(
     graphApi: GraphApi,
     params: EntityTypeModelCreateParams,
   ): Promise<EntityTypeModel> {
+    const { ownedById, createdById } = params;
     const namespace = await getNamespaceOfAccountOwner(graphApi, {
       ownerId: params.ownedById,
     });
@@ -85,11 +88,8 @@ export default class {
 
     const { data: metadata } = await graphApi
       .createEntityType({
-        /**
-         * @todo: replace uses of `accountId` with `ownedById` in the Graph API
-         * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
-         */
-        accountId: params.ownedById,
+        createdById,
+        ownedById,
         schema: fullEntityType,
       })
       .catch((err: AxiosError) => {
@@ -277,24 +277,19 @@ export default class {
   /**
    * Update an entity type.
    *
-   * @param params.schema an `EntityType`
+   * @param params.schema - the updated `EntityType`
+   * @param params.updatedById - the id of the account that is updating the entity type
    */
   async update(
     graphApi: GraphApi,
     params: {
       schema: Omit<EntityType, "$id">;
+      updatedById: string;
     },
   ): Promise<EntityTypeModel> {
-    const { schema } = params;
+    const { schema, updatedById } = params;
     const updateArguments: UpdateEntityTypeRequest = {
-      /**
-       * @todo: let caller update who owns the type, or create new method dedicated to changing the owner of the type
-       * @see https://app.asana.com/0/1202805690238892/1203063463721793/f
-       *
-       * @todo: replace uses of `accountId` with `ownedById` in the Graph API
-       * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
-       */
-      accountId: this.ownedById,
+      updatedById,
       typeToUpdate: this.schema.$id,
       schema,
     };

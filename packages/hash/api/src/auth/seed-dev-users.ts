@@ -3,6 +3,7 @@ import { AxiosError } from "axios";
 
 import { GraphApi } from "../graph";
 import { UserModel } from "../model";
+import { workspaceAccountId } from "../model/util";
 import { createKratosIdentity } from "./ory-kratos";
 
 type DevelopmentUser = {
@@ -62,14 +63,17 @@ export const ensureDevUsersAreSeeded = async ({
       let user = await UserModel.createUser(graphApi, {
         emails,
         kratosIdentityId,
+        createdById: workspaceAccountId,
       });
 
       user = await user.updateShortname(graphApi, {
         updatedShortname: shortname,
+        updatedById: workspaceAccountId,
       });
 
       user = await user.updatePreferredName(graphApi, {
         updatedPreferredName: preferredName,
+        updatedById: workspaceAccountId,
       });
     }
 

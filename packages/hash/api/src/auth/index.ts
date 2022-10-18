@@ -10,12 +10,13 @@ import {
   publicKratosSdk,
 } from "./ory-kratos";
 import { UserModel } from "../model";
+import { workspaceAccountId } from "../model/util";
 
 declare global {
   namespace Express {
     interface Request {
       session: Session | undefined;
-      user: UserModel | undefined;
+      userModel: UserModel | undefined;
     }
   }
 }
@@ -57,6 +58,7 @@ const kratosAfterRegistrationHookHandler =
         await UserModel.createUser(graphApi, {
           emails,
           kratosIdentityId,
+          createdById: workspaceAccountId,
         });
 
         res.status(200).end();
@@ -105,17 +107,17 @@ const setupAuth = (params: {
 
       const { id: kratosIdentityId } = identity;
 
-      const user = await UserModel.getUserByKratosIdentityId(graphApi, {
+      const userModel = await UserModel.getUserByKratosIdentityId(graphApi, {
         kratosIdentityId,
       });
 
-      if (!user) {
+      if (!userModel) {
         throw new Error(
           `Could not find user with kratos identity id "${kratosIdentityId}"`,
         );
       }
 
-      req.user = user;
+      req.userModel = userModel;
     }
 
     next();

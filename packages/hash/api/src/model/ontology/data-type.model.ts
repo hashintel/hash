@@ -58,8 +58,9 @@ export default class {
    *   Depends on the RFC captured by:
    *   https://app.asana.com/0/1200211978612931/1202464168422955/f
    *
-   * @param params.ownedById - the id of the owner of the entity type
+   * @param params.ownedById - the id of the owner of the data type
    * @param params.schema - the `DataType`
+   * @param params.createdById - the id of the account that is creating the data type
    */
   static async create(
     graphApi: GraphApi,
@@ -70,8 +71,10 @@ export default class {
       //  this is needed for as long as DataType extends Record
       schema: Pick<DataType, "kind" | "title" | "description" | "type"> &
         Record<string, any>;
+      createdById: string;
     },
   ): Promise<DataTypeModel> {
+    const { ownedById, createdById } = params;
     const namespace = await getNamespaceOfAccountOwner(graphApi, {
       ownerId: params.ownedById,
     });
@@ -85,12 +88,9 @@ export default class {
 
     const { data: metadata } = await graphApi
       .createDataType({
-        /**
-         * @todo: replace uses of `accountId` with `ownedById` in the Graph API
-         * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
-         */
-        accountId: params.ownedById,
         schema: fullDataType,
+        ownedById,
+        createdById,
       })
       .catch((err: AxiosError) => {
         throw new Error(
@@ -134,7 +134,8 @@ export default class {
    *   Depends on the RFC captured by:
    *   https://app.asana.com/0/1200211978612931/1202464168422955/f
    *
-   * @param params.schema a `DataType`
+   * @param params.schema - the updated `DataType`
+   * @param params.updatedById - the id of the account that is updating the data type
    */
   async update(
     graphApi: GraphApi,
@@ -144,19 +145,13 @@ export default class {
       //  this is needed for as long as DataType extends Record
       schema: Pick<DataType, "kind" | "title" | "description" | "type"> &
         Record<string, any>;
+      updatedById: string;
     },
   ): Promise<DataTypeModel> {
-    const { schema } = params;
+    const { schema, updatedById } = params;
 
     const updateArguments: UpdateDataTypeRequest = {
-      /**
-       * @todo: let caller update who owns the type, or create new method dedicated to changing the owner of the type
-       * @see https://app.asana.com/0/1202805690238892/1203063463721793/f
-       *
-       * @todo: replace uses of `accountId` with `ownedById` in the Graph API
-       * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
-       */
-      accountId: this.ownedById,
+      updatedById,
       typeToUpdate: this.schema.$id,
       schema,
     };

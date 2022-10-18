@@ -47,7 +47,7 @@ export default class extends EntityModel {
    * @see {@link EntityModel.create} for the remaining params
    */
   static async createOrg(graphApi: GraphApi, params: OrgModelCreateParams) {
-    const { shortname, name, providedInfo } = params;
+    const { shortname, name, providedInfo, createdById } = params;
 
     const { data: orgAccountId } = await graphApi.createAccountId();
 
@@ -69,6 +69,7 @@ export default class extends EntityModel {
       properties,
       entityTypeModel,
       entityId: orgAccountId,
+      createdById,
     });
 
     return OrgModel.fromEntityModel(entity);
@@ -142,12 +143,13 @@ export default class extends EntityModel {
    * Update the shortname of an Organization
    *
    * @param params.updatedShortname - the new shortname to assign to the Organization
+   * @param params.updatedById - the id of the account updating the shortname
    */
   async updateShortname(
     graphApi: GraphApi,
-    params: { updatedShortname: string },
+    params: { updatedShortname: string; updatedById: string },
   ): Promise<OrgModel> {
-    const { updatedShortname } = params;
+    const { updatedShortname, updatedById } = params;
 
     if (AccountFields.shortnameIsInvalid(updatedShortname)) {
       throw new Error(`The shortname "${updatedShortname}" is invalid`);
@@ -167,6 +169,7 @@ export default class extends EntityModel {
     return await this.updateProperty(graphApi, {
       propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.shortName.baseUri,
       value: updatedShortname,
+      updatedById,
     }).then((updatedEntity) => new OrgModel(updatedEntity));
   }
 
@@ -184,9 +187,13 @@ export default class extends EntityModel {
    * Update the name of an Organization
    *
    * @param params.updatedOrgName - the new name to assign to the Organization
+   * @param params.updatedById - the id of the account updating the name
    */
-  async updateOrgName(graphApi: GraphApi, params: { updatedOrgName: string }) {
-    const { updatedOrgName } = params;
+  async updateOrgName(
+    graphApi: GraphApi,
+    params: { updatedOrgName: string; updatedById: string },
+  ) {
+    const { updatedOrgName, updatedById } = params;
 
     if (OrgModel.orgNameIsInvalid(updatedOrgName)) {
       throw new Error(`Organization name "${updatedOrgName}" is invalid.`);
@@ -195,6 +202,7 @@ export default class extends EntityModel {
     const updatedEntity = await this.updateProperty(graphApi, {
       propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.orgName.baseUri,
       value: updatedOrgName,
+      updatedById,
     });
 
     return OrgModel.fromEntityModel(updatedEntity);

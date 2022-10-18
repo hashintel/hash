@@ -24,9 +24,9 @@ export interface GraphQLContext {
   emailTransporter: EmailTransporter;
   uploadProvider: StorageType;
   logger: Logger;
-  user?: UserModel;
+  userModel?: UserModel;
 }
 
 export interface LoggedInGraphQLContext extends GraphQLContext {
-  user: UserModel;
+  userModel: UserModel;
 }

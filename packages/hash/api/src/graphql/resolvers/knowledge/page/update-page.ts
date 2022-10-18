@@ -18,7 +18,7 @@ export const updatePersistedPage: ResolverFn<
 > = async (
   _,
   { entityId, updatedProperties },
-  { dataSources: { graphApi } },
+  { dataSources: { graphApi }, userModel },
 ) => {
   const pageModel = await PageModel.getPageById(graphApi, { entityId });
 
@@ -32,6 +32,7 @@ export const updatePersistedPage: ResolverFn<
         value,
       }),
     ),
+    updatedById: userModel.entityId,
   });
 
   const updatedPageModel = PageModel.fromEntityModel(updatedPageEntityModel);

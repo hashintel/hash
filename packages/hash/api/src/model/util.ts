@@ -114,6 +114,7 @@ export type PropertyTypeCreatorParams = {
     propertyTypeObjectProperties?: { [_ in string]: { $ref: string } };
     array?: boolean;
   }[];
+  createdById: string;
 };
 
 /**
@@ -200,6 +201,7 @@ export const propertyTypeInitializer = (
           return await PropertyTypeModel.create(graphApi, {
             ownedById: workspaceAccountId,
             schema: propertyType,
+            createdById: params.createdById,
           }).catch((createError: AxiosError) => {
             logger.warn(`Failed to create property type: ${params.title}`);
             throw createError;
@@ -236,6 +238,7 @@ export type EntityTypeCreatorParams = {
     array?: { minItems?: number; maxItems?: number } | boolean;
     ordered?: boolean;
   }[];
+  createdById: string;
 };
 
 /**
@@ -354,6 +357,7 @@ export const entityTypeInitializer = (
           return await EntityTypeModel.create(graphApi, {
             ownedById: workspaceAccountId,
             schema: entityType,
+            createdById: params.createdById,
           }).catch((createError: AxiosError) => {
             logger.warn(`Failed to create entity type: ${params.title}`);
             throw createError;
@@ -376,6 +380,7 @@ export type LinkTypeCreatorParams = {
   title: string;
   description: string;
   relatedKeywords?: string[];
+  createdById: string;
 };
 
 /**
@@ -429,6 +434,7 @@ export const linkTypeInitializer = (
           return await LinkTypeModel.create(graphApi, {
             ownedById: workspaceAccountId,
             schema: linkType,
+            createdById: params.createdById,
           }).catch((createError: AxiosError) => {
             logger.warn(`Failed to create link type: ${params.title}`);
             throw createError;

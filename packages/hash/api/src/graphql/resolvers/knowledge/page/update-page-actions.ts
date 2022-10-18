@@ -16,7 +16,7 @@ export const createEntityWithPlaceholdersFn =
   (graphApi: GraphApi, placeholderResults: PlaceholderResultsMap) =>
   async (
     originalDefinition: PersistedEntityDefinition,
-    entityOwnedById: string,
+    entityCreatedById: string,
   ) => {
     const entityDefinition = produce(originalDefinition, (draft) => {
       if (draft.existingEntity) {
@@ -44,10 +44,11 @@ export const createEntityWithPlaceholdersFn =
     });
 
     return await EntityModel.createEntityWithLinks(graphApi, {
-      ownedById: entityOwnedById,
+      ownedById: entityCreatedById,
       entityTypeId: entityDefinition.entityType?.entityTypeId!,
       properties: entityDefinition.entityProperties,
       linkedEntities: entityDefinition.linkedEntities ?? undefined,
+      createdById: entityCreatedById,
     });
   };
 
@@ -208,6 +209,7 @@ export const handleInsertNewBlock = async (
         blockData,
         ownedById: userModel.entityId,
         componentId: blockComponentId,
+        createdById: userModel.entityId,
       });
     } else {
       throw new Error(
@@ -243,6 +245,7 @@ export const handleSwapBlockData = async (
 ): Promise<void> => {
   const {
     swapBlockDataAction: { entityId },
+    userModel,
   } = params;
 
   const block = await BlockModel.getBlockById(graphApi, {
@@ -261,6 +264,7 @@ export const handleSwapBlockData = async (
 
   await block.updateBlockDataEntity(graphApi, {
     newBlockDataEntity,
+    updatedById: userModel.entityId,
   });
 };
 
@@ -276,7 +280,7 @@ export const handleUpdateEntity = async (
     placeholderResults: PlaceholderResultsMap;
   },
 ): Promise<void> => {
-  const { action, placeholderResults } = params;
+  const { action, placeholderResults, userModel } = params;
 
   // If this entity ID is a placeholder, use that instead.
   let entityId = action.entityId;
@@ -292,5 +296,6 @@ export const handleUpdateEntity = async (
     updatedProperties: Object.entries(action.properties).map(
       ([key, value]) => ({ propertyTypeBaseUri: key, value }),
     ),
+    updatedById: userModel.entityId,
   });
 };

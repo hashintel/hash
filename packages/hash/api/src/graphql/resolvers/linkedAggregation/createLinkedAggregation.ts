@@ -14,7 +14,7 @@ export const createLinkedAggregation: ResolverFn<
 > = async (
   _,
   { sourceAccountId, sourceEntityId, path, operation },
-  { dataSources, user },
+  { dataSources, userModel },
 ) =>
   dataSources.db.transaction(async (client) => {
     const source = await Entity.getEntityLatestVersion(client, {
@@ -36,7 +36,8 @@ export const createLinkedAggregation: ResolverFn<
         itemsPerPage: operation.itemsPerPage ?? 10,
         pageNumber: operation.pageNumber ?? 1,
       },
-      createdBy: user as any /** @todo: replace with updated model class */,
+      createdBy:
+        userModel as any /** @todo: replace with updated model class */,
     });
 
     return aggregation.toGQLLinkedAggregation(dataSources.db);

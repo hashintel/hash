@@ -41,7 +41,7 @@ export const updatePersistedPageContents: ResolverFn<
 > = async (
   _,
   { ownedById, entityId: pageEntityId, actions },
-  { dataSources, user: userModel },
+  { dataSources, userModel },
 ) => {
   for (const [i, action] of actions.entries()) {
     if (
@@ -140,6 +140,7 @@ export const updatePersistedPageContents: ResolverFn<
         await pageModel.insertBlock(graphApi, {
           block: insertedBlocks[insertCount]!,
           position: action.insertBlock.position,
+          insertedById: userModel.entityId,
         });
         insertCount += 1;
       } else if (action.moveBlock) {
