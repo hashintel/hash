@@ -5,7 +5,7 @@ use std::collections::{
 
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
-use utoipa::{openapi, ToSchema};
+use utoipa::{openapi, openapi::Schema, ToSchema};
 
 use crate::{
     knowledge::{EntityId, KnowledgeGraphQueryDepth, PersistedEntity, PersistedLink},
@@ -167,7 +167,7 @@ pub struct StructuralQuery {
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize)]
 pub struct Edges(HashMap<GraphElementIdentifier, HashSet<OutwardEdge>>);
 
 impl Edges {
@@ -187,6 +187,15 @@ impl Edges {
                 set.insert(edge)
             }
         }
+    }
+}
+
+// Necessary because utoipa can't handle HashSet
+impl ToSchema for Edges {
+    fn schema() -> Schema {
+        openapi::ObjectBuilder::new()
+            .additional_properties(Some(openapi::schema::Array::new(OutwardEdge::schema())))
+            .into()
     }
 }
 
