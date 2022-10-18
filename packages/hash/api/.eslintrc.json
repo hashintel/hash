@@ -4,5 +4,6 @@
   },
   "parserOptions": {
     "project": ["./tsconfig.json"]
-  }
+  },
+  "ignorePatterns": ["src/collab/**/*"]
 }
