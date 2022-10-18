@@ -1,8 +1,9 @@
 import { cloneDeep } from "lodash";
 import { baseKeymap } from "prosemirror-commands";
-import { dropCursor } from "prosemirror-dropcursor";
+// import { dropCursor } from "prosemirror-dropcursor";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
+import { dropCursor } from "./dropCursor";
 import { createEntityStorePlugin } from "./entityStorePlugin";
 import {
   createSchema,

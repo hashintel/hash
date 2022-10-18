@@ -128,6 +128,16 @@ export class BlockView implements NodeView<Schema> {
       this.update(this.node);
     });
 
+    const dragState = this.editorView.state["drag$"];
+    // const index = this.editorView.state.doc.resolve(this.getPos()).index(0);
+
+    this.dom.style.transition = "transform 300ms";
+    if (dragState.isDragging) {
+      this.dom.style.transform = "translateY(50px)";
+    } else {
+      this.dom.style.transform = "translateY(0px)";
+    }
+
     this.update(node);
   }
 
@@ -222,6 +232,23 @@ export class BlockView implements NodeView<Schema> {
     }
 
     const blockDraftId = this.getBlockDraftId();
+
+    // console.log(this.getPos());
+
+    // console.log(this.editorView.state["drag$"]);
+
+    // const dragState = this.editorView.state["drag$"];
+    // const index = this.editorView.state.doc.resolve(this.getPos()).index(0);
+    // console.log(index);
+
+    // if (index > dragState.dragIndex) {
+    //   this.dom.style.transform = "translateY(50px)";
+    //   this.dom.style.transition = "transform 300ms";
+    // }
+    // this.getPos();
+
+    // console.log(this.editorView.pluginViews[0].isDragging);
+    // console.log(this.editorView.pluginViews[0].cursorIndex);
 
     this.renderPortal(
       <BlockContext.Consumer>

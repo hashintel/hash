@@ -24,6 +24,7 @@
   white-space: pre-wrap;
   outline: none !important;
   position: relative;
+  transition: transform 300ms;
 }
 
 /**
