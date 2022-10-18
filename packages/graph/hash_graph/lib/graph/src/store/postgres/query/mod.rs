@@ -21,9 +21,7 @@ pub trait PostgresQueryRecord<'q>: QueryRecord<Path<'q>: Path> {
     fn base_table() -> TableName;
 }
 
-/// A queryable attribute of an element in the [`graph`].
-///
-/// [`graph`]: crate::graph
+/// A queryable attribute of an element in the graph.
 pub trait Field {
     /// The [`TableName`] of the [`Table`] where this field is located.
     ///
