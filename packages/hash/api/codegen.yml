@@ -23,6 +23,9 @@ generates:
       noSchemaStitching: true
       skipTypename: true
       scalars:
+        Date: string
+        UnknownEntityProperties: "@hashintel/hash-shared/graphql/types#UnknownEntityProperties"
+        TextToken: "@hashintel/hash-shared/graphql/types#TextToken"
         DataType: "@blockprotocol/type-system-web#DataType"
         PropertyType: "@blockprotocol/type-system-web#PropertyType"
         LinkType: "@blockprotocol/type-system-web#LinkType"
@@ -31,8 +34,5 @@ generates:
         PropertyTypeWithoutId: "@hashintel/hash-shared/graphql/types#PropertyTypeWithoutId"
         EntityTypeWithoutId: "@hashintel/hash-shared/graphql/types#EntityTypeWithoutId"
         LinkTypeWithoutId: "@hashintel/hash-shared/graphql/types#LinkTypeWithoutId"
-        TextToken: "@hashintel/hash-shared/graphql/types#TextToken"
-        Date: string
-        UnknownEntityProperties: "@hashintel/hash-shared/graphql/types#UnknownEntityProperties"
         Edges: "@hashintel/hash-shared/graphql/types#Edges"
         Vertices: "@hashintel/hash-shared/graphql/types#Vertices"

@@ -90,18 +90,14 @@ export type AggregatePropertyTypesRequest = {};
 export type AggregatePropertyTypesMessageCallback = MessageCallback<
   AggregatePropertyTypesRequest,
   null,
-  AggregateResult<PropertyTypeResponse>,
+  Subgraph,
   ReadOrModifyResourceError
 >;
 
-export type GetPropertyTypeRequest = Pick<
-  PropertyTypeResponse,
-  "propertyTypeId"
->;
 export type GetPropertyTypeMessageCallback = MessageCallback<
-  GetPropertyTypeRequest,
+  { propertyTypeId: VersionedUri },
   null,
-  PropertyTypeResponse,
+  Subgraph,
   ReadOrModifyResourceError
 >;
 

@@ -18,14 +18,15 @@ use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, AccountId, EntityTypeQuery, EntityTypeRootedSubgraph,
-        PersistedEntityType, PersistedOntologyIdentifier, PersistedOntologyMetadata,
+        patch_id_and_parse, AccountId, EntityTypeRootedSubgraph, PersistedEntityType,
+        PersistedOntologyIdentifier, PersistedOntologyMetadata,
     },
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
         query::Expression,
         EntityTypeStore, StorePool,
     },
+    subgraph::StructuralQuery,
 };
 
 #[derive(OpenApi)]
@@ -45,7 +46,7 @@ use crate::{
             PersistedOntologyIdentifier,
             PersistedOntologyMetadata,
             PersistedEntityType,
-            EntityTypeQuery,
+            StructuralQuery,
             EntityTypeRootedSubgraph,
         )
     ),
@@ -140,7 +141,7 @@ async fn create_entity_type<P: StorePool + Send>(
 #[utoipa::path(
     post,
     path = "/entity-types/query",
-    request_body = EntityTypeQuery,
+    request_body = StructuralQuery,
     tag = "EntityType",
     responses(
         (status = 200, content_type = "application/json", body = [EntityTypeRootedSubgraph], description = "A list of subgraphs rooted at entity types that satisfy the given query, each resolved to the requested depth."),
@@ -151,7 +152,7 @@ async fn create_entity_type<P: StorePool + Send>(
 )]
 async fn get_entity_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    Json(query): Json<EntityTypeQuery>,
+    Json(query): Json<StructuralQuery>,
 ) -> Result<Json<Vec<EntityTypeRootedSubgraph>>, StatusCode> {
     pool.acquire()
         .map_err(|error| {

@@ -157,12 +157,16 @@ export default class {
      */
     const { data: entityTypeRootedSubgraphs } =
       await graphApi.getEntityTypesByQuery({
-        dataTypeQueryDepth: params.dataTypeQueryDepth,
-        propertyTypeQueryDepth: params.propertyTypeQueryDepth,
-        linkTypeQueryDepth: params.linkTypeQueryDepth,
-        entityTypeQueryDepth: params.entityTypeQueryDepth,
         query: {
           eq: [{ path: ["version"] }, { literal: "latest" }],
+        },
+        graphResolveDepths: {
+          dataTypeResolveDepth: params.dataTypeQueryDepth,
+          propertyTypeResolveDepth: params.propertyTypeQueryDepth,
+          linkTypeResolveDepth: params.linkTypeQueryDepth,
+          entityTypeResolveDepth: params.entityTypeQueryDepth,
+          linkResolveDepth: 0,
+          linkTargetEntityResolveDepth: 0,
         },
       });
 
@@ -231,12 +235,16 @@ export default class {
   }> {
     const { data: propertyTypeRootedSubgraphs } =
       await graphApi.getEntityTypesByQuery({
-        dataTypeQueryDepth: params.dataTypeQueryDepth,
-        propertyTypeQueryDepth: params.propertyTypeQueryDepth,
-        linkTypeQueryDepth: params.linkTypeQueryDepth,
-        entityTypeQueryDepth: params.entityTypeQueryDepth,
         query: {
           eq: [{ path: ["versionedUri"] }, { literal: params.entityTypeId }],
+        },
+        graphResolveDepths: {
+          dataTypeResolveDepth: params.dataTypeQueryDepth,
+          propertyTypeResolveDepth: params.propertyTypeQueryDepth,
+          linkTypeResolveDepth: params.linkTypeQueryDepth,
+          entityTypeResolveDepth: params.entityTypeQueryDepth,
+          linkResolveDepth: 0,
+          linkTargetEntityResolveDepth: 0,
         },
       });
     const entityTypeRootedSubgraph = propertyTypeRootedSubgraphs.pop();
