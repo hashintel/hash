@@ -1,6 +1,6 @@
 import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
-import { useEntityEditor } from "../entity-editor-context";
+import { useEntityEditor } from "../../entity-editor-context";
 import { linkGridIndexes } from "./constants";
 import { LinkRow } from "./types";
 

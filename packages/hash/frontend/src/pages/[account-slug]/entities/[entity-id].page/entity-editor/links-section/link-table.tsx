@@ -1,11 +1,11 @@
 import "@glideapps/glide-data-grid/dist/index.css";
-import { GlideGrid } from "../../../../components/GlideGlid/glide-grid";
+import { GlideGrid } from "../../../../../../components/GlideGlid/glide-grid";
 import {
   createHandleHeaderClicked,
   useDrawCell,
   useDrawHeader,
-} from "../../../../components/GlideGlid/utils";
-import { useEntityEditor } from "./entity-editor-context";
+} from "../../../../../../components/GlideGlid/utils";
+import { useEntityEditor } from "../entity-editor-context";
 import { linkGridColumns } from "./link-table/constants";
 import { useGetCellContent } from "./link-table/use-get-cell-content";
 import { useRowData } from "./link-table/use-row-data";

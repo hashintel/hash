@@ -4,13 +4,13 @@ import { useRowData } from "./property-table/use-row-data";
 import { useGetCellContent } from "./property-table/use-get-cell-content";
 import { propertyGridColumns } from "./property-table/constants";
 import { useOnCellEdited } from "./property-table/use-on-cell-edited";
-import { useEntityEditor } from "./entity-editor-context";
-import { GlideGrid } from "../../../../components/GlideGlid/glide-grid";
+import { useEntityEditor } from "../entity-editor-context";
+import { GlideGrid } from "../../../../../../components/GlideGlid/glide-grid";
 import {
   createHandleHeaderClicked,
   useDrawCell,
   useDrawHeader,
-} from "../../../../components/GlideGlid/utils";
+} from "../../../../../../components/GlideGlid/utils";
 
 export const PropertyTable = ({
   showSearch,

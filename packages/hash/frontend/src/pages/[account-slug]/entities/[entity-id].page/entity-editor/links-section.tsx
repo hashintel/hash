@@ -1,8 +1,8 @@
 import { Chip } from "@hashintel/hash-design-system/chip";
 import { Paper, Stack } from "@mui/material";
-import { LinksIcon } from "../../../../shared/icons";
+import { LinksIcon } from "../../../../../shared/icons";
 import { useEntityEditor } from "./entity-editor-context";
-import { LinkTable } from "./link-table";
+import { LinkTable } from "./links-section/link-table";
 import { EntitySection } from "./shared/entity-section";
 import { EntitySectionEmptyState } from "./shared/entity-section-empty-state";
 

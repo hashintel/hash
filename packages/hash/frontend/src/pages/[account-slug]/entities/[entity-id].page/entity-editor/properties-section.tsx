@@ -5,7 +5,7 @@ import { IconButton } from "@hashintel/hash-design-system/icon-button";
 import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
 import { useEntityEditor } from "./entity-editor-context";
-import { PropertyTable } from "./property-table";
+import { PropertyTable } from "./properties-section/property-table";
 import { EntitySection } from "./shared/entity-section";
 
 export const PropertiesSection = () => {

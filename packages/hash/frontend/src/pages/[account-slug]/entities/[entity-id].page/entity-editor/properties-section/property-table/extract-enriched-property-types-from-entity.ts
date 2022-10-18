@@ -1,6 +1,6 @@
 import { PropertyType } from "@blockprotocol/type-system-web";
 import { capitalize } from "@mui/material";
-import { EntityResponse } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
+import { EntityResponse } from "../../../../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 import { EnrichedPropertyType } from "./types";
 
 const getDataTypesOfPropertyType = (

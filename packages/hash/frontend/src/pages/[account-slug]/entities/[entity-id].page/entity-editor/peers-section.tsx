@@ -1,5 +1,5 @@
 import { Chip } from "@hashintel/hash-design-system/chip";
-import { ShapesIcon } from "../../../../shared/icons";
+import { ShapesIcon } from "../../../../../shared/icons";
 import { EntitySection } from "./shared/entity-section";
 import { EntitySectionEmptyState } from "./shared/entity-section-empty-state";
 
