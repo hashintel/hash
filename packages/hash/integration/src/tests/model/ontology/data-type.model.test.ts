@@ -23,6 +23,7 @@ const graphApi = createGraphClient(logger, {
 });
 
 let testUser: UserModel;
+let testUser2: UserModel;
 
 // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
 //  https://github.com/microsoft/TypeScript/issues/50638
@@ -39,6 +40,7 @@ const dataTypeSchema: Pick<
 
 beforeAll(async () => {
   testUser = await createTestUser(graphApi, "data-type-test", logger);
+  testUser2 = await createTestUser(graphApi, "data-type-test", logger);
 });
 
 describe("Data type CRU", () => {
@@ -62,11 +64,17 @@ describe("Data type CRU", () => {
 
   const updatedTitle = "New text!";
   it("can update a data type", async () => {
-    await createdDataTypeModel
+    expect(createdDataTypeModel.createdById).toBe(testUser.entityId);
+    expect(createdDataTypeModel.updatedById).toBe(testUser.entityId);
+
+    createdDataTypeModel = await createdDataTypeModel
       .update(graphApi, {
         schema: { ...dataTypeSchema, title: updatedTitle },
-        updatedById: testUser.entityId,
+        updatedById: testUser2.entityId,
       })
       .catch((err) => Promise.reject(err.data));
+
+    expect(createdDataTypeModel.createdById).toBe(testUser.entityId);
+    expect(createdDataTypeModel.updatedById).toBe(testUser2.entityId);
   });
 });

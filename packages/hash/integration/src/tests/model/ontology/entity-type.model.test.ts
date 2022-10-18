@@ -29,6 +29,7 @@ const graphApi = createGraphClient(logger, {
 });
 
 let testUser: UserModel;
+let testUser2: UserModel;
 let entityTypeSchema: Omit<EntityType, "$id">;
 let workerEntityTypeModel: EntityTypeModel;
 let textDataTypeModel: DataTypeModel;
@@ -40,6 +41,7 @@ let addressEntityTypeModel: EntityTypeModel;
 
 beforeAll(async () => {
   testUser = await createTestUser(graphApi, "entity-type-test", logger);
+  testUser2 = await createTestUser(graphApi, "entity-type-test", logger);
 
   textDataTypeModel = await DataTypeModel.create(graphApi, {
     ownedById: testUser.entityId,
@@ -182,12 +184,18 @@ describe("Entity type CRU", () => {
   const updatedTitle = "New text!";
   let updatedId: string | undefined;
   it("can update an entity type", async () => {
+    expect(createdEntityType.createdById).toBe(testUser.entityId);
+    expect(createdEntityType.updatedById).toBe(testUser.entityId);
+
     const updatedEntityTypeModel = await createdEntityType
       .update(graphApi, {
         schema: { ...entityTypeSchema, title: updatedTitle },
-        updatedById: testUser.entityId,
+        updatedById: testUser2.entityId,
       })
       .catch((err) => Promise.reject(err.data));
+
+    expect(updatedEntityTypeModel.createdById).toBe(testUser.entityId);
+    expect(updatedEntityTypeModel.updatedById).toBe(testUser2.entityId);
 
     updatedId = updatedEntityTypeModel.schema.$id;
   });

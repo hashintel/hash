@@ -32,6 +32,7 @@ const graphApi = createGraphClient(logger, {
 
 describe("Entity CRU", () => {
   let testUser: UserModel;
+  let testUser2: UserModel;
   let entityTypeModel: EntityTypeModel;
   let textDataTypeModel: DataTypeModel;
   let namePropertyTypeModel: PropertyTypeModel;
@@ -40,6 +41,7 @@ describe("Entity CRU", () => {
 
   beforeAll(async () => {
     testUser = await createTestUser(graphApi, "entitytest", logger);
+    testUser2 = await createTestUser(graphApi, "entitytest", logger);
 
     textDataTypeModel = await DataTypeModel.create(graphApi, {
       ownedById: testUser.entityId,
@@ -159,15 +161,21 @@ describe("Entity CRU", () => {
 
   let updatedEntityModel: EntityModel;
   it("can update an entity", async () => {
+    expect(createdEntityModel.createdById).toBe(testUser.entityId);
+    expect(createdEntityModel.updatedById).toBe(testUser.entityId);
+
     updatedEntityModel = await createdEntityModel
       .update(graphApi, {
         properties: {
           [namePropertyTypeModel.baseUri]: "Updated Bob",
           [favoriteBookPropertyTypeModel.baseUri]: "Even more text than before",
         },
-        updatedById: testUser.entityId,
+        updatedById: testUser2.entityId,
       })
       .catch((err) => Promise.reject(err.data));
+
+    expect(updatedEntityModel.createdById).toBe(testUser.entityId);
+    expect(updatedEntityModel.updatedById).toBe(testUser2.entityId);
   });
 
   it("can read all latest entities", async () => {

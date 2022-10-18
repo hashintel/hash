@@ -23,6 +23,7 @@ const graphApi = createGraphClient(logger, {
 });
 
 let testUser: UserModel;
+let testUser2: UserModel;
 
 const linkTypeSchema: Omit<LinkType, "$id"> = {
   kind: "linkType",
@@ -33,6 +34,7 @@ const linkTypeSchema: Omit<LinkType, "$id"> = {
 
 beforeAll(async () => {
   testUser = await createTestUser(graphApi, "link-type-test", logger);
+  testUser2 = await createTestUser(graphApi, "link-type-test", logger);
 });
 
 describe("Link type CRU", () => {
@@ -58,6 +60,9 @@ describe("Link type CRU", () => {
   const updatedTitle = "A new link!";
 
   it("can update a link type", async () => {
+    expect(createdLinkTypeModel.createdById).toBe(testUser.entityId);
+    expect(createdLinkTypeModel.updatedById).toBe(testUser.entityId);
+
     updatedLinkTypeModel = await createdLinkTypeModel
       .update(graphApi, {
         schema: {
@@ -67,6 +72,9 @@ describe("Link type CRU", () => {
         updatedById: testUser.entityId,
       })
       .catch((err) => Promise.reject(err.data));
+
+    expect(updatedLinkTypeModel.createdById).toBe(testUser.entityId);
+    expect(updatedLinkTypeModel.updatedById).toBe(testUser2.entityId);
   });
 
   it("can read all latest link types", async () => {

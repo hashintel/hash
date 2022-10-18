@@ -27,11 +27,13 @@ const graphApi = createGraphClient(logger, {
 });
 
 let testUser: UserModel;
+let testUser2: UserModel;
 let textDataTypeModel: DataTypeModel;
 let propertyTypeSchema: Omit<PropertyType, "$id">;
 
 beforeAll(async () => {
   testUser = await createTestUser(graphApi, "property-type-test", logger);
+  testUser2 = await createTestUser(graphApi, "property-type-test", logger);
 
   textDataTypeModel = await DataTypeModel.create(graphApi, {
     ownedById: testUser.entityId,
@@ -77,14 +79,20 @@ describe("Property type CRU", () => {
   const updatedTitle = "New test!";
 
   it("can update a property type", async () => {
-    await createdPropertyTypeModel
+    expect(createdPropertyTypeModel.createdById).toBe(testUser.entityId);
+    expect(createdPropertyTypeModel.updatedById).toBe(testUser.entityId);
+
+    createdPropertyTypeModel = await createdPropertyTypeModel
       .update(graphApi, {
         schema: {
           ...propertyTypeSchema,
           title: updatedTitle,
         },
-        updatedById: testUser.entityId,
+        updatedById: testUser2.entityId,
       })
       .catch((err) => Promise.reject(err.data));
+
+    expect(createdPropertyTypeModel.createdById).toBe(testUser.entityId);
+    expect(createdPropertyTypeModel.updatedById).toBe(testUser2.entityId);
   });
 });
