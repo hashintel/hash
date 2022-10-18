@@ -17,7 +17,9 @@ use crate::{
         postgres::{DependencyContext, DependencyMap, DependencySet, Edges},
         AsClient, InsertionError, LinkStore, PostgresStore, QueryError,
     },
-    subgraph::{GraphResolveDepths, StructuralQuery},
+    subgraph::{
+        EdgeKind, GraphElementIdentifier, GraphResolveDepths, LinkId, OutwardEdge, StructuralQuery,
+    },
 };
 
 impl<C: AsClient> PostgresStore<C> {
@@ -41,9 +43,27 @@ impl<C: AsClient> PostgresStore<C> {
         } = context;
 
         async move {
-            let target_entity_id = link.inner().target_entity();
-
             if let Some(link) = links.insert(link, graph_resolve_depths.link_resolve_depth) {
+                // Cloning/copying here avoids multiple borrow errors which would otherwise
+                // require us to clone the Link
+                let source_entity_id = link.inner().source_entity();
+                let target_entity_id = link.inner().target_entity();
+                let link_type_id = link.inner().link_type_id().clone();
+
+                edges.insert(
+                    GraphElementIdentifier::Temporary(LinkId {
+                        source_entity_id,
+                        target_entity_id,
+                        link_type_id: link_type_id.clone(),
+                    }),
+                    OutwardEdge {
+                        edge_kind: EdgeKind::HasType,
+                        destination: GraphElementIdentifier::OntologyElementId(
+                            link_type_id.clone(),
+                        ),
+                    },
+                );
+
                 if graph_resolve_depths.link_type_resolve_depth > 0 {
                     let link_type_id = link.inner().link_type_id().clone();
                     self.get_link_type_as_dependency(&link_type_id, DependencyContext {
@@ -62,6 +82,20 @@ impl<C: AsClient> PostgresStore<C> {
                     })
                     .await?;
                 }
+
+                edges.insert(
+                    GraphElementIdentifier::Temporary(LinkId {
+                        source_entity_id,
+                        target_entity_id,
+                        link_type_id,
+                    }),
+                    OutwardEdge {
+                        edge_kind: EdgeKind::HasDestination,
+                        destination: GraphElementIdentifier::KnowledgeGraphElementId(
+                            target_entity_id,
+                        ),
+                    },
+                );
 
                 if graph_resolve_depths.link_target_entity_resolve_depth > 0 {
                     self.get_entity_as_dependency(target_entity_id, DependencyContext {
