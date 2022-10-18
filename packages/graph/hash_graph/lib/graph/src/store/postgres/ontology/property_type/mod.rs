@@ -1,6 +1,6 @@
 mod resolve;
 
-use std::{future::Future, pin::Pin};
+use std::{collections::HashMap, future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
@@ -170,7 +170,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             graph_resolve_depths,
         } = *query;
 
-        let roots_and_vertices =
+        let dependencies =
             stream::iter(Read::<PersistedPropertyType>::read(self, expression).await?)
                 .then(|property_type| async move {
                     let mut dependency_context = DependencyContext::new(graph_resolve_depths);
@@ -192,18 +192,27 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
                     Ok::<_, Report<QueryError>>((
                         identifier.clone(),
-                        (identifier, Vertex::PropertyType(property_type)),
+                        Vertex::PropertyType(property_type),
+                        dependency_context.edges,
                     ))
                 })
                 .try_collect::<Vec<_>>()
                 .await?;
 
-        let (roots, vertices) = roots_and_vertices.into_iter().unzip();
+        let mut edges = Edges::new();
+        let mut vertices = HashMap::with_capacity(dependencies.len());
+        let mut roots = Vec::with_capacity(dependencies.len());
+
+        for (identifier, vertex, dependency_edges) in dependencies {
+            roots.push(identifier.clone());
+            vertices.insert(identifier, vertex);
+            edges.extend(dependency_edges.into_iter());
+        }
 
         Ok(Subgraph {
             roots,
             vertices,
-            edges: Edges::new(),
+            edges,
             depths: graph_resolve_depths,
         })
     }

@@ -110,7 +110,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     dependency_context.edges,
                 ))
             })
-            .try_collect::<Vec<(_, _, _)>>()
+            .try_collect::<Vec<_>>()
             .await?;
 
         let mut edges = Edges::new();
