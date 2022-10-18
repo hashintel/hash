@@ -184,15 +184,6 @@ impl Edges {
         Self(HashMap::new())
     }
 
-    #[expect(
-        dead_code,
-        reason = "It's going to be a helpful function, saving someone from needing to write it"
-    )]
-    #[must_use]
-    pub fn inner(&self) -> &HashMap<GraphElementIdentifier, HashSet<OutwardEdge>> {
-        &self.0
-    }
-
     pub fn insert(&mut self, identifier: GraphElementIdentifier, edge: OutwardEdge) -> bool {
         match self.0.raw_entry_mut().from_key(&identifier) {
             RawEntryMut::Vacant(entry) => {
