@@ -61,7 +61,7 @@ if uname -s | grep -q Darwin && uname -p | grep -q arm ; then
   export PKG_CONFIG_PATH="/opt/homebrew/opt/openblas/lib/pkgconfig"
   python -m pip install wheel
   python -m pip install -r "${SCRIPT_DIR}/m1-requirements.txt"
-  git clone https://github.com/hashintel/pynng
+  git clone https://github.com/hashdeps/pynng
   cd pynng
   python -m pip install .
   cd ..
