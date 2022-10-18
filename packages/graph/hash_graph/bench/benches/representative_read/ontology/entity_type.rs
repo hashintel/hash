@@ -1,7 +1,7 @@
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
-    ontology::EntityTypeQuery,
     store::{query::Expression, EntityTypeStore},
+    subgraph::{GraphResolveDepths, StructuralQuery},
 };
 use rand::{prelude::IteratorRandom, thread_rng};
 use tokio::runtime::Runtime;
@@ -26,12 +26,16 @@ pub fn bench_get_entity_type_by_id(
         },
         |entity_type_id| async move {
             store
-                .get_entity_type(&EntityTypeQuery {
+                .get_entity_type(&StructuralQuery {
                     expression: Expression::for_versioned_uri(&entity_type_id),
-                    data_type_query_depth: 0,
-                    property_type_query_depth: 0,
-                    link_type_query_depth: 0,
-                    entity_type_query_depth: 0,
+                    graph_resolve_depths: GraphResolveDepths {
+                        data_type_resolve_depth: 0,
+                        property_type_resolve_depth: 0,
+                        entity_type_resolve_depth: 0,
+                        link_type_resolve_depth: 0,
+                        link_resolve_depth: 0,
+                        link_target_entity_resolve_depth: 0,
+                    },
                 })
                 .await
                 .expect("failed to read entity type from store");

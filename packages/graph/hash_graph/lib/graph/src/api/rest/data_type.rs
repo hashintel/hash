@@ -19,14 +19,15 @@ use crate::{
     api::rest::{read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, AccountId, DataTypeQuery, DataTypeRootedSubgraph, PersistedDataType,
+        patch_id_and_parse, AccountId, DataTypeRootedSubgraph, PersistedDataType,
         PersistedOntologyIdentifier, PersistedOntologyMetadata,
     },
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool,
     },
     subgraph::{
-        EdgeKind, GraphElementIdentifier, GraphResolveDepths, OutwardEdge, Subgraph, Vertex,
+        EdgeKind, GraphElementIdentifier, GraphResolveDepths, OutwardEdge, StructuralQuery,
+        Subgraph, Vertex,
     },
 };
 
@@ -47,7 +48,7 @@ use crate::{
             PersistedOntologyIdentifier,
             PersistedOntologyMetadata,
             PersistedDataType,
-            DataTypeQuery,
+            StructuralQuery,
             DataTypeRootedSubgraph,
             GraphElementIdentifier,
             Vertex,
@@ -148,7 +149,7 @@ async fn create_data_type<P: StorePool + Send>(
 #[utoipa::path(
     post,
     path = "/data-types/query",
-    request_body = DataTypeQuery,
+    request_body = StructuralQuery,
     tag = "DataType",
     responses(
         (status = 200, content_type = "application/json", body = Subgraph, description = "Gets a subgraph rooted at all data types that satisfy the given query, each resolved to the requested depth."),
@@ -159,7 +160,7 @@ async fn create_data_type<P: StorePool + Send>(
 )]
 async fn get_data_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    Json(query): Json<DataTypeQuery>,
+    Json(query): Json<StructuralQuery>,
 ) -> Result<Json<Subgraph>, StatusCode> {
     pool.acquire()
         .map_err(|error| {

@@ -10,12 +10,10 @@ use utoipa::{OpenApi, ToSchema};
 
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
-    knowledge::{
-        EntityId, KnowledgeGraphQuery, Link, LinkRootedSubgraph, PersistedLink,
-        PersistedLinkMetadata,
-    },
+    knowledge::{EntityId, Link, LinkRootedSubgraph, PersistedLink, PersistedLinkMetadata},
     ontology::AccountId,
     store::{error::QueryError, query::Expression, LinkStore, StorePool},
+    subgraph::StructuralQuery,
 };
 
 #[derive(OpenApi)]
@@ -33,7 +31,7 @@ use crate::{
             Link,
             CreateLinkRequest,
             RemoveLinkRequest,
-            KnowledgeGraphQuery,
+            StructuralQuery,
             LinkRootedSubgraph,
             PersistedLinkMetadata
         )
@@ -133,7 +131,7 @@ async fn create_link<P: StorePool + Send>(
 #[utoipa::path(
     post,
     path = "/links/query",
-    request_body = KnowledgeGraphQuery,
+    request_body = StructuralQuery,
     tag = "Link",
     responses(
         (status = 200, content_type = "application/json", body = [LinkRootedSubgraph], description = "A list of subgraphs rooted at links that satisfy the given query, each resolved to the requested depth."),
@@ -144,7 +142,7 @@ async fn create_link<P: StorePool + Send>(
 )]
 async fn get_links_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    Json(query): Json<KnowledgeGraphQuery>,
+    Json(query): Json<StructuralQuery>,
 ) -> Result<Json<Vec<LinkRootedSubgraph>>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
