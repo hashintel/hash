@@ -5,9 +5,9 @@ use postgres_types::ToSql;
 use crate::store::{
     postgres::query::{
         database::{Column, Table, TableAlias},
-        Path, Transpile,
+        Path, PostgresQueryRecord, Transpile,
     },
-    query::{Filter, FilterValue, Parameter, QueryRecord},
+    query::{Filter, FilterValue, Parameter},
 };
 
 /// A [`Filter`] compiled to postgres.
@@ -25,7 +25,7 @@ impl<'q> Condition<'q> {
     /// In addition to the provided [`Filter`], a list of parameters needs to be passed, which will
     /// be populated from [`FilterValue::Parameter`]. Also, [`TableAlias`] is used to populate
     /// [`Table::alias`] inside of [`ConditionValue::Column`].
-    pub fn from_filter<'f: 'q, T: QueryRecord<Path<'q>: Path>>(
+    pub fn from_filter<'f: 'q, T: PostgresQueryRecord<'q>>(
         filter: &'f Filter<'q, T>,
         parameters: &mut Vec<&'f dyn ToSql>,
         alias: Option<TableAlias>,
@@ -116,7 +116,7 @@ pub enum ConditionValue<'q> {
 }
 
 impl<'q> ConditionValue<'q> {
-    pub fn from_filter_value<'f: 'q, T: QueryRecord<Path<'q>: Path>>(
+    pub fn from_filter_value<'f: 'q, T: PostgresQueryRecord<'q>>(
         value: &'f FilterValue<'q, T>,
         parameters: &mut Vec<&'f dyn ToSql>,
         alias: Option<TableAlias>,
@@ -124,7 +124,7 @@ impl<'q> ConditionValue<'q> {
         match value {
             FilterValue::Path(path) => Self::Column(Column {
                 table: Table {
-                    name: path.table_name(),
+                    name: path.terminating_table_name(),
                     alias,
                 },
                 access: path.column_access(),

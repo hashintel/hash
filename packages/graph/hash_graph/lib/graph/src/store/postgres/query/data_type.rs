@@ -4,18 +4,14 @@ use type_system::DataType;
 
 use crate::{
     ontology::DataTypeQueryPath,
-    store::{
-        postgres::query::{
-            database::{ColumnAccess, TableName},
-            Field, Path, Query,
-        },
-        query::ReadQuery,
+    store::postgres::query::{
+        database::{ColumnAccess, TableName},
+        Field, Path, PostgresQueryRecord,
     },
 };
 
-impl<'q> Query for ReadQuery<'q, DataType> {
+impl<'q> PostgresQueryRecord<'q> for DataType {
     type Field = DataTypeQueryField<'q>;
-    type Record = DataType;
 
     fn base_table() -> TableName {
         TableName::DataTypes

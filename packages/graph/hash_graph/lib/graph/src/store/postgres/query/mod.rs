@@ -14,10 +14,8 @@ use crate::store::{
     query::QueryRecord,
 };
 
-/// A structural query, which can be compiled into a statement in Postgres.
-pub trait Query {
+pub trait PostgresQueryRecord<'q>: QueryRecord<Path<'q>: Path> {
     type Field: Field;
-    type Record: QueryRecord;
 
     /// The [`TableName`] used for this `Query`.
     fn base_table() -> TableName;
