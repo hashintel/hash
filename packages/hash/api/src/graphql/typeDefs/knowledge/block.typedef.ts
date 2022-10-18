@@ -3,9 +3,9 @@ import { gql } from "apollo-server-express";
 export const persistedBlockTypedef = gql`
   type PersistedBlock implements PersistedEntity {
     """
-    The block's linked data entity.
+    The block's linked child entity.
     """
-    dataEntity: PersistedEntity!
+    blockChildEntity: PersistedEntity!
     """
     The component id of the block.
     """

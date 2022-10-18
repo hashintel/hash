@@ -8,7 +8,7 @@ import {
   mapEntityModelToGQL,
 } from "../model-mapping";
 
-export const dataEntity: ResolverFn<
+export const blockChildEntity: ResolverFn<
   Promise<UnresolvedPersistedEntityGQL>,
   UnresolvedPersistedBlockGQL,
   GraphQLContext,

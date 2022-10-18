@@ -8,7 +8,7 @@ const persistedBlockFieldsFragment = gql`
     accountId
     entityTypeId
     componentId
-    dataEntity {
+    blockChildEntity {
       entityId
       entityTypeId
       entityVersion
