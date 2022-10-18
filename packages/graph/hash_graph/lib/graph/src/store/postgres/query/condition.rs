@@ -3,28 +3,28 @@ use std::{fmt, fmt::Write};
 use postgres_types::ToSql;
 
 use crate::store::{
-    postgres::query::{
-        database::{Column, Table, TableAlias},
-        Path, PostgresQueryRecord, Transpile,
-    },
-    query::{Filter, FilterValue, Parameter},
+    postgres::query::{Expression, PostgresQueryRecord, TableAlias, Transpile},
+    query::Filter,
 };
 
 /// A [`Filter`], which can be transpiled.
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Condition<'q> {
     All(Vec<Self>),
     Any(Vec<Self>),
     Not(Box<Self>),
-    Equal(Option<ConditionValue<'q>>, Option<ConditionValue<'q>>),
-    NotEqual(Option<ConditionValue<'q>>, Option<ConditionValue<'q>>),
+    Equal(Option<Expression<'q>>, Option<Expression<'q>>),
+    NotEqual(Option<Expression<'q>>, Option<Expression<'q>>),
 }
 
 impl<'q> Condition<'q> {
     /// Compiles a [`Filter`] to a `Condition`.
     ///
     /// In addition to the provided [`Filter`], a list of parameters needs to be passed, which will
-    /// be populated from [`FilterValue::Parameter`]. Also, [`TableAlias`] is used to populate
-    /// [`Table::alias`] inside of [`ConditionValue::Column`].
+    /// be populated from [`FilterExpression::Parameter`]. Also, [`TableAlias`] is used to populate
+    /// `alias` inside of [`Expression::Column`].
+    ///
+    /// [`FilterExpression::Parameter`]: crate::store::query::FilterExpression
     pub fn from_filter<'f: 'q, T: PostgresQueryRecord<'q>>(
         filter: &'f Filter<'q, T>,
         parameters: &mut Vec<&'f dyn ToSql>,
@@ -48,15 +48,15 @@ impl<'q> Condition<'q> {
             }
             Filter::Equal(lhs, rhs) => Self::Equal(
                 lhs.as_ref()
-                    .map(|value| ConditionValue::from_filter_value(value, parameters, alias)),
+                    .map(|value| Expression::from_filter_value(value, parameters, alias)),
                 rhs.as_ref()
-                    .map(|value| ConditionValue::from_filter_value(value, parameters, alias)),
+                    .map(|value| Expression::from_filter_value(value, parameters, alias)),
             ),
             Filter::NotEqual(lhs, rhs) => Self::NotEqual(
                 lhs.as_ref()
-                    .map(|value| ConditionValue::from_filter_value(value, parameters, alias)),
+                    .map(|value| Expression::from_filter_value(value, parameters, alias)),
                 rhs.as_ref()
-                    .map(|value| ConditionValue::from_filter_value(value, parameters, alias)),
+                    .map(|value| Expression::from_filter_value(value, parameters, alias)),
             ),
         }
     }
@@ -109,57 +109,6 @@ impl Transpile for Condition<'_> {
     }
 }
 
-/// A [`FilterValue`] compiled to postgres.
-pub enum ConditionValue<'q> {
-    Column(Column<'q>),
-    Parameter(usize),
-}
-
-impl<'q> ConditionValue<'q> {
-    pub fn from_filter_value<'f: 'q, T: PostgresQueryRecord<'q>>(
-        value: &'f FilterValue<'q, T>,
-        parameters: &mut Vec<&'f dyn ToSql>,
-        alias: Option<TableAlias>,
-    ) -> Self {
-        match value {
-            FilterValue::Path(path) => Self::Column(Column {
-                table: Table {
-                    name: path.terminating_table_name(),
-                    alias,
-                },
-                access: path.column_access(),
-            }),
-            FilterValue::Parameter(parameter) => {
-                match parameter {
-                    Parameter::Number(number) => parameters.push(number),
-                    Parameter::Text(text) => parameters.push(text),
-                    Parameter::Boolean(bool) => parameters.push(bool),
-                }
-                // Indices in Postgres are 1-based
-                Self::Parameter(parameters.len())
-            }
-        }
-    }
-}
-
-impl Transpile for ConditionValue<'_> {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Column(column) => column.transpile(fmt),
-            Self::Parameter(index) => write!(fmt, "${index}"),
-        }
-    }
-}
-
-impl Transpile for Option<ConditionValue<'_>> {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Some(value) => value.transpile(fmt),
-            None => fmt.write_str("NULL"),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::borrow::Cow;
@@ -167,7 +116,13 @@ mod tests {
     use type_system::DataType;
 
     use super::*;
-    use crate::{ontology::DataTypeQueryPath, store::postgres::query::test_helper::transpile};
+    use crate::{
+        ontology::DataTypeQueryPath,
+        store::{
+            postgres::query::test_helper::transpile,
+            query::{FilterExpression, Parameter},
+        },
+    };
 
     fn test_condition<'q, 'f: 'q>(
         filter: &'f Filter<'q, DataType>,
@@ -200,7 +155,7 @@ mod tests {
     fn render_null_condition() {
         test_condition(
             &Filter::Equal(
-                Some(FilterValue::Path(DataTypeQueryPath::Description)),
+                Some(FilterExpression::Path(DataTypeQueryPath::Description)),
                 None,
             ),
             r#""data_types"."schema"->>'description' IS NULL"#,
@@ -210,7 +165,7 @@ mod tests {
         test_condition(
             &Filter::Equal(
                 None,
-                Some(FilterValue::Path(DataTypeQueryPath::Description)),
+                Some(FilterExpression::Path(DataTypeQueryPath::Description)),
             ),
             r#""data_types"."schema"->>'description' IS NULL"#,
             &[],
@@ -220,7 +175,7 @@ mod tests {
 
         test_condition(
             &Filter::NotEqual(
-                Some(FilterValue::Path(DataTypeQueryPath::Description)),
+                Some(FilterExpression::Path(DataTypeQueryPath::Description)),
                 None,
             ),
             r#""data_types"."schema"->>'description' IS NOT NULL"#,
@@ -230,7 +185,7 @@ mod tests {
         test_condition(
             &Filter::NotEqual(
                 None,
-                Some(FilterValue::Path(DataTypeQueryPath::Description)),
+                Some(FilterExpression::Path(DataTypeQueryPath::Description)),
             ),
             r#""data_types"."schema"->>'description' IS NOT NULL"#,
             &[],
@@ -243,8 +198,8 @@ mod tests {
     fn render_all_condition() {
         test_condition(
             &Filter::All(vec![Filter::Equal(
-                Some(FilterValue::Path(DataTypeQueryPath::VersionedUri)),
-                Some(FilterValue::Parameter(Parameter::Text(Cow::Borrowed(
+                Some(FilterExpression::Path(DataTypeQueryPath::VersionedUri)),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 )))),
             )]),
@@ -255,14 +210,14 @@ mod tests {
         test_condition(
             &Filter::All(vec![
                 Filter::Equal(
-                    Some(FilterValue::Path(DataTypeQueryPath::BaseUri)),
-                    Some(FilterValue::Parameter(Parameter::Text(Cow::Borrowed(
+                    Some(FilterExpression::Path(DataTypeQueryPath::BaseUri)),
+                    Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                         "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                     )))),
                 ),
                 Filter::Equal(
-                    Some(FilterValue::Path(DataTypeQueryPath::Version)),
-                    Some(FilterValue::Parameter(Parameter::Number(1.0))),
+                    Some(FilterExpression::Path(DataTypeQueryPath::Version)),
+                    Some(FilterExpression::Parameter(Parameter::Number(1.0))),
                 ),
             ]),
             r#"("type_ids"."base_uri" = $1) AND ("type_ids"."version" = $2)"#,
@@ -277,8 +232,8 @@ mod tests {
     fn render_any_condition() {
         test_condition(
             &Filter::Any(vec![Filter::Equal(
-                Some(FilterValue::Path(DataTypeQueryPath::VersionedUri)),
-                Some(FilterValue::Parameter(Parameter::Text(Cow::Borrowed(
+                Some(FilterExpression::Path(DataTypeQueryPath::VersionedUri)),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 )))),
             )]),
@@ -289,14 +244,14 @@ mod tests {
         test_condition(
             &Filter::Any(vec![
                 Filter::Equal(
-                    Some(FilterValue::Path(DataTypeQueryPath::BaseUri)),
-                    Some(FilterValue::Parameter(Parameter::Text(Cow::Borrowed(
+                    Some(FilterExpression::Path(DataTypeQueryPath::BaseUri)),
+                    Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                         "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                     )))),
                 ),
                 Filter::Equal(
-                    Some(FilterValue::Path(DataTypeQueryPath::Version)),
-                    Some(FilterValue::Parameter(Parameter::Number(1.0))),
+                    Some(FilterExpression::Path(DataTypeQueryPath::Version)),
+                    Some(FilterExpression::Parameter(Parameter::Number(1.0))),
                 ),
             ]),
             r#"("type_ids"."base_uri" = $1) OR ("type_ids"."version" = $2)"#,
@@ -311,8 +266,8 @@ mod tests {
     fn render_not_condition() {
         test_condition(
             &Filter::Not(Box::new(Filter::Equal(
-                Some(FilterValue::Path(DataTypeQueryPath::VersionedUri)),
-                Some(FilterValue::Parameter(Parameter::Text(Cow::Borrowed(
+                Some(FilterExpression::Path(DataTypeQueryPath::VersionedUri)),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 )))),
             ))),
@@ -325,12 +280,12 @@ mod tests {
     fn render_without_parameters() {
         test_condition(
             &Filter::Any(vec![Filter::Equal(
-                Some(FilterValue::Path(DataTypeQueryPath::Custom(Cow::Borrowed(
-                    "left",
-                )))),
-                Some(FilterValue::Path(DataTypeQueryPath::Custom(Cow::Borrowed(
-                    "right",
-                )))),
+                Some(FilterExpression::Path(DataTypeQueryPath::Custom(
+                    Cow::Borrowed("left"),
+                ))),
+                Some(FilterExpression::Path(DataTypeQueryPath::Custom(
+                    Cow::Borrowed("right"),
+                ))),
             )]),
             r#"("data_types"."schema"->>'left' = "data_types"."schema"->>'right')"#,
             &[],
