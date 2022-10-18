@@ -151,7 +151,7 @@ export default class {
    * @param params.linkTypeModel the Link Type of the link
    * @param params.targetEntityModel the target entity of the link
    */
-  private static async createLinkWithoutUpdatingSiblings(
+  static async createLinkWithoutUpdatingSiblings(
     graphApi: GraphApi,
     params: LinkModelCreateParams,
   ): Promise<LinkModel> {
@@ -387,7 +387,7 @@ export default class {
    *
    * @param removedById - the id of the user removing the link
    */
-  private async removeWithoutUpdatingSiblings(
+  async removeWithoutUpdatingSiblings(
     graphApi: GraphApi,
     { removedById }: { removedById: string },
   ): Promise<void> {

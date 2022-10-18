@@ -31,6 +31,9 @@ import {
   GetPersistedPageQueryVariables,
   LatestEntityRef,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
+import { getPersistedPageQuery } from "@hashintel/hash-shared/queries/page.queries";
+import { save } from "@hashintel/hash-shared/save";
+
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import {
   getLinkedAggregationIdentifierFieldsQuery,
@@ -42,8 +45,6 @@ import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
 import { getBlocksQuery } from "./graphql/queries/blocks.queries";
-import { getPersistedPageQuery } from "./graphql/queries/page.queries";
-import { save } from "./save";
 import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";
