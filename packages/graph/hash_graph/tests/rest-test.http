@@ -398,12 +398,14 @@ Content-Type: application/json
       }
     ]
   },
-  "dataTypeQueryDepth": 0,
-  "propertyTypeQueryDepth": 0,
-  "linkTypeQueryDepth": 1,
-  "entityTypeQueryDepth": 0,
-  "linkTargetEntityQueryDepth": 10,
-  "linkQueryDepth": 10
+  "graphResolveDepths": {
+    "dataTypeResolveDepth": 0,
+    "propertyTypeResolveDepth": 0,
+    "linkTypeResolveDepth": 1,
+    "entityTypeResolveDepth": 0,
+    "linkTargetEntityResolveDepth": 10,
+    "linkResolveDepth": 10
+  }
 }
 
 > {%

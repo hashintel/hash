@@ -12,8 +12,6 @@ use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyTyp
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{store::query::Expression, subgraph::GraphResolveDepths};
-
 // TODO - find a good place for AccountId, perhaps it will become redundant in a future design
 
 #[derive(
@@ -173,20 +171,25 @@ pub type OntologyQueryDepth = u8;
 pub struct PersistedDataType {
     #[schema(value_type = VAR_DATA_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
-    pub inner: DataType,
-    pub metadata: PersistedOntologyMetadata,
+    inner: DataType,
+    metadata: PersistedOntologyMetadata,
 }
 
-/// Query to read [`DataType`]s, which are matching the [`Expression`].
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct DataTypeQuery {
-    #[serde(rename = "query")]
-    pub expression: Expression,
-    // TODO: `query_resolve_depths` currently does nothing, in the future it will most probably be
-    //       used to resolve user defined data types.
-    //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
-    pub query_resolve_depths: GraphResolveDepths,
+impl PersistedDataType {
+    #[must_use]
+    pub const fn new(inner: DataType, metadata: PersistedOntologyMetadata) -> Self {
+        Self { inner, metadata }
+    }
+
+    #[must_use]
+    pub const fn inner(&self) -> &DataType {
+        &self.inner
+    }
+
+    #[must_use]
+    pub const fn metadata(&self) -> &PersistedOntologyMetadata {
+        &self.metadata
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
@@ -199,46 +202,50 @@ pub struct DataTypeRootedSubgraph {
 pub struct PersistedPropertyType {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
-    pub inner: PropertyType,
-    pub metadata: PersistedOntologyMetadata,
+    inner: PropertyType,
+    metadata: PersistedOntologyMetadata,
 }
 
-/// Query to read [`PropertyType`]s, which are matching the [`Expression`].
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct PropertyTypeQuery {
-    #[serde(rename = "query")]
-    pub expression: Expression,
-    // TODO: A value greater than `1` currently does not have any effect.
-    //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
-    #[schema(value_type = number)]
-    pub data_type_query_depth: OntologyQueryDepth,
-    #[schema(value_type = number)]
-    pub property_type_query_depth: OntologyQueryDepth,
-}
+impl PersistedPropertyType {
+    #[must_use]
+    pub const fn new(inner: PropertyType, metadata: PersistedOntologyMetadata) -> Self {
+        Self { inner, metadata }
+    }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct PropertyTypeRootedSubgraph {
-    pub property_type: PersistedPropertyType,
-    pub referenced_data_types: Vec<PersistedDataType>,
-    pub referenced_property_types: Vec<PersistedPropertyType>,
+    #[must_use]
+    pub const fn inner(&self) -> &PropertyType {
+        &self.inner
+    }
+
+    #[must_use]
+    pub const fn metadata(&self) -> &PersistedOntologyMetadata {
+        &self.metadata
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PersistedLinkType {
     #[schema(value_type = VAR_LINK_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
-    pub inner: LinkType,
-    pub metadata: PersistedOntologyMetadata,
+    inner: LinkType,
+    metadata: PersistedOntologyMetadata,
 }
 
-/// Query to read [`LinkType`]s, which are matching the [`Expression`].
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct LinkTypeQuery {
-    #[serde(rename = "query")]
-    pub expression: Expression,
+impl PersistedLinkType {
+    #[must_use]
+    pub const fn new(inner: LinkType, metadata: PersistedOntologyMetadata) -> Self {
+        Self { inner, metadata }
+    }
+
+    #[must_use]
+    pub const fn inner(&self) -> &LinkType {
+        &self.inner
+    }
+
+    #[must_use]
+    pub const fn metadata(&self) -> &PersistedOntologyMetadata {
+        &self.metadata
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
@@ -268,26 +275,25 @@ impl PersistedOntologyMetadata {
 pub struct PersistedEntityType {
     #[schema(value_type = VAR_ENTITY_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
-    pub inner: EntityType,
-    pub metadata: PersistedOntologyMetadata,
+    inner: EntityType,
+    metadata: PersistedOntologyMetadata,
 }
 
-/// Query to read [`EntityType`]s, which are matching the [`Expression`].
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct EntityTypeQuery {
-    #[serde(rename = "query")]
-    pub expression: Expression,
-    // TODO: A value greater than `1` currently does not have any effect.
-    //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
-    #[schema(value_type = number)]
-    pub data_type_query_depth: OntologyQueryDepth,
-    #[schema(value_type = number)]
-    pub property_type_query_depth: OntologyQueryDepth,
-    #[schema(value_type = number)]
-    pub link_type_query_depth: OntologyQueryDepth,
-    #[schema(value_type = number)]
-    pub entity_type_query_depth: OntologyQueryDepth,
+impl PersistedEntityType {
+    #[must_use]
+    pub const fn new(inner: EntityType, metadata: PersistedOntologyMetadata) -> Self {
+        Self { inner, metadata }
+    }
+
+    #[must_use]
+    pub const fn inner(&self) -> &EntityType {
+        &self.inner
+    }
+
+    #[must_use]
+    pub const fn metadata(&self) -> &PersistedOntologyMetadata {
+        &self.metadata
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]

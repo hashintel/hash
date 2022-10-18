@@ -39,9 +39,7 @@ export const useBlockProtocolAggregatePropertyTypes = (): {
          *   or doing it from here.
          *   https://app.asana.com/0/1202805690238892/1202890614880643/f
          */
-        const response = await aggregateFn({
-          query: getAllLatestPropertyTypesQuery,
-        });
+        const response = await aggregateFn({});
 
         if (!response.data) {
           return {
@@ -54,11 +52,7 @@ export const useBlockProtocolAggregatePropertyTypes = (): {
           };
         }
 
-        return {
-          data: {
-            results: response.data.getAllLatestPropertyTypes,
-          },
-        };
+        return { data: response.data.getAllLatestPropertyTypes };
       },
       [aggregateFn],
     );

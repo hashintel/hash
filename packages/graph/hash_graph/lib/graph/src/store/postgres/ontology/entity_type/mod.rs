@@ -1,6 +1,6 @@
 mod resolve;
 
-use std::{future::Future, pin::Pin};
+use std::{collections::HashMap, future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
@@ -10,88 +10,89 @@ use type_system::{uri::VersionedUri, EntityType};
 
 use crate::{
     ontology::{
-        AccountId, EntityTypeQuery, EntityTypeRootedSubgraph, OntologyQueryDepth,
-        PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedOntologyMetadata,
-        PersistedPropertyType,
+        AccountId, EntityTypeRootedSubgraph, PersistedEntityType, PersistedOntologyMetadata,
     },
     store::{
         crud::Read,
         postgres::{
-            context::PostgresContext,
-            ontology::{
-                link_type::LinkTypeDependencyContext, property_type::PropertyTypeDependencyContext,
-            },
-            DependencyMap, PersistedOntologyType,
+            context::PostgresContext, DependencyContext, DependencyMap, DependencySet,
+            PersistedOntologyType,
         },
         AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
+    subgraph::{GraphResolveDepths, StructuralQuery},
 };
 
-pub struct EntityTypeDependencyContext<'a> {
-    pub referenced_data_types:
-        &'a mut DependencyMap<VersionedUri, PersistedDataType, OntologyQueryDepth>,
-    pub referenced_property_types:
-        &'a mut DependencyMap<VersionedUri, PersistedPropertyType, OntologyQueryDepth>,
-    pub referenced_link_types:
-        &'a mut DependencyMap<VersionedUri, PersistedLinkType, OntologyQueryDepth>,
-    pub referenced_entity_types:
-        &'a mut DependencyMap<VersionedUri, PersistedEntityType, OntologyQueryDepth>,
-    pub data_type_query_depth: OntologyQueryDepth,
-    pub property_type_query_depth: OntologyQueryDepth,
-    pub link_type_query_depth: OntologyQueryDepth,
-    pub entity_type_query_depth: OntologyQueryDepth,
-}
-
 impl<C: AsClient> PostgresStore<C> {
+    #[expect(
+        clippy::too_many_lines,
+        reason = "difficult to shrink the number of lines with destructuring and so many \
+                  variables needing to be passed independently"
+    )]
     /// Internal method to read a [`PersistedEntityType`] into four [`DependencyMap`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) fn get_entity_type_as_dependency<'a>(
         &'a self,
         entity_type_id: &'a VersionedUri,
-        context: EntityTypeDependencyContext<'a>,
+        context: DependencyContext<'a>,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
-        let EntityTypeDependencyContext {
+        let DependencyContext {
+            edges,
             referenced_data_types,
             referenced_property_types,
             referenced_link_types,
             referenced_entity_types,
-            data_type_query_depth,
-            property_type_query_depth,
-            link_type_query_depth,
-            entity_type_query_depth,
+            linked_entities,
+            links,
+            graph_resolve_depths,
         } = context;
 
         async move {
             let unresolved_entity_type = referenced_entity_types
-                .insert(entity_type_id, entity_type_query_depth, || async {
-                    Ok(PersistedEntityType::from_record(
-                        self.read_versioned_ontology_type(entity_type_id).await?,
-                    ))
-                })
+                .insert(
+                    entity_type_id,
+                    graph_resolve_depths.entity_type_resolve_depth,
+                    || async {
+                        Ok(PersistedEntityType::from_record(
+                            self.read_versioned_ontology_type(entity_type_id).await?,
+                        ))
+                    },
+                )
                 .await?;
 
-            if let Some(entity_type) = unresolved_entity_type {
-                if property_type_query_depth > 0 {
+            if let Some(entity_type) = unresolved_entity_type.cloned() {
+                if graph_resolve_depths.property_type_resolve_depth > 0 {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
-                    for property_type_ref in entity_type.inner.property_type_references() {
+                    for property_type_ref in entity_type.inner().property_type_references() {
                         self.get_property_type_as_dependency(
                             property_type_ref.uri(),
-                            PropertyTypeDependencyContext {
+                            DependencyContext {
+                                edges,
                                 referenced_data_types,
                                 referenced_property_types,
-                                data_type_query_depth,
-                                property_type_query_depth: property_type_query_depth - 1,
+                                referenced_link_types,
+                                referenced_entity_types,
+                                linked_entities,
+                                links,
+                                graph_resolve_depths: GraphResolveDepths {
+                                    property_type_resolve_depth: graph_resolve_depths
+                                        .property_type_resolve_depth
+                                        - 1,
+                                    ..graph_resolve_depths
+                                },
                             },
                         )
                         .await?;
                     }
                 }
 
-                if link_type_query_depth > 0 || entity_type_query_depth > 0 {
+                if context.graph_resolve_depths.link_type_resolve_depth > 0
+                    || context.graph_resolve_depths.entity_type_resolve_depth > 0
+                {
                     let linked_uris = entity_type
-                        .inner
+                        .inner()
                         .link_type_references()
                         .into_iter()
                         .map(|(link_type_id, entity_type_ids)| {
@@ -108,29 +109,42 @@ impl<C: AsClient> PostgresStore<C> {
                     // TODO: Use relation tables
                     //   see https://app.asana.com/0/0/1202884883200942/f
                     for (link_type_id, entity_type_ids) in linked_uris {
-                        if link_type_query_depth > 0 {
-                            self.get_link_type_as_dependency(
-                                &link_type_id,
-                                LinkTypeDependencyContext {
-                                    referenced_link_types,
-                                    link_type_query_depth: link_type_query_depth - 1,
+                        if graph_resolve_depths.link_type_resolve_depth > 0 {
+                            self.get_link_type_as_dependency(&link_type_id, DependencyContext {
+                                graph_resolve_depths: GraphResolveDepths {
+                                    link_type_resolve_depth: graph_resolve_depths
+                                        .link_type_resolve_depth
+                                        - 1,
+                                    ..graph_resolve_depths
                                 },
-                            )
+                                edges,
+                                referenced_data_types,
+                                referenced_property_types,
+                                referenced_link_types,
+                                referenced_entity_types,
+                                linked_entities,
+                                links,
+                            })
                             .await?;
                         }
-                        if entity_type_query_depth > 0 {
+                        if context.graph_resolve_depths.entity_type_resolve_depth > 0 {
                             for entity_type_id in entity_type_ids {
                                 self.get_entity_type_as_dependency(
                                     &entity_type_id,
-                                    EntityTypeDependencyContext {
+                                    DependencyContext {
+                                        graph_resolve_depths: GraphResolveDepths {
+                                            entity_type_resolve_depth: graph_resolve_depths
+                                                .entity_type_resolve_depth
+                                                - 1,
+                                            ..graph_resolve_depths
+                                        },
+                                        edges,
                                         referenced_data_types,
                                         referenced_property_types,
                                         referenced_link_types,
                                         referenced_entity_types,
-                                        data_type_query_depth,
-                                        property_type_query_depth,
-                                        link_type_query_depth,
-                                        entity_type_query_depth: entity_type_query_depth - 1,
+                                        linked_entities,
+                                        links,
                                     },
                                 )
                                 .await?;
@@ -190,40 +204,40 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
     async fn get_entity_type(
         &self,
-        query: &EntityTypeQuery,
+        query: &StructuralQuery,
     ) -> Result<Vec<EntityTypeRootedSubgraph>, QueryError> {
-        let EntityTypeQuery {
+        let StructuralQuery {
             ref expression,
-            data_type_query_depth,
-            property_type_query_depth,
-            link_type_query_depth,
-            entity_type_query_depth,
+            graph_resolve_depths,
         } = *query;
 
         stream::iter(Read::<PersistedEntityType>::read(self, expression).await?)
             .then(|entity_type| async move {
+                let mut edges = HashMap::new();
                 let mut referenced_data_types = DependencyMap::new();
                 let mut referenced_property_types = DependencyMap::new();
                 let mut referenced_link_types = DependencyMap::new();
                 let mut referenced_entity_types = DependencyMap::new();
+                let mut linked_entities = DependencyMap::new();
+                let mut links = DependencySet::new();
 
                 self.get_entity_type_as_dependency(
-                    entity_type.metadata.identifier().uri(),
-                    EntityTypeDependencyContext {
+                    entity_type.metadata().identifier().uri(),
+                    DependencyContext {
+                        edges: &mut edges,
                         referenced_data_types: &mut referenced_data_types,
                         referenced_property_types: &mut referenced_property_types,
                         referenced_link_types: &mut referenced_link_types,
                         referenced_entity_types: &mut referenced_entity_types,
-                        data_type_query_depth,
-                        property_type_query_depth,
-                        link_type_query_depth,
-                        entity_type_query_depth,
+                        linked_entities: &mut linked_entities,
+                        links: &mut links,
+                        graph_resolve_depths,
                     },
                 )
                 .await?;
 
                 let root = referenced_entity_types
-                    .remove(entity_type.metadata.identifier().uri())
+                    .remove(entity_type.metadata().identifier().uri())
                     .expect("root was not added to the subgraph");
 
                 Ok(EntityTypeRootedSubgraph {

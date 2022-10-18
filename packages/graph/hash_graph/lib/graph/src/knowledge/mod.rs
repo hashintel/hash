@@ -4,7 +4,7 @@
 mod entity;
 mod link;
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use utoipa::ToSchema;
 
 pub use self::{
@@ -13,12 +13,8 @@ pub use self::{
     },
     link::{Link, PersistedLink, PersistedLinkMetadata},
 };
-use crate::{
-    ontology::{
-        OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedLinkType,
-        PersistedPropertyType,
-    },
-    store::query::Expression,
+use crate::ontology::{
+    PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedPropertyType,
 };
 
 /// Distance to explore when querying a rooted subgraph on entities and links.
@@ -47,29 +43,9 @@ use crate::{
 /// the query will resolve up to two links, but only a single entity:
 /// - `linkedEntities`: \[`Entity2`]
 /// - `links`: \[`Link1`, `Link2`]
-pub type KnowledgeGraphQueryDepth = u8;
-
-/// Query to read [`Entities`] or [`Link`]s, which satisfy the [`Expression`].
 ///
-/// [`Entities`]: Entity
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct KnowledgeGraphQuery {
-    #[serde(rename = "query")]
-    pub expression: Expression,
-    #[schema(value_type = number)]
-    pub data_type_query_depth: OntologyQueryDepth,
-    #[schema(value_type = number)]
-    pub property_type_query_depth: OntologyQueryDepth,
-    #[schema(value_type = number)]
-    pub link_type_query_depth: OntologyQueryDepth,
-    #[schema(value_type = number)]
-    pub entity_type_query_depth: OntologyQueryDepth,
-    #[schema(value_type = number)]
-    pub link_target_entity_query_depth: KnowledgeGraphQueryDepth,
-    #[schema(value_type = number)]
-    pub link_query_depth: KnowledgeGraphQueryDepth,
-}
+/// [`OntologyQueryDepth`]: crate::ontology::OntologyQueryDepth
+pub type KnowledgeGraphQueryDepth = u8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]

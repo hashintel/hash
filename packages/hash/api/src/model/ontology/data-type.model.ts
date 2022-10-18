@@ -109,22 +109,6 @@ export default class {
   }
 
   /**
-   * Get all data types at their latest version.
-
-   */
-  static async getAllLatest(graphApi: GraphApi): Promise<DataTypeModel[]> {
-    /**
-     * @todo: get all latest data types in specified account.
-     *   This may mean implicitly filtering results by what an account is
-     *   authorized to see.
-     *   https://app.asana.com/0/1202805690238892/1202890446280569/f
-     */
-    const { data: persistedDataTypes } = await graphApi.getLatestDataTypes();
-
-    return persistedDataTypes.map(DataTypeModel.fromPersistedDataType);
-  }
-
-  /**
    * Get a data type by its versioned URI.
    *
    * @param params.dataTypeId the unique versioned URI for a data type.
