@@ -61,25 +61,42 @@ const createSavePlugin = (
     });
   };
 
+  let latestView: EditorView<Schema> | null = null;
+
+  let interval: ReturnType<typeof setInterval> | void;
+
   const minWaitTime = 400;
-  const maxWaitTime = 1200;
+  const maxWaitTime = 2000;
+
+  const idleSave = () => {
+    if (!interval) {
+      interval = setInterval(() => {
+        if (latestView) {
+          triggerSave(latestView);
+        }
+      }, maxWaitTime);
+    }
+  };
 
   // Saving happens through a debounced write operation
-  const writeDebounce = debounce(
-    (view: EditorView<Schema>) => {
-      triggerSave(view);
-    },
-    minWaitTime,
-    { maxWait: maxWaitTime },
-  );
+  const writeDebounce = debounce(() => {
+    if (latestView) {
+      triggerSave(latestView);
+    }
+  }, minWaitTime);
 
   return new Plugin<unknown, Schema>({
     view: (_viewOnCreation: EditorView<Schema>) => {
       return {
         update: (view, prevState) => {
+          latestView = view;
           if (view.state.doc !== prevState.doc) {
-            // If the document changes between updates, we issue a debounced update.
-            writeDebounce(view);
+            if (interval) {
+              interval = clearInterval(interval);
+            }
+            writeDebounce();
+          } else {
+            idleSave();
           }
         },
         destroy: () => {
@@ -102,7 +119,8 @@ const createSavePlugin = (
         },
         blur(view) {
           writeDebounce.cancel();
-          triggerSave(view);
+          latestView = view;
+          idleSave();
           return false;
         },
       },
