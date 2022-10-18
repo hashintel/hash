@@ -69,7 +69,7 @@ describe("Link type CRU", () => {
           ...linkTypeSchema,
           title: updatedTitle,
         },
-        updatedById: testUser.entityId,
+        updatedById: testUser2.entityId,
       })
       .catch((err) => Promise.reject(err.data));
 
