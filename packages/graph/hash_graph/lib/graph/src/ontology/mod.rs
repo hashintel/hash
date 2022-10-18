@@ -1,5 +1,6 @@
 //! TODO: DOC
 
+mod data_type;
 pub mod domain_validator;
 
 use core::fmt;
@@ -11,6 +12,8 @@ use tokio_postgres::types::{FromSql, ToSql};
 use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
 use utoipa::ToSchema;
 use uuid::Uuid;
+
+pub use self::data_type::DataTypeQueryPath;
 
 // TODO - find a good place for AccountId, perhaps it will become redundant in a future design
 

@@ -2,41 +2,51 @@
 
 //! Postgres implementation to compile queries.
 
+mod data_type;
 pub mod database;
 
 use std::fmt::{self, Formatter};
 
+pub use self::data_type::DataTypeQueryField;
 use crate::store::{
-    postgres::query::database::{Column, Table},
+    postgres::query::database::{ColumnAccess, TableName},
     query::QueryRecord,
 };
 
 /// A structural query, which can be compiled into a statement in Postgres.
-// TODO: Implement for `ReadQuery<DataType>`, `ReadQuery<PropertyType>`, etc. when associated types
-//       are implemented
 pub trait Query {
     type Field: Field;
     type Record: QueryRecord;
 
-    /// The [`Table`] used for this `Query`.
-    fn base_table() -> Table;
+    /// The [`TableName`] used for this `Query`.
+    fn base_table() -> TableName;
 }
 
 /// An attribute of an ontology type or a knowledge element.
-// TODO: Implement for `DataTypeField`, `PropertyTypeQueryField`, etc. (not added yet)
 pub trait Field {
-    /// The [`Column`] which contains this `Field`.
-    fn column(&self) -> Column;
+    /// The [`TableName`] of the [`Table`] where this field is located.
+    ///
+    /// [`Table`]: database::Table
+    fn table_name(&self) -> TableName;
+
+    /// The way to access the column inside of [`table_name()`] where this field is located.
+    ///
+    /// [`table_name()`]: Self::table_name
+    fn column_access(&self) -> ColumnAccess;
 }
 
 /// An absolute path to a [`Field`].
-// TODO: Implement for `DataTypeQueryPath`, `PropertyTypeQueryPath`, etc. (not added yet)
 pub trait Path {
-    /// Returns a list of [`Table`]s required to traverse this path.
-    fn tables(&self) -> Vec<Table>;
+    /// Returns a list of [`TableName`]s required to traverse this path.
+    fn tables(&self) -> Vec<TableName>;
 
-    /// Returns the [`Column`] where the path ends at.
-    fn column(&self) -> Column;
+    /// The [`TableName`] that marks the end of the path.
+    fn terminating_table_name(&self) -> TableName;
+
+    /// How to access the column inside of [`terminating_table_name()`] where this path ends.
+    ///
+    /// [`terminating_table_name()`]: Self::terminating_table_name
+    fn column_access(&self) -> ColumnAccess;
 }
 
 /// Renders the object into a Postgres compatible format.
