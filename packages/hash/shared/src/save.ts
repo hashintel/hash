@@ -401,12 +401,11 @@ export const save = async (
     blocks,
     doc,
     /**
-     * @todo currently we use the dummy entity type for *every block* we don't know about.
+     * @todo currently we use the text entity type for *every block* we don't know about.
      */
-    async (_componentId: string) => [
-      "http://localhost:3000/@example/types/entity-type/dummy/v/1",
-      [],
-    ],
+    async (_componentId: string) => {
+      return [TEXT_ENTITY_TYPE_ID, []];
+    },
   );
 
   // Even if the actions list is empty, we hit the endpoint to get an updated

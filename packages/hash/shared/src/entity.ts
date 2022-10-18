@@ -5,6 +5,7 @@ import {
   isDraftBlockEntity,
   isDraftEntity,
   isEntity,
+  TEXT_ENTITY_TYPE_ID,
   TEXT_TOKEN_PROPERTY_TYPE_BASE_URI,
 } from "./entityStore";
 import { PersistedPageFieldsFragment, Text } from "./graphql/apiTypes.gen";
@@ -39,11 +40,12 @@ export const isTextProperties =
   (properties: {}): properties is TextEntityType["properties"] =>
     TEXT_TOKEN_PROPERTY_TYPE_BASE_URI in properties;
 
-// @todo make this more robust, checking system type name of entity type
 export const isTextEntity = (
   entity: EntityStoreType | DraftEntity,
 ): entity is TextEntityType =>
-  "properties" in entity && isTextProperties(entity.properties);
+  "properties" in entity &&
+  (entity.entityTypeId ?? "") === TEXT_ENTITY_TYPE_ID &&
+  isTextProperties(entity.properties);
 
 export const isDraftTextEntity = (
   entity: DraftEntity,
