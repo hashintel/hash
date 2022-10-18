@@ -77,8 +77,8 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
           keymap<Schema>({
             Enter(_, __, view) {
               if (!loadingRef.current && view?.state.doc.content) {
-                const { [TEXT_TOKEN_PROPERTY_TYPE_BASE_URI]: tokens } =
-                  textBlockNodeToEntityProperties(view.state.doc);
+                const tokens =
+                  textBlockNodeToEntityProperties(view.state.doc)[TEXT_TOKEN_PROPERTY_TYPE_BASE_URI];
 
                 if (!tokens?.length) {
                   return true;
