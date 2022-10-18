@@ -29,6 +29,10 @@ pub enum DataTypeQueryPath<'q> {
     Custom(Cow<'q, str>),
 }
 
+impl QueryRecord for DataType {
+    type Path<'q> = DataTypeQueryPath<'q>;
+}
+
 impl<'q> TryFrom<Path> for DataTypeQueryPath<'q> {
     type Error = Report<de::value::Error>;
 
@@ -131,12 +135,6 @@ impl<'de> Visitor<'de> for DataTypeQueryTokenVisitor {
     }
 }
 
-/// Deserializes a [`DataTypeQueryPath`] from a string sequence.
-pub struct DataTypeQueryPathVisitor {
-    /// The current position in the sequence when deserializing.
-    position: usize,
-}
-
 // In order to create `Cow::Borrowed`, we need to implement it manually
 impl<'de: 'k, 'k> Deserialize<'de> for DataTypeQueryToken<'k> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -145,6 +143,12 @@ impl<'de: 'k, 'k> Deserialize<'de> for DataTypeQueryToken<'k> {
     {
         deserializer.deserialize_str(DataTypeQueryTokenVisitor)
     }
+}
+
+/// Deserializes a [`DataTypeQueryPath`] from a string sequence.
+pub struct DataTypeQueryPathVisitor {
+    /// The current position in the sequence when deserializing.
+    position: usize,
 }
 
 impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
@@ -272,8 +276,4 @@ mod tests {
             "invalid length 2, expected 1 element in sequence"
         );
     }
-}
-
-impl QueryRecord for DataType {
-    type Path<'q> = DataTypeQueryPath<'q>;
 }
