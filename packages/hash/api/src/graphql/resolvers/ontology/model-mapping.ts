@@ -5,27 +5,16 @@ import {
 } from "@hashintel/hash-shared/graphql/types";
 import { EntityType, PropertyType } from "@blockprotocol/type-system-web";
 import {
-  DataTypeModel,
   EntityTypeModel,
   LinkTypeModel,
   PropertyTypeModel,
 } from "../../../model";
 import {
-  PersistedDataType as PersistedDataTypeGql,
   PersistedEntityType as PersistedEntityTypeGql,
   PersistedLinkType as PersistedLinkTypeGql,
   PersistedPropertyType as PersistedPropertyTypeGql,
   Subgraph as SubgraphGql,
 } from "../../apiTypes.gen";
-
-export const mapDataTypeModelToGQL = (
-  dataType: DataTypeModel,
-): PersistedDataTypeGql => ({
-  ownedById: dataType.ownedById,
-  accountId: dataType.ownedById,
-  dataTypeId: dataType.schema.$id,
-  dataType: dataType.schema,
-});
 
 export const mapPropertyTypeModelToGQL = (
   propertyType: PropertyTypeModel,
