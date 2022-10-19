@@ -2,7 +2,7 @@ mod filter;
 mod old;
 
 pub use self::{
-    filter::{Filter, FilterValue, Parameter},
+    filter::{Filter, FilterExpression, Parameter},
     old::{
         Expression, ExpressionError, Literal, Path, PathSegment, Resolve, ResolveError, Version,
         UNIMPLEMENTED_LITERAL_OBJECT, UNIMPLEMENTED_WILDCARDS,

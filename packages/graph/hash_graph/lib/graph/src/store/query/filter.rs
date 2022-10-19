@@ -17,8 +17,14 @@ pub enum Filter<'q, T: QueryRecord> {
     All(Vec<Self>),
     Any(Vec<Self>),
     Not(Box<Self>),
-    Equal(Option<FilterValue<'q, T>>, Option<FilterValue<'q, T>>),
-    NotEqual(Option<FilterValue<'q, T>>, Option<FilterValue<'q, T>>),
+    Equal(
+        Option<FilterExpression<'q, T>>,
+        Option<FilterExpression<'q, T>>,
+    ),
+    NotEqual(
+        Option<FilterExpression<'q, T>>,
+        Option<FilterExpression<'q, T>>,
+    ),
 }
 
 // TODO: Derive traits when bounds are generated correctly
@@ -117,14 +123,14 @@ impl<'q, T: QueryRecord> TryFrom<Expression> for Filter<'q, T> {
     rename_all = "camelCase",
     bound = "'de: 'q, T::Path<'q>: Deserialize<'de>"
 )]
-pub enum FilterValue<'q, T: QueryRecord> {
+pub enum FilterExpression<'q, T: QueryRecord> {
     Path(T::Path<'q>),
     Parameter(Parameter<'q>),
 }
 
 // TODO: Derive traits when bounds are generated correctly
 //   see https://github.com/rust-lang/rust/issues/26925
-impl<'q, T> Debug for FilterValue<'q, T>
+impl<'q, T> Debug for FilterExpression<'q, T>
 where
     T: QueryRecord<Path<'q>: Debug>,
 {
@@ -138,7 +144,7 @@ where
 
 // TODO: Derive traits when bounds are generated correctly
 //   see https://github.com/rust-lang/rust/issues/26925
-impl<'q, T> PartialEq for FilterValue<'q, T>
+impl<'q, T> PartialEq for FilterExpression<'q, T>
 where
     T: QueryRecord<Path<'q>: PartialEq>,
 {
@@ -151,7 +157,7 @@ where
     }
 }
 
-impl<'q, T: QueryRecord> TryFrom<Expression> for FilterValue<'q, T> {
+impl<'q, T: QueryRecord> TryFrom<Expression> for FilterExpression<'q, T> {
     type Error = <T::Path<'q> as TryFrom<Path>>::Error;
 
     fn try_from(expression: Expression) -> Result<Self, Self::Error> {
@@ -162,20 +168,20 @@ impl<'q, T: QueryRecord> TryFrom<Expression> for FilterValue<'q, T> {
             | Expression::Any(_)
             | Expression::Field(_)
             | Expression::Literal(Literal::Null) => unimplemented!(),
-            Expression::Literal(literal) => FilterValue::Parameter(Parameter::from(literal)),
-            Expression::Path(path) => FilterValue::Path(path.try_into()?),
+            Expression::Literal(literal) => FilterExpression::Parameter(Parameter::from(literal)),
+            Expression::Path(path) => FilterExpression::Path(path.try_into()?),
         })
     }
 }
 
-impl<'q, T: QueryRecord> TryFrom<Expression> for Option<FilterValue<'q, T>> {
+impl<'q, T: QueryRecord> TryFrom<Expression> for Option<FilterExpression<'q, T>> {
     type Error = <T::Path<'q> as TryFrom<Path>>::Error;
 
     fn try_from(expression: Expression) -> Result<Self, Self::Error> {
         Ok(if let Expression::Literal(Literal::Null) = expression {
             None
         } else {
-            Some(FilterValue::try_from(expression)?)
+            Some(FilterExpression::try_from(expression)?)
         })
     }
 }
@@ -226,8 +232,10 @@ mod tests {
             Filter::try_from(Expression::for_latest_version())
                 .expect("could not convert expression"),
             Filter::Equal(
-                Some(FilterValue::<DataType>::Path(DataTypeQueryPath::Version)),
-                Some(FilterValue::<DataType>::Parameter(Parameter::Text(
+                Some(FilterExpression::<DataType>::Path(
+                    DataTypeQueryPath::Version
+                )),
+                Some(FilterExpression::<DataType>::Parameter(Parameter::Text(
                     Cow::Borrowed("latest")
                 ))),
             )
@@ -244,10 +252,10 @@ mod tests {
             Filter::try_from(Expression::for_versioned_uri(&versioned_id))
                 .expect("could not convert expression"),
             Filter::Equal(
-                Some(FilterValue::<DataType>::Path(
+                Some(FilterExpression::<DataType>::Path(
                     DataTypeQueryPath::VersionedUri
                 )),
-                Some(FilterValue::<DataType>::Parameter(Parameter::Text(
+                Some(FilterExpression::<DataType>::Parameter(Parameter::Text(
                     Cow::Owned(versioned_id.to_string())
                 ))),
             )
@@ -265,8 +273,10 @@ mod tests {
         assert_eq!(
             Filter::deserialize(&latest_version_filter).expect("could not deserialize filter"),
             Filter::Equal(
-                Some(FilterValue::<DataType>::Path(DataTypeQueryPath::Version)),
-                Some(FilterValue::<DataType>::Parameter(Parameter::Text(
+                Some(FilterExpression::<DataType>::Path(
+                    DataTypeQueryPath::Version
+                )),
+                Some(FilterExpression::<DataType>::Parameter(Parameter::Text(
                     Cow::Borrowed("latest")
                 ))),
             )
@@ -288,16 +298,22 @@ mod tests {
             Filter::deserialize(&specific_version_filter).expect("could not deserialize filter"),
             Filter::All(vec![
                 Filter::Equal(
-                    Some(FilterValue::<DataType>::Path(DataTypeQueryPath::BaseUri)),
-                    Some(FilterValue::<DataType>::Parameter(Parameter::Text(
+                    Some(FilterExpression::<DataType>::Path(
+                        DataTypeQueryPath::BaseUri
+                    )),
+                    Some(FilterExpression::<DataType>::Parameter(Parameter::Text(
                         Cow::Borrowed(
                             "https://blockprotocol.org/@blockprotocol/types/data-type/text/"
                         )
                     ))),
                 ),
                 Filter::Equal(
-                    Some(FilterValue::<DataType>::Path(DataTypeQueryPath::Version)),
-                    Some(FilterValue::<DataType>::Parameter(Parameter::Number(1.0))),
+                    Some(FilterExpression::<DataType>::Path(
+                        DataTypeQueryPath::Version
+                    )),
+                    Some(FilterExpression::<DataType>::Parameter(Parameter::Number(
+                        1.0
+                    ))),
                 ),
             ])
         );
@@ -311,7 +327,7 @@ mod tests {
         assert_eq!(
             Filter::deserialize(&null_check).expect("could not deserialize filter"),
             Filter::NotEqual(
-                Some(FilterValue::<DataType>::Path(
+                Some(FilterExpression::<DataType>::Path(
                     DataTypeQueryPath::Description
                 )),
                 None,

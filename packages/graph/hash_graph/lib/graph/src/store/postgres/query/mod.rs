@@ -4,15 +4,20 @@
 
 mod condition;
 mod data_type;
-pub mod database;
+mod expression;
+mod statement;
+mod table;
 
 use std::fmt::{self, Formatter};
 
-pub use self::data_type::DataTypeQueryField;
-use crate::store::{
-    postgres::query::database::{ColumnAccess, TableName},
-    query::QueryRecord,
+pub use self::{
+    condition::Condition,
+    data_type::DataTypeQueryField,
+    expression::{Expression, Function},
+    statement::WindowStatement,
+    table::{Column, ColumnAccess, Table, TableAlias, TableName},
 };
+use crate::store::query::QueryRecord;
 
 pub trait PostgresQueryRecord<'q>: QueryRecord<Path<'q>: Path> {
     type Field: Field;
@@ -24,8 +29,6 @@ pub trait PostgresQueryRecord<'q>: QueryRecord<Path<'q>: Path> {
 /// A queryable attribute of an element in the graph.
 pub trait Field {
     /// The [`TableName`] of the [`Table`] where this field is located.
-    ///
-    /// [`Table`]: database::Table
     fn table_name(&self) -> TableName;
 
     /// The way to access the column inside of [`table_name()`] where this field is located.
