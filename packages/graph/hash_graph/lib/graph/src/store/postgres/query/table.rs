@@ -16,17 +16,20 @@ pub enum TableName {
 }
 
 impl TableName {
-    /// Returns the [`Column`] used for joining another `Table` on this `Table`.
-    pub const fn source_join_column(self) -> &'static str {
-        match self {
-            Self::TypeIds | Self::DataTypes => "version_id",
+    const fn source_join_column_access(self) -> ColumnAccess<'static> {
+        ColumnAccess::Table {
+            column: match self {
+                Self::TypeIds | Self::DataTypes => "version_id",
+            },
         }
     }
 
     /// Returns the [`Column`] used for joining this `Table` on another `Table`.
-    pub const fn target_join_column(self) -> &'static str {
-        match self {
-            Self::TypeIds | Self::DataTypes => "version_id",
+    const fn target_join_column_access(self) -> ColumnAccess<'static> {
+        ColumnAccess::Table {
+            column: match self {
+                Self::TypeIds | Self::DataTypes => "version_id",
+            },
         }
     }
 }
@@ -61,8 +64,8 @@ impl TableName {
 /// [`PropertyType`]: type_system::PropertyType
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct TableAlias {
-    condition_index: usize,
-    chain_depth: usize,
+    pub condition_index: usize,
+    pub chain_depth: usize,
 }
 
 /// A table available in a compiled query.
@@ -70,6 +73,24 @@ pub struct TableAlias {
 pub struct Table {
     pub name: TableName,
     pub alias: Option<TableAlias>,
+}
+
+impl Table {
+    /// Returns the [`Column`] used for joining another `Table` on this `Table`.
+    pub const fn source_join_column(self) -> Column<'static> {
+        Column {
+            table: self,
+            access: self.name.source_join_column_access(),
+        }
+    }
+
+    /// Returns the [`Column`] used for joining this `Table` on another `Table`.
+    pub const fn target_join_column(self) -> Column<'static> {
+        Column {
+            table: self,
+            access: self.name.target_join_column_access(),
+        }
+    }
 }
 
 impl Transpile for Table {
@@ -126,14 +147,34 @@ mod tests {
 
     #[test]
     fn source_join_columns() {
-        assert_eq!(TableName::TypeIds.source_join_column(), "version_id");
-        assert_eq!(TableName::DataTypes.source_join_column(), "version_id");
+        assert_eq!(
+            TableName::TypeIds.source_join_column_access(),
+            ColumnAccess::Table {
+                column: "version_id"
+            }
+        );
+        assert_eq!(
+            TableName::DataTypes.source_join_column_access(),
+            ColumnAccess::Table {
+                column: "version_id"
+            }
+        );
     }
 
     #[test]
     fn target_join_columns() {
-        assert_eq!(TableName::TypeIds.target_join_column(), "version_id");
-        assert_eq!(TableName::DataTypes.target_join_column(), "version_id");
+        assert_eq!(
+            TableName::TypeIds.target_join_column_access(),
+            ColumnAccess::Table {
+                column: "version_id"
+            }
+        );
+        assert_eq!(
+            TableName::DataTypes.target_join_column_access(),
+            ColumnAccess::Table {
+                column: "version_id"
+            }
+        );
     }
 
     #[test]
