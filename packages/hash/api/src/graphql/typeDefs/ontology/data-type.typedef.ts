@@ -29,12 +29,12 @@ export const dataTypeTypedef = gql`
     """
     Get all data types at their latest version.
     """
-    getAllLatestDataTypes: Subgraph!
+    getAllLatestDataTypes(dataTypeResolveDepth: Int!): Subgraph!
 
     """
     Get a data type by its versioned URI.
     """
-    getDataType(dataTypeId: String!): Subgraph!
+    getDataType(dataTypeId: String!, dataTypeResolveDepth: Int!): Subgraph!
   }
 
   # The following mutations should not be exposed until user defined data types

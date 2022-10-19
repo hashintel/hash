@@ -28,12 +28,19 @@ export const propertyTypeTypedef = gql`
     """
     Get all property types at their latest version.
     """
-    getAllLatestPropertyTypes: Subgraph!
+    getAllLatestPropertyTypes(
+      dataTypeResolveDepth: Int!
+      propertyTypeResolveDepth: Int!
+    ): Subgraph!
 
     """
     Get a property type by its versioned URI.
     """
-    getPropertyType(propertyTypeId: String!): Subgraph!
+    getPropertyType(
+      propertyTypeId: String!
+      dataTypeResolveDepth: Int!
+      propertyTypeResolveDepth: Int!
+    ): Subgraph!
   }
 
   extend type Mutation {

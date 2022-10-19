@@ -28,12 +28,23 @@ export const entityTypeTypedef = gql`
     """
     Get all entity types at their latest version.
     """
-    getAllLatestEntityTypes: Subgraph!
+    getAllLatestEntityTypes(
+      dataTypeResolveDepth: Int!
+      propertyTypeResolveDepth: Int!
+      linkTypeResolveDepth: Int!
+      entityTypeResolveDepth: Int!
+    ): Subgraph!
 
     """
     Get a entity type by its versioned URI.
     """
-    getEntityType(entityTypeId: String!): Subgraph!
+    getEntityType(
+      entityTypeId: String!
+      dataTypeResolveDepth: Int!
+      propertyTypeResolveDepth: Int!
+      linkTypeResolveDepth: Int!
+      entityTypeResolveDepth: Int!
+    ): Subgraph!
   }
 
   extend type Mutation {
