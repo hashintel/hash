@@ -24,7 +24,7 @@ use type_system::{
 };
 use uuid::Uuid;
 
-use self::context::PostgresContext;
+use self::context::{OntologyRecord, PostgresContext};
 pub use self::{
     ontology::PersistedOntologyType,
     pool::{AsClient, PostgresStorePool},
@@ -504,7 +504,11 @@ where
             .await
             .change_context(UpdateError)?;
 
-        let owned_by_id = previous_ontology_type.owned_by_id;
+        let OntologyRecord {
+            owned_by_id,
+            created_by_id,
+            ..
+        } = previous_ontology_type;
 
         let version_id = VersionId::new(Uuid::new_v4());
         self.insert_version_id(version_id)
@@ -517,7 +521,7 @@ where
             version_id,
             database_type,
             owned_by_id,
-            previous_ontology_type.created_by_id,
+            created_by_id,
             updated_by_id,
         )
         .await
@@ -527,7 +531,7 @@ where
             version_id,
             PersistedOntologyMetadata::new(
                 PersistedOntologyIdentifier::new(uri, owned_by_id),
-                previous_ontology_type.created_by_id,
+                created_by_id,
                 updated_by_id,
                 None,
             ),
