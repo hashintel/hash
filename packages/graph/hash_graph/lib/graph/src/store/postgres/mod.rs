@@ -241,13 +241,13 @@ impl<'a> DependencyContextRef<'a> {
     ) -> DependencyContextRef<'_>
 where {
         DependencyContextRef {
-            edges: &mut *self.edges,
-            referenced_data_types: &mut *self.referenced_data_types,
-            referenced_property_types: &mut *self.referenced_property_types,
-            referenced_link_types: &mut *self.referenced_link_types,
-            referenced_entity_types: &mut *self.referenced_entity_types,
-            linked_entities: &mut *self.linked_entities,
-            links: &mut *self.links,
+            edges: self.edges,
+            referenced_data_types: self.referenced_data_types,
+            referenced_property_types: self.referenced_property_types,
+            referenced_link_types: self.referenced_link_types,
+            referenced_entity_types: self.referenced_entity_types,
+            linked_entities: self.linked_entities,
+            links: self.links,
             graph_resolve_depths,
         }
     }
