@@ -294,19 +294,6 @@ export interface DataTypeReferenceUpdate {
 /**
  *
  * @export
- * @interface DataTypeRootedSubgraph
- */
-export interface DataTypeRootedSubgraph {
-  /**
-   *
-   * @type {PersistedDataType}
-   * @memberof DataTypeRootedSubgraph
-   */
-  dataType: PersistedDataType;
-}
-/**
- *
- * @export
  * @enum {string}
  */
 
@@ -319,6 +306,25 @@ export const EdgeKind = {
 
 export type EdgeKind = typeof EdgeKind[keyof typeof EdgeKind];
 
+/**
+ *
+ * @export
+ * @interface EdgesValueInner
+ */
+export interface EdgesValueInner {
+  /**
+   *
+   * @type {GraphElementIdentifier}
+   * @memberof EdgesValueInner
+   */
+  destination: GraphElementIdentifier;
+  /**
+   *
+   * @type {EdgeKind}
+   * @memberof EdgesValueInner
+   */
+  edgeKind: EdgeKind;
+}
 /**
  *
  * @export
@@ -1213,10 +1219,10 @@ export interface Subgraph {
   depths: GraphResolveDepths;
   /**
    *
-   * @type {{ [key: string]: Array<OutwardEdge>; }}
+   * @type {{ [key: string]: Array<EdgesValueInner>; }}
    * @memberof Subgraph
    */
-  edges: { [key: string]: Array<OutwardEdge> };
+  edges: { [key: string]: Array<EdgesValueInner> };
   /**
    *
    * @type {Array<GraphElementIdentifier>}
