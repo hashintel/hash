@@ -37,7 +37,7 @@ const Page: NextPageWithLayout = () => {
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
-      // @todo check why this does pass type system validation
+      // @todo use validation
       return JSON.parse(
         Buffer.from(
           decodeURIComponent(router.query.draft.toString()),
