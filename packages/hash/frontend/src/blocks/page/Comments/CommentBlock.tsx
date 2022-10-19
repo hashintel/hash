@@ -1,4 +1,4 @@
-import { FunctionComponent, useMemo, useState } from "react";
+import { FunctionComponent, ReactNode, useMemo, useState } from "react";
 import { Box, Typography } from "@mui/material";
 import {
   Avatar,
@@ -22,14 +22,14 @@ import { CommentTextField } from "./CommentTextField";
 import { CommentBlockMenu } from "./CommentBlockMenu";
 import styles from "./style.module.css";
 
-type ShowMoreTextLinkProps = {
-  label: string;
+type ToggleTextExpandedButtonProps = {
+  label: ReactNode;
   icon: IconDefinition;
   onClick: () => void;
 };
 
 export const ToggleTextExpandedButton: FunctionComponent<
-  ShowMoreTextLinkProps
+  ToggleTextExpandedButtonProps
 > = ({ label, icon, onClick }) => (
   <Button
     size="xs"
