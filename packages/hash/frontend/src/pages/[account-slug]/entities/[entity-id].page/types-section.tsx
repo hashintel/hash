@@ -1,3 +1,4 @@
+import { EntityTypeVertex } from "@hashintel/hash-shared/graphql/types";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Typography } from "@mui/material";
@@ -39,7 +40,11 @@ export const TypesSection = () => {
     return null;
   }
 
-  const entityTypeTitle = entity.entityTypeRootedSubgraph.entityType.title;
+  const entityTypeTitle = (
+    entity.entityTypeRootedSubgraph.vertices[
+      entity.entityTypeId
+    ]! as EntityTypeVertex
+  ).inner.inner.title;
 
   return (
     <EntitySection title="Type">
