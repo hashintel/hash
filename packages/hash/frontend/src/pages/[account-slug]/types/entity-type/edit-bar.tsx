@@ -113,7 +113,7 @@ export const EditBar = ({
           alignItems: "center",
         })}
       >
-        {currentVersion === 0 ? (
+        {frozenVersion === 0 ? (
           <EditBarContents
             icon={<FontAwesomeIcon icon={faSmile} sx={{ fontSize: 14 }} />}
             title="Currently editing"
