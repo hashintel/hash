@@ -89,7 +89,7 @@ struct CreateDataTypeRequest {
     #[schema(value_type = VAR_DATA_TYPE)]
     schema: serde_json::Value,
     owned_by_id: AccountId,
-    created_by_id: AccountId,
+    actor_id: AccountId,
 }
 
 #[utoipa::path(
@@ -114,7 +114,7 @@ async fn create_data_type<P: StorePool + Send>(
     let Json(CreateDataTypeRequest {
         schema,
         owned_by_id,
-        created_by_id,
+        actor_id,
     }) = body;
 
     let data_type: DataType = schema.try_into().into_report().map_err(|report| {
@@ -135,7 +135,7 @@ async fn create_data_type<P: StorePool + Send>(
     })?;
 
     store
-        .create_data_type(data_type, owned_by_id, created_by_id)
+        .create_data_type(data_type, owned_by_id, actor_id)
         .await
         .map_err(|report| {
             // TODO: consider adding the data type, or at least its URI in the trace
@@ -232,7 +232,7 @@ struct UpdateDataTypeRequest {
     schema: serde_json::Value,
     #[schema(value_type = String)]
     type_to_update: VersionedUri,
-    updated_by_id: AccountId,
+    actor_id: AccountId,
 }
 
 #[utoipa::path(
@@ -255,7 +255,7 @@ async fn update_data_type<P: StorePool + Send>(
     let Json(UpdateDataTypeRequest {
         schema,
         type_to_update,
-        updated_by_id,
+        actor_id,
     }) = body;
 
     let new_type_id = VersionedUri::new(
@@ -276,7 +276,7 @@ async fn update_data_type<P: StorePool + Send>(
     })?;
 
     store
-        .update_data_type(data_type, updated_by_id)
+        .update_data_type(data_type, actor_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update data type");

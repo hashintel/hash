@@ -79,7 +79,7 @@ struct CreatePropertyTypeRequest {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
     schema: serde_json::Value,
     owned_by_id: AccountId,
-    created_by_id: AccountId,
+    actor_id: AccountId,
 }
 
 #[utoipa::path(
@@ -104,7 +104,7 @@ async fn create_property_type<P: StorePool + Send>(
     let Json(CreatePropertyTypeRequest {
         schema,
         owned_by_id,
-        created_by_id,
+        actor_id,
     }) = body;
 
     let property_type: PropertyType = schema.try_into().into_report().map_err(|report| {
@@ -127,7 +127,7 @@ async fn create_property_type<P: StorePool + Send>(
     })?;
 
     store
-        .create_property_type(property_type, owned_by_id, created_by_id)
+        .create_property_type(property_type, owned_by_id, actor_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create property type");
@@ -229,7 +229,7 @@ struct UpdatePropertyTypeRequest {
     schema: serde_json::Value,
     #[schema(value_type = String)]
     type_to_update: VersionedUri,
-    updated_by_id: AccountId,
+    actor_id: AccountId,
 }
 
 #[utoipa::path(
@@ -252,7 +252,7 @@ async fn update_property_type<P: StorePool + Send>(
     let Json(UpdatePropertyTypeRequest {
         schema,
         type_to_update,
-        updated_by_id,
+        actor_id,
     }) = body;
 
     let new_type_id = VersionedUri::new(
@@ -273,7 +273,7 @@ async fn update_property_type<P: StorePool + Send>(
     })?;
 
     store
-        .update_property_type(property_type, updated_by_id)
+        .update_property_type(property_type, actor_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update property type");
