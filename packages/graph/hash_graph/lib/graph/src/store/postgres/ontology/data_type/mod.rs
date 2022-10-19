@@ -85,7 +85,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             graph_resolve_depths,
         } = *query;
 
-        let dependencies = stream::iter(Read::<PersistedDataType>::read(self, expression).await?)
+        let subgraphs = stream::iter(Read::<PersistedDataType>::read(self, expression).await?)
             .then(|data_type| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
@@ -101,40 +101,17 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 self.get_data_type_as_dependency(&data_type_id, dependency_context.as_ref_object())
                     .await?;
 
-                let data_type = dependency_context
-                    .referenced_data_types
-                    .remove(&data_type_id)
-                    .expect("root was not added to the subgraph");
+                let root = GraphElementIdentifier::OntologyElementId(data_type_id);
 
-                let identifier = GraphElementIdentifier::OntologyElementId(
-                    data_type.metadata().identifier().uri().clone(),
-                );
-
-                Ok::<_, Report<QueryError>>((
-                    identifier,
-                    Vertex::DataType(data_type),
-                    dependency_context.edges,
-                ))
+                Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(vec![root]))
             })
             .try_collect::<Vec<_>>()
             .await?;
 
-        let mut edges = Edges::new();
-        let mut vertices = HashMap::with_capacity(dependencies.len());
-        let mut roots = Vec::with_capacity(dependencies.len());
+        let mut subgraph = Subgraph::new(graph_resolve_depths);
+        subgraph.extend(subgraphs);
 
-        for (identifier, vertex, dependency_edges) in dependencies {
-            roots.push(identifier.clone());
-            vertices.insert(identifier, vertex);
-            edges.extend(dependency_edges.into_iter());
-        }
-
-        Ok(Subgraph {
-            roots,
-            vertices,
-            edges,
-            depths: graph_resolve_depths,
-        })
+        Ok(subgraph)
     }
 
     async fn update_data_type(

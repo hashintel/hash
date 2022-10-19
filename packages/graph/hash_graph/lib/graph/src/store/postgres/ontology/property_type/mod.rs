@@ -1,6 +1,6 @@
 mod resolve;
 
-use std::{collections::HashMap, future::Future, pin::Pin};
+use std::{future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
@@ -19,8 +19,8 @@ use crate::{
         AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
     },
     subgraph::{
-        EdgeKind, Edges, GraphElementIdentifier, GraphResolveDepths, OutwardEdge, StructuralQuery,
-        Subgraph, Vertex,
+        EdgeKind, GraphElementIdentifier, GraphResolveDepths, OutwardEdge, StructuralQuery,
+        Subgraph,
     },
 };
 
@@ -170,60 +170,36 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             graph_resolve_depths,
         } = *query;
 
-        let dependencies =
-            stream::iter(Read::<PersistedPropertyType>::read(self, expression).await?)
-                .then(|property_type| async move {
-                    let mut dependency_context = DependencyContext::new(graph_resolve_depths);
+        let subgraphs = stream::iter(Read::<PersistedPropertyType>::read(self, expression).await?)
+            .then(|property_type| async move {
+                let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
-                    let property_type_id = property_type.metadata().identifier().uri().clone();
-                    dependency_context.referenced_property_types.insert(
-                        &property_type_id,
-                        dependency_context
-                            .graph_resolve_depths
-                            .property_type_resolve_depth,
-                        property_type,
-                    );
+                let property_type_id = property_type.metadata().identifier().uri().clone();
+                dependency_context.referenced_property_types.insert(
+                    &property_type_id,
+                    dependency_context
+                        .graph_resolve_depths
+                        .property_type_resolve_depth,
+                    property_type,
+                );
 
-                    self.get_property_type_as_dependency(
-                        &property_type_id,
-                        dependency_context.as_ref_object(),
-                    )
-                    .await?;
-
-                    let property_type = dependency_context
-                        .referenced_property_types
-                        .remove(&property_type_id)
-                        .expect("root was not added to the subgraph");
-
-                    let identifier = GraphElementIdentifier::OntologyElementId(
-                        property_type.metadata().identifier().uri().clone(),
-                    );
-
-                    Ok::<_, Report<QueryError>>((
-                        identifier,
-                        Vertex::PropertyType(property_type),
-                        dependency_context.edges,
-                    ))
-                })
-                .try_collect::<Vec<_>>()
+                self.get_property_type_as_dependency(
+                    &property_type_id,
+                    dependency_context.as_ref_object(),
+                )
                 .await?;
 
-        let mut edges = Edges::new();
-        let mut vertices = HashMap::with_capacity(dependencies.len());
-        let mut roots = Vec::with_capacity(dependencies.len());
+                let root = GraphElementIdentifier::OntologyElementId(property_type_id);
 
-        for (identifier, vertex, dependency_edges) in dependencies {
-            roots.push(identifier.clone());
-            vertices.insert(identifier, vertex);
-            edges.extend(dependency_edges.into_iter());
-        }
+                Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(vec![root]))
+            })
+            .try_collect::<Vec<_>>()
+            .await?;
 
-        Ok(Subgraph {
-            roots,
-            vertices,
-            edges,
-            depths: graph_resolve_depths,
-        })
+        let mut subgraph = Subgraph::new(graph_resolve_depths);
+        subgraph.extend(subgraphs);
+
+        Ok(subgraph)
     }
 
     async fn update_property_type(

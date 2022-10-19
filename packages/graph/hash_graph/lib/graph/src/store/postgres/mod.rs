@@ -44,7 +44,7 @@ use crate::{
         AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
         UpdateError,
     },
-    subgraph::{Edges, GraphResolveDepths},
+    subgraph::{Edges, GraphElementIdentifier, GraphResolveDepths, LinkId, Subgraph, Vertex},
 };
 
 pub struct DependencyMap<V, T, D> {
@@ -131,8 +131,12 @@ where
         })
     }
 
+    pub fn into_values(self) -> impl Iterator<Item = T> {
+        self.resolved.into_values().map(|value| value.0)
+    }
+
     pub fn into_vec(self) -> Vec<T> {
-        self.resolved.into_values().map(|value| value.0).collect()
+        self.into_values().collect()
     }
 
     pub fn remove(&mut self, identifier: &V) -> Option<T> {
@@ -191,11 +195,24 @@ where
     }
 
     pub fn into_vec(self) -> Vec<T> {
-        self.resolved.into_keys().collect()
+        self.into_iter().collect()
     }
 
     pub fn remove(&mut self, value: &T) -> Option<T> {
         self.resolved.remove_entry(value).map(|(value, _)| value)
+    }
+}
+
+impl<T, D> IntoIterator for DependencySet<T, D>
+where
+    T: Eq + Hash + Clone,
+{
+    type Item = T;
+
+    type IntoIter = impl Iterator<Item = T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.resolved.into_keys()
     }
 }
 
@@ -238,6 +255,79 @@ impl DependencyContext {
             linked_entities: &mut self.linked_entities,
             links: &mut self.links,
             graph_resolve_depths: self.graph_resolve_depths,
+        }
+    }
+
+    #[must_use]
+    pub fn into_subgraph(self, roots: Vec<GraphElementIdentifier>) -> Subgraph {
+        let vertices = self
+            .referenced_data_types
+            .into_values()
+            .map(|data_type| {
+                (
+                    GraphElementIdentifier::OntologyElementId(
+                        data_type.metadata().identifier().uri().clone(),
+                    ),
+                    Vertex::DataType(data_type),
+                )
+            })
+            .chain(
+                self.referenced_property_types
+                    .into_values()
+                    .map(|property_type| {
+                        (
+                            GraphElementIdentifier::OntologyElementId(
+                                property_type.metadata().identifier().uri().clone(),
+                            ),
+                            Vertex::PropertyType(property_type),
+                        )
+                    }),
+            )
+            .chain(self.referenced_link_types.into_values().map(|link_type| {
+                (
+                    GraphElementIdentifier::OntologyElementId(
+                        link_type.metadata().identifier().uri().clone(),
+                    ),
+                    Vertex::LinkType(link_type),
+                )
+            }))
+            .chain(
+                self.referenced_entity_types
+                    .into_values()
+                    .map(|entity_type| {
+                        (
+                            GraphElementIdentifier::OntologyElementId(
+                                entity_type.metadata().identifier().uri().clone(),
+                            ),
+                            Vertex::EntityType(entity_type),
+                        )
+                    }),
+            )
+            .chain(self.links.into_iter().map(|link| {
+                (
+                    GraphElementIdentifier::Temporary(LinkId {
+                        source_entity_id: link.inner().source_entity(),
+                        target_entity_id: link.inner().target_entity(),
+                        link_type_id: link.inner().link_type_id().clone(),
+                    }),
+                    Vertex::Link(link),
+                )
+            }))
+            .chain(self.linked_entities.into_values().map(|entity| {
+                (
+                    GraphElementIdentifier::KnowledgeGraphElementId(
+                        entity.metadata().identifier().entity_id(),
+                    ),
+                    Vertex::Entity(entity),
+                )
+            }))
+            .collect();
+
+        Subgraph {
+            roots,
+            vertices,
+            edges: self.edges,
+            depths: self.graph_resolve_depths,
         }
     }
 }

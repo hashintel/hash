@@ -157,6 +157,28 @@ pub struct Subgraph {
     pub depths: GraphResolveDepths,
 }
 
+impl Subgraph {
+    #[must_use]
+    pub fn new(depths: GraphResolveDepths) -> Self {
+        Self {
+            roots: Vec::new(),
+            vertices: HashMap::new(),
+            edges: Edges::new(),
+            depths,
+        }
+    }
+}
+
+impl Extend<Self> for Subgraph {
+    fn extend<T: IntoIterator<Item = Self>>(&mut self, iter: T) {
+        for subgraph in iter {
+            self.roots.extend(subgraph.roots.into_iter());
+            self.vertices.extend(subgraph.vertices.into_iter());
+            self.edges.extend(subgraph.edges.into_iter());
+        }
+    }
+}
+
 /// An [`Expression`] to query the datastore, recursively resolving according to the
 /// [`GraphResolveDepths`]
 #[derive(Debug, Deserialize, ToSchema)]
