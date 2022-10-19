@@ -1,3 +1,4 @@
+import { EntityType } from "@blockprotocol/type-system-web";
 import { Button, TextField } from "@hashintel/hash-design-system/ui";
 import {
   Box,
@@ -12,6 +13,7 @@ import { useRouter } from "next/router";
 import { useForm } from "react-hook-form";
 import slugify from "slugify";
 import { useLoggedInUser } from "../../../../components/hooks/useUser";
+import { FRONTEND_URL } from "../../../../lib/config";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../entity-type/hash-ontology-icon";
@@ -60,7 +62,10 @@ const Page: NextPageWithLayout = () => {
   }
 
   const handleFormSubmit = handleSubmit(async ({ name, description }) => {
-    const entityType = {
+    const url = `${FRONTEND_URL}/@${user.shortname}/types/entity-type/${slugify(
+      name,
+    )}`;
+    const entityType: EntityType = {
       title: name,
       // @todo make this not necessary
       pluralTitle: name,
@@ -68,14 +73,13 @@ const Page: NextPageWithLayout = () => {
       kind: "entityType",
       type: "object",
       properties: {},
+      $id: `${url}/v1`,
     };
 
     // @todo ensure this matches the slug algorithm used by backend
     // @todo ensure this is unique
     await router.push(
-      `/@${user.shortname}/types/entity-type/${slugify(
-        name,
-      )}?draft=${encodeURIComponent(
+      `${url}?draft=${encodeURIComponent(
         Buffer.from(JSON.stringify(entityType)).toString("base64"),
       )}`,
     );

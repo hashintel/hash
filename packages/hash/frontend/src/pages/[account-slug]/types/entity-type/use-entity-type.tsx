@@ -12,7 +12,7 @@ import { useAdvancedInitTypeSystem } from "../../../../lib/use-init-type-system"
 import { getEntityTypesByBaseUri } from "../../../../lib/subgraph";
 
 export const useEntityType = (
-  entityTypeBaseUri: string,
+  entityTypeBaseUri: string | null,
   onCompleted?: (entityType: EntityType) => void,
 ) => {
   const [typeSystemLoading, loadTypeSystem] = useAdvancedInitTypeSystem();
@@ -28,33 +28,36 @@ export const useEntityType = (
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
   const { updateEntityType } = useBlockProtocolUpdateEntityType();
 
+  // @todo avoid this triggering when publishing for first time?
   useEffect(() => {
     let cancelled = false;
 
     setEntityType(null);
     entityTypeRef.current = null;
 
-    void aggregateEntityTypes({ data: {} }).then(async (res) => {
-      const subgraph = res.data;
-      const relevantEntityTypes = subgraph
-        ? getEntityTypesByBaseUri(subgraph, entityTypeBaseUri)
-        : [];
+    if (entityTypeBaseUri) {
+      void aggregateEntityTypes({ data: {} }).then(async (res) => {
+        const subgraph = res.data;
+        const relevantEntityTypes = subgraph
+          ? getEntityTypesByBaseUri(subgraph, entityTypeBaseUri)
+          : [];
 
-      /** @todo - pick the latest version? */
-      const relevantEntityType = relevantEntityTypes
-        ? relevantEntityTypes[0]!.inner
-        : null;
+        /** @todo - pick the latest version? */
+        const relevantEntityType = relevantEntityTypes
+          ? relevantEntityTypes[0]!.inner
+          : null;
 
-      await loadTypeSystem();
+        await loadTypeSystem();
 
-      if (!cancelled) {
-        setEntityType(relevantEntityType);
-        entityTypeRef.current = relevantEntityType;
-        if (relevantEntityType) {
-          onCompletedRef.current?.(relevantEntityType);
+        if (!cancelled) {
+          setEntityType(relevantEntityType);
+          entityTypeRef.current = relevantEntityType;
+          if (relevantEntityType) {
+            onCompletedRef.current?.(relevantEntityType);
+          }
         }
-      }
-    });
+      });
+    }
 
     return () => {
       cancelled = true;

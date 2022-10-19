@@ -1,9 +1,18 @@
-import { extractBaseUri, extractVersion } from "@blockprotocol/type-system-web";
+import {
+  EntityType,
+  extractBaseUri,
+  extractVersion,
+  VersionedUri,
+} from "@blockprotocol/type-system-web";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Container, Typography } from "@mui/material";
+import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
+import { useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
+import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
+import { useUser } from "../../../../components/hooks/useUser";
 import { FRONTEND_URL } from "../../../../lib/config";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
@@ -22,16 +31,39 @@ import { mustBeVersionedUri } from "./util";
 // @todo loading state
 // @todo handle displaying entity type not yet created
 const Page: NextPageWithLayout = () => {
+  const { user } = useUser();
   const router = useRouter();
   // @todo how to handle remote types
-  const baseEntityTypeUri = `${FRONTEND_URL}/${router.query["account-slug"]}/types/entity-type/${router.query["entity-type-id"]}/`;
+  const isDraft = !!router.query.draft;
+  const baseEntityTypeUri = isDraft
+    ? null
+    : `${FRONTEND_URL}/${router.query["account-slug"]}/types/entity-type/${router.query["entity-type-id"]}/`;
+
+  const { createEntityType } = useBlockProtocolCreateEntityType(
+    // @todo should use routing URL?
+    user?.accountId ?? "",
+  );
+
+  const draftEntityType = useMemo(() => {
+    if (router.query.draft) {
+      // @todo check why this does pass type system validation
+      return JSON.parse(
+        Buffer.from(
+          decodeURIComponent(router.query.draft.toString()),
+          "base64",
+        ).toString("ascii"),
+      ) as EntityType;
+    } else {
+      return null;
+    }
+  }, [router.query.draft]);
 
   const formMethods = useForm<EntityTypeEditorForm>({
     defaultValues: { properties: [] },
   });
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
-  const [entityType, updateEntityType] = useEntityType(
+  const [remoteEntityType, updateEntityType] = useEntityType(
     baseEntityTypeUri,
     (fetchedEntityType) => {
       reset({
@@ -45,6 +77,8 @@ const Page: NextPageWithLayout = () => {
       });
     },
   );
+
+  const entityType = remoteEntityType ?? draftEntityType;
 
   const propertyTypes = useRemotePropertyTypes();
 
@@ -61,22 +95,52 @@ const Page: NextPageWithLayout = () => {
       }),
     );
 
-    const res = await updateEntityType({
-      properties,
-    });
+    if (isDraft) {
+      if (!draftEntityType) {
+        throw new Error("Cannot publish without draft");
+      }
+      const { $id: _, ...remainingProperties } = draftEntityType;
+      const res = await createEntityType({
+        data: {
+          entityType: {
+            ...remainingProperties,
+            properties,
+          },
+        },
+      });
 
-    if (!res.errors?.length) {
-      reset(data);
+      if (res.errors?.length || !res.data) {
+        throw new Error("Could not publish changes");
+      }
+
+      // @todo remove casting
+      const newUrl = extractBaseUri(res.data.entityTypeId as VersionedUri);
+
+      // @todo we have the entity type here, lets set it…
+      if (newUrl) {
+        reset(data);
+        await router.replace(newUrl);
+      }
     } else {
-      throw new Error("Could not publish changes");
+      const res = await updateEntityType({
+        properties,
+      });
+
+      if (!res.errors?.length) {
+        reset(data);
+      } else {
+        throw new Error("Could not publish changes");
+      }
     }
   });
 
-  if (!entityType || !propertyTypes) {
+  if (!entityType || !propertyTypes || !user) {
     return null;
   }
 
-  const currentVersion = extractVersion(mustBeVersionedUri(entityType.$id));
+  const currentVersion = draftEntityType
+    ? 0
+    : extractVersion(mustBeVersionedUri(entityType.$id));
 
   return (
     <PropertyTypesContext.Provider value={propertyTypes}>
@@ -116,9 +180,18 @@ const Page: NextPageWithLayout = () => {
             />
             <EditBar
               currentVersion={currentVersion}
-              onDiscardChanges={() => {
-                reset();
-              }}
+              discardButtonProps={
+                // @todo confirmation of discard when draft
+                isDraft
+                  ? {
+                      href: `/${router.query["account-slug"]}/types/new/entity-type`,
+                    }
+                  : {
+                      onClick() {
+                        reset();
+                      },
+                    }
+              }
             />
 
             <Box pt={3.75}>
