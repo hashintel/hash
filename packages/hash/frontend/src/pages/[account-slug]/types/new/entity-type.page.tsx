@@ -76,7 +76,7 @@ const Page: NextPageWithLayout = () => {
       kind: "entityType",
       type: "object",
       properties: {},
-      $id: `${url}/v1`,
+      $id: `${url}/v/1`,
     };
 
     // @todo ensure this matches the slug algorithm used by backend
