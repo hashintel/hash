@@ -116,7 +116,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     pageTitleRef,
   ]);
 
-  return loadingTypeSystem ? null : (
+  return (
     <UserBlocksProvider value={blocks}>
       <BlockLoadedProvider routeHash={routeHash}>
         <GlobalStyles
@@ -134,23 +134,26 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
           }}
         />
         <Box id="root" ref={root} position="relative">
-          <Box
-            sx={{
-              position: "absolute",
-              right: containerPadding[1],
-              transform: "translateX(calc(100% + 48px))",
-              zIndex: 1,
-            }}
-          >
-            {pageComments?.map((comment) => (
-              <CommentThread
-                key={comment.entityId}
-                comment={comment}
-                createComment={createComment}
-                loading={createCommentLoading}
-              />
-            ))}
-          </Box>
+          {loadingTypeSystem ? null : (
+            <Box
+              sx={{
+                position: "absolute",
+                top: 0,
+                right: containerPadding[1],
+                transform: "translateX(calc(100% + 48px))",
+                zIndex: 1,
+              }}
+            >
+              {pageComments?.map((comment) => (
+                <CommentThread
+                  key={comment.entityId}
+                  comment={comment}
+                  createComment={createComment}
+                  loading={createCommentLoading}
+                />
+              ))}
+            </Box>
+          )}
         </Box>
         {portals}
         {/**
