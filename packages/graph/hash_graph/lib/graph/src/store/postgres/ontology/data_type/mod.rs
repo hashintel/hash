@@ -1,7 +1,5 @@
 pub mod resolve;
 
-use std::collections::HashMap;
-
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
@@ -18,7 +16,7 @@ use crate::{
         },
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::{Edges, GraphElementIdentifier, StructuralQuery, Subgraph, Vertex},
+    subgraph::{GraphElementIdentifier, StructuralQuery, Subgraph},
 };
 
 impl<C: AsClient> PostgresStore<C> {
