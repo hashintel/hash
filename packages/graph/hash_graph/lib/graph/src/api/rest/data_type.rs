@@ -19,14 +19,14 @@ use crate::{
     api::rest::{read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, AccountId, DataTypeRootedSubgraph, PersistedDataType,
-        PersistedOntologyIdentifier, PersistedOntologyMetadata,
+        patch_id_and_parse, AccountId, PersistedDataType, PersistedOntologyIdentifier,
+        PersistedOntologyMetadata,
     },
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool,
     },
     subgraph::{
-        EdgeKind, GraphElementIdentifier, GraphResolveDepths, OutwardEdge, StructuralQuery,
+        EdgeKind, Edges, GraphElementIdentifier, GraphResolveDepths, OutwardEdge, StructuralQuery,
         Subgraph, Vertex,
     },
 };
@@ -49,13 +49,13 @@ use crate::{
             PersistedOntologyMetadata,
             PersistedDataType,
             StructuralQuery,
-            DataTypeRootedSubgraph,
             GraphElementIdentifier,
             Vertex,
             EdgeKind,
             OutwardEdge,
             GraphResolveDepths,
-            Subgraph
+            Subgraph,
+            Edges
         )
     ),
     tags(

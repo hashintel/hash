@@ -1,8 +1,11 @@
-use std::collections::HashMap;
+use std::collections::{
+    hash_map::{IntoIter, RawEntryMut},
+    HashMap, HashSet,
+};
 
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
-use utoipa::{openapi, ToSchema};
+use utoipa::{openapi, openapi::Schema, ToSchema};
 
 use crate::{
     knowledge::{EntityId, KnowledgeGraphQueryDepth, PersistedEntity, PersistedLink},
@@ -18,10 +21,10 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkId {
-    source_entity_id: EntityId,
-    target_entity_id: EntityId,
+    pub source_entity_id: EntityId,
+    pub target_entity_id: EntityId,
     #[schema(value_type = String)]
-    link_type_id: VersionedUri,
+    pub link_type_id: VersionedUri,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
@@ -93,7 +96,7 @@ impl ToSchema for Vertex {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum EdgeKind {
     /// An entity has a link
@@ -106,11 +109,11 @@ pub enum EdgeKind {
     References,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct OutwardEdge {
-    edge_kind: EdgeKind,
-    destination: GraphElementIdentifier,
+    pub edge_kind: EdgeKind,
+    pub destination: GraphElementIdentifier,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
@@ -150,8 +153,30 @@ impl GraphResolveDepths {
 pub struct Subgraph {
     pub roots: Vec<GraphElementIdentifier>,
     pub vertices: HashMap<GraphElementIdentifier, Vertex>,
-    pub edges: HashMap<GraphElementIdentifier, Vec<OutwardEdge>>,
+    pub edges: Edges,
     pub depths: GraphResolveDepths,
+}
+
+impl Subgraph {
+    #[must_use]
+    pub fn new(depths: GraphResolveDepths) -> Self {
+        Self {
+            roots: Vec::new(),
+            vertices: HashMap::new(),
+            edges: Edges::new(),
+            depths,
+        }
+    }
+}
+
+impl Extend<Self> for Subgraph {
+    fn extend<T: IntoIterator<Item = Self>>(&mut self, iter: T) {
+        for subgraph in iter {
+            self.roots.extend(subgraph.roots.into_iter());
+            self.vertices.extend(subgraph.vertices.into_iter());
+            self.edges.extend(subgraph.edges.into_iter());
+        }
+    }
 }
 
 /// An [`Expression`] to query the datastore, recursively resolving according to the
@@ -162,4 +187,54 @@ pub struct StructuralQuery {
     #[serde(rename = "query")]
     pub expression: Expression,
     pub graph_resolve_depths: GraphResolveDepths,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize)]
+pub struct Edges(HashMap<GraphElementIdentifier, HashSet<OutwardEdge>>);
+
+impl Edges {
+    #[must_use]
+    pub fn new() -> Self {
+        Self(HashMap::new())
+    }
+
+    pub fn insert(&mut self, identifier: GraphElementIdentifier, edge: OutwardEdge) -> bool {
+        match self.0.raw_entry_mut().from_key(&identifier) {
+            RawEntryMut::Vacant(entry) => {
+                entry.insert(identifier, HashSet::from([edge]));
+                true
+            }
+            RawEntryMut::Occupied(entry) => {
+                let set = entry.into_mut();
+                set.insert(edge)
+            }
+        }
+    }
+}
+
+// Necessary because utoipa can't handle HashSet
+impl ToSchema for Edges {
+    fn schema() -> Schema {
+        openapi::ObjectBuilder::new()
+            .additional_properties(Some(openapi::schema::Array::new(OutwardEdge::schema())))
+            .into()
+    }
+}
+
+impl IntoIterator for Edges {
+    type IntoIter = IntoIter<GraphElementIdentifier, HashSet<OutwardEdge>>;
+    type Item = (GraphElementIdentifier, HashSet<OutwardEdge>);
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl Extend<(GraphElementIdentifier, HashSet<OutwardEdge>)> for Edges {
+    fn extend<T: IntoIterator<Item = (GraphElementIdentifier, HashSet<OutwardEdge>)>>(
+        &mut self,
+        other: T,
+    ) {
+        self.0.extend(other);
+    }
 }
