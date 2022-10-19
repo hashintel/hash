@@ -138,7 +138,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
         <CommentTextField
           ref={contentRef}
           initialText={hasText}
-          classNames={collapsed ? styles.Comment__TextField_collapsed! : ""}
+          className={collapsed ? styles.Comment__TextField_collapsed! : ""}
           readOnly
         />
         {shouldCollapse && collapsed ? (

@@ -50,7 +50,7 @@ export type CommentTextFieldRef = {
 type CommentTextFieldProps = {
   initialText?: TextToken[];
   placeholder?: string;
-  classNames?: string;
+  className?: string;
   loading?: boolean;
   editable?: boolean;
   readOnly?: boolean;
@@ -68,7 +68,7 @@ export const CommentTextField = forwardRef<
     {
       initialText,
       placeholder = "Leave a comment",
-      classNames = "",
+      className = "",
       loading = false,
       editable = false,
       readOnly = false,
@@ -205,9 +205,9 @@ export const CommentTextField = forwardRef<
 
     useEffect(() => {
       viewRef.current?.setProps({
-        attributes: { class: `${styles.Comment__TextField!} ${classNames}` },
+        attributes: { class: `${styles.Comment__TextField!} ${className}` },
       });
-    }, [classNames]);
+    }, [className]);
 
     return (
       <Box

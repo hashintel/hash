@@ -64,7 +64,7 @@ export const CreateBlockComment = forwardRef<
         onSubmit={submitComment}
         editable={!loading}
         loading={loading}
-        classNames={styles.Comment__TextField_editable}
+        className={styles.Comment__TextField_editable}
         onChange={setInputValue}
       />
     </Box>

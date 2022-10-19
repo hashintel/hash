@@ -166,7 +166,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
               editable={!loading}
               onFocusChange={setInputFocused}
               onChange={setInputValue}
-              classNames={styles.Comment__TextField_editable}
+              className={styles.Comment__TextField_editable}
             />
           </Box>
         </Box>
