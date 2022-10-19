@@ -20,7 +20,7 @@ use crate::{
 };
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read a [`PersistedLinkType`] into a [`DependencyMap`].
+    /// Internal method to read a [`PersistedLinkType`] into a [`DependencyContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) async fn get_link_type_as_dependency<'a>(

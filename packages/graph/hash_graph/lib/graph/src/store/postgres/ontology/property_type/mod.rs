@@ -25,7 +25,7 @@ use crate::{
 };
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read a [`PersistedPropertyType`] into two [`DependencyMap`]s.
+    /// Internal method to read a [`PersistedPropertyType`] into two [`DependencyContext`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) fn get_property_type_as_dependency<'a: 'b, 'b>(
@@ -191,7 +191,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                     );
 
                     Ok::<_, Report<QueryError>>((
-                        identifier.clone(),
+                        identifier,
                         Vertex::PropertyType(property_type),
                         dependency_context.edges,
                     ))

@@ -31,7 +31,7 @@ impl<C: AsClient> PostgresStore<C> {
         reason = "difficult to shrink the number of lines with destructuring and so many \
                   variables needing to be passed independently"
     )]
-    /// Internal method to read a [`PersistedEntityType`] into four [`DependencyMap`]s.
+    /// Internal method to read a [`PersistedEntityType`] into four [`DependencyContext`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) fn get_entity_type_as_dependency<'a: 'b, 'b>(

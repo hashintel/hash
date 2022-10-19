@@ -22,7 +22,7 @@ use crate::{
 };
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read a [`PersistedDataType`] into a [`DependencyMap`].
+    /// Internal method to read a [`PersistedDataType`] into a [`DependencyContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) async fn get_data_type_as_dependency(
