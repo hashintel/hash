@@ -15,7 +15,6 @@ import {
   PersistedEntityType as PersistedEntityTypeGql,
   PersistedLinkType as PersistedLinkTypeGql,
   PersistedPropertyType as PersistedPropertyTypeGql,
-  EntityTypeRootedSubgraph as EntityTypeRootedSubgraphGql,
   Subgraph as SubgraphGql,
 } from "../../apiTypes.gen";
 
@@ -53,27 +52,6 @@ export const mapEntityTypeModelToGQL = (
   accountId: entityType.ownedById,
   entityTypeId: entityType.schema.$id,
   entityType: entityType.schema,
-});
-
-export const mapEntityTypeRootedSubgraphToGQL = (params: {
-  entityType: EntityTypeModel;
-  referencedDataTypes: DataTypeModel[];
-  referencedPropertyTypes: PropertyTypeModel[];
-  referencedLinkTypes: LinkTypeModel[];
-  referencedEntityTypes: EntityTypeModel[];
-}): EntityTypeRootedSubgraphGql => ({
-  ownedById: params.entityType.ownedById,
-  accountId: params.entityType.ownedById,
-  entityTypeId: params.entityType.schema.$id,
-  entityType: params.entityType.schema,
-  referencedDataTypes: params.referencedDataTypes.map(mapDataTypeModelToGQL),
-  referencedPropertyTypes: params.referencedPropertyTypes.map(
-    mapPropertyTypeModelToGQL,
-  ),
-  referencedLinkTypes: params.referencedLinkTypes.map(mapLinkTypeModelToGQL),
-  referencedEntityTypes: params.referencedEntityTypes.map(
-    mapEntityTypeModelToGQL,
-  ),
 });
 
 /**

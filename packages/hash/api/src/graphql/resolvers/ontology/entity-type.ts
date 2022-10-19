@@ -7,14 +7,11 @@ import {
   MutationUpdateEntityTypeArgs,
   QueryGetEntityTypeArgs,
   ResolverFn,
-  EntityTypeRootedSubgraph,
+  Subgraph,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { EntityTypeModel } from "../../../model";
-import {
-  mapEntityTypeModelToGQL,
-  mapEntityTypeRootedSubgraphToGQL,
-} from "./model-mapping";
+import { mapEntityTypeModelToGQL, mapSubgraphToGql } from "./model-mapping";
 import {
   dataTypeQueryDepth,
   entityTypeQueryDepth,
@@ -42,53 +39,65 @@ export const createEntityType: ResolverFn<
 };
 
 export const getAllLatestEntityTypes: ResolverFn<
-  Promise<EntityTypeRootedSubgraph[]>,
+  Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
   {}
 > = async (_, __, { dataSources }, info) => {
   const { graphApi } = dataSources;
 
-  const entityTypeRootedSubgraphs = await EntityTypeModel.getAllLatestResolved(
-    graphApi,
-    {
-      dataTypeQueryDepth: dataTypeQueryDepth(info),
-      propertyTypeQueryDepth: propertyTypeQueryDepth(info),
-      linkTypeQueryDepth: linkTypeQueryDepth(info),
-      entityTypeQueryDepth: entityTypeQueryDepth(info),
-    },
-  ).catch((err: AxiosError) => {
-    throw new ApolloError(
-      `Unable to retrieve all latest entity types. ${err.response?.data}`,
-      "GET_ALL_ERROR",
-    );
-  });
+  const { data: entityTypeSubgraph } = await graphApi
+    .getEntityTypesByQuery({
+      query: { eq: [{ path: ["version"] }, { literal: "latest" }] },
+      graphResolveDepths: {
+        dataTypeResolveDepth: dataTypeQueryDepth(info),
+        propertyTypeResolveDepth: propertyTypeQueryDepth(info),
+        linkTypeResolveDepth: 0,
+        entityTypeResolveDepth: 0,
+        linkTargetEntityResolveDepth: 0,
+        linkResolveDepth: 0,
+      },
+    })
+    .catch((err: AxiosError) => {
+      throw new ApolloError(
+        `Unable to retrieve all latest entity types. ${err.response?.data}`,
+        "GET_ALL_ERROR",
+      );
+    });
 
-  return entityTypeRootedSubgraphs.map(mapEntityTypeRootedSubgraphToGQL);
+  return mapSubgraphToGql(entityTypeSubgraph);
 };
 
 export const getEntityType: ResolverFn<
-  Promise<EntityTypeRootedSubgraph>,
+  Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
   QueryGetEntityTypeArgs
 > = async (_, { entityTypeId }, { dataSources }, info) => {
   const { graphApi } = dataSources;
 
-  const entityTypeRootedSubgraph = await EntityTypeModel.getResolved(graphApi, {
-    entityTypeId,
-    dataTypeQueryDepth: dataTypeQueryDepth(info),
-    propertyTypeQueryDepth: propertyTypeQueryDepth(info),
-    linkTypeQueryDepth: linkTypeQueryDepth(info),
-    entityTypeQueryDepth: entityTypeQueryDepth(info),
-  }).catch((err: AxiosError) => {
-    throw new ApolloError(
-      `Unable to retrieve entity type. ${err.response?.data}`,
-      "GET_ERROR",
-    );
-  });
+  const { data: entityTypeSubgraph } = await graphApi
+    .getEntityTypesByQuery({
+      query: {
+        eq: [{ path: ["versionedUri"] }, { literal: entityTypeId }],
+      },
+      graphResolveDepths: {
+        dataTypeResolveDepth: dataTypeQueryDepth(info),
+        propertyTypeResolveDepth: propertyTypeQueryDepth(info),
+        linkTypeResolveDepth: linkTypeQueryDepth(info),
+        entityTypeResolveDepth: entityTypeQueryDepth(info),
+        linkTargetEntityResolveDepth: 0,
+        linkResolveDepth: 0,
+      },
+    })
+    .catch((err: AxiosError) => {
+      throw new ApolloError(
+        `Unable to retrieve entity type. ${err.response?.data}`,
+        "GET_ERROR",
+      );
+    });
 
-  return mapEntityTypeRootedSubgraphToGQL(entityTypeRootedSubgraph);
+  return mapSubgraphToGql(entityTypeSubgraph);
 };
 
 export const updateEntityType: ResolverFn<
