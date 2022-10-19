@@ -16,7 +16,7 @@ export const createEntityWithPlaceholdersFn =
   (graphApi: GraphApi, placeholderResults: PlaceholderResultsMap) =>
   async (
     originalDefinition: PersistedEntityDefinition,
-    entityCreatedById: string,
+    entityActorId: string,
   ) => {
     const entityDefinition = produce(originalDefinition, (draft) => {
       if (draft.existingEntity) {
@@ -33,17 +33,17 @@ export const createEntityWithPlaceholdersFn =
 
     if (entityDefinition.existingEntity) {
       return await EntityModel.getOrCreate(graphApi, {
-        ownedById: entityCreatedById,
+        ownedById: entityActorId,
         entityDefinition,
-        createdById: entityCreatedById,
+        actorId: entityActorId,
       });
     } else {
       return await EntityModel.createEntityWithLinks(graphApi, {
-        ownedById: entityCreatedById,
+        ownedById: entityActorId,
         entityTypeId: entityDefinition.entityType?.entityTypeId!,
         properties: entityDefinition.entityProperties,
         linkedEntities: entityDefinition.linkedEntities ?? undefined,
-        createdById: entityCreatedById,
+        actorId: entityActorId,
       });
     }
   };
@@ -115,7 +115,7 @@ export const handleCreateNewEntity = async (params: {
   placeholderResults: PlaceholderResultsMap;
   createEntityWithPlaceholders: (
     originalDefinition: PersistedEntityDefinition,
-    entityCreatedById: string,
+    entityActorId: string,
   ) => Promise<EntityModel>;
 }): Promise<void> => {
   try {
@@ -154,7 +154,7 @@ export const handleInsertNewBlock = async (
     index: number;
     createEntityWithPlaceholders: (
       originalDefinition: PersistedEntityDefinition,
-      entityCreatedById: string,
+      entityActorId: string,
     ) => Promise<EntityModel>;
     placeholderResults: PlaceholderResultsMap;
   },
@@ -205,7 +205,7 @@ export const handleInsertNewBlock = async (
         blockData,
         ownedById: userModel.entityId,
         componentId: blockComponentId,
-        createdById: userModel.entityId,
+        actorId: userModel.entityId,
       });
     } else {
       throw new Error(
@@ -260,7 +260,7 @@ export const handleSwapBlockData = async (
 
   await block.updateBlockDataEntity(graphApi, {
     newBlockDataEntity,
-    updatedById: userModel.entityId,
+    actorId: userModel.entityId,
   });
 };
 
@@ -292,6 +292,6 @@ export const handleUpdateEntity = async (
     updatedProperties: Object.entries(action.properties).map(
       ([key, value]) => ({ propertyTypeBaseUri: key, value }),
     ),
-    updatedById: userModel.entityId,
+    actorId: userModel.entityId,
   });
 };

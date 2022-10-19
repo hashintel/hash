@@ -73,7 +73,7 @@ export default class extends EntityModel {
     graphApi: GraphApi,
     params: PageModelCreateParams,
   ): Promise<PageModel> {
-    const { title, summary, prevIndex, ownedById, createdById } = params;
+    const { title, summary, prevIndex, ownedById, actorId } = params;
 
     const index = generateKeyBetween(prevIndex ?? null, null);
 
@@ -89,7 +89,7 @@ export default class extends EntityModel {
       ownedById,
       properties,
       entityTypeModel,
-      createdById,
+      actorId,
     });
 
     const page = PageModel.fromEntityModel(entity);
@@ -107,14 +107,14 @@ export default class extends EntityModel {
                   [WORKSPACE_TYPES.propertyType.tokens.baseUri]: [],
                 },
                 entityTypeModel: WORKSPACE_TYPES.entityType.text,
-                createdById,
+                actorId,
               }),
-              createdById,
+              actorId,
             }),
           ];
 
     for (const block of initialBlocks) {
-      await page.insertBlock(graphApi, { block, insertedById: createdById });
+      await page.insertBlock(graphApi, { block, actorId });
     }
 
     return page;
@@ -274,7 +274,7 @@ export default class extends EntityModel {
   async removeParentPage(
     graphApi: GraphApi,
     params: {
-      removedById: string;
+      actorId: string;
     },
   ): Promise<void> {
     const parentPageLinks = await this.getOutgoingLinks(graphApi, {
@@ -295,16 +295,16 @@ export default class extends EntityModel {
       );
     }
 
-    const { removedById } = params;
+    const { actorId } = params;
 
-    await parentPageLink.remove(graphApi, { removedById });
+    await parentPageLink.remove(graphApi, { actorId });
   }
 
   /**
    * Set (or unset) the parent page of this page.
    *
    * @param params.parentPage - the new parent page (or `null`)
-   * @param params.setById - the account that is setting the parent page
+   * @param params.actorId - the account that is setting the parent page
    * @param params.prevIndex - the index of the previous page
    * @param params.nextIndex- the index of the next page
    */
@@ -312,21 +312,19 @@ export default class extends EntityModel {
     graphApi: GraphApi,
     params: {
       parentPageModel: PageModel | null;
-      setById: string;
+      actorId: string;
       prevIndex: string | null;
       nextIndex: string | null;
     },
   ): Promise<PageModel> {
-    const { setById, parentPageModel, prevIndex, nextIndex } = params;
+    const { actorId, parentPageModel, prevIndex, nextIndex } = params;
 
     const newIndex = generateKeyBetween(prevIndex, nextIndex);
 
     const existingParentPageModel = await this.getParentPage(graphApi);
 
     if (existingParentPageModel) {
-      await this.removeParentPage(graphApi, {
-        removedById: setById,
-      });
+      await this.removeParentPage(graphApi, { actorId });
     }
 
     if (parentPageModel) {
@@ -341,8 +339,8 @@ export default class extends EntityModel {
       await this.createOutgoingLink(graphApi, {
         linkTypeModel: WORKSPACE_TYPES.linkType.parent,
         targetEntityModel: parentPageModel,
-        ownedById: setById,
-        createdById: setById,
+        ownedById: actorId,
+        actorId,
       });
     }
 
@@ -350,7 +348,7 @@ export default class extends EntityModel {
       const updatedPageEntityModel = await this.updateProperty(graphApi, {
         propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.index.baseUri,
         value: newIndex,
-        updatedById: setById,
+        actorId,
       });
 
       return PageModel.fromEntityModel(updatedPageEntityModel);
@@ -397,14 +395,14 @@ export default class extends EntityModel {
     params: {
       block: BlockModel;
       position?: number;
-      insertedById: string;
+      actorId: string;
       updateSiblings?: boolean;
     },
   ) {
     const {
       position: specifiedPosition,
       updateSiblings = true,
-      insertedById,
+      actorId,
     } = params;
 
     const { block } = params;
@@ -418,7 +416,7 @@ export default class extends EntityModel {
         ((await this.getBlocks(graphApi)).length === 0 ? 0 : undefined),
       // assume that link to block is owned by the same account as the page
       ownedById: this.ownedById,
-      createdById: insertedById,
+      actorId,
     };
 
     await (updateSiblings
@@ -438,10 +436,10 @@ export default class extends EntityModel {
     params: {
       currentPosition: number;
       newPosition: number;
-      movedById: string;
+      actorId: string;
     },
   ) {
-    const { currentPosition, newPosition } = params;
+    const { currentPosition, newPosition, actorId } = params;
 
     const contentLinks = await this.getOutgoingLinks(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.contains,
@@ -464,11 +462,9 @@ export default class extends EntityModel {
       );
     }
 
-    const { movedById } = params;
-
     await link.update(graphApi, {
       updatedIndex: newPosition,
-      updatedById: movedById,
+      actorId,
     });
   }
 
@@ -476,19 +472,24 @@ export default class extends EntityModel {
    * Remove a block from the page.
    *
    * @param params.position - the position of the block being removed
-   * @param params.removedById - the id of the account that is removing the block
+   * @param params.actorId - the id of the account that is removing the block
    * @param params.allowRemovingFinal (optional) - whether or not removing the final block in the page should be permitted (defaults to `true`)
    */
   async removeBlock(
     graphApi: GraphApi,
     params: {
       position: number;
-      removedById: string;
+      actorId: string;
       allowRemovingFinal?: boolean;
       updateSiblings?: boolean;
     },
   ) {
-    const { allowRemovingFinal = false, position, updateSiblings } = params;
+    const {
+      allowRemovingFinal = false,
+      position,
+      updateSiblings,
+      actorId,
+    } = params;
 
     const contentLinks = await this.getOutgoingLinks(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.contains,
@@ -513,11 +514,7 @@ export default class extends EntityModel {
       throw new Error("Cannot remove final block from page");
     }
 
-    const { removedById } = params;
-
-    const removeParams = {
-      removedById,
-    };
+    const removeParams = { actorId };
 
     // Don't always reorder siblings as it could break the expected indices on the frontend.
     await (updateSiblings

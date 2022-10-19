@@ -36,7 +36,7 @@ describe("Org model class", () => {
       providedInfo: {
         orgSize: OrgSize.ElevenToFifty,
       },
-      createdById: workspaceAccountId,
+      actorId: workspaceAccountId,
     });
   });
 
@@ -48,14 +48,14 @@ describe("Org model class", () => {
     shortname = generateRandomShortname("orgTest");
     createdOrg = await createdOrg.updateShortname(graphApi, {
       updatedShortname: shortname,
-      updatedById: workspaceAccountId,
+      actorId: workspaceAccountId,
     });
   });
 
   it("can update the preferred name of an org", async () => {
     createdOrg = await createdOrg.updateOrgName(graphApi, {
       updatedOrgName: "The testing org",
-      updatedById: workspaceAccountId,
+      actorId: workspaceAccountId,
     });
   });
 

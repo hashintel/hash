@@ -21,7 +21,7 @@ export type LinkModelCreateParams = {
   sourceEntityModel: EntityModel;
   linkTypeModel: LinkTypeModel;
   targetEntityModel: EntityModel;
-  createdById: string;
+  actorId: string;
 };
 
 /**
@@ -158,7 +158,7 @@ export default class {
    * @param params.sourceEntityModel - the source entity of the link
    * @param params.linkTypeModel - the link type of the link
    * @param params.targetEntityModel - the target entity of the link
-   * @param params.createdById - the id of the account that is creating the link
+   * @param params.actorId - the id of the account that is creating the link
    */
   static async createLinkWithoutUpdatingSiblings(
     graphApi: GraphApi,
@@ -170,7 +170,7 @@ export default class {
       linkTypeModel,
       targetEntityModel,
       index,
-      createdById,
+      actorId,
     } = params;
 
     const { data: link } = await graphApi.createLink(
@@ -180,7 +180,7 @@ export default class {
         index,
         linkTypeId: linkTypeModel.schema.$id,
         targetEntityId: targetEntityModel.entityId,
-        createdById,
+        createdById: actorId,
       },
     );
 
@@ -190,7 +190,7 @@ export default class {
      */
     const persistedLink: PersistedLink = {
       inner: link,
-      metadata: { ownedById, createdById },
+      metadata: { ownedById, createdById: actorId },
     };
 
     return LinkModel.fromPersistedLink(graphApi, persistedLink);
@@ -210,7 +210,7 @@ export default class {
     graphApi: GraphApi,
     params: LinkModelCreateParams,
   ): Promise<LinkModel> {
-    const { sourceEntityModel, linkTypeModel, createdById } = params;
+    const { sourceEntityModel, linkTypeModel, actorId } = params;
     const siblingLinks = await sourceEntityModel.getOutgoingLinks(graphApi, {
       linkTypeModel,
     });
@@ -251,7 +251,7 @@ export default class {
           .map((sibling) =>
             sibling.updateWithoutUpdatingSiblings(graphApi, {
               updatedIndex: sibling.index! + 1,
-              updatedById: createdById,
+              actorId,
             }),
           ),
       );
@@ -270,13 +270,13 @@ export default class {
    * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
    *
    * @param params.updatedIndex - the updated index of the link
-   * @param params.updatedById - the id of the account that is updating the link
+   * @param params.actorId - the id of the account that is updating the link
    */
   private async updateWithoutUpdatingSiblings(
     graphApi: GraphApi,
-    params: { updatedIndex: number; updatedById: string },
+    params: { updatedIndex: number; actorId: string },
   ) {
-    const { updatedIndex, updatedById } = params;
+    const { updatedIndex, actorId } = params;
 
     const { index: previousIndex } = this;
 
@@ -292,9 +292,7 @@ export default class {
      * @todo: call dedicated Graph API method to update the index of a link instead of re-creating the link manually
      * @see https://app.asana.com/0/1202805690238892/1203031430417465/f
      */
-    await this.removeWithoutUpdatingSiblings(graphApi, {
-      removedById: updatedById,
-    });
+    await this.removeWithoutUpdatingSiblings(graphApi, { actorId });
 
     const { ownedById, sourceEntityModel, linkTypeModel, targetEntityModel } =
       this;
@@ -307,7 +305,7 @@ export default class {
         linkTypeModel,
         targetEntityModel,
         index: updatedIndex,
-        createdById: updatedById,
+        actorId,
       },
     );
 
@@ -318,13 +316,13 @@ export default class {
    * Update the link
    *
    * @param params.updatedIndex - the updated index of the link
-   * @param params.updatedById - the id of the account updating the link
+   * @param params.actorId - the id of the account updating the link
    */
   async update(
     graphApi: GraphApi,
-    params: { updatedIndex: number; updatedById: string },
+    params: { updatedIndex: number; actorId: string },
   ) {
-    const { updatedIndex, updatedById } = params;
+    const { updatedIndex, actorId } = params;
 
     const { index: previousIndex, linkTypeModel } = this;
 
@@ -377,14 +375,14 @@ export default class {
       affectedSiblings.map((sibling) =>
         sibling.updateWithoutUpdatingSiblings(graphApi, {
           updatedIndex: sibling.index! + (isIncreasingIndex ? -1 : 1),
-          updatedById,
+          actorId,
         }),
       ),
     );
 
     return await this.updateWithoutUpdatingSiblings(graphApi, {
       updatedIndex,
-      updatedById,
+      actorId,
     });
   }
 
@@ -394,16 +392,16 @@ export default class {
    * @todo: deprecate this method when the Graph API handles updating the sibling indexes
    * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
    *
-   * @param removedById - the id of the account that is removing the link
+   * @param actorId - the id of the account that is removing the link
    */
   async removeWithoutUpdatingSiblings(
     graphApi: GraphApi,
-    { removedById }: { removedById: string },
+    { actorId }: { actorId: string },
   ): Promise<void> {
     await graphApi.removeLink(this.sourceEntityModel.entityId, {
       linkTypeId: this.linkTypeModel.schema.$id,
       targetEntityId: this.targetEntityModel.entityId,
-      removedById,
+      removedById: actorId,
     });
   }
 
@@ -412,15 +410,12 @@ export default class {
    *
    * @param params.removedById - the id of the account that is removing the link
    */
-  async remove(
-    graphApi: GraphApi,
-    params: { removedById: string },
-  ): Promise<void> {
-    const { removedById } = params;
+  async remove(graphApi: GraphApi, params: { actorId: string }): Promise<void> {
+    const { actorId } = params;
     await graphApi.removeLink(this.sourceEntityModel.entityId, {
       linkTypeId: this.linkTypeModel.schema.$id,
       targetEntityId: this.targetEntityModel.entityId,
-      removedById,
+      removedById: actorId,
     });
 
     /**
@@ -458,7 +453,7 @@ export default class {
         affectedSiblings.map((sibling) =>
           sibling.updateWithoutUpdatingSiblings(graphApi, {
             updatedIndex: sibling.index! - 1,
-            updatedById: removedById,
+            actorId,
           }),
         ),
       );

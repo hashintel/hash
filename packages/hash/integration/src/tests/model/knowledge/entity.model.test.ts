@@ -50,7 +50,7 @@ describe("Entity CRU", () => {
         title: "Text",
         type: "string",
       },
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     }).catch((err) => {
       logger.error(`Something went wrong making Text: ${err}`);
       throw err;
@@ -65,7 +65,7 @@ describe("Entity CRU", () => {
           pluralTitle: "Friends",
           description: "Friend of",
         },
-        createdById: testUser.entityId,
+        actorId: testUser.entityId,
       })
         .then((val) => {
           linkTypeFriend = val;
@@ -83,7 +83,7 @@ describe("Entity CRU", () => {
           pluralTitle: "Favorite Books",
           oneOf: [{ $ref: textDataTypeModel.schema.$id }],
         },
-        createdById: testUser.entityId,
+        actorId: testUser.entityId,
       })
         .then((val) => {
           favoriteBookPropertyTypeModel = val;
@@ -100,7 +100,7 @@ describe("Entity CRU", () => {
           pluralTitle: "Names",
           oneOf: [{ $ref: textDataTypeModel.schema.$id }],
         },
-        createdById: testUser.entityId,
+        actorId: testUser.entityId,
       })
         .then((val) => {
           namePropertyTypeModel = val;
@@ -131,9 +131,9 @@ describe("Entity CRU", () => {
             array: true,
           },
         ],
-        createdById: testUser.entityId,
+        actorId: testUser.entityId,
       }),
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     });
   });
 
@@ -146,7 +146,7 @@ describe("Entity CRU", () => {
         [favoriteBookPropertyTypeModel.baseUri]: "some text",
       },
       entityTypeModel,
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     });
   });
 
@@ -170,7 +170,7 @@ describe("Entity CRU", () => {
           [namePropertyTypeModel.baseUri]: "Updated Bob",
           [favoriteBookPropertyTypeModel.baseUri]: "Even more text than before",
         },
-        updatedById: testUser2.entityId,
+        actorId: testUser2.entityId,
       })
       .catch((err) => Promise.reject(err.data));
 
@@ -227,7 +227,7 @@ describe("Entity CRU", () => {
           },
         },
       ],
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     });
 
     const linkedEntity = (

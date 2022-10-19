@@ -68,7 +68,7 @@ export const updateUser: ResolverFn<
 
     updatedUser = await updatedUser.updateShortname(graphApi, {
       updatedShortname: shortname,
-      updatedById: userModel.entityId,
+      actorId: userModel.entityId,
     });
   }
 
@@ -86,7 +86,7 @@ export const updateUser: ResolverFn<
 
     updatedUser = await updatedUser.updatePreferredName(graphApi, {
       updatedPreferredName: preferredName,
-      updatedById: userModel.entityId,
+      actorId: userModel.entityId,
     });
   }
 

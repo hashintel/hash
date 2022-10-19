@@ -52,7 +52,7 @@ export default class extends EntityModel {
     graphApi: GraphApi,
     params: BlockModelCreateParams,
   ): Promise<BlockModel> {
-    const { componentId, blockData, ownedById, createdById } = params;
+    const { componentId, blockData, ownedById, actorId } = params;
 
     const properties: object = {
       [WORKSPACE_TYPES.propertyType.componentId.baseUri]: componentId,
@@ -64,14 +64,14 @@ export default class extends EntityModel {
       ownedById,
       properties,
       entityTypeModel,
-      createdById,
+      actorId,
     });
 
     await entity.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.blockData,
       targetEntityModel: blockData,
       ownedById,
-      createdById,
+      actorId,
     });
 
     return BlockModel.fromEntityModel(entity);
@@ -109,16 +109,16 @@ export default class extends EntityModel {
    * Update the linked block data entity of a block.
    *
    * @param params.newBlockDataEntity - the new block data entity
-   * @param params.updatedById - the id of the account that is updating the block data entity
+   * @param params.actorId - the id of the account that is updating the block data entity
    */
   async updateBlockDataEntity(
     graphApi: GraphApi,
     params: {
       newBlockDataEntity: EntityModel;
-      updatedById: string;
+      actorId: string;
     },
   ): Promise<void> {
-    const { newBlockDataEntity, updatedById } = params;
+    const { newBlockDataEntity, actorId } = params;
     const outgoingBlockDataLinks = await this.getOutgoingLinks(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.blockData,
     });
@@ -140,15 +140,13 @@ export default class extends EntityModel {
       );
     }
 
-    await outgoingBlockDataLink.remove(graphApi, {
-      removedById: updatedById,
-    });
+    await outgoingBlockDataLink.remove(graphApi, { actorId });
 
     await this.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.blockData,
       targetEntityModel: newBlockDataEntity,
       ownedById: this.ownedById,
-      createdById: updatedById,
+      actorId,
     });
   }
 }

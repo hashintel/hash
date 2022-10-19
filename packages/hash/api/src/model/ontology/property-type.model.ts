@@ -74,17 +74,17 @@ export default class {
    *
    * @param params.ownedById - the id of the account who owns the property type
    * @param params.schema - the `PropertyType`
-   * @param params.createdById - the id of the account that is creating the property type
+   * @param params.actorId - the id of the account that is creating the property type
    */
   static async create(
     graphApi: GraphApi,
     params: {
       ownedById: string;
       schema: Omit<PropertyType, "$id">;
-      createdById: string;
+      actorId: string;
     },
   ): Promise<PropertyTypeModel> {
-    const { ownedById, createdById } = params;
+    const { ownedById, actorId } = params;
 
     const namespace = await getNamespaceOfAccountOwner(graphApi, {
       ownerId: ownedById,
@@ -102,7 +102,7 @@ export default class {
       .createPropertyType({
         ownedById,
         schema: fullPropertyType,
-        createdById,
+        createdById: actorId,
       })
       .catch((err: AxiosError) => {
         throw new Error(
@@ -141,20 +141,20 @@ export default class {
    * Update a property type.
    *
    * @param params.schema - the updated `PropertyType`
-   * @param params.updatedById - the id of the account that is updating the type
+   * @param params.actorId - the id of the account that is updating the type
    */
   async update(
     graphApi: GraphApi,
     params: {
       schema: Omit<PropertyType, "$id">;
-      updatedById: string;
+      actorId: string;
     },
   ): Promise<PropertyTypeModel> {
-    const { schema, updatedById } = params;
+    const { schema, actorId } = params;
     const updateArguments: UpdatePropertyTypeRequest = {
       typeToUpdate: this.schema.$id,
       schema,
-      updatedById,
+      updatedById: actorId,
     };
 
     const { data: metadata } = await graphApi.updatePropertyType(

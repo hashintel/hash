@@ -130,7 +130,7 @@ export const createTestUser = async (
   const createdUser = await UserModel.createUser(graphApi, {
     emails: [`${shortname}@example.com`],
     kratosIdentityId,
-    createdById: workspaceAccountId,
+    actorId: workspaceAccountId,
   }).catch((err) => {
     logger.error(`Error making UserModel for ${shortname}`);
     throw err;
@@ -139,7 +139,7 @@ export const createTestUser = async (
   const updatedUser = await createdUser
     .updateShortname(graphApi, {
       updatedShortname: shortname,
-      updatedById: createdUser.entityId,
+      actorId: createdUser.entityId,
     })
     .catch((err) => {
       logger.error(`Error updating shortname for UserModel to ${shortname}`);

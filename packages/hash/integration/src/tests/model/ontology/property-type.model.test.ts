@@ -42,7 +42,7 @@ beforeAll(async () => {
       title: "Text",
       type: "string",
     },
-    createdById: testUser.entityId,
+    actorId: testUser.entityId,
   });
 
   propertyTypeSchema = {
@@ -64,7 +64,7 @@ describe("Property type CRU", () => {
     createdPropertyTypeModel = await PropertyTypeModel.create(graphApi, {
       ownedById: testUser.entityId,
       schema: propertyTypeSchema,
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     });
   });
 
@@ -88,7 +88,7 @@ describe("Property type CRU", () => {
           ...propertyTypeSchema,
           title: updatedTitle,
         },
-        updatedById: testUser2.entityId,
+        actorId: testUser2.entityId,
       })
       .catch((err) => Promise.reject(err.data));
 

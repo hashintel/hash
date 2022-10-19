@@ -94,7 +94,7 @@ export const orgProvidedInfoPropertyTypeInitializer = async (
         },
       },
     ],
-    createdById: workspaceAccountId,
+    actorId: workspaceAccountId,
   })(graphApi);
 };
 
@@ -128,7 +128,7 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
     ],
     outgoingLinks: [],
-    createdById: workspaceAccountId,
+    actorId: workspaceAccountId,
   })(graphApi);
 };
 
@@ -161,60 +161,60 @@ const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
         required: true,
       },
     ],
-    createdById: workspaceAccountId,
+    actorId: workspaceAccountId,
   })(graphApi);
 };
 
 const shortnamePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.shortName,
   possibleValues: [{ primitiveDataType: "text" }],
-  createdById: workspaceAccountId,
+  actorId: workspaceAccountId,
 });
 
 const orgNamePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.orgName,
   possibleValues: [{ primitiveDataType: "text" }],
-  createdById: workspaceAccountId,
+  actorId: workspaceAccountId,
 });
 
 const orgSizePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.orgSize,
   possibleValues: [{ primitiveDataType: "text" }],
-  createdById: workspaceAccountId,
+  actorId: workspaceAccountId,
 });
 
 const emailPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.email,
   possibleValues: [{ primitiveDataType: "text" }],
-  createdById: workspaceAccountId,
+  actorId: workspaceAccountId,
 });
 
 const kratosIdentityIdPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.kratosIdentityId,
   possibleValues: [{ primitiveDataType: "text" }],
-  createdById: workspaceAccountId,
+  actorId: workspaceAccountId,
 });
 
 const preferredNamePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.preferredName,
   possibleValues: [{ primitiveDataType: "text" }],
-  createdById: workspaceAccountId,
+  actorId: workspaceAccountId,
 });
 
 const responsibilityPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.responsibility,
   possibleValues: [{ primitiveDataType: "text" }],
-  createdById: workspaceAccountId,
+  actorId: workspaceAccountId,
 });
 
 const ofOrgLinkTypeInitializer = linkTypeInitializer({
   ...types.linkType.ofOrg,
-  createdById: workspaceAccountId,
+  actorId: workspaceAccountId,
 });
 
 const hasMembershipLinkTypeInitializer = linkTypeInitializer({
   ...types.linkType.hasMembership,
-  createdById: workspaceAccountId,
+  actorId: workspaceAccountId,
 });
 
 const userEntityTypeInitializer = async (graphApi: GraphApi) => {
@@ -265,19 +265,19 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
         destinationEntityTypeModels: [orgMembershipEntityTypeModel],
       },
     ],
-    createdById: workspaceAccountId,
+    actorId: workspaceAccountId,
   })(graphApi);
 };
 
 const componentIdPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.componentId,
   possibleValues: [{ primitiveDataType: "text" }],
-  createdById: workspaceAccountId,
+  actorId: workspaceAccountId,
 });
 
 const blockDataLinkTypeInitializer = linkTypeInitializer({
   ...types.linkType.blockData,
-  createdById: workspaceAccountId,
+  actorId: workspaceAccountId,
 });
 
 const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
@@ -313,7 +313,7 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
         required: true,
       },
     ],
-    createdById: workspaceAccountId,
+    actorId: workspaceAccountId,
   })(graphApi);
 };
 
@@ -324,7 +324,7 @@ const tokensPropertyTypeInitializer = propertyTypeInitializer({
    * @see https://app.asana.com/0/1202805690238892/1203045933021778/f
    */
   possibleValues: [{ primitiveDataType: "object" }],
-  createdById: workspaceAccountId,
+  actorId: workspaceAccountId,
 });
 
 const textEntityTypeInitializer = async (graphApi: GraphApi) => {
@@ -344,7 +344,7 @@ const textEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
     ],
     outgoingLinks: [],
-    createdById: workspaceAccountId,
+    actorId: workspaceAccountId,
   })(graphApi);
 };
 
@@ -357,48 +357,48 @@ const dummyEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.entityType.dummy,
     properties: [],
     outgoingLinks: [],
-    createdById: workspaceAccountId,
+    actorId: workspaceAccountId,
   })(graphApi);
 };
 
 const archivedPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.archived,
   possibleValues: [{ primitiveDataType: "boolean" }],
-  createdById: workspaceAccountId,
+  actorId: workspaceAccountId,
 });
 
 const summaryPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.summary,
   possibleValues: [{ primitiveDataType: "text" }],
-  createdById: workspaceAccountId,
+  actorId: workspaceAccountId,
 });
 
 const titlePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.title,
   possibleValues: [{ primitiveDataType: "text" }],
-  createdById: workspaceAccountId,
+  actorId: workspaceAccountId,
 });
 
 const indexPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.index,
   possibleValues: [{ primitiveDataType: "text" }],
-  createdById: workspaceAccountId,
+  actorId: workspaceAccountId,
 });
 
 const iconPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.icon,
   possibleValues: [{ primitiveDataType: "text" }],
-  createdById: workspaceAccountId,
+  actorId: workspaceAccountId,
 });
 
 const containsLinkTypeInitializer = linkTypeInitializer({
   ...types.linkType.contains,
-  createdById: workspaceAccountId,
+  actorId: workspaceAccountId,
 });
 
 const parentLinkTypeInitializer = linkTypeInitializer({
   ...types.linkType.parent,
-  createdById: workspaceAccountId,
+  actorId: workspaceAccountId,
 });
 
 const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
@@ -464,7 +464,7 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
         destinationEntityTypeModels: ["SELF_REFERENCE"],
       },
     ],
-    createdById: workspaceAccountId,
+    actorId: workspaceAccountId,
   })(graphApi);
 };
 

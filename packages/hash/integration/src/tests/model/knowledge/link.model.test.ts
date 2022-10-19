@@ -44,7 +44,7 @@ describe("Link model class", () => {
   let targetEntityAcquaintance: EntityModel;
 
   const createEntityType = (
-    params: Omit<EntityTypeCreatorParams, "entityTypeId" | "createdById">,
+    params: Omit<EntityTypeCreatorParams, "entityTypeId" | "actorId">,
   ) => {
     const entityTypeId = generateTypeId({
       namespace,
@@ -55,10 +55,10 @@ describe("Link model class", () => {
       ownedById: testUser.entityId,
       schema: generateWorkspaceEntityTypeSchema({
         entityTypeId,
-        createdById: testUser.entityId,
+        actorId: testUser.entityId,
         ...params,
       }),
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     });
   };
 
@@ -66,7 +66,7 @@ describe("Link model class", () => {
     EntityModel.create(graphApi, {
       ownedById: testUser.entityId,
       properties: {},
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
       ...params,
     });
 
@@ -84,7 +84,7 @@ describe("Link model class", () => {
           pluralTitle: "Friends",
           description: "Friend of",
         },
-        createdById: testUser.entityId,
+        actorId: testUser.entityId,
       }).then((linkType) => {
         linkTypeFriend = linkType;
       }),
@@ -96,7 +96,7 @@ describe("Link model class", () => {
           pluralTitle: "Acquaintances",
           description: "Acquainted with",
         },
-        createdById: testUser.entityId,
+        actorId: testUser.entityId,
       }).then((linkType) => {
         linkTypeAcquaintance = linkType;
       }),
@@ -126,7 +126,7 @@ describe("Link model class", () => {
         ownedById: testUser.entityId,
         entityTypeModel: testEntityType,
         properties: {},
-        createdById: testUser.entityId,
+        actorId: testUser.entityId,
       }).then((entity) => {
         sourceEntityModel = entity;
       }),
@@ -134,7 +134,7 @@ describe("Link model class", () => {
         ownedById: testUser.entityId,
         entityTypeModel: testEntityType,
         properties: {},
-        createdById: testUser.entityId,
+        actorId: testUser.entityId,
       }).then((entity) => {
         targetEntityFriend = entity;
       }),
@@ -142,7 +142,7 @@ describe("Link model class", () => {
         ownedById: testUser.entityId,
         entityTypeModel: testEntityType,
         properties: {},
-        createdById: testUser.entityId,
+        actorId: testUser.entityId,
       }).then((entity) => {
         targetEntityAcquaintance = entity;
       }),
@@ -158,7 +158,7 @@ describe("Link model class", () => {
       sourceEntityModel,
       linkTypeModel: linkTypeFriend,
       targetEntityModel: targetEntityFriend,
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     });
 
     acquaintanceLink = await LinkModel.create(graphApi, {
@@ -166,7 +166,7 @@ describe("Link model class", () => {
       sourceEntityModel,
       linkTypeModel: linkTypeAcquaintance,
       targetEntityModel: targetEntityAcquaintance,
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     });
   });
 
@@ -191,7 +191,7 @@ describe("Link model class", () => {
   });
 
   it("can remove a link", async () => {
-    await acquaintanceLink.remove(graphApi, { removedById: testUser.entityId });
+    await acquaintanceLink.remove(graphApi, { actorId: testUser.entityId });
 
     const links = await sourceEntityModel.getOutgoingLinks(graphApi, {
       linkTypeModel: linkTypeAcquaintance,
@@ -235,7 +235,7 @@ describe("Link model class", () => {
         pluralTitle: "Has songs",
         description: "Has song",
       },
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     });
 
     playlistEntityType = await createEntityType({
@@ -268,7 +268,7 @@ describe("Link model class", () => {
       linkTypeModel: hasSongLinkType,
       sourceEntityModel: playlistEntity,
       targetEntityModel: songEntity2,
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     });
 
     expect(hasSongLink2.index).toBe(0);
@@ -279,7 +279,7 @@ describe("Link model class", () => {
       linkTypeModel: hasSongLinkType,
       sourceEntityModel: playlistEntity,
       targetEntityModel: songEntity3,
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     });
 
     expect(hasSongLink3.index).toBe(1);
@@ -291,7 +291,7 @@ describe("Link model class", () => {
       linkTypeModel: hasSongLinkType,
       sourceEntityModel: playlistEntity,
       targetEntityModel: songEntity1,
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     });
 
     expect(hasSongLink1.index).toBe(0);
@@ -330,7 +330,7 @@ describe("Link model class", () => {
 
     await hasSongLink1.update(graphApi, {
       updatedIndex: 1,
-      updatedById: testUser.entityId,
+      actorId: testUser.entityId,
     });
 
     const playlistHasSongLinks = (await playlistEntity.getOutgoingLinks(
@@ -360,7 +360,7 @@ describe("Link model class", () => {
 
     await hasSongLink1.update(graphApi, {
       updatedIndex: 0,
-      updatedById: testUser.entityId,
+      actorId: testUser.entityId,
     });
 
     const playlistHasSongLinks = (await playlistEntity.getOutgoingLinks(
@@ -380,7 +380,7 @@ describe("Link model class", () => {
   });
 
   it("can remove an ordered link", async () => {
-    await hasSongLink2.remove(graphApi, { removedById: testUser.entityId });
+    await hasSongLink2.remove(graphApi, { actorId: testUser.entityId });
 
     const playlistHasSongLinks = (await playlistEntity.getOutgoingLinks(
       graphApi,

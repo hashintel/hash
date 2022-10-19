@@ -29,7 +29,7 @@ export type EntityTypeModelConstructorParams = {
 export type EntityTypeModelCreateParams = {
   ownedById: string;
   schema: Omit<EntityType, "$id">;
-  createdById: string;
+  actorId: string;
 };
 
 /**
@@ -88,13 +88,13 @@ export default class {
    *
    * @param params.ownedById - the id of the account who owns the entity type
    * @param params.schema - the `EntityType`
-   * @param params.createdById - the id of the account that is creating the entity type
+   * @param params.actorId - the id of the account that is creating the entity type
    */
   static async create(
     graphApi: GraphApi,
     params: EntityTypeModelCreateParams,
   ): Promise<EntityTypeModel> {
-    const { ownedById, createdById } = params;
+    const { ownedById, actorId } = params;
     const namespace = await getNamespaceOfAccountOwner(graphApi, {
       ownerId: params.ownedById,
     });
@@ -108,7 +108,7 @@ export default class {
 
     const { data: metadata } = await graphApi
       .createEntityType({
-        createdById,
+        createdById: actorId,
         ownedById,
         schema: fullEntityType,
       })
@@ -296,18 +296,18 @@ export default class {
    * Update an entity type.
    *
    * @param params.schema - the updated `EntityType`
-   * @param params.updatedById - the id of the account that is updating the entity type
+   * @param params.actorId - the id of the account that is updating the entity type
    */
   async update(
     graphApi: GraphApi,
     params: {
       schema: Omit<EntityType, "$id">;
-      updatedById: string;
+      actorId: string;
     },
   ): Promise<EntityTypeModel> {
-    const { schema, updatedById } = params;
+    const { schema, actorId } = params;
     const updateArguments: UpdateEntityTypeRequest = {
-      updatedById,
+      updatedById: actorId,
       typeToUpdate: this.schema.$id,
       schema,
     };

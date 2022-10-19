@@ -58,7 +58,7 @@ const kratosAfterRegistrationHookHandler =
         await UserModel.createUser(graphApi, {
           emails,
           kratosIdentityId,
-          createdById: workspaceAccountId,
+          actorId: workspaceAccountId,
         });
 
         res.status(200).end();

@@ -50,7 +50,7 @@ beforeAll(async () => {
       title: "Text",
       type: "string",
     },
-    createdById: testUser.entityId,
+    actorId: testUser.entityId,
   });
 
   await Promise.all([
@@ -63,7 +63,7 @@ beforeAll(async () => {
         type: "object",
         properties: {},
       },
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     }).then((val) => {
       workerEntityTypeModel = val;
     }),
@@ -76,7 +76,7 @@ beforeAll(async () => {
         type: "object",
         properties: {},
       },
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     }).then((val) => {
       addressEntityTypeModel = val;
     }),
@@ -88,7 +88,7 @@ beforeAll(async () => {
         pluralTitle: "Favorite Books",
         oneOf: [{ $ref: textDataTypeModel.schema.$id }],
       },
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     }).then((val) => {
       favoriteBookPropertyTypeModel = val;
     }),
@@ -100,7 +100,7 @@ beforeAll(async () => {
         pluralTitle: "Names",
         oneOf: [{ $ref: textDataTypeModel.schema.$id }],
       },
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     }).then((val) => {
       namePropertyTypeModel = val;
     }),
@@ -112,7 +112,7 @@ beforeAll(async () => {
         pluralTitle: "Knows",
         description: "Knows of someone",
       },
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     }).then((val) => {
       knowsLinkTypeModel = val;
     }),
@@ -124,7 +124,7 @@ beforeAll(async () => {
         pluralTitle: "Previous Addresses",
         description: "A previous address of something.",
       },
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     }).then((val) => {
       previousAddressLinkTypeModel = val;
     }),
@@ -169,7 +169,7 @@ describe("Entity type CRU", () => {
     createdEntityType = await EntityTypeModel.create(graphApi, {
       ownedById: testUser.entityId,
       schema: entityTypeSchema,
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     });
   });
 
@@ -190,7 +190,7 @@ describe("Entity type CRU", () => {
     const updatedEntityTypeModel = await createdEntityType
       .update(graphApi, {
         schema: { ...entityTypeSchema, title: updatedTitle },
-        updatedById: testUser2.entityId,
+        actorId: testUser2.entityId,
       })
       .catch((err) => Promise.reject(err.data));
 

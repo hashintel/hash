@@ -38,7 +38,7 @@ export const createPersistedLink: ResolverFn<
     index: index ?? undefined,
     sourceEntityModel,
     targetEntityModel,
-    createdById: userModel.entityId,
+    actorId: userModel.entityId,
   });
 
   return mapLinkModelToGQL(linkModel);
@@ -81,7 +81,7 @@ export const deletePersistedLink: ResolverFn<
 > = async (_, { link }, { dataSources: { graphApi }, userModel }) => {
   const linkModel = await LinkModel.get(graphApi, link);
 
-  await linkModel.remove(graphApi, { removedById: userModel.entityId });
+  await linkModel.remove(graphApi, { actorId: userModel.entityId });
 
   return true;
 };

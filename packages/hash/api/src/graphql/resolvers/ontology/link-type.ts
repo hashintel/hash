@@ -24,7 +24,7 @@ export const createLinkType: ResolverFn<
   const createdLinkTypeModel = await LinkTypeModel.create(graphApi, {
     ownedById: ownedById ?? userModel.entityId,
     schema: linkType,
-    createdById: userModel.entityId,
+    actorId: userModel.entityId,
   }).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
   });
@@ -95,7 +95,7 @@ export const updateLinkType: ResolverFn<
   const updatedLinkTypeModel = await linkTypeModel
     .update(graphApi, {
       schema: updatedLinkType,
-      updatedById: userModel.entityId,
+      actorId: userModel.entityId,
     })
     .catch((err: AxiosError) => {
       const msg =

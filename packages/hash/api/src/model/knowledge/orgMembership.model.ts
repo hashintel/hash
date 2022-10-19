@@ -45,7 +45,7 @@ export default class extends EntityModel {
     graphApi: GraphApi,
     params: OrgMembershipModelCreateParams,
   ) {
-    const { responsibility, org, createdById } = params;
+    const { responsibility, org, actorId } = params;
 
     const properties: object = {
       [WORKSPACE_TYPES.propertyType.responsibility.baseUri]: responsibility,
@@ -57,14 +57,14 @@ export default class extends EntityModel {
       ownedById: workspaceAccountId,
       properties,
       entityTypeModel,
-      createdById,
+      actorId,
     });
 
     await entity.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.ofOrg,
       targetEntityModel: org,
       ownedById: workspaceAccountId,
-      createdById,
+      actorId,
     });
 
     return OrgMembershipModel.fromEntityModel(entity);

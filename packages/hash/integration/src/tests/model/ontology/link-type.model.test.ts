@@ -45,7 +45,7 @@ describe("Link type CRU", () => {
     createdLinkTypeModel = await LinkTypeModel.create(graphApi, {
       ownedById: testUser.entityId,
       schema: linkTypeSchema,
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     });
   });
 
@@ -69,7 +69,7 @@ describe("Link type CRU", () => {
           ...linkTypeSchema,
           title: updatedTitle,
         },
-        updatedById: testUser2.entityId,
+        actorId: testUser2.entityId,
       })
       .catch((err) => Promise.reject(err.data));
 

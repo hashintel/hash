@@ -40,7 +40,7 @@ export const createPersistedPage: ResolverFn<
     ownedById,
     title,
     prevIndex: prevIndex ?? undefined,
-    createdById: userModel.entityId,
+    actorId: userModel.entityId,
   });
 
   return mapPageModelToGQL(pageModel);

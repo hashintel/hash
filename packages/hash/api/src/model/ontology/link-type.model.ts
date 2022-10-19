@@ -71,18 +71,19 @@ export default class {
   /**
    * Create a link type.
    *
-   * @param params.ownedById the id of the owner creating the link type
-   * @param params.schema a `LinkType`
+   * @param params.ownedById - the id of the account who owns the link type
+   * @param params.schema - the `LinkType`
+   * @param params.actorId - the id of the account that is creating the link type
    */
   static async create(
     graphApi: GraphApi,
     params: {
       ownedById: string;
       schema: Omit<LinkType, "$id">;
-      createdById: string;
+      actorId: string;
     },
   ): Promise<LinkTypeModel> {
-    const { ownedById, createdById } = params;
+    const { ownedById, actorId } = params;
     const namespace = await getNamespaceOfAccountOwner(graphApi, {
       ownerId: ownedById,
     });
@@ -98,7 +99,7 @@ export default class {
       .createLinkType({
         schema: fullLinkType,
         ownedById,
-        createdById,
+        createdById: actorId,
       })
       .catch((err: AxiosError) => {
         throw new Error(
@@ -150,20 +151,20 @@ export default class {
    * Update a link type.
    *
    * @param params.schema - the updated `LinkType`
-   * @param params.updatedById - the id of the account that is updating the link type
+   * @param params.actorId - the id of the account that is updating the link type
    */
   async update(
     graphApi: GraphApi,
     params: {
       schema: Omit<LinkType, "$id">;
-      updatedById: string;
+      actorId: string;
     },
   ): Promise<LinkTypeModel> {
-    const { schema, updatedById } = params;
+    const { schema, actorId } = params;
     const updateArguments: UpdateLinkTypeRequest = {
       typeToUpdate: this.schema.$id,
       schema,
-      updatedById,
+      updatedById: actorId,
     };
 
     const { data: metadata } = await graphApi.updateLinkType(updateArguments);

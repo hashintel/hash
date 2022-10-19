@@ -33,7 +33,7 @@ export const createPersistedEntity: ResolverFn<
     entityTypeId,
     properties,
     linkedEntities: linkedEntities ?? undefined,
-    createdById: userModel.entityId,
+    actorId: userModel.entityId,
   });
 
   return mapEntityModelToGQL(entity);
@@ -55,7 +55,7 @@ export const updatePersistedEntity: ResolverFn<
 
   const updatedEntityModel = await entityModel.update(graphApi, {
     properties: updatedProperties,
-    updatedById: userModel.entityId,
+    actorId: userModel.entityId,
   });
 
   return mapEntityModelToGQL(updatedEntityModel);

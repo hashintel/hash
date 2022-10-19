@@ -63,17 +63,17 @@ export const ensureDevUsersAreSeeded = async ({
       let user = await UserModel.createUser(graphApi, {
         emails,
         kratosIdentityId,
-        createdById: workspaceAccountId,
+        actorId: workspaceAccountId,
       });
 
       user = await user.updateShortname(graphApi, {
         updatedShortname: shortname,
-        updatedById: workspaceAccountId,
+        actorId: workspaceAccountId,
       });
 
       user = await user.updatePreferredName(graphApi, {
         updatedPreferredName: preferredName,
-        updatedById: workspaceAccountId,
+        actorId: workspaceAccountId,
       });
     }
 

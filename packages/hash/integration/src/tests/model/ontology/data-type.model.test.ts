@@ -50,7 +50,7 @@ describe("Data type CRU", () => {
     createdDataTypeModel = await DataTypeModel.create(graphApi, {
       ownedById: testUser.entityId,
       schema: dataTypeSchema,
-      createdById: testUser.entityId,
+      actorId: testUser.entityId,
     });
   });
 
@@ -70,7 +70,7 @@ describe("Data type CRU", () => {
     createdDataTypeModel = await createdDataTypeModel
       .update(graphApi, {
         schema: { ...dataTypeSchema, title: updatedTitle },
-        updatedById: testUser2.entityId,
+        actorId: testUser2.entityId,
       })
       .catch((err) => Promise.reject(err.data));
 

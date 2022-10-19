@@ -37,7 +37,7 @@ export const setParentPersistedPage: ResolverFn<
 
   const updatedPageModel = await pageModel.setParentPage(graphApi, {
     parentPageModel: newParentPageModel,
-    setById: userModel.entityId,
+    actorId: userModel.entityId,
     prevIndex,
     nextIndex,
   });

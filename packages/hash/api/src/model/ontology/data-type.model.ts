@@ -80,7 +80,7 @@ export default class {
    *
    * @param params.ownedById - the id of the account who owns the data type
    * @param params.schema - the `DataType`
-   * @param params.createdById - the id of the account that is creating the data type
+   * @param params.actorId - the id of the account that is creating the data type
    */
   static async create(
     graphApi: GraphApi,
@@ -91,10 +91,10 @@ export default class {
       //  this is needed for as long as DataType extends Record
       schema: Pick<DataType, "kind" | "title" | "description" | "type"> &
         Record<string, any>;
-      createdById: string;
+      actorId: string;
     },
   ): Promise<DataTypeModel> {
-    const { ownedById, createdById } = params;
+    const { ownedById, actorId } = params;
     const namespace = await getNamespaceOfAccountOwner(graphApi, {
       ownerId: params.ownedById,
     });
@@ -110,7 +110,7 @@ export default class {
       .createDataType({
         schema: fullDataType,
         ownedById,
-        createdById,
+        createdById: actorId,
       })
       .catch((err: AxiosError) => {
         throw new Error(
@@ -153,7 +153,7 @@ export default class {
    *   https://app.asana.com/0/1200211978612931/1202464168422955/f
    *
    * @param params.schema - the updated `DataType`
-   * @param params.updatedById - the id of the account that is updating the data type
+   * @param params.actorId - the id of the account that is updating the data type
    */
   async update(
     graphApi: GraphApi,
@@ -163,13 +163,13 @@ export default class {
       //  this is needed for as long as DataType extends Record
       schema: Pick<DataType, "kind" | "title" | "description" | "type"> &
         Record<string, any>;
-      updatedById: string;
+      actorId: string;
     },
   ): Promise<DataTypeModel> {
-    const { schema, updatedById } = params;
+    const { schema, actorId } = params;
 
     const updateArguments: UpdateDataTypeRequest = {
-      updatedById,
+      updatedById: actorId,
       typeToUpdate: this.schema.$id,
       schema,
     };
