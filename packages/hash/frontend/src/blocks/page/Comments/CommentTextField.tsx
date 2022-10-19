@@ -30,7 +30,11 @@ import {
 } from "../createSuggester/createSuggester";
 import { useRouteAccountInfo } from "../../../shared/routing";
 import styles from "./style.module.css";
-import { commentPlaceholderPlugin } from "./commentPlaceholderPlugin";
+import {
+  CommentPlaceholderAction,
+  commentPlaceholderPlugin,
+  commentPlaceholderPluginkey,
+} from "./commentPlaceholderPlugin";
 import { createTextEditorView } from "../createTextEditorView";
 
 type CommentTextFieldProps = {
@@ -128,7 +132,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
           ...createFormatPlugins(renderPortal),
           formatKeymap(schema),
           createSuggester(renderPortal, accountId, editorContainer),
-          commentPlaceholderPlugin(renderPortal, placeholder),
+          commentPlaceholderPlugin(renderPortal),
         ],
       });
 
@@ -164,7 +168,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         viewRef.current = undefined;
       };
     }
-  }, [onChange, accountId, renderPortal, placeholder]);
+  }, [onChange, accountId, renderPortal]);
 
   useEffect(() => {
     viewRef.current?.setProps({ editable: () => editable });
@@ -191,6 +195,17 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
       }
     }
   }, [onChange, value]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (view) {
+      const tr = view.state.tr.setMeta(commentPlaceholderPluginkey, {
+        type: "replacePlaceholder",
+        payload: { placeholder },
+      } as CommentPlaceholderAction);
+      view.dispatch(tr);
+    }
+  }, [placeholder]);
 
   return (
     <Box
