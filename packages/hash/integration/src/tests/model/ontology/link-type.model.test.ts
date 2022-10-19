@@ -33,8 +33,8 @@ const linkTypeSchema: Omit<LinkType, "$id"> = {
 };
 
 beforeAll(async () => {
-  testUser = await createTestUser(graphApi, "link-type-test", logger);
-  testUser2 = await createTestUser(graphApi, "link-type-test", logger);
+  testUser = await createTestUser(graphApi, "link-type-test-1", logger);
+  testUser2 = await createTestUser(graphApi, "link-type-test-2", logger);
 });
 
 describe("Link type CRU", () => {

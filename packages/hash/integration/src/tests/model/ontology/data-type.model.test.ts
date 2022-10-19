@@ -39,8 +39,8 @@ const dataTypeSchema: Pick<
 };
 
 beforeAll(async () => {
-  testUser = await createTestUser(graphApi, "data-type-test", logger);
-  testUser2 = await createTestUser(graphApi, "data-type-test", logger);
+  testUser = await createTestUser(graphApi, "data-type-test-1", logger);
+  testUser2 = await createTestUser(graphApi, "data-type-test-2", logger);
 });
 
 describe("Data type CRU", () => {

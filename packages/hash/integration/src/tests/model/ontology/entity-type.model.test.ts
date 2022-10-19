@@ -40,8 +40,8 @@ let previousAddressLinkTypeModel: LinkTypeModel;
 let addressEntityTypeModel: EntityTypeModel;
 
 beforeAll(async () => {
-  testUser = await createTestUser(graphApi, "entity-type-test", logger);
-  testUser2 = await createTestUser(graphApi, "entity-type-test", logger);
+  testUser = await createTestUser(graphApi, "entity-type-test-1", logger);
+  testUser2 = await createTestUser(graphApi, "entity-type-test-2", logger);
 
   textDataTypeModel = await DataTypeModel.create(graphApi, {
     ownedById: testUser.entityId,
