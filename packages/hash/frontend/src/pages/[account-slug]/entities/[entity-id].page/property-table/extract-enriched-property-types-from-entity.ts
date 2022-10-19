@@ -7,10 +7,9 @@ const getDataTypesOfPropertyType = (
   propertyType: PropertyType,
   entity: EntityResponse,
 ) => {
-  /** @todo check why propertyValue does not have with a proper type  */
-  return propertyType.oneOf.map((propertyValue: any) => {
-    if (propertyValue?.$ref) {
-      const dataTypeId = propertyValue?.$ref;
+  return propertyType.oneOf.map((propertyValue) => {
+    if ("$ref" in propertyValue) {
+      const dataTypeId = propertyValue.$ref;
       return (
         entity.entityTypeRootedSubgraph.referencedDataTypes.find(
           (val) => val.dataTypeId === dataTypeId,

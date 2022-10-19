@@ -4,9 +4,10 @@ import {
   SnackbarKey,
   SnackbarMessage,
   // eslint-disable-next-line no-restricted-imports
-  useSnackbar as libUseStackbar,
+  useSnackbar as useLibSnackbar,
   VariantType,
 } from "notistack";
+import { useMemo } from "react";
 
 type EnqueueWithoutVariant = (
   message: SnackbarMessage,
@@ -44,7 +45,12 @@ const generateSnackbarVariants = (
 };
 
 export const useSnackbar = () => {
-  const { enqueueSnackbar } = libUseStackbar();
+  const { enqueueSnackbar } = useLibSnackbar();
 
-  return generateSnackbarVariants(enqueueSnackbar);
+  const snackbar = useMemo(
+    () => generateSnackbarVariants(enqueueSnackbar),
+    [enqueueSnackbar],
+  );
+
+  return snackbar;
 };

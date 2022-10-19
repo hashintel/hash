@@ -33,7 +33,7 @@ export const useOnCellEdited = (rowData: PropertyRow[]) => {
        * setting state for optimistic update
        * also storing previous entity, so we can rollback if API call fails
        */
-      const prevEntity = { ...entity };
+      const prevEntity = entity;
       setEntity({
         ...entity,
         properties: updatedProperties,

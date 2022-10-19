@@ -1,12 +1,9 @@
 import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
-import { useEntityEditor } from "../entity-editor-context";
 import { linkGridIndexes } from "./constants";
 import { LinkRow } from "./types";
 
 export const useGetCellContent = (rowData: LinkRow[]) => {
-  const { linkSort } = useEntityEditor();
-
   const getCellContent = useCallback(
     ([col, row]: Item): GridCell => {
       const link = rowData[row];
@@ -30,12 +27,7 @@ export const useGetCellContent = (rowData: LinkRow[]) => {
         allowOverlay: false,
       };
     },
-    /**
-     * @todo check why grid is not updating without adding `linkSort` as dependency
-     * rowData is already depending on `linkSort`
-     * */
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [rowData, linkSort],
+    [rowData],
   );
 
   return getCellContent;
