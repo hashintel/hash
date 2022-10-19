@@ -20,11 +20,6 @@ where
                 //   see https://app.asana.com/0/0/1202884883200947/f
                 let literal = match head_path_segment.identifier.as_str() {
                     "ownedById" => Literal::String(self.owned_by_id.to_string()),
-                    "createdById" => Literal::String(self.created_by_id.to_string()),
-                    "updatedById" => Literal::String(self.updated_by_id.to_string()),
-                    "removedById" => self.removed_by_id.map_or(Literal::Null, |removed_by_id| {
-                        Literal::String(removed_by_id.to_string())
-                    }),
                     "baseUri" => Literal::String(self.record.id().base_uri().to_string()),
                     "versionedUri" => Literal::String(self.record.id().to_string()),
                     "version" => Literal::Version(

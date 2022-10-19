@@ -71,11 +71,6 @@ where
                                 .await?,
                         ));
                     }
-                    "createdById" => Literal::String(self.created_by_id.to_string()),
-                    "updatedById" => Literal::String(self.updated_by_id.to_string()),
-                    "removedById" => self.removed_by_id.map_or(Literal::Null, |removed_by_id| {
-                        Literal::String(removed_by_id.to_string())
-                    }),
                     _ => Literal::Null,
                 };
 
