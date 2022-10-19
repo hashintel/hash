@@ -10,7 +10,7 @@ use crate::store::{
     query::{Filter, FilterValue, Parameter},
 };
 
-/// A [`Filter`] compiled to postgres.
+/// A [`Filter`], which can be transpiled.
 pub enum Condition<'q> {
     All(Vec<Self>),
     Any(Vec<Self>),
@@ -65,8 +65,8 @@ impl<'q> Condition<'q> {
 impl Transpile for Condition<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Condition::All(conditions) if conditions.is_empty() => fmt.write_str("true"),
-            Condition::Any(conditions) if conditions.is_empty() => fmt.write_str("false"),
+            Condition::All(conditions) if conditions.is_empty() => fmt.write_str("TRUE"),
+            Condition::Any(conditions) if conditions.is_empty() => fmt.write_str("FALSE"),
             Condition::All(conditions) | Condition::Any(conditions) => {
                 for (idx, condition) in conditions.iter().enumerate() {
                     fmt.write_char('(')?;
@@ -129,20 +129,15 @@ impl<'q> ConditionValue<'q> {
                 },
                 access: path.column_access(),
             }),
-            FilterValue::Parameter(parameter) => match parameter {
-                Parameter::Number(number) => {
-                    parameters.push(number);
-                    Self::Parameter(parameters.len())
+            FilterValue::Parameter(parameter) => {
+                match parameter {
+                    Parameter::Number(number) => parameters.push(number),
+                    Parameter::Text(text) => parameters.push(text),
+                    Parameter::Boolean(bool) => parameters.push(bool),
                 }
-                Parameter::Text(text) => {
-                    parameters.push(text);
-                    Self::Parameter(parameters.len())
-                }
-                Parameter::Boolean(bool) => {
-                    parameters.push(bool);
-                    Self::Parameter(parameters.len())
-                }
-            },
+                // Indices in Postgres are 1-based
+                Self::Parameter(parameters.len())
+            }
         }
     }
 }
@@ -197,8 +192,8 @@ mod tests {
 
     #[test]
     fn render_empty_condition() {
-        test_condition(&Filter::All(vec![]), "true", &[]);
-        test_condition(&Filter::Any(vec![]), "false", &[]);
+        test_condition(&Filter::All(vec![]), "TRUE", &[]);
+        test_condition(&Filter::Any(vec![]), "FALSE", &[]);
     }
 
     #[test]
@@ -323,6 +318,22 @@ mod tests {
             ))),
             r#"NOT("data_types"."schema"->>'$id' = $1)"#,
             &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
+        );
+    }
+
+    #[test]
+    fn render_without_parameters() {
+        test_condition(
+            &Filter::Any(vec![Filter::Equal(
+                Some(FilterValue::Path(DataTypeQueryPath::Custom(Cow::Borrowed(
+                    "left",
+                )))),
+                Some(FilterValue::Path(DataTypeQueryPath::Custom(Cow::Borrowed(
+                    "right",
+                )))),
+            )]),
+            r#"("data_types"."schema"->>'left' = "data_types"."schema"->>'right')"#,
+            &[],
         );
     }
 }
