@@ -50,7 +50,7 @@ describe("User model class", () => {
     createdUser = await UserModel.createUser(graphApi, {
       emails: ["alice@example.com"],
       kratosIdentityId,
-      createdById: workspaceAccountId,
+      actorId: workspaceAccountId,
     });
   });
 
@@ -59,7 +59,7 @@ describe("User model class", () => {
       UserModel.createUser(graphApi, {
         emails: ["bob@example.com"],
         kratosIdentityId,
-        createdById: workspaceAccountId,
+        actorId: workspaceAccountId,
       }),
     ).rejects.toThrowError(`"${kratosIdentityId}" already exists.`);
   });
@@ -71,14 +71,14 @@ describe("User model class", () => {
   it("can update the shortname of a user", async () => {
     createdUser = await createdUser.updateShortname(graphApi, {
       updatedShortname: shortname,
-      updatedById: createdUser.entityId,
+      actorId: createdUser.entityId,
     });
   });
 
   it("can update the preferred name of a user", async () => {
     createdUser = await createdUser.updatePreferredName(graphApi, {
       updatedPreferredName: "Alice",
-      updatedById: createdUser.entityId,
+      actorId: createdUser.entityId,
     });
   });
 
@@ -109,7 +109,7 @@ describe("User model class", () => {
       providedInfo: {
         orgSize: OrgSize.ElevenToFifty,
       },
-      createdById: workspaceAccountId,
+      actorId: workspaceAccountId,
     });
 
     const { entityId: orgEntityId } = testOrg;
@@ -121,7 +121,7 @@ describe("User model class", () => {
     await createdUser.joinOrg(graphApi, {
       org: testOrg,
       responsibility: "developer",
-      joinedById: workspaceAccountId,
+      actorId: workspaceAccountId,
     });
 
     expect(await createdUser.isMemberOfOrg(graphApi, { orgEntityId })).toBe(
