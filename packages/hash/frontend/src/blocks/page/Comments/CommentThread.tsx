@@ -7,10 +7,9 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { types } from "@hashintel/hash-shared/types";
 import { PageThread } from "../../../components/hooks/usePageComments";
-import { CommentTextField, CommentTextFieldRef } from "./CommentTextField";
+import { CommentTextField } from "./CommentTextField";
 import { CommentBlock } from "./CommentBlock";
 import styles from "./style.module.css";
-import { useInitTypeSystem } from "../../../lib/use-init-type-system";
 
 const UNCOLLAPSIBLE_REPLIES_NUMBER = 2;
 
@@ -25,7 +24,6 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   createComment,
   loading,
 }) => {
-  const inputRef = useRef<CommentTextFieldRef>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const [threadFocused, setThreadFocused] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
@@ -37,14 +35,14 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
     (threadFocused && inputFocused) || !!inputValue.length;
 
   const cancelSubmit = () => {
-    inputRef.current?.resetDocument();
+    setInputValue([]);
     threadRef.current?.focus();
   };
 
   const submitComment = async () => {
     if (!loading && inputValue?.length) {
       await createComment(comment.entityId, inputValue).then(() => {
-        inputRef.current?.resetDocument();
+        setInputValue([]);
       });
     }
   };
@@ -156,7 +154,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
             })}
           >
             <CommentTextField
-              ref={inputRef}
+              value={inputValue}
               placeholder={`Reply to ${preferredName}`}
               onClose={cancelSubmit}
               onSubmit={submitComment}

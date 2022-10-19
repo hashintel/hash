@@ -1,4 +1,4 @@
-import { FunctionComponent, useMemo, useState, useRef, useEffect } from "react";
+import { FunctionComponent, useMemo, useState } from "react";
 import { Box, Typography } from "@mui/material";
 import {
   Avatar,
@@ -18,11 +18,9 @@ import { bindTrigger } from "material-ui-popup-state";
 import { types } from "@hashintel/hash-shared/types";
 import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { PageComment } from "../../../components/hooks/usePageComments";
-import { CommentTextField, CommentTextFieldRef } from "./CommentTextField";
+import { CommentTextField } from "./CommentTextField";
 import { CommentBlockMenu } from "./CommentBlockMenu";
 import styles from "./style.module.css";
-
-const LINE_HEIGHT = 21;
 
 type ShowMoreTextLinkProps = {
   label: string;
@@ -59,7 +57,6 @@ type CommentProps = {
 export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
   const { hasText, author, textUpdatedAt } = comment;
 
-  const contentRef = useRef<CommentTextFieldRef>(null);
   const [collapsed, setCollapsed] = useState(true);
   const [shouldCollapse, setShouldCollapse] = useState(false);
 
@@ -75,15 +72,6 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
     variant: "popover",
     popupId: "comment-block-menu",
   });
-
-  useEffect(() => {
-    if (contentRef.current) {
-      const dom = contentRef.current.getDom();
-      if (dom) {
-        setShouldCollapse(dom.scrollHeight > LINE_HEIGHT * 2);
-      }
-    }
-  }, []);
 
   const preferredName = useMemo(
     () =>
@@ -136,8 +124,8 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
 
       <Box p={0.5} pt={2} position="relative">
         <CommentTextField
-          ref={contentRef}
-          initialText={hasText}
+          onLineCountChange={(lines) => setShouldCollapse(lines > 2)}
+          value={hasText}
           className={collapsed ? styles.Comment__TextField_collapsed! : ""}
           readOnly
         />
