@@ -21,7 +21,7 @@ export const CreateBlockComment: FunctionComponent<CreateBlockCommentProps> = ({
   const [createComment, { loading }] = useCreateComment(pageEntityId);
   const [inputValue, setInputValue] = useState<TextToken[]>([]);
 
-  const submitComment = async () => {
+  const handleCommentSubmit = async () => {
     if (!loading && blockId && inputValue?.length) {
       await createComment(blockId, inputValue).then(() => {
         onClose?.();
@@ -60,7 +60,7 @@ export const CreateBlockComment: FunctionComponent<CreateBlockCommentProps> = ({
 
       <CommentTextField
         onClose={onClose}
-        onSubmit={submitComment}
+        onSubmit={handleCommentSubmit}
         editable={!loading}
         loading={loading}
         className={styles.Comment__TextField_editable}
