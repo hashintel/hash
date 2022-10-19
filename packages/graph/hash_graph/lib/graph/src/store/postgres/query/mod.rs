@@ -2,6 +2,7 @@
 
 //! Postgres implementation to compile queries.
 
+mod compile;
 mod condition;
 mod data_type;
 mod expression;
@@ -11,7 +12,8 @@ mod table;
 use std::fmt::{self, Formatter};
 
 pub use self::{
-    condition::Condition,
+    compile::SelectCompiler,
+    condition::{Condition, EqualityOperator},
     data_type::DataTypeQueryField,
     expression::{
         CommonTableExpression, Expression, Function, JoinExpression, SelectExpression,
@@ -25,8 +27,11 @@ use crate::store::query::QueryRecord;
 pub trait PostgresQueryRecord<'q>: QueryRecord<Path<'q>: Path> {
     type Field: Field;
 
-    /// The [`TableName`] used for this `Query`.
-    fn base_table() -> TableName;
+    /// The [`Table`] used for this `Query`.
+    fn base_table() -> Table;
+
+    /// Default [`Field`]s returned when querying this record.
+    fn default_fields() -> &'q [Self::Field];
 }
 
 /// A queryable attribute of an element in the graph.

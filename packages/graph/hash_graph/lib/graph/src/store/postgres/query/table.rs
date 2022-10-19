@@ -105,15 +105,23 @@ impl Transpile for Table {
 }
 
 /// Specifier on how to access a column of a table.
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub enum ColumnAccess<'a> {
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ColumnAccess<'q> {
     /// Accesses a column of a table directly: `"column"`
     Table { column: &'static str },
     /// Accesses a field of a JSON blob: `"column"->>'field'`
     Json {
         column: &'static str,
-        field: Cow<'a, str>,
+        field: Cow<'q, str>,
     },
+}
+
+impl ColumnAccess<'_> {
+    pub const fn column(&self) -> &'static str {
+        match self {
+            Self::Table { column } | Self::Json { column, .. } => column,
+        }
+    }
 }
 
 impl Transpile for ColumnAccess<'_> {
@@ -126,7 +134,7 @@ impl Transpile for ColumnAccess<'_> {
 }
 
 /// A column available in the database.
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Column<'a> {
     pub table: Table,
     pub access: ColumnAccess<'a>,

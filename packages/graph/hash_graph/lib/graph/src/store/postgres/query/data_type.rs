@@ -4,14 +4,21 @@ use type_system::DataType;
 
 use crate::{
     ontology::DataTypeQueryPath,
-    store::postgres::query::{ColumnAccess, Field, Path, PostgresQueryRecord, TableName},
+    store::postgres::query::{ColumnAccess, Field, Path, PostgresQueryRecord, Table, TableName},
 };
 
 impl<'q> PostgresQueryRecord<'q> for DataType {
     type Field = DataTypeQueryField<'q>;
 
-    fn base_table() -> TableName {
-        TableName::DataTypes
+    fn base_table() -> Table {
+        Table {
+            name: TableName::DataTypes,
+            alias: None,
+        }
+    }
+
+    fn default_fields() -> &'q [Self::Field] {
+        &[DataTypeQueryField::Schema, DataTypeQueryField::OwnedById]
     }
 }
 
