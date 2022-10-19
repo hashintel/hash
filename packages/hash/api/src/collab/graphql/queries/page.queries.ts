@@ -1,8 +1,5 @@
 import { gql } from "@apollo/client";
-import {
-  blockFieldsFragment,
-  persistedBlockFieldsFragment,
-} from "./blocks.queries";
+import { blockFieldsFragment } from "./blocks.queries";
 
 export const pageFieldsFragment = gql`
   fragment PageFields on Page {
@@ -64,37 +61,4 @@ export const getPageQuery = gql`
     }
   }
   ${pageFieldsFragment}
-`;
-
-export const persistedPageFieldsFragment = gql`
-  fragment PersistedPageFields on PersistedPage {
-    archived
-    summary
-    title
-    ownedById
-    entityId
-    entityVersion
-    contents {
-      ...PersistedBlockFields
-    }
-    __typename
-  }
-  ${persistedBlockFieldsFragment}
-`;
-
-export const getPersistedPageQuery = gql`
-  query getPersistedPage(
-    $ownedById: ID!
-    $entityId: ID!
-    $entityVersion: String
-  ) {
-    persistedPage(
-      ownedById: $ownedById
-      entityId: $entityId
-      entityVersion: $entityVersion
-    ) {
-      ...PersistedPageFields
-    }
-  }
-  ${persistedPageFieldsFragment}
 `;
