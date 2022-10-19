@@ -37,7 +37,7 @@ impl<C: AsClient> PostgresStore<C> {
         let _unresolved_entity_type = referenced_data_types
             .insert_with(
                 data_type_id,
-                graph_resolve_depths.data_type_resolve_depth,
+                Some(graph_resolve_depths.data_type_resolve_depth),
                 || async {
                     Ok(PersistedDataType::from_record(
                         self.read_versioned_ontology_type(data_type_id).await?,
@@ -88,13 +88,9 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
                 let data_type_id = data_type.metadata().identifier().uri().clone();
-                dependency_context.referenced_data_types.insert(
-                    &data_type_id,
-                    dependency_context
-                        .graph_resolve_depths
-                        .data_type_resolve_depth,
-                    data_type,
-                );
+                dependency_context
+                    .referenced_data_types
+                    .insert(&data_type_id, None, data_type);
 
                 self.get_data_type_as_dependency(&data_type_id, dependency_context.as_ref_object())
                     .await?;

@@ -48,7 +48,7 @@ use crate::{
 };
 
 pub struct DependencyMap<V, T, D> {
-    resolved: HashMap<V, (T, D)>,
+    resolved: HashMap<V, (T, Option<D>)>,
 }
 
 impl<V, T, D> Default for DependencyMap<V, T, D> {
@@ -74,25 +74,30 @@ where
     /// Inserts a dependency into the map.
     ///
     /// If the dependency does not already exist in the dependency map, it will be inserted with the
-    /// provided `depth` and a reference to this dependency will be returned in order to continue
-    /// resolving it. In the case, that the dependency already exists, the `depth` will be compared
-    /// with depth used when inserting it before:
+    /// provided `resolved_depth` and a reference to this dependency will be returned in order to
+    /// continue resolving it. In the case, that the dependency already exists, the
+    /// `resolved_depth` will be compared with depth used when inserting it before:
+    /// - If the previous `resolved_depth` was `None`, the dependency was not resolved yet and the
+    ///   value is returned
     /// - If the new depth is higher, the depth will be updated and a reference to the dependency
     ///   will be returned in order to keep resolving it
     /// - Otherwise, `None` will be returned as no further resolution is needed
-    pub fn insert(&mut self, identifier: &V, depth: D, value: T) -> Option<&T> {
+    pub fn insert(&mut self, identifier: &V, resolved_depth: Option<D>, value: T) -> Option<&T> {
         match self.resolved.raw_entry_mut().from_key(identifier) {
             RawEntryMut::Vacant(entry) => {
-                let (_id, (value, _depth)) = entry.insert(identifier.clone(), (value, depth));
+                let (_id, (value, _depth)) =
+                    entry.insert(identifier.clone(), (value, resolved_depth));
                 Some(value)
             }
             RawEntryMut::Occupied(entry) => {
                 let (value, used_depth) = entry.into_mut();
-                if *used_depth < depth {
-                    *used_depth = depth;
-                    Some(value)
-                } else {
-                    None
+                match (used_depth, resolved_depth) {
+                    (None, Some(_)) => Some(value),
+                    (Some(used_depth), Some(resolved_depth)) if *used_depth < resolved_depth => {
+                        *used_depth = resolved_depth;
+                        Some(value)
+                    }
+                    _ => None,
                 }
             }
         }
@@ -106,7 +111,7 @@ where
     pub async fn insert_with<F, R>(
         &mut self,
         identifier: &V,
-        depth: D,
+        resolved_depth: Option<D>,
         resolver: F,
     ) -> Result<Option<&T>, QueryError>
     where
@@ -116,16 +121,19 @@ where
         Ok(match self.resolved.raw_entry_mut().from_key(identifier) {
             RawEntryMut::Vacant(entry) => {
                 let value = resolver().await?;
-                let (_id, (value, _depth)) = entry.insert(identifier.clone(), (value, depth));
+                let (_id, (value, _depth)) =
+                    entry.insert(identifier.clone(), (value, resolved_depth));
                 Some(value)
             }
             RawEntryMut::Occupied(entry) => {
                 let (value, used_depth) = entry.into_mut();
-                if *used_depth < depth {
-                    *used_depth = depth;
-                    Some(value)
-                } else {
-                    None
+                match (used_depth, resolved_depth) {
+                    (None, Some(_)) => Some(value),
+                    (Some(used_depth), Some(resolved_depth)) if *used_depth < resolved_depth => {
+                        *used_depth = resolved_depth;
+                        Some(value)
+                    }
+                    _ => None,
                 }
             }
         })
@@ -145,7 +153,7 @@ where
 }
 
 pub struct DependencySet<T, D> {
-    resolved: HashMap<T, D>,
+    resolved: HashMap<T, Option<D>>,
 }
 
 impl<T, D> Default for DependencySet<T, D> {
@@ -169,26 +177,34 @@ where
 {
     /// Inserts a dependency into the map.
     ///
-    /// If the dependency does not already exist in the dependency set, it will be inserted with the
-    /// provided `depth` and a reference to this dependency will be returned in order to continue
-    /// resolving it. In the case, that the dependency already exists, the `depth` will be compared
-    /// with depth used when inserting it before:
+    /// If the dependency does not already exist in the dependency map, it will be inserted with the
+    /// provided `resolved_depth` and a reference to this dependency will be returned in order to
+    /// continue resolving it. In the case, that the dependency already exists, the
+    /// `resolved_depth` will be compared with depth used when inserting it before:
+    /// - If the previous `resolved_depth` was `None`, the dependency was not resolved yet and the
+    ///   value is returned
     /// - If the new depth is higher, the depth will be updated and a reference to the dependency
     ///   will be returned in order to keep resolving it
     /// - Otherwise, `None` will be returned as no further resolution is needed
-    pub fn insert<'t, 's: 't>(&'s mut self, identifier: &'t T, depth: D) -> Option<&'t T> {
+    pub fn insert<'t, 's: 't>(
+        &'s mut self,
+        identifier: &'t T,
+        resolved_depth: Option<D>,
+    ) -> Option<&'t T> {
         match self.resolved.raw_entry_mut().from_key(identifier) {
             RawEntryMut::Vacant(entry) => {
-                let (value, _depth) = entry.insert(identifier.clone(), depth);
+                let (value, _depth) = entry.insert(identifier.clone(), resolved_depth);
                 Some(value)
             }
             RawEntryMut::Occupied(entry) => {
                 let (value, used_depth) = entry.into_key_value();
-                if *used_depth < depth {
-                    *used_depth = depth;
-                    Some(value)
-                } else {
-                    None
+                match (used_depth, resolved_depth) {
+                    (None, Some(_)) => Some(value),
+                    (Some(used_depth), Some(resolved_depth)) if *used_depth < resolved_depth => {
+                        *used_depth = resolved_depth;
+                        Some(value)
+                    }
+                    _ => None,
                 }
             }
         }

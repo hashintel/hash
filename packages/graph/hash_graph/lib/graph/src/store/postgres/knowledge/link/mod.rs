@@ -34,7 +34,7 @@ impl<C: AsClient> PostgresStore<C> {
         async move {
             if let Some(link) = dependency_context.links.insert(
                 link,
-                dependency_context.graph_resolve_depths.link_resolve_depth,
+                Some(dependency_context.graph_resolve_depths.link_resolve_depth),
             ) {
                 // Cloning/copying here avoids multiple borrow errors which would otherwise
                 // require us to clone the Link
@@ -154,10 +154,7 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
             .then(|link| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
-                dependency_context.links.insert(
-                    &link,
-                    dependency_context.graph_resolve_depths.link_resolve_depth,
-                );
+                dependency_context.links.insert(&link, None);
 
                 self.get_link_as_dependency(&link, dependency_context.as_ref_object())
                     .await?;

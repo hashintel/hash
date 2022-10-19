@@ -41,9 +41,11 @@ impl<C: AsClient> PostgresStore<C> {
                 .linked_entities
                 .insert_with(
                     &entity_id,
-                    dependency_context
-                        .graph_resolve_depths
-                        .link_target_entity_resolve_depth,
+                    Some(
+                        dependency_context
+                            .graph_resolve_depths
+                            .link_target_entity_resolve_depth,
+                    ),
                     || async {
                         Ok(PersistedEntity::from(
                             self.read_latest_entity_by_id(entity_id).await?,
@@ -230,13 +232,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
                 let entity_id = entity.metadata().identifier().entity_id();
-                dependency_context.linked_entities.insert(
-                    &entity_id,
-                    dependency_context
-                        .graph_resolve_depths
-                        .link_target_entity_resolve_depth,
-                    entity,
-                );
+                dependency_context
+                    .linked_entities
+                    .insert(&entity_id, None, entity);
 
                 self.get_entity_as_dependency(entity_id, dependency_context.as_ref_object())
                     .await?;

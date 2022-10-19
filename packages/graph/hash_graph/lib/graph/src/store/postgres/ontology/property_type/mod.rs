@@ -38,9 +38,11 @@ impl<C: AsClient> PostgresStore<C> {
                 .referenced_property_types
                 .insert_with(
                     property_type_id,
-                    dependency_context
-                        .graph_resolve_depths
-                        .property_type_resolve_depth,
+                    Some(
+                        dependency_context
+                            .graph_resolve_depths
+                            .property_type_resolve_depth,
+                    ),
                     || async {
                         Ok(PersistedPropertyType::from_record(
                             self.read_versioned_ontology_type(property_type_id).await?,
@@ -177,9 +179,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 let property_type_id = property_type.metadata().identifier().uri().clone();
                 dependency_context.referenced_property_types.insert(
                     &property_type_id,
-                    dependency_context
-                        .graph_resolve_depths
-                        .property_type_resolve_depth,
+                    None,
                     property_type,
                 );
 

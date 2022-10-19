@@ -44,9 +44,11 @@ impl<C: AsClient> PostgresStore<C> {
                 .referenced_entity_types
                 .insert_with(
                     entity_type_id,
-                    dependency_context
-                        .graph_resolve_depths
-                        .entity_type_resolve_depth,
+                    Some(
+                        dependency_context
+                            .graph_resolve_depths
+                            .entity_type_resolve_depth,
+                    ),
                     || async {
                         Ok(PersistedEntityType::from_record(
                             self.read_versioned_ontology_type(entity_type_id).await?,
@@ -214,9 +216,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 let entity_type_id = entity_type.metadata().identifier().uri().clone();
                 dependency_context.referenced_entity_types.insert(
                     &entity_type_id,
-                    dependency_context
-                        .graph_resolve_depths
-                        .entity_type_resolve_depth,
+                    None,
                     entity_type,
                 );
 

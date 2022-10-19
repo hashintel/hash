@@ -32,7 +32,7 @@ impl<C: AsClient> PostgresStore<C> {
             .referenced_link_types
             .insert_with(
                 link_type_id,
-                context.graph_resolve_depths.link_type_resolve_depth,
+                Some(context.graph_resolve_depths.link_type_resolve_depth),
                 || async {
                     Ok(PersistedLinkType::from_record(
                         self.read_versioned_ontology_type(link_type_id).await?,
@@ -86,13 +86,9 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
                 let link_type_id = link_type.metadata().identifier().uri().clone();
-                dependency_context.referenced_link_types.insert(
-                    &link_type_id,
-                    dependency_context
-                        .graph_resolve_depths
-                        .link_type_resolve_depth,
-                    link_type,
-                );
+                dependency_context
+                    .referenced_link_types
+                    .insert(&link_type_id, None, link_type);
 
                 self.get_link_type_as_dependency(&link_type_id, dependency_context.as_ref_object())
                     .await?;
