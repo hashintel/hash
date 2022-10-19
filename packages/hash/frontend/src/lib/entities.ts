@@ -16,6 +16,7 @@ import {
   LinkGroup as ApiLinkGroup,
   LinkedAggregation as ApiLinkedAggregation,
 } from "../graphql/apiTypes.gen";
+import { getPropertyTypesByBaseUri } from "./subgraph";
 
 const isObject = (thing: unknown): thing is {} =>
   typeof thing === "object" && thing !== null;
@@ -467,22 +468,30 @@ export const generateEntityLabel = (
     "shortname",
   ];
 
-  /** @todo refactor the following section to make it more readable */
-  const propertyTypes: { title?: string; propertyTypeId: string }[] =
-    Object.keys(entity.properties).map((propertyTypeId) => ({
-      propertyTypeId,
-      title: (
-        entity as EntityResponse
-      ).entityTypeRootedSubgraph.referencedPropertyTypes
-        .find((item) => item.propertyTypeId.startsWith(propertyTypeId))
-        ?.propertyType.title.toLowerCase(),
-    }));
+  const propertyTypes: { title?: string; propertyTypeBaseUri: string }[] =
+    Object.keys(entity.properties).map((propertyTypeBaseUri) => {
+      const propertyTypeVersions = getPropertyTypesByBaseUri(
+        (entity as EntityResponse).entityTypeRootedSubgraph,
+        propertyTypeBaseUri,
+      );
+
+      /** @todo - pick the latest version? */
+      return propertyTypeVersions
+        ? {
+            title: propertyTypeVersions[0]!.inner.title.toLowerCase(),
+            propertyTypeBaseUri,
+          }
+        : {
+            title: undefined,
+            propertyTypeBaseUri,
+          };
+    });
 
   for (const option of options) {
     const found = propertyTypes.find(({ title }) => title === option);
 
     if (found) {
-      return entity.properties[found.propertyTypeId];
+      return entity.properties[found.propertyTypeBaseUri];
     }
   }
 
