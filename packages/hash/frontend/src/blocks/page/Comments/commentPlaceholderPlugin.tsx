@@ -35,7 +35,11 @@ export const commentPlaceholderPlugin = (
 
               return mountNode;
             },
+            /**
+             * passing a key prevents a focus related bug, by preventing re-creation of the dom node
+             * */
             {
+              key: "comment-placeholder-deco",
               destroy: (node) => {
                 renderPortal(null, node as HTMLElement);
               },
