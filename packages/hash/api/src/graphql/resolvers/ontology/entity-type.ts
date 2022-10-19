@@ -6,18 +6,13 @@ import {
   MutationCreateEntityTypeArgs,
   MutationUpdateEntityTypeArgs,
   QueryGetEntityTypeArgs,
+  QueryGetAllLatestEntityTypesArgs,
   ResolverFn,
   Subgraph,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { EntityTypeModel } from "../../../model";
 import { mapEntityTypeModelToGQL, mapSubgraphToGql } from "./model-mapping";
-import {
-  dataTypeQueryDepth,
-  entityTypeQueryDepth,
-  linkTypeQueryDepth,
-  propertyTypeQueryDepth,
-} from "../util";
 
 export const createEntityType: ResolverFn<
   Promise<PersistedEntityType>,
@@ -42,18 +37,28 @@ export const getAllLatestEntityTypes: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  {}
-> = async (_, __, { dataSources }, info) => {
+  QueryGetAllLatestEntityTypesArgs
+> = async (
+  _,
+  {
+    dataTypeResolveDepth,
+    propertyTypeResolveDepth,
+    linkTypeResolveDepth,
+    entityTypeResolveDepth,
+  },
+  { dataSources },
+  __,
+) => {
   const { graphApi } = dataSources;
 
   const { data: entityTypeSubgraph } = await graphApi
     .getEntityTypesByQuery({
       query: { eq: [{ path: ["version"] }, { literal: "latest" }] },
       graphResolveDepths: {
-        dataTypeResolveDepth: dataTypeQueryDepth(info),
-        propertyTypeResolveDepth: propertyTypeQueryDepth(info),
-        linkTypeResolveDepth: 0,
-        entityTypeResolveDepth: 0,
+        dataTypeResolveDepth,
+        propertyTypeResolveDepth,
+        linkTypeResolveDepth,
+        entityTypeResolveDepth,
         linkTargetEntityResolveDepth: 0,
         linkResolveDepth: 0,
       },
@@ -73,7 +78,18 @@ export const getEntityType: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryGetEntityTypeArgs
-> = async (_, { entityTypeId }, { dataSources }, info) => {
+> = async (
+  _,
+  {
+    entityTypeId,
+    dataTypeResolveDepth,
+    propertyTypeResolveDepth,
+    linkTypeResolveDepth,
+    entityTypeResolveDepth,
+  },
+  { dataSources },
+  __,
+) => {
   const { graphApi } = dataSources;
 
   const { data: entityTypeSubgraph } = await graphApi
@@ -82,10 +98,10 @@ export const getEntityType: ResolverFn<
         eq: [{ path: ["versionedUri"] }, { literal: entityTypeId }],
       },
       graphResolveDepths: {
-        dataTypeResolveDepth: dataTypeQueryDepth(info),
-        propertyTypeResolveDepth: propertyTypeQueryDepth(info),
-        linkTypeResolveDepth: linkTypeQueryDepth(info),
-        entityTypeResolveDepth: entityTypeQueryDepth(info),
+        dataTypeResolveDepth,
+        propertyTypeResolveDepth,
+        linkTypeResolveDepth,
+        entityTypeResolveDepth,
         linkTargetEntityResolveDepth: 0,
         linkResolveDepth: 0,
       },

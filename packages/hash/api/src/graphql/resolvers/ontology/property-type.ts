@@ -6,13 +6,13 @@ import {
   MutationCreatePropertyTypeArgs,
   MutationUpdatePropertyTypeArgs,
   QueryGetPropertyTypeArgs,
+  QueryGetAllLatestPropertyTypesArgs,
   ResolverFn,
   Subgraph,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { PropertyTypeModel } from "../../../model";
 import { mapPropertyTypeModelToGQL, mapSubgraphToGql } from "./model-mapping";
-import { dataTypeQueryDepth, propertyTypeQueryDepth } from "../util";
 
 export const createPropertyType: ResolverFn<
   Promise<PersistedPropertyType>,
@@ -37,8 +37,13 @@ export const getAllLatestPropertyTypes: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  {}
-> = async (_, __, { dataSources }, info) => {
+  QueryGetAllLatestPropertyTypesArgs
+> = async (
+  _,
+  { dataTypeResolveDepth, propertyTypeResolveDepth },
+  { dataSources },
+  __,
+) => {
   const { graphApi } = dataSources;
 
   /**
@@ -51,8 +56,8 @@ export const getAllLatestPropertyTypes: ResolverFn<
     .getPropertyTypesByQuery({
       query: { eq: [{ path: ["version"] }, { literal: "latest" }] },
       graphResolveDepths: {
-        dataTypeResolveDepth: dataTypeQueryDepth(info),
-        propertyTypeResolveDepth: propertyTypeQueryDepth(info),
+        dataTypeResolveDepth,
+        propertyTypeResolveDepth,
         linkTypeResolveDepth: 0,
         entityTypeResolveDepth: 0,
         linkTargetEntityResolveDepth: 0,
@@ -74,7 +79,12 @@ export const getPropertyType: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryGetPropertyTypeArgs
-> = async (_, { propertyTypeId }, { dataSources }, info) => {
+> = async (
+  _,
+  { propertyTypeId, dataTypeResolveDepth, propertyTypeResolveDepth },
+  { dataSources },
+  __,
+) => {
   const { graphApi } = dataSources;
 
   const { data: propertyTypeSubgraph } = await graphApi
@@ -83,8 +93,8 @@ export const getPropertyType: ResolverFn<
         eq: [{ path: ["versionedUri"] }, { literal: propertyTypeId }],
       },
       graphResolveDepths: {
-        dataTypeResolveDepth: dataTypeQueryDepth(info),
-        propertyTypeResolveDepth: propertyTypeQueryDepth(info),
+        dataTypeResolveDepth,
+        propertyTypeResolveDepth,
         linkTypeResolveDepth: 0,
         entityTypeResolveDepth: 0,
         linkTargetEntityResolveDepth: 0,
