@@ -4,10 +4,7 @@ use type_system::DataType;
 
 use crate::{
     ontology::DataTypeQueryPath,
-    store::postgres::query::{
-        database::{ColumnAccess, TableName},
-        Field, Path, PostgresQueryRecord,
-    },
+    store::postgres::query::{ColumnAccess, Field, Path, PostgresQueryRecord, TableName},
 };
 
 impl<'q> PostgresQueryRecord<'q> for DataType {
